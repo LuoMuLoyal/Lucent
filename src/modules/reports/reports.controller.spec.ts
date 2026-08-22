@@ -6,7 +6,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { HealthEventKind, HealthEventStatus } from '#generated/prisma/client';
 import type { ClinicSummaryShareField } from '#generated/prisma/client';
-import { ResultCode, SseConnectionRegistry } from '../../common';
+import { SseConnectionRegistry } from '../../common';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
@@ -156,7 +156,7 @@ describe('ReportsController', () => {
 
   // ── getDashboard ──────────────────────────────────────────────────────
 
-  it('should return report dashboard envelope', async () => {
+  it('should return the report dashboard resource', async () => {
     const dashboard = makeDashboard();
     service.getDashboard.mockResolvedValue(dashboard);
 
@@ -166,11 +166,7 @@ describe('ReportsController', () => {
         { range: REPORT_RANGE_LAST_7_DAYS },
         'en',
       ),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: dashboard,
-    });
+    ).toEqual(dashboard);
     expect(service.getDashboard).toHaveBeenCalledWith(
       'u1',
       { range: REPORT_RANGE_LAST_7_DAYS },
@@ -196,11 +192,7 @@ describe('ReportsController', () => {
         },
         'en',
       ),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: dashboard,
-    });
+    ).toEqual(dashboard);
     expect(service.getDashboard).toHaveBeenCalledWith(
       'u1',
       {
@@ -214,7 +206,7 @@ describe('ReportsController', () => {
 
   // ── generateSummary ───────────────────────────────────────────────────
 
-  it('should return report summary envelope', async () => {
+  it('should return the report summary resource', async () => {
     const summary = makeSummary();
     aiSummaryService.generate.mockResolvedValue(summary);
 
@@ -224,11 +216,7 @@ describe('ReportsController', () => {
         { range: REPORT_RANGE_LAST_30_DAYS },
         'zh-CN',
       ),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: summary,
-    });
+    ).toEqual(summary);
     expect(aiSummaryService.generate).toHaveBeenCalledWith(
       'u1',
       {
@@ -296,7 +284,7 @@ describe('ReportsController', () => {
 
   // ── previewClinicSummary ──────────────────────────────────────────────
 
-  it('returns clinic summary preview envelope', async () => {
+  it('returns the clinic summary preview resource', async () => {
     const summary = makeClinicSummary();
     clinicSummaryService.buildClinicSummary.mockResolvedValue(summary);
 
@@ -315,11 +303,7 @@ describe('ReportsController', () => {
       'zh-CN',
       {},
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: summary,
-    });
+    expect(result).toEqual(summary);
   });
 
   it('forwards the request scope and field selection to the summary service', async () => {
@@ -393,17 +377,13 @@ describe('ReportsController', () => {
       SHARED_VIEW_TTL_MS,
     );
     expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        shareId: 'share-1',
-        token: 'tok123',
-        shareUrl:
-          'http://localhost:3000/api/v1/user/reports/clinic-summary/shared/tok123',
-        expiresAt: '2026-07-18T08:00:00.000Z',
-        scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
-        selectedFields: ['event_overview'],
-      },
+      shareId: 'share-1',
+      token: 'tok123',
+      shareUrl:
+        'http://localhost:3000/api/v1/user/reports/clinic-summary/shared/tok123',
+      expiresAt: '2026-07-18T08:00:00.000Z',
+      scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+      selectedFields: ['event_overview'],
     });
   });
 
@@ -468,21 +448,17 @@ describe('ReportsController', () => {
       selectedFields: [...CLINIC_SUMMARY_SELECTABLE_FIELDS],
     });
     expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        shareId: 'share-1',
-        token: 'tok123',
-        shareUrl:
-          'http://localhost:3000/api/v1/user/reports/clinic-summary/shared/tok123',
-        expiresAt: '2026-07-18T08:00:00.000Z',
-        scope: {
-          eventId: null,
-          dateFrom: '2026-08-01T00:00:00.000Z',
-          dateTo: '2026-08-07T00:00:00.000Z',
-        },
-        selectedFields: [...CLINIC_SUMMARY_SELECTABLE_FIELDS],
+      shareId: 'share-1',
+      token: 'tok123',
+      shareUrl:
+        'http://localhost:3000/api/v1/user/reports/clinic-summary/shared/tok123',
+      expiresAt: '2026-07-18T08:00:00.000Z',
+      scope: {
+        eventId: null,
+        dateFrom: '2026-08-01T00:00:00.000Z',
+        dateTo: '2026-08-07T00:00:00.000Z',
       },
+      selectedFields: [...CLINIC_SUMMARY_SELECTABLE_FIELDS],
     });
   });
 
@@ -556,7 +532,7 @@ describe('ReportsController', () => {
 
   // ── listClinicSummaryShares ────────────────────────────────────────────
 
-  it('lists the current user shares in the list envelope without token fields', async () => {
+  it('lists the current user shares as a resource without token fields', async () => {
     shareService.listSharesForUser.mockResolvedValue([
       {
         id: 'share-1',
@@ -579,27 +555,23 @@ describe('ReportsController', () => {
 
     expect(shareService.listSharesForUser).toHaveBeenCalledWith('u1');
     expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        items: [
-          {
-            id: 'share-1',
-            createdAt: new Date('2026-08-14T08:00:00.000Z'),
-            expiresAt: new Date('2026-08-21T08:00:00.000Z'),
-            revokedAt: null,
-            accessCount: 2,
-            firstAccessedAt: new Date('2026-08-15T08:00:00.000Z'),
-            lastAccessedAt: new Date('2026-08-16T08:00:00.000Z'),
-            scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
-            selectedFields: ['event_overview'],
-          },
-        ],
-      },
+      items: [
+        {
+          id: 'share-1',
+          createdAt: new Date('2026-08-14T08:00:00.000Z'),
+          expiresAt: new Date('2026-08-21T08:00:00.000Z'),
+          revokedAt: null,
+          accessCount: 2,
+          firstAccessedAt: new Date('2026-08-15T08:00:00.000Z'),
+          lastAccessedAt: new Date('2026-08-16T08:00:00.000Z'),
+          scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+          selectedFields: ['event_overview'],
+        },
+      ],
     });
     // The list payload mirrors the service read model: no token ever surfaces.
-    expect(result.data!.items[0]).not.toHaveProperty('tokenHash');
-    expect(result.data!.items[0]).not.toHaveProperty('token');
+    expect(result.items[0]).not.toHaveProperty('tokenHash');
+    expect(result.items[0]).not.toHaveProperty('token');
   });
 
   it('scopes the list query to the caller so foreign shares never leak', async () => {
@@ -622,7 +594,7 @@ describe('ReportsController', () => {
 
   // ── getSharedClinicSummary ────────────────────────────────────────────
 
-  it('returns shared clinic summary envelope when token is valid', async () => {
+  it('returns shared clinic summary resource when token is valid', async () => {
     const summary = makeClinicSummary();
     clinicSummaryService.getSharedSummary.mockResolvedValue(summary);
 
@@ -634,11 +606,7 @@ describe('ReportsController', () => {
     expect(clinicSummaryService.getSharedSummary).toHaveBeenCalledWith(
       'valid-token',
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: summary,
-    });
+    expect(result).toEqual(summary);
   });
 
   it('throws HttpException 404 when the shared summary token is expired or revoked', async () => {
@@ -686,11 +654,7 @@ describe('ReportsController', () => {
     expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN', {
       eventId: 'evt-1',
     });
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { pdfBase64: pdfBuffer.toString('base64') },
-    });
+    expect(result).toEqual({ pdfBase64: pdfBuffer.toString('base64') });
   });
 
   it('routes an unscoped export through the async queue path', async () => {
@@ -708,11 +672,7 @@ describe('ReportsController', () => {
     // scoped sync branch (no options forwarded).
     expect(pdfQueueService.enqueue).not.toHaveBeenCalled();
     expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN');
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { pdfBase64: pdfBuffer.toString('base64') },
-    });
+    expect(result).toEqual({ pdfBase64: pdfBuffer.toString('base64') });
   });
 
   // ── revokeClinicSummaryShare ──────────────────────────────────────────
@@ -720,18 +680,15 @@ describe('ReportsController', () => {
   it('revokes a share owned by the current user', async () => {
     shareService.revokeShare.mockResolvedValue(true);
 
-    const result = await controller.revokeClinicSummaryShare(
-      { sub: 'u1', email: 'a@b.c', status: 'active' },
-      'share-1',
-      'zh-CN',
-    );
+    await expect(
+      controller.revokeClinicSummaryShare(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'share-1',
+        'zh-CN',
+      ),
+    ).resolves.toBeUndefined();
 
     expect(shareService.revokeShare).toHaveBeenCalledWith('u1', 'share-1');
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: null,
-    });
   });
 
   it('throws HttpException 404 when the share is not found or not owned', async () => {
@@ -783,7 +740,7 @@ describe('ReportsController', () => {
 
   // ── getCurrentReview ──────────────────────────────────────────────
 
-  it('returns the current event review envelope', async () => {
+  it('returns the current event review resource', async () => {
     const review = makeReview();
     eventReviewService.buildCurrent.mockResolvedValue(review);
 
@@ -793,15 +750,11 @@ describe('ReportsController', () => {
         email: 'a@b.c',
         status: 'active',
       }),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: review,
-    });
+    ).toEqual(review);
     expect(eventReviewService.buildCurrent).toHaveBeenCalledWith('u1');
   });
 
-  it('returns a success envelope with null data when no event review exists', async () => {
+  it('returns null when no event review exists', async () => {
     eventReviewService.buildCurrent.mockResolvedValue(null);
 
     expect(
@@ -810,16 +763,12 @@ describe('ReportsController', () => {
         email: 'a@b.c',
         status: 'active',
       }),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: null,
-    });
+    ).toBeNull();
   });
 
   // ── listReviews ───────────────────────────────────────────────────
 
-  it('returns the review list envelope and forwards status and cursor', async () => {
+  it('returns the review list resource and forwards status and cursor', async () => {
     const listData = {
       items: [makeReview().event],
       total: 1,
@@ -837,17 +786,13 @@ describe('ReportsController', () => {
         { sub: 'u1', email: 'a@b.c', status: 'active' },
         query,
       ),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: listData,
-    });
+    ).toEqual(listData);
     expect(eventReviewService.list).toHaveBeenCalledWith('u1', query);
   });
 
   // ── getEventReview ────────────────────────────────────────────────
 
-  it('returns the event review envelope for the event id', async () => {
+  it('returns the event review resource for the event id', async () => {
     const review = makeReview();
     eventReviewService.buildForEvent.mockResolvedValue(review);
 
@@ -856,11 +801,7 @@ describe('ReportsController', () => {
         { sub: 'u1', email: 'a@b.c', status: 'active' },
         'evt-1',
       ),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: review,
-    });
+    ).toEqual(review);
     expect(eventReviewService.buildForEvent).toHaveBeenCalledWith(
       'u1',
       'evt-1',

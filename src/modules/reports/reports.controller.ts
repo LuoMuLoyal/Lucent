@@ -31,7 +31,6 @@ import { I18nLang, I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../config/env/config-keys.enum';
 
 import {
-  successEnvelope,
   endSse,
   prepareSse,
   writeSseEvent,
@@ -190,9 +189,7 @@ export class ReportsController {
     @Query() query: ReportDashboardQueryDto,
     @I18nLang() language: string,
   ) {
-    return successEnvelope(
-      await this.reportsService.getDashboard(user.sub, query, language),
-    );
+    return await this.reportsService.getDashboard(user.sub, query, language);
   }
 
   @Post('summary/generate')
@@ -205,9 +202,7 @@ export class ReportsController {
     @Body() dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
   ) {
-    return successEnvelope(
-      await this.reportsAiSummaryService.generate(user.sub, dto, language),
-    );
+    return await this.reportsAiSummaryService.generate(user.sub, dto, language);
   }
 
   @Post('summary/generate/async')
@@ -235,15 +230,13 @@ export class ReportsController {
     @Body() dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
   ) {
-    return successEnvelope(
-      await enqueueOrFallback(
-        this.reportSummaryQueueService.isConfigured,
-        'report-summary',
-        () => this.reportSummaryQueueService.enqueue(user.sub, dto, language),
-        () => this.reportsAiSummaryService.generate(user.sub, dto, language),
-        'result',
-        this.logger,
-      ),
+    return await enqueueOrFallback(
+      this.reportSummaryQueueService.isConfigured,
+      'report-summary',
+      () => this.reportSummaryQueueService.enqueue(user.sub, dto, language),
+      () => this.reportsAiSummaryService.generate(user.sub, dto, language),
+      'result',
+      this.logger,
     );
   }
 
@@ -265,9 +258,9 @@ export class ReportsController {
       user.sub,
     );
     if (status == null) {
-      return successEnvelope({ status: 'not_found' });
+      return { status: 'not_found' };
     }
-    return successEnvelope(status);
+    return status;
   }
 
   @SkipThrottle()
@@ -341,12 +334,10 @@ export class ReportsController {
     @Body() dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
   ) {
-    return successEnvelope(
-      await this.clinicSummaryService.buildClinicSummary(
-        user.sub,
-        language,
-        this.toSummaryOptions(dto),
-      ),
+    return await this.clinicSummaryService.buildClinicSummary(
+      user.sub,
+      language,
+      this.toSummaryOptions(dto),
     );
   }
 
@@ -402,7 +393,7 @@ export class ReportsController {
         });
       throw error;
     }
-    return successEnvelope({
+    return {
       shareId: share.shareId,
       token: share.token,
       shareUrl: this.buildShareUrl(share.token),
@@ -413,7 +404,7 @@ export class ReportsController {
         dateTo: share.scope.dateTo?.toISOString() ?? null,
       },
       selectedFields: share.selectedFields,
-    });
+    };
   }
 
   @Get('clinic-summary/shares')
@@ -422,9 +413,9 @@ export class ReportsController {
   })
   @ApiResponse({ status: 200, type: ClinicSummaryShareListResponseDto })
   async listClinicSummaryShares(@CurrentUser() user: UserPayload) {
-    return successEnvelope({
+    return {
       items: await this.shareService.listSharesForUser(user.sub),
-    });
+    };
   }
 
   @Public()
@@ -450,17 +441,17 @@ export class ReportsController {
         HttpStatus.NOT_FOUND,
       );
     }
-    return successEnvelope(summary);
+    return summary;
   }
 
   @Delete('clinic-summary/shares/:shareId')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Revoke a clinic summary share (current user owns the share)',
   })
   @ApiParam({ name: 'shareId' })
   @ApiResponse({
-    status: 200,
+    status: 204,
     description: 'Share revoked; the shared URL now returns 404.',
   })
   async revokeClinicSummaryShare(
@@ -477,7 +468,7 @@ export class ReportsController {
         HttpStatus.NOT_FOUND,
       );
     }
-    return successEnvelope(null);
+    return;
   }
 
   @Post('clinic-summary/export/async')
@@ -522,24 +513,22 @@ export class ReportsController {
       dto.dateTo != null ||
       dto.selectedFields != null;
     if (hasCustomScope) {
-      return successEnvelope({
+      return {
         pdfBase64: (
           await this.clinicSummaryService.exportPdf(user.sub, language, options)
         ).toString('base64'),
-      });
+      };
     }
-    return successEnvelope(
-      await enqueueOrFallback(
-        this.clinicSummaryPdfQueueService.isConfigured,
-        'clinic-summary-pdf',
-        () => this.clinicSummaryPdfQueueService.enqueue(user.sub, language),
-        async () =>
-          (
-            await this.clinicSummaryService.exportPdf(user.sub, language)
-          ).toString('base64'),
-        'pdfBase64',
-        this.logger,
-      ),
+    return await enqueueOrFallback(
+      this.clinicSummaryPdfQueueService.isConfigured,
+      'clinic-summary-pdf',
+      () => this.clinicSummaryPdfQueueService.enqueue(user.sub, language),
+      async () =>
+        (
+          await this.clinicSummaryService.exportPdf(user.sub, language)
+        ).toString('base64'),
+      'pdfBase64',
+      this.logger,
     );
   }
 
@@ -561,9 +550,9 @@ export class ReportsController {
       user.sub,
     );
     if (status == null) {
-      return successEnvelope({ status: 'not_found' });
+      return { status: 'not_found' };
     }
-    return successEnvelope(status);
+    return status;
   }
 
   @Post('clinic-summary/preview/pdf')
@@ -638,10 +627,8 @@ export class ReportsController {
   @ApiResponse({ status: 200, type: EventReviewNullableResponseDto })
   async getCurrentReview(@CurrentUser() user: UserPayload) {
     // Prefers the active event, then the most recent ended one. No events:
-    // a success envelope with null data, not a 404.
-    return successEnvelope(
-      await this.eventReviewService.buildCurrent(user.sub),
-    );
+    // a successful 200 response with a null resource, not a 404.
+    return await this.eventReviewService.buildCurrent(user.sub);
   }
 
   @Get('reviews')
@@ -651,7 +638,7 @@ export class ReportsController {
     @CurrentUser() user: UserPayload,
     @Query() query: EventReviewListQueryDto = new EventReviewListQueryDto(),
   ) {
-    return successEnvelope(await this.eventReviewService.list(user.sub, query));
+    return await this.eventReviewService.list(user.sub, query);
   }
 
   @Get('reviews/:eventId')
@@ -662,8 +649,6 @@ export class ReportsController {
     @CurrentUser() user: UserPayload,
     @Param('eventId') eventId: string,
   ) {
-    return successEnvelope(
-      await this.eventReviewService.buildForEvent(user.sub, eventId),
-    );
+    return await this.eventReviewService.buildForEvent(user.sub, eventId);
   }
 }
