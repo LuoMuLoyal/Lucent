@@ -186,6 +186,16 @@ describe('API Contract Tests (e2e)', () => {
       const missing = [...referenced].filter((r) => !defined.has(r));
       expect(missing).toEqual([]);
     });
+
+    it('should publish the HTTP and SSE Problem Details schemas', () => {
+      const schemas = spec.components?.schemas ?? {};
+      expect(schemas['ProblemDetailsDto']).toMatchObject({
+        required: ['type', 'title', 'detail', 'code'],
+      });
+      expect(schemas['SseProblemDetailsDto']).toMatchObject({
+        required: expect.arrayContaining(['status']),
+      });
+    });
   });
 
   // ── Public endpoints ────────────────────────────────────────
@@ -667,7 +677,7 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/account')
         .expect(401);
 
-      assertProblemDetails(res.body, 'AUTH_UNAUTHORIZED');
+      assertProblemDetails(res.body, 'AUTH_REQUIRED');
     });
 
     it('invalid route should return 404 Problem Details', async () => {
