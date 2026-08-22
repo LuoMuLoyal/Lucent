@@ -1,40 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-
 import {
   DailyRecordListDataDto,
   DailyRecordSummaryDataDto,
 } from './record-data.dto';
 import { DailyRecordItemDto } from './record-item.dto';
 
-export class DailyRecordListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
+export class DailyRecordListResponseDto extends DailyRecordListDataDto {}
 
-  @ApiProperty({ example: '' })
-  message!: string;
+export class DailyRecordSummaryResponseDto extends DailyRecordSummaryDataDto {}
 
-  @ApiProperty({ type: () => DailyRecordListDataDto })
-  data!: DailyRecordListDataDto;
-}
-
-export class DailyRecordSummaryResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DailyRecordSummaryDataDto })
-  data!: DailyRecordSummaryDataDto;
-}
-
-export class DailyRecordResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DailyRecordItemDto })
-  data!: DailyRecordItemDto;
-}
+export class DailyRecordResponseDto extends DailyRecordItemDto {}

@@ -127,13 +127,4 @@ export class EnvironmentSnapshotDto {
   humidity!: HumidityIndicatorDto;
 }
 
-export class EnvironmentSnapshotResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => EnvironmentSnapshotDto })
-  data!: EnvironmentSnapshotDto;
-}
+export class EnvironmentSnapshotResponseDto extends EnvironmentSnapshotDto {}

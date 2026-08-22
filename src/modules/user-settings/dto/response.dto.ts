@@ -71,13 +71,4 @@ export class UserSettingsDataDto {
   securityPin!: SecurityPinSettingsDto;
 }
 
-export class UserSettingsResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => UserSettingsDataDto })
-  data!: UserSettingsDataDto;
-}
+export class UserSettingsResponseDto extends UserSettingsDataDto {}

@@ -6,6 +6,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { HealthEventKind } from '#generated/prisma/client';
 import { formatDateOnly } from '../../common';
@@ -16,9 +17,8 @@ import { EndHealthEventDto } from './dto/end-event.dto';
 import { EventListQueryDto } from './dto/event-list-query.dto';
 import {
   HealthEventListResponseDto,
-  HealthEventNullableResponseDto,
   HealthEventResponseDto,
-  type HealthEventItemDto,
+  HealthEventItemDto,
 } from './dto/event-response.dto';
 import { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto';
 import type {
@@ -53,7 +53,13 @@ export class HealthEventsController {
   @Get('active')
   @ApiOperation({ summary: 'Get the current active health event' })
   @ApiQuery({ name: 'date', required: false, example: '2026-08-09' })
-  @ApiResponse({ status: 200, type: HealthEventNullableResponseDto })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      nullable: true,
+      allOf: [{ $ref: getSchemaPath(HealthEventItemDto) }],
+    },
+  })
   async active(
     @CurrentUser() user: UserPayload,
     @Query() query: EventListQueryDto = new EventListQueryDto(),

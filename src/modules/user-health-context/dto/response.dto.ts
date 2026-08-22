@@ -416,15 +416,6 @@ class HealthContextDataDto {
   currentMedicines!: UserCurrentMedicineItemDto[];
 }
 
-export class HealthContextResponseDto {
-  @ApiProperty({ description: 'Result code', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Prompt message', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => HealthContextDataDto })
-  data!: HealthContextDataDto;
-}
+export class HealthContextResponseDto extends HealthContextDataDto {}
 
 export type HealthContextResponseData = HealthContextDataDto;

@@ -71,13 +71,4 @@ export class DailyRecordImageUploadDto {
   maxSizeBytes!: number;
 }
 
-export class DailyRecordImageUploadResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DailyRecordImageUploadDto })
-  data!: DailyRecordImageUploadDto;
-}
+export class DailyRecordImageUploadResponseDto extends DailyRecordImageUploadDto {}

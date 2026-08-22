@@ -98,35 +98,8 @@ export class HealthEventListDataDto {
   total!: number;
 }
 
-export class HealthEventResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
+export class HealthEventResponseDto extends HealthEventItemDto {}
 
-  @ApiProperty({ example: '' })
-  message!: string;
+export class HealthEventNullableResponseDto extends HealthEventItemDto {}
 
-  @ApiProperty({ type: () => HealthEventItemDto })
-  data!: HealthEventItemDto;
-}
-
-export class HealthEventNullableResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => HealthEventItemDto, nullable: true })
-  data!: HealthEventItemDto | null;
-}
-
-export class HealthEventListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => HealthEventListDataDto })
-  data!: HealthEventListDataDto;
-}
+export class HealthEventListResponseDto extends HealthEventListDataDto {}

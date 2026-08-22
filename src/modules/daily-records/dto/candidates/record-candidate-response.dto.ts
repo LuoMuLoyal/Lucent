@@ -87,15 +87,6 @@ class DailyRecordCandidateDataDto {
   items!: DailyRecordCandidateItemDto[];
 }
 
-export class DailyRecordCandidateResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DailyRecordCandidateDataDto })
-  data!: DailyRecordCandidateDataDto;
-}
+export class DailyRecordCandidateResponseDto extends DailyRecordCandidateDataDto {}
 
 export type DailyRecordCandidateData = DailyRecordCandidateDataDto;
