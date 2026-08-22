@@ -51,16 +51,7 @@ export class SecurityPinElevationDataDto {
   expiresAt!: string;
 }
 
-export class SecurityPinElevationResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => SecurityPinElevationDataDto })
-  data!: SecurityPinElevationDataDto;
-}
+export class SecurityPinElevationResponseDto extends SecurityPinElevationDataDto {}
 
 export class SecurityPinSettingsDto {
   @ApiProperty({ description: 'Whether a Security PIN is enabled' })
