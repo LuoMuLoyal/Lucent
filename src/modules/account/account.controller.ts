@@ -21,6 +21,7 @@ import {
 import type { FastifyRequest } from 'fastify';
 
 import { extractAuthRequestContext } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { AuditLogService } from '../audit-log';
 import { AuthService } from '../auth';
 
@@ -61,7 +62,7 @@ export class AccountController {
   @ApiOperation({ summary: 'Get authenticated account profile' })
   @ApiResponse({ status: 200, type: AccountResponseDto })
   async getAccount(@CurrentUser() user: UserPayload) {
-    return await this.accountService.getAccount(user.sub);
+    return unwrapResult(this.accountService.getAccount(user.sub));
   }
 
   @Patch()
@@ -71,7 +72,7 @@ export class AccountController {
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateAccountDto,
   ) {
-    return await this.accountService.updateAccount(user.sub, dto);
+    return unwrapResult(this.accountService.updateAccount(user.sub, dto));
   }
 
   @Post('password')
@@ -147,9 +148,8 @@ export class AccountController {
     @Param('identityId') identityId: string,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.accountService.unlinkIdentity(
-      user.sub,
-      identityId,
+    const result = await unwrapResult(
+      this.accountService.unlinkIdentity(user.sub, identityId),
     );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
@@ -193,7 +193,7 @@ export class AccountController {
       resourceType: 'oauth',
       resourceId: 'wechat_web',
     });
-    return await this.accountService.getAccount(user.sub);
+    return unwrapResult(this.accountService.getAccount(user.sub));
   }
 
   @Post('identities/wechat-mobile/callback')
@@ -215,7 +215,7 @@ export class AccountController {
       resourceType: 'oauth',
       resourceId: 'wechat_mobile',
     });
-    return await this.accountService.getAccount(user.sub);
+    return unwrapResult(this.accountService.getAccount(user.sub));
   }
 
   @Delete()

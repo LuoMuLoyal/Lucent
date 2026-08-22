@@ -5,6 +5,7 @@ vi.mock('otplib', () => ({
 }));
 
 import { Test, type TestingModule } from '@nestjs/testing';
+import { okAsync } from '../../common/result';
 import type { UserPayload } from '../auth';
 
 import { AccountController } from './account.controller';
@@ -107,7 +108,7 @@ describe('AccountController', () => {
 
   describe('GET /account', () => {
     it('should return the account profile resource', async () => {
-      accountService.getAccount.mockResolvedValue(mockAccount);
+      accountService.getAccount.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.getAccount(mockUser);
 
@@ -123,7 +124,7 @@ describe('AccountController', () => {
         ...mockAccount,
         nickname: 'UpdatedName' as const,
       };
-      accountService.updateAccount.mockResolvedValue(updated);
+      accountService.updateAccount.mockReturnValue(okAsync(updated));
 
       const result = await controller.updateAccount(mockUser, dto);
 
@@ -231,7 +232,7 @@ describe('AccountController', () => {
         ...mockAccount,
         linkedIdentities: [] as const,
       };
-      accountService.unlinkIdentity.mockResolvedValue(updated);
+      accountService.unlinkIdentity.mockReturnValue(okAsync(updated));
 
       const result = await controller.unlinkIdentity(
         mockUser,
@@ -291,7 +292,7 @@ describe('AccountController', () => {
   describe('POST /account/identities/wechat-web/callback', () => {
     it('should link WeChat web identity and return the account resource', async () => {
       authService.linkWechatWebIdentity.mockResolvedValue(undefined);
-      accountService.getAccount.mockResolvedValue(mockAccount);
+      accountService.getAccount.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatWebIdentity(
         mockUser,
@@ -314,7 +315,7 @@ describe('AccountController', () => {
   describe('POST /account/identities/wechat-mobile/callback', () => {
     it('should link WeChat mobile identity and return the account resource', async () => {
       authService.linkWechatMobileIdentity.mockResolvedValue(undefined);
-      accountService.getAccount.mockResolvedValue(mockAccount);
+      accountService.getAccount.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatMobileIdentity(
         mockUser,

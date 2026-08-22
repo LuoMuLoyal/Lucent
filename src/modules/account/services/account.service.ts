@@ -1,8 +1,14 @@
-import { notFound, forbidden } from '../../../common';
 import { Injectable } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
 
 import { User, UserIdentity } from '#generated/prisma/client';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import { UserService } from '../../user';
 import { AccountDto } from '../dto/response.dto';
 import { UpdateAccountDto } from '../dto/update.dto';
@@ -11,57 +17,85 @@ type AccountUser = User & { identities: UserIdentity[] };
 
 @Injectable()
 export class AccountService {
-  constructor(
-    private readonly userService: UserService,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
-  async getAccount(userId: string): Promise<AccountDto> {
-    return this.toAccountDto(await this.getActiveAccountUser(userId));
+  getAccount(userId: string): ResultAsync<AccountDto, DomainFailure> {
+    return this.getActiveAccountUser(userId).map((user) =>
+      this.toAccountDto(user),
+    );
   }
 
-  async updateAccount(
+  updateAccount(
     userId: string,
     dto: UpdateAccountDto,
-  ): Promise<AccountDto> {
-    await this.getActiveAccountUser(userId);
-
+  ): ResultAsync<AccountDto, DomainFailure> {
     const nickname = dto.nickname === '' ? null : dto.nickname;
     const avatar = dto.avatar === '' ? null : dto.avatar;
 
-    await this.userService.update(userId, {
-      ...(dto.nickname !== undefined && { nickname }),
-      ...(dto.avatar !== undefined && { avatar }),
-    });
-    return this.getAccount(userId);
+    return this.getActiveAccountUser(userId)
+      .andThen(() =>
+        this.preserveThrow(
+          this.userService.update(userId, {
+            ...(dto.nickname !== undefined && { nickname }),
+            ...(dto.avatar !== undefined && { avatar }),
+          }),
+        ),
+      )
+      .andThen(() => this.getAccount(userId));
   }
 
-  async unlinkIdentity(
+  unlinkIdentity(
     userId: string,
     identityId: string,
-  ): Promise<AccountDto> {
-    const user = await this.getActiveAccountUser(userId);
-    const identity = user.identities.find((item) => item.id === identityId);
-    if (!identity) {
-      notFound(this.i18n.t('account.identity_not_found'));
-    }
+  ): ResultAsync<AccountDto, DomainFailure> {
+    return this.getActiveAccountUser(userId).andThen((user) => {
+      const identity = user.identities.find((item) => item.id === identityId);
+      if (!identity) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'not_found',
+            code: 'RESOURCE_NOT_FOUND',
+          }),
+        );
+      }
 
-    if (user.passwordHash === null && user.identities.length <= 1) {
-      forbidden(this.i18n.t('account.cannot_unlink_last_method'));
-    }
+      if (user.passwordHash === null && user.identities.length <= 1) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'authorization',
+            code: 'FORBIDDEN',
+          }),
+        );
+      }
 
-    await this.userService.unlinkIdentity(identityId);
-    return this.getAccount(userId);
+      return this.preserveThrow(
+        this.userService.unlinkIdentity(identityId),
+      ).andThen(() => this.getAccount(userId));
+    });
   }
 
-  private async getActiveAccountUser(userId: string): Promise<AccountUser> {
-    const user = await this.userService.findByIdWithIdentities(userId);
+  private getActiveAccountUser(
+    userId: string,
+  ): ResultAsync<AccountUser, DomainFailure> {
+    return this.preserveThrow(
+      this.userService.findByIdWithIdentities(userId),
+    ).andThen((user) => {
+      if (!user) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'not_found',
+            code: 'RESOURCE_NOT_FOUND',
+          }),
+        );
+      }
+      return okAsync(user);
+    });
+  }
 
-    if (!user) {
-      notFound(this.i18n.t('account.user_not_found'));
-    }
-
-    return user;
+  private preserveThrow<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
+    return fromPromise(promise, (error) => {
+      throw error;
+    });
   }
 
   private toAccountDto(user: AccountUser): AccountDto {

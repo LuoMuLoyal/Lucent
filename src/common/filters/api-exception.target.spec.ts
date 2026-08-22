@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import type { I18nService } from 'nestjs-i18n';
+import { createDomainFailure } from '../result/domain-failure';
+import { DomainFailureException } from '../result/unwrap-result';
 import { ApiExceptionFilter } from './api-exception.filter';
 
 function createI18n(): I18nService {
@@ -75,6 +77,31 @@ describe('ApiExceptionFilter target contract', () => {
       code: 'RECORD_ALREADY_EXISTS',
       retryable: false,
     });
+  });
+
+  it('maps a folded DomainFailure through the Problem Details filter', () => {
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new DomainFailureException(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+        }),
+      ),
+      createHost(response, { method: 'GET', url: '/account' }),
+    );
+
+    expect(response.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+    expect(response.type).toHaveBeenCalledWith('application/problem+json');
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'RESOURCE_NOT_FOUND' }),
+    );
   });
 
   it('normalizes validation arrays into safe structured errors', () => {

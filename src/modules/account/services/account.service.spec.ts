@@ -1,8 +1,8 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 import { nonDeleted } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client';
 
@@ -48,6 +48,15 @@ const secondIdentity = {
   updatedAt: new Date('2026-02-01T00:00:00.000Z'),
 };
 
+async function inspectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
 describe('AccountService', () => {
   let service: AccountService;
   let userService: DeepMocked<UserService>;
@@ -86,12 +95,14 @@ describe('AccountService', () => {
         identities: [baseIdentity],
       });
 
-      const result = await service.getAccount(baseUser.id);
+      const result = await inspectResult(service.getAccount(baseUser.id));
 
       expect(userService.findByIdWithIdentities).toHaveBeenCalledWith(
         baseUser.id,
       );
-      expect(result).toEqual({
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value).toEqual({
         id: baseUser.id,
         email: baseUser.email,
         nickname: baseUser.nickname,
@@ -113,17 +124,14 @@ describe('AccountService', () => {
       });
     });
 
-    it('should throw NotFoundException when the user does not exist', async () => {
+    it('should return a not-found DomainFailure when the user does not exist', async () => {
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue(null);
 
-      await expect(service.getAccount('missing-user')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.getAccount('missing-user')).rejects.toMatchObject({
-        response: {
-          code: 'RESOURCE_NOT_FOUND',
-          message: 'account.user_not_found',
-        },
+      const result = await inspectResult(service.getAccount('missing-user'));
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
       });
     });
 
@@ -134,9 +142,23 @@ describe('AccountService', () => {
         identities: [baseIdentity],
       });
 
-      const result = await service.getAccount(baseUser.id);
+      const result = await inspectResult(service.getAccount(baseUser.id));
 
-      expect(result.hasPassword).toBe(false);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value.hasPassword).toBe(false);
+    });
+
+    it('rethrows unexpected user-service failures', async () => {
+      const error = new Error('database unavailable');
+      (userService.findByIdWithIdentities as vi.Mock).mockRejectedValue(error);
+
+      await expect(
+        service.getAccount('db-failure').match(
+          (value) => value,
+          (failure) => failure,
+        ),
+      ).rejects.toBe(error);
     });
 
     it('should return null fields when dates are null', async () => {
@@ -149,13 +171,15 @@ describe('AccountService', () => {
         identities: [{ ...baseIdentity, emailVerifiedAt: null }],
       });
 
-      const result = await service.getAccount(baseUser.id);
+      const result = await inspectResult(service.getAccount(baseUser.id));
 
-      expect(result.emailVerifiedAt).toBeNull();
-      expect(result.lastLoginAt).toBeNull();
-      expect(result.avatar).toBeNull();
-      expect(result.nickname).toBeNull();
-      const firstIdentity = result.linkedIdentities[0];
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value.emailVerifiedAt).toBeNull();
+      expect(result.value.lastLoginAt).toBeNull();
+      expect(result.value.avatar).toBeNull();
+      expect(result.value.nickname).toBeNull();
+      const firstIdentity = result.value.linkedIdentities[0];
       if (!firstIdentity) throw new Error('no identity');
       expect(firstIdentity.emailVerifiedAt).toBeNull();
     });
@@ -181,14 +205,18 @@ describe('AccountService', () => {
         avatar: 'https://example.com/new-avatar.png',
       };
 
-      const result = await service.updateAccount(baseUser.id, dto);
+      const result = await inspectResult(
+        service.updateAccount(baseUser.id, dto),
+      );
 
       expect(userService.update).toHaveBeenCalledWith(baseUser.id, {
         nickname: 'NewNick',
         avatar: 'https://example.com/new-avatar.png',
       });
-      expect(result.nickname).toBe('NewNick');
-      expect(result.avatar).toBe('https://example.com/new-avatar.png');
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value.nickname).toBe('NewNick');
+      expect(result.value.avatar).toBe('https://example.com/new-avatar.png');
     });
 
     it('should normalize empty string to null for clearing', async () => {
@@ -207,14 +235,18 @@ describe('AccountService', () => {
 
       const dto: UpdateAccountDto = { nickname: '', avatar: '' };
 
-      const result = await service.updateAccount(baseUser.id, dto);
+      const result = await inspectResult(
+        service.updateAccount(baseUser.id, dto),
+      );
 
       expect(userService.update).toHaveBeenCalledWith(baseUser.id, {
         nickname: null,
         avatar: null,
       });
-      expect(result.nickname).toBeNull();
-      expect(result.avatar).toBeNull();
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value.nickname).toBeNull();
+      expect(result.value.avatar).toBeNull();
     });
 
     it('should skip fields that are undefined', async () => {
@@ -231,17 +263,25 @@ describe('AccountService', () => {
 
       const dto: UpdateAccountDto = {};
 
-      await service.updateAccount(baseUser.id, dto);
+      const result = await inspectResult(
+        service.updateAccount(baseUser.id, dto),
+      );
 
       expect(userService.update).toHaveBeenCalledWith(baseUser.id, {});
+      expect(result.ok).toBe(true);
     });
 
-    it('should throw NotFoundException when user does not exist', async () => {
+    it('should return a not-found DomainFailure when user does not exist', async () => {
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue(null);
 
-      await expect(
+      const result = await inspectResult(
         service.updateAccount('missing-user', { nickname: 'X' }),
-      ).rejects.toThrow(NotFoundException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
     });
   });
 
@@ -260,29 +300,33 @@ describe('AccountService', () => {
         });
       (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
 
-      const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
+      const result = await inspectResult(
+        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+      );
 
       expect(userService.unlinkIdentity).toHaveBeenCalledWith(baseIdentity.id);
-      expect(result.linkedIdentities).toHaveLength(1);
-      const firstIdentity = result.linkedIdentities[0];
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value.linkedIdentities).toHaveLength(1);
+      const firstIdentity = result.value.linkedIdentities[0];
       if (!firstIdentity) throw new Error('no identity');
       expect(firstIdentity.id).toBe(secondIdentity.id);
     });
 
-    it('should throw ForbiddenException when unlinking the last sign-in method', async () => {
+    it('should return an authorization DomainFailure when unlinking the last sign-in method', async () => {
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
         passwordHash: null,
         identities: [baseIdentity],
       });
 
-      await expect(
+      const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id),
-      ).rejects.toMatchObject({
-        response: {
-          code: 'FORBIDDEN',
-          message: 'account.cannot_unlink_last_method',
-        },
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'authorization', code: 'FORBIDDEN' },
       });
     });
 
@@ -300,24 +344,28 @@ describe('AccountService', () => {
         });
       (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
 
-      const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
+      const result = await inspectResult(
+        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+      );
 
-      expect(result.linkedIdentities).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value.linkedIdentities).toHaveLength(0);
     });
 
-    it('should throw NotFoundException when identity does not exist', async () => {
+    it('should return a not-found DomainFailure when identity does not exist', async () => {
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
         identities: [baseIdentity],
       });
 
-      await expect(
+      const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, 'nonexistent-identity'),
-      ).rejects.toMatchObject({
-        response: {
-          code: 'RESOURCE_NOT_FOUND',
-          message: 'account.identity_not_found',
-        },
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
       });
     });
 
@@ -335,10 +383,14 @@ describe('AccountService', () => {
         });
       (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
 
-      const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
+      const result = await inspectResult(
+        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+      );
 
       expect(userService.unlinkIdentity).toHaveBeenCalledWith(baseIdentity.id);
-      expect(result.linkedIdentities).toHaveLength(1);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected account success');
+      expect(result.value.linkedIdentities).toHaveLength(1);
     });
   });
 });

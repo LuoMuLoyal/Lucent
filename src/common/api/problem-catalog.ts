@@ -210,6 +210,13 @@ export class ProblemCatalog {
     return this.isKnown(code) && definitions[code].status === status;
   }
 
+  statusFor(code: string): number {
+    if (!this.isKnown(code)) {
+      throw new Error(`Unknown Problem Details code: ${code}`);
+    }
+    return definitions[code].status;
+  }
+
   build(code: string, options: ProblemCatalogOptions): ProblemDetails {
     if (!this.isKnown(code)) {
       throw new Error(`Unknown Problem Details code: ${code}`);

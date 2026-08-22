@@ -12,6 +12,8 @@ import { I18nContext, I18nService } from 'nestjs-i18n';
 import { ProblemCatalog, type ProblemCode } from '../api/problem-catalog';
 import type { ProblemDetails } from '../api/problem-details';
 import { getActiveTraceIds } from '../logger/trace-context.utils';
+import { toProblemDetails } from '../result';
+import { DomainFailureException } from '../result/unwrap-result';
 
 interface HttpErrorResponse {
   type?: unknown;
@@ -53,6 +55,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
   }
 
   private resolveStatus(exception: unknown): number {
+    if (exception instanceof DomainFailureException) {
+      return this.catalog.statusFor(exception.failure.code);
+    }
     if (exception instanceof HttpException) {
       return exception.getStatus();
     }
@@ -66,6 +71,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
   ): ProblemDetails {
     const traceId = getActiveTraceIds().traceId;
     const lang = this.resolveLanguage(host);
+    if (exception instanceof DomainFailureException) {
+      return toProblemDetails(exception.failure, {
+        catalog: this.catalog,
+        lang,
+        ...(traceId == null ? {} : { traceId }),
+      });
+    }
     if (!(exception instanceof HttpException)) {
       return this.catalog.build('INTERNAL_ERROR', {
         lang,
