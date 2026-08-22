@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -17,7 +19,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { CreateMedicineReminderDto } from './dto/create.dto';
@@ -49,8 +50,9 @@ export class MedicineRemindersController {
     @CurrentUser() user: UserPayload,
     @Query('activeOnly') activeOnly?: string,
   ) {
-    return successEnvelope(
-      await this.remindersService.list(user.sub, this.parseBoolean(activeOnly)),
+    return await this.remindersService.list(
+      user.sub,
+      this.parseBoolean(activeOnly),
     );
   }
 
@@ -61,7 +63,7 @@ export class MedicineRemindersController {
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateMedicineReminderDto,
   ) {
-    return successEnvelope(await this.remindersService.create(user.sub, dto));
+    return await this.remindersService.create(user.sub, dto);
   }
 
   @Patch(':id')
@@ -73,18 +75,17 @@ export class MedicineRemindersController {
     @Param('id') id: string,
     @Body() dto: UpdateMedicineReminderDto,
   ) {
-    return successEnvelope(
-      await this.remindersService.update(user.sub, id, dto),
-    );
+    return await this.remindersService.update(user.sub, id, dto);
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft-delete a medicine reminder schedule' })
   @ApiParam({ name: 'id' })
-  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 204, description: 'Medicine reminder deleted.' })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     await this.remindersService.delete(user.sub, id);
-    return successEnvelope(null);
+    return;
   }
 
   @Put('group')
@@ -94,9 +95,7 @@ export class MedicineRemindersController {
     @CurrentUser() user: UserPayload,
     @Body() dto: UpsertMedicineReminderGroupDto,
   ) {
-    return successEnvelope(
-      await this.remindersService.upsertGroup(user.sub, dto),
-    );
+    return await this.remindersService.upsertGroup(user.sub, dto);
   }
 
   private parseBoolean(value: string | undefined): boolean {

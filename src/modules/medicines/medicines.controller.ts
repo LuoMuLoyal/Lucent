@@ -21,7 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
-import { badRequest, successEnvelope } from '../../common';
+import { badRequest } from '../../common';
 import { CurrentUser } from '../auth';
 
 import { Public } from '../auth';
@@ -103,7 +103,7 @@ export class MedicinesController {
       normalizedExclude,
       lang,
     );
-    return successEnvelope(tips);
+    return tips;
   }
 
   @Public()
@@ -127,10 +127,10 @@ export class MedicinesController {
       this.shouldBypassCache(bypassCacheHeader),
     );
 
-    return successEnvelope({
+    return {
       items: result.items,
       pagination: result.pagination,
-    });
+    };
   }
 
   @Public()
@@ -156,7 +156,7 @@ export class MedicinesController {
       query,
       this.shouldBypassCache(bypassCacheHeader),
     );
-    return successEnvelope(result);
+    return result;
   }
 
   private shouldBypassCache(value: string | undefined): boolean {
@@ -180,7 +180,7 @@ export class MedicinesController {
   @ApiResponse({ status: 200, type: MedicineRiskCheckRecordsResponseDto })
   async getRiskCheck(@CurrentUser() user: UserPayload) {
     const records = await this.riskCheckService.getRecords(user.sub);
-    return successEnvelope(records);
+    return records;
   }
 
   @Post('risk-check')
@@ -199,7 +199,7 @@ export class MedicinesController {
       dto.type === 'llm'
         ? await this.riskCheckService.runLlmCheck(user.sub)
         : await this.riskCheckService.runStaticCheck(user.sub, dto.candidate);
-    return successEnvelope(record);
+    return record;
   }
 
   // ── AI Medicine Box Recognition ──────────────────────────────────
@@ -213,9 +213,7 @@ export class MedicinesController {
     @CurrentUser() _user: UserPayload,
     @Body() dto: RecognizeMedicineDto,
   ) {
-    return successEnvelope(
-      await this.medicinesService.recognizeMedicine(dto.imageUrl),
-    );
+    return await this.medicinesService.recognizeMedicine(dto.imageUrl);
   }
 
   @Post('recognize/async')
@@ -247,13 +245,13 @@ export class MedicinesController {
         dto.imageUrl,
       );
       if (jobId != null) {
-        return successEnvelope({ jobId });
+        return { jobId };
       }
     }
 
     // Fallback: run synchronously when Redis is not available
     const result = await this.medicinesService.recognizeMedicine(dto.imageUrl);
-    return successEnvelope({ result });
+    return { result };
   }
 
   @SkipThrottle()
@@ -272,8 +270,8 @@ export class MedicinesController {
       user.sub,
     );
     if (status == null) {
-      return successEnvelope({ status: 'not_found' });
+      return { status: 'not_found' };
     }
-    return successEnvelope(status);
+    return status;
   }
 }

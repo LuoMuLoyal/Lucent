@@ -7,7 +7,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { LocalCapabilityStateDto } from './dto/local-capability.dto';
@@ -49,8 +48,10 @@ export class ReminderDeliveriesController {
     @Query('date') date?: string,
     @Query('limit') limit?: string,
   ) {
-    return successEnvelope(
-      await this.service.listDeliveries(user.sub, date, this.parseLimit(limit)),
+    return await this.service.listDeliveries(
+      user.sub,
+      date,
+      this.parseLimit(limit),
     );
   }
 
@@ -65,9 +66,9 @@ export class ReminderDeliveriesController {
     @CurrentUser() user: UserPayload,
     @Body() dto: ReminderDeliveryReceiptDto,
   ) {
-    return successEnvelope({
+    return {
       item: await this.receiptsService.recordLocalReceipt(user.sub, dto),
-    });
+    };
   }
 
   @Put('local-capability')
@@ -79,8 +80,9 @@ export class ReminderDeliveriesController {
     @CurrentUser() user: UserPayload,
     @Body() dto: LocalCapabilityStateDto,
   ) {
-    return successEnvelope(
-      await this.receiptsService.reportLocalCapability(user.sub, dto.state),
+    return await this.receiptsService.reportLocalCapability(
+      user.sub,
+      dto.state,
     );
   }
 

@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 import { MedicineRemindersController } from './medicine-reminders.controller';
 import { MedicineRemindersService } from './services/reminders.service';
@@ -42,11 +41,7 @@ describe('MedicineRemindersController', () => {
       const result = await controller.list(mockUser);
 
       expect(service.list).toHaveBeenCalledWith(mockUser.sub, false);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { items: [] },
-      });
+      expect(result).toEqual({ items: [] });
     });
 
     it('should pass activeOnly filter', async () => {
@@ -71,11 +66,7 @@ describe('MedicineRemindersController', () => {
       const result = await controller.create(mockUser, dto as any);
 
       expect(service.create).toHaveBeenCalledWith(mockUser.sub, dto);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { id: 'rem-1' },
-      });
+      expect(result).toEqual({ id: 'rem-1' });
     });
   });
 
@@ -92,11 +83,7 @@ describe('MedicineRemindersController', () => {
         scheduledHour: 9,
         scheduledMinute: 0,
       });
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { id: 'rem-1' },
-      });
+      expect(result).toEqual({ id: 'rem-1' });
     });
   });
 
@@ -104,14 +91,11 @@ describe('MedicineRemindersController', () => {
     it('should soft-delete a reminder', async () => {
       service.delete.mockResolvedValue(undefined);
 
-      const result = await controller.delete(mockUser, 'rem-1');
+      await expect(
+        controller.delete(mockUser, 'rem-1'),
+      ).resolves.toBeUndefined();
 
       expect(service.delete).toHaveBeenCalledWith(mockUser.sub, 'rem-1');
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: null,
-      });
     });
   });
 
@@ -129,11 +113,7 @@ describe('MedicineRemindersController', () => {
       const result = await controller.upsertGroup(mockUser, dto as any);
 
       expect(service.upsertGroup).toHaveBeenCalledWith(mockUser.sub, dto);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { items: [] },
-      });
+      expect(result).toEqual({ items: [] });
     });
   });
 });

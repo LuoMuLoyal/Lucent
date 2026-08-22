@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -17,7 +19,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import { clampPage, clampPageSize } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
@@ -52,13 +53,11 @@ export class MedicineDoseLogsController {
     @Query('pageSize', new ParseIntPipe({ optional: true }))
     pageSize: number = 50,
   ) {
-    return successEnvelope(
-      await this.doseLogsService.list(
-        user.sub,
-        date,
-        clampPage(page),
-        clampPageSize(pageSize),
-      ),
+    return await this.doseLogsService.list(
+      user.sub,
+      date,
+      clampPage(page),
+      clampPageSize(pageSize),
     );
   }
 
@@ -69,7 +68,7 @@ export class MedicineDoseLogsController {
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateDoseLogDto,
   ) {
-    return successEnvelope(await this.doseLogsService.create(user.sub, dto));
+    return await this.doseLogsService.create(user.sub, dto);
   }
 
   @Post('mark')
@@ -78,7 +77,7 @@ export class MedicineDoseLogsController {
   })
   @ApiResponse({ status: 201, type: DoseLogResponseDto })
   async mark(@CurrentUser() user: UserPayload, @Body() dto: MarkDoseLogDto) {
-    return successEnvelope(await this.doseLogsService.mark(user.sub, dto));
+    return await this.doseLogsService.mark(user.sub, dto);
   }
 
   @Patch(':id')
@@ -90,17 +89,16 @@ export class MedicineDoseLogsController {
     @Param('id') id: string,
     @Body() dto: UpdateDoseLogDto,
   ) {
-    return successEnvelope(
-      await this.doseLogsService.update(user.sub, id, dto),
-    );
+    return await this.doseLogsService.update(user.sub, id, dto);
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft-delete a dose log' })
   @ApiParam({ name: 'id' })
-  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 204, description: 'Dose log deleted.' })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     await this.doseLogsService.delete(user.sub, id);
-    return successEnvelope(null);
+    return;
   }
 }

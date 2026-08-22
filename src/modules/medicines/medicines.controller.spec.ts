@@ -59,11 +59,7 @@ describe('MedicinesController', () => {
 
       const result = await controller.getSafetyTips(undefined, 'zh-CN');
 
-      expect(result).toEqual({
-        code: 0,
-        message: '',
-        data: expectedTips,
-      });
+      expect(result).toEqual(expectedTips);
       expect(service.getRandomSafetyTips).toHaveBeenCalledWith([], 'zh-CN');
     });
 
@@ -88,7 +84,7 @@ describe('MedicinesController', () => {
   });
 
   describe('search', () => {
-    it('returns a standard envelope with items and pagination in data', async () => {
+    it('returns items and pagination as a resource', async () => {
       const searchResult = {
         items: [
           {
@@ -112,12 +108,8 @@ describe('MedicinesController', () => {
       );
 
       expect(result).toEqual({
-        code: 0,
-        message: '',
-        data: {
-          items: searchResult.items,
-          pagination: searchResult.pagination,
-        },
+        items: searchResult.items,
+        pagination: searchResult.pagination,
       });
       expect(service.searchWithCache).toHaveBeenCalledWith(
         { source: 'drugbank', q: 'ibu', page: 1, pageSize: 20 },
@@ -162,7 +154,7 @@ describe('MedicinesController', () => {
       const result = await controller.getRiskCheck({ sub: 'u1' } as never);
 
       expect(riskCheckService().getRecords).toHaveBeenCalledWith('u1');
-      expect(result).toEqual({ code: 0, message: '', data: records });
+      expect(result).toEqual(records);
     });
 
     it('POST /risk-check dispatches static vs llm by body type', async () => {
@@ -251,11 +243,7 @@ describe('MedicinesController', () => {
       expect(service.recognizeMedicine).toHaveBeenCalledWith(
         'https://example.com/box.jpg',
       );
-      expect(result).toEqual({
-        code: 0,
-        message: '',
-        data: { name: '布洛芬' },
-      });
+      expect(result).toEqual({ name: '布洛芬' });
     });
 
     it('POST /recognize/async falls back to synchronous recognize when queue is not configured', async () => {
@@ -273,11 +261,7 @@ describe('MedicinesController', () => {
       expect(service.recognizeMedicine).toHaveBeenCalledWith(
         'https://example.com/box.jpg',
       );
-      expect(result).toEqual({
-        code: 0,
-        message: '',
-        data: { result: { name: '布洛芬' } },
-      });
+      expect(result).toEqual({ result: { name: '布洛芬' } });
     });
 
     it('GET /recognize/status/:jobId returns not_found when the job is unknown', async () => {
@@ -296,11 +280,7 @@ describe('MedicinesController', () => {
       );
 
       expect(queue.getStatus).toHaveBeenCalledWith('job-1', 'u1');
-      expect(result).toEqual({
-        code: 0,
-        message: '',
-        data: { status: 'not_found' },
-      });
+      expect(result).toEqual({ status: 'not_found' });
     });
   });
 });

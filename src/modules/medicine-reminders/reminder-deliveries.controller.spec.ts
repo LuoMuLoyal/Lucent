@@ -1,6 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
-import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 
 import { ReminderDeliveriesController } from './reminder-deliveries.controller';
@@ -54,11 +53,7 @@ describe('ReminderDeliveriesController', () => {
       undefined,
       20,
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { items: [] },
-    });
+    expect(result).toEqual({ items: [] });
   });
 
   it('should pass date and limit query parameters', async () => {
@@ -111,7 +106,7 @@ describe('ReminderDeliveriesController', () => {
 
   // ── Local delivery receipt ──────────────────────────────────────
 
-  it('should record a local delivery receipt and return the item envelope', async () => {
+  it('should record a local delivery receipt and return the item resource', async () => {
     const dto = {
       reminderId: 'reminder-1',
       scheduledDate: '2026-07-20',
@@ -136,21 +131,17 @@ describe('ReminderDeliveriesController', () => {
       dto,
     );
     expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        item: expect.objectContaining({
-          id: 'delivery-1',
-          channel: 'local',
-          status: 'delivered',
-        }),
-      },
+      item: expect.objectContaining({
+        id: 'delivery-1',
+        channel: 'local',
+        status: 'delivered',
+      }),
     });
   });
 
   // ── Local capability report ─────────────────────────────────────
 
-  it('should report local capability and return the state envelope', async () => {
+  it('should report local capability and return the state resource', async () => {
     receiptsService.reportLocalCapability.mockResolvedValue({
       state: 'active',
     });
@@ -163,11 +154,7 @@ describe('ReminderDeliveriesController', () => {
       mockUser.sub,
       'active',
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { state: 'active' },
-    });
+    expect(result).toEqual({ state: 'active' });
   });
 });
 

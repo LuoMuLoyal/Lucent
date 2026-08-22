@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
 import { MedicineDoseLogsService } from './services/dose-logs.service';
@@ -47,11 +46,7 @@ describe('MedicineDoseLogsController', () => {
         1,
         50,
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { items: [], total: 0 },
-      });
+      expect(result).toEqual({ items: [], total: 0 });
     });
   });
 
@@ -66,11 +61,7 @@ describe('MedicineDoseLogsController', () => {
       const result = await controller.create(mockUser, dto as any);
 
       expect(service.create).toHaveBeenCalledWith(mockUser.sub, dto);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { id: 'log-1' },
-      });
+      expect(result).toEqual({ id: 'log-1' });
     });
   });
 
@@ -91,11 +82,7 @@ describe('MedicineDoseLogsController', () => {
       const result = await controller.mark(mockUser, dto as any);
 
       expect(service.mark).toHaveBeenCalledWith(mockUser.sub, dto);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { id: 'log-1', reminderId: 'reminder-1' },
-      });
+      expect(result).toEqual({ id: 'log-1', reminderId: 'reminder-1' });
     });
   });
 
@@ -110,11 +97,7 @@ describe('MedicineDoseLogsController', () => {
       expect(service.update).toHaveBeenCalledWith(mockUser.sub, 'log-1', {
         status: 'taken',
       });
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { id: 'log-1' },
-      });
+      expect(result).toEqual({ id: 'log-1' });
     });
   });
 
@@ -122,14 +105,11 @@ describe('MedicineDoseLogsController', () => {
     it('should delete a dose log', async () => {
       service.delete.mockResolvedValue(undefined);
 
-      const result = await controller.delete(mockUser, 'log-1');
+      await expect(
+        controller.delete(mockUser, 'log-1'),
+      ).resolves.toBeUndefined();
 
       expect(service.delete).toHaveBeenCalledWith(mockUser.sub, 'log-1');
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: null,
-      });
     });
   });
 });

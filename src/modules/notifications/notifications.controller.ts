@@ -20,7 +20,6 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang, I18nService } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common';
 import { clampPage, clampPageSize } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
@@ -49,9 +48,7 @@ export class NotificationsController {
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateNotificationDto,
   ) {
-    return successEnvelope(
-      await this.notificationsService.create(user.sub, dto),
-    );
+    return await this.notificationsService.create(user.sub, dto);
   }
 
   @Get()
@@ -67,7 +64,7 @@ export class NotificationsController {
       page: clampPage(page),
       pageSize: clampPageSize(pageSize),
     });
-    return successEnvelope({ items, total });
+    return { items, total };
   }
 
   @Get('unread-count')
@@ -75,7 +72,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, type: UnreadCountResponseDto })
   async getUnreadCount(@CurrentUser() user: UserPayload) {
     const count = await this.notificationsService.getUnreadCount(user.sub);
-    return successEnvelope({ count });
+    return { count };
   }
 
   @Get(':id')
@@ -91,7 +88,7 @@ export class NotificationsController {
       throw new NotFoundException(
         this.i18n.t('notifications.not_found', { lang }),
       );
-    return successEnvelope(data);
+    return data;
   }
 
   @Patch(':id/read')
@@ -107,7 +104,7 @@ export class NotificationsController {
       throw new NotFoundException(
         this.i18n.t('notifications.not_found', { lang }),
       );
-    return successEnvelope(data);
+    return data;
   }
 
   @Patch(':id/unread')
@@ -123,7 +120,7 @@ export class NotificationsController {
       throw new NotFoundException(
         this.i18n.t('notifications.not_found', { lang }),
       );
-    return successEnvelope(data);
+    return data;
   }
 
   @Patch('mark-all-read')
@@ -131,7 +128,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, type: UnreadCountResponseDto })
   async markAllAsRead(@CurrentUser() user: UserPayload) {
     const count = await this.notificationsService.markAllAsRead(user.sub);
-    return successEnvelope({ count });
+    return { count };
   }
 
   @Delete(':id')

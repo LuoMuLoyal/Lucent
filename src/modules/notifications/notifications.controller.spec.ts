@@ -1,7 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 
 import { NotificationsController } from './notifications.controller';
@@ -68,7 +67,7 @@ describe('NotificationsController', () => {
   });
 
   describe('POST /user/notifications', () => {
-    it('should create a notification and return 201 envelope', async () => {
+    it('should create a notification and return a resource', async () => {
       service.create.mockResolvedValue(mockItem);
 
       const result = await controller.create(mockUser, {
@@ -82,16 +81,12 @@ describe('NotificationsController', () => {
         title: 'Missed dose reminder',
         content: 'You missed your evening dose of Ibuprofen.',
       });
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockItem,
-      });
+      expect(result).toEqual(mockItem);
     });
   });
 
   describe('GET /user/notifications', () => {
-    it('should return paginated list envelope with defaults', async () => {
+    it('should return a paginated list resource with defaults', async () => {
       service.findAll.mockResolvedValue({ items: [mockItem], total: 1 });
 
       const result = await controller.findAll(mockUser);
@@ -100,11 +95,7 @@ describe('NotificationsController', () => {
         page: 1,
         pageSize: 20,
       });
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { items: [mockItem], total: 1 },
-      });
+      expect(result).toEqual({ items: [mockItem], total: 1 });
     });
 
     it('should pass page and pageSize query parameters', async () => {
@@ -120,22 +111,18 @@ describe('NotificationsController', () => {
   });
 
   describe('GET /user/notifications/unread-count', () => {
-    it('should return unread count envelope', async () => {
+    it('should return unread count resource', async () => {
       service.getUnreadCount.mockResolvedValue(3);
 
       const result = await controller.getUnreadCount(mockUser);
 
       expect(service.getUnreadCount).toHaveBeenCalledWith(mockUser.sub);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { count: 3 },
-      });
+      expect(result).toEqual({ count: 3 });
     });
   });
 
   describe('GET /user/notifications/:id', () => {
-    it('should return notification detail envelope', async () => {
+    it('should return notification detail resource', async () => {
       service.findOne.mockResolvedValue(mockDetail);
 
       const result = await controller.findOne(mockUser, 'notif-uuid-1', 'en');
@@ -144,11 +131,7 @@ describe('NotificationsController', () => {
         mockUser.sub,
         'notif-uuid-1',
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockDetail,
-      });
+      expect(result).toEqual(mockDetail);
     });
 
     it('should throw NotFoundException when notification not found', async () => {
@@ -161,7 +144,7 @@ describe('NotificationsController', () => {
   });
 
   describe('PATCH /user/notifications/:id/read', () => {
-    it('should mark as read and return envelope', async () => {
+    it('should mark as read and return a resource', async () => {
       service.markAsRead.mockResolvedValue(mockDetail);
 
       const result = await controller.markAsRead(
@@ -174,11 +157,7 @@ describe('NotificationsController', () => {
         mockUser.sub,
         'notif-uuid-1',
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockDetail,
-      });
+      expect(result).toEqual(mockDetail);
     });
 
     it('should throw NotFoundException when notification not found', async () => {
@@ -191,7 +170,7 @@ describe('NotificationsController', () => {
   });
 
   describe('PATCH /user/notifications/:id/unread', () => {
-    it('should mark as unread and return envelope', async () => {
+    it('should mark as unread and return a resource', async () => {
       service.markAsUnread.mockResolvedValue(mockDetail);
 
       const result = await controller.markAsUnread(
@@ -204,11 +183,7 @@ describe('NotificationsController', () => {
         mockUser.sub,
         'notif-uuid-1',
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockDetail,
-      });
+      expect(result).toEqual(mockDetail);
     });
 
     it('should throw NotFoundException when notification not found', async () => {
@@ -221,17 +196,13 @@ describe('NotificationsController', () => {
   });
 
   describe('PATCH /user/notifications/mark-all-read', () => {
-    it('should mark all as read and return count envelope', async () => {
+    it('should mark all as read and return count resource', async () => {
       service.markAllAsRead.mockResolvedValue(5);
 
       const result = await controller.markAllAsRead(mockUser);
 
       expect(service.markAllAsRead).toHaveBeenCalledWith(mockUser.sub);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: { count: 5 },
-      });
+      expect(result).toEqual({ count: 5 });
     });
   });
 
