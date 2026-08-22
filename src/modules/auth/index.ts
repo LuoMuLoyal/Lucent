@@ -13,10 +13,7 @@ export {
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
 } from './dto/shared/oauth.dto';
-export {
-  OAuthAuthorizeResponseDto,
-  SuccessResponseDto,
-} from './dto/shared/auth-responses.dto';
+export { OAuthAuthorizeResponseDto } from './dto/shared/auth-responses.dto';
 export { Public } from './decorators/public.decorator';
 export { QqOAuthProvider } from './providers/qq-oauth.provider';
 export { SetPasswordDto } from './dto/password/set-password.dto';

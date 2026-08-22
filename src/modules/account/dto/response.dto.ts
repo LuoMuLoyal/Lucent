@@ -96,16 +96,7 @@ export class AccountDto {
   updatedAt!: string;
 }
 
-export class AccountResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => AccountDto })
-  data!: AccountDto;
-}
+export class AccountResponseDto extends AccountDto {}
 
 class AccountEmailDataDto {
   @ApiProperty({
@@ -121,13 +112,4 @@ class AccountEmailDataDto {
   emailVerifiedAt!: string;
 }
 
-export class AccountEmailResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => AccountEmailDataDto })
-  data!: AccountEmailDataDto;
-}
+export class AccountEmailResponseDto extends AccountEmailDataDto {}
