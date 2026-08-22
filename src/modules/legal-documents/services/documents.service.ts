@@ -75,7 +75,10 @@ export class LegalDocumentsService {
     });
 
     if (!row || !row.isActive) {
-      throw new NotFoundException(`Legal document '${docType}' not found`);
+      throw new NotFoundException({
+        code: 'LEGAL_DOCUMENT_NOT_FOUND',
+        message: `Legal document '${docType}' not found`,
+      });
     }
 
     const result = {

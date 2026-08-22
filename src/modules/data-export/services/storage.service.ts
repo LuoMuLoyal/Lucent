@@ -1,7 +1,6 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { extname } from 'node:path';
 import {
-  ResultCode,
   ObjectStorageRuntime,
   createDatePartitionedObjectKey,
 } from '../../../common';
@@ -56,7 +55,7 @@ export class DataExportStorageService {
   private assertConfigured(): void {
     if (!this.runtime.isConfigured()) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: 'Object storage is not configured',
       });
     }
