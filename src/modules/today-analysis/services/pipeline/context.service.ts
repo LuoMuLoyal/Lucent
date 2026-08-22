@@ -5,7 +5,7 @@ import {
   WATER_TARGET_ML_PER_COUNT,
 } from '../../../../common';
 import type { ObservedMetric } from '../../../../common';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
@@ -73,6 +73,8 @@ export interface TodayAnalysisContext {
 export class TodayAnalysisContextService {
   private static readonly CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
+  private readonly logger = new Logger(TodayAnalysisContextService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly dailyRecordReader: DailyRecordReaderPort,
@@ -83,17 +85,32 @@ export class TodayAnalysisContextService {
 
   async build(userId: string, date: string): Promise<TodayAnalysisContext> {
     const cacheKey = `today-analysis:context:${userId}:${date}`;
-    const cached = await this.cache.get<TodayAnalysisContext>(cacheKey);
+    let cached: TodayAnalysisContext | undefined;
+    try {
+      cached = await this.cache.get<TodayAnalysisContext>(cacheKey);
+    } catch (error) {
+      this.logger.warn(
+        `Today analysis context cache get failed (key=${cacheKey}): ${String(error)}`,
+      );
+      throw error;
+    }
     if (cached != null) {
       return cached;
     }
 
     const result = await this.fetchContext(userId, date);
-    await this.cache.set(
-      cacheKey,
-      result,
-      TodayAnalysisContextService.CACHE_TTL_MS,
-    );
+    try {
+      await this.cache.set(
+        cacheKey,
+        result,
+        TodayAnalysisContextService.CACHE_TTL_MS,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Today analysis context cache set failed (key=${cacheKey}): ${String(error)}`,
+      );
+      throw error;
+    }
     return result;
   }
 

@@ -1,5 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
@@ -44,6 +44,8 @@ type DeliveryItemRow = Prisma.UserReminderDeliveryGetPayload<{
  */
 @Injectable()
 export class DeliveryReceiptsService {
+  private readonly logger = new Logger(DeliveryReceiptsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ownershipService: MedicineRemindersOwnershipService,
@@ -108,11 +110,15 @@ export class DeliveryReceiptsService {
     userId: string,
     state: LocalCapabilityState,
   ): Promise<{ state: LocalCapabilityState }> {
-    await this.cache.set(
-      localCapabilityCacheKey(userId),
-      state,
-      LOCAL_CAPABILITY_CACHE_TTL_MS,
-    );
+    const key = localCapabilityCacheKey(userId);
+    try {
+      await this.cache.set(key, state, LOCAL_CAPABILITY_CACHE_TTL_MS);
+    } catch (error) {
+      this.logger.warn(
+        `Reminder delivery capability cache set failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
     return { state };
   }
 

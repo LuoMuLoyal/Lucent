@@ -33,18 +33,20 @@ export class UserSettingsService {
   ) {}
 
   async invalidateUserCache(userId: string): Promise<void> {
-    await this.cache.del(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
+    await this.cacheDel(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
   }
 
   async getSettings(userId: string): Promise<UserSettingsDataDto> {
     const cacheKey = `${UserSettingsService.CACHE_PREFIX}:${userId}`;
-    const cached = await this.cache.get<UserSettingsDataDto>(cacheKey);
+    const cached = (await this.cacheGet(cacheKey)) as
+      | UserSettingsDataDto
+      | undefined;
     if (cached != null) {
       return cached;
     }
 
     const result = await this.fetchSettings(userId);
-    await this.cache.set(cacheKey, result, UserSettingsService.CACHE_TTL_MS);
+    await this.cacheSet(cacheKey, result, UserSettingsService.CACHE_TTL_MS);
     return result;
   }
 
@@ -195,7 +197,7 @@ export class UserSettingsService {
     }
 
     // Invalidate cache and return fresh data
-    await this.cache.del(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
+    await this.cacheDel(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
     await this.emitSettingsChanged(userId);
     return this.getSettings(userId);
   }
@@ -229,5 +231,42 @@ export class UserSettingsService {
   ): number {
     const raw = map.get(key);
     return typeof raw === 'number' && Number.isFinite(raw) ? raw : fallback;
+  }
+
+  private async cacheGet(key: string): Promise<unknown> {
+    try {
+      return await this.cache.get(key);
+    } catch (error) {
+      this.logger.warn(
+        `User settings cache get failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheSet(
+    key: string,
+    value: unknown,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttl);
+    } catch (error) {
+      this.logger.warn(
+        `User settings cache set failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheDel(key: string): Promise<void> {
+    try {
+      await this.cache.del(key);
+    } catch (error) {
+      this.logger.warn(
+        `User settings cache delete failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
   }
 }

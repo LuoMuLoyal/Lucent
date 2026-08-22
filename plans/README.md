@@ -34,5 +34,3 @@ YYYY-MM-DD-short-task-name.md
 
 - [`2026-08-18-error-contract-and-neverthrow-migration-plan.md`](2026-08-18-error-contract-and-neverthrow-migration-plan.md)
   — RFC 9457 + neverthrow 错误处理硬切；等待 Luminous 2026-08-16 十份功能改造计划完成、验证并删除后启动
-- [`2026-08-18-review-remediation-plan.md`](2026-08-18-review-remediation-plan.md)
-  — 8-18 审查整改：审查条目已对照 HEAD 复核并改写为确定性处置表；不改 API 合同，不依赖错误契约门禁

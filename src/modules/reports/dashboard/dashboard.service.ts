@@ -28,7 +28,15 @@ export class ReportsService {
     const range = query.range ?? 'last_7_days';
     const cacheKey = `reports:dashboard:${userId}:${range}:${query.startDate ?? 'auto'}:${query.endDate ?? 'auto'}:${locale}`;
 
-    const cached = await this.cache.get<ReportDashboardDataDto>(cacheKey);
+    let cached: ReportDashboardDataDto | undefined;
+    try {
+      cached = await this.cache.get<ReportDashboardDataDto>(cacheKey);
+    } catch (error) {
+      this.logger.warn(
+        `Reports dashboard cache get failed (key=${cacheKey}): ${String(error)}`,
+      );
+      throw error;
+    }
     if (cached != null) {
       return cached;
     }
@@ -48,7 +56,14 @@ export class ReportsService {
       aiSummaryEnabled: facts.aiSummaryEnabled,
     };
 
-    await this.cache.set(cacheKey, result, ReportsService.CACHE_TTL_MS);
+    try {
+      await this.cache.set(cacheKey, result, ReportsService.CACHE_TTL_MS);
+    } catch (error) {
+      this.logger.warn(
+        `Reports dashboard cache set failed (key=${cacheKey}): ${String(error)}`,
+      );
+      throw error;
+    }
     this.logger.debug(
       `Cache set: dashboard (userId=${userId}, key=${cacheKey})`,
     );

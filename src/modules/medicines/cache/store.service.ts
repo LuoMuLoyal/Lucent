@@ -1,5 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import type { MedicineDetailDataDto } from '../dto/detail.dto';
 
@@ -22,6 +22,8 @@ interface SearchCacheKeyInput {
 
 @Injectable()
 export class MedicinesCacheService {
+  private readonly logger = new Logger(MedicinesCacheService.name);
+
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
   async getOrSetSearch(
@@ -55,15 +57,41 @@ export class MedicinesCacheService {
     load: () => Promise<T>,
   ): Promise<T> {
     if (!bypass) {
-      const cached = await this.cache.get<T>(key);
+      const cached = (await this.cacheGet(key)) as T | undefined;
       if (cached !== undefined) {
         return cached;
       }
     }
 
     const value = await load();
-    await this.cache.set(key, value, ttl);
+    await this.cacheSet(key, value, ttl);
     return value;
+  }
+
+  private async cacheGet(key: string): Promise<unknown> {
+    try {
+      return await this.cache.get(key);
+    } catch (error) {
+      this.logger.warn(
+        `Medicine cache get failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheSet(
+    key: string,
+    value: unknown,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttl);
+    } catch (error) {
+      this.logger.warn(
+        `Medicine cache set failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
   }
 
   private buildSearchKey(input: SearchCacheKeyInput): string {

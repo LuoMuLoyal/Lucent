@@ -41,7 +41,9 @@ export class SuggestionCacheService {
     userId: string,
     date: string,
   ): Promise<SuggestionSignal[] | undefined> {
-    return this.cache.get<SuggestionSignal[]>(this.signalKey(userId, date));
+    return this.cacheGet(this.signalKey(userId, date)) as Promise<
+      SuggestionSignal[] | undefined
+    >;
   }
 
   async setSignals(
@@ -49,7 +51,7 @@ export class SuggestionCacheService {
     date: string,
     signals: SuggestionSignal[],
   ): Promise<void> {
-    await this.cache.set(
+    await this.cacheSet(
       this.signalKey(userId, date),
       signals,
       SIGNAL_CACHE_TTL_MS,
@@ -63,9 +65,9 @@ export class SuggestionCacheService {
     date: string,
     excludeKey: string,
   ): Promise<TodaySuggestionsDataDto | undefined> {
-    return this.cache.get<TodaySuggestionsDataDto>(
+    return this.cacheGet(
       this.suggestionKey(userId, date, excludeKey),
-    );
+    ) as Promise<TodaySuggestionsDataDto | undefined>;
   }
 
   async setSuggestions(
@@ -77,7 +79,7 @@ export class SuggestionCacheService {
     // Write the value before registering the excludeKey: if an invalidation
     // races in between, the registry is re-read by the invalidation's second
     // pass, so a value written before registration still gets deleted.
-    await this.cache.set(
+    await this.cacheSet(
       this.suggestionKey(userId, date, excludeKey),
       result,
       SUGGESTION_CACHE_TTL_MS,
@@ -90,9 +92,9 @@ export class SuggestionCacheService {
   async getBaselineStatus(
     userId: string,
   ): Promise<Map<BaselineDimension, boolean> | undefined> {
-    const cached = await this.cache.get<Record<string, boolean>>(
-      this.baselineKey(userId),
-    );
+    const cached = (await this.cacheGet(this.baselineKey(userId))) as
+      | Record<string, boolean>
+      | undefined;
     if (cached == null) return undefined;
     return new Map(
       Object.entries(cached) as Array<[BaselineDimension, boolean]>,
@@ -107,7 +109,7 @@ export class SuggestionCacheService {
     for (const [key, value] of status.entries()) {
       obj[key] = value;
     }
-    await this.cache.set(this.baselineKey(userId), obj, BASELINE_CACHE_TTL_MS);
+    await this.cacheSet(this.baselineKey(userId), obj, BASELINE_CACHE_TTL_MS);
   }
 
   // ─── Invalidation ───
@@ -115,7 +117,7 @@ export class SuggestionCacheService {
   /** Invalidates signal + suggestion caches for a user+date. */
   async invalidateSignals(userId: string, date: string): Promise<void> {
     await Promise.all([
-      this.cache.del(this.signalKey(userId, date)),
+      this.cacheDel(this.signalKey(userId, date)),
       this.invalidateAllSuggestions(userId, date),
     ]);
     this.logger.debug(
@@ -133,18 +135,20 @@ export class SuggestionCacheService {
 
   /** Invalidates baseline status cache for a user. */
   async invalidateBaseline(userId: string): Promise<void> {
-    await this.cache.del(this.baselineKey(userId));
+    await this.cacheDel(this.baselineKey(userId));
     this.logger.debug(`Invalidated baseline cache for user ${userId}`);
   }
 
   // ─── Copy generation cache ───
 
   async getCopy(cacheKey: string): Promise<GeneratedCopy | undefined> {
-    return this.cache.get<GeneratedCopy>(this.copyKey(cacheKey));
+    return this.cacheGet(this.copyKey(cacheKey)) as Promise<
+      GeneratedCopy | undefined
+    >;
   }
 
   async setCopy(cacheKey: string, copy: GeneratedCopy): Promise<void> {
-    await this.cache.set(this.copyKey(cacheKey), copy, COPY_CACHE_TTL_MS);
+    await this.cacheSet(this.copyKey(cacheKey), copy, COPY_CACHE_TTL_MS);
   }
 
   // ─── Key builders ───
@@ -183,10 +187,11 @@ export class SuggestionCacheService {
     excludeKey: string,
   ): Promise<void> {
     const registryKey = this.excludeKeysRegistryKey(userId, date);
-    const existing = (await this.cache.get<string[]>(registryKey)) ?? [];
+    const existing =
+      ((await this.cacheGet(registryKey)) as string[] | undefined) ?? [];
     if (!existing.includes(excludeKey)) {
       existing.push(excludeKey);
-      await this.cache.set(registryKey, existing, SUGGESTION_CACHE_TTL_MS);
+      await this.cacheSet(registryKey, existing, SUGGESTION_CACHE_TTL_MS);
     }
   }
 
@@ -213,17 +218,55 @@ export class SuggestionCacheService {
     date: string,
     registryKey: string,
   ): Promise<void> {
-    const excludeKeys = (await this.cache.get<string[]>(registryKey)) ?? [];
+    const excludeKeys =
+      ((await this.cacheGet(registryKey)) as string[] | undefined) ?? [];
     // Always include 'none' as a fallback in case the registry expired
     const allKeys = excludeKeys.includes('none')
       ? excludeKeys
       : ['none', ...excludeKeys];
     await Promise.all([
       ...allKeys.map((key) =>
-        this.cache.del(this.suggestionKey(userId, date, key)),
+        this.cacheDel(this.suggestionKey(userId, date, key)),
       ),
-      this.cache.del(registryKey),
+      this.cacheDel(registryKey),
     ]);
+  }
+
+  private async cacheGet(key: string): Promise<unknown> {
+    try {
+      return await this.cache.get(key);
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion cache get failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheSet(
+    key: string,
+    value: unknown,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttl);
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion cache set failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheDel(key: string): Promise<void> {
+    try {
+      await this.cache.del(key);
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion cache delete failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
   }
 
   /** Builds a cache-safe exclude key from an array of IDs. */

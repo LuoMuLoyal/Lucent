@@ -1,5 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { MEDICINES_CACHE_KEY_PREFIX } from './store.constants';
 
@@ -16,6 +16,8 @@ type KeyvLikeStore = {
 
 @Injectable()
 export class MedicinesCacheAdminService {
+  private readonly logger = new Logger(MedicinesCacheAdminService.name);
+
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
   async invalidateAll(): Promise<number> {
@@ -24,7 +26,7 @@ export class MedicinesCacheAdminService {
       return 0;
     }
 
-    await Promise.all(keys.map((key) => this.cache.del(key)));
+    await Promise.all(keys.map((key) => this.deleteCacheKey(key)));
     return keys.length;
   }
 
@@ -41,7 +43,13 @@ export class MedicinesCacheAdminService {
         continue;
       }
 
-      const keys = await rawStore.keys();
+      let keys: string[];
+      try {
+        keys = await rawStore.keys();
+      } catch (error) {
+        this.logger.warn(`Medicine cache key listing failed: ${String(error)}`);
+        throw error;
+      }
       const namespacePrefix = this.resolveNamespacePrefix(store);
       for (const key of keys) {
         const normalizedKey = this.stripNamespacePrefix(key, namespacePrefix);
@@ -52,6 +60,17 @@ export class MedicinesCacheAdminService {
     }
 
     return [...uniqueKeys];
+  }
+
+  private async deleteCacheKey(key: string): Promise<void> {
+    try {
+      await this.cache.del(key);
+    } catch (error) {
+      this.logger.warn(
+        `Medicine cache delete failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
   }
 
   private resolveNamespacePrefix(store: KeyvLikeStore): string | null {

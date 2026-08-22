@@ -87,7 +87,7 @@ export class VerificationCodeService {
 
     // Check cooldown
     const cooldownKey = this.cooldownKey(scene, email);
-    const inCooldown = await this.cache.get(cooldownKey);
+    const inCooldown = await this.cacheGet(cooldownKey);
     if (inCooldown) {
       throw new BadRequestException({
         code: ResultCode.VERIFICATION_CODE_COOLDOWN,
@@ -100,14 +100,14 @@ export class VerificationCodeService {
     const codeKey = this.codeKey(scene, email);
 
     // Store code hash in cache (never store plaintext codes)
-    await this.cache.set(
+    await this.cacheSet(
       codeKey,
       this.hashCode(code, scene, email),
       this.codeTtlMs,
     );
 
     // Set cooldown
-    await this.cache.set(cooldownKey, '1', this.cooldownTtlMs);
+    await this.cacheSet(cooldownKey, '1', this.cooldownTtlMs);
 
     // Send email
     await this.mailService.sendVerificationCode(email, code);
@@ -142,10 +142,10 @@ export class VerificationCodeService {
     // Fall back to non-atomic cache-based rate limiting when Redis is
     // not directly available (e.g. in-memory cache in test/dev).
     const now = Date.now();
-    const bucket = await this.cache.get<RateLimitBucket>(key);
+    const bucket = await this.cacheGet(key);
 
     if (!this.isValidBucket(bucket) || bucket.resetAt <= now) {
-      await this.cache.set(
+      await this.cacheSet(
         key,
         { count: 1, resetAt: now + this.rateLimitWindowMs },
         this.rateLimitWindowMs,
@@ -163,7 +163,7 @@ export class VerificationCodeService {
       );
     }
 
-    await this.cache.set(
+    await this.cacheSet(
       key,
       { count: bucket.count + 1, resetAt: bucket.resetAt },
       bucket.resetAt - now,
@@ -180,7 +180,7 @@ export class VerificationCodeService {
     scene: VerificationScene,
   ): Promise<boolean> {
     const codeKey = this.codeKey(scene, email);
-    const storedHash = await this.cache.get<string>(codeKey);
+    const storedHash = (await this.cacheGet(codeKey)) as string | undefined;
 
     if (!storedHash) {
       throw new BadRequestException({
@@ -197,7 +197,7 @@ export class VerificationCodeService {
     }
 
     // Delete after successful verification (one-time use)
-    await this.cache.del(codeKey);
+    await this.cacheDel(codeKey);
 
     return true;
   }
@@ -250,5 +250,42 @@ export class VerificationCodeService {
       typeof candidate.count === 'number' &&
       typeof candidate.resetAt === 'number'
     );
+  }
+
+  private async cacheGet(key: string): Promise<unknown> {
+    try {
+      return await this.cache.get(key);
+    } catch (error) {
+      this.logger.warn(
+        `Verification-code cache get failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheSet(
+    key: string,
+    value: unknown,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttl);
+    } catch (error) {
+      this.logger.warn(
+        `Verification-code cache set failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheDel(key: string): Promise<void> {
+    try {
+      await this.cache.del(key);
+    } catch (error) {
+      this.logger.warn(
+        `Verification-code cache delete failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
   }
 }

@@ -290,10 +290,23 @@ export class LifecycleService {
       String(limit),
     ].join(':');
 
-    const cached = await this.cache.get<{
-      items: SuggestionHistoryItemDto[];
-      total: number;
-    }>(cacheKey);
+    let cached:
+      | {
+          items: SuggestionHistoryItemDto[];
+          total: number;
+        }
+      | undefined;
+    try {
+      cached = await this.cache.get<{
+        items: SuggestionHistoryItemDto[];
+        total: number;
+      }>(cacheKey);
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion history cache get failed (key=${cacheKey}): ${String(error)}`,
+      );
+      throw error;
+    }
     if (cached != null) {
       return cached;
     }
@@ -353,11 +366,18 @@ export class LifecycleService {
     );
 
     const result = { items, total };
-    await this.cache.set(
-      cacheKey,
-      result,
-      LifecycleService.HISTORY_CACHE_TTL_MS,
-    );
+    try {
+      await this.cache.set(
+        cacheKey,
+        result,
+        LifecycleService.HISTORY_CACHE_TTL_MS,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion history cache set failed (key=${cacheKey}): ${String(error)}`,
+      );
+      throw error;
+    }
     return result;
   }
 

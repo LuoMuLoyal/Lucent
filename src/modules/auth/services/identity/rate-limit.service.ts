@@ -1,4 +1,9 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { createHash } from 'node:crypto';
@@ -23,6 +28,8 @@ export function loginFailureCacheKey(email: string): string {
 
 @Injectable()
 export class AuthRateLimitService {
+  private readonly logger = new Logger(AuthRateLimitService.name);
+
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly i18n: I18nService,
@@ -30,7 +37,7 @@ export class AuthRateLimitService {
 
   async checkLoginRateLimit(email: string): Promise<void> {
     const key = loginFailureCacheKey(email);
-    const entry = await this.cache.get<LoginFailureBucket>(key);
+    const entry = (await this.cacheGet(key)) as LoginFailureBucket | undefined;
     if (!entry) return;
 
     if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
@@ -42,21 +49,21 @@ export class AuthRateLimitService {
     }
 
     if (!this.isValidLoginFailureBucket(entry) || entry.resetAt <= Date.now()) {
-      await this.cache.del(key);
+      await this.cacheDel(key);
     }
   }
 
   async recordLoginFailure(email: string): Promise<void> {
     const key = loginFailureCacheKey(email);
     const now = Date.now();
-    const entry = await this.cache.get<LoginFailureBucket>(key);
+    const entry = (await this.cacheGet(key)) as LoginFailureBucket | undefined;
 
     if (
       !this.isValidLoginFailureBucket(entry) ||
       entry.resetAt <= now ||
       entry.lockedUntil !== undefined
     ) {
-      await this.cache.set(
+      await this.cacheSet(
         key,
         { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
         LOGIN_RATE_LIMIT_WINDOW,
@@ -75,11 +82,48 @@ export class AuthRateLimitService {
       next.resetAt - now,
       (next.lockedUntil ?? next.resetAt) - now,
     );
-    await this.cache.set(key, next, ttl);
+    await this.cacheSet(key, next, ttl);
   }
 
   async clearLoginFailures(email: string): Promise<void> {
-    await this.cache.del(loginFailureCacheKey(email));
+    await this.cacheDel(loginFailureCacheKey(email));
+  }
+
+  private async cacheGet(key: string): Promise<unknown> {
+    try {
+      return await this.cache.get(key);
+    } catch (error) {
+      this.logger.warn(
+        `Login rate-limit cache get failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheSet(
+    key: string,
+    value: unknown,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttl);
+    } catch (error) {
+      this.logger.warn(
+        `Login rate-limit cache set failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheDel(key: string): Promise<void> {
+    try {
+      await this.cache.del(key);
+    } catch (error) {
+      this.logger.warn(
+        `Login rate-limit cache delete failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
   }
 
   private isValidLoginFailureBucket(
