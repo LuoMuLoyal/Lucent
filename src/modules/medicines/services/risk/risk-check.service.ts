@@ -13,12 +13,7 @@ import { MedicinesService } from '../medicines.service';
 import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
 import { RiskDetectionService } from './risk-detection.service';
 import { RiskContextBuilderService } from './risk-context-builder.service';
-import {
-  ResultCode,
-  badRequest,
-  nonDeleted,
-  toInputJsonValue,
-} from '../../../../common';
+import { badRequest, nonDeleted, toInputJsonValue } from '../../../../common';
 import type {
   MedicineRiskCheckResponseDto,
   MedicineRiskCheckRecordDto,
@@ -114,7 +109,7 @@ export class MedicineRiskCheckService {
   async runLlmCheck(userId: string): Promise<MedicineRiskCheckRecordDto> {
     if (!this.llmGenerator.hasAnalysisModel()) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: 'LLM analysis model is not configured',
       });
     }

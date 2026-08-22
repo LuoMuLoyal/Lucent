@@ -8,7 +8,6 @@ import { MedicinesService } from './medicines.service';
 import { MedicinesCacheService } from '../cache/store.service';
 import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';
-import { ResultCode } from '../../../common';
 import { PrismaService } from '../../../prisma';
 import { LlmRuntimeService } from '../../../llm-runtime';
 
@@ -174,7 +173,7 @@ describe('MedicinesService', () => {
       }),
     ).rejects.toMatchObject({
       response: {
-        code: ResultCode.BAD_REQUEST,
+        code: 'VALIDATION_FAILED',
         message: 'medicine.source_invalid',
       },
     });
@@ -194,7 +193,7 @@ describe('MedicinesService', () => {
       service.getDetail('DB00001', { source: 'drugbank' }),
     ).rejects.toMatchObject({
       response: {
-        code: ResultCode.NOT_FOUND,
+        code: 'RESOURCE_NOT_FOUND',
         message: 'medicine.not_found',
       },
     });
