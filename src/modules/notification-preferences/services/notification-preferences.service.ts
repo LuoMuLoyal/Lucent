@@ -117,7 +117,10 @@ export class NotificationPreferencesService {
   private validateMinutes(value: number | null | undefined, field: string) {
     if (value == null) return;
     if (!Number.isInteger(value) || value < 0 || value > 1439) {
-      throw new BadRequestException(`${field} must be between 0 and 1439.`);
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: `${field} must be between 0 and 1439.`,
+      });
     }
   }
 

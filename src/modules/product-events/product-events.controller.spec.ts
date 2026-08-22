@@ -8,7 +8,6 @@ import {
   ProductEventSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client';
-import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 import {
   MAX_PRODUCT_EVENTS_PER_REQUEST,
@@ -89,7 +88,7 @@ describe('ProductEventsController', () => {
   it('propagates the unknown-rule-code 400 from the service', async () => {
     eventsService.recordBatch.mockRejectedValue(
       new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
+        code: 'VALIDATION_FAILED',
         message: 'Unknown suggestion rule code: nope',
       }),
     );
@@ -104,7 +103,7 @@ describe('ProductEventsController', () => {
   it('propagates the future-skew 400 from the service', async () => {
     eventsService.recordBatch.mockRejectedValue(
       new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
+        code: 'VALIDATION_FAILED',
         message: 'occurredAt must not be more than 24 hours in the future',
       }),
     );
@@ -301,7 +300,7 @@ describe('ProductEventsController', () => {
     it('propagates the date-range-cap 400 from the service', async () => {
       funnelService.getFunnel.mockRejectedValue(
         new BadRequestException({
-          code: ResultCode.BAD_REQUEST,
+          code: 'VALIDATION_FAILED',
           message: '日期范围不能超过 30 天',
         }),
       );

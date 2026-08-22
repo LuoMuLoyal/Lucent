@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import type { JpushConfig } from '../../../config/services/jpush.config';
 import type { PushMessage, PushProvider } from './push-provider.port';
-import { chunkArray, ResultCode } from '../../../common';
+import { chunkArray } from '../../../common';
 
 export const JPUSH_MAX_ALIASES_PER_REQUEST = 1000;
 
@@ -85,7 +85,7 @@ export class JpushPushProvider implements PushProvider {
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: `JPush push failed: status=${String(response.status)}, body=${detail.slice(0, 500)}`,
       });
     }

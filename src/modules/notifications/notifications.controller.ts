@@ -85,9 +85,10 @@ export class NotificationsController {
   ) {
     const data = await this.notificationsService.findOne(user.sub, id);
     if (!data)
-      throw new NotFoundException(
-        this.i18n.t('notifications.not_found', { lang }),
-      );
+      throw new NotFoundException({
+        code: 'NOTIFICATION_NOT_FOUND',
+        message: this.i18n.t('notifications.not_found', { lang }),
+      });
     return data;
   }
 
@@ -101,9 +102,10 @@ export class NotificationsController {
   ) {
     const data = await this.notificationsService.markAsRead(user.sub, id);
     if (!data)
-      throw new NotFoundException(
-        this.i18n.t('notifications.not_found', { lang }),
-      );
+      throw new NotFoundException({
+        code: 'NOTIFICATION_NOT_FOUND',
+        message: this.i18n.t('notifications.not_found', { lang }),
+      });
     return data;
   }
 
@@ -117,9 +119,10 @@ export class NotificationsController {
   ) {
     const data = await this.notificationsService.markAsUnread(user.sub, id);
     if (!data)
-      throw new NotFoundException(
-        this.i18n.t('notifications.not_found', { lang }),
-      );
+      throw new NotFoundException({
+        code: 'NOTIFICATION_NOT_FOUND',
+        message: this.i18n.t('notifications.not_found', { lang }),
+      });
     return data;
   }
 
@@ -141,8 +144,9 @@ export class NotificationsController {
   ) {
     const deleted = await this.notificationsService.remove(user.sub, id);
     if (!deleted)
-      throw new NotFoundException(
-        this.i18n.t('notifications.not_found', { lang }),
-      );
+      throw new NotFoundException({
+        code: 'NOTIFICATION_NOT_FOUND',
+        message: this.i18n.t('notifications.not_found', { lang }),
+      });
   }
 }
