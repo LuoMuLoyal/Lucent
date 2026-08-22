@@ -84,3 +84,16 @@ export class ReportSummaryDataDto {
 }
 
 export class ReportSummaryResponseDto extends ReportSummaryDataDto {}
+
+/** Exactly one of `jobId` and `result` is present in the response. */
+export class ReportSummaryAsyncResponseDto {
+  @ApiPropertyOptional({ description: 'Queued report summary job identifier.' })
+  jobId?: string;
+
+  @ApiPropertyOptional({
+    type: () => ReportSummaryDataDto,
+    description:
+      'Inline report summary resource when queue processing is unavailable.',
+  })
+  result?: ReportSummaryDataDto;
+}

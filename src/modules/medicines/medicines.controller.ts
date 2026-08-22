@@ -44,6 +44,7 @@ import {
 import { MedicineSafetyTipResponseDto } from './dto/safety-tip-response.dto';
 
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
+import { MedicineRecognitionAsyncResponseDto } from './dto/recognition-response.dto';
 import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto';
 import {
   MedicineRiskCheckRecordDto,
@@ -223,24 +224,7 @@ export class MedicinesController {
     status: 200,
     description:
       'Returns either a queued jobId or the synchronous recognition resource when the queue is unavailable.',
-    schema: {
-      oneOf: [
-        {
-          type: 'object',
-          required: ['jobId'],
-          properties: { jobId: { type: 'string' } },
-          additionalProperties: false,
-        },
-        {
-          type: 'object',
-          required: ['result'],
-          properties: {
-            result: { type: 'object', additionalProperties: true },
-          },
-          additionalProperties: false,
-        },
-      ],
-    },
+    type: MedicineRecognitionAsyncResponseDto,
   })
   async recognizeAsync(
     @CurrentUser() user: UserPayload,

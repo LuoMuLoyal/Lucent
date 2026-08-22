@@ -306,6 +306,17 @@ export class ClinicSummaryDto {
 
 export class ClinicSummaryResponseDto extends ClinicSummaryDto {}
 
+/** Exactly one of `jobId` and `pdfBase64` is present in the response. */
+export class ClinicSummaryExportAsyncResponseDto {
+  @ApiPropertyOptional({ description: 'Queued PDF export job identifier.' })
+  jobId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Base64 PDF when the export is processed inline.',
+  })
+  pdfBase64?: string;
+}
+
 export class ClinicSummaryShareScopeDto {
   @ApiProperty({ type: String, nullable: true, description: 'Event scope id' })
   eventId!: string | null;

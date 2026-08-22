@@ -37,6 +37,7 @@ import {
 
 import {
   SuggestionExplanationDataDto,
+  SuggestionExplanationAsyncResponseDto,
   SuggestionExplanationResponseDto,
 } from './dto/explanation.dto';
 
@@ -153,26 +154,7 @@ export class TodaySuggestionController {
     status: 202,
     description:
       'Returns either a queued jobId or the synchronous explanation resource when the queue is unavailable.',
-    schema: {
-      oneOf: [
-        {
-          type: 'object',
-          required: ['jobId'],
-          properties: { jobId: { type: 'string' } },
-          additionalProperties: false,
-        },
-        {
-          type: 'object',
-          required: ['result'],
-          properties: {
-            result: {
-              $ref: '#/components/schemas/SuggestionExplanationResponseDto',
-            },
-          },
-          additionalProperties: false,
-        },
-      ],
-    },
+    type: SuggestionExplanationAsyncResponseDto,
   })
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   async explainSuggestionAsync(

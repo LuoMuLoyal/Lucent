@@ -50,6 +50,10 @@ If storage or the export dependency is unavailable, the HTTP response is a local
 `application/problem+json` response with a stable dependency code; internal queue and provider
 details are not exposed to the client.
 
+Async report summary and clinic-summary PDF responses use named OpenAPI resource schemas. Each
+response contains exactly one of `jobId`/`result` or `jobId`/`pdfBase64`, so generated clients do
+not need to model mutually exclusive fields as simultaneously required.
+
 ```typescript
 interface DataExportRequestDto {
   id: string;

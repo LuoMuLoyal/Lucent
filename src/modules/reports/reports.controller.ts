@@ -51,10 +51,12 @@ import { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto';
 import { ReportDashboardResponseDto } from './dto/report-dashboard-response.dto';
 
 import { ReportSummaryResponseDto } from './dto/report-summary-response.dto';
+import { ReportSummaryAsyncResponseDto } from './dto/report-summary-response.dto';
 
 import {
   ClinicSummaryResponseDto,
   ClinicSummaryShareResponseDto,
+  ClinicSummaryExportAsyncResponseDto,
 } from './dto/clinic-summary-response.dto';
 import { ClinicSummaryShareListResponseDto } from './dto/clinic-summary-share-list.dto';
 import {
@@ -213,24 +215,7 @@ export class ReportsController {
     status: 202,
     description:
       'Returns either a queued jobId or the synchronous summary resource when the queue is unavailable.',
-    schema: {
-      oneOf: [
-        {
-          type: 'object',
-          required: ['jobId'],
-          properties: { jobId: { type: 'string' } },
-          additionalProperties: false,
-        },
-        {
-          type: 'object',
-          required: ['result'],
-          properties: {
-            result: { type: 'object', additionalProperties: true },
-          },
-          additionalProperties: false,
-        },
-      ],
-    },
+    type: ReportSummaryAsyncResponseDto,
   })
   async generateSummaryAsync(
     @CurrentUser() user: UserPayload,
@@ -495,22 +480,7 @@ export class ReportsController {
       'honored (pdfBase64) because the queue job only carries the default ' +
       'scope. When no queue is configured, both paths return the base64 PDF ' +
       'synchronously.',
-    schema: {
-      oneOf: [
-        {
-          type: 'object',
-          required: ['jobId'],
-          properties: { jobId: { type: 'string' } },
-          additionalProperties: false,
-        },
-        {
-          type: 'object',
-          required: ['pdfBase64'],
-          properties: { pdfBase64: { type: 'string' } },
-          additionalProperties: false,
-        },
-      ],
-    },
+    type: ClinicSummaryExportAsyncResponseDto,
   })
   async exportClinicSummaryPdfAsync(
     @CurrentUser() user: UserPayload,

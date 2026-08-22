@@ -24,6 +24,9 @@ Lucent's notification system is split into two layers with a clear ownership bou
 Missing notifications and invalid notification-preference values use localized Problem Details;
 the client branches on stable `code` and HTTP status, not on the translated `detail` text.
 
+Medicine recognition's queued response is an endpoint-specific resource with exactly one of
+`jobId` or `result`; it is not a numeric success envelope.
+
 ## Current Reality
 
 - Local notification permission

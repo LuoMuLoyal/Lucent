@@ -819,28 +819,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "required": ["jobId"],
-                      "properties": {
-                        "jobId": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["result"],
-                      "properties": {
-                        "result": {
-                          "$ref": "#/components/schemas/SuggestionExplanationResponseDto"
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  ]
+                  "$ref": "#/components/schemas/SuggestionExplanationAsyncResponseDto"
                 }
               }
             }
@@ -1137,29 +1116,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "required": ["jobId"],
-                      "properties": {
-                        "jobId": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["result"],
-                      "properties": {
-                        "result": {
-                          "type": "object",
-                          "additionalProperties": true
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ReportSummaryAsyncResponseDto"
                 }
               }
             }
@@ -1408,28 +1365,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "required": ["jobId"],
-                      "properties": {
-                        "jobId": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["pdfBase64"],
-                      "properties": {
-                        "pdfBase64": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ClinicSummaryExportAsyncResponseDto"
                 }
               }
             }
@@ -2900,29 +2836,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "required": ["jobId"],
-                      "properties": {
-                        "jobId": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["result"],
-                      "properties": {
-                        "result": {
-                          "type": "object",
-                          "additionalProperties": true
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  ]
+                  "$ref": "#/components/schemas/MedicineRecognitionAsyncResponseDto"
                 }
               }
             }
@@ -6324,6 +6238,49 @@
         },
         "required": ["suggestionId", "reason", "boundary", "aiGenerated"]
       },
+      "SuggestionExplanationDataDto": {
+        "type": "object",
+        "properties": {
+          "suggestionId": {
+            "type": "string",
+            "description": "The suggestion ID that was explained"
+          },
+          "reason": {
+            "type": "string",
+            "description": "AI-enhanced or original reason text"
+          },
+          "boundary": {
+            "type": "string",
+            "description": "AI-enhanced or original boundary / disclaimer text"
+          },
+          "aiGenerated": {
+            "type": "boolean",
+            "description": "Whether the AI model was used to generate the explanation"
+          },
+          "locale": {
+            "type": "string",
+            "description": "Locale used for the explanation (e.g. \"zh-CN\", \"en\")"
+          }
+        },
+        "required": ["suggestionId", "reason", "boundary", "aiGenerated"]
+      },
+      "SuggestionExplanationAsyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "description": "Queued explanation job identifier."
+          },
+          "result": {
+            "description": "Inline explanation resource when queue processing is unavailable.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SuggestionExplanationDataDto"
+              }
+            ]
+          }
+        }
+      },
       "SuggestionHistoryItemDto": {
         "type": "object",
         "properties": {
@@ -7211,6 +7168,79 @@
           "disclaimer"
         ]
       },
+      "ReportSummaryDataDto": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days", "custom"]
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/ReportCoverageDto"
+          },
+          "observedPattern": {
+            "nullable": true,
+            "description": "At most one source-backed observed pattern. Null when data is insufficient.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReportObservedPatternDto"
+              }
+            ]
+          },
+          "lowRiskAction": {
+            "nullable": true,
+            "description": "At most one low-risk action. Null when no action is warranted.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReportLowRiskActionDto"
+              }
+            ]
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "range",
+          "startDate",
+          "endDate",
+          "generatedAt",
+          "summary",
+          "coverage",
+          "disclaimer"
+        ]
+      },
+      "ReportSummaryAsyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "description": "Queued report summary job identifier."
+          },
+          "result": {
+            "description": "Inline report summary resource when queue processing is unavailable.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReportSummaryDataDto"
+              }
+            ]
+          }
+        }
+      },
       "ClinicSummaryRequestDto": {
         "type": "object",
         "properties": {
@@ -7674,6 +7704,19 @@
           }
         },
         "required": ["items"]
+      },
+      "ClinicSummaryExportAsyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "description": "Queued PDF export job identifier."
+          },
+          "pdfBase64": {
+            "type": "string",
+            "description": "Base64 PDF when the export is processed inline."
+          }
+        }
       },
       "EventReviewListResponseDto": {
         "type": "object",
@@ -9397,6 +9440,45 @@
           }
         },
         "required": ["imageUrl"]
+      },
+      "MedicineRecognitionResultDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "nullable": true
+          },
+          "approvalNumber": {
+            "type": "object",
+            "nullable": true
+          },
+          "specification": {
+            "type": "object",
+            "nullable": true
+          },
+          "manufacturer": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": ["name", "approvalNumber", "specification", "manufacturer"]
+      },
+      "MedicineRecognitionAsyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "description": "Queued recognition job identifier."
+          },
+          "result": {
+            "description": "Inline recognition resource when queue processing is unavailable.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineRecognitionResultDto"
+              }
+            ]
+          }
+        }
       },
       "SecurityPinSettingsDto": {
         "type": "object",
