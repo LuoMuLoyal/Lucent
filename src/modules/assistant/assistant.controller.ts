@@ -20,7 +20,6 @@ import {
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import {
-  successEnvelope,
   endSse,
   prepareSse,
   writeSseEvent,
@@ -68,9 +67,7 @@ export class AssistantController {
   })
   @ApiResponse({ status: 200, type: AssistantCapabilitiesResponseDto })
   async getCapabilities(@CurrentUser() user: UserPayload) {
-    return successEnvelope(
-      await this.assistantService.getCapabilities(user.sub),
-    );
+    return await this.assistantService.getCapabilities(user.sub);
   }
 
   @Get('conversations')
@@ -79,9 +76,7 @@ export class AssistantController {
   })
   @ApiResponse({ status: 200, type: AssistantConversationListResponseDto })
   async listRecentConversations(@CurrentUser() user: UserPayload) {
-    return successEnvelope(
-      await this.assistantService.listRecentConversations(user.sub),
-    );
+    return await this.assistantService.listRecentConversations(user.sub);
   }
 
   @Get('latest')
@@ -91,9 +86,7 @@ export class AssistantController {
   })
   @ApiResponse({ status: 200, type: AssistantConversationResponseDto })
   async getLatestConversation(@CurrentUser() user: UserPayload) {
-    return successEnvelope(
-      await this.assistantService.getLatestConversation(user.sub),
-    );
+    return await this.assistantService.getLatestConversation(user.sub);
   }
 
   @Post('conversations/:conversationId/open')
@@ -106,8 +99,9 @@ export class AssistantController {
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
   ) {
-    return successEnvelope(
-      await this.assistantService.openConversation(user.sub, conversationId),
+    return await this.assistantService.openConversation(
+      user.sub,
+      conversationId,
     );
   }
 
@@ -122,12 +116,10 @@ export class AssistantController {
     @Param('conversationId') conversationId: string,
     @Body() dto: ConfirmAssistantProposalDto,
   ) {
-    return successEnvelope(
-      await this.assistantService.confirmProposal(
-        user.sub,
-        conversationId,
-        dto,
-      ),
+    return await this.assistantService.confirmProposal(
+      user.sub,
+      conversationId,
+      dto,
     );
   }
 
@@ -141,12 +133,10 @@ export class AssistantController {
     @Param('conversationId') conversationId: string,
     @Body() dto: RenameConversationDto,
   ) {
-    return successEnvelope(
-      await this.assistantService.renameConversation(
-        user.sub,
-        conversationId,
-        dto.title,
-      ),
+    return await this.assistantService.renameConversation(
+      user.sub,
+      conversationId,
+      dto.title,
     );
   }
 
@@ -159,8 +149,9 @@ export class AssistantController {
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
   ) {
-    return successEnvelope(
-      await this.assistantService.deleteConversation(user.sub, conversationId),
+    return await this.assistantService.deleteConversation(
+      user.sub,
+      conversationId,
     );
   }
 
@@ -176,7 +167,7 @@ export class AssistantController {
       action: 'assistant.memory.clear',
       metadata: { deletedCount: result.cleared },
     });
-    return successEnvelope(result);
+    return result;
   }
 
   @Post('latest/clear')
@@ -186,9 +177,7 @@ export class AssistantController {
   })
   @ApiResponse({ status: 200, type: AssistantClearResultResponseDto })
   async clearLatestConversation(@CurrentUser() user: UserPayload) {
-    return successEnvelope(
-      await this.assistantService.clearLatestConversation(user.sub),
-    );
+    return await this.assistantService.clearLatestConversation(user.sub);
   }
 
   @SkipThrottle()

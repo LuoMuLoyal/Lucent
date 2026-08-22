@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './services/export.service';
 import { SecurityElevationGuard } from '../security-pin';
@@ -57,9 +56,8 @@ describe('DataExportController', () => {
       'zh-CN',
     );
 
-    expect(result.code).toBe(ResultCode.SUCCESS);
-    expect(result.data).toBeDefined();
-    expect(result.data?.status).toBe('requested');
+    expect(result).toBeDefined();
+    expect(result.status).toBe('requested');
     expect(service.createRequest).toHaveBeenCalledWith('u1', dto, 'zh-CN');
   });
 
@@ -73,9 +71,8 @@ describe('DataExportController', () => {
       status: 'active',
     });
 
-    expect(result.code).toBe(ResultCode.SUCCESS);
-    expect(result.data).toBeDefined();
-    expect(result.data?.status).toBe('processing');
+    expect(result).toBeDefined();
+    expect(result?.status).toBe('processing');
     expect(service.getLatestRequest).toHaveBeenCalledWith('u1');
   });
 
@@ -88,8 +85,7 @@ describe('DataExportController', () => {
       status: 'active',
     });
 
-    expect(result.code).toBe(ResultCode.SUCCESS);
-    expect(result.data).toBeNull();
+    expect(result).toBeNull();
   });
 });
 

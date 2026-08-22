@@ -15,7 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope, formatDateOnly, now } from '../../common';
+import { formatDateOnly, now } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { SuggestionService } from './services/suggestion.service';
@@ -92,7 +92,7 @@ export class TodaySuggestionController {
         { locale: acceptLanguage ?? 'zh-CN' },
       );
 
-    return successEnvelope(result);
+    return result;
   }
 
   @Post(':id/feedback')
@@ -117,7 +117,7 @@ export class TodaySuggestionController {
       ...(result.expiresAt != null ? { expiresAt: result.expiresAt } : {}),
     };
 
-    return successEnvelope(response);
+    return response;
   }
 
   @Post(':id/explain')
@@ -142,7 +142,7 @@ export class TodaySuggestionController {
       aiGenerated: result.aiGenerated,
     };
 
-    return successEnvelope(response);
+    return response;
   }
 
   @Post(':id/explain/async')
@@ -178,7 +178,7 @@ export class TodaySuggestionController {
         language,
       );
       if (jobId != null) {
-        return successEnvelope({ jobId });
+        return { jobId };
       }
     }
 
@@ -188,7 +188,7 @@ export class TodaySuggestionController {
       suggestionId,
       language,
     );
-    return successEnvelope({ result });
+    return { result };
   }
 
   @SkipThrottle()
@@ -207,9 +207,9 @@ export class TodaySuggestionController {
       user.sub,
     );
     if (status == null) {
-      return successEnvelope({ status: 'not_found' });
+      return { status: 'not_found' };
     }
-    return successEnvelope(status);
+    return status;
   }
 
   @Get('history')
@@ -287,6 +287,6 @@ export class TodaySuggestionController {
       endDate: resolvedEndDate,
     };
 
-    return successEnvelope(response);
+    return response;
   }
 }

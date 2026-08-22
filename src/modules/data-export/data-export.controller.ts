@@ -15,7 +15,6 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { SecurityElevationGuard } from '../security-pin';
@@ -44,15 +43,13 @@ export class DataExportController {
     @Body() dto: CreateDataExportRequestDto,
     @I18nLang() language: string,
   ) {
-    return successEnvelope(
-      await this.exportService.createRequest(user.sub, dto, language),
-    );
+    return await this.exportService.createRequest(user.sub, dto, language);
   }
 
   @Get('latest')
   @ApiOperation({ summary: 'Get the latest data export request' })
   @ApiResponse({ status: 200, type: DataExportLatestResponseDto })
   async getLatestRequest(@CurrentUser() user: UserPayload) {
-    return successEnvelope(await this.exportService.getLatestRequest(user.sub));
+    return await this.exportService.getLatestRequest(user.sub);
   }
 }

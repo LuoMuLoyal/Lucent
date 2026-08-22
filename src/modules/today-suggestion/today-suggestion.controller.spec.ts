@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode, formatDateOnly, now } from '../../common';
+import { formatDateOnly, now } from '../../common';
 import type { UserPayload } from '../auth';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
@@ -122,7 +122,7 @@ describe('TodaySuggestionController', () => {
   });
 
   describe('GET /today/suggestions', () => {
-    it('returns suggestions envelope with no excludeIds', async () => {
+    it('returns suggestions resource with no excludeIds', async () => {
       suggestionService.readCurrent.mockResolvedValue(
         mockSuggestionsData as never,
       );
@@ -135,11 +135,7 @@ describe('TodaySuggestionController', () => {
         [],
         { locale: 'zh-CN' },
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockSuggestionsData,
-      });
+      expect(result).toEqual(mockSuggestionsData);
     });
 
     it('passes date and single excludeIds as array', async () => {
@@ -174,7 +170,7 @@ describe('TodaySuggestionController', () => {
   });
 
   describe('POST /today/suggestions/:id/feedback', () => {
-    it('records feedback and returns envelope', async () => {
+    it('records feedback and returns a resource', async () => {
       feedbackService.recordFeedback.mockResolvedValue(mockFeedbackResult);
 
       const result = await controller.submitFeedback(mockUser, 'sug-1', {
@@ -187,13 +183,9 @@ describe('TodaySuggestionController', () => {
         'accepted',
       );
       expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: {
-          suggestionId: 'sug-1',
-          feedback: 'accepted' as never,
-          appliedEffect: 'boosted_type',
-        },
+        suggestionId: 'sug-1',
+        feedback: 'accepted' as never,
+        appliedEffect: 'boosted_type',
       });
     });
 
@@ -207,10 +199,7 @@ describe('TodaySuggestionController', () => {
         feedback: 'later' as never,
       });
 
-      expect(result.data).toHaveProperty(
-        'expiresAt',
-        '2026-07-11T08:00:00.000Z',
-      );
+      expect(result).toHaveProperty('expiresAt', '2026-07-11T08:00:00.000Z');
     });
 
     it('omits expiresAt from response when null', async () => {
@@ -223,12 +212,12 @@ describe('TodaySuggestionController', () => {
         feedback: 'accepted' as never,
       });
 
-      expect(result.data).not.toHaveProperty('expiresAt');
+      expect(result).not.toHaveProperty('expiresAt');
     });
   });
 
   describe('POST /today/suggestions/:id/explain', () => {
-    it('returns explanation envelope with language header', async () => {
+    it('returns explanation resource with language header', async () => {
       explanationService.explain.mockResolvedValue(mockExplanationResult);
 
       const result = await controller.explainSuggestion(
@@ -243,14 +232,10 @@ describe('TodaySuggestionController', () => {
         'zh-CN',
       );
       expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: {
-          suggestionId: 'sug-1',
-          reason: 'AI生成的解释',
-          boundary: 'AI生成的边界',
-          aiGenerated: true,
-        },
+        suggestionId: 'sug-1',
+        reason: 'AI生成的解释',
+        boundary: 'AI生成的边界',
+        aiGenerated: true,
       });
     });
 
@@ -293,7 +278,7 @@ describe('TodaySuggestionController', () => {
         'sug-1',
         'zh-CN',
       );
-      expect(result.data).toEqual({ result: mockExplanationResult });
+      expect(result).toEqual({ result: mockExplanationResult });
     });
 
     it('returns a jobId when the queue is configured and enqueues', async () => {
@@ -313,7 +298,7 @@ describe('TodaySuggestionController', () => {
         'zh-CN',
       );
       expect(explanationService.explain).not.toHaveBeenCalled();
-      expect(result.data).toEqual({ jobId: 'job-1' });
+      expect(result).toEqual({ jobId: 'job-1' });
     });
 
     it('falls back when enqueue returns null', async () => {
@@ -329,7 +314,7 @@ describe('TodaySuggestionController', () => {
       );
 
       expect(explanationService.explain).toHaveBeenCalled();
-      expect(result.data).toEqual({ result: mockExplanationResult });
+      expect(result).toEqual({ result: mockExplanationResult });
     });
   });
 
@@ -355,7 +340,7 @@ describe('TodaySuggestionController', () => {
         'job-1',
         mockUser.sub,
       );
-      expect(result.data).toEqual({ status: 'not_found' });
+      expect(result).toEqual({ status: 'not_found' });
     });
 
     it('returns the job status when found', async () => {
@@ -369,7 +354,7 @@ describe('TodaySuggestionController', () => {
         'job-1',
       );
 
-      expect(result.data).toEqual({
+      expect(result).toEqual({
         status: 'completed',
         jobId: 'job-1',
       });
@@ -377,7 +362,7 @@ describe('TodaySuggestionController', () => {
   });
 
   describe('GET /today/suggestions/history', () => {
-    it('returns history envelope with defaults when no query provided', async () => {
+    it('returns history resource with defaults when no query provided', async () => {
       lifecycleService.getHistory.mockResolvedValue(mockHistoryResult as never);
 
       const defaultDateSpy = vi
@@ -395,14 +380,10 @@ describe('TodaySuggestionController', () => {
         {},
       );
       expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: {
-          items: mockHistoryResult.items,
-          total: 1,
-          startDate: '2026-06-10',
-          endDate: expectedEndDate,
-        },
+        items: mockHistoryResult.items,
+        total: 1,
+        startDate: '2026-06-10',
+        endDate: expectedEndDate,
       });
 
       defaultDateSpy.mockRestore();
@@ -428,7 +409,7 @@ describe('TodaySuggestionController', () => {
         'en-US',
         {},
       );
-      expect(result.data).toMatchObject({
+      expect(result).toMatchObject({
         startDate: '2026-06-01',
         endDate: '2026-07-01',
       });

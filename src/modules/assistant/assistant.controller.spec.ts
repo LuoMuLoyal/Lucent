@@ -74,7 +74,7 @@ describe('AssistantController', () => {
     sseRegistry = module.get(SseConnectionRegistry);
   });
 
-  it('returns the authenticated user assistant capability envelope', async () => {
+  it('returns the authenticated user assistant capability resource', async () => {
     service.getCapabilities.mockResolvedValue({
       phase: 'foundation',
       assistantEnabled: true,
@@ -103,33 +103,29 @@ describe('AssistantController', () => {
         status: 'active',
       }),
     ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        phase: 'foundation',
-        assistantEnabled: true,
-        assistantMemoryEnabled: false,
-        assistantContext: {
-          healthProfile: true,
-          dailyRecords: true,
-          sleepRecords: false,
-          currentMedicines: true,
-        },
-        chatModelConfigured: true,
-        interactiveChatReady: false,
-        langGraphReady: true,
-        streamingSupported: true,
-        streamingTransport: 'sse',
-        markdownRenderingRecommended: true,
-        ragEnabled: false,
-        tools: [],
-        updatedAt: '2026-06-17T12:00:00.000Z',
+      phase: 'foundation',
+      assistantEnabled: true,
+      assistantMemoryEnabled: false,
+      assistantContext: {
+        healthProfile: true,
+        dailyRecords: true,
+        sleepRecords: false,
+        currentMedicines: true,
       },
+      chatModelConfigured: true,
+      interactiveChatReady: false,
+      langGraphReady: true,
+      streamingSupported: true,
+      streamingTransport: 'sse',
+      markdownRenderingRecommended: true,
+      ragEnabled: false,
+      tools: [],
+      updatedAt: '2026-06-17T12:00:00.000Z',
     });
     expect(service.getCapabilities).toHaveBeenCalledWith('u1');
   });
 
-  it('returns the recent persisted conversation list envelope', async () => {
+  it('returns the recent persisted conversation list resource', async () => {
     service.listRecentConversations.mockResolvedValue([
       {
         id: 'conversation-2',
@@ -155,28 +151,24 @@ describe('AssistantController', () => {
         email: 'a@b.c',
         status: 'active',
       }),
-    ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: [
-        {
-          id: 'conversation-2',
-          title: '最近睡眠怎样？',
-          status: 'active',
-          lastMessageAt: '2026-06-18T10:00:00.000Z',
-          createdAt: '2026-06-18T09:55:00.000Z',
-          updatedAt: '2026-06-18T10:00:00.000Z',
-        },
-        {
-          id: 'conversation-1',
-          title: '昨天头痛是为什么？',
-          status: 'archived',
-          lastMessageAt: '2026-06-17T10:00:00.000Z',
-          createdAt: '2026-06-17T09:55:00.000Z',
-          updatedAt: '2026-06-17T10:00:00.000Z',
-        },
-      ],
-    });
+    ).resolves.toEqual([
+      {
+        id: 'conversation-2',
+        title: '最近睡眠怎样？',
+        status: 'active',
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T09:55:00.000Z',
+        updatedAt: '2026-06-18T10:00:00.000Z',
+      },
+      {
+        id: 'conversation-1',
+        title: '昨天头痛是为什么？',
+        status: 'archived',
+        lastMessageAt: '2026-06-17T10:00:00.000Z',
+        createdAt: '2026-06-17T09:55:00.000Z',
+        updatedAt: '2026-06-17T10:00:00.000Z',
+      },
+    ]);
     expect(service.listRecentConversations).toHaveBeenCalledWith('u1');
   });
 
@@ -321,7 +313,7 @@ describe('AssistantController', () => {
     expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
   });
 
-  it('returns the latest persisted conversation envelope', async () => {
+  it('returns the latest persisted conversation resource', async () => {
     service.getLatestConversation.mockResolvedValue({
       id: 'conversation-1',
       title: '最近睡眠怎样？',
@@ -346,29 +338,25 @@ describe('AssistantController', () => {
         status: 'active',
       }),
     ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        id: 'conversation-1',
-        title: '最近睡眠怎样？',
-        status: 'active',
-        messages: [
-          {
-            role: 'user',
-            content: '最近睡眠怎样？',
-            usedTools: [],
-            createdAt: '2026-06-18T10:00:00.000Z',
-          },
-        ],
-        lastMessageAt: '2026-06-18T10:00:00.000Z',
-        createdAt: '2026-06-18T10:00:00.000Z',
-        updatedAt: '2026-06-18T10:00:00.000Z',
-      },
+      id: 'conversation-1',
+      title: '最近睡眠怎样？',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '最近睡眠怎样？',
+          usedTools: [],
+          createdAt: '2026-06-18T10:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:00:00.000Z',
     });
     expect(service.getLatestConversation).toHaveBeenCalledWith('u1');
   });
 
-  it('opens one persisted conversation envelope', async () => {
+  it('opens one persisted conversation resource', async () => {
     service.openConversation.mockResolvedValue({
       id: 'conversation-1',
       title: '最近睡眠怎样？',
@@ -392,24 +380,20 @@ describe('AssistantController', () => {
         'conversation-1',
       ),
     ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        id: 'conversation-1',
-        title: '最近睡眠怎样？',
-        status: 'active',
-        messages: [
-          {
-            role: 'user',
-            content: '最近睡眠怎样？',
-            usedTools: [],
-            createdAt: '2026-06-18T10:00:00.000Z',
-          },
-        ],
-        lastMessageAt: '2026-06-18T10:00:00.000Z',
-        createdAt: '2026-06-18T10:00:00.000Z',
-        updatedAt: '2026-06-18T10:05:00.000Z',
-      },
+      id: 'conversation-1',
+      title: '最近睡眠怎样？',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '最近睡眠怎样？',
+          usedTools: [],
+          createdAt: '2026-06-18T10:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:05:00.000Z',
     });
     expect(service.openConversation).toHaveBeenCalledWith(
       'u1',
@@ -417,7 +401,7 @@ describe('AssistantController', () => {
     );
   });
 
-  it('clears the latest persisted conversation envelope', async () => {
+  it('clears the latest persisted conversation resource', async () => {
     service.clearLatestConversation.mockResolvedValue({
       cleared: true,
       archivedConversationId: 'conversation-1',
@@ -430,17 +414,13 @@ describe('AssistantController', () => {
         status: 'active',
       }),
     ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        cleared: true,
-        archivedConversationId: 'conversation-1',
-      },
+      cleared: true,
+      archivedConversationId: 'conversation-1',
     });
     expect(service.clearLatestConversation).toHaveBeenCalledWith('u1');
   });
 
-  it('confirms pending proposals and returns the decision envelope', async () => {
+  it('confirms pending proposals and returns the decision resource', async () => {
     service.confirmProposal.mockResolvedValue({
       conversationId: 'conversation-1',
       decision: 'approved',
@@ -455,14 +435,10 @@ describe('AssistantController', () => {
         { proposalIds: ['proposal-1'], decision: 'approved' },
       ),
     ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        conversationId: 'conversation-1',
-        decision: 'approved',
-        status: 'approved',
-        finalContent: '已确认。',
-      },
+      conversationId: 'conversation-1',
+      decision: 'approved',
+      status: 'approved',
+      finalContent: '已确认。',
     });
     expect(service.confirmProposal).toHaveBeenCalledWith(
       'u1',
@@ -471,7 +447,7 @@ describe('AssistantController', () => {
     );
   });
 
-  it('renames one persisted conversation envelope', async () => {
+  it('renames one persisted conversation resource', async () => {
     service.renameConversation.mockResolvedValue({
       id: 'conversation-1',
       title: '新标题',
@@ -496,24 +472,20 @@ describe('AssistantController', () => {
         { title: '新标题' },
       ),
     ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        id: 'conversation-1',
-        title: '新标题',
-        status: 'active',
-        messages: [
-          {
-            role: 'user',
-            content: '最近睡眠怎样？',
-            usedTools: [],
-            createdAt: '2026-06-18T10:00:00.000Z',
-          },
-        ],
-        lastMessageAt: '2026-06-18T10:00:00.000Z',
-        createdAt: '2026-06-18T10:00:00.000Z',
-        updatedAt: '2026-06-18T10:05:00.000Z',
-      },
+      id: 'conversation-1',
+      title: '新标题',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '最近睡眠怎样？',
+          usedTools: [],
+          createdAt: '2026-06-18T10:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:05:00.000Z',
     });
     expect(service.renameConversation).toHaveBeenCalledWith(
       'u1',
@@ -522,7 +494,7 @@ describe('AssistantController', () => {
     );
   });
 
-  it('deletes one persisted conversation envelope', async () => {
+  it('deletes one persisted conversation resource', async () => {
     service.deleteConversation.mockResolvedValue({
       id: 'conversation-1',
       title: '最近睡眠怎样？',
@@ -539,17 +511,13 @@ describe('AssistantController', () => {
         'conversation-1',
       ),
     ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: {
-        id: 'conversation-1',
-        title: '最近睡眠怎样？',
-        status: 'deleted',
-        messages: [],
-        lastMessageAt: '2026-06-18T10:00:00.000Z',
-        createdAt: '2026-06-18T10:00:00.000Z',
-        updatedAt: '2026-06-18T10:05:00.000Z',
-      },
+      id: 'conversation-1',
+      title: '最近睡眠怎样？',
+      status: 'deleted',
+      messages: [],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:05:00.000Z',
     });
     expect(service.deleteConversation).toHaveBeenCalledWith(
       'u1',
@@ -557,16 +525,12 @@ describe('AssistantController', () => {
     );
   });
 
-  it('erases assistant memories and returns the cleared count envelope', async () => {
+  it('erases assistant memories and returns the cleared count resource', async () => {
     service.clearAssistantMemory.mockResolvedValue({ cleared: 3 });
 
     await expect(
       controller.clearMemory({ sub: 'u1', email: 'a@b.c', status: 'active' }),
-    ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { cleared: 3 },
-    });
+    ).resolves.toEqual({ cleared: 3 });
     expect(service.clearAssistantMemory).toHaveBeenCalledWith('u1');
     expect(auditLogService.logFireAndForget).toHaveBeenCalledWith({
       userId: 'u1',
