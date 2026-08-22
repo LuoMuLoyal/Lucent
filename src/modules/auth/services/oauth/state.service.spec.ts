@@ -1,6 +1,6 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
@@ -133,9 +133,11 @@ describe('AuthOAuthStateService', () => {
     });
 
     it('should throw when state does not exist', async () => {
-      await expect(service.peek('wechat_web', 'nonexistent')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.peek('wechat_web', 'nonexistent'),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'AUTH_OAUTH_STATE_INVALID' }),
+      });
     });
   });
 
@@ -161,7 +163,9 @@ describe('AuthOAuthStateService', () => {
     it('should throw when state does not exist', async () => {
       await expect(
         service.consume('wechat_web', 'nonexistent', 'login'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'AUTH_OAUTH_STATE_INVALID' }),
+      });
     });
 
     it('should throw when purpose does not match', async () => {
@@ -170,7 +174,9 @@ describe('AuthOAuthStateService', () => {
 
       await expect(
         service.consume('wechat_web', 'random-state-token', 'link'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'AUTH_OAUTH_STATE_INVALID' }),
+      });
     });
   });
 

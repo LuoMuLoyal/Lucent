@@ -300,7 +300,7 @@ describe('Auth API (e2e)', () => {
         .expect(401);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('AUTH_UNAUTHORIZED');
+      expect(body['code']).toBe('AUTH_REQUIRED');
     });
 
     it('should reject non-existent email', async () => {
@@ -310,7 +310,7 @@ describe('Auth API (e2e)', () => {
         .expect(401);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('AUTH_UNAUTHORIZED');
+      expect(body['code']).toBe('AUTH_REQUIRED');
     });
 
     it('should login with verification code', async () => {

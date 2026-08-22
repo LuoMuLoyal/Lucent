@@ -2,13 +2,13 @@ import {
   Inject,
   Injectable,
   Logger,
-  UnauthorizedException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { createHash } from 'node:crypto';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../../../common';
 
 const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX = 10;
@@ -42,10 +42,17 @@ export class AuthRateLimitService {
 
     if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
       const minutes = Math.ceil((entry.lockedUntil - Date.now()) / 60_000);
-      throw new UnauthorizedException({
-        code: ResultCode.LOGIN_RATE_LIMITED,
-        message: this.i18n.t('auth.login_rate_limited', { args: { minutes } }),
-      });
+      throw new HttpException(
+        {
+          code: 'AUTH_LOGIN_RATE_LIMITED',
+          retryable: true,
+          retryAfter: Math.ceil((entry.lockedUntil - Date.now()) / 1000),
+          message: this.i18n.t('auth.login_rate_limited', {
+            args: { minutes },
+          }),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     if (!this.isValidLoginFailureBucket(entry) || entry.resetAt <= Date.now()) {

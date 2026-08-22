@@ -1,4 +1,4 @@
-import { nonDeleted, ResultCode } from '../../../common';
+import { nonDeleted } from '../../../common';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -361,7 +361,7 @@ describe('AuthService', () => {
           code: number;
           message: string;
         };
-        expect(response.code).toBe(ResultCode.REFRESH_TOKEN_INVALID);
+        expect(response.code).toBe('AUTH_REFRESH_TOKEN_INVALID');
         expect(response.message).toBe('refresh token invalid');
         expect(i18nService.t).toHaveBeenCalledWith(
           'auth.refresh_token_invalid',

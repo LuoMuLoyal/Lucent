@@ -107,9 +107,11 @@ export class AuthTokenService {
         `JWT signing failed for user ${user.id} after session creation: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
-      throw new InternalServerErrorException(
-        'Token signing failed after session creation; please re-authenticate.',
-      );
+      throw new InternalServerErrorException({
+        code: 'INTERNAL_ERROR',
+        message:
+          'Token signing failed after session creation; please re-authenticate.',
+      });
     }
 
     return {
@@ -173,16 +175,18 @@ export class AuthTokenService {
   ): Promise<void> {
     const record = await this.sessionRepository.findSessionById(sessionId);
     if (!record) {
-      throw new NotFoundException(
-        this.i18n.t('auth.session_not_found', { lang: locale }),
-      );
+      throw new NotFoundException({
+        code: 'AUTH_SESSION_NOT_FOUND',
+        message: this.i18n.t('auth.session_not_found', { lang: locale }),
+      });
     }
     if (record.userId !== userId) {
-      throw new ForbiddenException(
-        this.i18n.t('auth.cannot_revoke_another_user_session', {
+      throw new ForbiddenException({
+        code: 'AUTH_SESSION_ACCESS_DENIED',
+        message: this.i18n.t('auth.cannot_revoke_another_user_session', {
           lang: locale,
         }),
-      );
+      });
     }
     await this.sessionRepository.revokeSessionById(sessionId);
   }

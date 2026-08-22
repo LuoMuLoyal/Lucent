@@ -2,7 +2,6 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
-import { ResultCode } from '../../../common';
 import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
 import { ChangeEmailDto } from '../dto/password/change-email.dto';
 import { ChangePasswordDto } from '../dto/password/change-password.dto';
@@ -100,7 +99,7 @@ export class AuthService {
     } catch (error) {
       this.logger.warn('Token refresh failed', { error });
       throw new UnauthorizedException({
-        code: ResultCode.REFRESH_TOKEN_INVALID,
+        code: 'AUTH_REFRESH_TOKEN_INVALID',
         message: this.i18n.t('auth.refresh_token_invalid'),
         cause: error,
       });

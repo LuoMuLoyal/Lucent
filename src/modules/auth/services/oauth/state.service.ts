@@ -1,4 +1,4 @@
-import { badRequest, unauthorized } from '../../../../common';
+import { badRequest } from '../../../../common';
 import { extractErrorInfo } from '../../../../common';
 import {
   BadRequestException,
@@ -14,7 +14,6 @@ import { I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../../../config/env/config-keys.enum';
 import { EnvKey } from '../../../../config/env/env-keys.enum';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
-import { ResultCode } from '../../../../common';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   OAUTH_PROVIDER_QQ,
@@ -81,7 +80,7 @@ export class AuthOAuthStateService {
       `OAuth state consumed (provider=${provider}, purpose=${purpose})`,
     );
     if (!this.isValidEntry(provider, entry, purpose)) {
-      unauthorized(this.i18n.t('auth.oauth_state_invalid'));
+      throw this.invalidState();
     }
     return entry;
   }
@@ -94,7 +93,7 @@ export class AuthOAuthStateService {
       this.stateKey(provider, state),
     );
     if (!this.isValidEntry(provider, entry)) {
-      unauthorized(this.i18n.t('auth.oauth_state_invalid'));
+      throw this.invalidState();
     }
     return entry;
   }
@@ -216,8 +215,15 @@ export class AuthOAuthStateService {
 
   private invalidUri(): BadRequestException {
     return new BadRequestException({
-      code: ResultCode.BAD_REQUEST,
+      code: 'VALIDATION_FAILED',
       message: this.i18n.t('auth.oauth_callback_uri_invalid'),
+    });
+  }
+
+  private invalidState(): BadRequestException {
+    return new BadRequestException({
+      code: 'AUTH_OAUTH_STATE_INVALID',
+      message: this.i18n.t('auth.oauth_state_invalid'),
     });
   }
 }

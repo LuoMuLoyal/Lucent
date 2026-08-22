@@ -15,7 +15,6 @@ import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../../user';
 import { VerificationCodeService } from './verification-code.service';
-import { ResultCode } from '../../../../common';
 import { RegisterDto } from '../../dto/credentials/register.dto';
 import { LoginDto } from '../../dto/credentials/login.dto';
 import { ChangePasswordDto } from '../../dto/password/change-password.dto';
@@ -140,7 +139,7 @@ export class CredentialAuthService {
     const user = await this._getActiveUser(userId);
     if (!user.passwordHash) {
       throw new UnauthorizedException({
-        code: ResultCode.WRONG_PASSWORD,
+        code: 'AUTH_WRONG_PASSWORD',
         message: this.i18n.t('auth.use_set_password_for_oauth_account'),
       });
     }
@@ -148,7 +147,7 @@ export class CredentialAuthService {
     const valid = await argon2.verify(user.passwordHash, dto.oldPassword);
     if (!valid) {
       throw new UnauthorizedException({
-        code: ResultCode.WRONG_PASSWORD,
+        code: 'AUTH_WRONG_PASSWORD',
         message: this.i18n.t('auth.current_password_wrong'),
       });
     }

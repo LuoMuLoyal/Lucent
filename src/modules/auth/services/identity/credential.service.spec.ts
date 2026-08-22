@@ -14,7 +14,6 @@ import { AuthTokenService } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
 import { NotificationsService } from '../../../notifications';
 import type { NotificationListItemDto } from '../../../notifications';
-import { ResultCode } from '../../../../common';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 
@@ -222,14 +221,14 @@ describe('CredentialAuthService', () => {
 
     it('should propagate verification code errors', async () => {
       verificationCodeService.verify.mockRejectedValue(
-        new UnauthorizedException({
-          code: ResultCode.VERIFICATION_CODE_INVALID,
+        new BadRequestException({
+          code: 'AUTH_VERIFICATION_CODE_MISMATCH',
           message: 'invalid code',
         }),
       );
 
       await expect(service.register(buildRegisterDto())).rejects.toThrow(
-        UnauthorizedException,
+        BadRequestException,
       );
     });
 

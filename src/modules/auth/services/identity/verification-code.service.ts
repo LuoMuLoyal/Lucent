@@ -5,7 +5,6 @@ import {
   Inject,
   Injectable,
   Logger,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -13,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
-import { ResultCode, RedisService } from '../../../../common';
+import { RedisService } from '../../../../common';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
@@ -89,10 +88,15 @@ export class VerificationCodeService {
     const cooldownKey = this.cooldownKey(scene, email);
     const inCooldown = await this.cacheGet(cooldownKey);
     if (inCooldown) {
-      throw new BadRequestException({
-        code: ResultCode.VERIFICATION_CODE_COOLDOWN,
-        message: this.i18n.t('auth.verification_code_cooldown'),
-      });
+      throw new HttpException(
+        {
+          code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+          retryAfter: this.getCooldownSec(),
+          retryable: true,
+          message: this.i18n.t('auth.verification_code_cooldown'),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     // Generate code
@@ -130,7 +134,7 @@ export class VerificationCodeService {
       if (count > this.rateLimitMaxRequests) {
         throw new HttpException(
           {
-            code: ResultCode.VERIFICATION_CODE_RATE_LIMITED,
+            code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
             message: this.i18n.t('auth.verification_code_rate_limited'),
           },
           HttpStatus.TOO_MANY_REQUESTS,
@@ -156,7 +160,7 @@ export class VerificationCodeService {
     if (bucket.count >= this.rateLimitMaxRequests) {
       throw new HttpException(
         {
-          code: ResultCode.VERIFICATION_CODE_RATE_LIMITED,
+          code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
           message: this.i18n.t('auth.verification_code_rate_limited'),
         },
         HttpStatus.TOO_MANY_REQUESTS,
@@ -184,14 +188,14 @@ export class VerificationCodeService {
 
     if (!storedHash) {
       throw new BadRequestException({
-        code: ResultCode.VERIFICATION_CODE_INVALID,
+        code: 'AUTH_VERIFICATION_CODE_EXPIRED',
         message: this.i18n.t('auth.verification_code_expired'),
       });
     }
 
     if (!this.safeCompareCode(code, storedHash, scene, email)) {
-      throw new UnauthorizedException({
-        code: ResultCode.VERIFICATION_CODE_INVALID,
+      throw new BadRequestException({
+        code: 'AUTH_VERIFICATION_CODE_MISMATCH',
         message: this.i18n.t('auth.verification_code_wrong'),
       });
     }

@@ -11,7 +11,6 @@ import { JwtService } from '@nestjs/jwt';
 
 import { I18nService } from 'nestjs-i18n';
 
-import { ResultCode } from '../../../common';
 import { unauthorized } from '../../../common';
 import { withRetry } from '../../../common';
 import { toInputJsonValue } from '../../../common';
@@ -163,7 +162,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
     const jwk = keys.find((k) => k.kid === kid);
     if (!jwk) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -196,7 +195,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
     } catch (err) {
       this.logger.error('Failed to fetch Apple JWKS', err);
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }

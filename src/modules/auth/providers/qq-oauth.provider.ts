@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../../common';
 import { ConfigKey } from '../../../config/env/config-keys.enum';
 import type { OAuthConfig } from '../../../config/services/oauth.config';
 import { OAUTH_PROVIDER_QQ, type OAuthProfile } from '../types/oauth.types';
@@ -67,7 +66,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
 
     if (!redirectUri) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_not_configured'),
       });
     }
@@ -161,7 +160,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
         unauthorized(this.i18n.t('auth.oauth_code_invalid'));
       }
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -173,7 +172,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
 
     if (!parsed['access_token']) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -208,7 +207,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
     const openIdResponse = data as unknown as QqOpenIdResponse;
     if (!openIdResponse.openid) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -234,7 +233,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
 
     if (data.ret !== 0) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -251,7 +250,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(`QQ API request failed: ${reason}`, stack);
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -292,7 +291,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
 
     if (!config.appId || !config.appSecret || !config.redirectUri) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_not_configured'),
       });
     }

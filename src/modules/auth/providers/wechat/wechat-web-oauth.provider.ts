@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../../../common';
 import { ConfigKey } from '../../../../config/env/config-keys.enum';
 import type {
   OAuthConfig,
@@ -48,7 +47,7 @@ export class WechatWebOAuthProvider
 
     if (!config.redirectUri) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_not_configured'),
       });
     }
@@ -128,7 +127,7 @@ export class WechatWebOAuthProvider
 
     if (!wechat.appId || !wechat.appSecret) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_not_configured'),
       });
     }

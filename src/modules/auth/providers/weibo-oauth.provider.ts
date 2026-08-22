@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../../common';
 import { ConfigKey } from '../../../config/env/config-keys.enum';
 import type { OAuthConfig } from '../../../config/services/oauth.config';
 import { OAUTH_PROVIDER_WEIBO, type OAuthProfile } from '../types/oauth.types';
@@ -57,7 +56,7 @@ export class WeiboOAuthProvider implements OAuthProvider, OnModuleInit {
 
     if (!redirectUri) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_not_configured'),
       });
     }
@@ -146,7 +145,7 @@ export class WeiboOAuthProvider implements OAuthProvider, OnModuleInit {
     const tokenResponse = data as unknown as WeiboTokenResponse;
     if (!tokenResponse.access_token || !tokenResponse.uid) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -170,7 +169,7 @@ export class WeiboOAuthProvider implements OAuthProvider, OnModuleInit {
 
     if ((data as { error?: string }).error) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -190,7 +189,7 @@ export class WeiboOAuthProvider implements OAuthProvider, OnModuleInit {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(`Weibo API request failed: ${reason}`, stack);
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
@@ -207,7 +206,7 @@ export class WeiboOAuthProvider implements OAuthProvider, OnModuleInit {
 
     if (!config.appId || !config.appSecret || !config.redirectUri) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_not_configured'),
       });
     }

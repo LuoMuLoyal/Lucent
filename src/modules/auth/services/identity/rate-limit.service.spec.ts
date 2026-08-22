@@ -1,12 +1,11 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 
 import { AuthRateLimitService } from './rate-limit.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ResultCode } from '../../../../common';
 
 // ── Suite ─────────────────────────────────────────────────────
 
@@ -77,10 +76,10 @@ describe('AuthRateLimitService', () => {
 
       await expect(
         service.checkLoginRateLimit('test@example.com'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(HttpException);
     });
 
-    it('should include correct ResultCode in lockout rejection', async () => {
+    it('should include stable retry metadata in lockout rejection', async () => {
       cache.get.mockResolvedValue({
         count: 5,
         resetAt: Date.now() + 600_000,
@@ -89,13 +88,18 @@ describe('AuthRateLimitService', () => {
 
       try {
         await service.checkLoginRateLimit('test@example.com');
-        expect.fail('Expected UnauthorizedException');
+        expect.fail('Expected 429 HttpException');
       } catch (error) {
-        expect(error).toBeInstanceOf(UnauthorizedException);
-        const response = (error as UnauthorizedException).getResponse() as {
-          code: number;
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getStatus()).toBe(
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+        const response = (error as HttpException).getResponse() as {
+          code: string;
+          retryAfter: number;
         };
-        expect(response.code).toBe(ResultCode.LOGIN_RATE_LIMITED);
+        expect(response.code).toBe('AUTH_LOGIN_RATE_LIMITED');
+        expect(response.retryAfter).toBeGreaterThan(0);
       }
     });
 

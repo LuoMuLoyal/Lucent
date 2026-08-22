@@ -2,11 +2,7 @@ import { createHash } from 'node:crypto';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import {
-  BadRequestException,
-  HttpException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 
@@ -14,7 +10,7 @@ import { I18nService } from 'nestjs-i18n';
 import { VerificationCodeService } from './verification-code.service';
 import { MailService } from '../../../../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ResultCode, RedisService } from '../../../../common';
+import { RedisService } from '../../../../common';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
@@ -121,26 +117,33 @@ describe('VerificationCodeService', () => {
       );
     });
 
-    it('should throw BadRequestException if in cooldown', async () => {
+    it('should throw 429 if in cooldown', async () => {
       (cache.get as vi.Mock).mockResolvedValue('1'); // in cooldown
 
       await expect(service.send('test@example.com', 'login')).rejects.toThrow(
-        BadRequestException,
+        HttpException,
       );
     });
 
-    it('should throw with VERIFICATION_CODE_COOLDOWN code', async () => {
+    it('should return a retryable 429 Problem Details input for cooldown', async () => {
       (cache.get as vi.Mock).mockResolvedValue('1');
 
       try {
         await service.send('test@example.com', 'login');
-        expect.fail('Expected BadRequestException');
+        expect.fail('Expected 429 HttpException');
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        const response = (error as BadRequestException).getResponse() as {
-          code: number;
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getStatus()).toBe(
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+        const response = (error as HttpException).getResponse() as {
+          code: string;
+          retryAfter: number;
         };
-        expect(response.code).toBe(ResultCode.VERIFICATION_CODE_COOLDOWN);
+        expect(response).toMatchObject({
+          code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+          retryAfter: 60,
+        });
       }
     });
 
@@ -230,7 +233,7 @@ describe('VerificationCodeService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw with VERIFICATION_CODE_INVALID code for expired', async () => {
+    it('should throw with an expired verification-code code', async () => {
       (cache.get as vi.Mock).mockResolvedValue(undefined);
 
       try {
@@ -239,13 +242,13 @@ describe('VerificationCodeService', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
         const response = (error as BadRequestException).getResponse() as {
-          code: number;
+          code: string;
         };
-        expect(response.code).toBe(ResultCode.VERIFICATION_CODE_INVALID);
+        expect(response.code).toBe('AUTH_VERIFICATION_CODE_EXPIRED');
       }
     });
 
-    it('should throw UnauthorizedException for wrong code', async () => {
+    it('should throw BadRequestException for wrong code', async () => {
       // Simulate a stored hash for a DIFFERENT code
       const wrongHash = createHash('sha256')
         .update('register:test@example.com:654321')
@@ -254,10 +257,10 @@ describe('VerificationCodeService', () => {
 
       await expect(
         service.verify('test@example.com', '123456', 'register'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw with VERIFICATION_CODE_INVALID code for wrong code', async () => {
+    it('should throw with a mismatch verification-code code for wrong code', async () => {
       // Simulate a stored hash for a DIFFERENT code
       const wrongHash = createHash('sha256')
         .update('register:test@example.com:654321')
@@ -268,11 +271,11 @@ describe('VerificationCodeService', () => {
         await service.verify('test@example.com', '123456', 'register');
         expect.fail('Expected UnauthorizedException');
       } catch (error) {
-        expect(error).toBeInstanceOf(UnauthorizedException);
-        const response = (error as UnauthorizedException).getResponse() as {
-          code: number;
+        expect(error).toBeInstanceOf(BadRequestException);
+        const response = (error as BadRequestException).getResponse() as {
+          code: string;
         };
-        expect(response.code).toBe(ResultCode.VERIFICATION_CODE_INVALID);
+        expect(response.code).toBe('AUTH_VERIFICATION_CODE_MISMATCH');
       }
     });
   });

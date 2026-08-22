@@ -3,7 +3,6 @@ import * as argon2 from 'argon2';
 import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
-import { ResultCode } from '../../../common';
 import { badRequest, notFound } from '../../../common';
 import { normalizeEmail } from '../../../common';
 import { now } from '../../../common';
@@ -37,7 +36,7 @@ export class AuthAccountService {
     if (dto.password) {
       if (!user.passwordHash) {
         throw new UnauthorizedException({
-          code: ResultCode.WRONG_PASSWORD,
+          code: 'AUTH_WRONG_PASSWORD',
           message: this.i18n.t('auth.use_code_for_oauth_account_deletion'),
         });
       }
@@ -55,7 +54,7 @@ export class AuthAccountService {
       }
       if (!valid) {
         throw new UnauthorizedException({
-          code: ResultCode.WRONG_PASSWORD,
+          code: 'AUTH_WRONG_PASSWORD',
           message: this.i18n.t('auth.password_wrong'),
         });
       }

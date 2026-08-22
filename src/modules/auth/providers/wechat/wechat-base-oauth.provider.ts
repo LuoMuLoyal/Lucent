@@ -5,7 +5,6 @@ import type { Logger } from '@nestjs/common';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import type { Prisma } from '#generated/prisma/client';
-import { ResultCode } from '../../../../common';
 import type { OAuthProvider } from '../oauth-provider.interface';
 
 export const WECHAT_ACCESS_TOKEN_URL =
@@ -59,14 +58,14 @@ export abstract class WechatBaseOAuthProvider {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(`WeChat OAuth request failed: ${reason}`, stack);
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }
 
     if (!response.ok) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.i18n.t('auth.oauth_provider_unavailable'),
       });
     }

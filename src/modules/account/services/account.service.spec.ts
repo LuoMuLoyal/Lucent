@@ -8,7 +8,6 @@ import { UserStatus } from '#generated/prisma/client';
 
 import { AccountService } from './account.service';
 import { UserService } from '../../user';
-import { ResultCode } from '../../../common';
 import type { UpdateAccountDto } from '../dto/update.dto';
 
 const baseUser = {
@@ -122,7 +121,7 @@ describe('AccountService', () => {
       );
       await expect(service.getAccount('missing-user')).rejects.toMatchObject({
         response: {
-          code: ResultCode.NOT_FOUND,
+          code: 'RESOURCE_NOT_FOUND',
           message: 'account.user_not_found',
         },
       });
@@ -281,7 +280,7 @@ describe('AccountService', () => {
         service.unlinkIdentity(baseUser.id, baseIdentity.id),
       ).rejects.toMatchObject({
         response: {
-          code: ResultCode.FORBIDDEN,
+          code: 'FORBIDDEN',
           message: 'account.cannot_unlink_last_method',
         },
       });
@@ -316,7 +315,7 @@ describe('AccountService', () => {
         service.unlinkIdentity(baseUser.id, 'nonexistent-identity'),
       ).rejects.toMatchObject({
         response: {
-          code: ResultCode.NOT_FOUND,
+          code: 'RESOURCE_NOT_FOUND',
           message: 'account.identity_not_found',
         },
       });
