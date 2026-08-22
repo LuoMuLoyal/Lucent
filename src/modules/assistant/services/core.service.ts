@@ -1,5 +1,9 @@
 import { badRequest, forbidden, notFound } from '../../../common';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ResultCode } from '../../../common';
 import { DailyRecordsService } from '../../daily-records';
 import type { CreateDailyRecordDto } from '../../daily-records/dto/create-record.dto';
@@ -35,9 +39,15 @@ import type {
   AssistantToolExecutionResult,
 } from '../types/assistant.types';
 import type { AssistantToolName } from '../tools/shared/tool-types';
+import {
+  assistantToolDetailDataSchema,
+  type AssistantToolDetailData,
+} from '../schemas/tool-detail.schema';
 
 @Injectable()
 export class AssistantService {
+  private readonly logger = new Logger(AssistantService.name);
+
   constructor(
     private readonly assistantAgentService: AssistantRuntimeService,
     private readonly userSettingsService: UserSettingsService,
@@ -474,41 +484,31 @@ export class AssistantService {
   ): AssistantToolDetailDto[] {
     return results.map((result) => {
       const data = result.data;
-      const coverage =
-        typeof data['coverage'] === 'object' && data['coverage'] != null
-          ? (data['coverage'] as {
-              status: 'complete' | 'partial' | 'empty';
-              reason: string | null;
-            })
-          : undefined;
-      const confidence =
-        typeof data['confidence'] === 'object' && data['confidence'] != null
-          ? (data['confidence'] as {
-              level: 'high' | 'medium' | 'low';
-              reason: string;
-            })
-          : undefined;
-      const ambiguities = Array.isArray(data['ambiguities'])
-        ? (data['ambiguities'] as unknown[]).filter(
-            (value): value is string => typeof value === 'string',
-          )
-        : undefined;
-      const source =
-        typeof data['source'] === 'object' && data['source'] != null
-          ? (data['source'] as {
-              tool: string;
-              generatedAt: string;
-              tables: string[];
-            })
-          : undefined;
       const resultData = data['result'];
-      const disclaimer =
-        typeof resultData === 'object' &&
-        resultData != null &&
-        typeof (resultData as Record<string, unknown>)['disclaimer'] ===
-          'string'
-          ? ((resultData as Record<string, unknown>)['disclaimer'] as string)
+      const resultRecord: Record<string, unknown> | undefined =
+        resultData != null && typeof resultData === 'object'
+          ? (resultData as Record<string, unknown>)
           : undefined;
+      const parsed = assistantToolDetailDataSchema.safeParse({
+        coverage: data['coverage'],
+        confidence: data['confidence'],
+        ambiguities: data['ambiguities'],
+        source: data['source'],
+        disclaimer:
+          resultRecord != null && 'disclaimer' in resultRecord
+            ? resultRecord['disclaimer']
+            : undefined,
+      });
+      if (!parsed.success) {
+        this.logger.warn(
+          `Ignoring malformed tool detail metadata for tool "${result.name}".`,
+          parsed.error,
+        );
+        return { name: result.name };
+      }
+      const detailData: AssistantToolDetailData = parsed.data;
+      const { coverage, confidence, ambiguities, source, disclaimer } =
+        detailData;
       const label = this.extractToolLabel(result.name, data);
 
       const detail: AssistantToolDetailDto = { name: result.name };

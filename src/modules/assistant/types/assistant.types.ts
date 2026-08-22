@@ -201,6 +201,11 @@ export interface AssistantProposedAction {
     | AssistantUpdateUserSettingsProposalPayload;
 }
 
+/**
+ * Internal runtime envelope returned by tool execution. Unlike
+ * `AssistantToolDetailDto`, this shape carries raw tool data and optional
+ * proposal/timeout control state before the client-facing projection.
+ */
 export interface AssistantToolExecutionResult {
   name: AssistantToolName;
   data: Record<string, unknown>;

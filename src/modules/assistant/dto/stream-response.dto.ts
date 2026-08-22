@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AssistantProposedActionDto } from './proposed-action.dto';
 
+/**
+ * Client-facing projection of tool metadata included in an assistant SSE
+ * result. This DTO deliberately differs from the internal execution envelope.
+ */
 export class AssistantToolDetailDto {
   @ApiProperty({ description: 'Tool name used during generation.' })
   name!: string;

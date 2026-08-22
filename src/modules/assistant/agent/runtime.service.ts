@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Command, type StateSnapshot } from '@langchain/langgraph';
@@ -571,7 +577,22 @@ export class AssistantRuntimeService {
     );
     const finalContent = result.finalContent ?? '';
     if (finalContent.trim().length === 0) {
-      throw new Error('Assistant regeneration ended without any content.');
+      const cause = new Error(
+        'Assistant regeneration ended without any content.',
+      );
+      this.logger.error(
+        `Assistant regeneration produced no content (conversationId=${conversationId}, checkpointId=${checkpointId}).`,
+        cause.stack,
+      );
+      trace.getActiveSpan()?.recordException(cause);
+      trace.getActiveSpan()?.addEvent('assistant.regeneration.no_content', {
+        conversation_id: conversationId,
+        checkpoint_id: checkpointId,
+      });
+      throw new InternalServerErrorException({
+        code: 'ASSISTANT_REGENERATION_NO_CONTENT',
+        message: 'Assistant regeneration could not produce a response.',
+      });
     }
 
     // `respond` writes only `finalContent`; persist the new answer into the

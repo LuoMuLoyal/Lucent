@@ -823,6 +823,41 @@ describe('AssistantService', () => {
 
       expect(result.toolDetails).toEqual([]);
     });
+
+    it('degrades malformed tool detail data to name-only details and warns', async () => {
+      runtime.runConversation.mockResolvedValue({
+        ...mockRunConversationResult,
+        toolResults: [
+          {
+            name: 'search_medicine_leaflets',
+            data: {
+              coverage: { status: 'not-a-valid-status', reason: 123 },
+              confidence: { level: 'unknown', reason: null },
+              ambiguities: ['valid', 42],
+              source: { tool: 42, generatedAt: null, tables: ['ok', 7] },
+            },
+          },
+        ],
+      } as never);
+      runtime.streamPreGeneratedContent.mockResolvedValue(mockStreamResult);
+      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+      const logger = (
+        service as unknown as { logger: { warn: (...args: unknown[]) => void } }
+      ).logger;
+      const warnSpy = vi.spyOn(logger, 'warn');
+
+      const result = await service.streamMessages(
+        'user-1',
+        dto,
+        'zh-CN',
+        onChunk,
+      );
+
+      expect(result.toolDetails).toEqual([
+        { name: 'search_medicine_leaflets' },
+      ]);
+      expect(warnSpy).toHaveBeenCalled();
+    });
   });
 
   describe('regenerateConversation', () => {

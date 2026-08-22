@@ -1,5 +1,8 @@
 import { AIMessageChunk } from '@langchain/core/messages';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { MemorySaver } from '@langchain/langgraph';
 import type { LlmRuntimeService } from '../../../llm-runtime';
 import { LlmCircuitBreakerService } from '../../../common/llm/llm-circuit-breaker.service';
@@ -667,11 +670,11 @@ describe('AssistantRuntimeService', () => {
     const USER_ID = 'u-reg';
 
     /** Builds a service whose graph runs over a MemorySaver thread and whose model answers with plain text (read flow). */
-    function buildRegenerateHarness() {
+    function buildRegenerateHarness(replayContent = '重新生成的睡眠总结') {
       const responses = [
         new AIMessageChunk({ content: ASSISTANT_CONTENT }),
         // second answer consumed by replayFromCheckpoint's respond re-run
-        new AIMessageChunk({ content: '重新生成的睡眠总结' }),
+        new AIMessageChunk({ content: replayContent }),
       ];
       const mockModel = {
         bindTools: vi.fn().mockReturnThis(),
@@ -886,6 +889,39 @@ describe('AssistantRuntimeService', () => {
       ).toHaveLength(2);
       expect(finalContent).toBe('重新生成的睡眠总结');
       expect(streamed).toContain('重新生成的睡眠总结');
+    });
+
+    it('returns a safe internal error and logs when replay produces no content', async () => {
+      const { service } = buildRegenerateHarness();
+      const graph = {
+        updateState: vi.fn(),
+        invoke: vi.fn().mockResolvedValue({ finalContent: '   ' }),
+      };
+      const serviceWithGraph = service as unknown as {
+        buildGraphWithCheckpointer: (...args: unknown[]) => typeof graph;
+      };
+      vi.spyOn(serviceWithGraph, 'buildGraphWithCheckpointer').mockReturnValue(
+        graph,
+      );
+      const logger = (
+        service as unknown as {
+          logger: { error: (...args: unknown[]) => void };
+        }
+      ).logger;
+      const errorSpy = vi.spyOn(logger, 'error');
+
+      await expect(
+        service.replayFromCheckpoint(CONVERSATION_ID, 'checkpoint-1', vi.fn()),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'ASSISTANT_REGENERATION_NO_CONTENT',
+          message: 'Assistant regeneration could not produce a response.',
+        },
+      });
+      expect(errorSpy).toHaveBeenCalled();
+      await expect(
+        service.replayFromCheckpoint(CONVERSATION_ID, 'checkpoint-1', vi.fn()),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
 });
