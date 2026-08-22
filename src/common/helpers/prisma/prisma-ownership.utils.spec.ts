@@ -1,6 +1,5 @@
 import { ensureOwnedByUser } from './prisma-ownership.utils';
 import { NotFoundException } from '@nestjs/common';
-import { ResultCode } from '../../api/result-code';
 
 describe('prisma-ownership.utils', () => {
   describe('ensureOwnedByUser', () => {
@@ -42,7 +41,7 @@ describe('prisma-ownership.utils', () => {
           message: string;
         };
         expect(response.message).toBe('Custom not-found message');
-        expect(response.code).toBe(ResultCode.NOT_FOUND);
+        expect(response.code).toBe('RESOURCE_NOT_FOUND');
       }
     });
 

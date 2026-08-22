@@ -7,6 +7,10 @@ export type {
   BuildProblemDetailsInput,
   ProblemDetails,
 } from './api/problem-details';
+export {
+  ProblemDetailsDto,
+  SseProblemDetailsDto,
+} from './api/problem-details.dto';
 export { ProblemCatalog } from './api/problem-catalog';
 export type { ProblemCatalogOptions, ProblemCode } from './api/problem-catalog';
 export { SseProblemDetailsMapper } from './api/sse/sse-problem-details';
@@ -44,7 +48,6 @@ export type {
 export { TencentCosStorageRuntime } from './storage/tencent-cos.runtime';
 export { S3StorageRuntime } from './storage/s3.runtime';
 export { LlmCommonModule } from './llm/llm-common.module';
-export { ResultCode } from './api/result-code';
 export { SlowRequestInterceptor } from './interceptors/slow-request.interceptor';
 export { SseConnectionRegistry } from './api/sse/sse-connection-registry.service';
 export { SseModule } from './api/sse/sse.module';

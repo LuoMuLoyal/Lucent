@@ -2,7 +2,6 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { vi } from 'vitest';
-import { ResultCode } from '../../common/api/result-code';
 
 // ── Mock AWS SDK v3 (needed because S3StorageRuntime constructor
 //    creates S3Client instances) ──────────────────────────────────
@@ -138,7 +137,7 @@ async function buildStorageModule(
             return new TencentCosStorageRuntime(configService);
           }
           throw new ServiceUnavailableException({
-            code: ResultCode.EXTERNAL_SERVICE_ERROR,
+            code: 'DEPENDENCY_UNAVAILABLE',
             message:
               `STORAGE_PROVIDER "${resolved}" is not supported. ` +
               'Use "tencent-cos" or "s3".',

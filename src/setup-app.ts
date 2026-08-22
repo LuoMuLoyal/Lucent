@@ -17,8 +17,8 @@ import { apiReference } from '@scalar/nestjs-api-reference';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Logger as WinstonLogger } from 'winston';
 import { safeCompare } from './common';
+import { ProblemDetailsDto, SseProblemDetailsDto } from './common';
 import { ConfigKey } from './config/env/config-keys.enum';
-import { ResultCode } from './common';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { SlowRequestInterceptor } from './common';
 import type { FastifyRequestWithMetrics } from './common/middleware/metrics.types';
@@ -223,7 +223,7 @@ export async function setupApp(
       forbidNonWhitelisted: true,
       exceptionFactory: (errors: ValidationError[]) =>
         new BadRequestException({
-          code: ResultCode.VALIDATION_FAILED,
+          code: 'VALIDATION_FAILED',
           message: formatValidationErrors(errors),
         }),
     }),
@@ -256,7 +256,9 @@ export async function setupApp(
     )
     .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  const document = SwaggerModule.createDocument(app, swaggerConfig, {
+    extraModels: [ProblemDetailsDto, SseProblemDetailsDto],
+  });
 
   // `withFastify: true` would make apiReference write to the raw response
   // (bypassing Fastify's onSend pipeline, so favicon injection below would

@@ -5,7 +5,6 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
-import { ResultCode } from '../../api/result-code';
 import {
   notFound,
   badRequest,
@@ -24,7 +23,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(NotFoundException);
         const response = (e as NotFoundException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.NOT_FOUND,
+          code: 'RESOURCE_NOT_FOUND',
           message: 'record not found',
         });
       }
@@ -40,7 +39,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(BadRequestException);
         const response = (e as BadRequestException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.BAD_REQUEST,
+          code: 'VALIDATION_FAILED',
           message: 'invalid input',
         });
       }
@@ -58,7 +57,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(UnauthorizedException);
         const response = (e as UnauthorizedException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.UNAUTHORIZED,
+          code: 'AUTH_REQUIRED',
           message: 'not logged in',
         });
       }
@@ -74,7 +73,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(ForbiddenException);
         const response = (e as ForbiddenException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.FORBIDDEN,
+          code: 'FORBIDDEN',
           message: 'access denied',
         });
       }
@@ -90,7 +89,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(ConflictException);
         const response = (e as ConflictException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.CONFLICT,
+          code: 'RESOURCE_CONFLICT',
           message: 'duplicate entry',
         });
       }
@@ -105,7 +104,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(NotFoundException);
         const response = (e as NotFoundException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.NOT_FOUND,
+          code: 'RESOURCE_NOT_FOUND',
           message: '',
         });
       }
@@ -118,7 +117,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(BadRequestException);
         const response = (e as BadRequestException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.BAD_REQUEST,
+          code: 'VALIDATION_FAILED',
           message: '',
         });
       }
@@ -131,7 +130,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(UnauthorizedException);
         const response = (e as UnauthorizedException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.UNAUTHORIZED,
+          code: 'AUTH_REQUIRED',
           message: '',
         });
       }
@@ -144,7 +143,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(ForbiddenException);
         const response = (e as ForbiddenException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.FORBIDDEN,
+          code: 'FORBIDDEN',
           message: '',
         });
       }
@@ -157,7 +156,7 @@ describe('api-errors', () => {
         expect(e).toBeInstanceOf(ConflictException);
         const response = (e as ConflictException).getResponse();
         expect(response).toMatchObject({
-          code: ResultCode.CONFLICT,
+          code: 'RESOURCE_CONFLICT',
           message: '',
         });
       }

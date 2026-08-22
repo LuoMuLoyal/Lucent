@@ -30,9 +30,11 @@ export class SseProblemDetailsMapper {
     const raw = this.isRecord(response)
       ? (response as SseHttpErrorResponse)
       : {};
+    const explicitCode = options.code != null;
     const code = this.resolveCode(
       options.code ?? raw.code,
       error instanceof HttpException ? error.getStatus() : 500,
+      explicitCode,
     );
     const title = this.stringValue(raw.title);
     const detail = this.resolveDetail(raw);
@@ -56,16 +58,24 @@ export class SseProblemDetailsMapper {
     };
   }
 
-  private resolveCode(rawCode: unknown, statusCode: number): ProblemCode {
+  private resolveCode(
+    rawCode: unknown,
+    statusCode: number,
+    explicitCode: boolean,
+  ): ProblemCode {
     if (typeof rawCode === 'string') {
       const candidate = rawCode.trim();
-      if (this.catalog.isKnown(candidate)) return candidate;
+      if (explicitCode && this.catalog.isKnown(candidate)) return candidate;
+      if (this.catalog.matchesStatus(candidate, statusCode)) return candidate;
     }
     if (statusCode === 401) return 'AUTH_REQUIRED';
     if (statusCode === 403) return 'FORBIDDEN';
     if (statusCode === 404) return 'RESOURCE_NOT_FOUND';
     if (statusCode === 409) return 'RESOURCE_CONFLICT';
     if (statusCode === 429) return 'RATE_LIMITED';
+    if (statusCode === 502) return 'DEPENDENCY_BAD_GATEWAY';
+    if (statusCode === 503) return 'DEPENDENCY_UNAVAILABLE';
+    if (statusCode === 504) return 'DEPENDENCY_TIMEOUT';
     if (statusCode >= 500) return 'INTERNAL_ERROR';
     return 'VALIDATION_FAILED';
   }

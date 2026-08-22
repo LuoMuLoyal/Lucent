@@ -5,29 +5,28 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ResultCode } from '../../api/result-code';
 
-/** Throws a {@link ResultCode.NOT_FOUND} HTTP exception. */
+/** Throws a {@link 'RESOURCE_NOT_FOUND'} HTTP exception. */
 export function notFound(message: string): never {
-  throw new NotFoundException({ code: ResultCode.NOT_FOUND, message });
+  throw new NotFoundException({ code: 'RESOURCE_NOT_FOUND', message });
 }
 
-/** Throws a {@link ResultCode.BAD_REQUEST} HTTP exception. */
+/** Throws a {@link 'VALIDATION_FAILED'} HTTP exception. */
 export function badRequest(message: string): never {
-  throw new BadRequestException({ code: ResultCode.BAD_REQUEST, message });
+  throw new BadRequestException({ code: 'VALIDATION_FAILED', message });
 }
 
-/** Throws a {@link ResultCode.UNAUTHORIZED} HTTP exception. */
+/** Throws a {@link 'AUTH_REQUIRED'} HTTP exception. */
 export function unauthorized(message: string): never {
-  throw new UnauthorizedException({ code: ResultCode.UNAUTHORIZED, message });
+  throw new UnauthorizedException({ code: 'AUTH_REQUIRED', message });
 }
 
-/** Throws a {@link ResultCode.FORBIDDEN} HTTP exception. */
+/** Throws a {@link 'FORBIDDEN'} HTTP exception. */
 export function forbidden(message: string): never {
-  throw new ForbiddenException({ code: ResultCode.FORBIDDEN, message });
+  throw new ForbiddenException({ code: 'FORBIDDEN', message });
 }
 
-/** Throws a {@link ResultCode.CONFLICT} HTTP exception. */
+/** Throws a {@link 'RESOURCE_CONFLICT'} HTTP exception. */
 export function conflict(message: string): never {
-  throw new ConflictException({ code: ResultCode.CONFLICT, message });
+  throw new ConflictException({ code: 'RESOURCE_CONFLICT', message });
 }

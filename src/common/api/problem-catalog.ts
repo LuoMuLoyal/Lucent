@@ -27,10 +27,40 @@ const definitions = {
     detailKey: 'common.problem_auth_wrong_password_detail',
     retryable: false,
   },
-  AUTH_VERIFICATION_CODE_INVALID: {
+  AUTH_VERIFICATION_CODE_EXPIRED: {
     status: 400,
-    titleKey: 'common.problem_auth_verification_code_invalid_title',
-    detailKey: 'common.problem_auth_verification_code_invalid_detail',
+    titleKey: 'common.problem_auth_verification_code_expired_title',
+    detailKey: 'common.problem_auth_verification_code_expired_detail',
+    retryable: false,
+  },
+  AUTH_VERIFICATION_CODE_MISMATCH: {
+    status: 400,
+    titleKey: 'common.problem_auth_verification_code_mismatch_title',
+    detailKey: 'common.problem_auth_verification_code_mismatch_detail',
+    retryable: false,
+  },
+  AUTH_VERIFICATION_CODE_COOLDOWN: {
+    status: 429,
+    titleKey: 'common.problem_auth_verification_code_cooldown_title',
+    detailKey: 'common.problem_auth_verification_code_cooldown_detail',
+    retryable: true,
+  },
+  AUTH_OAUTH_STATE_INVALID: {
+    status: 400,
+    titleKey: 'common.problem_auth_oauth_state_invalid_title',
+    detailKey: 'common.problem_auth_oauth_state_invalid_detail',
+    retryable: false,
+  },
+  AUTH_SESSION_NOT_FOUND: {
+    status: 404,
+    titleKey: 'common.problem_auth_session_not_found_title',
+    detailKey: 'common.problem_auth_session_not_found_detail',
+    retryable: false,
+  },
+  AUTH_SESSION_ACCESS_DENIED: {
+    status: 403,
+    titleKey: 'common.problem_auth_session_access_denied_title',
+    detailKey: 'common.problem_auth_session_access_denied_detail',
     retryable: false,
   },
   FORBIDDEN: {
@@ -61,6 +91,30 @@ const definitions = {
     status: 404,
     titleKey: 'common.problem_resource_not_found_title',
     detailKey: 'common.problem_resource_not_found_detail',
+    retryable: false,
+  },
+  NOTIFICATION_NOT_FOUND: {
+    status: 404,
+    titleKey: 'common.problem_notification_not_found_title',
+    detailKey: 'common.problem_notification_not_found_detail',
+    retryable: false,
+  },
+  LEGAL_DOCUMENT_NOT_FOUND: {
+    status: 404,
+    titleKey: 'common.problem_legal_document_not_found_title',
+    detailKey: 'common.problem_legal_document_not_found_detail',
+    retryable: false,
+  },
+  SUGGESTION_NOT_FOUND: {
+    status: 404,
+    titleKey: 'common.problem_suggestion_not_found_title',
+    detailKey: 'common.problem_suggestion_not_found_detail',
+    retryable: false,
+  },
+  REPORT_SHARE_NOT_FOUND: {
+    status: 404,
+    titleKey: 'common.problem_report_share_not_found_title',
+    detailKey: 'common.problem_report_share_not_found_detail',
     retryable: false,
   },
   RESOURCE_CONFLICT: {
@@ -97,6 +151,12 @@ const definitions = {
     status: 503,
     titleKey: 'common.problem_dependency_unavailable_title',
     detailKey: 'common.problem_dependency_unavailable_detail',
+    retryable: true,
+  },
+  DEPENDENCY_BAD_GATEWAY: {
+    status: 502,
+    titleKey: 'common.problem_dependency_bad_gateway_title',
+    detailKey: 'common.problem_dependency_bad_gateway_detail',
     retryable: true,
   },
   DEPENDENCY_TIMEOUT: {
@@ -144,6 +204,10 @@ export class ProblemCatalog {
 
   isKnown(code: string): code is ProblemCode {
     return Object.prototype.hasOwnProperty.call(definitions, code);
+  }
+
+  matchesStatus(code: string, status: number): code is ProblemCode {
+    return this.isKnown(code) && definitions[code].status === status;
   }
 
   build(code: string, options: ProblemCatalogOptions): ProblemDetails {

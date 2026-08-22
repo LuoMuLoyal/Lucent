@@ -130,6 +130,27 @@ describe('ApiExceptionFilter target contract', () => {
     });
   });
 
+  it('preserves a safe string detail from a framework HttpException', () => {
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new HttpException('The report share has expired.', HttpStatus.NOT_FOUND),
+      createHost(response, { method: 'GET', url: '/reports/share/token' }),
+    );
+
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'RESOURCE_NOT_FOUND',
+        detail: 'The report share has expired.',
+      }),
+    );
+  });
+
   it('does not translate a retired numeric code into a stable business code', () => {
     const filter = new ApiExceptionFilter(createI18n());
     const response = {
@@ -182,6 +203,33 @@ describe('ApiExceptionFilter target contract', () => {
         title: 'common.problem_auth_token_expired_title@en',
         detail: 'common.problem_auth_token_expired_detail@en',
       }),
+    );
+  });
+
+  it('writes Retry-After when the problem declares a retry delay', () => {
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      header: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new HttpException(
+        {
+          code: 'AUTH_LOGIN_RATE_LIMITED',
+          retryable: true,
+          retryAfter: 120,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+      createHost(response, { method: 'POST', url: '/login' }),
+    );
+
+    expect(response.header).toHaveBeenCalledWith('Retry-After', '120');
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({ retryAfter: 120 }),
     );
   });
 });

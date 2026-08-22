@@ -63,4 +63,13 @@ describe('ProblemCatalog', () => {
       catalog.build('NOT_A_DOCUMENTED_CODE', { lang: 'en' }),
     ).toThrow('Unknown Problem Details code');
   });
+
+  it('keeps stable codes bound to their documented HTTP status', () => {
+    const i18n = { t: vi.fn((key: string) => key) } as unknown as I18nService;
+    const catalog = new ProblemCatalog(i18n);
+
+    expect(catalog.matchesStatus('AUTH_TOKEN_EXPIRED', 401)).toBe(true);
+    expect(catalog.matchesStatus('AUTH_TOKEN_EXPIRED', 403)).toBe(false);
+    expect(catalog.matchesStatus('DEPENDENCY_TIMEOUT', 504)).toBe(true);
+  });
 });

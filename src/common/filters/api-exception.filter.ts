@@ -46,6 +46,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     this.logException(exception, request, status, body.detail);
 
+    if (body.retryAfter != null) {
+      response.header('Retry-After', String(body.retryAfter));
+    }
     response.status(status).type('application/problem+json').send(body);
   }
 
@@ -71,7 +74,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
 
     const response = exception.getResponse();
-    const raw = this.isErrorResponse(response) ? response : {};
+    const raw = this.isErrorResponse(response)
+      ? response
+      : typeof response === 'string'
+        ? { message: response }
+        : {};
     const code = this.resolveCode(raw.code, status);
     const message = raw.message;
     const validationErrors = this.resolveErrors(raw.errors, message);
@@ -98,7 +105,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
   private resolveCode(rawCode: unknown, status: number): ProblemCode {
     if (typeof rawCode === 'string') {
       const candidate = rawCode.trim();
-      if (this.catalog.isKnown(candidate)) return candidate;
+      if (this.catalog.matchesStatus(candidate, status)) return candidate;
     }
     return this.defaultCode(status);
   }
@@ -118,9 +125,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
       case 429:
         return 'RATE_LIMITED';
       case 502:
+        return 'DEPENDENCY_BAD_GATEWAY';
       case 503:
-      case 504:
         return 'DEPENDENCY_UNAVAILABLE';
+      case 504:
+        return 'DEPENDENCY_TIMEOUT';
       default:
         return 'INTERNAL_ERROR';
     }
