@@ -1,8 +1,7 @@
-import { ResultCode } from '../../common';
 import { NotificationPreferencesController } from './notification-preferences.controller';
 
 describe('NotificationPreferencesController', () => {
-  it('returns the authenticated user preferences in the GET envelope', async () => {
+  it('returns the authenticated user preferences resource', async () => {
     const preferences = {
       healthAlertsEnabled: true,
       weeklyInsightEnabled: false,
@@ -21,15 +20,11 @@ describe('NotificationPreferencesController', () => {
 
     await expect(
       controller.get({ sub: 'user-1', email: 'a@b.c', status: 'active' }),
-    ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: preferences,
-    });
+    ).resolves.toEqual(preferences);
     expect(service.get).toHaveBeenCalledWith('user-1');
   });
 
-  it('partially updates preferences in the PATCH envelope', async () => {
+  it('partially updates preferences and returns the resource', async () => {
     const preferences = {
       healthAlertsEnabled: false,
       weeklyInsightEnabled: false,
@@ -51,11 +46,7 @@ describe('NotificationPreferencesController', () => {
         { sub: 'user-1', email: 'a@b.c', status: 'active' },
         { healthAlertsEnabled: false },
       ),
-    ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: preferences,
-    });
+    ).resolves.toEqual(preferences);
     expect(service.patch).toHaveBeenCalledWith('user-1', {
       healthAlertsEnabled: false,
     });

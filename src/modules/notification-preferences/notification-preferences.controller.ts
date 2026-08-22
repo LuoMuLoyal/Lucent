@@ -5,7 +5,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { UpdateNotificationPreferencesDto } from './dto/update.dto';
@@ -22,7 +21,7 @@ export class NotificationPreferencesController {
   @ApiOperation({ summary: 'Get authenticated user notification preferences' })
   @ApiResponse({ status: 200, type: NotificationPreferencesResponseDto })
   async get(@CurrentUser() user: UserPayload) {
-    return successEnvelope(await this.service.get(user.sub));
+    return await this.service.get(user.sub);
   }
 
   @Patch()
@@ -34,6 +33,6 @@ export class NotificationPreferencesController {
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateNotificationPreferencesDto,
   ) {
-    return successEnvelope(await this.service.patch(user.sub, dto));
+    return await this.service.patch(user.sub, dto);
   }
 }

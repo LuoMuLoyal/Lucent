@@ -73,7 +73,7 @@ describe('ProductEventsController', () => {
     funnelService = module.get(ProductFunnelService);
   });
 
-  it('records the batch for the authenticated user and returns an envelope', async () => {
+  it('records the batch for the authenticated user and returns the resource', async () => {
     const dto = { events: [validEvent()] } as CreateProductEventBatchDto;
     eventsService.recordBatch.mockResolvedValue({ received: 1, recorded: 1 });
 
@@ -83,11 +83,7 @@ describe('ProductEventsController', () => {
       user.sub,
       dto.events,
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { received: 1, recorded: 1 },
-    });
+    expect(result).toEqual({ received: 1, recorded: 1 });
   });
 
   it('propagates the unknown-rule-code 400 from the service', async () => {
@@ -289,7 +285,7 @@ describe('ProductEventsController', () => {
       },
     };
 
-    it('forwards the query params and returns the funnel envelope', async () => {
+    it('forwards the query params and returns the funnel resource', async () => {
       funnelService.getFunnel.mockResolvedValue(funnelResult);
 
       const query: FunnelQueryDto = {
@@ -299,11 +295,7 @@ describe('ProductEventsController', () => {
       const result = await controller.getFunnel(query);
 
       expect(funnelService.getFunnel).toHaveBeenCalledWith(query);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: funnelResult,
-      });
+      expect(result).toEqual(funnelResult);
     });
 
     it('propagates the date-range-cap 400 from the service', async () => {

@@ -6,7 +6,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateProductEventBatchDto } from './dto/create-product-event.dto';
@@ -46,7 +45,7 @@ export class ProductEventsController {
     @Body() dto: CreateProductEventBatchDto,
   ) {
     const result = await this.eventsService.recordBatch(user.sub, dto.events);
-    return successEnvelope(result);
+    return result;
   }
 
   @Get('funnel')
@@ -70,6 +69,6 @@ export class ProductEventsController {
     description: 'Authenticated but not the internal admin (ADMIN_EMAIL).',
   })
   async getFunnel(@Query() query: FunnelQueryDto) {
-    return successEnvelope(await this.funnelService.getFunnel(query));
+    return await this.funnelService.getFunnel(query);
   }
 }
