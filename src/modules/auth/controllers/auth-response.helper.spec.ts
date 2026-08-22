@@ -1,5 +1,4 @@
 import { buildAuthResponse } from './auth-response.helper';
-import { successEnvelope } from '../../../common';
 import { calculateExpiresIn } from '../../../common';
 import type { User } from '#generated/prisma/client';
 import type { TokenPair } from '../types/auth-request';
@@ -33,17 +32,16 @@ describe('auth-response.helper', () => {
     ).toISOString(),
   };
 
-  it('builds a success envelope with user and tokens', () => {
+  it('builds a direct auth resource with user and tokens', () => {
     const result = buildAuthResponse(mockUser, mockTokens);
 
-    expect(result).toHaveProperty('code');
-    expect(result).toHaveProperty('message');
-    expect(result).toHaveProperty('data');
+    expect(result).toHaveProperty('user');
+    expect(result).toHaveProperty('tokens');
   });
 
   it('serializes user fields correctly', () => {
     const result = buildAuthResponse(mockUser, mockTokens);
-    const data = result.data as any;
+    const data = result as any;
 
     expect(data.user.id).toBe('user-1');
     expect(data.user.email).toBe('test@example.com');
@@ -59,7 +57,7 @@ describe('auth-response.helper', () => {
 
   it('serializes token fields correctly', () => {
     const result = buildAuthResponse(mockUser, mockTokens);
-    const data = result.data as any;
+    const data = result as any;
 
     expect(data.tokens.accessToken).toBe('access-token-123');
     expect(data.tokens.refreshToken).toBe('refresh-token-456');
@@ -71,7 +69,7 @@ describe('auth-response.helper', () => {
   it('sets emailVerified to false when emailVerifiedAt is null', () => {
     const unverifiedUser = { ...mockUser, emailVerifiedAt: null };
     const result = buildAuthResponse(unverifiedUser, mockTokens);
-    const data = result.data as any;
+    const data = result as any;
 
     expect(data.user.emailVerified).toBe(false);
     expect(data.user.emailVerifiedAt).toBeNull();
@@ -84,19 +82,16 @@ describe('auth-response.helper', () => {
       avatar: null,
     };
     const result = buildAuthResponse(minimalUser, mockTokens);
-    const data = result.data as any;
+    const data = result as any;
 
     expect(data.user.nickname).toBeNull();
     expect(data.user.avatar).toBeNull();
   });
 
-  it('uses the global success envelope wrapper', () => {
+  it('does not add a generic response envelope', () => {
     const result = buildAuthResponse(mockUser, mockTokens);
-    const expected = successEnvelope({
-      user: expect.any(Object),
-      tokens: expect.any(Object),
-    });
-    expect(result.code).toBe(expected.code);
-    expect(result.message).toBe(expected.message);
+    expect(result).not.toHaveProperty('code');
+    expect(result).not.toHaveProperty('message');
+    expect(result).not.toHaveProperty('data');
   });
 });

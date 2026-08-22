@@ -18,7 +18,6 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { successEnvelope } from '../../../common';
 import { extractAuthRequestContext } from '../../../common';
 import { AuthService } from '../services/auth.service';
 
@@ -58,7 +57,7 @@ export class OAuthController {
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   async createWechatWebAuthorizeUrl(@Body() dto?: OAuthAuthorizeDto) {
     const result = await this.authService.createWechatWebAuthorizeUrl(dto);
-    return successEnvelope(result);
+    return result;
   }
 
   // ── POST /api/v1/auth/oauth/wechat-web/callback ──────────────
@@ -137,7 +136,7 @@ export class OAuthController {
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   async createQqAuthorizeUrl(@Body() dto?: QqOAuthAuthorizeDto) {
     const result = await this.authService.createQqAuthorizeUrl(dto);
-    return successEnvelope(result);
+    return result;
   }
 
   // ── POST /api/v1/auth/oauth/qq/callback ───────────────────
@@ -166,7 +165,7 @@ export class OAuthController {
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   async createWeiboAuthorizeUrl(@Body() dto?: WeiboOAuthAuthorizeDto) {
     const result = await this.authService.createWeiboAuthorizeUrl(dto);
-    return successEnvelope(result);
+    return result;
   }
 
   // ── POST /api/v1/auth/oauth/weibo/callback ────────────────
@@ -195,7 +194,7 @@ export class OAuthController {
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   async createGoogleAuthorizeUrl(@Body() dto?: GoogleOAuthAuthorizeDto) {
     const result = await this.authService.createGoogleAuthorizeUrl(dto);
-    return successEnvelope(result);
+    return result;
   }
 
   // ── POST /api/v1/auth/oauth/google/callback ───────────────

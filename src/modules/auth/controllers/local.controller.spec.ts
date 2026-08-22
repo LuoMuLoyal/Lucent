@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../../common';
 import type { FastifyRequest } from 'fastify';
 import { LocalController } from './local.controller';
 import { AuthService } from '../services/auth.service';
@@ -64,7 +63,7 @@ describe('LocalController', () => {
   });
 
   describe('POST /auth/register', () => {
-    it('registers a user and returns auth response envelope', async () => {
+    it('registers a user and returns an auth resource', async () => {
       authService.register.mockResolvedValue(mockAuthResult as never);
 
       const result = await controller.register(
@@ -84,14 +83,13 @@ describe('LocalController', () => {
         },
         expect.objectContaining({ userAgent: 'test-agent' }),
       );
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toHaveProperty('user');
-      expect(result.data).toHaveProperty('tokens');
+      expect(result).toHaveProperty('user');
+      expect(result).toHaveProperty('tokens');
     });
   });
 
   describe('POST /auth/login', () => {
-    it('logs in and returns auth response envelope', async () => {
+    it('logs in and returns an auth resource', async () => {
       authService.login.mockResolvedValue(mockAuthResult as never);
 
       const result = await controller.login(
@@ -100,13 +98,12 @@ describe('LocalController', () => {
       );
 
       expect(authService.login).toHaveBeenCalled();
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data!.user.email).toBe('test@example.com');
+      expect(result.user.email).toBe('test@example.com');
     });
   });
 
   describe('POST /auth/send-verification-code', () => {
-    it('returns cooldown and message envelope', async () => {
+    it('returns cooldown and message resource', async () => {
       authService.sendVerificationCode.mockResolvedValue({
         message: 'Code sent',
       } as never);
@@ -116,9 +113,8 @@ describe('LocalController', () => {
         mockRequest,
       );
 
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toHaveProperty('cooldown', 60);
-      expect(result.data).toHaveProperty('message', 'Code sent');
+      expect(result).toHaveProperty('cooldown', 60);
+      expect(result).toHaveProperty('message', 'Code sent');
     });
   });
 
@@ -132,12 +128,12 @@ describe('LocalController', () => {
       });
 
       expect(authService.verifyEmail).toHaveBeenCalled();
-      expect(result.data).toEqual({ emailVerified: true });
+      expect(result).toEqual({ emailVerified: true });
     });
   });
 
   describe('POST /auth/forgot-password', () => {
-    it('returns cooldown and message envelope', async () => {
+    it('returns cooldown and message resource', async () => {
       authService.forgotPassword.mockResolvedValue({
         message: 'Reset link sent',
       } as never);
@@ -147,22 +143,23 @@ describe('LocalController', () => {
         mockRequest,
       );
 
-      expect(result.data).toHaveProperty('message', 'Reset link sent');
+      expect(result).toHaveProperty('message', 'Reset link sent');
     });
   });
 
   describe('POST /auth/reset-password', () => {
-    it('returns null data on success', async () => {
+    it('returns no content on success', async () => {
       authService.resetPassword.mockResolvedValue(undefined);
 
-      const result = await controller.resetPassword({
-        email: 'test@example.com',
-        code: '123456',
-        password: 'NewPassword123!',
-      });
+      await expect(
+        controller.resetPassword({
+          email: 'test@example.com',
+          code: '123456',
+          password: 'NewPassword123!',
+        }),
+      ).resolves.toBeUndefined();
 
       expect(authService.resetPassword).toHaveBeenCalled();
-      expect(result.data).toBeNull();
     });
   });
 });

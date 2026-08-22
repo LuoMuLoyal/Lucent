@@ -9,7 +9,6 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
-import { successEnvelope } from '../../../common';
 import { extractAuthRequestContext, getRequestClientIp } from '../../../common';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/identity/verification-code.service';
@@ -26,7 +25,6 @@ import {
   LoginResponseDto,
   RegisterResponseDto,
   SendVerificationCodeResponseDto,
-  SuccessResponseDto,
   VerifyEmailResponseDto,
 } from '../dto/shared/auth-responses.dto';
 
@@ -89,10 +87,10 @@ export class LocalController {
       getRequestClientIp(request),
     );
 
-    return successEnvelope({
+    return {
       cooldown: this.verificationCodeService.getCooldownSec(),
       message: result.message,
-    });
+    };
   }
 
   // ── POST /api/v1/auth/verify-email ──────────────────────────
@@ -103,7 +101,7 @@ export class LocalController {
   @ApiResponse({ status: 200, type: VerifyEmailResponseDto })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     await this.authService.verifyEmail(dto);
-    return successEnvelope({ emailVerified: true });
+    return { emailVerified: true };
   }
 
   // ── POST /api/v1/auth/forgot-password ───────────────────────
@@ -125,20 +123,20 @@ export class LocalController {
       getRequestClientIp(request),
     );
 
-    return successEnvelope({
+    return {
       cooldown: this.verificationCodeService.getCooldownSec(),
       message: result.message,
-    });
+    };
   }
 
   // ── POST /api/v1/auth/reset-password ────────────────────────
 
   @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Reset password' })
-  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  @ApiResponse({ status: 204, description: 'Password reset.' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);
-    return successEnvelope(null);
+    return;
   }
 }

@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../../common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuthController } from './oauth.controller';
 import { AuthService } from '../services/auth.service';
@@ -62,7 +61,7 @@ describe('OAuthController', () => {
   });
 
   describe('POST /auth/oauth/wechat-web/authorize', () => {
-    it('returns authorize URL envelope', async () => {
+    it('returns the authorize URL resource', async () => {
       authService.createWechatWebAuthorizeUrl.mockResolvedValue({
         authorizeUrl: 'https://wx/auth',
         state: 'state-123',
@@ -73,13 +72,12 @@ describe('OAuthController', () => {
         callbackUri: 'https://app/cb',
       });
 
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toHaveProperty('authorizeUrl');
+      expect(result).toHaveProperty('authorizeUrl');
     });
   });
 
   describe('POST /auth/oauth/wechat-web/callback', () => {
-    it('returns auth response envelope', async () => {
+    it('returns an auth resource', async () => {
       authService.loginWithWechatWeb.mockResolvedValue(mockAuthResult as never);
 
       const result = await controller.loginWithWechatWeb(
@@ -88,8 +86,7 @@ describe('OAuthController', () => {
       );
 
       expect(authService.loginWithWechatWeb).toHaveBeenCalled();
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toHaveProperty('user');
+      expect(result).toHaveProperty('user');
     });
   });
 
@@ -116,7 +113,7 @@ describe('OAuthController', () => {
   });
 
   describe('POST /auth/oauth/wechat-mobile/callback', () => {
-    it('returns auth response envelope', async () => {
+    it('returns an auth resource', async () => {
       authService.loginWithWechatMobile.mockResolvedValue(
         mockAuthResult as never,
       );
@@ -126,12 +123,12 @@ describe('OAuthController', () => {
         mockRequest,
       );
 
-      expect(result.data).toHaveProperty('user');
+      expect(result).toHaveProperty('user');
     });
   });
 
   describe('POST /auth/oauth/apple/callback', () => {
-    it('returns auth response envelope', async () => {
+    it('returns an auth resource', async () => {
       authService.loginWithApple.mockResolvedValue(mockAuthResult as never);
 
       const result = await controller.loginWithApple(
@@ -139,12 +136,12 @@ describe('OAuthController', () => {
         mockRequest,
       );
 
-      expect(result.data).toHaveProperty('user');
+      expect(result).toHaveProperty('user');
     });
   });
 
   describe('POST /auth/oauth/qq/authorize', () => {
-    it('returns authorize URL envelope', async () => {
+    it('returns the authorize URL resource', async () => {
       authService.createQqAuthorizeUrl.mockResolvedValue({
         authorizeUrl: 'https://qq/auth',
         state: 'state-qq',
@@ -153,12 +150,12 @@ describe('OAuthController', () => {
 
       const result = await controller.createQqAuthorizeUrl();
 
-      expect(result.data).toHaveProperty('authorizeUrl');
+      expect(result).toHaveProperty('authorizeUrl');
     });
   });
 
   describe('POST /auth/oauth/qq/callback', () => {
-    it('returns auth response envelope', async () => {
+    it('returns an auth resource', async () => {
       authService.loginWithQq.mockResolvedValue(mockAuthResult as never);
 
       const result = await controller.loginWithQq(
@@ -166,12 +163,12 @@ describe('OAuthController', () => {
         mockRequest,
       );
 
-      expect(result.data).toHaveProperty('user');
+      expect(result).toHaveProperty('user');
     });
   });
 
   describe('POST /auth/oauth/weibo/authorize', () => {
-    it('returns authorize URL envelope', async () => {
+    it('returns the authorize URL resource', async () => {
       authService.createWeiboAuthorizeUrl.mockResolvedValue({
         authorizeUrl: 'https://weibo/auth',
         state: 'state-weibo',
@@ -182,12 +179,12 @@ describe('OAuthController', () => {
         callbackUri: 'https://app/cb',
       });
 
-      expect(result.data).toHaveProperty('authorizeUrl');
+      expect(result).toHaveProperty('authorizeUrl');
     });
   });
 
   describe('POST /auth/oauth/weibo/callback', () => {
-    it('returns auth response envelope', async () => {
+    it('returns an auth resource', async () => {
       authService.loginWithWeibo.mockResolvedValue(mockAuthResult as never);
 
       const result = await controller.loginWithWeibo(
@@ -195,12 +192,12 @@ describe('OAuthController', () => {
         mockRequest,
       );
 
-      expect(result.data).toHaveProperty('user');
+      expect(result).toHaveProperty('user');
     });
   });
 
   describe('POST /auth/oauth/google/authorize', () => {
-    it('returns authorize URL envelope', async () => {
+    it('returns the authorize URL resource', async () => {
       authService.createGoogleAuthorizeUrl.mockResolvedValue({
         authorizeUrl: 'https://google/auth',
         state: 'state-google',
@@ -211,12 +208,12 @@ describe('OAuthController', () => {
         callbackUri: 'https://app/cb',
       });
 
-      expect(result.data).toHaveProperty('authorizeUrl');
+      expect(result).toHaveProperty('authorizeUrl');
     });
   });
 
   describe('POST /auth/oauth/google/callback', () => {
-    it('returns auth response envelope', async () => {
+    it('returns an auth resource', async () => {
       authService.loginWithGoogle.mockResolvedValue(mockAuthResult as never);
 
       const result = await controller.loginWithGoogle(
@@ -224,7 +221,7 @@ describe('OAuthController', () => {
         mockRequest,
       );
 
-      expect(result.data).toHaveProperty('user');
+      expect(result).toHaveProperty('user');
     });
   });
 

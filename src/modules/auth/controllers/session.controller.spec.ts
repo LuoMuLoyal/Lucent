@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../../common';
 import type { FastifyRequest } from 'fastify';
 import { SessionController } from './session.controller';
 import { AuthService } from '../services/auth.service';
@@ -61,22 +60,22 @@ describe('SessionController', () => {
   });
 
   describe('POST /auth/logout', () => {
-    it('logs out and returns null envelope', async () => {
-      const result = await controller.logout(mockUser, {
-        refreshToken: 'refresh-token',
-      });
+    it('logs out and returns no content', async () => {
+      await expect(
+        controller.logout(mockUser, {
+          refreshToken: 'refresh-token',
+        }),
+      ).resolves.toBeUndefined();
 
       expect(authService.logout).toHaveBeenCalledWith(
         'user-1',
         'refresh-token',
       );
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toBeNull();
     });
   });
 
   describe('GET /auth/sessions', () => {
-    it('returns sessions list envelope', async () => {
+    it('returns sessions list resource', async () => {
       const sessions = [
         {
           id: 'sess-1',
@@ -90,25 +89,26 @@ describe('SessionController', () => {
       const result = await controller.listSessions(mockUser);
 
       expect(authTokenService.listSessions).toHaveBeenCalledWith('user-1');
-      expect(result.data).toEqual(sessions);
+      expect(result).toEqual(sessions);
     });
   });
 
   describe('DELETE /auth/sessions/:sessionId', () => {
-    it('revokes session and returns null envelope', async () => {
-      const result = await controller.revokeSession(mockUser, 'sess-1', 'en');
+    it('revokes session and returns no content', async () => {
+      await expect(
+        controller.revokeSession(mockUser, 'sess-1', 'en'),
+      ).resolves.toBeUndefined();
 
       expect(authTokenService.revokeById).toHaveBeenCalledWith(
         'user-1',
         'sess-1',
         'en',
       );
-      expect(result.data).toBeNull();
     });
   });
 
   describe('POST /auth/refresh', () => {
-    it('returns new tokens envelope', async () => {
+    it('returns new tokens resource', async () => {
       const result = await controller.refresh(
         { refreshToken: 'old-refresh' },
         mockRequest,
@@ -118,10 +118,9 @@ describe('SessionController', () => {
         'old-refresh',
         expect.objectContaining({ userAgent: 'test-agent' }),
       );
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toHaveProperty('accessToken', 'new-access');
-      expect(result.data).toHaveProperty('refreshToken', 'new-refresh');
-      expect(result.data).toHaveProperty('expiresIn');
+      expect(result).toHaveProperty('accessToken', 'new-access');
+      expect(result).toHaveProperty('refreshToken', 'new-refresh');
+      expect(result).toHaveProperty('expiresIn');
     });
   });
 });

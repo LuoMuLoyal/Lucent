@@ -3,13 +3,12 @@ import {
   formatDateTime,
   toEmailVerified,
 } from '../../../common';
-import { successEnvelope } from '../../../common';
 import type { User } from '#generated/prisma/client';
 import type { TokenPair } from '../services/token.service';
 
 /**
- * Shared auth-response shape returned by register, login, and OAuth callback
- * endpoints. Serializes a user + token pair into the global envelope.
+ * Shared auth resource returned by register, login, OAuth callback, and refresh
+ * endpoints. Serializes a user + token pair without a generic envelope.
  */
 export interface AuthResponseData {
   user: {
@@ -30,7 +29,7 @@ export interface AuthResponseData {
 }
 
 /**
- * Builds the standard auth-response envelope from a user entity and token pair.
+ * Builds the auth resource from a user entity and token pair.
  * Used by local (register/login), OAuth callback, and refresh endpoints.
  */
 export function buildAuthResponse(
@@ -46,7 +45,7 @@ export function buildAuthResponse(
   >,
   tokens: TokenPair,
 ) {
-  return successEnvelope({
+  return {
     user: {
       id: user.id,
       email: user.email,
@@ -62,5 +61,5 @@ export function buildAuthResponse(
       refreshToken: tokens.refreshToken,
       expiresIn: calculateExpiresIn(tokens.accessTokenExpiresAt),
     },
-  });
+  };
 }

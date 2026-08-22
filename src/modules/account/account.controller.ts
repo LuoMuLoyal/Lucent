@@ -20,7 +20,6 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
-import { successEnvelope } from '../../common';
 import { extractAuthRequestContext } from '../../common';
 import { AuditLogService } from '../audit-log';
 import { AuthService } from '../auth';
@@ -33,7 +32,7 @@ import { ChangeEmailDto } from '../auth';
 import { ChangePasswordDto } from '../auth';
 import { SetPasswordDto } from '../auth';
 import { DeleteAccountDto } from '../auth';
-import { OAuthAuthorizeResponseDto, SuccessResponseDto } from '../auth';
+import { OAuthAuthorizeResponseDto } from '../auth';
 import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,
@@ -62,7 +61,7 @@ export class AccountController {
   @ApiOperation({ summary: 'Get authenticated account profile' })
   @ApiResponse({ status: 200, type: AccountResponseDto })
   async getAccount(@CurrentUser() user: UserPayload) {
-    return successEnvelope(await this.accountService.getAccount(user.sub));
+    return await this.accountService.getAccount(user.sub);
   }
 
   @Patch()
@@ -72,16 +71,14 @@ export class AccountController {
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateAccountDto,
   ) {
-    return successEnvelope(
-      await this.accountService.updateAccount(user.sub, dto),
-    );
+    return await this.accountService.updateAccount(user.sub, dto);
   }
 
   @Post('password')
   @RequireSecurityElevation()
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Change authenticated account password' })
-  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  @ApiResponse({ status: 204, description: 'Password changed.' })
   async changePassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangePasswordDto,
@@ -93,16 +90,16 @@ export class AccountController {
       userId: user.sub,
       action: 'password.change',
     });
-    return successEnvelope(null);
+    return;
   }
 
   @Post('set-password')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary:
       'Set initial password for OAuth-only account using email verification',
   })
-  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  @ApiResponse({ status: 204, description: 'Password set.' })
   async setPassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: SetPasswordDto,
@@ -114,7 +111,7 @@ export class AccountController {
       userId: user.sub,
       action: 'password.set',
     });
-    return successEnvelope(null);
+    return;
   }
 
   @Post('email')
@@ -134,10 +131,10 @@ export class AccountController {
       action: 'email.change',
       metadata: { email: updated.email },
     });
-    return successEnvelope({
+    return {
       email: updated.email,
       emailVerifiedAt: updated.emailVerifiedAt?.toISOString() ?? null,
-    });
+    };
   }
 
   @Delete('identities/:identityId')
@@ -161,7 +158,7 @@ export class AccountController {
       resourceType: 'identity',
       resourceId: identityId,
     });
-    return successEnvelope(result);
+    return result;
   }
 
   @Post('identities/wechat-web/authorize')
@@ -174,9 +171,7 @@ export class AccountController {
   async createWechatWebIdentityLinkAuthorizeUrl(
     @Body() dto?: OAuthAuthorizeDto,
   ) {
-    return successEnvelope(
-      await this.authService.createWechatWebIdentityLinkAuthorizeUrl(dto),
-    );
+    return await this.authService.createWechatWebIdentityLinkAuthorizeUrl(dto);
   }
 
   @Post('identities/wechat-web/callback')
@@ -198,7 +193,7 @@ export class AccountController {
       resourceType: 'oauth',
       resourceId: 'wechat_web',
     });
-    return successEnvelope(await this.accountService.getAccount(user.sub));
+    return await this.accountService.getAccount(user.sub);
   }
 
   @Post('identities/wechat-mobile/callback')
@@ -220,13 +215,13 @@ export class AccountController {
       resourceType: 'oauth',
       resourceId: 'wechat_mobile',
     });
-    return successEnvelope(await this.accountService.getAccount(user.sub));
+    return await this.accountService.getAccount(user.sub);
   }
 
   @Delete()
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete authenticated account' })
-  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  @ApiResponse({ status: 204, description: 'Account deleted.' })
   async deleteAccount(
     @CurrentUser() user: UserPayload,
     @Body() dto: DeleteAccountDto,
@@ -238,6 +233,6 @@ export class AccountController {
       userId: user.sub,
       action: 'account.delete',
     });
-    return successEnvelope(null);
+    return;
   }
 }

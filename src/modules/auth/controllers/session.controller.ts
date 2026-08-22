@@ -18,7 +18,6 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../../common';
 import { extractAuthRequestContext } from '../../../common';
 import { calculateExpiresIn } from '../../../common';
 import { AuthService } from '../services/auth.service';
@@ -30,10 +29,7 @@ import type { UserPayload } from '../types/auth-request';
 import { LogoutDto } from '../dto/credentials/logout.dto';
 import { RefreshDto } from '../dto/credentials/refresh.dto';
 
-import {
-  RefreshResponseDto,
-  SuccessResponseDto,
-} from '../dto/shared/auth-responses.dto';
+import { RefreshResponseDto } from '../dto/shared/auth-responses.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -47,12 +43,12 @@ export class SessionController {
 
   @Post('logout')
   @ApiBearerAuth('access-token')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'User logout' })
-  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  @ApiResponse({ status: 204, description: 'Logged out.' })
   async logout(@CurrentUser() user: UserPayload, @Body() dto: LogoutDto) {
     await this.authService.logout(user.sub, dto.refreshToken);
-    return successEnvelope(null);
+    return;
   }
 
   // ── GET /api/v1/auth/sessions ──────────────────────────────
@@ -63,14 +59,14 @@ export class SessionController {
   @ApiOperation({ summary: 'List active sessions for the current user' })
   async listSessions(@CurrentUser() user: UserPayload) {
     const sessions = await this.authTokenService.listSessions(user.sub);
-    return successEnvelope(sessions);
+    return sessions;
   }
 
   // ── DELETE /api/v1/auth/sessions/:sessionId ────────────────
 
   @Delete('sessions/:sessionId')
   @ApiBearerAuth('access-token')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Revoke a specific session' })
   async revokeSession(
     @CurrentUser() user: UserPayload,
@@ -78,7 +74,7 @@ export class SessionController {
     @I18nLang() lang: string,
   ) {
     await this.authTokenService.revokeById(user.sub, sessionId, lang);
-    return successEnvelope(null);
+    return;
   }
 
   // ── POST /api/v1/auth/refresh ───────────────────────────────
@@ -94,10 +90,10 @@ export class SessionController {
       dto.refreshToken,
       extractAuthRequestContext(request),
     );
-    return successEnvelope({
+    return {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
-    });
+    };
   }
 }

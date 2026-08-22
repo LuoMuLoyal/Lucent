@@ -5,7 +5,6 @@ vi.mock('otplib', () => ({
 }));
 
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 
 import { AccountController } from './account.controller';
@@ -107,22 +106,18 @@ describe('AccountController', () => {
   });
 
   describe('GET /account', () => {
-    it('should return the account profile envelope', async () => {
+    it('should return the account profile resource', async () => {
       accountService.getAccount.mockResolvedValue(mockAccount);
 
       const result = await controller.getAccount(mockUser);
 
       expect(accountService.getAccount).toHaveBeenCalledWith(mockUser.sub);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockAccount,
-      });
+      expect(result).toEqual(mockAccount);
     });
   });
 
   describe('PATCH /account', () => {
-    it('should update and return the account envelope', async () => {
+    it('should update and return the account resource', async () => {
       const dto: UpdateAccountDto = { nickname: 'UpdatedName' };
       const updated: AccountDto = {
         ...mockAccount,
@@ -136,60 +131,50 @@ describe('AccountController', () => {
         mockUser.sub,
         dto,
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: updated,
-      });
+      expect(result).toEqual(updated);
     });
   });
 
   describe('POST /account/password', () => {
-    it('should change password and return null data', async () => {
+    it('should change password and return no content', async () => {
       authService.changePassword.mockResolvedValue(undefined);
 
-      const result = await controller.changePassword(
-        mockUser,
-        {
-          oldPassword: 'OldPass1',
-          newPassword: 'NewPass1',
-        },
-        mockRequest,
-      );
+      await expect(
+        controller.changePassword(
+          mockUser,
+          {
+            oldPassword: 'OldPass1',
+            newPassword: 'NewPass1',
+          },
+          mockRequest,
+        ),
+      ).resolves.toBeUndefined();
 
       expect(authService.changePassword).toHaveBeenCalledWith(mockUser.sub, {
         oldPassword: 'OldPass1',
         newPassword: 'NewPass1',
       });
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: null,
-      });
     });
   });
 
   describe('POST /account/set-password', () => {
-    it('should set initial password and return null data', async () => {
+    it('should set initial password and return no content', async () => {
       authService.setPassword.mockResolvedValue(undefined);
 
-      const result = await controller.setPassword(
-        mockUser,
-        {
-          code: '123456',
-          password: 'NewPass1',
-        },
-        mockRequest,
-      );
+      await expect(
+        controller.setPassword(
+          mockUser,
+          {
+            code: '123456',
+            password: 'NewPass1',
+          },
+          mockRequest,
+        ),
+      ).resolves.toBeUndefined();
 
       expect(authService.setPassword).toHaveBeenCalledWith(mockUser.sub, {
         code: '123456',
         password: 'NewPass1',
-      });
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: null,
       });
     });
   });
@@ -216,12 +201,8 @@ describe('AccountController', () => {
         code: '123456',
       });
       expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: {
-          email: 'new@example.com',
-          emailVerifiedAt: '2026-06-15T08:00:00.000Z',
-        },
+        email: 'new@example.com',
+        emailVerifiedAt: '2026-06-15T08:00:00.000Z',
       });
     });
 
@@ -240,12 +221,12 @@ describe('AccountController', () => {
         mockRequest,
       );
 
-      expect(result.data?.emailVerifiedAt).toBeNull();
+      expect(result.emailVerifiedAt).toBeNull();
     });
   });
 
   describe('DELETE /account/identities/:identityId', () => {
-    it('should unlink identity and return the account envelope', async () => {
+    it('should unlink identity and return the account resource', async () => {
       const updated: AccountDto = {
         ...mockAccount,
         linkedIdentities: [] as const,
@@ -262,16 +243,12 @@ describe('AccountController', () => {
         mockUser.sub,
         'identity-uuid-1',
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: updated,
-      });
+      expect(result).toEqual(updated);
     });
   });
 
   describe('POST /account/identities/wechat-web/authorize', () => {
-    it('should return authorize URL envelope', async () => {
+    it('should return the authorize URL resource', async () => {
       const authorizeResult = {
         authorizeUrl: 'https://open.weixin.qq.com/connect/qrconnect?…',
         state: 'state-xxx',
@@ -286,11 +263,7 @@ describe('AccountController', () => {
       expect(
         authService.createWechatWebIdentityLinkAuthorizeUrl,
       ).toHaveBeenCalledWith(undefined);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: authorizeResult,
-      });
+      expect(result).toEqual(authorizeResult);
     });
 
     it('should pass callbackUri when provided', async () => {
@@ -316,7 +289,7 @@ describe('AccountController', () => {
   });
 
   describe('POST /account/identities/wechat-web/callback', () => {
-    it('should link WeChat web identity and return account envelope', async () => {
+    it('should link WeChat web identity and return the account resource', async () => {
       authService.linkWechatWebIdentity.mockResolvedValue(undefined);
       accountService.getAccount.mockResolvedValue(mockAccount);
 
@@ -334,16 +307,12 @@ describe('AccountController', () => {
         { code: 'auth-code', state: 'state-xxx' },
       );
       expect(accountService.getAccount).toHaveBeenCalledWith(mockUser.sub);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockAccount,
-      });
+      expect(result).toEqual(mockAccount);
     });
   });
 
   describe('POST /account/identities/wechat-mobile/callback', () => {
-    it('should link WeChat mobile identity and return account envelope', async () => {
+    it('should link WeChat mobile identity and return the account resource', async () => {
       authService.linkWechatMobileIdentity.mockResolvedValue(undefined);
       accountService.getAccount.mockResolvedValue(mockAccount);
 
@@ -360,33 +329,26 @@ describe('AccountController', () => {
         { code: 'mobile-auth-code' },
       );
       expect(accountService.getAccount).toHaveBeenCalledWith(mockUser.sub);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: mockAccount,
-      });
+      expect(result).toEqual(mockAccount);
     });
   });
 
   describe('DELETE /account', () => {
-    it('should delete account and return null data', async () => {
+    it('should delete account and return no content', async () => {
       authService.deleteAccount.mockResolvedValue(undefined);
 
-      const result = await controller.deleteAccount(
-        mockUser,
-        {
-          password: 'Passw0rd123',
-        },
-        mockRequest,
-      );
+      await expect(
+        controller.deleteAccount(
+          mockUser,
+          {
+            password: 'Passw0rd123',
+          },
+          mockRequest,
+        ),
+      ).resolves.toBeUndefined();
 
       expect(authService.deleteAccount).toHaveBeenCalledWith(mockUser.sub, {
         password: 'Passw0rd123',
-      });
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: null,
       });
     });
   });
