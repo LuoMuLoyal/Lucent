@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyReply } from 'fastify';
-import { ResultCode, SseConnectionRegistry } from '../../common';
+import { SseConnectionRegistry } from '../../common';
 import { TodayAnalysisService } from './services/analysis.service';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
@@ -78,12 +78,28 @@ describe('TodayAnalysisController', () => {
         '2026-06-12',
         'zh-CN',
       ),
-    ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: readCurrent,
-    });
+    ).resolves.toEqual(readCurrent);
     expect(service.generate).not.toHaveBeenCalled();
+  });
+
+  it('returns the resource directly for the global envelope interceptor', async () => {
+    const readCurrent = {
+      analysis: null,
+      status: 'empty',
+      sourceVersion: 0,
+      computedVersion: 0,
+      computedAt: null,
+      retryAfterSeconds: null,
+    } as const;
+    service.readCurrent.mockResolvedValue(readCurrent);
+
+    await expect(
+      controller.read(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        '2026-06-12',
+        'zh-CN',
+      ),
+    ).resolves.toEqual(readCurrent);
   });
 
   it('resolves an omitted controller date through the profile-local date resolver', async () => {
@@ -120,11 +136,7 @@ describe('TodayAnalysisController', () => {
         { date: '2026-06-12' },
         'zh-CN',
       ),
-    ).resolves.toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: analysis,
-    });
+    ).resolves.toEqual(analysis);
 
     expect(service.generate).toHaveBeenCalledWith(
       'u1',
@@ -153,11 +165,7 @@ describe('TodayAnalysisController', () => {
       ['add-medicine'],
       'zh-CN',
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: guides,
-    });
+    expect(result).toEqual(guides);
   });
 
   it('returns cold-start guides with array exclude', () => {
@@ -179,7 +187,7 @@ describe('TodayAnalysisController', () => {
       ['add-medicine', 'log-water'],
       'en',
     );
-    expect(result.data).toEqual(guides);
+    expect(result).toEqual(guides);
   });
 
   it('returns cold-start guides with no exclude', () => {
@@ -198,7 +206,7 @@ describe('TodayAnalysisController', () => {
       [],
       'en',
     );
-    expect(result.data).toEqual(guides);
+    expect(result).toEqual(guides);
   });
 
   // ── generateStream ────────────────────────────────────────────────────
@@ -294,11 +302,7 @@ describe('TodayAnalysisController', () => {
       { date: '2026-06-12' },
       'zh-CN',
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { result: analysis },
-    });
+    expect(result).toEqual({ result: analysis });
   });
 
   it('generateAsync returns a jobId when the queue is configured and enqueues', async () => {
@@ -325,11 +329,7 @@ describe('TodayAnalysisController', () => {
       'zh-CN',
     );
     expect(service.generate).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { jobId: 'job-1' },
-    });
+    expect(result).toEqual({ jobId: 'job-1' });
   });
 
   it('generateAsync falls back when enqueue returns null', async () => {
@@ -369,11 +369,7 @@ describe('TodayAnalysisController', () => {
     const result = await controller.generateStatus('job-1');
 
     expect(queue.getStatus).toHaveBeenCalledWith('job-1');
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { status: 'not_found' },
-    });
+    expect(result).toEqual({ status: 'not_found' });
   });
 
   it('generateStatus returns the job status when found', async () => {
@@ -388,11 +384,7 @@ describe('TodayAnalysisController', () => {
 
     const result = await controller.generateStatus('job-1');
 
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { status: 'completed', jobId: 'job-1' },
-    });
+    expect(result).toEqual({ status: 'completed', jobId: 'job-1' });
   });
 });
 

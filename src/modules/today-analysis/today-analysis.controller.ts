@@ -22,7 +22,6 @@ import {
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import {
-  successEnvelope,
   endSse,
   prepareSse,
   writeSseEvent,
@@ -106,12 +105,10 @@ export class TodayAnalysisController {
       user.sub,
       date,
     );
-    return successEnvelope(
-      await this.todayAnalysisService.readCurrent(
-        user.sub,
-        resolvedDate,
-        language,
-      ),
+    return this.todayAnalysisService.readCurrent(
+      user.sub,
+      resolvedDate,
+      language,
     );
   }
 
@@ -125,18 +122,14 @@ export class TodayAnalysisController {
   ) {
     const request = await this.prepareManualRequest(user.sub, dto);
     if (request == null) {
-      return successEnvelope(
-        await this.todayAnalysisService.generate(user.sub, dto, language),
-      );
+      return this.todayAnalysisService.generate(user.sub, dto, language);
     }
 
     if (request.pending == null || !request.pending.shouldQueue) {
-      return successEnvelope(
-        await this.todayAnalysisService.readCurrent(
-          user.sub,
-          request.date,
-          language,
-        ),
+      return this.todayAnalysisService.readCurrent(
+        user.sub,
+        request.date,
+        language,
       );
     }
 
@@ -150,7 +143,7 @@ export class TodayAnalysisController {
         request.pending.lastTriggerKey ?? undefined,
       );
       if (jobId != null) {
-        return successEnvelope({ status: 'pending', jobId });
+        return { status: 'pending', jobId };
       }
     }
 
@@ -161,9 +154,9 @@ export class TodayAnalysisController {
       request.pending.sourceVersion,
     );
     if ('status' in data) {
-      return successEnvelope(data);
+      return data;
     }
-    return successEnvelope({ status: 'ready', analysis: data });
+    return { status: 'ready', analysis: data };
   }
 
   @Post('generate')
@@ -177,12 +170,10 @@ export class TodayAnalysisController {
     const request = await this.prepareManualRequest(user.sub, dto);
     if (request != null) {
       if (request.pending == null || !request.pending.shouldQueue) {
-        return successEnvelope(
-          await this.todayAnalysisService.readCurrent(
-            user.sub,
-            request.date,
-            language,
-          ),
+        return this.todayAnalysisService.readCurrent(
+          user.sub,
+          request.date,
+          language,
         );
       }
       const data = await this.todayAnalysisService.generateForVersion(
@@ -192,14 +183,12 @@ export class TodayAnalysisController {
         request.pending.sourceVersion,
       );
       if ('status' in data) {
-        return successEnvelope(data);
+        return data;
       }
-      return successEnvelope(data);
+      return data;
     }
 
-    return successEnvelope(
-      await this.todayAnalysisService.generate(user.sub, dto, language),
-    );
+    return this.todayAnalysisService.generate(user.sub, dto, language);
   }
 
   @Post('generate/async')
@@ -217,7 +206,7 @@ export class TodayAnalysisController {
     const request = await this.prepareManualRequest(user.sub, dto);
     if (request != null) {
       if (request.pending == null || !request.pending.shouldQueue) {
-        return successEnvelope({ status: request.current.status });
+        return { status: request.current.status };
       }
       if (this.todayAnalysisQueueService.isConfigured) {
         const jobId = await this.todayAnalysisQueueService.enqueue(
@@ -229,7 +218,7 @@ export class TodayAnalysisController {
           request.pending.lastTriggerKey ?? undefined,
         );
         if (jobId != null) {
-          return successEnvelope({ jobId });
+          return { jobId };
         }
       }
       const result = await this.todayAnalysisService.generateForVersion(
@@ -238,7 +227,7 @@ export class TodayAnalysisController {
         language,
         request.pending.sourceVersion,
       );
-      return successEnvelope({ result });
+      return { result };
     }
 
     if (this.todayAnalysisQueueService.isConfigured) {
@@ -248,7 +237,7 @@ export class TodayAnalysisController {
         language,
       );
       if (jobId != null) {
-        return successEnvelope({ jobId });
+        return { jobId };
       }
     }
 
@@ -258,7 +247,7 @@ export class TodayAnalysisController {
       dto,
       language,
     );
-    return successEnvelope({ result });
+    return { result };
   }
 
   @SkipThrottle()
@@ -271,9 +260,9 @@ export class TodayAnalysisController {
   async generateStatus(@Param('jobId') jobId: string) {
     const status = await this.todayAnalysisQueueService.getStatus(jobId);
     if (status == null) {
-      return successEnvelope({ status: 'not_found' });
+      return { status: 'not_found' };
     }
-    return successEnvelope(status);
+    return status;
   }
 
   @Get('recommendations')
@@ -303,7 +292,7 @@ export class TodayAnalysisController {
       normalizedExclude,
       lang,
     );
-    return successEnvelope(guides);
+    return guides;
   }
 
   @SkipThrottle()

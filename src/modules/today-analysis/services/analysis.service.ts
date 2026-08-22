@@ -4,6 +4,7 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 
 import {
   DEFAULT_USER_TIMEZONE,
@@ -160,6 +161,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       data.sourceVersion = sourceVersion;
       return data;
     } catch (error) {
+      this.recordGenerationFailure(error, 'versioned generation');
       await this.markFailedBestEffort(store, {
         userId,
         localDate: date,
@@ -241,6 +243,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       data.sourceVersion = sourceVersion;
       return data;
     } catch (error) {
+      this.recordGenerationFailure(error, 'versioned streaming generation');
       await this.markFailedBestEffort(store, {
         userId,
         localDate: date,
@@ -425,6 +428,18 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
         stack,
       );
     }
+  }
+
+  private recordGenerationFailure(
+    error: unknown,
+    operation: 'versioned generation' | 'versioned streaming generation',
+  ): void {
+    const cause = error instanceof Error ? error : new Error(String(error));
+    this.logger.error(
+      `Today analysis ${operation} failed: ${cause.message}`,
+      cause.stack,
+    );
+    trace.getActiveSpan()?.recordException(cause);
   }
 
   private buildTodaySummaryNotification(
