@@ -4,7 +4,6 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ResultCode } from '../../../common';
 import { DailyRecordsService } from '../../daily-records';
 import type { CreateDailyRecordDto } from '../../daily-records/dto/create-record.dto';
 import type { UpdateDailyRecordDto } from '../../daily-records/dto/update-record.dto';
@@ -336,7 +335,7 @@ export class AssistantService {
 
     if (!foundation.chatModelConfigured) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.chatUnavailableMessage(locale),
       });
     }
