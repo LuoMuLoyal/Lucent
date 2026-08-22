@@ -91,9 +91,10 @@ export class FeedbackService {
     });
 
     if (suggestion == null) {
-      throw new NotFoundException(
-        `Suggestion ${suggestionId} not found for user ${userId}`,
-      );
+      throw new NotFoundException({
+        code: 'SUGGESTION_NOT_FOUND',
+        message: `Suggestion ${suggestionId} not found for user ${userId}`,
+      });
     }
 
     // 2. Calculate expiry based on feedback type

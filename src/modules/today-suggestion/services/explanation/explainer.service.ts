@@ -62,9 +62,12 @@ export class ExplanationService {
     });
 
     if (suggestion == null) {
-      throw new NotFoundException(
-        this.i18n.t('today-suggestion.error.not_found', { lang: locale }),
-      );
+      throw new NotFoundException({
+        code: 'SUGGESTION_NOT_FOUND',
+        message: this.i18n.t('today-suggestion.error.not_found', {
+          lang: locale,
+        }),
+      });
     }
 
     const context = this.buildContext(suggestion);

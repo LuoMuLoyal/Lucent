@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { SseProblemDetailsDto } from '../../../common';
 import { TodayAnalysisDataDto } from './analysis-response.dto';
 
 export class TodayAnalysisStreamSummaryDto {
@@ -6,37 +7,7 @@ export class TodayAnalysisStreamSummaryDto {
   summary!: string;
 }
 
-export class TodayAnalysisStreamErrorDto {
-  @ApiProperty({ type: String })
-  type!: string;
-
-  @ApiProperty({ type: String })
-  title!: string;
-
-  @ApiProperty({ type: String })
-  detail!: string;
-
-  @ApiProperty({ type: String })
-  code!: string;
-
-  @ApiProperty({ type: Boolean, required: false })
-  retryable?: boolean;
-
-  @ApiProperty({ type: Number, required: false })
-  retryAfter?: number;
-
-  @ApiProperty({
-    enum: [
-      'client_error',
-      'server_error',
-      'cancelled',
-      'server_shutdown',
-      'unknown',
-    ],
-    type: String,
-  })
-  status!: string;
-}
+export class TodayAnalysisStreamErrorDto extends SseProblemDetailsDto {}
 
 export class TodayAnalysisStreamResultDto {
   @ApiProperty({

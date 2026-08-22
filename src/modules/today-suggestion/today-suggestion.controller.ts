@@ -151,18 +151,27 @@ export class TodaySuggestionController {
   })
   @ApiResponse({
     status: 202,
-    description: 'Job enqueued. Returns jobId for polling.',
+    description:
+      'Returns either a queued jobId or the synchronous explanation resource when the queue is unavailable.',
     schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 0 },
-        data: {
+      oneOf: [
+        {
           type: 'object',
-          properties: {
-            jobId: { type: 'string' },
-          },
+          required: ['jobId'],
+          properties: { jobId: { type: 'string' } },
+          additionalProperties: false,
         },
-      },
+        {
+          type: 'object',
+          required: ['result'],
+          properties: {
+            result: {
+              $ref: '#/components/schemas/SuggestionExplanationResponseDto',
+            },
+          },
+          additionalProperties: false,
+        },
+      ],
     },
   })
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
