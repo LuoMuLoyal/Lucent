@@ -43,7 +43,8 @@ Current real implementations are:
 **GET Response:** `DataExportRequestDto | null`
 
 Returns the most recent export request for the authenticated user, or `null`
-if none exists.
+if none exists. POST and GET return the resource directly without a generic
+`{ code, message, data }` envelope.
 
 ```typescript
 interface DataExportRequestDto {
@@ -110,4 +111,6 @@ interface DataExportRequestDto {
 
 `POST /clinic-summary/preview`、`GET /clinic-summary/shared/{token}` 的成功响应直接返回
 `ClinicSummaryDto`；`POST /clinic-summary/share` 的成功响应直接返回
-`ClinicSummaryShareDataDto`。错误响应使用 `application/problem+json`。
+`ClinicSummaryShareDataDto`。报告 dashboard、summary、review、share list、异步状态和
+PDF export JSON 也直接返回各自资源；撤销分享成功返回 `204 No Content`。错误响应使用
+`application/problem+json`。

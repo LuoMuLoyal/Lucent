@@ -127,6 +127,10 @@ inline:
 - `GET /api/v1/user/today-analysis`
 - `POST /api/v1/user/today-analysis/refresh`
 
+All successful JSON responses from the assistant controller are direct resources. They do not
+include a generic `{ code, message, data }` envelope. SSE endpoints keep their event-specific
+`chunk`/`result`/`error`/`done` event contract.
+
 ## Settings Contract
 
 Assistant-related user settings now use assistant-facing API fields:

@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-08-20
+Last updated: 2026-08-22
 
 ## Boundary
 
@@ -241,6 +241,10 @@ UserReminderDelivery {
   - Description: Report client local scheduling capability.
     Body: `{ state: 'active' | 'unavailable' | 'disabled' }`. Cached for
     14 days and used by the scheduler to gate the JPush fallback.
+
+All successful reminder, dose-log, medicine, delivery, and notification JSON responses are direct
+resources. They do not include a generic `{ code, message, data }` envelope. Successful delete
+operations return `204 No Content` without a response body.
 
 ## Explicit Non-Goals
 

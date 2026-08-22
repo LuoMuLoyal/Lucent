@@ -41,6 +41,9 @@ returns a default region's data.
 
 **Response:** `EnvironmentSnapshotDto`
 
+The JSON body is the `EnvironmentSnapshotDto` resource itself; it is not wrapped in
+`{ code, message, data }`.
+
 ```typescript
 interface EnvironmentSnapshotDto {
   pollen: PollenIndicator;

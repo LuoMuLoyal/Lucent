@@ -7,7 +7,11 @@ updated: 2026-08-17
 
 # Active Product Loop — Health Event Contract / Sparse Record Semantics
 
-Last updated: 2026-08-17
+Last updated: 2026-08-22
+
+The product-events controller now returns direct resources for batch ingestion and admin funnel
+reads. Health-event create, list, active, detail, check-in, and end endpoints now also return
+direct resources; HTTP failures are handled by the global Problem Details filter.
 
 ## 当前状态
 
@@ -17,6 +21,8 @@ Last updated: 2026-08-17
 - 设计决策（计数口径）：漏斗计数是去重后的**事件**计数（`(userId, clientEventId)` 唯一约束去重），不是去重用户数；阶段比值不构成转化率。
 - 健康事件服务端事件（started/ended/outcome_confirmed）、建议 actioned 与分享生命周期事件的上报发射保持不变；记录率以保存成功为分子（`recorded`），客户端 quick-entry tap 计数不参与任何服务端指标。
 - Product Measurement Task 10（收口）已完成：保留策略写入 `01-reference/data-retention.md`（原始产品事件 90 天按 occurredAt 清理、账户硬删除 FK 级联即时清除、分享 7 天 TTL + token 仅哈希存储 + 撤销、漏斗无持久化聚合故窗口受原始保留期约束）；安全扫描确认新代码无明文 token/症状/药名/note 进入日志、Sentry breadcrumb、指标标签（`product_event_emission_failure_total` 仅固定事件名标签）与产品事件载荷；Luminous 侧公开分享页信封兼容修复（raw Dio 解信封 + 缺省 section 补齐）与漏斗合同模型同步已完成，撤销后 Web/PDF 均 404。
+
+- 本次响应契约硬切已将健康事件 controller 的成功 JSON 改为资源本身，不再依赖全局成功 envelope；Problem Details 错误响应与客户端同步留待全部 controller 迁移后统一收口。
 
 Health Event Contract 已完成后端合同、持久化、所有权校验、领域事件和 OpenAPI 导出；Proactive Suggestion Runtime 已完成 Task 7 的后台重算、baseline observation、reminder slot 评估和 Today Analysis 物化接线。
 

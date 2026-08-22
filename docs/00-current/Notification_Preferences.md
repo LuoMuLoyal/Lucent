@@ -7,6 +7,9 @@ updated: 2026-08-20
 
 # Notification Preferences
 
+The GET and PATCH endpoints return the preference resource directly. They do not return a
+generic `{ code, message, data }` success envelope.
+
 Lucent stores user-scoped notification preferences in
 `UserNotificationPreference` and exposes them through
 `GET/PATCH /api/v1/user/notification-preferences`.

@@ -16,6 +16,9 @@ the client obtains those locally via `package_info_plus`.
 
 **Response:** `AppInfoDto`
 
+The JSON body is the `AppInfoDto` resource itself; it is not wrapped in
+`{ code, message, data }`.
+
 ```typescript
 interface AppInfoDto {
   minClientVersion: string | null; // minimum Luminous version hint

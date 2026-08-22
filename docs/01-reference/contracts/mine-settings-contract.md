@@ -178,7 +178,9 @@ interface UpdateUserSettingsDto {
 ```
 
 Partial update; omitted fields are not changed. Returns the full `UserSettingsDto`
-after the update.
+after the update. Successful settings and Security PIN responses are direct resources;
+they do not include a generic `{ code, message, data }` envelope. Empty successful
+operations use `204 No Content` where applicable.
 
 **Storage:** `UserSetting` Prisma model — one row per user per setting key.
 
