@@ -20,6 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
+  ApiExtraModels,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -88,6 +89,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')
+@ApiExtraModels(EventReviewDataDto)
 @Controller('reports')
 export class ReportsController {
   private readonly logger = new Logger(ReportsController.name);

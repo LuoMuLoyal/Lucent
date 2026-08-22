@@ -13,6 +13,7 @@ import {
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
+  ApiExtraModels,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -38,8 +39,10 @@ import { AssistantClearMemoryResponseDto } from './dto/clear-memory-response.dto
 
 import { AssistantConversationSummaryDto } from './dto/conversation-list-response.dto';
 
-import { AssistantConversationResponseDto } from './dto/conversation-response.dto';
-import { AssistantConversationDataDto } from './dto/conversation-response.dto';
+import {
+  AssistantConversationDataDto,
+  AssistantConversationResponseDto,
+} from './dto/conversation-response.dto';
 
 import { StreamAssistantMessagesDto } from './dto/stream-messages.dto';
 
@@ -52,6 +55,7 @@ import {
 
 @ApiTags('Assistant')
 @ApiBearerAuth('access-token')
+@ApiExtraModels(AssistantConversationDataDto)
 @Controller('assistant')
 export class AssistantController {
   private readonly logger = new Logger(AssistantController.name);

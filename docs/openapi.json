@@ -6493,6 +6493,351 @@
           }
         }
       },
+      "HealthEventKind": {
+        "type": "string",
+        "enum": ["symptom", "other"]
+      },
+      "HealthEventStatus": {
+        "type": "string",
+        "enum": ["active", "ended"]
+      },
+      "HealthEventOutcome": {
+        "type": "string",
+        "enum": ["improved", "unchanged", "worsened"]
+      },
+      "EventReviewEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventKind"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventStatus"
+              }
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "Start time in ISO 8601 format."
+          },
+          "endedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "End time in ISO 8601 format, or null while active."
+          },
+          "outcome": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          },
+          "currentMedicineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "status",
+          "startedAt",
+          "endedAt",
+          "outcome",
+          "currentMedicineIds"
+        ]
+      },
+      "EventReviewSectionFactsDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Structured fact code; localized by the client."
+          },
+          "arguments": {
+            "type": "object",
+            "description": "Structured fact arguments for the client localizer."
+          }
+        },
+        "required": ["code", "arguments"]
+      },
+      "EventReviewSectionDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["available", "unknown"]
+          },
+          "reasonCode": {
+            "type": "string",
+            "enum": [
+              "no_observations",
+              "no_completed_actions",
+              "insufficient_coverage"
+            ],
+            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable)."
+          },
+          "facts": {
+            "description": "Basic facts when state is available.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventReviewSectionFactsDto"
+              }
+            ]
+          }
+        },
+        "required": ["state"]
+      },
+      "EventReviewSectionsDto": {
+        "type": "object",
+        "properties": {
+          "whatHappened": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          },
+          "keyChanges": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          },
+          "completedActions": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          },
+          "nextStep": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          }
+        },
+        "required": [
+          "whatHappened",
+          "keyChanges",
+          "completedActions",
+          "nextStep"
+        ]
+      },
+      "EventReviewTodayCheckInDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Calendar date in YYYY-MM-DD format."
+          },
+          "outcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update time in ISO 8601 format."
+          }
+        },
+        "required": ["date", "outcome", "updatedAt"]
+      },
+      "EventReviewCheckInCoverageDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"],
+            "description": "'none' when no check-ins exist; 'partial' when check-ins exist but sufficiency is not yet assessed by the section services."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number",
+            "description": "Number of user-confirmed check-ins."
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true,
+            "description": "No fixed expectation exists for check-ins."
+          },
+          "firstCheckInDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "First check-in calendar date, or null when none exists."
+          },
+          "lastCheckInDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Last check-in calendar date, or null when none exists."
+          },
+          "todayCheckIn": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventReviewTodayCheckInDto"
+              }
+            ]
+          },
+          "windowStart": {
+            "type": "string",
+            "description": "Event window start in ISO 8601 format."
+          },
+          "windowEnd": {
+            "type": "string",
+            "description": "Event window end in ISO 8601 format."
+          }
+        },
+        "required": [
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "firstCheckInDate",
+          "lastCheckInDate",
+          "todayCheckIn",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
+      "EventReviewObservedSourceDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"],
+            "description": "The skeleton emits 'none' or 'partial'; sufficiency assessment lands with the section services."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number",
+            "description": "Number of observations in the event window."
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true,
+            "description": "No fixed expectation is defined for this source yet."
+          },
+          "windowStart": {
+            "type": "string",
+            "description": "Event window start in ISO 8601 format."
+          },
+          "windowEnd": {
+            "type": "string",
+            "description": "Event window end in ISO 8601 format."
+          }
+        },
+        "required": [
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
+      "EventReviewCoverageSummaryDto": {
+        "type": "object",
+        "properties": {
+          "checkIns": {
+            "$ref": "#/components/schemas/EventReviewCheckInCoverageDto"
+          },
+          "dailyRecords": {
+            "$ref": "#/components/schemas/EventReviewObservedSourceDto"
+          },
+          "doseLogs": {
+            "$ref": "#/components/schemas/EventReviewObservedSourceDto"
+          }
+        },
+        "required": ["checkIns", "dailyRecords", "doseLogs"]
+      },
+      "EventReviewSourceTimestampsDto": {
+        "type": "object",
+        "properties": {
+          "checkIns": {
+            "type": "string",
+            "nullable": true,
+            "description": "Last check-in calendar date (YYYY-MM-DD), or null."
+          },
+          "dailyRecords": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest daily-record creation time in the event window (ISO 8601), or null."
+          },
+          "doseLogs": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest dose-log scheduled time in the event window (ISO 8601), or null."
+          }
+        },
+        "required": ["checkIns", "dailyRecords", "doseLogs"]
+      },
+      "EventReviewDataDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/EventReviewEventDto"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/EventReviewSectionsDto"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/EventReviewCoverageSummaryDto"
+          },
+          "sourceTimestamps": {
+            "$ref": "#/components/schemas/EventReviewSourceTimestampsDto"
+          },
+          "availableActions": {
+            "type": "array",
+            "description": "Actions the user can take from this review, mapped by the client.",
+            "items": {
+              "type": "string",
+              "enum": ["check_in", "end_event", "clinic_summary", "export"]
+            }
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Review assembly time in ISO 8601 format."
+          }
+        },
+        "required": [
+          "event",
+          "sections",
+          "coverage",
+          "sourceTimestamps",
+          "availableActions",
+          "generatedAt"
+        ]
+      },
       "ReportObservedMetricDto": {
         "type": "object",
         "properties": {
@@ -7303,77 +7648,6 @@
         },
         "required": ["items"]
       },
-      "HealthEventStatus": {
-        "type": "string",
-        "enum": ["active", "ended"]
-      },
-      "HealthEventKind": {
-        "type": "string",
-        "enum": ["symptom", "other"]
-      },
-      "HealthEventOutcome": {
-        "type": "string",
-        "enum": ["improved", "unchanged", "worsened"]
-      },
-      "EventReviewEventDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthEventKind"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 80
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthEventStatus"
-              }
-            ]
-          },
-          "startedAt": {
-            "type": "string",
-            "description": "Start time in ISO 8601 format."
-          },
-          "endedAt": {
-            "type": "string",
-            "nullable": true,
-            "description": "End time in ISO 8601 format, or null while active."
-          },
-          "outcome": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthEventOutcome"
-              }
-            ]
-          },
-          "currentMedicineIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "title",
-          "status",
-          "startedAt",
-          "endedAt",
-          "outcome",
-          "currentMedicineIds"
-        ]
-      },
       "EventReviewListResponseDto": {
         "type": "object",
         "properties": {
@@ -7394,243 +7668,6 @@
           }
         },
         "required": ["items", "total", "nextCursor"]
-      },
-      "EventReviewSectionFactsDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"]
-      },
-      "EventReviewSectionDto": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ],
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable)."
-          },
-          "facts": {
-            "description": "Basic facts when state is available.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EventReviewSectionFactsDto"
-              }
-            ]
-          }
-        },
-        "required": ["state"]
-      },
-      "EventReviewSectionsDto": {
-        "type": "object",
-        "properties": {
-          "whatHappened": {
-            "$ref": "#/components/schemas/EventReviewSectionDto"
-          },
-          "keyChanges": {
-            "$ref": "#/components/schemas/EventReviewSectionDto"
-          },
-          "completedActions": {
-            "$ref": "#/components/schemas/EventReviewSectionDto"
-          },
-          "nextStep": {
-            "$ref": "#/components/schemas/EventReviewSectionDto"
-          }
-        },
-        "required": [
-          "whatHappened",
-          "keyChanges",
-          "completedActions",
-          "nextStep"
-        ]
-      },
-      "EventReviewTodayCheckInDto": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "description": "Calendar date in YYYY-MM-DD format."
-          },
-          "outcome": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthEventOutcome"
-              }
-            ]
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Last update time in ISO 8601 format."
-          }
-        },
-        "required": ["date", "outcome", "updatedAt"]
-      },
-      "EventReviewCheckInCoverageDto": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "'none' when no check-ins exist; 'partial' when check-ins exist but sufficiency is not yet assessed by the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of user-confirmed check-ins."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true,
-            "description": "No fixed expectation exists for check-ins."
-          },
-          "firstCheckInDate": {
-            "type": "string",
-            "nullable": true,
-            "description": "First check-in calendar date, or null when none exists."
-          },
-          "lastCheckInDate": {
-            "type": "string",
-            "nullable": true,
-            "description": "Last check-in calendar date, or null when none exists."
-          },
-          "todayCheckIn": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EventReviewTodayCheckInDto"
-              }
-            ]
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "firstCheckInDate",
-          "lastCheckInDate",
-          "todayCheckIn",
-          "windowStart",
-          "windowEnd"
-        ]
-      },
-      "EventReviewObservedSourceDto": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "The skeleton emits 'none' or 'partial'; sufficiency assessment lands with the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the event window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true,
-            "description": "No fixed expectation is defined for this source yet."
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ]
-      },
-      "EventReviewCoverageSummaryDto": {
-        "type": "object",
-        "properties": {
-          "checkIns": {
-            "$ref": "#/components/schemas/EventReviewCheckInCoverageDto"
-          },
-          "dailyRecords": {
-            "$ref": "#/components/schemas/EventReviewObservedSourceDto"
-          },
-          "doseLogs": {
-            "$ref": "#/components/schemas/EventReviewObservedSourceDto"
-          }
-        },
-        "required": ["checkIns", "dailyRecords", "doseLogs"]
-      },
-      "EventReviewSourceTimestampsDto": {
-        "type": "object",
-        "properties": {
-          "checkIns": {
-            "type": "string",
-            "nullable": true,
-            "description": "Last check-in calendar date (YYYY-MM-DD), or null."
-          },
-          "dailyRecords": {
-            "type": "string",
-            "nullable": true,
-            "description": "Latest daily-record creation time in the event window (ISO 8601), or null."
-          },
-          "doseLogs": {
-            "type": "string",
-            "nullable": true,
-            "description": "Latest dose-log scheduled time in the event window (ISO 8601), or null."
-          }
-        },
-        "required": ["checkIns", "dailyRecords", "doseLogs"]
       },
       "EventReviewResponseDto": {
         "type": "object",
@@ -7667,6 +7704,81 @@
           "sourceTimestamps",
           "availableActions",
           "generatedAt"
+        ]
+      },
+      "AssistantConversationMessageDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant"],
+            "description": "Persisted conversation role visible to the client."
+          },
+          "content": {
+            "type": "string",
+            "description": "Persisted Markdown-ready message content."
+          },
+          "usedTools": {
+            "description": "Tool names recorded for this message. Non-empty for assistant messages that used tools.",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the message was created."
+          }
+        },
+        "required": ["role", "content", "usedTools", "createdAt"]
+      },
+      "AssistantConversationDataDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable persisted conversation identifier."
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional server-derived conversation title.",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "archived", "deleted"],
+            "description": "Current conversation status."
+          },
+          "messages": {
+            "description": "Persisted messages in chronological order.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssistantConversationMessageDto"
+            }
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of the latest conversation activity.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 creation timestamp."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "messages",
+          "lastMessageAt",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "AssistantContextSettingsDto": {
@@ -7889,33 +8001,6 @@
           "createdAt",
           "updatedAt"
         ]
-      },
-      "AssistantConversationMessageDto": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": ["user", "assistant"],
-            "description": "Persisted conversation role visible to the client."
-          },
-          "content": {
-            "type": "string",
-            "description": "Persisted Markdown-ready message content."
-          },
-          "usedTools": {
-            "description": "Tool names recorded for this message. Non-empty for assistant messages that used tools.",
-            "example": [],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp when the message was created."
-          }
-        },
-        "required": ["role", "content", "usedTools", "createdAt"]
       },
       "AssistantConversationResponseDto": {
         "type": "object",
@@ -12688,26 +12773,6 @@
         },
         "required": ["docType", "title", "content", "updatedAt"]
       },
-      "CreateDataExportRequestDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": ["hospital", "monthly", "print"],
-            "description": "Requested export kind."
-          },
-          "format": {
-            "type": "string",
-            "enum": ["pdf"],
-            "description": "Requested export format."
-          },
-          "range": {
-            "type": "string",
-            "enum": ["last_7_days", "last_30_days"],
-            "description": "Requested report range."
-          }
-        }
-      },
       "DataExportKind": {
         "type": "string",
         "enum": ["hospital", "monthly", "print"]
@@ -12729,6 +12794,88 @@
           "failed",
           "unavailable"
         ]
+      },
+      "DataExportRequestDataDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique request identifier."
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportKind"
+              }
+            ]
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportFormat"
+              }
+            ]
+          },
+          "range": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportRange"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportStatus"
+              }
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the request was created."
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSizeBytes": {
+            "type": "number",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["id", "kind", "format", "range", "status", "requestedAt"]
+      },
+      "CreateDataExportRequestDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["hospital", "monthly", "print"],
+            "description": "Requested export kind."
+          },
+          "format": {
+            "type": "string",
+            "enum": ["pdf"],
+            "description": "Requested export format."
+          },
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days"],
+            "description": "Requested report range."
+          }
+        }
       },
       "DataExportRequestResponseDto": {
         "type": "object",

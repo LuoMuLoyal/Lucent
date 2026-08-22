@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiExtraModels,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -29,6 +30,7 @@ import {
 
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')
+@ApiExtraModels(DataExportRequestDataDto)
 @UseGuards(SecurityElevationGuard)
 @Controller('data-export-requests')
 export class DataExportController {
