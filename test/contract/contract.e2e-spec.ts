@@ -11,8 +11,6 @@ import {
   uniqueEmail,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
-import { ResultCode } from '../../src/common';
-import type { ApiEnvelope } from '../../src/common';
 
 // ── OpenAPI spec loader ─────────────────────────────────────────
 
@@ -54,15 +52,22 @@ function resolveRef(spec: OpenApiSpec, ref: string): OpenApiSchema | undefined {
 }
 
 /**
- * Assert that `body` conforms to the global API envelope `{ code, message, data }`.
+ * Assert that `body` is a direct success resource.
  */
-function assertEnvelopeShape(body: unknown): void {
-  const env = body as ApiEnvelope;
-  expect(env).toBeDefined();
-  expect(typeof env.code).toBe('number');
-  expect(typeof env.message).toBe('string');
-  // data can be null, an object, or an array — but must exist as a key
-  expect(env).toHaveProperty('data');
+function assertDirectResourceShape(body: unknown): void {
+  expect(body).toBeDefined();
+  expect(body).not.toBeNull();
+}
+
+function assertProblemDetails(body: unknown, code: string): void {
+  expect(body).toMatchObject({
+    type: expect.any(String),
+    title: expect.any(String),
+    detail: expect.any(String),
+    code,
+  });
+  expect(body).not.toHaveProperty('statusCode');
+  expect(body).not.toHaveProperty('requestId');
 }
 
 /**
@@ -84,7 +89,7 @@ function assertRequiredProperties(
 
   // If the schema looks like an envelope (has 'code' in required)
   // but the actual data doesn't have 'code', skip the required check.
-  // The envelope structure is already verified by assertEnvelopeShape.
+  // The envelope structure is already verified by assertDirectResourceShape.
   if (
     resolved.required?.includes('code') &&
     typeof data === 'object' &&
@@ -191,17 +196,16 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/health')
         .expect(200);
 
-      assertEnvelopeShape(res.body);
-      const env = res.body as ApiEnvelope;
-      expect(env.code).toBe(ResultCode.SUCCESS);
+      assertDirectResourceShape(res.body);
+      const env = res.body as Record<string, unknown>;
 
       const schema = resolveRef(spec, '#/components/schemas/HealthResponseDto');
-      assertRequiredProperties(env.data, schema, spec);
+      assertRequiredProperties(env, schema, spec);
 
       // Verify nested probe field exists
-      expect(env.data).toHaveProperty('probe');
-      expect(env.data).toHaveProperty('status');
-      expect(env.data).toHaveProperty('summary');
+      expect(env).toHaveProperty('probe');
+      expect(env).toHaveProperty('status');
+      expect(env).toHaveProperty('summary');
     });
   });
 
@@ -211,8 +215,8 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/health/live')
         .expect(200);
 
-      assertEnvelopeShape(res.body);
-      expect((res.body as ApiEnvelope).data).toHaveProperty('probe', 'live');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('probe', 'live');
     });
   });
 
@@ -222,8 +226,8 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/health/ready')
         .expect(200);
 
-      assertEnvelopeShape(res.body);
-      expect((res.body as ApiEnvelope).data).toHaveProperty('probe', 'ready');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('probe', 'ready');
     });
   });
 
@@ -233,13 +237,13 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/medicines/safety-tips')
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/MedicineSafetyTipResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -249,13 +253,13 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/legal-documents')
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/LegalDocumentListResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -265,13 +269,13 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/public/app-info')
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/AppInfoResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -284,17 +288,17 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/AccountResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
 
       // Spot-check key fields
-      expect(res.body.data).toHaveProperty('id');
-      expect(res.body.data).toHaveProperty('email');
+      expect(res.body).toHaveProperty('id');
+      expect(res.body).toHaveProperty('email');
     });
   });
 
@@ -305,13 +309,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/HealthContextResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -322,13 +326,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/NotificationListResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -339,13 +343,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/UserSettingsResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -357,13 +361,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/DailyRecordListResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -374,13 +378,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/MedicineReminderListResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -392,13 +396,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/DoseLogListResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -409,13 +413,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/ReportDashboardResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -426,13 +430,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/TodaySuggestionsResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -443,13 +447,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/AssistantCapabilitiesResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -460,13 +464,13 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
         '#/components/schemas/EnvironmentSnapshotResponseDto',
       );
-      assertRequiredProperties(res.body.data, schema, spec);
+      assertRequiredProperties(res.body, schema, spec);
     });
   });
 
@@ -478,9 +482,9 @@ describe('API Contract Tests (e2e)', () => {
         .get('/api/v1/health/deep')
         .expect(200);
 
-      assertEnvelopeShape(res.body);
-      expect(res.body.data).toHaveProperty('probe');
-      expect(res.body.data).toHaveProperty('status');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('probe');
+      expect(res.body).toHaveProperty('status');
     });
   });
 
@@ -491,9 +495,9 @@ describe('API Contract Tests (e2e)', () => {
         .query({ q: 'test', page: 1, pageSize: 5 })
         .expect(200);
 
-      assertEnvelopeShape(res.body);
-      expect(res.body.data).toHaveProperty('items');
-      expect(res.body.data).toHaveProperty('pagination');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('items');
+      expect(res.body).toHaveProperty('pagination');
     });
   });
 
@@ -504,8 +508,8 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
-      expect(res.body.data).toHaveProperty('count');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('count');
     });
   });
 
@@ -517,7 +521,7 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
     });
   });
 
@@ -528,7 +532,7 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
     });
   });
 
@@ -539,7 +543,7 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
     });
   });
 
@@ -550,7 +554,7 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
     });
   });
 
@@ -568,10 +572,9 @@ describe('API Contract Tests (e2e)', () => {
         })
         .expect(201);
 
-      assertEnvelopeShape(res.body);
-      expect(res.body.code).toBe(ResultCode.SUCCESS);
-      expect(res.body.data).toHaveProperty('id');
-      expect(res.body.data).toHaveProperty('kind', 'meal');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('id');
+      expect(res.body).toHaveProperty('kind', 'meal');
     });
   });
 
@@ -583,10 +586,9 @@ describe('API Contract Tests (e2e)', () => {
         .send({ kind: 'drug', label: 'ContractAllergy', severity: 'mild' })
         .expect(201);
 
-      assertEnvelopeShape(res.body);
-      expect(res.body.code).toBe(ResultCode.SUCCESS);
-      expect(res.body.data).toHaveProperty('allergies');
-      expect(Array.isArray(res.body.data.allergies)).toBe(true);
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('allergies');
+      expect(Array.isArray(res.body.allergies)).toBe(true);
     });
   });
 
@@ -602,9 +604,8 @@ describe('API Contract Tests (e2e)', () => {
         })
         .expect(201);
 
-      assertEnvelopeShape(res.body);
-      expect(res.body.code).toBe(ResultCode.SUCCESS);
-      expect(res.body.data).toHaveProperty('id');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('id');
     });
   });
 
@@ -618,8 +619,7 @@ describe('API Contract Tests (e2e)', () => {
         .send({ assistantMemoryEnabled: true })
         .expect(200);
 
-      assertEnvelopeShape(res.body);
-      expect(res.body.code).toBe(ResultCode.SUCCESS);
+      assertDirectResourceShape(res.body);
     });
   });
 
@@ -634,11 +634,11 @@ describe('API Contract Tests (e2e)', () => {
         .expect(200);
 
       // Pagination is embedded inside data, not at the top-level meta
-      assertEnvelopeShape(res.body);
-      expect(res.body.data).toHaveProperty('pagination');
-      expect(res.body.data.pagination).toHaveProperty('page');
-      expect(res.body.data.pagination).toHaveProperty('pageSize');
-      expect(res.body.data.pagination).toHaveProperty('total');
+      assertDirectResourceShape(res.body);
+      expect(res.body).toHaveProperty('pagination');
+      expect(res.body.pagination).toHaveProperty('page');
+      expect(res.body.pagination).toHaveProperty('pageSize');
+      expect(res.body.pagination).toHaveProperty('total');
     });
 
     it('GET /api/v1/user/daily-records should return items array', async () => {
@@ -648,10 +648,10 @@ describe('API Contract Tests (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      assertEnvelopeShape(res.body);
+      assertDirectResourceShape(res.body);
       // daily-records list returns data.items
-      if (res.body.data && typeof res.body.data === 'object') {
-        const data = res.body.data as Record<string, unknown>;
+      if (res.body && typeof res.body === 'object') {
+        const data = res.body as Record<string, unknown>;
         if (data['items'] !== undefined) {
           expect(Array.isArray(data['items'])).toBe(true);
         }
@@ -659,43 +659,32 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  // ── Error envelope contract ────────────────────────────────
+  // ── Problem Details error contract ─────────────────────────
 
   describe('Error responses — contract', () => {
-    it('unauthenticated request should return error envelope with code != 0', async () => {
+    it('unauthenticated request should return Problem Details', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/account')
         .expect(401);
 
-      assertEnvelopeShape(res.body);
-      const env = res.body as ApiEnvelope;
-      expect(env.code).not.toBe(ResultCode.SUCCESS);
-      expect(env.data).toBeNull();
-      expect(env.message).toBeTruthy();
+      assertProblemDetails(res.body, 'AUTH_UNAUTHORIZED');
     });
 
-    it('invalid route should return 404 error envelope', async () => {
+    it('invalid route should return 404 Problem Details', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/nonexistent-endpoint')
         .expect(404);
 
-      assertEnvelopeShape(res.body);
-      const env = res.body as ApiEnvelope;
-      expect(env.code).not.toBe(ResultCode.SUCCESS);
-      expect(env.data).toBeNull();
+      assertProblemDetails(res.body, 'RESOURCE_NOT_FOUND');
     });
 
-    it('validation error should return 400 envelope with VALIDATION_FAILED code', async () => {
+    it('validation error should return 400 Problem Details', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({ email: 'not-an-email', password: '12' })
         .expect(400);
 
-      assertEnvelopeShape(res.body);
-      const env = res.body as ApiEnvelope;
-      expect(env.code).not.toBe(ResultCode.SUCCESS);
-      expect(env.data).toBeNull();
-      expect(env.message).toBeTruthy();
+      assertProblemDetails(res.body, 'VALIDATION_FAILED');
     });
   });
 });
