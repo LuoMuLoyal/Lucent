@@ -35,6 +35,10 @@ app metadata, and data-export request status.
 - **App about metadata** → `Server` — Read from package/config, not hardcoded client
 - **Data export request** → `Server` — Status plus first real report-PDF export flow
 
+All ordinary failures for these resources use `application/problem+json` with stable string
+codes. In particular, missing sessions use `AUTH_SESSION_NOT_FOUND`, and validation/authentication
+details are localized from the request language rather than parsed from human-readable text.
+
 ## Prisma Models
 
 ```prisma

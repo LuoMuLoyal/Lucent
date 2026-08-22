@@ -17,6 +17,9 @@ Lucent stores user-scoped notification preferences in
 The response DTOs are direct resources in the exported OpenAPI contract; no global success
 interceptor or `{ code, message, data }` wrapper is used.
 
+Invalid minute values return a localized `VALIDATION_FAILED` Problem Details response with HTTP
+400; clients use the stable code and structured validation fields rather than matching prose.
+
 - The preference row stores health, weekly insight, water, and sleep reminder
   intent for cross-device consumers.
 - Today health escalation reads `healthAlertsEnabled`; the water shortfall rule

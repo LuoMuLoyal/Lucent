@@ -21,6 +21,9 @@ Lucent's notification system is split into two layers with a clear ownership bou
 - Reminder delivery audit log (what was sent, when, to which device)
 - Notification content templates (localized)
 
+Missing notifications and invalid notification-preference values use localized Problem Details;
+the client branches on stable `code` and HTTP status, not on the translated `detail` text.
+
 ## Current Reality
 
 - Local notification permission

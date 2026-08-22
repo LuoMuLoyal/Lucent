@@ -16,6 +16,9 @@ direct resources; HTTP failures are handled by the global Problem Details filter
 The exported OpenAPI schemas for product events and health events follow the same direct-resource
 boundary, with nullable current reads represented explicitly.
 
+Validation and ownership failures use the shared localized Problem Details contract with stable
+string codes; product-event clients do not inspect translated error messages.
+
 ## 当前状态
 
 - 2026-08-14 增量审查修复（5 项 🟡）：`POST /product-events` 在全局限流（100 req/min）之上叠加专属限流（10 req/min，单批 ≤50 事件，持续写入速率封顶）；漏斗窗口跨度改用 UTC 午夜瞬间的日历日差计算（`utcDayNumber`，不再毫秒四舍五入，无 DST 边界误差）；`emitServerEvent` 失败日志只记录固定标识（Prisma 错误码或错误类名），原始 driver message 永不入日志；`ProductEventName` 每个枚举值必须映射到核心阶段/optional 计数或显式声明不计数（`INTENTIONALLY_UNCOUNTED_EVENT_NAMES`），由 spec 遍历枚举强制——新增枚举值未处理时测试失败，杜绝漏斗指标静默丢数。

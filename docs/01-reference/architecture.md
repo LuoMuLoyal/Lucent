@@ -15,6 +15,12 @@ filter now owns the safe Problem Details shape and trace correlation. All contro
 responses and OpenAPI response schemas now use direct resources; no global success interceptor or
 HTTP success envelope remains.
 
+Problem Details `type` and `code` are stable wire identifiers. `title` and `detail` are resolved
+through the request language and the backend i18n catalog; validation may additionally expose safe
+field-level `errors`. Rate-limit responses use HTTP 429, `retryable`, `retryAfter`, and the
+`Retry-After` header. Ordinary error bodies do not contain `statusCode`, `requestId`, stacks, or
+provider payloads.
+
 ## Module Dependency Graph
 
 ```mermaid

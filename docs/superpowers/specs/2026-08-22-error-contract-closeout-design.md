@@ -72,16 +72,16 @@ Each entry has one stable code, one problem URI, localized title/detail keys, HT
 semantics, and retry metadata. Missing translations fall back through the existing i18n default
 locale; the wire body never exposes a translation key.
 
-| Category         | Representative codes                                                                                                         | Transport meaning                                     |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Validation       | `VALIDATION_FAILED`, `INVALID_ARGUMENT`                                                                                      | 400; field errors when safe                           |
-| Authentication   | `AUTH_REQUIRED`, `AUTH_TOKEN_EXPIRED`, `AUTH_REFRESH_TOKEN_INVALID`, `AUTH_WRONG_PASSWORD`, `AUTH_VERIFICATION_CODE_INVALID` | 401; refresh only for codes that can recover          |
-| Authorization    | `FORBIDDEN`, `AUTH_ELEVATION_REQUIRED`, `AUTH_ELEVATION_TOKEN_INVALID`                                                       | 403; never silently converted to 500                  |
-| Resource state   | `RESOURCE_NOT_FOUND`, `RESOURCE_CONFLICT`, `RECORD_ALREADY_EXISTS`                                                           | 404/409 with the affected operation named in detail   |
-| Rate limiting    | `RATE_LIMITED`, `AUTH_LOGIN_RATE_LIMITED`, `AUTH_VERIFICATION_CODE_RATE_LIMITED`                                             | 429; include `retryAfter` when known                  |
-| Dependency       | `DEPENDENCY_UNAVAILABLE`, `DEPENDENCY_TIMEOUT`                                                                               | 502/503/504; retryable only when safe                 |
-| Internal         | `INTERNAL_ERROR`                                                                                                             | 500; generic client detail, full server log and trace |
-| Stream lifecycle | `SERVER_SHUTDOWN`, `STREAM_CANCELLED`                                                                                        | SSE event status only; no fake HTTP status            |
+| Category         | Representative codes                                                                                                                                                                        | Transport meaning                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Validation       | `VALIDATION_FAILED`, `INVALID_ARGUMENT`                                                                                                                                                     | 400; field errors when safe                           |
+| Authentication   | `AUTH_REQUIRED`, `AUTH_TOKEN_EXPIRED`, `AUTH_REFRESH_TOKEN_INVALID`, `AUTH_WRONG_PASSWORD`, `AUTH_OAUTH_STATE_INVALID`, `AUTH_VERIFICATION_CODE_EXPIRED`, `AUTH_VERIFICATION_CODE_MISMATCH` | 400/401; refresh only for codes that can recover      |
+| Authorization    | `FORBIDDEN`, `AUTH_ELEVATION_REQUIRED`, `AUTH_ELEVATION_TOKEN_INVALID`, `AUTH_SESSION_ACCESS_DENIED`                                                                                        | 403; never silently converted to 500                  |
+| Resource state   | `RESOURCE_NOT_FOUND`, `NOTIFICATION_NOT_FOUND`, `LEGAL_DOCUMENT_NOT_FOUND`, `SUGGESTION_NOT_FOUND`, `REPORT_SHARE_NOT_FOUND`, `RESOURCE_CONFLICT`, `RECORD_ALREADY_EXISTS`                  | 404/409 with the affected operation named in detail   |
+| Rate limiting    | `RATE_LIMITED`, `AUTH_LOGIN_RATE_LIMITED`, `AUTH_VERIFICATION_CODE_RATE_LIMITED`, `AUTH_VERIFICATION_CODE_COOLDOWN`                                                                         | 429; include `retryAfter` when known                  |
+| Dependency       | `DEPENDENCY_UNAVAILABLE`, `DEPENDENCY_TIMEOUT`                                                                                                                                              | 502/503/504; retryable only when safe                 |
+| Internal         | `INTERNAL_ERROR`                                                                                                                                                                            | 500; generic client detail, full server log and trace |
+| Stream lifecycle | `SERVER_SHUTDOWN`, `STREAM_CANCELLED`                                                                                                                                                       | SSE event status only; no fake HTTP status            |
 
 Known domain failures must be mapped to the most specific entry. A known validation, auth,
 conflict, not-found, rate-limit, or dependency failure must not reach the client as `INTERNAL_ERROR`.

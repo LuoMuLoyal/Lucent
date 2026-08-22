@@ -815,25 +815,32 @@
         ],
         "responses": {
           "202": {
-            "description": "Job enqueued. Returns jobId for polling.",
+            "description": "Returns either a queued jobId or the synchronous explanation resource when the queue is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 0
-                    },
-                    "data": {
+                  "oneOf": [
+                    {
                       "type": "object",
+                      "required": ["jobId"],
                       "properties": {
                         "jobId": {
                           "type": "string"
                         }
-                      }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["result"],
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/SuggestionExplanationResponseDto"
+                        }
+                      },
+                      "additionalProperties": false
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -1126,25 +1133,33 @@
         },
         "responses": {
           "202": {
-            "description": "Job enqueued. Returns jobId for polling.",
+            "description": "Returns either a queued jobId or the synchronous summary resource when the queue is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 0
-                    },
-                    "data": {
+                  "oneOf": [
+                    {
                       "type": "object",
+                      "required": ["jobId"],
                       "properties": {
                         "jobId": {
                           "type": "string"
                         }
-                      }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["result"],
+                      "properties": {
+                        "result": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": false
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -1393,24 +1408,28 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 0
-                    },
-                    "data": {
+                  "oneOf": [
+                    {
                       "type": "object",
+                      "required": ["jobId"],
                       "properties": {
                         "jobId": {
                           "type": "string"
-                        },
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["pdfBase64"],
+                      "properties": {
                         "pdfBase64": {
                           "type": "string"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -2877,25 +2896,33 @@
         },
         "responses": {
           "200": {
-            "description": "Job enqueued. Returns jobId for polling.",
+            "description": "Returns either a queued jobId or the synchronous recognition resource when the queue is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 0
-                    },
-                    "data": {
+                  "oneOf": [
+                    {
                       "type": "object",
+                      "required": ["jobId"],
                       "properties": {
                         "jobId": {
                           "type": "string"
                         }
-                      }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["result"],
+                      "properties": {
+                        "result": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": false
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -4980,7 +5007,7 @@
               "text/event-stream": {
                 "schema": {
                   "type": "string",
-                  "description": "Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisDataDto; event=error data={message,code?,statusCode?}; event=done data={}."
+                  "description": "Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisDataDto; event=error data=TodayAnalysisStreamErrorDto; event=done data={}."
                 }
               }
             }
@@ -12616,17 +12643,60 @@
       "TodayAnalysisStreamErrorDto": {
         "type": "object",
         "properties": {
-          "message": {
-            "type": "string"
+          "type": {
+            "type": "string",
+            "description": "Stable URI identifying the problem type.",
+            "example": "https://api.lumos.example/problems/resource-not-found"
+          },
+          "title": {
+            "type": "string",
+            "description": "Localized short summary of the problem.",
+            "example": "Resource not found"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Localized, actionable description for this request.",
+            "example": "The requested resource could not be found."
           },
           "code": {
-            "type": "number"
+            "type": "string",
+            "description": "Stable machine-readable business code.",
+            "example": "RESOURCE_NOT_FOUND"
           },
-          "statusCode": {
-            "type": "number"
+          "errors": {
+            "type": "object",
+            "description": "Safe structured validation errors keyed by field or general.",
+            "additionalProperties": true
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether retrying may succeed, subject to client policy.",
+            "example": false
+          },
+          "retryAfter": {
+            "type": "number",
+            "description": "Minimum delay before retrying, in seconds.",
+            "minimum": 0,
+            "example": 60
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Trace correlation identifier; never a business key.",
+            "example": "4bf92f3577b34da6a3ce929d0e0e4736"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "client_error",
+              "server_error",
+              "cancelled",
+              "server_shutdown",
+              "unknown"
+            ],
+            "description": "Why the stream ended; this is not an HTTP status code."
           }
         },
-        "required": ["message"]
+        "required": ["type", "title", "detail", "code", "status"]
       },
       "TodayAnalysisStreamResultDto": {
         "type": "object",
@@ -12959,6 +13029,111 @@
           }
         },
         "required": ["contentType", "sizeBytes"]
+      },
+      "ProblemDetailsDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Stable URI identifying the problem type.",
+            "example": "https://api.lumos.example/problems/resource-not-found"
+          },
+          "title": {
+            "type": "string",
+            "description": "Localized short summary of the problem.",
+            "example": "Resource not found"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Localized, actionable description for this request.",
+            "example": "The requested resource could not be found."
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable business code.",
+            "example": "RESOURCE_NOT_FOUND"
+          },
+          "errors": {
+            "type": "object",
+            "description": "Safe structured validation errors keyed by field or general.",
+            "additionalProperties": true
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether retrying may succeed, subject to client policy.",
+            "example": false
+          },
+          "retryAfter": {
+            "type": "number",
+            "description": "Minimum delay before retrying, in seconds.",
+            "minimum": 0,
+            "example": 60
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Trace correlation identifier; never a business key.",
+            "example": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+        },
+        "required": ["type", "title", "detail", "code"]
+      },
+      "SseProblemDetailsDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Stable URI identifying the problem type.",
+            "example": "https://api.lumos.example/problems/resource-not-found"
+          },
+          "title": {
+            "type": "string",
+            "description": "Localized short summary of the problem.",
+            "example": "Resource not found"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Localized, actionable description for this request.",
+            "example": "The requested resource could not be found."
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable business code.",
+            "example": "RESOURCE_NOT_FOUND"
+          },
+          "errors": {
+            "type": "object",
+            "description": "Safe structured validation errors keyed by field or general.",
+            "additionalProperties": true
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether retrying may succeed, subject to client policy.",
+            "example": false
+          },
+          "retryAfter": {
+            "type": "number",
+            "description": "Minimum delay before retrying, in seconds.",
+            "minimum": 0,
+            "example": 60
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Trace correlation identifier; never a business key.",
+            "example": "4bf92f3577b34da6a3ce929d0e0e4736"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "client_error",
+              "server_error",
+              "cancelled",
+              "server_shutdown",
+              "unknown"
+            ],
+            "description": "Why the stream ended; this is not an HTTP status code."
+          }
+        },
+        "required": ["type", "title", "detail", "code", "status"]
       }
     }
   }

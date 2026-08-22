@@ -13,6 +13,9 @@ Last updated: 2026-08-22
   recommended baseline to `11.9.0`.
 - local `docs/openapi.json` remains the exported backend contract artifact that Luminous
   regenerates its `generated/lucent_api/` client from.
+- The OpenAPI export registers the shared `ProblemDetailsDto` and `SseProblemDetailsDto` schemas;
+  HTTP errors use `application/problem+json`, while an established SSE stream carries the same
+  fields with an event-only termination status.
 - Product Measurement Task 9 exports the first admin aggregation endpoint
   `GET /api/v1/user/product-events/funnel` (120 → 121 paths / 285 → 290 schemas; five
   count-only Funnel\* DTOs, no existing path/schema changes). It is an internal admin surface
@@ -128,5 +131,3 @@ Last updated: 2026-08-22
 - **冻结文档语义**（2026-08-14）：front-matter `status: frozen` 标记有意冻结的文档（桌面/Web-freeze 等），豁免 90 天新鲜度检查但必须保留完整 front-matter；与 `status: stale`（应归档）语义区分。
 - **迁移日志条目约定**（2026-08-14）：日志条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数），见 AGENTS.md。
 - **文档工具链加固**（2026-08-14）：模块豁免列表参数化并补单测（常量命名对齐 `EXEMPT_*_PATTERNS` 前缀）、冻结豁免抽 `withoutFrozenDocs` 助手、导出脚本改 `prettier.resolveConfig` 解析配置并以临时文件原子写盘。
-
-- 2026-08-15:响应契约信封化修复后重新执行 `pnpm export:openapi`(121 paths / 299 schemas)。修复的 6 个响应 DTO(`NotificationListResponseDto`、`UnreadCountResponseDto`、`ClinicSummaryResponseDto`、`ClinicSummaryShareResponseDto`、`FunnelResponseDto`、`SecurityPinElevationResponseDto`)此前缺少 `data` 嵌套层,与全局信封拦截器行为不一致;现全部为 `{code,message,data}` 结构。

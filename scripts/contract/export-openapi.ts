@@ -62,20 +62,35 @@ async function main() {
     appModuleImport.AppModule ?? appModuleImport.default?.AppModule;
   const setupAppImport = await import(setupAppPath);
   const setupApp = setupAppImport.setupApp ?? setupAppImport.default?.setupApp;
+  const problemDetailsModule = await import(
+    pathToFileURL(
+      path.resolve(repoRoot, 'dist', 'common', 'api', 'problem-details.dto.js'),
+    ).href
+  );
+  const problemDetails = problemDetailsModule.default ?? problemDetailsModule;
 
   const app = await NestFactory.create(AppModule, new FastifyAdapter(), {
     logger: false,
   });
   await setupApp(app, app.get(ConfigService));
 
-  const document = SwaggerModule.createDocument(app, {
-    openapi: '3.0.0',
-    info: {
-      title: 'Lucent API',
-      description: 'Lucent 后端 API 文档',
-      version: '1.0',
+  const document = SwaggerModule.createDocument(
+    app,
+    {
+      openapi: '3.0.0',
+      info: {
+        title: 'Lucent API',
+        description: 'Lucent 后端 API 文档',
+        version: '1.0',
+      },
     },
-  });
+    {
+      extraModels: [
+        problemDetails.ProblemDetailsDto,
+        problemDetails.SseProblemDetailsDto,
+      ],
+    },
+  );
 
   const outputPath = path.resolve(repoRoot, 'docs', 'openapi.json');
   const json = `${JSON.stringify(document, null, 2)}\n`;

@@ -46,6 +46,10 @@ Returns the most recent export request for the authenticated user, or `null`
 if none exists. POST and GET return the resource directly without a generic
 `{ code, message, data }` envelope.
 
+If storage or the export dependency is unavailable, the HTTP response is a localized
+`application/problem+json` response with a stable dependency code; internal queue and provider
+details are not exposed to the client.
+
 ```typescript
 interface DataExportRequestDto {
   id: string;

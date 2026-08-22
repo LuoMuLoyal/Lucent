@@ -32,6 +32,11 @@ Current scope:
 - LLM-refined conversation titles (best-effort background refinement)
 - per-tool execution timeout with parallel read-only tool execution
 
+HTTP failures use `application/problem+json` with stable `type`/`code` and localized
+`title`/`detail`. Once an SSE stream is established, failures are sent as `event: error` with the
+same Problem Details fields plus an event-only termination `status`; the stream payload is never
+an HTTP success envelope.
+
 Current non-goals:
 
 - free-form tool calling with no server-owned limits
