@@ -211,18 +211,25 @@ export class ReportsController {
   })
   @ApiResponse({
     status: 202,
-    description: 'Job enqueued. Returns jobId for polling.',
+    description:
+      'Returns either a queued jobId or the synchronous summary resource when the queue is unavailable.',
     schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 0 },
-        data: {
+      oneOf: [
+        {
           type: 'object',
-          properties: {
-            jobId: { type: 'string' },
-          },
+          required: ['jobId'],
+          properties: { jobId: { type: 'string' } },
+          additionalProperties: false,
         },
-      },
+        {
+          type: 'object',
+          required: ['result'],
+          properties: {
+            result: { type: 'object', additionalProperties: true },
+          },
+          additionalProperties: false,
+        },
+      ],
     },
   })
   async generateSummaryAsync(
@@ -434,9 +441,12 @@ export class ReportsController {
     const summary = await this.clinicSummaryService.getSharedSummary(token);
     if (!summary) {
       throw new HttpException(
-        await this.i18n.t('reports-clinic-summary.share_link_expired', {
-          lang: language,
-        }),
+        {
+          code: 'REPORT_SHARE_NOT_FOUND',
+          message: this.i18n.t('reports-clinic-summary.share_link_expired', {
+            lang: language,
+          }),
+        },
         HttpStatus.NOT_FOUND,
       );
     }
@@ -461,9 +471,12 @@ export class ReportsController {
     const revoked = await this.shareService.revokeShare(user.sub, shareId);
     if (!revoked) {
       throw new HttpException(
-        await this.i18n.t('reports-clinic-summary.share_not_found', {
-          lang: language,
-        }),
+        {
+          code: 'REPORT_SHARE_NOT_FOUND',
+          message: this.i18n.t('reports-clinic-summary.share_not_found', {
+            lang: language,
+          }),
+        },
         HttpStatus.NOT_FOUND,
       );
     }
@@ -483,17 +496,20 @@ export class ReportsController {
       'scope. When no queue is configured, both paths return the base64 PDF ' +
       'synchronously.',
     schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 0 },
-        data: {
+      oneOf: [
+        {
           type: 'object',
-          properties: {
-            jobId: { type: 'string' },
-            pdfBase64: { type: 'string' },
-          },
+          required: ['jobId'],
+          properties: { jobId: { type: 'string' } },
+          additionalProperties: false,
         },
-      },
+        {
+          type: 'object',
+          required: ['pdfBase64'],
+          properties: { pdfBase64: { type: 'string' } },
+          additionalProperties: false,
+        },
+      ],
     },
   })
   async exportClinicSummaryPdfAsync(
@@ -607,9 +623,12 @@ export class ReportsController {
     );
     if (!pdf) {
       throw new HttpException(
-        await this.i18n.t('reports-clinic-summary.share_link_expired', {
-          lang: language,
-        }),
+        {
+          code: 'REPORT_SHARE_NOT_FOUND',
+          message: this.i18n.t('reports-clinic-summary.share_link_expired', {
+            lang: language,
+          }),
+        },
         HttpStatus.NOT_FOUND,
       );
     }
