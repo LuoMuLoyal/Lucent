@@ -175,7 +175,7 @@
     "vitest": "^4.1.10"
   },
   "simple-git-hooks": {
-    "pre-commit": "node scripts/hooks/check-docs-updated.ts && pnpm lint-staged",
+    "pre-commit": "node scripts/hooks/check-docs-updated.ts --staged && pnpm lint-staged",
     "commit-msg": "pnpm exec commitlint --edit $1",
     "pre-push": "pnpm typecheck"
   },

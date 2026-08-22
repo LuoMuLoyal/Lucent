@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-15
+updated: 2026-08-22
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-15
+Last updated: 2026-08-22
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -90,8 +90,8 @@ Last updated: 2026-08-15
 - **文档覆盖校验**：`scripts/hooks/check-docs-updated.ts` 读取 `docs/doc-map.yaml` 映射规则，
   提供两种模式：
   - `pnpm docs:check`（`--warning-only`）：扫描工作区变更，输出每条规则中未被触及的文档列表，不阻断。
-  - Pre-commit hook（blocking，`simple-git-hooks`）：`src/**/*.ts` 源文件已暂存但无 `docs/` 文件
-    暂存时阻断提交。旁路：`SKIP_DOC_CHECK=1` 或 `--no-verify`。
+  - Pre-commit hook（blocking，`simple-git-hooks`）：只扫描暂存区；当暂存的 `src/**/*.ts`
+    源文件没有同时暂存 `docs/` 文件时阻断提交。旁路：`SKIP_DOC_CHECK=1` 或 `--no-verify`。
 - **stack-trace override**（2026-07-22）：`pnpm-workspace.yaml` 新增 `overrides.stack-trace: 0.0.10`，
   修复 `winston@3.19.0` 依赖的 `stack-trace@0.0.1` 缺少 `parse()` 函数导致异常处理器二次崩溃的问题。
 - **Body parser 冲突修复**（2026-07-22）：`main.ts` 的 `NestFactory.create` 新增 `bodyParser: false`，
