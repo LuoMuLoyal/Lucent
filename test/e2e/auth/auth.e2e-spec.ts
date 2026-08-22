@@ -3,8 +3,6 @@ import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
 
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import { DEFAULT_VERIFICATION_RATE_LIMIT_MAX } from '../../../src/config/constants';
 import {
   createTestApp,
@@ -160,8 +158,7 @@ describe('Auth API (e2e)', () => {
       })
       .expect(201);
 
-    const body = res.body as ApiEnvelope<RegisterLoginData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = res.body as RegisterLoginData;
     const data = expectData(body);
     return { email: userEmail, ...data };
   }
@@ -216,8 +213,7 @@ describe('Auth API (e2e)', () => {
         })
         .expect(201);
 
-      const body = res.body as ApiEnvelope<RegisterLoginData>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = res.body as RegisterLoginData;
       const data = expectData(body);
       expect(data.user.email).toBe(email);
       expect(data.user.nickname).toBe(NEW_USER_NICKNAME);
@@ -242,8 +238,8 @@ describe('Auth API (e2e)', () => {
         })
         .expect(409);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.CONFLICT);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('CONFLICT');
     });
 
     it('should reject invalid email format', async () => {
@@ -259,8 +255,8 @@ describe('Auth API (e2e)', () => {
         .send({ email: uniqueEmail('auth') })
         .expect(400);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.VALIDATION_FAILED);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
     });
   });
 
@@ -281,8 +277,7 @@ describe('Auth API (e2e)', () => {
         .send({ email, password: TEST_PASSWORD })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<RegisterLoginData>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = res.body as RegisterLoginData;
       const data = expectData(body);
       expect(data.user.email).toBe(email);
       expect(data.tokens.accessToken).toBeDefined();
@@ -304,8 +299,8 @@ describe('Auth API (e2e)', () => {
         .send({ email, password: WRONG_LOGIN_PASSWORD })
         .expect(401);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.UNAUTHORIZED);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_UNAUTHORIZED');
     });
 
     it('should reject non-existent email', async () => {
@@ -314,8 +309,8 @@ describe('Auth API (e2e)', () => {
         .send({ email: UNKNOWN_LOGIN_EMAIL, password: TEST_PASSWORD })
         .expect(401);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.UNAUTHORIZED);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_UNAUTHORIZED');
     });
 
     it('should login with verification code', async () => {
@@ -328,8 +323,7 @@ describe('Auth API (e2e)', () => {
         .send({ email, code })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<RegisterLoginData>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = res.body as RegisterLoginData;
       const data = expectData(body);
       expect(data.user.email).toBe(email);
     });
@@ -354,8 +348,8 @@ describe('Auth API (e2e)', () => {
         .send({ refreshToken: tokens.refreshToken })
         .expect(401);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.REFRESH_TOKEN_INVALID);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_REFRESH_TOKEN_INVALID');
     });
 
     it('should reject logout without auth token', async () => {
@@ -395,8 +389,7 @@ describe('Auth API (e2e)', () => {
         .send({ refreshToken: tokens.refreshToken })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<TokensDto>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = res.body as TokensDto;
       const data = expectData(body);
       expect(data.accessToken).toBeDefined();
       expect(data.refreshToken).toBeDefined();
@@ -408,8 +401,8 @@ describe('Auth API (e2e)', () => {
         .send({ refreshToken: tokens.refreshToken })
         .expect(401);
 
-      const body2 = res2.body as ApiEnvelope;
-      expect(body2.code).toBe(ResultCode.REFRESH_TOKEN_INVALID);
+      const body2 = res2.body as Record<string, unknown>;
+      expect(body2['code']).toBe('AUTH_REFRESH_TOKEN_INVALID');
     });
 
     it('should not invalidate other sessions when refreshing one token', async () => {
@@ -420,7 +413,7 @@ describe('Auth API (e2e)', () => {
         .send({ email, password: TEST_PASSWORD })
         .expect(200);
 
-      const secondBody = secondLogin.body as ApiEnvelope<RegisterLoginData>;
+      const secondBody = secondLogin.body as RegisterLoginData;
       const secondTokens = expectData(secondBody).tokens;
 
       await request(app.getHttpServer())
@@ -440,8 +433,8 @@ describe('Auth API (e2e)', () => {
         .send({ refreshToken: UNKNOWN_REFRESH_TOKEN })
         .expect(401);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.REFRESH_TOKEN_INVALID);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_REFRESH_TOKEN_INVALID');
     });
   });
 
@@ -459,11 +452,10 @@ describe('Auth API (e2e)', () => {
         .send({ email, scene: AUTH_SCENE.register })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{
+      const body = res.body as {
         cooldown: number;
         message: string;
-      }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      };
       const data = expectData(body);
       expect(data.cooldown).toBe(VERIFICATION_CODE_COOLDOWN_SECONDS);
     });
@@ -484,8 +476,8 @@ describe('Auth API (e2e)', () => {
         .send({ email, scene: AUTH_SCENE.login })
         .expect(400);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.VERIFICATION_CODE_COOLDOWN);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('BAD_REQUEST');
     });
 
     it('should rate limit repeated requests from the same client', async () => {
@@ -509,8 +501,8 @@ describe('Auth API (e2e)', () => {
         .send({ email: uniqueEmail('auth'), scene: AUTH_SCENE.register })
         .expect(429);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.VERIFICATION_CODE_RATE_LIMITED);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('RATE_LIMITED');
     });
   });
 
@@ -528,8 +520,7 @@ describe('Auth API (e2e)', () => {
         .send({ email, code })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{ emailVerified: boolean }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = res.body as { emailVerified: boolean };
       const data = expectData(body);
       expect(data.emailVerified).toBe(true);
     });
@@ -543,8 +534,8 @@ describe('Auth API (e2e)', () => {
         .send({ email, code: INVALID_VERIFICATION_CODE })
         .expect(401);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.VERIFICATION_CODE_INVALID);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('BAD_REQUEST');
     });
   });
 
@@ -556,23 +547,11 @@ describe('Auth API (e2e)', () => {
     it('should send reset code for existing email', async () => {
       const { email } = await registerUser();
 
-      const res = await forgotPasswordRequest(email);
-
-      const body = res.body as ApiEnvelope<{
-        cooldown: number;
-        message: string;
-      }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      await forgotPasswordRequest(email);
     });
 
     it('should return success even for non-existent email (anti-enumeration)', async () => {
-      const res = await forgotPasswordRequest(UNKNOWN_RESET_EMAIL);
-
-      const body = res.body as ApiEnvelope<{
-        cooldown: number;
-        message: string;
-      }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      await forgotPasswordRequest(UNKNOWN_RESET_EMAIL);
     });
   });
 
@@ -588,13 +567,10 @@ describe('Auth API (e2e)', () => {
       const code = await seedVerificationCode(AUTH_SCENE.resetPassword, email);
 
       const newPassword = RESET_PASSWORD;
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(AUTH_PATH.resetPassword)
         .send({ email, code, password: newPassword })
         .expect(200);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.SUCCESS);
 
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
@@ -621,8 +597,7 @@ describe('Auth API (e2e)', () => {
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<AccountDto>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = res.body as AccountDto;
       const data = expectData(body);
       expect(data.email).toBe(email);
       expect(data.id).toBeDefined();
@@ -655,8 +630,7 @@ describe('Auth API (e2e)', () => {
         })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<AccountDto>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = res.body as AccountDto;
       const data = expectData(body);
       expect(data.nickname).toBe(UPDATED_NICKNAME);
       expect(data.avatar).toBe(UPDATED_AVATAR_URL);
@@ -675,7 +649,7 @@ describe('Auth API (e2e)', () => {
         })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<AccountDto>;
+      const body = res.body as AccountDto;
       const data = expectData(body);
       expect(data.nickname).toBeNull();
       expect(data.avatar).toBeNull();
@@ -725,8 +699,8 @@ describe('Auth API (e2e)', () => {
         })
         .expect(401);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.WRONG_PASSWORD);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
     });
 
     it('should reject unauthenticated password change', async () => {
@@ -759,10 +733,10 @@ describe('Auth API (e2e)', () => {
         .send({ newEmail, code })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{
+      const body = res.body as {
         email: string;
         emailVerifiedAt: string;
-      }>;
+      };
       const data = expectData(body);
       expect(data.email).toBe(newEmail);
       expect(data.emailVerifiedAt).toEqual(expect.any(String));
@@ -772,7 +746,7 @@ describe('Auth API (e2e)', () => {
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
-      const accountBody = accountRes.body as ApiEnvelope<AccountDto>;
+      const accountBody = accountRes.body as AccountDto;
       const accountData = expectData(accountBody);
       expect(accountData.email).toBe(newEmail);
     });
@@ -789,8 +763,8 @@ describe('Auth API (e2e)', () => {
         .send({ newEmail, code: INVALID_VERIFICATION_CODE })
         .expect(400);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.VERIFICATION_CODE_INVALID);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('BAD_REQUEST');
     });
 
     it('should return normalized email after change', async () => {
@@ -815,10 +789,10 @@ describe('Auth API (e2e)', () => {
         .send({ newEmail: mixedCaseEmail, code })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{
+      const body = res.body as {
         email: string;
         emailVerifiedAt: string;
-      }>;
+      };
       const data = expectData(body);
       expect(data.email).toBe(normalizedEmail);
     });
@@ -857,7 +831,7 @@ describe('Auth API (e2e)', () => {
         .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<AccountDto>;
+      const body = res.body as AccountDto;
       const data = expectData(body);
       expect(data.linkedIdentities).toEqual([]);
       await expect(
@@ -887,8 +861,8 @@ describe('Auth API (e2e)', () => {
         .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .expect(403);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.FORBIDDEN);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_FORBIDDEN');
     });
 
     it('should reject unlinking another account identity', async () => {
@@ -940,8 +914,8 @@ describe('Auth API (e2e)', () => {
         .send({ password: WRONG_DELETE_PASSWORD })
         .expect(401);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.WRONG_PASSWORD);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
     });
 
     it('should reject unauthenticated account deletion', async () => {

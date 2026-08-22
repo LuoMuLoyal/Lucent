@@ -1,6 +1,5 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common';
 import { createTestApp, expectData } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 
@@ -34,7 +33,7 @@ describe('Environment API (e2e)', () => {
       .get(ENV_PATH)
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<SnapshotData>);
+    const data = expectData(response.body as SnapshotData);
 
     expect(data.dataSource).toBe('static');
     expect(data.regionHint).toBe('Global reference baseline');
@@ -53,7 +52,7 @@ describe('Environment API (e2e)', () => {
       .get(`${ENV_PATH}?lat=31.2304&lon=121.4737`)
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<SnapshotData>);
+    const data = expectData(response.body as SnapshotData);
 
     expect(data.dataSource).toBe('static');
     expect(data.regionHint).toBe('China temperate latitude band');

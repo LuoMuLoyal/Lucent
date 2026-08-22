@@ -6,8 +6,6 @@ import {
   type Prisma,
 } from '#generated/prisma/client';
 
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -134,11 +132,10 @@ describe('Product Events API (e2e)', () => {
       })
       .expect(201);
 
-    const body = response.body as ApiEnvelope<{
+    const body = response.body as {
       received: number;
       recorded: number;
-    }>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    };
     expect(expectData(body)).toEqual({ received: 2, recorded: 2 });
   });
 
@@ -183,24 +180,20 @@ describe('Product Events API (e2e)', () => {
       .set('Authorization', bearer(accessToken))
       .send({ events: [event] })
       .expect(201);
-    expect(expectData(first.body as ApiEnvelope<{ recorded: number }>)).toEqual(
-      {
-        received: 1,
-        recorded: 1,
-      },
-    );
+    expect(expectData(first.body as { recorded: number })).toEqual({
+      received: 1,
+      recorded: 1,
+    });
 
     const retry = await request(app.getHttpServer())
       .post(PRODUCT_EVENTS_PATH)
       .set('Authorization', bearer(accessToken))
       .send({ events: [event] })
       .expect(201);
-    expect(expectData(retry.body as ApiEnvelope<{ recorded: number }>)).toEqual(
-      {
-        received: 1,
-        recorded: 0,
-      },
-    );
+    expect(expectData(retry.body as { recorded: number })).toEqual({
+      received: 1,
+      recorded: 0,
+    });
 
     const count = await ctx.prisma.userProductEvent.count({
       where: {

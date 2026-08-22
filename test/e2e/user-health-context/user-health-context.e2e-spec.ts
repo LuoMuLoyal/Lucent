@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -175,8 +173,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const body = response.body as ApiEnvelope<HealthContextData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as HealthContextData;
 
     const data = expectData(body);
     expect(data.summary.onboardingCompleted).toBe(true);
@@ -229,9 +226,9 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(404);
 
-    const body = response.body as ApiEnvelope;
-    expect(body.code).toBe(ResultCode.NOT_FOUND);
-    expect(body.message).toBe('User not found');
+    const body = response.body as Record<string, unknown>;
+    expect(body['code']).toBe('RESOURCE_NOT_FOUND');
+    expect(body['detail']).toBe('User not found');
   });
 
   it('should update profile fields for the authenticated user', async () => {
@@ -271,8 +268,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<HealthContextData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as HealthContextData;
 
     const data = expectData(body);
     expect(data.profile.locale).toBe('zh-CN');
@@ -320,8 +316,7 @@ describe('User Health Context API (e2e)', () => {
       .send({ onboardingCompleted: true })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<HealthContextData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as HealthContextData;
 
     const data = expectData(body);
     expect(data.summary.onboardingCompleted).toBe(true);
@@ -367,8 +362,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<HealthContextData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as HealthContextData;
 
     const data = expectData(body);
     expect(data.profile.birthDate).toBeNull();
@@ -487,8 +481,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(201);
 
-    const body = response.body as ApiEnvelope<HealthContextData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as HealthContextData;
 
     const data = expectData(body);
     expect(data.summary.activeAllergyCount).toBe(1);
@@ -539,7 +532,7 @@ describe('User Health Context API (e2e)', () => {
       .send({ label: ' Penicillin G ', severity: UserAllergySeverity.severe })
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    const data = expectData(response.body as HealthContextData);
     expect(data.allergies).toHaveLength(1);
     const updatedAllergy = expectDefined(
       data.allergies[0],
@@ -578,7 +571,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    const data = expectData(response.body as HealthContextData);
     expect(data.summary.activeAllergyCount).toBe(0);
 
     const stored = await ctx.prisma.userAllergy.findUniqueOrThrow({
@@ -652,8 +645,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(201);
 
-    const body = response.body as ApiEnvelope<HealthContextData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as HealthContextData;
 
     const data = expectData(body);
     expect(data.summary.conditionCount).toBe(1);
@@ -707,7 +699,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    const data = expectData(response.body as HealthContextData);
     expect(data.conditions).toHaveLength(1);
     const updatedCondition = expectDefined(
       data.conditions[0],
@@ -746,7 +738,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    const data = expectData(response.body as HealthContextData);
     expect(data.conditions).toHaveLength(1);
     const resolvedCondition = expectDefined(
       data.conditions[0],
@@ -830,8 +822,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(201);
 
-    const body = response.body as ApiEnvelope<HealthContextData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as HealthContextData;
 
     const data = expectData(body);
     expect(data.summary.currentMedicineCount).toBe(1);
@@ -876,7 +867,7 @@ describe('User Health Context API (e2e)', () => {
       .send({ displayName: ' Ibuprofen G ', strengthText: '400 mg' })
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    const data = expectData(response.body as HealthContextData);
     expect(data.currentMedicines).toHaveLength(1);
     const updatedCurrentMedicine = expectDefined(
       data.currentMedicines[0],
@@ -915,7 +906,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    const data = expectData(response.body as HealthContextData);
     expect(data.summary.currentMedicineCount).toBe(0);
 
     const stored = await ctx.prisma.userCurrentMedicine.findUniqueOrThrow({

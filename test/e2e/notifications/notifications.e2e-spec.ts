@@ -1,5 +1,4 @@
 import request from 'supertest';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -60,7 +59,7 @@ async function createNotification(
     .send(body)
     .expect(201);
 
-  return expectData(res.body as ApiEnvelope<NotificationDetail>);
+  return expectData(res.body as NotificationDetail);
 }
 
 // ── Test Suite ───────────────────────────────────────────────
@@ -104,11 +103,10 @@ describe('Notifications API (e2e)', () => {
       .set('Authorization', bearer(accessToken))
       .expect(200);
 
-    const body = response.body as ApiEnvelope<{
+    const body = response.body as {
       items: unknown[];
       total: number;
-    }>;
-    expect(body.code).toBe(0);
+    };
     const data = expectData(body);
     expect(data.items).toEqual([]);
     expect(data.total).toBe(0);
@@ -126,7 +124,7 @@ describe('Notifications API (e2e)', () => {
       .expect(201);
 
     const data = expectData(
-      response.body as ApiEnvelope<{ id: string; type: string; title: string }>,
+      response.body as { id: string; type: string; title: string },
     );
     expect(data.id).toBeTruthy();
     expect(data.title).toBe('Test notification');
@@ -139,8 +137,7 @@ describe('Notifications API (e2e)', () => {
       .set('Authorization', bearer(accessToken))
       .expect(200);
 
-    const body = response.body as ApiEnvelope<{ count: number }>;
-    expect(body.code).toBe(0);
+    const body = response.body as { count: number };
     const data = expectData(body);
     expect(data.count).toBeGreaterThanOrEqual(1);
   });
@@ -151,8 +148,7 @@ describe('Notifications API (e2e)', () => {
       .set('Authorization', bearer(accessToken))
       .expect(200);
 
-    const body = response.body as ApiEnvelope<{ count: number }>;
-    expect(body.code).toBe(0);
+    const body = response.body as { count: number };
     const data = expectData(body);
     expect(data.count).toBeGreaterThanOrEqual(1);
 
@@ -161,8 +157,8 @@ describe('Notifications API (e2e)', () => {
       .get(`${NOTIFICATIONS_PATH}/unread-count`)
       .set('Authorization', bearer(accessToken));
 
-    const unreadBody = unreadRes.body as ApiEnvelope<{ count: number }>;
-    expect(unreadBody.data?.count).toBe(0);
+    const unreadBody = unreadRes.body as { count: number };
+    expect(unreadBody.count).toBe(0);
   });
 
   // ════════════════════════════════════════════════════════════
@@ -187,7 +183,7 @@ describe('Notifications API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<NotificationDetail>);
+      const data = expectData(res.body as NotificationDetail);
       expect(data.id).toBe(created.id);
       expect(data.title).toBe('Detail test');
       expect(data.content).toBe('Detail content body.');
@@ -254,7 +250,7 @@ describe('Notifications API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<NotificationDetail>);
+      const data = expectData(res.body as NotificationDetail);
       expect(data.id).toBe(created.id);
       expect(data.isRead).toBe(true);
       expect(data.readAt).toBeTruthy();
@@ -277,7 +273,7 @@ describe('Notifications API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<NotificationDetail>);
+      const data = expectData(res.body as NotificationDetail);
       expect(data.isRead).toBe(true);
     });
   });
@@ -310,7 +306,7 @@ describe('Notifications API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<NotificationDetail>);
+      const data = expectData(res.body as NotificationDetail);
       expect(data.id).toBe(created.id);
       expect(data.isRead).toBe(false);
       expect(data.readAt).toBeNull();
@@ -332,9 +328,7 @@ describe('Notifications API (e2e)', () => {
         .get(`${NOTIFICATIONS_PATH}/unread-count`)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-      const beforeCount = expectData(
-        beforeRes.body as ApiEnvelope<{ count: number }>,
-      ).count;
+      const beforeCount = expectData(beforeRes.body as { count: number }).count;
 
       // Mark as unread
       await request(app.getHttpServer())
@@ -347,9 +341,7 @@ describe('Notifications API (e2e)', () => {
         .get(`${NOTIFICATIONS_PATH}/unread-count`)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-      const afterCount = expectData(
-        afterRes.body as ApiEnvelope<{ count: number }>,
-      ).count;
+      const afterCount = expectData(afterRes.body as { count: number }).count;
 
       expect(afterCount).toBe(beforeCount + 1);
     });
@@ -383,10 +375,10 @@ describe('Notifications API (e2e)', () => {
         .expect(200);
 
       const listData = expectData(
-        listRes.body as ApiEnvelope<{
+        listRes.body as {
           items: Array<{ id: string }>;
           total: number;
-        }>,
+        },
       );
       expect(listData.items.find((n) => n.id === created.id)).toBeUndefined();
     });
@@ -431,9 +423,9 @@ describe('Notifications API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const body = detailRes.body as ApiEnvelope<NotificationDetail | null>;
-      expect(body.data).not.toBeNull();
-      expect(body.data?.id).toBe(created.id);
+      const body = detailRes.body as NotificationDetail | null;
+      expect(body).not.toBeNull();
+      expect(body?.id).toBe(created.id);
     });
   });
 });

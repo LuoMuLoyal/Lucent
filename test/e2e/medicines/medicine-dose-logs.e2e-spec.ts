@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -97,12 +95,11 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const createBody = createRes.body as ApiEnvelope<{
+    const createBody = createRes.body as {
       id: string;
       currentMedicineId: string;
       status: string;
-    }>;
-    expect(createBody.code).toBe(ResultCode.SUCCESS);
+    };
     const created = expectData(createBody);
     expect(created.currentMedicineId).toBe(medicine.id);
     expect(created.status).toBe('taken');
@@ -112,10 +109,9 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const listEnvelope = listRes.body as ApiEnvelope<{
+    const listEnvelope = listRes.body as {
       items: Array<{ id: string }>;
-    }>;
-    expect(listEnvelope.code).toBe(ResultCode.SUCCESS);
+    };
     const listBody = expectData(listEnvelope);
     expect(listBody.items).toHaveLength(1);
     expect(listBody.items[0]?.id).toBe(created.id);
@@ -167,15 +163,15 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const first = expectData(firstRes.body as ApiEnvelope<{ id: string }>);
+    const first = expectData(firstRes.body as { id: string });
     const second = expectData(
-      secondRes.body as ApiEnvelope<{
+      secondRes.body as {
         id: string;
         reminderId: string | null;
         scheduledTime: string | null;
         status: string;
         note: string | null;
-      }>,
+      },
     );
     expect(second.id).toBe(first.id);
     expect(second.reminderId).toBe(reminder.id);
@@ -209,7 +205,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
+    const id = expectData(createRes.body as { id: string }).id;
 
     const updateRes = await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
@@ -218,11 +214,11 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .expect(200);
 
     const body = expectData(
-      updateRes.body as ApiEnvelope<{
+      updateRes.body as {
         status: string;
         doseText: string | null;
         note: string | null;
-      }>,
+      },
     );
     expect(body.status).toBe('skipped');
     expect(body.doseText).toBe('1 tablet');
@@ -245,7 +241,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
+    const id = expectData(createRes.body as { id: string }).id;
 
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
@@ -272,7 +268,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
+    const id = expectData(createRes.body as { id: string }).id;
 
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
@@ -284,7 +280,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const body = expectData(listRes.body as ApiEnvelope<{ items: unknown[] }>);
+    const body = expectData(listRes.body as { items: unknown[] });
     expect(body.items).toHaveLength(0);
   });
 
@@ -301,7 +297,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
+    const id = expectData(createRes.body as { id: string }).id;
 
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)

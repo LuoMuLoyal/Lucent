@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -57,18 +55,15 @@ describe('Today Analysis API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const body = response.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data).toBeDefined();
+      const body = response.body as Record<string, unknown>;
+      expect(body).toBeDefined();
     });
 
     it('should accept exclude query parameters', async () => {
-      const response = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get(`${RECOMMENDATIONS_PATH}?exclude=rec-1&exclude=rec-2`)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-
-      expect((response.body as ApiEnvelope).code).toBe(ResultCode.SUCCESS);
     });
   });
 
@@ -94,7 +89,7 @@ describe('Today Analysis API (e2e)', () => {
         .send({})
         .expect(201);
 
-      const body = response.body as ApiEnvelope<{
+      const body = response.body as {
         date: string;
         generatedAt: string;
         summary: string;
@@ -102,9 +97,8 @@ describe('Today Analysis API (e2e)', () => {
         actionLabel: string;
         action: string;
         confidenceNote: string;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.date).toBeTruthy();
       expect(data.generatedAt).toBeTruthy();
@@ -122,9 +116,8 @@ describe('Today Analysis API (e2e)', () => {
         .send({ date: '2026-06-15' })
         .expect(201);
 
-      const body = response.body as ApiEnvelope<{ date: string }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data?.date).toBe('2026-06-15');
+      const body = response.body as { date: string };
+      expect(body.date).toBe('2026-06-15');
     });
   });
 

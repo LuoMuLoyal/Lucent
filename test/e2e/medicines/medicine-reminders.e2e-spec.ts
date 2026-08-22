@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -80,7 +78,7 @@ describe('Medicine Reminders API (e2e)', () => {
       })
       .expect(201);
 
-    const createBody = createRes.body as ApiEnvelope<{
+    const createBody = createRes.body as {
       id: string;
       currentMedicineId: string;
       label: string;
@@ -88,22 +86,20 @@ describe('Medicine Reminders API (e2e)', () => {
       scheduledMinute: number;
       daysOfWeek: number[];
       note: string;
-    }>;
-    expect(createBody.code).toBe(ResultCode.SUCCESS);
-    expect(createBody.data!.currentMedicineId).toBe(medicine.id);
-    expect(createBody.data!.label).toBe('Morning dose');
-    expect(createBody.data!.daysOfWeek).toEqual([1, 3, 5]);
-    expect(createBody.data!.note).toBe('After breakfast');
+    };
+    expect(createBody!.currentMedicineId).toBe(medicine.id);
+    expect(createBody!.label).toBe('Morning dose');
+    expect(createBody!.daysOfWeek).toEqual([1, 3, 5]);
+    expect(createBody!.note).toBe('After breakfast');
 
     const listRes = await request(app.getHttpServer())
       .get(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const listBody = listRes.body as ApiEnvelope<{ items: any[] }>;
-    expect(listBody.code).toBe(ResultCode.SUCCESS);
-    expect(listBody.data!.items).toHaveLength(1);
-    expect(listBody.data!.items[0].id).toBe(createBody.data!.id);
+    const listBody = listRes.body as { items: any[] };
+    expect(listBody!.items).toHaveLength(1);
+    expect(listBody!.items[0].id).toBe(createBody!.id);
   });
 
   it('should treat null weekdays as every day', async () => {
@@ -119,8 +115,8 @@ describe('Medicine Reminders API (e2e)', () => {
       })
       .expect(201);
 
-    const body = createRes.body as ApiEnvelope<{ daysOfWeek: number[] | null }>;
-    expect(body.data!.daysOfWeek).toBeNull();
+    const body = createRes.body as { daysOfWeek: number[] | null };
+    expect(body!.daysOfWeek).toBeNull();
   });
 
   it('should honor activeOnly query', async () => {
@@ -152,9 +148,9 @@ describe('Medicine Reminders API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const body = listRes.body as ApiEnvelope<{ items: any[] }>;
-    expect(body.data!.items).toHaveLength(1);
-    expect(body.data!.items[0].label).toBe('Active');
+    const body = listRes.body as { items: any[] };
+    expect(body!.items).toHaveLength(1);
+    expect(body!.items[0].label).toBe('Active');
   });
 
   it('should reject reminders linked to another user medicine', async () => {
@@ -187,7 +183,7 @@ describe('Medicine Reminders API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = (createRes.body as { id: string }).id;
 
     const updateRes = await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
@@ -201,18 +197,18 @@ describe('Medicine Reminders API (e2e)', () => {
       })
       .expect(200);
 
-    const body = updateRes.body as ApiEnvelope<{
+    const body = updateRes.body as {
       currentMedicineId: string | null;
       label: string;
       scheduledHour: number;
       scheduledMinute: number;
       daysOfWeek: number[] | null;
-    }>;
-    expect(body.data!.currentMedicineId).toBeNull();
-    expect(body.data!.label).toBe('Evening dose');
-    expect(body.data!.scheduledHour).toBe(20);
-    expect(body.data!.scheduledMinute).toBe(5);
-    expect(body.data!.daysOfWeek).toBeNull();
+    };
+    expect(body!.currentMedicineId).toBeNull();
+    expect(body!.label).toBe('Evening dose');
+    expect(body!.scheduledHour).toBe(20);
+    expect(body!.scheduledMinute).toBe(5);
+    expect(body!.daysOfWeek).toBeNull();
   });
 
   it('should soft-delete reminders', async () => {
@@ -227,7 +223,7 @@ describe('Medicine Reminders API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = (createRes.body as { id: string }).id;
 
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
@@ -239,8 +235,8 @@ describe('Medicine Reminders API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const body = listRes.body as ApiEnvelope<{ items: any[] }>;
-    expect(body.data!.items).toHaveLength(0);
+    const body = listRes.body as { items: any[] };
+    expect(body!.items).toHaveLength(0);
 
     const stored = await ctx.prisma.userMedicineReminder.findUniqueOrThrow({
       where: { id },
@@ -262,7 +258,7 @@ describe('Medicine Reminders API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = (createRes.body as { id: string }).id;
 
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
@@ -318,11 +314,10 @@ describe('Medicine Reminders API (e2e)', () => {
         })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{ items: any[] }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data!.items).toHaveLength(2);
+      const body = res.body as { items: any[] };
+      expect(body!.items).toHaveLength(2);
       expect(
-        body.data!.items.every((i) => i.currentMedicineId === medicine.id),
+        body!.items.every((i) => i.currentMedicineId === medicine.id),
       ).toBe(true);
     });
 
@@ -342,9 +337,9 @@ describe('Medicine Reminders API (e2e)', () => {
         })
         .expect(200);
 
-      const firstBody = first.body as ApiEnvelope<{ items: any[] }>;
-      const keptId = firstBody.data!.items[0]!.id;
-      const removedId = firstBody.data!.items[1]!.id;
+      const firstBody = first.body as { items: any[] };
+      const keptId = firstBody!.items[0]!.id;
+      const removedId = firstBody!.items[1]!.id;
 
       const second = await request(app.getHttpServer())
         .put(`${BASE_PATH}/group`)
@@ -358,10 +353,10 @@ describe('Medicine Reminders API (e2e)', () => {
         })
         .expect(200);
 
-      const secondBody = second.body as ApiEnvelope<{ items: any[] }>;
-      expect(secondBody.data!.items).toHaveLength(2);
+      const secondBody = second.body as { items: any[] };
+      expect(secondBody!.items).toHaveLength(2);
 
-      const kept = secondBody.data!.items.find((i) => i.id === keptId);
+      const kept = secondBody!.items.find((i) => i.id === keptId);
       expect(kept!.scheduledHour).toBe(9);
       expect(kept!.scheduledMinute).toBe(15);
 
@@ -436,21 +431,21 @@ describe('Medicine Reminders API (e2e)', () => {
         })
         .expect(200);
 
-      const firstBody = first.body as ApiEnvelope<{
+      const firstBody = first.body as {
         items: Array<{
           id: string;
           scheduledHour: number;
           scheduledMinute: number;
         }>;
-      }>;
-      const firstIds = firstBody.data!.items.map((i) => i.id).sort();
+      };
+      const firstIds = firstBody!.items.map((i) => i.id).sort();
 
       const second = await request(app.getHttpServer())
         .put(`${BASE_PATH}/group`)
         .set(AUTH_HEADER, bearer(token))
         .send({
           currentMedicineId: medicine.id,
-          slots: firstBody.data!.items.map((i) => ({
+          slots: firstBody!.items.map((i) => ({
             id: i.id,
             scheduledHour: i.scheduledHour,
             scheduledMinute: i.scheduledMinute,
@@ -458,11 +453,11 @@ describe('Medicine Reminders API (e2e)', () => {
         })
         .expect(200);
 
-      const secondBody = second.body as ApiEnvelope<{
+      const secondBody = second.body as {
         items: Array<{ id: string }>;
-      }>;
-      expect(secondBody.data!.items.map((i) => i.id).sort()).toEqual(firstIds);
-      expect(secondBody.data!.items).toHaveLength(2);
+      };
+      expect(secondBody!.items.map((i) => i.id).sort()).toEqual(firstIds);
+      expect(secondBody!.items).toHaveLength(2);
 
       const rows = await ctx.prisma.userMedicineReminder.findMany({
         where: { userId: user.id, currentMedicineId: medicine.id },
@@ -487,9 +482,8 @@ describe('Medicine Reminders API (e2e)', () => {
         .set(AUTH_HEADER, bearer(token))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{ items: unknown[] }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data!.items).toEqual([]);
+      const body = res.body as { items: unknown[] };
+      expect(body!.items).toEqual([]);
     });
 
     it('should list delivery audit logs for the authenticated user', async () => {
@@ -527,7 +521,7 @@ describe('Medicine Reminders API (e2e)', () => {
         .set(AUTH_HEADER, bearer(token))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{
+      const body = res.body as {
         items: Array<{
           id: string;
           reminderId: string | null;
@@ -539,12 +533,11 @@ describe('Medicine Reminders API (e2e)', () => {
           errorMessage: string | null;
           createdAt: string;
         }>;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data!.items).toHaveLength(1);
+      expect(body!.items).toHaveLength(1);
 
-      const delivery = body.data!.items[0]!;
+      const delivery = body!.items[0]!;
       expect(delivery.reminderId).toBe(reminder.id);
       expect(delivery.deviceId).toBe('device-1');
       expect(delivery.channel).toBe('local');
@@ -582,8 +575,8 @@ describe('Medicine Reminders API (e2e)', () => {
         .set(AUTH_HEADER, bearer(token))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{ items: unknown[] }>;
-      expect(body.data!.items).toHaveLength(1);
+      const body = res.body as { items: unknown[] };
+      expect(body!.items).toHaveLength(1);
     });
 
     it('should respect limit parameter', async () => {
@@ -605,8 +598,8 @@ describe('Medicine Reminders API (e2e)', () => {
         .set(AUTH_HEADER, bearer(token))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{ items: unknown[] }>;
-      expect(body.data!.items).toHaveLength(2);
+      const body = res.body as { items: unknown[] };
+      expect(body!.items).toHaveLength(2);
     });
   });
 
@@ -654,18 +647,17 @@ describe('Medicine Reminders API (e2e)', () => {
         .send(body)
         .expect(201);
 
-      const created = res.body as ApiEnvelope<{
+      const created = res.body as {
         item: {
           id: string;
           channel: string;
           status: string;
           scheduledFor: string;
         };
-      }>;
-      expect(created.code).toBe(ResultCode.SUCCESS);
-      expect(created.data!.item.channel).toBe('local');
-      expect(created.data!.item.status).toBe('delivered');
-      expect(created.data!.item.scheduledFor).toBe('2026-07-10T00:00:00.000Z');
+      };
+      expect(created!.item.channel).toBe('local');
+      expect(created!.item.status).toBe('delivered');
+      expect(created!.item.scheduledFor).toBe('2026-07-10T00:00:00.000Z');
 
       // 幂等：重复上报返回同一行，不新增
       const again = await request(app.getHttpServer())
@@ -674,8 +666,8 @@ describe('Medicine Reminders API (e2e)', () => {
         .send(body)
         .expect(201);
 
-      const second = again.body as ApiEnvelope<{ item: { id: string } }>;
-      expect(second.data!.item.id).toBe(created.data!.item.id);
+      const second = again.body as { item: { id: string } };
+      expect(second!.item.id).toBe(created!.item.id);
 
       const rows = await ctx.prisma.userReminderDelivery.findMany({
         where: { userId: user.id, channel: 'local' },
@@ -708,9 +700,9 @@ describe('Medicine Reminders API (e2e)', () => {
         })
         .expect(201);
 
-      const body = res.body as ApiEnvelope<{ item: { scheduledFor: string } }>;
+      const body = res.body as { item: { scheduledFor: string } };
       // America/New_York（7月 UTC-4）08:00 → UTC 12:00
-      expect(body.data!.item.scheduledFor).toBe('2026-07-10T12:00:00.000Z');
+      expect(body!.item.scheduledFor).toBe('2026-07-10T12:00:00.000Z');
     });
 
     it('should return 404 when the receipt targets a foreign reminder', async () => {
@@ -794,9 +786,8 @@ describe('Medicine Reminders API (e2e)', () => {
         .send({ state: 'active' })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<{ state: string }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data!.state).toBe('active');
+      const body = res.body as { state: string };
+      expect(body!.state).toBe('active');
     });
 
     it('should reject an invalid local capability state', async () => {

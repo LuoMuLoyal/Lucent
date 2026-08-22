@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -67,7 +65,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const body = response.body as ApiEnvelope<{
+      const body = response.body as {
         range: string;
         startDate: string;
         endDate: string;
@@ -75,9 +73,8 @@ describe('Reports API (e2e)', () => {
         score: unknown;
         metrics: unknown;
         aiSummaryEnabled: boolean;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.range).toBe('last_7_days');
       expect(data.startDate).toBeTruthy();
@@ -92,7 +89,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const data = expectData(response.body as ApiEnvelope<{ range: string }>);
+      const data = expectData(response.body as { range: string });
       expect(data.range).toBe('last_30_days');
     });
 
@@ -105,11 +102,11 @@ describe('Reports API (e2e)', () => {
         .expect(200);
 
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           range: string;
           startDate: string;
           endDate: string;
-        }>,
+        },
       );
       expect(data.range).toBe('custom');
       expect(data.startDate).toBe('2026-06-01');
@@ -138,9 +135,8 @@ describe('Reports API (e2e)', () => {
         .send({ range: 'last_7_days' })
         .expect(201);
 
-      const body = response.body as ApiEnvelope<{ summary?: string }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data).toBeDefined();
+      const body = response.body as { summary?: string };
+      expect(body).toBeDefined();
     });
   });
 
@@ -212,7 +208,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(201);
 
-      const body = response.body as ApiEnvelope<{
+      const body = response.body as {
         generatedAt: string;
         dataRange: string;
         profile: {
@@ -225,9 +221,8 @@ describe('Reports API (e2e)', () => {
         conditions: unknown[];
         currentMedicines: unknown[];
         disclaimer: string;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.generatedAt).toBeTruthy();
       expect(data.dataRange).toBe('last_30_days');
@@ -247,11 +242,11 @@ describe('Reports API (e2e)', () => {
         .expect(201);
 
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           dataRange: string;
           start: string;
           end: string;
-        }>,
+        },
       );
       expect(data.dataRange).toBe('custom');
       expect(data.start).toBe('2026-07-01T00:00:00.000Z');
@@ -272,7 +267,7 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
-      const body = response.body as ApiEnvelope<{
+      const body = response.body as {
         shareId: string;
         token: string;
         shareUrl: string;
@@ -283,9 +278,8 @@ describe('Reports API (e2e)', () => {
           dateTo: string | null;
         };
         selectedFields: string[];
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.shareId).toBeTruthy();
       expect(data.token).toBeTruthy();
@@ -313,13 +307,13 @@ describe('Reports API (e2e)', () => {
         .expect(201);
 
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           scope: {
             eventId: string | null;
             dateFrom: string | null;
             dateTo: string | null;
           };
-        }>,
+        },
       );
       expect(data.scope.eventId).toBeNull();
       expect(data.scope.dateFrom).toBeTruthy();
@@ -388,7 +382,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(eventToken))
         .send({ title: 'e2e 分享事件' })
         .expect(201);
-      const event = expectData(eventRes.body as ApiEnvelope<{ id: string }>);
+      const event = expectData(eventRes.body as { id: string });
 
       const response = await request(app.getHttpServer())
         .post(CLINIC_SHARE_PATH)
@@ -402,13 +396,13 @@ describe('Reports API (e2e)', () => {
         .expect(201);
 
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           scope: {
             eventId: string | null;
             dateFrom: string | null;
             dateTo: string | null;
           };
-        }>,
+        },
       );
       // Event scope wins: the strict-XOR share record stores only the event.
       expect(data.scope.eventId).toBe(event.id);
@@ -431,10 +425,10 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
       const share = expectData(
-        shareRes.body as ApiEnvelope<{
+        shareRes.body as {
           shareId: string;
           shareUrl: string;
-        }>,
+        },
       );
       const token = share.shareUrl.split('/').pop()!;
 
@@ -477,7 +471,7 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
       const foreignShareId = expectData(
-        shareRes.body as ApiEnvelope<{ shareId: string }>,
+        shareRes.body as { shareId: string },
       ).shareId;
 
       // Unknown id
@@ -506,7 +500,7 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
       const created = expectData(
-        shareRes.body as ApiEnvelope<{ shareId: string; token: string }>,
+        shareRes.body as { shareId: string; token: string },
       );
 
       const response = await request(app.getHttpServer())
@@ -514,7 +508,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const body = response.body as ApiEnvelope<{
+      const body = response.body as {
         items: Array<{
           id: string;
           createdAt: string;
@@ -530,8 +524,7 @@ describe('Reports API (e2e)', () => {
           };
           selectedFields: string[];
         }>;
-      }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      };
       const data = expectData(body);
       expect(Array.isArray(data.items)).toBe(true);
 
@@ -566,9 +559,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
-      const first = expectData(
-        firstRes.body as ApiEnvelope<{ shareId: string }>,
-      );
+      const first = expectData(firstRes.body as { shareId: string });
 
       // Short delay so the two createdAt timestamps are distinct.
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -578,9 +569,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
-      const second = expectData(
-        secondRes.body as ApiEnvelope<{ shareId: string }>,
-      );
+      const second = expectData(secondRes.body as { shareId: string });
 
       // Revoke the older share: revoked shares stay listed with revokedAt.
       await request(app.getHttpServer())
@@ -593,13 +582,13 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           items: Array<{
             id: string;
             createdAt: string;
             revokedAt: string | null;
           }>;
-        }>,
+        },
       );
 
       const ids = data.items.map((s) => s.id);
@@ -637,7 +626,7 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
       const foreignShareId = expectData(
-        foreignRes.body as ApiEnvelope<{ shareId: string }>,
+        foreignRes.body as { shareId: string },
       ).shareId;
 
       // The main user's list must not contain the foreign share…
@@ -646,7 +635,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
       const myItems = expectData(
-        myRes.body as ApiEnvelope<{ items: Array<{ id: string }> }>,
+        myRes.body as { items: Array<{ id: string }> },
       ).items;
       expect(myItems.some((s) => s.id === foreignShareId)).toBe(false);
 
@@ -656,7 +645,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(otherToken))
         .expect(200);
       const foreignItems = expectData(
-        foreignListRes.body as ApiEnvelope<{ items: Array<{ id: string }> }>,
+        foreignListRes.body as { items: Array<{ id: string }> },
       ).items;
       expect(foreignItems.map((s) => s.id)).toEqual([foreignShareId]);
     });
@@ -678,7 +667,7 @@ describe('Reports API (e2e)', () => {
         .expect(201);
 
       const shareData = expectData(
-        shareRes.body as ApiEnvelope<{ shareUrl: string; expiresAt: string }>,
+        shareRes.body as { shareUrl: string; expiresAt: string },
       );
       // Extract the token from the shareUrl
       const token = shareData.shareUrl.split('/').pop()!;
@@ -688,13 +677,12 @@ describe('Reports API (e2e)', () => {
         .get(`${CLINIC_SHARED_PATH}/${token}`)
         .expect(200);
 
-      const body = response.body as ApiEnvelope<{
+      const body = response.body as {
         generatedAt: string;
         dataRange: string;
         disclaimer: string;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.generatedAt).toBeTruthy();
       expect(data.dataRange).toBe('custom');
@@ -713,9 +701,7 @@ describe('Reports API (e2e)', () => {
           selectedFields: ['event_overview'],
         })
         .expect(201);
-      const token = expectData(
-        shareRes.body as ApiEnvelope<{ shareUrl: string }>,
-      )
+      const token = expectData(shareRes.body as { shareUrl: string })
         .shareUrl.split('/')
         .pop()!;
 
@@ -724,13 +710,13 @@ describe('Reports API (e2e)', () => {
         .expect(200);
 
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           profile: unknown;
           allergies?: unknown;
           conditions?: unknown;
           currentMedicines?: unknown;
           selectedFields: string[];
-        }>,
+        },
       );
       // Only the selected section plus the always-included allergies are
       // present; other deselected sections never leak.
@@ -748,7 +734,7 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
       const share = expectData(
-        shareRes.body as ApiEnvelope<{ shareId: string; shareUrl: string }>,
+        shareRes.body as { shareId: string; shareUrl: string },
       );
       const token = share.shareUrl.split('/').pop()!;
 
@@ -787,8 +773,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(201);
 
-      const body = response.body as ApiEnvelope<{ pdfBase64?: string }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = response.body as { pdfBase64?: string };
       const data = expectData(body);
       expect(typeof data.pdfBase64).toBe('string');
     });
@@ -800,9 +785,7 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
-      const data = expectData(
-        response.body as ApiEnvelope<{ pdfBase64?: string }>,
-      );
+      const data = expectData(response.body as { pdfBase64?: string });
       expect(typeof data.pdfBase64).toBe('string');
     });
   });
@@ -847,9 +830,7 @@ describe('Reports API (e2e)', () => {
         .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
-      const shareData = expectData(
-        shareRes.body as ApiEnvelope<{ shareUrl: string }>,
-      );
+      const shareData = expectData(shareRes.body as { shareUrl: string });
       const token = shareData.shareUrl.split('/').pop()!;
 
       const response = await request(app.getHttpServer())
@@ -882,9 +863,8 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      const body = response.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data).toBeNull();
+      const body = response.body as Record<string, unknown>;
+      expect(body).toBeNull();
     });
 
     it('should reject an invalid cursor and an invalid status', async () => {
@@ -905,30 +885,26 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .send({ title: 'e2e 回顾事件' })
         .expect(201);
-      const created = expectData(
-        createResponse.body as ApiEnvelope<{ id: string }>,
-      );
+      const created = expectData(createResponse.body as { id: string });
 
       const currentResponse = await request(app.getHttpServer())
         .get(REVIEWS_CURRENT_PATH)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-      const currentBody = currentResponse.body as ApiEnvelope<{
+      const currentBody = currentResponse.body as {
         event: { id: string; status: string };
-      }>;
-      expect(currentBody.code).toBe(ResultCode.SUCCESS);
+      };
       expect(expectData(currentBody).event.id).toBe(created.id);
 
       const listResponse = await request(app.getHttpServer())
         .get(`${REVIEWS_PATH}?status=active`)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-      const listBody = listResponse.body as ApiEnvelope<{
+      const listBody = listResponse.body as {
         items: Array<{ id: string }>;
         total: number;
         nextCursor: string | null;
-      }>;
-      expect(listBody.code).toBe(ResultCode.SUCCESS);
+      };
       const listData = expectData(listBody);
       expect(listData.total).toBe(1);
       expect(listData.items[0]?.id).toBe(created.id);
@@ -953,9 +929,7 @@ describe('Reports API (e2e)', () => {
         .set('Authorization', bearer(otherToken))
         .send({ title: '他人事件' })
         .expect(201);
-      const created = expectData(
-        createResponse.body as ApiEnvelope<{ id: string }>,
-      );
+      const created = expectData(createResponse.body as { id: string });
 
       await request(app.getHttpServer())
         .get(`${REVIEWS_PATH}/${created.id}`)

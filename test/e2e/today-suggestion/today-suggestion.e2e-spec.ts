@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -57,8 +55,7 @@ describe('Today Suggestion API (e2e)', () => {
       // but should never return 401 (auth works)
       expect(res.status).not.toBe(401);
       if (res.status === 200) {
-        expect((res.body as ApiEnvelope).code).toBe(ResultCode.SUCCESS);
-        expect((res.body as ApiEnvelope).data).toBeDefined();
+        expect(res.body).toBeDefined();
       }
     });
 
@@ -94,13 +91,12 @@ describe('Today Suggestion API (e2e)', () => {
       // May return 200 or 500 depending on environment
       expect(res.status).not.toBe(401);
       if (res.status === 200) {
-        const body = res.body as ApiEnvelope<{
+        const body = res.body as {
           items: unknown[];
           total: number;
           startDate: string;
           endDate: string;
-        }>;
-        expect(body.code).toBe(ResultCode.SUCCESS);
+        };
         const data = expectData(body);
         expect(Array.isArray(data.items)).toBe(true);
         expect(data.total).toBeGreaterThanOrEqual(0);

@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -89,9 +87,7 @@ describe('User Settings API (e2e)', () => {
         .set('Authorization', bearer(token))
         .expect(200);
 
-      const settings = expectData(
-        response.body as ApiEnvelope<UserSettingsData>,
-      );
+      const settings = expectData(response.body as UserSettingsData);
 
       expect(settings.aiSummariesEnabled).toBe(true);
       expect(settings.dataSharingConsent).toBe(false);
@@ -133,9 +129,7 @@ describe('User Settings API (e2e)', () => {
         .send({ aiSummariesEnabled: false })
         .expect(200);
 
-      const settings = expectData(
-        response.body as ApiEnvelope<UserSettingsData>,
-      );
+      const settings = expectData(response.body as UserSettingsData);
 
       expect(settings.aiSummariesEnabled).toBe(false);
       expect(settings.dataSharingConsent).toBe(false);
@@ -155,9 +149,7 @@ describe('User Settings API (e2e)', () => {
         })
         .expect(200);
 
-      const settings = expectData(
-        response.body as ApiEnvelope<UserSettingsData>,
-      );
+      const settings = expectData(response.body as UserSettingsData);
 
       expect(settings.dataSharingConsent).toBe(true);
       expect(settings.assistantEnabled).toBe(false);
@@ -177,9 +169,7 @@ describe('User Settings API (e2e)', () => {
         })
         .expect(200);
 
-      const settings = expectData(
-        response.body as ApiEnvelope<UserSettingsData>,
-      );
+      const settings = expectData(response.body as UserSettingsData);
 
       expect(settings.assistantContext.healthProfile).toBe(false);
       expect(settings.assistantContext.dailyRecords).toBe(false);
@@ -235,7 +225,7 @@ describe('User Settings API (e2e)', () => {
         .send({ pin: TEST_PIN })
         .expect(200);
 
-      const settings = expectData(res.body as ApiEnvelope<UserSettingsData>);
+      const settings = expectData(res.body as UserSettingsData);
       expect(settings.securityPin.enabled).toBe(true);
       expect(settings.securityPin.lastChangedAt).toBeTruthy();
     });
@@ -261,7 +251,7 @@ describe('User Settings API (e2e)', () => {
         .send({ pin: TEST_PIN })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<ElevationResult>);
+      const data = expectData(res.body as ElevationResult);
       expect(data.elevationToken).toBeTruthy();
       expect(data.expiresAt).toBeTruthy();
 
@@ -272,14 +262,11 @@ describe('User Settings API (e2e)', () => {
 
     it('should reject wrong PIN with 401', async () => {
       const token = await makeToken();
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(SECURITY_PIN_VERIFY_PATH)
         .set('Authorization', bearer(token))
         .send({ pin: WRONG_PIN })
         .expect(401);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should reject invalid PIN format with 400', async () => {
@@ -312,7 +299,7 @@ describe('User Settings API (e2e)', () => {
         .send({ oldPin: TEST_PIN, newPin: NEW_PIN })
         .expect(200);
 
-      const settings = expectData(res.body as ApiEnvelope<UserSettingsData>);
+      const settings = expectData(res.body as UserSettingsData);
       expect(settings.securityPin.enabled).toBe(true);
       expect(settings.securityPin.lastChangedAt).toBeTruthy();
     });
@@ -325,7 +312,7 @@ describe('User Settings API (e2e)', () => {
         .send({ pin: NEW_PIN })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<ElevationResult>);
+      const data = expectData(res.body as ElevationResult);
       expect(data.elevationToken).toBeTruthy();
     });
 
@@ -386,7 +373,7 @@ describe('User Settings API (e2e)', () => {
         .send({ pin: NEW_PIN })
         .expect(200);
 
-      const settings = expectData(res.body as ApiEnvelope<UserSettingsData>);
+      const settings = expectData(res.body as UserSettingsData);
       expect(settings.securityPin.enabled).toBe(false);
       expect(settings.securityPin.lastChangedAt).toBeNull();
     });
@@ -437,7 +424,7 @@ describe('User Settings API (e2e)', () => {
         .set('Authorization', bearer(otherToken))
         .expect(200);
 
-      const settings = expectData(res.body as ApiEnvelope<UserSettingsData>);
+      const settings = expectData(res.body as UserSettingsData);
       expect(settings.securityPin.enabled).toBe(false);
 
       // Other user cannot verify (PIN not enabled → 403)

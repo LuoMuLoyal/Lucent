@@ -8,8 +8,6 @@ import request from 'supertest';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import { DailyRecordCandidatesService } from '../../../src/modules/daily-records';
 import { PrismaService } from '../../../src/prisma';
 import { DailyRecordKind, UserStatus } from '#generated/prisma/client';
@@ -39,9 +37,9 @@ function expectDefined<T>(value: T | undefined | null, message: string): T {
   return value;
 }
 
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return expectDefined(body.data, 'Expected envelope data');
+function expectData<T>(body: T): T {
+  expect(body).not.toBeNull();
+  return expectDefined(body, 'Expected envelope data');
 }
 
 describe('Daily Records API (e2e)', () => {
@@ -152,11 +150,10 @@ describe('Daily Records API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const listBody = listRes.body as ApiEnvelope<{
+    const listBody = listRes.body as {
       items: Array<{ value: string | null }>;
       total: number;
-    }>;
-    expect(listBody.code).toBe(ResultCode.SUCCESS);
+    };
     const listData = expectData(listBody);
     expect(listData.items).toHaveLength(1);
     expect(listData.items[0]?.value).toBe('3');
@@ -186,7 +183,7 @@ describe('Daily Records API (e2e)', () => {
       })
       .expect(201);
 
-    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
+    const id = expectData(createRes.body as { id: string }).id;
 
     // Clear note
     await request(app.getHttpServer())
@@ -239,14 +236,14 @@ describe('Daily Records API (e2e)', () => {
       .expect(201);
 
     const created = expectData(
-      createRes.body as ApiEnvelope<{
+      createRes.body as {
         id: string;
         attachments: Array<{
           objectKey: string;
           provider: string;
           publicUrl: string | null;
         }>;
-      }>,
+      },
     );
     const id = created.id;
     expect(created.attachments).toHaveLength(1);
@@ -260,9 +257,9 @@ describe('Daily Records API (e2e)', () => {
       .expect(200);
 
     const detail = expectData(
-      detailRes.body as ApiEnvelope<{
+      detailRes.body as {
         attachments: Array<{ provider: string; publicUrl: string | null }>;
-      }>,
+      },
     );
     expect(detail.attachments[0]?.provider).toBe('tencent-cos');
     expect(detail.attachments[0]?.publicUrl).toBe(
@@ -301,7 +298,7 @@ describe('Daily Records API (e2e)', () => {
       .send({ kind: DailyRecordKind.note, occurredAt: '2026-06-04' })
       .expect(201);
 
-    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
+    const id = expectData(createRes.body as { id: string }).id;
 
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
@@ -315,10 +312,10 @@ describe('Daily Records API (e2e)', () => {
       .expect(200);
 
     const listBody = expectData(
-      listRes.body as ApiEnvelope<{
+      listRes.body as {
         items: unknown[];
         total: number;
-      }>,
+      },
     );
     expect(listBody.items).toHaveLength(0);
   });
@@ -362,7 +359,7 @@ describe('Daily Records API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const body = expectData(res.body as ApiEnvelope<{ summaries: unknown[] }>);
+    const body = expectData(res.body as { summaries: unknown[] });
     expect(body.summaries).toHaveLength(2);
   });
 
@@ -386,7 +383,7 @@ describe('Daily Records API (e2e)', () => {
       .send({ kind: DailyRecordKind.note, occurredAt: '2026-06-04' })
       .expect(201);
 
-    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
+    const id = expectData(createRes.body as { id: string }).id;
 
     const email2 = uniqueEmail();
     const user2 = await prisma.user.create({
@@ -430,7 +427,7 @@ describe('Daily Records API (e2e)', () => {
 
     candidateService.generate.mockRejectedValueOnce(
       new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'EXTERNAL_SERVICE_ERROR',
         message: '自然语言记录解析服务尚未配置',
       }),
     );
@@ -444,8 +441,8 @@ describe('Daily Records API (e2e)', () => {
       })
       .expect(503);
 
-    const body = response.body as ApiEnvelope;
-    expect(body.code).toBe(ResultCode.EXTERNAL_SERVICE_ERROR);
+    const body = response.body as Record<string, unknown>;
+    expect(body['code']).toBe('EXTERNAL_SERVICE_ERROR');
   });
 
   it('should return generated candidate records', async () => {
@@ -500,13 +497,11 @@ describe('Daily Records API (e2e)', () => {
       })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<{
+    const body = response.body as {
       locale: string;
       confirmationHint: string;
       items: Array<{ kind: string }>;
-    }>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
-    expect(body.message).toBe('');
+    };
     const data = expectData(body);
     expect(data.locale).toBe('zh-CN');
     expect(data.items).toHaveLength(2);
@@ -608,7 +603,7 @@ describe('Daily Records API (e2e)', () => {
       // COS may not be configured in test environment → 503
       // When COS is configured → 201
       if (res.status === 201) {
-        const body = res.body as ApiEnvelope<{
+        const body = res.body as {
           provider: string;
           bucket: string;
           objectKey: string;
@@ -617,8 +612,7 @@ describe('Daily Records API (e2e)', () => {
           publicUrl: string | null;
           expiresAt: string;
           maxSizeBytes: number;
-        }>;
-        expect(body.code).toBe(ResultCode.SUCCESS);
+        };
         const data = expectData(body);
         expect(data.provider).toBe('tencent-cos');
         expect(data.bucket).toBeTruthy();

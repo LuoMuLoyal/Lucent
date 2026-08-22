@@ -9,8 +9,6 @@ import type { Cache } from 'cache-manager';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import { PrismaService } from '../../../src/prisma';
 import { ConfigKey } from '../../../src/config/env/config-keys.enum';
 import { UserStatus } from '#generated/prisma/client';
@@ -64,9 +62,9 @@ function uniqueEmail(): string {
   return `med-recognize${recognizeSeq}_${Date.now()}@example.com`;
 }
 
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
+function expectData<T>(body: T): T {
+  expect(body).not.toBeNull();
+  return body as T;
 }
 
 describe('Medicines API (e2e)', () => {
@@ -141,8 +139,7 @@ describe('Medicines API (e2e)', () => {
       .query({ q: 'ibu', page: 1, pageSize: 10 })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<MedicineSearchData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as MedicineSearchData;
     const data = expectData(body);
     expect(data.pagination).toEqual({
       page: 1,
@@ -183,8 +180,7 @@ describe('Medicines API (e2e)', () => {
       .query({ source: 'cn', q: '布洛芬', page: 1, pageSize: 10 })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<MedicineSearchData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as MedicineSearchData;
 
     const data = expectData(body);
     expect(data.items).toHaveLength(1);
@@ -219,8 +215,7 @@ describe('Medicines API (e2e)', () => {
       .get(`${MEDICINES_PATH}/DB01050`)
       .expect(200);
 
-    const body = response.body as ApiEnvelope<MedicineDetailData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = response.body as MedicineDetailData;
 
     const data = expectData(body);
     expect(data).toMatchObject({
@@ -242,9 +237,9 @@ describe('Medicines API (e2e)', () => {
       .query({ source: 'raw-db', q: 'ibuprofen' })
       .expect(400);
 
-    const body = response.body as ApiEnvelope;
-    expect(body.code).toBe(ResultCode.BAD_REQUEST);
-    expect(body.message).toBe('Invalid medicine source');
+    const body = response.body as Record<string, unknown>;
+    expect(body['code']).toBe('BAD_REQUEST');
+    expect(body['detail']).toBe('Invalid medicine source');
   });
 
   // ── Safety Tips ──────────────────────────────────────────────
@@ -311,8 +306,7 @@ describe('Medicines API (e2e)', () => {
         .set('Accept-Language', 'zh-CN')
         .expect(200);
 
-      const body = response.body as ApiEnvelope<SafetyTipItem[]>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
+      const body = response.body as SafetyTipItem[];
       const data = expectData(body);
       expect(data).toHaveLength(4);
       // Each tip should have Chinese text
@@ -330,7 +324,7 @@ describe('Medicines API (e2e)', () => {
         .get(SAFETY_TIPS_PATH)
         .expect(200);
 
-      const body = response.body as ApiEnvelope<SafetyTipItem[]>;
+      const body = response.body as SafetyTipItem[];
       const data = expectData(body);
       expect(data).toHaveLength(4);
       // English text should contain ASCII characters typical of English
@@ -348,9 +342,8 @@ describe('Medicines API (e2e)', () => {
         .get(SAFETY_TIPS_PATH)
         .expect(200);
 
-      const body = response.body as ApiEnvelope<SafetyTipItem[]>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data).toEqual([]);
+      const body = response.body as SafetyTipItem[];
+      expect(body).toEqual([]);
     });
 
     it('should exclude specified tip ids', async () => {
@@ -359,9 +352,7 @@ describe('Medicines API (e2e)', () => {
         .set('Accept-Language', 'zh-CN')
         .expect(200);
 
-      const firstData = expectData(
-        firstRes.body as ApiEnvelope<SafetyTipItem[]>,
-      );
+      const firstData = expectData(firstRes.body as SafetyTipItem[]);
       const excludeIds = firstData.map((t) => t.id);
 
       const secondRes = await request(app.getHttpServer())
@@ -369,9 +360,7 @@ describe('Medicines API (e2e)', () => {
         .set('Accept-Language', 'zh-CN')
         .expect(200);
 
-      const secondData = expectData(
-        secondRes.body as ApiEnvelope<SafetyTipItem[]>,
-      );
+      const secondData = expectData(secondRes.body as SafetyTipItem[]);
       // Excluded ids should not appear (unless fewer than 4 remain)
       for (const id of excludeIds) {
         expect(secondData.map((t) => t.id)).not.toContain(id);
@@ -450,14 +439,13 @@ describe('Medicines API (e2e)', () => {
       // The endpoint calls LLM; in test env LLM may not be configured
       // which results in either 200 (with null fields) or 503
       if (response.status === 200) {
-        const body = response.body as ApiEnvelope<{
+        const body = response.body as {
           name: string | null;
           approvalNumber: string | null;
           specification: string | null;
           manufacturer: string | null;
-        }>;
-        expect(body.code).toBe(ResultCode.SUCCESS);
-        expect(body.data).toBeDefined();
+        };
+        expect(body).toBeDefined();
       } else {
         expect([503, 500]).toContain(response.status);
       }

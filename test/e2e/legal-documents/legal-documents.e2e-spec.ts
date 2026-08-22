@@ -1,6 +1,5 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common';
 import { createTestApp, expectData } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 
@@ -77,7 +76,7 @@ describe('Legal Documents API (e2e)', () => {
         .get(BASE_PATH)
         .expect(200);
 
-      const data = expectData(response.body as ApiEnvelope<ListData>);
+      const data = expectData(response.body as ListData);
       expect(data.items).toHaveLength(2);
       const docTypes = data.items.map((i) => i.docType).sort();
       expect(docTypes).toEqual(['privacy', 'terms']);
@@ -90,7 +89,7 @@ describe('Legal Documents API (e2e)', () => {
         .get(`${BASE_PATH}?lang=en`)
         .expect(200);
 
-      const data = expectData(response.body as ApiEnvelope<ListData>);
+      const data = expectData(response.body as ListData);
       expect(data.items).toHaveLength(2);
       const termsItem = data.items.find((i) => i.docType === 'terms')!;
       expect(termsItem.title).toBe('Terms of Service');
@@ -101,7 +100,7 @@ describe('Legal Documents API (e2e)', () => {
         .get(BASE_PATH)
         .expect(200);
 
-      const data = expectData(response.body as ApiEnvelope<ListData>);
+      const data = expectData(response.body as ListData);
       expect(
         data.items.find((i) => i.docType === 'disclaimer'),
       ).toBeUndefined();
@@ -112,7 +111,7 @@ describe('Legal Documents API (e2e)', () => {
         .get(BASE_PATH)
         .expect(200);
 
-      const data = expectData(response.body as ApiEnvelope<ListData>);
+      const data = expectData(response.body as ListData);
       expect(data.updatedAt).toBeTruthy();
     });
 
@@ -129,7 +128,7 @@ describe('Legal Documents API (e2e)', () => {
         .get(`${BASE_PATH}/terms`)
         .expect(200);
 
-      const data = expectData(response.body as ApiEnvelope<DetailData>);
+      const data = expectData(response.body as DetailData);
       expect(data.docType).toBe('terms');
       expect(data.title).toBe('用户协议');
       expect(data.content).toContain('用户协议');
@@ -141,7 +140,7 @@ describe('Legal Documents API (e2e)', () => {
         .get(`${BASE_PATH}/terms?lang=en`)
         .expect(200);
 
-      const data = expectData(response.body as ApiEnvelope<DetailData>);
+      const data = expectData(response.body as DetailData);
       expect(data.title).toBe('Terms of Service');
       expect(data.content).toContain('Terms of Service');
     });

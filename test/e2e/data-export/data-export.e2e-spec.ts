@@ -1,5 +1,4 @@
 import request from 'supertest';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -59,13 +58,13 @@ describe('Data Export API (e2e)', () => {
         .expect(201);
 
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           id: string;
           kind: string;
           format: string;
           status: string;
           createdAt: string;
-        }>,
+        },
       );
       expect(data.id).toBeTruthy();
       expect(data.kind).toBe('hospital');
@@ -89,12 +88,12 @@ describe('Data Export API (e2e)', () => {
         .expect(200);
 
       const data = expectData(
-        response.body as ApiEnvelope<{
+        response.body as {
           id: string;
           kind: string;
           status: string;
           createdAt: string;
-        } | null>,
+        } | null,
       );
       expect(data).not.toBeNull();
       expect(data?.kind).toBe('hospital');

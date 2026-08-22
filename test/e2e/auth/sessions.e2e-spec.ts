@@ -3,8 +3,6 @@ import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -94,7 +92,7 @@ describe('Session Management API (e2e)', () => {
       })
       .expect(201);
 
-    return expectData(res.body as ApiEnvelope<RegisterLoginData>);
+    return expectData(res.body as RegisterLoginData);
   }
 
   // ════════════════════════════════════════════════════════════
@@ -114,7 +112,7 @@ describe('Session Management API (e2e)', () => {
         .set('Authorization', bearer(tokens.accessToken))
         .expect(200);
 
-      const sessions = expectData(res.body as ApiEnvelope<SessionDto[]>);
+      const sessions = expectData(res.body as SessionDto[]);
       expect(sessions.length).toBeGreaterThanOrEqual(1);
 
       const session = sessions[0]!;
@@ -138,7 +136,7 @@ describe('Session Management API (e2e)', () => {
         .set('Authorization', bearer(tokens.accessToken))
         .expect(200);
 
-      const sessions = expectData(res.body as ApiEnvelope<SessionDto[]>);
+      const sessions = expectData(res.body as SessionDto[]);
       expect(sessions.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -158,9 +156,7 @@ describe('Session Management API (e2e)', () => {
         .post(LOGIN_PATH)
         .send({ email: user.email, password: TEST_PASSWORD })
         .expect(200);
-      const newTokens = expectData(
-        loginRes.body as ApiEnvelope<RegisterLoginData>,
-      ).tokens;
+      const newTokens = expectData(loginRes.body as RegisterLoginData).tokens;
 
       // List sessions — should only show the active one
       await request(app.getHttpServer())
@@ -197,7 +193,7 @@ describe('Session Management API (e2e)', () => {
         .send({ email: user.email, password: TEST_PASSWORD })
         .expect(200);
       const secondTokens = expectData(
-        secondLoginRes.body as ApiEnvelope<RegisterLoginData>,
+        secondLoginRes.body as RegisterLoginData,
       ).tokens;
 
       // List sessions to find the second session id
@@ -206,7 +202,7 @@ describe('Session Management API (e2e)', () => {
         .set('Authorization', bearer(firstTokens.accessToken))
         .expect(200);
 
-      const sessions = expectData(listRes.body as ApiEnvelope<SessionDto[]>);
+      const sessions = expectData(listRes.body as SessionDto[]);
       expect(sessions.length).toBeGreaterThanOrEqual(2);
 
       // Find the second session (the one with secondTokens.refreshToken)
@@ -229,8 +225,8 @@ describe('Session Management API (e2e)', () => {
         .send({ refreshToken: secondTokens.refreshToken })
         .expect(401);
 
-      const refreshBody = refreshRes.body as ApiEnvelope;
-      expect(refreshBody.code).toBe(ResultCode.REFRESH_TOKEN_INVALID);
+      const refreshBody = refreshRes.body as Record<string, unknown>;
+      expect(refreshBody['code']).toBe('AUTH_REFRESH_TOKEN_INVALID');
 
       // Verify the first session still works
       await request(app.getHttpServer())
@@ -242,13 +238,10 @@ describe('Session Management API (e2e)', () => {
     it('should return 404 for non-existent session id', async () => {
       const { tokens } = await registerUserViaApi();
 
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .delete(`${SESSIONS_PATH}/00000000-0000-0000-0000-000000000000`)
         .set('Authorization', bearer(tokens.accessToken))
         .expect(404);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should not allow revoking another user session (403)', async () => {
@@ -264,17 +257,14 @@ describe('Session Management API (e2e)', () => {
         .set('Authorization', bearer(userB.tokens.accessToken))
         .expect(200);
 
-      const sessionsB = expectData(listResB.body as ApiEnvelope<SessionDto[]>);
+      const sessionsB = expectData(listResB.body as SessionDto[]);
       const targetSessionId = sessionsB[0]!.id;
 
       // User A tries to revoke User B's session — gets 403
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .delete(`${SESSIONS_PATH}/${targetSessionId}`)
         .set('Authorization', bearer(userA.tokens.accessToken))
         .expect(403);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
 
       // Verify User B's session is still active
       await request(app.getHttpServer())

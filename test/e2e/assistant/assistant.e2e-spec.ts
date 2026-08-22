@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -55,12 +53,10 @@ describe('Assistant API (e2e)', () => {
     });
 
     it('should return assistant capabilities for authenticated user', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get(`${BASE_PATH}/capabilities`)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-
-      expect((res.body as ApiEnvelope).code).toBe(ResultCode.SUCCESS);
     });
   });
 
@@ -72,24 +68,19 @@ describe('Assistant API (e2e)', () => {
     });
 
     it('should list conversations (empty for new user)', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get(`${BASE_PATH}/conversations`)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-
-      expect((res.body as ApiEnvelope).code).toBe(ResultCode.SUCCESS);
     });
   });
 
   describe('GET /latest', () => {
     it('should return latest conversation or null for new user', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get(`${BASE_PATH}/latest`)
         .set('Authorization', bearer(accessToken))
         .expect(200);
-
-      const body = res.body as ApiEnvelope<{ id?: string }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
     });
   });
 
@@ -142,13 +133,12 @@ describe('Assistant API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(201);
 
-      const body = res.body as ApiEnvelope<{
+      const body = res.body as {
         id: string;
         status: string;
         messages: Array<{ role: string; content: string }>;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.id).toBe(conversation.id);
       expect(data.status).toBe('active');
@@ -188,14 +178,13 @@ describe('Assistant API (e2e)', () => {
         .set('Authorization', bearer(freshToken))
         .expect(201);
 
-      const body = res.body as ApiEnvelope<{
+      const body = res.body as {
         cleared: boolean;
         archivedConversationId: string | null;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data!.cleared).toBe(false);
-      expect(body.data!.archivedConversationId).toBeNull();
+      expect(body!.cleared).toBe(false);
+      expect(body!.archivedConversationId).toBeNull();
     });
 
     it('should archive the active conversation and return cleared=true', async () => {
@@ -213,14 +202,13 @@ describe('Assistant API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .expect(201);
 
-      const body = res.body as ApiEnvelope<{
+      const body = res.body as {
         cleared: boolean;
         archivedConversationId: string | null;
-      }>;
+      };
 
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data!.cleared).toBe(true);
-      expect(body.data!.archivedConversationId).toBe(conversation.id);
+      expect(body!.cleared).toBe(true);
+      expect(body!.archivedConversationId).toBe(conversation.id);
 
       // Verify the conversation is now archived in the database
       const stored = await ctx.prisma.assistantConversation.findUniqueOrThrow({

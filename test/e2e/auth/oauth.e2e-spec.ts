@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -88,12 +86,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should return 503 when WeChat OAuth is not configured', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebAuthorize)
         .expect(503);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should return authorize URL with state when configured (mocked)', async () => {
@@ -105,7 +100,7 @@ describe('OAuth API (e2e)', () => {
         .post(OAUTH_PATH.wechatWebAuthorize)
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthorizeResult>);
+      const data = expectData(res.body as AuthorizeResult);
       expect(data.authorizeUrl).toContain('open.weixin.qq.com');
       expect(data.state).toBeTruthy();
       expect(data.expiresIn).toBeGreaterThan(0);
@@ -122,7 +117,7 @@ describe('OAuth API (e2e)', () => {
         .send({ callbackUri })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthorizeResult>);
+      const data = expectData(res.body as AuthorizeResult);
       expect(data.callbackUri).toBe(callbackUri);
     });
   });
@@ -158,13 +153,10 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should reject invalid state with 401', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebCallbackPost)
         .send({ code: 'test-code', state: 'non-existent-state' })
         .expect(401);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should create new user and return tokens with valid state and code', async () => {
@@ -187,9 +179,7 @@ describe('OAuth API (e2e)', () => {
       const authorizeRes = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebAuthorize)
         .expect(200);
-      const { state } = expectData(
-        authorizeRes.body as ApiEnvelope<AuthorizeResult>,
-      );
+      const { state } = expectData(authorizeRes.body as AuthorizeResult);
 
       // Step 2: Call the callback with the state and a code
       const res = await request(app.getHttpServer())
@@ -197,7 +187,7 @@ describe('OAuth API (e2e)', () => {
         .send({ code: 'mock-wechat-code', state })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthResponseData>);
+      const data = expectData(res.body as AuthResponseData);
       expect(data.user.id).toBeDefined();
       expect(data.user.nickname).toBe('WeChat Login User');
       expect(data.user.avatar).toBe('https://wx.qlogo.cn/login-avatar');
@@ -226,35 +216,27 @@ describe('OAuth API (e2e)', () => {
       const authorizeRes1 = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebAuthorize)
         .expect(200);
-      const state1 = expectData(
-        authorizeRes1.body as ApiEnvelope<AuthorizeResult>,
-      ).state;
+      const state1 = expectData(authorizeRes1.body as AuthorizeResult).state;
 
       const loginRes1 = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebCallbackPost)
         .send({ code: 'mock-wechat-code-1', state: state1 })
         .expect(200);
-      const firstData = expectData(
-        loginRes1.body as ApiEnvelope<AuthResponseData>,
-      );
+      const firstData = expectData(loginRes1.body as AuthResponseData);
       const userId = firstData.user.id;
 
       // Second login with same profile should return same user
       const authorizeRes2 = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebAuthorize)
         .expect(200);
-      const state2 = expectData(
-        authorizeRes2.body as ApiEnvelope<AuthorizeResult>,
-      ).state;
+      const state2 = expectData(authorizeRes2.body as AuthorizeResult).state;
 
       const loginRes2 = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebCallbackPost)
         .send({ code: 'mock-wechat-code-2', state: state2 })
         .expect(200);
 
-      const secondData = expectData(
-        loginRes2.body as ApiEnvelope<AuthResponseData>,
-      );
+      const secondData = expectData(loginRes2.body as AuthResponseData);
       expect(secondData.user.id).toBe(userId);
     });
   });
@@ -269,13 +251,10 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should reject invalid state with 401', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get(OAUTH_PATH.wechatWebCallbackGet)
         .query({ code: 'test-code', state: 'non-existent-state' })
         .expect(401);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should redirect to callback URI with code and state (302)', async () => {
@@ -290,9 +269,7 @@ describe('OAuth API (e2e)', () => {
         .post(OAUTH_PATH.wechatWebAuthorize)
         .send({ callbackUri })
         .expect(200);
-      const { state } = expectData(
-        authorizeRes.body as ApiEnvelope<AuthorizeResult>,
-      );
+      const { state } = expectData(authorizeRes.body as AuthorizeResult);
 
       // Step 2: Call the GET callback with code and state
       const res = await request(app.getHttpServer())
@@ -323,13 +300,10 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should return 503 when WeChat mobile OAuth is not configured', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatMobileCallback)
         .send({ code: 'test-code' })
         .expect(503);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should create new user and return tokens with valid code (mocked)', async () => {
@@ -349,7 +323,7 @@ describe('OAuth API (e2e)', () => {
         .send({ code: 'mock-wechat-mobile-code' })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthResponseData>);
+      const data = expectData(res.body as AuthResponseData);
       expect(data.user.id).toBeDefined();
       expect(data.user.nickname).toBe('WeChat Mobile User');
       expect(data.tokens.accessToken).toBeDefined();
@@ -392,7 +366,7 @@ describe('OAuth API (e2e)', () => {
         })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthResponseData>);
+      const data = expectData(res.body as AuthResponseData);
       expect(data.user.id).toBeDefined();
       expect(data.user.email).toBe(mockProfile.email);
       expect(data.user.emailVerified).toBe(true);
@@ -415,7 +389,7 @@ describe('OAuth API (e2e)', () => {
         .post(OAUTH_PATH.appleCallback)
         .send({ identityToken: 'mock-token-1' })
         .expect(200);
-      const data1 = expectData(res1.body as ApiEnvelope<AuthResponseData>);
+      const data1 = expectData(res1.body as AuthResponseData);
 
       // Second login — Apple returns no name after first login
       const profileNoName: OAuthProfile = {
@@ -431,7 +405,7 @@ describe('OAuth API (e2e)', () => {
         .post(OAUTH_PATH.appleCallback)
         .send({ identityToken: 'mock-token-2' })
         .expect(200);
-      const data2 = expectData(res2.body as ApiEnvelope<AuthResponseData>);
+      const data2 = expectData(res2.body as AuthResponseData);
 
       expect(data2.user.id).toBe(data1.user.id);
     });
@@ -447,12 +421,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should return 503 when QQ OAuth is not configured', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(OAUTH_PATH.qqAuthorize)
         .expect(503);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should return authorize URL with state when configured (mocked)', async () => {
@@ -464,7 +435,7 @@ describe('OAuth API (e2e)', () => {
         .post(OAUTH_PATH.qqAuthorize)
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthorizeResult>);
+      const data = expectData(res.body as AuthorizeResult);
       expect(data.authorizeUrl).toContain('graph.qq.com');
       expect(data.state).toBeTruthy();
       expect(data.expiresIn).toBeGreaterThan(0);
@@ -481,7 +452,7 @@ describe('OAuth API (e2e)', () => {
         .send({ callbackUri })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthorizeResult>);
+      const data = expectData(res.body as AuthorizeResult);
       expect(data.callbackUri).toBe(callbackUri);
     });
   });
@@ -517,13 +488,10 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should reject invalid state with 401', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(OAUTH_PATH.qqCallback)
         .send({ code: 'test-code', state: 'non-existent-state' })
         .expect(401);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should create new user and return tokens with valid state and code', async () => {
@@ -543,9 +511,7 @@ describe('OAuth API (e2e)', () => {
       const authorizeRes = await request(app.getHttpServer())
         .post(OAUTH_PATH.qqAuthorize)
         .expect(200);
-      const { state } = expectData(
-        authorizeRes.body as ApiEnvelope<AuthorizeResult>,
-      );
+      const { state } = expectData(authorizeRes.body as AuthorizeResult);
 
       // Step 2: Call the callback with the state and a code
       const res = await request(app.getHttpServer())
@@ -553,7 +519,7 @@ describe('OAuth API (e2e)', () => {
         .send({ code: 'mock-qq-code', state })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<AuthResponseData>);
+      const data = expectData(res.body as AuthResponseData);
       expect(data.user.id).toBeDefined();
       expect(data.user.nickname).toBe('QQ Login User');
       expect(data.tokens.accessToken).toBeDefined();

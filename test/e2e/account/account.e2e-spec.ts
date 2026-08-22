@@ -3,8 +3,6 @@ import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -102,12 +100,12 @@ describe('Account API (e2e)', () => {
         .expect(200);
 
       const data = expectData(
-        res.body as ApiEnvelope<{
+        res.body as {
           id: string;
           email: string;
           nickname: string;
           hasPassword: boolean;
-        }>,
+        },
       );
       expect(data.id).toBe(user.id);
       expect(data.email).toBe(user.email);
@@ -124,7 +122,7 @@ describe('Account API (e2e)', () => {
         .send({ nickname: 'UpdatedName' })
         .expect(200);
 
-      const data = expectData(res.body as ApiEnvelope<{ nickname: string }>);
+      const data = expectData(res.body as { nickname: string });
       expect(data.nickname).toBe('UpdatedName');
     });
 
@@ -135,9 +133,7 @@ describe('Account API (e2e)', () => {
         .send({ nickname: '' })
         .expect(200);
 
-      const data = expectData(
-        res.body as ApiEnvelope<{ nickname: string | null }>,
-      );
+      const data = expectData(res.body as { nickname: string | null });
       expect(data.nickname).toBeNull();
     });
 
@@ -209,9 +205,7 @@ describe('Account API (e2e)', () => {
         .set('Authorization', bearer(oauthToken))
         .expect(200);
 
-      const accountData = expectData(
-        accountRes.body as ApiEnvelope<AccountDto>,
-      );
+      const accountData = expectData(accountRes.body as AccountDto);
       expect(accountData.hasPassword).toBe(true);
     });
 
@@ -234,8 +228,8 @@ describe('Account API (e2e)', () => {
         .send({ email: user.email, code, password: TEST_PASSWORD })
         .expect(409);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.CONFLICT);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('CONFLICT');
     });
 
     it('should reject set-password with non-existent verification code (400)', async () => {
@@ -257,7 +251,7 @@ describe('Account API (e2e)', () => {
       );
 
       // Don't send a verification code — the code won't exist in cache
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
         .send({
@@ -266,9 +260,6 @@ describe('Account API (e2e)', () => {
           password: TEST_PASSWORD,
         })
         .expect(400);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should reject set-password with wrong verification code (401)', async () => {
@@ -296,7 +287,7 @@ describe('Account API (e2e)', () => {
         .expect(200);
 
       // Use a wrong code
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
         .send({
@@ -305,9 +296,6 @@ describe('Account API (e2e)', () => {
           password: TEST_PASSWORD,
         })
         .expect(401);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should reject set-password with weak password (400)', async () => {
@@ -364,13 +352,10 @@ describe('Account API (e2e)', () => {
 
     it('should return 503 when WeChat OAuth is not configured', async () => {
       // In test environment, WeChat OAuth env vars are not set
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(WECHAT_WEB_AUTHORIZE_PATH)
         .set('Authorization', bearer(accessToken))
         .expect(503);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should return authorize URL when WeChat OAuth is configured (mocked)', async () => {
@@ -384,11 +369,11 @@ describe('Account API (e2e)', () => {
         .expect(200);
 
       const data = expectData(
-        res.body as ApiEnvelope<{
+        res.body as {
           authorizeUrl: string;
           state: string;
           expiresIn: number;
-        }>,
+        },
       );
       expect(data.authorizeUrl).toContain('open.weixin.qq.com');
       expect(data.state).toBeTruthy();
@@ -408,12 +393,12 @@ describe('Account API (e2e)', () => {
         .expect(200);
 
       const data = expectData(
-        res.body as ApiEnvelope<{
+        res.body as {
           authorizeUrl: string;
           state: string;
           expiresIn: number;
           callbackUri?: string;
-        }>,
+        },
       );
       expect(data.callbackUri).toBe(callbackUri);
     });
@@ -460,14 +445,11 @@ describe('Account API (e2e)', () => {
     });
 
     it('should reject with 401 for invalid state', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(WECHAT_WEB_CALLBACK_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ code: 'test-code', state: 'non-existent-state' })
         .expect(401);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should link WeChat web identity with valid state and code', async () => {
@@ -510,9 +492,7 @@ describe('Account API (e2e)', () => {
         .post(WECHAT_WEB_AUTHORIZE_PATH)
         .set('Authorization', bearer(linkToken))
         .expect(200);
-      const { state } = expectData(
-        authorizeRes.body as ApiEnvelope<{ state: string }>,
-      );
+      const { state } = expectData(authorizeRes.body as { state: string });
 
       // Step 2: Call the callback with the state and a code
       const res = await request(app.getHttpServer())
@@ -522,7 +502,7 @@ describe('Account API (e2e)', () => {
         .expect(200);
 
       // Step 3: Verify the identity is linked in the account response
-      const accountData = expectData(res.body as ApiEnvelope<AccountDto>);
+      const accountData = expectData(res.body as AccountDto);
       expect(accountData.linkedIdentities).toHaveLength(1);
       expect(accountData.linkedIdentities[0]!.provider).toBe('wechat_web');
       expect(accountData.linkedIdentities[0]!.id).toBeTruthy();
@@ -555,14 +535,11 @@ describe('Account API (e2e)', () => {
 
     it('should return 503 when WeChat mobile OAuth is not configured', async () => {
       // Don't mock fetchProfile — real provider calls getConfig() → 503
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post(WECHAT_MOBILE_CALLBACK_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ code: 'test-code' })
         .expect(503);
-
-      const body = res.body as ApiEnvelope;
-      expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
     it('should link WeChat mobile identity with valid code', async () => {
@@ -602,7 +579,7 @@ describe('Account API (e2e)', () => {
         .expect(200);
 
       // Verify the identity is linked in the account response
-      const accountData = expectData(res.body as ApiEnvelope<AccountDto>);
+      const accountData = expectData(res.body as AccountDto);
       expect(accountData.linkedIdentities).toHaveLength(1);
       expect(accountData.linkedIdentities[0]!.provider).toBe('wechat_mobile');
     });

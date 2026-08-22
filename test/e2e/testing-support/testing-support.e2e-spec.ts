@@ -6,8 +6,6 @@ import request from 'supertest';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import { DailyRecordKind } from '#generated/prisma/client';
 
 const TESTING_PATH = '/api/v1/testing/fullstack-e2e/record-lane/prepare';
@@ -28,9 +26,9 @@ function bearer(accessToken: string): string {
   return `${BEARER} ${accessToken}`;
 }
 
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
+function expectData<T>(body: T): T {
+  expect(body).not.toBeNull();
+  return body as T;
 }
 
 describe('Testing Support API (e2e)', () => {
@@ -69,15 +67,14 @@ describe('Testing Support API (e2e)', () => {
       .send(preparePayload)
       .expect(200);
 
-    const firstPrepareBody = firstPrepareRes.body as ApiEnvelope<{
+    const firstPrepareBody = firstPrepareRes.body as {
       createdUser: boolean;
       userId: string;
       email: string;
       nickname: string | null;
       date: string;
       clearedRecordCount: number;
-    }>;
-    expect(firstPrepareBody.code).toBe(ResultCode.SUCCESS);
+    };
     const firstPrepareData = expectData(firstPrepareBody);
     expect(firstPrepareData.email).toBe(TEST_EMAIL);
     expect(firstPrepareData.nickname).toBe(TEST_NICKNAME);
@@ -89,10 +86,9 @@ describe('Testing Support API (e2e)', () => {
       .send({ email: TEST_EMAIL, password: TEST_PASSWORD })
       .expect(200);
 
-    const loginBody = loginRes.body as ApiEnvelope<{
+    const loginBody = loginRes.body as {
       tokens: { accessToken: string };
-    }>;
-    expect(loginBody.code).toBe(ResultCode.SUCCESS);
+    };
     const accessToken = expectData(loginBody).tokens.accessToken;
 
     const initialListRes = await request(app.getHttpServer())
@@ -100,10 +96,10 @@ describe('Testing Support API (e2e)', () => {
       .set(AUTHORIZATION_HEADER, bearer(accessToken))
       .expect(200);
 
-    const initialListBody = initialListRes.body as ApiEnvelope<{
+    const initialListBody = initialListRes.body as {
       items: any[];
       total: number;
-    }>;
+    };
     expect(expectData(initialListBody).items).toHaveLength(0);
 
     await request(app.getHttpServer())
@@ -123,11 +119,11 @@ describe('Testing Support API (e2e)', () => {
       .send({ aiSummariesEnabled: false })
       .expect(200);
 
-    const disableAiBody = disableAiRes.body as ApiEnvelope<{
+    const disableAiBody = disableAiRes.body as {
       aiSummariesEnabled: boolean;
       dataSharingConsent: boolean;
       updatedAt: string | null;
-    }>;
+    };
     expect(expectData(disableAiBody).aiSummariesEnabled).toBe(false);
 
     const createdListRes = await request(app.getHttpServer())
@@ -135,10 +131,10 @@ describe('Testing Support API (e2e)', () => {
       .set(AUTHORIZATION_HEADER, bearer(accessToken))
       .expect(200);
 
-    const createdListBody = createdListRes.body as ApiEnvelope<{
+    const createdListBody = createdListRes.body as {
       items: any[];
       total: number;
-    }>;
+    };
     expect(expectData(createdListBody).items).toHaveLength(1);
 
     const secondPrepareRes = await request(app.getHttpServer())
@@ -147,15 +143,14 @@ describe('Testing Support API (e2e)', () => {
       .send(preparePayload)
       .expect(200);
 
-    const secondPrepareBody = secondPrepareRes.body as ApiEnvelope<{
+    const secondPrepareBody = secondPrepareRes.body as {
       createdUser: boolean;
       userId: string;
       email: string;
       nickname: string | null;
       date: string;
       clearedRecordCount: number;
-    }>;
-    expect(secondPrepareBody.code).toBe(ResultCode.SUCCESS);
+    };
     const secondPrepareData = expectData(secondPrepareBody);
     expect(secondPrepareData.createdUser).toBe(false);
     expect(secondPrepareData.userId).toBe(firstPrepareData.userId);
@@ -166,9 +161,9 @@ describe('Testing Support API (e2e)', () => {
       .send({ email: TEST_EMAIL, password: TEST_PASSWORD })
       .expect(200);
 
-    const secondLoginBody = secondLoginRes.body as ApiEnvelope<{
+    const secondLoginBody = secondLoginRes.body as {
       tokens: { accessToken: string };
-    }>;
+    };
     const refreshedAccessToken = expectData(secondLoginBody).tokens.accessToken;
 
     const resetListRes = await request(app.getHttpServer())
@@ -176,10 +171,10 @@ describe('Testing Support API (e2e)', () => {
       .set(AUTHORIZATION_HEADER, bearer(refreshedAccessToken))
       .expect(200);
 
-    const resetListBody = resetListRes.body as ApiEnvelope<{
+    const resetListBody = resetListRes.body as {
       items: any[];
       total: number;
-    }>;
+    };
     expect(expectData(resetListBody).items).toHaveLength(0);
 
     const resetSettingsRes = await request(app.getHttpServer())
@@ -187,11 +182,11 @@ describe('Testing Support API (e2e)', () => {
       .set(AUTHORIZATION_HEADER, bearer(refreshedAccessToken))
       .expect(200);
 
-    const resetSettingsBody = resetSettingsRes.body as ApiEnvelope<{
+    const resetSettingsBody = resetSettingsRes.body as {
       aiSummariesEnabled: boolean;
       dataSharingConsent: boolean;
       updatedAt: string | null;
-    }>;
+    };
     expect(expectData(resetSettingsBody).aiSummariesEnabled).toBe(true);
   });
 });

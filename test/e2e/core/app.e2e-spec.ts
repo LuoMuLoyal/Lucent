@@ -100,16 +100,12 @@ describe('Lucent API (e2e)', () => {
       .expect(200)
       .expect((response) => {
         expect(response.body).toMatchObject({
-          code: 0,
-          message: '',
-          data: {
-            probe: 'ready',
-            status: 'ok',
-            summary: {
-              total: 2,
-              passed: 2,
-              failed: 0,
-            },
+          probe: 'ready',
+          status: 'ok',
+          summary: {
+            total: 2,
+            passed: 2,
+            failed: 0,
           },
         });
       });
@@ -123,16 +119,12 @@ describe('Lucent API (e2e)', () => {
       .expect(503)
       .expect((response) => {
         expect(response.body).toMatchObject({
-          code: 0,
-          message: '',
-          data: {
-            probe: 'ready',
-            status: 'error',
-            summary: {
-              total: 2,
-              passed: 1,
-              failed: 1,
-            },
+          probe: 'ready',
+          status: 'error',
+          summary: {
+            total: 2,
+            passed: 1,
+            failed: 1,
           },
         });
       });
@@ -146,20 +138,16 @@ describe('Lucent API (e2e)', () => {
       .expect(200)
       .expect((response) => {
         expect(response.body).toMatchObject({
-          code: 0,
-          message: '',
-          data: {
-            probe: 'live',
-            status: 'ok',
-            summary: {
-              total: 0,
-              passed: 0,
-              failed: 0,
-            },
+          probe: 'live',
+          status: 'ok',
+          summary: {
+            total: 0,
+            passed: 0,
+            failed: 0,
           },
         });
         // Liveness probe has no components — it only checks process health
-        const data = response.body.data;
+        const data = response.body;
         expect(data.components).toEqual([]);
         expect(data.app).toBeDefined();
         expect(data.app.name).toBe('lucent');
@@ -174,8 +162,8 @@ describe('Lucent API (e2e)', () => {
       .get('/api/v1/health/live')
       .expect(200)
       .expect((response) => {
-        expect(response.body.data.status).toBe('ok');
-        expect(response.body.data.summary).toEqual({
+        expect(response.body.status).toBe('ok');
+        expect(response.body.summary).toEqual({
           total: 0,
           passed: 0,
           failed: 0,
@@ -191,20 +179,16 @@ describe('Lucent API (e2e)', () => {
       .expect(200)
       .expect((response) => {
         expect(response.body).toMatchObject({
-          code: 0,
-          message: '',
-          data: {
-            probe: 'deep',
-            status: 'ok',
-            summary: {
-              total: 2,
-              passed: 2,
-              failed: 0,
-            },
+          probe: 'deep',
+          status: 'ok',
+          summary: {
+            total: 2,
+            passed: 2,
+            failed: 0,
           },
         });
 
-        const components = response.body.data.components as Array<{
+        const components = response.body.components as Array<{
           name: string;
           status: string;
           critical: boolean;
@@ -241,14 +225,14 @@ describe('Lucent API (e2e)', () => {
       .get('/api/v1/health/deep')
       .expect(503)
       .expect((response) => {
-        expect(response.body.data.status).toBe('error');
-        expect(response.body.data.summary).toEqual({
+        expect(response.body.status).toBe('error');
+        expect(response.body.summary).toEqual({
           total: 2,
           passed: 1,
           failed: 1,
         });
 
-        const components = response.body.data.components as Array<{
+        const components = response.body.components as Array<{
           name: string;
           status: string;
           critical: boolean;
@@ -265,17 +249,11 @@ describe('Lucent API (e2e)', () => {
       });
   });
 
-  it('/api/v1/test-echo (GET) still uses the API envelope by default', () => {
+  it('/api/v1/test-echo (GET) returns the direct resource', () => {
     return request(app.getHttpServer())
       .get('/api/v1/test-echo')
       .expect(200)
-      .expect({
-        code: 0,
-        message: '',
-        data: {
-          ok: true,
-        },
-      });
+      .expect({ ok: true });
   });
 
   afterAll(async () => {

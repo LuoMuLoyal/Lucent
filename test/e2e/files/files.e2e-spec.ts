@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -92,7 +90,7 @@ describe('Files API (e2e)', () => {
       // COS may not be configured in test environment → 400 or 500
       // When COS is configured → 200
       if (res.status === 200) {
-        const body = res.body as ApiEnvelope<{
+        const body = res.body as {
           provider: string;
           bucket: string;
           objectKey: string;
@@ -101,8 +99,7 @@ describe('Files API (e2e)', () => {
           publicUrl: string | null;
           expiresAt: string;
           maxSizeBytes: number;
-        }>;
-        expect(body.code).toBe(ResultCode.SUCCESS);
+        };
         const data = expectData(body);
         expect(data.provider).toBeDefined();
         expect(data.objectKey).toContain('files/');

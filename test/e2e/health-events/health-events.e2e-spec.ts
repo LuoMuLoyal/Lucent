@@ -1,7 +1,5 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common';
-import type { ApiEnvelope } from '../../../src/common';
 import {
   bearer,
   createAccessToken,
@@ -87,8 +85,7 @@ describe('Health Event Contract API (e2e)', () => {
         title: '发热',
       })
       .expect(201);
-    const reasonBody = reasonResponse.body as ApiEnvelope<{ id: string }>;
-    expect(reasonBody.code).toBe(ResultCode.SUCCESS);
+    const reasonBody = reasonResponse.body as { id: string };
     const reasonRecord = expectData(reasonBody);
     const currentMedicine = await ctx.prisma.userCurrentMedicine.create({
       data: {
@@ -108,8 +105,7 @@ describe('Health Event Contract API (e2e)', () => {
         currentMedicineIds: [currentMedicine.id],
       })
       .expect(201);
-    const createBody = createResponse.body as ApiEnvelope<HealthEventItem>;
-    expect(createBody.code).toBe(ResultCode.SUCCESS);
+    const createBody = createResponse.body as HealthEventItem;
     const created = expectData(createBody);
     expect(created.reasonRecordId).toBe(reasonRecord.id);
     expect(created.currentMedicineIds).toEqual([currentMedicine.id]);
@@ -122,8 +118,7 @@ describe('Health Event Contract API (e2e)', () => {
       .get(`${HEALTH_EVENTS_PATH}/active`)
       .set('Authorization', bearer(tokenA))
       .expect(200);
-    const activeBody = activeResponse.body as ApiEnvelope<HealthEventItem>;
-    expect(activeBody.code).toBe(ResultCode.SUCCESS);
+    const activeBody = activeResponse.body as HealthEventItem;
     expect(expectData(activeBody).id).toBe(created.id);
 
     await request(app.getHttpServer())
@@ -154,8 +149,7 @@ describe('Health Event Contract API (e2e)', () => {
       .set('Authorization', bearer(tokenA))
       .send({ outcome: HealthEventOutcome.improved })
       .expect(200);
-    const checkInBody = checkInResponse.body as ApiEnvelope<HealthEventItem>;
-    expect(checkInBody.code).toBe(ResultCode.SUCCESS);
+    const checkInBody = checkInResponse.body as HealthEventItem;
     const checkedIn = expectData(checkInBody);
     expect(checkedIn.status).toBe('active');
     expect(checkedIn.checkIn).toMatchObject({
@@ -173,8 +167,7 @@ describe('Health Event Contract API (e2e)', () => {
       .set('Authorization', bearer(tokenA))
       .send({ outcome: HealthEventOutcome.unchanged })
       .expect(201);
-    const endBody = endResponse.body as ApiEnvelope<HealthEventItem>;
-    expect(endBody.code).toBe(ResultCode.SUCCESS);
+    const endBody = endResponse.body as HealthEventItem;
     const ended = expectData(endBody);
     expect(ended).toMatchObject({
       id: created.id,
@@ -187,8 +180,7 @@ describe('Health Event Contract API (e2e)', () => {
       .get(`${HEALTH_EVENTS_PATH}/${created.id}?date=${CHECK_IN_DATE}`)
       .set('Authorization', bearer(tokenA))
       .expect(200);
-    const historyBody = historyResponse.body as ApiEnvelope<HealthEventItem>;
-    expect(historyBody.code).toBe(ResultCode.SUCCESS);
+    const historyBody = historyResponse.body as HealthEventItem;
     expect(expectData(historyBody)).toMatchObject({
       id: created.id,
       status: 'ended',
@@ -203,11 +195,10 @@ describe('Health Event Contract API (e2e)', () => {
       .get(`${HEALTH_EVENTS_PATH}?date=${CHECK_IN_DATE}`)
       .set('Authorization', bearer(tokenA))
       .expect(200);
-    const listBody = listResponse.body as ApiEnvelope<{
+    const listBody = listResponse.body as {
       items: HealthEventItem[];
       total: number;
-    }>;
-    expect(listBody.code).toBe(ResultCode.SUCCESS);
+    };
     const history = expectData(listBody);
     expect(history.total).toBe(1);
     expect(history.items).toHaveLength(1);
@@ -228,9 +219,7 @@ describe('Health Event Contract API (e2e)', () => {
       .set('Authorization', bearer(token))
       .send({ title: '测量事件' })
       .expect(201);
-    const created = expectData(
-      createResponse.body as ApiEnvelope<HealthEventItem>,
-    );
+    const created = expectData(createResponse.body as HealthEventItem);
 
     await request(app.getHttpServer())
       .put(`${HEALTH_EVENTS_PATH}/${created.id}/check-ins/${CHECK_IN_DATE}`)

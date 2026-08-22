@@ -7,8 +7,6 @@ import request from 'supertest';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import type { ApiEnvelope } from '../../../src/common';
-import { ResultCode } from '../../../src/common';
 import { PrismaService } from '../../../src/prisma';
 import {
   bearer,
@@ -34,9 +32,9 @@ interface RiskCheckRecordsData {
   llm: RiskCheckRecord | null;
 }
 
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
+function expectData<T>(body: T): T {
+  expect(body).not.toBeNull();
+  return body as T;
 }
 
 describe('Medicine Risk Check API (e2e)', () => {
@@ -104,8 +102,7 @@ describe('Medicine Risk Check API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const body = res.body as ApiEnvelope<RiskCheckRecordsData>;
-    expect(body.code).toBe(ResultCode.SUCCESS);
+    const body = res.body as RiskCheckRecordsData;
     const data = expectData(body);
     expect(data.static).toBeNull();
     expect(data.llm).toBeNull();
@@ -118,8 +115,7 @@ describe('Medicine Risk Check API (e2e)', () => {
       .send({ type: 'static' })
       .expect(200);
 
-    const runBody = run.body as ApiEnvelope<RiskCheckRecord>;
-    expect(runBody.code).toBe(ResultCode.SUCCESS);
+    const runBody = run.body as RiskCheckRecord;
     const record = expectData(runBody);
     expect(record.checkType).toBe('static');
     expect(typeof record.riskScore).toBe('number');
@@ -129,7 +125,7 @@ describe('Medicine Risk Check API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const nextBody = next.body as ApiEnvelope<RiskCheckRecordsData>;
+    const nextBody = next.body as RiskCheckRecordsData;
     expect(expectData(nextBody).static?.checkType).toBe('static');
   });
 
