@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { ExecutionContext } from '@nestjs/common';
-import { UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 
 import { SecurityElevationGuard } from './elevation.guard';
 import { SecurityPinService } from '../services/pin.service';
@@ -102,9 +102,11 @@ describe('SecurityElevationGuard', () => {
   it('rejects when the elevation header is missing', async () => {
     const context = createMockContext({ handlerMetadata: true });
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(guard.canActivate(context)).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'AUTH_ELEVATION_TOKEN_INVALID',
+      }),
+    });
   });
 
   it('rejects when the elevation header is not a Bearer token', async () => {
@@ -113,9 +115,11 @@ describe('SecurityElevationGuard', () => {
       headers: { 'x-security-elevation': 'valid-token' },
     });
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(guard.canActivate(context)).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'AUTH_ELEVATION_TOKEN_INVALID',
+      }),
+    });
   });
 
   it('rejects with ForbiddenException when verifyElevationToken throws', async () => {
@@ -128,8 +132,10 @@ describe('SecurityElevationGuard', () => {
       headers: { 'x-security-elevation': 'Bearer bad-token' },
     });
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(guard.canActivate(context)).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'AUTH_ELEVATION_TOKEN_INVALID',
+      }),
+    });
   });
 });

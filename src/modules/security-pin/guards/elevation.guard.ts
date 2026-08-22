@@ -12,7 +12,6 @@ import { SecurityPinService } from '../services/pin.service';
 import { REQUIRE_SECURITY_ELEVATION_KEY } from '../decorators/require-elevation.decorator';
 import type { UserPayload } from '../../auth';
 import type { SecurityElevationPayload } from '../types/elevation.types';
-import { ResultCode } from '../../../common';
 
 interface ElevatedRequest {
   headers: Record<string, string | string[] | undefined>;
@@ -45,7 +44,7 @@ export class SecurityElevationGuard implements CanActivate {
     const user = request.user;
     if (!user.sub) {
       throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
+        code: 'AUTH_REQUIRED',
         message: this.t('auth.access_token_invalid'),
       });
     }
@@ -55,7 +54,7 @@ export class SecurityElevationGuard implements CanActivate {
     );
     if (!token) {
       throw new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
+        code: 'AUTH_ELEVATION_TOKEN_INVALID',
         message: this.t('security_pin.elevation_token_invalid'),
       });
     }
@@ -68,7 +67,7 @@ export class SecurityElevationGuard implements CanActivate {
       );
     } catch {
       throw new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
+        code: 'AUTH_ELEVATION_TOKEN_INVALID',
         message: this.t('security_pin.elevation_token_invalid'),
       });
     }

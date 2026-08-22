@@ -336,7 +336,11 @@ describe('SecurityPinService', () => {
 
       await expect(
         service.verifyElevationToken('token', 'user-1'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'AUTH_ELEVATION_TOKEN_INVALID',
+        }),
+      });
     });
 
     it('rejects when token subject does not match', async () => {
@@ -348,7 +352,11 @@ describe('SecurityPinService', () => {
 
       await expect(
         service.verifyElevationToken('token', 'user-1'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'AUTH_ELEVATION_TOKEN_INVALID',
+        }),
+      });
     });
 
     it('rejects when token scope is wrong', async () => {
@@ -360,7 +368,11 @@ describe('SecurityPinService', () => {
 
       await expect(
         service.verifyElevationToken('token', 'user-1'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'AUTH_ELEVATION_TOKEN_INVALID',
+        }),
+      });
     });
 
     it('rejects when PIN is disabled after token was issued', async () => {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
@@ -165,15 +165,24 @@ export class SecurityPinService {
     );
 
     if (payload.sub !== userId || payload.scope !== SECURITY_ELEVATION_SCOPE) {
-      unauthorized(this.i18n.t('security_pin.elevation_token_invalid'));
+      throw new ForbiddenException({
+        code: 'AUTH_ELEVATION_TOKEN_INVALID',
+        message: this.i18n.t('security_pin.elevation_token_invalid'),
+      });
     }
 
     const user = await this.loadSecurityPinUser(userId);
     if (!user.securityPinEnabled) {
-      forbidden(this.i18n.t('security_pin.not_enabled'));
+      throw new ForbiddenException({
+        code: 'AUTH_ELEVATION_REQUIRED',
+        message: this.i18n.t('security_pin.not_enabled'),
+      });
     }
     if (payload.version !== user.securityElevationVersion) {
-      unauthorized(this.i18n.t('security_pin.elevation_token_stale'));
+      throw new ForbiddenException({
+        code: 'AUTH_ELEVATION_TOKEN_INVALID',
+        message: this.i18n.t('security_pin.elevation_token_stale'),
+      });
     }
 
     return payload;
