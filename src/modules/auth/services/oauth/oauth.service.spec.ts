@@ -8,6 +8,7 @@ import { UserService } from '../../../user';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 import type { UserIdentity } from '#generated/prisma/client';
+import { okAsync } from '../../../../common/result';
 import type { OAuthProfile } from '../../types/oauth.types';
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -99,7 +100,7 @@ describe('AuthOAuthService', () => {
     userService.findByEmail.mockResolvedValue(null);
     userService.findByProviderUnionId.mockResolvedValue(null);
     userService.createOAuthUser.mockResolvedValue(mockUser);
-    userService.update.mockResolvedValue(mockUser);
+    userService.update.mockReturnValue(okAsync(mockUser));
     userService.linkIdentity.mockResolvedValue(mockIdentity);
   });
 

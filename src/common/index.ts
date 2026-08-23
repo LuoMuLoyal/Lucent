@@ -68,6 +68,7 @@ export {
 export { clampPage, clampPageSize } from './helpers/infra/pagination.utils';
 export { endSse, prepareSse, writeSseEvent } from './api/sse/sse';
 export { ensureOwnedByUser } from './helpers/prisma/prisma-ownership.utils';
+export { fromPrismaResult } from './helpers/prisma/prisma-result.utils';
 export {
   extractAuthRequestContext,
   getRequestClientIp,

@@ -5,6 +5,7 @@ import {
   conflict,
 } from '../../../../common';
 import { normalizeEmail } from '../../../../common';
+import { unwrapResult } from '../../../../common/result';
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
@@ -121,10 +122,12 @@ export class CredentialAuthService {
 
     await this.authRateLimitService.clearLoginFailures(email);
 
-    const updatedUser = await this.userService.update(user.id, {
-      lastLoginAt: now(),
-      status: UserStatus.active,
-    });
+    const updatedUser = await unwrapResult(
+      this.userService.update(user.id, {
+        lastLoginAt: now(),
+        status: UserStatus.active,
+      }),
+    );
 
     const tokens = await this.authTokenService.generateTokenPair(
       updatedUser,
@@ -152,7 +155,7 @@ export class CredentialAuthService {
       });
     }
     const passwordHash = await argon2.hash(dto.newPassword, ARGON2_OPTIONS);
-    await this.userService.update(userId, { passwordHash });
+    await unwrapResult(this.userService.update(userId, { passwordHash }));
     await this.authTokenService.revokeAll(userId);
     await this._notifyPasswordChanged(userId);
   }
@@ -184,14 +187,16 @@ export class CredentialAuthService {
       if (existingUser && existingUser.id !== userId) {
         conflict(this.i18n.t('auth.email_in_use'));
       }
-      await this.userService.update(userId, {
-        email: targetEmail,
-        emailVerifiedAt: now(),
-      });
+      await unwrapResult(
+        this.userService.update(userId, {
+          email: targetEmail,
+          emailVerifiedAt: now(),
+        }),
+      );
     }
 
     const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
-    await this.userService.update(userId, { passwordHash });
+    await unwrapResult(this.userService.update(userId, { passwordHash }));
 
     await this.authTokenService.revokeAll(userId);
     await this._notifyPasswordChanged(userId);
@@ -214,10 +219,12 @@ export class CredentialAuthService {
       'change-email',
     );
 
-    return this.userService.update(userId, {
-      email: newEmail,
-      emailVerifiedAt: now(),
-    });
+    return unwrapResult(
+      this.userService.update(userId, {
+        email: newEmail,
+        emailVerifiedAt: now(),
+      }),
+    );
   }
 
   // ── Verification Code ────────────────────────────────────────
@@ -269,7 +276,7 @@ export class CredentialAuthService {
       notFound(this.i18n.t('auth.user_not_found'));
     }
     const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
-    await this.userService.update(user.id, { passwordHash });
+    await unwrapResult(this.userService.update(user.id, { passwordHash }));
     await this.authTokenService.revokeAll(user.id);
   }
 

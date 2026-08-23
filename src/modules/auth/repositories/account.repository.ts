@@ -5,20 +5,32 @@
  */
 import { Injectable } from '@nestjs/common';
 import { UserStatus } from '#generated/prisma/client';
+import { fromPrismaResult } from '../../../common';
 import { PrismaService } from '../../../prisma';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 export abstract class AuthAccountRepositoryPort {
-  abstract softDeleteUser(userId: string, deletedAt: Date): Promise<void>;
+  abstract softDeleteUser(
+    userId: string,
+    deletedAt: Date,
+  ): ResultAsync<void, DomainFailure>;
 }
 
 @Injectable()
 export class AuthAccountRepository implements AuthAccountRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async softDeleteUser(userId: string, deletedAt: Date): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { deletedAt, status: UserStatus.deleted },
-    });
+  softDeleteUser(
+    userId: string,
+    deletedAt: Date,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.user
+        .update({
+          where: { id: userId },
+          data: { deletedAt, status: UserStatus.deleted },
+        })
+        .then(() => undefined),
+    );
   }
 }

@@ -34,12 +34,10 @@ export class AccountService {
 
     return this.getActiveAccountUser(userId)
       .andThen(() =>
-        this.preserveThrow(
-          this.userService.update(userId, {
-            ...(dto.nickname !== undefined && { nickname }),
-            ...(dto.avatar !== undefined && { avatar }),
-          }),
-        ),
+        this.userService.update(userId, {
+          ...(dto.nickname !== undefined && { nickname }),
+          ...(dto.avatar !== undefined && { avatar }),
+        }),
       )
       .andThen(() => this.getAccount(userId));
   }
@@ -68,17 +66,20 @@ export class AccountService {
         );
       }
 
-      return this.preserveThrow(
-        this.userService.unlinkIdentity(identityId),
-      ).andThen(() => this.getAccount(userId));
+      return this.userService
+        .unlinkIdentity(identityId)
+        .andThen(() => this.getAccount(userId));
     });
   }
 
   private getActiveAccountUser(
     userId: string,
   ): ResultAsync<AccountUser, DomainFailure> {
-    return this.preserveThrow(
+    return fromPromise(
       this.userService.findByIdWithIdentities(userId),
+      (error) => {
+        throw error;
+      },
     ).andThen((user) => {
       if (!user) {
         return errAsync(
@@ -89,12 +90,6 @@ export class AccountService {
         );
       }
       return okAsync(user);
-    });
-  }
-
-  private preserveThrow<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
-    return fromPromise(promise, (error) => {
-      throw error;
     });
   }
 

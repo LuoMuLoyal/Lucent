@@ -39,6 +39,11 @@ All ordinary failures for these resources use `application/problem+json` with st
 codes. In particular, missing sessions use `AUTH_SESSION_NOT_FOUND`, and validation/authentication
 details are localized from the request language rather than parsed from human-readable text.
 
+User-owned write paths (account profile updates, identity unlinking, account deletion) return
+`ResultAsync<T, DomainFailure>` from the domain layer; Prisma `P2002` is mapped to
+`RESOURCE_CONFLICT` and `P2025` to `RESOURCE_NOT_FOUND`, while unknown infrastructure errors remain
+exceptions for the global filter.
+
 ## Prisma Models
 
 ```prisma

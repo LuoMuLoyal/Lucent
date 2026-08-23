@@ -16,6 +16,7 @@ import { NotificationsService } from '../../../notifications';
 import type { NotificationListItemDto } from '../../../notifications';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
+import { okAsync } from '../../../../common/result';
 
 // ── Module-level argon2 mock ──────────────────────────────────
 
@@ -104,7 +105,7 @@ describe('CredentialAuthService', () => {
             findByEmail: vi.fn(),
             findById: vi.fn(),
             create: vi.fn(),
-            update: vi.fn(),
+            update: vi.fn().mockReturnValue(okAsync(mockUser)),
             updateByEmail: vi.fn(),
           },
         },
@@ -159,7 +160,7 @@ describe('CredentialAuthService', () => {
     userService.findByEmail.mockResolvedValue(null);
     userService.findById.mockResolvedValue(mockUser);
     userService.create.mockResolvedValue(mockUser);
-    userService.update.mockResolvedValue(mockUser);
+    userService.update.mockReturnValue(okAsync(mockUser));
     authTokenService.generateTokenPair.mockResolvedValue(mockTokenPair);
     authTokenService.revokeAll.mockResolvedValue(undefined);
     verificationCodeService.verify.mockResolvedValue(true);

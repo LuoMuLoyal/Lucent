@@ -1,5 +1,6 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 import { nonDeleted } from '../../../common';
+import { okAsync } from '../../../common/result';
 import type { DomainFailure, ResultAsync } from '../../../common/result';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -73,8 +74,8 @@ describe('AccountService', () => {
           provide: UserService,
           useValue: {
             findByIdWithIdentities: vi.fn(),
-            update: vi.fn(),
-            unlinkIdentity: vi.fn(),
+            update: vi.fn().mockReturnValue(okAsync(undefined)),
+            unlinkIdentity: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
       ],
@@ -198,7 +199,7 @@ describe('AccountService', () => {
           avatar: 'https://example.com/new-avatar.png',
           identities: [baseIdentity],
         });
-      (userService.update as vi.Mock).mockResolvedValue(undefined);
+      (userService.update as vi.Mock).mockReturnValue(okAsync(undefined));
 
       const dto: UpdateAccountDto = {
         nickname: 'NewNick',
@@ -231,7 +232,7 @@ describe('AccountService', () => {
           avatar: null,
           identities: [baseIdentity],
         });
-      (userService.update as vi.Mock).mockResolvedValue(undefined);
+      (userService.update as vi.Mock).mockReturnValue(okAsync(undefined));
 
       const dto: UpdateAccountDto = { nickname: '', avatar: '' };
 
@@ -259,7 +260,7 @@ describe('AccountService', () => {
           ...baseUser,
           identities: [baseIdentity],
         });
-      (userService.update as vi.Mock).mockResolvedValue(undefined);
+      (userService.update as vi.Mock).mockReturnValue(okAsync(undefined));
 
       const dto: UpdateAccountDto = {};
 
@@ -298,7 +299,9 @@ describe('AccountService', () => {
           passwordHash: '$argon2id$exists',
           identities: [secondIdentity],
         });
-      (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
+      (userService.unlinkIdentity as vi.Mock).mockReturnValue(
+        okAsync(undefined),
+      );
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id),
@@ -342,7 +345,9 @@ describe('AccountService', () => {
           passwordHash: '$argon2id$exists',
           identities: [],
         });
-      (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
+      (userService.unlinkIdentity as vi.Mock).mockReturnValue(
+        okAsync(undefined),
+      );
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id),
@@ -381,7 +386,9 @@ describe('AccountService', () => {
           passwordHash: null,
           identities: [secondIdentity],
         });
-      (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
+      (userService.unlinkIdentity as vi.Mock).mockReturnValue(
+        okAsync(undefined),
+      );
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id),

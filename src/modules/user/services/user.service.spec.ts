@@ -1,5 +1,15 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
+import { Prisma } from '#generated/prisma/client';
 import { nonDeleted } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
+async function inspectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserStatus } from '#generated/prisma/client';
@@ -400,11 +410,43 @@ describe('UserService', () => {
         mockIdentity,
       );
 
-      await service.unlinkIdentity('identity-uuid-1');
+      const result = await inspectResult(
+        service.unlinkIdentity('identity-uuid-1'),
+      );
 
       expect(prismaService.userIdentity.delete).toHaveBeenCalledWith({
         where: { id: 'identity-uuid-1' },
       });
+      expect(result).toMatchObject({ ok: true, value: undefined });
+    });
+
+    it('should map a missing identity to RESOURCE_NOT_FOUND', async () => {
+      const error = Object.create(
+        Prisma.PrismaClientKnownRequestError.prototype,
+      );
+      error.code = 'P2025';
+      (prismaService.userIdentity.delete as vi.Mock).mockRejectedValue(error);
+
+      const result = await inspectResult(
+        service.unlinkIdentity('missing-identity'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+    });
+
+    it('should rethrow an unknown database error', async () => {
+      const error = new Error('connection lost');
+      (prismaService.userIdentity.delete as vi.Mock).mockRejectedValue(error);
+
+      await expect(
+        service.unlinkIdentity('identity-uuid-1').match(
+          () => undefined,
+          () => undefined,
+        ),
+      ).rejects.toBe(error);
     });
   });
 
@@ -413,15 +455,63 @@ describe('UserService', () => {
       const updatedUser = { ...mockUser, nickname: 'UpdatedName' };
       (prismaService.user.update as vi.Mock).mockResolvedValue(updatedUser);
 
-      const result = await service.update('user-uuid-1', {
-        nickname: 'UpdatedName',
-      });
+      const result = await inspectResult(
+        service.update('user-uuid-1', {
+          nickname: 'UpdatedName',
+        }),
+      );
 
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user-uuid-1' },
         data: { nickname: 'UpdatedName' },
       });
-      expect(result.nickname).toBe('UpdatedName');
+      expect(result).toMatchObject({ ok: true, value: updatedUser });
+    });
+
+    it('should map a missing user to RESOURCE_NOT_FOUND', async () => {
+      const error = Object.create(
+        Prisma.PrismaClientKnownRequestError.prototype,
+      );
+      error.code = 'P2025';
+      (prismaService.user.update as vi.Mock).mockRejectedValue(error);
+
+      const result = await inspectResult(
+        service.update('missing-user', { nickname: 'X' }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+    });
+
+    it('should map a unique constraint violation to RESOURCE_CONFLICT', async () => {
+      const error = Object.create(
+        Prisma.PrismaClientKnownRequestError.prototype,
+      );
+      error.code = 'P2002';
+      (prismaService.user.update as vi.Mock).mockRejectedValue(error);
+
+      const result = await inspectResult(
+        service.update('user-uuid-1', { email: 'taken@example.com' }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
+      });
+    });
+
+    it('should rethrow an unknown database error', async () => {
+      const error = new Error('connection lost');
+      (prismaService.user.update as vi.Mock).mockRejectedValue(error);
+
+      await expect(
+        service.update('user-uuid-1', { nickname: 'X' }).match(
+          () => undefined,
+          () => undefined,
+        ),
+      ).rejects.toBe(error);
     });
   });
 

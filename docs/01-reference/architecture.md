@@ -27,7 +27,10 @@ optional request-specific `detail`, and an optional `args` map of primitive inte
 i18n. `args` and `errors` are forwarded to the i18n catalog; `cause` is kept for logs/traces only
 and never serialised into the Problem Details body. Each documented business `code` has one
 `DomainFailureKind`, and `createDomainFailure` rejects inconsistent `kind`/`code` pairs as well as
-transport-only codes such as `SERVER_SHUTDOWN` and `STREAM_CANCELLED`.
+transport-only codes such as `SERVER_SHUTDOWN` and `STREAM_CANCELLED`. Prisma write helpers in
+`src/common/helpers/prisma/prisma-result.utils.ts` lift known `P2002` / `P2025` errors into
+`RESOURCE_CONFLICT` / `RESOURCE_NOT_FOUND`; all other database or connection errors are re-thrown
+so the global filter and observability stack see them unchanged.
 
 ## Module Dependency Graph
 

@@ -6,6 +6,7 @@ import { User } from '#generated/prisma/client';
 import { badRequest, notFound } from '../../../common';
 import { normalizeEmail } from '../../../common';
 import { now } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import { UserService } from '../../user';
 import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
 import { VerificationCodeService } from './identity/verification-code.service';
@@ -72,6 +73,6 @@ export class AuthAccountService {
       badRequest(this.i18n.t('auth.provide_password_or_code_for_deletion'));
     }
 
-    await this.accountRepository.softDeleteUser(userId, now());
+    await unwrapResult(this.accountRepository.softDeleteUser(userId, now()));
   }
 }

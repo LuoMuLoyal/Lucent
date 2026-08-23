@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
 import { Prisma, User, UserIdentity } from '#generated/prisma/client';
+import { fromPrismaResult } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 export interface UserIdentityInput {
   provider: string;
@@ -105,8 +107,11 @@ export class UserService {
     });
   }
 
-  async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
-    return this.prisma.user.update({ where: { id }, data });
+  update(
+    id: string,
+    data: Prisma.UserUpdateInput,
+  ): ResultAsync<User, DomainFailure> {
+    return fromPrismaResult(this.prisma.user.update({ where: { id }, data }));
   }
 
   /** Fetch a non-deleted user together with linked identities (oldest first). */
@@ -124,8 +129,12 @@ export class UserService {
    * last-login-method protection) — this is the single write path for
    * unlinking identities (ADR-0009).
    */
-  async unlinkIdentity(identityId: string): Promise<void> {
-    await this.prisma.userIdentity.delete({ where: { id: identityId } });
+  unlinkIdentity(identityId: string): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userIdentity
+        .delete({ where: { id: identityId } })
+        .then(() => undefined),
+    );
   }
 
   async updateByEmail(

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { okAsync } from '../../../common/result';
 import type { I18nService } from 'nestjs-i18n';
 import type { UserService } from '../../user';
 import type { VerificationCodeService } from './identity/verification-code.service';
@@ -37,7 +38,7 @@ describe('AuthAccountService', () => {
 
   beforeEach(() => {
     accountRepo = {
-      softDeleteUser: vi.fn().mockResolvedValue(undefined),
+      softDeleteUser: vi.fn().mockReturnValue(okAsync(undefined)),
     };
     userService = {
       findById: vi.fn(),
