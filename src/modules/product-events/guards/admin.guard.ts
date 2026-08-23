@@ -1,6 +1,12 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { forbidden, safeCompare, unauthorized } from '../../../common';
+import { safeCompare } from '../../../common';
 import { EnvKey } from '../../../config/env/env-keys.enum';
 import type { UserPayload } from '../../auth';
 
@@ -24,7 +30,10 @@ export class AdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{ user?: UserPayload }>();
     const user = request.user;
     if (user == null) {
-      unauthorized('Admin access requires an authenticated user');
+      throw new UnauthorizedException({
+        code: 'AUTH_REQUIRED',
+        message: 'Admin access requires an authenticated user',
+      });
     }
 
     const adminEmail = this.configService.get<string>(EnvKey.ADMIN_EMAIL);
@@ -33,7 +42,10 @@ export class AdminGuard implements CanActivate {
       user.email == null ||
       !safeCompare(user.email, adminEmail)
     ) {
-      forbidden('Admin access required');
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Admin access required',
+      });
     }
     return true;
   }

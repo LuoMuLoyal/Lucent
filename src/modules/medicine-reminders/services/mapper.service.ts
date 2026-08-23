@@ -1,8 +1,7 @@
-import { badRequest } from '../../../common';
 import { normalizeNullableText } from '../../../common';
 import { formatDateOnly } from '../../../common';
 import { parseDateOnly } from '../../../common';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { Prisma } from '#generated/prisma/client';
@@ -176,7 +175,10 @@ export class MedicineRemindersMapperService {
 
     const unique = Array.from(new Set(value)).sort((a, b) => a - b);
     if (unique.length === 0) {
-      badRequest(this.i18n.t('medicine-reminders.days_of_week_empty'));
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: this.i18n.t('medicine-reminders.days_of_week_empty'),
+      });
     }
 
     return unique;
@@ -201,7 +203,10 @@ export class MedicineRemindersMapperService {
   private parseRequiredDate(value: string) {
     const parsed = parseDateOnly(value);
     if (Number.isNaN(parsed.getTime())) {
-      badRequest(this.i18n.t('medicine-reminders.invalid_date'));
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: this.i18n.t('medicine-reminders.invalid_date'),
+      });
     }
 
     return parsed;
@@ -209,7 +214,10 @@ export class MedicineRemindersMapperService {
 
   private assertValidDateWindow(startDate: Date | null, endDate: Date | null) {
     if (startDate != null && endDate != null && endDate < startDate) {
-      badRequest(this.i18n.t('medicine-reminders.end_before_start'));
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: this.i18n.t('medicine-reminders.end_before_start'),
+      });
     }
   }
 }

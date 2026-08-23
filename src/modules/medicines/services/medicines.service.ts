@@ -1,8 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
 
-import { notFound, badRequest } from '../../../common';
 import { shuffleArray } from '../../../common';
 import { safeParseLlmJson } from '../../../common';
 import { PrismaService } from '../../../prisma';
@@ -143,7 +147,10 @@ export class MedicinesService {
     );
 
     if (!detail) {
-      notFound(this.i18n.t('medicine.not_found'));
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: this.i18n.t('medicine.not_found'),
+      });
     }
 
     return detail;
@@ -194,6 +201,9 @@ export class MedicinesService {
       return source;
     }
 
-    badRequest(this.i18n.t('medicine.source_invalid'));
+    throw new BadRequestException({
+      code: 'VALIDATION_FAILED',
+      message: this.i18n.t('medicine.source_invalid'),
+    });
   }
 }

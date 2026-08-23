@@ -337,14 +337,24 @@ the prefix is centralized.
 ## Error Handling
 
 All ordinary HTTP error responses use `application/problem+json` with the Problem Details fields
-defined by ADR-0012. `api-errors.ts` helpers (`notFound`, `badRequest`, `unauthorized`, `forbidden`,
-`conflict`) continue to provide localized error context. The final `ApiExceptionFilter` is resolved
+defined by ADR-0012. Expected, recoverable failures are modeled as `ResultAsync<T, DomainFailure>`
+imported only from `src/common/result/index.ts`; the sole HTTP folding boundary is `unwrapResult`
+in controllers, and the final `ApiExceptionFilter` converts `DomainFailureException` and Nest
+`HttpException` payloads into Problem Details. The final `ApiExceptionFilter` is resolved
 from Nest DI so it can emit structured Winston logs with `trace_id`, `span_id`, method, path, status,
 and stack metadata; its response body must not use the successful resource representation or a
 generic `{ code, message, data }` envelope.
 
 Health event API errors use the `health-events` i18n scope in `src/i18n/en/` and
 `src/i18n/zh-CN/`, keeping outcome, ownership, and date-validation messages localized.
+
+> **稳定结论（2026-08-23，neverthrow 迁移收口）**：Lucent 已完成 neverthrow 迁移——业务代码不再
+> 直接从 `neverthrow` 导入，旧 throw helper（`api-errors.ts`）与伪 Result 模式已删除；唯一折叠
+> 边界为 controller 的 `unwrapResult`（SSE 为 `SseProblemDetailsMapper` 写 `event: error`，只输出
+> type/title/detail/code/retryable/retryAfter/status 安全字段）；保留 throw 的边界类别仅限程序/
+> 不变量错误、配置/启动错误、取消/断流/SSE transport 终止、最终 transport boundary 的
+> `DomainFailureException` 以及需要 BullMQ retry 的 worker 边界（详见 ADR-0012 与迁移日志
+> 2026-08-23 Task 11 条目）。
 
 ## Logging Foundation
 

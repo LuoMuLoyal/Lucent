@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -21,7 +22,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
-import { badRequest } from '../../common';
 import { CurrentUser } from '../auth';
 
 import { Public } from '../auth';
@@ -193,7 +193,10 @@ export class MedicinesController {
     @Body() dto: RunRiskCheckDto,
   ) {
     if (dto.candidate != null && dto.type === 'llm') {
-      badRequest('候选预检仅支持 static 检查');
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: '候选预检仅支持 static 检查',
+      });
     }
 
     const record =

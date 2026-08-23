@@ -1,5 +1,8 @@
-import { badRequest } from '../../../common';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
@@ -27,11 +30,17 @@ export class DailyRecordImageUploadService {
 
     const contentType = dto.contentType.trim().toLowerCase();
     if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
-      badRequest(this.i18n.t('files.content_type_not_allowed'));
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: this.i18n.t('files.content_type_not_allowed'),
+      });
     }
 
     if (dto.sizeBytes > config.maxUploadBytes) {
-      badRequest(this.i18n.t('files.file_size_exceeds_limit'));
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: this.i18n.t('files.file_size_exceeds_limit'),
+      });
     }
 
     const objectKey = this.createObjectKey(userId, dto.fileName, contentType);

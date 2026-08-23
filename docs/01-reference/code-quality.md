@@ -26,7 +26,7 @@ Last updated: 2026-08-22
 - Outbound HTTP retries are centralized in `src/common/helpers/retry.utils.ts` (`withRetry` /
   `fetchWithRetry`); QQ and Apple OAuth providers share the same retry semantics.
 - Public exports across `setup-app.ts`, `app.module.ts`, `adminjs.setup.ts`, `api-envelope.ts`,
-  `api-errors.ts`, filters/interceptors, and `config/` now have JSDoc descriptions.
+  filters/interceptors, and `config/` now have JSDoc descriptions.
 - COS and embedding defaults/limits are centralized in `src/config/constants.ts`; both
   `tencent-cos.config.ts` and `environment.validation.ts` reference the same constants.
 - Repeated test literals in `environment.validation.spec.ts` (DB URLs, admin credentials) and
@@ -52,8 +52,10 @@ Last updated: 2026-08-22
   `DAILY_RECORD_CANDIDATE_GENERATOR`) instead of concrete class imports.
 - Shared helpers expanded: `isBlank`, `isEmptyArray`, `truncate`, and `generatePrefixedId` live in
   `src/common/helpers/` with unit specs.
-- `api-errors.ts` helpers are now used consistently for plain `BadRequestException` throws in
-  reports and daily-records services.
+- Error contract unified (2026-08-23): `api-errors.ts` throw helpers and `prisma-ownership.utils.ts`
+  were removed after the neverthrow migration; business failures use `ResultAsync<T, DomainFailure>`
+  from `src/common/result/index.ts` and client-error throws are plain Nest `HttpException` instances
+  folded by `ApiExceptionFilter` into Problem Details.
 - AI model invocation timeout is centralized as `AI_MODEL_TIMEOUT_MS` in `src/config/constants.ts`;
   `BaseLlmGeneratorService` and `AssistantRuntimeService` both reference the same constant instead
   of hardcoding `10_000`.

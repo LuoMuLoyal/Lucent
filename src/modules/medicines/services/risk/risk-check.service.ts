@@ -1,5 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
+  BadRequestException,
   Inject,
   Injectable,
   Logger,
@@ -13,7 +14,7 @@ import { MedicinesService } from '../medicines.service';
 import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
 import { RiskDetectionService } from './risk-detection.service';
 import { RiskContextBuilderService } from './risk-context-builder.service';
-import { badRequest, nonDeleted, toInputJsonValue } from '../../../../common';
+import { nonDeleted, toInputJsonValue } from '../../../../common';
 import type {
   MedicineRiskCheckResponseDto,
   MedicineRiskCheckRecordDto,
@@ -265,7 +266,10 @@ export class MedicineRiskCheckService {
           if (error instanceof NotFoundException) {
             throw error;
           }
-          badRequest(this.i18n.t('medicine.candidate_unavailable'));
+          throw new BadRequestException({
+            code: 'VALIDATION_FAILED',
+            message: this.i18n.t('medicine.candidate_unavailable'),
+          });
         }
         details.push({
           item: {

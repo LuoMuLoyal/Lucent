@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -8,7 +9,6 @@ import { trace } from '@opentelemetry/api';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Command, type StateSnapshot } from '@langchain/langgraph';
-import { badRequest } from '../../../common';
 import {
   createDomainFailure,
   fromPromise,
@@ -451,9 +451,11 @@ export class AssistantRuntimeService {
   ) {
     const checkpointer = this.checkpointerService.getSaver();
     if (checkpointer == null) {
-      badRequest(
-        'Checkpoint persistence is unavailable; cannot resume the review.',
-      );
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message:
+          'Checkpoint persistence is unavailable; cannot resume the review.',
+      });
     }
 
     return buildAssistantRuntimeGraph({

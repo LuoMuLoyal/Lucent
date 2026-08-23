@@ -16,7 +16,8 @@
 - account 模块直接 `prisma.user.update` / `prisma.userIdentity.delete`，绕过 user 模块
 
 审查同时确认：共享 helper 已存在（`common/helpers/prisma.utils.ts` 的 `nonDeleted`、
-`prisma-ownership.utils.ts` 的 `ensureOwnedByUser`），软删除模型仅 4 个（`User`、
+`prisma-ownership.utils.ts` 的 `ensureOwnedByUser`——后者已随 2026-08-23 neverthrow 迁移删除，
+各模块改为本地 ResultAsync ownership service），软删除模型仅 4 个（`User`、
 `UserMedicineReminder`、`UserMedicineDoseLog`、`UserDailyRecord`）。
 
 ## Decision
