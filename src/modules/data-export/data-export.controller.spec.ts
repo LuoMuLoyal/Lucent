@@ -1,4 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { errAsync, okAsync } from '../../common/result';
+import type { DomainFailure } from '../../common/result';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './services/export.service';
 import { SecurityElevationGuard } from '../security-pin';
@@ -39,7 +41,7 @@ describe('DataExportController', () => {
 
   it('should create a data export request', async () => {
     const exportReq = makeExportRequest();
-    service.createRequest.mockResolvedValue(exportReq);
+    service.createRequest.mockReturnValue(okAsync(exportReq));
     const dto: CreateDataExportRequestDto = {
       kind: 'hospital',
       format: 'pdf',
@@ -61,9 +63,33 @@ describe('DataExportController', () => {
     expect(service.createRequest).toHaveBeenCalledWith('u1', dto, 'zh-CN');
   });
 
+  it('folds a service Err into a DomainFailureException', async () => {
+    const failure: DomainFailure = {
+      _tag: 'DomainFailure',
+      kind: 'dependency',
+      code: 'DEPENDENCY_UNAVAILABLE',
+    };
+    service.createRequest.mockReturnValue(errAsync(failure));
+
+    await expect(
+      controller.createRequest(
+        {
+          sub: 'u1',
+          email: 'a@b.c',
+          status: 'active',
+        },
+        { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+        'zh-CN',
+      ),
+    ).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: expect.objectContaining({ code: 'DEPENDENCY_UNAVAILABLE' }),
+    });
+  });
+
   it('should return the latest export request', async () => {
     const exportReq = makeExportRequest({ status: 'processing' });
-    service.getLatestRequest.mockResolvedValue(exportReq);
+    service.getLatestRequest.mockReturnValue(okAsync(exportReq));
 
     const result = await controller.getLatestRequest({
       sub: 'u1',
@@ -77,7 +103,7 @@ describe('DataExportController', () => {
   });
 
   it('should return null data when no export request exists', async () => {
-    service.getLatestRequest.mockResolvedValue(null);
+    service.getLatestRequest.mockReturnValue(okAsync(null));
 
     const result = await controller.getLatestRequest({
       sub: 'u1',

@@ -4,6 +4,8 @@ import type { ReportsService } from '../../reports';
 import type { DataExportStorageService } from './storage.service';
 import type { ReportExportPdfService } from './report-pdf/pdf.service';
 import type { NotificationsService } from '../../notifications';
+import { errAsync, okAsync } from '../../../common/result';
+import { createDomainFailure } from '../../../common/result';
 
 type MockPrisma = {
   dataExportRequest: {
@@ -20,6 +22,17 @@ type MockPdf = {
   buildPrintPdf: vi.Mock;
 };
 type MockNotifications = { create: vi.Mock };
+
+const notificationItem = {
+  id: 'notif-1',
+  type: 'report_generated',
+  title: '报告导出成功',
+  content: '报告已生成',
+  action: 'report',
+  actionPayload: null,
+  isRead: false,
+  createdAt: '2026-07-10T08:00:00.000Z',
+};
 
 describe('DataExportProcessorService', () => {
   it('returns early when the export request is not found', async () => {
@@ -43,12 +56,14 @@ describe('DataExportProcessorService', () => {
       createProcessor();
     const report = sampleReport();
     reportsService.getDashboard.mockResolvedValue(report as never);
-    storageService.uploadPdf.mockResolvedValue({
-      objectKey: 'exports/user-1/export.pdf',
-      bucket: 'lucent-bucket',
-      provider: 'tencent-cos',
-      fileSizeBytes: 1024,
-    });
+    storageService.uploadPdf.mockReturnValue(
+      okAsync({
+        objectKey: 'exports/user-1/export.pdf',
+        bucket: 'lucent-bucket',
+        provider: 'tencent-cos',
+        fileSizeBytes: 1024,
+      }),
+    );
 
     await processor.process({
       exportRequestId: 'export-1',
@@ -147,6 +162,34 @@ describe('DataExportProcessorService', () => {
     });
   });
 
+  it('marks the request failed when the storage upload returns an Err', async () => {
+    const { prisma, storageService, processor } = createProcessor();
+    storageService.uploadPdf.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+        }),
+      ),
+    );
+
+    await expect(
+      processor.process({
+        exportRequestId: 'export-1',
+        userId: 'user-1',
+        language: 'zh-CN',
+      }),
+    ).rejects.toThrow('Export processing failed for request export-1');
+
+    expect(prisma.dataExportRequest.update).toHaveBeenLastCalledWith({
+      where: { id: 'export-1' },
+      data: expect.objectContaining({
+        status: 'failed',
+        errorMessage: 'Domain failure: DEPENDENCY_UNAVAILABLE',
+      }),
+    });
+  });
+
   it('wraps non-Error throwables into a safe error message', async () => {
     const { prisma, reportsService, processor } = createProcessor();
     reportsService.getDashboard.mockRejectedValue('unknown failure');
@@ -182,6 +225,28 @@ describe('DataExportProcessorService', () => {
       }),
     ).resolves.toBeUndefined();
   });
+
+  it('swallows notification DomainFailure Errs so they do not break the export', async () => {
+    const { reportsService, notificationsService, processor } =
+      createProcessor();
+    reportsService.getDashboard.mockResolvedValue(sampleReport() as never);
+    notificationsService.create.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+        }),
+      ),
+    );
+
+    await expect(
+      processor.process({
+        exportRequestId: 'export-1',
+        userId: 'user-1',
+        language: 'zh-CN',
+      }),
+    ).resolves.toBeUndefined();
+  });
 });
 
 function createProcessor() {
@@ -204,12 +269,14 @@ function createProcessor() {
   };
 
   const storageService: MockStorage = {
-    uploadPdf: vi.fn().mockResolvedValue({
-      objectKey: 'exports/user-1/export.pdf',
-      bucket: 'lucent-bucket',
-      provider: 'tencent-cos',
-      fileSizeBytes: 1024,
-    }),
+    uploadPdf: vi.fn().mockReturnValue(
+      okAsync({
+        objectKey: 'exports/user-1/export.pdf',
+        bucket: 'lucent-bucket',
+        provider: 'tencent-cos',
+        fileSizeBytes: 1024,
+      }),
+    ),
   };
 
   const pdfService: MockPdf = {
@@ -219,7 +286,7 @@ function createProcessor() {
   };
 
   const notificationsService: MockNotifications = {
-    create: vi.fn().mockResolvedValue(undefined),
+    create: vi.fn().mockReturnValue(okAsync(notificationItem)),
   };
 
   const processor = new DataExportProcessorService(

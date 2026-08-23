@@ -1,6 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ProductEventName } from '#generated/prisma/client';
-import { badRequest, now } from '../../../common';
+import { now } from '../../../common';
+import {
+  createDomainFailure,
+  err,
+  errAsync,
+  ok,
+  type DomainFailure,
+  type Result,
+  type ResultAsync,
+} from '../../../common/result';
+import { fromPromise } from '../../../common/result';
 import { PrismaService } from '../../../prisma';
 import {
   MAX_FUNNEL_RANGE_DAYS,
@@ -144,68 +154,79 @@ export class ProductFunnelService {
    * Aggregate the core funnel and the optional visit-summary events over a
    * UTC-calendar-day window. One read over the `occurredAt` index; grouping
    * is cross-user by design, and no user-level detail is ever selected.
+   *
+   * Invalid query windows (partial dates, late-before-early, over-long
+   * spans, unparseable dates) map to `VALIDATION_FAILED`; unknown database
+   * errors rethrow.
    */
-  async getFunnel(query: FunnelQueryDto): Promise<FunnelDataDto> {
-    const { dateFrom, dateTo } = this.resolveWindow(query);
-    const windowStart = utcDayStart(dateFrom);
-    // Exclusive upper bound: the day AFTER dateTo at 00:00 UTC.
-    const windowEnd = new Date(utcDayStart(dateTo).getTime() + MS_PER_DAY);
-
-    const rows = await this.prisma.$queryRaw<FunnelAggregateRow[]>(Prisma.sql`
-      SELECT to_char(date_trunc('day', occurred_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
-             name,
-             COUNT(*)::int AS count
-      FROM user_product_events
-      WHERE occurred_at >= ${windowStart} AND occurred_at < ${windowEnd}
-      GROUP BY 1, 2
-    `);
-
-    const totals = emptyCoreCounts();
-    const optional = emptyOptionalCounts();
-    const byDay = new Map<string, FunnelDailyCountsDto>();
-
-    for (const row of rows) {
-      const coreStage = CORE_STAGE_BY_EVENT_NAME[row.name as ProductEventName];
-      if (coreStage != null) {
-        totals[coreStage] += row.count;
-        let daily = byDay.get(row.day);
-        if (daily == null) {
-          daily = { date: row.day, ...emptyCoreCounts() };
-          byDay.set(row.day, daily);
-        }
-        daily[coreStage] += row.count;
-        continue;
-      }
-      const optionalKey =
-        OPTIONAL_COUNT_BY_EVENT_NAME[row.name as ProductEventName];
-      if (optionalKey != null) {
-        optional[optionalKey] += row.count;
-      }
-      // Anything else cannot exist (enum-constrained column); ignoring it
-      // keeps the response strictly to the declared count surface.
+  getFunnel(query: FunnelQueryDto): ResultAsync<FunnelDataDto, DomainFailure> {
+    const windowResult = this.resolveWindow(query);
+    if (windowResult.isErr()) {
+      return errAsync(windowResult.error);
     }
+    const { dateFrom, dateTo, windowStart, windowEnd } = windowResult.value;
 
-    const coreTotal =
-      totals.eventStarted +
-      totals.suggestionImpression +
-      totals.suggestionActioned +
-      totals.eventEndedOrOutcome +
-      totals.reviewOpened;
-    const detailsSuppressed = coreTotal < MIN_FUNNEL_GROUP_SIZE;
-
-    return {
-      daily: detailsSuppressed
-        ? []
-        : [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date)),
-      optional,
-      totals,
-      window: {
-        dateFrom,
-        dateTo,
-        generatedAt: now().toISOString(),
-        detailsSuppressed,
+    return fromPromise(
+      this.prisma.$queryRaw<FunnelAggregateRow[]>(Prisma.sql`
+        SELECT to_char(date_trunc('day', occurred_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
+               name,
+               COUNT(*)::int AS count
+        FROM user_product_events
+        WHERE occurred_at >= ${windowStart} AND occurred_at < ${windowEnd}
+        GROUP BY 1, 2
+      `),
+      (error) => {
+        throw error;
       },
-    };
+    ).map((rows) => {
+      const totals = emptyCoreCounts();
+      const optional = emptyOptionalCounts();
+      const byDay = new Map<string, FunnelDailyCountsDto>();
+
+      for (const row of rows) {
+        const coreStage =
+          CORE_STAGE_BY_EVENT_NAME[row.name as ProductEventName];
+        if (coreStage != null) {
+          totals[coreStage] += row.count;
+          let daily = byDay.get(row.day);
+          if (daily == null) {
+            daily = { date: row.day, ...emptyCoreCounts() };
+            byDay.set(row.day, daily);
+          }
+          daily[coreStage] += row.count;
+          continue;
+        }
+        const optionalKey =
+          OPTIONAL_COUNT_BY_EVENT_NAME[row.name as ProductEventName];
+        if (optionalKey != null) {
+          optional[optionalKey] += row.count;
+        }
+        // Anything else cannot exist (enum-constrained column); ignoring it
+        // keeps the response strictly to the declared count surface.
+      }
+
+      const coreTotal =
+        totals.eventStarted +
+        totals.suggestionImpression +
+        totals.suggestionActioned +
+        totals.eventEndedOrOutcome +
+        totals.reviewOpened;
+      const detailsSuppressed = coreTotal < MIN_FUNNEL_GROUP_SIZE;
+
+      return {
+        daily: detailsSuppressed
+          ? []
+          : [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date)),
+        optional,
+        totals,
+        window: {
+          dateFrom,
+          dateTo,
+          generatedAt: now().toISOString(),
+          detailsSuppressed,
+        },
+      };
+    });
   }
 
   /**
@@ -213,44 +234,72 @@ export class ProductFunnelService {
    * at MAX_FUNNEL_RANGE_DAYS inclusive UTC calendar days) or the default last
    * DEFAULT_FUNNEL_WINDOW_DAYS days ending today. Validation mirrors the
    * clinic-summary convention (paired dates, no late-before-early, inclusive
-   * span cap).
+   * span cap) and returns `VALIDATION_FAILED` instead of throwing.
    */
-  private resolveWindow(query: FunnelQueryDto): {
-    dateFrom: string;
-    dateTo: string;
-  } {
+  private resolveWindow(query: FunnelQueryDto): Result<
+    {
+      dateFrom: string;
+      dateTo: string;
+      /** UTC-midnight start of the inclusive window (inclusive bound). */
+      windowStart: Date;
+      /** Exclusive upper bound: the day AFTER `dateTo` at 00:00 UTC. */
+      windowEnd: Date;
+    },
+    DomainFailure
+  > {
     if (query.dateFrom == null && query.dateTo == null) {
       const end = new Date();
-      return {
-        dateFrom: toUtcDateString(
-          new Date(
-            end.getTime() - (DEFAULT_FUNNEL_WINDOW_DAYS - 1) * MS_PER_DAY,
-          ),
+      const dateFrom = toUtcDateString(
+        new Date(end.getTime() - (DEFAULT_FUNNEL_WINDOW_DAYS - 1) * MS_PER_DAY),
+      );
+      const dateTo = toUtcDateString(end);
+      return ok({
+        dateFrom,
+        dateTo,
+        windowStart: new Date(`${dateFrom}T00:00:00.000Z`),
+        windowEnd: new Date(
+          new Date(`${dateTo}T00:00:00.000Z`).getTime() + MS_PER_DAY,
         ),
-        dateTo: toUtcDateString(end),
-      };
+      });
     }
     if (query.dateFrom == null || query.dateTo == null) {
-      badRequest('dateFrom 与 dateTo 必须同时指定');
+      return err(validationFailed());
     }
 
-    const start = utcDayStart(query.dateFrom);
-    const end = utcDayStart(query.dateTo);
+    const startResult = utcDayStart(query.dateFrom);
+    const endResult = utcDayStart(query.dateTo);
+    if (startResult.isErr() || endResult.isErr()) {
+      return err(validationFailed());
+    }
+    const start = startResult.value;
+    const end = endResult.value;
     // Calendar-day difference: both bounds are UTC-midnight instants, so
     // `utcDayNumber(end) - utcDayNumber(start)` is the exact day count —
     // immune to the ms-rounding drift that `Math.round` over milliseconds
     // would introduce at DST boundaries.
     const spanDays = utcDayNumber(end) - utcDayNumber(start);
     if (spanDays < 0) {
-      badRequest('dateFrom 不能晚于 dateTo');
+      return err(validationFailed());
     }
     // spanDays is the day DIFFERENCE; the inclusive calendar-day count is
     // spanDays + 1 (dateFrom == dateTo is a valid single-day window).
     if (spanDays + 1 > MAX_FUNNEL_RANGE_DAYS) {
-      badRequest(`日期范围不能超过 ${String(MAX_FUNNEL_RANGE_DAYS)} 天`);
+      return err(validationFailed());
     }
-    return { dateFrom: toUtcDateString(start), dateTo: toUtcDateString(end) };
+    return ok({
+      dateFrom: toUtcDateString(start),
+      dateTo: toUtcDateString(end),
+      windowStart: start,
+      windowEnd: new Date(end.getTime() + MS_PER_DAY),
+    });
   }
+}
+
+function validationFailed(): DomainFailure {
+  return createDomainFailure({
+    kind: 'validation',
+    code: 'VALIDATION_FAILED',
+  });
 }
 
 /**
@@ -261,20 +310,20 @@ export class ProductFunnelService {
  * 08-13, per the query contract ("the UTC calendar day is used"). Date-only
  * values ('YYYY-MM-DD') parse as UTC midnight.
  */
-function utcDayStart(value: string): Date {
+function utcDayStart(value: string): Result<Date, DomainFailure> {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    badRequest('无效的日期范围');
+    return err(validationFailed());
   }
   // The ISO date part must be zero-padded (YYYY-MM-DD) — V8's loose parser
   // would otherwise accept shapes like '2026-8-4', which the contract
   // (`@IsDateString` ISO 8601) does not allow. The check looks at the literal
   // prefix only for FORMAT; the day itself comes from the instant above.
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value.slice(0, 10))) {
-    badRequest('无效的日期范围');
+    return err(validationFailed());
   }
   const dateOnly = parsed.toISOString().slice(0, 10);
-  return new Date(`${dateOnly}T00:00:00.000Z`);
+  return ok(new Date(`${dateOnly}T00:00:00.000Z`));
 }
 
 /** YYYY-MM-DD of the UTC calendar day the instant falls in. */

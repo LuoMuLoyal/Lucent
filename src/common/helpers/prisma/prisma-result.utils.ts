@@ -9,6 +9,9 @@ import type { DomainFailure, ResultAsync } from '../../result';
  * - `P2002` unique constraint violation -> `RESOURCE_CONFLICT`
  * - `P2025` record required but not found -> `RESOURCE_NOT_FOUND`
  *
+ * The original Prisma error is attached as `cause` so logs/OTel keep the
+ * root cause; `cause` never enters Problem Details.
+ *
  * Unknown errors are left unmapped so callers can re-throw them as
  * infrastructure/programming errors rather than masking them as 4xx.
  */
@@ -20,12 +23,14 @@ export function mapPrismaKnownRequestError(
       return createDomainFailure({
         kind: 'conflict',
         code: 'RESOURCE_CONFLICT',
+        cause: error,
       });
     }
     if (error.code === 'P2025') {
       return createDomainFailure({
         kind: 'not_found',
         code: 'RESOURCE_NOT_FOUND',
+        cause: error,
       });
     }
   }

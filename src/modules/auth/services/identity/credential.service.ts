@@ -421,12 +421,22 @@ export class CredentialAuthService {
 
   private async _notifyPasswordChanged(userId: string): Promise<void> {
     try {
-      await this.notificationsService.create(userId, {
+      const result = await this.notificationsService.create(userId, {
         type: 'password_changed',
         title: this.i18n.t('auth.password_changed_notification_title'),
         content: this.i18n.t('auth.password_changed_notification_content'),
         action: '/account',
       });
+      if (result.isErr()) {
+        this.logger.error(
+          'Notification delivery failed during password change',
+          {
+            userId,
+            event: 'password_change_notification_failed',
+            error: result.error,
+          },
+        );
+      }
     } catch (error) {
       this.logger.error('Notification delivery failed during password change', {
         userId,

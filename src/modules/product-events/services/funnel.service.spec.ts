@@ -1,6 +1,6 @@
-import { BadRequestException } from '@nestjs/common';
 import { ProductEventName } from '#generated/prisma/client';
 import type { PrismaService } from '../../../prisma';
+import type { ResultAsync, DomainFailure } from '../../../common/result';
 import {
   DEFAULT_FUNNEL_WINDOW_DAYS,
   MIN_FUNNEL_GROUP_SIZE,
@@ -49,6 +49,25 @@ function asDate(value: unknown): Date {
   return value as Date;
 }
 
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
+/** Unwraps a ResultAsync, failing the test when it is an Err. */
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await collectResult(result);
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
+
 describe('ProductFunnelService', () => {
   let prisma: ReturnType<typeof buildPrisma>;
   let service: ProductFunnelService;
@@ -68,10 +87,12 @@ describe('ProductFunnelService', () => {
       row('2026-08-14', 'review_opened', 3),
     ]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.totals).toEqual({
       eventStarted: 5,
@@ -107,10 +128,12 @@ describe('ProductFunnelService', () => {
       row('2026-08-12', 'review_opened', 4),
     ]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-12',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-12',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.daily.map((d) => d.date)).toEqual([
       '2026-08-12',
@@ -123,10 +146,12 @@ describe('ProductFunnelService', () => {
   it('queries an exclusive UTC-day window [dateFrom 00:00, dateTo+1d 00:00)', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-16',
-    });
+    await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-16',
+      }),
+    );
 
     const [from, to] = queryValues(prisma);
     expect(asDate(from).toISOString()).toBe('2026-08-14T00:00:00.000Z');
@@ -146,10 +171,12 @@ describe('ProductFunnelService', () => {
     // 2026-08-14T00:30:00+08:00 == 2026-08-13T16:30:00Z → UTC day 08-13;
     // 2026-08-14T23:30:00+08:00 == 2026-08-14T15:30:00Z → UTC day 08-14.
     // The window must be derived from the instants, not the literal date part.
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14T00:30:00+08:00',
-      dateTo: '2026-08-14T23:30:00+08:00',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14T00:30:00+08:00',
+        dateTo: '2026-08-14T23:30:00+08:00',
+      }),
+    );
 
     expect(result.window.dateFrom).toBe('2026-08-13');
     expect(result.window.dateTo).toBe('2026-08-14');
@@ -161,13 +188,15 @@ describe('ProductFunnelService', () => {
   it('buckets by the UTC calendar day even when full datetimes are passed', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await service.getFunnel({
-      // Boundary instants one millisecond apart fall on different UTC days —
-      // the SQL buckets by UTC day; the service window bounds stay at UTC
-      // midnight, not at the supplied times.
-      dateFrom: '2026-08-14T23:59:59.999Z',
-      dateTo: '2026-08-15T00:00:00.000Z',
-    });
+    await unwrapOk(
+      service.getFunnel({
+        // Boundary instants one millisecond apart fall on different UTC days —
+        // the SQL buckets by UTC day; the service window bounds stay at UTC
+        // midnight, not at the supplied times.
+        dateFrom: '2026-08-14T23:59:59.999Z',
+        dateTo: '2026-08-15T00:00:00.000Z',
+      }),
+    );
 
     const [from, to] = queryValues(prisma);
     expect(asDate(from).toISOString()).toBe('2026-08-14T00:00:00.000Z');
@@ -180,10 +209,12 @@ describe('ProductFunnelService', () => {
       row('2026-08-14', 'health_event_outcome_confirmed', 3),
     ]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.totals.eventEndedOrOutcome).toBe(5);
     expect(result.totals.eventStarted).toBe(0);
@@ -199,10 +230,12 @@ describe('ProductFunnelService', () => {
       row('2026-08-14', 'health_event_started', 12),
     ]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.optional).toEqual({
       visitSummaryPreviewed: 2,
@@ -226,10 +259,12 @@ describe('ProductFunnelService', () => {
       row('2026-08-14', 'health_event_started', MIN_FUNNEL_GROUP_SIZE - 1),
     ]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.daily).toEqual([]);
     expect(result.window.detailsSuppressed).toBe(true);
@@ -241,10 +276,12 @@ describe('ProductFunnelService', () => {
       row('2026-08-14', 'health_event_started', MIN_FUNNEL_GROUP_SIZE),
     ]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.window.detailsSuppressed).toBe(false);
     expect(result.daily).toHaveLength(1);
@@ -256,10 +293,12 @@ describe('ProductFunnelService', () => {
       row('2026-08-14', 'visit_summary_previewed', MIN_FUNNEL_GROUP_SIZE + 5),
     ]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.window.detailsSuppressed).toBe(true);
     expect(result.daily).toEqual([]);
@@ -274,7 +313,7 @@ describe('ProductFunnelService', () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
     try {
-      const result = await service.getFunnel({});
+      const result = await unwrapOk(service.getFunnel({}));
 
       expect(result.window.dateTo).toBe('2026-08-14');
       expect(result.window.dateFrom).toBe('2026-07-16');
@@ -294,10 +333,12 @@ describe('ProductFunnelService', () => {
   it('returns an all-zero response for an empty table', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.totals).toEqual({
       eventStarted: 0,
@@ -321,72 +362,102 @@ describe('ProductFunnelService', () => {
   it('accepts a single-day window (dateFrom == dateTo)', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    const result = await service.getFunnel({
-      dateFrom: '2026-08-14',
-      dateTo: '2026-08-14',
-    });
+    const result = await unwrapOk(
+      service.getFunnel({
+        dateFrom: '2026-08-14',
+        dateTo: '2026-08-14',
+      }),
+    );
 
     expect(result.window.dateFrom).toBe('2026-08-14');
     expect(result.window.dateTo).toBe('2026-08-14');
   });
 
   it('rejects a window spanning more than 30 inclusive calendar days', async () => {
-    await expect(
+    const outcome = await collectResult(
       service.getFunnel({
         dateFrom: '2026-08-14',
         dateTo: '2026-09-13',
       }),
-    ).rejects.toMatchObject({ status: 400 });
+    );
+
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
 
     // Exactly 30 inclusive days is allowed.
     prisma.$queryRaw.mockResolvedValue([]);
-    await expect(
+    const allowed = await collectResult(
       service.getFunnel({
         dateFrom: '2026-07-16',
         dateTo: '2026-08-14',
       }),
-    ).resolves.toBeDefined();
+    );
+    expect(allowed.ok).toBe(true);
   });
 
   it('rejects dateFrom after dateTo', async () => {
-    await expect(
+    const outcome = await collectResult(
       service.getFunnel({
         dateFrom: '2026-08-15',
         dateTo: '2026-08-14',
       }),
-    ).rejects.toMatchObject({ status: 400 });
+    );
+
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
   });
 
   it('rejects a partial date pair', async () => {
-    await expect(
-      service.getFunnel({ dateFrom: '2026-08-14' }),
-    ).rejects.toMatchObject({ status: 400 });
-    await expect(
-      service.getFunnel({ dateTo: '2026-08-14' }),
-    ).rejects.toMatchObject({ status: 400 });
+    expect(
+      await collectResult(service.getFunnel({ dateFrom: '2026-08-14' })),
+    ).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(
+      await collectResult(service.getFunnel({ dateTo: '2026-08-14' })),
+    ).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
   });
 
   it('rejects invalid date strings', async () => {
-    await expect(
-      service.getFunnel({ dateFrom: 'not-a-date', dateTo: '2026-08-14' }),
-    ).rejects.toMatchObject({ status: 400 });
-    await expect(
-      service.getFunnel({ dateFrom: '2026-08-14', dateTo: '2026-8-4' }),
-    ).rejects.toMatchObject({ status: 400 });
+    expect(
+      await collectResult(
+        service.getFunnel({ dateFrom: 'not-a-date', dateTo: '2026-08-14' }),
+      ),
+    ).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(
+      await collectResult(
+        service.getFunnel({ dateFrom: '2026-08-14', dateTo: '2026-8-4' }),
+      ),
+    ).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
   });
 
-  it('rejects with the typed BadRequestException envelope', async () => {
-    try {
-      await service.getFunnel({
+  it('returns VALIDATION_FAILED instead of a typed exception for bad windows', async () => {
+    const outcome = await collectResult(
+      service.getFunnel({
         dateFrom: '2026-08-14',
         dateTo: '2026-09-13',
-      });
-      expect.unreachable();
-    } catch (error) {
-      expect(error).toBeInstanceOf(BadRequestException);
-      expect((error as BadRequestException).getStatus()).toBe(400);
-    }
+      }),
+    );
+
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.error.code).toBe('VALIDATION_FAILED');
+    expect(outcome.error.kind).toBe('validation');
   });
 
   it('accounts for every ProductEventName value — no silent metric dropouts', () => {

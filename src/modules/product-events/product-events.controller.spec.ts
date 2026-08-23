@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
@@ -8,6 +7,8 @@ import {
   ProductEventSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client';
+import { errAsync, okAsync } from '../../common/result';
+import type { DomainFailure } from '../../common/result';
 import type { UserPayload } from '../auth';
 import {
   MAX_PRODUCT_EVENTS_PER_REQUEST,
@@ -24,6 +25,14 @@ const user: UserPayload = {
   email: 'user@example.com',
   status: 'active',
 };
+
+function validationFailure(): DomainFailure {
+  return {
+    _tag: 'DomainFailure',
+    kind: 'validation',
+    code: 'VALIDATION_FAILED',
+  };
+}
 
 function validEvent(overrides: Record<string, unknown> = {}) {
   return {
@@ -74,7 +83,9 @@ describe('ProductEventsController', () => {
 
   it('records the batch for the authenticated user and returns the resource', async () => {
     const dto = { events: [validEvent()] } as CreateProductEventBatchDto;
-    eventsService.recordBatch.mockResolvedValue({ received: 1, recorded: 1 });
+    eventsService.recordBatch.mockReturnValue(
+      okAsync({ received: 1, recorded: 1 }),
+    );
 
     const result = await controller.recordBatch(user, dto);
 
@@ -85,35 +96,26 @@ describe('ProductEventsController', () => {
     expect(result).toEqual({ received: 1, recorded: 1 });
   });
 
-  it('propagates the unknown-rule-code 400 from the service', async () => {
-    eventsService.recordBatch.mockRejectedValue(
-      new BadRequestException({
-        code: 'VALIDATION_FAILED',
-        message: 'Unknown suggestion rule code: nope',
-      }),
-    );
+  it('folds the unknown-rule-code 400 from the service', async () => {
+    eventsService.recordBatch.mockReturnValue(errAsync(validationFailure()));
 
     const dto = { events: [validEvent()] } as CreateProductEventBatchDto;
 
     await expect(controller.recordBatch(user, dto)).rejects.toMatchObject({
-      status: 400,
+      name: 'DomainFailureException',
+      failure: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
     });
   });
 
-  it('propagates the future-skew 400 from the service', async () => {
-    eventsService.recordBatch.mockRejectedValue(
-      new BadRequestException({
-        code: 'VALIDATION_FAILED',
-        message: 'occurredAt must not be more than 24 hours in the future',
-      }),
-    );
+  it('folds the future-skew 400 from the service', async () => {
+    eventsService.recordBatch.mockReturnValue(errAsync(validationFailure()));
 
     const dto = {
       events: [validEvent({ occurredAt: '2099-01-01T00:00:00.000Z' })],
     } as CreateProductEventBatchDto;
 
     await expect(controller.recordBatch(user, dto)).rejects.toMatchObject({
-      status: 400,
+      name: 'DomainFailureException',
     });
     expect(eventsService.recordBatch).toHaveBeenCalledWith(
       user.sub,
@@ -285,7 +287,7 @@ describe('ProductEventsController', () => {
     };
 
     it('forwards the query params and returns the funnel resource', async () => {
-      funnelService.getFunnel.mockResolvedValue(funnelResult);
+      funnelService.getFunnel.mockReturnValue(okAsync(funnelResult));
 
       const query: FunnelQueryDto = {
         dateFrom: '2026-07-16',
@@ -297,17 +299,15 @@ describe('ProductEventsController', () => {
       expect(result).toEqual(funnelResult);
     });
 
-    it('propagates the date-range-cap 400 from the service', async () => {
-      funnelService.getFunnel.mockRejectedValue(
-        new BadRequestException({
-          code: 'VALIDATION_FAILED',
-          message: '日期范围不能超过 30 天',
-        }),
-      );
+    it('folds the date-range-cap 400 from the service', async () => {
+      funnelService.getFunnel.mockReturnValue(errAsync(validationFailure()));
 
       await expect(
         controller.getFunnel({ dateFrom: '2026-08-14', dateTo: '2026-09-13' }),
-      ).rejects.toMatchObject({ status: 400 });
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
+      });
     });
   });
 

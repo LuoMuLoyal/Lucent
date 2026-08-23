@@ -87,8 +87,8 @@ describe('Files API (e2e)', () => {
           fileName: 'photo.jpg',
         });
 
-      // COS may not be configured in test environment → 400 or 500
-      // When COS is configured → 200
+      // COS may not be configured in test environment → 400, 500, or 503
+      // (see the widened assertion below). When COS is configured → 200.
       if (res.status === 200) {
         const body = res.body as {
           provider: string;
@@ -106,8 +106,12 @@ describe('Files API (e2e)', () => {
         expect(data.expiresAt).toBeDefined();
         expect(data.maxSizeBytes).toBeGreaterThan(0);
       } else {
-        // COS not configured — accept 400 or 500
-        expect([400, 500]).toContain(res.status);
+        // Storage not configured → 503 `DEPENDENCY_UNAVAILABLE` is the new
+        // Task 9 classification for COS/S3 failures (was 500 before the
+        // Result migration); 400 covers validation; 500 is retained for
+        // uncaught exceptions / rejection paths that bypass the Result
+        // mapping (unknown DB/connection errors rethrow).
+        expect([400, 500, 503]).toContain(res.status);
       }
     });
 

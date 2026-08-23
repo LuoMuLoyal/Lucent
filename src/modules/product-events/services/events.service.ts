@@ -8,7 +8,14 @@ import {
   ProductEventSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client';
-import { badRequest, now } from '../../../common';
+import { fromPrismaResult, now } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  isDomainFailure,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import { MetricsService } from '../../../common/metrics/metrics.service';
 import { PrismaService } from '../../../prisma';
 import { isKnownSuggestionRuleCode } from '../constants/rule-code-allowlist.constants';
@@ -81,29 +88,41 @@ export class ProductEventsService {
     private readonly metrics: MetricsService,
   ) {}
 
-  async recordBatch(
+  /**
+   * Records a client batch. Validation failures (unknown suggestion rule
+   * code, future-skewed `occurredAt`) return `VALIDATION_FAILED` without
+   * writing anything; known Prisma request errors map via `fromPrismaResult`;
+   * unknown DB/connection errors rethrow.
+   */
+  recordBatch(
     userId: string,
     events: CreateProductEventDto[],
-  ): Promise<ProductEventRecordResult> {
-    this.assertValidEvents(events);
+  ): ResultAsync<ProductEventRecordResult, DomainFailure> {
+    const validationError = this.validateEvents(events);
+    if (validationError != null) {
+      return errAsync(validationError);
+    }
 
-    const recorded = await this.prisma.userProductEvent.createMany({
-      data: events.map((event) => ({
-        userId,
-        clientEventId: event.clientEventId,
-        name: event.name,
-        surface: event.surface,
-        result: event.result,
-        eventStatus: event.eventStatus ?? null,
-        suggestionRuleCode: event.suggestionRuleCode ?? null,
-        appVersion: event.appVersion,
-        platform: event.platform,
-        occurredAt: new Date(event.occurredAt),
-      })),
-      skipDuplicates: true,
-    });
-
-    return { received: events.length, recorded: recorded.count };
+    return fromPrismaResult(
+      this.prisma.userProductEvent.createMany({
+        data: events.map((event) => ({
+          userId,
+          clientEventId: event.clientEventId,
+          name: event.name,
+          surface: event.surface,
+          result: event.result,
+          eventStatus: event.eventStatus ?? null,
+          suggestionRuleCode: event.suggestionRuleCode ?? null,
+          appVersion: event.appVersion,
+          platform: event.platform,
+          occurredAt: new Date(event.occurredAt),
+        })),
+        skipDuplicates: true,
+      }),
+    ).map((recorded) => ({
+      received: events.length,
+      recorded: recorded.count,
+    }));
   }
 
   /**
@@ -119,10 +138,10 @@ export class ProductEventsService {
    * occurrence is a distinct event. The HTTP contract (DTO) is untouched —
    * this is not reachable from the controller.
    */
-  async recordServerEvents(
+  recordServerEvents(
     userId: string,
     events: ServerProductEventInput[],
-  ): Promise<ProductEventRecordResult> {
+  ): ResultAsync<ProductEventRecordResult, DomainFailure> {
     return this.recordBatch(
       userId,
       events.map((event) => ({
@@ -157,22 +176,53 @@ export class ProductEventsService {
     event: ServerProductEventInput,
   ): Promise<void> {
     try {
-      await this.recordServerEvents(userId, [event]);
+      const result = await this.recordServerEvents(userId, [event]);
+      if (result.isErr()) {
+        this.logEmissionFailure(event.name, result.error);
+        this.metrics.recordProductEventEmissionFailure(event.name);
+      }
     } catch (error) {
-      // Whitelist the log detail: Prisma's stable, non-sensitive error codes
-      // (P1001, P2002, …) or the error class name — the raw message is never
-      // logged, so a driver/Prisma failure cannot leak internals.
-      const detail =
-        error instanceof Prisma.PrismaClientKnownRequestError
-          ? `prisma ${error.code}`
-          : error instanceof Error
-            ? error.constructor.name
-            : 'unknown error';
-      this.logger.error(
-        `Product event emission failed (${event.name}): ${detail}`,
-      );
+      // Unknown DB/connection errors rethrow out of `fromPrismaResult` — they
+      // still must never escape the fire-and-forget contract.
+      this.logEmissionFailure(event.name, error);
       this.metrics.recordProductEventEmissionFailure(event.name);
     }
+  }
+
+  /**
+   * Logs an emission failure with a whitelisted detail: the Prisma stable
+   * non-sensitive error code (P1001, P2002, …), the error class name, or the
+   * DomainFailure `code` — the raw message is never logged, so a
+   * driver/Prisma failure cannot leak internals. A DomainFailure prefers the
+   * `cause` attached by `fromPrismaResult` (e.g. `prisma P2002`); when the
+   * failure carries no `cause` (e.g. `VALIDATION_FAILED`) its own `code` is
+   * used so the failure reason stays visible. `cause` never enters Problem
+   * Details (fire-and-forget path).
+   */
+  private logEmissionFailure(
+    eventName: ProductEventName,
+    failure: unknown,
+  ): void {
+    const detail = this.failureDetail(failure);
+    this.logger.error(
+      `Product event emission failed (${eventName}): ${detail}`,
+    );
+  }
+
+  /** Whitelisted stable identifier for a failure — never the raw message. */
+  private failureDetail(failure: unknown): string {
+    if (failure instanceof Prisma.PrismaClientKnownRequestError) {
+      return `prisma ${failure.code}`;
+    }
+    if (failure instanceof Error) {
+      return failure.constructor.name;
+    }
+    if (isDomainFailure(failure)) {
+      return failure.cause instanceof Prisma.PrismaClientKnownRequestError
+        ? `prisma ${failure.cause.code}`
+        : `domain ${failure.code}`;
+    }
+    return 'unknown error';
   }
 
   /**
@@ -184,17 +234,25 @@ export class ProductEventsService {
    *
    * Nothing is written if any event is invalid.
    */
-  private assertValidEvents(events: CreateProductEventDto[]): void {
+  private validateEvents(
+    events: CreateProductEventDto[],
+  ): DomainFailure | null {
     const futureCutoff = now().getTime() + MAX_PRODUCT_EVENT_FUTURE_SKEW_MS;
     for (const event of events) {
       if (!isKnownSuggestionRuleCode(event.suggestionRuleCode)) {
-        badRequest(
-          `Unknown suggestion rule code: ${String(event.suggestionRuleCode)}`,
-        );
+        return this.validationFailed();
       }
       if (new Date(event.occurredAt).getTime() > futureCutoff) {
-        badRequest('occurredAt must not be more than 24 hours in the future');
+        return this.validationFailed();
       }
     }
+    return null;
+  }
+
+  private validationFailed(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

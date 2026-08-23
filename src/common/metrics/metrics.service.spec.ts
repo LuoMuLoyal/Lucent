@@ -278,4 +278,28 @@ describe('MetricsService', () => {
       }).not.toThrow();
     });
   });
+
+  describe('recordAuditLogWriteFailure', () => {
+    it('records a write failure labeled only by the fixed audit action', async () => {
+      service.recordAuditLogWriteFailure('password.change');
+      service.recordAuditLogWriteFailure('password.change');
+      service.recordAuditLogWriteFailure('account.delete');
+
+      const metrics = await service.getMetrics();
+      expect(metrics).toContain('audit_log_write_failure_total');
+      expect(metrics).toContain('action="password.change"');
+      expect(metrics).toContain('action="account.delete"');
+      // No user/resource identifiers may ever leak into the labels.
+      expect(metrics).not.toContain('userId');
+      expect(metrics).not.toContain('resourceId');
+    });
+
+    it('does not throw when disabled', () => {
+      const svc = createService('test', 'false');
+
+      expect(() => {
+        svc.recordAuditLogWriteFailure('password.change');
+      }).not.toThrow();
+    });
+  });
 });

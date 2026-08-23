@@ -1,6 +1,6 @@
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { I18nService } from 'nestjs-i18n';
+import { errAsync, okAsync } from '../../common/result';
+import type { DomainFailure } from '../../common/result';
 import type { UserPayload } from '../auth';
 
 import { NotificationsController } from './notifications.controller';
@@ -49,12 +49,6 @@ describe('NotificationsController', () => {
             getUnreadCount: vi.fn(),
           },
         },
-        {
-          provide: I18nService,
-          useValue: {
-            t: vi.fn((key: string) => key),
-          },
-        },
       ],
     }).compile();
 
@@ -68,7 +62,7 @@ describe('NotificationsController', () => {
 
   describe('POST /user/notifications', () => {
     it('should create a notification and return a resource', async () => {
-      service.create.mockResolvedValue(mockItem);
+      service.create.mockReturnValue(okAsync(mockItem));
 
       const result = await controller.create(mockUser, {
         type: 'medicine_missed_dose',
@@ -82,6 +76,26 @@ describe('NotificationsController', () => {
         content: 'You missed your evening dose of Ibuprofen.',
       });
       expect(result).toEqual(mockItem);
+    });
+
+    it('folds a service Err into a DomainFailureException', async () => {
+      const failure: DomainFailure = {
+        _tag: 'DomainFailure',
+        kind: 'conflict',
+        code: 'RESOURCE_CONFLICT',
+      };
+      service.create.mockReturnValue(errAsync(failure));
+
+      await expect(
+        controller.create(mockUser, {
+          type: 'medicine_missed_dose',
+          title: 'Missed dose reminder',
+          content: 'Content',
+        }),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
+      });
     });
   });
 
@@ -123,9 +137,9 @@ describe('NotificationsController', () => {
 
   describe('GET /user/notifications/:id', () => {
     it('should return notification detail resource', async () => {
-      service.findOne.mockResolvedValue(mockDetail);
+      service.findOne.mockReturnValue(okAsync(mockDetail));
 
-      const result = await controller.findOne(mockUser, 'notif-uuid-1', 'en');
+      const result = await controller.findOne(mockUser, 'notif-uuid-1');
 
       expect(service.findOne).toHaveBeenCalledWith(
         mockUser.sub,
@@ -134,24 +148,28 @@ describe('NotificationsController', () => {
       expect(result).toEqual(mockDetail);
     });
 
-    it('should throw NotFoundException when notification not found', async () => {
-      service.findOne.mockResolvedValue(null);
+    it('folds NOTIFICATION_NOT_FOUND into a DomainFailureException', async () => {
+      const failure: DomainFailure = {
+        _tag: 'DomainFailure',
+        kind: 'not_found',
+        code: 'NOTIFICATION_NOT_FOUND',
+      };
+      service.findOne.mockReturnValue(errAsync(failure));
 
       await expect(
-        controller.findOne(mockUser, 'nonexistent', 'en'),
-      ).rejects.toThrow(NotFoundException);
+        controller.findOne(mockUser, 'nonexistent'),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: expect.objectContaining({ code: 'NOTIFICATION_NOT_FOUND' }),
+      });
     });
   });
 
   describe('PATCH /user/notifications/:id/read', () => {
     it('should mark as read and return a resource', async () => {
-      service.markAsRead.mockResolvedValue(mockDetail);
+      service.markAsRead.mockReturnValue(okAsync(mockDetail));
 
-      const result = await controller.markAsRead(
-        mockUser,
-        'notif-uuid-1',
-        'en',
-      );
+      const result = await controller.markAsRead(mockUser, 'notif-uuid-1');
 
       expect(service.markAsRead).toHaveBeenCalledWith(
         mockUser.sub,
@@ -160,24 +178,28 @@ describe('NotificationsController', () => {
       expect(result).toEqual(mockDetail);
     });
 
-    it('should throw NotFoundException when notification not found', async () => {
-      service.markAsRead.mockResolvedValue(null);
+    it('folds NOTIFICATION_NOT_FOUND into a DomainFailureException', async () => {
+      const failure: DomainFailure = {
+        _tag: 'DomainFailure',
+        kind: 'not_found',
+        code: 'NOTIFICATION_NOT_FOUND',
+      };
+      service.markAsRead.mockReturnValue(errAsync(failure));
 
       await expect(
-        controller.markAsRead(mockUser, 'nonexistent', 'en'),
-      ).rejects.toThrow(NotFoundException);
+        controller.markAsRead(mockUser, 'nonexistent'),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: expect.objectContaining({ code: 'NOTIFICATION_NOT_FOUND' }),
+      });
     });
   });
 
   describe('PATCH /user/notifications/:id/unread', () => {
     it('should mark as unread and return a resource', async () => {
-      service.markAsUnread.mockResolvedValue(mockDetail);
+      service.markAsUnread.mockReturnValue(okAsync(mockDetail));
 
-      const result = await controller.markAsUnread(
-        mockUser,
-        'notif-uuid-1',
-        'en',
-      );
+      const result = await controller.markAsUnread(mockUser, 'notif-uuid-1');
 
       expect(service.markAsUnread).toHaveBeenCalledWith(
         mockUser.sub,
@@ -186,12 +208,20 @@ describe('NotificationsController', () => {
       expect(result).toEqual(mockDetail);
     });
 
-    it('should throw NotFoundException when notification not found', async () => {
-      service.markAsUnread.mockResolvedValue(null);
+    it('folds NOTIFICATION_NOT_FOUND into a DomainFailureException', async () => {
+      const failure: DomainFailure = {
+        _tag: 'DomainFailure',
+        kind: 'not_found',
+        code: 'NOTIFICATION_NOT_FOUND',
+      };
+      service.markAsUnread.mockReturnValue(errAsync(failure));
 
       await expect(
-        controller.markAsUnread(mockUser, 'nonexistent', 'en'),
-      ).rejects.toThrow(NotFoundException);
+        controller.markAsUnread(mockUser, 'nonexistent'),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: expect.objectContaining({ code: 'NOTIFICATION_NOT_FOUND' }),
+      });
     });
   });
 
@@ -208,19 +238,27 @@ describe('NotificationsController', () => {
 
   describe('DELETE /user/notifications/:id', () => {
     it('should delete notification', async () => {
-      service.remove.mockResolvedValue(true);
+      service.remove.mockReturnValue(okAsync(undefined));
 
-      await controller.remove(mockUser, 'notif-uuid-1', 'en');
+      await controller.remove(mockUser, 'notif-uuid-1');
 
       expect(service.remove).toHaveBeenCalledWith(mockUser.sub, 'notif-uuid-1');
     });
 
-    it('should throw NotFoundException when notification not found', async () => {
-      service.remove.mockResolvedValue(false);
+    it('folds NOTIFICATION_NOT_FOUND into a DomainFailureException', async () => {
+      const failure: DomainFailure = {
+        _tag: 'DomainFailure',
+        kind: 'not_found',
+        code: 'NOTIFICATION_NOT_FOUND',
+      };
+      service.remove.mockReturnValue(errAsync(failure));
 
       await expect(
-        controller.remove(mockUser, 'nonexistent', 'en'),
-      ).rejects.toThrow(NotFoundException);
+        controller.remove(mockUser, 'nonexistent'),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: expect.objectContaining({ code: 'NOTIFICATION_NOT_FOUND' }),
+      });
     });
   });
 });

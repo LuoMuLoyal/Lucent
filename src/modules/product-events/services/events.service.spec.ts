@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import {
   HealthEventStatus,
   Prisma,
@@ -18,12 +17,32 @@ import { WaterShortfallRuleService } from '../../today-suggestion/services/rules
 import { SUGGESTION_RULE_CODE_ALLOWLIST } from '../constants/rule-code-allowlist.constants';
 import type { CreateProductEventDto } from '../dto/create-product-event.dto';
 import type { MetricsService } from '../../../common/metrics/metrics.service';
+import type { ResultAsync, DomainFailure } from '../../../common/result';
 import {
   ProductEventsService,
   type ServerProductEventInput,
 } from './events.service';
 
 const USER_ID = 'user-1';
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
+/** Unwraps a ResultAsync, failing the test when it is an Err. */
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await collectResult(result);
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
 
 function event(
   overrides: Partial<CreateProductEventDto> = {},
@@ -54,9 +73,11 @@ function serverEvent(
 function buildPrisma() {
   return {
     userProductEvent: {
-      createMany: vi.fn().mockImplementation((args: { data: unknown[] }) => ({
-        count: args.data.length,
-      })),
+      createMany: vi
+        .fn()
+        .mockImplementation((args: { data: unknown[] }) =>
+          Promise.resolve({ count: args.data.length }),
+        ),
     },
   };
 }
@@ -84,24 +105,28 @@ describe('ProductEventsService', () => {
   it('records a batch and returns received/recorded counts', async () => {
     prisma.userProductEvent.createMany.mockResolvedValue({ count: 2 });
 
-    const result = await service.recordBatch(USER_ID, [
-      event(),
-      event({ clientEventId: 'client-2' }),
-    ]);
+    const result = await unwrapOk(
+      service.recordBatch(USER_ID, [
+        event(),
+        event({ clientEventId: 'client-2' }),
+      ]),
+    );
 
     expect(result).toEqual({ received: 2, recorded: 2 });
   });
 
   it('writes only whitelisted attributes with the userId from the session', async () => {
-    await service.recordBatch(USER_ID, [
-      event({
-        name: ProductEventName.suggestion_actioned,
-        surface: ProductEventSurface.today,
-        eventStatus: HealthEventStatus.active,
-        suggestionRuleCode: 'water_behind_target',
-        platform: UserDevicePlatform.android,
-      }),
-    ]);
+    await unwrapOk(
+      service.recordBatch(USER_ID, [
+        event({
+          name: ProductEventName.suggestion_actioned,
+          surface: ProductEventSurface.today,
+          eventStatus: HealthEventStatus.active,
+          suggestionRuleCode: 'water_behind_target',
+          platform: UserDevicePlatform.android,
+        }),
+      ]),
+    );
 
     expect(prisma.userProductEvent.createMany).toHaveBeenCalledWith({
       data: [
@@ -123,7 +148,7 @@ describe('ProductEventsService', () => {
   });
 
   it('stores null for omitted optional attributes', async () => {
-    await service.recordBatch(USER_ID, [event()]);
+    await unwrapOk(service.recordBatch(USER_ID, [event()]));
 
     expect(prisma.userProductEvent.createMany).toHaveBeenCalledWith({
       data: [
@@ -140,26 +165,30 @@ describe('ProductEventsService', () => {
     prisma.userProductEvent.createMany.mockResolvedValueOnce({ count: 1 });
     prisma.userProductEvent.createMany.mockResolvedValueOnce({ count: 0 });
 
-    const first = await service.recordBatch(USER_ID, [event()]);
-    const retry = await service.recordBatch(USER_ID, [event()]);
+    const first = await unwrapOk(service.recordBatch(USER_ID, [event()]));
+    const retry = await unwrapOk(service.recordBatch(USER_ID, [event()]));
 
     expect(first.recorded).toBe(1);
     expect(retry).toEqual({ received: 1, recorded: 0 });
     expect(prisma.userProductEvent.createMany).toHaveBeenCalledTimes(2);
   });
 
-  it('rejects an unknown suggestion rule code with a typed 400 error', async () => {
-    await expect(
+  it('rejects an unknown suggestion rule code with VALIDATION_FAILED', async () => {
+    const outcome = await collectResult(
       service.recordBatch(USER_ID, [
         event({ suggestionRuleCode: 'free-form-code' }),
       ]),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    );
 
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.error.code).toBe('VALIDATION_FAILED');
+    expect(outcome.error.kind).toBe('validation');
     expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
   });
 
   it('rejects unknown codes in any position of the batch before writing', async () => {
-    await expect(
+    const outcome = await collectResult(
       service.recordBatch(USER_ID, [
         event({ clientEventId: 'ok-1' }),
         event({
@@ -168,8 +197,11 @@ describe('ProductEventsService', () => {
         }),
         event({ clientEventId: 'bad-3', suggestionRuleCode: 'nope' }),
       ]),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    );
 
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.error.code).toBe('VALIDATION_FAILED');
     expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
   });
 
@@ -177,12 +209,15 @@ describe('ProductEventsService', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-14T00:00:00.000Z'));
     try {
-      await expect(
+      const outcome = await collectResult(
         service.recordBatch(USER_ID, [
           event({ occurredAt: '2026-08-15T00:00:01.000Z' }),
         ]),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      );
 
+      expect(outcome.ok).toBe(false);
+      if (outcome.ok) return;
+      expect(outcome.error.code).toBe('VALIDATION_FAILED');
       expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
@@ -193,9 +228,11 @@ describe('ProductEventsService', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-14T00:00:00.000Z'));
     try {
-      const result = await service.recordBatch(USER_ID, [
-        event({ occurredAt: '2026-08-14T23:59:59.000Z' }),
-      ]);
+      const result = await unwrapOk(
+        service.recordBatch(USER_ID, [
+          event({ occurredAt: '2026-08-14T23:59:59.000Z' }),
+        ]),
+      );
 
       expect(result.recorded).toBe(1);
     } finally {
@@ -204,13 +241,15 @@ describe('ProductEventsService', () => {
   });
 
   it('accepts every rule code registered in the today-suggestion rule set', async () => {
-    const result = await service.recordBatch(
-      USER_ID,
-      [...SUGGESTION_RULE_CODE_ALLOWLIST].map((ruleCode, index) =>
-        event({
-          clientEventId: `rule-${String(index)}`,
-          suggestionRuleCode: ruleCode,
-        }),
+    const result = await unwrapOk(
+      service.recordBatch(
+        USER_ID,
+        [...SUGGESTION_RULE_CODE_ALLOWLIST].map((ruleCode, index) =>
+          event({
+            clientEventId: `rule-${String(index)}`,
+            suggestionRuleCode: ruleCode,
+          }),
+        ),
       ),
     );
 
@@ -234,9 +273,19 @@ describe('ProductEventsService', () => {
     );
   });
 
+  it('rethrows unknown database errors instead of mapping them', async () => {
+    prisma.userProductEvent.createMany.mockRejectedValue(
+      new Error('connection lost'),
+    );
+
+    await expect(
+      collectResult(service.recordBatch(USER_ID, [event()])),
+    ).rejects.toThrow('connection lost');
+  });
+
   describe('recordServerEvents', () => {
     it('supplies server markers and a unique clientEventId per event', async () => {
-      await service.recordServerEvents(USER_ID, [serverEvent()]);
+      await unwrapOk(service.recordServerEvents(USER_ID, [serverEvent()]));
 
       expect(prisma.userProductEvent.createMany).toHaveBeenCalledWith({
         data: [
@@ -257,7 +306,7 @@ describe('ProductEventsService', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-08-14T06:00:00.000Z'));
       try {
-        await service.recordServerEvents(USER_ID, [serverEvent()]);
+        await unwrapOk(service.recordServerEvents(USER_ID, [serverEvent()]));
 
         const data = (
           prisma.userProductEvent.createMany.mock.calls[0]![0] as {
@@ -273,15 +322,17 @@ describe('ProductEventsService', () => {
     });
 
     it('honors an explicit occurredAt and passes optional attributes through', async () => {
-      await service.recordServerEvents(USER_ID, [
-        serverEvent({
-          name: ProductEventName.health_event_ended,
-          result: ProductEventResult.improved,
-          eventStatus: HealthEventStatus.ended,
-          suggestionRuleCode: 'water_behind_target',
-          occurredAt: new Date('2026-08-14T08:30:00.000Z'),
-        }),
-      ]);
+      await unwrapOk(
+        service.recordServerEvents(USER_ID, [
+          serverEvent({
+            name: ProductEventName.health_event_ended,
+            result: ProductEventResult.improved,
+            eventStatus: HealthEventStatus.ended,
+            suggestionRuleCode: 'water_behind_target',
+            occurredAt: new Date('2026-08-14T08:30:00.000Z'),
+          }),
+        ]),
+      );
 
       const data = (
         prisma.userProductEvent.createMany.mock.calls[0]![0] as {
@@ -299,23 +350,28 @@ describe('ProductEventsService', () => {
     });
 
     it('rejects a non-allowlisted suggestion rule code before writing', async () => {
-      await expect(
+      const outcome = await collectResult(
         service.recordServerEvents(USER_ID, [
           serverEvent({ suggestionRuleCode: 'free-form-code' }),
         ]),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      );
 
+      expect(outcome.ok).toBe(false);
+      if (outcome.ok) return;
+      expect(outcome.error.code).toBe('VALIDATION_FAILED');
       expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
     });
 
     it('honors an explicit deterministic clientEventId for retryable emitters', async () => {
-      await service.recordServerEvents(USER_ID, [
-        serverEvent({
-          name: ProductEventName.health_event_started,
-          clientEventId: 'server-health-started-evt-1',
-        }),
-        serverEvent({ name: ProductEventName.health_event_ended }),
-      ]);
+      await unwrapOk(
+        service.recordServerEvents(USER_ID, [
+          serverEvent({
+            name: ProductEventName.health_event_started,
+            clientEventId: 'server-health-started-evt-1',
+          }),
+          serverEvent({ name: ProductEventName.health_event_ended }),
+        ]),
+      );
 
       const data = (
         prisma.userProductEvent.createMany.mock.calls[0]![0] as {
@@ -328,8 +384,8 @@ describe('ProductEventsService', () => {
     });
 
     it('defaults to a fresh per-emission uuid so per-occurrence events never collide', async () => {
-      await service.recordServerEvents(USER_ID, [serverEvent()]);
-      await service.recordServerEvents(USER_ID, [serverEvent()]);
+      await unwrapOk(service.recordServerEvents(USER_ID, [serverEvent()]));
+      await unwrapOk(service.recordServerEvents(USER_ID, [serverEvent()]));
 
       const calls = prisma.userProductEvent.createMany.mock.calls as {
         data: { clientEventId: string }[];

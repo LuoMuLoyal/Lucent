@@ -5,6 +5,27 @@ import type { PrismaService } from '../../../prisma';
 import type { DataExportStorageService } from './storage.service';
 import type { DataExportQueueService } from './queue.service';
 import type { DataExportProcessorService } from './processor.service';
+import { errAsync, okAsync } from '../../../common/result';
+import type { ResultAsync, DomainFailure } from '../../../common/result';
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
+/** Unwraps a ResultAsync, failing the test when it is an Err. */
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await collectResult(result);
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
 
 describe('DataExportService', () => {
   let service: DataExportService;
@@ -26,7 +47,7 @@ describe('DataExportService', () => {
       isConfigured: vi.fn().mockReturnValue(true),
       createDownloadUrl: vi
         .fn()
-        .mockResolvedValue('https://cos.example.com/file'),
+        .mockReturnValue(okAsync('https://cos.example.com/file')),
     } as unknown as vi.Mocked<DataExportStorageService>;
 
     queueService = {
@@ -71,10 +92,12 @@ describe('DataExportService', () => {
         makeRow({ status: 'unavailable' }),
       );
 
-      const result = await service.createRequest(
-        'user-1',
-        { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
-        'zh',
+      const result = await unwrapOk(
+        service.createRequest(
+          'user-1',
+          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          'zh',
+        ),
       );
 
       expect(result.status).toBe('unavailable');
@@ -86,15 +109,18 @@ describe('DataExportService', () => {
           }),
         }),
       );
+      expect(processor.process).not.toHaveBeenCalled();
     });
 
     it('creates with requested status and enqueues when queue is configured', async () => {
       prisma.dataExportRequest.create.mockResolvedValue(makeRow());
 
-      const result = await service.createRequest(
-        'user-1',
-        { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
-        'zh',
+      const result = await unwrapOk(
+        service.createRequest(
+          'user-1',
+          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          'zh',
+        ),
       );
 
       expect(result.status).toBe('requested');
@@ -113,10 +139,12 @@ describe('DataExportService', () => {
         makeRow({ status: 'completed' }),
       );
 
-      const result = await service.createRequest(
-        'user-1',
-        { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
-        'zh',
+      const result = await unwrapOk(
+        service.createRequest(
+          'user-1',
+          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          'zh',
+        ),
       );
 
       expect(processor.process).toHaveBeenCalledWith({
@@ -136,10 +164,12 @@ describe('DataExportService', () => {
         makeRow({ status: 'completed' }),
       );
 
-      const result = await service.createRequest(
-        'user-1',
-        { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
-        'zh',
+      const result = await unwrapOk(
+        service.createRequest(
+          'user-1',
+          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          'zh',
+        ),
       );
 
       expect(queueService.enqueue).toHaveBeenCalledWith({
@@ -160,10 +190,12 @@ describe('DataExportService', () => {
         makeRow({ kind: 'monthly', range: 'last_30_days' }),
       );
 
-      await service.createRequest(
-        'user-1',
-        { kind: 'monthly', format: 'pdf', range: 'last_7_days' },
-        'zh',
+      await unwrapOk(
+        service.createRequest(
+          'user-1',
+          { kind: 'monthly', format: 'pdf', range: 'last_7_days' },
+          'zh',
+        ),
       );
 
       expect(prisma.dataExportRequest.create).toHaveBeenCalledWith(
@@ -179,7 +211,7 @@ describe('DataExportService', () => {
     it('uses default values when dto fields are undefined', async () => {
       prisma.dataExportRequest.create.mockResolvedValue(makeRow());
 
-      await service.createRequest('user-1', {}, 'zh');
+      await unwrapOk(service.createRequest('user-1', {}, 'zh'));
 
       expect(prisma.dataExportRequest.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -197,7 +229,7 @@ describe('DataExportService', () => {
     it('returns null when no request found', async () => {
       prisma.dataExportRequest.findFirst.mockResolvedValue(null);
 
-      const result = await service.getLatestRequest('user-1');
+      const result = await unwrapOk(service.getLatestRequest('user-1'));
 
       expect(result).toBeNull();
     });
@@ -210,7 +242,7 @@ describe('DataExportService', () => {
         }),
       );
 
-      const result = await service.getLatestRequest('user-1');
+      const result = await unwrapOk(service.getLatestRequest('user-1'));
 
       expect(result).not.toBeNull();
       expect(result!.id).toBe('exp-1');
@@ -221,7 +253,7 @@ describe('DataExportService', () => {
     it('queries with correct userId and ordering', async () => {
       prisma.dataExportRequest.findFirst.mockResolvedValue(null);
 
-      await service.getLatestRequest('user-1');
+      await unwrapOk(service.getLatestRequest('user-1'));
 
       expect(prisma.dataExportRequest.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -229,6 +261,25 @@ describe('DataExportService', () => {
           orderBy: { createdAt: 'desc' },
         }),
       );
+    });
+
+    it('folds a storage signed-URL failure into DEPENDENCY_UNAVAILABLE', async () => {
+      prisma.dataExportRequest.findFirst.mockResolvedValue(
+        makeRow({ status: 'completed', objectKey: 'exports/user-1/x.pdf' }),
+      );
+      storageService.createDownloadUrl.mockReturnValue(
+        errAsync({
+          _tag: 'DomainFailure',
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+        } as DomainFailure),
+      );
+
+      const outcome = await collectResult(service.getLatestRequest('user-1'));
+
+      expect(outcome.ok).toBe(false);
+      if (outcome.ok) return;
+      expect(outcome.error.code).toBe('DEPENDENCY_UNAVAILABLE');
     });
   });
 });

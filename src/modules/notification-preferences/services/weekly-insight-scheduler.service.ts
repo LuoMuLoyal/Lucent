@@ -4,6 +4,7 @@ import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
 } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import { PrismaService } from '../../../prisma';
 import { NotificationsService } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
@@ -71,25 +72,29 @@ export class WeeklyInsightSchedulerService {
         const title = this.i18n.t('notifications.weekly_insight_title', {
           lang: user.profile?.locale ?? 'zh-CN',
         });
-        await this.notifications.createOrReplaceScoped(
-          user.id,
-          {
-            type: 'ai_weekly_insight',
-            title,
-            content: summary.summary,
-            action: 'report',
-            actionPayload: {
+        // TODO(error): Task 10 迁移本模块时改为 Result 组合；此处临时折叠保持
+        // 失败不被静默吞掉（Err → DomainFailureException → 外层 catch 记录）。
+        await unwrapResult(
+          this.notifications.createOrReplaceScoped(
+            user.id,
+            {
+              type: 'ai_weekly_insight',
+              title,
+              content: summary.summary,
+              action: 'report',
+              actionPayload: {
+                source: WEEKLY_INSIGHT_SOURCE,
+                date: week.startDate,
+                weekStart: week.startDate,
+                weekEnd: week.endDate,
+              },
+            },
+            {
               source: WEEKLY_INSIGHT_SOURCE,
               date: week.startDate,
-              weekStart: week.startDate,
-              weekEnd: week.endDate,
+              scopeKey: week.startDate,
             },
-          },
-          {
-            source: WEEKLY_INSIGHT_SOURCE,
-            date: week.startDate,
-            scopeKey: week.startDate,
-          },
+          ),
         );
         try {
           await this.pushDelivery.sendToUser(user.id, {

@@ -1,4 +1,6 @@
 import { ReminderSchedulerService } from './scheduler.service';
+import { errAsync, okAsync } from '../../../common/result';
+import { createDomainFailure } from '../../../common/result';
 import type { NotificationsService } from '../../notifications';
 import type { PushDeliveryService } from '../../notifications';
 import type { PrismaService } from '../../../prisma';
@@ -46,7 +48,7 @@ function buildPrisma(overrides: Record<string, unknown> = {}) {
 
 function buildNotifications() {
   return {
-    createOrReplaceScoped: vi.fn().mockResolvedValue({}),
+    createOrReplaceScoped: vi.fn().mockReturnValue(okAsync({} as never)),
   };
 }
 
@@ -437,13 +439,65 @@ describe('ReminderSchedulerService', () => {
     // should be skipped (no delivery record) and the second should dispatch.
     notifications.createOrReplaceScoped
       .mockRejectedValueOnce(new Error('notify conflict'))
-      .mockResolvedValueOnce({} as never);
+      .mockReturnValueOnce(okAsync({} as never));
 
     await service.dispatchDueReminders();
 
     // 只有第二个提醒写记录：1 条 in_app + 1 条 push
     expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips the delivery record when the notification write returns an Err', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow({ id: 'r-err' }),
+    ]);
+    notifications.createOrReplaceScoped.mockReturnValueOnce(
+      errAsync(
+        createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+        }),
+      ),
+    );
+
+    await service.dispatchDueReminders();
+
+    // Err → 不写任何投递记录（in_app/push 都没有），下一个 tick 重试。
+    expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
+  });
+
+  it('logs a structured warn (failure code + reminder/user context) and skips the delivery record on an Err', async () => {
+    const warnSpy = vi
+      .spyOn(service['logger'], 'warn')
+      .mockImplementation(() => undefined);
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow({ id: 'r-err-log' }),
+    ]);
+    notifications.createOrReplaceScoped.mockReturnValueOnce(
+      errAsync(
+        createDomainFailure({
+          kind: 'conflict',
+          code: 'RESOURCE_CONFLICT',
+        }),
+      ),
+    );
+
+    await service.dispatchDueReminders();
+
+    // Err 路径不再静默：warn 日志携带 failure.code 与 reminder/user 上下文
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('code=RESOURCE_CONFLICT'),
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('reminder=r-err-log'),
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('user=user-1'),
+    );
+    // Err → 不写任何投递记录（in_app/push 都没有），下一个 tick 重试。
+    expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   // ── daysOfWeek edge cases ───────────────────────────────────────

@@ -1,20 +1,41 @@
-import { ServiceUnavailableException } from '@nestjs/common';
 import type {
   ObjectStorageConfig,
   ObjectStorageRuntime,
 } from '../../../common';
+import type { ResultAsync, DomainFailure } from '../../../common/result';
 import { DataExportStorageService } from './storage.service';
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
+/** Unwraps a ResultAsync, failing the test when it is an Err. */
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await collectResult(result);
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
 
 describe('DataExportStorageService', () => {
   it('uploads a pdf and returns object metadata', async () => {
     const runtime = runtimeDouble(testConfig());
     const service = new DataExportStorageService(runtime);
 
-    const result = await service.uploadPdf({
-      userId: 'user-1',
-      fileName: 'report.pdf',
-      body: Buffer.from('pdf bytes'),
-    });
+    const result = await unwrapOk(
+      service.uploadPdf({
+        userId: 'user-1',
+        fileName: 'report.pdf',
+        body: Buffer.from('pdf bytes'),
+      }),
+    );
 
     expect(runtime.uploadBuffer).toHaveBeenCalledTimes(1);
     expect(vi.mocked(runtime.uploadBuffer).mock.calls[0]?.[0].contentType).toBe(
@@ -32,7 +53,9 @@ describe('DataExportStorageService', () => {
     const runtime = runtimeDouble(testConfig());
     const service = new DataExportStorageService(runtime);
 
-    const result = await service.createDownloadUrl('exports/user-1/report.pdf');
+    const result = await unwrapOk(
+      service.createDownloadUrl('exports/user-1/report.pdf'),
+    );
 
     expect(result).toBe('https://signed-download.example.com');
     expect(runtime.createSignedGetUrl).toHaveBeenCalledWith({
@@ -45,34 +68,82 @@ describe('DataExportStorageService', () => {
     const runtime = runtimeDouble(testConfig());
     const service = new DataExportStorageService(runtime);
 
-    const result = await service.createDownloadUrl(null);
+    const result = await unwrapOk(service.createDownloadUrl(null));
 
     expect(result).toBeNull();
   });
 
-  it('throws when upload is attempted without storage config', async () => {
+  it('returns DEPENDENCY_UNAVAILABLE when upload is attempted without storage config', async () => {
     const service = new DataExportStorageService(
       runtimeDouble(testConfig(), false),
     );
 
-    await expect(
+    const outcome = await collectResult(
       service.uploadPdf({
         userId: 'user-1',
         fileName: 'report.pdf',
         body: Buffer.from('pdf'),
       }),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    );
+
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(outcome.error.kind).toBe('dependency');
+  });
+
+  it('maps a runtime upload failure to DEPENDENCY_UNAVAILABLE', async () => {
+    const runtime = runtimeDouble(testConfig());
+    vi.mocked(runtime.uploadBuffer).mockRejectedValue(
+      new Error('COS putObject failed'),
+    );
+    const service = new DataExportStorageService(runtime);
+
+    const outcome = await collectResult(
+      service.uploadPdf({
+        userId: 'user-1',
+        fileName: 'report.pdf',
+        body: Buffer.from('pdf'),
+      }),
+    );
+
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+    expect(outcome.error.kind).toBe('dependency');
+  });
+
+  it('maps a timeout-like upload failure to DEPENDENCY_TIMEOUT', async () => {
+    const runtime = runtimeDouble(testConfig());
+    vi.mocked(runtime.uploadBuffer).mockRejectedValue(
+      Object.assign(new Error('request timed out'), { name: 'TimeoutError' }),
+    );
+    const service = new DataExportStorageService(runtime);
+
+    const outcome = await collectResult(
+      service.uploadPdf({
+        userId: 'user-1',
+        fileName: 'report.pdf',
+        body: Buffer.from('pdf'),
+      }),
+    );
+
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.error.code).toBe('DEPENDENCY_TIMEOUT');
   });
 
   it('returns provider from runtime config', async () => {
     const runtime = runtimeDouble({ ...testConfig(), provider: 's3' });
     const service = new DataExportStorageService(runtime);
 
-    const result = await service.uploadPdf({
-      userId: 'user-1',
-      fileName: 'report.pdf',
-      body: Buffer.from('pdf bytes'),
-    });
+    const result = await unwrapOk(
+      service.uploadPdf({
+        userId: 'user-1',
+        fileName: 'report.pdf',
+        body: Buffer.from('pdf bytes'),
+      }),
+    );
 
     expect(result.provider).toBe('s3');
   });

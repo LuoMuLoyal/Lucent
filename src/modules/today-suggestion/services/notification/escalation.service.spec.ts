@@ -1,4 +1,5 @@
 import { EscalationService } from './escalation.service';
+import { okAsync } from '../../../../common/result';
 import {
   SuggestionType,
   TriggerType,
@@ -50,7 +51,7 @@ describe('EscalationService', () => {
   let updateManyMock: vi.Mock;
 
   beforeEach(() => {
-    createOrReplaceScopedMock = vi.fn().mockResolvedValue({});
+    createOrReplaceScopedMock = vi.fn().mockReturnValue(okAsync({} as never));
     updateManyMock = vi.fn().mockResolvedValue({ count: 1 });
 
     const notificationsMock = {

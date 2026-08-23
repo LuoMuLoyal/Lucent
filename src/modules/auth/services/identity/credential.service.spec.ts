@@ -190,7 +190,7 @@ describe('CredentialAuthService', () => {
     );
     authRateLimitService.recordLoginFailure.mockReturnValue(okAsync(undefined));
     authRateLimitService.clearLoginFailures.mockReturnValue(okAsync(undefined));
-    notificationsService.create.mockResolvedValue(mockNotification);
+    notificationsService.create.mockReturnValue(okAsync(mockNotification));
   });
 
   afterEach(() => {
@@ -544,6 +544,26 @@ describe('CredentialAuthService', () => {
     });
 
     it('should still succeed when the password-changed notification fails (best-effort)', async () => {
+      notificationsService.create.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.changePassword('user-1', {
+          oldPassword: 'OldPass1',
+          newPassword: 'NewPass1',
+        }),
+      );
+
+      expect(outcome).toEqual({ ok: true, value: undefined });
+    });
+
+    it('should still succeed when the notification write rejects (best-effort)', async () => {
       notificationsService.create.mockRejectedValue(
         new Error('notification down'),
       );

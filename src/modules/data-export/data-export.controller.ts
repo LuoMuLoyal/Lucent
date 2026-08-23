@@ -17,6 +17,8 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 
+import { ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { SecurityElevationGuard } from '../security-pin';
@@ -41,12 +43,24 @@ export class DataExportController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new data export request' })
   @ApiResponse({ status: 201, type: DataExportRequestResponseDto })
+  @ApiResponse({
+    status: 409,
+    type: ProblemDetailsDto,
+    description: 'Duplicate data export request (unique constraint race).',
+  })
+  @ApiResponse({
+    status: 503,
+    type: ProblemDetailsDto,
+    description: 'Object storage backend is not reachable.',
+  })
   async createRequest(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateDataExportRequestDto,
     @I18nLang() language: string,
   ) {
-    return await this.exportService.createRequest(user.sub, dto, language);
+    return await unwrapResult(
+      this.exportService.createRequest(user.sub, dto, language),
+    );
   }
 
   @Get('latest')
@@ -58,7 +72,12 @@ export class DataExportController {
       allOf: [{ $ref: getSchemaPath(DataExportRequestDataDto) }],
     },
   })
+  @ApiResponse({
+    status: 503,
+    type: ProblemDetailsDto,
+    description: 'Object storage backend is not reachable.',
+  })
   async getLatestRequest(@CurrentUser() user: UserPayload) {
-    return await this.exportService.getLatestRequest(user.sub);
+    return await unwrapResult(this.exportService.getLatestRequest(user.sub));
   }
 }

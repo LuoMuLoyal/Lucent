@@ -1,4 +1,5 @@
 import { EscalationService } from './escalation.service';
+import { okAsync } from '../../../../common/result';
 import {
   SuggestionConfidence,
   SuggestionType,
@@ -62,7 +63,7 @@ describe('EscalationService notification preference gates', () => {
 
   it('uses waterRemindersEnabled only for water shortfall', async () => {
     const notifications = {
-      createOrReplaceScoped: vi.fn().mockResolvedValue({}),
+      createOrReplaceScoped: vi.fn().mockReturnValue(okAsync({} as never)),
     };
     const push = { sendToUser: vi.fn().mockResolvedValue(undefined) };
     const prisma = {
@@ -92,7 +93,7 @@ describe('EscalationService notification preference gates', () => {
 
   it('does not gate missed-dose notifications with either preference', async () => {
     const notifications = {
-      createOrReplaceScoped: vi.fn().mockResolvedValue({}),
+      createOrReplaceScoped: vi.fn().mockReturnValue(okAsync({} as never)),
     };
     const push = { sendToUser: vi.fn().mockResolvedValue(undefined) };
     const prisma = {

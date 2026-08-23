@@ -1,6 +1,8 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth';
+import { ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import {
   LegalDocumentDetailResponseDto,
   LegalDocumentListResponseDto,
@@ -19,17 +21,21 @@ export class LegalDocumentsController {
   @ApiOperation({ summary: 'List all active legal documents' })
   @ApiResponse({ status: 200, type: LegalDocumentListResponseDto })
   async findAll(@Query() query: LegalDocumentQueryDto) {
-    return await this.service.findAll(query);
+    return await unwrapResult(this.service.findAll(query));
   }
 
   @Get(':docType')
   @ApiOperation({ summary: 'Get a specific legal document by type' })
   @ApiResponse({ status: 200, type: LegalDocumentDetailResponseDto })
-  @ApiResponse({ status: 404, description: 'Document type not found' })
+  @ApiResponse({
+    status: 404,
+    type: ProblemDetailsDto,
+    description: 'Document type not found or inactive.',
+  })
   async findOne(
     @Param('docType') docType: string,
     @Query() query: LegalDocumentQueryDto,
   ) {
-    return await this.service.findOne(docType, query);
+    return await unwrapResult(this.service.findOne(docType, query));
   }
 }

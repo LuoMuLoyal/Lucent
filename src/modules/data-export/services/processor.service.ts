@@ -6,6 +6,7 @@ import { DataExportStorageService } from './storage.service';
 import { ReportExportPdfService } from './report-pdf/pdf.service';
 import { formatDateOnly, now } from '../../../common';
 import { extractErrorInfo } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 
 export interface DataExportProcessorInput {
   exportRequestId: string;
@@ -61,11 +62,16 @@ export class DataExportProcessorService {
       const pdf = await this.buildPdfForKind(request.kind, language, report);
       const fileName = this.createFileName(request.kind, request.range);
 
-      const uploaded = await this.storageService.uploadPdf({
-        userId,
-        fileName,
-        body: pdf,
-      });
+      // `uploadPdf` returns ResultAsync — a storage dependency failure (Err)
+      // is folded into the same failure path as a rejection: the request is
+      // marked failed and the error rethrown for BullMQ retry.
+      const uploaded = await unwrapResult(
+        this.storageService.uploadPdf({
+          userId,
+          fileName,
+          body: pdf,
+        }),
+      );
 
       await this.prisma.dataExportRequest.update({
         where: { id: exportRequestId },
@@ -143,12 +149,17 @@ export class DataExportProcessorService {
         monthly: '月度报告',
         print: '打印预览报告',
       };
-      await this.notificationsService.create(userId, {
-        type: 'report_generated',
-        title: `${kindLabels[kind] ?? '报告'}导出成功`,
-        content: `您的${kindLabels[kind] ?? '报告'}已生成，可以前往报告页查看。`,
-        action: 'report',
-      });
+      // `NotificationsService.create` returns ResultAsync — fold it so a
+      // DomainFailure Err is treated like the previous rejection: logged and
+      // never allowed to fail the export.
+      await unwrapResult(
+        this.notificationsService.create(userId, {
+          type: 'report_generated',
+          title: `${kindLabels[kind] ?? '报告'}导出成功`,
+          content: `您的${kindLabels[kind] ?? '报告'}已生成，可以前往报告页查看。`,
+          action: 'report',
+        }),
+      );
     } catch (error: unknown) {
       const { message: reason } = extractErrorInfo(error);
       this.logger.warn(

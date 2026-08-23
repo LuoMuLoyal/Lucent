@@ -4,6 +4,7 @@ import { NotificationsService } from '../../../notifications';
 import { PushDeliveryService } from '../../../notifications';
 import { NotificationPreferencesService } from '../../../notification-preferences';
 import { now } from '../../../../common';
+import { unwrapResult } from '../../../../common/result';
 import type { SuggestionCandidate } from '../../types/candidate.types';
 import {
   SuggestionConfidence,
@@ -82,25 +83,29 @@ export class EscalationService {
       }
 
       // 2. Send the notification.
-      await this.notificationsService.createOrReplaceScoped(
-        userId,
-        {
-          type: 'ai_proactive_suggestion',
-          title: copy.title,
-          content: copy.reason,
-          action: candidate.primaryAction.route,
-          actionPayload: {
+      // TODO(error): Task 10 迁移本模块时改为 Result 组合；此处临时折叠保持
+      // 失败不被静默吞掉（Err → DomainFailureException → 外层 catch 记录）。
+      await unwrapResult(
+        this.notificationsService.createOrReplaceScoped(
+          userId,
+          {
+            type: 'ai_proactive_suggestion',
+            title: copy.title,
+            content: copy.reason,
+            action: candidate.primaryAction.route,
+            actionPayload: {
+              source: `today_suggestion_${candidate.type}`,
+              date,
+              suggestionId,
+              suggestionType: candidate.type,
+              ruleId: candidate.ruleId,
+            },
+          },
+          {
             source: `today_suggestion_${candidate.type}`,
             date,
-            suggestionId,
-            suggestionType: candidate.type,
-            ruleId: candidate.ruleId,
           },
-        },
-        {
-          source: `today_suggestion_${candidate.type}`,
-          date,
-        },
+        ),
       );
 
       this.logger.debug(

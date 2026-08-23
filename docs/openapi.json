@@ -543,6 +543,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Notification already exists (RESOURCE_CONFLICT, P2002 race)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -642,6 +652,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -666,7 +686,17 @@
         ],
         "responses": {
           "204": {
-            "description": ""
+            "description": "Notification deleted."
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -701,6 +731,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -732,6 +772,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotificationDetailResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -5164,6 +5214,16 @@
         "responses": {
           "201": {
             "description": "Events accepted; `recorded` may be lower than `received` when duplicate clientEventIds were skipped."
+          },
+          "400": {
+            "description": "Unknown suggestion rule code or occurredAt more than 24 hours in the future.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5208,6 +5268,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FunnelResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid funnel query window (dates or range).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -6496,7 +6566,14 @@
             }
           },
           "404": {
-            "description": "Document type not found"
+            "description": "Document type not found or inactive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Get a specific legal document by type",
@@ -6524,6 +6601,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DataExportRequestResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate data export request (unique constraint race).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Object storage backend is not reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -6557,6 +6654,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Object storage backend is not reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6584,7 +6691,37 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Presigned upload URL for the requested file."
+          },
+          "400": {
+            "description": "Unsupported content type or file size above the limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Object storage backend is not reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Object storage backend timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [

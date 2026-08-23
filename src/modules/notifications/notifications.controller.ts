@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
@@ -18,9 +17,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { I18nLang, I18nService } from 'nestjs-i18n';
 
-import { clampPage, clampPageSize } from '../../common';
+import { clampPage, clampPageSize, ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { NotificationsService } from './services/notifications.service';
@@ -35,20 +34,22 @@ import {
 @ApiBearerAuth('access-token')
 @Controller('notifications')
 export class NotificationsController {
-  constructor(
-    private readonly notificationsService: NotificationsService,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a notification (internal/test)' })
   @ApiResponse({ status: 201, type: NotificationListResponseDto })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Notification already exists (RESOURCE_CONFLICT, P2002 race)',
+    type: ProblemDetailsDto,
+  })
   async create(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateNotificationDto,
   ) {
-    return await this.notificationsService.create(user.sub, dto);
+    return await unwrapResult(this.notificationsService.create(user.sub, dto));
   }
 
   @Get()
@@ -78,52 +79,44 @@ export class NotificationsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a notification detail' })
   @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
-  async findOne(
-    @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
-    @I18nLang() lang: string,
-  ) {
-    const data = await this.notificationsService.findOne(user.sub, id);
-    if (!data)
-      throw new NotFoundException({
-        code: 'NOTIFICATION_NOT_FOUND',
-        message: this.i18n.t('notifications.not_found', { lang }),
-      });
-    return data;
+  @ApiResponse({
+    status: 404,
+    type: ProblemDetailsDto,
+    description: 'Notification not found.',
+  })
+  async findOne(@CurrentUser() user: UserPayload, @Param('id') id: string) {
+    return await unwrapResult(this.notificationsService.findOne(user.sub, id));
   }
 
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark a notification as read' })
   @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
-  async markAsRead(
-    @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
-    @I18nLang() lang: string,
-  ) {
-    const data = await this.notificationsService.markAsRead(user.sub, id);
-    if (!data)
-      throw new NotFoundException({
-        code: 'NOTIFICATION_NOT_FOUND',
-        message: this.i18n.t('notifications.not_found', { lang }),
-      });
-    return data;
+  @ApiResponse({
+    status: 404,
+    type: ProblemDetailsDto,
+    description: 'Notification not found.',
+  })
+  async markAsRead(@CurrentUser() user: UserPayload, @Param('id') id: string) {
+    return await unwrapResult(
+      this.notificationsService.markAsRead(user.sub, id),
+    );
   }
 
   @Patch(':id/unread')
   @ApiOperation({ summary: 'Mark a notification as unread' })
   @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
+  @ApiResponse({
+    status: 404,
+    type: ProblemDetailsDto,
+    description: 'Notification not found.',
+  })
   async markAsUnread(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
-    @I18nLang() lang: string,
   ) {
-    const data = await this.notificationsService.markAsUnread(user.sub, id);
-    if (!data)
-      throw new NotFoundException({
-        code: 'NOTIFICATION_NOT_FOUND',
-        message: this.i18n.t('notifications.not_found', { lang }),
-      });
-    return data;
+    return await unwrapResult(
+      this.notificationsService.markAsUnread(user.sub, id),
+    );
   }
 
   @Patch('mark-all-read')
@@ -137,16 +130,16 @@ export class NotificationsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a notification' })
-  async remove(
-    @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
-    @I18nLang() lang: string,
-  ) {
-    const deleted = await this.notificationsService.remove(user.sub, id);
-    if (!deleted)
-      throw new NotFoundException({
-        code: 'NOTIFICATION_NOT_FOUND',
-        message: this.i18n.t('notifications.not_found', { lang }),
-      });
+  @ApiResponse({
+    status: 204,
+    description: 'Notification deleted.',
+  })
+  @ApiResponse({
+    status: 404,
+    type: ProblemDetailsDto,
+    description: 'Notification not found.',
+  })
+  async remove(@CurrentUser() user: UserPayload, @Param('id') id: string) {
+    await unwrapResult(this.notificationsService.remove(user.sub, id));
   }
 }

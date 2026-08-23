@@ -6,6 +6,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateProductEventBatchDto } from './dto/create-product-event.dto';
@@ -40,12 +42,19 @@ export class ProductEventsController {
     description:
       'Events accepted; `recorded` may be lower than `received` when duplicate clientEventIds were skipped.',
   })
+  @ApiResponse({
+    status: 400,
+    type: ProblemDetailsDto,
+    description:
+      'Unknown suggestion rule code or occurredAt more than 24 hours in the future.',
+  })
   async recordBatch(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateProductEventBatchDto,
   ) {
-    const result = await this.eventsService.recordBatch(user.sub, dto.events);
-    return result;
+    return await unwrapResult(
+      this.eventsService.recordBatch(user.sub, dto.events),
+    );
   }
 
   @Get('funnel')
@@ -68,7 +77,12 @@ export class ProductEventsController {
     status: 403,
     description: 'Authenticated but not the internal admin (ADMIN_EMAIL).',
   })
+  @ApiResponse({
+    status: 400,
+    type: ProblemDetailsDto,
+    description: 'Invalid funnel query window (dates or range).',
+  })
   async getFunnel(@Query() query: FunnelQueryDto) {
-    return await this.funnelService.getFunnel(query);
+    return await unwrapResult(this.funnelService.getFunnel(query));
   }
 }

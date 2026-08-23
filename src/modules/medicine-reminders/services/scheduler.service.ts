@@ -266,26 +266,36 @@ export class ReminderSchedulerService {
         args: { label },
       });
 
-      // b. 先发站内通知。如果失败，不写任何投递记录，下一个 tick 重试
-      //    （原语义保留）。
-      await this.notificationsService.createOrReplaceScoped(
-        reminder.userId,
-        {
-          type: 'medicine_reminder',
-          title: label,
-          content,
-          action: 'medicine',
-          actionPayload: {
+      // b. 先发站内通知。如果失败（DomainFailure Err 或异常），不写任何
+      //    投递记录，下一个 tick 重试（原语义保留）。Err 路径记录结构化
+      //    warn（含 failure.code 与 reminder/user 上下文），已知业务失败
+      //    （如 P2002/P2025 映射的 RESOURCE_CONFLICT/RESOURCE_NOT_FOUND）
+      //    不再静默；rejection 仍走外层 catch。
+      const notificationResult =
+        await this.notificationsService.createOrReplaceScoped(
+          reminder.userId,
+          {
+            type: 'medicine_reminder',
+            title: label,
+            content,
+            action: 'medicine',
+            actionPayload: {
+              source: `medicine_reminder_${reminder.id}`,
+              date: localDate,
+              reminderId: reminder.id,
+            },
+          },
+          {
             source: `medicine_reminder_${reminder.id}`,
             date: localDate,
-            reminderId: reminder.id,
           },
-        },
-        {
-          source: `medicine_reminder_${reminder.id}`,
-          date: localDate,
-        },
-      );
+        );
+      if (notificationResult.isErr()) {
+        this.logger.warn(
+          `Failed to send reminder notification (reminder=${reminder.id}, user=${reminder.userId}): code=${notificationResult.error.code}`,
+        );
+        return;
+      }
 
       // c. 站内通知成功——写入 in_app 审计行（通知中心记录）。唯一约束
       //    (userId, reminderId, scheduledFor, channel) 保证重叠 tick 的

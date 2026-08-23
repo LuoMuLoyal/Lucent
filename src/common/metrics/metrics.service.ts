@@ -60,6 +60,10 @@ export class MetricsService implements OnApplicationBootstrap {
 
   private readonly productEventEmissionFailures: Counter;
 
+  // ── Audit log metrics ──────────────────────────────────────────────────
+
+  private readonly auditLogWriteFailures: Counter;
+
   constructor(private readonly configService: ConfigService) {
     this.registry = new Registry();
 
@@ -177,6 +181,15 @@ export class MetricsService implements OnApplicationBootstrap {
       name: 'product_event_emission_failure_total',
       help: 'Total server-side product event emission failures by event name',
       labelNames: ['event'] as const,
+      registers: [this.registry],
+    });
+
+    // Labeled only by the fixed audit action string — no userId, resource id
+    // or metadata in labels, so cardinality stays bounded.
+    this.auditLogWriteFailures = new Counter({
+      name: 'audit_log_write_failure_total',
+      help: 'Total audit log write failures by action',
+      labelNames: ['action'] as const,
       registers: [this.registry],
     });
   }
@@ -341,5 +354,15 @@ export class MetricsService implements OnApplicationBootstrap {
   recordProductEventEmissionFailure(eventName: string): void {
     if (!this.enabled) return;
     this.productEventEmissionFailures.inc({ event: eventName });
+  }
+
+  /**
+   * Records an audit-log write failure (action only — no userId, resource id
+   * or metadata). Called from the fire-and-forget path in
+   * `AuditLogService.logFireAndForget`.
+   */
+  recordAuditLogWriteFailure(action: string): void {
+    if (!this.enabled) return;
+    this.auditLogWriteFailures.inc({ action });
   }
 }

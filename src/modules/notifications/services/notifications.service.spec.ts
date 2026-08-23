@@ -1,9 +1,21 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { Prisma } from '#generated/prisma/client';
 
+import type { ResultAsync, DomainFailure } from '../../../common/result';
 import { NotificationsService } from './notifications.service';
 import { PrismaService } from '../../../prisma';
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 const mockNotificationRow = {
   id: 'notif-uuid-1',
@@ -84,13 +96,15 @@ describe('NotificationsService', () => {
         mockNotificationRow,
       );
 
-      const result = await service.create('user-uuid-1', {
-        type: 'medicine_missed_dose',
-        title: 'Missed dose reminder',
-        content: 'You missed your evening dose of Ibuprofen.',
-        action: '/record/dose-log',
-        actionPayload: { medicineId: 'med-1' },
-      });
+      const result = await collectResult(
+        service.create('user-uuid-1', {
+          type: 'medicine_missed_dose',
+          title: 'Missed dose reminder',
+          content: 'You missed your evening dose of Ibuprofen.',
+          action: '/record/dose-log',
+          actionPayload: { medicineId: 'med-1' },
+        }),
+      );
 
       expect(prismaService.userNotification.create).toHaveBeenCalledWith({
         data: {
@@ -113,7 +127,9 @@ describe('NotificationsService', () => {
           createdAt: true,
         }) as Record<string, boolean>,
       });
-      expect(result).toEqual({
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value).toEqual({
         id: 'notif-uuid-1',
         type: 'medicine_missed_dose',
         title: 'Missed dose reminder',
@@ -132,14 +148,57 @@ describe('NotificationsService', () => {
         actionPayload: null,
       });
 
-      const result = await service.create('user-uuid-1', {
-        type: 'system_announcement',
-        title: 'System update',
-        content: 'The system will be updated tonight.',
-      });
+      const result = await collectResult(
+        service.create('user-uuid-1', {
+          type: 'system_announcement',
+          title: 'System update',
+          content: 'The system will be updated tonight.',
+        }),
+      );
 
-      expect(result.action).toBeNull();
-      expect(result.actionPayload).toBeNull();
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.action).toBeNull();
+      expect(result.value.actionPayload).toBeNull();
+    });
+
+    it('maps a P2002 unique-constraint race to RESOURCE_CONFLICT', async () => {
+      (prismaService.userNotification.create as vi.Mock).mockRejectedValue(
+        Object.assign(
+          Object.create(Prisma.PrismaClientKnownRequestError.prototype),
+          {
+            code: 'P2002',
+          },
+        ) as Error,
+      );
+
+      const result = await collectResult(
+        service.create('user-uuid-1', {
+          type: 'medicine_missed_dose',
+          title: 'Missed dose reminder',
+          content: 'Content',
+        }),
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('RESOURCE_CONFLICT');
+    });
+
+    it('rethrows unknown database errors instead of mapping them', async () => {
+      (prismaService.userNotification.create as vi.Mock).mockRejectedValue(
+        new Error('connection lost'),
+      );
+
+      await expect(
+        collectResult(
+          service.create('user-uuid-1', {
+            type: 'medicine_missed_dose',
+            title: 'Missed dose reminder',
+            content: 'Content',
+          }),
+        ),
+      ).rejects.toThrow('connection lost');
     });
   });
 
@@ -150,26 +209,30 @@ describe('NotificationsService', () => {
         id: 'notif-weekly-insight',
       });
 
-      const result = await service.createOrReplaceScoped(
-        'user-uuid-1',
-        {
-          type: 'ai_weekly_insight',
-          title: 'Weekly health insight',
-          content: 'Your weekly trend is stable.',
-          action: 'report',
-          actionPayload: {
+      const result = await collectResult(
+        service.createOrReplaceScoped(
+          'user-uuid-1',
+          {
+            type: 'ai_weekly_insight',
+            title: 'Weekly health insight',
+            content: 'Your weekly trend is stable.',
+            action: 'report',
+            actionPayload: {
+              source: 'ai_weekly_insight',
+              date: '2026-06-08',
+            },
+          },
+          {
             source: 'ai_weekly_insight',
             date: '2026-06-08',
+            scopeKey: '2026-06-08',
           },
-        },
-        {
-          source: 'ai_weekly_insight',
-          date: '2026-06-08',
-          scopeKey: '2026-06-08',
-        },
+        ),
       );
 
-      expect(result.id).toBe('notif-weekly-insight');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.id).toBe('notif-weekly-insight');
       expect(prismaService.userNotification.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
@@ -201,23 +264,25 @@ describe('NotificationsService', () => {
         id: 'notif-suggestion-new',
       });
 
-      const result = await service.createOrReplaceScoped(
-        'user-uuid-1',
-        {
-          type: 'ai_proactive_suggestion',
-          title: 'AI 主动建议',
-          content: '还有 1 项今日用药待确认。',
-          action: 'today',
-          actionPayload: {
+      const result = await collectResult(
+        service.createOrReplaceScoped(
+          'user-uuid-1',
+          {
+            type: 'ai_proactive_suggestion',
+            title: 'AI 主动建议',
+            content: '还有 1 项今日用药待确认。',
+            action: 'today',
+            actionPayload: {
+              source: 'today-analysis',
+              date: '2026-06-12',
+              actionLabel: '查看今日记录',
+            },
+          },
+          {
             source: 'today-analysis',
             date: '2026-06-12',
-            actionLabel: '查看今日记录',
           },
-        },
-        {
-          source: 'today-analysis',
-          date: '2026-06-12',
-        },
+        ),
       );
 
       expect(prismaService.userNotification.findMany).toHaveBeenCalledWith({
@@ -230,7 +295,9 @@ describe('NotificationsService', () => {
         take: 50,
       });
       expect(prismaService.userNotification.deleteMany).not.toHaveBeenCalled();
-      expect(result.id).toBe('notif-suggestion-new');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.id).toBe('notif-suggestion-new');
     });
 
     it('replaces existing scoped duplicates before creating a fresh notification', async () => {
@@ -404,13 +471,17 @@ describe('NotificationsService', () => {
         mockReadNotificationRow,
       );
 
-      const result = await service.findOne('user-uuid-1', 'notif-uuid-1');
+      const result = await collectResult(
+        service.findOne('user-uuid-1', 'notif-uuid-1'),
+      );
 
       expect(prismaService.userNotification.findFirst).toHaveBeenCalledWith({
         where: { id: 'notif-uuid-1', userId: 'user-uuid-1' },
         select: expect.any(Object) as Record<string, boolean>,
       });
-      expect(result).toEqual({
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value).toEqual({
         id: 'notif-uuid-1',
         type: 'medicine_missed_dose',
         title: 'Missed dose reminder',
@@ -423,14 +494,19 @@ describe('NotificationsService', () => {
       });
     });
 
-    it('should return null when notification does not exist', async () => {
+    it('should return NOTIFICATION_NOT_FOUND when notification does not exist', async () => {
       (prismaService.userNotification.findFirst as vi.Mock).mockResolvedValue(
         null,
       );
 
-      const result = await service.findOne('user-uuid-1', 'nonexistent');
+      const result = await collectResult(
+        service.findOne('user-uuid-1', 'nonexistent'),
+      );
 
-      expect(result).toBeNull();
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('NOTIFICATION_NOT_FOUND');
+      expect(result.error.kind).toBe('not_found');
     });
   });
 
@@ -443,14 +519,18 @@ describe('NotificationsService', () => {
         mockReadNotificationRow,
       );
 
-      const result = await service.markAsRead('user-uuid-1', 'notif-uuid-1');
+      const result = await collectResult(
+        service.markAsRead('user-uuid-1', 'notif-uuid-1'),
+      );
 
       expect(prismaService.userNotification.updateMany).toHaveBeenCalledWith({
         where: { id: 'notif-uuid-1', userId: 'user-uuid-1', isRead: false },
         data: { isRead: true, readAt: expect.any(Date) as Date },
       });
-      expect(result?.isRead).toBe(true);
-      expect(result?.readAt).toBe('2026-06-10T12:00:00.000Z');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.isRead).toBe(true);
+      expect(result.value.readAt).toBe('2026-06-10T12:00:00.000Z');
     });
 
     it('should still return notification when already read', async () => {
@@ -461,12 +541,16 @@ describe('NotificationsService', () => {
         mockReadNotificationRow,
       );
 
-      const result = await service.markAsRead('user-uuid-1', 'notif-uuid-1');
+      const result = await collectResult(
+        service.markAsRead('user-uuid-1', 'notif-uuid-1'),
+      );
 
-      expect(result?.isRead).toBe(true);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.isRead).toBe(true);
     });
 
-    it('should return null when notification belongs to another user', async () => {
+    it('should return NOTIFICATION_NOT_FOUND when notification belongs to another user', async () => {
       (prismaService.userNotification.updateMany as vi.Mock).mockResolvedValue({
         count: 0,
       });
@@ -474,9 +558,13 @@ describe('NotificationsService', () => {
         null,
       );
 
-      const result = await service.markAsRead('other-user', 'notif-uuid-1');
+      const result = await collectResult(
+        service.markAsRead('other-user', 'notif-uuid-1'),
+      );
 
-      expect(result).toBeNull();
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('NOTIFICATION_NOT_FOUND');
     });
   });
 
@@ -489,14 +577,18 @@ describe('NotificationsService', () => {
         mockNotificationRow,
       );
 
-      const result = await service.markAsUnread('user-uuid-1', 'notif-uuid-1');
+      const result = await collectResult(
+        service.markAsUnread('user-uuid-1', 'notif-uuid-1'),
+      );
 
       expect(prismaService.userNotification.updateMany).toHaveBeenCalledWith({
         where: { id: 'notif-uuid-1', userId: 'user-uuid-1' },
         data: { isRead: false, readAt: null },
       });
-      expect(result?.isRead).toBe(false);
-      expect(result?.readAt).toBeNull();
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.isRead).toBe(false);
+      expect(result.value.readAt).toBeNull();
     });
   });
 
@@ -527,27 +619,33 @@ describe('NotificationsService', () => {
   });
 
   describe('remove', () => {
-    it('should delete a notification and return true', async () => {
+    it('should delete a notification', async () => {
       (prismaService.userNotification.deleteMany as vi.Mock).mockResolvedValue({
         count: 1,
       });
 
-      const result = await service.remove('user-uuid-1', 'notif-uuid-1');
+      const result = await collectResult(
+        service.remove('user-uuid-1', 'notif-uuid-1'),
+      );
 
       expect(prismaService.userNotification.deleteMany).toHaveBeenCalledWith({
         where: { id: 'notif-uuid-1', userId: 'user-uuid-1' },
       });
-      expect(result).toBe(true);
+      expect(result.ok).toBe(true);
     });
 
-    it('should return false when notification does not exist', async () => {
+    it('should return NOTIFICATION_NOT_FOUND when notification does not exist', async () => {
       (prismaService.userNotification.deleteMany as vi.Mock).mockResolvedValue({
         count: 0,
       });
 
-      const result = await service.remove('user-uuid-1', 'nonexistent');
+      const result = await collectResult(
+        service.remove('user-uuid-1', 'nonexistent'),
+      );
 
-      expect(result).toBe(false);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('NOTIFICATION_NOT_FOUND');
     });
   });
 

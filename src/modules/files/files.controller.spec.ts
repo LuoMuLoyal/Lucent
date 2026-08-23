@@ -1,6 +1,8 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { JwtAuthGuard } from '../auth';
+import { errAsync, okAsync } from '../../common/result';
+import type { DomainFailure } from '../../common/result';
 import { FilesController } from './files.controller';
 import { FilesService } from './services/files.service';
 
@@ -19,9 +21,17 @@ describe('FilesController', () => {
     maxSizeBytes: 10_485_760,
   };
 
+  const dto = {
+    contentType: 'image/jpeg',
+    sizeBytes: 204800,
+    fileName: 'photo.jpg',
+  };
+
+  const user = { sub: 'user-1', email: 'test@example.com', status: 'active' };
+
   beforeEach(async () => {
     filesService = {
-      createPresignedUpload: vi.fn().mockResolvedValue(mockResult),
+      createPresignedUpload: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -40,13 +50,7 @@ describe('FilesController', () => {
   });
 
   it('should call filesService.createPresignedUpload and return the resource', async () => {
-    const dto = {
-      contentType: 'image/jpeg',
-      sizeBytes: 204800,
-      fileName: 'photo.jpg',
-    };
-
-    const user = { sub: 'user-1', email: 'test@example.com', status: 'active' };
+    filesService.createPresignedUpload.mockReturnValue(okAsync(mockResult));
 
     const result = await controller.createUpload(user, dto);
 
@@ -55,5 +59,33 @@ describe('FilesController', () => {
       dto,
     );
     expect(result).toEqual(mockResult);
+  });
+
+  it('should fold a VALIDATION_FAILED Err into a DomainFailureException', async () => {
+    const failure: DomainFailure = {
+      _tag: 'DomainFailure',
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    };
+    filesService.createPresignedUpload.mockReturnValue(errAsync(failure));
+
+    await expect(controller.createUpload(user, dto)).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
+    });
+  });
+
+  it('should fold a DEPENDENCY_UNAVAILABLE Err from the service', async () => {
+    const failure: DomainFailure = {
+      _tag: 'DomainFailure',
+      kind: 'dependency',
+      code: 'DEPENDENCY_UNAVAILABLE',
+    };
+    filesService.createPresignedUpload.mockReturnValue(errAsync(failure));
+
+    await expect(controller.createUpload(user, dto)).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: expect.objectContaining({ code: 'DEPENDENCY_UNAVAILABLE' }),
+    });
   });
 });

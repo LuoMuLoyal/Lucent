@@ -1,3 +1,5 @@
+import { errAsync, okAsync } from '../../../common/result';
+import { createDomainFailure } from '../../../common/result';
 import type { NotificationsService } from '../../notifications';
 import type { OAuthProfile } from '../types/oauth.types';
 import { AuthNotificationService } from './notification.service';
@@ -8,7 +10,7 @@ describe('AuthNotificationService', () => {
 
   beforeEach(() => {
     notificationsService = {
-      create: vi.fn().mockResolvedValue(undefined),
+      create: vi.fn().mockReturnValue(okAsync({} as never)),
     } as unknown as vi.Mocked<NotificationsService>;
 
     service = new AuthNotificationService(notificationsService);
@@ -165,6 +167,39 @@ describe('AuthNotificationService', () => {
           content: expect.stringContaining('github'),
         }),
       );
+    });
+  });
+
+  describe('best-effort failure handling', () => {
+    it('does not propagate a DomainFailure Err from the notification write', async () => {
+      notificationsService.create.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+          }),
+        ),
+      );
+
+      await expect(
+        service.notifyOAuthLogin('user-1', {
+          provider: 'qq',
+          providerUserId: 'qq-1',
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('does not propagate a rejected notification write', async () => {
+      notificationsService.create.mockRejectedValue(
+        new Error('db connection lost'),
+      );
+
+      await expect(
+        service.notifyIdentityLinked('user-1', {
+          provider: 'apple',
+          providerUserId: 'apple-1',
+        }),
+      ).resolves.toBeUndefined();
     });
   });
 });

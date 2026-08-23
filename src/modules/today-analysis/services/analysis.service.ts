@@ -12,6 +12,7 @@ import {
   formatDateOnlyInTimezone,
   now,
 } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import type { CreateNotificationDto } from '../../notifications';
 import { HistoricalAiSummaryService } from '../../assistant';
 import { NotificationsService, PushDeliveryService } from '../../notifications';
@@ -488,7 +489,11 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     },
   ): Promise<void> {
     try {
-      await this.notificationsService.createOrReplaceScoped(userId, dto, scope);
+      // TODO(error): Task 10 迁移本模块时改为 Result 组合；此处临时折叠保持
+      // 「通知失败不影响主流程」语义（Err → DomainFailureException → catch 记录）。
+      await unwrapResult(
+        this.notificationsService.createOrReplaceScoped(userId, dto, scope),
+      );
     } catch (error) {
       this.logger.warn(
         `Failed to create scoped notification for user ${userId} (source=${scope.source}, date=${scope.date}): ${String(error)}`,

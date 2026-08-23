@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
+import { fromPrismaResult } from '../../../common';
+import {
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
@@ -51,11 +57,22 @@ export class DataExportService {
     private readonly processor: DataExportProcessorService,
   ) {}
 
-  async createRequest(
+  /**
+   * Creates a data-export request.
+   *
+   * - Storage not configured → the request row is persisted with status
+   *   `unavailable` and returned (documented contract, not an error).
+   * - Queue available → enqueue for async processing.
+   * - Queue unavailable / enqueue rejects (Redis down) → the request is
+   *   processed synchronously inline so the task is never lost; a failed
+   *   inline run propagates (the processor writes status `failed` and
+   *   rethrows — queue-retry semantics, not HTTP retry).
+   */
+  createRequest(
     userId: string,
     dto: CreateDataExportRequestDto,
     language: string,
-  ): Promise<DataExportRequestDataDto> {
+  ): ResultAsync<DataExportRequestDataDto, DomainFailure> {
     const kind = dto.kind ?? 'hospital';
     const format = dto.format ?? 'pdf';
     const requestedRange = dto.range ?? DEFAULT_EXPORT_RANGE;
@@ -63,92 +80,138 @@ export class DataExportService {
       kind === 'monthly' ? MONTHLY_EXPORT_RANGE : requestedRange;
 
     if (!this.storageService.isConfigured()) {
-      const created = await this.prisma.dataExportRequest.create({
+      return fromPrismaResult(
+        this.prisma.dataExportRequest.create({
+          data: {
+            userId,
+            kind,
+            format,
+            range: effectiveRange,
+            status: 'unavailable',
+            errorMessage: 'Object storage is not configured',
+          },
+        }),
+      ).andThen((created) => this.toDto(created));
+    }
+
+    return fromPrismaResult(
+      this.prisma.dataExportRequest.create({
         data: {
           userId,
           kind,
           format,
           range: effectiveRange,
-          status: 'unavailable',
-          errorMessage: 'Object storage is not configured',
+          status: 'requested',
         },
-      });
-      return await this.toDto(created);
+      }),
+    ).andThen((created) =>
+      this.dispatchOrProcessInline(created, userId, language),
+    );
+  }
+
+  /**
+   * Enqueues the request for async processing, falling back to synchronous
+   * inline processing when the queue is unavailable or enqueueing rejects.
+   */
+  private dispatchOrProcessInline(
+    created: DataExportRequestRow,
+    userId: string,
+    language: string,
+  ): ResultAsync<DataExportRequestDataDto, DomainFailure> {
+    if (!this.queueService.isConfigured) {
+      return this.processInline(created, userId, language);
     }
 
-    const created = await this.prisma.dataExportRequest.create({
-      data: {
-        userId,
-        kind,
-        format,
-        range: effectiveRange,
-        status: 'requested',
-      },
-    });
-
-    // Enqueue async processing via BullMQ
-    if (this.queueService.isConfigured) {
+    const work = (async (): Promise<DataExportRequestRow> => {
       try {
         await this.queueService.enqueue({
           exportRequestId: created.id,
           userId,
           language,
         });
-        return await this.toDto(created);
+        return created;
       } catch (error) {
-        // Redis 配置但断连：记日志后走下方 inline 同步处理，避免 500 丢任务。
+        // Redis configured but disconnected: log and process inline so the
+        // task is never lost (documented degradation, original behavior).
         this.logger.error(
           `Failed to enqueue data export ${created.id}, processing inline: ${
             error instanceof Error ? error.message : String(error)
           }`,
           error instanceof Error ? error.stack : undefined,
         );
+        await this.processor.process({
+          exportRequestId: created.id,
+          userId,
+          language,
+        });
+        return this.prisma.dataExportRequest.findUniqueOrThrow({
+          where: { id: created.id },
+        });
       }
-    }
+    })();
 
-    // Fallback: synchronous inline processing when queue is unavailable
-    await this.processor.process({
-      exportRequestId: created.id,
-      userId,
-      language,
-    });
-
-    const completed = await this.prisma.dataExportRequest.findUniqueOrThrow({
-      where: { id: created.id },
-    });
-
-    return await this.toDto(completed);
+    return fromPrismaResult(work).andThen((row) => this.toDto(row));
   }
 
-  async getLatestRequest(
+  /**
+   * Synchronous inline processing fallback. The processor writes the final
+   * task status itself; a failure rethrows (BullMQ-style retry semantics are
+   * the processor's contract — the HTTP layer does not retry).
+   */
+  private processInline(
+    created: DataExportRequestRow,
     userId: string,
-  ): Promise<DataExportRequestDataDto | null> {
-    const row = await this.prisma.dataExportRequest.findFirst({
-      select: dataExportSelect,
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    language: string,
+  ): ResultAsync<DataExportRequestDataDto, DomainFailure> {
+    const work = (async (): Promise<DataExportRequestRow> => {
+      await this.processor.process({
+        exportRequestId: created.id,
+        userId,
+        language,
+      });
+      return this.prisma.dataExportRequest.findUniqueOrThrow({
+        where: { id: created.id },
+      });
+    })();
 
-    return row ? await this.toDto(row) : null;
+    return fromPrismaResult(work).andThen((row) => this.toDto(row));
   }
 
-  private async toDto(
+  getLatestRequest(
+    userId: string,
+  ): ResultAsync<DataExportRequestDataDto | null, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.dataExportRequest.findFirst({
+        select: dataExportSelect,
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ).andThen((row) => (row != null ? this.toDto(row) : okAsync(null)));
+  }
+
+  private toDto(
     row: DataExportRequestRow,
-  ): Promise<DataExportRequestDataDto> {
-    return {
-      id: row.id,
-      kind: row.kind,
-      format: row.format,
-      range: row.range,
-      status: row.status,
-      requestedAt: row.createdAt.toISOString(),
-      completedAt: row.completedAt?.toISOString() ?? null,
-      downloadUrl:
-        row.downloadUrl ??
-        (await this.storageService.createDownloadUrl(row.objectKey)),
-      fileName: row.fileName,
-      fileSizeBytes: row.fileSizeBytes,
-      errorMessage: row.errorMessage,
-    } as DataExportRequestDataDto;
+  ): ResultAsync<DataExportRequestDataDto, DomainFailure> {
+    const downloadUrlResult =
+      row.downloadUrl != null
+        ? okAsync<string | null, DomainFailure>(row.downloadUrl)
+        : this.storageService.createDownloadUrl(row.objectKey);
+
+    return downloadUrlResult.map(
+      (downloadUrl) =>
+        ({
+          id: row.id,
+          kind: row.kind,
+          format: row.format,
+          range: row.range,
+          status: row.status,
+          requestedAt: row.createdAt.toISOString(),
+          completedAt: row.completedAt?.toISOString() ?? null,
+          downloadUrl,
+          fileName: row.fileName,
+          fileSizeBytes: row.fileSizeBytes,
+          errorMessage: row.errorMessage,
+        }) as DataExportRequestDataDto,
+    );
   }
 }
