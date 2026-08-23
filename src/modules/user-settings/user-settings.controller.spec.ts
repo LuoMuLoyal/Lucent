@@ -3,6 +3,7 @@ import { UserSettingsController } from './user-settings.controller';
 import { UserSettingsService } from './services/user-settings.service';
 import { SecurityPinService } from '../security-pin';
 import type { UserSettingsDataDto } from './dto/response.dto';
+import { createDomainFailure, errAsync, okAsync } from '../../common/result';
 
 describe('UserSettingsController', () => {
   let controller: UserSettingsController;
@@ -69,7 +70,7 @@ describe('UserSettingsController', () => {
   });
 
   it('enables security pin from settings and returns updated settings', async () => {
-    securityPinService.enable.mockResolvedValue(undefined);
+    securityPinService.enable.mockReturnValue(okAsync(undefined));
     const settings = makeSettings();
     service.getSettings.mockResolvedValue(settings);
 
@@ -86,10 +87,12 @@ describe('UserSettingsController', () => {
   });
 
   it('verifies security pin and returns elevation token', async () => {
-    securityPinService.verify.mockResolvedValue({
-      elevationToken: 'token',
-      expiresAt: '2026-07-03T12:15:00.000Z',
-    });
+    securityPinService.verify.mockReturnValue(
+      okAsync({
+        elevationToken: 'token',
+        expiresAt: '2026-07-03T12:15:00.000Z',
+      }),
+    );
 
     const result = await controller.verifySecurityPin(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
@@ -103,8 +106,29 @@ describe('UserSettingsController', () => {
     expect(result.expiresAt).toBe('2026-07-03T12:15:00.000Z');
   });
 
+  it('folds a wrong-PIN failure into DomainFailureException', async () => {
+    securityPinService.verify.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_ELEVATION_REQUIRED',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.verifySecurityPin(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        { pin: '999999' },
+      ),
+    ).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'AUTH_ELEVATION_REQUIRED' },
+    });
+  });
+
   it('changes security pin and returns updated settings', async () => {
-    securityPinService.change.mockResolvedValue(undefined);
+    securityPinService.change.mockReturnValue(okAsync(undefined));
     const settings = makeSettings();
     service.getSettings.mockResolvedValue(settings);
 
@@ -121,7 +145,7 @@ describe('UserSettingsController', () => {
   });
 
   it('disables security pin and returns updated settings', async () => {
-    securityPinService.disable.mockResolvedValue(undefined);
+    securityPinService.disable.mockReturnValue(okAsync(undefined));
     const settings = makeSettings();
     service.getSettings.mockResolvedValue(settings);
 

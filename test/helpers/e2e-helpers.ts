@@ -9,6 +9,7 @@ import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma';
 import { ConfigKey } from '../../src/config/env/config-keys.enum';
 import { SecurityPinService } from '../../src/modules/security-pin';
+import { unwrapResult } from '../../src/common/result';
 import { UserStatus } from '#generated/prisma/client';
 
 // ── Constants ──────────────────────────────────────────────────
@@ -182,8 +183,10 @@ export async function createSecurityElevationToken(
   userId: string,
   pin = DEFAULT_SECURITY_PIN,
 ): Promise<string> {
-  await ctx.securityPinService.enable(userId, { pin });
-  const result = await ctx.securityPinService.verify(userId, { pin });
+  await unwrapResult(ctx.securityPinService.enable(userId, { pin }));
+  const result = await unwrapResult(
+    ctx.securityPinService.verify(userId, { pin }),
+  );
   return result.elevationToken;
 }
 

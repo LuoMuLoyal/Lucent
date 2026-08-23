@@ -212,14 +212,24 @@ assistantContext.currentMedicines
 **Endpoints:**
 
 ```text
-POST /api/v1/settings/security-pin/enable
-POST /api/v1/settings/security-pin/verify
-POST /api/v1/settings/security-pin/change
-POST /api/v1/settings/security-pin/disable
+POST /api/v1/user/settings/security-pin
+POST /api/v1/user/settings/security-pin/verify
+POST /api/v1/user/settings/security-pin/change
+POST /api/v1/user/settings/security-pin/disable
 ```
 
-All require authentication. Enable/change/disable additionally require the user's current Security
-PIN. If no PIN is set, `enable` only requires the desired new PIN.
+All require authentication. Change/disable additionally require the user's current Security
+PIN. If no PIN is set, `security-pin` (enable) only requires the desired new PIN.
+
+**Errors (Problem Details, `application/problem+json`):**
+
+- `400 VALIDATION_FAILED` — PIN is not a 6-digit number.
+- `403 AUTH_ELEVATION_REQUIRED` — the Security PIN is not enabled, the supplied PIN is wrong,
+  or an elevation token is stale because the PIN changed after it was issued (re-verification required).
+  Wrong-PIN and not-enabled responses are deliberately indistinguishable (no PIN-state enumeration).
+- `403 AUTH_ELEVATION_TOKEN_INVALID` — elevation token is expired, has an invalid signature, or its
+  subject/scope does not match (guard boundary).
+- `404 RESOURCE_NOT_FOUND` — the authenticated account does not exist.
 
 **Request bodies:**
 

@@ -1,15 +1,10 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { I18nContext } from 'nestjs-i18n';
 
 import { SecurityPinService } from '../services/pin.service';
 import { REQUIRE_SECURITY_ELEVATION_KEY } from '../decorators/require-elevation.decorator';
+import { createDomainFailure, unwrapResult } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
 import type { UserPayload } from '../../auth';
 import type { SecurityElevationPayload } from '../types/elevation.types';
 
@@ -23,6 +18,14 @@ interface ElevatedRequest {
  * Enforces a recent Security PIN verification for routes marked with
  * @RequireSecurityElevation(). The elevation token is read from the
  * x-security-elevation header as a Bearer token.
+ *
+ * This guard is an HTTP transport boundary: it folds the pin service's
+ * `ResultAsync` and throws a `DomainFailureException` (internal bridge only)
+ * that the global filter renders as Problem Details. No Result is returned to
+ * the Nest guard pipeline. Missing token / missing user stay transport-level
+ * `AUTH_ELEVATION_TOKEN_INVALID` / `AUTH_REQUIRED`; unknown service errors
+ * (DB, signing, config) propagate unchanged instead of being disguised as an
+ * elevation failure.
  */
 @Injectable()
 export class SecurityElevationGuard implements CanActivate {
@@ -43,35 +46,29 @@ export class SecurityElevationGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<ElevatedRequest>();
     const user = request.user;
     if (!user.sub) {
-      throw new UnauthorizedException({
-        code: 'AUTH_REQUIRED',
-        message: this.t('auth.access_token_invalid'),
-      });
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_REQUIRED',
+        }),
+      );
     }
 
     const token = this.extractBearerToken(
       request.headers['x-security-elevation'],
     );
     if (!token) {
-      throw new ForbiddenException({
-        code: 'AUTH_ELEVATION_TOKEN_INVALID',
-        message: this.t('security_pin.elevation_token_invalid'),
-      });
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_ELEVATION_TOKEN_INVALID',
+        }),
+      );
     }
 
-    let payload: SecurityElevationPayload;
-    try {
-      payload = await this.securityPinService.verifyElevationToken(
-        token,
-        user.sub,
-      );
-    } catch {
-      throw new ForbiddenException({
-        code: 'AUTH_ELEVATION_TOKEN_INVALID',
-        message: this.t('security_pin.elevation_token_invalid'),
-      });
-    }
-    request.securityElevation = payload;
+    request.securityElevation = await unwrapResult(
+      this.securityPinService.verifyElevationToken(token, user.sub),
+    );
     return true;
   }
 
@@ -83,9 +80,5 @@ export class SecurityElevationGuard implements CanActivate {
     }
     const match = header.match(/^Bearer\s+(.+)$/i);
     return match?.[1] ?? null;
-  }
-
-  private t(key: string): string {
-    return I18nContext.current()?.t(key) ?? key;
   }
 }

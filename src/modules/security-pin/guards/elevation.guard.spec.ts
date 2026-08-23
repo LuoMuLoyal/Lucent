@@ -1,12 +1,17 @@
 import 'reflect-metadata';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { ExecutionContext } from '@nestjs/common';
-import { UnauthorizedException } from '@nestjs/common';
 
 import { SecurityElevationGuard } from './elevation.guard';
 import { SecurityPinService } from '../services/pin.service';
 import { REQUIRE_SECURITY_ELEVATION_KEY } from '../decorators/require-elevation.decorator';
 import type { SecurityElevationPayload } from '../types/elevation.types';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+} from '../../../common/result';
 
 function createMockContext(
   options: {
@@ -85,7 +90,7 @@ describe('SecurityElevationGuard', () => {
       scope: 'security_elevation',
       version: 3,
     };
-    securityPinService.verifyElevationToken.mockResolvedValue(payload);
+    securityPinService.verifyElevationToken.mockReturnValue(okAsync(payload));
 
     const context = createMockContext({
       handlerMetadata: true,
@@ -103,9 +108,8 @@ describe('SecurityElevationGuard', () => {
     const context = createMockContext({ handlerMetadata: true });
 
     await expect(guard.canActivate(context)).rejects.toMatchObject({
-      response: expect.objectContaining({
-        code: 'AUTH_ELEVATION_TOKEN_INVALID',
-      }),
+      name: 'DomainFailureException',
+      failure: { code: 'AUTH_ELEVATION_TOKEN_INVALID' },
     });
   });
 
@@ -116,15 +120,32 @@ describe('SecurityElevationGuard', () => {
     });
 
     await expect(guard.canActivate(context)).rejects.toMatchObject({
-      response: expect.objectContaining({
-        code: 'AUTH_ELEVATION_TOKEN_INVALID',
-      }),
+      name: 'DomainFailureException',
+      failure: { code: 'AUTH_ELEVATION_TOKEN_INVALID' },
     });
   });
 
-  it('rejects with ForbiddenException when verifyElevationToken throws', async () => {
-    securityPinService.verifyElevationToken.mockRejectedValue(
-      new UnauthorizedException('invalid'),
+  it('rejects when the user has no subject', async () => {
+    const context = createMockContext({
+      handlerMetadata: true,
+      headers: { 'x-security-elevation': 'Bearer valid-token' },
+      user: { sub: '', email: 'a@b.c' },
+    });
+
+    await expect(guard.canActivate(context)).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'AUTH_REQUIRED' },
+    });
+  });
+
+  it('folds an invalid-token service failure into DomainFailureException', async () => {
+    securityPinService.verifyElevationToken.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_ELEVATION_TOKEN_INVALID',
+        }),
+      ),
     );
 
     const context = createMockContext({
@@ -133,9 +154,46 @@ describe('SecurityElevationGuard', () => {
     });
 
     await expect(guard.canActivate(context)).rejects.toMatchObject({
-      response: expect.objectContaining({
-        code: 'AUTH_ELEVATION_TOKEN_INVALID',
-      }),
+      name: 'DomainFailureException',
+      failure: { code: 'AUTH_ELEVATION_TOKEN_INVALID' },
     });
+  });
+
+  it('passes through an elevation-required failure (stale version) as AUTH_ELEVATION_REQUIRED', async () => {
+    securityPinService.verifyElevationToken.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_ELEVATION_REQUIRED',
+        }),
+      ),
+    );
+
+    const context = createMockContext({
+      handlerMetadata: true,
+      headers: { 'x-security-elevation': 'Bearer stale-token' },
+    });
+
+    await expect(guard.canActivate(context)).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'AUTH_ELEVATION_REQUIRED' },
+    });
+  });
+
+  it('propagates unknown service errors instead of disguising them as elevation failures', async () => {
+    securityPinService.verifyElevationToken.mockReturnValue(
+      fromPromise(Promise.reject(new Error('db connection lost')), (error) => {
+        throw error;
+      }),
+    );
+
+    const context = createMockContext({
+      handlerMetadata: true,
+      headers: { 'x-security-elevation': 'Bearer token' },
+    });
+
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      'db connection lost',
+    );
   });
 });

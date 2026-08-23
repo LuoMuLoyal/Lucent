@@ -16,6 +16,8 @@ import {
 
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
+import { unwrapResult } from '../../common/result';
+import { ProblemDetailsDto } from '../../common';
 import { UserSettingsService } from './services/user-settings.service';
 import { UpdateUserSettingsDto } from './dto/update.dto';
 
@@ -59,11 +61,21 @@ export class UserSettingsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Enable Security PIN' })
   @ApiResponse({ status: 200, type: UserSettingsResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN is not a 6-digit number',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async enableSecurityPin(
     @CurrentUser() user: UserPayload,
     @Body() dto: EnableSecurityPinDto,
   ) {
-    await this.securityPinService.enable(user.sub, dto);
+    await unwrapResult(this.securityPinService.enable(user.sub, dto));
     await this.settingsService.invalidateUserCache(user.sub);
     return await this.settingsService.getSettings(user.sub);
   }
@@ -72,22 +84,54 @@ export class UserSettingsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify Security PIN and receive elevation token' })
   @ApiResponse({ status: 200, type: SecurityPinElevationResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN is not a 6-digit number',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Security PIN is not enabled or the PIN is wrong (AUTH_ELEVATION_REQUIRED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async verifySecurityPin(
     @CurrentUser() user: UserPayload,
     @Body() dto: VerifySecurityPinDto,
   ) {
-    return await this.securityPinService.verify(user.sub, dto);
+    return unwrapResult(this.securityPinService.verify(user.sub, dto));
   }
 
   @Post('security-pin/change')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change Security PIN' })
   @ApiResponse({ status: 200, type: UserSettingsResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'New PIN is not a 6-digit number',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Security PIN is not enabled or the old PIN is wrong (AUTH_ELEVATION_REQUIRED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async changeSecurityPin(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeSecurityPinDto,
   ) {
-    await this.securityPinService.change(user.sub, dto);
+    await unwrapResult(this.securityPinService.change(user.sub, dto));
     await this.settingsService.invalidateUserCache(user.sub);
     return await this.settingsService.getSettings(user.sub);
   }
@@ -96,11 +140,27 @@ export class UserSettingsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Disable Security PIN' })
   @ApiResponse({ status: 200, type: UserSettingsResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN is not a 6-digit number',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Security PIN is not enabled or the PIN is wrong (AUTH_ELEVATION_REQUIRED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async disableSecurityPin(
     @CurrentUser() user: UserPayload,
     @Body() dto: DisableSecurityPinDto,
   ) {
-    await this.securityPinService.disable(user.sub, dto);
+    await unwrapResult(this.securityPinService.disable(user.sub, dto));
     await this.settingsService.invalidateUserCache(user.sub);
     return await this.settingsService.getSettings(user.sub);
   }

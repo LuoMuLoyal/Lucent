@@ -260,13 +260,17 @@ describe('User Settings API (e2e)', () => {
       expect(parts).toHaveLength(3);
     });
 
-    it('should reject wrong PIN with 401', async () => {
+    it('should reject wrong PIN with 403 AUTH_ELEVATION_REQUIRED', async () => {
       const token = await makeToken();
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post(SECURITY_PIN_VERIFY_PATH)
         .set('Authorization', bearer(token))
         .send({ pin: WRONG_PIN })
-        .expect(401);
+        .expect(403);
+
+      expect((res.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_ELEVATION_REQUIRED',
+      );
     });
 
     it('should reject invalid PIN format with 400', async () => {
@@ -318,20 +322,28 @@ describe('User Settings API (e2e)', () => {
 
     it('should reject verify with the old PIN after change', async () => {
       const token = await makeToken();
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post(SECURITY_PIN_VERIFY_PATH)
         .set('Authorization', bearer(token))
         .send({ pin: TEST_PIN })
-        .expect(401);
+        .expect(403);
+
+      expect((res.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_ELEVATION_REQUIRED',
+      );
     });
 
     it('should reject change with wrong old PIN', async () => {
       const token = await makeToken();
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post(SECURITY_PIN_CHANGE_PATH)
         .set('Authorization', bearer(token))
         .send({ oldPin: WRONG_PIN, newPin: '111111' })
-        .expect(401);
+        .expect(403);
+
+      expect((res.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_ELEVATION_REQUIRED',
+      );
     });
 
     it('should reject invalid new PIN format', async () => {
@@ -358,11 +370,15 @@ describe('User Settings API (e2e)', () => {
 
     it('should reject disable with wrong PIN', async () => {
       const token = await makeToken();
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post(SECURITY_PIN_DISABLE_PATH)
         .set('Authorization', bearer(token))
         .send({ pin: WRONG_PIN })
-        .expect(401);
+        .expect(403);
+
+      expect((res.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_ELEVATION_REQUIRED',
+      );
     });
 
     it('should disable PIN with correct PIN', async () => {
