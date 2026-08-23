@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import type { LlmConfig } from '../../../config/services/llm.config';
 import type { TodayAnalysisCopyService } from './pipeline/copy.service';
 import type {
@@ -9,6 +9,7 @@ import type { NotificationsService } from '../../notifications';
 import type { TodayAnalysisGeneratorService } from './pipeline/generator.service';
 import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
 import { TodayAnalysisService } from './analysis.service';
+import { fromPromise, okAsync } from '../../../common/result';
 import type { PushDeliveryService } from '../../notifications';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
@@ -338,8 +339,10 @@ describe('TodayAnalysisService', () => {
     modelGenerateSpy(service).mockResolvedValue(versionedOutput);
     (
       service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockRejectedValue(
-      new Error('persist failed'),
+    ).aiSummaryHistoryService.save.mockReturnValue(
+      fromPromise(Promise.reject(new Error('persist failed')), (error) => {
+        throw error;
+      }),
     );
 
     await expect(
@@ -389,8 +392,10 @@ describe('TodayAnalysisService', () => {
     modelGenerateStreamSpy(service).mockResolvedValue(versionedOutput);
     (
       service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockRejectedValue(
-      new Error('persist failed'),
+    ).aiSummaryHistoryService.save.mockReturnValue(
+      fromPromise(Promise.reject(new Error('persist failed')), (error) => {
+        throw error;
+      }),
     );
 
     await expect(
@@ -426,7 +431,11 @@ describe('TodayAnalysisService', () => {
     );
     (
       service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockRejectedValue(originalError);
+    ).aiSummaryHistoryService.save.mockReturnValue(
+      fromPromise(Promise.reject(originalError), (error) => {
+        throw error;
+      }),
+    );
     materializationWriteSpies(service).markFailed.mockRejectedValue(
       cleanupError,
     );
@@ -455,7 +464,11 @@ describe('TodayAnalysisService', () => {
     );
     (
       service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockRejectedValue(originalError);
+    ).aiSummaryHistoryService.save.mockReturnValue(
+      fromPromise(Promise.reject(originalError), (error) => {
+        throw error;
+      }),
+    );
     materializationWriteSpies(service).markFailed.mockRejectedValue(
       cleanupError,
     );
@@ -627,7 +640,7 @@ describe('TodayAnalysisService', () => {
 
     await expect(
       service.generate('u1', { date: '2026-06-12' }, 'zh-CN'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(DomainFailureException);
   });
 
   it('falls back when analysis model config is missing', async () => {
@@ -845,7 +858,7 @@ describe('TodayAnalysisService', () => {
       build: vi.fn().mockResolvedValue(options?.context ?? baseContext),
     } as unknown as TodayAnalysisContextService;
     const aiSummaryHistoryService = {
-      save: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockReturnValue(okAsync(undefined)),
       getLatestTodaySummaryByDate: vi.fn().mockResolvedValue(
         options?.summary == null
           ? null
@@ -997,7 +1010,7 @@ describe('TodayAnalysisService', () => {
 
     const notificationsService = {
       create: vi.fn(),
-      createOrReplaceScoped: vi.fn(),
+      createOrReplaceScoped: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as NotificationsService;
     const pushDeliveryService = {
       sendToUser: vi.fn().mockResolvedValue({ sent: true }),

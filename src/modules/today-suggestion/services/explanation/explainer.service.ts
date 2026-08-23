@@ -1,9 +1,12 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import { extractErrorInfo } from '../../../../common';
 import { resolveLocale } from '../../../../common';
+import { createDomainFailure, fromPromise } from '../../../../common/result';
+import type { DomainFailure, ResultAsync } from '../../../../common/result';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import type {
   ExplanationContext,
   ExplanationPromptCopy,
@@ -49,8 +52,27 @@ export class ExplanationService {
    * @param suggestionId - The suggestion to explain.
    * @param language - Accept-Language header value (optional).
    * @returns Enhanced reason and boundary text, or the original if AI is unavailable.
+   *
+   * A missing suggestion is an expected client failure and becomes a
+   * `ResultAsync` Err (SUGGESTION_NOT_FOUND); unknown failures re-throw.
    */
-  async explain(
+  explain(
+    userId: string,
+    suggestionId: string,
+    language?: string,
+  ): ResultAsync<ExplanationResult, DomainFailure> {
+    return fromPromise(
+      this.doExplain(userId, suggestionId, language),
+      (error) => {
+        if (error instanceof DomainFailureException) {
+          return error.failure;
+        }
+        throw error;
+      },
+    );
+  }
+
+  private async doExplain(
     userId: string,
     suggestionId: string,
     language?: string,
@@ -62,12 +84,15 @@ export class ExplanationService {
     });
 
     if (suggestion == null) {
-      throw new NotFoundException({
-        code: 'SUGGESTION_NOT_FOUND',
-        message: this.i18n.t('today-suggestion.error.not_found', {
-          lang: locale,
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'SUGGESTION_NOT_FOUND',
+          detail: this.i18n.t('today-suggestion.error.not_found', {
+            lang: locale,
+          }),
         }),
-      });
+      );
     }
 
     const context = this.buildContext(suggestion);

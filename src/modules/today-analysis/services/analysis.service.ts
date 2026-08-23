@@ -8,11 +8,15 @@ import { trace } from '@opentelemetry/api';
 
 import {
   DEFAULT_USER_TIMEZONE,
-  conflict,
   formatDateOnlyInTimezone,
   now,
 } from '../../../common';
 import { unwrapResult } from '../../../common/result';
+import {
+  createDomainFailure,
+  type DomainFailure,
+} from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import type { CreateNotificationDto } from '../../notifications';
 import { HistoricalAiSummaryService } from '../../assistant';
 import { NotificationsService, PushDeliveryService } from '../../notifications';
@@ -124,7 +128,9 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     if (!claim.claimed) {
       const current = await this.readCurrent(userId, date, language);
       if (current.analysis == null) {
-        conflict(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`);
+        throw new DomainFailureException(
+          this.claimConflict(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`),
+        );
       }
       return current.analysis;
     }
@@ -201,7 +207,9 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     if (!claim.claimed) {
       const current = await this.readCurrent(userId, date, language);
       if (current.analysis == null) {
-        conflict(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`);
+        throw new DomainFailureException(
+          this.claimConflict(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`),
+        );
       }
       return current.analysis;
     }
@@ -369,20 +377,22 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     userId: string,
     data: TodayAnalysisDataDto,
   ): Promise<void> {
-    await this.aiSummaryHistoryService.save({
-      userId,
-      kind: 'today',
-      scopeKey: `today:${data.date}`,
-      date: data.date,
-      generatedAt: data.generatedAt,
-      summary: data.summary,
-      bullets: data.bullets,
-      actionLabel: data.actionLabel,
-      action: data.action,
-      confidenceNote: data.confidenceNote,
-      aiGenerated: data.aiGenerated,
-      sourceVersion: data.sourceVersion ?? null,
-    });
+    await unwrapResult(
+      this.aiSummaryHistoryService.save({
+        userId,
+        kind: 'today',
+        scopeKey: `today:${data.date}`,
+        date: data.date,
+        generatedAt: data.generatedAt,
+        summary: data.summary,
+        bullets: data.bullets,
+        actionLabel: data.actionLabel,
+        action: data.action,
+        confidenceNote: data.confidenceNote,
+        aiGenerated: data.aiGenerated,
+        sourceVersion: data.sourceVersion ?? null,
+      }),
+    );
   }
 
   protected buildLogContext(context: TodayAnalysisContext): string {
@@ -409,6 +419,19 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     sourceVersion: number,
   ): InternalTodayAnalysisDto {
     return { date: dto.date ?? date, sourceVersion };
+  }
+
+  /**
+   * Conflict failure for a lost materialization claim: another generation is
+   * already in flight (or the row is in a state that cannot be claimed), so
+   * the client must read the current status instead of retrying blindly.
+   */
+  private claimConflict(detail: string): DomainFailure {
+    return createDomainFailure({
+      kind: 'conflict',
+      code: 'RESOURCE_CONFLICT',
+      detail,
+    });
   }
 
   private async markFailedBestEffort(
@@ -488,16 +511,23 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       date: string;
     },
   ): Promise<void> {
-    try {
-      // TODO(error): Task 10 迁移本模块时改为 Result 组合；此处临时折叠保持
-      // 「通知失败不影响主流程」语义（Err → DomainFailureException → catch 记录）。
-      await unwrapResult(
-        this.notificationsService.createOrReplaceScoped(userId, dto, scope),
-      );
-    } catch (error) {
+    // 「通知失败不影响主流程」语义：Err 或底层异常都只记录日志，不抛给调用方。
+    const logFailure = (reason: unknown): void => {
       this.logger.warn(
-        `Failed to create scoped notification for user ${userId} (source=${scope.source}, date=${scope.date}): ${String(error)}`,
+        `Failed to create scoped notification for user ${userId} (source=${scope.source}, date=${scope.date}): ${reason instanceof Error ? reason.message : String(reason)}`,
       );
+    };
+    try {
+      await this.notificationsService
+        .createOrReplaceScoped(userId, dto, scope)
+        .match(
+          () => undefined,
+          (failure) => {
+            logFailure(failure.code);
+          },
+        );
+    } catch (error) {
+      logFailure(error);
     }
   }
 

@@ -3,6 +3,7 @@ import { formatDateOnly, now } from '../../common';
 import type { UserPayload } from '../auth';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
+import { okAsync } from '../../common/result';
 import { FeedbackService } from './services/feedback/recorder.service';
 import { ExplanationService } from './services/explanation/explainer.service';
 import { ExplanationQueueService } from './services/explanation/queue.service';
@@ -171,7 +172,9 @@ describe('TodaySuggestionController', () => {
 
   describe('POST /today/suggestions/:id/feedback', () => {
     it('records feedback and returns a resource', async () => {
-      feedbackService.recordFeedback.mockResolvedValue(mockFeedbackResult);
+      feedbackService.recordFeedback.mockReturnValue(
+        okAsync(mockFeedbackResult),
+      );
 
       const result = await controller.submitFeedback(mockUser, 'sug-1', {
         feedback: 'accepted' as never,
@@ -190,10 +193,12 @@ describe('TodaySuggestionController', () => {
     });
 
     it('includes expiresAt in response when present', async () => {
-      feedbackService.recordFeedback.mockResolvedValue({
-        ...(mockFeedbackResult as object),
-        expiresAt: '2026-07-11T08:00:00.000Z',
-      } as never);
+      feedbackService.recordFeedback.mockReturnValue(
+        okAsync({
+          ...(mockFeedbackResult as object),
+          expiresAt: '2026-07-11T08:00:00.000Z',
+        } as never),
+      );
 
       const result = await controller.submitFeedback(mockUser, 'sug-1', {
         feedback: 'later' as never,
@@ -203,10 +208,12 @@ describe('TodaySuggestionController', () => {
     });
 
     it('omits expiresAt from response when null', async () => {
-      feedbackService.recordFeedback.mockResolvedValue({
-        ...(mockFeedbackResult as object),
-        expiresAt: null,
-      } as never);
+      feedbackService.recordFeedback.mockReturnValue(
+        okAsync({
+          ...(mockFeedbackResult as object),
+          expiresAt: null,
+        } as never),
+      );
 
       const result = await controller.submitFeedback(mockUser, 'sug-1', {
         feedback: 'accepted' as never,
@@ -218,7 +225,9 @@ describe('TodaySuggestionController', () => {
 
   describe('POST /today/suggestions/:id/explain', () => {
     it('returns explanation resource with language header', async () => {
-      explanationService.explain.mockResolvedValue(mockExplanationResult);
+      explanationService.explain.mockReturnValue(
+        okAsync(mockExplanationResult),
+      );
 
       const result = await controller.explainSuggestion(
         mockUser,
@@ -240,7 +249,9 @@ describe('TodaySuggestionController', () => {
     });
 
     it('works without accept-language header', async () => {
-      explanationService.explain.mockResolvedValue(mockExplanationResult);
+      explanationService.explain.mockReturnValue(
+        okAsync(mockExplanationResult),
+      );
 
       await controller.explainSuggestion(mockUser, 'sug-1', undefined);
 
@@ -265,7 +276,9 @@ describe('TodaySuggestionController', () => {
       ).explanationQueueService;
 
     it('falls back to synchronous explain when the queue is not configured', async () => {
-      explanationService.explain.mockResolvedValue(mockExplanationResult);
+      explanationService.explain.mockReturnValue(
+        okAsync(mockExplanationResult),
+      );
 
       const result = await controller.explainSuggestionAsync(
         mockUser,
@@ -305,7 +318,9 @@ describe('TodaySuggestionController', () => {
       const queue = queueAccess();
       queue.isConfigured = true;
       queue.enqueue.mockResolvedValue(null);
-      explanationService.explain.mockResolvedValue(mockExplanationResult);
+      explanationService.explain.mockReturnValue(
+        okAsync(mockExplanationResult),
+      );
 
       const result = await controller.explainSuggestionAsync(
         mockUser,

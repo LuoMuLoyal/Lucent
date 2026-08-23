@@ -27,9 +27,10 @@ import {
   writeSseEvent,
   SseConnectionRegistry,
   SseProblemDetailsMapper,
-  conflict,
 } from '../../common';
 import { extractErrorInfo } from '../../common';
+import { createDomainFailure } from '../../common/result';
+import { DomainFailureException } from '../../common/result/domain-failure.exception';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
@@ -438,7 +439,13 @@ export class TodayAnalysisController {
       language,
     );
     if (current.analysis == null) {
-      conflict(`TODAY_ANALYSIS_${current.status.toUpperCase()}`);
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'conflict',
+          code: 'RESOURCE_CONFLICT',
+          detail: `TODAY_ANALYSIS_${current.status.toUpperCase()}`,
+        }),
+      );
     }
     onSummary({ summary: current.analysis.summary });
     return current.analysis;

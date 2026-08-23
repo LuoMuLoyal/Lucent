@@ -1,3 +1,4 @@
+import { okAsync } from '../../../common/result';
 import { WeeklyInsightSchedulerService } from './weekly-insight-scheduler.service';
 
 const asiaMondayAtNineUtc = new Date('2026-08-17T01:00:00.000Z');
@@ -40,14 +41,20 @@ describe('WeeklyInsightSchedulerService', () => {
       generate: vi.fn().mockResolvedValue(buildSummary()),
     };
     const notifications = {
-      createOrReplaceScoped: vi.fn().mockResolvedValue({}),
+      // createOrReplaceScoped returns ResultAsync after migration; a plain
+      // resolved value would throw TypeError on `.match()` and be swallowed
+      // by the per-user catch, faking a green test without pushing.
+      createOrReplaceScoped: vi.fn().mockReturnValue(okAsync({} as never)),
+    };
+    const pushDelivery = {
+      sendToUser: vi.fn().mockResolvedValue({ sent: true }),
     };
     const service = new WeeklyInsightSchedulerService(
       prisma as never,
       preferences as never,
       reports as never,
       notifications as never,
-      { sendToUser: vi.fn().mockResolvedValue({ sent: true }) } as never,
+      pushDelivery as never,
       { t: vi.fn().mockReturnValue('Weekly health insight') } as never,
     );
 
@@ -66,6 +73,13 @@ describe('WeeklyInsightSchedulerService', () => {
       'user-1',
       expect.objectContaining({ type: 'ai_weekly_insight' }),
       expect.objectContaining({ date: '2026-08-10' }),
+    );
+    expect(pushDelivery.sendToUser).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        body: '近 7 天的饮水记录较稳定。',
+        data: expect.objectContaining({ action: 'ai_weekly_insight' }),
+      }),
     );
   });
 
@@ -154,14 +168,17 @@ describe('WeeklyInsightSchedulerService', () => {
       generate: vi.fn().mockResolvedValue(buildSummary()),
     };
     const notifications = {
-      createOrReplaceScoped: vi.fn().mockResolvedValue({}),
+      createOrReplaceScoped: vi.fn().mockReturnValue(okAsync({} as never)),
+    };
+    const pushDelivery = {
+      sendToUser: vi.fn().mockResolvedValue({ sent: true }),
     };
     const service = new WeeklyInsightSchedulerService(
       prisma as never,
       preferences as never,
       reports as never,
       notifications as never,
-      { sendToUser: vi.fn().mockResolvedValue({ sent: true }) } as never,
+      pushDelivery as never,
       { t: vi.fn().mockReturnValue('Weekly health insight') } as never,
     );
 
@@ -181,5 +198,6 @@ describe('WeeklyInsightSchedulerService', () => {
       expect.anything(),
       expect.objectContaining({ date: '2026-08-10' }),
     );
+    expect(pushDelivery.sendToUser).toHaveBeenCalledTimes(1);
   });
 });

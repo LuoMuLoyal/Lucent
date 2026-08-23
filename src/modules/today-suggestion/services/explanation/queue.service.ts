@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
 import { BaseAsyncQueueService } from '../../../../common';
+import { unwrapResult } from '../../../../common/result';
 import {
   ExplanationService,
   type ExplanationResult,
@@ -43,10 +44,12 @@ export class ExplanationQueueService extends BaseAsyncQueueService<
       this.processJob(
         job,
         (data) =>
-          this.explanationService.explain(
-            data.userId,
-            data.suggestionId,
-            data.language,
+          unwrapResult(
+            this.explanationService.explain(
+              data.userId,
+              data.suggestionId,
+              data.language,
+            ),
           ),
         'Suggestion explanation job failed',
       ),

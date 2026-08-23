@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import type { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import type { PrismaService } from '../../../../prisma';
@@ -74,33 +73,39 @@ describe('ExplanationService', () => {
     it('returns AI-generated explanation when model is configured and output is safe', async () => {
       const { service } = createService({});
 
-      const result = await service.explain('user-1', 'sug-123', 'zh-CN');
+      const result = (
+        await service.explain('user-1', 'sug-123', 'zh-CN')
+      ).unwrapOr(null);
 
-      expect(result.suggestionId).toBe('sug-123');
-      expect(result.reason).toBe('AI生成的解释');
-      expect(result.boundary).toBe('AI生成的边界');
-      expect(result.aiGenerated).toBe(true);
+      expect(result!.suggestionId).toBe('sug-123');
+      expect(result!.reason).toBe('AI生成的解释');
+      expect(result!.boundary).toBe('AI生成的边界');
+      expect(result!.aiGenerated).toBe(true);
     });
 
     it('falls back to original text when model is not configured', async () => {
       const { service, generatorMock } = createService({ hasModel: false });
 
-      const result = await service.explain('user-1', 'sug-123', 'zh-CN');
+      const result = (
+        await service.explain('user-1', 'sug-123', 'zh-CN')
+      ).unwrapOr(null);
 
-      expect(result.reason).toBe('规则生成的原始原因');
-      expect(result.boundary).toBe('规则生成的原始边界');
-      expect(result.aiGenerated).toBe(false);
+      expect(result!.reason).toBe('规则生成的原始原因');
+      expect(result!.boundary).toBe('规则生成的原始边界');
+      expect(result!.aiGenerated).toBe(false);
       expect(generatorMock.generate).not.toHaveBeenCalled();
     });
 
     it('falls back to original text when safety policy rejects output', async () => {
       const { service, safetyMock } = createService({ isSafe: false });
 
-      const result = await service.explain('user-1', 'sug-123', 'zh-CN');
+      const result = (
+        await service.explain('user-1', 'sug-123', 'zh-CN')
+      ).unwrapOr(null);
 
-      expect(result.reason).toBe('规则生成的原始原因');
-      expect(result.boundary).toBe('规则生成的原始边界');
-      expect(result.aiGenerated).toBe(false);
+      expect(result!.reason).toBe('规则生成的原始原因');
+      expect(result!.boundary).toBe('规则生成的原始边界');
+      expect(result!.aiGenerated).toBe(false);
       expect(safetyMock.isSafe).toHaveBeenCalledWith([
         'AI生成的解释',
         'AI生成的边界',
@@ -133,19 +138,24 @@ describe('ExplanationService', () => {
         i18nMock,
       );
 
-      const result = await service.explain('user-1', 'sug-123', 'zh-CN');
+      const result = (
+        await service.explain('user-1', 'sug-123', 'zh-CN')
+      ).unwrapOr(null);
 
-      expect(result.reason).toBe('规则生成的原始原因');
-      expect(result.boundary).toBe('规则生成的原始边界');
-      expect(result.aiGenerated).toBe(false);
+      expect(result!.reason).toBe('规则生成的原始原因');
+      expect(result!.boundary).toBe('规则生成的原始边界');
+      expect(result!.aiGenerated).toBe(false);
     });
 
-    it('throws NotFoundException when suggestion does not exist', async () => {
+    it('returns SUGGESTION_NOT_FOUND when suggestion does not exist', async () => {
       const { service } = createService({ suggestion: null });
 
-      await expect(
-        service.explain('user-1', 'nonexistent', 'zh-CN'),
-      ).rejects.toThrow(NotFoundException);
+      const result = await service.explain('user-1', 'nonexistent', 'zh-CN');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('SUGGESTION_NOT_FOUND');
+      }
     });
 
     it('builds context with suggestion subtype when present', async () => {

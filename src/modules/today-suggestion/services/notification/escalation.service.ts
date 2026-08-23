@@ -4,7 +4,6 @@ import { NotificationsService } from '../../../notifications';
 import { PushDeliveryService } from '../../../notifications';
 import { NotificationPreferencesService } from '../../../notification-preferences';
 import { now } from '../../../../common';
-import { unwrapResult } from '../../../../common/result';
 import type { SuggestionCandidate } from '../../types/candidate.types';
 import {
   SuggestionConfidence,
@@ -82,11 +81,11 @@ export class EscalationService {
         return false;
       }
 
-      // 2. Send the notification.
-      // TODO(error): Task 10 迁移本模块时改为 Result 组合；此处临时折叠保持
-      // 失败不被静默吞掉（Err → DomainFailureException → 外层 catch 记录）。
-      await unwrapResult(
-        this.notificationsService.createOrReplaceScoped(
+      // 2. Send the notification. The Err case means the notification was
+      // not created: the escalation is aborted (false) and logged, so the
+      // failure is never silently swallowed.
+      const notificationCreated = await this.notificationsService
+        .createOrReplaceScoped(
           userId,
           {
             type: 'ai_proactive_suggestion',
@@ -105,8 +104,19 @@ export class EscalationService {
             source: `today_suggestion_${candidate.type}`,
             date,
           },
-        ),
-      );
+        )
+        .match(
+          () => true,
+          (failure) => {
+            this.logger.warn(
+              `Failed to create escalation notification for suggestion ${suggestionId} (${failure.code})`,
+            );
+            return false;
+          },
+        );
+      if (!notificationCreated) {
+        return false;
+      }
 
       this.logger.debug(
         `Escalated suggestion ${suggestionId} to notification (type=${candidate.type}, rule=${candidate.ruleId})`,

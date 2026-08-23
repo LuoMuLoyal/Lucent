@@ -16,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { formatDateOnly, now } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { SuggestionService } from './services/suggestion.service';
@@ -105,10 +106,8 @@ export class TodaySuggestionController {
     @Param('id') suggestionId: string,
     @Body() dto: SuggestionFeedbackDto,
   ) {
-    const result = await this.feedbackService.recordFeedback(
-      user.sub,
-      suggestionId,
-      dto.feedback,
+    const result = await unwrapResult(
+      this.feedbackService.recordFeedback(user.sub, suggestionId, dto.feedback),
     );
 
     const response: SuggestionFeedbackDataDto = {
@@ -130,10 +129,8 @@ export class TodaySuggestionController {
     @Param('id') suggestionId: string,
     @Headers('accept-language') language?: string,
   ) {
-    const result = await this.explanationService.explain(
-      user.sub,
-      suggestionId,
-      language,
+    const result = await unwrapResult(
+      this.explanationService.explain(user.sub, suggestionId, language),
     );
 
     const response: SuggestionExplanationDataDto = {
@@ -174,10 +171,8 @@ export class TodaySuggestionController {
     }
 
     // Fallback: run synchronously when Redis is not available
-    const result = await this.explanationService.explain(
-      user.sub,
-      suggestionId,
-      language,
+    const result = await unwrapResult(
+      this.explanationService.explain(user.sub, suggestionId, language),
     );
     return { result };
   }

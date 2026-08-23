@@ -74,12 +74,15 @@ describe('Today Analysis API (e2e)', () => {
       await request(app.getHttpServer()).post(GENERATE_PATH).expect(401);
     });
 
-    it('should return 400 for invalid date format', async () => {
-      await request(app.getHttpServer())
+    it('should return 400 VALIDATION_FAILED for invalid date format', async () => {
+      const res = await request(app.getHttpServer())
         .post(GENERATE_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ date: 'invalid-date' })
         .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
     });
 
     it('should generate today analysis for authenticated user (may be fallback)', async () => {
@@ -128,12 +131,15 @@ describe('Today Analysis API (e2e)', () => {
       await request(app.getHttpServer()).post(GENERATE_STREAM_PATH).expect(401);
     });
 
-    it('should return 400 for invalid date format', async () => {
-      await request(app.getHttpServer())
+    it('should return 400 VALIDATION_FAILED for invalid date format', async () => {
+      const res = await request(app.getHttpServer())
         .post(GENERATE_STREAM_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ date: 'not-a-date' })
         .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
     });
 
     it('should return SSE stream with result and done events', async () => {

@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   ProductEventName,
   ProductEventResult,
@@ -6,6 +6,9 @@ import {
 } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma';
 import { now, formatDateOnly } from '../../../../common';
+import { fromPromise, createDomainFailure } from '../../../../common/result';
+import type { DomainFailure, ResultAsync } from '../../../../common/result';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import {
   SuggestionFeedback,
   SuggestionLifecycleState,
@@ -72,8 +75,27 @@ export class FeedbackService {
   /**
    * Records a user's feedback for a suggestion card.
    * Also updates the suggestion's feedback fields and lifecycle state.
+   *
+   * A missing suggestion is an expected client failure and becomes a
+   * `ResultAsync` Err (SUGGESTION_NOT_FOUND); unknown failures re-throw.
    */
-  async recordFeedback(
+  recordFeedback(
+    userId: string,
+    suggestionId: string,
+    feedback: SuggestionFeedback,
+  ): ResultAsync<RecordFeedbackResult, DomainFailure> {
+    return fromPromise(
+      this.doRecordFeedback(userId, suggestionId, feedback),
+      (error) => {
+        if (error instanceof DomainFailureException) {
+          return error.failure;
+        }
+        throw error;
+      },
+    );
+  }
+
+  private async doRecordFeedback(
     userId: string,
     suggestionId: string,
     feedback: SuggestionFeedback,
@@ -91,10 +113,13 @@ export class FeedbackService {
     });
 
     if (suggestion == null) {
-      throw new NotFoundException({
-        code: 'SUGGESTION_NOT_FOUND',
-        message: `Suggestion ${suggestionId} not found for user ${userId}`,
-      });
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'SUGGESTION_NOT_FOUND',
+          detail: `Suggestion ${suggestionId} not found for user ${userId}`,
+        }),
+      );
     }
 
     // 2. Calculate expiry based on feedback type

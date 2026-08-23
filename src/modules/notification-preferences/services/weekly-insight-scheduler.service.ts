@@ -4,7 +4,6 @@ import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
 } from '../../../common';
-import { unwrapResult } from '../../../common/result';
 import { PrismaService } from '../../../prisma';
 import { NotificationsService } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
@@ -72,10 +71,9 @@ export class WeeklyInsightSchedulerService {
         const title = this.i18n.t('notifications.weekly_insight_title', {
           lang: user.profile?.locale ?? 'zh-CN',
         });
-        // TODO(error): Task 10 迁移本模块时改为 Result 组合；此处临时折叠保持
-        // 失败不被静默吞掉（Err → DomainFailureException → 外层 catch 记录）。
-        await unwrapResult(
-          this.notifications.createOrReplaceScoped(
+        // 「通知失败不影响主流程」语义：Err 只记录日志并跳过推送，不抛给外层。
+        const notificationCreated = await this.notifications
+          .createOrReplaceScoped(
             user.id,
             {
               type: 'ai_weekly_insight',
@@ -94,8 +92,19 @@ export class WeeklyInsightSchedulerService {
               date: week.startDate,
               scopeKey: week.startDate,
             },
-          ),
-        );
+          )
+          .match(
+            () => true,
+            (failure) => {
+              this.logger.warn(
+                `Weekly insight notification failed for ${user.id} (${failure.code})`,
+              );
+              return false;
+            },
+          );
+        if (!notificationCreated) {
+          continue;
+        }
         try {
           await this.pushDelivery.sendToUser(user.id, {
             title,

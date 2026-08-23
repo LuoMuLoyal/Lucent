@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import {
   ProductEventName,
   ProductEventResult,
@@ -73,12 +72,19 @@ describe('FeedbackService', () => {
   });
 
   describe('recordFeedback', () => {
-    it('should throw NotFoundException if suggestion does not exist', async () => {
+    it('returns SUGGESTION_NOT_FOUND if suggestion does not exist', async () => {
       findFirstMock.mockResolvedValue(null);
 
-      await expect(
-        service.recordFeedback('user-1', 'sug-1', SuggestionFeedback.LATER),
-      ).rejects.toThrow(NotFoundException);
+      const result = await service.recordFeedback(
+        'user-1',
+        'sug-1',
+        SuggestionFeedback.LATER,
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('SUGGESTION_NOT_FOUND');
+      }
     });
 
     it('should record accepted feedback with no expiry', async () => {
@@ -94,14 +100,16 @@ describe('FeedbackService', () => {
         count: 1,
       });
 
-      const result = await service.recordFeedback(
-        'user-1',
-        'sug-1',
-        SuggestionFeedback.ACCEPTED,
-      );
+      const result = (
+        await service.recordFeedback(
+          'user-1',
+          'sug-1',
+          SuggestionFeedback.ACCEPTED,
+        )
+      ).unwrapOr(null);
 
-      expect(result.appliedEffect).toBe('boosted_type');
-      expect(result.expiresAt).toBeNull();
+      expect(result!.appliedEffect).toBe('boosted_type');
+      expect(result!.expiresAt).toBeNull();
 
       // Should not mark as dismissed for accepted
       const updateCall = updateManyMock.mock.calls[0]![0];
@@ -123,17 +131,19 @@ describe('FeedbackService', () => {
       });
 
       const before = Date.now();
-      const result = await service.recordFeedback(
-        'user-1',
-        'sug-1',
-        SuggestionFeedback.LATER,
-      );
+      const result = (
+        await service.recordFeedback(
+          'user-1',
+          'sug-1',
+          SuggestionFeedback.LATER,
+        )
+      ).unwrapOr(null);
       const after = Date.now();
 
-      expect(result.appliedEffect).toBe('delayed_until');
-      expect(result.expiresAt).not.toBeNull();
+      expect(result!.appliedEffect).toBe('delayed_until');
+      expect(result!.expiresAt).not.toBeNull();
 
-      const expiresAt = new Date(result.expiresAt!).getTime();
+      const expiresAt = new Date(result!.expiresAt!).getTime();
       const expectedMin = before + FEEDBACK_LATER_DURATION_MS;
       const expectedMax = after + FEEDBACK_LATER_DURATION_MS;
       expect(expiresAt).toBeGreaterThanOrEqual(expectedMin);
@@ -158,14 +168,16 @@ describe('FeedbackService', () => {
       });
 
       const before = Date.now();
-      const result = await service.recordFeedback(
-        'user-1',
-        'sug-1',
-        SuggestionFeedback.NOT_APPLICABLE,
-      );
+      const result = (
+        await service.recordFeedback(
+          'user-1',
+          'sug-1',
+          SuggestionFeedback.NOT_APPLICABLE,
+        )
+      ).unwrapOr(null);
 
-      expect(result.appliedEffect).toBe('suppressed_type');
-      const expiresAt = new Date(result.expiresAt!).getTime();
+      expect(result!.appliedEffect).toBe('suppressed_type');
+      const expiresAt = new Date(result!.expiresAt!).getTime();
       expect(expiresAt).toBeGreaterThanOrEqual(
         before + FEEDBACK_NOT_APPLICABLE_DURATION_MS,
       );
@@ -189,14 +201,16 @@ describe('FeedbackService', () => {
       });
 
       const before = Date.now();
-      const result = await service.recordFeedback(
-        'user-1',
-        'sug-1',
-        SuggestionFeedback.SUPPRESS,
-      );
+      const result = (
+        await service.recordFeedback(
+          'user-1',
+          'sug-1',
+          SuggestionFeedback.SUPPRESS,
+        )
+      ).unwrapOr(null);
 
-      expect(result.appliedEffect).toBe('suppressed_type');
-      const expiresAt = new Date(result.expiresAt!).getTime();
+      expect(result!.appliedEffect).toBe('suppressed_type');
+      const expiresAt = new Date(result!.expiresAt!).getTime();
       expect(expiresAt).toBeGreaterThanOrEqual(
         before + FEEDBACK_SUPPRESS_DURATION_MS,
       );
@@ -217,14 +231,16 @@ describe('FeedbackService', () => {
       feedbackCreateMock.mockResolvedValue({});
       updateManyMock.mockResolvedValue({ count: 1 });
 
-      const result = await service.recordFeedback(
-        'user-1',
-        'sug-1',
-        'unknown_feedback' as SuggestionFeedback,
-      );
+      const result = (
+        await service.recordFeedback(
+          'user-1',
+          'sug-1',
+          'unknown_feedback' as SuggestionFeedback,
+        )
+      ).unwrapOr(null);
 
-      expect(result.appliedEffect).toBe('noted');
-      expect(result.expiresAt).toBeNull();
+      expect(result!.appliedEffect).toBe('noted');
+      expect(result!.expiresAt).toBeNull();
 
       // Should not mark as dismissed for unknown feedback
       const updateCall = updateManyMock.mock.calls[0]![0];
@@ -299,14 +315,16 @@ describe('FeedbackService', () => {
       feedbackCreateMock.mockResolvedValue({});
       updateManyMock.mockResolvedValue({ count: 1 });
 
-      const result = await service.recordFeedback(
-        'user-1',
-        'sug-1',
-        SuggestionFeedback.ACCEPTED,
-      );
+      const result = (
+        await service.recordFeedback(
+          'user-1',
+          'sug-1',
+          SuggestionFeedback.ACCEPTED,
+        )
+      ).unwrapOr(null);
 
-      expect(result.suggestionId).toBe('sug-1');
-      expect(result.feedback).toBe(SuggestionFeedback.ACCEPTED);
+      expect(result!.suggestionId).toBe('sug-1');
+      expect(result!.feedback).toBe(SuggestionFeedback.ACCEPTED);
     });
   });
 
