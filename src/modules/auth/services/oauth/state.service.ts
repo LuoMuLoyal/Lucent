@@ -1,16 +1,20 @@
-import { badRequest } from '../../../../common';
-import { extractErrorInfo } from '../../../../common';
 import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+  createDomainFailure,
+  err,
+  errAsync,
+  fromPromise,
+  ok,
+  okAsync,
+  type DomainFailure,
+  type Result,
+  type ResultAsync,
+} from '../../../../common/result';
+import { extractErrorInfo } from '../../../../common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
-import { I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../../../config/env/config-keys.enum';
 import { EnvKey } from '../../../../config/env/env-keys.enum';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
@@ -38,7 +42,6 @@ export class AuthOAuthStateService {
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly configService: ConfigService,
-    private readonly i18n: I18nService,
   ) {
     this.stateTtlMs = this.configService.get<number>(
       EnvKey.OAUTH_STATE_TTL_MS,
@@ -46,70 +49,98 @@ export class AuthOAuthStateService {
     );
   }
 
-  async createState(
+  createState(
     provider: OAuthProviderName,
     purpose: OAuthStateEntry['purpose'],
     callbackUri?: string,
-  ): Promise<{ state: string; ttlSec: number }> {
+  ): ResultAsync<{ state: string; ttlSec: number }, DomainFailure> {
     const state = randomBytes(24).toString('base64url');
-    const normalizedUri = this.normalizeCallbackUri(provider, callbackUri);
-    await this.cache.set(
-      this.stateKey(provider, state),
-      {
-        provider,
-        purpose,
-        ...(normalizedUri !== undefined && { callbackUri: normalizedUri }),
+    const normalized = this.normalizeCallbackUri(provider, callbackUri);
+    if (normalized.isErr()) {
+      return errAsync(normalized.error);
+    }
+    const normalizedUri = normalized.value;
+
+    return fromPromise(
+      this.cache
+        .set(
+          this.stateKey(provider, state),
+          {
+            provider,
+            purpose,
+            ...(normalizedUri !== undefined && { callbackUri: normalizedUri }),
+          },
+          this.stateTtlMs,
+        )
+        .then(() => {
+          this.logger.debug(
+            `OAuth state created (provider=${provider}, purpose=${purpose})`,
+          );
+          return { state, ttlSec: this.stateTtlMs / 1000 };
+        }),
+      (error) => {
+        throw error;
       },
-      this.stateTtlMs,
     );
-    this.logger.debug(
-      `OAuth state created (provider=${provider}, purpose=${purpose})`,
-    );
-    return { state, ttlSec: this.stateTtlMs / 1000 };
   }
 
-  async consume(
+  consume(
     provider: OAuthProviderName,
     state: string,
     purpose: OAuthStateEntry['purpose'],
-  ): Promise<OAuthStateEntry> {
+  ): ResultAsync<OAuthStateEntry, DomainFailure> {
     const key = this.stateKey(provider, state);
-    const entry = await this.cache.get<OAuthStateEntry>(key);
-    await this.cache.del(key);
-    this.logger.debug(
-      `OAuth state consumed (provider=${provider}, purpose=${purpose})`,
-    );
-    if (!this.isValidEntry(provider, entry, purpose)) {
-      throw this.invalidState();
-    }
-    return entry;
+
+    return fromPromise(this.cache.get<OAuthStateEntry>(key), (error) => {
+      throw error;
+    })
+      .andThen((entry) =>
+        fromPromise(this.cache.del(key), (error) => {
+          throw error;
+        }).map(() => {
+          this.logger.debug(
+            `OAuth state consumed (provider=${provider}, purpose=${purpose})`,
+          );
+          return entry;
+        }),
+      )
+      .andThen((entry) => {
+        if (!this.isValidEntry(provider, entry, purpose)) {
+          return errAsync(this.invalidState());
+        }
+        return okAsync(entry);
+      });
   }
 
-  async peek(
+  peek(
     provider: OAuthProviderName,
     state: string,
-  ): Promise<OAuthStateEntry> {
-    const entry = await this.cache.get<OAuthStateEntry>(
-      this.stateKey(provider, state),
-    );
-    if (!this.isValidEntry(provider, entry)) {
-      throw this.invalidState();
-    }
-    return entry;
+  ): ResultAsync<OAuthStateEntry, DomainFailure> {
+    return fromPromise(
+      this.cache.get<OAuthStateEntry>(this.stateKey(provider, state)),
+      (error) => {
+        throw error;
+      },
+    ).andThen((entry) => {
+      if (!this.isValidEntry(provider, entry)) {
+        return errAsync(this.invalidState());
+      }
+      return okAsync(entry);
+    });
   }
 
   buildRedirectUrl(
     entry: OAuthStateEntry,
     code: string,
     state: string,
-  ): string {
+  ): Result<string, DomainFailure> {
     if (entry.callbackUri === undefined) {
-      badRequest(this.i18n.t('auth.oauth_callback_uri_missing'));
+      return err(this.invalidUri());
     }
     const redirect = new URL(entry.callbackUri);
     redirect.searchParams.set('code', code);
     redirect.searchParams.set('state', state);
-    return redirect.toString();
+    return ok(redirect.toString());
   }
 
   // ── Private helpers ──
@@ -138,9 +169,9 @@ export class AuthOAuthStateService {
   private normalizeCallbackUri(
     provider: OAuthProviderName,
     uri: string | undefined,
-  ): string | undefined {
+  ): Result<string | undefined, DomainFailure> {
     const trimmed = uri?.trim();
-    if (!trimmed) return undefined;
+    if (!trimmed) return ok(undefined);
 
     let parsed: URL;
     try {
@@ -150,7 +181,7 @@ export class AuthOAuthStateService {
         uri: trimmed,
         error: extractErrorInfo(error).message,
       });
-      throw this.invalidUri();
+      return err(this.invalidUri());
     }
 
     const hostname = parsed.hostname.toLowerCase();
@@ -161,7 +192,7 @@ export class AuthOAuthStateService {
       hostname === '::1';
 
     if (parsed.username.length > 0 || parsed.password.length > 0) {
-      throw this.invalidUri();
+      return err(this.invalidUri());
     }
 
     if (isLoopback) {
@@ -170,10 +201,10 @@ export class AuthOAuthStateService {
         parsed.port.length === 0 ||
         parsed.hash.length > 0
       ) {
-        throw this.invalidUri();
+        return err(this.invalidUri());
       }
       parsed.search = '';
-      return parsed.toString();
+      return ok(parsed.toString());
     }
 
     const expectedPath = this.providerCallbackPath(provider);
@@ -183,11 +214,11 @@ export class AuthOAuthStateService {
       parsed.hash.length > 0 ||
       !this.isTrustedOrigin(parsed.origin)
     ) {
-      throw this.invalidUri();
+      return err(this.invalidUri());
     }
 
     parsed.search = '';
-    return parsed.toString();
+    return ok(parsed.toString());
   }
 
   private providerCallbackPath(provider: OAuthProviderName): string {
@@ -213,17 +244,17 @@ export class AuthOAuthStateService {
     return Array.isArray(corsOrigin) && corsOrigin.includes(origin);
   }
 
-  private invalidUri(): BadRequestException {
-    return new BadRequestException({
+  private invalidUri(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
       code: 'VALIDATION_FAILED',
-      message: this.i18n.t('auth.oauth_callback_uri_invalid'),
     });
   }
 
-  private invalidState(): BadRequestException {
-    return new BadRequestException({
+  private invalidState(): DomainFailure {
+    return createDomainFailure({
+      kind: 'authentication',
       code: 'AUTH_OAUTH_STATE_INVALID',
-      message: this.i18n.t('auth.oauth_state_invalid'),
     });
   }
 }

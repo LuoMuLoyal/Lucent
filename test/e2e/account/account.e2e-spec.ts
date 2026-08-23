@@ -21,6 +21,7 @@ import { UserStatus } from '#generated/prisma/client';
 import { WechatWebOAuthProvider } from '../../../src/modules/auth';
 import { WechatMobileOAuthProvider } from '../../../src/modules/auth';
 import type { OAuthProfile } from '../../../src/modules/auth';
+import { okAsync } from '../../../src/common/result';
 
 const ACCOUNT_PATH = '/api/v1/account';
 const SET_PASSWORD_PATH = `${ACCOUNT_PATH}/set-password`;
@@ -191,7 +192,7 @@ describe('Account API (e2e)', () => {
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
         .send({ email: oauthEmail, code, password: TEST_PASSWORD })
-        .expect(200);
+        .expect(204);
 
       // Verify user can now login with the new password
       await request(app.getHttpServer())
@@ -229,7 +230,7 @@ describe('Account API (e2e)', () => {
         .expect(409);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('CONFLICT');
+      expect(body['code']).toBe('RESOURCE_CONFLICT');
     });
 
     it('should reject set-password with non-existent verification code (400)', async () => {
@@ -262,7 +263,7 @@ describe('Account API (e2e)', () => {
         .expect(400);
     });
 
-    it('should reject set-password with wrong verification code (401)', async () => {
+    it('should reject set-password with wrong verification code (400)', async () => {
       // Create another OAuth-only user
       const oauthEmail = uniqueEmail('oauth-wrong-code');
       const oauthUser = await ctx.prisma.user.create({
@@ -287,7 +288,7 @@ describe('Account API (e2e)', () => {
         .expect(200);
 
       // Use a wrong code
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
         .send({
@@ -295,7 +296,10 @@ describe('Account API (e2e)', () => {
           code: '000000',
           password: TEST_PASSWORD,
         })
-        .expect(401);
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_VERIFICATION_CODE_MISMATCH');
     });
 
     it('should reject set-password with weak password (400)', async () => {
@@ -444,12 +448,15 @@ describe('Account API (e2e)', () => {
         .expect(400);
     });
 
-    it('should reject with 401 for invalid state', async () => {
-      await request(app.getHttpServer())
+    it('should reject with 400 for invalid state', async () => {
+      const res = await request(app.getHttpServer())
         .post(WECHAT_WEB_CALLBACK_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ code: 'test-code', state: 'non-existent-state' })
-        .expect(401);
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_OAUTH_STATE_INVALID');
     });
 
     it('should link WeChat web identity with valid state and code', async () => {
@@ -466,8 +473,8 @@ describe('Account API (e2e)', () => {
         nickname: 'WeChat Web User',
         avatar: 'https://wx.qlogo.cn/web-avatar',
       };
-      vi.spyOn(wechatWebProvider, 'fetchProfile').mockResolvedValue(
-        mockProfile,
+      vi.spyOn(wechatWebProvider, 'fetchProfile').mockReturnValue(
+        okAsync(mockProfile),
       );
 
       // Create a fresh user for this test
@@ -551,8 +558,8 @@ describe('Account API (e2e)', () => {
         nickname: 'WeChat Mobile User',
         avatar: 'https://wx.qlogo.cn/mobile-avatar',
       };
-      vi.spyOn(wechatMobileProvider, 'fetchProfile').mockResolvedValue(
-        mockProfile,
+      vi.spyOn(wechatMobileProvider, 'fetchProfile').mockReturnValue(
+        okAsync(mockProfile),
       );
 
       // Create a fresh user for this test

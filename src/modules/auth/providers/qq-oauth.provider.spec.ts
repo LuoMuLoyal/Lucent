@@ -1,7 +1,6 @@
-import { ServiceUnavailableException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { I18nService } from 'nestjs-i18n';
 import { QqOAuthProvider } from './qq-oauth.provider';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 import * as commonUtils from '../../../common';
 
@@ -17,11 +16,30 @@ vi.mock('../../../common', async (importOriginal) => {
 const { fetchWithRetry } = commonUtils as unknown as {
   fetchWithRetry: vi.Mock;
 };
+const { HttpStatusError } = commonUtils as unknown as {
+  HttpStatusError: new (status: number) => Error;
+};
+
+async function expectOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await result;
+  expect(outcome.isOk()).toBe(true);
+  if (outcome.isErr()) throw new Error(`Unexpected Err: ${outcome.error.code}`);
+  return outcome.value;
+}
+
+async function expectErr(
+  result: ResultAsync<unknown, DomainFailure>,
+  code: string,
+): Promise<void> {
+  const outcome = await result;
+  expect(outcome.isErr()).toBe(true);
+  if (outcome.isOk()) throw new Error('Unexpected Ok');
+  expect(outcome.error.code).toBe(code);
+}
 
 describe('QqOAuthProvider', () => {
   let provider: QqOAuthProvider;
   let configService: vi.Mocked<ConfigService>;
-  let i18n: vi.Mocked<I18nService>;
 
   const fullConfig = {
     qq: {
@@ -35,11 +53,8 @@ describe('QqOAuthProvider', () => {
     configService = {
       getOrThrow: vi.fn().mockReturnValue(fullConfig),
     } as unknown as vi.Mocked<ConfigService>;
-    i18n = {
-      t: vi.fn().mockReturnValue('translated'),
-    } as unknown as vi.Mocked<I18nService>;
 
-    provider = new QqOAuthProvider(configService, i18n);
+    provider = new QqOAuthProvider(configService);
     fetchWithRetry.mockReset();
   });
 
@@ -62,8 +77,8 @@ describe('QqOAuthProvider', () => {
   });
 
   describe('fetchProfile', () => {
-    it('throws when code is missing', async () => {
-      await expect(provider.fetchProfile({})).rejects.toThrow();
+    it('returns VALIDATION_FAILED when code is missing', async () => {
+      await expectErr(provider.fetchProfile({}), 'VALIDATION_FAILED');
     });
 
     it('fetches profile through the full QQ OAuth flow', async () => {
@@ -96,7 +111,9 @@ describe('QqOAuthProvider', () => {
         }),
       });
 
-      const profile = await provider.fetchProfile({ code: 'auth-code' });
+      const profile = await expectOk(
+        provider.fetchProfile({ code: 'auth-code' }),
+      );
 
       expect(profile.provider).toBe('qq');
       expect(profile.providerUserId).toBe('openid-123');
@@ -105,12 +122,105 @@ describe('QqOAuthProvider', () => {
       expect(profile.email).toBeNull();
     });
 
-    it('throws ServiceUnavailableException when fetchWithRetry fails', async () => {
+    it('returns DEPENDENCY_UNAVAILABLE when fetchWithRetry fails', async () => {
       fetchWithRetry.mockRejectedValue(new Error('Network error'));
 
-      await expect(
+      await expectErr(
         provider.fetchProfile({ code: 'auth-code' }),
-      ).rejects.toThrow(ServiceUnavailableException);
+        'DEPENDENCY_UNAVAILABLE',
+      );
+    });
+
+    it('returns DEPENDENCY_TIMEOUT when the upstream call times out', async () => {
+      fetchWithRetry.mockRejectedValue(new Error('fetch timed out'));
+
+      await expectErr(
+        provider.fetchProfile({ code: 'auth-code' }),
+        'DEPENDENCY_TIMEOUT',
+      );
+    });
+
+    it('returns DEPENDENCY_BAD_GATEWAY when the upstream responds with a non-2xx status', async () => {
+      fetchWithRetry.mockRejectedValue(new HttpStatusError(502));
+
+      await expectErr(
+        provider.fetchProfile({ code: 'auth-code' }),
+        'DEPENDENCY_BAD_GATEWAY',
+      );
+    });
+
+    it('returns DEPENDENCY_BAD_GATEWAY when the token endpoint reports an error', async () => {
+      // JSONP format carrying an error
+      fetchWithRetry.mockResolvedValueOnce({
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            'callback( {"error":100016,"error_description":"bad code"} );',
+          ),
+      });
+
+      await expectErr(
+        provider.fetchProfile({ code: 'bad-code' }),
+        'DEPENDENCY_BAD_GATEWAY',
+      );
+    });
+
+    it('returns DEPENDENCY_BAD_GATEWAY when the token response lacks access_token', async () => {
+      fetchWithRetry.mockResolvedValueOnce({
+        text: vi.fn().mockResolvedValue('expires_in=3600'),
+      });
+
+      await expectErr(
+        provider.fetchProfile({ code: 'auth-code' }),
+        'DEPENDENCY_BAD_GATEWAY',
+      );
+    });
+
+    it('returns DEPENDENCY_BAD_GATEWAY when the openid endpoint reports an error', async () => {
+      fetchWithRetry.mockResolvedValueOnce({
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            'access_token=token123&expires_in=3600&refresh_token=rt456',
+          ),
+      });
+      fetchWithRetry.mockResolvedValueOnce({
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            JSON.stringify({ error: 100016, error_description: 'bad' }),
+          ),
+      });
+
+      await expectErr(
+        provider.fetchProfile({ code: 'auth-code' }),
+        'DEPENDENCY_BAD_GATEWAY',
+      );
+    });
+
+    it('returns DEPENDENCY_BAD_GATEWAY when the user info request fails', async () => {
+      fetchWithRetry.mockResolvedValueOnce({
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            'access_token=token123&expires_in=3600&refresh_token=rt456',
+          ),
+      });
+      fetchWithRetry.mockResolvedValueOnce({
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            JSON.stringify({ client_id: 'qq-app-id', openid: 'openid-123' }),
+          ),
+      });
+      fetchWithRetry.mockResolvedValueOnce({
+        json: vi.fn().mockResolvedValue({ ret: 100030, msg: 'failed' }),
+      });
+
+      await expectErr(
+        provider.fetchProfile({ code: 'auth-code' }),
+        'DEPENDENCY_BAD_GATEWAY',
+      );
     });
   });
 

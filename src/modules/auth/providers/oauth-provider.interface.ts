@@ -1,3 +1,4 @@
+import type { ResultAsync, DomainFailure } from '../../../common/result';
 import type { OAuthProfile, OAuthProviderName } from '../types/oauth.types';
 
 export interface OAuthProvider {
@@ -12,6 +13,18 @@ export interface OAuthProvider {
     callbackUri?: string,
   ): string | Promise<string>;
 
-  /** Exchange the frontend credential for a unified OAuthProfile. */
-  fetchProfile(credential: Record<string, unknown>): Promise<OAuthProfile>;
+  /**
+   * Exchange the frontend credential for a unified OAuthProfile.
+   *
+   * Expected recoverable failures are returned as a DomainFailure:
+   * - `VALIDATION_FAILED` — the client credential is missing or malformed.
+   * - `DEPENDENCY_TIMEOUT` / `DEPENDENCY_UNAVAILABLE` / `DEPENDENCY_BAD_GATEWAY`
+   *   — upstream HTTP, token exchange, JWKS or profile decoding failures.
+   *
+   * Configuration errors (missing appId/secret/redirectUri), programming
+   * errors and unknown exceptions are thrown, never folded into the Result.
+   */
+  fetchProfile(
+    credential: Record<string, unknown>,
+  ): ResultAsync<OAuthProfile, DomainFailure>;
 }

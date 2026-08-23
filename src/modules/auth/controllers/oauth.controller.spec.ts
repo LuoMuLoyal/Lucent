@@ -2,6 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuthController } from './oauth.controller';
 import { AuthService } from '../services/auth.service';
+import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },
@@ -24,6 +25,11 @@ const mockAuthResult = {
   accessTokenExpiresAt: '2026-07-11T00:00:00Z',
   refreshTokenExpiresAt: '2026-07-18T00:00:00Z',
 };
+
+const stateInvalidFailure = createDomainFailure({
+  kind: 'authentication',
+  code: 'AUTH_OAUTH_STATE_INVALID',
+});
 
 describe('OAuthController', () => {
   let controller: OAuthController;
@@ -62,11 +68,13 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/wechat-web/authorize', () => {
     it('returns the authorize URL resource', async () => {
-      authService.createWechatWebAuthorizeUrl.mockResolvedValue({
-        authorizeUrl: 'https://wx/auth',
-        state: 'state-123',
-        expiresIn: 300,
-      } as never);
+      authService.createWechatWebAuthorizeUrl.mockReturnValue(
+        okAsync({
+          authorizeUrl: 'https://wx/auth',
+          state: 'state-123',
+          expiresIn: 300,
+        }),
+      );
 
       const result = await controller.createWechatWebAuthorizeUrl({
         callbackUri: 'https://app/cb',
@@ -78,7 +86,9 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/wechat-web/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithWechatWeb.mockResolvedValue(mockAuthResult as never);
+      authService.loginWithWechatWeb.mockReturnValue(
+        okAsync(mockAuthResult as never),
+      );
 
       const result = await controller.loginWithWechatWeb(
         { code: 'wx-code', state: 'state-123' },
@@ -88,12 +98,22 @@ describe('OAuthController', () => {
       expect(authService.loginWithWechatWeb).toHaveBeenCalled();
       expect(result).toHaveProperty('user');
     });
+
+    it('folds an invalid state into a DomainFailureException', async () => {
+      authService.loginWithWechatWeb.mockReturnValue(
+        errAsync(stateInvalidFailure),
+      );
+
+      await expect(
+        controller.loginWithWechatWeb({ code: 'x', state: 'bad' }, mockRequest),
+      ).rejects.toMatchObject({ failure: stateInvalidFailure });
+    });
   });
 
   describe('GET /auth/oauth/wechat-web/callback (redirect)', () => {
     it('redirects to the resolved URL', async () => {
-      authService.resolveWechatWebCallbackRedirect.mockResolvedValue(
-        'https://app/cb?code=wx-code&state=state-123',
+      authService.resolveWechatWebCallbackRedirect.mockReturnValue(
+        okAsync('https://app/cb?code=wx-code&state=state-123'),
       );
 
       const mockReply = {
@@ -110,12 +130,30 @@ describe('OAuthController', () => {
         302,
       );
     });
+
+    it('folds an invalid state into a DomainFailureException instead of redirecting', async () => {
+      authService.resolveWechatWebCallbackRedirect.mockReturnValue(
+        errAsync(stateInvalidFailure),
+      );
+
+      const mockReply = {
+        redirect: vi.fn(),
+      } as unknown as FastifyReply;
+
+      await expect(
+        controller.redirectWechatWebCallback(
+          { code: 'wx-code', state: 'bad-state' },
+          mockReply,
+        ),
+      ).rejects.toMatchObject({ failure: stateInvalidFailure });
+      expect(mockReply.redirect).not.toHaveBeenCalled();
+    });
   });
 
   describe('POST /auth/oauth/wechat-mobile/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithWechatMobile.mockResolvedValue(
-        mockAuthResult as never,
+      authService.loginWithWechatMobile.mockReturnValue(
+        okAsync(mockAuthResult as never),
       );
 
       const result = await controller.loginWithWechatMobile(
@@ -129,7 +167,9 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/apple/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithApple.mockResolvedValue(mockAuthResult as never);
+      authService.loginWithApple.mockReturnValue(
+        okAsync(mockAuthResult as never),
+      );
 
       const result = await controller.loginWithApple(
         { identityToken: 'apple-token', authorizationCode: 'code' },
@@ -142,11 +182,13 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/qq/authorize', () => {
     it('returns the authorize URL resource', async () => {
-      authService.createQqAuthorizeUrl.mockResolvedValue({
-        authorizeUrl: 'https://qq/auth',
-        state: 'state-qq',
-        expiresIn: 300,
-      } as never);
+      authService.createQqAuthorizeUrl.mockReturnValue(
+        okAsync({
+          authorizeUrl: 'https://qq/auth',
+          state: 'state-qq',
+          expiresIn: 300,
+        }),
+      );
 
       const result = await controller.createQqAuthorizeUrl();
 
@@ -156,7 +198,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/qq/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithQq.mockResolvedValue(mockAuthResult as never);
+      authService.loginWithQq.mockReturnValue(okAsync(mockAuthResult as never));
 
       const result = await controller.loginWithQq(
         { code: 'qq-code', state: 'state-qq' },
@@ -169,11 +211,13 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/weibo/authorize', () => {
     it('returns the authorize URL resource', async () => {
-      authService.createWeiboAuthorizeUrl.mockResolvedValue({
-        authorizeUrl: 'https://weibo/auth',
-        state: 'state-weibo',
-        expiresIn: 300,
-      } as never);
+      authService.createWeiboAuthorizeUrl.mockReturnValue(
+        okAsync({
+          authorizeUrl: 'https://weibo/auth',
+          state: 'state-weibo',
+          expiresIn: 300,
+        }),
+      );
 
       const result = await controller.createWeiboAuthorizeUrl({
         callbackUri: 'https://app/cb',
@@ -185,7 +229,9 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/weibo/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithWeibo.mockResolvedValue(mockAuthResult as never);
+      authService.loginWithWeibo.mockReturnValue(
+        okAsync(mockAuthResult as never),
+      );
 
       const result = await controller.loginWithWeibo(
         { code: 'weibo-code', state: 'state-weibo' },
@@ -198,11 +244,13 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/google/authorize', () => {
     it('returns the authorize URL resource', async () => {
-      authService.createGoogleAuthorizeUrl.mockResolvedValue({
-        authorizeUrl: 'https://google/auth',
-        state: 'state-google',
-        expiresIn: 300,
-      } as never);
+      authService.createGoogleAuthorizeUrl.mockReturnValue(
+        okAsync({
+          authorizeUrl: 'https://google/auth',
+          state: 'state-google',
+          expiresIn: 300,
+        }),
+      );
 
       const result = await controller.createGoogleAuthorizeUrl({
         callbackUri: 'https://app/cb',
@@ -214,7 +262,9 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/google/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithGoogle.mockResolvedValue(mockAuthResult as never);
+      authService.loginWithGoogle.mockReturnValue(
+        okAsync(mockAuthResult as never),
+      );
 
       const result = await controller.loginWithGoogle(
         { code: 'google-code', state: 'state-google' },
@@ -222,18 +272,6 @@ describe('OAuthController', () => {
       );
 
       expect(result).toHaveProperty('user');
-    });
-  });
-
-  describe('provider failure propagation', () => {
-    it('propagates OAuth login failures without catching', async () => {
-      authService.loginWithWechatWeb.mockRejectedValue(
-        new Error('OAUTH_STATE_MISSING'),
-      );
-
-      await expect(
-        controller.loginWithWechatWeb({ code: 'x', state: 'bad' }, mockRequest),
-      ).rejects.toThrow('OAUTH_STATE_MISSING');
     });
   });
 });

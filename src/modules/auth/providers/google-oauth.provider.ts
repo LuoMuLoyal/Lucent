@@ -1,7 +1,16 @@
-import { unauthorized } from '../../../common';
-import { extractErrorInfo } from '../../../common';
-import { fetchWithRetry } from '../../../common';
-import { toInputJsonValue } from '../../../common';
+import {
+  extractErrorInfo,
+  fetchWithRetry,
+  toInputJsonValue,
+} from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import {
   Injectable,
   Logger,
@@ -9,11 +18,14 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../../config/env/config-keys.enum';
 import type { OAuthConfig } from '../../../config/services/oauth.config';
 import { OAUTH_PROVIDER_GOOGLE, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
+import {
+  classifyFetchError,
+  dependencyBadGateway,
+} from './dependency-failure.utils';
 
 const GOOGLE_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -45,10 +57,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
 
   private readonly logger = new Logger(GoogleOAuthProvider.name);
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   buildAuthorizeUrl(state: string, callbackUri?: string): string {
     const config = this.getConfig();
@@ -57,7 +66,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
     if (!redirectUri) {
       throw new ServiceUnavailableException({
         code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_not_configured'),
+        message: 'Google OAuth is not configured.',
       });
     }
 
@@ -74,39 +83,39 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
     return `${GOOGLE_AUTHORIZE_URL}?${params.toString()}`;
   }
 
-  async fetchProfile(
+  fetchProfile(
     credential: Record<string, unknown>,
-  ): Promise<OAuthProfile> {
+  ): ResultAsync<OAuthProfile, DomainFailure> {
     const code = credential['code'] as string;
     if (!code) {
-      unauthorized(this.i18n.t('auth.oauth_code_required'));
+      return errAsync(this.validationFailure());
     }
 
     const config = this.getConfig();
 
     // Step 1: exchange code for access_token (POST form-urlencoded)
-    const token = await this.fetchAccessToken(code, config);
-
-    // Step 2: get user info (GET with Bearer token)
-    const userInfo = await this.fetchUserInfo(token.access_token);
-
-    return {
-      provider: OAUTH_PROVIDER_GOOGLE,
-      providerUserId: userInfo.sub,
-      email: userInfo.email ?? null,
-      emailVerifiedAt: userInfo.email_verified === true ? new Date() : null,
-      nickname: userInfo.name ?? null,
-      avatar: userInfo.picture ?? null,
-      rawProfile: toInputJsonValue({
-        sub: userInfo.sub,
-        email: userInfo.email ?? null,
-        name: userInfo.name ?? null,
-        given_name: userInfo.given_name ?? null,
-        family_name: userInfo.family_name ?? null,
-        picture: userInfo.picture ?? null,
-        locale: userInfo.locale ?? null,
-      }),
-    };
+    return this.fetchAccessToken(code, config).andThen((token) =>
+      // Step 2: get user info (GET with Bearer token)
+      this.fetchUserInfo(token.access_token).map(
+        (userInfo): OAuthProfile => ({
+          provider: OAUTH_PROVIDER_GOOGLE,
+          providerUserId: userInfo.sub,
+          email: userInfo.email ?? null,
+          emailVerifiedAt: userInfo.email_verified === true ? new Date() : null,
+          nickname: userInfo.name ?? null,
+          avatar: userInfo.picture ?? null,
+          rawProfile: toInputJsonValue({
+            sub: userInfo.sub,
+            email: userInfo.email ?? null,
+            name: userInfo.name ?? null,
+            given_name: userInfo.given_name ?? null,
+            family_name: userInfo.family_name ?? null,
+            picture: userInfo.picture ?? null,
+            locale: userInfo.locale ?? null,
+          }),
+        }),
+      ),
+    );
   }
 
   onModuleInit(): void {
@@ -120,10 +129,10 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
 
   // ── Google API helpers ──────────────────────────────────────
 
-  private async fetchAccessToken(
+  private fetchAccessToken(
     code: string,
     config: { appId: string; appSecret: string; redirectUri: string },
-  ): Promise<GoogleTokenResponse> {
+  ): ResultAsync<GoogleTokenResponse, DomainFailure> {
     const body = new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: config.appId,
@@ -132,64 +141,67 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
       redirect_uri: config.redirectUri,
     });
 
-    const response = await this.fetchGoogleApi(GOOGLE_TOKEN_URL, {
+    return this.fetchGoogleApi(GOOGLE_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
-    });
-
-    const data = (await response.json()) as Record<string, unknown>;
-
-    if ((data as { error?: string }).error) {
-      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
-    }
-
-    const tokenResponse = data as unknown as GoogleTokenResponse;
-    if (!tokenResponse.access_token) {
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
+    })
+      .andThen((response) => this.parseJson<Record<string, unknown>>(response))
+      .andThen((data) => {
+        // Upstream rejected the code (invalid_grant, expired, already used...).
+        if ((data as { error?: string }).error) {
+          return errAsync(dependencyBadGateway());
+        }
+        const tokenResponse = data as unknown as GoogleTokenResponse;
+        if (!tokenResponse.access_token) {
+          return errAsync(dependencyBadGateway());
+        }
+        return okAsync(tokenResponse);
       });
-    }
-
-    return tokenResponse;
   }
 
-  private async fetchUserInfo(
+  private fetchUserInfo(
     accessToken: string,
-  ): Promise<GoogleUserInfoResponse> {
-    const response = await this.fetchGoogleApi(GOOGLE_USERINFO_URL, {
+  ): ResultAsync<GoogleUserInfoResponse, DomainFailure> {
+    return this.fetchGoogleApi(GOOGLE_USERINFO_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    const data = (await response.json()) as Record<string, unknown>;
-
-    if ((data as { error?: string }).error) {
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
+    })
+      .andThen((response) => this.parseJson<Record<string, unknown>>(response))
+      .andThen((data) => {
+        if ((data as { error?: string }).error) {
+          return errAsync(dependencyBadGateway());
+        }
+        const userInfo = data as unknown as GoogleUserInfoResponse;
+        // Profile is unusable without a stable provider user id.
+        if (!userInfo.sub) {
+          return errAsync(dependencyBadGateway());
+        }
+        return okAsync(userInfo);
       });
-    }
-
-    return data as unknown as GoogleUserInfoResponse;
   }
 
   // ── HTTP helpers ────────────────────────────────────────────
 
-  private async fetchGoogleApi(
+  private fetchGoogleApi(
     url: string,
     init?: RequestInit,
-  ): Promise<Response> {
-    try {
-      return await fetchWithRetry(url, init);
-    } catch (error) {
+  ): ResultAsync<Response, DomainFailure> {
+    return fromPromise(fetchWithRetry(url, init), (error) => {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(`Google API request failed: ${reason}`, stack);
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
+      return classifyFetchError(error);
+    });
+  }
+
+  private parseJson<T>(response: Response): ResultAsync<T, DomainFailure> {
+    return fromPromise(response.json() as Promise<T>, (error) => {
+      const { message: reason, stack } = extractErrorInfo(error);
+      this.logger.error(
+        `Failed to decode Google API JSON response: ${reason}`,
+        stack,
+      );
+      return dependencyBadGateway(error);
+    });
   }
 
   // ── Config ──────────────────────────────────────────────────
@@ -204,7 +216,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
     if (!config.appId || !config.appSecret || !config.redirectUri) {
       throw new ServiceUnavailableException({
         code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_not_configured'),
+        message: 'Google OAuth is not configured.',
       });
     }
 
@@ -218,5 +230,12 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
   } {
     const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
     return config.google;
+  }
+
+  private validationFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

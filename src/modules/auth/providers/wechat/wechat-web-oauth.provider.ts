@@ -1,11 +1,16 @@
 import {
+  createDomainFailure,
+  errAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
+import {
   Injectable,
   Logger,
   OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../../../config/env/config-keys.enum';
 import type {
   OAuthConfig,
@@ -23,6 +28,7 @@ import {
   type OAuthProfile,
 } from '../../types/oauth.types';
 import type { OAuthProvider } from '../oauth-provider.interface';
+import { dependencyBadGateway } from '../dependency-failure.utils';
 
 const WECHAT_AUTHORIZE_URL = 'https://open.weixin.qq.com/connect/qrconnect';
 const WECHAT_SCOPE = 'snsapi_login';
@@ -35,10 +41,7 @@ export class WechatWebOAuthProvider
   readonly provider = OAUTH_PROVIDER_WECHAT_WEB;
   protected readonly logger = new Logger(WechatWebOAuthProvider.name);
 
-  constructor(
-    private readonly configService: ConfigService,
-    protected readonly i18n: I18nService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super();
   }
 
@@ -48,7 +51,7 @@ export class WechatWebOAuthProvider
     if (!config.redirectUri) {
       throw new ServiceUnavailableException({
         code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_not_configured'),
+        message: 'WeChat Web OAuth is not configured.',
       });
     }
 
@@ -63,12 +66,12 @@ export class WechatWebOAuthProvider
     return `${WECHAT_AUTHORIZE_URL}?${params.toString()}#wechat_redirect`;
   }
 
-  async fetchProfile(
+  fetchProfile(
     credential: Record<string, unknown>,
-  ): Promise<OAuthProfile> {
+  ): ResultAsync<OAuthProfile, DomainFailure> {
     const code = credential['code'] as string;
     if (!code) {
-      // will throw via unauthorized in fetchWechat on invalid code; let WeChat API reject it
+      return errAsync(this.validationFailure());
     }
 
     const config = this.getConfig();
@@ -79,38 +82,44 @@ export class WechatWebOAuthProvider
       grant_type: 'authorization_code',
     });
 
-    const token = await this.fetchWechat<WechatAccessTokenSuccess>(
+    return this.fetchWechat<WechatAccessTokenSuccess>(
       `${WECHAT_ACCESS_TOKEN_URL}?${tokenParams.toString()}`,
-    );
+    ).andThen((token) => {
+      if (!token.openid) {
+        // Profile is unusable without a stable provider user id.
+        return errAsync(dependencyBadGateway());
+      }
 
-    const userInfoParams = new URLSearchParams({
-      access_token: token.access_token,
-      openid: token.openid,
-      lang: 'zh_CN',
+      const userInfoParams = new URLSearchParams({
+        access_token: token.access_token,
+        openid: token.openid,
+        lang: 'zh_CN',
+      });
+
+      return this.fetchWechat<WechatUserInfoSuccess>(
+        `${WECHAT_USERINFO_URL}?${userInfoParams.toString()}`,
+      ).map((userInfo): OAuthProfile => {
+        const rawToken = {
+          openid: token.openid,
+          scope: token.scope,
+          expires_in: token.expires_in,
+          ...(token.unionid !== undefined && { unionid: token.unionid }),
+        };
+
+        return {
+          provider: OAUTH_PROVIDER_WECHAT_WEB,
+          providerUserId: token.openid,
+          ...(token.unionid !== undefined && { unionId: token.unionid }),
+          email: null,
+          nickname: userInfo.nickname ?? null,
+          avatar: userInfo.headimgurl ?? null,
+          rawProfile: {
+            token: this.toJsonValue(rawToken),
+            userInfo: this.toJsonValue(userInfo),
+          },
+        };
+      });
     });
-
-    const userInfo = await this.fetchWechat<WechatUserInfoSuccess>(
-      `${WECHAT_USERINFO_URL}?${userInfoParams.toString()}`,
-    );
-    const rawToken = {
-      openid: token.openid,
-      scope: token.scope,
-      expires_in: token.expires_in,
-      ...(token.unionid !== undefined && { unionid: token.unionid }),
-    };
-
-    return {
-      provider: OAUTH_PROVIDER_WECHAT_WEB,
-      providerUserId: token.openid,
-      ...(token.unionid !== undefined && { unionId: token.unionid }),
-      email: null,
-      nickname: userInfo.nickname ?? null,
-      avatar: userInfo.headimgurl ?? null,
-      rawProfile: {
-        token: this.toJsonValue(rawToken),
-        userInfo: this.toJsonValue(userInfo),
-      },
-    };
   }
 
   onModuleInit(): void {
@@ -128,7 +137,7 @@ export class WechatWebOAuthProvider
     if (!wechat.appId || !wechat.appSecret) {
       throw new ServiceUnavailableException({
         code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_not_configured'),
+        message: 'WeChat Web OAuth is not configured.',
       });
     }
 
@@ -138,5 +147,12 @@ export class WechatWebOAuthProvider
   private readRawConfig(): OAuthProviderConfig {
     const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
     return config.wechatWeb;
+  }
+
+  private validationFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

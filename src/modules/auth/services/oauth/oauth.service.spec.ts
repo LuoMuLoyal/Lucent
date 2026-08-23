@@ -1,14 +1,18 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { HttpException } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
 
 import { AuthOAuthService } from './oauth.service';
 import { UserService } from '../../../user';
-import type { User } from '#generated/prisma/client';
+import { Prisma, type User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 import type { UserIdentity } from '#generated/prisma/client';
-import { okAsync } from '../../../../common/result';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 import type { OAuthProfile } from '../../types/oauth.types';
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -63,6 +67,24 @@ const googleProfile = {
   avatar: 'https://lh3.googleusercontent.com/photo',
 } as OAuthProfile;
 
+function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
+  const error = Object.create(
+    Prisma.PrismaClientKnownRequestError.prototype,
+  ) as Prisma.PrismaClientKnownRequestError;
+  error.code = code;
+  return error;
+}
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
 // ── Suite ─────────────────────────────────────────────────────
 
 describe('AuthOAuthService', () => {
@@ -82,12 +104,6 @@ describe('AuthOAuthService', () => {
             createOAuthUser: vi.fn(),
             update: vi.fn(),
             linkIdentity: vi.fn(),
-          },
-        },
-        {
-          provide: I18nService,
-          useValue: {
-            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -112,13 +128,18 @@ describe('AuthOAuthService', () => {
   describe('findOrCreateOAuthUser', () => {
     it('should return existing user matched by identity', async () => {
       userService.findByIdentity.mockResolvedValue(mockUser);
-      const result = await service.findOrCreateOAuthUser(wechatProfile);
-      expect(result).toBe(mockUser);
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser(wechatProfile),
+      );
+      expect(outcome).toEqual({ ok: true, value: mockUser });
       expect(userService.createOAuthUser).not.toHaveBeenCalled();
     });
 
     it('should create new user when no identity exists', async () => {
-      const result = await service.findOrCreateOAuthUser(googleProfile);
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser(googleProfile),
+      );
+      expect(outcome.ok).toBe(true);
       expect(userService.createOAuthUser).toHaveBeenCalledWith(
         expect.objectContaining({
           email: 'google@example.com',
@@ -129,25 +150,61 @@ describe('AuthOAuthService', () => {
           }),
         }),
       );
-      expect(result).toBe(mockUser);
     });
 
     it('should match by unionId when providerUserId not found', async () => {
       userService.findByProviderUnionId.mockResolvedValue(mockUser);
-      const result = await service.findOrCreateOAuthUser(wechatProfile);
-      expect(result).toBe(mockUser);
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser(wechatProfile),
+      );
+      expect(outcome).toEqual({ ok: true, value: mockUser });
       expect(userService.findByProviderUnionId).toHaveBeenCalledWith(
         'wx-union-456',
       );
+    });
+
+    it('should match by email when no unionId match exists', async () => {
+      userService.findByEmail.mockResolvedValue(mockUser);
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser(wechatProfile),
+      );
+      expect(outcome).toEqual({ ok: true, value: mockUser });
+      expect(userService.findByEmail).toHaveBeenCalledWith(
+        'wxuser@example.com',
+      );
+      expect(userService.createOAuthUser).not.toHaveBeenCalled();
+    });
+
+    it('should rethrow database failures instead of masking them', async () => {
+      userService.findByIdentity.mockRejectedValue(
+        new Error('db connection lost'),
+      );
+
+      await expect(
+        collectResult(service.findOrCreateOAuthUser(wechatProfile)),
+      ).rejects.toThrow('db connection lost');
+    });
+
+    it('should map a create race (P2002) to RESOURCE_CONFLICT', async () => {
+      userService.createOAuthUser.mockRejectedValue(prismaError('P2002'));
+
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser(googleProfile),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
+      });
     });
   });
 
   describe('updateOAuthLoginUser', () => {
     it('should update lastLoginAt, status, nickname and avatar on OAuth login', async () => {
-      const result = await service.updateOAuthLoginUser(
-        mockUser,
-        wechatProfile,
+      const outcome = await collectResult(
+        service.updateOAuthLoginUser(mockUser, wechatProfile),
       );
+
       expect(userService.update).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({
@@ -157,13 +214,37 @@ describe('AuthOAuthService', () => {
           avatar: 'https://wx.qlogo.cn/avatar',
         }),
       );
-      expect(result).toBe(mockUser);
+      expect(outcome).toEqual({ ok: true, value: mockUser });
+    });
+
+    it('should propagate a RESOURCE_NOT_FOUND update failure', async () => {
+      userService.update.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'not_found',
+            code: 'RESOURCE_NOT_FOUND',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.updateOAuthLoginUser(mockUser, wechatProfile),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_NOT_FOUND' }),
+      });
     });
   });
 
   describe('linkOAuthProfileToUser', () => {
     it('should link OAuth identity to existing user', async () => {
-      await service.linkOAuthProfileToUser('user-1', wechatProfile);
+      const outcome = await collectResult(
+        service.linkOAuthProfileToUser('user-1', wechatProfile),
+      );
+
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(userService.linkIdentity).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({
@@ -178,9 +259,67 @@ describe('AuthOAuthService', () => {
         ...mockUser,
         id: 'other-user',
       });
-      await expect(
+
+      const outcome = await collectResult(
         service.linkOAuthProfileToUser('user-1', wechatProfile),
-      ).rejects.toThrow(HttpException);
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
+      });
+      expect(userService.linkIdentity).not.toHaveBeenCalled();
+    });
+
+    it('should reject when unionId already linked to another user', async () => {
+      userService.findByProviderUnionId.mockResolvedValue({
+        ...mockUser,
+        id: 'other-user',
+      });
+
+      const outcome = await collectResult(
+        service.linkOAuthProfileToUser('user-1', wechatProfile),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
+      });
+      expect(userService.linkIdentity).not.toHaveBeenCalled();
+    });
+
+    it('should be a no-op when the identity is already linked to the same user', async () => {
+      userService.findByIdentity.mockResolvedValue(mockUser);
+
+      const outcome = await collectResult(
+        service.linkOAuthProfileToUser('user-1', wechatProfile),
+      );
+
+      expect(outcome).toEqual({ ok: true, value: undefined });
+      expect(userService.linkIdentity).not.toHaveBeenCalled();
+    });
+
+    it('should map a link race (P2002) to RESOURCE_CONFLICT', async () => {
+      userService.linkIdentity.mockRejectedValue(prismaError('P2002'));
+
+      const outcome = await collectResult(
+        service.linkOAuthProfileToUser('user-1', wechatProfile),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
+      });
+    });
+
+    it('should rethrow database failures instead of masking them', async () => {
+      userService.findByIdentity.mockRejectedValue(
+        new Error('db connection lost'),
+      );
+
+      await expect(
+        collectResult(service.linkOAuthProfileToUser('user-1', wechatProfile)),
+      ).rejects.toThrow('db connection lost');
     });
   });
 });

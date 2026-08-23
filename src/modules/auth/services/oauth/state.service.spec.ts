@@ -1,13 +1,12 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { I18nService } from 'nestjs-i18n';
 
 import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
+import type { DomainFailure, ResultAsync } from '../../../../common/result';
 
 // ── Fixtures ──────────────────────────────────────────────────
 
@@ -18,6 +17,16 @@ function buildEntry(overrides: Partial<OAuthStateEntry> = {}): OAuthStateEntry {
     callbackUri: 'https://app.example.com/oauth/callback',
     ...overrides,
   };
+}
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
 }
 
 // ── Suite ─────────────────────────────────────────────────────
@@ -50,12 +59,6 @@ describe('AuthOAuthStateService', () => {
           provide: ConfigService,
           useValue: mockConfigService,
         },
-        {
-          provide: I18nService,
-          useValue: {
-            t: vi.fn((key: string) => key),
-          },
-        },
       ],
     }).compile();
 
@@ -63,6 +66,8 @@ describe('AuthOAuthStateService', () => {
     cache = module.get(CACHE_MANAGER);
 
     cache.get.mockResolvedValue(null);
+    cache.set.mockResolvedValue(undefined);
+    cache.del.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -76,11 +81,17 @@ describe('AuthOAuthStateService', () => {
 
   describe('createState', () => {
     it('should create a state entry with random token and return ttl', async () => {
-      const result = await service.createState('wechat_web', 'login');
+      const outcome = await collectResult(
+        service.createState('wechat_web', 'login'),
+      );
 
-      expect(result.state).toBeTruthy();
-      expect(result.state.length).toBeGreaterThanOrEqual(32);
-      expect(result.ttlSec).toBe(Math.floor(DEFAULT_OAUTH_STATE_TTL_MS / 1000));
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.value.state).toBeTruthy();
+      expect(outcome.value.state.length).toBeGreaterThanOrEqual(32);
+      expect(outcome.value.ttlSec).toBe(
+        Math.floor(DEFAULT_OAUTH_STATE_TTL_MS / 1000),
+      );
       expect(cache.set).toHaveBeenCalledWith(
         expect.stringContaining('auth:oauth-state:'),
         expect.objectContaining({ purpose: 'login' }),
@@ -106,14 +117,36 @@ describe('AuthOAuthStateService', () => {
     });
 
     it('should create state for link purpose', async () => {
-      const result = await service.createState('apple', 'link');
+      const outcome = await collectResult(service.createState('apple', 'link'));
 
-      expect(result.state).toBeTruthy();
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.value.state).toBeTruthy();
       expect(cache.set).toHaveBeenCalledWith(
         expect.stringContaining('auth:oauth-state:'),
         expect.objectContaining({ purpose: 'link' }),
         DEFAULT_OAUTH_STATE_TTL_MS,
       );
+    });
+
+    it('should return VALIDATION_FAILED for an invalid callback URI', async () => {
+      const outcome = await collectResult(
+        service.createState('wechat_web', 'login', 'not-a-url'),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
+      });
+      expect(cache.set).not.toHaveBeenCalled();
+    });
+
+    it('should rethrow cache failures instead of masking them as state errors', async () => {
+      cache.set.mockRejectedValue(new Error('redis connection lost'));
+
+      await expect(
+        collectResult(service.createState('wechat_web', 'login')),
+      ).rejects.toThrow('redis connection lost');
     });
   });
 
@@ -126,18 +159,48 @@ describe('AuthOAuthStateService', () => {
       const entry = buildEntry();
       cache.get.mockResolvedValue(entry);
 
-      const result = await service.peek('wechat_web', 'random-state-token');
+      const outcome = await collectResult(
+        service.peek('wechat_web', 'random-state-token'),
+      );
 
-      expect(result).toEqual(entry);
+      expect(outcome).toEqual({ ok: true, value: entry });
       expect(cache.del).not.toHaveBeenCalled();
     });
 
-    it('should throw when state does not exist', async () => {
-      await expect(
+    it('should return AUTH_OAUTH_STATE_INVALID when state does not exist', async () => {
+      const outcome = await collectResult(
         service.peek('wechat_web', 'nonexistent'),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({ code: 'AUTH_OAUTH_STATE_INVALID' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_OAUTH_STATE_INVALID',
+        }),
       });
+    });
+
+    it('should return AUTH_OAUTH_STATE_INVALID when provider does not match', async () => {
+      cache.get.mockResolvedValue(buildEntry({ provider: 'qq' }));
+
+      const outcome = await collectResult(
+        service.peek('wechat_web', 'random-state-token'),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_OAUTH_STATE_INVALID',
+        }),
+      });
+    });
+
+    it('should rethrow cache failures instead of masking them as state errors', async () => {
+      cache.get.mockRejectedValue(new Error('redis connection lost'));
+
+      await expect(
+        collectResult(service.peek('wechat_web', 'state')),
+      ).rejects.toThrow('redis connection lost');
     });
   });
 
@@ -150,33 +213,69 @@ describe('AuthOAuthStateService', () => {
       const entry = buildEntry();
       cache.get.mockResolvedValue(entry);
 
-      const result = await service.consume(
-        'wechat_web',
-        'random-state-token',
-        'login',
+      const outcome = await collectResult(
+        service.consume('wechat_web', 'random-state-token', 'login'),
       );
 
-      expect(result).toEqual(entry);
+      expect(outcome).toEqual({ ok: true, value: entry });
       expect(cache.del).toHaveBeenCalled();
     });
 
-    it('should throw when state does not exist', async () => {
-      await expect(
+    it('should return AUTH_OAUTH_STATE_INVALID when state does not exist', async () => {
+      const outcome = await collectResult(
         service.consume('wechat_web', 'nonexistent', 'login'),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({ code: 'AUTH_OAUTH_STATE_INVALID' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_OAUTH_STATE_INVALID',
+        }),
       });
     });
 
-    it('should throw when purpose does not match', async () => {
+    it('should return AUTH_OAUTH_STATE_INVALID when purpose does not match', async () => {
       const entry = buildEntry({ purpose: 'login' });
       cache.get.mockResolvedValue(entry);
 
-      await expect(
+      const outcome = await collectResult(
         service.consume('wechat_web', 'random-state-token', 'link'),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({ code: 'AUTH_OAUTH_STATE_INVALID' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_OAUTH_STATE_INVALID',
+        }),
       });
+    });
+
+    it('should return AUTH_OAUTH_STATE_INVALID on repeated consumption of the same state', async () => {
+      // First consumption deletes the entry; a second consume finds nothing.
+      cache.get.mockResolvedValueOnce(buildEntry());
+      const first = await collectResult(
+        service.consume('wechat_web', 'random-state-token', 'login'),
+      );
+      expect(first.ok).toBe(true);
+      expect(cache.del).toHaveBeenCalledTimes(1);
+
+      const second = await collectResult(
+        service.consume('wechat_web', 'random-state-token', 'login'),
+      );
+      expect(second).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_OAUTH_STATE_INVALID',
+        }),
+      });
+    });
+
+    it('should rethrow cache failures instead of masking them as state errors', async () => {
+      cache.get.mockRejectedValue(new Error('redis connection lost'));
+
+      await expect(
+        collectResult(service.consume('wechat_web', 'state', 'login')),
+      ).rejects.toThrow('redis connection lost');
     });
   });
 
@@ -188,25 +287,29 @@ describe('AuthOAuthStateService', () => {
     it('should build redirect URL with code and state params', () => {
       const entry = buildEntry();
 
-      const url = service.buildRedirectUrl(
+      const result = service.buildRedirectUrl(
         entry,
         'auth-code-123',
         'random-state-token',
       );
 
-      expect(url).toContain('https://app.example.com/oauth/callback');
-      expect(url).toContain('code=auth-code-123');
-      expect(url).toContain('state=random-state-token');
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) return;
+      expect(result.value).toContain('https://app.example.com/oauth/callback');
+      expect(result.value).toContain('code=auth-code-123');
+      expect(result.value).toContain('state=random-state-token');
     });
 
-    it('should throw when entry has no callbackUri', () => {
+    it('should return VALIDATION_FAILED when entry has no callbackUri', () => {
       const entry = buildEntry({
         callbackUri: undefined,
       } as unknown as Partial<OAuthStateEntry>);
 
-      expect(() => service.buildRedirectUrl(entry, 'code', 'state')).toThrow(
-        BadRequestException,
-      );
+      const result = service.buildRedirectUrl(entry, 'code', 'state');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isOk()) return;
+      expect(result.error.code).toBe('VALIDATION_FAILED');
     });
   });
 });

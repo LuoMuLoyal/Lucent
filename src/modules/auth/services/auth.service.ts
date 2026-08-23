@@ -150,97 +150,97 @@ export class AuthService {
 
   // ── OAuth delegation ─────────────────────────────────────────
 
-  async createWechatWebAuthorizeUrl(
+  createWechatWebAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
     return this.authOAuthFacadeService.createWechatWebAuthorizeUrl(dto);
   }
 
-  async createWechatWebIdentityLinkAuthorizeUrl(
+  createWechatWebIdentityLinkAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
     return this.authOAuthFacadeService.createWechatWebIdentityLinkAuthorizeUrl(
       dto,
     );
   }
 
-  async resolveWechatWebCallbackRedirect(
+  resolveWechatWebCallbackRedirect(
     dto: OAuthCallbackDto,
-  ): Promise<string> {
+  ): ResultAsync<string, DomainFailure> {
     return this.authOAuthFacadeService.resolveWechatWebCallbackRedirect(dto);
   }
 
-  async loginWithWechatWeb(
+  loginWithWechatWeb(
     dto: OAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithWechatWeb(dto, context);
   }
 
-  async loginWithWechatMobile(
+  loginWithWechatMobile(
     dto: OAuthCodeCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithWechatMobile(dto, context);
   }
 
-  async loginWithApple(
+  loginWithApple(
     dto: AppleOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithApple(dto, context);
   }
 
-  async createQqAuthorizeUrl(
+  createQqAuthorizeUrl(
     dto?: QqOAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
     return this.authOAuthFacadeService.createQqAuthorizeUrl(dto);
   }
 
-  async loginWithQq(
+  loginWithQq(
     dto: QqOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithQq(dto, context);
   }
 
-  async createWeiboAuthorizeUrl(
+  createWeiboAuthorizeUrl(
     dto?: WeiboOAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
     return this.authOAuthFacadeService.createWeiboAuthorizeUrl(dto);
   }
 
-  async loginWithWeibo(
+  loginWithWeibo(
     dto: WeiboOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithWeibo(dto, context);
   }
 
-  async createGoogleAuthorizeUrl(
+  createGoogleAuthorizeUrl(
     dto?: GoogleOAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
     return this.authOAuthFacadeService.createGoogleAuthorizeUrl(dto);
   }
 
-  async loginWithGoogle(
+  loginWithGoogle(
     dto: GoogleOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithGoogle(dto, context);
   }
 
-  async linkWechatWebIdentity(
+  linkWechatWebIdentity(
     userId: string,
     dto: OAuthCallbackDto,
-  ): Promise<void> {
+  ): ResultAsync<void, DomainFailure> {
     return this.authOAuthFacadeService.linkWechatWebIdentity(userId, dto);
   }
 
-  async linkWechatMobileIdentity(
+  linkWechatMobileIdentity(
     userId: string,
     dto: OAuthCodeCallbackDto,
-  ): Promise<void> {
+  ): ResultAsync<void, DomainFailure> {
     return this.authOAuthFacadeService.linkWechatMobileIdentity(userId, dto);
   }
 }

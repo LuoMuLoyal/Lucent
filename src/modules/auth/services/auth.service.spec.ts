@@ -283,35 +283,43 @@ describe('AuthService', () => {
         {
           provide: AuthOAuthFacadeService,
           useValue: {
-            createWechatWebAuthorizeUrl: vi.fn().mockResolvedValue({
-              url: 'https://example.com/auth',
-              state: 'mock-state',
-            }),
-            createWechatWebIdentityLinkAuthorizeUrl: vi.fn().mockResolvedValue({
-              url: 'https://example.com/link',
-              state: 'mock-state',
-            }),
+            createWechatWebAuthorizeUrl: vi.fn().mockReturnValue(
+              okAsync({
+                url: 'https://example.com/auth',
+                state: 'mock-state',
+              }),
+            ),
+            createWechatWebIdentityLinkAuthorizeUrl: vi.fn().mockReturnValue(
+              okAsync({
+                url: 'https://example.com/link',
+                state: 'mock-state',
+              }),
+            ),
             resolveWechatWebCallbackRedirect: vi
               .fn()
-              .mockResolvedValue('http://localhost:8080/callback'),
+              .mockReturnValue(okAsync('http://localhost:8080/callback')),
             loginWithWechatWeb: vi
               .fn()
-              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+              .mockReturnValue(okAsync({ user: mockUser, ...mockTokenPair })),
             loginWithWechatMobile: vi
               .fn()
-              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+              .mockReturnValue(okAsync({ user: mockUser, ...mockTokenPair })),
             loginWithApple: vi
               .fn()
-              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            createQqAuthorizeUrl: vi.fn().mockResolvedValue({
-              url: 'https://example.com/qq/auth',
-              state: 'mock-state',
-            }),
+              .mockReturnValue(okAsync({ user: mockUser, ...mockTokenPair })),
+            createQqAuthorizeUrl: vi.fn().mockReturnValue(
+              okAsync({
+                url: 'https://example.com/qq/auth',
+                state: 'mock-state',
+              }),
+            ),
             loginWithQq: vi
               .fn()
-              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            linkWechatWebIdentity: vi.fn().mockResolvedValue(undefined),
-            linkWechatMobileIdentity: vi.fn().mockResolvedValue(undefined),
+              .mockReturnValue(okAsync({ user: mockUser, ...mockTokenPair })),
+            linkWechatWebIdentity: vi.fn().mockReturnValue(okAsync(undefined)),
+            linkWechatMobileIdentity: vi
+              .fn()
+              .mockReturnValue(okAsync(undefined)),
           },
         },
         {
@@ -600,14 +608,16 @@ describe('AuthService', () => {
     const mockDto = { code: 'mock-auth-code', state: 'mock-oauth-state' };
 
     it('should delegate createWechatWebAuthorizeUrl to authOAuthFacadeService', async () => {
-      const result = await service.createWechatWebAuthorizeUrl();
+      const outcome = await collectResult(
+        service.createWechatWebAuthorizeUrl(),
+      );
 
       expect(
         authOAuthFacadeService.createWechatWebAuthorizeUrl,
       ).toHaveBeenCalled();
-      expect(result).toEqual({
-        url: 'https://example.com/auth',
-        state: 'mock-state',
+      expect(outcome).toEqual({
+        ok: true,
+        value: { url: 'https://example.com/auth', state: 'mock-state' },
       });
     });
 
@@ -624,35 +634,54 @@ describe('AuthService', () => {
     });
 
     it('should delegate resolveWechatWebCallbackRedirect to authOAuthFacadeService', async () => {
-      const result = await service.resolveWechatWebCallbackRedirect(mockDto);
+      const outcome = await collectResult(
+        service.resolveWechatWebCallbackRedirect(mockDto),
+      );
 
       expect(
         authOAuthFacadeService.resolveWechatWebCallbackRedirect,
       ).toHaveBeenCalledWith(mockDto);
-      expect(result).toBe('http://localhost:8080/callback');
+      expect(outcome).toEqual({
+        ok: true,
+        value: 'http://localhost:8080/callback',
+      });
     });
 
     it('should delegate loginWithWechatWeb to authOAuthFacadeService', async () => {
-      const result = await service.loginWithWechatWeb(
-        mockDto,
-        mockRequestContext,
+      const outcome = await collectResult(
+        service.loginWithWechatWeb(mockDto, mockRequestContext),
       );
 
       expect(authOAuthFacadeService.loginWithWechatWeb).toHaveBeenCalledWith(
         mockDto,
         mockRequestContext,
       );
-      expect(result.accessToken).toBe('mock-jwt-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'mock-jwt-token' }),
+      });
     });
 
-    it('should propagate errors from authOAuthFacadeService.loginWithWechatWeb', async () => {
+    it('should propagate a DomainFailure from authOAuthFacadeService.loginWithWechatWeb', async () => {
       (
         authOAuthFacadeService.loginWithWechatWeb as vi.Mock
-      ).mockRejectedValueOnce(new Error('OAUTH_STATE_MISSING'));
+      ).mockReturnValueOnce(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_OAUTH_STATE_INVALID',
+          }),
+        ),
+      );
 
-      await expect(
+      const outcome = await collectResult(
         service.loginWithWechatWeb({ code: 'x', state: 'bad' }),
-      ).rejects.toThrow();
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_OAUTH_STATE_INVALID' }),
+      });
     });
 
     it('should delegate linkWechatWebIdentity to authOAuthFacadeService', async () => {
@@ -675,61 +704,75 @@ describe('AuthService', () => {
     });
 
     it('should delegate createWechatWebIdentityLinkAuthorizeUrl to authOAuthFacadeService', async () => {
-      const result = await service.createWechatWebIdentityLinkAuthorizeUrl();
+      const outcome = await collectResult(
+        service.createWechatWebIdentityLinkAuthorizeUrl(),
+      );
 
       expect(
         authOAuthFacadeService.createWechatWebIdentityLinkAuthorizeUrl,
       ).toHaveBeenCalled();
-      expect(result).toEqual({
-        url: 'https://example.com/link',
-        state: 'mock-state',
+      expect(outcome).toEqual({
+        ok: true,
+        value: { url: 'https://example.com/link', state: 'mock-state' },
       });
     });
 
     it('should delegate loginWithWechatMobile to authOAuthFacadeService', async () => {
       const dto = { code: 'mock-mobile-code' };
-      const result = await service.loginWithWechatMobile(
-        dto,
-        mockRequestContext,
+      const outcome = await collectResult(
+        service.loginWithWechatMobile(dto, mockRequestContext),
       );
 
       expect(authOAuthFacadeService.loginWithWechatMobile).toHaveBeenCalledWith(
         dto,
         mockRequestContext,
       );
-      expect(result.accessToken).toBe('mock-jwt-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'mock-jwt-token' }),
+      });
     });
 
     it('should delegate loginWithApple to authOAuthFacadeService', async () => {
       const dto = { identityToken: 'mock-apple-token' };
-      const result = await service.loginWithApple(dto, mockRequestContext);
+      const outcome = await collectResult(
+        service.loginWithApple(dto, mockRequestContext),
+      );
 
       expect(authOAuthFacadeService.loginWithApple).toHaveBeenCalledWith(
         dto,
         mockRequestContext,
       );
-      expect(result.accessToken).toBe('mock-jwt-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'mock-jwt-token' }),
+      });
     });
 
     it('should delegate createQqAuthorizeUrl to authOAuthFacadeService', async () => {
-      const result = await service.createQqAuthorizeUrl();
+      const outcome = await collectResult(service.createQqAuthorizeUrl());
 
       expect(authOAuthFacadeService.createQqAuthorizeUrl).toHaveBeenCalled();
-      expect(result).toEqual({
-        url: 'https://example.com/qq/auth',
-        state: 'mock-state',
+      expect(outcome).toEqual({
+        ok: true,
+        value: { url: 'https://example.com/qq/auth', state: 'mock-state' },
       });
     });
 
     it('should delegate loginWithQq to authOAuthFacadeService', async () => {
       const dto = { code: 'mock-qq-code', state: 'mock-qq-state' };
-      const result = await service.loginWithQq(dto, mockRequestContext);
+      const outcome = await collectResult(
+        service.loginWithQq(dto, mockRequestContext),
+      );
 
       expect(authOAuthFacadeService.loginWithQq).toHaveBeenCalledWith(
         dto,
         mockRequestContext,
       );
-      expect(result.accessToken).toBe('mock-jwt-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'mock-jwt-token' }),
+      });
     });
   });
 });

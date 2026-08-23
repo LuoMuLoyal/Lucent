@@ -1,11 +1,10 @@
-import { ServiceUnavailableException } from '@nestjs/common';
 import type { Logger } from '@nestjs/common';
-import type { I18nService } from 'nestjs-i18n';
 import {
   WechatBaseOAuthProvider,
   type WechatAccessTokenSuccess,
   type WechatErrorResponse,
 } from './wechat-base-oauth.provider';
+import type { DomainFailure, ResultAsync } from '../../../../common/result';
 
 // Create a concrete subclass for testing the abstract base
 class TestWechatProvider extends WechatBaseOAuthProvider {
@@ -19,15 +18,9 @@ class TestWechatProvider extends WechatBaseOAuthProvider {
     fatal: vi.fn(),
     setContext: vi.fn(),
   } as unknown as Logger;
-  protected readonly i18n: I18nService;
-
-  constructor(i18n: I18nService) {
-    super();
-    this.i18n = i18n;
-  }
 
   // Expose protected methods for testing
-  async testFetchWechat<T>(url: string): Promise<T> {
+  testFetchWechat<T>(url: string) {
     return this.fetchWechat<T>(url);
   }
 
@@ -40,15 +33,28 @@ class TestWechatProvider extends WechatBaseOAuthProvider {
   }
 }
 
+async function expectOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await result;
+  expect(outcome.isOk()).toBe(true);
+  if (outcome.isErr()) throw new Error(`Unexpected Err: ${outcome.error.code}`);
+  return outcome.value;
+}
+
+async function expectErr(
+  result: ResultAsync<unknown, DomainFailure>,
+  code: string,
+): Promise<void> {
+  const outcome = await result;
+  expect(outcome.isErr()).toBe(true);
+  if (outcome.isOk()) throw new Error('Unexpected Ok');
+  expect(outcome.error.code).toBe(code);
+}
+
 describe('WechatBaseOAuthProvider', () => {
   let provider: TestWechatProvider;
-  let i18n: vi.Mocked<I18nService>;
 
   beforeEach(() => {
-    i18n = {
-      t: vi.fn().mockReturnValue('translated'),
-    } as unknown as vi.Mocked<I18nService>;
-    provider = new TestWechatProvider(i18n);
+    provider = new TestWechatProvider();
   });
 
   afterEach(() => {
@@ -105,33 +111,48 @@ describe('WechatBaseOAuthProvider', () => {
         json: vi.fn().mockResolvedValue(mockData),
       });
 
-      const result = await provider.testFetchWechat<WechatAccessTokenSuccess>(
-        'https://api.weixin.qq.com/test',
+      const result = await expectOk(
+        provider.testFetchWechat<WechatAccessTokenSuccess>(
+          'https://api.weixin.qq.com/test',
+        ),
       );
 
       expect(result).toEqual(mockData);
     });
 
-    it('throws ServiceUnavailableException when fetch throws', async () => {
+    it('returns DEPENDENCY_UNAVAILABLE when fetch throws', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      await expect(
+      await expectErr(
         provider.testFetchWechat('https://api.weixin.qq.com/test'),
-      ).rejects.toThrow(ServiceUnavailableException);
+        'DEPENDENCY_UNAVAILABLE',
+      );
     });
 
-    it('throws ServiceUnavailableException when response is not ok', async () => {
+    it('returns DEPENDENCY_TIMEOUT when the upstream call times out', async () => {
+      const timeoutError = new Error('connect timeout');
+      timeoutError.name = 'TimeoutError';
+      global.fetch = vi.fn().mockRejectedValue(timeoutError);
+
+      await expectErr(
+        provider.testFetchWechat('https://api.weixin.qq.com/test'),
+        'DEPENDENCY_TIMEOUT',
+      );
+    });
+
+    it('returns DEPENDENCY_BAD_GATEWAY when response is not ok', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
       });
 
-      await expect(
+      await expectErr(
         provider.testFetchWechat('https://api.weixin.qq.com/test'),
-      ).rejects.toThrow(ServiceUnavailableException);
+        'DEPENDENCY_BAD_GATEWAY',
+      );
     });
 
-    it('throws when payload is a WeChat error', async () => {
+    it('returns DEPENDENCY_BAD_GATEWAY when payload is a WeChat error', async () => {
       const errorPayload: WechatErrorResponse = {
         errcode: 40029,
         errmsg: 'invalid code',
@@ -142,9 +163,22 @@ describe('WechatBaseOAuthProvider', () => {
         json: vi.fn().mockResolvedValue(errorPayload),
       });
 
-      await expect(
+      await expectErr(
         provider.testFetchWechat('https://api.weixin.qq.com/test'),
-      ).rejects.toThrow();
+        'DEPENDENCY_BAD_GATEWAY',
+      );
+    });
+
+    it('returns DEPENDENCY_BAD_GATEWAY when the JSON body cannot be decoded', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+      });
+
+      await expectErr(
+        provider.testFetchWechat('https://api.weixin.qq.com/test'),
+        'DEPENDENCY_BAD_GATEWAY',
+      );
     });
   });
 });

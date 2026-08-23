@@ -1,11 +1,18 @@
-import { unauthorized } from '../../../../common';
-import { extractErrorInfo } from '../../../../common';
-import { toInputJsonValue } from '../../../../common';
+import { extractErrorInfo, toInputJsonValue } from '../../../../common';
+import {
+  errAsync,
+  fromPromise,
+  isDomainFailure,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 import type { Logger } from '@nestjs/common';
-import { ServiceUnavailableException } from '@nestjs/common';
-import type { I18nService } from 'nestjs-i18n';
 import type { Prisma } from '#generated/prisma/client';
-import type { OAuthProvider } from '../oauth-provider.interface';
+import {
+  classifyFetchError,
+  dependencyBadGateway,
+} from '../dependency-failure.utils';
 
 export const WECHAT_ACCESS_TOKEN_URL =
   'https://api.weixin.qq.com/sns/oauth2/access_token';
@@ -47,35 +54,35 @@ export interface WechatErrorResponse {
  */
 export abstract class WechatBaseOAuthProvider {
   protected abstract readonly logger: Logger;
-  protected abstract readonly i18n: I18nService;
-  abstract readonly provider: OAuthProvider['provider'];
+  abstract readonly provider: string;
 
-  protected async fetchWechat<T>(url: string): Promise<T> {
-    let response: Response;
-    try {
-      response = await fetch(url);
-    } catch (error) {
+  protected fetchWechat<T>(url: string): ResultAsync<T, DomainFailure> {
+    return fromPromise(fetch(url), (error) => {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(`WeChat OAuth request failed: ${reason}`, stack);
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
+      return classifyFetchError(error);
+    }).andThen((response) => {
+      if (!response.ok) {
+        // Upstream responded with a non-2xx status.
+        return errAsync(dependencyBadGateway());
+      }
+      return fromPromise(response.json(), (error) => {
+        if (isDomainFailure(error)) return error;
+        const { message: reason, stack } = extractErrorInfo(error);
+        this.logger.error(
+          `Failed to decode WeChat OAuth JSON response: ${reason}`,
+          stack,
+        );
+        return dependencyBadGateway(error);
+      }).andThen((payload) => {
+        if (this.isWechatError(payload)) {
+          // Upstream rejected the credential (errcode response) — a token
+          // exchange failure, not a client validation problem.
+          return errAsync(dependencyBadGateway());
+        }
+        return okAsync(payload as T);
       });
-    }
-
-    if (!response.ok) {
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
-
-    const payload = (await response.json()) as T | WechatErrorResponse;
-    if (this.isWechatError(payload)) {
-      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
-    }
-
-    return payload;
+    });
   }
 
   protected isWechatError(payload: unknown): payload is WechatErrorResponse {

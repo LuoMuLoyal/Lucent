@@ -12,6 +12,7 @@ import { WechatMobileOAuthProvider } from '../../../src/modules/auth';
 import { AppleOAuthProvider } from '../../../src/modules/auth';
 import { QqOAuthProvider } from '../../../src/modules/auth';
 import type { OAuthProfile } from '../../../src/modules/auth';
+import { okAsync } from '../../../src/common/result';
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -152,11 +153,14 @@ describe('OAuth API (e2e)', () => {
         .expect(400);
     });
 
-    it('should reject invalid state with 401', async () => {
-      await request(app.getHttpServer())
+    it('should reject invalid state with 400', async () => {
+      const res = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebCallbackPost)
         .send({ code: 'test-code', state: 'non-existent-state' })
-        .expect(401);
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_OAUTH_STATE_INVALID');
     });
 
     it('should create new user and return tokens with valid state and code', async () => {
@@ -171,8 +175,8 @@ describe('OAuth API (e2e)', () => {
         nickname: 'WeChat Login User',
         avatar: 'https://wx.qlogo.cn/login-avatar',
       };
-      vi.spyOn(wechatWebProvider, 'fetchProfile').mockResolvedValue(
-        mockProfile,
+      vi.spyOn(wechatWebProvider, 'fetchProfile').mockReturnValue(
+        okAsync(mockProfile),
       );
 
       // Step 1: Get a valid state from the authorize endpoint
@@ -209,8 +213,8 @@ describe('OAuth API (e2e)', () => {
         nickname: 'Returning WeChat User',
         avatar: 'https://wx.qlogo.cn/returning-avatar',
       };
-      vi.spyOn(wechatWebProvider, 'fetchProfile').mockResolvedValue(
-        firstProfile,
+      vi.spyOn(wechatWebProvider, 'fetchProfile').mockReturnValue(
+        okAsync(firstProfile),
       );
 
       const authorizeRes1 = await request(app.getHttpServer())
@@ -250,11 +254,14 @@ describe('OAuth API (e2e)', () => {
       vi.restoreAllMocks();
     });
 
-    it('should reject invalid state with 401', async () => {
-      await request(app.getHttpServer())
+    it('should reject invalid state with 400', async () => {
+      const res = await request(app.getHttpServer())
         .get(OAUTH_PATH.wechatWebCallbackGet)
         .query({ code: 'test-code', state: 'non-existent-state' })
-        .expect(401);
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_OAUTH_STATE_INVALID');
     });
 
     it('should redirect to callback URI with code and state (302)', async () => {
@@ -314,8 +321,8 @@ describe('OAuth API (e2e)', () => {
         nickname: 'WeChat Mobile User',
         avatar: 'https://wx.qlogo.cn/mobile-avatar',
       };
-      vi.spyOn(wechatMobileProvider, 'fetchProfile').mockResolvedValue(
-        mockProfile,
+      vi.spyOn(wechatMobileProvider, 'fetchProfile').mockReturnValue(
+        okAsync(mockProfile),
       );
 
       const res = await request(app.getHttpServer())
@@ -355,7 +362,9 @@ describe('OAuth API (e2e)', () => {
         emailVerifiedAt: new Date(),
         nickname: 'Apple User',
       };
-      vi.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(mockProfile);
+      vi.spyOn(appleProvider, 'fetchProfile').mockReturnValue(
+        okAsync(mockProfile),
+      );
 
       const res = await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
@@ -383,7 +392,7 @@ describe('OAuth API (e2e)', () => {
         emailVerifiedAt: new Date(),
         nickname: 'Apple Return User',
       };
-      vi.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(profile);
+      vi.spyOn(appleProvider, 'fetchProfile').mockReturnValue(okAsync(profile));
 
       const res1 = await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
@@ -399,7 +408,9 @@ describe('OAuth API (e2e)', () => {
         emailVerifiedAt: new Date(),
         nickname: null,
       };
-      vi.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(profileNoName);
+      vi.spyOn(appleProvider, 'fetchProfile').mockReturnValue(
+        okAsync(profileNoName),
+      );
 
       const res2 = await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
@@ -487,11 +498,14 @@ describe('OAuth API (e2e)', () => {
         .expect(400);
     });
 
-    it('should reject invalid state with 401', async () => {
-      await request(app.getHttpServer())
+    it('should reject invalid state with 400', async () => {
+      const res = await request(app.getHttpServer())
         .post(OAUTH_PATH.qqCallback)
         .send({ code: 'test-code', state: 'non-existent-state' })
-        .expect(401);
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_OAUTH_STATE_INVALID');
     });
 
     it('should create new user and return tokens with valid state and code', async () => {
@@ -505,7 +519,9 @@ describe('OAuth API (e2e)', () => {
         nickname: 'QQ Login User',
         avatar: 'https://q.qlogo.cn/qq-avatar',
       };
-      vi.spyOn(qqProvider, 'fetchProfile').mockResolvedValue(mockProfile);
+      vi.spyOn(qqProvider, 'fetchProfile').mockReturnValue(
+        okAsync(mockProfile),
+      );
 
       // Step 1: Get a valid state from the authorize endpoint
       const authorizeRes = await request(app.getHttpServer())

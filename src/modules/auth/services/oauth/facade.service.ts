@@ -3,6 +3,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { User } from '#generated/prisma/client';
 import { UserService } from '../../../user';
 import {
+  fromPromise,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
+import {
   AppleOAuthCallbackDto,
   GoogleOAuthAuthorizeDto,
   GoogleOAuthCallbackDto,
@@ -29,7 +34,6 @@ import {
   type OAuthProfile,
 } from '../../types/oauth.types';
 import { AuthNotificationService } from '../notification.service';
-import { unwrapResult } from '../../../../common/result';
 import { AuthOAuthService } from './oauth.service';
 import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
 import { AuthTokenService, type TokenPair } from '../token.service';
@@ -53,270 +57,250 @@ export class AuthOAuthFacadeService {
     private readonly authNotificationService: AuthNotificationService,
   ) {}
 
-  async createWechatWebAuthorizeUrl(
+  createWechatWebAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
     return this.createWechatWebAuthorizeUrlForPurpose('login', dto);
   }
 
-  async createWechatWebIdentityLinkAuthorizeUrl(
+  createWechatWebIdentityLinkAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
     return this.createWechatWebAuthorizeUrlForPurpose('link', dto);
   }
 
-  private async createWechatWebAuthorizeUrlForPurpose(
+  private createWechatWebAuthorizeUrlForPurpose(
     purpose: OAuthStateEntry['purpose'],
     dto?: OAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
-    const { state, ttlSec } = await this.authOAuthStateService.createState(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      purpose,
-      dto?.callbackUri,
-    );
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      state,
-    );
-
-    return {
-      authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
-      state,
-      expiresIn: ttlSec,
-      ...(entry.callbackUri !== undefined && {
-        callbackUri: entry.callbackUri,
-      }),
-    };
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
+    return this.authOAuthStateService
+      .createState(OAUTH_PROVIDER_WECHAT_WEB, purpose, dto?.callbackUri)
+      .andThen(({ state, ttlSec }) =>
+        this.authOAuthStateService
+          .peek(OAUTH_PROVIDER_WECHAT_WEB, state)
+          .map((entry) => ({
+            authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
+            state,
+            expiresIn: ttlSec,
+            ...(entry.callbackUri !== undefined && {
+              callbackUri: entry.callbackUri,
+            }),
+          })),
+      );
   }
 
-  async resolveWechatWebCallbackRedirect(
+  resolveWechatWebCallbackRedirect(
     dto: OAuthCallbackDto,
-  ): Promise<string> {
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      dto.state,
-    );
-    return this.authOAuthStateService.buildRedirectUrl(
-      entry,
-      dto.code,
-      dto.state,
-    );
+  ): ResultAsync<string, DomainFailure> {
+    return this.authOAuthStateService
+      .peek(OAUTH_PROVIDER_WECHAT_WEB, dto.state)
+      .andThen((entry) =>
+        this.authOAuthStateService.buildRedirectUrl(entry, dto.code, dto.state),
+      );
   }
 
-  async loginWithWechatWeb(
+  loginWithWechatWeb(
     dto: OAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      dto.state,
-      'login',
-    );
-    const profile = await this.wechatWebOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.authOAuthStateService
+      .consume(OAUTH_PROVIDER_WECHAT_WEB, dto.state, 'login')
+      .andThen(() =>
+        this.wechatWebOAuthProvider.fetchProfile({ code: dto.code }),
+      )
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
-  async loginWithWechatMobile(
+  loginWithWechatMobile(
     dto: OAuthCodeCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    const profile = await this.wechatMobileOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.wechatMobileOAuthProvider
+      .fetchProfile({ code: dto.code })
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
-  async loginWithApple(
+  loginWithApple(
     dto: AppleOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    const profile = await this.appleOAuthProvider.fetchProfile({
-      identityToken: dto.identityToken,
-      authorizationCode: dto.authorizationCode,
-      givenName: dto.givenName,
-      familyName: dto.familyName,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.appleOAuthProvider
+      .fetchProfile({
+        identityToken: dto.identityToken,
+        authorizationCode: dto.authorizationCode,
+        givenName: dto.givenName,
+        familyName: dto.familyName,
+      })
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
-  async createQqAuthorizeUrl(
+  createQqAuthorizeUrl(
     dto?: QqOAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
-    const { state, ttlSec } = await this.authOAuthStateService.createState(
-      OAUTH_PROVIDER_QQ,
-      'login',
-      dto?.callbackUri,
-    );
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_QQ,
-      state,
-    );
-
-    return {
-      authorizeUrl: this.qqOAuthProvider.buildAuthorizeUrl(
-        state,
-        dto?.callbackUri,
-      ),
-      state,
-      expiresIn: ttlSec,
-      ...(entry.callbackUri !== undefined && {
-        callbackUri: entry.callbackUri,
-      }),
-    };
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
+    return this.authOAuthStateService
+      .createState(OAUTH_PROVIDER_QQ, 'login', dto?.callbackUri)
+      .andThen(({ state, ttlSec }) =>
+        this.authOAuthStateService
+          .peek(OAUTH_PROVIDER_QQ, state)
+          .map((entry) => ({
+            authorizeUrl: this.qqOAuthProvider.buildAuthorizeUrl(
+              state,
+              dto?.callbackUri,
+            ),
+            state,
+            expiresIn: ttlSec,
+            ...(entry.callbackUri !== undefined && {
+              callbackUri: entry.callbackUri,
+            }),
+          })),
+      );
   }
 
-  async loginWithQq(
+  loginWithQq(
     dto: QqOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_QQ,
-      dto.state,
-      'login',
-    );
-    const profile = await this.qqOAuthProvider.fetchProfile({ code: dto.code });
-    return this.loginWithOAuthProfile(profile, context);
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.authOAuthStateService
+      .consume(OAUTH_PROVIDER_QQ, dto.state, 'login')
+      .andThen(() => this.qqOAuthProvider.fetchProfile({ code: dto.code }))
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
-  async createWeiboAuthorizeUrl(
+  createWeiboAuthorizeUrl(
     dto?: WeiboOAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
-    const { state, ttlSec } = await this.authOAuthStateService.createState(
-      OAUTH_PROVIDER_WEIBO,
-      'login',
-      dto?.callbackUri,
-    );
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_WEIBO,
-      state,
-    );
-
-    return {
-      authorizeUrl: this.weiboOAuthProvider.buildAuthorizeUrl(
-        state,
-        dto?.callbackUri,
-      ),
-      state,
-      expiresIn: ttlSec,
-      ...(entry.callbackUri !== undefined && {
-        callbackUri: entry.callbackUri,
-      }),
-    };
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
+    return this.authOAuthStateService
+      .createState(OAUTH_PROVIDER_WEIBO, 'login', dto?.callbackUri)
+      .andThen(({ state, ttlSec }) =>
+        this.authOAuthStateService
+          .peek(OAUTH_PROVIDER_WEIBO, state)
+          .map((entry) => ({
+            authorizeUrl: this.weiboOAuthProvider.buildAuthorizeUrl(
+              state,
+              dto?.callbackUri,
+            ),
+            state,
+            expiresIn: ttlSec,
+            ...(entry.callbackUri !== undefined && {
+              callbackUri: entry.callbackUri,
+            }),
+          })),
+      );
   }
 
-  async loginWithWeibo(
+  loginWithWeibo(
     dto: WeiboOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_WEIBO,
-      dto.state,
-      'login',
-    );
-    const profile = await this.weiboOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.authOAuthStateService
+      .consume(OAUTH_PROVIDER_WEIBO, dto.state, 'login')
+      .andThen(() => this.weiboOAuthProvider.fetchProfile({ code: dto.code }))
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
-  async createGoogleAuthorizeUrl(
+  createGoogleAuthorizeUrl(
     dto?: GoogleOAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
-    const { state, ttlSec } = await this.authOAuthStateService.createState(
-      OAUTH_PROVIDER_GOOGLE,
-      'login',
-      dto?.callbackUri,
-    );
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_GOOGLE,
-      state,
-    );
-
-    return {
-      authorizeUrl: this.googleOAuthProvider.buildAuthorizeUrl(
-        state,
-        dto?.callbackUri,
-      ),
-      state,
-      expiresIn: ttlSec,
-      ...(entry.callbackUri !== undefined && {
-        callbackUri: entry.callbackUri,
-      }),
-    };
+  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
+    return this.authOAuthStateService
+      .createState(OAUTH_PROVIDER_GOOGLE, 'login', dto?.callbackUri)
+      .andThen(({ state, ttlSec }) =>
+        this.authOAuthStateService
+          .peek(OAUTH_PROVIDER_GOOGLE, state)
+          .map((entry) => ({
+            authorizeUrl: this.googleOAuthProvider.buildAuthorizeUrl(
+              state,
+              dto?.callbackUri,
+            ),
+            state,
+            expiresIn: ttlSec,
+            ...(entry.callbackUri !== undefined && {
+              callbackUri: entry.callbackUri,
+            }),
+          })),
+      );
   }
 
-  async loginWithGoogle(
+  loginWithGoogle(
     dto: GoogleOAuthCallbackDto,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_GOOGLE,
-      dto.state,
-      'login',
-    );
-    const profile = await this.googleOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.authOAuthStateService
+      .consume(OAUTH_PROVIDER_GOOGLE, dto.state, 'login')
+      .andThen(() => this.googleOAuthProvider.fetchProfile({ code: dto.code }))
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
-  async linkWechatWebIdentity(
+  linkWechatWebIdentity(
     userId: string,
     dto: OAuthCallbackDto,
-  ): Promise<void> {
-    await this.userService.findById(userId);
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      dto.state,
-      'link',
-    );
-    const profile = await this.wechatWebOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
-    this.authNotificationService
-      .notifyIdentityLinked(userId, profile)
-      .catch((error: unknown) => {
-        this.logger.error(
-          `Failed to send identity-linked notification for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
-          error instanceof Error ? error.stack : undefined,
-        );
-      });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(this.userService.findById(userId), (error) => {
+      throw error;
+    })
+      .andThen(() =>
+        this.authOAuthStateService.consume(
+          OAUTH_PROVIDER_WECHAT_WEB,
+          dto.state,
+          'link',
+        ),
+      )
+      .andThen(() =>
+        this.wechatWebOAuthProvider.fetchProfile({ code: dto.code }),
+      )
+      .andThen((profile) =>
+        this.authOAuthService
+          .linkOAuthProfileToUser(userId, profile)
+          .map(() => {
+            this.authNotificationService
+              .notifyIdentityLinked(userId, profile)
+              .catch((error: unknown) => {
+                this.logger.error(
+                  `Failed to send identity-linked notification for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
+                  error instanceof Error ? error.stack : undefined,
+                );
+              });
+          }),
+      );
   }
 
-  async linkWechatMobileIdentity(
+  linkWechatMobileIdentity(
     userId: string,
     dto: OAuthCodeCallbackDto,
-  ): Promise<void> {
-    await this.userService.findById(userId);
-    const profile = await this.wechatMobileOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(this.userService.findById(userId), (error) => {
+      throw error;
+    })
+      .andThen(() =>
+        this.wechatMobileOAuthProvider.fetchProfile({ code: dto.code }),
+      )
+      .andThen((profile) =>
+        this.authOAuthService.linkOAuthProfileToUser(userId, profile),
+      );
   }
 
-  private async loginWithOAuthProfile(
+  private loginWithOAuthProfile(
     profile: OAuthProfile,
     context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    const user = await this.authOAuthService.findOrCreateOAuthUser(profile);
-    const updatedUser = await this.authOAuthService.updateOAuthLoginUser(
-      user,
-      profile,
-    );
-    const tokens = await unwrapResult(
-      this.authTokenService.generateTokenPair(updatedUser, context),
-    );
-    this.authNotificationService
-      .notifyOAuthLogin(updatedUser.id, profile)
-      .catch((error: unknown) => {
-        this.logger.error(
-          `Failed to send oauth-login notification for user ${updatedUser.id}: ${error instanceof Error ? error.message : String(error)}`,
-          error instanceof Error ? error.stack : undefined,
-        );
-      });
-    return { user: updatedUser, ...tokens };
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.authOAuthService
+      .findOrCreateOAuthUser(profile)
+      .andThen((user) =>
+        this.authOAuthService.updateOAuthLoginUser(user, profile),
+      )
+      .andThen((updatedUser) =>
+        this.authTokenService
+          .generateTokenPair(updatedUser, context)
+          .map((tokens) => {
+            this.authNotificationService
+              .notifyOAuthLogin(updatedUser.id, profile)
+              .catch((error: unknown) => {
+                this.logger.error(
+                  `Failed to send oauth-login notification for user ${updatedUser.id}: ${error instanceof Error ? error.message : String(error)}`,
+                  error instanceof Error ? error.stack : undefined,
+                );
+              });
+            return { user: updatedUser, ...tokens };
+          }),
+      );
   }
 }

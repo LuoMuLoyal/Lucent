@@ -1,23 +1,31 @@
 import { createPublicKey } from 'node:crypto';
 
-import {
-  Injectable,
-  Logger,
-  OnModuleInit,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
-import { I18nService } from 'nestjs-i18n';
-
-import { unauthorized } from '../../../common';
-import { withRetry } from '../../../common';
-import { toInputJsonValue } from '../../../common';
+import {
+  toInputJsonValue,
+  withRetry,
+  extractErrorInfo,
+  HttpStatusError,
+} from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import { ConfigKey } from '../../../config/env/config-keys.enum';
 import type { OAuthConfig } from '../../../config/services/oauth.config';
 import { OAUTH_PROVIDER_APPLE, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
+import {
+  classifyFetchError,
+  dependencyBadGateway,
+} from './dependency-failure.utils';
 import { now } from '../../../common';
 
 interface AppleJwk {
@@ -62,43 +70,43 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly i18n: I18nService,
     private readonly jwtService: JwtService,
   ) {}
 
-  async fetchProfile(
+  fetchProfile(
     credential: Record<string, unknown>,
-  ): Promise<OAuthProfile> {
+  ): ResultAsync<OAuthProfile, DomainFailure> {
     const identityToken = credential['identityToken'] as string | undefined;
     if (!identityToken) {
-      unauthorized(this.i18n.t('auth.oauth_code_required'));
+      return errAsync(this.validationFailure());
     }
 
-    const payload = await this.verifyIdentityToken(identityToken);
-    const appleUserId = payload.sub;
-    const givenName = credential['givenName'] as string | undefined;
-    const familyName = credential['familyName'] as string | undefined;
+    return this.verifyIdentityToken(identityToken).map((payload) => {
+      const appleUserId = payload.sub;
+      const givenName = credential['givenName'] as string | undefined;
+      const familyName = credential['familyName'] as string | undefined;
 
-    return {
-      provider: OAUTH_PROVIDER_APPLE,
-      providerUserId: appleUserId,
-      email: payload.email ?? null,
-      emailVerifiedAt:
-        payload.email_verified === true || payload.email_verified === 'true'
-          ? now()
-          : null,
-      nickname:
-        (givenName ?? familyName)
-          ? [givenName, familyName].filter(Boolean).join(' ') || null
-          : null,
-      rawProfile: toInputJsonValue({
-        sub: appleUserId,
+      return {
+        provider: OAUTH_PROVIDER_APPLE,
+        providerUserId: appleUserId,
         email: payload.email ?? null,
-        ...(payload.is_private_email !== undefined && {
-          isPrivateEmail: payload.is_private_email,
+        emailVerifiedAt:
+          payload.email_verified === true || payload.email_verified === 'true'
+            ? now()
+            : null,
+        nickname:
+          (givenName ?? familyName)
+            ? [givenName, familyName].filter(Boolean).join(' ') || null
+            : null,
+        rawProfile: toInputJsonValue({
+          sub: appleUserId,
+          email: payload.email ?? null,
+          ...(payload.is_private_email !== undefined && {
+            isPrivateEmail: payload.is_private_email,
+          }),
         }),
-      }),
-    };
+      };
+    });
   }
 
   onModuleInit(): void {
@@ -112,96 +120,115 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
 
   // ── IdentityToken verification ──────────────────────────────
 
-  private async verifyIdentityToken(
+  private verifyIdentityToken(
     identityToken: string,
-  ): Promise<AppleIdTokenPayload> {
+  ): ResultAsync<AppleIdTokenPayload, DomainFailure> {
     // Decode without verification to extract kid from header
     const decoded = this.jwtService.decode<DecodedAppleToken | null>(
       identityToken,
       { complete: true },
     );
     if (!decoded) {
-      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
+      return errAsync(this.validationFailure());
     }
 
     const { kid } = decoded.header;
     if (!kid) {
-      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
+      return errAsync(this.validationFailure());
     }
 
     // Fetch Apple's public key matching the kid
-    const jwk = await this.getAppleJwk(kid);
-    const publicKey = this.jwkToPem(jwk);
+    return this.getAppleJwk(kid)
+      .andThen((jwk) => this.jwkToPemResult(jwk))
+      .andThen((publicKey) => {
+        const config = this.readAppleConfig();
 
-    const config = this.readAppleConfig();
-
-    // jwtService.verifyAsync handles signature, expiry, issuer & audience in one call
-    try {
-      const payload = await this.jwtService.verifyAsync<AppleIdTokenPayload>(
-        identityToken,
-        {
-          secret: publicKey,
-          algorithms: ['RS256'],
-          issuer: config.issuer,
-          audience: config.appId,
-          clockTolerance: 30, // 30s leeway for clock skew
-        },
-      );
-
-      return payload;
-    } catch (err) {
-      this.logger.warn('Apple identity token verification failed', err);
-      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
-    }
+        // jwtService.verifyAsync handles signature, expiry, issuer & audience in one call
+        return fromPromise(
+          this.jwtService.verifyAsync<AppleIdTokenPayload>(identityToken, {
+            secret: publicKey,
+            algorithms: ['RS256'],
+            issuer: config.issuer,
+            audience: config.appId,
+            clockTolerance: 30, // 30s leeway for clock skew
+          }),
+          (error) => {
+            this.logger.warn('Apple identity token verification failed', error);
+            // A verification failure means the client-supplied token is
+            // invalid (bad signature, expired, wrong issuer/audience) — a
+            // client input problem, not an upstream dependency failure.
+            return this.validationFailure();
+          },
+        );
+      });
   }
 
   // ── JWKS helpers ────────────────────────────────────────────
 
-  private async getAppleJwk(kid: string): Promise<AppleJwk> {
-    const keys = await this.fetchAppleJwks();
-    const jwk = keys.find((k) => k.kid === kid);
-    if (!jwk) {
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
-    return jwk;
+  private getAppleJwk(kid: string): ResultAsync<AppleJwk, DomainFailure> {
+    return this.fetchAppleJwks().andThen((keys) => {
+      const jwk = keys.find((k) => k.kid === kid);
+      if (!jwk) {
+        // Upstream returned keys that do not cover this token's kid.
+        return errAsync(dependencyBadGateway());
+      }
+      return okAsync(jwk);
+    });
   }
 
-  private async fetchAppleJwks(): Promise<AppleJwk[]> {
-    const now = Date.now();
+  private fetchAppleJwks(): ResultAsync<AppleJwk[], DomainFailure> {
+    const nowMs = Date.now();
     if (
       this.appleKeys.length > 0 &&
-      now - this.lastJwksFetch < this.JWKS_TTL_MS
+      nowMs - this.lastJwksFetch < this.JWKS_TTL_MS
     ) {
-      return this.appleKeys;
+      return okAsync(this.appleKeys);
     }
 
-    const config = this.readAppleConfig();
-
-    try {
-      const response = await withRetry(async () => {
-        const res = await fetch(config.jwksUrl);
-        if (!res.ok) {
-          throw new Error(`JWKS fetch failed: ${String(res.status)}`);
+    return fromPromise(
+      withRetry(async () => {
+        const response = await fetch(this.readAppleConfig().jwksUrl);
+        if (!response.ok) {
+          throw new HttpStatusError(response.status);
         }
-        return res;
+        return response;
+      }),
+      (error) => {
+        const { message: reason, stack } = extractErrorInfo(error);
+        this.logger.error(`Failed to fetch Apple JWKS: ${reason}`, stack);
+        return classifyFetchError(error);
+      },
+    )
+      .andThen((response) =>
+        fromPromise(response.json() as Promise<AppleJwksResponse>, (error) => {
+          this.logger.error(
+            `Failed to decode Apple JWKS response: ${extractErrorInfo(error).message}`,
+            extractErrorInfo(error).stack,
+          );
+          return dependencyBadGateway(error);
+        }),
+      )
+      .map((data) => {
+        this.appleKeys = data.keys;
+        this.lastJwksFetch = nowMs;
+        return this.appleKeys;
       });
-      const data = (await response.json()) as AppleJwksResponse;
-      this.appleKeys = data.keys;
-      this.lastJwksFetch = now;
-      return this.appleKeys;
-    } catch (err) {
-      this.logger.error('Failed to fetch Apple JWKS', err);
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
   }
 
   // ── JWK → PEM ──────────────────────────────────────────────
+
+  private jwkToPemResult(jwk: AppleJwk): ResultAsync<string, DomainFailure> {
+    return fromPromise(
+      Promise.resolve().then(() => this.jwkToPem(jwk)),
+      (error) => {
+        this.logger.error(
+          `Failed to convert Apple JWK to PEM: ${extractErrorInfo(error).message}`,
+          extractErrorInfo(error).stack,
+        );
+        return dependencyBadGateway(error);
+      },
+    );
+  }
 
   private jwkToPem(jwk: AppleJwk): string {
     const key = createPublicKey({
@@ -224,5 +251,12 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
   } {
     const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
     return config.apple;
+  }
+
+  private validationFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

@@ -309,8 +309,8 @@ describe('AccountController', () => {
         state: 'state-xxx',
         expiresIn: 300,
       };
-      authService.createWechatWebIdentityLinkAuthorizeUrl.mockResolvedValue(
-        authorizeResult,
+      authService.createWechatWebIdentityLinkAuthorizeUrl.mockReturnValue(
+        okAsync(authorizeResult),
       );
 
       const result = await controller.createWechatWebIdentityLinkAuthorizeUrl();
@@ -327,8 +327,8 @@ describe('AccountController', () => {
         state: 'state-yyy',
         expiresIn: 300,
       };
-      authService.createWechatWebIdentityLinkAuthorizeUrl.mockResolvedValue(
-        authorizeResult,
+      authService.createWechatWebIdentityLinkAuthorizeUrl.mockReturnValue(
+        okAsync(authorizeResult),
       );
 
       await controller.createWechatWebIdentityLinkAuthorizeUrl({
@@ -345,7 +345,7 @@ describe('AccountController', () => {
 
   describe('POST /account/identities/wechat-web/callback', () => {
     it('should link WeChat web identity and return the account resource', async () => {
-      authService.linkWechatWebIdentity.mockResolvedValue(undefined);
+      authService.linkWechatWebIdentity.mockReturnValue(okAsync(undefined));
       accountService.getAccount.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatWebIdentity(
@@ -368,7 +368,7 @@ describe('AccountController', () => {
 
   describe('POST /account/identities/wechat-mobile/callback', () => {
     it('should link WeChat mobile identity and return the account resource', async () => {
-      authService.linkWechatMobileIdentity.mockResolvedValue(undefined);
+      authService.linkWechatMobileIdentity.mockReturnValue(okAsync(undefined));
       accountService.getAccount.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatMobileIdentity(

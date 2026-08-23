@@ -18,7 +18,8 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { extractAuthRequestContext } from '../../../common';
+import { extractAuthRequestContext, ProblemDetailsDto } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import { AuthService } from '../services/auth.service';
 
 import {
@@ -55,9 +56,13 @@ export class OAuthController {
   @ApiOperation({ summary: 'Create WeChat web OAuth authorize URL' })
   @ApiBody({ type: OAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid callback URI',
+    type: ProblemDetailsDto,
+  })
   async createWechatWebAuthorizeUrl(@Body() dto?: OAuthAuthorizeDto) {
-    const result = await this.authService.createWechatWebAuthorizeUrl(dto);
-    return result;
+    return unwrapResult(this.authService.createWechatWebAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/wechat-web/callback ──────────────
@@ -66,13 +71,41 @@ export class OAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'WeChat web OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid OAuth state or missing/malformed callback credential',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
+    type: ProblemDetailsDto,
+  })
   async loginWithWechatWeb(
     @Body() dto: OAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.loginWithWechatWeb(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.loginWithWechatWeb(
+        dto,
+        extractAuthRequestContext(request),
+      ),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -84,12 +117,18 @@ export class OAuthController {
   @ApiQuery({ name: 'code', required: true })
   @ApiQuery({ name: 'state', required: true })
   @ApiResponse({ status: 302, description: 'Redirect to desktop callback URI' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid OAuth state',
+    type: ProblemDetailsDto,
+  })
   async redirectWechatWebCallback(
     @Query() dto: OAuthCallbackDto,
     @Res() reply: FastifyReply,
   ) {
-    const redirectUrl =
-      await this.authService.resolveWechatWebCallbackRedirect(dto);
+    const redirectUrl = await unwrapResult(
+      this.authService.resolveWechatWebCallbackRedirect(dto),
+    );
     reply.redirect(redirectUrl, HttpStatus.FOUND);
   }
 
@@ -99,13 +138,41 @@ export class OAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'WeChat mobile OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Missing/malformed callback credential',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
+    type: ProblemDetailsDto,
+  })
   async loginWithWechatMobile(
     @Body() dto: OAuthCodeCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.loginWithWechatMobile(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.loginWithWechatMobile(
+        dto,
+        extractAuthRequestContext(request),
+      ),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -116,13 +183,38 @@ export class OAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Apple Sign-In callback' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Missing or invalid identity token',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
+    type: ProblemDetailsDto,
+  })
   async loginWithApple(
     @Body() dto: AppleOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.loginWithApple(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.loginWithApple(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -134,9 +226,13 @@ export class OAuthController {
   @ApiOperation({ summary: 'Create QQ OAuth authorize URL' })
   @ApiBody({ type: QqOAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid callback URI',
+    type: ProblemDetailsDto,
+  })
   async createQqAuthorizeUrl(@Body() dto?: QqOAuthAuthorizeDto) {
-    const result = await this.authService.createQqAuthorizeUrl(dto);
-    return result;
+    return unwrapResult(this.authService.createQqAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/qq/callback ───────────────────
@@ -145,13 +241,38 @@ export class OAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'QQ OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid OAuth state or missing/malformed callback credential',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
+    type: ProblemDetailsDto,
+  })
   async loginWithQq(
     @Body() dto: QqOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.loginWithQq(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.loginWithQq(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -163,9 +284,13 @@ export class OAuthController {
   @ApiOperation({ summary: 'Create Weibo OAuth authorize URL' })
   @ApiBody({ type: WeiboOAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid callback URI',
+    type: ProblemDetailsDto,
+  })
   async createWeiboAuthorizeUrl(@Body() dto?: WeiboOAuthAuthorizeDto) {
-    const result = await this.authService.createWeiboAuthorizeUrl(dto);
-    return result;
+    return unwrapResult(this.authService.createWeiboAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/weibo/callback ────────────────
@@ -174,13 +299,38 @@ export class OAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Weibo OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid OAuth state or missing/malformed callback credential',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
+    type: ProblemDetailsDto,
+  })
   async loginWithWeibo(
     @Body() dto: WeiboOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.loginWithWeibo(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.loginWithWeibo(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -192,9 +342,13 @@ export class OAuthController {
   @ApiOperation({ summary: 'Create Google OAuth authorize URL' })
   @ApiBody({ type: GoogleOAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid callback URI',
+    type: ProblemDetailsDto,
+  })
   async createGoogleAuthorizeUrl(@Body() dto?: GoogleOAuthAuthorizeDto) {
-    const result = await this.authService.createGoogleAuthorizeUrl(dto);
-    return result;
+    return unwrapResult(this.authService.createGoogleAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/google/callback ───────────────
@@ -203,13 +357,38 @@ export class OAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Google OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid OAuth state or missing/malformed callback credential',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
+    type: ProblemDetailsDto,
+  })
   async loginWithGoogle(
     @Body() dto: GoogleOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.loginWithGoogle(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.loginWithGoogle(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }

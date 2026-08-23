@@ -118,4 +118,8 @@ export {
   parseRedisUrl,
   type RedisConnectionOptions,
 } from './helpers/infra/redis-url';
-export { withRetry, fetchWithRetry } from './helpers/infra/retry.utils';
+export {
+  withRetry,
+  fetchWithRetry,
+  HttpStatusError,
+} from './helpers/infra/retry.utils';

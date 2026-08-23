@@ -1,13 +1,10 @@
-import {
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { I18nService } from 'nestjs-i18n';
 
 import type { OAuthConfig } from '../../../../config/services/oauth.config';
 import { OAUTH_PROVIDER_WECHAT_WEB } from '../../types/oauth.types';
 import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
+import type { DomainFailure, ResultAsync } from '../../../../common/result';
 
 const mockOAuthConfig: OAuthConfig = {
   wechatWeb: {
@@ -41,6 +38,23 @@ const mockOAuthConfig: OAuthConfig = {
   },
 };
 
+async function expectOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await result;
+  expect(outcome.isOk()).toBe(true);
+  if (outcome.isErr()) throw new Error(`Unexpected Err: ${outcome.error.code}`);
+  return outcome.value;
+}
+
+async function expectErr(
+  result: ResultAsync<unknown, DomainFailure>,
+  code: string,
+): Promise<void> {
+  const outcome = await result;
+  expect(outcome.isErr()).toBe(true);
+  if (outcome.isOk()) throw new Error('Unexpected Ok');
+  expect(outcome.error.code).toBe(code);
+}
+
 describe('WechatWebOAuthProvider', () => {
   let provider: WechatWebOAuthProvider;
   let configService: {
@@ -59,9 +73,6 @@ describe('WechatWebOAuthProvider', () => {
 
     provider = new WechatWebOAuthProvider(
       configService as unknown as ConfigService,
-      {
-        t: vi.fn((key: string) => key),
-      } as unknown as I18nService,
     );
   });
 
@@ -134,7 +145,9 @@ describe('WechatWebOAuthProvider', () => {
           }),
       } as Response);
 
-    const profile = await provider.fetchProfile({ code: 'wechat-code' });
+    const profile = await expectOk(
+      provider.fetchProfile({ code: 'wechat-code' }),
+    );
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(profile).toEqual({
@@ -161,7 +174,7 @@ describe('WechatWebOAuthProvider', () => {
     });
   });
 
-  it('should reject WeChat errcode responses', async () => {
+  it('should return DEPENDENCY_BAD_GATEWAY for WeChat errcode responses', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true,
       json: () =>
@@ -171,8 +184,46 @@ describe('WechatWebOAuthProvider', () => {
         }),
     } as Response);
 
-    await expect(provider.fetchProfile({ code: 'bad-code' })).rejects.toThrow(
-      UnauthorizedException,
+    await expectErr(
+      provider.fetchProfile({ code: 'bad-code' }),
+      'DEPENDENCY_BAD_GATEWAY',
+    );
+  });
+
+  it('should return DEPENDENCY_BAD_GATEWAY when the token response lacks openid', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          access_token: 'wechat-access-token',
+          expires_in: 7200,
+          refresh_token: 'wechat-refresh-token',
+          scope: 'snsapi_login',
+        }),
+    } as Response);
+
+    await expectErr(
+      provider.fetchProfile({ code: 'wechat-code' }),
+      'DEPENDENCY_BAD_GATEWAY',
+    );
+  });
+
+  it('should return DEPENDENCY_BAD_GATEWAY when the token response has an empty openid', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          access_token: 'wechat-access-token',
+          expires_in: 7200,
+          refresh_token: 'wechat-refresh-token',
+          openid: '',
+          scope: 'snsapi_login',
+        }),
+    } as Response);
+
+    await expectErr(
+      provider.fetchProfile({ code: 'wechat-code' }),
+      'DEPENDENCY_BAD_GATEWAY',
     );
   });
 });

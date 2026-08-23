@@ -20,6 +20,22 @@ export interface RetryOptions {
   onRetry?: (error: unknown, attempt: number) => void;
 }
 
+/**
+ * Error thrown when an upstream HTTP call settles with a non-2xx status.
+ *
+ * Carries the numeric HTTP `status` so callers can classify the failure
+ * (e.g. `DEPENDENCY_BAD_GATEWAY`) without parsing the message text.
+ */
+export class HttpStatusError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`HTTP ${String(status)}`);
+    this.name = 'HttpStatusError';
+    this.status = status;
+  }
+}
+
 function calculateDelay(
   attempt: number,
   delayMs: number,
@@ -94,7 +110,7 @@ export async function fetchWithRetry(
   return withRetry(async () => {
     const response = await fetch(url, fetchInit);
     if (!response.ok) {
-      throw new Error(`HTTP ${String(response.status)}`);
+      throw new HttpStatusError(response.status);
     }
     return response;
   }, retryOptions);

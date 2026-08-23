@@ -1,4 +1,4 @@
-import { withRetry, fetchWithRetry } from './retry.utils';
+import { withRetry, fetchWithRetry, HttpStatusError } from './retry.utils';
 
 describe('retry.utils', () => {
   describe('withRetry', () => {
@@ -138,18 +138,19 @@ describe('retry.utils', () => {
       fetchSpy.mockRestore();
     });
 
-    it('throws after all attempts on persistent non-ok', async () => {
+    it('throws HttpStatusError carrying the status after all attempts on persistent non-ok', async () => {
       const failResponse = { ok: false, status: 503 } as Response;
       const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockResolvedValue(failResponse);
 
-      await expect(
-        fetchWithRetry('https://example.com', {
-          attempts: 2,
-          delayMs: 0,
-        }),
-      ).rejects.toThrow('HTTP 503');
+      const rejection = fetchWithRetry('https://example.com', {
+        attempts: 2,
+        delayMs: 0,
+      });
+      await expect(rejection).rejects.toThrow('HTTP 503');
+      await expect(rejection).rejects.toBeInstanceOf(HttpStatusError);
+      await expect(rejection).rejects.toMatchObject({ status: 503 });
       expect(fetchSpy).toHaveBeenCalledTimes(2);
       fetchSpy.mockRestore();
     });

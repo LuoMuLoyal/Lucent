@@ -233,10 +233,17 @@ export class AccountController {
   })
   @ApiBody({ type: OAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid callback URI',
+    type: ProblemDetailsDto,
+  })
   async createWechatWebIdentityLinkAuthorizeUrl(
     @Body() dto?: OAuthAuthorizeDto,
   ) {
-    return await this.authService.createWechatWebIdentityLinkAuthorizeUrl(dto);
+    return unwrapResult(
+      this.authService.createWechatWebIdentityLinkAuthorizeUrl(dto),
+    );
   }
 
   @Post('identities/wechat-web/callback')
@@ -246,8 +253,34 @@ export class AccountController {
   })
   @ApiResponse({ status: 200, type: AccountResponseDto })
   @ApiResponse({
+    status: 400,
+    description: 'Invalid OAuth state or missing/malformed callback credential',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 404,
     description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
     type: ProblemDetailsDto,
   })
   async linkWechatWebIdentity(
@@ -255,7 +288,7 @@ export class AccountController {
     @Body() dto: OAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    await this.authService.linkWechatWebIdentity(user.sub, dto);
+    await unwrapResult(this.authService.linkWechatWebIdentity(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -273,8 +306,34 @@ export class AccountController {
   })
   @ApiResponse({ status: 200, type: AccountResponseDto })
   @ApiResponse({
+    status: 400,
+    description: 'Missing/malformed callback credential',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 404,
     description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'OAuth identity is already linked to another account',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'OAuth provider rejected the exchange or returned an unusable profile',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'OAuth provider is unavailable',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'OAuth provider timed out',
     type: ProblemDetailsDto,
   })
   async linkWechatMobileIdentity(
@@ -282,7 +341,9 @@ export class AccountController {
     @Body() dto: OAuthCodeCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    await this.authService.linkWechatMobileIdentity(user.sub, dto);
+    await unwrapResult(
+      this.authService.linkWechatMobileIdentity(user.sub, dto),
+    );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,

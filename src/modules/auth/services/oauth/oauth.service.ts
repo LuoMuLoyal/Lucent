@@ -1,59 +1,174 @@
-import { conflict } from '../../../../common';
-import { normalizeEmail } from '../../../../common';
-import { unwrapResult } from '../../../../common/result';
+import { normalizeEmail, fromPrismaResult } from '../../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 import { Injectable } from '@nestjs/common';
 
-import { I18nService } from 'nestjs-i18n';
-import { User, UserStatus } from '#generated/prisma/client';
+import { User, UserIdentity, UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../../user';
 import type { OAuthProfile } from '../../types/oauth.types';
 
 @Injectable()
 export class AuthOAuthService {
-  constructor(
-    private readonly userService: UserService,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
-  async findOrCreateOAuthUser(profile: OAuthProfile): Promise<User> {
-    const linkedUser = await this.userService.findByIdentity(
-      profile.provider,
-      profile.providerUserId,
-    );
-    if (linkedUser) {
-      return linkedUser;
-    }
-
-    if (profile.unionId) {
-      const existingUnionUser = await this.userService.findByProviderUnionId(
-        profile.unionId,
-      );
-      if (existingUnionUser) {
-        await this.linkOAuthIdentity(existingUnionUser.id, profile);
-        return existingUnionUser;
+  findOrCreateOAuthUser(
+    profile: OAuthProfile,
+  ): ResultAsync<User, DomainFailure> {
+    return fromPromise(
+      this.userService.findByIdentity(profile.provider, profile.providerUserId),
+      (error) => {
+        throw error;
+      },
+    ).andThen((linkedUser) => {
+      if (linkedUser) {
+        return okAsync(linkedUser);
       }
-    }
+      return this.matchByUnionIdOrEmail(profile);
+    });
+  }
 
-    if (profile.email) {
-      const existingUser = await this.userService.findByEmail(
-        normalizeEmail(profile.email),
-      );
-      if (existingUser) {
-        await this.linkOAuthIdentity(existingUser.id, profile);
-        return existingUser;
-      }
-    }
-
-    return this.userService.createOAuthUser({
-      ...(profile.email !== undefined && {
-        email: profile.email === null ? null : normalizeEmail(profile.email),
-      }),
+  updateOAuthLoginUser(
+    user: User,
+    profile: OAuthProfile,
+  ): ResultAsync<User, DomainFailure> {
+    return this.userService.update(user.id, {
+      lastLoginAt: new Date(),
+      status: UserStatus.active,
       ...(profile.nickname !== undefined && { nickname: profile.nickname }),
       ...(profile.avatar !== undefined && { avatar: profile.avatar }),
-      ...(profile.emailVerifiedAt !== undefined && {
-        emailVerifiedAt: profile.emailVerifiedAt,
+    });
+  }
+
+  linkOAuthProfileToUser(
+    userId: string,
+    profile: OAuthProfile,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(
+      this.userService.findByIdentity(profile.provider, profile.providerUserId),
+      (error) => {
+        throw error;
+      },
+    ).andThen((linkedUser) => {
+      if (linkedUser) {
+        if (linkedUser.id !== userId) {
+          return errAsync(this.identityInUse());
+        }
+        return okAsync(undefined);
+      }
+      return this.checkUnionAndLink(userId, profile);
+    });
+  }
+
+  // ── Private helpers ──
+
+  private matchByUnionIdOrEmail(
+    profile: OAuthProfile,
+  ): ResultAsync<User, DomainFailure> {
+    if (profile.unionId) {
+      return fromPromise(
+        this.userService.findByProviderUnionId(profile.unionId),
+        (error) => {
+          throw error;
+        },
+      ).andThen((existingUnionUser) => {
+        if (existingUnionUser) {
+          return this.linkOAuthIdentity(existingUnionUser.id, profile).map(
+            () => existingUnionUser,
+          );
+        }
+        return this.matchByEmail(profile);
+      });
+    }
+    return this.matchByEmail(profile);
+  }
+
+  private matchByEmail(
+    profile: OAuthProfile,
+  ): ResultAsync<User, DomainFailure> {
+    if (profile.email) {
+      return fromPromise(
+        this.userService.findByEmail(normalizeEmail(profile.email)),
+        (error) => {
+          throw error;
+        },
+      ).andThen((existingUser) => {
+        if (existingUser) {
+          return this.linkOAuthIdentity(existingUser.id, profile).map(
+            () => existingUser,
+          );
+        }
+        return this.createOAuthUser(profile);
+      });
+    }
+    return this.createOAuthUser(profile);
+  }
+
+  private createOAuthUser(
+    profile: OAuthProfile,
+  ): ResultAsync<User, DomainFailure> {
+    return fromPrismaResult(
+      this.userService.createOAuthUser({
+        ...(profile.email !== undefined && {
+          email: profile.email === null ? null : normalizeEmail(profile.email),
+        }),
+        ...(profile.nickname !== undefined && { nickname: profile.nickname }),
+        ...(profile.avatar !== undefined && { avatar: profile.avatar }),
+        ...(profile.emailVerifiedAt !== undefined && {
+          emailVerifiedAt: profile.emailVerifiedAt,
+        }),
+        identity: {
+          provider: profile.provider,
+          providerUserId: profile.providerUserId,
+          ...(profile.unionId !== undefined && {
+            providerUnionId: profile.unionId,
+          }),
+          ...(profile.email !== undefined && {
+            email:
+              profile.email === null ? null : normalizeEmail(profile.email),
+          }),
+          ...(profile.emailVerifiedAt !== undefined && {
+            emailVerifiedAt: profile.emailVerifiedAt,
+          }),
+          ...(profile.rawProfile !== undefined && {
+            rawProfile: profile.rawProfile,
+          }),
+        },
       }),
-      identity: {
+    );
+  }
+
+  private checkUnionAndLink(
+    userId: string,
+    profile: OAuthProfile,
+  ): ResultAsync<void, DomainFailure> {
+    if (profile.unionId) {
+      return fromPromise(
+        this.userService.findByProviderUnionId(profile.unionId),
+        (error) => {
+          throw error;
+        },
+      ).andThen((unionUser) => {
+        if (unionUser && unionUser.id !== userId) {
+          return errAsync(this.identityInUse());
+        }
+        return this.linkOAuthIdentity(userId, profile).map(() => undefined);
+      });
+    }
+    return this.linkOAuthIdentity(userId, profile).map(() => undefined);
+  }
+
+  private linkOAuthIdentity(
+    userId: string,
+    profile: OAuthProfile,
+  ): ResultAsync<UserIdentity, DomainFailure> {
+    return fromPrismaResult(
+      this.userService.linkIdentity(userId, {
         provider: profile.provider,
         providerUserId: profile.providerUserId,
         ...(profile.unionId !== undefined && {
@@ -68,67 +183,14 @@ export class AuthOAuthService {
         ...(profile.rawProfile !== undefined && {
           rawProfile: profile.rawProfile,
         }),
-      },
-    });
-  }
-
-  async updateOAuthLoginUser(user: User, profile: OAuthProfile): Promise<User> {
-    return unwrapResult(
-      this.userService.update(user.id, {
-        lastLoginAt: new Date(),
-        status: UserStatus.active,
-        ...(profile.nickname !== undefined && { nickname: profile.nickname }),
-        ...(profile.avatar !== undefined && { avatar: profile.avatar }),
       }),
     );
   }
 
-  async linkOAuthProfileToUser(
-    userId: string,
-    profile: OAuthProfile,
-  ): Promise<void> {
-    const linkedUser = await this.userService.findByIdentity(
-      profile.provider,
-      profile.providerUserId,
-    );
-    if (linkedUser) {
-      if (linkedUser.id !== userId) {
-        conflict(this.i18n.t('auth.oauth_identity_in_use'));
-      }
-      return;
-    }
-
-    if (profile.unionId) {
-      const unionUser = await this.userService.findByProviderUnionId(
-        profile.unionId,
-      );
-      if (unionUser && unionUser.id !== userId) {
-        conflict(this.i18n.t('auth.oauth_identity_in_use'));
-      }
-    }
-
-    await this.linkOAuthIdentity(userId, profile);
-  }
-
-  private async linkOAuthIdentity(
-    userId: string,
-    profile: OAuthProfile,
-  ): Promise<void> {
-    await this.userService.linkIdentity(userId, {
-      provider: profile.provider,
-      providerUserId: profile.providerUserId,
-      ...(profile.unionId !== undefined && {
-        providerUnionId: profile.unionId,
-      }),
-      ...(profile.email !== undefined && {
-        email: profile.email === null ? null : normalizeEmail(profile.email),
-      }),
-      ...(profile.emailVerifiedAt !== undefined && {
-        emailVerifiedAt: profile.emailVerifiedAt,
-      }),
-      ...(profile.rawProfile !== undefined && {
-        rawProfile: profile.rawProfile,
-      }),
+  private identityInUse(): DomainFailure {
+    return createDomainFailure({
+      kind: 'conflict',
+      code: 'RESOURCE_CONFLICT',
     });
   }
 }

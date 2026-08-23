@@ -1,4 +1,9 @@
-import { unauthorized } from '../../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 import {
   Injectable,
   Logger,
@@ -6,7 +11,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../../../config/env/config-keys.enum';
 import type { OAuthConfig } from '../../../../config/services/oauth.config';
 import {
@@ -21,6 +25,7 @@ import {
   type OAuthProfile,
 } from '../../types/oauth.types';
 import type { OAuthProvider } from '../oauth-provider.interface';
+import { dependencyBadGateway } from '../dependency-failure.utils';
 
 @Injectable()
 export class WechatMobileOAuthProvider
@@ -30,19 +35,16 @@ export class WechatMobileOAuthProvider
   readonly provider = OAUTH_PROVIDER_WECHAT_MOBILE;
   protected readonly logger = new Logger(WechatMobileOAuthProvider.name);
 
-  constructor(
-    private readonly configService: ConfigService,
-    protected readonly i18n: I18nService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super();
   }
 
-  async fetchProfile(
+  fetchProfile(
     credential: Record<string, unknown>,
-  ): Promise<OAuthProfile> {
+  ): ResultAsync<OAuthProfile, DomainFailure> {
     const code = credential['code'] as string;
     if (!code) {
-      unauthorized(this.i18n.t('auth.oauth_code_required'));
+      return errAsync(this.validationFailure());
     }
     const config = this.getConfig();
     const tokenParams = new URLSearchParams({
@@ -52,38 +54,44 @@ export class WechatMobileOAuthProvider
       grant_type: 'authorization_code',
     });
 
-    const token = await this.fetchWechat<WechatAccessTokenSuccess>(
+    return this.fetchWechat<WechatAccessTokenSuccess>(
       `${WECHAT_ACCESS_TOKEN_URL}?${tokenParams.toString()}`,
-    );
+    ).andThen((token) => {
+      if (!token.openid) {
+        // Profile is unusable without a stable provider user id.
+        return errAsync(dependencyBadGateway());
+      }
 
-    const userInfoParams = new URLSearchParams({
-      access_token: token.access_token,
-      openid: token.openid,
-      lang: 'zh_CN',
+      const userInfoParams = new URLSearchParams({
+        access_token: token.access_token,
+        openid: token.openid,
+        lang: 'zh_CN',
+      });
+
+      return this.fetchWechat<WechatUserInfoSuccess>(
+        `${WECHAT_USERINFO_URL}?${userInfoParams.toString()}`,
+      ).map((userInfo): OAuthProfile => {
+        const rawToken = {
+          openid: token.openid,
+          scope: token.scope,
+          expires_in: token.expires_in,
+          ...(token.unionid !== undefined && { unionid: token.unionid }),
+        };
+
+        return {
+          provider: OAUTH_PROVIDER_WECHAT_MOBILE,
+          providerUserId: token.openid,
+          ...(token.unionid !== undefined && { unionId: token.unionid }),
+          email: null,
+          nickname: userInfo.nickname ?? null,
+          avatar: userInfo.headimgurl ?? null,
+          rawProfile: {
+            token: this.toJsonValue(rawToken),
+            userInfo: this.toJsonValue(userInfo),
+          },
+        };
+      });
     });
-
-    const userInfo = await this.fetchWechat<WechatUserInfoSuccess>(
-      `${WECHAT_USERINFO_URL}?${userInfoParams.toString()}`,
-    );
-    const rawToken = {
-      openid: token.openid,
-      scope: token.scope,
-      expires_in: token.expires_in,
-      ...(token.unionid !== undefined && { unionid: token.unionid }),
-    };
-
-    return {
-      provider: OAUTH_PROVIDER_WECHAT_MOBILE,
-      providerUserId: token.openid,
-      ...(token.unionid !== undefined && { unionId: token.unionid }),
-      email: null,
-      nickname: userInfo.nickname ?? null,
-      avatar: userInfo.headimgurl ?? null,
-      rawProfile: {
-        token: this.toJsonValue(rawToken),
-        userInfo: this.toJsonValue(userInfo),
-      },
-    };
   }
 
   onModuleInit(): void {
@@ -101,7 +109,7 @@ export class WechatMobileOAuthProvider
     if (!wechat.appId || !wechat.appSecret) {
       throw new ServiceUnavailableException({
         code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.i18n.t('auth.oauth_provider_not_configured'),
+        message: 'WeChat Mobile OAuth is not configured.',
       });
     }
 
@@ -111,5 +119,12 @@ export class WechatMobileOAuthProvider
   private readRawConfig(): { appId: string; appSecret: string } {
     const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
     return config.wechatMobile;
+  }
+
+  private validationFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

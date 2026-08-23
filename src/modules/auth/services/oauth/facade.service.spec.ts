@@ -11,7 +11,14 @@ import type { AuthOAuthService } from './oauth.service';
 import type { AuthNotificationService } from '../notification.service';
 import type { OAuthProfile } from '../../types/oauth.types';
 import { AuthOAuthFacadeService } from './facade.service';
-import { okAsync } from '../../../../common/result';
+import {
+  createDomainFailure,
+  errAsync,
+  ok,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 
 const mockProfile: OAuthProfile = {
   provider: 'wechat_web',
@@ -36,6 +43,25 @@ const mockTokens = {
   refreshTokenExpiresAt: '2026-07-18T00:00:00Z',
 };
 
+const stateInvalidFailure = createDomainFailure({
+  kind: 'authentication',
+  code: 'AUTH_OAUTH_STATE_INVALID',
+});
+
+const dependencyUnavailableFailure = createDomainFailure({
+  kind: 'dependency',
+  code: 'DEPENDENCY_UNAVAILABLE',
+});
+
+function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
 describe('AuthOAuthFacadeService', () => {
   let service: AuthOAuthFacadeService;
   let userService: vi.Mocked<UserService>;
@@ -56,63 +82,59 @@ describe('AuthOAuthFacadeService', () => {
     } as unknown as vi.Mocked<UserService>;
     wechatWebProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://wx/auth?url=1'),
-      fetchProfile: vi.fn().mockResolvedValue(mockProfile),
+      fetchProfile: vi.fn().mockReturnValue(okAsync(mockProfile)),
     } as unknown as vi.Mocked<WechatWebOAuthProvider>;
     wechatMobileProvider = {
-      fetchProfile: vi.fn().mockResolvedValue({
-        ...mockProfile,
-        provider: 'wechat_mobile',
-      }),
+      fetchProfile: vi
+        .fn()
+        .mockReturnValue(
+          okAsync({ ...mockProfile, provider: 'wechat_mobile' }),
+        ),
     } as unknown as vi.Mocked<WechatMobileOAuthProvider>;
     appleProvider = {
-      fetchProfile: vi.fn().mockResolvedValue({
-        ...mockProfile,
-        provider: 'apple',
-      }),
+      fetchProfile: vi
+        .fn()
+        .mockReturnValue(okAsync({ ...mockProfile, provider: 'apple' })),
     } as unknown as vi.Mocked<AppleOAuthProvider>;
     qqProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://qq/auth?url=1'),
-      fetchProfile: vi.fn().mockResolvedValue({
-        ...mockProfile,
-        provider: 'qq',
-      }),
+      fetchProfile: vi
+        .fn()
+        .mockReturnValue(okAsync({ ...mockProfile, provider: 'qq' })),
     } as unknown as vi.Mocked<QqOAuthProvider>;
     weiboProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://weibo/auth?url=1'),
-      fetchProfile: vi.fn().mockResolvedValue({
-        ...mockProfile,
-        provider: 'weibo',
-      }),
+      fetchProfile: vi
+        .fn()
+        .mockReturnValue(okAsync({ ...mockProfile, provider: 'weibo' })),
     } as unknown as vi.Mocked<WeiboOAuthProvider>;
     googleProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://google/auth?url=1'),
-      fetchProfile: vi.fn().mockResolvedValue({
-        ...mockProfile,
-        provider: 'google',
-      }),
+      fetchProfile: vi
+        .fn()
+        .mockReturnValue(okAsync({ ...mockProfile, provider: 'google' })),
     } as unknown as vi.Mocked<GoogleOAuthProvider>;
     stateService = {
-      createState: vi.fn().mockResolvedValue({
-        state: 'state-123',
-        ttlSec: 300,
-      }),
-      peek: vi.fn().mockResolvedValue({
-        provider: 'wechat_web',
-        state: 'state-123',
-        purpose: 'login',
-        callbackUri: undefined,
-        createdAt: new Date(),
-      }),
-      consume: vi.fn().mockResolvedValue(undefined),
-      buildRedirectUrl: vi.fn().mockReturnValue('https://app/callback'),
+      createState: vi
+        .fn()
+        .mockReturnValue(okAsync({ state: 'state-123', ttlSec: 300 })),
+      peek: vi.fn().mockReturnValue(
+        okAsync({
+          provider: 'wechat_web',
+          purpose: 'login',
+          callbackUri: undefined,
+        }),
+      ),
+      consume: vi.fn().mockReturnValue(okAsync(undefined as never)),
+      buildRedirectUrl: vi.fn().mockReturnValue(ok('https://app/callback')),
     } as unknown as vi.Mocked<AuthOAuthStateService>;
     tokenService = {
       generateTokenPair: vi.fn().mockReturnValue(okAsync(mockTokens)),
     } as unknown as vi.Mocked<AuthTokenService>;
     oauthService = {
-      findOrCreateOAuthUser: vi.fn().mockResolvedValue(mockUser),
-      updateOAuthLoginUser: vi.fn().mockResolvedValue(mockUser),
-      linkOAuthProfileToUser: vi.fn().mockResolvedValue(undefined),
+      findOrCreateOAuthUser: vi.fn().mockReturnValue(okAsync(mockUser)),
+      updateOAuthLoginUser: vi.fn().mockReturnValue(okAsync(mockUser)),
+      linkOAuthProfileToUser: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as vi.Mocked<AuthOAuthService>;
     notificationService = {
       notifyOAuthLogin: vi.fn().mockResolvedValue(undefined),
@@ -136,7 +158,9 @@ describe('AuthOAuthFacadeService', () => {
 
   describe('createWechatWebAuthorizeUrl', () => {
     it('creates authorize URL for login purpose', async () => {
-      const result = await service.createWechatWebAuthorizeUrl();
+      const outcome = await collectResult(
+        service.createWechatWebAuthorizeUrl(),
+      );
 
       expect(stateService.createState).toHaveBeenCalledWith(
         'wechat_web',
@@ -146,59 +170,102 @@ describe('AuthOAuthFacadeService', () => {
       expect(wechatWebProvider.buildAuthorizeUrl).toHaveBeenCalledWith(
         'state-123',
       );
-      expect(result.state).toBe('state-123');
-      expect(result.expiresIn).toBe(300);
+      expect(outcome).toEqual({
+        ok: true,
+        value: {
+          authorizeUrl: 'https://wx/auth?url=1',
+          state: 'state-123',
+          expiresIn: 300,
+        },
+      });
     });
 
     it('passes callbackUri when provided', async () => {
-      stateService.peek.mockResolvedValue({
-        provider: 'wechat_web',
-        state: 'state-123',
-        purpose: 'login',
-        callbackUri: 'https://app/cb',
-        createdAt: new Date(),
-      } as never);
+      stateService.peek.mockReturnValue(
+        okAsync({
+          provider: 'wechat_web',
+          purpose: 'login',
+          callbackUri: 'https://app/cb',
+        }),
+      );
 
-      const result = await service.createWechatWebAuthorizeUrl({
-        callbackUri: 'https://app/cb',
+      const outcome = await collectResult(
+        service.createWechatWebAuthorizeUrl({
+          callbackUri: 'https://app/cb',
+        }),
+      );
+
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ callbackUri: 'https://app/cb' }),
       });
+    });
 
-      expect(result.callbackUri).toBe('https://app/cb');
+    it('propagates an invalid state failure', async () => {
+      stateService.createState.mockReturnValue(errAsync(stateInvalidFailure));
+
+      const outcome = await collectResult(
+        service.createWechatWebAuthorizeUrl(),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: stateInvalidFailure });
     });
   });
 
   describe('createWechatWebIdentityLinkAuthorizeUrl', () => {
     it('creates authorize URL for link purpose', async () => {
-      const result = await service.createWechatWebIdentityLinkAuthorizeUrl();
+      const outcome = await collectResult(
+        service.createWechatWebIdentityLinkAuthorizeUrl(),
+      );
 
       expect(stateService.createState).toHaveBeenCalledWith(
         'wechat_web',
         'link',
         undefined,
       );
-      expect(result.state).toBe('state-123');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ state: 'state-123' }),
+      });
     });
   });
 
   describe('resolveWechatWebCallbackRedirect', () => {
     it('returns redirect URL', async () => {
-      const result = await service.resolveWechatWebCallbackRedirect({
-        code: 'auth-code',
-        state: 'state-123',
-      });
+      const outcome = await collectResult(
+        service.resolveWechatWebCallbackRedirect({
+          code: 'auth-code',
+          state: 'state-123',
+        }),
+      );
 
       expect(stateService.peek).toHaveBeenCalledWith('wechat_web', 'state-123');
       expect(stateService.buildRedirectUrl).toHaveBeenCalled();
-      expect(result).toBe('https://app/callback');
+      expect(outcome).toEqual({ ok: true, value: 'https://app/callback' });
+    });
+
+    it('propagates an invalid state failure', async () => {
+      stateService.peek.mockReturnValue(errAsync(stateInvalidFailure));
+
+      const outcome = await collectResult(
+        service.resolveWechatWebCallbackRedirect({
+          code: 'auth-code',
+          state: 'bad-state',
+        }),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: stateInvalidFailure });
     });
   });
 
   describe('loginWithWechatWeb', () => {
     it('consumes state, fetches profile, and returns tokens', async () => {
-      const result = await service.loginWithWechatWeb({
-        code: 'auth-code',
-        state: 'state-123',
-      });
+      const outcome = await collectResult(
+        service.loginWithWechatWeb({
+          code: 'auth-code',
+          state: 'state-123',
+        }),
+      );
 
       expect(stateService.consume).toHaveBeenCalledWith(
         'wechat_web',
@@ -212,28 +279,73 @@ describe('AuthOAuthFacadeService', () => {
         mockProfile,
       );
       expect(tokenService.generateTokenPair).toHaveBeenCalled();
-      expect(result.user).toBe(mockUser);
-      expect(result.accessToken).toBe('access-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          user: mockUser,
+          accessToken: 'access-token',
+        }),
+      });
+    });
+
+    it('propagates an invalid state failure without fetching the profile', async () => {
+      stateService.consume.mockReturnValue(errAsync(stateInvalidFailure));
+
+      const outcome = await collectResult(
+        service.loginWithWechatWeb({
+          code: 'auth-code',
+          state: 'bad-state',
+        }),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: stateInvalidFailure });
+      expect(wechatWebProvider.fetchProfile).not.toHaveBeenCalled();
+    });
+
+    it('propagates a dependency-unavailable failure from the provider', async () => {
+      wechatWebProvider.fetchProfile.mockReturnValue(
+        errAsync(dependencyUnavailableFailure),
+      );
+
+      const outcome = await collectResult(
+        service.loginWithWechatWeb({
+          code: 'auth-code',
+          state: 'state-123',
+        }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: dependencyUnavailableFailure,
+      });
+      expect(oauthService.findOrCreateOAuthUser).not.toHaveBeenCalled();
     });
   });
 
   describe('loginWithWechatMobile', () => {
     it('fetches profile and returns tokens', async () => {
-      const result = await service.loginWithWechatMobile({ code: 'wx-code' });
+      const outcome = await collectResult(
+        service.loginWithWechatMobile({ code: 'wx-code' }),
+      );
 
       expect(wechatMobileProvider.fetchProfile).toHaveBeenCalledWith({
         code: 'wx-code',
       });
-      expect(result.accessToken).toBe('access-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'access-token' }),
+      });
     });
   });
 
   describe('loginWithApple', () => {
     it('fetches profile and returns tokens', async () => {
-      const result = await service.loginWithApple({
-        identityToken: 'apple-token',
-        authorizationCode: 'auth-code',
-      });
+      const outcome = await collectResult(
+        service.loginWithApple({
+          identityToken: 'apple-token',
+          authorizationCode: 'auth-code',
+        }),
+      );
 
       expect(appleProvider.fetchProfile).toHaveBeenCalledWith({
         identityToken: 'apple-token',
@@ -241,13 +353,16 @@ describe('AuthOAuthFacadeService', () => {
         givenName: undefined,
         familyName: undefined,
       });
-      expect(result.accessToken).toBe('access-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'access-token' }),
+      });
     });
   });
 
   describe('createQqAuthorizeUrl', () => {
     it('creates QQ authorize URL', async () => {
-      const result = await service.createQqAuthorizeUrl();
+      const outcome = await collectResult(service.createQqAuthorizeUrl());
 
       expect(stateService.createState).toHaveBeenCalledWith(
         'qq',
@@ -258,16 +373,21 @@ describe('AuthOAuthFacadeService', () => {
         'state-123',
         undefined,
       );
-      expect(result.state).toBe('state-123');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ state: 'state-123' }),
+      });
     });
   });
 
   describe('loginWithQq', () => {
     it('consumes state, fetches profile, and returns tokens', async () => {
-      const result = await service.loginWithQq({
-        code: 'qq-code',
-        state: 'state-123',
-      });
+      const outcome = await collectResult(
+        service.loginWithQq({
+          code: 'qq-code',
+          state: 'state-123',
+        }),
+      );
 
       expect(stateService.consume).toHaveBeenCalledWith(
         'qq',
@@ -275,16 +395,31 @@ describe('AuthOAuthFacadeService', () => {
         'login',
       );
       expect(qqProvider.fetchProfile).toHaveBeenCalledWith({ code: 'qq-code' });
-      expect(result.accessToken).toBe('access-token');
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'access-token' }),
+      });
+    });
+
+    it('propagates an invalid state failure', async () => {
+      stateService.consume.mockReturnValue(errAsync(stateInvalidFailure));
+
+      const outcome = await collectResult(
+        service.loginWithQq({ code: 'qq-code', state: 'bad-state' }),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: stateInvalidFailure });
     });
   });
 
   describe('linkWechatWebIdentity', () => {
     it('links OAuth profile to user', async () => {
-      await service.linkWechatWebIdentity('user-1', {
-        code: 'link-code',
-        state: 'state-123',
-      });
+      const outcome = await collectResult(
+        service.linkWechatWebIdentity('user-1', {
+          code: 'link-code',
+          state: 'state-123',
+        }),
+      );
 
       expect(stateService.consume).toHaveBeenCalledWith(
         'wechat_web',
@@ -295,17 +430,58 @@ describe('AuthOAuthFacadeService', () => {
         'user-1',
         mockProfile,
       );
+      expect(outcome).toEqual({ ok: true, value: undefined });
+    });
+
+    it('propagates an invalid state failure', async () => {
+      stateService.consume.mockReturnValue(errAsync(stateInvalidFailure));
+
+      const outcome = await collectResult(
+        service.linkWechatWebIdentity('user-1', {
+          code: 'link-code',
+          state: 'bad-state',
+        }),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: stateInvalidFailure });
+      expect(oauthService.linkOAuthProfileToUser).not.toHaveBeenCalled();
+    });
+
+    it('propagates an identity-conflict failure', async () => {
+      oauthService.linkOAuthProfileToUser.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'conflict',
+            code: 'RESOURCE_CONFLICT',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.linkWechatWebIdentity('user-1', {
+          code: 'link-code',
+          state: 'state-123',
+        }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
+      });
     });
   });
 
   describe('linkWechatMobileIdentity', () => {
     it('links OAuth profile to user without state consumption', async () => {
-      await service.linkWechatMobileIdentity('user-1', { code: 'link-code' });
+      const outcome = await collectResult(
+        service.linkWechatMobileIdentity('user-1', { code: 'link-code' }),
+      );
 
       expect(wechatMobileProvider.fetchProfile).toHaveBeenCalledWith({
         code: 'link-code',
       });
       expect(oauthService.linkOAuthProfileToUser).toHaveBeenCalled();
+      expect(outcome).toEqual({ ok: true, value: undefined });
     });
   });
 });
