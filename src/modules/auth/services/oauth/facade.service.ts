@@ -3,6 +3,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { User } from '#generated/prisma/client';
 import { UserService } from '../../../user';
 import {
+  createDomainFailure,
+  errAsync,
   fromPromise,
   type DomainFailure,
   type ResultAsync,
@@ -19,7 +21,6 @@ import {
   WeiboOAuthAuthorizeDto,
   WeiboOAuthCallbackDto,
 } from '../../dto/shared/oauth.dto';
-import { AppleOAuthProvider } from '../../providers/apple-oauth.provider';
 import { GoogleOAuthProvider } from '../../providers/google-oauth.provider';
 import { QqOAuthProvider } from '../../providers/qq-oauth.provider';
 import { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider';
@@ -37,6 +38,7 @@ import { AuthNotificationService } from '../notification.service';
 import { AuthOAuthService } from './oauth.service';
 import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
 import { AuthTokenService, type TokenPair } from '../token.service';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
 import type { AuthRequestContext } from '../../types/auth-request';
 
 @Injectable()
@@ -47,7 +49,6 @@ export class AuthOAuthFacadeService {
     private readonly userService: UserService,
     private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
     private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
-    private readonly appleOAuthProvider: AppleOAuthProvider,
     private readonly qqOAuthProvider: QqOAuthProvider,
     private readonly weiboOAuthProvider: WeiboOAuthProvider,
     private readonly googleOAuthProvider: GoogleOAuthProvider,
@@ -55,6 +56,7 @@ export class AuthOAuthFacadeService {
     private readonly authTokenService: AuthTokenService,
     private readonly authOAuthService: AuthOAuthService,
     private readonly authNotificationService: AuthNotificationService,
+    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
   ) {}
 
   createWechatWebAuthorizeUrl(
@@ -124,14 +126,49 @@ export class AuthOAuthFacadeService {
     dto: AppleOAuthCallbackDto,
     context?: AuthRequestContext,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
-    return this.appleOAuthProvider
-      .fetchProfile({
-        identityToken: dto.identityToken,
-        authorizationCode: dto.authorizationCode,
-        givenName: dto.givenName,
-        familyName: dto.familyName,
-      })
-      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
+    const idTokenName = (() => {
+      if (!dto.givenName && !dto.familyName) {
+        return undefined;
+      }
+      const name: { firstName?: string; lastName?: string } = {};
+      if (dto.givenName) {
+        name.firstName = dto.givenName;
+      }
+      if (dto.familyName) {
+        name.lastName = dto.familyName;
+      }
+      return { name };
+    })();
+
+    const idToken = {
+      token: dto.identityToken,
+      ...(dto.authorizationCode && {
+        accessToken: dto.authorizationCode,
+      }),
+      ...(idTokenName && { user: idTokenName }),
+    };
+
+    return fromPromise<{ user: { id: string } }, DomainFailure>(
+      this.betterAuthAdapter.auth.api.signInSocial({
+        body: { provider: 'apple', idToken },
+      }) as Promise<{ user: { id: string } }>,
+      (error) => this.mapBetterAuthOAuthError(error),
+    )
+      .andThen((result) => this.lift(this.userService.findById(result.user.id)))
+      .andThen((user) => {
+        if (!user) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'authentication',
+              code: 'AUTH_OAUTH_FAILED',
+              detail: 'Better Auth returned a user that does not exist locally',
+            }),
+          );
+        }
+        return this.authTokenService
+          .generateTokenPair(user, context)
+          .map((tokens) => ({ user, ...tokens }));
+      });
   }
 
   createQqAuthorizeUrl(
@@ -302,5 +339,56 @@ export class AuthOAuthFacadeService {
             return { user: updatedUser, ...tokens };
           }),
       );
+  }
+
+  private mapBetterAuthOAuthError(error: unknown): DomainFailure {
+    const isBetterAuthAPIError = (
+      e: unknown,
+    ): e is {
+      statusCode: number;
+      body?: { code?: string; message?: string };
+    } =>
+      typeof e === 'object' &&
+      e !== null &&
+      'statusCode' in e &&
+      typeof (e as Record<string, unknown>)['statusCode'] === 'number';
+
+    if (isBetterAuthAPIError(error)) {
+      const code = error.body?.code;
+      switch (code) {
+        case 'USER_ALREADY_EXISTS':
+        case 'IDENTITY_ALREADY_LINKED':
+          return createDomainFailure({
+            kind: 'conflict',
+            code: 'RESOURCE_CONFLICT',
+          });
+        case 'INVALID_TOKEN':
+        case 'OAUTH_ACCOUNT_NOT_LINKED':
+        case 'INVALID_OAUTH_RESPONSE':
+          return createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_OAUTH_FAILED',
+          });
+        case 'EMAIL_NOT_VERIFIED':
+        case 'OAUTH_PROVIDER_ERROR':
+          return createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_OAUTH_FAILED',
+          });
+      }
+    }
+
+    throw error;
+  }
+
+  /**
+   * Lifts a plain Promise into a ResultAsync.  Unexpected errors are re-thrown
+   * so they keep their internal/dependency semantics instead of being reported
+   * as an OAuth failure.
+   */
+  private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
+    return fromPromise(promise, (error) => {
+      throw error;
+    });
   }
 }

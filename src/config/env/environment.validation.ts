@@ -158,6 +158,7 @@ const envSchema = z.object({
   [EnvKey.WECHAT_MOBILE_APP_SECRET]: optionalString,
 
   [EnvKey.APPLE_APP_ID]: optionalString,
+  [EnvKey.APPLE_CLIENT_SECRET]: optionalString,
   [EnvKey.QQ_APP_ID]: optionalString,
   [EnvKey.QQ_APP_SECRET]: optionalString,
   [EnvKey.QQ_REDIRECT_URI]: optionalUri,

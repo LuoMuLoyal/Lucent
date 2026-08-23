@@ -18,6 +18,8 @@
   "problem_auth_verification_code_cooldown_detail": "A new verification code cannot be requested yet. Wait before requesting another code.",
   "problem_auth_oauth_state_invalid_title": "OAuth request expired",
   "problem_auth_oauth_state_invalid_detail": "The OAuth sign-in request is invalid or expired. Start sign-in again.",
+  "problem_auth_oauth_failed_title": "OAuth sign-in failed",
+  "problem_auth_oauth_failed_detail": "Unable to complete sign-in with the third-party account. Please try again later.",
   "problem_auth_session_not_found_title": "Session not found",
   "problem_auth_session_not_found_detail": "The requested session no longer exists or has already ended.",
   "problem_auth_session_access_denied_title": "Session access denied",

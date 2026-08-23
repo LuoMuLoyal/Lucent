@@ -64,6 +64,7 @@ const DOMAIN_FAILURE_KIND_BY_CODE: Record<
   AUTH_VERIFICATION_CODE_COOLDOWN: 'rate_limited',
   AUTH_VERIFICATION_CODE_RATE_LIMITED: 'rate_limited',
   AUTH_OAUTH_STATE_INVALID: 'authentication',
+  AUTH_OAUTH_FAILED: 'authentication',
   AUTH_SESSION_NOT_FOUND: 'authentication',
   AUTH_SESSION_ACCESS_DENIED: 'authorization',
   AUTH_LOGIN_RATE_LIMITED: 'rate_limited',

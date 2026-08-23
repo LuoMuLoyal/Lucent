@@ -51,6 +51,12 @@ const definitions = {
     detailKey: 'common.problem_auth_oauth_state_invalid_detail',
     retryable: false,
   },
+  AUTH_OAUTH_FAILED: {
+    status: 401,
+    titleKey: 'common.problem_auth_oauth_failed_title',
+    detailKey: 'common.problem_auth_oauth_failed_detail',
+    retryable: false,
+  },
   AUTH_SESSION_NOT_FOUND: {
     status: 404,
     titleKey: 'common.problem_auth_session_not_found_title',

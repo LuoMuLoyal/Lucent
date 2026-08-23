@@ -1,7 +1,6 @@
 import type { UserService } from '../../../user';
 import type { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider';
 import type { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider';
-import type { AppleOAuthProvider } from '../../providers/apple-oauth.provider';
 import type { QqOAuthProvider } from '../../providers/qq-oauth.provider';
 import type { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider';
 import type { GoogleOAuthProvider } from '../../providers/google-oauth.provider';
@@ -10,6 +9,7 @@ import type { AuthTokenService } from '../token.service';
 import type { AuthOAuthService } from './oauth.service';
 import type { AuthNotificationService } from '../notification.service';
 import type { OAuthProfile } from '../../types/oauth.types';
+import type { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
 import { AuthOAuthFacadeService } from './facade.service';
 import {
   createDomainFailure,
@@ -67,7 +67,6 @@ describe('AuthOAuthFacadeService', () => {
   let userService: vi.Mocked<UserService>;
   let wechatWebProvider: vi.Mocked<WechatWebOAuthProvider>;
   let wechatMobileProvider: vi.Mocked<WechatMobileOAuthProvider>;
-  let appleProvider: vi.Mocked<AppleOAuthProvider>;
   let qqProvider: vi.Mocked<QqOAuthProvider>;
   let weiboProvider: vi.Mocked<WeiboOAuthProvider>;
   let googleProvider: vi.Mocked<GoogleOAuthProvider>;
@@ -75,6 +74,9 @@ describe('AuthOAuthFacadeService', () => {
   let tokenService: vi.Mocked<AuthTokenService>;
   let oauthService: vi.Mocked<AuthOAuthService>;
   let notificationService: vi.Mocked<AuthNotificationService>;
+  let betterAuthAdapter: {
+    auth: { api: { signInSocial: ReturnType<typeof vi.fn> } };
+  };
 
   beforeEach(() => {
     userService = {
@@ -91,11 +93,13 @@ describe('AuthOAuthFacadeService', () => {
           okAsync({ ...mockProfile, provider: 'wechat_mobile' }),
         ),
     } as unknown as vi.Mocked<WechatMobileOAuthProvider>;
-    appleProvider = {
-      fetchProfile: vi
-        .fn()
-        .mockReturnValue(okAsync({ ...mockProfile, provider: 'apple' })),
-    } as unknown as vi.Mocked<AppleOAuthProvider>;
+    betterAuthAdapter = {
+      auth: {
+        api: {
+          signInSocial: vi.fn(),
+        },
+      },
+    };
     qqProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://qq/auth?url=1'),
       fetchProfile: vi
@@ -145,7 +149,6 @@ describe('AuthOAuthFacadeService', () => {
       userService,
       wechatWebProvider,
       wechatMobileProvider,
-      appleProvider,
       qqProvider,
       weiboProvider,
       googleProvider,
@@ -153,6 +156,7 @@ describe('AuthOAuthFacadeService', () => {
       tokenService,
       oauthService,
       notificationService,
+      betterAuthAdapter as unknown as AuthBetterAuthAdapter,
     );
   });
 
@@ -339,7 +343,11 @@ describe('AuthOAuthFacadeService', () => {
   });
 
   describe('loginWithApple', () => {
-    it('fetches profile and returns tokens', async () => {
+    it('calls Better Auth social sign-in and returns tokens', async () => {
+      betterAuthAdapter.auth.api.signInSocial.mockResolvedValue({
+        user: { id: 'user-1' },
+      });
+
       const outcome = await collectResult(
         service.loginWithApple({
           identityToken: 'apple-token',
@@ -347,11 +355,14 @@ describe('AuthOAuthFacadeService', () => {
         }),
       );
 
-      expect(appleProvider.fetchProfile).toHaveBeenCalledWith({
-        identityToken: 'apple-token',
-        authorizationCode: 'auth-code',
-        givenName: undefined,
-        familyName: undefined,
+      expect(betterAuthAdapter.auth.api.signInSocial).toHaveBeenCalledWith({
+        body: {
+          provider: 'apple',
+          idToken: {
+            token: 'apple-token',
+            accessToken: 'auth-code',
+          },
+        },
       });
       expect(outcome).toEqual({
         ok: true,

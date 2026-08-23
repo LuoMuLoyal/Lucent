@@ -89,6 +89,7 @@ export class AuthBetterAuthAdapter {
           );
         },
       },
+      socialProviders: this.buildSocialProviders(),
       databaseHooks: {
         user: {
           create: {
@@ -107,6 +108,42 @@ export class AuthBetterAuthAdapter {
         },
       },
     }) as Auth;
+  }
+
+  private buildSocialProviders(): {
+    google?: { clientId: string; clientSecret: string };
+    apple?: { clientId: string; clientSecret: string };
+  } {
+    const providers: {
+      google?: { clientId: string; clientSecret: string };
+      apple?: { clientId: string; clientSecret: string };
+    } = {};
+
+    const googleClientId = this.config
+      .get<string>(EnvKey.GOOGLE_CLIENT_ID)
+      ?.trim();
+    const googleClientSecret = this.config
+      .get<string>(EnvKey.GOOGLE_CLIENT_SECRET)
+      ?.trim();
+    if (googleClientId && googleClientSecret) {
+      providers.google = {
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
+      };
+    }
+
+    const appleClientId = this.config.get<string>(EnvKey.APPLE_APP_ID)?.trim();
+    const appleClientSecret = this.config
+      .get<string>(EnvKey.APPLE_CLIENT_SECRET)
+      ?.trim();
+    if (appleClientId && appleClientSecret) {
+      providers.apple = {
+        clientId: appleClientId,
+        clientSecret: appleClientSecret,
+      };
+    }
+
+    return providers;
   }
 
   /**

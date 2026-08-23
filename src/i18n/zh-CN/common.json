@@ -18,6 +18,8 @@
   "problem_auth_verification_code_cooldown_detail": "暂时不能再次获取验证码，请稍后再试。",
   "problem_auth_oauth_state_invalid_title": "第三方登录请求已失效",
   "problem_auth_oauth_state_invalid_detail": "第三方登录请求无效或已过期，请重新发起登录。",
+  "problem_auth_oauth_failed_title": "第三方登录失败",
+  "problem_auth_oauth_failed_detail": "无法使用第三方账号完成登录，请稍后重试。",
   "problem_auth_session_not_found_title": "会话不存在",
   "problem_auth_session_not_found_detail": "请求的会话不存在或已经结束。",
   "problem_auth_session_access_denied_title": "无权管理此会话",
