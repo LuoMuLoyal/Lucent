@@ -1,4 +1,4 @@
-// Temporary spike config for Better Auth integration (Task 1).
+// Temporary spike config for Better Auth integration (Task 2).
 // Do not wire this into NestJS controllers or expose it to the network.
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -38,7 +38,11 @@ export const auth = betterAuth({
   secret: betterAuthSecret,
   baseURL: betterAuthUrl,
   user: {
-    modelName: 'BAUser',
+    modelName: 'User',
+    fields: {
+      name: 'nickname',
+      image: 'avatar',
+    },
   },
   emailAndPassword: {
     enabled: true,

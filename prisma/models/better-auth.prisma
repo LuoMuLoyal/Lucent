@@ -1,22 +1,7 @@
-// Better Auth core tables (Task 1 spike).
-// These models are consumed by the Better Auth Prisma adapter.
-// The user model is kept separate from Lucent's legacy `User` to avoid
-// breaking existing code/tests during the spike.
-
-model BAUser {
-  id            String    @id
-  name          String?
-  email         String
-  emailVerified Boolean   @default(false) @map("email_verified")
-  image         String?
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions      Session[]
-  accounts      Account[]
-
-  @@unique([email])
-  @@map("better_auth_users")
-}
+// Better Auth core tables (Task 2).
+// These models are consumed by the Better Auth Prisma adapter and merged into
+// Lucent's existing `User` model.  Legacy Lucent sessions live in `UserSession`
+// and are exposed through the `User.lucentSessions` relation.
 
 model Session {
   id        String   @id
@@ -27,7 +12,7 @@ model Session {
   ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
   userId    String   @map("user_id")
-  bauser    BAUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("sessions")
@@ -39,7 +24,7 @@ model Account {
   accountId             String    @map("account_id")
   providerId            String    @map("provider_id")
   userId                String    @map("user_id")
-  bauser                BAUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?   @map("access_token")
   refreshToken          String?   @map("refresh_token")
   idToken               String?   @map("id_token")

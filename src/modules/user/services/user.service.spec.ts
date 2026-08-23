@@ -319,6 +319,7 @@ describe('UserService', () => {
       (prismaService.user.create as vi.Mock).mockResolvedValue(oauthUser);
 
       const result = await service.createOAuthUser({
+        email: 'wechat@example.com',
         nickname: 'WechatUser',
         avatar: 'https://example.com/avatar.png',
         identity: {
@@ -332,6 +333,7 @@ describe('UserService', () => {
 
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
+          email: 'wechat@example.com',
           passwordHash: null,
           nickname: 'WechatUser',
           avatar: 'https://example.com/avatar.png',

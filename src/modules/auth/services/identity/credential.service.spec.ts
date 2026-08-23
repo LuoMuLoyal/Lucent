@@ -47,6 +47,7 @@ function collectResult<T, E>(
 const mockUser: User = {
   id: 'user-1',
   email: 'test@example.com',
+  emailVerified: true,
   passwordHash: '$argon2id$hashed',
   nickname: 'Tester',
   avatar: null,
@@ -629,10 +630,9 @@ describe('CredentialAuthService', () => {
       expect(verificationCodeService.verify).not.toHaveBeenCalled();
     });
 
-    it('should bind new email when user has no email', async () => {
+    it('should use provided email for verification when setting password', async () => {
       userService.findById.mockResolvedValue({
         ...mockUser,
-        email: null,
         passwordHash: null,
       });
 
@@ -649,57 +649,7 @@ describe('CredentialAuthService', () => {
         '123456',
         'set-password',
       );
-      expect(userService.update).toHaveBeenCalledWith(
-        'user-1',
-        expect.objectContaining({ email: 'bound@example.com' }),
-      );
       expect(outcome).toEqual({ ok: true, value: undefined });
-    });
-
-    it('should reject when the target email is owned by another user', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        email: null,
-        passwordHash: null,
-      });
-      userService.findByEmail.mockResolvedValue({
-        ...mockUser,
-        id: 'other-user',
-      });
-
-      const outcome = await collectResult(
-        service.setPassword('user-1', {
-          email: 'bound@example.com',
-          code: '123456',
-          password: 'NewPass1',
-        }),
-      );
-
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
-      });
-    });
-
-    it('should reject when no email and no provided email', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        email: null,
-        passwordHash: null,
-      });
-
-      const outcome = await collectResult(
-        service.setPassword('user-1', {
-          code: '123456',
-          password: 'NewPass1',
-        }),
-      );
-
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
-      });
-      expect(verificationCodeService.verify).not.toHaveBeenCalled();
     });
   });
 

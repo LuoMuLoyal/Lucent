@@ -33,6 +33,7 @@ import { GoogleOAuthProvider } from './providers/google-oauth.provider';
 import { QqOAuthProvider } from './providers/qq-oauth.provider';
 import { WeiboOAuthProvider } from './providers/weibo-oauth.provider';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
+import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
 
 @Module({
   imports: [
@@ -70,7 +71,8 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     QqOAuthProvider,
     WeiboOAuthProvider,
     GoogleOAuthProvider,
+    AuthBetterAuthAdapter,
   ],
-  exports: [AuthService],
+  exports: [AuthService, AuthBetterAuthAdapter],
 })
 export class AuthModule {}

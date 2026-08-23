@@ -112,11 +112,20 @@ export class AuthOAuthService {
   private createOAuthUser(
     profile: OAuthProfile,
   ): ResultAsync<User, DomainFailure> {
+    if (!profile.email) {
+      return errAsync(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail:
+            'OAuth profile must provide an email to create a Lucent account',
+        }),
+      );
+    }
+
     return fromPrismaResult(
       this.userService.createOAuthUser({
-        ...(profile.email !== undefined && {
-          email: profile.email === null ? null : normalizeEmail(profile.email),
-        }),
+        email: normalizeEmail(profile.email),
         ...(profile.nickname !== undefined && { nickname: profile.nickname }),
         ...(profile.avatar !== undefined && { avatar: profile.avatar }),
         ...(profile.emailVerifiedAt !== undefined && {
@@ -128,10 +137,7 @@ export class AuthOAuthService {
           ...(profile.unionId !== undefined && {
             providerUnionId: profile.unionId,
           }),
-          ...(profile.email !== undefined && {
-            email:
-              profile.email === null ? null : normalizeEmail(profile.email),
-          }),
+          email: normalizeEmail(profile.email),
           ...(profile.emailVerifiedAt !== undefined && {
             emailVerifiedAt: profile.emailVerifiedAt,
           }),

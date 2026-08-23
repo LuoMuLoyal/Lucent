@@ -139,7 +139,7 @@ export async function createTestUser(
   });
   return {
     id: user.id,
-    email: user.email ?? userEmail,
+    email: user.email,
     nickname: user.nickname,
     status: user.status,
   };

@@ -1,5 +1,5 @@
-// Task 1 spike: sign up a credential user via Better Auth and verify it lands
-// in the Better Auth `BAUser` table and the `accounts` table.
+// Task 2 spike: sign up a credential user via Better Auth and verify it lands
+// in Lucent's merged `User` table and the Better Auth `accounts` table.
 //
 // Run with: NODE_ENV=test npx jiti scripts/spike/better-auth-spike.ts
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -34,12 +34,12 @@ async function main(): Promise<void> {
   console.log(`[spike] Better Auth returned user id=${user.id}`);
 
   try {
-    const dbUser = await prisma.bAUser.findUnique({
+    const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
     });
 
     if (!dbUser) {
-      throw new Error(`User row not found in BAUser table for id=${user.id}`);
+      throw new Error(`User row not found in User table for id=${user.id}`);
     }
 
     if (dbUser.email !== email) {
@@ -48,11 +48,13 @@ async function main(): Promise<void> {
       );
     }
 
-    if (dbUser.name !== name) {
-      throw new Error(`Name mismatch: expected ${name}, got ${dbUser.name}`);
+    if (dbUser.nickname !== name) {
+      throw new Error(
+        `Nickname mismatch: expected ${name}, got ${dbUser.nickname ?? 'null'}`,
+      );
     }
 
-    console.log(`[spike] Verified BAUser row: id=${dbUser.id}`);
+    console.log(`[spike] Verified User row: id=${dbUser.id}`);
 
     const account = await prisma.account.findFirst({
       where: {
@@ -74,12 +76,12 @@ async function main(): Promise<void> {
     console.log(`[spike] Verified credential Account row: id=${account.id}`);
 
     console.log(
-      '[spike] SUCCESS: Better Auth user + credential account created via Prisma adapter.',
+      '[spike] SUCCESS: Better Auth user + credential account created via merged User schema.',
     );
   } finally {
-    // Clean up the spike user and its dependent rows to avoid accumulating
-    // test data across repeated runs.
-    await prisma.bAUser
+    // Clean up the spike user. Prisma foreign keys on Better Auth tables use
+    // onDelete: Cascade, so this removes the linked Session and Account rows.
+    await prisma.user
       .delete({ where: { id: user.id } })
       .catch((error: unknown) => {
         console.error('[spike] cleanup warning:', error);

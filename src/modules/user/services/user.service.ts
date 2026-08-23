@@ -14,7 +14,7 @@ export interface UserIdentityInput {
 }
 
 export interface CreateOAuthUserInput {
-  email?: string | null;
+  email: string;
   nickname?: string | null;
   avatar?: string | null;
   emailVerifiedAt?: Date | null;
@@ -80,7 +80,7 @@ export class UserService {
   async createOAuthUser(data: CreateOAuthUserInput): Promise<User> {
     return this.prisma.user.create({
       data: {
-        ...(data.email !== undefined && { email: data.email }),
+        email: data.email,
         passwordHash: null,
         ...(data.nickname !== undefined && { nickname: data.nickname }),
         ...(data.avatar !== undefined && { avatar: data.avatar }),

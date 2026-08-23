@@ -59,13 +59,13 @@ BETTER_AUTH_URL
 ```
 
 - `BETTER_AUTH_SECRET` — signing secret for Better Auth sessions and tokens. Must be at least 32
-  characters; treat it as a sensitive credential. Required in production once Better Auth is wired
-  into the runtime (Task 2 onwards).
+  characters; treat it as a sensitive credential. Required in all runtimes once Better Auth is wired
+  into the runtime (Task 2 onwards); startup validation fails if missing.
 - `BETTER_AUTH_URL` — public base URL used by Better Auth to build callback and verification links.
   Defaults to `http://localhost:3000` when unset.
 
 These variables are introduced by the Better Auth migration. During Task 1 they are only used by the
-isolated spike script; Task 2 wires them into the NestJS runtime.
+isolated spike script; Task 2 wires them into the NestJS runtime via `AuthBetterAuthAdapter`.
 
 ## Optional Integrations
 

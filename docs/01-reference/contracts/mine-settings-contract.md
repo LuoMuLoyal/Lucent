@@ -46,6 +46,10 @@ exceptions for the global filter.
 
 ## Prisma Models
 
+The owning `User` model requires `email` and carries `emailVerified` as part of the
+Better Auth migration (Task 2). OAuth-only registration must therefore provide an
+email or be rejected; settings write paths assume a fully-formed user row.
+
 ```prisma
 model UserSetting {
   id        String   @id @default(uuid())

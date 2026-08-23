@@ -14,6 +14,7 @@ describe('validateEnvironment', () => {
   const adminEmail = 'admin@example.com';
   const adminPassword = 'admin12345';
   const adminCookieSecret = 'dev_lucent_admin_cookie_secret_32_chars';
+  const betterAuthSecret = 'dev_better_auth_secret_32_chars_long';
 
   it('keeps explicit local config values outside production', () => {
     const config = validateEnvironment({
@@ -24,6 +25,7 @@ describe('validateEnvironment', () => {
       [EnvKey.ADMIN_EMAIL]: adminEmail,
       [EnvKey.ADMIN_PASSWORD]: adminPassword,
       [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
     });
 
     expect(config[EnvKey.ADMIN_EMAIL]).toBe(adminEmail);
@@ -54,6 +56,7 @@ describe('validateEnvironment', () => {
       [EnvKey.ADMIN_EMAIL]: adminEmail,
       [EnvKey.ADMIN_PASSWORD]: adminPassword,
       [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
       [EnvKey.CORS_ORIGIN]: '',
     });
 
@@ -71,6 +74,7 @@ describe('validateEnvironment', () => {
         [EnvKey.ADMIN_EMAIL]: adminEmail,
         [EnvKey.ADMIN_PASSWORD]: adminPassword,
         [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
         [EnvKey.CORS_ORIGIN]: '*',
       }),
     ).toThrow('CORS_ORIGIN must not be * in production');
@@ -84,6 +88,7 @@ describe('validateEnvironment', () => {
       [EnvKey.ADMIN_EMAIL]: adminEmail,
       [EnvKey.ADMIN_PASSWORD]: adminPassword,
       [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
       [EnvKey.AI_PROVIDER]: 'openai-compatible',
       [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
       [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
@@ -120,6 +125,7 @@ describe('validateEnvironment', () => {
         [EnvKey.ADMIN_EMAIL]: adminEmail,
         [EnvKey.ADMIN_PASSWORD]: adminPassword,
         [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
         [EnvKey.AI_PROVIDER]: 'openai-compatible',
         [EnvKey.AI_CHAT_API_KEY]: 'chat-key',
         [EnvKey.AI_CHAT_MODEL]: 'chat-model',
@@ -136,6 +142,7 @@ describe('validateEnvironment', () => {
         [EnvKey.ADMIN_EMAIL]: adminEmail,
         [EnvKey.ADMIN_PASSWORD]: adminPassword,
         [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
         [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
         [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
         [EnvKey.AI_ANALYSIS_MODEL]: 'analysis-model',
@@ -151,6 +158,7 @@ describe('validateEnvironment', () => {
       [EnvKey.ADMIN_EMAIL]: adminEmail,
       [EnvKey.ADMIN_PASSWORD]: adminPassword,
       [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
       [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
     });
 
@@ -166,6 +174,7 @@ describe('validateEnvironment', () => {
         [EnvKey.ADMIN_EMAIL]: adminEmail,
         [EnvKey.ADMIN_PASSWORD]: adminPassword,
         [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
         [EnvKey.TENCENT_COS_BUCKET]: 'lucent-dev',
         [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
       }),
@@ -181,6 +190,7 @@ describe('validateEnvironment', () => {
         [EnvKey.ADMIN_EMAIL]: adminEmail,
         [EnvKey.ADMIN_PASSWORD]: adminPassword,
         [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
         [EnvKey.JPUSH_API_BASE_URL]: 'https://api.jpush.cn',
       }),
     ).not.toThrow();
@@ -195,6 +205,7 @@ describe('validateEnvironment', () => {
         [EnvKey.ADMIN_EMAIL]: adminEmail,
         [EnvKey.ADMIN_PASSWORD]: adminPassword,
         [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
         [EnvKey.JPUSH_APP_KEY]: 'appkey-1',
       }),
     ).toThrow(
@@ -209,6 +220,7 @@ describe('validateEnvironment', () => {
         [EnvKey.ADMIN_EMAIL]: adminEmail,
         [EnvKey.ADMIN_PASSWORD]: adminPassword,
         [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
         [EnvKey.JPUSH_MASTER_SECRET]: 'secret-1',
       }),
     ).toThrow(

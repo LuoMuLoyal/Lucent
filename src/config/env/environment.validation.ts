@@ -104,7 +104,7 @@ const envSchema = z.object({
   [EnvKey.JWT_ISSUER]: optionalString,
   [EnvKey.JWT_AUDIENCE]: optionalString,
 
-  [EnvKey.BETTER_AUTH_SECRET]: z.string().min(32).optional(),
+  [EnvKey.BETTER_AUTH_SECRET]: z.string().min(32),
   [EnvKey.BETTER_AUTH_URL]: optionalUri,
 
   [EnvKey.ADMIN_EMAIL]: z.email(),
@@ -488,6 +488,7 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
     EnvKey.REDIS_URL,
     EnvKey.JWT_ACCESS_SECRET,
     EnvKey.JWT_REFRESH_SECRET,
+    EnvKey.BETTER_AUTH_SECRET,
     EnvKey.ADMIN_EMAIL,
     EnvKey.ADMIN_PASSWORD,
     EnvKey.ADMIN_COOKIE_SECRET,
