@@ -33,6 +33,7 @@ import {
   type TokenPair,
 } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
+import { PasswordReauthService } from './password-reauth.service';
 
 /**
  * Narrow subset of Better Auth / better-call API errors that we intentionally
@@ -75,6 +76,7 @@ export class CredentialAuthService {
     private readonly verificationCodeService: VerificationCodeService,
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
+    private readonly passwordReauthService: PasswordReauthService,
     private readonly notificationsService: NotificationsService,
     private readonly betterAuthAdapter: AuthBetterAuthAdapter,
     private readonly prisma: PrismaService,
@@ -159,33 +161,29 @@ export class CredentialAuthService {
     userId: string,
     dto: ChangePasswordDto,
   ): ResultAsync<void, DomainFailure> {
-    return this.getActiveUser(userId).andThen((_user) =>
-      this.lift(
-        this.prisma.account.findFirst({
-          where: {
-            userId,
-            providerId: this.betterAuthAdapter.credentialProviderId,
-          },
-        }),
-      ).andThen((account) => {
-        if (!account?.password) {
-          return errAsync(this.credentialsInvalidFailure());
+    return this.getActiveUser(userId)
+      .andThen(() => this.passwordReauthService.verify(userId, dto.password))
+      .andThen(() =>
+        this.lift(
+          this.prisma.account.findFirst({
+            where: {
+              userId,
+              providerId: this.betterAuthAdapter.credentialProviderId,
+            },
+          }),
+        ),
+      )
+      .andThen((account) => {
+        if (!account) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'authentication',
+              code: 'AUTH_PASSWORD_NOT_SET',
+            }),
+          );
         }
 
-        return this.lift(
-          this.betterAuthAdapter.verifyPassword(
-            account.password,
-            dto.oldPassword,
-          ),
-        )
-          .andThen((valid) => {
-            if (!valid) {
-              return errAsync(this.credentialsInvalidFailure());
-            }
-            return this.lift(
-              this.betterAuthAdapter.hashPassword(dto.newPassword),
-            );
-          })
+        return this.lift(this.betterAuthAdapter.hashPassword(dto.newPassword))
           .andThen((passwordHash) =>
             this.lift(
               this.prisma.account.update({
@@ -196,8 +194,7 @@ export class CredentialAuthService {
           )
           .andThen(() => this.authTokenService.revokeAll(userId))
           .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
-      }),
-    );
+      });
   }
 
   setPassword(
@@ -267,6 +264,7 @@ export class CredentialAuthService {
     const newEmail = normalizeEmail(dto.newEmail);
 
     return this.getActiveUser(userId)
+      .andThen(() => this.passwordReauthService.verify(userId, dto.password))
       .andThen(() => this.lift(this.userService.findByEmail(newEmail)))
       .andThen((exists) => {
         if (exists) {

@@ -3,8 +3,6 @@ import { errAsync, okAsync } from '../../common/result';
 import type { DomainFailure } from '../../common/result';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './services/export.service';
-import { SecurityElevationGuard } from '../security-pin';
-import { SecurityPinService } from '../security-pin';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
@@ -25,13 +23,6 @@ describe('DataExportController', () => {
             getLatestRequest: vi.fn(),
           },
         },
-        SecurityElevationGuard,
-        {
-          provide: SecurityPinService,
-          useValue: {
-            verifyElevationToken: vi.fn(),
-          },
-        },
       ],
     }).compile();
 
@@ -46,6 +37,7 @@ describe('DataExportController', () => {
       kind: 'hospital',
       format: 'pdf',
       range: 'last_7_days',
+      password: 'Passw0rd123',
     };
 
     const result = await controller.createRequest(
@@ -78,7 +70,12 @@ describe('DataExportController', () => {
           email: 'a@b.c',
           status: 'active',
         },
-        { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+        {
+          kind: 'hospital',
+          format: 'pdf',
+          range: 'last_7_days',
+          password: 'Passw0rd123',
+        },
         'zh-CN',
       ),
     ).rejects.toMatchObject({

@@ -1,6 +1,7 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 
 import { DataExportService } from './export.service';
+import type { PasswordReauthService } from '../../auth';
 import type { PrismaService } from '../../../prisma';
 import type { DataExportStorageService } from './storage.service';
 import type { DataExportQueueService } from './queue.service';
@@ -33,6 +34,7 @@ describe('DataExportService', () => {
   let storageService: vi.Mocked<DataExportStorageService>;
   let queueService: vi.Mocked<DataExportQueueService>;
   let processor: vi.Mocked<DataExportProcessorService>;
+  let passwordReauthService: vi.Mocked<PasswordReauthService>;
 
   beforeEach(() => {
     prisma = {
@@ -59,11 +61,16 @@ describe('DataExportService', () => {
       process: vi.fn().mockResolvedValue(undefined),
     } as unknown as vi.Mocked<DataExportProcessorService>;
 
+    passwordReauthService = {
+      verify: vi.fn().mockReturnValue(okAsync(undefined)),
+    } as unknown as vi.Mocked<PasswordReauthService>;
+
     service = new DataExportService(
       prisma,
       storageService,
       queueService,
       processor,
+      passwordReauthService,
     );
   });
 
@@ -95,11 +102,20 @@ describe('DataExportService', () => {
       const result = await unwrapOk(
         service.createRequest(
           'user-1',
-          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          {
+            kind: 'hospital',
+            format: 'pdf',
+            range: 'last_7_days',
+            password: 'Passw0rd123',
+          },
           'zh',
         ),
       );
 
+      expect(passwordReauthService.verify).toHaveBeenCalledWith(
+        'user-1',
+        'Passw0rd123',
+      );
       expect(result.status).toBe('unavailable');
       expect(prisma.dataExportRequest.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -118,7 +134,12 @@ describe('DataExportService', () => {
       const result = await unwrapOk(
         service.createRequest(
           'user-1',
-          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          {
+            kind: 'hospital',
+            format: 'pdf',
+            range: 'last_7_days',
+            password: 'Passw0rd123',
+          },
           'zh',
         ),
       );
@@ -142,7 +163,12 @@ describe('DataExportService', () => {
       const result = await unwrapOk(
         service.createRequest(
           'user-1',
-          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          {
+            kind: 'hospital',
+            format: 'pdf',
+            range: 'last_7_days',
+            password: 'Passw0rd123',
+          },
           'zh',
         ),
       );
@@ -167,7 +193,12 @@ describe('DataExportService', () => {
       const result = await unwrapOk(
         service.createRequest(
           'user-1',
-          { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+          {
+            kind: 'hospital',
+            format: 'pdf',
+            range: 'last_7_days',
+            password: 'Passw0rd123',
+          },
           'zh',
         ),
       );
@@ -193,7 +224,12 @@ describe('DataExportService', () => {
       await unwrapOk(
         service.createRequest(
           'user-1',
-          { kind: 'monthly', format: 'pdf', range: 'last_7_days' },
+          {
+            kind: 'monthly',
+            format: 'pdf',
+            range: 'last_7_days',
+            password: 'Passw0rd123',
+          },
           'zh',
         ),
       );
@@ -211,7 +247,9 @@ describe('DataExportService', () => {
     it('uses default values when dto fields are undefined', async () => {
       prisma.dataExportRequest.create.mockResolvedValue(makeRow());
 
-      await unwrapOk(service.createRequest('user-1', {}, 'zh'));
+      await unwrapOk(
+        service.createRequest('user-1', { password: 'Passw0rd123' }, 'zh'),
+      );
 
       expect(prisma.dataExportRequest.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -222,6 +260,62 @@ describe('DataExportService', () => {
           }),
         }),
       );
+    });
+
+    it('returns AUTH_WRONG_PASSWORD when password verification fails', async () => {
+      passwordReauthService.verify.mockReturnValue(
+        errAsync({
+          _tag: 'DomainFailure',
+          kind: 'authentication',
+          code: 'AUTH_WRONG_PASSWORD',
+        } as DomainFailure),
+      );
+
+      const outcome = await collectResult(
+        service.createRequest(
+          'user-1',
+          {
+            kind: 'hospital',
+            format: 'pdf',
+            range: 'last_7_days',
+            password: 'WrongPass1',
+          },
+          'zh',
+        ),
+      );
+
+      expect(outcome.ok).toBe(false);
+      if (outcome.ok) throw new Error('expected failure');
+      expect(outcome.error.code).toBe('AUTH_WRONG_PASSWORD');
+      expect(prisma.dataExportRequest.create).not.toHaveBeenCalled();
+    });
+
+    it('returns AUTH_PASSWORD_NOT_SET for OAuth-only users', async () => {
+      passwordReauthService.verify.mockReturnValue(
+        errAsync({
+          _tag: 'DomainFailure',
+          kind: 'authentication',
+          code: 'AUTH_PASSWORD_NOT_SET',
+        } as DomainFailure),
+      );
+
+      const outcome = await collectResult(
+        service.createRequest(
+          'user-1',
+          {
+            kind: 'hospital',
+            format: 'pdf',
+            range: 'last_7_days',
+            password: 'AnyPass1',
+          },
+          'zh',
+        ),
+      );
+
+      expect(outcome.ok).toBe(false);
+      if (outcome.ok) throw new Error('expected failure');
+      expect(outcome.error.code).toBe('AUTH_PASSWORD_NOT_SET');
+      expect(prisma.dataExportRequest.create).not.toHaveBeenCalled();
     });
   });
 

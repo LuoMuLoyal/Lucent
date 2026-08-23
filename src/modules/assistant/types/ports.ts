@@ -22,7 +22,7 @@ export interface IAssistantUserSettings {
     currentMedicines: boolean;
   };
   updatedAt?: string | null;
-  securityPin?: { enabled: boolean; lastChangedAt: string | null };
+  passwordReauthenticationRequired?: boolean;
 }
 
 /**

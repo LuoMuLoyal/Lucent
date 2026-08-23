@@ -1,6 +1,6 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 import { nonDeleted } from '../../../common';
-import { okAsync } from '../../../common/result';
+import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
 import type { DomainFailure, ResultAsync } from '../../../common/result';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -8,6 +8,7 @@ import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client';
 
 import { AccountService } from './account.service';
+import { PasswordReauthService } from '../../auth';
 import { UserService } from '../../user';
 import type { UpdateAccountDto } from '../dto/update.dto';
 
@@ -61,9 +62,11 @@ async function inspectResult<T>(
 describe('AccountService', () => {
   let service: AccountService;
   let userService: DeepMocked<UserService>;
+  let passwordReauthService: vi.Mocked<PasswordReauthService>;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         {
           provide: I18nService,
@@ -78,11 +81,18 @@ describe('AccountService', () => {
             unlinkIdentity: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
+        {
+          provide: PasswordReauthService,
+          useValue: {
+            verify: vi.fn().mockReturnValue(okAsync(undefined)),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(AccountService);
     userService = module.get(UserService);
+    passwordReauthService = module.get(PasswordReauthService);
   });
 
   afterEach(() => {
@@ -304,9 +314,15 @@ describe('AccountService', () => {
       );
 
       const result = await inspectResult(
-        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+        service.unlinkIdentity(baseUser.id, baseIdentity.id, {
+          password: 'Passw0rd123',
+        }),
       );
 
+      expect(passwordReauthService.verify).toHaveBeenCalledWith(
+        baseUser.id,
+        'Passw0rd123',
+      );
       expect(userService.unlinkIdentity).toHaveBeenCalledWith(baseIdentity.id);
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
@@ -314,6 +330,62 @@ describe('AccountService', () => {
       const firstIdentity = result.value.linkedIdentities[0];
       if (!firstIdentity) throw new Error('no identity');
       expect(firstIdentity.id).toBe(secondIdentity.id);
+    });
+
+    it('should return AUTH_WRONG_PASSWORD when password verification fails', async () => {
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
+        ...baseUser,
+        passwordHash: '$argon2id$exists',
+        identities: [baseIdentity, secondIdentity],
+      });
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
+      );
+
+      const result = await inspectResult(
+        service.unlinkIdentity(baseUser.id, baseIdentity.id, {
+          password: 'WrongPass1',
+        }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'authentication', code: 'AUTH_WRONG_PASSWORD' },
+      });
+      expect(userService.unlinkIdentity).not.toHaveBeenCalled();
+    });
+
+    it('should return AUTH_PASSWORD_NOT_SET for OAuth-only users', async () => {
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
+        ...baseUser,
+        passwordHash: null,
+        identities: [baseIdentity, secondIdentity],
+      });
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_PASSWORD_NOT_SET',
+          }),
+        ),
+      );
+
+      const result = await inspectResult(
+        service.unlinkIdentity(baseUser.id, baseIdentity.id, {
+          password: 'AnyPass1',
+        }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'authentication', code: 'AUTH_PASSWORD_NOT_SET' },
+      });
+      expect(userService.unlinkIdentity).not.toHaveBeenCalled();
     });
 
     it('should return an authorization DomainFailure when unlinking the last sign-in method', async () => {
@@ -324,7 +396,9 @@ describe('AccountService', () => {
       });
 
       const result = await inspectResult(
-        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+        service.unlinkIdentity(baseUser.id, baseIdentity.id, {
+          password: 'Passw0rd123',
+        }),
       );
 
       expect(result).toMatchObject({
@@ -350,7 +424,9 @@ describe('AccountService', () => {
       );
 
       const result = await inspectResult(
-        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+        service.unlinkIdentity(baseUser.id, baseIdentity.id, {
+          password: 'Passw0rd123',
+        }),
       );
 
       expect(result.ok).toBe(true);
@@ -365,7 +441,9 @@ describe('AccountService', () => {
       });
 
       const result = await inspectResult(
-        service.unlinkIdentity(baseUser.id, 'nonexistent-identity'),
+        service.unlinkIdentity(baseUser.id, 'nonexistent-identity', {
+          password: 'Passw0rd123',
+        }),
       );
 
       expect(result).toMatchObject({
@@ -391,7 +469,9 @@ describe('AccountService', () => {
       );
 
       const result = await inspectResult(
-        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+        service.unlinkIdentity(baseUser.id, baseIdentity.id, {
+          password: 'Passw0rd123',
+        }),
       );
 
       expect(userService.unlinkIdentity).toHaveBeenCalledWith(baseIdentity.id);

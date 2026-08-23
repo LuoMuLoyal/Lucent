@@ -28,6 +28,11 @@ export function loginFailureCacheKey(email: string): string {
   return `auth:login-failure:${digest}`;
 }
 
+/** Builds the cache key for a password re-authentication failure bucket. */
+export function reauthFailureCacheKey(userId: string): string {
+  return `auth:reauth-failure:${userId}`;
+}
+
 @Injectable()
 export class AuthRateLimitService {
   private readonly logger = new Logger(AuthRateLimitService.name);
@@ -109,6 +114,80 @@ export class AuthRateLimitService {
 
   clearLoginFailures(email: string): ResultAsync<void, DomainFailure> {
     return this.lift(this.cacheDel(loginFailureCacheKey(email)));
+  }
+
+  /**
+   * 检查密码再认证限流。逻辑与登录限流一致，但按 userId 分桶并返回通用
+   * `RATE_LIMITED`（携带 retryAfter）。
+   */
+  checkReauthRateLimit(userId: string): ResultAsync<void, DomainFailure> {
+    const key = reauthFailureCacheKey(userId);
+
+    return this.lift(this.cacheGet(key)).andThen((value) => {
+      const entry = value as LoginFailureBucket | undefined;
+      if (!entry) return okAsync(undefined);
+
+      if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
+        const lockedMs = entry.lockedUntil - Date.now();
+        return errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'RATE_LIMITED',
+            retryable: true,
+            retryAfter: Math.ceil(lockedMs / 1000),
+          }),
+        );
+      }
+
+      if (
+        !this.isValidLoginFailureBucket(entry) ||
+        entry.resetAt <= Date.now()
+      ) {
+        return this.lift(this.cacheDel(key));
+      }
+
+      return okAsync(undefined);
+    });
+  }
+
+  recordReauthFailure(userId: string): ResultAsync<void, DomainFailure> {
+    const key = reauthFailureCacheKey(userId);
+    const now = Date.now();
+
+    return this.lift(this.cacheGet(key)).andThen((value) => {
+      const entry = value as LoginFailureBucket | undefined;
+
+      if (
+        !this.isValidLoginFailureBucket(entry) ||
+        entry.resetAt <= now ||
+        entry.lockedUntil !== undefined
+      ) {
+        return this.lift(
+          this.cacheSet(
+            key,
+            { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
+            LOGIN_RATE_LIMIT_WINDOW,
+          ),
+        );
+      }
+
+      const next: LoginFailureBucket = {
+        count: entry.count + 1,
+        resetAt: entry.resetAt,
+        ...(entry.count + 1 >= LOGIN_RATE_LIMIT_MAX && {
+          lockedUntil: now + LOGIN_RATE_LIMIT_LOCKOUT,
+        }),
+      };
+      const ttl = Math.max(
+        next.resetAt - now,
+        (next.lockedUntil ?? next.resetAt) - now,
+      );
+      return this.lift(this.cacheSet(key, next, ttl));
+    });
+  }
+
+  clearReauthFailures(userId: string): ResultAsync<void, DomainFailure> {
+    return this.lift(this.cacheDel(reauthFailureCacheKey(userId)));
   }
 
   /**

@@ -66,14 +66,6 @@ export class UserSettingsService {
 
     const latest = rows[0];
 
-    const user = await this.prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: {
-        securityPinEnabled: true,
-        securityPinChangedAt: true,
-      },
-    });
-
     return {
       aiSummariesEnabled: this.readBool(
         map,
@@ -123,10 +115,7 @@ export class UserSettingsService {
         ),
       },
       updatedAt: latest ? latest.updatedAt.toISOString() : null,
-      securityPin: {
-        enabled: user.securityPinEnabled,
-        lastChangedAt: user.securityPinChangedAt?.toISOString() ?? null,
-      },
+      passwordReauthenticationRequired: true,
     };
   }
 

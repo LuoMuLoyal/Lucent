@@ -8,6 +8,13 @@ import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvKey } from '../../../config/env/env-keys.enum.js';
 import { ARGON2_OPTIONS } from '../config/argon2-options.js';
 import { MailService } from '../../../mail/mail.service.js';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 
 const DEFAULT_EMAIL_CALLBACK_URL = 'luminous://auth/callback';
 const CREDENTIAL_PROVIDER_ID = 'credential';
@@ -165,6 +172,55 @@ export class AuthBetterAuthAdapter {
     return this.auth.options.emailAndPassword?.password?.verify
       ? this.auth.options.emailAndPassword.password.verify({ hash, password })
       : argon2.verify(hash, password, ARGON2_OPTIONS);
+  }
+
+  /**
+   * Finds the local credential account for `userId` and verifies the supplied
+   * password. Returns `true` when the password matches. Returns a domain failure
+   * with `AUTH_PASSWORD_NOT_SET` when the user has no credential account, so
+   * callers can prompt OAuth-only users to set a password first.
+   *
+   * Wrong passwords are returned as `false`; callers map them to
+   * `AUTH_WRONG_PASSWORD` and apply rate-limiting as appropriate.
+   */
+  verifyPasswordForUser(
+    userId: string,
+    password: string,
+  ): ResultAsync<boolean, DomainFailure> {
+    return this.findCredentialAccount(userId).andThen((account) => {
+      if (!account?.password) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_PASSWORD_NOT_SET',
+          }),
+        );
+      }
+
+      return fromPromise(
+        this.verifyPassword(account.password, password),
+        (error) => {
+          throw error;
+        },
+      );
+    });
+  }
+
+  private findCredentialAccount(
+    userId: string,
+  ): ResultAsync<{ password: string | null } | null, DomainFailure> {
+    return fromPromise(
+      this.prisma.account.findFirst({
+        where: {
+          userId,
+          providerId: this.credentialProviderId,
+        },
+        select: { password: true },
+      }),
+      (error) => {
+        throw error;
+      },
+    );
   }
 
   /**

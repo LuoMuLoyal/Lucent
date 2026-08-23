@@ -9,7 +9,6 @@ import {
   Patch,
   Post,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -27,8 +26,6 @@ import { AuthService } from '../auth';
 
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
-import { SecurityElevationGuard } from '../security-pin';
-import { RequireSecurityElevation } from '../security-pin';
 import { ChangeEmailDto } from '../auth';
 import { ChangePasswordDto } from '../auth';
 import { SetPasswordDto } from '../auth';
@@ -44,12 +41,11 @@ import {
   AccountEmailResponseDto,
   AccountResponseDto,
 } from './dto/response.dto';
-
+import { UnlinkIdentityDto } from './dto/unlink-identity.dto';
 import { UpdateAccountDto } from './dto/update.dto';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')
-@UseGuards(SecurityElevationGuard)
 @Controller('account')
 export class AccountController {
   constructor(
@@ -86,19 +82,23 @@ export class AccountController {
   }
 
   @Post('password')
-  @RequireSecurityElevation()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Change authenticated account password' })
   @ApiResponse({ status: 204, description: 'Password changed.' })
   @ApiResponse({
     status: 401,
     description:
-      'Wrong old password (unified code; account password state is not revealed)',
+      'Wrong password (AUTH_WRONG_PASSWORD) or no password set (AUTH_PASSWORD_NOT_SET)',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
     status: 404,
     description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many failed re-authentication attempts',
     type: ProblemDetailsDto,
   })
   async changePassword(
@@ -153,13 +153,18 @@ export class AccountController {
   }
 
   @Post('email')
-  @RequireSecurityElevation()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change authenticated account email' })
   @ApiResponse({ status: 200, type: AccountEmailResponseDto })
   @ApiResponse({
     status: 400,
     description: 'Verification code expired or does not match',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Wrong password (AUTH_WRONG_PASSWORD) or no password set (AUTH_PASSWORD_NOT_SET)',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
@@ -170,6 +175,11 @@ export class AccountController {
   @ApiResponse({
     status: 409,
     description: 'Email already in use',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many failed re-authentication attempts',
     type: ProblemDetailsDto,
   })
   async changeEmail(
@@ -193,10 +203,15 @@ export class AccountController {
   }
 
   @Delete('identities/:identityId')
-  @RequireSecurityElevation()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unlink authenticated account OAuth identity' })
   @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Wrong password (AUTH_WRONG_PASSWORD) or no password set (AUTH_PASSWORD_NOT_SET)',
+    type: ProblemDetailsDto,
+  })
   @ApiResponse({
     status: 403,
     description:
@@ -208,13 +223,19 @@ export class AccountController {
     description: 'Account or identity not found',
     type: ProblemDetailsDto,
   })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many failed re-authentication attempts',
+    type: ProblemDetailsDto,
+  })
   async unlinkIdentity(
     @CurrentUser() user: UserPayload,
     @Param('identityId') identityId: string,
+    @Body() dto: UnlinkIdentityDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.accountService.unlinkIdentity(user.sub, identityId),
+      this.accountService.unlinkIdentity(user.sub, identityId, dto),
     );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
@@ -366,12 +387,18 @@ export class AccountController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Wrong password',
+    description:
+      'Wrong password (AUTH_WRONG_PASSWORD), no password set (AUTH_PASSWORD_NOT_SET), or OAuth-only code mismatch',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
     status: 404,
     description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many failed re-authentication attempts',
     type: ProblemDetailsDto,
   })
   async deleteAccount(

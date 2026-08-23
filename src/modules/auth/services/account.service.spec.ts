@@ -6,19 +6,9 @@ import {
 } from '../../../common/result';
 import type { UserService } from '../../user';
 import type { VerificationCodeService } from './identity/verification-code.service';
+import type { PasswordReauthService } from './identity/password-reauth.service';
 import type { AuthAccountRepositoryPort } from '../repositories/account.repository';
 import { AuthAccountService } from './account.service';
-
-import * as argon2Module from 'argon2';
-
-vi.mock('argon2', () => ({
-  argon2id: 2,
-  hash: vi.fn(),
-  verify: vi.fn(),
-  Options: {},
-}));
-
-const argon2 = argon2Module as unknown as { verify: vi.Mock };
 
 /**
  * Folds a ResultAsync into a plain outcome so specs can assert both success
@@ -45,6 +35,7 @@ describe('AuthAccountService', () => {
   let service: AuthAccountService;
   let accountRepo: vi.Mocked<AuthAccountRepositoryPort>;
   let userService: vi.Mocked<UserService>;
+  let passwordReauthService: vi.Mocked<PasswordReauthService>;
   let verificationCodeService: vi.Mocked<VerificationCodeService>;
 
   beforeEach(() => {
@@ -54,6 +45,9 @@ describe('AuthAccountService', () => {
     userService = {
       findById: vi.fn(),
     } as unknown as vi.Mocked<UserService>;
+    passwordReauthService = {
+      verify: vi.fn().mockReturnValue(okAsync(undefined)),
+    } as unknown as vi.Mocked<PasswordReauthService>;
     verificationCodeService = {
       verify: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as vi.Mocked<VerificationCodeService>;
@@ -61,6 +55,7 @@ describe('AuthAccountService', () => {
     service = new AuthAccountService(
       accountRepo,
       userService,
+      passwordReauthService,
       verificationCodeService,
     );
   });
@@ -97,14 +92,13 @@ describe('AuthAccountService', () => {
   describe('deleteAccount', () => {
     it('deletes with password when password is valid', async () => {
       userService.findById.mockResolvedValue(mockUser as never);
-      argon2.verify.mockResolvedValue(true);
 
       const outcome = await collectResult(
         service.deleteAccount('user-1', { password: 'correct-pass' }),
       );
 
-      expect(argon2.verify).toHaveBeenCalledWith(
-        mockUser.passwordHash,
+      expect(passwordReauthService.verify).toHaveBeenCalledWith(
+        'user-1',
         'correct-pass',
       );
       expect(accountRepo.softDeleteUser).toHaveBeenCalledWith(
@@ -116,7 +110,14 @@ describe('AuthAccountService', () => {
 
     it('returns AUTH_WRONG_PASSWORD when password is wrong', async () => {
       userService.findById.mockResolvedValue(mockUser as never);
-      argon2.verify.mockResolvedValue(false);
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
+      );
 
       const outcome = await collectResult(
         service.deleteAccount('user-1', { password: 'wrong-pass' }),
@@ -129,11 +130,19 @@ describe('AuthAccountService', () => {
       expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
-    it('returns AUTH_WRONG_PASSWORD when OAuth account has no passwordHash', async () => {
+    it('returns AUTH_PASSWORD_NOT_SET when OAuth account has no passwordHash', async () => {
       userService.findById.mockResolvedValue({
         ...mockUser,
         passwordHash: null,
       } as never);
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_PASSWORD_NOT_SET',
+          }),
+        ),
+      );
 
       const outcome = await collectResult(
         service.deleteAccount('user-1', { password: 'any' }),
@@ -141,18 +150,31 @@ describe('AuthAccountService', () => {
 
       expect(outcome).toEqual({
         ok: false,
-        error: expect.objectContaining({ code: 'AUTH_WRONG_PASSWORD' }),
+        error: expect.objectContaining({ code: 'AUTH_PASSWORD_NOT_SET' }),
       });
       expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
-    it('rethrows an argon2.verify failure instead of mapping it to AUTH_WRONG_PASSWORD', async () => {
+    it('propagates a password-reauth rate-limit failure', async () => {
       userService.findById.mockResolvedValue(mockUser as never);
-      argon2.verify.mockRejectedValue(new Error('corrupted hash'));
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'RATE_LIMITED',
+            retryAfter: 300,
+          }),
+        ),
+      );
 
-      await expect(
-        collectResult(service.deleteAccount('user-1', { password: 'any' })),
-      ).rejects.toThrow('corrupted hash');
+      const outcome = await collectResult(
+        service.deleteAccount('user-1', { password: 'any' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RATE_LIMITED' }),
+      });
       expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 

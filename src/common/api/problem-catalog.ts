@@ -27,6 +27,12 @@ const definitions = {
     detailKey: 'common.problem_auth_wrong_password_detail',
     retryable: false,
   },
+  AUTH_PASSWORD_NOT_SET: {
+    status: 401,
+    titleKey: 'common.problem_auth_password_not_set_title',
+    detailKey: 'common.problem_auth_password_not_set_detail',
+    retryable: false,
+  },
   AUTH_VERIFICATION_CODE_EXPIRED: {
     status: 400,
     titleKey: 'common.problem_auth_verification_code_expired_title',

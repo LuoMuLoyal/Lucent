@@ -19,6 +19,7 @@ import { LocalController } from './controllers/local.controller';
 import { OAuthController } from './controllers/oauth.controller';
 import { SessionController } from './controllers/session.controller';
 import { AuthRateLimitService } from './services/identity/rate-limit.service';
+import { PasswordReauthService } from './services/identity/password-reauth.service';
 import { AuthTokenService } from './services/token.service';
 import { AuthOAuthStateService } from './services/oauth/state.service';
 import { AuthOAuthService } from './services/oauth/oauth.service';
@@ -61,6 +62,7 @@ import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
     AuthOAuthFacadeService,
     AuthNotificationService,
     AuthRateLimitService,
+    PasswordReauthService,
     AuthTokenService,
     AuthOAuthStateService,
     AuthOAuthService,
@@ -75,6 +77,6 @@ import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
     GoogleOAuthProvider,
     AuthBetterAuthAdapter,
   ],
-  exports: [AuthService, AuthBetterAuthAdapter],
+  exports: [AuthService, AuthBetterAuthAdapter, PasswordReauthService],
 })
 export class AuthModule {}

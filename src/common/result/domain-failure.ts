@@ -59,6 +59,7 @@ const DOMAIN_FAILURE_KIND_BY_CODE: Record<
   AUTH_TOKEN_EXPIRED: 'authentication',
   AUTH_REFRESH_TOKEN_INVALID: 'authentication',
   AUTH_WRONG_PASSWORD: 'authentication',
+  AUTH_PASSWORD_NOT_SET: 'authentication',
   AUTH_VERIFICATION_CODE_EXPIRED: 'authentication',
   AUTH_VERIFICATION_CODE_MISMATCH: 'authentication',
   AUTH_VERIFICATION_CODE_COOLDOWN: 'rate_limited',

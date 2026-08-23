@@ -166,10 +166,7 @@ interface UserSettingsDto {
     currentMedicines: boolean; // allow the assistant to read medicine-box/current medicines
   };
   updatedAt: string; // ISO-8601
-  securityPin: {
-    enabled: boolean; // whether a Security PIN is set
-    lastChangedAt: string | null; // ISO-8601 of last PIN change
-  };
+  passwordReauthenticationRequired: boolean; // sensitive operations require password re-auth
 }
 ```
 
@@ -211,7 +208,11 @@ assistantContext.sleepRecords
 assistantContext.currentMedicines
 ```
 
-### 2. Security PIN
+### 2. Security PIN (deprecated, replaced by password re-authentication)
+
+> Sensitive account and data-export operations now require the user's current password
+> instead of a Security PIN elevation token. The endpoints below remain in Task 8 but are
+> scheduled for removal in Task 9.
 
 **Endpoints:**
 

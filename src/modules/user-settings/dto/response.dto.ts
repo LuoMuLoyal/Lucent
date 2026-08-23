@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SecurityPinSettingsDto } from '../../security-pin';
 
 export class AssistantContextSettingsDto {
   @ApiProperty({
@@ -65,10 +64,10 @@ export class UserSettingsDataDto {
   updatedAt!: string | null;
 
   @ApiProperty({
-    description: 'Security PIN status.',
-    type: () => SecurityPinSettingsDto,
+    description:
+      'Whether sensitive operations require password re-authentication.',
   })
-  securityPin!: SecurityPinSettingsDto;
+  passwordReauthenticationRequired!: boolean;
 }
 
 export class UserSettingsResponseDto extends UserSettingsDataDto {}

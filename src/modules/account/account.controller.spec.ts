@@ -12,8 +12,6 @@ import { AccountController } from './account.controller';
 import { AccountService } from './services/account.service';
 import { AuthService } from '../auth';
 import { AuditLogService } from '../audit-log';
-import { SecurityElevationGuard } from '../security-pin';
-import { SecurityPinService } from '../security-pin';
 import type { UpdateAccountDto } from './dto/update.dto';
 import type { AccountDto } from './dto/response.dto';
 import type { User } from '#generated/prisma/client';
@@ -80,13 +78,6 @@ describe('AccountController', () => {
             linkWechatMobileIdentity: vi.fn(),
           },
         },
-        SecurityElevationGuard,
-        {
-          provide: SecurityPinService,
-          useValue: {
-            verifyElevationToken: vi.fn(),
-          },
-        },
         {
           provide: AuditLogService,
           useValue: {
@@ -144,7 +135,7 @@ describe('AccountController', () => {
         controller.changePassword(
           mockUser,
           {
-            oldPassword: 'OldPass1',
+            password: 'OldPass1',
             newPassword: 'NewPass1',
           },
           mockRequest,
@@ -152,7 +143,7 @@ describe('AccountController', () => {
       ).resolves.toBeUndefined();
 
       expect(authService.changePassword).toHaveBeenCalledWith(mockUser.sub, {
-        oldPassword: 'OldPass1',
+        password: 'OldPass1',
         newPassword: 'NewPass1',
       });
     });
@@ -171,7 +162,7 @@ describe('AccountController', () => {
         controller.changePassword(
           mockUser,
           {
-            oldPassword: 'WrongOld',
+            password: 'WrongOld',
             newPassword: 'NewPass1',
           },
           mockRequest,
@@ -179,6 +170,31 @@ describe('AccountController', () => {
       ).rejects.toMatchObject({
         name: 'DomainFailureException',
         failure: { code: 'AUTH_WRONG_PASSWORD' },
+      });
+    });
+
+    it('should fold AUTH_PASSWORD_NOT_SET failures into DomainFailureException', async () => {
+      authService.changePassword.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_PASSWORD_NOT_SET',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.changePassword(
+          mockUser,
+          {
+            password: 'AnyPass1',
+            newPassword: 'NewPass1',
+          },
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_PASSWORD_NOT_SET' },
       });
     });
   });
@@ -220,6 +236,7 @@ describe('AccountController', () => {
         {
           newEmail: 'new@example.com',
           code: '123456',
+          password: 'Passw0rd123',
         },
         mockRequest,
       );
@@ -227,6 +244,7 @@ describe('AccountController', () => {
       expect(authService.changeEmail).toHaveBeenCalledWith(mockUser.sub, {
         newEmail: 'new@example.com',
         code: '123456',
+        password: 'Passw0rd123',
       });
       expect(result).toEqual({
         email: 'new@example.com',
@@ -247,6 +265,7 @@ describe('AccountController', () => {
         {
           newEmail: 'unverified@example.com',
           code: '123456',
+          password: 'Passw0rd123',
         },
         mockRequest,
       );
@@ -270,6 +289,7 @@ describe('AccountController', () => {
           {
             newEmail: 'taken@example.com',
             code: '123456',
+            password: 'Passw0rd123',
           },
           mockRequest,
         ),
@@ -291,14 +311,39 @@ describe('AccountController', () => {
       const result = await controller.unlinkIdentity(
         mockUser,
         'identity-uuid-1',
+        { password: 'Passw0rd123' },
         mockRequest,
       );
 
       expect(accountService.unlinkIdentity).toHaveBeenCalledWith(
         mockUser.sub,
         'identity-uuid-1',
+        { password: 'Passw0rd123' },
       );
       expect(result).toEqual(updated);
+    });
+
+    it('should fold password re-auth failures into DomainFailureException', async () => {
+      accountService.unlinkIdentity.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.unlinkIdentity(
+          mockUser,
+          'identity-uuid-1',
+          { password: 'WrongPass1' },
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_WRONG_PASSWORD' },
+      });
     });
   });
 

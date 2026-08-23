@@ -20,3 +20,4 @@ export { SetPasswordDto } from './dto/password/set-password.dto';
 export { WechatMobileOAuthProvider } from './providers/wechat/wechat-mobile-oauth.provider';
 export { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.provider';
 export { loginFailureCacheKey } from './services/identity/rate-limit.service';
+export { PasswordReauthService } from './services/identity/password-reauth.service';

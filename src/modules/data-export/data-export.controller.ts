@@ -5,7 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -21,8 +20,6 @@ import { ProblemDetailsDto } from '../../common';
 import { unwrapResult } from '../../common/result';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
-import { SecurityElevationGuard } from '../security-pin';
-import { RequireSecurityElevation } from '../security-pin';
 import { DataExportService } from './services/export.service';
 import {
   CreateDataExportRequestDto,
@@ -33,20 +30,29 @@ import {
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')
 @ApiExtraModels(DataExportRequestDataDto)
-@UseGuards(SecurityElevationGuard)
 @Controller('data-export-requests')
 export class DataExportController {
   constructor(private readonly exportService: DataExportService) {}
 
   @Post()
-  @RequireSecurityElevation()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new data export request' })
   @ApiResponse({ status: 201, type: DataExportRequestResponseDto })
   @ApiResponse({
+    status: 401,
+    description:
+      'Wrong password (AUTH_WRONG_PASSWORD) or no password set (AUTH_PASSWORD_NOT_SET)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 409,
     type: ProblemDetailsDto,
     description: 'Duplicate data export request (unique constraint race).',
+  })
+  @ApiResponse({
+    status: 429,
+    type: ProblemDetailsDto,
+    description: 'Too many failed re-authentication attempts.',
   })
   @ApiResponse({
     status: 503,

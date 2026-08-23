@@ -18,10 +18,7 @@ function createPrisma(overrides: Record<string, unknown> = {}) {
       upsert: vi.fn(),
     },
     user: {
-      findUniqueOrThrow: vi.fn().mockResolvedValue({
-        securityPinEnabled: false,
-        securityPinChangedAt: null,
-      }),
+      findUniqueOrThrow: vi.fn(),
     },
     ...overrides,
   } as unknown as PrismaService;
@@ -66,10 +63,7 @@ describe('UserSettingsService', () => {
         currentMedicines: true,
       },
       updatedAt: null,
-      securityPin: {
-        enabled: false,
-        lastChangedAt: null,
-      },
+      passwordReauthenticationRequired: true,
     });
   });
 
@@ -125,10 +119,7 @@ describe('UserSettingsService', () => {
         currentMedicines: true,
       },
       updatedAt: '2026-06-17T11:00:00.000Z',
-      securityPin: {
-        enabled: true,
-        lastChangedAt: '2026-07-03T12:00:00.000Z',
-      },
+      passwordReauthenticationRequired: true,
     });
   });
 

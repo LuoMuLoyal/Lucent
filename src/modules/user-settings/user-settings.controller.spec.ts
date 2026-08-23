@@ -198,10 +198,7 @@ function makeSettings(
       currentMedicines: true,
     },
     updatedAt: '2026-06-10T00:00:00.000Z',
-    securityPin: {
-      enabled: false,
-      lastChangedAt: null,
-    },
+    passwordReauthenticationRequired: true,
     ...overrides,
   };
 }

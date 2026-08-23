@@ -1,5 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as argon2 from 'argon2';
+import { Injectable } from '@nestjs/common';
 
 import { User } from '#generated/prisma/client';
 import { normalizeEmail, now } from '../../../common';
@@ -13,16 +12,16 @@ import {
 } from '../../../common/result';
 import { UserService } from '../../user';
 import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
+import { PasswordReauthService } from './identity/password-reauth.service';
 import { VerificationCodeService } from './identity/verification-code.service';
 import { AuthAccountRepositoryPort } from '../repositories/account.repository';
 
 @Injectable()
 export class AuthAccountService {
-  private readonly logger = new Logger(AuthAccountService.name);
-
   constructor(
     private readonly accountRepository: AuthAccountRepositoryPort,
     private readonly userService: UserService,
+    private readonly passwordReauthService: PasswordReauthService,
     private readonly verificationCodeService: VerificationCodeService,
   ) {}
 
@@ -46,19 +45,9 @@ export class AuthAccountService {
   ): ResultAsync<void, DomainFailure> {
     return this.getActiveUser(userId).andThen((user) => {
       if (dto.password) {
-        if (!user.passwordHash) {
-          return errAsync(
-            createDomainFailure({
-              kind: 'authentication',
-              code: 'AUTH_WRONG_PASSWORD',
-            }),
-          );
-        }
-        return this.verifyPasswordForDeletion(
-          userId,
-          user,
-          dto.password,
-        ).andThen(() => this.accountRepository.softDeleteUser(userId, now()));
+        return this.passwordReauthService
+          .verify(userId, dto.password)
+          .andThen(() => this.accountRepository.softDeleteUser(userId, now()));
       }
 
       if (dto.code) {
@@ -82,37 +71,6 @@ export class AuthAccountService {
           code: 'VALIDATION_FAILED',
         }),
       );
-    });
-  }
-
-  private verifyPasswordForDeletion(
-    userId: string,
-    user: User,
-    password: string,
-  ): ResultAsync<void, DomainFailure> {
-    return fromPromise(
-      argon2.verify(user.passwordHash as string, password),
-      (error) => {
-        // A thrown Argon2 failure (corrupted hash, native binding error,
-        // module misconfiguration) is re-thrown so it surfaces as a
-        // dependency/internal error — never misreported as a wrong password.
-        // The underlying error is logged so infrastructure issues are not
-        // silently masked.
-        this.logger.warn(
-          `argon2.verify threw for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        throw error;
-      },
-    ).andThen((valid) => {
-      if (!valid) {
-        return errAsync(
-          createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_WRONG_PASSWORD',
-          }),
-        );
-      }
-      return okAsync(undefined);
     });
   }
 

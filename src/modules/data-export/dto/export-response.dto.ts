@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export const DATA_EXPORT_STATUSES = [
   'requested',
@@ -43,6 +43,14 @@ export class CreateDataExportRequestDto {
   @IsOptional()
   @IsIn(DATA_EXPORT_RANGES)
   range?: DataExportRange;
+
+  @ApiProperty({
+    description: '当前密码（敏感操作再认证用）',
+    example: 'Passw0rd123',
+  })
+  @IsString()
+  @IsNotEmpty({ message: '当前密码不能为空' })
+  password!: string;
 }
 
 export class DataExportRequestDataDto {

@@ -9,15 +9,20 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
+import { PasswordReauthService } from '../../auth';
 import { UserService } from '../../user';
 import { AccountDto } from '../dto/response.dto';
+import { UnlinkIdentityDto } from '../dto/unlink-identity.dto';
 import { UpdateAccountDto } from '../dto/update.dto';
 
 type AccountUser = User & { identities: UserIdentity[] };
 
 @Injectable()
 export class AccountService {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly passwordReauthService: PasswordReauthService,
+  ) {}
 
   getAccount(userId: string): ResultAsync<AccountDto, DomainFailure> {
     return this.getActiveAccountUser(userId).map((user) =>
@@ -45,31 +50,36 @@ export class AccountService {
   unlinkIdentity(
     userId: string,
     identityId: string,
+    dto: UnlinkIdentityDto,
   ): ResultAsync<AccountDto, DomainFailure> {
-    return this.getActiveAccountUser(userId).andThen((user) => {
-      const identity = user.identities.find((item) => item.id === identityId);
-      if (!identity) {
-        return errAsync(
-          createDomainFailure({
-            kind: 'not_found',
-            code: 'RESOURCE_NOT_FOUND',
-          }),
-        );
-      }
+    return this.getActiveAccountUser(userId)
+      .andThen((user) =>
+        this.passwordReauthService.verify(userId, dto.password).map(() => user),
+      )
+      .andThen((user) => {
+        const identity = user.identities.find((item) => item.id === identityId);
+        if (!identity) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'not_found',
+              code: 'RESOURCE_NOT_FOUND',
+            }),
+          );
+        }
 
-      if (user.passwordHash === null && user.identities.length <= 1) {
-        return errAsync(
-          createDomainFailure({
-            kind: 'authorization',
-            code: 'FORBIDDEN',
-          }),
-        );
-      }
+        if (user.passwordHash === null && user.identities.length <= 1) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'authorization',
+              code: 'FORBIDDEN',
+            }),
+          );
+        }
 
-      return this.userService
-        .unlinkIdentity(identityId)
-        .andThen(() => this.getAccount(userId));
-    });
+        return this.userService
+          .unlinkIdentity(identityId)
+          .andThen(() => this.getAccount(userId));
+      });
   }
 
   private getActiveAccountUser(

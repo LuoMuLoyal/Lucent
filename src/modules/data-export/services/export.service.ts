@@ -7,6 +7,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
+import { PasswordReauthService } from '../../auth';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
@@ -55,6 +56,7 @@ export class DataExportService {
     private readonly storageService: DataExportStorageService,
     private readonly queueService: DataExportQueueService,
     private readonly processor: DataExportProcessorService,
+    private readonly passwordReauthService: PasswordReauthService,
   ) {}
 
   /**
@@ -69,6 +71,16 @@ export class DataExportService {
    *   rethrows — queue-retry semantics, not HTTP retry).
    */
   createRequest(
+    userId: string,
+    dto: CreateDataExportRequestDto,
+    language: string,
+  ): ResultAsync<DataExportRequestDataDto, DomainFailure> {
+    return this.passwordReauthService
+      .verify(userId, dto.password)
+      .andThen(() => this.createRequestAfterReauth(userId, dto, language));
+  }
+
+  private createRequestAfterReauth(
     userId: string,
     dto: CreateDataExportRequestDto,
     language: string,

@@ -7,6 +7,7 @@ import { UserService } from '../../../user';
 import { VerificationCodeService } from './verification-code.service';
 import { AuthTokenService } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
+import { PasswordReauthService } from './password-reauth.service';
 import { NotificationsService } from '../../../notifications';
 import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
 import { PrismaService } from '../../../../prisma';
@@ -131,6 +132,7 @@ describe('CredentialAuthService', () => {
   let verificationCodeService: vi.Mocked<VerificationCodeService>;
   let authTokenService: vi.Mocked<AuthTokenService>;
   let authRateLimitService: vi.Mocked<AuthRateLimitService>;
+  let passwordReauthService: vi.Mocked<PasswordReauthService>;
   let notificationsService: vi.Mocked<NotificationsService>;
   let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
   let prisma: vi.Mocked<PrismaService>;
@@ -180,6 +182,15 @@ describe('CredentialAuthService', () => {
             checkLoginRateLimit: vi.fn(),
             recordLoginFailure: vi.fn(),
             clearLoginFailures: vi.fn(),
+            checkReauthRateLimit: vi.fn(),
+            recordReauthFailure: vi.fn(),
+            clearReauthFailures: vi.fn(),
+          },
+        },
+        {
+          provide: PasswordReauthService,
+          useValue: {
+            verify: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
         {
@@ -239,6 +250,7 @@ describe('CredentialAuthService', () => {
     verificationCodeService = module.get(VerificationCodeService);
     authTokenService = module.get(AuthTokenService);
     authRateLimitService = module.get(AuthRateLimitService);
+    passwordReauthService = module.get(PasswordReauthService);
     notificationsService = module.get(NotificationsService);
     betterAuthAdapter = module.get(AuthBetterAuthAdapter);
     prisma = module.get(PrismaService);
@@ -598,18 +610,18 @@ describe('CredentialAuthService', () => {
     it('should change password and revoke all sessions', async () => {
       const outcome = await collectResult(
         service.changePassword('user-1', {
-          oldPassword: 'OldPass1',
+          password: 'OldPass1',
           newPassword: 'NewPass1',
         }),
       );
 
+      expect(passwordReauthService.verify).toHaveBeenCalledWith(
+        'user-1',
+        'OldPass1',
+      );
       expect(accountFindFirstMock).toHaveBeenCalledWith({
         where: { userId: 'user-1', providerId: 'credential' },
       });
-      expect(betterAuthAdapter.verifyPassword).toHaveBeenCalledWith(
-        '$argon2id$hashed',
-        'OldPass1',
-      );
       expect(betterAuthAdapter.hashPassword).toHaveBeenCalledWith('NewPass1');
       expect(accountUpdateMock).toHaveBeenCalledWith({
         where: { id: 'account-1' },
@@ -623,47 +635,68 @@ describe('CredentialAuthService', () => {
       expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
-    it('should reject wrong old password with AUTH_WRONG_PASSWORD', async () => {
-      betterAuthAdapter.verifyPassword.mockResolvedValue(false);
+    it('should reject wrong password with AUTH_WRONG_PASSWORD', async () => {
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(wrongPasswordFailure),
+      );
 
       const outcome = await collectResult(
         service.changePassword('user-1', {
-          oldPassword: 'WrongOld',
+          password: 'WrongOld',
           newPassword: 'NewPass1',
         }),
       );
 
       expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(accountFindFirstMock).not.toHaveBeenCalled();
       expect(authTokenService.revokeAll).not.toHaveBeenCalled();
     });
 
-    it('should rethrow an adapter verify failure instead of AUTH_WRONG_PASSWORD', async () => {
-      betterAuthAdapter.verifyPassword.mockRejectedValue(
-        new Error('corrupted hash'),
-      );
-
-      await expect(
-        collectResult(
-          service.changePassword('user-1', {
-            oldPassword: 'OldPass1',
-            newPassword: 'NewPass1',
+    it('should propagate a password-reauth failure instead of changing password', async () => {
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'RATE_LIMITED',
           }),
         ),
-      ).rejects.toThrow('corrupted hash');
+      );
+
+      const outcome = await collectResult(
+        service.changePassword('user-1', {
+          password: 'OldPass1',
+          newPassword: 'NewPass1',
+        }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RATE_LIMITED' }),
+      });
       expect(authTokenService.revokeAll).not.toHaveBeenCalled();
     });
 
     it('should reject OAuth-only user without credential account', async () => {
-      accountFindFirstMock.mockResolvedValue(null);
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_PASSWORD_NOT_SET',
+          }),
+        ),
+      );
 
       const outcome = await collectResult(
         service.changePassword('user-1', {
-          oldPassword: 'Old',
+          password: 'Old',
           newPassword: 'New',
         }),
       );
 
-      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_PASSWORD_NOT_SET' }),
+      });
     });
 
     it('should reject a missing user with RESOURCE_NOT_FOUND', async () => {
@@ -671,7 +704,7 @@ describe('CredentialAuthService', () => {
 
       const outcome = await collectResult(
         service.changePassword('user-1', {
-          oldPassword: 'Old',
+          password: 'Old',
           newPassword: 'New',
         }),
       );
@@ -694,7 +727,7 @@ describe('CredentialAuthService', () => {
 
       const outcome = await collectResult(
         service.changePassword('user-1', {
-          oldPassword: 'OldPass1',
+          password: 'OldPass1',
           newPassword: 'NewPass1',
         }),
       );
@@ -709,7 +742,7 @@ describe('CredentialAuthService', () => {
 
       const outcome = await collectResult(
         service.changePassword('user-1', {
-          oldPassword: 'OldPass1',
+          password: 'OldPass1',
           newPassword: 'NewPass1',
         }),
       );
@@ -798,14 +831,19 @@ describe('CredentialAuthService', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('changeEmail', () => {
-    it('should change email after code verification', async () => {
+    it('should change email after password and code verification', async () => {
       const outcome = await collectResult(
         service.changeEmail('user-1', {
           newEmail: 'changed@example.com',
           code: '123456',
+          password: 'Passw0rd123',
         }),
       );
 
+      expect(passwordReauthService.verify).toHaveBeenCalledWith(
+        'user-1',
+        'Passw0rd123',
+      );
       expect(verificationCodeService.verify).toHaveBeenCalledWith(
         'changed@example.com',
         '123456',
@@ -821,6 +859,48 @@ describe('CredentialAuthService', () => {
       expect(outcome).toEqual({ ok: true, value: mockUser });
     });
 
+    it('should reject when password verification fails', async () => {
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(wrongPasswordFailure),
+      );
+
+      const outcome = await collectResult(
+        service.changeEmail('user-1', {
+          newEmail: 'changed@example.com',
+          code: '123456',
+          password: 'WrongPass1',
+        }),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
+    });
+
+    it('should reject OAuth-only user with AUTH_PASSWORD_NOT_SET', async () => {
+      passwordReauthService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_PASSWORD_NOT_SET',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.changeEmail('user-1', {
+          newEmail: 'changed@example.com',
+          code: '123456',
+          password: 'AnyPass1',
+        }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_PASSWORD_NOT_SET' }),
+      });
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
+    });
+
     it('should reject when new email is already in use', async () => {
       userService.findByEmail.mockResolvedValue(mockUser);
 
@@ -828,6 +908,7 @@ describe('CredentialAuthService', () => {
         service.changeEmail('user-1', {
           newEmail: 'test@example.com',
           code: '123456',
+          password: 'Passw0rd123',
         }),
       );
 
@@ -845,6 +926,7 @@ describe('CredentialAuthService', () => {
         service.changeEmail('user-1', {
           newEmail: 'changed@example.com',
           code: '123456',
+          password: 'Passw0rd123',
         }),
       );
 

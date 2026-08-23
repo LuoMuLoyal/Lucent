@@ -10,6 +10,8 @@
   "problem_auth_refresh_token_invalid_detail": "Your session can no longer be refreshed. Sign in again.",
   "problem_auth_wrong_password_title": "Password incorrect",
   "problem_auth_wrong_password_detail": "The password is incorrect. Check it and try again.",
+  "problem_auth_password_not_set_title": "Password not set",
+  "problem_auth_password_not_set_detail": "This account does not have a password. Please set a password before continuing.",
   "problem_auth_verification_code_expired_title": "Verification code expired",
   "problem_auth_verification_code_expired_detail": "The verification code has expired or is no longer available. Request a new code.",
   "problem_auth_verification_code_mismatch_title": "Verification code does not match",

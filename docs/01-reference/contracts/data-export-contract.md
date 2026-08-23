@@ -15,8 +15,8 @@ POST /api/v1/user/data-export-requests
 GET  /api/v1/user/data-export-requests/latest
 ```
 
-Both require authentication and a valid `x-security-elevation` Bearer token (obtained from `POST
-/api/v1/settings/security-pin/verify`).
+Both require authentication. POST additionally requires the user's current password for
+re-authentication (`password` in the body).
 
 **POST Body:**
 
@@ -25,6 +25,7 @@ interface CreateDataExportRequestDto {
   kind?: 'hospital' | 'monthly' | 'print';
   format?: 'pdf'; // only pdf is supported right now
   range?: 'last_7_days' | 'last_30_days';
+  password: string; // current password for sensitive-operation re-authentication
 }
 ```
 
