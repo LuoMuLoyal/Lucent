@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-16
+updated: 2026-08-23
 ---
 
 # Environment Variables
@@ -18,6 +18,7 @@ DATABASE_URL
 REDIS_URL
 JWT_ACCESS_SECRET
 JWT_REFRESH_SECRET
+BETTER_AUTH_SECRET
 ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_COOKIE_SECRET
@@ -46,9 +47,25 @@ DEPLOY_SSH_KNOWN_HOSTS
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
 traffic. If you do expose browser clients from another origin, set it explicitly.
 
-JWT and admin secrets are required in every runtime now; keep them in the env
+JWT, Better Auth and admin secrets are required in every runtime now; keep them in the env
 files, not in code defaults. The checked-in dev/test templates already provide
 local values.
+
+## Better Auth
+
+```text
+BETTER_AUTH_SECRET
+BETTER_AUTH_URL
+```
+
+- `BETTER_AUTH_SECRET` — signing secret for Better Auth sessions and tokens. Must be at least 32
+  characters; treat it as a sensitive credential. Required in production once Better Auth is wired
+  into the runtime (Task 2 onwards).
+- `BETTER_AUTH_URL` — public base URL used by Better Auth to build callback and verification links.
+  Defaults to `http://localhost:3000` when unset.
+
+These variables are introduced by the Better Auth migration. During Task 1 they are only used by the
+isolated spike script; Task 2 wires them into the NestJS runtime.
 
 ## Optional Integrations
 

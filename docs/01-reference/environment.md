@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-22
+updated: 2026-08-23
 ---
 
 # Lucent Environment
@@ -66,6 +66,8 @@ pnpm dev:stack
 pnpm db:migrate
 pnpm start:dev
 ```
+
+Better Auth 迁移相关环境变量见 [[environment-variables]]；Task 1 spike 使用测试数据库与 `scripts/spike/better-auth-spike.ts`，不修改既有 auth 服务或生产数据库。
 
 Local Docker stack note:
 
