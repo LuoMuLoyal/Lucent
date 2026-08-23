@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import type { LlmConfig } from '../../../../config/services/llm.config';
 import {
   REPORT_RANGE_LAST_30_DAYS,
@@ -9,6 +9,7 @@ import type { ReportsLlmSummaryCopyService } from './copy.service';
 import type { ReportsAiSummaryGeneratorService } from './generator.service';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import { ReportsAiSummaryService } from './summary.service';
+import { okAsync } from '../../../../common/result';
 import type { ReportsComputationService } from '../../dashboard/computation.service';
 import type { ReportsContextService } from '../../dashboard/context.service';
 
@@ -241,7 +242,7 @@ describe('ReportsAiSummaryService', () => {
 
     await expect(
       service.generate('u1', { range: REPORT_RANGE_LAST_7_DAYS }, 'zh-CN'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(DomainFailureException);
   });
 
   it('falls back when analysis model config is missing', async () => {
@@ -368,7 +369,7 @@ describe('ReportsAiSummaryService', () => {
       },
     };
     const aiSummaryHistoryService = {
-      save: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockReturnValue(okAsync(undefined)),
     };
 
     const reportsContextService = {

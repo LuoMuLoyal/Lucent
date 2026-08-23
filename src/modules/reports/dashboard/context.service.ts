@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import {
-  badRequest,
-  summarizeWaterMetrics,
-  toObservedWaterMetric,
-} from '../../../common';
+import { createDomainFailure } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
+import { summarizeWaterMetrics, toObservedWaterMetric } from '../../../common';
 import {
   formatDateOnly,
   parseDateOnly,
@@ -339,6 +337,16 @@ export class ReportsContextService {
     return days;
   }
 
+  private validationFailed(message: string): never {
+    throw new DomainFailureException(
+      createDomainFailure({
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        detail: message,
+      }),
+    );
+  }
+
   private todayUtc(): Date {
     return parseDateOnly(formatDateOnly(now()));
   }
@@ -353,11 +361,11 @@ export class ReportsContextService {
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.endDate) {
-        badRequest('endDate is required when range is custom.');
+        this.validationFailed('endDate is required when range is custom.');
       }
       const customEndDate = parseDateOnly(query.endDate);
       if (customEndDate > this.todayUtc()) {
-        badRequest('endDate must not be in the future.');
+        this.validationFailed('endDate must not be in the future.');
       }
       return customEndDate;
     }
@@ -371,11 +379,11 @@ export class ReportsContextService {
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.startDate) {
-        badRequest('startDate is required when range is custom.');
+        this.validationFailed('startDate is required when range is custom.');
       }
       const startDate = parseDateOnly(query.startDate);
       if (startDate > endDate) {
-        badRequest('startDate must not be later than endDate.');
+        this.validationFailed('startDate must not be later than endDate.');
       }
       return startDate;
     }

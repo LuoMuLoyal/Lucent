@@ -1,4 +1,6 @@
 import { randomBytes, createHash } from 'node:crypto';
+import { createDomainFailure } from '../../../../common/result';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -10,12 +12,7 @@ import {
   ProductEventSurface,
 } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma';
-import {
-  badRequest,
-  calculateAge,
-  now,
-  nowIsoString,
-} from '../../../../common';
+import { calculateAge, now, nowIsoString } from '../../../../common';
 import { ConfigKey } from '../../../../config/env/config-keys.enum';
 import { CLINIC_SUMMARY_MAX_RANGE_DAYS } from '../../dto/clinic-summary-request.dto';
 import type {
@@ -319,6 +316,16 @@ export class ClinicSummaryService {
 
   // ── Scope resolution ──────────────────────────────────────
 
+  private validationFailed(message: string): never {
+    throw new DomainFailureException(
+      createDomainFailure({
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        detail: message,
+      }),
+    );
+  }
+
   private async resolveScope(
     userId: string,
     options: ClinicSummaryOptions,
@@ -349,7 +356,7 @@ export class ClinicSummaryService {
     const range = options.range ?? DEFAULT_RANGE;
     const days = RANGE_DAY_COUNTS[range];
     if (days == null) {
-      badRequest(`不支持的 summary 范围: ${range}`);
+      this.validationFailed(`不支持的 summary 范围: ${range}`);
     }
 
     // Custom date range. Semantics: the window covers dateFrom..dateTo
@@ -362,7 +369,7 @@ export class ClinicSummaryService {
     // content-window binding is a later task.
     if (options.dateFrom != null || options.dateTo != null) {
       if (options.dateFrom == null || options.dateTo == null) {
-        badRequest('dateFrom 与 dateTo 必须同时指定');
+        this.validationFailed('dateFrom 与 dateTo 必须同时指定');
       }
       const startDate = new Date(options.dateFrom);
       const endDate = new Date(options.dateTo);
@@ -370,18 +377,18 @@ export class ClinicSummaryService {
         Number.isNaN(startDate.getTime()) ||
         Number.isNaN(endDate.getTime())
       ) {
-        badRequest('无效的日期范围');
+        this.validationFailed('无效的日期范围');
       }
       const spanDays = Math.round(
         (endDate.getTime() - startDate.getTime()) / MS_PER_DAY,
       );
       if (spanDays < 0) {
-        badRequest('dateFrom 不能晚于 dateTo');
+        this.validationFailed('dateFrom 不能晚于 dateTo');
       }
       // spanDays is the day DIFFERENCE; the inclusive calendar-day count is
       // spanDays + 1 (dateFrom == dateTo is a valid single-day window).
       if (spanDays + 1 > CLINIC_SUMMARY_MAX_RANGE_DAYS) {
-        badRequest(
+        this.validationFailed(
           `日期范围不能超过 ${String(CLINIC_SUMMARY_MAX_RANGE_DAYS)} 天`,
         );
       }

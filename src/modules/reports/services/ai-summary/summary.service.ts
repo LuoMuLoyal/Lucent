@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { badRequest } from '../../../../common';
+import { createDomainFailure, unwrapResult } from '../../../../common/result';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 
 import { HistoricalAiSummaryService } from '../../../assistant';
 import { PrismaService } from '../../../../prisma';
@@ -95,24 +96,36 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     userId: string,
     data: ReportSummaryDataDto,
   ): Promise<void> {
-    await this.aiSummaryHistoryService.save({
-      userId,
-      kind: 'report',
-      scopeKey: `report:${data.range}:${data.startDate}:${data.endDate}`,
-      rangeKey: data.range,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      generatedAt: data.generatedAt,
-      summary: data.summary,
-      coverage: data.coverage,
-      observedPattern: data.observedPattern,
-      lowRiskAction: data.lowRiskAction,
-      disclaimer: data.disclaimer,
-    });
+    await unwrapResult(
+      this.aiSummaryHistoryService.save({
+        userId,
+        kind: 'report',
+        scopeKey: `report:${data.range}:${data.startDate}:${data.endDate}`,
+        rangeKey: data.range,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        generatedAt: data.generatedAt,
+        summary: data.summary,
+        coverage: data.coverage,
+        observedPattern: data.observedPattern,
+        lowRiskAction: data.lowRiskAction,
+        disclaimer: data.disclaimer,
+      }),
+    );
   }
 
   protected buildLogContext(context: ReportsAiSummaryContext): string {
     return `${context.startDate}..${context.endDate}`;
+  }
+
+  private validationFailed(message: string): never {
+    throw new DomainFailureException(
+      createDomainFailure({
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        detail: message,
+      }),
+    );
   }
 
   private toDashboardQuery(
@@ -123,7 +136,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     }
     if (dto.range === 'custom') {
       if (dto.startDate == null || dto.endDate == null) {
-        badRequest(
+        this.validationFailed(
           'startDate and endDate are required for custom range summaries.',
         );
       }

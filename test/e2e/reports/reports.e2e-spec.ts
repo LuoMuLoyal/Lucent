@@ -147,12 +147,15 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer()).post(SUMMARY_STREAM_PATH).expect(401);
     });
 
-    it('should return 400 when custom range is missing dates', async () => {
-      await request(app.getHttpServer())
+    it('should return 400 VALIDATION_FAILED when custom range is missing dates', async () => {
+      const res = await request(app.getHttpServer())
         .post(SUMMARY_STREAM_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ range: 'custom' })
         .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
     });
 
     it('should return SSE stream with result and done events', async () => {
@@ -325,12 +328,15 @@ describe('Reports API (e2e)', () => {
       expect(spanDays).toBe(29);
     });
 
-    it('should reject a date range missing one endpoint', async () => {
-      await request(app.getHttpServer())
+    it('should reject a date range missing one endpoint with VALIDATION_FAILED', async () => {
+      const res = await request(app.getHttpServer())
         .post(CLINIC_SHARE_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ dateFrom: '2026-08-01' })
         .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
 
       await request(app.getHttpServer())
         .post(CLINIC_SHARE_PATH)

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
@@ -418,14 +418,14 @@ describe('ClinicSummaryService', () => {
           'zh-CN',
           { dateFrom: '2026-08-01' },
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       await expect(
         (service as unknown as SummaryServiceSurface).buildClinicSummary(
           'user-1',
           'zh-CN',
           { dateTo: '2026-08-30' },
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
 
     it('rejects a date span beyond 30 inclusive calendar days', async () => {
@@ -438,7 +438,7 @@ describe('ClinicSummaryService', () => {
           'zh-CN',
           { dateFrom: '2026-08-01', dateTo: '2026-08-31' },
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
 
     it('accepts a 30-inclusive-day date span at the boundary with exclusive end', async () => {

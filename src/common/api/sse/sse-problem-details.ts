@@ -1,7 +1,12 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { getActiveTraceIds } from '../../logger/trace-context.utils';
 import { ProblemCatalog, type ProblemCode } from '../problem-catalog';
 import type { SseErrorStatus, SseProblemDetails } from '../problem-details';
+import { DomainFailureException } from '../../result/domain-failure.exception';
+import {
+  isDomainFailure,
+  type DomainFailure,
+  type DomainFailureKind,
+} from '../../result';
 
 export interface SseProblemDetailsOptions {
   lang: string;
@@ -17,14 +22,34 @@ interface SseHttpErrorResponse {
   error?: unknown;
   retryable?: unknown;
   retryAfter?: unknown;
-  traceId?: unknown;
 }
 
+/**
+ * Builds the safe Problem Details payload of an SSE `event: error` frame.
+ *
+ * After the SSE headers are sent the HTTP status is fixed, so this mapper
+ * never re-sends an HTTP status code. Only the stable, client-contract fields
+ * are emitted: type, title, detail, code, optional retryable/retryAfter, and
+ * `status` (the stream termination reason). Internal fields such as HTTP
+ * statusCode, traceId, cause and stack never leave this boundary.
+ *
+ * Expected business failures arrive either as a `DomainFailure` (from a
+ * `ResultAsync` Err) or as a `DomainFailureException` (from an internal
+ * `unwrapResult` fold / transport bridge). Unknown exceptions are mapped to a
+ * safe `INTERNAL_ERROR`/`server_error` payload, never to raw error text.
+ */
 @Injectable()
 export class SseProblemDetailsMapper {
   constructor(private readonly catalog: ProblemCatalog) {}
 
   build(error: unknown, options: SseProblemDetailsOptions): SseProblemDetails {
+    if (error instanceof DomainFailureException) {
+      return this.buildFromFailure(error.failure, options);
+    }
+    if (isDomainFailure(error)) {
+      return this.buildFromFailure(error, options);
+    }
+
     const response =
       error instanceof HttpException ? error.getResponse() : undefined;
     const raw = this.isRecord(response)
@@ -39,8 +64,6 @@ export class SseProblemDetailsMapper {
     const title = this.stringValue(raw.title);
     const detail = this.resolveDetail(raw);
     const retryAfter = this.nonNegativeNumber(raw.retryAfter);
-    const traceId =
-      this.stringValue(raw.traceId) ?? getActiveTraceIds().traceId;
     const base = this.catalog.build(code, {
       lang: options.lang,
       ...(title == null ? {} : { title }),
@@ -49,12 +72,29 @@ export class SseProblemDetailsMapper {
         ? { retryable: raw.retryable }
         : {}),
       ...(retryAfter == null ? {} : { retryAfter }),
-      ...(traceId == null ? {} : { traceId }),
     });
 
     return {
       ...base,
       status: options.status ?? this.resolveStatus(error),
+    };
+  }
+
+  private buildFromFailure(
+    failure: DomainFailure,
+    options: SseProblemDetailsOptions,
+  ): SseProblemDetails {
+    const base = this.catalog.build(failure.code, {
+      lang: options.lang,
+      ...(failure.detail == null ? {} : { detail: failure.detail }),
+      ...(failure.args == null ? {} : { args: { ...failure.args } }),
+      ...(failure.retryable == null ? {} : { retryable: failure.retryable }),
+      ...(failure.retryAfter == null ? {} : { retryAfter: failure.retryAfter }),
+    });
+
+    return {
+      ...base,
+      status: options.status ?? this.statusForKind(failure.kind),
     };
   }
 
@@ -85,6 +125,12 @@ export class SseProblemDetailsMapper {
       return error.getStatus() >= 500 ? 'server_error' : 'client_error';
     }
     return 'server_error';
+  }
+
+  private statusForKind(kind: DomainFailureKind): SseErrorStatus {
+    return kind === 'dependency' || kind === 'internal'
+      ? 'server_error'
+      : 'client_error';
   }
 
   private resolveDetail(raw: SseHttpErrorResponse): string | undefined {

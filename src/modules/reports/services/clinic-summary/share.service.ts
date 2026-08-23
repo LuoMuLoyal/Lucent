@@ -7,7 +7,9 @@ import {
   ProductEventSurface,
 } from '#generated/prisma/client';
 import type { UserClinicSummaryShare } from '#generated/prisma/client';
-import { badRequest, now } from '../../../../common';
+import { now } from '../../../../common';
+import { createDomainFailure } from '../../../../common/result';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import { PrismaService } from '../../../../prisma';
 import { ProductEventsService } from '../../../product-events';
 
@@ -235,16 +237,26 @@ export class ShareService {
     return result.count > 0;
   }
 
+  private validationFailed(message: string): never {
+    throw new DomainFailureException(
+      createDomainFailure({
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        detail: message,
+      }),
+    );
+  }
+
   // ── Validation ────────────────────────────────────────────
 
   private validateSelectedFields(fields: string[]): ClinicSummaryShareField[] {
     if (!Array.isArray(fields) || fields.length === 0) {
-      badRequest('selectedFields 不能为空');
+      this.validationFailed('selectedFields 不能为空');
     }
     const allowed = new Set(SHARE_FIELD_VALUES);
     for (const field of fields) {
       if (!allowed.has(field)) {
-        badRequest(`不支持的分享字段: ${field}`);
+        this.validationFailed(`不支持的分享字段: ${field}`);
       }
     }
     // Dedupe keeps the first-occurrence order.
@@ -264,13 +276,15 @@ export class ShareService {
     const dateTo = this.parseDate(input.dateTo);
 
     if (eventId && (dateFrom || dateTo)) {
-      badRequest('eventId 与日期范围不能同时指定');
+      this.validationFailed('eventId 与日期范围不能同时指定');
     }
     if (!eventId && !(dateFrom && dateTo)) {
-      badRequest('必须指定 eventId 或完整的 dateFrom/dateTo 日期范围');
+      this.validationFailed(
+        '必须指定 eventId 或完整的 dateFrom/dateTo 日期范围',
+      );
     }
     if (dateFrom && dateTo && dateFrom.getTime() > dateTo.getTime()) {
-      badRequest('dateFrom 不能晚于 dateTo');
+      this.validationFailed('dateFrom 不能晚于 dateTo');
     }
 
     return { eventId, dateFrom, dateTo };
@@ -280,7 +294,7 @@ export class ShareService {
     if (value == null) return null;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-      badRequest(`无效的日期: ${String(value)}`);
+      this.validationFailed(`无效的日期: ${String(value)}`);
     }
     return date;
   }

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
@@ -111,7 +111,7 @@ describe('ReportsContextService', () => {
         range: REPORT_RANGE_CUSTOM,
         endDate: '2026-06-10',
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(DomainFailureException);
   });
 
   it('throws when custom range is missing endDate', async () => {
@@ -128,7 +128,7 @@ describe('ReportsContextService', () => {
         range: REPORT_RANGE_CUSTOM,
         startDate: '2026-06-01',
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(DomainFailureException);
   });
 
   it('throws when custom startDate is after endDate', async () => {
@@ -146,7 +146,7 @@ describe('ReportsContextService', () => {
         startDate: '2026-06-10',
         endDate: '2026-06-01',
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(DomainFailureException);
   });
 
   it('counts meal estimate days only from confirmed and unconfirmed meal analyses', async () => {

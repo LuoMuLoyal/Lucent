@@ -1,6 +1,8 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ProblemCatalog } from '../problem-catalog';
 import { SseProblemDetailsMapper } from './sse-problem-details';
+import { createDomainFailure } from '../../result';
+import { DomainFailureException } from '../../result/domain-failure.exception';
 
 describe('SseProblemDetailsMapper', () => {
   function createMapper(): SseProblemDetailsMapper {
@@ -61,5 +63,98 @@ describe('SseProblemDetailsMapper', () => {
 
     expect(payload.code).toBe('AUTH_REQUIRED');
     expect(payload).not.toHaveProperty('statusCode');
+  });
+
+  it('maps a DomainFailureException to a safe client error payload', () => {
+    const mapper = createMapper();
+
+    const payload = mapper.build(
+      new DomainFailureException(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: 'Conversation not found.',
+          cause: new Error('root cause must not leak'),
+        }),
+      ),
+      { lang: 'en' },
+    );
+
+    expect(payload).toEqual({
+      type: 'https://api.lumos.example/problems/resource-not-found',
+      title: 'common.problem_resource_not_found_title',
+      detail: 'Conversation not found.',
+      code: 'RESOURCE_NOT_FOUND',
+      retryable: false,
+      status: 'client_error',
+    });
+    expect(payload).not.toHaveProperty('statusCode');
+    expect(payload).not.toHaveProperty('traceId');
+    expect(payload).not.toHaveProperty('cause');
+    expect(payload).not.toHaveProperty('stack');
+  });
+
+  it('maps a raw DomainFailure to a safe payload with retryable/retryAfter', () => {
+    const mapper = createMapper();
+
+    const payload = mapper.build(
+      createDomainFailure({
+        kind: 'dependency',
+        code: 'DEPENDENCY_TIMEOUT',
+        retryable: true,
+        retryAfter: 30,
+      }),
+      { lang: 'en' },
+    );
+
+    expect(payload).toEqual({
+      type: 'https://api.lumos.example/problems/dependency-timeout',
+      title: 'common.problem_dependency_timeout_title',
+      detail: 'common.problem_dependency_timeout_detail',
+      code: 'DEPENDENCY_TIMEOUT',
+      retryable: true,
+      retryAfter: 30,
+      status: 'server_error',
+    });
+  });
+
+  it('maps dependency and internal failures to server_error status', () => {
+    const mapper = createMapper();
+
+    const dependency = mapper.build(
+      new DomainFailureException(
+        createDomainFailure({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+        }),
+      ),
+      { lang: 'en' },
+    );
+    const internal = mapper.build(
+      new DomainFailureException(
+        createDomainFailure({ kind: 'internal', code: 'INTERNAL_ERROR' }),
+      ),
+      { lang: 'en' },
+    );
+
+    expect(dependency.status).toBe('server_error');
+    expect(internal.status).toBe('server_error');
+  });
+
+  it('respects an explicit transport status option', () => {
+    const mapper = createMapper();
+
+    const payload = mapper.build(
+      new DomainFailureException(
+        createDomainFailure({
+          kind: 'conflict',
+          code: 'RESOURCE_CONFLICT',
+        }),
+      ),
+      { lang: 'en', status: 'cancelled' },
+    );
+
+    expect(payload.code).toBe('RESOURCE_CONFLICT');
+    expect(payload.status).toBe('cancelled');
   });
 });

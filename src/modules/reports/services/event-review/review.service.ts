@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createDomainFailure } from '../../../../common/result';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import { DailyRecordKind, HealthEventStatus } from '#generated/prisma/client';
 import {
   DEFAULT_USER_TIMEZONE,
-  badRequest,
   formatDateOnly,
   formatDateOnlyInTimezone,
   now,
@@ -408,6 +409,16 @@ export class EventReviewService {
     };
   }
 
+  private validationFailed(message: string): never {
+    throw new DomainFailureException(
+      createDomainFailure({
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        detail: message,
+      }),
+    );
+  }
+
   private resolveCursor(cursor: string | undefined): ReviewCursor | null {
     if (cursor == null) {
       return null;
@@ -420,16 +431,16 @@ export class EventReviewService {
       startedAtIso === '' ||
       id === ''
     ) {
-      badRequest('Invalid review cursor.');
+      this.validationFailed('Invalid review cursor.');
     }
     // Strict ISO-8601 instant shape check before parsing: rejects date-only
     // or locale-formatted values that `new Date` would silently accept.
     if (!REVIEW_CURSOR_STARTED_AT_PATTERN.test(startedAtIso)) {
-      badRequest('Invalid review cursor.');
+      this.validationFailed('Invalid review cursor.');
     }
     const startedAt = new Date(startedAtIso);
     if (Number.isNaN(startedAt.getTime())) {
-      badRequest('Invalid review cursor.');
+      this.validationFailed('Invalid review cursor.');
     }
     return { startedAt, id };
   }

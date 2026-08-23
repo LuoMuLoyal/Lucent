@@ -1,4 +1,5 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import {
   DailyRecordKind,
   DoseLogStatus,
@@ -903,17 +904,17 @@ describe('EventReviewService', () => {
 
       await expect(
         service.list(USER_ID, { cursor: '2026-08-05T08:00:00.000Z' }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       await expect(
         service.list(USER_ID, { cursor: 'a|b|c' }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       await expect(
         service.list(USER_ID, { cursor: 'not-a-date|evt-1' }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       // Parseable by `new Date` but not the exact toISOString shape.
       await expect(
         service.list(USER_ID, { cursor: '2026-08-05T08:00:00Z|evt-1' }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
 
     it('returns an empty list when the user has no events', async () => {

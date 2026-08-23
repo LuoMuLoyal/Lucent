@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { BadRequestException } from '@nestjs/common';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
 import {
   ProductEventName,
   ProductEventResult,
@@ -233,7 +233,7 @@ describe('ShareService', () => {
           ...validShareInput,
           selectedFields: [],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       expect(shareStore.create).not.toHaveBeenCalled();
     });
 
@@ -243,7 +243,7 @@ describe('ShareService', () => {
           ...validShareInput,
           selectedFields: ['event_overview', 'doctor_notes'],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       expect(shareStore.create).not.toHaveBeenCalled();
     });
 
@@ -255,7 +255,7 @@ describe('ShareService', () => {
           dateTo: '2026-08-07',
           selectedFields: ['water'],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
 
     it('rejects a scope with neither eventId nor a full date range', async () => {
@@ -263,19 +263,19 @@ describe('ShareService', () => {
         service.createShare('user-1', {
           selectedFields: ['water'],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       await expect(
         service.createShare('user-1', {
           dateFrom: '2026-08-01',
           selectedFields: ['water'],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       await expect(
         service.createShare('user-1', {
           dateTo: '2026-08-07',
           selectedFields: ['water'],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
 
     it('rejects an invalid date string', async () => {
@@ -285,7 +285,7 @@ describe('ShareService', () => {
           dateTo: '2026-08-07',
           selectedFields: ['water'],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       expect(shareStore.create).not.toHaveBeenCalled();
     });
 
@@ -296,7 +296,7 @@ describe('ShareService', () => {
           dateTo: '2026-08-01',
           selectedFields: ['water'],
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(DomainFailureException);
       expect(shareStore.create).not.toHaveBeenCalled();
     });
   });
