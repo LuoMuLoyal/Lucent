@@ -58,8 +58,12 @@ export class SseConnectionRegistry
         if (!response.writableEnded) {
           response.end();
         }
-      } catch {
-        // Best-effort: one broken connection must not abort the shutdown.
+      } catch (error) {
+        // Best-effort: one broken connection must not abort the shutdown,
+        // but we log it so operators can diagnose leaks during graceful shutdown.
+        this.logger.warn('Failed to close SSE connection during shutdown', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
     if (count > 0) {

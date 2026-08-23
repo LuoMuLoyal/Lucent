@@ -31,6 +31,7 @@ describe('SseConnectionRegistry', () => {
 
   beforeEach(() => {
     vi.spyOn(Logger.prototype, 'log').mockImplementation(vi.fn() as never);
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(vi.fn() as never);
     registry = new SseConnectionRegistry(
       new SseProblemDetailsMapper(
         new ProblemCatalog({ t: vi.fn((key: string) => key) } as never),
@@ -130,6 +131,10 @@ describe('SseConnectionRegistry', () => {
       }).not.toThrow();
       expect(healthy.end).toHaveBeenCalled();
       expect(registry.size).toBe(0);
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Failed to close SSE connection during shutdown',
+        { error: 'socket gone' },
+      );
     });
   });
 
