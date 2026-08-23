@@ -2,15 +2,49 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { I18nService } from 'nestjs-i18n';
 import { AuthTokenService } from './token.service';
 import { normalizeEmail } from '../../../common';
 import { AuthSessionRepositoryPort } from '../repositories/session.repository';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 
 function hash(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+function refreshTokenInvalid(): DomainFailure {
+  return createDomainFailure({
+    kind: 'authentication',
+    code: 'AUTH_REFRESH_TOKEN_INVALID',
+  });
+}
+
+function sessionNotFound(): DomainFailure {
+  return createDomainFailure({
+    kind: 'authentication',
+    code: 'AUTH_SESSION_NOT_FOUND',
+  });
+}
+
+/**
+ * Folds a ResultAsync into a plain outcome so specs can assert both success
+ * values and DomainFailure codes without throwing.
+ */
+function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
 }
 
 describe('AuthTokenService', () => {
@@ -24,16 +58,22 @@ describe('AuthTokenService', () => {
   };
 
   beforeEach(async () => {
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
     const sessionRepoMock = {
       createSession: vi.fn().mockResolvedValue(undefined),
-      findSessionByRefreshTokenHash: vi.fn().mockResolvedValue(null),
+      findSessionByRefreshTokenHash: vi
+        .fn()
+        .mockReturnValue(errAsync(refreshTokenInvalid())),
       deleteSessionById: vi.fn().mockResolvedValue(undefined),
-      claimSessionForRefresh: vi.fn().mockResolvedValue(true),
-      deleteSessionsByUserIdAndHash: vi.fn().mockResolvedValue(undefined),
-      deleteSessionsByUserId: vi.fn().mockResolvedValue(undefined),
-      findSessionById: vi.fn().mockResolvedValue(null),
-      revokeSessionById: vi.fn().mockResolvedValue(undefined),
-      listActiveSessions: vi.fn().mockResolvedValue([]),
+      claimSessionForRefresh: vi.fn().mockReturnValue(okAsync(undefined)),
+      deleteSessionsByUserIdAndHash: vi
+        .fn()
+        .mockReturnValue(okAsync(undefined)),
+      deleteSessionsByUserId: vi.fn().mockReturnValue(okAsync(undefined)),
+      findSessionById: vi.fn().mockReturnValue(errAsync(sessionNotFound())),
+      revokeSessionById: vi.fn().mockReturnValue(okAsync(undefined)),
+      listActiveSessions: vi.fn().mockReturnValue(okAsync([])),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -60,12 +100,6 @@ describe('AuthTokenService', () => {
             }),
           },
         },
-        {
-          provide: I18nService,
-          useValue: {
-            t: vi.fn((key: string) => key),
-          },
-        },
       ],
     }).compile();
 
@@ -79,12 +113,19 @@ describe('AuthTokenService', () => {
 
   describe('generateTokenPair', () => {
     it('should create a session and return tokens', async () => {
-      const result = await service.generateTokenPair(mockUser as never);
+      const outcome = await collectResult(
+        service.generateTokenPair(mockUser as never),
+      );
 
-      expect(result.accessToken).toBe('mock-access-token');
-      expect(result.refreshToken).toEqual(expect.any(String));
-      expect(result.accessTokenExpiresAt).toEqual(expect.any(String));
-      expect(result.refreshTokenExpiresAt).toEqual(expect.any(String));
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          accessToken: 'mock-access-token',
+          refreshToken: expect.any(String),
+          accessTokenExpiresAt: expect.any(String),
+          refreshTokenExpiresAt: expect.any(String),
+        }),
+      });
       expect(sessionRepo.createSession).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-1',
@@ -94,10 +135,12 @@ describe('AuthTokenService', () => {
     });
 
     it('should set IP and user-agent from context', async () => {
-      await service.generateTokenPair(mockUser as never, {
-        ipAddress: '1.2.3.4',
-        userAgent: 'TestAgent/1.0',
-      });
+      await collectResult(
+        service.generateTokenPair(mockUser as never, {
+          ipAddress: '1.2.3.4',
+          userAgent: 'TestAgent/1.0',
+        }),
+      );
 
       expect(sessionRepo.createSession).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -107,101 +150,222 @@ describe('AuthTokenService', () => {
     });
 
     it('should not set context property when context is undefined', async () => {
-      await service.generateTokenPair(mockUser as never);
+      await collectResult(service.generateTokenPair(mockUser as never));
 
       const callArg = (sessionRepo.createSession as vi.Mock).mock.calls[0]![0];
       expect(callArg.context).toBeUndefined();
     });
 
     it('should produce different refresh tokens across calls', async () => {
-      const a = await service.generateTokenPair(mockUser as never);
-      const b = await service.generateTokenPair(mockUser as never);
-      expect(a.refreshToken).not.toBe(b.refreshToken);
+      const a = await collectResult(
+        service.generateTokenPair(mockUser as never),
+      );
+      const b = await collectResult(
+        service.generateTokenPair(mockUser as never),
+      );
+      expect(a).toEqual({ ok: true, value: expect.any(Object) });
+      expect(b).toEqual({ ok: true, value: expect.any(Object) });
+      if (a.ok && b.ok) {
+        expect(a.value.refreshToken).not.toBe(b.value.refreshToken);
+      }
+    });
+
+    it('should not mask signing failures as a domain failure', async () => {
+      (service['jwtService'].signAsync as vi.Mock).mockRejectedValueOnce(
+        new Error('signing backend down'),
+      );
+
+      await expect(
+        collectResult(service.generateTokenPair(mockUser as never)),
+      ).rejects.toMatchObject({
+        name: 'InternalServerErrorException',
+        response: { code: 'INTERNAL_ERROR' },
+      });
     });
   });
 
   describe('refresh', () => {
     it('should rotate the refresh token', async () => {
       const oldToken = 'old-refresh-token';
-      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
-        id: 'session-1',
-        refreshTokenHash: hash(oldToken),
-        expiresAt: new Date(Date.now() + 86400000),
-        revokedAt: null,
-        userId: 'user-1',
-        user: mockUser as never,
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-1',
+          refreshTokenHash: hash(oldToken),
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: null,
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
+      );
+
+      const outcome = await collectResult(service.refresh(oldToken));
+
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({ accessToken: 'mock-access-token' }),
       });
-      sessionRepo.claimSessionForRefresh.mockResolvedValueOnce(true);
-
-      const result = await service.refresh(oldToken);
-
-      expect(result.accessToken).toBe('mock-access-token');
       expect(sessionRepo.claimSessionForRefresh).toHaveBeenCalledWith(
         'session-1',
       );
     });
 
-    it('should throw when session was already claimed by a concurrent refresh', async () => {
+    it('should fail when session was already claimed by a concurrent refresh', async () => {
       const oldToken = 'concurrent-refresh-token';
-      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
-        id: 'session-2',
-        refreshTokenHash: hash(oldToken),
-        expiresAt: new Date(Date.now() + 86400000),
-        revokedAt: null,
-        userId: 'user-1',
-        user: mockUser as never,
-      });
-      sessionRepo.claimSessionForRefresh.mockResolvedValueOnce(false);
-
-      await expect(service.refresh(oldToken)).rejects.toThrow(
-        'auth.refresh_token_invalid',
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-2',
+          refreshTokenHash: hash(oldToken),
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: null,
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
       );
+      sessionRepo.claimSessionForRefresh.mockReturnValueOnce(
+        errAsync(refreshTokenInvalid()),
+      );
+
+      const outcome = await collectResult(service.refresh(oldToken));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
       expect(sessionRepo.claimSessionForRefresh).toHaveBeenCalledWith(
         'session-2',
       );
-    });
-
-    it('should throw for missing session', async () => {
-      await expect(service.refresh('unknown')).rejects.toThrow(
-        'auth.refresh_token_invalid',
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Refresh token invalid',
+        expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+          reason: 'already-claimed-or-expired',
+          userId: 'user-1',
+          refreshTokenHash: `${hash(oldToken).slice(0, 12)}…`,
+        }),
       );
     });
 
-    it('should throw for revoked session', async () => {
-      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
-        id: 'session-1',
-        refreshTokenHash: hash('revoked-token'),
-        expiresAt: new Date(Date.now() + 86400000),
-        revokedAt: new Date(),
-        userId: 'user-1',
-        user: mockUser as never,
-      });
+    it('should fail for missing session', async () => {
+      const outcome = await collectResult(service.refresh('unknown'));
 
-      await expect(service.refresh('revoked-token')).rejects.toThrow(
-        'auth.refresh_token_invalid',
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Refresh token invalid',
+        expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+          reason: 'not-found',
+          refreshTokenHash: `${hash('unknown').slice(0, 12)}…`,
+        }),
       );
     });
 
-    it('should throw for expired session', async () => {
-      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
-        id: 'session-1',
-        refreshTokenHash: hash('expired-token'),
-        expiresAt: new Date(Date.now() - 1000),
-        revokedAt: null,
-        userId: 'user-1',
-        user: mockUser as never,
-      });
+    it('should fail for revoked session', async () => {
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-1',
+          refreshTokenHash: hash('revoked-token'),
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: new Date(),
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
+      );
 
-      await expect(service.refresh('expired-token')).rejects.toThrow(
-        'auth.refresh_token_invalid',
+      const outcome = await collectResult(service.refresh('revoked-token'));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+      expect(sessionRepo.claimSessionForRefresh).not.toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Refresh token invalid',
+        expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+          reason: 'revoked',
+          userId: 'user-1',
+          refreshTokenHash: `${hash('revoked-token').slice(0, 12)}…`,
+        }),
+      );
+    });
+
+    it('should fail for expired session', async () => {
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-1',
+          refreshTokenHash: hash('expired-token'),
+          expiresAt: new Date(Date.now() - 1000),
+          revokedAt: null,
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
+      );
+
+      const outcome = await collectResult(service.refresh('expired-token'));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+      expect(sessionRepo.claimSessionForRefresh).not.toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Refresh token invalid',
+        expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+          reason: 'expired',
+          userId: 'user-1',
+          refreshTokenHash: `${hash('expired-token').slice(0, 12)}…`,
+        }),
+      );
+    });
+
+    it('should not mask repository failures as refresh-token-invalid', async () => {
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-1',
+          refreshTokenHash: hash('token'),
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: null,
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
+      );
+      // A rejecting ResultAsync (as produced by the repository when a
+      // database/connection error is re-thrown) must surface as a rejection,
+      // never as an AUTH_REFRESH_TOKEN_INVALID DomainFailure.
+      sessionRepo.claimSessionForRefresh.mockReturnValueOnce(
+        fromPromise(
+          Promise.reject(new Error('db connection lost')),
+          (error) => {
+            throw error;
+          },
+        ),
+      );
+
+      await expect(collectResult(service.refresh('token'))).rejects.toThrow(
+        'db connection lost',
       );
     });
   });
 
   describe('revoke', () => {
     it('should delete the session by refresh token hash', async () => {
-      await service.revoke('user-1', 'some-token');
+      const outcome = await collectResult(
+        service.revoke('user-1', 'some-token'),
+      );
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
         'user-1',
         hash('some-token'),
@@ -209,7 +373,7 @@ describe('AuthTokenService', () => {
     });
 
     it('should hash the token before deletion', async () => {
-      await service.revoke('user-1', 'another-token');
+      await collectResult(service.revoke('user-1', 'another-token'));
 
       const expectedHash = hash('another-token');
       expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
@@ -221,80 +385,111 @@ describe('AuthTokenService', () => {
 
   describe('revokeAll', () => {
     it('should delete all sessions for the user', async () => {
-      await service.revokeAll('user-1');
+      const outcome = await collectResult(service.revokeAll('user-1'));
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(sessionRepo.deleteSessionsByUserId).toHaveBeenCalledWith('user-1');
     });
   });
 
   describe('revokeById', () => {
     it('should revoke a session by its ID', async () => {
-      sessionRepo.findSessionById.mockResolvedValueOnce({
-        id: 'session-1',
-        userId: 'user-1',
-      } as never);
+      sessionRepo.findSessionById.mockReturnValueOnce(
+        okAsync({
+          id: 'session-1',
+          userId: 'user-1',
+        } as never),
+      );
 
-      await service.revokeById('user-1', 'session-1');
+      const outcome = await collectResult(
+        service.revokeById('user-1', 'session-1'),
+      );
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(sessionRepo.revokeSessionById).toHaveBeenCalledWith('session-1');
     });
 
-    it('should throw NotFoundException when session is not found', async () => {
-      await expect(service.revokeById('user-1', 'nonexistent')).rejects.toThrow(
-        NotFoundException,
+    it('should map a missing session to AUTH_SESSION_NOT_FOUND', async () => {
+      const outcome = await collectResult(
+        service.revokeById('user-1', 'nonexistent'),
       );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_SESSION_NOT_FOUND' }),
+      });
+      expect(sessionRepo.revokeSessionById).not.toHaveBeenCalled();
     });
 
-    it('should throw ForbiddenException when session belongs to another user', async () => {
-      sessionRepo.findSessionById.mockResolvedValueOnce({
-        id: 'session-1',
-        userId: 'user-2',
-      } as never);
-
-      await expect(service.revokeById('user-1', 'session-1')).rejects.toThrow(
-        ForbiddenException,
+    it('should map a foreign session to AUTH_SESSION_ACCESS_DENIED', async () => {
+      sessionRepo.findSessionById.mockReturnValueOnce(
+        okAsync({
+          id: 'session-1',
+          userId: 'user-2',
+        } as never),
       );
+
+      const outcome = await collectResult(
+        service.revokeById('user-1', 'session-1'),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_SESSION_ACCESS_DENIED',
+        }),
+      });
+      expect(sessionRepo.revokeSessionById).not.toHaveBeenCalled();
     });
   });
 
   describe('listSessions', () => {
     it('should return only active sessions', async () => {
       const now = new Date();
-      sessionRepo.listActiveSessions.mockResolvedValueOnce([
-        {
-          id: 'session-1',
-          userId: 'user-1',
-          deviceType: 'mobile',
-          deviceName: 'iPhone 15',
-          platform: 'ios',
-          lastUsedAt: now,
-          createdAt: now,
-          expiresAt: new Date(now.getTime() + 86400000),
-        },
-        {
-          id: 'session-2',
-          userId: 'user-1',
-          deviceType: 'desktop',
-          deviceName: null,
-          platform: 'windows',
-          lastUsedAt: new Date(now.getTime() - 3600000),
-          createdAt: new Date(now.getTime() - 86400000),
-          expiresAt: new Date(now.getTime() + 86400000),
-        },
-      ]);
+      sessionRepo.listActiveSessions.mockReturnValueOnce(
+        okAsync([
+          {
+            id: 'session-1',
+            userId: 'user-1',
+            deviceType: 'mobile',
+            deviceName: 'iPhone 15',
+            platform: 'ios',
+            lastUsedAt: now,
+            createdAt: now,
+            expiresAt: new Date(now.getTime() + 86400000),
+          },
+          {
+            id: 'session-2',
+            userId: 'user-1',
+            deviceType: 'desktop',
+            deviceName: null,
+            platform: 'windows',
+            lastUsedAt: new Date(now.getTime() - 3600000),
+            createdAt: new Date(now.getTime() - 86400000),
+            expiresAt: new Date(now.getTime() + 86400000),
+          },
+        ]),
+      );
 
-      const result = await service.listSessions('user-1');
+      const outcome = await collectResult(service.listSessions('user-1'));
 
-      expect(result).toHaveLength(2);
-      expect(result[0]?.id).toBe('session-1');
-      expect(result[0]?.deviceType).toBe('mobile');
-      expect(result[1]?.deviceName).toBeNull();
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.any(Array),
+      });
+      if (outcome.ok) {
+        expect(outcome.value).toHaveLength(2);
+        expect(outcome.value[0]?.id).toBe('session-1');
+        expect(outcome.value[0]?.deviceType).toBe('mobile');
+        expect(outcome.value[1]?.deviceName).toBeNull();
+      }
       expect(sessionRepo.listActiveSessions).toHaveBeenCalledWith('user-1');
     });
 
     it('should return empty array when no active sessions', async () => {
-      const result = await service.listSessions('user-1');
-      expect(result).toHaveLength(0);
+      const outcome = await collectResult(service.listSessions('user-1'));
+
+      expect(outcome).toEqual({ ok: true, value: [] });
     });
   });
 

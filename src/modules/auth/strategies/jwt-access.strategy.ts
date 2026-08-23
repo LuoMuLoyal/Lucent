@@ -1,4 +1,3 @@
-import { unauthorized } from '../../../common';
 import { Injectable } from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +5,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { ConfigKey } from '../../../config/env/config-keys.enum';
+import { createDomainFailure } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
 import { UserPayload } from '../services/auth.service';
 
 interface JwtConfigShape {
@@ -40,14 +41,25 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
    * 返回值会挂载到 request.user。
    *
    * 安全检查：拒绝非 active 用户的 token（suspended / deleted）。
+   * 失败在此 transport boundary 抛出 DomainFailureException（filter 内部桥接），
+   * 由全局 filter 输出 AUTH_REQUIRED Problem Details。
    */
   validate(payload: UserPayload): UserPayload {
     if (!payload.sub) {
-      unauthorized('无效的 access token');
+      throw this.authRequiredFailure();
     }
     if (payload.status !== 'active') {
-      unauthorized('用户已被禁用或删除');
+      throw this.authRequiredFailure();
     }
     return payload;
+  }
+
+  private authRequiredFailure(): DomainFailureException {
+    return new DomainFailureException(
+      createDomainFailure({
+        kind: 'authentication',
+        code: 'AUTH_REQUIRED',
+      }),
+    );
   }
 }

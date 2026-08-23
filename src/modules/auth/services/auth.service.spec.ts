@@ -2,10 +2,7 @@ import { nonDeleted } from '../../../common';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import {
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
@@ -33,6 +30,7 @@ import { NotificationsService } from '../../notifications';
 import {
   createDomainFailure,
   errAsync,
+  fromPromise,
   okAsync,
   type ResultAsync,
 } from '../../../common/result';
@@ -190,15 +188,17 @@ describe('AuthService', () => {
         {
           provide: AuthTokenService,
           useValue: {
-            generateTokenPair: vi.fn().mockResolvedValue(mockTokenPair),
-            refresh: vi.fn().mockRejectedValue(
-              new UnauthorizedException({
-                code: 'AUTH_REQUIRED',
-                message: 'REFRESH_TOKEN_INVALID',
-              }),
+            generateTokenPair: vi.fn().mockReturnValue(okAsync(mockTokenPair)),
+            refresh: vi.fn().mockReturnValue(
+              errAsync(
+                createDomainFailure({
+                  kind: 'authentication',
+                  code: 'AUTH_REFRESH_TOKEN_INVALID',
+                }),
+              ),
             ),
-            revoke: vi.fn(),
-            revokeAll: vi.fn(),
+            revoke: vi.fn().mockReturnValue(okAsync(undefined)),
+            revokeAll: vi.fn().mockReturnValue(okAsync(undefined)),
             revokeById: vi.fn(),
             listSessions: vi.fn(),
             hashRefreshToken: vi.fn(),
@@ -345,8 +345,8 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('should rotate refresh token and return a new pair', async () => {
-      (authTokenService.refresh as vi.Mock).mockResolvedValueOnce(
-        mockTokenPair,
+      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
+        okAsync(mockTokenPair),
       );
 
       const outcome = await collectResult(
@@ -372,11 +372,13 @@ describe('AuthService', () => {
     });
 
     it('should return AUTH_REFRESH_TOKEN_INVALID for an expired refresh token', async () => {
-      (authTokenService.refresh as vi.Mock).mockRejectedValueOnce(
-        new UnauthorizedException({
-          code: 'AUTH_REQUIRED',
-          message: 'expired',
-        }),
+      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_REFRESH_TOKEN_INVALID',
+          }),
+        ),
       );
 
       const outcome = await collectResult(service.refresh('expired-token'));
@@ -390,8 +392,13 @@ describe('AuthService', () => {
     });
 
     it('should not mask infrastructure failures as refresh-token-invalid', async () => {
-      (authTokenService.refresh as vi.Mock).mockRejectedValueOnce(
-        new Error('db connection lost'),
+      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
+        fromPromise(
+          Promise.reject(new Error('db connection lost')),
+          (error) => {
+            throw error;
+          },
+        ),
       );
 
       await expect(collectResult(service.refresh('token'))).rejects.toThrow(
@@ -400,8 +407,13 @@ describe('AuthService', () => {
     });
 
     it('should not mask signing failures as refresh-token-invalid', async () => {
-      (authTokenService.refresh as vi.Mock).mockRejectedValueOnce(
-        new InternalServerErrorException('signing failed'),
+      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
+        fromPromise(
+          Promise.reject(new InternalServerErrorException('signing failed')),
+          (error) => {
+            throw error;
+          },
+        ),
       );
 
       await expect(collectResult(service.refresh('token'))).rejects.toThrow(
@@ -416,8 +428,11 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('should delegate to authTokenService.revoke', async () => {
-      await service.logout('user-uuid-1', 'some-refresh-token');
+      const outcome = await collectResult(
+        service.logout('user-uuid-1', 'some-refresh-token'),
+      );
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(authTokenService.revoke).toHaveBeenCalledWith(
         'user-uuid-1',
         'some-refresh-token',
@@ -427,8 +442,9 @@ describe('AuthService', () => {
 
   describe('logoutAll', () => {
     it('should delegate to authTokenService.revokeAll', async () => {
-      await service.logoutAll('user-uuid-1');
+      const outcome = await collectResult(service.logoutAll('user-uuid-1'));
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
     });
   });

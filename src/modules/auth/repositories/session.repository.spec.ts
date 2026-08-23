@@ -1,7 +1,21 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 import { AuthSessionRepository } from './session.repository';
 import type { PrismaService } from '../../../prisma';
+
+/**
+ * Folds a ResultAsync into a plain outcome so specs can assert both success
+ * values and DomainFailure codes without throwing.
+ */
+function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('AuthSessionRepository', () => {
   let repository: AuthSessionRepository;
@@ -92,20 +106,40 @@ describe('AuthSessionRepository', () => {
       const mockSession = { id: 's1', user: { id: 'user-1' } };
       prisma.userSession.findUnique.mockResolvedValue(mockSession as never);
 
-      const result = await repository.findSessionByRefreshTokenHash('hash');
+      const outcome = await collectResult(
+        repository.findSessionByRefreshTokenHash('hash'),
+      );
 
-      expect(result).toBe(mockSession);
+      expect(outcome).toEqual({ ok: true, value: mockSession });
       expect(prisma.userSession.findUnique).toHaveBeenCalledWith({
         where: { refreshTokenHash: 'hash' },
         include: { user: true },
       });
     });
 
-    it('returns null when session not found', async () => {
+    it('maps a missing session to AUTH_REFRESH_TOKEN_INVALID', async () => {
       prisma.userSession.findUnique.mockResolvedValue(null);
 
-      const result = await repository.findSessionByRefreshTokenHash('missing');
-      expect(result).toBeNull();
+      const outcome = await collectResult(
+        repository.findSessionByRefreshTokenHash('missing'),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+    });
+
+    it('rethrows unknown database errors instead of mapping them', async () => {
+      prisma.userSession.findUnique.mockRejectedValue(
+        new Error('db connection lost'),
+      );
+
+      await expect(
+        collectResult(repository.findSessionByRefreshTokenHash('hash')),
+      ).rejects.toThrow('db connection lost');
     });
   });
 
@@ -122,12 +156,14 @@ describe('AuthSessionRepository', () => {
   });
 
   describe('claimSessionForRefresh', () => {
-    it('returns true when session is successfully claimed', async () => {
+    it('resolves ok when session is successfully claimed', async () => {
       prisma.userSession.deleteMany.mockResolvedValue({ count: 1 } as never);
 
-      const result = await repository.claimSessionForRefresh('session-1');
+      const outcome = await collectResult(
+        repository.claimSessionForRefresh('session-1'),
+      );
 
-      expect(result).toBe(true);
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
         where: {
           id: 'session-1',
@@ -137,12 +173,29 @@ describe('AuthSessionRepository', () => {
       });
     });
 
-    it('returns false when session was already claimed', async () => {
+    it('maps an already-claimed session to AUTH_REFRESH_TOKEN_INVALID', async () => {
       prisma.userSession.deleteMany.mockResolvedValue({ count: 0 } as never);
 
-      const result = await repository.claimSessionForRefresh('session-1');
+      const outcome = await collectResult(
+        repository.claimSessionForRefresh('session-1'),
+      );
 
-      expect(result).toBe(false);
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+    });
+
+    it('rethrows unknown database errors instead of mapping them', async () => {
+      prisma.userSession.deleteMany.mockRejectedValue(
+        new Error('db connection lost'),
+      );
+
+      await expect(
+        collectResult(repository.claimSessionForRefresh('session-1')),
+      ).rejects.toThrow('db connection lost');
     });
   });
 
@@ -150,8 +203,11 @@ describe('AuthSessionRepository', () => {
     it('deletes many by userId and hash', async () => {
       prisma.userSession.deleteMany.mockResolvedValue({ count: 2 } as never);
 
-      await repository.deleteSessionsByUserIdAndHash('user-1', 'hash');
+      const outcome = await collectResult(
+        repository.deleteSessionsByUserIdAndHash('user-1', 'hash'),
+      );
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-1', refreshTokenHash: 'hash' },
       });
@@ -162,8 +218,11 @@ describe('AuthSessionRepository', () => {
     it('deletes all sessions for a user', async () => {
       prisma.userSession.deleteMany.mockResolvedValue({ count: 5 } as never);
 
-      await repository.deleteSessionsByUserId('user-1');
+      const outcome = await collectResult(
+        repository.deleteSessionsByUserId('user-1'),
+      );
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
       });
@@ -175,11 +234,24 @@ describe('AuthSessionRepository', () => {
       const mockSession = { id: 's1' };
       prisma.userSession.findUnique.mockResolvedValue(mockSession as never);
 
-      const result = await repository.findSessionById('s1');
+      const outcome = await collectResult(repository.findSessionById('s1'));
 
-      expect(result).toBe(mockSession);
+      expect(outcome).toEqual({ ok: true, value: mockSession });
       expect(prisma.userSession.findUnique).toHaveBeenCalledWith({
         where: { id: 's1' },
+      });
+    });
+
+    it('maps a missing session to AUTH_SESSION_NOT_FOUND', async () => {
+      prisma.userSession.findUnique.mockResolvedValue(null);
+
+      const outcome = await collectResult(
+        repository.findSessionById('missing'),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_SESSION_NOT_FOUND' }),
       });
     });
   });
@@ -188,12 +260,25 @@ describe('AuthSessionRepository', () => {
     it('updates revokedAt to current time', async () => {
       prisma.userSession.update.mockResolvedValue(undefined as never);
 
-      await repository.revokeSessionById('session-1');
+      const outcome = await collectResult(
+        repository.revokeSessionById('session-1'),
+      );
 
+      expect(outcome).toEqual({ ok: true, value: undefined });
       expect(prisma.userSession.update).toHaveBeenCalledWith({
         where: { id: 'session-1' },
         data: { revokedAt: expect.any(Date) },
       });
+    });
+
+    it('rethrows unknown database errors instead of mapping them', async () => {
+      prisma.userSession.update.mockRejectedValue(
+        new Error('db connection lost'),
+      );
+
+      await expect(
+        collectResult(repository.revokeSessionById('session-1')),
+      ).rejects.toThrow('db connection lost');
     });
   });
 
@@ -204,9 +289,11 @@ describe('AuthSessionRepository', () => {
       ];
       prisma.userSession.findMany.mockResolvedValue(mockSessions as never);
 
-      const result = await repository.listActiveSessions('user-1');
+      const outcome = await collectResult(
+        repository.listActiveSessions('user-1'),
+      );
 
-      expect(result).toBe(mockSessions);
+      expect(outcome).toEqual({ ok: true, value: mockSessions });
       const call = prisma.userSession.findMany.mock.calls[0]?.[0];
       expect(call?.where).toMatchObject({
         userId: 'user-1',
@@ -219,7 +306,7 @@ describe('AuthSessionRepository', () => {
     it('selects the correct fields', async () => {
       prisma.userSession.findMany.mockResolvedValue([] as never);
 
-      await repository.listActiveSessions('user-1');
+      await collectResult(repository.listActiveSessions('user-1'));
 
       const call = prisma.userSession.findMany.mock.calls[0]?.[0];
       expect(call?.select).toEqual({
@@ -234,12 +321,14 @@ describe('AuthSessionRepository', () => {
       });
     });
 
-    it('returns empty array when user has no active sessions', async () => {
+    it('resolves empty array when user has no active sessions', async () => {
       prisma.userSession.findMany.mockResolvedValue([] as never);
 
-      const result = await repository.listActiveSessions('user-1');
+      const outcome = await collectResult(
+        repository.listActiveSessions('user-1'),
+      );
 
-      expect(result).toEqual([]);
+      expect(outcome).toEqual({ ok: true, value: [] });
     });
   });
 });

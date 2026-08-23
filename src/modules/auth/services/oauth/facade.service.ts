@@ -29,6 +29,7 @@ import {
   type OAuthProfile,
 } from '../../types/oauth.types';
 import { AuthNotificationService } from '../notification.service';
+import { unwrapResult } from '../../../../common/result';
 import { AuthOAuthService } from './oauth.service';
 import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
 import { AuthTokenService, type TokenPair } from '../token.service';
@@ -305,9 +306,8 @@ export class AuthOAuthFacadeService {
       user,
       profile,
     );
-    const tokens = await this.authTokenService.generateTokenPair(
-      updatedUser,
-      context,
+    const tokens = await unwrapResult(
+      this.authTokenService.generateTokenPair(updatedUser, context),
     );
     this.authNotificationService
       .notifyOAuthLogin(updatedUser.id, profile)

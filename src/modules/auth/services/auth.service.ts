@@ -1,12 +1,7 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 import { User } from '#generated/prisma/client';
-import {
-  createDomainFailure,
-  fromPromise,
-  type DomainFailure,
-  type ResultAsync,
-} from '../../../common/result';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
 import { ChangeEmailDto } from '../dto/password/change-email.dto';
 import { ChangePasswordDto } from '../dto/password/change-password.dto';
@@ -45,8 +40,6 @@ export type { AuthRequestContext, UserPayload } from '../types/auth-request';
  */
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     private readonly authTokenService: AuthTokenService,
     private readonly credentialAuthService: CredentialAuthService,
@@ -117,36 +110,27 @@ export class AuthService {
 
   /**
    * Rotates a refresh token. Only truly invalid, expired or already-consumed
-   * refresh tokens map to `AUTH_REFRESH_TOKEN_INVALID` (the token service
-   * signals those with a 401 UnauthorizedException). Database, signing and
-   * configuration failures keep their real exception semantics — they are
-   * re-thrown instead of being misreported as an invalid token.
+   * refresh tokens map to `AUTH_REFRESH_TOKEN_INVALID` (signalled by the token
+   * service / session repository as a DomainFailure). Database, signing and
+   * configuration failures are re-thrown and keep their real exception
+   * semantics — they are never misreported as an invalid token.
    */
   refresh(
     refreshToken: string,
     context?: AuthRequestContext,
   ): ResultAsync<TokenPair, DomainFailure> {
-    return fromPromise(
-      this.authTokenService.refresh(refreshToken, context),
-      (error) => {
-        if (error instanceof UnauthorizedException) {
-          this.logger.warn('Token refresh failed', { error });
-          return createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_REFRESH_TOKEN_INVALID',
-          });
-        }
-        throw error;
-      },
-    );
+    return this.authTokenService.refresh(refreshToken, context);
   }
 
-  async logout(userId: string, refreshToken: string): Promise<void> {
-    await this.authTokenService.revoke(userId, refreshToken);
+  logout(
+    userId: string,
+    refreshToken: string,
+  ): ResultAsync<void, DomainFailure> {
+    return this.authTokenService.revoke(userId, refreshToken);
   }
 
-  async logoutAll(userId: string): Promise<void> {
-    await this.authTokenService.revokeAll(userId);
+  logoutAll(userId: string): ResultAsync<void, DomainFailure> {
+    return this.authTokenService.revokeAll(userId);
   }
 
   // ── Account Management ───────────────────────────────────────
@@ -159,9 +143,9 @@ export class AuthService {
     userId: string,
     dto: DeleteAccountDto,
   ): ResultAsync<void, DomainFailure> {
-    return fromPromise(this.logoutAll(userId), (error) => {
-      throw error;
-    }).andThen(() => this.authAccountService.deleteAccount(userId, dto));
+    return this.logoutAll(userId).andThen(() =>
+      this.authAccountService.deleteAccount(userId, dto),
+    );
   }
 
   // ── OAuth delegation ─────────────────────────────────────────

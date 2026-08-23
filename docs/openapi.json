@@ -2606,7 +2606,27 @@
         ],
         "responses": {
           "204": {
-            "description": ""
+            "description": "Session revoked."
+          },
+          "403": {
+            "description": "Session belongs to another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [

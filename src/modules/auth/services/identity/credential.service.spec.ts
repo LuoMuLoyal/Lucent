@@ -181,8 +181,8 @@ describe('CredentialAuthService', () => {
     userService.create.mockResolvedValue(mockUser);
     userService.update.mockReturnValue(okAsync(mockUser));
     userService.updateByEmail.mockResolvedValue(mockUser);
-    authTokenService.generateTokenPair.mockResolvedValue(mockTokenPair);
-    authTokenService.revokeAll.mockResolvedValue(undefined);
+    authTokenService.generateTokenPair.mockReturnValue(okAsync(mockTokenPair));
+    authTokenService.revokeAll.mockReturnValue(okAsync(undefined));
     verificationCodeService.verify.mockReturnValue(okAsync(undefined));
     verificationCodeService.send.mockReturnValue(okAsync(undefined));
     authRateLimitService.checkLoginRateLimit.mockReturnValue(

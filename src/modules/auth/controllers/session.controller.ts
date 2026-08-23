@@ -16,7 +16,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
-import { I18nLang } from 'nestjs-i18n';
 
 import {
   calculateExpiresIn,
@@ -51,7 +50,7 @@ export class SessionController {
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 204, description: 'Logged out.' })
   async logout(@CurrentUser() user: UserPayload, @Body() dto: LogoutDto) {
-    await this.authService.logout(user.sub, dto.refreshToken);
+    await unwrapResult(this.authService.logout(user.sub, dto.refreshToken));
     return;
   }
 
@@ -62,7 +61,9 @@ export class SessionController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List active sessions for the current user' })
   async listSessions(@CurrentUser() user: UserPayload) {
-    const sessions = await this.authTokenService.listSessions(user.sub);
+    const sessions = await unwrapResult(
+      this.authTokenService.listSessions(user.sub),
+    );
     return sessions;
   }
 
@@ -72,12 +73,25 @@ export class SessionController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Session revoked.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Session belongs to another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Session not found',
+    type: ProblemDetailsDto,
+  })
   async revokeSession(
     @CurrentUser() user: UserPayload,
     @Param('sessionId') sessionId: string,
-    @I18nLang() lang: string,
   ) {
-    await this.authTokenService.revokeById(user.sub, sessionId, lang);
+    await unwrapResult(this.authTokenService.revokeById(user.sub, sessionId));
     return;
   }
 

@@ -11,6 +11,7 @@ import type { AuthOAuthService } from './oauth.service';
 import type { AuthNotificationService } from '../notification.service';
 import type { OAuthProfile } from '../../types/oauth.types';
 import { AuthOAuthFacadeService } from './facade.service';
+import { okAsync } from '../../../../common/result';
 
 const mockProfile: OAuthProfile = {
   provider: 'wechat_web',
@@ -106,7 +107,7 @@ describe('AuthOAuthFacadeService', () => {
       buildRedirectUrl: vi.fn().mockReturnValue('https://app/callback'),
     } as unknown as vi.Mocked<AuthOAuthStateService>;
     tokenService = {
-      generateTokenPair: vi.fn().mockResolvedValue(mockTokens),
+      generateTokenPair: vi.fn().mockReturnValue(okAsync(mockTokens)),
     } as unknown as vi.Mocked<AuthTokenService>;
     oauthService = {
       findOrCreateOAuthUser: vi.fn().mockResolvedValue(mockUser),

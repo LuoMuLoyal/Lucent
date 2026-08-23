@@ -3,7 +3,8 @@ import type { FastifyRequest } from 'fastify';
 import { SessionController } from './session.controller';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
-import { okAsync } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
+import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
 import type { UserPayload } from '../types/auth-request';
 
 const mockUser: UserPayload = {
@@ -37,15 +38,15 @@ describe('SessionController', () => {
         {
           provide: AuthService,
           useValue: {
-            logout: vi.fn().mockResolvedValue(undefined),
+            logout: vi.fn().mockReturnValue(okAsync(undefined)),
             refresh: vi.fn().mockReturnValue(okAsync(mockRefreshResult)),
           },
         },
         {
           provide: AuthTokenService,
           useValue: {
-            listSessions: vi.fn(),
-            revokeById: vi.fn().mockResolvedValue(undefined),
+            listSessions: vi.fn().mockReturnValue(okAsync([])),
+            revokeById: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
       ],
@@ -61,7 +62,7 @@ describe('SessionController', () => {
   });
 
   describe('POST /auth/logout', () => {
-    it('logs out and returns no content', async () => {
+    it('logs out and returns no content (204)', async () => {
       await expect(
         controller.logout(mockUser, {
           refreshToken: 'refresh-token',
@@ -72,6 +73,21 @@ describe('SessionController', () => {
         'user-1',
         'refresh-token',
       );
+    });
+
+    it('rethrows DomainFailureException when logout fails (401 path)', async () => {
+      authService.logout.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_REQUIRED',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.logout(mockUser, { refreshToken: 'refresh-token' }),
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
   });
 
@@ -85,7 +101,7 @@ describe('SessionController', () => {
           createdAt: '2026-07-10T00:00:00Z',
         },
       ];
-      authTokenService.listSessions.mockResolvedValue(sessions as never);
+      authTokenService.listSessions.mockReturnValue(okAsync(sessions as never));
 
       const result = await controller.listSessions(mockUser);
 
@@ -95,16 +111,45 @@ describe('SessionController', () => {
   });
 
   describe('DELETE /auth/sessions/:sessionId', () => {
-    it('revokes session and returns no content', async () => {
+    it('revokes session and returns no content (204)', async () => {
       await expect(
-        controller.revokeSession(mockUser, 'sess-1', 'en'),
+        controller.revokeSession(mockUser, 'sess-1'),
       ).resolves.toBeUndefined();
 
       expect(authTokenService.revokeById).toHaveBeenCalledWith(
         'user-1',
         'sess-1',
-        'en',
       );
+    });
+
+    it('rethrows DomainFailureException for a foreign session (403 path)', async () => {
+      authTokenService.revokeById.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authorization',
+            code: 'AUTH_SESSION_ACCESS_DENIED',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.revokeSession(mockUser, 'sess-1'),
+      ).rejects.toBeInstanceOf(DomainFailureException);
+    });
+
+    it('rethrows DomainFailureException for a missing session (404 path)', async () => {
+      authTokenService.revokeById.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_SESSION_NOT_FOUND',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.revokeSession(mockUser, 'missing'),
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
   });
 
@@ -122,6 +167,21 @@ describe('SessionController', () => {
       expect(result).toHaveProperty('accessToken', 'new-access');
       expect(result).toHaveProperty('refreshToken', 'new-refresh');
       expect(result).toHaveProperty('expiresIn');
+    });
+
+    it('rethrows DomainFailureException for an invalid refresh token (401 path)', async () => {
+      authService.refresh.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_REFRESH_TOKEN_INVALID',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.refresh({ refreshToken: 'bad-refresh' }, mockRequest),
+      ).rejects.toBeInstanceOf(DomainFailureException);
     });
   });
 });

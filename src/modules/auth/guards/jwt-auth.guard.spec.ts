@@ -1,6 +1,8 @@
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
+import type { DomainFailure } from '../../../common/result';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 describe('JwtAuthGuard', () => {
@@ -25,6 +27,17 @@ describe('JwtAuthGuard', () => {
       switchToRpc: vi.fn(),
       switchToWs: vi.fn(),
     } as unknown as ExecutionContext;
+  }
+
+  /** Runs fn and returns the DomainFailure carried by the thrown bridge. */
+  function captureFailure(fn: () => unknown): DomainFailure {
+    try {
+      fn();
+    } catch (error) {
+      if (error instanceof DomainFailureException) return error.failure;
+      throw error;
+    }
+    throw new Error('expected DomainFailureException to be thrown');
   }
 
   describe('canActivate', () => {
@@ -61,47 +74,62 @@ describe('JwtAuthGuard', () => {
       expect(result).toBe(user);
     });
 
-    it('throws UnauthorizedException with TOKEN_EXPIRED when info.name is TokenExpiredError', () => {
-      expect(() => {
+    it('throws DomainFailureException with AUTH_TOKEN_EXPIRED when info.name is TokenExpiredError', () => {
+      const failure = captureFailure(() => {
         guard.handleRequest(null, undefined, { name: 'TokenExpiredError' });
-      }).toThrow('Access token expired');
+      });
+
+      expect(failure.code).toBe('AUTH_TOKEN_EXPIRED');
+      expect(failure.kind).toBe('authentication');
     });
 
-    it('throws when error is present', () => {
-      expect(() => {
+    it('throws DomainFailureException with AUTH_REQUIRED when error is present', () => {
+      const failure = captureFailure(() => {
         guard.handleRequest(new Error('auth error'), undefined, undefined);
-      }).toThrow('Invalid or missing access token');
+      });
+
+      expect(failure.code).toBe('AUTH_REQUIRED');
     });
 
-    it('throws when user is null and no error', () => {
-      expect(() => {
+    it('throws DomainFailureException with AUTH_REQUIRED when user is null and no error', () => {
+      const failure = captureFailure(() => {
         guard.handleRequest(null, undefined, undefined);
-      }).toThrow('Invalid or missing access token');
+      });
+
+      expect(failure.code).toBe('AUTH_REQUIRED');
     });
 
-    it('throws when user is undefined and info has unknown name', () => {
-      expect(() => {
+    it('throws DomainFailureException with AUTH_REQUIRED when user is undefined and info has unknown name', () => {
+      const failure = captureFailure(() => {
         guard.handleRequest(null, undefined, { name: 'SomeOtherError' });
-      }).toThrow('Invalid or missing access token');
+      });
+
+      expect(failure.code).toBe('AUTH_REQUIRED');
     });
 
-    it('throws when user is false (not a truthy object)', () => {
-      expect(() => {
+    it('throws DomainFailureException with AUTH_REQUIRED when user is false (not a truthy object)', () => {
+      const failure = captureFailure(() => {
         guard.handleRequest(null, false as never, undefined);
-      }).toThrow('Invalid or missing access token');
+      });
+
+      expect(failure.code).toBe('AUTH_REQUIRED');
     });
 
-    it('throws when both error and user are present (error takes priority)', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED when both error and user are present (error takes priority)', () => {
       const user = { sub: 'user-1' };
-      expect(() => {
+      const failure = captureFailure(() => {
         guard.handleRequest(new Error('auth error'), user, undefined);
-      }).toThrow('Invalid or missing access token');
+      });
+
+      expect(failure.code).toBe('AUTH_REQUIRED');
     });
 
-    it('throws when info is a string instead of object with name', () => {
-      expect(() => {
+    it('throws DomainFailureException with AUTH_REQUIRED when info is a string instead of object with name', () => {
+      const failure = captureFailure(() => {
         guard.handleRequest(null, undefined, 'some info string' as never);
-      }).toThrow('Invalid or missing access token');
+      });
+
+      expect(failure.code).toBe('AUTH_REQUIRED');
     });
   });
 });

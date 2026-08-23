@@ -1,8 +1,8 @@
-import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 
 import { ConfigKey } from '../../../config/env/config-keys.enum';
 import { JwtAccessStrategy } from './jwt-access.strategy';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
 
 describe('JwtAccessStrategy', () => {
   const jwtConfig = {
@@ -66,7 +66,7 @@ describe('JwtAccessStrategy', () => {
       expect(result).toEqual(payload);
     });
 
-    it('throws UnauthorizedException when status is undefined', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED when status is undefined', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
@@ -76,10 +76,10 @@ describe('JwtAccessStrategy', () => {
         status: undefined as unknown as string,
       };
 
-      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(payload)).toThrow(DomainFailureException);
     });
 
-    it('throws UnauthorizedException when status is null', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED when status is null', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
@@ -89,19 +89,19 @@ describe('JwtAccessStrategy', () => {
         status: null as unknown as string,
       };
 
-      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(payload)).toThrow(DomainFailureException);
     });
 
-    it('throws UnauthorizedException when sub is missing', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED when sub is missing', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
       const payload = { sub: '', email: 'test@example.com', status: 'active' };
 
-      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(payload)).toThrow(DomainFailureException);
     });
 
-    it('throws UnauthorizedException when sub is undefined', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED when sub is undefined', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
@@ -111,10 +111,10 @@ describe('JwtAccessStrategy', () => {
         status: 'active',
       };
 
-      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(payload)).toThrow(DomainFailureException);
     });
 
-    it('throws UnauthorizedException for a suspended user', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED for a suspended user', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
@@ -124,10 +124,10 @@ describe('JwtAccessStrategy', () => {
         status: 'suspended',
       };
 
-      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(payload)).toThrow(DomainFailureException);
     });
 
-    it('throws UnauthorizedException for a deleted user', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED for a deleted user', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
@@ -137,10 +137,10 @@ describe('JwtAccessStrategy', () => {
         status: 'deleted',
       };
 
-      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(payload)).toThrow(DomainFailureException);
     });
 
-    it('throws UnauthorizedException for any non-active status', () => {
+    it('throws DomainFailureException with AUTH_REQUIRED for any non-active status', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
@@ -150,7 +150,7 @@ describe('JwtAccessStrategy', () => {
         status: 'banned',
       };
 
-      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(payload)).toThrow(DomainFailureException);
     });
   });
 });

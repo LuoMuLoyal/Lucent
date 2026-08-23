@@ -1,18 +1,22 @@
 import {
-  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
-  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
-import { I18nService } from 'nestjs-i18n';
 import { User } from '#generated/prisma/client';
 import { ConfigKey } from '../../../config/env/config-keys.enum';
 
-import { now, unauthorized } from '../../../common';
+import { now } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import type {
   AuthRequestContext,
   TokenPair,
@@ -46,17 +50,16 @@ export class AuthTokenService {
     private readonly sessionRepository: AuthSessionRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly i18n: I18nService,
   ) {}
 
   private get jwtConfig(): JwtConfigShape {
     return this.configService.getOrThrow<JwtConfigShape>(ConfigKey.Jwt);
   }
 
-  async generateTokenPair(
+  generateTokenPair(
     user: User,
     context?: AuthRequestContext,
-  ): Promise<TokenPair> {
+  ): ResultAsync<TokenPair, DomainFailure> {
     const config = this.jwtConfig;
     const payload: UserPayload = {
       sub: user.id,
@@ -90,108 +93,131 @@ export class AuthTokenService {
     if (contextData != null) {
       sessionInput.context = contextData;
     }
-    await this.sessionRepository.createSession(sessionInput);
 
-    let accessToken: string;
-    try {
-      accessToken = await this.jwtService.signAsync(payload, {
-        secret: config.accessSecret,
-        expiresIn: config.accessTtl,
-        algorithm: 'HS512',
-        jwtid: accessTokenId,
-        issuer: config.issuer,
-        audience: config.audience,
-      });
-    } catch (error) {
-      this.logger.error(
-        `JWT signing failed for user ${user.id} after session creation: ${error instanceof Error ? error.message : String(error)}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      throw new InternalServerErrorException({
-        code: 'INTERNAL_ERROR',
-        message:
-          'Token signing failed after session creation; please re-authenticate.',
-      });
-    }
-
-    return {
-      accessToken,
-      refreshToken,
-      accessTokenExpiresAt: new Date(
-        now + accessTokenExpiresInMs,
-      ).toISOString(),
-      refreshTokenExpiresAt: new Date(
-        now + refreshTokenExpiresInMs,
-      ).toISOString(),
-    };
+    return fromPromise(
+      this.sessionRepository.createSession(sessionInput),
+      (error) => {
+        throw error;
+      },
+    )
+      .andThen(() =>
+        fromPromise(
+          this.jwtService.signAsync(payload, {
+            secret: config.accessSecret,
+            expiresIn: config.accessTtl,
+            algorithm: 'HS512',
+            jwtid: accessTokenId,
+            issuer: config.issuer,
+            audience: config.audience,
+          }),
+          (error) => {
+            this.logger.error(
+              `JWT signing failed for user ${user.id} after session creation: ${error instanceof Error ? error.message : String(error)}`,
+              error instanceof Error ? error.stack : undefined,
+            );
+            throw new InternalServerErrorException({
+              code: 'INTERNAL_ERROR',
+              message:
+                'Token signing failed after session creation; please re-authenticate.',
+            });
+          },
+        ),
+      )
+      .map((accessToken) => ({
+        accessToken,
+        refreshToken,
+        accessTokenExpiresAt: new Date(
+          now + accessTokenExpiresInMs,
+        ).toISOString(),
+        refreshTokenExpiresAt: new Date(
+          now + refreshTokenExpiresInMs,
+        ).toISOString(),
+      }));
   }
 
-  async refresh(
+  refresh(
     refreshToken: string,
     context?: AuthRequestContext,
-  ): Promise<TokenPair> {
+  ): ResultAsync<TokenPair, DomainFailure> {
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
-    const record =
-      await this.sessionRepository.findSessionByRefreshTokenHash(
-        refreshTokenHash,
-      );
 
-    if (!record || record.expiresAt < now() || record.revokedAt !== null) {
-      unauthorized(this.i18n.t('auth.refresh_token_invalid'));
-    }
+    return this.sessionRepository
+      .findSessionByRefreshTokenHash(refreshTokenHash)
+      .orElse((error) => {
+        // Session not found — the token never existed or was already removed.
+        // Log for observability (digest only, never the raw token) and
+        // propagate the failure unchanged; other failures are untouched.
+        if (error.code === 'AUTH_REFRESH_TOKEN_INVALID') {
+          this.logRefreshTokenInvalid(refreshTokenHash, 'not-found');
+        }
+        return errAsync(error);
+      })
+      .andThen((record) => {
+        if (record.expiresAt < now() || record.revokedAt !== null) {
+          this.logRefreshTokenInvalid(
+            refreshTokenHash,
+            record.revokedAt !== null ? 'revoked' : 'expired',
+            record.userId,
+          );
+          return errAsync(this.refreshTokenInvalidFailure());
+        }
 
-    // Atomically claim the session by deleting it before generating new tokens.
-    // This prevents the race condition where two concurrent refresh requests
-    // both pass validation and each create a new session. Only the first
-    // caller claims the session; subsequent callers find it gone and fail.
-    // If token generation fails after claiming, the user must re-authenticate,
-    // which is preferable to session duplication.
-    const claimed = await this.sessionRepository.claimSessionForRefresh(
-      record.id,
-    );
-    if (!claimed) {
-      unauthorized(this.i18n.t('auth.refresh_token_invalid'));
-    }
-
-    const tokens = await this.generateTokenPair(record.user, context);
-    return tokens;
+        // Atomically claim the session by deleting it before generating new
+        // tokens. This prevents the race condition where two concurrent refresh
+        // requests both pass validation and each create a new session. Only the
+        // first caller claims the session; subsequent callers find it gone and
+        // fail. If token generation fails after claiming, the user must
+        // re-authenticate, which is preferable to session duplication.
+        return this.sessionRepository
+          .claimSessionForRefresh(record.id)
+          .orElse((error) => {
+            if (error.code === 'AUTH_REFRESH_TOKEN_INVALID') {
+              this.logRefreshTokenInvalid(
+                refreshTokenHash,
+                'already-claimed-or-expired',
+                record.userId,
+              );
+            }
+            return errAsync(error);
+          })
+          .andThen(() => this.generateTokenPair(record.user, context));
+      });
   }
 
-  async revoke(userId: string, refreshToken: string): Promise<void> {
-    await this.sessionRepository.deleteSessionsByUserIdAndHash(
+  revoke(
+    userId: string,
+    refreshToken: string,
+  ): ResultAsync<void, DomainFailure> {
+    return this.sessionRepository.deleteSessionsByUserIdAndHash(
       userId,
       this.hashRefreshToken(refreshToken),
     );
   }
 
-  async revokeAll(userId: string): Promise<void> {
-    await this.sessionRepository.deleteSessionsByUserId(userId);
+  revokeAll(userId: string): ResultAsync<void, DomainFailure> {
+    return this.sessionRepository.deleteSessionsByUserId(userId);
   }
 
-  async revokeById(
+  revokeById(
     userId: string,
     sessionId: string,
-    locale: string = 'en',
-  ): Promise<void> {
-    const record = await this.sessionRepository.findSessionById(sessionId);
-    if (!record) {
-      throw new NotFoundException({
-        code: 'AUTH_SESSION_NOT_FOUND',
-        message: this.i18n.t('auth.session_not_found', { lang: locale }),
+  ): ResultAsync<void, DomainFailure> {
+    return this.sessionRepository
+      .findSessionById(sessionId)
+      .andThen((record) => {
+        if (record.userId !== userId) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'authorization',
+              code: 'AUTH_SESSION_ACCESS_DENIED',
+            }),
+          );
+        }
+        return this.sessionRepository.revokeSessionById(sessionId);
       });
-    }
-    if (record.userId !== userId) {
-      throw new ForbiddenException({
-        code: 'AUTH_SESSION_ACCESS_DENIED',
-        message: this.i18n.t('auth.cannot_revoke_another_user_session', {
-          lang: locale,
-        }),
-      });
-    }
-    await this.sessionRepository.revokeSessionById(sessionId);
   }
 
-  async listSessions(userId: string): Promise<
+  listSessions(userId: string): ResultAsync<
     Array<{
       id: string;
       deviceType: string | null;
@@ -201,23 +227,51 @@ export class AuthTokenService {
       createdAt: string;
       expiresAt: string;
       isCurrent: boolean;
-    }>
+    }>,
+    DomainFailure
   > {
-    const records = await this.sessionRepository.listActiveSessions(userId);
-    return records.map((record) => ({
-      id: record.id,
-      deviceType: record.deviceType,
-      deviceName: record.deviceName,
-      platform: record.platform,
-      lastUsedAt: record.lastUsedAt?.toISOString() ?? null,
-      createdAt: record.createdAt.toISOString(),
-      expiresAt: record.expiresAt.toISOString(),
-      isCurrent: false,
-    }));
+    return this.sessionRepository.listActiveSessions(userId).map((records) =>
+      records.map((record) => ({
+        id: record.id,
+        deviceType: record.deviceType,
+        deviceName: record.deviceName,
+        platform: record.platform,
+        lastUsedAt: record.lastUsedAt?.toISOString() ?? null,
+        createdAt: record.createdAt.toISOString(),
+        expiresAt: record.expiresAt.toISOString(),
+        isCurrent: false,
+      })),
+    );
   }
 
   hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private refreshTokenInvalidFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'authentication',
+      code: 'AUTH_REFRESH_TOKEN_INVALID',
+    });
+  }
+
+  /**
+   * Structured warn for an invalid, expired, revoked or already-claimed
+   * (or expired before claim) refresh token. Never logs the raw token —
+   * only a short digest of its hash
+   * plus the user id when known, for correlating logs with session records.
+   */
+  private logRefreshTokenInvalid(
+    refreshTokenHash: string,
+    reason: 'not-found' | 'expired' | 'revoked' | 'already-claimed-or-expired',
+    userId?: string,
+  ): void {
+    this.logger.warn('Refresh token invalid', {
+      code: 'AUTH_REFRESH_TOKEN_INVALID',
+      reason,
+      ...(userId !== undefined && { userId }),
+      refreshTokenHash: `${refreshTokenHash.slice(0, 12)}…`,
+    });
   }
 
   private getSessionContextData(

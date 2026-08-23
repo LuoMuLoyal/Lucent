@@ -6,7 +6,14 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma, UserSession, User } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { now } from '../../../common';
+import { fromPrismaResult, now } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 
 export interface SessionContextData {
   ipAddress?: string;
@@ -44,32 +51,39 @@ export abstract class AuthSessionRepositoryPort {
 
   abstract findSessionByRefreshTokenHash(
     hash: string,
-  ): Promise<SessionWithUser | null>;
+  ): ResultAsync<SessionWithUser, DomainFailure>;
 
   abstract deleteSessionById(id: string): Promise<void>;
 
   /**
    * Atomically claims a session for token refresh by deleting it only if it is
-   * still valid (not revoked, not expired). Returns true if the session was
-   * claimed, false if it was already claimed/revoked/expired.
+   * still valid (not revoked, not expired). Resolves ok only if the session was
+   * claimed; a session that was already claimed/revoked/expired maps to
+   * `AUTH_REFRESH_TOKEN_INVALID`.
    *
    * This prevents the race condition where two concurrent refresh requests
    * both pass validation and each generate a new session.
    */
-  abstract claimSessionForRefresh(id: string): Promise<boolean>;
+  abstract claimSessionForRefresh(id: string): ResultAsync<void, DomainFailure>;
 
   abstract deleteSessionsByUserIdAndHash(
     userId: string,
     hash: string,
-  ): Promise<void>;
+  ): ResultAsync<void, DomainFailure>;
 
-  abstract deleteSessionsByUserId(userId: string): Promise<void>;
+  abstract deleteSessionsByUserId(
+    userId: string,
+  ): ResultAsync<void, DomainFailure>;
 
-  abstract findSessionById(sessionId: string): Promise<UserSession | null>;
+  abstract findSessionById(
+    sessionId: string,
+  ): ResultAsync<UserSession, DomainFailure>;
 
-  abstract revokeSessionById(id: string): Promise<void>;
+  abstract revokeSessionById(id: string): ResultAsync<void, DomainFailure>;
 
-  abstract listActiveSessions(userId: string): Promise<SessionListRow[]>;
+  abstract listActiveSessions(
+    userId: string,
+  ): ResultAsync<SessionListRow[], DomainFailure>;
 }
 
 @Injectable()
@@ -99,66 +113,107 @@ export class AuthSessionRepository implements AuthSessionRepositoryPort {
     await this.prisma.userSession.create({ data });
   }
 
-  async findSessionByRefreshTokenHash(
+  findSessionByRefreshTokenHash(
     hash: string,
-  ): Promise<SessionWithUser | null> {
-    return this.prisma.userSession.findUnique({
-      where: { refreshTokenHash: hash },
-      include: { user: true },
-    });
+  ): ResultAsync<SessionWithUser, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.findUnique({
+        where: { refreshTokenHash: hash },
+        include: { user: true },
+      }),
+    ).andThen((record) =>
+      record == null
+        ? errAsync(this.refreshTokenInvalidFailure())
+        : okAsync(record),
+    );
   }
 
   async deleteSessionById(id: string): Promise<void> {
     await this.prisma.userSession.delete({ where: { id } });
   }
 
-  async claimSessionForRefresh(id: string): Promise<boolean> {
-    const result = await this.prisma.userSession.deleteMany({
-      where: { id, revokedAt: null, expiresAt: { gt: now() } },
-    });
-    return result.count > 0;
+  claimSessionForRefresh(id: string): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.deleteMany({
+        where: { id, revokedAt: null, expiresAt: { gt: now() } },
+      }),
+    ).andThen((result) =>
+      result.count > 0
+        ? okAsync(undefined)
+        : errAsync(this.refreshTokenInvalidFailure()),
+    );
   }
 
-  async deleteSessionsByUserIdAndHash(
+  deleteSessionsByUserIdAndHash(
     userId: string,
     hash: string,
-  ): Promise<void> {
-    await this.prisma.userSession.deleteMany({
-      where: { userId, refreshTokenHash: hash },
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.deleteMany({
+        where: { userId, refreshTokenHash: hash },
+      }),
+    ).map(() => undefined);
+  }
+
+  deleteSessionsByUserId(userId: string): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.deleteMany({ where: { userId } }),
+    ).map(() => undefined);
+  }
+
+  findSessionById(sessionId: string): ResultAsync<UserSession, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.findUnique({
+        where: { id: sessionId },
+      }),
+    ).andThen((record) =>
+      record == null
+        ? errAsync(this.sessionNotFoundFailure())
+        : okAsync(record),
+    );
+  }
+
+  revokeSessionById(id: string): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.update({
+        where: { id },
+        data: { revokedAt: now() },
+      }),
+    ).map(() => undefined);
+  }
+
+  listActiveSessions(
+    userId: string,
+  ): ResultAsync<SessionListRow[], DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.findMany({
+        where: { userId, revokedAt: null, expiresAt: { gt: now() } },
+        orderBy: { lastUsedAt: 'desc' },
+        select: {
+          id: true,
+          userId: true,
+          deviceType: true,
+          deviceName: true,
+          platform: true,
+          lastUsedAt: true,
+          createdAt: true,
+          expiresAt: true,
+        },
+      }),
+    );
+  }
+
+  private refreshTokenInvalidFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'authentication',
+      code: 'AUTH_REFRESH_TOKEN_INVALID',
     });
   }
 
-  async deleteSessionsByUserId(userId: string): Promise<void> {
-    await this.prisma.userSession.deleteMany({ where: { userId } });
-  }
-
-  async findSessionById(sessionId: string): Promise<UserSession | null> {
-    return this.prisma.userSession.findUnique({
-      where: { id: sessionId },
-    });
-  }
-
-  async revokeSessionById(id: string): Promise<void> {
-    await this.prisma.userSession.update({
-      where: { id },
-      data: { revokedAt: now() },
-    });
-  }
-
-  async listActiveSessions(userId: string): Promise<SessionListRow[]> {
-    return this.prisma.userSession.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: now() } },
-      orderBy: { lastUsedAt: 'desc' },
-      select: {
-        id: true,
-        userId: true,
-        deviceType: true,
-        deviceName: true,
-        platform: true,
-        lastUsedAt: true,
-        createdAt: true,
-        expiresAt: true,
-      },
+  private sessionNotFoundFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'authentication',
+      code: 'AUTH_SESSION_NOT_FOUND',
     });
   }
 }

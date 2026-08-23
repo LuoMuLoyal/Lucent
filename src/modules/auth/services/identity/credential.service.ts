@@ -91,9 +91,9 @@ export class CredentialAuthService {
             ),
           )
           .andThen((user) =>
-            this.lift(
-              this.authTokenService.generateTokenPair(user, context),
-            ).map((tokens) => ({ user, ...tokens })),
+            this.authTokenService
+              .generateTokenPair(user, context)
+              .map((tokens) => ({ user, ...tokens })),
           );
       });
   }
@@ -120,9 +120,9 @@ export class CredentialAuthService {
             }),
           )
           .andThen((updatedUser) =>
-            this.lift(
-              this.authTokenService.generateTokenPair(updatedUser, context),
-            ).map((tokens) => ({ user: updatedUser, ...tokens })),
+            this.authTokenService
+              .generateTokenPair(updatedUser, context)
+              .map((tokens) => ({ user: updatedUser, ...tokens })),
           ),
       );
   }
@@ -143,7 +143,7 @@ export class CredentialAuthService {
         .andThen((passwordHash) =>
           this.userService.update(userId, { passwordHash }),
         )
-        .andThen(() => this.lift(this.authTokenService.revokeAll(userId)))
+        .andThen(() => this.authTokenService.revokeAll(userId))
         .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
     });
   }
@@ -208,7 +208,7 @@ export class CredentialAuthService {
             .update(userId, { passwordHash })
             .map(() => undefined),
         )
-        .andThen(() => this.lift(this.authTokenService.revokeAll(userId)))
+        .andThen(() => this.authTokenService.revokeAll(userId))
         .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
     });
   }
@@ -310,7 +310,7 @@ export class CredentialAuthService {
           .andThen((passwordHash) =>
             this.userService.update(user.id, { passwordHash }),
           )
-          .andThen(() => this.lift(this.authTokenService.revokeAll(user.id)));
+          .andThen(() => this.authTokenService.revokeAll(user.id));
       });
   }
 

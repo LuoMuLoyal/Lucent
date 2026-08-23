@@ -1,12 +1,8 @@
-import { unauthorized } from '../../../common';
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { I18nContext } from 'nestjs-i18n';
+import { createDomainFailure } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**
@@ -40,24 +36,32 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
+  /**
+   * Transport boundary: no token, expired token and signature failures are
+   * converted into a `DomainFailureException` (internal bridge only, not a
+   * public error type) that the global filter renders as `AUTH_REQUIRED` or
+   * `AUTH_TOKEN_EXPIRED` Problem Details. No Result is returned to Passport.
+   */
   override handleRequest<TUser = unknown>(
     err: unknown,
     user: TUser,
     info: { name?: string } | undefined,
   ): TUser {
-    const i18n = I18nContext.current();
-
     if (info?.name === 'TokenExpiredError') {
-      throw new UnauthorizedException({
-        code: 'AUTH_TOKEN_EXPIRED',
-        message: i18n?.t('auth.access_token_expired') ?? 'Access token expired',
-      });
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_TOKEN_EXPIRED',
+        }),
+      );
     }
 
     if (err || !user) {
-      unauthorized(
-        i18n?.t('auth.access_token_invalid') ??
-          'Invalid or missing access token',
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_REQUIRED',
+        }),
       );
     }
 
