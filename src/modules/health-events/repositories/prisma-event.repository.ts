@@ -4,10 +4,10 @@ import {
   HealthEventStatus,
   Prisma,
 } from '#generated/prisma/client';
-import { parseDateOnly } from '../../../common';
+import { fromPrismaResult, parseDateOnly } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import { PrismaService } from '../../../prisma';
 import {
-  HealthEventActiveConflictError,
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
   type HealthEventCoverageRecord,
@@ -67,11 +67,10 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
     return row == null ? null : this.toEventRecord(row);
   }
 
-  override async findById(userId: string, eventId: string) {
+  override async findById(eventId: string) {
     const row = await this.prisma.healthEvent.findFirst({
       where: {
         id: eventId,
-        userId,
         deletedAt: null,
       },
       select: eventSelect,
@@ -214,58 +213,66 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
     return row != null;
   }
 
-  override async create(input: HealthEventCreateInput) {
-    try {
-      const row = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.healthEvent.create({
-          data: {
-            userId: input.userId,
-            title: input.title,
-            kind: input.kind,
-            status: input.status,
-            startedAt: input.startedAt,
-            reasonRecordId: input.reasonRecordId,
-          },
-          select: { id: true },
-        });
-
-        if (input.currentMedicineIds.length > 0) {
-          await tx.healthEventMedicine.createMany({
-            data: input.currentMedicineIds.map((currentMedicineId) => ({
-              eventId: created.id,
-              currentMedicineId,
-            })),
-          });
-        }
-
-        return tx.healthEvent.findFirst({
-          where: { id: created.id, userId: input.userId, deletedAt: null },
-          select: eventSelect,
-        });
-      });
-
-      if (row == null) {
-        throw new InternalServerErrorException(
-          'Created health event could not be read back.',
-        );
-      }
-      return this.toEventRecord(row);
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new HealthEventActiveConflictError();
-      }
-      throw error;
-    }
+  override create(
+    input: HealthEventCreateInput,
+  ): ResultAsync<HealthEventRecord, DomainFailure> {
+    // P2002 (active-event or clientEventId unique constraint race) maps to
+    // RESOURCE_CONFLICT via fromPrismaResult; unknown errors are re-thrown.
+    return fromPrismaResult(this.createRow(input));
   }
 
-  override async update(
+  private async createRow(
+    input: HealthEventCreateInput,
+  ): Promise<HealthEventRecord> {
+    const row = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.healthEvent.create({
+        data: {
+          userId: input.userId,
+          title: input.title,
+          kind: input.kind,
+          status: input.status,
+          startedAt: input.startedAt,
+          reasonRecordId: input.reasonRecordId,
+        },
+        select: { id: true },
+      });
+
+      if (input.currentMedicineIds.length > 0) {
+        await tx.healthEventMedicine.createMany({
+          data: input.currentMedicineIds.map((currentMedicineId) => ({
+            eventId: created.id,
+            currentMedicineId,
+          })),
+        });
+      }
+
+      return tx.healthEvent.findFirst({
+        where: { id: created.id, userId: input.userId, deletedAt: null },
+        select: eventSelect,
+      });
+    });
+
+    if (row == null) {
+      throw new InternalServerErrorException(
+        'Created health event could not be read back.',
+      );
+    }
+    return this.toEventRecord(row);
+  }
+
+  override update(
     userId: string,
     eventId: string,
     input: HealthEventUpdateInput,
-  ) {
+  ): ResultAsync<HealthEventRecord | null, DomainFailure> {
+    return fromPrismaResult(this.updateRow(userId, eventId, input));
+  }
+
+  private async updateRow(
+    userId: string,
+    eventId: string,
+    input: HealthEventUpdateInput,
+  ): Promise<HealthEventRecord | null> {
     const updated = await this.prisma.$transaction(async (tx) => {
       const event = await this.lockEvent(tx, userId, eventId);
       if (event?.status !== HealthEventStatus.active) {
@@ -304,12 +311,23 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
     return row == null ? null : this.toEventRecord(row);
   }
 
-  override async upsertCheckIn(
+  override upsertCheckIn(
     userId: string,
     eventId: string,
     date: string,
     outcome: HealthEventOutcome,
-  ) {
+  ): ResultAsync<HealthEventCheckInRecord | null, DomainFailure> {
+    return fromPrismaResult(
+      this.upsertCheckInRow(userId, eventId, date, outcome),
+    );
+  }
+
+  private async upsertCheckInRow(
+    userId: string,
+    eventId: string,
+    date: string,
+    outcome: HealthEventOutcome,
+  ): Promise<HealthEventCheckInRecord | null> {
     return this.prisma.$transaction(async (tx) => {
       const event = await this.lockEvent(tx, userId, eventId);
       if (event?.status !== HealthEventStatus.active) {
@@ -324,7 +342,7 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
         update: { outcome },
         select: checkInSelect,
       });
-    }) as Promise<HealthEventCheckInRecord | null>;
+    });
   }
 
   private async lockEvent(

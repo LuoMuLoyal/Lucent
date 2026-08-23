@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
 import {
@@ -6,6 +5,8 @@ import {
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
+import { okAsync, errAsync } from '../../common/result';
+import type { DomainFailure } from '../../common/result';
 import type { UserPayload } from '../auth';
 import { HealthEventsController } from './health-events.controller';
 import { CreateHealthEventDto } from './dto/create-event.dto';
@@ -39,6 +40,22 @@ const eventView = {
   },
 };
 
+const notFoundFailure: DomainFailure = {
+  _tag: 'DomainFailure',
+  kind: 'not_found',
+  code: 'RESOURCE_NOT_FOUND',
+};
+const forbiddenFailure: DomainFailure = {
+  _tag: 'DomainFailure',
+  kind: 'authorization',
+  code: 'FORBIDDEN',
+};
+const conflictFailure: DomainFailure = {
+  _tag: 'DomainFailure',
+  kind: 'conflict',
+  code: 'RECORD_ALREADY_EXISTS',
+};
+
 describe('HealthEventsController', () => {
   let controller: HealthEventsController;
   let eventsService: vi.Mocked<EventsService>;
@@ -51,17 +68,17 @@ describe('HealthEventsController', () => {
         {
           provide: EventsService,
           useValue: {
-            create: vi.fn(),
+            create: vi.fn().mockReturnValue(okAsync(eventView)),
             findActiveView: vi.fn(),
             listViews: vi.fn(),
-            findByIdView: vi.fn(),
-            end: vi.fn(),
+            findByIdView: vi.fn().mockReturnValue(okAsync(eventView)),
+            end: vi.fn().mockReturnValue(okAsync(eventView)),
           },
         },
         {
           provide: CheckInsService,
           useValue: {
-            upsertForDate: vi.fn(),
+            upsertForDate: vi.fn().mockReturnValue(okAsync(eventView)),
           },
         },
       ],
@@ -78,12 +95,22 @@ describe('HealthEventsController', () => {
       reasonRecordId: 'record-1',
       currentMedicineIds: ['medicine-1'],
     } as CreateHealthEventDto;
-    eventsService.create.mockResolvedValue(eventView as never);
+    eventsService.create.mockReturnValue(okAsync(eventView as never));
 
     const result = await controller.create(user, dto);
 
     expect(eventsService.create).toHaveBeenCalledWith(user.sub, dto);
     expect(result).toEqual(eventView);
+  });
+
+  it('throws DomainFailureException with RECORD_ALREADY_EXISTS when an active event exists', async () => {
+    eventsService.create.mockReturnValue(errAsync(conflictFailure));
+
+    await expect(
+      controller.create(user, { title: 'X' } as never),
+    ).rejects.toMatchObject({
+      failure: { kind: 'conflict', code: 'RECORD_ALREADY_EXISTS' },
+    });
   });
 
   it('lists the active event with an optional requested date', async () => {
@@ -114,7 +141,7 @@ describe('HealthEventsController', () => {
   });
 
   it('gets detail by user-scoped id and forwards the requested date', async () => {
-    eventsService.findByIdView.mockResolvedValue(eventView as never);
+    eventsService.findByIdView.mockReturnValue(okAsync(eventView as never));
 
     const result = await controller.get(user, 'event-1', {
       date: '2026-08-08',
@@ -128,12 +155,14 @@ describe('HealthEventsController', () => {
     expect(result).toEqual(eventView);
   });
 
-  it('preserves the service not-found semantics for another user event', async () => {
-    eventsService.findByIdView.mockRejectedValue(new NotFoundException());
+  it('folds a foreign event into DomainFailureException with FORBIDDEN', async () => {
+    eventsService.findByIdView.mockReturnValue(errAsync(forbiddenFailure));
 
     await expect(
-      controller.get(user, 'event-owned-by-someone-else'),
-    ).rejects.toBeInstanceOf(NotFoundException);
+      controller.get(user, 'event-owned-by-someone-else', {}),
+    ).rejects.toMatchObject({
+      failure: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
     expect(eventsService.findByIdView).toHaveBeenCalledWith(
       user.sub,
       'event-owned-by-someone-else',
@@ -141,32 +170,46 @@ describe('HealthEventsController', () => {
     );
   });
 
+  it('folds a missing event into DomainFailureException with RESOURCE_NOT_FOUND', async () => {
+    eventsService.findByIdView.mockReturnValue(errAsync(notFoundFailure));
+
+    await expect(
+      controller.get(user, 'missing-event', {}),
+    ).rejects.toMatchObject({
+      failure: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
+  });
+
   it('uses the path date for a check-in instead of resolving a server date', async () => {
     const dto = {
       outcome: HealthEventOutcome.improved,
     } as UpsertHealthEventCheckInDto;
-    checkInsService.upsertForDate.mockResolvedValue({
-      id: 'check-in-1',
-      eventId: 'event-1',
-      date: '2026-08-08',
-      outcome: HealthEventOutcome.improved,
-    } as never);
-    eventsService.findByIdView.mockResolvedValue({
-      ...eventView,
-      checkIn: {
+    checkInsService.upsertForDate.mockReturnValue(
+      okAsync({
         id: 'check-in-1',
         eventId: 'event-1',
         date: '2026-08-08',
         outcome: HealthEventOutcome.improved,
-        createdAt: '2026-08-08T08:00:00.000Z',
-        updatedAt: '2026-08-08T08:00:00.000Z',
-      },
-      coverage: {
-        checkInCount: 1,
-        firstCheckInDate: '2026-08-08',
-        lastCheckInDate: '2026-08-08',
-      },
-    } as never);
+      } as never),
+    );
+    eventsService.findByIdView.mockReturnValue(
+      okAsync({
+        ...eventView,
+        checkIn: {
+          id: 'check-in-1',
+          eventId: 'event-1',
+          date: '2026-08-08',
+          outcome: HealthEventOutcome.improved,
+          createdAt: '2026-08-08T08:00:00.000Z',
+          updatedAt: '2026-08-08T08:00:00.000Z',
+        },
+        coverage: {
+          checkInCount: 1,
+          firstCheckInDate: '2026-08-08',
+          lastCheckInDate: '2026-08-08',
+        },
+      } as never),
+    );
 
     const result = await controller.upsertCheckIn(
       user,
@@ -196,32 +239,74 @@ describe('HealthEventsController', () => {
     });
   });
 
+  it('folds an inactive-event check-in into DomainFailureException with VALIDATION_FAILED', async () => {
+    const dto = {
+      outcome: HealthEventOutcome.improved,
+    } as UpsertHealthEventCheckInDto;
+    const validationFailure: DomainFailure = {
+      _tag: 'DomainFailure',
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    };
+    checkInsService.upsertForDate.mockReturnValue(errAsync(validationFailure));
+
+    await expect(
+      controller.upsertCheckIn(user, 'event-1', '2026-08-08', dto),
+    ).rejects.toMatchObject({
+      failure: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(eventsService.findByIdView).not.toHaveBeenCalled();
+  });
+
+  it('folds a duplicate check-in race into DomainFailureException with RESOURCE_CONFLICT', async () => {
+    const dto = {
+      outcome: HealthEventOutcome.improved,
+    } as UpsertHealthEventCheckInDto;
+    const conflictFailure: DomainFailure = {
+      _tag: 'DomainFailure',
+      kind: 'conflict',
+      code: 'RESOURCE_CONFLICT',
+    };
+    checkInsService.upsertForDate.mockReturnValue(errAsync(conflictFailure));
+
+    await expect(
+      controller.upsertCheckIn(user, 'event-1', '2026-08-08', dto),
+    ).rejects.toMatchObject({
+      failure: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
+    });
+    expect(eventsService.findByIdView).not.toHaveBeenCalled();
+  });
+
   it('ends an event with the explicit outcome for the authenticated user', async () => {
     const dto = { outcome: HealthEventOutcome.worsened } as EndHealthEventDto;
-    eventsService.end.mockResolvedValue({
-      ...eventView,
-      status: HealthEventStatus.ended,
-      outcome: HealthEventOutcome.worsened,
-    } as never);
-    eventsService.findByIdView.mockResolvedValue({
-      ...eventView,
-      status: HealthEventStatus.ended,
-      endedAt: '2026-08-09T12:00:00.000Z',
-      outcome: HealthEventOutcome.worsened,
-      checkIn: {
-        id: 'check-in-1',
-        eventId: 'event-1',
-        date: '2026-08-08',
-        outcome: HealthEventOutcome.improved,
-        createdAt: '2026-08-08T08:00:00.000Z',
-        updatedAt: '2026-08-08T08:00:00.000Z',
-      },
-      coverage: {
-        checkInCount: 1,
-        firstCheckInDate: '2026-08-08',
-        lastCheckInDate: '2026-08-08',
-      },
-    } as never);
+    eventsService.end.mockReturnValue(
+      okAsync({
+        ...eventView,
+        status: HealthEventStatus.ended,
+        outcome: HealthEventOutcome.worsened,
+      } as never),
+    );
+    eventsService.findByIdView.mockReturnValue(
+      okAsync({
+        ...eventView,
+        status: HealthEventStatus.ended,
+        endedAt: '2026-08-09T12:00:00.000Z',
+        outcome: HealthEventOutcome.worsened,
+        checkIn: {
+          id: 'check-in-1',
+          eventId: 'event-1',
+          date: '2026-08-08',
+          outcome: HealthEventOutcome.improved,
+          createdAt: '2026-08-08T08:00:00.000Z',
+          updatedAt: '2026-08-08T08:00:00.000Z',
+        },
+        coverage: {
+          checkInCount: 1,
+          firstCheckInDate: '2026-08-08',
+          lastCheckInDate: '2026-08-08',
+        },
+      } as never),
+    );
 
     const result = await controller.end(user, 'event-1', dto);
 
@@ -241,6 +326,21 @@ describe('HealthEventsController', () => {
         lastCheckInDate: '2026-08-08',
       },
     });
+  });
+
+  it('folds an already-ended event into DomainFailureException with VALIDATION_FAILED', async () => {
+    const dto = { outcome: HealthEventOutcome.worsened } as EndHealthEventDto;
+    const validationFailure: DomainFailure = {
+      _tag: 'DomainFailure',
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    };
+    eventsService.end.mockReturnValue(errAsync(validationFailure));
+
+    await expect(controller.end(user, 'event-1', dto)).rejects.toMatchObject({
+      failure: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(eventsService.findByIdView).not.toHaveBeenCalled();
   });
 });
 

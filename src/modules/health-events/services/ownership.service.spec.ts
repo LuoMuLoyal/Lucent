@@ -7,6 +7,8 @@ import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
 } from '../../../common';
+import { okAsync, errAsync } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
 import type { EventsService } from './events.service';
 import type { HealthEventRepositoryPort } from '../repositories/event.repository';
 import { HealthEventsOwnershipService } from './ownership.service';
@@ -34,8 +36,8 @@ function eventFixture(overrides: Record<string, unknown> = {}) {
 
 function buildService() {
   const eventsService = {
-    ensureOwnedByUser: vi.fn(),
-    ensureActiveOwnedByUser: vi.fn(),
+    ensureOwnedByUser: vi.fn().mockReturnValue(okAsync(eventFixture())),
+    ensureActiveOwnedByUser: vi.fn().mockReturnValue(okAsync(eventFixture())),
   };
   const repository = {
     findActiveByUserId: vi.fn().mockResolvedValue(null),
@@ -63,6 +65,66 @@ function buildService() {
 describe('HealthEventsOwnershipService', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  describe('ensureOwnedByUser', () => {
+    it('delegates to the events service and returns the event', async () => {
+      const { service, eventsService } = buildService();
+      const owned = eventFixture();
+
+      await expect(
+        service.ensureOwnedByUser(USER_ID, EVENT_ID),
+      ).resolves.toEqual(owned);
+      expect(eventsService.ensureOwnedByUser).toHaveBeenCalledWith(
+        USER_ID,
+        EVENT_ID,
+      );
+    });
+
+    it('rethrows a DomainFailureException for a foreign or missing event', async () => {
+      const { service, eventsService } = buildService();
+      const failure = {
+        _tag: 'DomainFailure',
+        kind: 'authorization',
+        code: 'FORBIDDEN',
+      } as const;
+      eventsService.ensureOwnedByUser.mockReturnValue(errAsync(failure));
+
+      await expect(
+        service.ensureOwnedByUser(USER_ID, EVENT_ID),
+      ).rejects.toBeInstanceOf(DomainFailureException);
+      await expect(
+        service.ensureOwnedByUser(USER_ID, EVENT_ID),
+      ).rejects.toMatchObject({ failure });
+    });
+  });
+
+  describe('ensureActiveOwnedByUser', () => {
+    it('delegates to the events service and returns the active event', async () => {
+      const { service, eventsService } = buildService();
+
+      await expect(
+        service.ensureActiveOwnedByUser(USER_ID, EVENT_ID),
+      ).resolves.toEqual(eventFixture());
+      expect(eventsService.ensureActiveOwnedByUser).toHaveBeenCalledWith(
+        USER_ID,
+        EVENT_ID,
+      );
+    });
+
+    it('rethrows a DomainFailureException for an inactive event', async () => {
+      const { service, eventsService } = buildService();
+      const failure = {
+        _tag: 'DomainFailure',
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+      } as const;
+      eventsService.ensureActiveOwnedByUser.mockReturnValue(errAsync(failure));
+
+      await expect(
+        service.ensureActiveOwnedByUser(USER_ID, EVENT_ID),
+      ).rejects.toMatchObject({ failure });
+    });
   });
 
   describe('findTodayCheckIn', () => {

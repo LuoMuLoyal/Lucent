@@ -4,6 +4,7 @@ import {
   formatDateOnlyInTimezone,
   now,
 } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import { EventsService } from './events.service';
 import {
   HealthEventRepositoryPort,
@@ -19,6 +20,13 @@ import {
  * Write paths and the business service stay inside the module; consumers
  * reach the repository reads (already filtered by `userId` and
  * `deletedAt: null`) through the exported read-only methods below.
+ *
+ * `ensureOwnedByUser` / `ensureActiveOwnedByUser` keep the legacy
+ * `Promise<T>` contract for out-of-scope consumers (reports, medicine-dose-
+ * logs) and fold the module's `ResultAsync` with `unwrapResult`; the thrown
+ * `DomainFailureException` is turned into the same Problem Details by the
+ * global filter. TODO(error): remove this shim when those consumers migrate
+ * (Tasks 8.2/10) and let them consume the Result directly.
  */
 @Injectable()
 export class HealthEventsOwnershipService {
@@ -31,14 +39,16 @@ export class HealthEventsOwnershipService {
     userId: string,
     eventId: string,
   ): Promise<HealthEventRecord> {
-    return this.eventsService.ensureOwnedByUser(userId, eventId);
+    return unwrapResult(this.eventsService.ensureOwnedByUser(userId, eventId));
   }
 
   ensureActiveOwnedByUser(
     userId: string,
     eventId: string,
   ): Promise<HealthEventRecord> {
-    return this.eventsService.ensureActiveOwnedByUser(userId, eventId);
+    return unwrapResult(
+      this.eventsService.ensureActiveOwnedByUser(userId, eventId),
+    );
   }
 
   /** Read-only: the user's active event, or null when none exists. */

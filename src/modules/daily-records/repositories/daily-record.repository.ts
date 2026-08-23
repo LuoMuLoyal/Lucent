@@ -9,7 +9,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Prisma, type DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { nonDeleted } from '../../../common';
+import { fromPrismaResult, nonDeleted } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import {
   dailyRecordWithAttachments,
   type DailyRecordShape,
@@ -151,14 +152,17 @@ export abstract class DailyRecordRepositoryPort {
 
   abstract create(
     data: Prisma.UserDailyRecordUncheckedCreateInput,
-  ): Promise<DailyRecordShape>;
+  ): ResultAsync<DailyRecordShape, DomainFailure>;
 
   abstract update(
     id: string,
     data: Prisma.UserDailyRecordUpdateInput,
-  ): Promise<DailyRecordShape>;
+  ): ResultAsync<DailyRecordShape, DomainFailure>;
 
-  abstract softDelete(id: string, deletedAt: Date): Promise<void>;
+  abstract softDelete(
+    id: string,
+    deletedAt: Date,
+  ): ResultAsync<void, DomainFailure>;
 
   /**
    * Executes a Prisma transaction.
@@ -304,31 +308,37 @@ export class DailyRecordRepository
     });
   }
 
-  async create(
+  create(
     data: Prisma.UserDailyRecordUncheckedCreateInput,
-  ): Promise<DailyRecordShape> {
-    return this.prisma.userDailyRecord.create({
-      data,
-      include: dailyRecordWithAttachments,
-    });
+  ): ResultAsync<DailyRecordShape, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userDailyRecord.create({
+        data,
+        include: dailyRecordWithAttachments,
+      }),
+    );
   }
 
-  async update(
+  update(
     id: string,
     data: Prisma.UserDailyRecordUpdateInput,
-  ): Promise<DailyRecordShape> {
-    return this.prisma.userDailyRecord.update({
-      where: { id },
-      data,
-      include: dailyRecordWithAttachments,
-    });
+  ): ResultAsync<DailyRecordShape, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userDailyRecord.update({
+        where: { id },
+        data,
+        include: dailyRecordWithAttachments,
+      }),
+    );
   }
 
-  async softDelete(id: string, deletedAt: Date): Promise<void> {
-    await this.prisma.userDailyRecord.update({
-      where: { id },
-      data: { deletedAt },
-    });
+  softDelete(id: string, deletedAt: Date): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userDailyRecord.update({
+        where: { id },
+        data: { deletedAt },
+      }),
+    ).map(() => undefined);
   }
 
   async transaction<T>(

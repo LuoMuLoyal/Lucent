@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { nonDeleted } from '../../../common';
+import { fromPrismaResult, nonDeleted } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import { userHealthContextInclude } from '../types/health-context.types';
 
 /**
@@ -10,6 +11,13 @@ import { userHealthContextInclude } from '../types/health-context.types';
  * Centralises all Prisma queries for user health context (profile, allergies,
  * conditions, current medicines) behind a single interface so that the write
  * services and ownership service don't depend on `PrismaService` directly.
+ *
+ * Write methods return `ResultAsync<T, DomainFailure>`: known Prisma request
+ * errors (P2002 -> RESOURCE_CONFLICT, P2025 -> RESOURCE_NOT_FOUND) are mapped
+ * to domain failures while unknown database/connection errors are re-thrown
+ * and reach the global exception filter unchanged. Reads stay
+ * `Promise<T | null>` — a missing row is a legitimate value; the application
+ * service decides when absence is a failure.
  */
 export abstract class UserHealthContextRepositoryPort {
   // ── Read ────────────────────────────────────────────────────────────────
@@ -34,50 +42,68 @@ export abstract class UserHealthContextRepositoryPort {
     where: { userId: string },
     create: Prisma.UserProfileUncheckedCreateInput,
     update: Prisma.UserProfileUpdateInput,
-  ): Promise<void>;
+  ): ResultAsync<void, DomainFailure>;
 
   // ── Allergy ─────────────────────────────────────────────────────────────
 
   abstract createAllergy(
     data: Prisma.UserAllergyUncheckedCreateInput,
-  ): Promise<void>;
+  ): ResultAsync<void, DomainFailure>;
   abstract updateAllergy(
     id: string,
     data: Prisma.UserAllergyUpdateInput,
-  ): Promise<void>;
-  abstract softDeleteAllergy(id: string): Promise<void>;
-  abstract findAllergyById(
-    userId: string,
-    id: string,
-  ): Promise<{ userId: string } | null>;
+  ): ResultAsync<void, DomainFailure>;
+  abstract softDeleteAllergy(id: string): ResultAsync<void, DomainFailure>;
+
+  /**
+   * Looks up an allergy by id regardless of owner so the ownership service
+   * can distinguish "missing" (RESOURCE_NOT_FOUND) from "owned by another
+   * user" (FORBIDDEN). The caller must never return the row to the client.
+   */
+  abstract findAllergyById(id: string): Promise<{ userId: string } | null>;
 
   // ── Condition ───────────────────────────────────────────────────────────
 
   abstract createCondition(
     data: Prisma.UserConditionCreateInput,
-  ): Promise<void>;
+  ): ResultAsync<void, DomainFailure>;
   abstract updateCondition(
     id: string,
     data: Prisma.UserConditionUpdateInput,
-  ): Promise<void>;
-  abstract softDeleteCondition(id: string, resolvedAt: Date): Promise<void>;
-  abstract findConditionById(
-    userId: string,
+  ): ResultAsync<void, DomainFailure>;
+  abstract softDeleteCondition(
     id: string,
-  ): Promise<{ userId: string } | null>;
+    resolvedAt: Date,
+  ): ResultAsync<void, DomainFailure>;
+
+  /**
+   * Looks up a condition by id regardless of owner so the ownership service
+   * can distinguish "missing" (RESOURCE_NOT_FOUND) from "owned by another
+   * user" (FORBIDDEN). The caller must never return the row to the client.
+   */
+  abstract findConditionById(id: string): Promise<{ userId: string } | null>;
 
   // ── Current Medicine ────────────────────────────────────────────────────
 
   abstract createCurrentMedicine(
     data: Prisma.UserCurrentMedicineUncheckedCreateInput,
-  ): Promise<void>;
+  ): ResultAsync<void, DomainFailure>;
   abstract updateCurrentMedicine(
     id: string,
     data: Prisma.UserCurrentMedicineUpdateInput,
-  ): Promise<void>;
-  abstract softDeleteCurrentMedicine(id: string, endedAt: Date): Promise<void>;
+  ): ResultAsync<void, DomainFailure>;
+  abstract softDeleteCurrentMedicine(
+    id: string,
+    endedAt: Date,
+  ): ResultAsync<void, DomainFailure>;
+
+  /**
+   * Looks up a current medicine by id regardless of owner so the ownership
+   * service can distinguish "missing" (RESOURCE_NOT_FOUND) from "owned by
+   * another user" (FORBIDDEN). The caller must never return the row to the
+   * client.
+   */
   abstract findCurrentMedicineById(
-    userId: string,
     id: string,
   ): Promise<{ userId: string; endedAt: Date | null } | null>;
 
@@ -106,101 +132,123 @@ export class UserHealthContextRepository extends UserHealthContextRepositoryPort
     return this.prisma.userProfile.findUnique({ where: { userId }, select });
   }
 
-  override async upsertProfile(
+  override upsertProfile(
     where: { userId: string },
     create: Prisma.UserProfileUncheckedCreateInput,
     update: Prisma.UserProfileUpdateInput,
-  ): Promise<void> {
-    await this.prisma.userProfile.upsert({ where, create, update });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userProfile.upsert({ where, create, update }),
+    ).map(() => undefined);
   }
 
-  override async createAllergy(
+  override createAllergy(
     data: Prisma.UserAllergyUncheckedCreateInput,
-  ): Promise<void> {
-    await this.prisma.userAllergy.create({ data });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(this.prisma.userAllergy.create({ data })).map(
+      () => undefined,
+    );
   }
 
-  override async updateAllergy(
+  override updateAllergy(
     id: string,
     data: Prisma.UserAllergyUpdateInput,
-  ): Promise<void> {
-    await this.prisma.userAllergy.update({ where: { id }, data });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userAllergy.update({ where: { id }, data }),
+    ).map(() => undefined);
   }
 
-  override async softDeleteAllergy(id: string): Promise<void> {
-    await this.prisma.userAllergy.update({
-      where: { id },
-      data: { isActive: false },
-    });
+  override softDeleteAllergy(id: string): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userAllergy.update({
+        where: { id },
+        data: { isActive: false },
+      }),
+    ).map(() => undefined);
   }
 
-  override findAllergyById(userId: string, id: string) {
+  override findAllergyById(id: string) {
     return this.prisma.userAllergy.findFirst({
-      where: { id, userId },
+      where: { id },
       select: { userId: true },
     });
   }
 
-  override async createCondition(
+  override createCondition(
     data: Prisma.UserConditionCreateInput,
-  ): Promise<void> {
-    await this.prisma.userCondition.create({ data });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(this.prisma.userCondition.create({ data })).map(
+      () => undefined,
+    );
   }
 
-  override async updateCondition(
+  override updateCondition(
     id: string,
     data: Prisma.UserConditionUpdateInput,
-  ): Promise<void> {
-    await this.prisma.userCondition.update({ where: { id }, data });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userCondition.update({ where: { id }, data }),
+    ).map(() => undefined);
   }
 
-  override async softDeleteCondition(
+  override softDeleteCondition(
     id: string,
     resolvedAt: Date,
-  ): Promise<void> {
-    await this.prisma.userCondition.update({
-      where: { id },
-      data: { status: 'resolved', resolvedAt },
-    });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userCondition.update({
+        where: { id },
+        data: { status: 'resolved', resolvedAt },
+      }),
+    ).map(() => undefined);
   }
 
-  override findConditionById(userId: string, id: string) {
+  override findConditionById(id: string) {
     return this.prisma.userCondition.findFirst({
-      where: { id, userId },
+      where: { id },
       select: { userId: true },
     });
   }
 
-  override async createCurrentMedicine(
+  override createCurrentMedicine(
     data: Prisma.UserCurrentMedicineUncheckedCreateInput,
-  ): Promise<void> {
-    await this.prisma.userCurrentMedicine.create({ data });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userCurrentMedicine.create({ data }),
+    ).map(() => undefined);
   }
 
-  override async updateCurrentMedicine(
+  override updateCurrentMedicine(
     id: string,
     data: Prisma.UserCurrentMedicineUpdateInput,
-  ): Promise<void> {
-    await this.prisma.userCurrentMedicine.update({ where: { id }, data });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userCurrentMedicine.update({ where: { id }, data }),
+    ).map(() => undefined);
   }
 
-  override async softDeleteCurrentMedicine(
+  override softDeleteCurrentMedicine(
     id: string,
     endedAt: Date,
-  ): Promise<void> {
-    const current = await this.prisma.userCurrentMedicine.findUnique({
-      where: { id },
-      select: { endedAt: true },
-    });
-    await this.prisma.userCurrentMedicine.update({
-      where: { id },
-      data: { isCurrent: false, endedAt: current?.endedAt ?? endedAt },
-    });
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      (async () => {
+        const current = await this.prisma.userCurrentMedicine.findUnique({
+          where: { id },
+          select: { endedAt: true },
+        });
+        return this.prisma.userCurrentMedicine.update({
+          where: { id },
+          data: { isCurrent: false, endedAt: current?.endedAt ?? endedAt },
+        });
+      })(),
+    ).map(() => undefined);
   }
 
-  override findCurrentMedicineById(userId: string, id: string) {
+  override findCurrentMedicineById(id: string) {
     return this.prisma.userCurrentMedicine.findFirst({
-      where: { id, userId },
+      where: { id },
       select: { userId: true, endedAt: true },
     });
   }

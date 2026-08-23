@@ -1,4 +1,5 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
+import { okAsync } from '../../../../common/result';
 import type { PrismaService } from '../../../../prisma';
 import type { HistoricalAiSummaryService } from '../../services/historical-ai-summary.service';
 import type { UserHealthContextService } from '../../../user-health-context';
@@ -254,20 +255,22 @@ describe('AssistantToolReadService', () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         nickname: 'TestUser',
       });
-      healthContext.getForUser.mockResolvedValue({
-        profile: {
-          sexAtBirth: 'male',
-          birthDate: '1990-01-01',
-          heightCm: 175,
-          bloodType: 'A',
-        },
-        summary: { age: 36 },
-        allergies: [
-          { label: 'Penicillin', isActive: true },
-          { label: 'Pollen', isActive: false },
-        ],
-        currentMedicines: [],
-      } as never);
+      healthContext.getForUser.mockReturnValue(
+        okAsync({
+          profile: {
+            sexAtBirth: 'male',
+            birthDate: '1990-01-01',
+            heightCm: 175,
+            bloodType: 'A',
+          },
+          summary: { age: 36 },
+          allergies: [
+            { label: 'Penicillin', isActive: true },
+            { label: 'Pollen', isActive: false },
+          ],
+          currentMedicines: [],
+        }) as never,
+      );
 
       const result = await service.getUserProfile(mockContext);
 
@@ -305,22 +308,24 @@ describe('AssistantToolReadService', () => {
 
   describe('getCurrentMedicines', () => {
     it('returns current medicines with reminder frequency', async () => {
-      healthContext.getForUser.mockResolvedValue({
-        profile: {},
-        summary: {},
-        allergies: [],
-        currentMedicines: [
-          {
-            id: 'med-1',
-            displayName: 'Ibuprofen',
-            doseText: '200mg',
-            route: 'oral',
-            startedAt: '2026-01-01',
-            note: null,
-            isCurrent: true,
-          },
-        ],
-      } as never);
+      healthContext.getForUser.mockReturnValue(
+        okAsync({
+          profile: {},
+          summary: {},
+          allergies: [],
+          currentMedicines: [
+            {
+              id: 'med-1',
+              displayName: 'Ibuprofen',
+              doseText: '200mg',
+              route: 'oral',
+              startedAt: '2026-01-01',
+              note: null,
+              isCurrent: true,
+            },
+          ],
+        }) as never,
+      );
       reminders.list.mockResolvedValue({
         items: [
           {
@@ -342,12 +347,14 @@ describe('AssistantToolReadService', () => {
     });
 
     it('returns empty when no current medicines', async () => {
-      healthContext.getForUser.mockResolvedValue({
-        profile: {},
-        summary: {},
-        allergies: [],
-        currentMedicines: [],
-      } as never);
+      healthContext.getForUser.mockReturnValue(
+        okAsync({
+          profile: {},
+          summary: {},
+          allergies: [],
+          currentMedicines: [],
+        }) as never,
+      );
       reminders.list.mockResolvedValue({ items: [] });
 
       const result = await service.getCurrentMedicines(mockContext);

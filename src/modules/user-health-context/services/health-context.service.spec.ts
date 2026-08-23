@@ -1,7 +1,6 @@
 import { nonDeleted } from '../../../common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { type Mocked } from 'vitest';
 import {
@@ -13,6 +12,11 @@ import {
   UserConditionStatus,
   UserStatus,
 } from '#generated/prisma/client';
+import {
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 
 import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
 import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service';
@@ -28,7 +32,6 @@ import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextProfileWriteService } from './writes/profile-write.service';
 
 import { UserHealthContextService } from './health-context.service';
-import { I18nService } from 'nestjs-i18n';
 
 const mockUserBase = {
   id: 'user-uuid-1',
@@ -56,6 +59,28 @@ function expectDefined<T>(value: T | undefined, message: string): T {
   return value;
 }
 
+/** Unwraps a ResultAsync, failing the test when it is an Err. */
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
 describe('UserHealthContextService', () => {
   let service: UserHealthContextService;
 
@@ -77,25 +102,21 @@ describe('UserHealthContextService', () => {
             findUserWithHealthContext: vi.fn(),
             findActiveUserById: vi.fn(),
             findProfileByUserId: vi.fn(),
-            upsertProfile: vi.fn(),
-            createAllergy: vi.fn(),
-            updateAllergy: vi.fn(),
-            softDeleteAllergy: vi.fn(),
+            upsertProfile: vi.fn().mockReturnValue(okAsync(undefined)),
+            createAllergy: vi.fn().mockReturnValue(okAsync(undefined)),
+            updateAllergy: vi.fn().mockReturnValue(okAsync(undefined)),
+            softDeleteAllergy: vi.fn().mockReturnValue(okAsync(undefined)),
             findAllergyById: vi.fn(),
-            createCondition: vi.fn(),
-            updateCondition: vi.fn(),
-            softDeleteCondition: vi.fn(),
+            createCondition: vi.fn().mockReturnValue(okAsync(undefined)),
+            updateCondition: vi.fn().mockReturnValue(okAsync(undefined)),
+            softDeleteCondition: vi.fn().mockReturnValue(okAsync(undefined)),
             findConditionById: vi.fn(),
-            createCurrentMedicine: vi.fn(),
-            updateCurrentMedicine: vi.fn(),
-            softDeleteCurrentMedicine: vi.fn(),
+            createCurrentMedicine: vi.fn().mockReturnValue(okAsync(undefined)),
+            updateCurrentMedicine: vi.fn().mockReturnValue(okAsync(undefined)),
+            softDeleteCurrentMedicine: vi
+              .fn()
+              .mockReturnValue(okAsync(undefined)),
             findCurrentMedicineById: vi.fn(),
-          },
-        },
-        {
-          provide: I18nService,
-          useValue: {
-            t: vi.fn((key: string) => key),
           },
         },
         {
@@ -116,18 +137,14 @@ describe('UserHealthContextService', () => {
     vi.restoreAllMocks();
   });
 
-  it('should throw NotFoundException when the active user does not exist', async () => {
+  it('should return RESOURCE_NOT_FOUND when the active user does not exist', async () => {
     repository.findUserWithHealthContext.mockResolvedValue(null);
 
-    await expect(service.getForUser('missing-user')).rejects.toThrow(
-      NotFoundException,
-    );
-
-    await expect(service.getForUser('missing-user')).rejects.toMatchObject({
-      response: {
-        code: 'RESOURCE_NOT_FOUND',
-        message: 'auth.user_not_found',
-      },
+    await expect(
+      collectResult(service.getForUser('missing-user')),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
     });
   });
 
@@ -140,7 +157,7 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.getForUser(mockUserBase.id);
+    const result = await unwrapOk(service.getForUser(mockUserBase.id));
 
     expect(repository.findUserWithHealthContext).toHaveBeenCalledWith(
       mockUserBase.id,
@@ -248,7 +265,7 @@ describe('UserHealthContextService', () => {
       ],
     });
 
-    const result = await service.getForUser(mockUserBase.id);
+    const result = await unwrapOk(service.getForUser(mockUserBase.id));
 
     expect(result.summary).toEqual({
       age: 28,
@@ -356,16 +373,18 @@ describe('UserHealthContextService', () => {
       onboardingCompletedAt: null,
     });
 
-    const result = await service.updateProfile(mockUserBase.id, {
-      locale: ' zh-CN ',
-      timezone: '',
-      unitSystem: UnitSystem.metric,
-      birthDate: '1998-03-15',
-      sexAtBirth: SexAtBirth.female,
-      heightCm: 168,
-      bloodType: ' O+ ',
-      onboardingCompleted: true,
-    });
+    const result = await unwrapOk(
+      service.updateProfile(mockUserBase.id, {
+        locale: ' zh-CN ',
+        timezone: '',
+        unitSystem: UnitSystem.metric,
+        birthDate: '1998-03-15',
+        sexAtBirth: SexAtBirth.female,
+        heightCm: 168,
+        bloodType: ' O+ ',
+        onboardingCompleted: true,
+      }),
+    );
 
     expect(repository.upsertProfile).toHaveBeenCalledWith(
       { userId: mockUserBase.id },
@@ -424,13 +443,15 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    await service.updateProfile(mockUserBase.id, {
-      birthDate: null,
-      sexAtBirth: null,
-      heightCm: null,
-      bloodType: null,
-      unitSystem: null,
-    });
+    await unwrapOk(
+      service.updateProfile(mockUserBase.id, {
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        bloodType: null,
+        unitSystem: null,
+      }),
+    );
 
     expect(repository.upsertProfile).toHaveBeenCalledWith(
       { userId: mockUserBase.id },
@@ -482,9 +503,11 @@ describe('UserHealthContextService', () => {
       onboardingCompletedAt: null,
     });
 
-    await service.updateProfile(mockUserBase.id, {
-      onboardingCompleted: true,
-    });
+    await unwrapOk(
+      service.updateProfile(mockUserBase.id, {
+        onboardingCompleted: true,
+      }),
+    );
 
     expect(repository.upsertProfile).toHaveBeenCalledWith(
       expect.anything(),
@@ -522,9 +545,11 @@ describe('UserHealthContextService', () => {
 
     repository.findProfileByUserId.mockResolvedValue(null);
 
-    await service.updateProfile(mockUserBase.id, {
-      onboardingCompleted: true,
-    });
+    await unwrapOk(
+      service.updateProfile(mockUserBase.id, {
+        onboardingCompleted: true,
+      }),
+    );
 
     expect(repository.upsertProfile).toHaveBeenCalledWith(
       expect.anything(),
@@ -564,9 +589,11 @@ describe('UserHealthContextService', () => {
       onboardingCompletedAt: existingDate,
     });
 
-    await service.updateProfile(mockUserBase.id, {
-      onboardingCompleted: true,
-    });
+    await unwrapOk(
+      service.updateProfile(mockUserBase.id, {
+        onboardingCompleted: true,
+      }),
+    );
 
     // upsert should NOT be called because updateData is empty
     // (onboardingCompletedAt was already set, so nothing to update)
@@ -598,15 +625,31 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    await service.updateProfile(mockUserBase.id, {
-      onboardingCompleted: false,
-    });
+    await unwrapOk(
+      service.updateProfile(mockUserBase.id, {
+        onboardingCompleted: false,
+      }),
+    );
 
     expect(repository.upsertProfile).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  it('should propagate a missing-user failure before touching the profile', async () => {
+    repository.findActiveUserById.mockResolvedValueOnce(null);
+
+    await expect(
+      collectResult(
+        service.updateProfile(mockUserBase.id, { locale: 'zh-CN' }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
+    expect(repository.upsertProfile).not.toHaveBeenCalled();
   });
 
   // ── Allergy tests ──
@@ -638,13 +681,15 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.createAllergy(mockUserBase.id, {
-      kind: UserAllergyKind.drug,
-      label: ' Penicillin ',
-      reaction: 'Rash',
-      severity: UserAllergySeverity.moderate,
-      recordedAt: '2026-06-03T09:00:00.000Z',
-    });
+    const result = await unwrapOk(
+      service.createAllergy(mockUserBase.id, {
+        kind: UserAllergyKind.drug,
+        label: ' Penicillin ',
+        reaction: 'Rash',
+        severity: UserAllergySeverity.moderate,
+        recordedAt: '2026-06-03T09:00:00.000Z',
+      }),
+    );
 
     expect(repository.createAllergy).toHaveBeenCalledWith({
       userId: mockUserBase.id,
@@ -688,12 +733,14 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.updateAllergy(mockUserBase.id, 'allergy-1', {
-      label: ' Penicillin Updated ',
-      severity: UserAllergySeverity.mild,
-      note: 'Updated note',
-      reaction: null,
-    });
+    const result = await unwrapOk(
+      service.updateAllergy(mockUserBase.id, 'allergy-1', {
+        label: ' Penicillin Updated ',
+        severity: UserAllergySeverity.mild,
+        note: 'Updated note',
+        reaction: null,
+      }),
+    );
 
     expect(repository.updateAllergy).toHaveBeenCalledWith(
       'allergy-1',
@@ -721,20 +768,41 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.deleteAllergy(mockUserBase.id, 'allergy-1');
+    const result = await unwrapOk(
+      service.deleteAllergy(mockUserBase.id, 'allergy-1'),
+    );
 
     expect(repository.softDeleteAllergy).toHaveBeenCalledWith('allergy-1');
     expect(result.allergies).toHaveLength(0);
   });
 
-  it('should throw NotFoundException when updating a foreign allergy', async () => {
+  it('should return FORBIDDEN when updating a foreign allergy', async () => {
     repository.findAllergyById.mockResolvedValue({
       userId: 'other-user',
     });
 
     await expect(
-      service.updateAllergy(mockUserBase.id, 'allergy-1', { label: 'X' }),
-    ).rejects.toThrow(NotFoundException);
+      collectResult(
+        service.updateAllergy(mockUserBase.id, 'allergy-1', { label: 'X' }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
+    expect(repository.updateAllergy).not.toHaveBeenCalled();
+  });
+
+  it('should return RESOURCE_NOT_FOUND when updating a missing allergy', async () => {
+    repository.findAllergyById.mockResolvedValue(null);
+
+    await expect(
+      collectResult(
+        service.updateAllergy(mockUserBase.id, 'allergy-1', { label: 'X' }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 
   // ── Condition tests ──
@@ -764,12 +832,14 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.createCondition(mockUserBase.id, {
-      label: ' Asthma ',
-      status: UserConditionStatus.active,
-      diagnosedAt: '2024-02-01',
-      note: 'Triggered during pollen season',
-    });
+    const result = await unwrapOk(
+      service.createCondition(mockUserBase.id, {
+        label: ' Asthma ',
+        status: UserConditionStatus.active,
+        diagnosedAt: '2024-02-01',
+        note: 'Triggered during pollen season',
+      }),
+    );
 
     expect(repository.createCondition).toHaveBeenCalledWith({
       user: { connect: { id: mockUserBase.id } },
@@ -809,11 +879,13 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.updateCondition(mockUserBase.id, 'cond-1', {
-      label: ' Asthma Updated ',
-      status: UserConditionStatus.suspected,
-      diagnosedAt: null,
-    });
+    const result = await unwrapOk(
+      service.updateCondition(mockUserBase.id, 'cond-1', {
+        label: ' Asthma Updated ',
+        status: UserConditionStatus.suspected,
+        diagnosedAt: null,
+      }),
+    );
 
     expect(repository.updateCondition).toHaveBeenCalledWith(
       'cond-1',
@@ -858,7 +930,9 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.deleteCondition(mockUserBase.id, 'cond-1');
+    const result = await unwrapOk(
+      service.deleteCondition(mockUserBase.id, 'cond-1'),
+    );
 
     expect(repository.softDeleteCondition).toHaveBeenCalledWith(
       'cond-1',
@@ -869,14 +943,33 @@ describe('UserHealthContextService', () => {
     ).toBe(UserConditionStatus.resolved);
   });
 
-  it('should throw NotFoundException when updating a foreign condition', async () => {
+  it('should return FORBIDDEN when updating a foreign condition', async () => {
     repository.findConditionById.mockResolvedValue({
       userId: 'other-user',
     });
 
     await expect(
-      service.updateCondition(mockUserBase.id, 'cond-1', { label: 'X' }),
-    ).rejects.toThrow(NotFoundException);
+      collectResult(
+        service.updateCondition(mockUserBase.id, 'cond-1', { label: 'X' }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
+    expect(repository.updateCondition).not.toHaveBeenCalled();
+  });
+
+  it('should return RESOURCE_NOT_FOUND when updating a missing condition', async () => {
+    repository.findConditionById.mockResolvedValue(null);
+
+    await expect(
+      collectResult(
+        service.updateCondition(mockUserBase.id, 'cond-1', { label: 'X' }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 
   // ── Current medicine tests ──
@@ -911,15 +1004,17 @@ describe('UserHealthContextService', () => {
       ],
     });
 
-    const result = await service.createCurrentMedicine(mockUserBase.id, {
-      source: MedicineSource.drugbank,
-      sourceRefId: 'DB01050',
-      displayName: ' Ibuprofen ',
-      strengthText: '200 mg',
-      doseText: '1 tablet after meals',
-      route: 'oral',
-      startedAt: '2026-06-03',
-    });
+    const result = await unwrapOk(
+      service.createCurrentMedicine(mockUserBase.id, {
+        source: MedicineSource.drugbank,
+        sourceRefId: 'DB01050',
+        displayName: ' Ibuprofen ',
+        strengthText: '200 mg',
+        doseText: '1 tablet after meals',
+        route: 'oral',
+        startedAt: '2026-06-03',
+      }),
+    );
 
     expect(repository.createCurrentMedicine).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -972,10 +1067,12 @@ describe('UserHealthContextService', () => {
       ],
     });
 
-    const result = await service.createCurrentMedicine(mockUserBase.id, {
-      source: MedicineSource.manual,
-      displayName: 'Vitamin D',
-    });
+    const result = await unwrapOk(
+      service.createCurrentMedicine(mockUserBase.id, {
+        source: MedicineSource.manual,
+        displayName: 'Vitamin D',
+      }),
+    );
 
     expect(repository.createCurrentMedicine).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1023,14 +1120,12 @@ describe('UserHealthContextService', () => {
       ],
     });
 
-    const result = await service.updateCurrentMedicine(
-      mockUserBase.id,
-      'med-1',
-      {
+    const result = await unwrapOk(
+      service.updateCurrentMedicine(mockUserBase.id, 'med-1', {
         displayName: ' Ibuprofen Updated ',
         strengthText: '400 mg',
         note: 'Updated note',
-      },
+      }),
     );
 
     expect(repository.updateCurrentMedicine).toHaveBeenCalledWith(
@@ -1062,9 +1157,8 @@ describe('UserHealthContextService', () => {
       currentMedicines: [],
     });
 
-    const result = await service.deleteCurrentMedicine(
-      mockUserBase.id,
-      'med-1',
+    const result = await unwrapOk(
+      service.deleteCurrentMedicine(mockUserBase.id, 'med-1'),
     );
 
     expect(repository.softDeleteCurrentMedicine).toHaveBeenCalledWith(
@@ -1074,16 +1168,37 @@ describe('UserHealthContextService', () => {
     expect(result.currentMedicines).toHaveLength(0);
   });
 
-  it('should throw NotFoundException when accessing a foreign current medicine', async () => {
+  it('should return FORBIDDEN when accessing a foreign current medicine', async () => {
     repository.findCurrentMedicineById.mockResolvedValue({
       userId: 'other-user',
       endedAt: null,
     });
 
     await expect(
-      service.updateCurrentMedicine(mockUserBase.id, 'med-1', {
-        displayName: 'X',
-      }),
-    ).rejects.toThrow(NotFoundException);
+      collectResult(
+        service.updateCurrentMedicine(mockUserBase.id, 'med-1', {
+          displayName: 'X',
+        }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
+    expect(repository.updateCurrentMedicine).not.toHaveBeenCalled();
+  });
+
+  it('should return RESOURCE_NOT_FOUND when accessing a missing current medicine', async () => {
+    repository.findCurrentMedicineById.mockResolvedValue(null);
+
+    await expect(
+      collectResult(
+        service.updateCurrentMedicine(mockUserBase.id, 'med-1', {
+          displayName: 'X',
+        }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 });

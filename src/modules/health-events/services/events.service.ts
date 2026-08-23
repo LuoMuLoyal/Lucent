@@ -8,17 +8,20 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client';
-import { I18nService } from 'nestjs-i18n';
 import {
   DEFAULT_USER_TIMEZONE,
-  badRequest,
-  conflict,
   formatDateOnlyInTimezone,
-  notFound,
   now,
 } from '../../../common';
 import {
-  HealthEventActiveConflictError,
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
+import {
   HealthEventRepositoryPort,
   type HealthEventView,
   type HealthEventRecord,
@@ -66,8 +69,7 @@ export interface HealthEventListView {
 
 export function parseHealthEventOutcome(
   value: unknown,
-  invalidMessage = 'Health event outcome must be improved, unchanged, or worsened.',
-): HealthEventOutcome {
+): HealthEventOutcome | undefined {
   if (
     value === HealthEventOutcome.improved ||
     value === HealthEventOutcome.unchanged ||
@@ -75,47 +77,81 @@ export function parseHealthEventOutcome(
   ) {
     return value;
   }
-  badRequest(invalidMessage);
+  return undefined;
 }
 
 @Injectable()
 export class EventsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
-    private readonly i18n: I18nService,
     private readonly eventEmitter: EventEmitter2,
     private readonly productEvents: ProductEventsService,
   ) {}
 
-  async create(
+  create(
     userId: string,
     input: CreateHealthEventInput,
-  ): Promise<HealthEventRecord> {
-    const active = await this.repository.findActiveByUserId(userId);
-    if (active != null) {
-      conflict(this.i18n.t('health-events.active_conflict'));
-    }
+  ): ResultAsync<HealthEventRecord, DomainFailure> {
+    return fromPromise(this.repository.findActiveByUserId(userId), (error) => {
+      throw error;
+    }).andThen((active) => {
+      if (active != null) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'conflict',
+            code: 'RECORD_ALREADY_EXISTS',
+          }),
+        );
+      }
 
-    const currentMedicineIds = [...new Set(input.currentMedicineIds ?? [])];
-    const ownedMedicineIds = await this.repository.findOwnedCurrentMedicineIds(
-      userId,
-      currentMedicineIds,
-    );
-    if (new Set(ownedMedicineIds).size !== currentMedicineIds.length) {
-      notFound(this.i18n.t('health-events.related_medicine_not_found'));
-    }
+      const currentMedicineIds = [...new Set(input.currentMedicineIds ?? [])];
+      return fromPromise(
+        this.repository.findOwnedCurrentMedicineIds(userId, currentMedicineIds),
+        (error) => {
+          throw error;
+        },
+      ).andThen((ownedMedicineIds) => {
+        if (new Set(ownedMedicineIds).size !== currentMedicineIds.length) {
+          return errAsync(this.notFound());
+        }
 
-    const reasonRecordId = input.reasonRecordId ?? null;
-    if (
-      reasonRecordId != null &&
-      !(await this.repository.findOwnedReasonRecord(userId, reasonRecordId))
-    ) {
-      notFound(this.i18n.t('health-events.related_reason_record_not_found'));
-    }
+        const reasonRecordId = input.reasonRecordId ?? null;
+        if (reasonRecordId == null) {
+          return this.persistCreate(
+            userId,
+            input,
+            currentMedicineIds,
+            reasonRecordId,
+          );
+        }
+        return fromPromise(
+          this.repository.findOwnedReasonRecord(userId, reasonRecordId),
+          (error) => {
+            throw error;
+          },
+        ).andThen((owned) => {
+          if (!owned) {
+            return errAsync(this.notFound());
+          }
+          return this.persistCreate(
+            userId,
+            input,
+            currentMedicineIds,
+            reasonRecordId,
+          );
+        });
+      });
+    });
+  }
 
-    let created: HealthEventRecord;
-    try {
-      created = await this.repository.create({
+  private persistCreate(
+    userId: string,
+    input: CreateHealthEventInput,
+    currentMedicineIds: string[],
+    reasonRecordId: string | null,
+  ): ResultAsync<HealthEventRecord, DomainFailure> {
+    return this.repository
+      .create({
         userId,
         title: input.title,
         kind: input.kind ?? HealthEventKind.symptom,
@@ -123,54 +159,66 @@ export class EventsService {
         startedAt: input.startedAt ?? now(),
         reasonRecordId,
         currentMedicineIds,
+      })
+      .andThen((created) => {
+        return (
+          fromPromise(this.repository.findUserTimezone(userId), (error) => {
+            throw error;
+          })
+            .andThen((timezone) =>
+              fromPromise(
+                this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+                  userId,
+                  eventId: created.id,
+                  date: formatDateOnlyInTimezone(
+                    created.startedAt,
+                    timezone ?? DEFAULT_USER_TIMEZONE,
+                  ),
+                  change: 'create',
+                  kind: created.kind ?? HealthEventKind.symptom,
+                } satisfies HealthEventChangedPayload),
+                (error) => {
+                  throw error;
+                },
+              ),
+            )
+            // Server-authoritative lifecycle event — emitted only after the
+            // create write succeeded; the client must not re-report
+            // health_event_started. Deterministic clientEventId: a client retry
+            // that re-runs this idempotent create is deduped by the
+            // (userId, clientEventId) unique constraint. Caveat: a user-supplied
+            // `startedAt` more than 24h in the future fails the product-event
+            // future-skew check, so the started event is dropped
+            // (low-sensitivity log + emission-failure metric only — the main
+            // create is unaffected).
+            .andThen(() =>
+              fromPromise(
+                this.productEvents.emitServerEvent(userId, {
+                  name: ProductEventName.health_event_started,
+                  surface: ProductEventSurface.review,
+                  result: ProductEventResult.success,
+                  eventStatus: HealthEventStatus.active,
+                  occurredAt: created.startedAt,
+                  clientEventId: `server-health-started-${created.id}`,
+                }),
+                (error) => {
+                  throw error;
+                },
+              ),
+            )
+            .map(() => created)
+        );
       });
-    } catch (error) {
-      if (error instanceof HealthEventActiveConflictError) {
-        conflict(this.i18n.t('health-events.active_conflict'));
-      }
-      throw error;
-    }
-
-    const timezone = await this.repository.findUserTimezone(userId);
-    await this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
-      userId,
-      eventId: created.id,
-      date: formatDateOnlyInTimezone(
-        created.startedAt,
-        timezone ?? DEFAULT_USER_TIMEZONE,
-      ),
-      change: 'create',
-      kind: created.kind ?? HealthEventKind.symptom,
-    } satisfies HealthEventChangedPayload);
-
-    // Server-authoritative lifecycle event — emitted only after the create
-    // write succeeded; the client must not re-report health_event_started.
-    // Deterministic clientEventId: a client retry that re-runs this idempotent
-    // create is deduped by the (userId, clientEventId) unique constraint.
-    // Caveat: a user-supplied `startedAt` more than 24h in the future fails
-    // the product-event future-skew check, so the started event is dropped
-    // (low-sensitivity log + emission-failure metric only — the main create
-    // is unaffected).
-    await this.productEvents.emitServerEvent(userId, {
-      name: ProductEventName.health_event_started,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.success,
-      eventStatus: HealthEventStatus.active,
-      occurredAt: created.startedAt,
-      clientEventId: `server-health-started-${created.id}`,
-    });
-    return created;
   }
 
-  async findById(userId: string, eventId: string): Promise<HealthEventRecord> {
-    const event = await this.repository.findById(userId, eventId);
-    if (event == null) {
-      notFound(this.i18n.t('health-events.not_found'));
-    }
-    return event;
+  findById(
+    userId: string,
+    eventId: string,
+  ): ResultAsync<HealthEventRecord, DomainFailure> {
+    return this.ensureOwnedByUser(userId, eventId);
   }
 
-  async findActive(userId: string): Promise<HealthEventRecord | null> {
+  findActive(userId: string): Promise<HealthEventRecord | null> {
     return this.repository.findActiveByUserId(userId);
   }
 
@@ -195,81 +243,129 @@ export class EventsService {
     return { items, total: items.length };
   }
 
-  async findByIdView(
+  findByIdView(
     userId: string,
     eventId: string,
     date?: string,
-  ): Promise<HealthEventView> {
-    const event = await this.findById(userId, eventId);
-    return this.buildView(userId, event, date);
+  ): ResultAsync<HealthEventView, DomainFailure> {
+    return this.findById(userId, eventId).andThen((event) =>
+      this.buildViewAsResult(userId, event, date),
+    );
   }
 
-  async ensureOwnedByUser(
+  ensureOwnedByUser(
     userId: string,
     eventId: string,
-  ): Promise<HealthEventRecord> {
-    return this.findById(userId, eventId);
+  ): ResultAsync<HealthEventRecord, DomainFailure> {
+    return fromPromise(this.repository.findById(eventId), (error) => {
+      throw error;
+    }).andThen((event) => {
+      if (event == null) {
+        return errAsync(this.notFound());
+      }
+      if (event.userId !== userId) {
+        return errAsync(
+          createDomainFailure({ kind: 'authorization', code: 'FORBIDDEN' }),
+        );
+      }
+      return okAsync(event);
+    });
   }
 
-  async ensureActiveOwnedByUser(
+  ensureActiveOwnedByUser(
     userId: string,
     eventId: string,
-  ): Promise<HealthEventRecord> {
-    const event = await this.ensureOwnedByUser(userId, eventId);
-    if (event.status !== HealthEventStatus.active) {
-      badRequest(this.i18n.t('health-events.inactive'));
-    }
-    return event;
+  ): ResultAsync<HealthEventRecord, DomainFailure> {
+    return this.ensureOwnedByUser(userId, eventId).andThen((event) => {
+      if (event.status !== HealthEventStatus.active) {
+        return errAsync(this.validationFailed());
+      }
+      return okAsync(event);
+    });
   }
 
-  async end(
+  end(
     userId: string,
     eventId: string,
     input: EndHealthEventInput | string | undefined,
-  ): Promise<HealthEventRecord> {
+  ): ResultAsync<HealthEventRecord, DomainFailure> {
     const outcome = parseHealthEventOutcome(
       typeof input === 'string' ? input : input?.outcome,
-      this.i18n.t('health-events.invalid_outcome'),
     );
-    const event = await this.ensureOwnedByUser(userId, eventId);
-    if (event.status !== HealthEventStatus.active) {
-      badRequest(this.i18n.t('health-events.already_ended'));
+    if (outcome == null) {
+      return errAsync(this.validationFailed());
     }
+    return this.ensureOwnedByUser(userId, eventId).andThen((event) => {
+      if (event.status !== HealthEventStatus.active) {
+        return errAsync(this.validationFailed());
+      }
 
-    const endedAt = now();
-    const timezone = await this.repository.findUserTimezone(userId);
-    const updated = await this.repository.update(userId, eventId, {
-      status: HealthEventStatus.ended,
-      endedAt,
-      outcome,
+      const endedAt = now();
+      return fromPromise(this.repository.findUserTimezone(userId), (error) => {
+        throw error;
+      }).andThen((timezone) =>
+        this.repository
+          .update(userId, eventId, {
+            status: HealthEventStatus.ended,
+            endedAt,
+            outcome,
+          })
+          .andThen((updated) => {
+            if (updated == null) {
+              return errAsync(this.notFound());
+            }
+            return (
+              fromPromise(
+                this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+                  userId,
+                  eventId,
+                  date: formatDateOnlyInTimezone(
+                    endedAt,
+                    timezone ?? DEFAULT_USER_TIMEZONE,
+                  ),
+                  change: 'end',
+                  kind: updated.kind ?? HealthEventKind.symptom,
+                } satisfies HealthEventChangedPayload),
+                (error) => {
+                  throw error;
+                },
+              )
+                // The end flow carries the definitive outcome, so
+                // health_event_ended reports it as `result`;
+                // health_event_outcome_confirmed belongs to the daily check-in
+                // (CheckInsService) — no double emission. Deterministic
+                // clientEventId dedupes retries that re-run this idempotent
+                // end write.
+                .andThen(() =>
+                  fromPromise(
+                    this.productEvents.emitServerEvent(userId, {
+                      name: ProductEventName.health_event_ended,
+                      surface: ProductEventSurface.review,
+                      result: toProductEventResult(outcome),
+                      eventStatus: HealthEventStatus.ended,
+                      occurredAt: endedAt,
+                      clientEventId: `server-health-ended-${eventId}`,
+                    }),
+                    (error) => {
+                      throw error;
+                    },
+                  ),
+                )
+                .map(() => updated)
+            );
+          }),
+      );
     });
-    if (updated == null) {
-      notFound(this.i18n.t('health-events.not_found'));
-    }
-    await this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
-      userId,
-      eventId,
-      date: formatDateOnlyInTimezone(
-        endedAt,
-        timezone ?? DEFAULT_USER_TIMEZONE,
-      ),
-      change: 'end',
-      kind: updated.kind ?? HealthEventKind.symptom,
-    } satisfies HealthEventChangedPayload);
+  }
 
-    // The end flow carries the definitive outcome, so health_event_ended
-    // reports it as `result`; health_event_outcome_confirmed belongs to the
-    // daily check-in (CheckInsService) — no double emission. Deterministic
-    // clientEventId dedupes retries that re-run this idempotent end write.
-    await this.productEvents.emitServerEvent(userId, {
-      name: ProductEventName.health_event_ended,
-      surface: ProductEventSurface.review,
-      result: toProductEventResult(outcome),
-      eventStatus: HealthEventStatus.ended,
-      occurredAt: endedAt,
-      clientEventId: `server-health-ended-${eventId}`,
+  private buildViewAsResult(
+    userId: string,
+    event: HealthEventRecord,
+    date?: string,
+  ): ResultAsync<HealthEventView, DomainFailure> {
+    return fromPromise(this.buildView(userId, event, date), (error) => {
+      throw error;
     });
-    return updated;
   }
 
   private async buildView(
@@ -295,5 +391,19 @@ export class EventsService {
 
     const timezone = await this.repository.findUserTimezone(userId);
     return formatDateOnlyInTimezone(now(), timezone ?? DEFAULT_USER_TIMEZONE);
+  }
+
+  private notFound(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  }
+
+  private validationFailed(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

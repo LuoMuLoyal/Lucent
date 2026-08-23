@@ -6,16 +6,20 @@ import {
   ProductEventName,
   ProductEventSurface,
 } from '#generated/prisma/client';
-import { I18nService } from 'nestjs-i18n';
 import {
   DEFAULT_USER_TIMEZONE,
-  badRequest,
   formatDateOnly,
   formatDateOnlyInTimezone,
-  notFound,
   now,
   parseDateOnly,
 } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import {
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
@@ -37,76 +41,98 @@ export type UpsertCheckInInput = EndHealthEventInput;
 export class CheckInsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
-    private readonly i18n: I18nService,
     private readonly eventEmitter: EventEmitter2,
     private readonly productEvents: ProductEventsService,
   ) {}
 
-  async upsert(
+  upsert(
     userId: string,
     eventId: string,
     input: UpsertCheckInInput | string | undefined,
     at: Date = now(),
-  ): Promise<HealthEventCheckInRecord> {
-    const timezone = await this.repository.findUserTimezone(userId);
-    const date = formatDateOnlyInTimezone(
-      at,
-      timezone ?? DEFAULT_USER_TIMEZONE,
-    );
-    return this.upsertForDate(userId, eventId, date, input);
+  ): ResultAsync<HealthEventCheckInRecord, DomainFailure> {
+    return fromPromise(this.repository.findUserTimezone(userId), (error) => {
+      throw error;
+    })
+      .map((timezone) =>
+        formatDateOnlyInTimezone(at, timezone ?? DEFAULT_USER_TIMEZONE),
+      )
+      .andThen((date) => this.upsertForDate(userId, eventId, date, input));
   }
 
-  async upsertForDate(
+  upsertForDate(
     userId: string,
     eventId: string,
     date: string,
     input: UpsertCheckInInput | string | undefined,
-  ): Promise<HealthEventCheckInRecord> {
+  ): ResultAsync<HealthEventCheckInRecord, DomainFailure> {
     const outcome = parseHealthEventOutcome(
       typeof input === 'string' ? input : input?.outcome,
-      this.i18n.t('health-events.invalid_outcome'),
     );
+    if (outcome == null) {
+      return errAsync(this.validationFailed());
+    }
     if (!this.isValidDateOnly(date)) {
-      badRequest(this.i18n.t('health-events.invalid_date'));
+      return errAsync(this.validationFailed());
     }
 
-    const event = await this.repository.findById(userId, eventId);
-    if (event == null) {
-      notFound(this.i18n.t('health-events.not_found'));
-    }
-    if (event.status !== HealthEventStatus.active) {
-      badRequest(this.i18n.t('health-events.inactive'));
-    }
+    return fromPromise(this.repository.findById(eventId), (error) => {
+      throw error;
+    }).andThen((event) => {
+      if (event == null) {
+        return errAsync(this.notFound());
+      }
+      if (event.userId !== userId) {
+        return errAsync(
+          createDomainFailure({ kind: 'authorization', code: 'FORBIDDEN' }),
+        );
+      }
+      if (event.status !== HealthEventStatus.active) {
+        return errAsync(this.validationFailed());
+      }
 
-    const checkIn = await this.repository.upsertCheckIn(
-      userId,
-      eventId,
-      date,
-      outcome,
-    );
-    if (checkIn == null) {
-      notFound(this.i18n.t('health-events.not_found'));
-    }
-    await this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
-      userId,
-      eventId,
-      date,
-      change: 'check-in',
-      kind: event.kind ?? HealthEventKind.symptom,
-    } satisfies HealthEventChangedPayload);
-
-    // A successful check-in confirms the user's outcome for that day —
-    // server-authoritative, emitted only after the upsert write succeeded.
-    // Deterministic clientEventId: the upsert is per (event, calendar date),
-    // so a retry yields the same id and the unique constraint dedupes it.
-    await this.productEvents.emitServerEvent(userId, {
-      name: ProductEventName.health_event_outcome_confirmed,
-      surface: ProductEventSurface.review,
-      result: toProductEventResult(outcome),
-      occurredAt: now(),
-      clientEventId: `server-checkin-${eventId}-${date}`,
+      return this.repository
+        .upsertCheckIn(userId, eventId, date, outcome)
+        .andThen((checkIn) => {
+          if (checkIn == null) {
+            return errAsync(this.notFound());
+          }
+          return (
+            fromPromise(
+              this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+                userId,
+                eventId,
+                date,
+                change: 'check-in',
+                kind: event.kind ?? HealthEventKind.symptom,
+              } satisfies HealthEventChangedPayload),
+              (error) => {
+                throw error;
+              },
+            )
+              // A successful check-in confirms the user's outcome for that
+              // day — server-authoritative, emitted only after the upsert
+              // write succeeded. Deterministic clientEventId: the upsert is
+              // per (event, calendar date), so a retry yields the same id and
+              // the unique constraint dedupes it.
+              .andThen(() =>
+                fromPromise(
+                  this.productEvents.emitServerEvent(userId, {
+                    name: ProductEventName.health_event_outcome_confirmed,
+                    surface: ProductEventSurface.review,
+                    result: toProductEventResult(outcome),
+                    occurredAt: now(),
+                    clientEventId: `server-checkin-${eventId}-${date}`,
+                  }),
+                  (error) => {
+                    throw error;
+                  },
+                ),
+              )
+              .map(() => checkIn)
+          );
+        });
     });
-    return checkIn;
   }
 
   private isValidDateOnly(value: string): boolean {
@@ -116,5 +142,19 @@ export class CheckInsService {
 
     const parsed = parseDateOnly(value);
     return !Number.isNaN(parsed.getTime()) && formatDateOnly(parsed) === value;
+  }
+
+  private notFound(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  }
+
+  private validationFailed(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

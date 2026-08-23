@@ -20,6 +20,8 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
+import { ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { CreateDailyRecordDto } from './dto/create-record.dto';
 
 import { UpdateDailyRecordDto } from './dto/update-record.dto';
@@ -124,33 +126,70 @@ export class DailyRecordsController {
   @ApiOperation({ summary: 'Get a daily record by id' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: DailyRecordResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Daily record is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Daily record not found',
+    type: ProblemDetailsDto,
+  })
   async get(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    const result = await this.dailyRecordsService.get(user.sub, id);
-    return result;
+    return unwrapResult(this.dailyRecordsService.get(user.sub, id));
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a daily record' })
   @ApiResponse({ status: 201, type: DailyRecordResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid record payload, or linked health event is not active',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Linked health event is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Linked health event not found',
+    type: ProblemDetailsDto,
+  })
   async create(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateDailyRecordDto,
   ) {
-    const result = await this.dailyRecordsService.create(user.sub, dto);
-    return result;
+    return unwrapResult(this.dailyRecordsService.create(user.sub, dto));
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a daily record' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: DailyRecordResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid record payload, or linked health event is not active',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Daily record or linked health event is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Daily record or linked health event not found',
+    type: ProblemDetailsDto,
+  })
   async update(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
     @Body() dto: UpdateDailyRecordDto,
   ) {
-    const result = await this.dailyRecordsService.update(user.sub, id, dto);
-    return result;
+    return unwrapResult(this.dailyRecordsService.update(user.sub, id, dto));
   }
 
   @Delete(':id')
@@ -158,8 +197,18 @@ export class DailyRecordsController {
   @ApiOperation({ summary: 'Soft-delete a daily record' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 204, description: 'Daily record deleted.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Daily record is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Daily record not found',
+    type: ProblemDetailsDto,
+  })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    await this.dailyRecordsService.delete(user.sub, id);
+    await unwrapResult(this.dailyRecordsService.delete(user.sub, id));
     return;
   }
 }

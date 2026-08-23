@@ -3,13 +3,31 @@ import {
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
-import type { Prisma } from '#generated/prisma/client';
+import { Prisma } from '#generated/prisma/client';
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../prisma';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import { PrismaEventRepository } from './prisma-event.repository';
 
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';
+
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
+function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
+  const error = Object.create(
+    Prisma.PrismaClientKnownRequestError.prototype,
+  ) as Prisma.PrismaClientKnownRequestError;
+  error.code = code;
+  return error;
+}
 
 function eventRow(id: string) {
   return {
@@ -120,13 +138,15 @@ describe('PrismaEventRepository', () => {
         callback(tx as unknown as Prisma.TransactionClient),
     );
 
-    const result = await repository.update(USER_ID, EVENT_ID, {
-      status: HealthEventStatus.ended,
-      endedAt: new Date('2026-07-21T00:30:00.000Z'),
-      outcome: HealthEventOutcome.improved,
-    });
+    const result = await collectResult(
+      repository.update(USER_ID, EVENT_ID, {
+        status: HealthEventStatus.ended,
+        endedAt: new Date('2026-07-21T00:30:00.000Z'),
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ ok: true, value: null });
     expect(tx.$queryRaw).toHaveBeenCalled();
     expect(tx.healthEvent.updateMany).not.toHaveBeenCalled();
   });
@@ -145,16 +165,72 @@ describe('PrismaEventRepository', () => {
         callback(tx as unknown as Prisma.TransactionClient),
     );
 
-    const result = await repository.upsertCheckIn(
-      USER_ID,
-      EVENT_ID,
-      '2026-07-20',
-      HealthEventOutcome.improved,
+    const result = await collectResult(
+      repository.upsertCheckIn(
+        USER_ID,
+        EVENT_ID,
+        '2026-07-20',
+        HealthEventOutcome.improved,
+      ),
     );
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ ok: true, value: null });
     expect(tx.$queryRaw).toHaveBeenCalled();
     expect(tx.healthEventCheckIn.upsert).not.toHaveBeenCalled();
+  });
+
+  it('maps a unique constraint race during create to RESOURCE_CONFLICT', async () => {
+    prisma.$transaction.mockRejectedValue(prismaError('P2002'));
+
+    const result = await collectResult(
+      repository.create({
+        userId: USER_ID,
+        title: '头痛',
+        kind: HealthEventKind.symptom,
+        status: HealthEventStatus.active,
+        startedAt: new Date('2026-08-01T08:00:00.000Z'),
+        reasonRecordId: null,
+        currentMedicineIds: [],
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
+    });
+  });
+
+  it('rethrows an unknown create error', async () => {
+    prisma.$transaction.mockRejectedValue(new Error('connection lost'));
+
+    await expect(
+      repository.create({
+        userId: USER_ID,
+        title: '头痛',
+        kind: HealthEventKind.symptom,
+        status: HealthEventStatus.active,
+        startedAt: new Date('2026-08-01T08:00:00.000Z'),
+        reasonRecordId: null,
+        currentMedicineIds: [],
+      }),
+    ).rejects.toThrow('connection lost');
+  });
+
+  it('maps a missing update target to RESOURCE_NOT_FOUND', async () => {
+    prisma.$transaction.mockRejectedValue(prismaError('P2025'));
+
+    const result = await collectResult(
+      repository.update(USER_ID, EVENT_ID, {
+        status: HealthEventStatus.ended,
+        endedAt: new Date('2026-07-21T00:30:00.000Z'),
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 
   it('pages events with a status filter and an exclusive cursor bound', async () => {

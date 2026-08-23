@@ -1,4 +1,3 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   HealthEventKind,
   HealthEventOutcome,
@@ -7,7 +6,6 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client';
-import type { I18nService } from 'nestjs-i18n';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type {
   HealthEventRepositoryPort,
@@ -15,15 +13,20 @@ import type {
   HealthEventCheckInRecord,
 } from '../repositories/event.repository';
 import type { ProductEventsService } from '../../product-events';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { fromPromise, okAsync } from '../../../common/result';
 import { CheckInsService } from './check-ins.service';
 
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';
 
-function buildI18n() {
-  return {
-    t: vi.fn().mockImplementation((key: string) => key),
-  } as unknown as I18nService;
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
 }
 
 function buildEventEmitter() {
@@ -84,7 +87,7 @@ function buildRepository() {
     upsertCheckIn: vi
       .fn()
       .mockImplementation((_userId, _eventId, _date, outcome) =>
-        Promise.resolve(checkIn(outcome)),
+        okAsync(checkIn(outcome)),
       ),
     findUserTimezone: vi.fn().mockResolvedValue('America/New_York'),
   } satisfies Record<keyof HealthEventRepositoryPort, vi.Mock>;
@@ -97,17 +100,20 @@ describe('CheckInsService', () => {
     const repository = buildRepository();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       buildProductEvents(),
     );
 
-    await service.upsert(USER_ID, EVENT_ID, {
-      outcome: HealthEventOutcome.improved,
-    });
-    await service.upsert(USER_ID, EVENT_ID, {
-      outcome: HealthEventOutcome.worsened,
-    });
+    await collectResult(
+      service.upsert(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
+    await collectResult(
+      service.upsert(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.worsened,
+      }),
+    );
 
     expect(repository.upsertCheckIn).toHaveBeenNthCalledWith(
       1,
@@ -133,14 +139,15 @@ describe('CheckInsService', () => {
     repository.findUserTimezone.mockResolvedValue(null);
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       buildProductEvents(),
     );
 
-    await service.upsert(USER_ID, EVENT_ID, {
-      outcome: HealthEventOutcome.unchanged,
-    });
+    await collectResult(
+      service.upsert(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.unchanged,
+      }),
+    );
 
     expect(repository.upsertCheckIn).toHaveBeenCalledWith(
       USER_ID,
@@ -151,47 +158,71 @@ describe('CheckInsService', () => {
     vi.useRealTimers();
   });
 
-  it('accepts only the three HealthEventOutcome values', async () => {
+  it('accepts only the three HealthEventOutcome values (VALIDATION_FAILED)', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      i18n,
       buildEventEmitter(),
       buildProductEvents(),
     );
 
-    await expect(
+    const result = await collectResult(
       service.upsert(USER_ID, EVENT_ID, { outcome: 'other' }),
-    ).rejects.toMatchObject({
-      response: { message: 'health-events.invalid_outcome' },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
     });
-    expect(i18n.t).toHaveBeenCalledWith('health-events.invalid_outcome');
     expect(repository.upsertCheckIn).not.toHaveBeenCalled();
   });
 
-  it('rejects a check-in for another user event with not-found semantics', async () => {
+  it('returns FORBIDDEN for another user event', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
+    repository.findById.mockResolvedValue(event({ userId: 'user-2' }));
+    const service = new CheckInsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildEventEmitter(),
+      buildProductEvents(),
+    );
+
+    const result = await collectResult(
+      service.upsert(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
+    expect(repository.upsertCheckIn).not.toHaveBeenCalled();
+  });
+
+  it('returns RESOURCE_NOT_FOUND for a missing event', async () => {
+    const repository = buildRepository();
     repository.findById.mockResolvedValue(null);
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      i18n,
       buildEventEmitter(),
       buildProductEvents(),
     );
 
-    await expect(
-      service.upsert('user-2', EVENT_ID, {
+    const result = await collectResult(
+      service.upsert(USER_ID, EVENT_ID, {
         outcome: HealthEventOutcome.improved,
       }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
     expect(repository.upsertCheckIn).not.toHaveBeenCalled();
   });
 
-  it('does not allow check-ins after the event has ended', async () => {
+  it('does not allow check-ins after the event has ended (VALIDATION_FAILED)', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     repository.findById.mockResolvedValue(
       event({
         status: HealthEventStatus.ended,
@@ -201,16 +232,41 @@ describe('CheckInsService', () => {
     );
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      i18n,
       buildEventEmitter(),
       buildProductEvents(),
     );
 
-    await expect(
+    const result = await collectResult(
       service.upsert(USER_ID, EVENT_ID, {
         outcome: HealthEventOutcome.improved,
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(repository.upsertCheckIn).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed calendar date (VALIDATION_FAILED)', async () => {
+    const repository = buildRepository();
+    const service = new CheckInsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildEventEmitter(),
+      buildProductEvents(),
+    );
+
+    const result = await collectResult(
+      service.upsertForDate(USER_ID, EVENT_ID, '2026-13-99', {
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
     expect(repository.upsertCheckIn).not.toHaveBeenCalled();
   });
 
@@ -219,14 +275,15 @@ describe('CheckInsService', () => {
     const eventEmitter = buildEventEmitter();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       eventEmitter,
       buildProductEvents(),
     );
 
-    await service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
-      outcome: HealthEventOutcome.improved,
-    });
+    await collectResult(
+      service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
 
     expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
     expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
@@ -244,10 +301,13 @@ describe('CheckInsService', () => {
   it('does not emit when a check-in write fails', async () => {
     const repository = buildRepository();
     const eventEmitter = buildEventEmitter();
-    repository.upsertCheckIn.mockRejectedValue(new Error('write failed'));
+    repository.upsertCheckIn.mockReturnValue(
+      fromPromise(Promise.reject(new Error('write failed')), (error) => {
+        throw error;
+      }),
+    );
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       eventEmitter,
       buildProductEvents(),
     );
@@ -265,14 +325,15 @@ describe('CheckInsService', () => {
     const productEvents = buildProductEvents();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       productEvents,
     );
 
-    await service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
-      outcome: HealthEventOutcome.worsened,
-    });
+    await collectResult(
+      service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
+        outcome: HealthEventOutcome.worsened,
+      }),
+    );
 
     expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
     expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
@@ -287,10 +348,13 @@ describe('CheckInsService', () => {
   it('does not emit the product event when the check-in write fails', async () => {
     const repository = buildRepository();
     const productEvents = buildProductEvents();
-    repository.upsertCheckIn.mockRejectedValue(new Error('write failed'));
+    repository.upsertCheckIn.mockReturnValue(
+      fromPromise(Promise.reject(new Error('write failed')), (error) => {
+        throw error;
+      }),
+    );
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       productEvents,
     );

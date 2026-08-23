@@ -1,7 +1,26 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
+import { Prisma } from '#generated/prisma/client';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 import { DailyRecordRepository } from './daily-record.repository';
 import type { PrismaService } from '../../../prisma';
+
+function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
+  const error = Object.create(
+    Prisma.PrismaClientKnownRequestError.prototype,
+  ) as Prisma.PrismaClientKnownRequestError;
+  error.code = code;
+  return error;
+}
+
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('DailyRecordRepository', () => {
   let repository: DailyRecordRepository;
@@ -279,12 +298,23 @@ describe('DailyRecordRepository', () => {
       const created = { id: 'rec-1', ...data };
       prisma.userDailyRecord.create.mockResolvedValue(created as never);
 
-      const result = await repository.create(data as never);
+      const result = await collectResult(repository.create(data as never));
 
-      expect(result).toBe(created);
+      expect(result).toEqual({ ok: true, value: created });
       expect(prisma.userDailyRecord.create).toHaveBeenCalledWith({
         data,
         include: expect.anything(),
+      });
+    });
+
+    it('maps a unique constraint violation to RESOURCE_CONFLICT', async () => {
+      prisma.userDailyRecord.create.mockRejectedValue(prismaError('P2002'));
+
+      const result = await collectResult(repository.create({} as never));
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
       });
     });
   });
@@ -295,13 +325,28 @@ describe('DailyRecordRepository', () => {
       const updated = { id: 'rec-1' };
       prisma.userDailyRecord.update.mockResolvedValue(updated as never);
 
-      const result = await repository.update('rec-1', data as never);
+      const result = await collectResult(
+        repository.update('rec-1', data as never),
+      );
 
-      expect(result).toBe(updated);
+      expect(result).toEqual({ ok: true, value: updated });
       expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
         where: { id: 'rec-1' },
         data,
         include: expect.anything(),
+      });
+    });
+
+    it('maps a missing row to RESOURCE_NOT_FOUND', async () => {
+      prisma.userDailyRecord.update.mockRejectedValue(prismaError('P2025'));
+
+      const result = await collectResult(
+        repository.update('missing', {} as never),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
       });
     });
   });
@@ -311,8 +356,11 @@ describe('DailyRecordRepository', () => {
       prisma.userDailyRecord.update.mockResolvedValue(undefined as never);
 
       const deletedAt = new Date('2026-07-10T12:00:00.000Z');
-      await repository.softDelete('rec-1', deletedAt);
+      const result = await collectResult(
+        repository.softDelete('rec-1', deletedAt),
+      );
 
+      expect(result).toEqual({ ok: true, value: undefined });
       expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
         where: { id: 'rec-1' },
         data: { deletedAt },

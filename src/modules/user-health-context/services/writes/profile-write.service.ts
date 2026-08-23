@@ -1,11 +1,21 @@
-import { normalizeNullableText } from '../../../../common';
+import { normalizeNullableText, now } from '../../../../common';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
+import {
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository';
 import type { UpdateHealthContextProfileDto } from '../../dto/update-profile.dto';
 import { UserHealthContextOwnershipService } from '../ownership.service';
 import { UserHealthContextMapperService } from '../mapper.service';
-import { now } from '../../../../common';
+
+interface ProfileWriteData {
+  createData: Prisma.UserProfileUncheckedCreateInput;
+  updateData: Prisma.UserProfileUpdateInput;
+}
 
 @Injectable()
 export class UserHealthContextProfileWriteService {
@@ -15,12 +25,33 @@ export class UserHealthContextProfileWriteService {
     private readonly mapperService: UserHealthContextMapperService,
   ) {}
 
-  async upsertProfile(
+  upsertProfile(
     userId: string,
     dto: UpdateHealthContextProfileDto,
-  ): Promise<void> {
-    await this.ownershipService.ensureActiveUserExists(userId);
+  ): ResultAsync<void, DomainFailure> {
+    return this.ownershipService
+      .ensureActiveUserExists(userId)
+      .andThen(() =>
+        fromPromise(this.buildWriteData(userId, dto), (error) => {
+          throw error;
+        }),
+      )
+      .andThen(({ createData, updateData }) => {
+        if (Object.keys(updateData).length === 0) {
+          return okAsync(undefined);
+        }
+        return this.repository.upsertProfile(
+          { userId },
+          createData,
+          updateData,
+        );
+      });
+  }
 
+  private async buildWriteData(
+    userId: string,
+    dto: UpdateHealthContextProfileDto,
+  ): Promise<ProfileWriteData> {
     const updateData: Prisma.UserProfileUpdateInput = {};
     const createData: Prisma.UserProfileUncheckedCreateInput = { userId };
 
@@ -126,8 +157,6 @@ export class UserHealthContextProfileWriteService {
       createData.extras = mergedExtras;
     }
 
-    if (Object.keys(updateData).length > 0) {
-      await this.repository.upsertProfile({ userId }, createData, updateData);
-    }
+    return { createData, updateData };
   }
 }

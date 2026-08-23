@@ -1,4 +1,4 @@
-import { normalizeNullableText } from '../../../common';
+import { fromPrismaResult, normalizeNullableText } from '../../../common';
 import { parseDateOnly, now, formatDateOnly } from '../../../common';
 import {
   Injectable,
@@ -6,7 +6,15 @@ import {
   Logger,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { badRequest } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client';
 import { toInputJsonValue } from '../../../common';
 import type { CreateDailyRecordDto } from '../dto/create-record.dto';
@@ -73,19 +81,37 @@ export class DailyRecordsService {
     };
   }
 
-  async create(userId: string, dto: CreateDailyRecordDto) {
-    this.ensureValidSleepPayload(dto.kind, dto.payload);
-    this.ensureValidVitalPayload(dto.kind, dto.payload);
-    this.ensureValidActivityPayload(dto.kind, dto.payload);
-
-    const healthEventId = dto.healthEventId ?? null;
-    if (healthEventId !== null) {
-      await this.healthEventsOwnershipService.ensureActiveOwnedByUser(
-        userId,
-        healthEventId,
-      );
+  create(
+    userId: string,
+    dto: CreateDailyRecordDto,
+  ): ResultAsync<
+    ReturnType<DailyRecordsMapperService['toItem']>,
+    DomainFailure
+  > {
+    const payloadFailure = this.validateCreatePayload(dto.kind, dto.payload);
+    if (payloadFailure != null) {
+      return errAsync(payloadFailure);
     }
 
+    const healthEventId = dto.healthEventId ?? null;
+    const healthEventStep =
+      healthEventId === null
+        ? okAsync(undefined)
+        : this.requireActiveHealthEvent(userId, healthEventId);
+
+    return healthEventStep.andThen(() =>
+      this.doCreate(userId, dto, healthEventId),
+    );
+  }
+
+  private doCreate(
+    userId: string,
+    dto: CreateDailyRecordDto,
+    healthEventId: string | null,
+  ): ResultAsync<
+    ReturnType<DailyRecordsMapperService['toItem']>,
+    DomainFailure
+  > {
     const createAttachments = dto.attachments;
     const initialMealPayload =
       dto.kind === DailyRecordKind.meal
@@ -113,141 +139,256 @@ export class DailyRecordsService {
           : { payload: toInputJsonValue(dto.payload) };
 
     if (createAttachments !== undefined && createAttachments.length > 0) {
-      const item = await this.repository.transaction(async (tx) => {
-        const record = await tx.userDailyRecord.create({
-          data: { ...baseData, ...payloadField },
+      return fromPromise(
+        this.repository.transaction(async (tx) => {
+          const record = await tx.userDailyRecord.create({
+            data: { ...baseData, ...payloadField },
+          });
+          let queuedRevision: number | null = null;
+          await tx.userDailyRecordAttachment.createMany({
+            data: this.mapperService.toAttachmentCreateManyData(
+              userId,
+              record.id,
+              createAttachments,
+            ),
+          });
+          if (
+            dto.kind === DailyRecordKind.meal &&
+            createAttachments.length === 1
+          ) {
+            const attachment = createAttachments[0];
+            if (attachment == null) {
+              throw new InternalServerErrorException(
+                'Expected one meal attachment after length check.',
+              );
+            }
+            const queuedPayload = markMealAnalysisQueued(record.payload, {
+              imageObjectKey: attachment.objectKey,
+            });
+            queuedRevision = getMealSourceRevision(queuedPayload);
+            await tx.userDailyRecord.update({
+              where: { id: record.id },
+              data: this.withMealHotFields({}, queuedPayload),
+            });
+          }
+          const txItem = await this.getItemFromTx(tx, userId, record.id);
+          return { item: txItem, queuedRevision };
+        }),
+        (error) => {
+          throw error;
+        },
+      ).map(async ({ item, queuedRevision }) => {
+        await this.enqueueMealAnalysisIfNeeded(
+          userId,
+          item,
+          queuedRevision ?? undefined,
+        );
+        await this.invalidateSuggestionCache(
+          userId,
+          dto.occurredAt,
+          dto.kind,
+          item.id,
+        );
+        return item;
+      });
+    }
+
+    return this.repository
+      .create({
+        ...baseData,
+        ...payloadField,
+      })
+      .map(async (record) => {
+        const item = this.mapperService.toItem(record, {
+          includeMealPayload: true,
         });
-        let queuedRevision: number | null = null;
-        await tx.userDailyRecordAttachment.createMany({
-          data: this.mapperService.toAttachmentCreateManyData(
-            userId,
-            record.id,
-            createAttachments,
-          ),
-        });
-        if (
-          dto.kind === DailyRecordKind.meal &&
-          createAttachments.length === 1
-        ) {
-          const attachment = createAttachments[0];
-          if (attachment == null) {
-            throw new InternalServerErrorException(
-              'Expected one meal attachment after length check.',
+        await this.enqueueMealAnalysisIfNeeded(userId, item);
+        await this.invalidateSuggestionCache(
+          userId,
+          dto.occurredAt,
+          dto.kind,
+          item.id,
+        );
+        return item;
+      });
+  }
+
+  get(
+    userId: string,
+    id: string,
+  ): ResultAsync<
+    ReturnType<DailyRecordsMapperService['toItem']>,
+    DomainFailure
+  > {
+    return this.ownershipService
+      .ensureOwnedByUser(userId, id)
+      .andThen(() =>
+        fromPromise(
+          this.repository.findByIdWithAttachments(userId, id),
+          (error) => {
+            throw error;
+          },
+        ),
+      )
+      .andThen((record) => {
+        // Only reachable when the record disappears between the ownership
+        // check and the read (race); treat like a missing resource.
+        if (record == null) {
+          return errAsync(this.notFound());
+        }
+        return okAsync(
+          this.mapperService.toItem(record, { includeMealPayload: true }),
+        );
+      });
+  }
+
+  update(
+    userId: string,
+    id: string,
+    dto: UpdateDailyRecordDto,
+  ): ResultAsync<
+    ReturnType<DailyRecordsMapperService['toItem']>,
+    DomainFailure
+  > {
+    return this.ownershipService
+      .ensureOwnedByUser(userId, id)
+      .andThen((existing) => {
+        const healthEventStep =
+          dto.healthEventId !== undefined && dto.healthEventId !== null
+            ? this.requireActiveHealthEvent(userId, dto.healthEventId)
+            : okAsync(undefined);
+        return healthEventStep.andThen(() => {
+          const sleepFailure = this.ensureValidSleepFinalState(dto, existing);
+          if (sleepFailure != null) {
+            return errAsync(sleepFailure);
+          }
+
+          const isMealTarget =
+            (dto.kind ?? existing.kind) === DailyRecordKind.meal;
+          const confirmRequested =
+            isMealTarget && dto.payload !== undefined
+              ? isMealAnalysisConfirmRequest(dto.payload)
+              : false;
+
+          const updateAttachments = dto.attachments;
+          let nextPayload =
+            (dto.payload !== undefined || updateAttachments !== undefined) &&
+            isMealTarget
+              ? this.prepareMealPayloadForWrite(
+                  dto.payload !== undefined ? dto.payload : existing.payload,
+                  updateAttachments,
+                  existing.payload,
+                )
+              : null;
+
+          const dishInputChanged =
+            isMealTarget && dto.payload !== undefined
+              ? hasMealDishInputChanges(nextPayload, existing.payload)
+              : false;
+
+          if (isMealTarget && confirmRequested) {
+            nextPayload = buildConfirmedMealPayload(nextPayload);
+          } else if (
+            isMealTarget &&
+            dishInputChanged &&
+            updateAttachments === undefined &&
+            nextPayload != null
+          ) {
+            const currentAnalysis = nextPayload['mealAnalysis'] as
+              | Record<string, unknown>
+              | undefined;
+            const imageObjectKey =
+              typeof currentAnalysis?.['imageObjectKey'] === 'string'
+                ? currentAnalysis['imageObjectKey']
+                : null;
+            if (imageObjectKey != null) {
+              nextPayload = markMealAnalysisQueued(nextPayload, {
+                imageObjectKey,
+              });
+            }
+          }
+
+          if (updateAttachments !== undefined) {
+            return this.updateWithAttachments(
+              userId,
+              id,
+              existing,
+              dto,
+              updateAttachments,
+              nextPayload,
+              confirmRequested,
             );
           }
-          const queuedPayload = markMealAnalysisQueued(record.payload, {
-            imageObjectKey: attachment.objectKey,
-          });
-          queuedRevision = getMealSourceRevision(queuedPayload);
-          await tx.userDailyRecord.update({
-            where: { id: record.id },
-            data: this.withMealHotFields({}, queuedPayload),
-          });
-        }
-        const txItem = await this.getItemFromTx(tx, userId, record.id);
-        return { item: txItem, queuedRevision };
-      });
 
-      await this.enqueueMealAnalysisIfNeeded(
-        userId,
-        item.item,
-        item.queuedRevision ?? undefined,
-      );
-      await this.invalidateSuggestionCache(
-        userId,
-        dto.occurredAt,
-        dto.kind,
-        item.item.id,
-      );
-      return item.item;
-    }
-
-    const record = await this.repository.create({
-      ...baseData,
-      ...payloadField,
-    });
-
-    const item = this.mapperService.toItem(record, {
-      includeMealPayload: true,
-    });
-    await this.enqueueMealAnalysisIfNeeded(userId, item);
-    await this.invalidateSuggestionCache(
-      userId,
-      dto.occurredAt,
-      dto.kind,
-      item.id,
-    );
-    return item;
-  }
-
-  async get(userId: string, id: string) {
-    const record = await this.repository.findByIdWithAttachments(userId, id);
-    if (record == null) {
-      this.ownershipService.throwRecordNotFound();
-    }
-    return this.mapperService.toItem(record, { includeMealPayload: true });
-  }
-
-  async update(userId: string, id: string, dto: UpdateDailyRecordDto) {
-    const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
-    if (dto.healthEventId !== undefined && dto.healthEventId !== null) {
-      await this.healthEventsOwnershipService.ensureActiveOwnedByUser(
-        userId,
-        dto.healthEventId,
-      );
-    }
-    this.ensureValidSleepFinalState(dto, existing);
-    const isMealTarget = (dto.kind ?? existing.kind) === DailyRecordKind.meal;
-    const confirmRequested =
-      isMealTarget && dto.payload !== undefined
-        ? isMealAnalysisConfirmRequest(dto.payload)
-        : false;
-
-    const updateAttachments = dto.attachments;
-    let nextPayload =
-      (dto.payload !== undefined || updateAttachments !== undefined) &&
-      isMealTarget
-        ? this.prepareMealPayloadForWrite(
-            dto.payload !== undefined ? dto.payload : existing.payload,
-            updateAttachments,
-            existing.payload,
-          )
-        : null;
-
-    const dishInputChanged =
-      isMealTarget && dto.payload !== undefined
-        ? hasMealDishInputChanges(nextPayload, existing.payload)
-        : false;
-
-    if (isMealTarget && confirmRequested) {
-      nextPayload = buildConfirmedMealPayload(nextPayload);
-    } else if (
-      isMealTarget &&
-      dishInputChanged &&
-      updateAttachments === undefined &&
-      nextPayload != null
-    ) {
-      const currentAnalysis = nextPayload['mealAnalysis'] as
-        | Record<string, unknown>
-        | undefined;
-      const imageObjectKey =
-        typeof currentAnalysis?.['imageObjectKey'] === 'string'
-          ? currentAnalysis['imageObjectKey']
-          : null;
-      if (imageObjectKey != null) {
-        nextPayload = markMealAnalysisQueued(nextPayload, { imageObjectKey });
-      }
-    }
-
-    if (updateAttachments !== undefined) {
-      const item = await this.repository.transaction(async (tx) => {
-        await tx.userDailyRecord.update({
-          where: { id },
-          data: this.withMealHotFields(
-            this.mapperService.toRecordUpdateData(dto, existing),
-            nextPayload,
-          ),
+          return this.repository
+            .update(
+              id,
+              this.withMealHotFields(
+                this.mapperService.toRecordUpdateData(dto, existing),
+                nextPayload,
+              ),
+            )
+            .map(async (record) => {
+              const item = this.mapperService.toItem(record, {
+                includeMealPayload: true,
+              });
+              if (confirmRequested) {
+                await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
+                  parseMealRecordPayload(item.payload).mealAnalysis,
+                );
+                await this.invalidateSuggestionCacheForUpdate(
+                  userId,
+                  id,
+                  existing,
+                  dto,
+                );
+                return item;
+              }
+              await this.enqueueMealAnalysisIfNeeded(userId, item);
+              await this.invalidateSuggestionCacheForUpdate(
+                userId,
+                id,
+                existing,
+                dto,
+              );
+              return item;
+            });
         });
+      });
+  }
+
+  private updateWithAttachments(
+    userId: string,
+    id: string,
+    existing: OwnedRecordSnapshot,
+    dto: UpdateDailyRecordDto,
+    updateAttachments: NonNullable<UpdateDailyRecordDto['attachments']>,
+    nextPayload: Record<string, unknown> | null,
+    confirmRequested: boolean,
+  ): ResultAsync<
+    ReturnType<DailyRecordsMapperService['toItem']>,
+    DomainFailure
+  > {
+    return fromPromise(
+      this.repository.transaction(async (tx) => {
+        // The ownership check ran before this transaction; a P2025 here means
+        // the record was deleted in the race window. Fold it into the same
+        // RESOURCE_NOT_FOUND the plain update path returns instead of letting
+        // it surface as a 500. Unknown errors abort the transaction as-is.
+        await fromPrismaResult(
+          tx.userDailyRecord.update({
+            where: { id },
+            data: this.withMealHotFields(
+              this.mapperService.toRecordUpdateData(dto, existing),
+              nextPayload,
+            ),
+          }),
+        ).match(
+          () => undefined,
+          (failure) => {
+            throw new DomainFailureException(failure);
+          },
+        );
         await tx.userDailyRecordAttachment.deleteMany({
           where: { userId, recordId: id },
         });
@@ -261,56 +402,59 @@ export class DailyRecordsService {
           });
         }
         return this.getItemFromTx(tx, userId, id);
-      });
-
-      if (confirmRequested) {
-        await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
-          parseMealRecordPayload(item.payload).mealAnalysis,
+      }),
+      (error) => {
+        if (error instanceof DomainFailureException) {
+          return error.failure;
+        }
+        throw error;
+      },
+    )
+      .andThen((item) => {
+        if (confirmRequested) {
+          return fromPromise(
+            this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
+              parseMealRecordPayload(item.payload).mealAnalysis,
+            ),
+            (error) => {
+              throw error;
+            },
+          ).map(() => item);
+        }
+        return okAsync(item);
+      })
+      .map(async (item) => {
+        await this.enqueueMealAnalysisIfNeeded(
+          userId,
+          item,
+          nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
         );
-      }
-      await this.enqueueMealAnalysisIfNeeded(
-        userId,
-        item,
-        nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
-      );
-      await this.invalidateSuggestionCacheForUpdate(userId, id, existing, dto);
-      return item;
-    }
-
-    const record = await this.repository.update(
-      id,
-      this.withMealHotFields(
-        this.mapperService.toRecordUpdateData(dto, existing),
-        nextPayload,
-      ),
-    );
-
-    const item = this.mapperService.toItem(record, {
-      includeMealPayload: true,
-    });
-    if (confirmRequested) {
-      await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
-        parseMealRecordPayload(item.payload).mealAnalysis,
-      );
-      await this.invalidateSuggestionCacheForUpdate(userId, id, existing, dto);
-      return item;
-    }
-    await this.enqueueMealAnalysisIfNeeded(userId, item);
-    await this.invalidateSuggestionCacheForUpdate(userId, id, existing, dto);
-    return item;
+        await this.invalidateSuggestionCacheForUpdate(
+          userId,
+          id,
+          existing,
+          dto,
+        );
+        return item;
+      });
   }
 
-  async delete(userId: string, id: string) {
-    const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
-    await this.repository.softDelete(id, now());
-    if (existing.occurredAt != null) {
-      await this.invalidateSuggestionCache(
-        userId,
-        existing.occurredAt,
-        existing.kind,
-        id,
-      );
-    }
+  delete(userId: string, id: string): ResultAsync<void, DomainFailure> {
+    return this.ownershipService
+      .ensureOwnedByUser(userId, id)
+      .andThen((existing) =>
+        this.repository.softDelete(id, now()).map(() => existing),
+      )
+      .map(async (existing) => {
+        if (existing.occurredAt != null) {
+          await this.invalidateSuggestionCache(
+            userId,
+            existing.occurredAt,
+            existing.kind,
+            id,
+          );
+        }
+      });
   }
 
   async summary(userId: string, date: string) {
@@ -320,6 +464,31 @@ export class DailyRecordsService {
     );
 
     return this.mapperService.toSummaries(records);
+  }
+
+  /**
+   * Folds the health-events ownership façade's Promise contract back into a
+   * Result. The façade still throws `DomainFailureException` for out-of-scope
+   * consumers (reports, medicine-dose-logs); here the failure is recovered
+   * as an Err. TODO(error): drop this extraction when the façade becomes
+   * ResultAsync (Tasks 8.2/10).
+   */
+  private requireActiveHealthEvent(
+    userId: string,
+    eventId: string,
+  ): ResultAsync<unknown, DomainFailure> {
+    return fromPromise(
+      this.healthEventsOwnershipService.ensureActiveOwnedByUser(
+        userId,
+        eventId,
+      ),
+      (error) => {
+        if (error instanceof DomainFailureException) {
+          return error.failure;
+        }
+        throw error;
+      },
+    );
   }
 
   private async invalidateSuggestionCache(
@@ -400,13 +569,26 @@ export class DailyRecordsService {
     }
   }
 
+  private validateCreatePayload(
+    kind: string,
+    payload: Record<string, unknown> | undefined,
+  ): DomainFailure | null {
+    return (
+      this.validateSleepPayload(kind, payload) ??
+      this.validateVitalPayload(kind, payload) ??
+      this.validateActivityPayload(kind, payload)
+    );
+  }
+
   private validateSleepPayload(
+    kind: string,
     payload: Record<string, unknown> | null | undefined,
-  ): void {
+  ): DomainFailure | null {
+    if (kind !== DailyRecordKind.sleep) {
+      return null;
+    }
     if (payload == null) {
-      badRequest(
-        'Sleep records require payload.durationMinutes as a positive number.',
-      );
+      return this.validationFailed();
     }
 
     // Quick-entry sleep flow creates temporary start/wake event records first,
@@ -414,7 +596,7 @@ export class DailyRecordsService {
     // those temporary event records to skip the duration validation.
     const sleepEvent = payload['sleepEvent'];
     if (sleepEvent === 'start' || sleepEvent === 'wake') {
-      return;
+      return null;
     }
 
     if (
@@ -422,25 +604,23 @@ export class DailyRecordsService {
       payload['sleepType'] !== 'nightSleep' &&
       payload['sleepType'] !== 'nap'
     ) {
-      badRequest('Sleep payload.sleepType must be nightSleep or nap.');
+      return this.validationFailed();
     }
     if (
       payload['quality'] !== undefined &&
       typeof payload['quality'] !== 'string'
     ) {
-      badRequest('Sleep payload.quality must be a string.');
+      return this.validationFailed();
     }
 
     const startedAt = payload['startedAt'] ?? payload['startAt'];
     const endedAt = payload['endedAt'] ?? payload['endAt'];
     if ((startedAt == null) !== (endedAt == null)) {
-      badRequest('Sleep payload requires both startedAt and endedAt.');
+      return this.validationFailed();
     }
     if (startedAt != null && endedAt != null) {
       if (typeof startedAt !== 'string' || typeof endedAt !== 'string') {
-        badRequest(
-          'Sleep payload startedAt and endedAt must be ISO timestamps.',
-        );
+        return this.validationFailed();
       }
       const started = new Date(startedAt);
       const ended = new Date(endedAt);
@@ -449,7 +629,7 @@ export class DailyRecordsService {
         Number.isNaN(ended.getTime()) ||
         ended.getTime() <= started.getTime()
       ) {
-        badRequest('Sleep payload.endedAt must be later than startedAt.');
+        return this.validationFailed();
       }
     }
 
@@ -457,63 +637,59 @@ export class DailyRecordsService {
       typeof payload['durationMinutes'] !== 'number' ||
       !Number.isFinite(payload['durationMinutes'])
     ) {
-      badRequest(
-        'Sleep records require payload.durationMinutes as a positive number.',
-      );
+      return this.validationFailed();
     }
     if (payload['durationMinutes'] <= 0) {
-      badRequest('Sleep payload.durationMinutes must be a positive number.');
+      return this.validationFailed();
     }
+    return null;
   }
 
-  private ensureValidSleepPayload(
+  private validateVitalPayload(
     kind: string,
     payload: Record<string, unknown> | undefined,
-  ) {
-    if (kind !== DailyRecordKind.sleep) return;
-    this.validateSleepPayload(payload);
+  ): DomainFailure | null {
+    if (kind !== DailyRecordKind.vital) return null;
+    if (payload == null) return null;
+    if (typeof payload['vitalType'] !== 'string') {
+      return this.validationFailed();
+    }
+    if (typeof payload['value'] !== 'number') {
+      return this.validationFailed();
+    }
+    return null;
+  }
+
+  private validateActivityPayload(
+    kind: string,
+    payload: Record<string, unknown> | undefined,
+  ): DomainFailure | null {
+    if (kind !== DailyRecordKind.activity) return null;
+    if (payload == null) return null;
+    if (typeof payload['activityType'] !== 'string') {
+      return this.validationFailed();
+    }
+    if (typeof payload['value'] !== 'number') {
+      return this.validationFailed();
+    }
+    return null;
   }
 
   private ensureValidSleepFinalState(
     dto: UpdateDailyRecordDto,
     existing: { kind: DailyRecordKind; payload: unknown },
-  ) {
+  ): DomainFailure | null {
     const finalKind = dto.kind !== undefined ? dto.kind : existing.kind;
-    if (finalKind !== DailyRecordKind.sleep) return;
+    if (finalKind !== DailyRecordKind.sleep) {
+      return null;
+    }
 
     const rawPayload =
       dto.payload !== undefined ? dto.payload : existing.payload;
-    const payload = rawPayload as Record<string, unknown> | null;
-
-    this.validateSleepPayload(payload);
-  }
-
-  private ensureValidVitalPayload(
-    kind: string,
-    payload: Record<string, unknown> | undefined,
-  ) {
-    if (kind !== DailyRecordKind.vital) return;
-    if (payload == null) return;
-    if (typeof payload['vitalType'] !== 'string') {
-      badRequest('Vital records require payload.vitalType.');
-    }
-    if (typeof payload['value'] !== 'number') {
-      badRequest('Vital records require payload.value as a number.');
-    }
-  }
-
-  private ensureValidActivityPayload(
-    kind: string,
-    payload: Record<string, unknown> | undefined,
-  ) {
-    if (kind !== DailyRecordKind.activity) return;
-    if (payload == null) return;
-    if (typeof payload['activityType'] !== 'string') {
-      badRequest('Activity records require payload.activityType.');
-    }
-    if (typeof payload['value'] !== 'number') {
-      badRequest('Activity records require payload.value as a number.');
-    }
+    return this.validateSleepPayload(
+      finalKind,
+      rawPayload as Record<string, unknown> | null,
+    );
   }
 
   private async getItemFromTx(
@@ -650,5 +826,19 @@ export class DailyRecordsService {
         (analysis?.['failureReason'] as string | null | undefined) ?? null,
       mealSourceRevision: getMealSourceRevision(mealPayload),
     };
+  }
+
+  private notFound(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  }
+
+  private validationFailed(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
   }
 }

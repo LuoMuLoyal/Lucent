@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
+import { unwrapResult } from '../../../../common/result';
 import type { IMedicineReminderReader } from '../../types/ports';
 import { MEDICINE_REMINDER_READER } from '../../types/ports';
 import { UserHealthContextService } from '../../../user-health-context';
@@ -323,8 +324,11 @@ export class AssistantToolReadService {
   async getUserProfile(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const health = await this.userHealthContextService.getForUser(
-      context.userId,
+    // TODO(error): UserHealthContextService.getForUser migrated to
+    // ResultAsync (Task 8.1); fold temporarily until the assistant module
+    // migrates (Task 10).
+    const health = await unwrapResult(
+      this.userHealthContextService.getForUser(context.userId),
     );
     const account = await this.prisma.user.findFirstOrThrow({
       where: { id: context.userId, deletedAt: null },
@@ -398,8 +402,11 @@ export class AssistantToolReadService {
   async getCurrentMedicines(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const health = await this.userHealthContextService.getForUser(
-      context.userId,
+    // TODO(error): UserHealthContextService.getForUser migrated to
+    // ResultAsync (Task 8.1); fold temporarily until the assistant module
+    // migrates (Task 10).
+    const health = await unwrapResult(
+      this.userHealthContextService.getForUser(context.userId),
     );
     const reminders = await this.medicineRemindersService.list(
       context.userId,

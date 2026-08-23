@@ -1,9 +1,4 @@
 import {
-  ConflictException,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
-import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
@@ -11,23 +6,26 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client';
-import type { I18nService } from 'nestjs-i18n';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
-import { HealthEventActiveConflictError } from '../repositories/event.repository';
 import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
 } from '../repositories/event.repository';
 import type { ProductEventsService } from '../../product-events';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { fromPromise, okAsync } from '../../../common/result';
 import { EventsService } from './events.service';
 
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';
 
-function buildI18n() {
-  return {
-    t: vi.fn().mockImplementation((key: string) => key),
-  } as unknown as I18nService;
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
 }
 
 function buildEventEmitter() {
@@ -75,31 +73,36 @@ function buildRepository() {
     findCheckInCoverage: vi.fn(),
     findOwnedCurrentMedicineIds: vi.fn().mockResolvedValue([]),
     findOwnedReasonRecord: vi.fn().mockResolvedValue(true),
-    create: vi.fn().mockResolvedValue(event()),
-    update: vi.fn().mockResolvedValue(event()),
+    create: vi.fn().mockReturnValue(okAsync(event())),
+    update: vi.fn().mockReturnValue(okAsync(event())),
     upsertCheckIn: vi.fn(),
     findUserTimezone: vi.fn().mockResolvedValue(null),
   } satisfies Record<keyof HealthEventRepositoryPort, vi.Mock>;
 }
 
+function buildService(repository: ReturnType<typeof buildRepository>) {
+  return new EventsService(
+    repository as unknown as HealthEventRepositoryPort,
+    buildEventEmitter(),
+    buildProductEvents(),
+  );
+}
+
 describe('EventsService', () => {
   it('creates an active event when the user has no active event', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     repository.findOwnedCurrentMedicineIds.mockResolvedValue(['medicine-1']);
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
+    const service = buildService(repository);
+
+    const result = await collectResult(
+      service.create(USER_ID, {
+        title: 'Headache',
+        reasonRecordId: 'record-1',
+        currentMedicineIds: ['medicine-1'],
+      }),
     );
 
-    await service.create(USER_ID, {
-      title: 'Headache',
-      reasonRecordId: 'record-1',
-      currentMedicineIds: ['medicine-1'],
-    });
-
+    expect(result).toMatchObject({ ok: true });
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: USER_ID,
@@ -114,16 +117,14 @@ describe('EventsService', () => {
 
   it('emits once after creating an event', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     const eventEmitter = buildEventEmitter();
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      i18n,
       eventEmitter,
       buildProductEvents(),
     );
 
-    await service.create(USER_ID, { title: 'Headache' });
+    await collectResult(service.create(USER_ID, { title: 'Headache' }));
 
     expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
     expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
@@ -138,93 +139,123 @@ describe('EventsService', () => {
     );
   });
 
-  it('rejects creating a second active event for the same user', async () => {
+  it('rejects creating a second active event for the same user with RECORD_ALREADY_EXISTS', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     repository.findActiveByUserId.mockResolvedValue(event());
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
+    const service = buildService(repository);
+
+    const result = await collectResult(
+      service.create(USER_ID, { title: 'Other symptom' }),
     );
 
-    await expect(
-      service.create(USER_ID, { title: 'Other symptom' }),
-    ).rejects.toBeInstanceOf(ConflictException);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'conflict', code: 'RECORD_ALREADY_EXISTS' },
+    });
     expect(repository.create).not.toHaveBeenCalled();
   });
 
-  it('maps a repository active conflict to a localized conflict exception', async () => {
+  it('rejects creating with a medicine the user does not own (RESOURCE_NOT_FOUND)', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
-    repository.create.mockRejectedValue(new HealthEventActiveConflictError());
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
+    repository.findOwnedCurrentMedicineIds.mockResolvedValue(['medicine-2']);
+    const service = buildService(repository);
+
+    const result = await collectResult(
+      service.create(USER_ID, {
+        title: 'Headache',
+        currentMedicineIds: ['medicine-1', 'medicine-2'],
+      }),
     );
 
-    await expect(
-      service.create(USER_ID, { title: 'Headache' }),
-    ).rejects.toMatchObject({
-      response: { message: 'health-events.active_conflict' },
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
     });
-    expect(i18n.t).toHaveBeenCalledWith('health-events.active_conflict');
+    expect(repository.create).not.toHaveBeenCalled();
   });
 
-  it('uses one not-found result when reading another user event', async () => {
+  it('rejects creating with a reason record the user does not own (RESOURCE_NOT_FOUND)', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
+    repository.findOwnedReasonRecord.mockResolvedValue(false);
+    const service = buildService(repository);
+
+    const result = await collectResult(
+      service.create(USER_ID, {
+        title: 'Headache',
+        reasonRecordId: 'foreign-record',
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('returns FORBIDDEN when reading another user event', async () => {
+    const repository = buildRepository();
+    repository.findById.mockResolvedValue(event({ userId: 'user-2' }));
+    const service = buildService(repository);
+
+    const result = await collectResult(service.findById(USER_ID, EVENT_ID));
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
+    expect(repository.findById).toHaveBeenCalledWith(EVENT_ID);
+  });
+
+  it('returns RESOURCE_NOT_FOUND when the event does not exist', async () => {
+    const repository = buildRepository();
     repository.findById.mockResolvedValue(null);
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
-    );
+    const service = buildService(repository);
 
-    await expect(service.findById('user-2', EVENT_ID)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(repository.findById).toHaveBeenCalledWith('user-2', EVENT_ID);
+    const result = await collectResult(service.findById(USER_ID, EVENT_ID));
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 
-  it('requires a valid outcome when ending an owned event', async () => {
+  it('requires a valid outcome when ending an owned event (VALIDATION_FAILED)', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
+    const service = buildService(repository);
+
+    const emptyResult = await collectResult(service.end(USER_ID, EVENT_ID, {}));
+    const invalidResult = await collectResult(
+      service.end(USER_ID, EVENT_ID, { outcome: 'unknown' }),
     );
 
-    await expect(service.end(USER_ID, EVENT_ID, {})).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-    await expect(
-      service.end(USER_ID, EVENT_ID, { outcome: 'unknown' }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(emptyResult).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(invalidResult).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
     expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('ends an owned active event only after explicit outcome confirmation', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     const eventEmitter = buildEventEmitter();
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      i18n,
       eventEmitter,
       buildProductEvents(),
     );
 
-    await service.end(USER_ID, EVENT_ID, {
-      outcome: HealthEventOutcome.improved,
-    });
+    const result = await collectResult(
+      service.end(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
 
+    expect(result).toMatchObject({ ok: true });
     expect(repository.update).toHaveBeenCalledWith(
       USER_ID,
       EVENT_ID,
@@ -248,12 +279,14 @@ describe('EventsService', () => {
 
   it('does not emit when creating an event fails to persist', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     const eventEmitter = buildEventEmitter();
-    repository.create.mockRejectedValue(new Error('write failed'));
+    repository.create.mockReturnValue(
+      fromPromise(Promise.reject(new Error('write failed')), (error) => {
+        throw error;
+      }),
+    );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      i18n,
       eventEmitter,
       buildProductEvents(),
     );
@@ -266,12 +299,14 @@ describe('EventsService', () => {
 
   it('does not emit when ending an event fails to persist', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     const eventEmitter = buildEventEmitter();
-    repository.update.mockRejectedValue(new Error('write failed'));
+    repository.update.mockReturnValue(
+      fromPromise(Promise.reject(new Error('write failed')), (error) => {
+        throw error;
+      }),
+    );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      i18n,
       eventEmitter,
       buildProductEvents(),
     );
@@ -286,24 +321,22 @@ describe('EventsService', () => {
 
   it("does not end another user's event", async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
-    repository.findById.mockResolvedValue(null);
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
+    repository.findById.mockResolvedValue(event({ userId: 'user-2' }));
+    const service = buildService(repository);
+
+    const result = await collectResult(
+      service.end(USER_ID, EVENT_ID, { outcome: HealthEventOutcome.improved }),
     );
 
-    await expect(
-      service.end('user-2', EVENT_ID, { outcome: HealthEventOutcome.improved }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
     expect(repository.update).not.toHaveBeenCalled();
   });
 
-  it('does not end an already ended event', async () => {
+  it('does not end an already ended event (VALIDATION_FAILED)', async () => {
     const repository = buildRepository();
-    const i18n = buildI18n();
     repository.findById.mockResolvedValue(
       event({
         status: HealthEventStatus.ended,
@@ -311,50 +344,31 @@ describe('EventsService', () => {
         outcome: HealthEventOutcome.unchanged,
       }),
     );
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
-    );
+    const service = buildService(repository);
 
-    await expect(
+    const result = await collectResult(
       service.end(USER_ID, EVENT_ID, { outcome: HealthEventOutcome.worsened }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(repository.update).not.toHaveBeenCalled();
-  });
-
-  it('uses localized copy for invalid outcomes', async () => {
-    const repository = buildRepository();
-    const i18n = buildI18n();
-    const service = new EventsService(
-      repository as unknown as HealthEventRepositoryPort,
-      i18n,
-      buildEventEmitter(),
-      buildProductEvents(),
     );
 
-    await expect(
-      service.end(USER_ID, EVENT_ID, { outcome: 'unknown' }),
-    ).rejects.toMatchObject({
-      response: { message: 'health-events.invalid_outcome' },
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
     });
-    expect(i18n.t).toHaveBeenCalledWith('health-events.invalid_outcome');
+    expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('emits health_event_started after the create write succeeds', async () => {
     const repository = buildRepository();
     const productEvents = buildProductEvents();
     const startedAt = new Date('2026-07-20T00:30:00.000Z');
-    repository.create.mockResolvedValue(event({ startedAt }));
+    repository.create.mockReturnValue(okAsync(event({ startedAt })));
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       productEvents,
     );
 
-    await service.create(USER_ID, { title: 'Headache' });
+    await collectResult(service.create(USER_ID, { title: 'Headache' }));
 
     expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
     expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
@@ -370,23 +384,26 @@ describe('EventsService', () => {
   it('emits health_event_ended with the chosen outcome as result', async () => {
     const repository = buildRepository();
     const productEvents = buildProductEvents();
-    repository.update.mockResolvedValue(
-      event({
-        status: HealthEventStatus.ended,
-        outcome: HealthEventOutcome.improved,
-        endedAt: new Date('2026-07-21T00:30:00.000Z'),
-      }),
+    repository.update.mockReturnValue(
+      okAsync(
+        event({
+          status: HealthEventStatus.ended,
+          outcome: HealthEventOutcome.improved,
+          endedAt: new Date('2026-07-21T00:30:00.000Z'),
+        }),
+      ),
     );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       productEvents,
     );
 
-    await service.end(USER_ID, EVENT_ID, {
-      outcome: HealthEventOutcome.improved,
-    });
+    await collectResult(
+      service.end(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.improved,
+      }),
+    );
 
     expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
     expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
@@ -402,10 +419,13 @@ describe('EventsService', () => {
   it('does not emit product events when the create write fails', async () => {
     const repository = buildRepository();
     const productEvents = buildProductEvents();
-    repository.create.mockRejectedValue(new Error('write failed'));
+    repository.create.mockReturnValue(
+      fromPromise(Promise.reject(new Error('write failed')), (error) => {
+        throw error;
+      }),
+    );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       productEvents,
     );
@@ -419,10 +439,13 @@ describe('EventsService', () => {
   it('does not emit product events when the end write fails', async () => {
     const repository = buildRepository();
     const productEvents = buildProductEvents();
-    repository.update.mockRejectedValue(new Error('write failed'));
+    repository.update.mockReturnValue(
+      fromPromise(Promise.reject(new Error('write failed')), (error) => {
+        throw error;
+      }),
+    );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildI18n(),
       buildEventEmitter(),
       productEvents,
     );

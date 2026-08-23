@@ -4,6 +4,8 @@ import { DailyRecordCandidatesService } from './services/candidates/orchestrator
 import { DailyRecordImageUploadService } from './services/image-upload.service';
 import { DailyRecordsService } from './services/records.service';
 import type { UserPayload } from '../auth';
+import { okAsync, errAsync } from '../../common/result';
+import type { DomainFailure } from '../../common/result';
 
 describe('DailyRecordsController', () => {
   let controller: DailyRecordsController;
@@ -17,14 +19,25 @@ describe('DailyRecordsController', () => {
     status: 'active',
   };
 
+  const forbiddenFailure: DomainFailure = {
+    _tag: 'DomainFailure',
+    kind: 'authorization',
+    code: 'FORBIDDEN',
+  };
+  const notFoundFailure: DomainFailure = {
+    _tag: 'DomainFailure',
+    kind: 'not_found',
+    code: 'RESOURCE_NOT_FOUND',
+  };
+
   beforeEach(async () => {
     dailyRecordsService = {
       list: vi.fn(),
       summary: vi.fn(),
-      get: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
+      get: vi.fn().mockReturnValue(okAsync({ id: 'rec-1' })),
+      create: vi.fn().mockReturnValue(okAsync({ id: 'rec-1' })),
+      update: vi.fn().mockReturnValue(okAsync({ id: 'rec-1' })),
+      delete: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as vi.Mocked<DailyRecordsService>;
 
     candidatesService = {
@@ -159,12 +172,32 @@ describe('DailyRecordsController', () => {
   describe('get', () => {
     it('calls service.get with userId and id', async () => {
       const data = { id: 'rec-1', kind: 'water', value: '500' } as never;
-      dailyRecordsService.get.mockResolvedValue(data);
+      dailyRecordsService.get.mockReturnValue(okAsync(data));
 
       const result = await controller.get(mockUser, 'rec-1');
 
       expect(dailyRecordsService.get).toHaveBeenCalledWith('user-1', 'rec-1');
       expect(result).toEqual(data);
+    });
+
+    it('folds a foreign record into DomainFailureException with FORBIDDEN', async () => {
+      dailyRecordsService.get.mockReturnValue(errAsync(forbiddenFailure));
+
+      await expect(
+        controller.get(mockUser, 'rec-foreign'),
+      ).rejects.toMatchObject({
+        failure: { kind: 'authorization', code: 'FORBIDDEN' },
+      });
+    });
+
+    it('folds a missing record into DomainFailureException with RESOURCE_NOT_FOUND', async () => {
+      dailyRecordsService.get.mockReturnValue(errAsync(notFoundFailure));
+
+      await expect(
+        controller.get(mockUser, 'rec-missing'),
+      ).rejects.toMatchObject({
+        failure: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
     });
   });
 
@@ -177,12 +210,26 @@ describe('DailyRecordsController', () => {
         value: '500',
         unit: 'ml',
       } as never;
-      dailyRecordsService.create.mockResolvedValue(data);
+      dailyRecordsService.create.mockReturnValue(okAsync(data));
 
       const result = await controller.create(mockUser, dto);
 
       expect(dailyRecordsService.create).toHaveBeenCalledWith('user-1', dto);
       expect(result).toEqual(data);
+    });
+
+    it('folds a validation failure into DomainFailureException', async () => {
+      const dto = { kind: 'sleep', payload: {} } as never;
+      const validationFailure: DomainFailure = {
+        _tag: 'DomainFailure',
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+      };
+      dailyRecordsService.create.mockReturnValue(errAsync(validationFailure));
+
+      await expect(controller.create(mockUser, dto)).rejects.toMatchObject({
+        failure: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
   });
 
@@ -190,7 +237,7 @@ describe('DailyRecordsController', () => {
     it('calls service.update with userId, id, and dto', async () => {
       const dto = { value: '600' };
       const data = { id: 'rec-1', kind: 'water', value: '600' } as never;
-      dailyRecordsService.update.mockResolvedValue(data);
+      dailyRecordsService.update.mockReturnValue(okAsync(data));
 
       const result = await controller.update(mockUser, 'rec-1', dto);
 
@@ -201,12 +248,20 @@ describe('DailyRecordsController', () => {
       );
       expect(result).toEqual(data);
     });
+
+    it('folds a missing record into DomainFailureException with RESOURCE_NOT_FOUND', async () => {
+      dailyRecordsService.update.mockReturnValue(errAsync(notFoundFailure));
+
+      await expect(
+        controller.update(mockUser, 'rec-missing', {}),
+      ).rejects.toMatchObject({
+        failure: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+    });
   });
 
   describe('delete', () => {
-    it('calls service.delete with userId and id', async () => {
-      dailyRecordsService.delete.mockResolvedValue(undefined);
-
+    it('calls service.delete with userId and id and returns no body', async () => {
       await expect(
         controller.delete(mockUser, 'rec-1'),
       ).resolves.toBeUndefined();
@@ -215,6 +270,16 @@ describe('DailyRecordsController', () => {
         'user-1',
         'rec-1',
       );
+    });
+
+    it('folds a foreign record into DomainFailureException with FORBIDDEN', async () => {
+      dailyRecordsService.delete.mockReturnValue(errAsync(forbiddenFailure));
+
+      await expect(
+        controller.delete(mockUser, 'rec-foreign'),
+      ).rejects.toMatchObject({
+        failure: { kind: 'authorization', code: 'FORBIDDEN' },
+      });
     });
   });
 });

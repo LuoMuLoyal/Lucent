@@ -1,4 +1,5 @@
 import { badRequest, forbidden, notFound } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import {
   Injectable,
   Logger,
@@ -254,7 +255,10 @@ export class AssistantService {
           ...(draft.note != null ? { note: draft.note } : {}),
           ...(draft.payload != null ? { payload: draft.payload } : {}),
         };
-        await this.dailyRecordsService.create(userId, createDto);
+        // TODO(error): DailyRecordsService.create migrated to ResultAsync
+        // (Task 8.1); fold temporarily until the assistant module migrates
+        // (Task 10).
+        await unwrapResult(this.dailyRecordsService.create(userId, createDto));
         break;
       }
       case 'update_daily_record': {
@@ -284,17 +288,24 @@ export class AssistantService {
         if (draft.payload !== undefined) {
           updateDto.payload = draft.payload;
         }
-        await this.dailyRecordsService.update(
-          userId,
-          proposal.payload.recordId,
-          updateDto,
+        // TODO(error): DailyRecordsService.update migrated to ResultAsync
+        // (Task 8.1); fold temporarily until the assistant module migrates
+        // (Task 10).
+        await unwrapResult(
+          this.dailyRecordsService.update(
+            userId,
+            proposal.payload.recordId,
+            updateDto,
+          ),
         );
         break;
       }
       case 'delete_daily_record':
-        await this.dailyRecordsService.delete(
-          userId,
-          proposal.payload.recordId,
+        // TODO(error): DailyRecordsService.delete migrated to ResultAsync
+        // (Task 8.1); fold temporarily until the assistant module migrates
+        // (Task 10).
+        await unwrapResult(
+          this.dailyRecordsService.delete(userId, proposal.payload.recordId),
         );
         break;
       case 'update_user_settings': {

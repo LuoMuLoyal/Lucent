@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { okAsync, fromPromise } from '../../../common/result';
 import type { AssistantRuntimeService } from '../agent/runtime.service';
 import type { UserSettingsService } from '../../user-settings';
 import type { DailyRecordsService } from '../../daily-records';
@@ -89,9 +90,9 @@ describe('AssistantService', () => {
     } as unknown as vi.Mocked<UserSettingsService>;
 
     dailyRecords = {
-      create: vi.fn().mockResolvedValue({ id: 'record-1' }),
-      update: vi.fn().mockResolvedValue({ id: 'record-1' }),
-      delete: vi.fn().mockResolvedValue(undefined),
+      create: vi.fn().mockReturnValue(okAsync({ id: 'record-1' })),
+      update: vi.fn().mockReturnValue(okAsync({ id: 'record-1' })),
+      delete: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as vi.Mocked<DailyRecordsService>;
 
     policy = {
@@ -506,7 +507,11 @@ describe('AssistantService', () => {
     });
 
     it('propagates write failures and does not resume the thread', async () => {
-      dailyRecords.create.mockRejectedValue(new Error('db down'));
+      dailyRecords.create.mockReturnValue(
+        fromPromise(Promise.reject(new Error('db down')), (error) => {
+          throw error;
+        }),
+      );
 
       await expect(
         service.confirmProposal('user-1', 'conv-1', dto),

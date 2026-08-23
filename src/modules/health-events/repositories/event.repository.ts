@@ -3,16 +3,7 @@ import type {
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
-
-/** Raised when the database rejects a concurrent active-event creation. */
-export class HealthEventActiveConflictError extends Error {
-  readonly code = 'HEALTH_EVENT_ACTIVE_CONFLICT';
-
-  constructor() {
-    super('An active health event already exists for this user.');
-    this.name = HealthEventActiveConflictError.name;
-  }
-}
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 export interface HealthEventRecord {
   id: string;
@@ -90,16 +81,25 @@ export interface HealthEventPage {
 /**
  * Persistence boundary for health events. Services receive business-shaped
  * arguments only; Prisma query input types stay inside the implementation.
+ *
+ * Write methods return `ResultAsync<T, DomainFailure>`: known Prisma request
+ * errors (P2002 -> RESOURCE_CONFLICT, P2025 -> RESOURCE_NOT_FOUND) are mapped
+ * to domain failures while unknown database/connection errors are re-thrown
+ * and reach the global exception filter unchanged. Reads stay
+ * `Promise<T | null>` — a missing row is a legitimate value; the application
+ * service decides when absence is a failure.
  */
 export abstract class HealthEventRepositoryPort {
   abstract findActiveByUserId(
     userId: string,
   ): Promise<HealthEventRecord | null>;
 
-  abstract findById(
-    userId: string,
-    eventId: string,
-  ): Promise<HealthEventRecord | null>;
+  /**
+   * Looks up an event by id regardless of owner so the service can
+   * distinguish "missing" (RESOURCE_NOT_FOUND) from "owned by another user"
+   * (FORBIDDEN). The caller must never return the row to the client.
+   */
+  abstract findById(eventId: string): Promise<HealthEventRecord | null>;
 
   abstract findManyByUserId(userId: string): Promise<HealthEventRecord[]>;
 
@@ -146,20 +146,22 @@ export abstract class HealthEventRepositoryPort {
     recordId: string,
   ): Promise<boolean>;
 
-  abstract create(input: HealthEventCreateInput): Promise<HealthEventRecord>;
+  abstract create(
+    input: HealthEventCreateInput,
+  ): ResultAsync<HealthEventRecord, DomainFailure>;
 
   abstract update(
     userId: string,
     eventId: string,
     input: HealthEventUpdateInput,
-  ): Promise<HealthEventRecord | null>;
+  ): ResultAsync<HealthEventRecord | null, DomainFailure>;
 
   abstract upsertCheckIn(
     userId: string,
     eventId: string,
     date: string,
     outcome: HealthEventOutcome,
-  ): Promise<HealthEventCheckInRecord | null>;
+  ): ResultAsync<HealthEventCheckInRecord | null, DomainFailure>;
 
   abstract findUserTimezone(userId: string): Promise<string | null>;
 }

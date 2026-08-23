@@ -1,17 +1,23 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
 import { DailyRecordsOwnershipService } from './ownership.service';
+
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('DailyRecordsOwnershipService', () => {
   let service: DailyRecordsOwnershipService;
   let findOwnershipData: vi.Mock;
-  let i18nT: vi.Mock;
 
   beforeEach(async () => {
     findOwnershipData = vi.fn();
-    i18nT = vi.fn().mockReturnValue('Record not found');
 
     const module = await Test.createTestingModule({
       providers: [
@@ -20,7 +26,6 @@ describe('DailyRecordsOwnershipService', () => {
           provide: DailyRecordRepositoryPort,
           useValue: { findOwnershipData },
         },
-        { provide: I18nService, useValue: { t: i18nT } },
       ],
     }).compile();
 
@@ -33,37 +38,51 @@ describe('DailyRecordsOwnershipService', () => {
         userId: 'u1',
         kind: 'note',
         payload: { key: 'val' },
+        occurredAt: new Date('2026-07-10'),
       });
 
-      const result = await service.ensureOwnedByUser('u1', 'r1');
+      const result = await collectResult(service.ensureOwnedByUser('u1', 'r1'));
 
-      expect(result).toEqual({ kind: 'note', payload: { key: 'val' } });
+      expect(result).toMatchObject({ ok: true });
       expect(findOwnershipData).toHaveBeenCalledWith('r1');
     });
 
-    it('throws NotFoundException when record not found', async () => {
+    it('returns RESOURCE_NOT_FOUND when record not found', async () => {
       findOwnershipData.mockResolvedValue(null);
-      await expect(service.ensureOwnedByUser('u1', 'r1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        collectResult(service.ensureOwnedByUser('u1', 'r1')),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
     });
 
-    it('throws NotFoundException when record belongs to different user', async () => {
+    it('returns FORBIDDEN when record belongs to different user', async () => {
       findOwnershipData.mockResolvedValue({
         userId: 'u2',
         kind: 'note',
         payload: null,
       });
+      await expect(
+        collectResult(service.ensureOwnedByUser('u1', 'r1')),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'authorization', code: 'FORBIDDEN' },
+      });
+    });
+
+    it('rethrows an unknown database error instead of wrapping it as a domain failure', async () => {
+      findOwnershipData.mockRejectedValue(new Error('connection lost'));
+
       await expect(service.ensureOwnedByUser('u1', 'r1')).rejects.toThrow(
-        NotFoundException,
+        'connection lost',
       );
     });
   });
 
   describe('throwRecordNotFound', () => {
-    it('throws NotFoundException with i18n message', () => {
-      expect(() => service.throwRecordNotFound()).toThrow(NotFoundException);
-      expect(i18nT).toHaveBeenCalledWith('daily-records.record_not_found');
+    it('throws an invariant error for transaction read-back violations', () => {
+      expect(() => service.throwRecordNotFound()).toThrow(/invariant/);
     });
   });
 });

@@ -1,8 +1,13 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { DailyRecordKind } from '#generated/prisma/client';
+import { DailyRecordKind, Prisma } from '#generated/prisma/client';
+import {
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/unwrap-result';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
 import { HealthEventsOwnershipService } from '../../health-events';
 import { DailyRecordsOwnershipService } from './ownership.service';
@@ -13,6 +18,34 @@ import { MealDishTemplateLearningService } from './meal-dish/template-learning.s
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const mockUserId = 'user-uuid-1';
+
+function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
+  const error = Object.create(
+    Prisma.PrismaClientKnownRequestError.prototype,
+  ) as Prisma.PrismaClientKnownRequestError;
+  error.code = code;
+  return error;
+}
+
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
+
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('DailyRecordsService', () => {
   let service: DailyRecordsService;
@@ -205,38 +238,42 @@ describe('DailyRecordsService', () => {
   });
 
   it('should create a record', async () => {
-    repository.create.mockResolvedValue({
-      id: 'r1',
+    repository.create.mockReturnValue(
+      okAsync({
+        id: 'r1',
 
-      userId: mockUserId,
+        userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'mood',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: '14:20',
-      title: null,
-      value: null,
-      unit: null,
-      note: 'good',
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'mood',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: '14:20',
+        title: null,
+        value: null,
+        unit: null,
+        note: 'good',
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    const result = await service.create(mockUserId, {
-      kind: DailyRecordKind.mood,
-      occurredAt: '2026-06-04',
-      occurredTime: '14:20',
-      note: 'good',
-    });
+    const result = await unwrapOk(
+      service.create(mockUserId, {
+        kind: DailyRecordKind.mood,
+        occurredAt: '2026-06-04',
+        occurredTime: '14:20',
+        note: 'good',
+      }),
+    );
 
     expect(result.kind).toBe('mood');
     expect(result.note).toBe('good');
@@ -244,35 +281,39 @@ describe('DailyRecordsService', () => {
   });
 
   it('should validate and persist an active health event when creating a record', async () => {
-    repository.create.mockResolvedValue({
-      id: 'r-health-event',
-      userId: mockUserId,
-      healthEventId: 'health-event-1',
-      deletedAt: null,
-      kind: 'mood',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    repository.create.mockReturnValue(
+      okAsync({
+        id: 'r-health-event',
+        userId: mockUserId,
+        healthEventId: 'health-event-1',
+        deletedAt: null,
+        kind: 'mood',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    const result = await service.create(mockUserId, {
-      kind: DailyRecordKind.mood,
-      occurredAt: '2026-06-04',
-      healthEventId: 'health-event-1',
-    });
+    const result = await unwrapOk(
+      service.create(mockUserId, {
+        kind: DailyRecordKind.mood,
+        occurredAt: '2026-06-04',
+        healthEventId: 'health-event-1',
+      }),
+    );
 
     expect(result.healthEventId).toBe('health-event-1');
     expect(
@@ -284,55 +325,76 @@ describe('DailyRecordsService', () => {
   });
 
   it.each([
-    ['ended event', new Error('health-events.inactive')],
-    ['foreign event', new Error('health-events.not_found')],
+    ['ended event', { kind: 'validation', code: 'VALIDATION_FAILED' }],
+    ['foreign event', { kind: 'authorization', code: 'FORBIDDEN' }],
   ])(
-    'should propagate %s validation errors when creating a record',
-    async (_, error) => {
+    'should fold %s ownership failures into Err when creating a record',
+    async (_, failure) => {
       healthEventsOwnershipService.ensureActiveOwnedByUser.mockRejectedValue(
-        error,
+        new DomainFailureException(failure as DomainFailure),
       );
 
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.mood,
-          occurredAt: '2026-06-04',
-          healthEventId: 'health-event-1',
-        }),
-      ).rejects.toBe(error);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.mood,
+            occurredAt: '2026-06-04',
+            healthEventId: 'health-event-1',
+          }),
+        ),
+      ).resolves.toMatchObject({ ok: false, error: failure });
       expect(repository.create).not.toHaveBeenCalled();
     },
   );
 
-  it('should not call health event ownership when healthEventId is omitted', async () => {
-    repository.create.mockResolvedValue({
-      id: 'r-without-health-event',
-      userId: mockUserId,
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'mood',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  it('rethrows an unknown health-event ownership error', async () => {
+    healthEventsOwnershipService.ensureActiveOwnedByUser.mockRejectedValue(
+      new Error('connection lost'),
+    );
 
-    await service.create(mockUserId, {
-      kind: DailyRecordKind.mood,
-      occurredAt: '2026-06-04',
-    });
+    await expect(
+      service.create(mockUserId, {
+        kind: DailyRecordKind.mood,
+        occurredAt: '2026-06-04',
+        healthEventId: 'health-event-1',
+      }),
+    ).rejects.toThrow('connection lost');
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('should not call health event ownership when healthEventId is omitted', async () => {
+    repository.create.mockReturnValue(
+      okAsync({
+        id: 'r-without-health-event',
+        userId: mockUserId,
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'mood',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    await unwrapOk(
+      service.create(mockUserId, {
+        kind: DailyRecordKind.mood,
+        occurredAt: '2026-06-04',
+      }),
+    );
 
     expect(
       healthEventsOwnershipService.ensureActiveOwnedByUser,
@@ -348,33 +410,37 @@ describe('DailyRecordsService', () => {
       kind: 'mood',
       payload: null,
     });
-    repository.update.mockResolvedValue({
-      id: 'r1',
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'r1',
 
-      userId: mockUserId,
+        userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'mood',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: 'updated',
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'mood',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: 'updated',
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    const result = await service.update(mockUserId, 'r1', { note: 'updated' });
+    const result = await unwrapOk(
+      service.update(mockUserId, 'r1', { note: 'updated' }),
+    );
 
     expect(repository.update).toHaveBeenCalledWith('r1', {
       note: 'updated',
@@ -391,31 +457,33 @@ describe('DailyRecordsService', () => {
       kind: 'mood',
       payload: null,
     });
-    repository.update.mockResolvedValue({
-      id: 'r1',
-      userId: mockUserId,
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'mood',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'r1',
+        userId: mockUserId,
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'mood',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'r1', { healthEventId: null });
+    await unwrapOk(service.update(mockUserId, 'r1', { healthEventId: null }));
 
     expect(
       healthEventsOwnershipService.ensureActiveOwnedByUser,
@@ -431,33 +499,37 @@ describe('DailyRecordsService', () => {
       kind: 'mood',
       payload: null,
     });
-    repository.update.mockResolvedValue({
-      id: 'r1',
-      userId: mockUserId,
-      healthEventId: 'health-event-1',
-      deletedAt: null,
-      kind: 'mood',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'r1',
+        userId: mockUserId,
+        healthEventId: 'health-event-1',
+        deletedAt: null,
+        kind: 'mood',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'r1', {
-      healthEventId: 'health-event-1',
-    });
+    await unwrapOk(
+      service.update(mockUserId, 'r1', {
+        healthEventId: 'health-event-1',
+      }),
+    );
 
     expect(
       healthEventsOwnershipService.ensureActiveOwnedByUser,
@@ -481,51 +553,55 @@ describe('DailyRecordsService', () => {
         },
       },
     });
-    repository.update.mockResolvedValue({
-      id: 'meal-2',
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'meal-2',
 
-      userId: mockUserId,
+        userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'meal',
-      occurredAt: new Date('2026-07-01'),
-      occurredTime: '18:20',
-      title: 'Dinner',
-      value: null,
-      unit: null,
-      note: null,
-      payload: {
-        mealInput: {
-          manualSummary: 'new summary',
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'meal',
+        occurredAt: new Date('2026-07-01'),
+        occurredTime: '18:20',
+        title: 'Dinner',
+        value: null,
+        unit: null,
+        note: null,
+        payload: {
+          mealInput: {
+            manualSummary: 'new summary',
+          },
+          mealAnalysis: {
+            analysisStatus: 'confirmed',
+            mealDescription: 'trusted analysis',
+          },
         },
-        mealAnalysis: {
-          analysisStatus: 'confirmed',
-          mealDescription: 'trusted analysis',
-        },
-      },
-      source: 'manual',
-      mealAnalysisStatus: 'confirmed',
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+        source: 'manual',
+        mealAnalysisStatus: 'confirmed',
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'meal-2', {
-      payload: {
-        mealInput: {
-          manualSummary: 'new summary',
+    await unwrapOk(
+      service.update(mockUserId, 'meal-2', {
+        payload: {
+          mealInput: {
+            manualSummary: 'new summary',
+          },
+          mealAnalysis: {
+            analysisStatus: 'analysis_failed',
+            mealDescription: 'client overwrite attempt',
+          },
         },
-        mealAnalysis: {
-          analysisStatus: 'analysis_failed',
-          mealDescription: 'client overwrite attempt',
-        },
-      },
-    });
+      }),
+    );
 
     expect(repository.update).toHaveBeenCalledWith(
       'meal-2',
@@ -558,47 +634,51 @@ describe('DailyRecordsService', () => {
         },
       },
     });
-    repository.update.mockResolvedValue({
-      id: 'meal-3',
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'meal-3',
 
-      userId: mockUserId,
+        userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'meal',
-      occurredAt: new Date('2026-07-01'),
-      occurredTime: '18:20',
-      title: 'Dinner',
-      value: null,
-      unit: null,
-      note: null,
-      payload: {
-        mealInput: {
-          recognizedDishes: [{ rawName: '用户改过的菜名' }],
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'meal',
+        occurredAt: new Date('2026-07-01'),
+        occurredTime: '18:20',
+        title: 'Dinner',
+        value: null,
+        unit: null,
+        note: null,
+        payload: {
+          mealInput: {
+            recognizedDishes: [{ rawName: '用户改过的菜名' }],
+          },
+          mealAnalysis: {
+            analysisStatus: 'confirmed',
+            recognizedDishes: [{ rawName: '服务端可信菜名' }],
+          },
         },
-        mealAnalysis: {
-          analysisStatus: 'confirmed',
-          recognizedDishes: [{ rawName: '服务端可信菜名' }],
-        },
-      },
-      source: 'manual',
-      mealAnalysisStatus: 'confirmed',
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+        source: 'manual',
+        mealAnalysisStatus: 'confirmed',
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'meal-3', {
-      payload: {
-        mealInput: {
-          recognizedDishes: [{ rawName: '用户改过的菜名' }],
+    await unwrapOk(
+      service.update(mockUserId, 'meal-3', {
+        payload: {
+          mealInput: {
+            recognizedDishes: [{ rawName: '用户改过的菜名' }],
+          },
         },
-      },
-    });
+      }),
+    );
 
     expect(repository.update).toHaveBeenCalledWith(
       'meal-3',
@@ -674,94 +754,98 @@ describe('DailyRecordsService', () => {
         },
       },
     });
-    repository.update.mockResolvedValue({
-      id: 'meal-4',
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'meal-4',
 
-      userId: mockUserId,
+        userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'meal',
-      occurredAt: new Date('2026-07-01'),
-      occurredTime: '12:20',
-      title: 'Lunch',
-      value: null,
-      unit: null,
-      note: null,
-      payload: {
-        mealAnalysis: {
-          analysisStatus: 'confirmed',
-          coverage: 'partial',
-          recognizedDishes: [
-            {
-              dishKey: 'dish-1',
-              rawName: '西红柿炒鸡蛋',
-              normalizedDishName: '西红柿炒鸡蛋',
-              confidence: 0.94,
-              portionText: '一份',
-              source: 'vision',
-            },
-          ],
-          resolvedIngredients: [
-            {
-              dishKey: 'dish-1',
-              ingredientName: '西红柿',
-              normalizedIngredientName: '西红柿',
-              defaultRatio: 0.6,
-              decompositionSource: 'model',
-              confidence: 0.93,
-            },
-            {
-              dishKey: 'dish-1',
-              ingredientName: '鸡蛋',
-              normalizedIngredientName: '鸡蛋',
-              defaultRatio: 0.4,
-              decompositionSource: 'model',
-              confidence: 0.92,
-            },
-          ],
-          compositionMatches: [
-            {
-              dishKey: 'dish-1',
-              ingredientName: '西红柿',
-              matchedFoodId: 'food-tomato',
-              matchedFoodName: '西红柿',
-              matchMethod: 'exact',
-              matchScore: 1,
-            },
-            {
-              dishKey: 'dish-1',
-              ingredientName: '鸡蛋',
-              matchedFoodId: 'food-egg',
-              matchedFoodName: '鸡蛋',
-              matchMethod: 'exact',
-              matchScore: 1,
-            },
-          ],
-          confirmedAt: '2026-07-01T12:30:00.000Z',
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'meal',
+        occurredAt: new Date('2026-07-01'),
+        occurredTime: '12:20',
+        title: 'Lunch',
+        value: null,
+        unit: null,
+        note: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'confirmed',
+            coverage: 'partial',
+            recognizedDishes: [
+              {
+                dishKey: 'dish-1',
+                rawName: '西红柿炒鸡蛋',
+                normalizedDishName: '西红柿炒鸡蛋',
+                confidence: 0.94,
+                portionText: '一份',
+                source: 'vision',
+              },
+            ],
+            resolvedIngredients: [
+              {
+                dishKey: 'dish-1',
+                ingredientName: '西红柿',
+                normalizedIngredientName: '西红柿',
+                defaultRatio: 0.6,
+                decompositionSource: 'model',
+                confidence: 0.93,
+              },
+              {
+                dishKey: 'dish-1',
+                ingredientName: '鸡蛋',
+                normalizedIngredientName: '鸡蛋',
+                defaultRatio: 0.4,
+                decompositionSource: 'model',
+                confidence: 0.92,
+              },
+            ],
+            compositionMatches: [
+              {
+                dishKey: 'dish-1',
+                ingredientName: '西红柿',
+                matchedFoodId: 'food-tomato',
+                matchedFoodName: '西红柿',
+                matchMethod: 'exact',
+                matchScore: 1,
+              },
+              {
+                dishKey: 'dish-1',
+                ingredientName: '鸡蛋',
+                matchedFoodId: 'food-egg',
+                matchedFoodName: '鸡蛋',
+                matchMethod: 'exact',
+                matchScore: 1,
+              },
+            ],
+            confirmedAt: '2026-07-01T12:30:00.000Z',
+          },
+          mealAnalysisLastConfirmed: {
+            analysisStatus: 'confirmed',
+          },
         },
-        mealAnalysisLastConfirmed: {
-          analysisStatus: 'confirmed',
-        },
-      },
-      source: 'manual',
-      mealAnalysisStatus: 'confirmed',
-      mealAnalysisCoverage: 'partial',
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+        source: 'manual',
+        mealAnalysisStatus: 'confirmed',
+        mealAnalysisCoverage: 'partial',
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'meal-4', {
-      payload: {
-        mealAnalysis: {
-          analysisStatus: 'confirmed',
+    await unwrapOk(
+      service.update(mockUserId, 'meal-4', {
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'confirmed',
+          },
         },
-      },
-    });
+      }),
+    );
 
     expect(repository.update).toHaveBeenCalledWith(
       'meal-4',
@@ -797,33 +881,37 @@ describe('DailyRecordsService', () => {
       kind: 'water',
       payload: null,
     });
-    repository.update.mockResolvedValue({
-      id: 'r1',
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'r1',
 
-      userId: mockUserId,
+        userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'water',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'water',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'r1', { note: null, value: null });
+    await unwrapOk(
+      service.update(mockUserId, 'r1', { note: null, value: null }),
+    );
 
     expect(repository.update).toHaveBeenCalledWith('r1', {
       note: null,
@@ -893,25 +981,27 @@ describe('DailyRecordsService', () => {
       updatedAt: new Date(),
     });
 
-    const result = await service.create(mockUserId, {
-      kind: DailyRecordKind.meal,
-      occurredAt: '2026-06-04',
-      title: 'Breakfast',
-      healthEventId: 'health-event-1',
-      attachments: [
-        {
-          objectKey: 'daily-records/u1/r1/photo.jpg',
-          bucket: 'lucent-dev',
-          provider: 'tencent-cos',
-          fileName: 'photo.jpg',
-          contentType: 'image/jpeg',
-          sizeBytes: 1234,
-          width: 640,
-          height: 480,
-          publicUrl: 'https://cdn.example.com/photo.jpg',
-        },
-      ],
-    });
+    const result = await unwrapOk(
+      service.create(mockUserId, {
+        kind: DailyRecordKind.meal,
+        occurredAt: '2026-06-04',
+        title: 'Breakfast',
+        healthEventId: 'health-event-1',
+        attachments: [
+          {
+            objectKey: 'daily-records/u1/r1/photo.jpg',
+            bucket: 'lucent-dev',
+            provider: 'tencent-cos',
+            fileName: 'photo.jpg',
+            contentType: 'image/jpeg',
+            sizeBytes: 1234,
+            width: 640,
+            height: 480,
+            publicUrl: 'https://cdn.example.com/photo.jpg',
+          },
+        ],
+      }),
+    );
 
     expect(txMock.userDailyRecordAttachment.createMany).toHaveBeenCalledWith({
       data: [
@@ -995,15 +1085,17 @@ describe('DailyRecordsService', () => {
       updatedAt: new Date(),
     });
 
-    const result = await service.update(mockUserId, 'r1', {
-      attachments: [
-        {
-          objectKey: 'daily-records/u1/r1/new.jpg',
-          provider: 'tencent-cos',
-          contentType: 'image/jpeg',
-        },
-      ],
-    });
+    const result = await unwrapOk(
+      service.update(mockUserId, 'r1', {
+        attachments: [
+          {
+            objectKey: 'daily-records/u1/r1/new.jpg',
+            provider: 'tencent-cos',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    );
 
     expect(txMock.userDailyRecordAttachment.deleteMany).toHaveBeenCalledWith({
       where: { userId: mockUserId, recordId: 'r1' },
@@ -1029,15 +1121,41 @@ describe('DailyRecordsService', () => {
     expect(result.attachments[0]?.provider).toBe('tencent-cos');
   });
 
+  it('returns RESOURCE_NOT_FOUND when the record disappears before the attachment update (P2025 race)', async () => {
+    repository.findOwnershipData.mockResolvedValueOnce({
+      userId: mockUserId,
+      kind: 'meal',
+      payload: null,
+    });
+    txMock.userDailyRecord.update.mockRejectedValue(prismaError('P2025'));
+
+    await expect(
+      collectResult(
+        service.update(mockUserId, 'r1', {
+          attachments: [
+            {
+              objectKey: 'daily-records/u1/r1/new.jpg',
+              provider: 'tencent-cos',
+              contentType: 'image/jpeg',
+            },
+          ],
+        }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
+  });
+
   it('should soft-delete a record', async () => {
     repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
       kind: 'water',
       payload: null,
     });
-    repository.softDelete.mockResolvedValue(undefined);
+    repository.softDelete.mockReturnValue(okAsync(undefined));
 
-    await service.delete(mockUserId, 'r1');
+    await unwrapOk(service.delete(mockUserId, 'r1'));
 
     expect(repository.softDelete).toHaveBeenCalledWith('r1', expect.any(Date));
   });
@@ -1130,24 +1248,30 @@ describe('DailyRecordsService', () => {
     expect(water.latest?.value).toBe('3');
   });
 
-  it('should throw NotFoundException for foreign record', async () => {
+  it('should return FORBIDDEN for foreign record', async () => {
     repository.findOwnershipData.mockResolvedValue({
       userId: 'other',
       kind: 'water',
       payload: null,
     });
 
-    await expect(service.update(mockUserId, 'r1', {})).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      collectResult(service.update(mockUserId, 'r1', {})),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
   });
 
-  it('should throw NotFoundException when record does not exist', async () => {
+  it('should return RESOURCE_NOT_FOUND when record does not exist', async () => {
     repository.findOwnershipData.mockResolvedValue(null);
 
-    await expect(service.update(mockUserId, 'nonexistent', {})).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      collectResult(service.update(mockUserId, 'nonexistent', {})),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 
   it('should update occurredTime when provided', async () => {
@@ -1156,35 +1280,39 @@ describe('DailyRecordsService', () => {
       kind: 'water',
       payload: null,
     });
-    repository.update.mockResolvedValue({
-      id: 'r-time-2',
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'r-time-2',
 
-      userId: mockUserId,
+        userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'water',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: '21:05',
-      title: null,
-      value: '250',
-      unit: 'ml',
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+        healthEventId: null,
+        deletedAt: null,
+        kind: 'water',
+        occurredAt: new Date('2026-06-04'),
+        occurredTime: '21:05',
+        title: null,
+        value: '250',
+        unit: 'ml',
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'r-time-2', {
-      occurredTime: '21:05',
-    });
+    await unwrapOk(
+      service.update(mockUserId, 'r-time-2', {
+        occurredTime: '21:05',
+      }),
+    );
 
     expect(repository.update).toHaveBeenCalledWith('r-time-2', {
       occurredTime: '21:05',
@@ -1198,34 +1326,38 @@ describe('DailyRecordsService', () => {
       occurredAt: new Date('2026-06-04'),
       payload: null,
     });
-    repository.update.mockResolvedValue({
-      id: 'r-symptom',
-      userId: mockUserId,
-      healthEventId: null,
-      deletedAt: null,
-      kind: DailyRecordKind.symptom,
-      occurredAt: new Date('2026-06-05'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'r-symptom',
+        userId: mockUserId,
+        healthEventId: null,
+        deletedAt: null,
+        kind: DailyRecordKind.symptom,
+        occurredAt: new Date('2026-06-05'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'r-symptom', {
-      kind: DailyRecordKind.symptom,
-      occurredAt: '2026-06-05',
-    });
+    await unwrapOk(
+      service.update(mockUserId, 'r-symptom', {
+        kind: DailyRecordKind.symptom,
+        occurredAt: '2026-06-05',
+      }),
+    );
 
     expect(eventEmitter.emitAsync).toHaveBeenNthCalledWith(
       1,
@@ -1262,31 +1394,33 @@ describe('DailyRecordsService', () => {
         payload: null,
       });
       const movedDate = 'occurredAt' in dto ? dto.occurredAt : undefined;
-      repository.update.mockResolvedValue({
-        id: 'r-water',
-        userId: mockUserId,
-        healthEventId: null,
-        deletedAt: null,
-        kind: DailyRecordKind.water,
-        occurredAt: new Date(movedDate ?? '2026-06-04'),
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        source: 'manual',
-        payload: null,
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      repository.update.mockReturnValue(
+        okAsync({
+          id: 'r-water',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: DailyRecordKind.water,
+          occurredAt: new Date(movedDate ?? '2026-06-04'),
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          source: 'manual',
+          payload: null,
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
-      await service.update(mockUserId, 'r-water', dto);
+      await unwrapOk(service.update(mockUserId, 'r-water', dto));
 
       expect(eventEmitter.emitAsync).not.toHaveBeenCalledWith(
         'daily-record.changed',
@@ -1302,33 +1436,37 @@ describe('DailyRecordsService', () => {
       occurredAt: new Date('2026-06-04'),
       payload: null,
     });
-    repository.update.mockResolvedValue({
-      id: 'r-moved-symptom',
-      userId: mockUserId,
-      healthEventId: null,
-      deletedAt: null,
-      kind: DailyRecordKind.symptom,
-      occurredAt: new Date('2026-06-05'),
-      occurredTime: null,
-      title: null,
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      mealAnalysisStatus: null,
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
-      mealSourceRevision: 0,
-      attachments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    repository.update.mockReturnValue(
+      okAsync({
+        id: 'r-moved-symptom',
+        userId: mockUserId,
+        healthEventId: null,
+        deletedAt: null,
+        kind: DailyRecordKind.symptom,
+        occurredAt: new Date('2026-06-05'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
 
-    await service.update(mockUserId, 'r-moved-symptom', {
-      occurredAt: '2026-06-05',
-    });
+    await unwrapOk(
+      service.update(mockUserId, 'r-moved-symptom', {
+        occurredAt: '2026-06-05',
+      }),
+    );
 
     expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(2);
     expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
@@ -1348,38 +1486,42 @@ describe('DailyRecordsService', () => {
         endAt: '2026-06-13T06:30:00.000Z',
         quality: 'good',
       };
-      repository.create.mockResolvedValue({
-        id: 'rs1',
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'rs1',
 
-        userId: mockUserId,
+          userId: mockUserId,
 
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'sleep',
-        occurredAt: new Date('2026-06-13'),
-        occurredTime: '07:10',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: sleepPayload,
-        source: 'manual',
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'sleep',
+          occurredAt: new Date('2026-06-13'),
+          occurredTime: '07:10',
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: sleepPayload,
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
-      const result = await service.create(mockUserId, {
-        kind: DailyRecordKind.sleep,
-        occurredAt: '2026-06-13',
-        occurredTime: '07:10',
-        payload: sleepPayload,
-      });
+      const result = await unwrapOk(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          occurredTime: '07:10',
+          payload: sleepPayload,
+        }),
+      );
 
       expect(result.kind).toBe('sleep');
       expect(repository.create).toHaveBeenCalledWith(
@@ -1393,91 +1535,115 @@ describe('DailyRecordsService', () => {
 
     it('should reject a sleep record without durationMinutes', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.sleep,
-          occurredAt: '2026-06-13',
-          payload: { quality: 'good' },
-        }),
-      ).rejects.toThrow(/durationMinutes/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.sleep,
+            occurredAt: '2026-06-13',
+            payload: { quality: 'good' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
 
     it('should reject an unknown sleep type', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.sleep,
-          occurredAt: '2026-06-13',
-          payload: {
-            sleepType: 'other',
-            startedAt: '2026-06-12T23:00:00.000Z',
-            endedAt: '2026-06-13T06:30:00.000Z',
-            durationMinutes: 450,
-          },
-        }),
-      ).rejects.toThrow(/sleepType/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.sleep,
+            occurredAt: '2026-06-13',
+            payload: {
+              sleepType: 'other',
+              startedAt: '2026-06-12T23:00:00.000Z',
+              endedAt: '2026-06-13T06:30:00.000Z',
+              durationMinutes: 450,
+            },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
 
     it('should reject a sleep episode whose end is not later than its start', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.sleep,
-          occurredAt: '2026-06-13',
-          payload: {
-            sleepType: 'nightSleep',
-            startedAt: '2026-06-13T06:30:00.000Z',
-            endedAt: '2026-06-12T23:00:00.000Z',
-            durationMinutes: 450,
-          },
-        }),
-      ).rejects.toThrow(/later than startedAt/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.sleep,
+            occurredAt: '2026-06-13',
+            payload: {
+              sleepType: 'nightSleep',
+              startedAt: '2026-06-13T06:30:00.000Z',
+              endedAt: '2026-06-12T23:00:00.000Z',
+              durationMinutes: 450,
+            },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
 
     it('should reject a sleep episode with only one endpoint', async () => {
       await expect(
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.sleep,
+            occurredAt: '2026-06-13',
+            payload: {
+              sleepType: 'nap',
+              startedAt: '2026-06-13T13:00:00.000Z',
+              durationMinutes: 30,
+            },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
+    });
+
+    it('should allow temporary sleep start event record without durationMinutes', async () => {
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'rs-start',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'sleep',
+          occurredAt: new Date('2026-06-13'),
+          occurredTime: '07:10',
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: { sleepEvent: 'start', eventAt: '2026-06-13T23:00:00.000Z' },
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      const result = await unwrapOk(
         service.create(mockUserId, {
           kind: DailyRecordKind.sleep,
           occurredAt: '2026-06-13',
           payload: {
-            sleepType: 'nap',
-            startedAt: '2026-06-13T13:00:00.000Z',
-            durationMinutes: 30,
+            sleepEvent: 'start',
+            eventAt: '2026-06-13T23:00:00.000Z',
           },
         }),
-      ).rejects.toThrow(/both startedAt and endedAt/);
-    });
-
-    it('should allow temporary sleep start event record without durationMinutes', async () => {
-      repository.create.mockResolvedValue({
-        id: 'rs-start',
-        userId: mockUserId,
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'sleep',
-        occurredAt: new Date('2026-06-13'),
-        occurredTime: '07:10',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: { sleepEvent: 'start', eventAt: '2026-06-13T23:00:00.000Z' },
-        source: 'manual',
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      const result = await service.create(mockUserId, {
-        kind: DailyRecordKind.sleep,
-        occurredAt: '2026-06-13',
-        payload: {
-          sleepEvent: 'start',
-          eventAt: '2026-06-13T23:00:00.000Z',
-        },
-      });
+      );
 
       expect(result.kind).toBe('sleep');
       expect(repository.create).toHaveBeenCalledWith(
@@ -1491,43 +1657,47 @@ describe('DailyRecordsService', () => {
     });
 
     it('should allow temporary sleep wake event record without durationMinutes', async () => {
-      repository.create.mockResolvedValue({
-        id: 'rs-wake',
-        userId: mockUserId,
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'sleep',
-        occurredAt: new Date('2026-06-13'),
-        occurredTime: '07:10',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          sleepEvent: 'wake',
-          eventAt: '2026-06-13T06:30:00.000Z',
-          startedRecordId: 'rs-start',
-        },
-        source: 'manual',
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'rs-wake',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'sleep',
+          occurredAt: new Date('2026-06-13'),
+          occurredTime: '07:10',
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            sleepEvent: 'wake',
+            eventAt: '2026-06-13T06:30:00.000Z',
+            startedRecordId: 'rs-start',
+          },
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
-      const result = await service.create(mockUserId, {
-        kind: DailyRecordKind.sleep,
-        occurredAt: '2026-06-13',
-        payload: {
-          sleepEvent: 'wake',
-          eventAt: '2026-06-13T06:30:00.000Z',
-          startedRecordId: 'rs-start',
-        },
-      });
+      const result = await unwrapOk(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          payload: {
+            sleepEvent: 'wake',
+            eventAt: '2026-06-13T06:30:00.000Z',
+            startedRecordId: 'rs-start',
+          },
+        }),
+      );
 
       expect(result.kind).toBe('sleep');
       expect(repository.create).toHaveBeenCalledWith(
@@ -1543,22 +1713,32 @@ describe('DailyRecordsService', () => {
 
     it('should reject a sleep record with zero durationMinutes', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.sleep,
-          occurredAt: '2026-06-13',
-          payload: { durationMinutes: 0 },
-        }),
-      ).rejects.toThrow(/positive number/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.sleep,
+            occurredAt: '2026-06-13',
+            payload: { durationMinutes: 0 },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
 
     it('should reject a sleep record with negative durationMinutes', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.sleep,
-          occurredAt: '2026-06-13',
-          payload: { durationMinutes: -30 },
-        }),
-      ).rejects.toThrow(/positive number/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.sleep,
+            occurredAt: '2026-06-13',
+            payload: { durationMinutes: -30 },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
 
     it('should validate sleep payload on update', async () => {
@@ -1569,10 +1749,15 @@ describe('DailyRecordsService', () => {
       });
 
       await expect(
-        service.update(mockUserId, 'rs1', {
-          payload: { durationMinutes: 0 },
-        }),
-      ).rejects.toThrow(/positive number/);
+        collectResult(
+          service.update(mockUserId, 'rs1', {
+            payload: { durationMinutes: 0 },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
   });
 
@@ -1583,39 +1768,43 @@ describe('DailyRecordsService', () => {
         value: 72,
         unit: 'bpm',
       };
-      repository.create.mockResolvedValue({
-        id: 'rv1',
-        userId: mockUserId,
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'vital',
-        occurredAt: new Date('2026-07-29'),
-        occurredTime: '10:00',
-        title: '心率',
-        value: '72',
-        unit: 'bpm',
-        note: null,
-        payload: vitalPayload,
-        source: 'apple_health',
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'rv1',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'vital',
+          occurredAt: new Date('2026-07-29'),
+          occurredTime: '10:00',
+          title: '心率',
+          value: '72',
+          unit: 'bpm',
+          note: null,
+          payload: vitalPayload,
+          source: 'apple_health',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
-      const result = await service.create(mockUserId, {
-        kind: DailyRecordKind.vital,
-        occurredAt: '2026-07-29',
-        occurredTime: '10:00',
-        title: '心率',
-        value: '72',
-        unit: 'bpm',
-        payload: vitalPayload,
-      });
+      const result = await unwrapOk(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.vital,
+          occurredAt: '2026-07-29',
+          occurredTime: '10:00',
+          title: '心率',
+          value: '72',
+          unit: 'bpm',
+          payload: vitalPayload,
+        }),
+      );
 
       expect(result.kind).toBe('vital');
       expect(repository.create).toHaveBeenCalledWith(
@@ -1626,59 +1815,73 @@ describe('DailyRecordsService', () => {
     });
 
     it('should create a vital record without payload (manual entry)', async () => {
-      repository.create.mockResolvedValue({
-        id: 'rv2',
-        userId: mockUserId,
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'vital',
-        occurredAt: new Date('2026-07-29'),
-        occurredTime: '10:00',
-        title: '血压',
-        value: '120',
-        unit: 'mmHg',
-        note: null,
-        payload: null,
-        source: 'manual',
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'rv2',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'vital',
+          occurredAt: new Date('2026-07-29'),
+          occurredTime: '10:00',
+          title: '血压',
+          value: '120',
+          unit: 'mmHg',
+          note: null,
+          payload: null,
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
-      const result = await service.create(mockUserId, {
-        kind: DailyRecordKind.vital,
-        occurredAt: '2026-07-29',
-        title: '血压',
-        value: '120',
-        unit: 'mmHg',
-      });
+      const result = await unwrapOk(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.vital,
+          occurredAt: '2026-07-29',
+          title: '血压',
+          value: '120',
+          unit: 'mmHg',
+        }),
+      );
 
       expect(result.kind).toBe('vital');
     });
 
     it('should reject a vital record with payload missing vitalType', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.vital,
-          occurredAt: '2026-07-29',
-          payload: { value: 72, unit: 'bpm' },
-        }),
-      ).rejects.toThrow(/vitalType/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.vital,
+            occurredAt: '2026-07-29',
+            payload: { value: 72, unit: 'bpm' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
 
     it('should reject a vital record with payload missing value', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.vital,
-          occurredAt: '2026-07-29',
-          payload: { vitalType: 'heartRate', unit: 'bpm' },
-        }),
-      ).rejects.toThrow(/value/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.vital,
+            occurredAt: '2026-07-29',
+            payload: { vitalType: 'heartRate', unit: 'bpm' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
   });
 
@@ -1689,38 +1892,42 @@ describe('DailyRecordsService', () => {
         value: 8432,
         unit: 'count',
       };
-      repository.create.mockResolvedValue({
-        id: 'ra1',
-        userId: mockUserId,
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'activity',
-        occurredAt: new Date('2026-07-29'),
-        occurredTime: '22:00',
-        title: '步数',
-        value: '8432',
-        unit: 'count',
-        note: null,
-        payload: activityPayload,
-        source: 'apple_health',
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'ra1',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'activity',
+          occurredAt: new Date('2026-07-29'),
+          occurredTime: '22:00',
+          title: '步数',
+          value: '8432',
+          unit: 'count',
+          note: null,
+          payload: activityPayload,
+          source: 'apple_health',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
-      const result = await service.create(mockUserId, {
-        kind: DailyRecordKind.activity,
-        occurredAt: '2026-07-29',
-        title: '步数',
-        value: '8432',
-        unit: 'count',
-        payload: activityPayload,
-      });
+      const result = await unwrapOk(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.activity,
+          occurredAt: '2026-07-29',
+          title: '步数',
+          value: '8432',
+          unit: 'count',
+          payload: activityPayload,
+        }),
+      );
 
       expect(result.kind).toBe('activity');
       expect(repository.create).toHaveBeenCalledWith(
@@ -1731,59 +1938,73 @@ describe('DailyRecordsService', () => {
     });
 
     it('should create an activity record without payload (manual entry)', async () => {
-      repository.create.mockResolvedValue({
-        id: 'ra2',
-        userId: mockUserId,
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'activity',
-        occurredAt: new Date('2026-07-29'),
-        occurredTime: '10:00',
-        title: '运动',
-        value: '30',
-        unit: 'min',
-        note: null,
-        payload: null,
-        source: 'manual',
-        mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'ra2',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'activity',
+          occurredAt: new Date('2026-07-29'),
+          occurredTime: '10:00',
+          title: '运动',
+          value: '30',
+          unit: 'min',
+          note: null,
+          payload: null,
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
 
-      const result = await service.create(mockUserId, {
-        kind: DailyRecordKind.activity,
-        occurredAt: '2026-07-29',
-        title: '运动',
-        value: '30',
-        unit: 'min',
-      });
+      const result = await unwrapOk(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.activity,
+          occurredAt: '2026-07-29',
+          title: '运动',
+          value: '30',
+          unit: 'min',
+        }),
+      );
 
       expect(result.kind).toBe('activity');
     });
 
     it('should reject an activity record with payload missing activityType', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.activity,
-          occurredAt: '2026-07-29',
-          payload: { value: 100, unit: 'count' },
-        }),
-      ).rejects.toThrow(/activityType/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.activity,
+            occurredAt: '2026-07-29',
+            payload: { value: 100, unit: 'count' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
 
     it('should reject an activity record with payload missing value', async () => {
       await expect(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.activity,
-          occurredAt: '2026-07-29',
-          payload: { activityType: 'steps', unit: 'count' },
-        }),
-      ).rejects.toThrow(/value/);
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.activity,
+            occurredAt: '2026-07-29',
+            payload: { activityType: 'steps', unit: 'count' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
     });
   });
 });

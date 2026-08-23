@@ -17,6 +17,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateCurrentMedicineDto } from './dto/create-current-medicine.dto';
@@ -47,12 +49,13 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get the current user health context aggregate' })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    type: ProblemDetailsDto,
+  })
   async getUserHealthContext(@CurrentUser() user: UserPayload) {
-    const healthContext = await this.userHealthContextService.getForUser(
-      user.sub,
-    );
-
-    return healthContext;
+    return unwrapResult(this.userHealthContextService.getForUser(user.sub));
   }
 
   @Patch('profile')
@@ -62,16 +65,18 @@ export class UserHealthContextController {
   })
   @ApiBody({ type: UpdateHealthContextProfileDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    type: ProblemDetailsDto,
+  })
   async updateUserHealthContextProfile(
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateHealthContextProfileDto,
   ) {
-    const healthContext = await this.userHealthContextService.updateProfile(
-      user.sub,
-      dto,
+    return unwrapResult(
+      this.userHealthContextService.updateProfile(user.sub, dto),
     );
-
-    return healthContext;
   }
 
   // ── Allergy endpoints ──
@@ -81,15 +86,18 @@ export class UserHealthContextController {
   @ApiOperation({ summary: 'Create an allergy record' })
   @ApiBody({ type: CreateHealthContextAllergyDto })
   @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    type: ProblemDetailsDto,
+  })
   async createAllergy(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateHealthContextAllergyDto,
   ) {
-    const healthContext = await this.userHealthContextService.createAllergy(
-      user.sub,
-      dto,
+    return unwrapResult(
+      this.userHealthContextService.createAllergy(user.sub, dto),
     );
-    return healthContext;
   }
 
   @Patch('allergies/:id')
@@ -98,17 +106,24 @@ export class UserHealthContextController {
   @ApiParam({ name: 'id', description: 'Allergy id' })
   @ApiBody({ type: UpdateHealthContextAllergyDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Allergy is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Allergy not found',
+    type: ProblemDetailsDto,
+  })
   async updateAllergy(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateHealthContextAllergyDto,
   ) {
-    const healthContext = await this.userHealthContextService.updateAllergy(
-      user.sub,
-      id,
-      dto,
+    return unwrapResult(
+      this.userHealthContextService.updateAllergy(user.sub, id, dto),
     );
-    return healthContext;
   }
 
   @Delete('allergies/:id')
@@ -116,15 +131,23 @@ export class UserHealthContextController {
   @ApiOperation({ summary: 'Deactivate an allergy record (soft delete)' })
   @ApiParam({ name: 'id', description: 'Allergy id' })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Allergy is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Allergy not found',
+    type: ProblemDetailsDto,
+  })
   async deleteAllergy(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const healthContext = await this.userHealthContextService.deleteAllergy(
-      user.sub,
-      id,
+    return unwrapResult(
+      this.userHealthContextService.deleteAllergy(user.sub, id),
     );
-    return healthContext;
   }
 
   // ── Condition endpoints ──
@@ -134,15 +157,18 @@ export class UserHealthContextController {
   @ApiOperation({ summary: 'Create a condition record' })
   @ApiBody({ type: CreateHealthContextConditionDto })
   @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    type: ProblemDetailsDto,
+  })
   async createCondition(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateHealthContextConditionDto,
   ) {
-    const healthContext = await this.userHealthContextService.createCondition(
-      user.sub,
-      dto,
+    return unwrapResult(
+      this.userHealthContextService.createCondition(user.sub, dto),
     );
-    return healthContext;
   }
 
   @Patch('conditions/:id')
@@ -151,17 +177,24 @@ export class UserHealthContextController {
   @ApiParam({ name: 'id', description: 'Condition id' })
   @ApiBody({ type: UpdateHealthContextConditionDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Condition is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Condition not found',
+    type: ProblemDetailsDto,
+  })
   async updateCondition(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateHealthContextConditionDto,
   ) {
-    const healthContext = await this.userHealthContextService.updateCondition(
-      user.sub,
-      id,
-      dto,
+    return unwrapResult(
+      this.userHealthContextService.updateCondition(user.sub, id, dto),
     );
-    return healthContext;
   }
 
   @Delete('conditions/:id')
@@ -169,15 +202,23 @@ export class UserHealthContextController {
   @ApiOperation({ summary: 'Resolve a condition record (soft delete)' })
   @ApiParam({ name: 'id', description: 'Condition id' })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Condition is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Condition not found',
+    type: ProblemDetailsDto,
+  })
   async deleteCondition(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const healthContext = await this.userHealthContextService.deleteCondition(
-      user.sub,
-      id,
+    return unwrapResult(
+      this.userHealthContextService.deleteCondition(user.sub, id),
     );
-    return healthContext;
   }
 
   // ── Current medicine endpoints ──
@@ -187,13 +228,18 @@ export class UserHealthContextController {
   @ApiOperation({ summary: 'Add a current medicine record' })
   @ApiBody({ type: CreateCurrentMedicineDto })
   @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+    type: ProblemDetailsDto,
+  })
   async createCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateCurrentMedicineDto,
   ) {
-    const healthContext =
-      await this.userHealthContextService.createCurrentMedicine(user.sub, dto);
-    return healthContext;
+    return unwrapResult(
+      this.userHealthContextService.createCurrentMedicine(user.sub, dto),
+    );
   }
 
   @Patch('current-medicines/:id')
@@ -202,18 +248,24 @@ export class UserHealthContextController {
   @ApiParam({ name: 'id', description: 'Current medicine id' })
   @ApiBody({ type: UpdateCurrentMedicineDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Current medicine is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Current medicine not found',
+    type: ProblemDetailsDto,
+  })
   async updateCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCurrentMedicineDto,
   ) {
-    const healthContext =
-      await this.userHealthContextService.updateCurrentMedicine(
-        user.sub,
-        id,
-        dto,
-      );
-    return healthContext;
+    return unwrapResult(
+      this.userHealthContextService.updateCurrentMedicine(user.sub, id, dto),
+    );
   }
 
   @Delete('current-medicines/:id')
@@ -223,12 +275,22 @@ export class UserHealthContextController {
   })
   @ApiParam({ name: 'id', description: 'Current medicine id' })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Current medicine is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Current medicine not found',
+    type: ProblemDetailsDto,
+  })
   async deleteCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const healthContext =
-      await this.userHealthContextService.deleteCurrentMedicine(user.sub, id);
-    return healthContext;
+    return unwrapResult(
+      this.userHealthContextService.deleteCurrentMedicine(user.sub, id),
+    );
   }
 }

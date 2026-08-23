@@ -1,59 +1,88 @@
-import { ensureOwnedByUser } from '../../../common';
-import { notFound } from '../../../common';
 import { Injectable } from '@nestjs/common';
-
-import { I18nService } from 'nestjs-i18n';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
 
+/**
+ * Ownership + existence guards for user health context.
+ *
+ * Expected failures are expressed as `ResultAsync<void, DomainFailure>`:
+ * a missing record maps to `RESOURCE_NOT_FOUND` and a record owned by
+ * another user maps to `FORBIDDEN` (403). The lookup reads are deliberately
+ * id-scoped (not id+userId) so the two cases can be told apart; the row is
+ * never returned to callers.
+ */
 @Injectable()
 export class UserHealthContextOwnershipService {
-  constructor(
-    private readonly repository: UserHealthContextRepositoryPort,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly repository: UserHealthContextRepositoryPort) {}
 
-  async ensureActiveUserExists(userId: string): Promise<void> {
-    const user = await this.repository.findActiveUserById(userId);
-
-    if (!user) {
-      this.throwUserNotFound();
-    }
+  ensureActiveUserExists(userId: string): ResultAsync<void, DomainFailure> {
+    return fromPromise(this.repository.findActiveUserById(userId), (error) => {
+      throw error;
+    }).andThen((user) => {
+      if (user == null) {
+        return errAsync(this.notFound());
+      }
+      return okAsync(undefined);
+    });
   }
 
-  async ensureAllergyOwnedByUser(
+  ensureAllergyOwnedByUser(
     userId: string,
     allergyId: string,
-  ): Promise<void> {
-    const allergy = await this.repository.findAllergyById(userId, allergyId);
-
-    ensureOwnedByUser(allergy, userId, this.i18n.t('auth.user_not_found'));
+  ): ResultAsync<void, DomainFailure> {
+    return this.ensureOwned(userId, () =>
+      this.repository.findAllergyById(allergyId),
+    );
   }
 
-  async ensureConditionOwnedByUser(
+  ensureConditionOwnedByUser(
     userId: string,
     conditionId: string,
-  ): Promise<void> {
-    const condition = await this.repository.findConditionById(
-      userId,
-      conditionId,
+  ): ResultAsync<void, DomainFailure> {
+    return this.ensureOwned(userId, () =>
+      this.repository.findConditionById(conditionId),
     );
-
-    ensureOwnedByUser(condition, userId, this.i18n.t('auth.user_not_found'));
   }
 
-  async ensureCurrentMedicineOwnedByUser(
+  ensureCurrentMedicineOwnedByUser(
     userId: string,
     medicineId: string,
-  ): Promise<void> {
-    const medicine = await this.repository.findCurrentMedicineById(
-      userId,
-      medicineId,
+  ): ResultAsync<void, DomainFailure> {
+    return this.ensureOwned(userId, () =>
+      this.repository.findCurrentMedicineById(medicineId),
     );
-
-    ensureOwnedByUser(medicine, userId, this.i18n.t('auth.user_not_found'));
   }
 
-  private throwUserNotFound(): never {
-    notFound(this.i18n.t('auth.user_not_found'));
+  private ensureOwned(
+    userId: string,
+    lookup: () => Promise<{ userId: string } | null>,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(lookup(), (error) => {
+      throw error;
+    }).andThen((record) => {
+      if (record == null) {
+        return errAsync(this.notFound());
+      }
+      if (record.userId !== userId) {
+        return errAsync(
+          createDomainFailure({ kind: 'authorization', code: 'FORBIDDEN' }),
+        );
+      }
+      return okAsync(undefined);
+    });
+  }
+
+  private notFound(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
   }
 }

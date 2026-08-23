@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -9,7 +18,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { HealthEventKind } from '#generated/prisma/client';
-import { formatDateOnly } from '../../common';
+import { ProblemDetailsDto, formatDateOnly } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateHealthEventDto } from './dto/create-event.dto';
@@ -42,11 +52,21 @@ export class HealthEventsController {
   @Post()
   @ApiOperation({ summary: 'Start a user-confirmed health event' })
   @ApiResponse({ status: 201, type: HealthEventResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Related medicine or reason record not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'An active health event already exists',
+    type: ProblemDetailsDto,
+  })
   async create(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateHealthEventDto,
   ) {
-    const event = await this.eventsService.create(user.sub, dto);
+    const event = await unwrapResult(this.eventsService.create(user.sub, dto));
     return this.toItem(event);
   }
 
@@ -88,15 +108,23 @@ export class HealthEventsController {
   @ApiParam({ name: 'id' })
   @ApiQuery({ name: 'date', required: false, example: '2026-08-09' })
   @ApiResponse({ status: 200, type: HealthEventResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Health event is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Health event not found',
+    type: ProblemDetailsDto,
+  })
   async get(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
     @Query() query: EventListQueryDto = new EventListQueryDto(),
   ) {
-    const event = await this.eventsService.findByIdView(
-      user.sub,
-      id,
-      query.date,
+    const event = await unwrapResult(
+      this.eventsService.findByIdView(user.sub, id, query.date),
     );
     return this.toItem(event);
   }
@@ -106,14 +134,38 @@ export class HealthEventsController {
   @ApiParam({ name: 'id' })
   @ApiParam({ name: 'date', example: '2026-08-09' })
   @ApiResponse({ status: 200, type: HealthEventResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid outcome or date, or event is not active',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Health event is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Health event not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Duplicate check-in for the same event and date (race)',
+    type: ProblemDetailsDto,
+  })
   async upsertCheckIn(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
     @Param('date') date: string,
     @Body() dto: UpsertHealthEventCheckInDto,
   ) {
-    await this.checkInsService.upsertForDate(user.sub, id, date, dto);
-    const event = await this.eventsService.findByIdView(user.sub, id, date);
+    await unwrapResult(
+      this.checkInsService.upsertForDate(user.sub, id, date, dto),
+    );
+    const event = await unwrapResult(
+      this.eventsService.findByIdView(user.sub, id, date),
+    );
     return this.toItem(event);
   }
 
@@ -121,13 +173,30 @@ export class HealthEventsController {
   @ApiOperation({ summary: 'End a health event with an explicit outcome' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: HealthEventResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid outcome or event already ended',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Health event is owned by another user',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Health event not found',
+    type: ProblemDetailsDto,
+  })
   async end(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
     @Body() dto: EndHealthEventDto,
   ) {
-    await this.eventsService.end(user.sub, id, dto);
-    const event = await this.eventsService.findByIdView(user.sub, id);
+    await unwrapResult(this.eventsService.end(user.sub, id, dto));
+    const event = await unwrapResult(
+      this.eventsService.findByIdView(user.sub, id),
+    );
     return this.toItem(event);
   }
 

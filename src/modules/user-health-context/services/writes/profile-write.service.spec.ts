@@ -2,21 +2,34 @@ import { parseDateOnly } from '../../../../common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
+import { okAsync, errAsync } from '../../../../common/result';
+import type { DomainFailure, ResultAsync } from '../../../../common/result';
 import { UserHealthContextProfileWriteService } from './profile-write.service';
 import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository';
 import { UserHealthContextOwnershipService } from '../ownership.service';
 import { UserHealthContextMapperService } from '../mapper.service';
 
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
 describe('UserHealthContextProfileWriteService', () => {
   let service: UserHealthContextProfileWriteService;
 
   let repository: Mocked<UserHealthContextRepositoryPort>;
+  let ensureActive: vi.Mock;
 
   beforeEach(async () => {
     repository = {
       findProfileByUserId: vi.fn().mockResolvedValue(null),
-      upsertProfile: vi.fn(),
+      upsertProfile: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as Mocked<UserHealthContextRepositoryPort>;
+    ensureActive = vi.fn().mockReturnValue(okAsync(undefined));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -25,7 +38,7 @@ describe('UserHealthContextProfileWriteService', () => {
         {
           provide: UserHealthContextOwnershipService,
           useValue: {
-            ensureActiveUserExists: vi.fn(),
+            ensureActiveUserExists: ensureActive,
           },
         },
         {
@@ -50,7 +63,9 @@ describe('UserHealthContextProfileWriteService', () => {
 
   describe('upsertProfile', () => {
     it('should upsert a locale field', async () => {
-      await service.upsertProfile('user-1', { locale: 'zh-CN' });
+      await expect(
+        collectResult(service.upsertProfile('user-1', { locale: 'zh-CN' })),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
@@ -60,7 +75,9 @@ describe('UserHealthContextProfileWriteService', () => {
     });
 
     it('should upsert heightCm', async () => {
-      await service.upsertProfile('user-1', { heightCm: 170 });
+      await expect(
+        collectResult(service.upsertProfile('user-1', { heightCm: 170 })),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
@@ -74,7 +91,11 @@ describe('UserHealthContextProfileWriteService', () => {
         onboardingCompletedAt: null,
       });
 
-      await service.upsertProfile('user-1', { onboardingCompleted: true });
+      await expect(
+        collectResult(
+          service.upsertProfile('user-1', { onboardingCompleted: true }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
@@ -93,13 +114,21 @@ describe('UserHealthContextProfileWriteService', () => {
         onboardingCompletedAt: existingDate,
       });
 
-      await service.upsertProfile('user-1', { onboardingCompleted: true });
+      await expect(
+        collectResult(
+          service.upsertProfile('user-1', { onboardingCompleted: true }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).not.toHaveBeenCalled();
     });
 
     it('should clear onboardingCompletedAt when false', async () => {
-      await service.upsertProfile('user-1', { onboardingCompleted: false });
+      await expect(
+        collectResult(
+          service.upsertProfile('user-1', { onboardingCompleted: false }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
@@ -109,7 +138,9 @@ describe('UserHealthContextProfileWriteService', () => {
     });
 
     it('should skip upsert when no fields changed', async () => {
-      await service.upsertProfile('user-1', {});
+      await expect(
+        collectResult(service.upsertProfile('user-1', {})),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).not.toHaveBeenCalled();
     });
@@ -119,7 +150,9 @@ describe('UserHealthContextProfileWriteService', () => {
         extras: { existingField: true },
       });
 
-      await service.upsertProfile('user-1', { weightKg: 65 });
+      await expect(
+        collectResult(service.upsertProfile('user-1', { weightKg: 65 })),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
@@ -137,7 +170,9 @@ describe('UserHealthContextProfileWriteService', () => {
         extras: { weightKg: 65, other: 'keep' },
       });
 
-      await service.upsertProfile('user-1', { weightKg: null });
+      await expect(
+        collectResult(service.upsertProfile('user-1', { weightKg: null })),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
@@ -153,10 +188,14 @@ describe('UserHealthContextProfileWriteService', () => {
     it('should merge emergency contact into extras', async () => {
       repository.findProfileByUserId.mockResolvedValueOnce({ extras: null });
 
-      await service.upsertProfile('user-1', {
-        emergencyContactName: '张三',
-        emergencyContactPhone: '13800138000',
-      });
+      await expect(
+        collectResult(
+          service.upsertProfile('user-1', {
+            emergencyContactName: '张三',
+            emergencyContactPhone: '13800138000',
+          }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
 
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
@@ -173,6 +212,21 @@ describe('UserHealthContextProfileWriteService', () => {
           },
         }),
       );
+    });
+
+    it('propagates an active-user-not-found failure before any read', async () => {
+      ensureActive.mockReturnValue(
+        errAsync({ kind: 'not_found', code: 'RESOURCE_NOT_FOUND' }),
+      );
+
+      await expect(
+        collectResult(service.upsertProfile('user-1', { locale: 'zh-CN' })),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+      expect(repository.findProfileByUserId).not.toHaveBeenCalled();
+      expect(repository.upsertProfile).not.toHaveBeenCalled();
     });
   });
 });
