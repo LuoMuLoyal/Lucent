@@ -47,7 +47,7 @@
   "problem_rate_limited_title": "Too many requests",
   "problem_rate_limited_detail": "Too many requests were sent. Wait and try again.",
   "problem_auth_login_rate_limited_title": "Too many sign-in attempts",
-  "problem_auth_login_rate_limited_detail": "Too many sign-in attempts were made. Wait and try again.",
+  "problem_auth_login_rate_limited_detail": "Too many sign-in attempts were made. Please try again in {minutes} minutes.",
   "problem_auth_verification_code_rate_limited_title": "Verification code limit reached",
   "problem_auth_verification_code_rate_limited_detail": "Too many verification codes were requested. Wait and try again.",
   "problem_dependency_unavailable_title": "Service temporarily unavailable",

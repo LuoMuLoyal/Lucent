@@ -1,18 +1,18 @@
-import {
-  BadRequestException,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { I18nService } from 'nestjs-i18n';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
 import { RedisService } from '../../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
@@ -42,7 +42,6 @@ export class VerificationCodeService {
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly mailService: MailService,
-    private readonly i18n: I18nService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {
@@ -75,51 +74,24 @@ export class VerificationCodeService {
 
   /**
    * 生成并发送验证码。
-   * 内部处理客户端窗口限流和同邮箱 60s cooldown。
+   * 内部处理客户端窗口限流和同邮箱 cooldown。
+   *
+   * 预期业务失败以 DomainFailure 返回：客户端窗口超限使用
+   * AUTH_VERIFICATION_CODE_RATE_LIMITED，冷却使用
+   * AUTH_VERIFICATION_CODE_COOLDOWN。缓存/Redis/邮件等基础设施故障
+   * 保留原始异常向边界抛出，不得伪装成“发送成功”或业务限流。
    */
-  async send(
+  send(
     email: string,
     scene: VerificationScene,
     clientKey?: string,
-  ): Promise<void> {
-    await this.assertClientRateLimit(clientKey);
-
-    // Check cooldown
-    const cooldownKey = this.cooldownKey(scene, email);
-    const inCooldown = await this.cacheGet(cooldownKey);
-    if (inCooldown) {
-      throw new HttpException(
-        {
-          code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
-          retryAfter: this.getCooldownSec(),
-          retryable: true,
-          message: this.i18n.t('auth.verification_code_cooldown'),
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-
-    // Generate code
-    const code = this.generateCode();
-    const codeKey = this.codeKey(scene, email);
-
-    // Store code hash in cache (never store plaintext codes)
-    await this.cacheSet(
-      codeKey,
-      this.hashCode(code, scene, email),
-      this.codeTtlMs,
+  ): ResultAsync<void, DomainFailure> {
+    return this.assertClientRateLimit(clientKey).andThen(() =>
+      this.issueCodeAndSend(email, scene),
     );
-
-    // Set cooldown
-    await this.cacheSet(cooldownKey, '1', this.cooldownTtlMs);
-
-    // Send email
-    await this.mailService.sendVerificationCode(email, code);
-
-    this.logger.log(`Verification code sent: scene=${scene}, email=${email}`);
   }
 
-  async assertClientRateLimit(clientKey?: string): Promise<void> {
+  assertClientRateLimit(clientKey?: string): ResultAsync<void, DomainFailure> {
     const effectiveKey = clientKey || 'unknown';
     const key = this.clientRateLimitKey(effectiveKey);
 
@@ -127,86 +99,156 @@ export class VerificationCodeService {
     // condition where concurrent requests could all read the same stale
     // count and bypass the limit.
     if (this.redisService.isAvailable) {
-      const count = await this.redisService.atomicIncrement(
-        key,
-        this.rateLimitWindowMs,
-      );
-      if (count > this.rateLimitMaxRequests) {
-        throw new HttpException(
-          {
-            code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
-            message: this.i18n.t('auth.verification_code_rate_limited'),
-          },
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-      return;
+      return this.lift(
+        this.redisService.atomicIncrement(key, this.rateLimitWindowMs),
+      ).andThen((count) => {
+        if (count > this.rateLimitMaxRequests) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'rate_limited',
+              code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
+              retryable: true,
+              // Conservative estimate: the Redis window has no per-request
+              // resetAt, so advertise the full window as the retry delay.
+              retryAfter: Math.ceil(this.rateLimitWindowMs / 1000),
+            }),
+          );
+        }
+        return okAsync(undefined);
+      });
     }
 
     // Fall back to non-atomic cache-based rate limiting when Redis is
     // not directly available (e.g. in-memory cache in test/dev).
     const now = Date.now();
-    const bucket = await this.cacheGet(key);
+    return this.lift(this.cacheGet(key)).andThen((value) => {
+      const bucket = value as RateLimitBucket | undefined;
 
-    if (!this.isValidBucket(bucket) || bucket.resetAt <= now) {
-      await this.cacheSet(
-        key,
-        { count: 1, resetAt: now + this.rateLimitWindowMs },
-        this.rateLimitWindowMs,
+      if (!this.isValidBucket(bucket) || bucket.resetAt <= now) {
+        return this.lift(
+          this.cacheSet(
+            key,
+            { count: 1, resetAt: now + this.rateLimitWindowMs },
+            this.rateLimitWindowMs,
+          ),
+        );
+      }
+
+      if (bucket.count >= this.rateLimitMaxRequests) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
+            retryable: true,
+            retryAfter: Math.max(0, Math.ceil((bucket.resetAt - now) / 1000)),
+          }),
+        );
+      }
+
+      return this.lift(
+        this.cacheSet(
+          key,
+          { count: bucket.count + 1, resetAt: bucket.resetAt },
+          bucket.resetAt - now,
+        ),
       );
-      return;
-    }
-
-    if (bucket.count >= this.rateLimitMaxRequests) {
-      throw new HttpException(
-        {
-          code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
-          message: this.i18n.t('auth.verification_code_rate_limited'),
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-
-    await this.cacheSet(
-      key,
-      { count: bucket.count + 1, resetAt: bucket.resetAt },
-      bucket.resetAt - now,
-    );
+    });
   }
 
   /**
    * 校验验证码。成功后自动删除（一次性）。
-   * @returns true if valid
+   *
+   * 过期返回 AUTH_VERIFICATION_CODE_EXPIRED，不匹配返回
+   * AUTH_VERIFICATION_CODE_MISMATCH；校验成功返回 ok(undefined)。
    */
-  async verify(
+  verify(
     email: string,
     code: string,
     scene: VerificationScene,
-  ): Promise<boolean> {
+  ): ResultAsync<void, DomainFailure> {
     const codeKey = this.codeKey(scene, email);
-    const storedHash = (await this.cacheGet(codeKey)) as string | undefined;
 
-    if (!storedHash) {
-      throw new BadRequestException({
-        code: 'AUTH_VERIFICATION_CODE_EXPIRED',
-        message: this.i18n.t('auth.verification_code_expired'),
-      });
-    }
+    return this.lift(this.cacheGet(codeKey)).andThen((value) => {
+      const storedHash = value as string | undefined;
 
-    if (!this.safeCompareCode(code, storedHash, scene, email)) {
-      throw new BadRequestException({
-        code: 'AUTH_VERIFICATION_CODE_MISMATCH',
-        message: this.i18n.t('auth.verification_code_wrong'),
-      });
-    }
+      if (!storedHash) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          }),
+        );
+      }
 
-    // Delete after successful verification (one-time use)
-    await this.cacheDel(codeKey);
+      if (!this.safeCompareCode(code, storedHash, scene, email)) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          }),
+        );
+      }
 
-    return true;
+      // Delete after successful verification (one-time use)
+      return this.lift(this.cacheDel(codeKey)).map(() => undefined);
+    });
   }
 
   // ── Private Helpers ──────────────────────────────────────────
+
+  private issueCodeAndSend(
+    email: string,
+    scene: VerificationScene,
+  ): ResultAsync<void, DomainFailure> {
+    const cooldownKey = this.cooldownKey(scene, email);
+
+    return this.lift(this.cacheGet(cooldownKey)).andThen((inCooldown) => {
+      if (inCooldown) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+            retryable: true,
+            retryAfter: this.getCooldownSec(),
+          }),
+        );
+      }
+
+      const code = this.generateCode();
+      const codeKey = this.codeKey(scene, email);
+
+      // Store code hash in cache (never store plaintext codes)
+      return this.lift(
+        this.cacheSet(
+          codeKey,
+          this.hashCode(code, scene, email),
+          this.codeTtlMs,
+        ),
+      )
+        .andThen(() =>
+          this.lift(this.cacheSet(cooldownKey, '1', this.cooldownTtlMs)),
+        )
+        .andThen(() =>
+          this.lift(this.mailService.sendVerificationCode(email, code)),
+        )
+        .map(() => {
+          this.logger.log(
+            `Verification code sent: scene=${scene}, email=${email}`,
+          );
+        });
+    });
+  }
+
+  /**
+   * 将缓存/Redis/邮件等非 Prisma IO 提升为 ResultAsync。
+   * 这些基础设施故障不是可恢复的业务失败：保留原始异常向边界抛出，
+   * 由全局 filter 处理，不得把依赖故障伪装成业务失败。
+   */
+  private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
+    return fromPromise(promise, (error) => {
+      throw error;
+    });
+  }
 
   private generateCode(): string {
     const num = randomInt(0, 10 ** this.codeLength);

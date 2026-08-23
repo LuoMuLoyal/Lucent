@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { okAsync } from '../../../common/result';
+import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
 import type { I18nService } from 'nestjs-i18n';
 import type { UserService } from '../../user';
 import type { VerificationCodeService } from './identity/verification-code.service';
@@ -44,7 +44,7 @@ describe('AuthAccountService', () => {
       findById: vi.fn(),
     } as unknown as vi.Mocked<UserService>;
     verificationCodeService = {
-      verify: vi.fn().mockResolvedValue(undefined),
+      verify: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as vi.Mocked<VerificationCodeService>;
     i18n = {
       t: vi.fn().mockReturnValue('translated message'),
@@ -126,6 +126,26 @@ describe('AuthAccountService', () => {
         'delete-account',
       );
       expect(accountRepo.softDeleteUser).toHaveBeenCalled();
+    });
+
+    it('propagates verification-code DomainFailures without soft-deleting', async () => {
+      userService.findById.mockResolvedValue(mockUser as never);
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          }),
+        ),
+      );
+
+      await expect(
+        service.deleteAccount('user-1', { code: '123456' }),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_VERIFICATION_CODE_EXPIRED' },
+      });
+      expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
     it('throws BadRequestException when code provided but user has no email', async () => {

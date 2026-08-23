@@ -1,14 +1,16 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { createHash } from 'node:crypto';
-import { I18nService } from 'nestjs-i18n';
+
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
 
 const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX = 10;
@@ -30,70 +32,93 @@ export function loginFailureCacheKey(email: string): string {
 export class AuthRateLimitService {
   private readonly logger = new Logger(AuthRateLimitService.name);
 
-  constructor(
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
-  async checkLoginRateLimit(email: string): Promise<void> {
+  /**
+   * 检查登录限流。账户处于锁定窗口时返回
+   * AUTH_LOGIN_RATE_LIMITED（携带 retryAfter 与动态 minutes）；
+   * 窗口过期或缓存格式损坏时删除旧条目并放行。
+   * 缓存故障保留原始异常向边界抛出，不得静默吞掉。
+   */
+  checkLoginRateLimit(email: string): ResultAsync<void, DomainFailure> {
     const key = loginFailureCacheKey(email);
-    const entry = (await this.cacheGet(key)) as LoginFailureBucket | undefined;
-    if (!entry) return;
 
-    if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
-      const minutes = Math.ceil((entry.lockedUntil - Date.now()) / 60_000);
-      throw new HttpException(
-        {
-          code: 'AUTH_LOGIN_RATE_LIMITED',
-          retryable: true,
-          retryAfter: Math.ceil((entry.lockedUntil - Date.now()) / 1000),
-          message: this.i18n.t('auth.login_rate_limited', {
-            args: { minutes },
+    return this.lift(this.cacheGet(key)).andThen((value) => {
+      const entry = value as LoginFailureBucket | undefined;
+      if (!entry) return okAsync(undefined);
+
+      if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
+        const lockedMs = entry.lockedUntil - Date.now();
+        return errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'AUTH_LOGIN_RATE_LIMITED',
+            retryable: true,
+            retryAfter: Math.ceil(lockedMs / 1000),
+            args: { minutes: Math.ceil(lockedMs / 60_000) },
           }),
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
+        );
+      }
 
-    if (!this.isValidLoginFailureBucket(entry) || entry.resetAt <= Date.now()) {
-      await this.cacheDel(key);
-    }
+      if (
+        !this.isValidLoginFailureBucket(entry) ||
+        entry.resetAt <= Date.now()
+      ) {
+        return this.lift(this.cacheDel(key));
+      }
+
+      return okAsync(undefined);
+    });
   }
 
-  async recordLoginFailure(email: string): Promise<void> {
+  recordLoginFailure(email: string): ResultAsync<void, DomainFailure> {
     const key = loginFailureCacheKey(email);
     const now = Date.now();
-    const entry = (await this.cacheGet(key)) as LoginFailureBucket | undefined;
 
-    if (
-      !this.isValidLoginFailureBucket(entry) ||
-      entry.resetAt <= now ||
-      entry.lockedUntil !== undefined
-    ) {
-      await this.cacheSet(
-        key,
-        { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
-        LOGIN_RATE_LIMIT_WINDOW,
+    return this.lift(this.cacheGet(key)).andThen((value) => {
+      const entry = value as LoginFailureBucket | undefined;
+
+      if (
+        !this.isValidLoginFailureBucket(entry) ||
+        entry.resetAt <= now ||
+        entry.lockedUntil !== undefined
+      ) {
+        return this.lift(
+          this.cacheSet(
+            key,
+            { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
+            LOGIN_RATE_LIMIT_WINDOW,
+          ),
+        );
+      }
+
+      const next: LoginFailureBucket = {
+        count: entry.count + 1,
+        resetAt: entry.resetAt,
+        ...(entry.count + 1 >= LOGIN_RATE_LIMIT_MAX && {
+          lockedUntil: now + LOGIN_RATE_LIMIT_LOCKOUT,
+        }),
+      };
+      const ttl = Math.max(
+        next.resetAt - now,
+        (next.lockedUntil ?? next.resetAt) - now,
       );
-      return;
-    }
-
-    const next: LoginFailureBucket = {
-      count: entry.count + 1,
-      resetAt: entry.resetAt,
-      ...(entry.count + 1 >= LOGIN_RATE_LIMIT_MAX && {
-        lockedUntil: now + LOGIN_RATE_LIMIT_LOCKOUT,
-      }),
-    };
-    const ttl = Math.max(
-      next.resetAt - now,
-      (next.lockedUntil ?? next.resetAt) - now,
-    );
-    await this.cacheSet(key, next, ttl);
+      return this.lift(this.cacheSet(key, next, ttl));
+    });
   }
 
-  async clearLoginFailures(email: string): Promise<void> {
-    await this.cacheDel(loginFailureCacheKey(email));
+  clearLoginFailures(email: string): ResultAsync<void, DomainFailure> {
+    return this.lift(this.cacheDel(loginFailureCacheKey(email)));
+  }
+
+  /**
+   * 将缓存 IO 提升为 ResultAsync。缓存故障保留原始异常向边界抛出，
+   * 不得把基础设施故障伪装成业务失败。
+   */
+  private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
+    return fromPromise(promise, (error) => {
+      throw error;
+    });
   }
 
   private async cacheGet(key: string): Promise<unknown> {

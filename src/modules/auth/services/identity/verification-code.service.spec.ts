@@ -2,15 +2,14 @@ import { createHash } from 'node:crypto';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 
-import { I18nService } from 'nestjs-i18n';
 import { VerificationCodeService } from './verification-code.service';
 import { MailService } from '../../../../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { RedisService } from '../../../../common';
+import type { DomainFailure, ResultAsync } from '../../../../common/result';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
@@ -18,6 +17,15 @@ import {
   DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
   DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
 } from '../../../../config/constants';
+
+async function inspectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('VerificationCodeService', () => {
   let service: VerificationCodeService;
@@ -46,12 +54,6 @@ describe('VerificationCodeService', () => {
           provide: MailService,
           useValue: {
             sendVerificationCode: vi.fn(),
-          },
-        },
-        {
-          provide: I18nService,
-          useValue: {
-            t: vi.fn((key: string) => key),
           },
         },
         {
@@ -94,8 +96,11 @@ describe('VerificationCodeService', () => {
       (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.send('test@example.com', 'register');
+      const result = await inspectResult(
+        service.send('test@example.com', 'register'),
+      );
 
+      expect(result.ok).toBe(true);
       // Should set code hash in cache (5 min TTL)
       expect(cache.set).toHaveBeenCalledWith(
         'vcode:register:test@example.com',
@@ -117,34 +122,23 @@ describe('VerificationCodeService', () => {
       );
     });
 
-    it('should throw 429 if in cooldown', async () => {
+    it('should return AUTH_VERIFICATION_CODE_COOLDOWN when in cooldown', async () => {
       (cache.get as vi.Mock).mockResolvedValue('1'); // in cooldown
 
-      await expect(service.send('test@example.com', 'login')).rejects.toThrow(
-        HttpException,
+      const result = await inspectResult(
+        service.send('test@example.com', 'login'),
       );
-    });
 
-    it('should return a retryable 429 Problem Details input for cooldown', async () => {
-      (cache.get as vi.Mock).mockResolvedValue('1');
-
-      try {
-        await service.send('test@example.com', 'login');
-        expect.fail('Expected 429 HttpException');
-      } catch (error) {
-        expect(error).toBeInstanceOf(HttpException);
-        expect((error as HttpException).getStatus()).toBe(
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-        const response = (error as HttpException).getResponse() as {
-          code: string;
-          retryAfter: number;
-        };
-        expect(response).toMatchObject({
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          kind: 'rate_limited',
           code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+          retryable: true,
           retryAfter: 60,
-        });
-      }
+        },
+      });
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('should store a client rate limit bucket when client key is provided', async () => {
@@ -152,8 +146,11 @@ describe('VerificationCodeService', () => {
       (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.send('test@example.com', 'register', '127.0.0.1');
+      const result = await inspectResult(
+        service.send('test@example.com', 'register', '127.0.0.1'),
+      );
 
+      expect(result.ok).toBe(true);
       expect(cache.set).toHaveBeenCalledWith(
         expect.stringMatching(/^vcode:rl:client:[a-f0-9]{64}$/),
         expect.objectContaining({
@@ -164,16 +161,26 @@ describe('VerificationCodeService', () => {
       );
     });
 
-    it('should throw 429 when client rate limit is exceeded', async () => {
+    it('should return AUTH_VERIFICATION_CODE_RATE_LIMITED when client rate limit is exceeded', async () => {
       const resetAt = Date.now() + 60_000;
       (cache.get as vi.Mock).mockResolvedValue({
         count: DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
         resetAt,
       });
 
-      await expect(
+      const result = await inspectResult(
         service.send('test@example.com', 'register', '127.0.0.1'),
-      ).rejects.toThrow(HttpException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          kind: 'rate_limited',
+          code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
+          retryable: true,
+          retryAfter: 60, // ceil((resetAt - now) / 1000) with resetAt = now + 60s
+        },
+      });
       expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
 
@@ -184,9 +191,16 @@ describe('VerificationCodeService', () => {
         resetAt,
       });
 
-      await expect(
+      const result = await inspectResult(
         service.send('test@example.com', 'register'),
-      ).rejects.toThrow(HttpException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
+        },
+      });
       expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
 
@@ -195,8 +209,11 @@ describe('VerificationCodeService', () => {
       (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.send('test@example.com', 'register');
+      const result = await inspectResult(
+        service.send('test@example.com', 'register'),
+      );
 
+      expect(result.ok).toBe(true);
       const unknownHash = createHash('sha256').update('unknown').digest('hex');
       expect(cache.set).toHaveBeenCalledWith(
         `vcode:rl:client:${unknownHash}`,
@@ -204,10 +221,23 @@ describe('VerificationCodeService', () => {
         DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
       );
     });
+
+    it('should rethrow cache failures instead of masking them as business failures', async () => {
+      const error = new Error('cache unavailable');
+      (cache.get as vi.Mock).mockRejectedValue(error);
+
+      await expect(
+        service.send('test@example.com', 'register').match(
+          (value) => value,
+          (failure) => failure,
+        ),
+      ).rejects.toBe(error);
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
+    });
   });
 
   describe('verify', () => {
-    it('should return true for correct code and delete from cache', async () => {
+    it('should return ok(undefined) for correct code and delete from cache', async () => {
       // Simulate a stored hash for code '123456' with scene+email salt
       const storedHash = createHash('sha256')
         .update('register:test@example.com:123456')
@@ -215,68 +245,62 @@ describe('VerificationCodeService', () => {
       (cache.get as vi.Mock).mockResolvedValue(storedHash);
       (cache.del as vi.Mock).mockResolvedValue(undefined);
 
-      const result = await service.verify(
-        'test@example.com',
-        '123456',
-        'register',
+      const result = await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
       );
 
-      expect(result).toBe(true);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected verify success');
+      expect(result.value).toBeUndefined();
       expect(cache.del).toHaveBeenCalledWith('vcode:register:test@example.com');
     });
 
-    it('should throw BadRequestException if code expired (not in cache)', async () => {
+    it('should return AUTH_VERIFICATION_CODE_EXPIRED if code expired (not in cache)', async () => {
       (cache.get as vi.Mock).mockResolvedValue(undefined);
 
-      await expect(
+      const result = await inspectResult(
         service.verify('test@example.com', '123456', 'register'),
-      ).rejects.toThrow(BadRequestException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          kind: 'authentication',
+          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+        },
+      });
     });
 
-    it('should throw with an expired verification-code code', async () => {
-      (cache.get as vi.Mock).mockResolvedValue(undefined);
-
-      try {
-        await service.verify('test@example.com', '123456', 'register');
-        expect.fail('Expected BadRequestException');
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        const response = (error as BadRequestException).getResponse() as {
-          code: string;
-        };
-        expect(response.code).toBe('AUTH_VERIFICATION_CODE_EXPIRED');
-      }
-    });
-
-    it('should throw BadRequestException for wrong code', async () => {
+    it('should return AUTH_VERIFICATION_CODE_MISMATCH for wrong code', async () => {
       // Simulate a stored hash for a DIFFERENT code
       const wrongHash = createHash('sha256')
         .update('register:test@example.com:654321')
         .digest('hex');
       (cache.get as vi.Mock).mockResolvedValue(wrongHash);
 
-      await expect(
+      const result = await inspectResult(
         service.verify('test@example.com', '123456', 'register'),
-      ).rejects.toThrow(BadRequestException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          kind: 'authentication',
+          code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+        },
+      });
     });
 
-    it('should throw with a mismatch verification-code code for wrong code', async () => {
-      // Simulate a stored hash for a DIFFERENT code
-      const wrongHash = createHash('sha256')
-        .update('register:test@example.com:654321')
-        .digest('hex');
-      (cache.get as vi.Mock).mockResolvedValue(wrongHash);
+    it('should rethrow cache failures instead of masking them as mismatch', async () => {
+      const error = new Error('cache unavailable');
+      (cache.get as vi.Mock).mockRejectedValue(error);
 
-      try {
-        await service.verify('test@example.com', '123456', 'register');
-        expect.fail('Expected UnauthorizedException');
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        const response = (error as BadRequestException).getResponse() as {
-          code: string;
-        };
-        expect(response.code).toBe('AUTH_VERIFICATION_CODE_MISMATCH');
-      }
+      await expect(
+        service.verify('test@example.com', '123456', 'register').match(
+          (value) => value,
+          (failure) => failure,
+        ),
+      ).rejects.toBe(error);
     });
   });
 
@@ -289,8 +313,11 @@ describe('VerificationCodeService', () => {
       (cache.get as vi.Mock).mockResolvedValue(storedHash);
       (cache.del as vi.Mock).mockResolvedValue(undefined);
 
-      await service.verify('user@test.com', '111111', 'login');
+      const result = await inspectResult(
+        service.verify('user@test.com', '111111', 'login'),
+      );
 
+      expect(result.ok).toBe(true);
       expect(cache.get).toHaveBeenCalledWith('vcode:login:user@test.com');
       expect(cache.del).toHaveBeenCalledWith('vcode:login:user@test.com');
     });
@@ -300,7 +327,7 @@ describe('VerificationCodeService', () => {
       (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.send('user@test.com', 'reset-password');
+      await inspectResult(service.send('user@test.com', 'reset-password'));
 
       expect(cache.get).toHaveBeenCalledWith(
         'vcode:cd:reset-password:user@test.com',
@@ -319,8 +346,11 @@ describe('VerificationCodeService', () => {
       (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.send('test@example.com', 'register', '127.0.0.1');
+      const result = await inspectResult(
+        service.send('test@example.com', 'register', '127.0.0.1'),
+      );
 
+      expect(result.ok).toBe(true);
       expect(redisService.atomicIncrement).toHaveBeenCalledWith(
         expect.stringMatching(/^vcode:rl:client:[a-f0-9]{64}$/),
         DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
@@ -331,14 +361,26 @@ describe('VerificationCodeService', () => {
       );
     });
 
-    it('throws 429 when Redis count exceeds max requests', async () => {
+    it('returns AUTH_VERIFICATION_CODE_RATE_LIMITED when Redis count exceeds max requests', async () => {
       redisService.atomicIncrement.mockResolvedValueOnce(
         DEFAULT_VERIFICATION_RATE_LIMIT_MAX + 1,
       );
 
-      await expect(
+      const result = await inspectResult(
         service.send('test@example.com', 'register', '127.0.0.1'),
-      ).rejects.toThrow(HttpException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          kind: 'rate_limited',
+          code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
+          retryable: true,
+          retryAfter: Math.ceil(
+            DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS / 1000,
+          ),
+        },
+      });
       expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
 
@@ -348,13 +390,29 @@ describe('VerificationCodeService', () => {
       (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.send('test@example.com', 'register');
+      const result = await inspectResult(
+        service.send('test@example.com', 'register'),
+      );
 
+      expect(result.ok).toBe(true);
       const unknownHash = createHash('sha256').update('unknown').digest('hex');
       expect(redisService.atomicIncrement).toHaveBeenCalledWith(
         `vcode:rl:client:${unknownHash}`,
         DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
       );
+    });
+
+    it('rethrows Redis failures instead of masking them as business failures', async () => {
+      const error = new Error('redis unavailable');
+      redisService.atomicIncrement.mockRejectedValueOnce(error);
+
+      await expect(
+        service.send('test@example.com', 'register', '127.0.0.1').match(
+          (value) => value,
+          (failure) => failure,
+        ),
+      ).rejects.toBe(error);
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
   });
 });

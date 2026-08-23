@@ -47,7 +47,7 @@
   "problem_rate_limited_title": "请求过于频繁",
   "problem_rate_limited_detail": "请求过于频繁，请稍后重试。",
   "problem_auth_login_rate_limited_title": "登录尝试过于频繁",
-  "problem_auth_login_rate_limited_detail": "登录尝试次数过多，请稍后重试。",
+  "problem_auth_login_rate_limited_detail": "登录尝试次数过多，请 {minutes} 分钟后再试。",
   "problem_auth_verification_code_rate_limited_title": "验证码请求次数过多",
   "problem_auth_verification_code_rate_limited_detail": "验证码请求次数过多，请稍后重试。",
   "problem_dependency_unavailable_title": "服务暂时不可用",

@@ -16,7 +16,11 @@ import { NotificationsService } from '../../../notifications';
 import type { NotificationListItemDto } from '../../../notifications';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
-import { okAsync } from '../../../../common/result';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../../../common/result';
 
 // ── Module-level argon2 mock ──────────────────────────────────
 
@@ -163,11 +167,13 @@ describe('CredentialAuthService', () => {
     userService.update.mockReturnValue(okAsync(mockUser));
     authTokenService.generateTokenPair.mockResolvedValue(mockTokenPair);
     authTokenService.revokeAll.mockResolvedValue(undefined);
-    verificationCodeService.verify.mockResolvedValue(true);
-    verificationCodeService.send.mockResolvedValue(undefined);
-    authRateLimitService.checkLoginRateLimit.mockResolvedValue(undefined);
-    authRateLimitService.recordLoginFailure.mockResolvedValue(undefined);
-    authRateLimitService.clearLoginFailures.mockResolvedValue(undefined);
+    verificationCodeService.verify.mockReturnValue(okAsync(undefined));
+    verificationCodeService.send.mockReturnValue(okAsync(undefined));
+    authRateLimitService.checkLoginRateLimit.mockReturnValue(
+      okAsync(undefined),
+    );
+    authRateLimitService.recordLoginFailure.mockReturnValue(okAsync(undefined));
+    authRateLimitService.clearLoginFailures.mockReturnValue(okAsync(undefined));
     notificationsService.create.mockResolvedValue(mockNotification);
   });
 
@@ -220,17 +226,20 @@ describe('CredentialAuthService', () => {
       );
     });
 
-    it('should propagate verification code errors', async () => {
-      verificationCodeService.verify.mockRejectedValue(
-        new BadRequestException({
-          code: 'AUTH_VERIFICATION_CODE_MISMATCH',
-          message: 'invalid code',
-        }),
+    it('should propagate verification code failures', async () => {
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          }),
+        ),
       );
 
-      await expect(service.register(buildRegisterDto())).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.register(buildRegisterDto())).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_VERIFICATION_CODE_MISMATCH' },
+      });
     });
 
     it('should pass auth context to token generation', async () => {
@@ -559,8 +568,8 @@ describe('CredentialAuthService', () => {
 
   describe('forgotPassword', () => {
     beforeEach(() => {
-      verificationCodeService.assertClientRateLimit.mockResolvedValue(
-        undefined,
+      verificationCodeService.assertClientRateLimit.mockReturnValue(
+        okAsync(undefined),
       );
     });
 
@@ -628,7 +637,7 @@ describe('CredentialAuthService', () => {
 
     it('should reject when user not found after code verification', async () => {
       userService.findByEmail.mockResolvedValue(null);
-      verificationCodeService.verify.mockResolvedValue(true);
+      verificationCodeService.verify.mockReturnValue(okAsync(undefined));
 
       await expect(
         service.resetPassword({

@@ -64,10 +64,9 @@ export class AuthAccountService {
       if (!email) {
         badRequest(this.i18n.t('auth.email_required_for_delete_account'));
       }
-      await this.verificationCodeService.verify(
-        email,
-        dto.code,
-        'delete-account',
+      // TODO(error): Task 4 将删除账户流程整体迁移到 ResultAsync，此处为临时折叠
+      await unwrapResult(
+        this.verificationCodeService.verify(email, dto.code, 'delete-account'),
       );
     } else {
       badRequest(this.i18n.t('auth.provide_password_or_code_for_deletion'));

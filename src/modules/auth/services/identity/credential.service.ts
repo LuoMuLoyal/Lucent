@@ -62,7 +62,10 @@ export class CredentialAuthService {
       conflict(this.i18n.t('auth.email_already_registered'));
     }
 
-    await this.verificationCodeService.verify(email, dto.code, 'register');
+    // TODO(error): Task 4 将注册流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(
+      this.verificationCodeService.verify(email, dto.code, 'register'),
+    );
 
     const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
 
@@ -85,12 +88,14 @@ export class CredentialAuthService {
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
     const email = normalizeEmail(dto.email);
-    await this.authRateLimitService.checkLoginRateLimit(email);
+    // TODO(error): Task 4 将登录流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(this.authRateLimitService.checkLoginRateLimit(email));
 
     const user = await this.userService.findByEmail(email);
 
     if (!user) {
-      await this.authRateLimitService.recordLoginFailure(email);
+      // TODO(error): Task 4 将登录流程整体迁移到 ResultAsync，此处为临时折叠
+      await unwrapResult(this.authRateLimitService.recordLoginFailure(email));
       unauthorized(this.i18n.t('auth.email_or_password_wrong'));
     }
 
@@ -99,28 +104,35 @@ export class CredentialAuthService {
     const hasPassword = password !== undefined;
     const hasCode = code !== undefined;
     if (hasPassword === hasCode) {
-      await this.authRateLimitService.recordLoginFailure(email);
+      // TODO(error): Task 4 将登录流程整体迁移到 ResultAsync，此处为临时折叠
+      await unwrapResult(this.authRateLimitService.recordLoginFailure(email));
       unauthorized(this.i18n.t('auth.email_or_password_wrong'));
     }
 
     if (hasPassword) {
       if (!user.passwordHash) {
-        await this.authRateLimitService.recordLoginFailure(email);
+        // TODO(error): Task 4 将登录流程整体迁移到 ResultAsync，此处为临时折叠
+        await unwrapResult(this.authRateLimitService.recordLoginFailure(email));
         unauthorized(this.i18n.t('auth.email_or_password_wrong'));
       }
 
       const valid = await argon2.verify(user.passwordHash, password);
       if (!valid) {
-        await this.authRateLimitService.recordLoginFailure(email);
+        // TODO(error): Task 4 将登录流程整体迁移到 ResultAsync，此处为临时折叠
+        await unwrapResult(this.authRateLimitService.recordLoginFailure(email));
         unauthorized(this.i18n.t('auth.email_or_password_wrong'));
       }
     }
 
     if (hasCode) {
-      await this.verificationCodeService.verify(email, code, 'login');
+      // TODO(error): Task 4 将登录流程整体迁移到 ResultAsync，此处为临时折叠
+      await unwrapResult(
+        this.verificationCodeService.verify(email, code, 'login'),
+      );
     }
 
-    await this.authRateLimitService.clearLoginFailures(email);
+    // TODO(error): Task 4 将登录流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(this.authRateLimitService.clearLoginFailures(email));
 
     const updatedUser = await unwrapResult(
       this.userService.update(user.id, {
@@ -176,10 +188,13 @@ export class CredentialAuthService {
       badRequest(this.i18n.t('auth.email_required_for_set_password'));
     }
 
-    await this.verificationCodeService.verify(
-      targetEmail,
-      dto.code,
-      'set-password',
+    // TODO(error): Task 4 将改密流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(
+      this.verificationCodeService.verify(
+        targetEmail,
+        dto.code,
+        'set-password',
+      ),
     );
 
     if (!user.email) {
@@ -213,10 +228,9 @@ export class CredentialAuthService {
       conflict(this.i18n.t('auth.email_in_use'));
     }
 
-    await this.verificationCodeService.verify(
-      newEmail,
-      dto.code,
-      'change-email',
+    // TODO(error): Task 4 将改邮箱流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(
+      this.verificationCodeService.verify(newEmail, dto.code, 'change-email'),
     );
 
     return unwrapResult(
@@ -233,17 +247,23 @@ export class CredentialAuthService {
     dto: SendVerificationCodeDto,
     clientKey?: string,
   ): Promise<{ message: string }> {
-    await this.verificationCodeService.send(
-      normalizeEmail(dto.email),
-      dto.scene,
-      clientKey,
+    // TODO(error): Task 4 将验证码发送流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(
+      this.verificationCodeService.send(
+        normalizeEmail(dto.email),
+        dto.scene,
+        clientKey,
+      ),
     );
     return { message: this.i18n.t('auth.verification_code_sent') };
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<void> {
     const email = normalizeEmail(dto.email);
-    await this.verificationCodeService.verify(email, dto.code, 'register');
+    // TODO(error): Task 4 将验证邮箱流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(
+      this.verificationCodeService.verify(email, dto.code, 'register'),
+    );
     await this.userService.updateByEmail(email, {
       emailVerifiedAt: now(),
     });
@@ -255,21 +275,26 @@ export class CredentialAuthService {
     dto: ForgotPasswordDto,
     clientKey?: string,
   ): Promise<{ message: string }> {
-    await this.verificationCodeService.assertClientRateLimit(clientKey);
+    // TODO(error): Task 4 将忘记密码流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(
+      this.verificationCodeService.assertClientRateLimit(clientKey),
+    );
     const email = normalizeEmail(dto.email);
     const user = await this.userService.findByEmail(email);
     if (user) {
-      await this.verificationCodeService.send(email, 'reset-password');
+      // TODO(error): Task 4 将忘记密码流程整体迁移到 ResultAsync，此处为临时折叠
+      await unwrapResult(
+        this.verificationCodeService.send(email, 'reset-password'),
+      );
     }
     return { message: this.i18n.t('auth.forgot_password_hint') };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
     const email = normalizeEmail(dto.email);
-    await this.verificationCodeService.verify(
-      email,
-      dto.code,
-      'reset-password',
+    // TODO(error): Task 4 将重置密码流程整体迁移到 ResultAsync，此处为临时折叠
+    await unwrapResult(
+      this.verificationCodeService.verify(email, dto.code, 'reset-password'),
     );
     const user = await this.userService.findByEmail(email);
     if (!user) {
