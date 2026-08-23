@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { nonDeleted } from '../../../common';
+import { fromPrismaResult, nonDeleted } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 /**
  * Lean read-model shape for cross-module consumers (ADR-0009). Exposes
@@ -60,14 +61,14 @@ export abstract class MedicineReminderRepositoryPort {
 
   abstract createReminder(
     data: Prisma.UserMedicineReminderUncheckedCreateInput,
-  ): Promise<Prisma.UserMedicineReminderGetPayload<object>>;
+  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure>;
 
   abstract updateReminder(
     where: Prisma.UserMedicineReminderWhereUniqueInput,
     data:
       | Prisma.UserMedicineReminderUpdateInput
       | Prisma.UserMedicineReminderUncheckedUpdateInput,
-  ): Promise<Prisma.UserMedicineReminderGetPayload<object>>;
+  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure>;
 
   abstract findManyDeliveries(
     where: Prisma.UserReminderDeliveryWhereInput,
@@ -125,8 +126,8 @@ export class MedicineReminderRepository
 
   override createReminder(
     data: Prisma.UserMedicineReminderUncheckedCreateInput,
-  ) {
-    return this.prisma.userMedicineReminder.create({ data });
+  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure> {
+    return fromPrismaResult(this.prisma.userMedicineReminder.create({ data }));
   }
 
   override updateReminder(
@@ -134,8 +135,10 @@ export class MedicineReminderRepository
     data:
       | Prisma.UserMedicineReminderUpdateInput
       | Prisma.UserMedicineReminderUncheckedUpdateInput,
-  ) {
-    return this.prisma.userMedicineReminder.update({ where, data });
+  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userMedicineReminder.update({ where, data }),
+    );
   }
 
   override findManyDeliveries(

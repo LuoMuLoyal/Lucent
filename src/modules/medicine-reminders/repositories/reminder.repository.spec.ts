@@ -1,7 +1,26 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
+import { Prisma } from '#generated/prisma/client';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 import { MedicineReminderRepository } from './reminder.repository';
 import type { PrismaService } from '../../../prisma';
+
+function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
+  const error = Object.create(
+    Prisma.PrismaClientKnownRequestError.prototype,
+  ) as Prisma.PrismaClientKnownRequestError;
+  error.code = code;
+  return error;
+}
+
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('MedicineReminderRepository', () => {
   let repository: MedicineReminderRepository;
@@ -67,10 +86,40 @@ describe('MedicineReminderRepository', () => {
         ...data,
       } as never);
 
-      const result = await repository.createReminder(data as never);
+      const result = await collectResult(
+        repository.createReminder(data as never),
+      );
 
-      expect(result).toMatchObject({ id: 'rem-1', label: 'Morning' });
+      expect(result).toMatchObject({
+        ok: true,
+        value: { id: 'rem-1', label: 'Morning' },
+      });
       expect(prisma.userMedicineReminder.create).toHaveBeenCalledWith({ data });
+    });
+
+    it('maps a unique constraint violation to RESOURCE_CONFLICT', async () => {
+      prisma.userMedicineReminder.create.mockRejectedValue(
+        prismaError('P2002'),
+      );
+
+      const result = await collectResult(
+        repository.createReminder({ userId: 'user-1' } as never),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
+      });
+    });
+
+    it('rethrows unknown database errors', async () => {
+      prisma.userMedicineReminder.create.mockRejectedValue(
+        new Error('connection lost'),
+      );
+
+      await expect(
+        repository.createReminder({ userId: 'user-1' } as never),
+      ).rejects.toThrow('connection lost');
     });
   });
 
@@ -83,16 +132,43 @@ describe('MedicineReminderRepository', () => {
         label: 'Updated',
       } as never);
 
-      const result = await repository.updateReminder(
-        where as never,
-        data as never,
+      const result = await collectResult(
+        repository.updateReminder(where as never, data as never),
       );
 
-      expect(result).toMatchObject({ id: 'rem-1', label: 'Updated' });
+      expect(result).toMatchObject({
+        ok: true,
+        value: { id: 'rem-1', label: 'Updated' },
+      });
       expect(prisma.userMedicineReminder.update).toHaveBeenCalledWith({
         where,
         data,
       });
+    });
+
+    it('maps a missing record to RESOURCE_NOT_FOUND', async () => {
+      prisma.userMedicineReminder.update.mockRejectedValue(
+        prismaError('P2025'),
+      );
+
+      const result = await collectResult(
+        repository.updateReminder({ id: 'missing' } as never, {} as never),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+    });
+
+    it('rethrows unknown database errors', async () => {
+      prisma.userMedicineReminder.update.mockRejectedValue(
+        new Error('connection lost'),
+      );
+
+      await expect(
+        repository.updateReminder({ id: 'rem-1' } as never, {} as never),
+      ).rejects.toThrow('connection lost');
     });
   });
 

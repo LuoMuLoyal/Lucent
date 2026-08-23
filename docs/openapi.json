@@ -168,6 +168,26 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid reminder payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -212,6 +232,36 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid reminder payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder or current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -237,6 +287,26 @@
         "responses": {
           "204": {
             "description": "Medicine reminder deleted."
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -269,6 +339,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MedicineReminderListResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty group, duplicate slot ids or invalid payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Current medicine or a slot not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -318,6 +408,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid date filter (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -350,6 +450,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReminderDeliveryReceiptResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -992,6 +1112,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotificationPreferencesResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sleep time minutes out of range 0-1439 (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -3399,6 +3529,26 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validation failed (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Settings upsert conflict (RESOURCE_CONFLICT, race)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5153,6 +5303,36 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid slot identity (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder or current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5185,6 +5365,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DoseLogResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing slot identifier or invalid slot identity (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder or current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -5232,6 +5442,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Dose log not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5257,6 +5477,16 @@
         "responses": {
           "204": {
             "description": "Dose log deleted."
+          },
+          "404": {
+            "description": "Dose log not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6739,6 +6969,53 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "ProblemDetailsDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Stable URI identifying the problem type.",
+            "example": "https://api.lumos.example/problems/resource-not-found"
+          },
+          "title": {
+            "type": "string",
+            "description": "Localized short summary of the problem.",
+            "example": "Resource not found"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Localized, actionable description for this request.",
+            "example": "The requested resource could not be found."
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable business code.",
+            "example": "RESOURCE_NOT_FOUND"
+          },
+          "errors": {
+            "type": "object",
+            "description": "Safe structured validation errors keyed by field or general.",
+            "additionalProperties": true
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether retrying may succeed, subject to client policy.",
+            "example": false
+          },
+          "retryAfter": {
+            "type": "number",
+            "description": "Minimum delay before retrying, in seconds.",
+            "minimum": 0,
+            "example": 60
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Trace correlation identifier; never a business key.",
+            "example": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+        },
+        "required": ["type", "title", "detail", "code"]
       },
       "UpdateMedicineReminderDto": {
         "type": "object",
@@ -9583,53 +9860,6 @@
           }
         },
         "required": ["user", "tokens"]
-      },
-      "ProblemDetailsDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Stable URI identifying the problem type.",
-            "example": "https://api.lumos.example/problems/resource-not-found"
-          },
-          "title": {
-            "type": "string",
-            "description": "Localized short summary of the problem.",
-            "example": "Resource not found"
-          },
-          "detail": {
-            "type": "string",
-            "description": "Localized, actionable description for this request.",
-            "example": "The requested resource could not be found."
-          },
-          "code": {
-            "type": "string",
-            "description": "Stable machine-readable business code.",
-            "example": "RESOURCE_NOT_FOUND"
-          },
-          "errors": {
-            "type": "object",
-            "description": "Safe structured validation errors keyed by field or general.",
-            "additionalProperties": true
-          },
-          "retryable": {
-            "type": "boolean",
-            "description": "Whether retrying may succeed, subject to client policy.",
-            "example": false
-          },
-          "retryAfter": {
-            "type": "number",
-            "description": "Minimum delay before retrying, in seconds.",
-            "minimum": 0,
-            "example": 60
-          },
-          "traceId": {
-            "type": "string",
-            "description": "Trace correlation identifier; never a business key.",
-            "example": "4bf92f3577b34da6a3ce929d0e0e4736"
-          }
-        },
-        "required": ["type", "title", "detail", "code"]
       },
       "LoginDto": {
         "type": "object",

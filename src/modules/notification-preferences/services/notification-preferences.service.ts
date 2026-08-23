@@ -1,6 +1,14 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
+import { fromPrismaResult } from '../../../common';
 import type { UpdateNotificationPreferencesDto } from '../dto/update.dto';
 import type { NotificationPreferencesDataDto } from '../dto/response.dto';
 
@@ -58,13 +66,53 @@ export class NotificationPreferencesService {
     }
   }
 
-  async patch(
+  patch(
     userId: string,
     dto: UpdateNotificationPreferencesDto,
-  ): Promise<NotificationPreferencesDataDto> {
-    this.validateMinutes(dto.sleepBedtimeMinutes, 'sleepBedtimeMinutes');
-    this.validateMinutes(dto.sleepWakeTimeMinutes, 'sleepWakeTimeMinutes');
+  ): ResultAsync<NotificationPreferencesDataDto, DomainFailure> {
+    const minutesFailure =
+      this.validateMinutes(dto.sleepBedtimeMinutes, 'sleepBedtimeMinutes') ??
+      this.validateMinutes(dto.sleepWakeTimeMinutes, 'sleepWakeTimeMinutes');
+    if (minutesFailure != null) {
+      return errAsync(minutesFailure);
+    }
 
+    const data = this.buildUpdateData(dto);
+
+    if (Object.keys(data).length === 0) {
+      return fromPromise(this.get(userId), (error) => {
+        throw error;
+      });
+    }
+
+    return fromPrismaResult(
+      this.prisma.userNotificationPreference.upsert({
+        where: { userId },
+        create: {
+          userId,
+          healthAlertsEnabled:
+            dto.healthAlertsEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.healthAlertsEnabled,
+          weeklyInsightEnabled:
+            dto.weeklyInsightEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.weeklyInsightEnabled,
+          waterRemindersEnabled:
+            dto.waterRemindersEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.waterRemindersEnabled,
+          sleepReminderEnabled:
+            dto.sleepReminderEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.sleepReminderEnabled,
+          sleepBedtimeMinutes: dto.sleepBedtimeMinutes ?? null,
+          sleepWakeTimeMinutes: dto.sleepWakeTimeMinutes ?? null,
+        },
+        update: data,
+      }),
+    ).map((row) => this.toDto(row));
+  }
+
+  private buildUpdateData(
+    dto: UpdateNotificationPreferencesDto,
+  ): Prisma.UserNotificationPreferenceUpdateInput {
     const data: Prisma.UserNotificationPreferenceUpdateInput = {};
     if (dto.healthAlertsEnabled !== undefined) {
       data.healthAlertsEnabled = dto.healthAlertsEnabled;
@@ -84,44 +132,22 @@ export class NotificationPreferencesService {
     if (dto.sleepWakeTimeMinutes !== undefined) {
       data.sleepWakeTimeMinutes = dto.sleepWakeTimeMinutes;
     }
-
-    if (Object.keys(data).length === 0) {
-      return this.get(userId);
-    }
-
-    const row = await this.prisma.userNotificationPreference.upsert({
-      where: { userId },
-      create: {
-        userId,
-        healthAlertsEnabled:
-          dto.healthAlertsEnabled ??
-          NOTIFICATION_PREFERENCE_DEFAULTS.healthAlertsEnabled,
-        weeklyInsightEnabled:
-          dto.weeklyInsightEnabled ??
-          NOTIFICATION_PREFERENCE_DEFAULTS.weeklyInsightEnabled,
-        waterRemindersEnabled:
-          dto.waterRemindersEnabled ??
-          NOTIFICATION_PREFERENCE_DEFAULTS.waterRemindersEnabled,
-        sleepReminderEnabled:
-          dto.sleepReminderEnabled ??
-          NOTIFICATION_PREFERENCE_DEFAULTS.sleepReminderEnabled,
-        sleepBedtimeMinutes: dto.sleepBedtimeMinutes ?? null,
-        sleepWakeTimeMinutes: dto.sleepWakeTimeMinutes ?? null,
-      },
-      update: data,
-    });
-
-    return this.toDto(row);
+    return data;
   }
 
-  private validateMinutes(value: number | null | undefined, field: string) {
-    if (value == null) return;
+  private validateMinutes(
+    value: number | null | undefined,
+    field: string,
+  ): DomainFailure | null {
+    if (value == null) return null;
     if (!Number.isInteger(value) || value < 0 || value > 1439) {
-      throw new BadRequestException({
+      return createDomainFailure({
+        kind: 'validation',
         code: 'VALIDATION_FAILED',
-        message: `${field} must be between 0 and 1439.`,
+        detail: `${field} must be between 0 and 1439.`,
       });
     }
+    return null;
   }
 
   private toDto(row: {

@@ -19,7 +19,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { clampPage, clampPageSize } from '../../common';
+import { clampPage, clampPageSize, ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateDoseLogDto } from './dto/create-dose-log.dto';
@@ -64,11 +65,27 @@ export class MedicineDoseLogsController {
   @Post()
   @ApiOperation({ summary: 'Create a dose log' })
   @ApiResponse({ status: 201, type: DoseLogResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid slot identity (VALIDATION_FAILED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Reminder or current medicine not found (RESOURCE_NOT_FOUND)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description:
+      'Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)',
+    type: ProblemDetailsDto,
+  })
   async create(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateDoseLogDto,
   ) {
-    return await this.doseLogsService.create(user.sub, dto);
+    return await unwrapResult(this.doseLogsService.create(user.sub, dto));
   }
 
   @Post('mark')
@@ -76,20 +93,42 @@ export class MedicineDoseLogsController {
     summary: 'Mark a dose log idempotently for one reminder slot',
   })
   @ApiResponse({ status: 201, type: DoseLogResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Missing slot identifier or invalid slot identity (VALIDATION_FAILED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Reminder or current medicine not found (RESOURCE_NOT_FOUND)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description:
+      'Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)',
+    type: ProblemDetailsDto,
+  })
   async mark(@CurrentUser() user: UserPayload, @Body() dto: MarkDoseLogDto) {
-    return await this.doseLogsService.mark(user.sub, dto);
+    return await unwrapResult(this.doseLogsService.mark(user.sub, dto));
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a dose log' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: DoseLogResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Dose log not found (RESOURCE_NOT_FOUND)',
+    type: ProblemDetailsDto,
+  })
   async update(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
     @Body() dto: UpdateDoseLogDto,
   ) {
-    return await this.doseLogsService.update(user.sub, id, dto);
+    return await unwrapResult(this.doseLogsService.update(user.sub, id, dto));
   }
 
   @Delete(':id')
@@ -97,8 +136,13 @@ export class MedicineDoseLogsController {
   @ApiOperation({ summary: 'Soft-delete a dose log' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 204, description: 'Dose log deleted.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Dose log not found (RESOURCE_NOT_FOUND)',
+    type: ProblemDetailsDto,
+  })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    await this.doseLogsService.delete(user.sub, id);
+    await unwrapResult(this.doseLogsService.delete(user.sub, id));
     return;
   }
 }

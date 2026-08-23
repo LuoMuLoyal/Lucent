@@ -86,7 +86,9 @@ describe('AssistantService', () => {
 
     userSettings = {
       getSettings: vi.fn().mockResolvedValue(mockSettings),
-      updateSettings: vi.fn(),
+      // TODO(error): updateSettings migrated to ResultAsync (Task 8.2);
+      // remove the okAsync wrap when the assistant module migrates (Task 10).
+      updateSettings: vi.fn().mockReturnValue(okAsync(mockSettings)),
     } as unknown as vi.Mocked<UserSettingsService>;
 
     dailyRecords = {

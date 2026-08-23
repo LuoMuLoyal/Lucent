@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
+import { createDomainFailure, errAsync, okAsync } from '../../common/result';
 import type { UserPayload } from '../auth';
 
 import { ReminderDeliveriesController } from './reminder-deliveries.controller';
@@ -44,7 +45,7 @@ describe('ReminderDeliveriesController', () => {
   });
 
   it('should list deliveries with default limit', async () => {
-    service.listDeliveries.mockResolvedValue({ items: [] } as any);
+    service.listDeliveries.mockReturnValue(okAsync({ items: [] } as any));
 
     const result = await controller.list(mockUser);
 
@@ -57,7 +58,7 @@ describe('ReminderDeliveriesController', () => {
   });
 
   it('should pass date and limit query parameters', async () => {
-    service.listDeliveries.mockResolvedValue({ items: [] } as any);
+    service.listDeliveries.mockReturnValue(okAsync({ items: [] } as any));
 
     await controller.list(mockUser, '2026-06-10', '50');
 
@@ -69,7 +70,7 @@ describe('ReminderDeliveriesController', () => {
   });
 
   it('should fall back to default limit when limit is not a number', async () => {
-    service.listDeliveries.mockResolvedValue({ items: [] } as any);
+    service.listDeliveries.mockReturnValue(okAsync({ items: [] } as any));
 
     await controller.list(mockUser, undefined, 'abc');
 
@@ -81,7 +82,7 @@ describe('ReminderDeliveriesController', () => {
   });
 
   it('should fall back to default limit when limit is empty string', async () => {
-    service.listDeliveries.mockResolvedValue({ items: [] } as any);
+    service.listDeliveries.mockReturnValue(okAsync({ items: [] } as any));
 
     await controller.list(mockUser, undefined, '');
 
@@ -93,7 +94,7 @@ describe('ReminderDeliveriesController', () => {
   });
 
   it('should pass only date when limit is omitted', async () => {
-    service.listDeliveries.mockResolvedValue({ items: [] } as any);
+    service.listDeliveries.mockReturnValue(okAsync({ items: [] } as any));
 
     await controller.list(mockUser, '2026-06-15');
 
@@ -112,17 +113,19 @@ describe('ReminderDeliveriesController', () => {
       scheduledDate: '2026-07-20',
       scheduledTime: '08:30',
     };
-    receiptsService.recordLocalReceipt.mockResolvedValue({
-      id: 'delivery-1',
-      reminderId: 'reminder-1',
-      deviceId: null,
-      channel: 'local',
-      status: 'delivered',
-      scheduledFor: '2026-07-20T00:30:00.000Z',
-      deliveredAt: '2026-07-20T00:30:05.000Z',
-      errorMessage: null,
-      createdAt: '2026-07-20T00:30:05.000Z',
-    } as any);
+    receiptsService.recordLocalReceipt.mockReturnValue(
+      okAsync({
+        id: 'delivery-1',
+        reminderId: 'reminder-1',
+        deviceId: null,
+        channel: 'local',
+        status: 'delivered',
+        scheduledFor: '2026-07-20T00:30:00.000Z',
+        deliveredAt: '2026-07-20T00:30:05.000Z',
+        errorMessage: null,
+        createdAt: '2026-07-20T00:30:05.000Z',
+      } as any),
+    );
 
     const result = await controller.recordReceipt(mockUser, dto as any);
 
@@ -139,12 +142,34 @@ describe('ReminderDeliveriesController', () => {
     });
   });
 
+  it('folds a receipt ownership failure into DomainFailureException (403)', async () => {
+    receiptsService.recordLocalReceipt.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'authorization',
+          code: 'FORBIDDEN',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.recordReceipt(mockUser, {
+        reminderId: 'reminder-1',
+        scheduledDate: '2026-07-20',
+        scheduledTime: '08:30',
+      } as any),
+    ).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'FORBIDDEN' },
+    });
+  });
+
   // ── Local capability report ─────────────────────────────────────
 
   it('should report local capability and return the state resource', async () => {
-    receiptsService.reportLocalCapability.mockResolvedValue({
-      state: 'active',
-    });
+    receiptsService.reportLocalCapability.mockReturnValue(
+      okAsync({ state: 'active' } as any),
+    );
 
     const result = await controller.reportLocalCapability(mockUser, {
       state: 'active',
@@ -155,6 +180,24 @@ describe('ReminderDeliveriesController', () => {
       'active',
     );
     expect(result).toEqual({ state: 'active' });
+  });
+
+  it('folds a capability report failure into DomainFailureException', async () => {
+    receiptsService.reportLocalCapability.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.reportLocalCapability(mockUser, { state: 'active' } as any),
+    ).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 });
 

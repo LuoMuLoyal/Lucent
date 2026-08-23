@@ -9,6 +9,8 @@ import {
 } from '@nestjs/swagger';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
+import { ProblemDetailsDto } from '../../common';
+import { unwrapResult } from '../../common/result';
 import { LocalCapabilityStateDto } from './dto/local-capability.dto';
 import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto';
 import {
@@ -43,15 +45,18 @@ export class ReminderDeliveriesController {
     description: 'Maximum rows to return. Clamped to 1-100.',
   })
   @ApiResponse({ status: 200, type: ReminderDeliveryListResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid date filter (VALIDATION_FAILED)',
+    type: ProblemDetailsDto,
+  })
   async list(
     @CurrentUser() user: UserPayload,
     @Query('date') date?: string,
     @Query('limit') limit?: string,
   ) {
-    return await this.service.listDeliveries(
-      user.sub,
-      date,
-      this.parseLimit(limit),
+    return await unwrapResult(
+      this.service.listDeliveries(user.sub, date, this.parseLimit(limit)),
     );
   }
 
@@ -62,12 +67,24 @@ export class ReminderDeliveriesController {
   })
   @ApiBody({ type: ReminderDeliveryReceiptDto })
   @ApiResponse({ status: 201, type: ReminderDeliveryReceiptResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Reminder belongs to another user (FORBIDDEN)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Reminder not found (RESOURCE_NOT_FOUND)',
+    type: ProblemDetailsDto,
+  })
   async recordReceipt(
     @CurrentUser() user: UserPayload,
     @Body() dto: ReminderDeliveryReceiptDto,
   ) {
     return {
-      item: await this.receiptsService.recordLocalReceipt(user.sub, dto),
+      item: await unwrapResult(
+        this.receiptsService.recordLocalReceipt(user.sub, dto),
+      ),
     };
   }
 
@@ -80,9 +97,8 @@ export class ReminderDeliveriesController {
     @CurrentUser() user: UserPayload,
     @Body() dto: LocalCapabilityStateDto,
   ) {
-    return await this.receiptsService.reportLocalCapability(
-      user.sub,
-      dto.state,
+    return await unwrapResult(
+      this.receiptsService.reportLocalCapability(user.sub, dto.state),
     );
   }
 

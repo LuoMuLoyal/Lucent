@@ -1,9 +1,17 @@
-import { NotFoundException } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
 import { MedicineRemindersOwnershipService } from './ownership.service';
+
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('MedicineRemindersOwnershipService', () => {
   let service: MedicineRemindersOwnershipService;
@@ -25,12 +33,6 @@ describe('MedicineRemindersOwnershipService', () => {
           provide: MedicineReminderRepositoryPort,
           useValue: repository,
         },
-        {
-          provide: I18nService,
-          useValue: {
-            t: vi.fn().mockImplementation((key: string) => key),
-          },
-        },
       ],
     }).compile();
 
@@ -41,54 +43,77 @@ describe('MedicineRemindersOwnershipService', () => {
 
   describe('ensureCurrentMedicineOwnedByUser', () => {
     it('does nothing when currentMedicineId is null', async () => {
-      await expect(
+      const result = await collectResult(
         service.ensureCurrentMedicineOwnedByUser('user-1', null),
-      ).resolves.toBeUndefined();
+      );
 
+      expect(result.ok).toBe(true);
       expect(repository.findCurrentMedicine).not.toHaveBeenCalled();
     });
 
     it('does nothing when currentMedicineId is undefined', async () => {
-      await expect(
+      const result = await collectResult(
         service.ensureCurrentMedicineOwnedByUser('user-1', undefined),
-      ).resolves.toBeUndefined();
+      );
 
+      expect(result.ok).toBe(true);
       expect(repository.findCurrentMedicine).not.toHaveBeenCalled();
     });
 
-    it('does not throw when the medicine belongs to the user', async () => {
+    it('succeeds when the medicine belongs to the user', async () => {
       repository.findCurrentMedicine.mockResolvedValue({
         id: 'med-1',
         userId: 'user-1',
       });
 
-      await expect(
+      const result = await collectResult(
         service.ensureCurrentMedicineOwnedByUser('user-1', 'med-1'),
-      ).resolves.toBeUndefined();
+      );
 
+      expect(result.ok).toBe(true);
       expect(repository.findCurrentMedicine).toHaveBeenCalledWith(
         'med-1',
         'user-1',
       );
     });
 
-    it('throws NotFoundException when the medicine does not exist', async () => {
+    it('maps a missing medicine to RESOURCE_NOT_FOUND', async () => {
       repository.findCurrentMedicine.mockResolvedValue(null);
 
-      await expect(
+      const result = await collectResult(
         service.ensureCurrentMedicineOwnedByUser('user-1', 'missing-med'),
-      ).rejects.toThrow(NotFoundException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
     });
 
-    it('throws NotFoundException when the medicine belongs to another user', async () => {
+    it('maps a medicine owned by another user to RESOURCE_NOT_FOUND', async () => {
       repository.findCurrentMedicine.mockResolvedValue({
         id: 'med-1',
         userId: 'other-user',
       });
 
+      const result = await collectResult(
+        service.ensureCurrentMedicineOwnedByUser('user-1', 'med-1'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+    });
+
+    it('rethrows unknown database errors', async () => {
+      repository.findCurrentMedicine.mockRejectedValue(
+        new Error('connection lost'),
+      );
+
       await expect(
         service.ensureCurrentMedicineOwnedByUser('user-1', 'med-1'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow('connection lost');
     });
   });
 
@@ -103,9 +128,11 @@ describe('MedicineRemindersOwnershipService', () => {
       };
       repository.findReminderById.mockResolvedValue(existing);
 
-      const result = await service.ensureOwnedByUser('user-1', 'reminder-1');
+      const result = await collectResult(
+        service.ensureOwnedByUser('user-1', 'reminder-1'),
+      );
 
-      expect(result).toEqual(existing);
+      expect(result).toMatchObject({ ok: true, value: existing });
       expect(repository.findReminderById).toHaveBeenCalledWith('reminder-1', {
         userId: true,
         startDate: true,
@@ -113,24 +140,44 @@ describe('MedicineRemindersOwnershipService', () => {
       });
     });
 
-    it('throws NotFoundException when the reminder does not exist', async () => {
+    it('maps a missing reminder to RESOURCE_NOT_FOUND', async () => {
       repository.findReminderById.mockResolvedValue(null);
 
-      await expect(
+      const result = await collectResult(
         service.ensureOwnedByUser('user-1', 'missing-reminder'),
-      ).rejects.toThrow(NotFoundException);
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
     });
 
-    it('throws NotFoundException when the reminder belongs to another user', async () => {
+    it('maps a foreign reminder to FORBIDDEN', async () => {
       repository.findReminderById.mockResolvedValue({
         userId: 'other-user',
         startDate: null,
         endDate: null,
       });
 
+      const result = await collectResult(
+        service.ensureOwnedByUser('user-1', 'reminder-1'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'authorization', code: 'FORBIDDEN' },
+      });
+    });
+
+    it('rethrows unknown database errors', async () => {
+      repository.findReminderById.mockRejectedValue(
+        new Error('connection lost'),
+      );
+
       await expect(
         service.ensureOwnedByUser('user-1', 'reminder-1'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow('connection lost');
     });
   });
 });

@@ -5,6 +5,13 @@ import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
 import { now } from '../../../common';
 import {
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
+import { fromPrismaResult } from '../../../common';
+import {
   DELIVERY_CHANNEL_LOCAL,
   DELIVERY_STATUS_DELIVERED,
   LOCAL_CAPABILITY_CACHE_TTL_MS,
@@ -54,72 +61,89 @@ export class DeliveryReceiptsService {
   ) {}
 
   /**
-   * 记录一条本地通知回执。归属校验失败（非本人提醒）时抛 404。
-   * 同一 local 事件重复上报直接返回现有行，不重复写入。
+   * 记录一条本地通知回执。归属校验失败（非本人提醒）返回
+   * `RESOURCE_NOT_FOUND` / `FORBIDDEN`。同一 local 事件重复上报直接返回
+   * 现有行，不重复写入（幂等成功）。
    */
-  async recordLocalReceipt(
+  recordLocalReceipt(
     userId: string,
     dto: ReminderDeliveryReceiptDto,
-  ): Promise<ReminderDeliveryItemDto> {
-    await this.ownershipService.ensureOwnedByUser(userId, dto.reminderId);
+  ): ResultAsync<ReminderDeliveryItemDto, DomainFailure> {
+    return this.ownershipService
+      .ensureOwnedByUser(userId, dto.reminderId)
+      .andThen(() =>
+        fromPromise(this.readProfileTimezone(userId), (error) => {
+          throw error;
+        }),
+      )
+      .andThen((timezone) => {
+        const scheduledFor = wallClockToScheduledFor(
+          dto.scheduledDate,
+          dto.scheduledTime,
+          timezone,
+        );
 
-    const timezone = await this.readProfileTimezone(userId);
-    const scheduledFor = wallClockToScheduledFor(
-      dto.scheduledDate,
-      dto.scheduledTime,
-      timezone,
-    );
+        return fromPromise(
+          this.findLocalDelivery(userId, dto.reminderId, scheduledFor),
+          (error) => {
+            throw error;
+          },
+        ).andThen((existing) => {
+          if (existing != null) {
+            return okAsync(this.toItem(existing));
+          }
 
-    const existing = await this.findLocalDelivery(
-      userId,
-      dto.reminderId,
-      scheduledFor,
-    );
-    if (existing != null) {
-      return this.toItem(existing);
-    }
-
-    await this.prisma.userReminderDelivery.createMany({
-      data: {
-        userId,
-        reminderId: dto.reminderId,
-        channel: DELIVERY_CHANNEL_LOCAL,
-        status: DELIVERY_STATUS_DELIVERED,
-        scheduledFor,
-        deliveredAt: now(),
-      },
-      skipDuplicates: true,
-    });
-
-    // createMany 成功（或与并发请求去重后）该行必然存在；兜底读取防御。
-    const created = await this.findLocalDelivery(
-      userId,
-      dto.reminderId,
-      scheduledFor,
-    );
-    if (created == null) {
-      throw new Error(
-        `Local delivery receipt row missing after write: userId=${userId}, reminderId=${dto.reminderId}`,
-      );
-    }
-    return this.toItem(created);
+          return fromPrismaResult(
+            this.prisma.userReminderDelivery.createMany({
+              data: {
+                userId,
+                reminderId: dto.reminderId,
+                channel: DELIVERY_CHANNEL_LOCAL,
+                status: DELIVERY_STATUS_DELIVERED,
+                scheduledFor,
+                deliveredAt: now(),
+              },
+              skipDuplicates: true,
+            }),
+          )
+            .andThen(() =>
+              fromPromise(
+                this.findLocalDelivery(userId, dto.reminderId, scheduledFor),
+                (error) => {
+                  throw error;
+                },
+              ),
+            )
+            .andThen((created) => {
+              // createMany 成功（或与并发请求去重后）该行必然存在；兜底读取
+              // 防御。行缺失属于程序不变式破坏，直接抛出（500），不伪装成
+              // 客户端可恢复的业务失败。
+              if (created == null) {
+                throw new Error(
+                  `Local delivery receipt row missing after write: userId=${userId}, reminderId=${dto.reminderId}`,
+                );
+              }
+              return okAsync(this.toItem(created));
+            });
+        });
+      });
   }
 
   /** 上报并持久化本地调度能力（TTL 14 天）。 */
-  async reportLocalCapability(
+  reportLocalCapability(
     userId: string,
     state: LocalCapabilityState,
-  ): Promise<{ state: LocalCapabilityState }> {
+  ): ResultAsync<{ state: LocalCapabilityState }, DomainFailure> {
     const key = localCapabilityCacheKey(userId);
-    try {
-      await this.cache.set(key, state, LOCAL_CAPABILITY_CACHE_TTL_MS);
-    } catch (error) {
-      this.logger.warn(
-        `Reminder delivery capability cache set failed (key=${key}): ${String(error)}`,
-      );
-      throw error;
-    }
-    return { state };
+    return fromPromise(
+      this.cache.set(key, state, LOCAL_CAPABILITY_CACHE_TTL_MS),
+      (error) => {
+        this.logger.warn(
+          `Reminder delivery capability cache set failed (key=${key}): ${String(error)}`,
+        );
+        throw error;
+      },
+    ).map(() => ({ state }));
   }
 
   private async readProfileTimezone(userId: string): Promise<string | null> {

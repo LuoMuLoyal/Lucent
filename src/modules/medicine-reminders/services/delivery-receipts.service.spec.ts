@@ -3,7 +3,22 @@ import type { PrismaService } from '../../../prisma';
 import type { MedicineRemindersOwnershipService } from './ownership.service';
 import type { MedicineRemindersMapperService } from './mapper.service';
 import type { Cache } from 'cache-manager';
+import { errAsync, okAsync } from '../../../common/result';
+import { createDomainFailure } from '../../../common/result';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import type { ReminderDeliveryReceiptDto } from '../dto/reminder-delivery-receipt.dto';
+
+/** Unwraps a ResultAsync, failing the test when it is an Err. */
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
 
 function buildPrisma() {
   return {
@@ -19,11 +34,13 @@ function buildPrisma() {
 
 function buildOwnership() {
   return {
-    ensureOwnedByUser: vi.fn().mockResolvedValue({
-      userId: 'user-1',
-      startDate: null,
-      endDate: null,
-    }),
+    ensureOwnedByUser: vi.fn().mockReturnValue(
+      okAsync({
+        userId: 'user-1',
+        startDate: null,
+        endDate: null,
+      }),
+    ),
   };
 }
 
@@ -108,7 +125,7 @@ describe('DeliveryReceiptsService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(DELIVERY_ROW);
 
-    const item = await service.recordLocalReceipt('user-1', dto);
+    const item = await unwrapOk(service.recordLocalReceipt('user-1', dto));
 
     expect(ownership.ensureOwnedByUser).toHaveBeenCalledWith(
       'user-1',
@@ -139,7 +156,7 @@ describe('DeliveryReceiptsService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(DELIVERY_ROW);
 
-    await service.recordLocalReceipt('user-1', dto);
+    await unwrapOk(service.recordLocalReceipt('user-1', dto));
 
     expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -153,7 +170,7 @@ describe('DeliveryReceiptsService', () => {
   it('returns the existing local row without writing on duplicate receipt', async () => {
     prisma.userReminderDelivery.findFirst.mockResolvedValue(DELIVERY_ROW);
 
-    const item = await service.recordLocalReceipt('user-1', dto);
+    const item = await unwrapOk(service.recordLocalReceipt('user-1', dto));
 
     expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
     expect(item.id).toBe('delivery-1');
@@ -172,8 +189,8 @@ describe('DeliveryReceiptsService', () => {
       .mockResolvedValueOnce({ count: 0 });
 
     const [first, second] = await Promise.all([
-      service.recordLocalReceipt('user-1', dto),
-      service.recordLocalReceipt('user-1', dto),
+      unwrapOk(service.recordLocalReceipt('user-1', dto)),
+      unwrapOk(service.recordLocalReceipt('user-1', dto)),
     ]);
 
     expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
@@ -181,13 +198,25 @@ describe('DeliveryReceiptsService', () => {
     expect(second.id).toBe('delivery-1');
   });
 
-  it('propagates ownership failure without any writes', async () => {
-    ownership.ensureOwnedByUser.mockRejectedValue(new Error('not found'));
-
-    await expect(service.recordLocalReceipt('user-1', dto)).rejects.toThrow(
-      'not found',
+  it('propagates an ownership failure without any writes', async () => {
+    ownership.ensureOwnedByUser.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+        }),
+      ),
     );
 
+    const outcome = await service.recordLocalReceipt('user-1', dto).match(
+      (value) => ({ ok: true as const, value }),
+      (error) => ({ ok: false as const, error }),
+    );
+
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
     expect(prisma.userProfile.findUnique).not.toHaveBeenCalled();
     expect(prisma.userReminderDelivery.findFirst).not.toHaveBeenCalled();
     expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
@@ -196,13 +225,26 @@ describe('DeliveryReceiptsService', () => {
   // ── reportLocalCapability ───────────────────────────────────────
 
   it('persists the capability state with the 14-day TTL and returns it', async () => {
-    const result = await service.reportLocalCapability('user-1', 'active');
+    const outcome = await service
+      .reportLocalCapability('user-1', 'active')
+      .match(
+        (value) => ({ ok: true as const, value }),
+        (error) => ({ ok: false as const, error }),
+      );
 
     expect(cache.set).toHaveBeenCalledWith(
       'reminder:local-capability:user-1',
       'active',
       1_209_600_000,
     );
-    expect(result).toEqual({ state: 'active' });
+    expect(outcome).toEqual({ ok: true, value: { state: 'active' } });
+  });
+
+  it('rethrows a cache write failure instead of reporting success', async () => {
+    cache.set.mockRejectedValue(new Error('redis unavailable'));
+
+    await expect(
+      service.reportLocalCapability('user-1', 'active'),
+    ).rejects.toThrow('redis unavailable');
   });
 });

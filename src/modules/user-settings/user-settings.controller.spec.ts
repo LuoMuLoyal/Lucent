@@ -55,7 +55,7 @@ describe('UserSettingsController', () => {
 
   it('should update settings and return the result', async () => {
     const updated = makeSettings({ aiSummariesEnabled: false });
-    service.updateSettings.mockResolvedValue(updated);
+    service.updateSettings.mockReturnValue(okAsync(updated));
 
     const result = await controller.updateSettings(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
@@ -66,6 +66,27 @@ describe('UserSettingsController', () => {
     expect(result.aiSummariesEnabled).toBe(false);
     expect(service.updateSettings).toHaveBeenCalledWith('u1', {
       aiSummariesEnabled: false,
+    });
+  });
+
+  it('folds an update failure into DomainFailureException', async () => {
+    service.updateSettings.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'conflict',
+          code: 'RESOURCE_CONFLICT',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.updateSettings(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        { aiSummariesEnabled: false },
+      ),
+    ).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'RESOURCE_CONFLICT' },
     });
   });
 

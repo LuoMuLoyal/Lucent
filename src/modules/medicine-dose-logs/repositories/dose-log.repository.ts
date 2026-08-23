@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, type DoseLogStatus } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { nonDeleted } from '../../../common';
+import { fromPrismaResult, nonDeleted } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 /**
  * Lean read-model shape for cross-module consumers (ADR-0009). Exposes
@@ -100,14 +101,14 @@ export abstract class MedicineDoseLogRepositoryPort {
 
   abstract create(
     data: Prisma.UserMedicineDoseLogUncheckedCreateInput,
-  ): Promise<Prisma.UserMedicineDoseLogGetPayload<object>>;
+  ): ResultAsync<Prisma.UserMedicineDoseLogGetPayload<object>, DomainFailure>;
 
   abstract update(
     where: Prisma.UserMedicineDoseLogWhereUniqueInput,
     data:
       | Prisma.UserMedicineDoseLogUpdateInput
       | Prisma.UserMedicineDoseLogUncheckedUpdateInput,
-  ): Promise<Prisma.UserMedicineDoseLogGetPayload<object>>;
+  ): ResultAsync<Prisma.UserMedicineDoseLogGetPayload<object>, DomainFailure>;
 
   abstract findReminderById(
     userId: string,
@@ -225,8 +226,10 @@ export class MedicineDoseLogRepository
     return this.prisma.userMedicineDoseLog.findFirst(args);
   }
 
-  override create(data: Prisma.UserMedicineDoseLogUncheckedCreateInput) {
-    return this.prisma.userMedicineDoseLog.create({ data });
+  override create(
+    data: Prisma.UserMedicineDoseLogUncheckedCreateInput,
+  ): ResultAsync<Prisma.UserMedicineDoseLogGetPayload<object>, DomainFailure> {
+    return fromPrismaResult(this.prisma.userMedicineDoseLog.create({ data }));
   }
 
   override update(
@@ -234,8 +237,10 @@ export class MedicineDoseLogRepository
     data:
       | Prisma.UserMedicineDoseLogUpdateInput
       | Prisma.UserMedicineDoseLogUncheckedUpdateInput,
-  ) {
-    return this.prisma.userMedicineDoseLog.update({ where, data });
+  ): ResultAsync<Prisma.UserMedicineDoseLogGetPayload<object>, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userMedicineDoseLog.update({ where, data }),
+    );
   }
 
   override findReminderById(userId: string, id: string) {

@@ -310,17 +310,22 @@ export class AssistantService {
         break;
       case 'update_user_settings': {
         const draft = proposal.payload.draft;
-        await this.userSettingsService.updateSettings(userId, {
-          ...(draft.assistantEnabled != null
-            ? { assistantEnabled: draft.assistantEnabled }
-            : {}),
-          ...(draft.assistantMemoryEnabled != null
-            ? { assistantMemoryEnabled: draft.assistantMemoryEnabled }
-            : {}),
-          ...(draft.assistantContext != null
-            ? { assistantContext: draft.assistantContext }
-            : {}),
-        });
+        // TODO(error): UserSettingsService.updateSettings migrated to
+        // ResultAsync (Task 8.2); fold temporarily until the assistant module
+        // migrates (Task 10).
+        await unwrapResult(
+          this.userSettingsService.updateSettings(userId, {
+            ...(draft.assistantEnabled != null
+              ? { assistantEnabled: draft.assistantEnabled }
+              : {}),
+            ...(draft.assistantMemoryEnabled != null
+              ? { assistantMemoryEnabled: draft.assistantMemoryEnabled }
+              : {}),
+            ...(draft.assistantContext != null
+              ? { assistantContext: draft.assistantContext }
+              : {}),
+          }),
+        );
         break;
       }
     }

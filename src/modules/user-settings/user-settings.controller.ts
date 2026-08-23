@@ -50,11 +50,23 @@ export class UserSettingsController {
   @Patch()
   @ApiOperation({ summary: 'Update authenticated user settings' })
   @ApiResponse({ status: 200, type: UserSettingsResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation failed (VALIDATION_FAILED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Settings upsert conflict (RESOURCE_CONFLICT, race)',
+    type: ProblemDetailsDto,
+  })
   async updateSettings(
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateUserSettingsDto,
   ) {
-    return await this.settingsService.updateSettings(user.sub, dto);
+    return await unwrapResult(
+      this.settingsService.updateSettings(user.sub, dto),
+    );
   }
 
   @Post('security-pin')

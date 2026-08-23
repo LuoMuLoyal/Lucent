@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { okAsync, errAsync, createDomainFailure } from '../../common/result';
 import type { UserPayload } from '../auth';
 import { MedicineRemindersController } from './medicine-reminders.controller';
 import { MedicineRemindersService } from './services/reminders.service';
@@ -61,18 +62,40 @@ describe('MedicineRemindersController', () => {
         scheduledMinute: 0,
         daysOfWeek: [1, 2, 3],
       };
-      service.create.mockResolvedValue({ id: 'rem-1' } as any);
+      service.create.mockReturnValue(okAsync({ id: 'rem-1' } as any));
 
       const result = await controller.create(mockUser, dto as any);
 
       expect(service.create).toHaveBeenCalledWith(mockUser.sub, dto);
       expect(result).toEqual({ id: 'rem-1' });
     });
+
+    it('folds a not-found failure into DomainFailureException', async () => {
+      service.create.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'not_found',
+            code: 'RESOURCE_NOT_FOUND',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.create(mockUser, {
+          currentMedicineId: 'missing',
+          scheduledHour: 8,
+          scheduledMinute: 0,
+        } as any),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'RESOURCE_NOT_FOUND' },
+      });
+    });
   });
 
   describe('PATCH /user/medicine-reminders/:id', () => {
     it('should update a reminder', async () => {
-      service.update.mockResolvedValue({ id: 'rem-1' } as any);
+      service.update.mockReturnValue(okAsync({ id: 'rem-1' } as any));
 
       const result = await controller.update(mockUser, 'rem-1', {
         scheduledHour: 9,
@@ -89,7 +112,7 @@ describe('MedicineRemindersController', () => {
 
   describe('DELETE /user/medicine-reminders/:id', () => {
     it('should soft-delete a reminder', async () => {
-      service.delete.mockResolvedValue(undefined);
+      service.delete.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.delete(mockUser, 'rem-1'),
@@ -108,7 +131,7 @@ describe('MedicineRemindersController', () => {
           { scheduledHour: 20, scheduledMinute: 30 },
         ],
       };
-      service.upsertGroup.mockResolvedValue({ items: [] } as any);
+      service.upsertGroup.mockReturnValue(okAsync({ items: [] } as any));
 
       const result = await controller.upsertGroup(mockUser, dto as any);
 

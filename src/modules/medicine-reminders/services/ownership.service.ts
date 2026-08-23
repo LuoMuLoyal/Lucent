@@ -1,53 +1,90 @@
 import { Injectable } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
-import { ensureOwnedByUser } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 
 import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
 import type { OwnedMedicineReminderRecord } from '../types/reminder.types';
 
 @Injectable()
 export class MedicineRemindersOwnershipService {
-  constructor(
-    private readonly repository: MedicineReminderRepositoryPort,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly repository: MedicineReminderRepositoryPort) {}
 
-  async ensureCurrentMedicineOwnedByUser(
+  ensureCurrentMedicineOwnedByUser(
     userId: string,
     currentMedicineId: string | null | undefined,
-  ): Promise<void> {
+  ): ResultAsync<void, DomainFailure> {
     if (currentMedicineId == null) {
-      return;
+      return okAsync(undefined);
     }
 
-    const medicine = await this.repository.findCurrentMedicine(
-      currentMedicineId,
-      userId,
-    );
-
-    ensureOwnedByUser(
-      medicine,
-      userId,
-      this.i18n.t('medicine-reminders.medicine_not_found'),
-    );
+    return fromPromise(
+      this.repository.findCurrentMedicine(currentMedicineId, userId),
+      (error) => {
+        throw error;
+      },
+    ).andThen((medicine) => {
+      if (medicine == null) {
+        return errAsync(this.medicineNotFoundFailure());
+      }
+      // The repository query is already scoped by userId+isCurrent; the
+      // explicit check is defense in depth and keeps the legacy 404 semantics
+      // (a foreign medicine is indistinguishable from a missing one).
+      if (medicine.userId !== userId) {
+        return errAsync(this.medicineNotFoundFailure());
+      }
+      return okAsync(undefined);
+    });
   }
 
-  async ensureOwnedByUser(
+  ensureOwnedByUser(
     userId: string,
     id: string,
-  ): Promise<OwnedMedicineReminderRecord> {
-    const reminder = (await this.repository.findReminderById(id, {
-      userId: true,
-      startDate: true,
-      endDate: true,
-    })) as OwnedMedicineReminderRecord | null;
+  ): ResultAsync<OwnedMedicineReminderRecord, DomainFailure> {
+    return fromPromise(
+      this.repository.findReminderById(id, {
+        userId: true,
+        startDate: true,
+        endDate: true,
+      }),
+      (error) => {
+        throw error;
+      },
+    ).andThen((reminder) => {
+      const record = reminder as OwnedMedicineReminderRecord | null;
+      if (record == null) {
+        return errAsync(this.reminderNotFoundFailure());
+      }
+      if (record.userId !== userId) {
+        return errAsync(this.forbiddenFailure());
+      }
+      return okAsync(record);
+    });
+  }
 
-    ensureOwnedByUser(
-      reminder,
-      userId,
-      this.i18n.t('medicine-reminders.reminder_not_found'),
-    );
+  private medicineNotFoundFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  }
 
-    return reminder;
+  private reminderNotFoundFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  }
+
+  private forbiddenFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'authorization',
+      code: 'FORBIDDEN',
+    });
   }
 }

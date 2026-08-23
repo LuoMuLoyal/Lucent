@@ -1,9 +1,10 @@
 import { nonDeleted } from '../../../common';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
 import { Prisma } from '#generated/prisma/client';
+import { okAsync } from '../../../common/result';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './mapper.service';
@@ -31,6 +32,28 @@ function reminderRecord(overrides: Record<string, unknown> = {}) {
     updatedAt: now,
     ...overrides,
   };
+}
+
+/** Unwraps a ResultAsync, failing the test when it is an Err. */
+async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
+  const outcome = await result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value;
+}
+
+/** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
 }
 
 describe('MedicineRemindersService', () => {
@@ -82,26 +105,30 @@ describe('MedicineRemindersService', () => {
       id: 'medicine-1',
       userId: 'user-1',
     });
-    repository.createReminder.mockResolvedValue(
-      reminderRecord({
-        label: 'Morning dose',
-        daysOfWeek: [1, 3, 5],
-        startDate: new Date('2026-06-10T00:00:00.000Z'),
-        endDate: new Date('2026-06-20T00:00:00.000Z'),
-        note: 'After breakfast',
-      }),
+    repository.createReminder.mockReturnValue(
+      okAsync(
+        reminderRecord({
+          label: 'Morning dose',
+          daysOfWeek: [1, 3, 5],
+          startDate: new Date('2026-06-10T00:00:00.000Z'),
+          endDate: new Date('2026-06-20T00:00:00.000Z'),
+          note: 'After breakfast',
+        }),
+      ),
     );
 
-    const result = await service.create('user-1', {
-      currentMedicineId: 'medicine-1',
-      label: ' Morning dose ',
-      scheduledHour: 8,
-      scheduledMinute: 30,
-      daysOfWeek: [5, 1, 3, 1],
-      startDate: '2026-06-10',
-      endDate: '2026-06-20',
-      note: ' After breakfast ',
-    });
+    const result = await unwrapOk(
+      service.create('user-1', {
+        currentMedicineId: 'medicine-1',
+        label: ' Morning dose ',
+        scheduledHour: 8,
+        scheduledMinute: 30,
+        daysOfWeek: [5, 1, 3, 1],
+        startDate: '2026-06-10',
+        endDate: '2026-06-20',
+        note: ' After breakfast ',
+      }),
+    );
 
     expect(repository.createReminder).toHaveBeenCalledWith({
       userId: 'user-1',
@@ -132,18 +159,22 @@ describe('MedicineRemindersService', () => {
   });
 
   it('should treat null weekdays as every day', async () => {
-    repository.createReminder.mockResolvedValue(
-      reminderRecord({
-        currentMedicineId: null,
+    repository.createReminder.mockReturnValue(
+      okAsync(
+        reminderRecord({
+          currentMedicineId: null,
+          daysOfWeek: null,
+        }),
+      ),
+    );
+
+    const result = await unwrapOk(
+      service.create('user-1', {
+        scheduledHour: 9,
+        scheduledMinute: 0,
         daysOfWeek: null,
       }),
     );
-
-    const result = await service.create('user-1', {
-      scheduledHour: 9,
-      scheduledMinute: 0,
-      daysOfWeek: null,
-    });
 
     expect(repository.createReminder).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -176,26 +207,37 @@ describe('MedicineRemindersService', () => {
     expect(result.items[0]?.daysOfWeek).toEqual([2, 4]);
   });
 
-  it('should reject empty weekdays', async () => {
-    await expect(
+  it('should reject empty weekdays with VALIDATION_FAILED', async () => {
+    const result = await collectResult(
       service.create('user-1', {
         scheduledHour: 8,
         scheduledMinute: 0,
         daysOfWeek: [],
       }),
-    ).rejects.toThrow(BadRequestException);
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(repository.createReminder).not.toHaveBeenCalled();
   });
 
   it('should enforce current medicine ownership on create', async () => {
     repository.findCurrentMedicine.mockResolvedValue(null);
 
-    await expect(
+    const result = await collectResult(
       service.create('user-1', {
         currentMedicineId: 'foreign-medicine',
         scheduledHour: 8,
         scheduledMinute: 0,
       }),
-    ).rejects.toThrow(NotFoundException);
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
   });
 
   it('should update fields and clear the linked medicine when null is sent', async () => {
@@ -204,27 +246,31 @@ describe('MedicineRemindersService', () => {
       startDate: null,
       endDate: null,
     });
-    repository.updateReminder.mockResolvedValue(
-      reminderRecord({
+    repository.updateReminder.mockReturnValue(
+      okAsync(
+        reminderRecord({
+          currentMedicineId: null,
+          scheduledHour: 21,
+          scheduledMinute: 5,
+          daysOfWeek: null,
+          startDate: new Date('2026-06-09T00:00:00.000Z'),
+          endDate: new Date('2026-06-18T00:00:00.000Z'),
+          isActive: false,
+        }),
+      ),
+    );
+
+    await unwrapOk(
+      service.update('user-1', 'reminder-1', {
         currentMedicineId: null,
         scheduledHour: 21,
         scheduledMinute: 5,
         daysOfWeek: null,
-        startDate: new Date('2026-06-09T00:00:00.000Z'),
-        endDate: new Date('2026-06-18T00:00:00.000Z'),
+        startDate: '2026-06-09',
+        endDate: '2026-06-18',
         isActive: false,
       }),
     );
-
-    await service.update('user-1', 'reminder-1', {
-      currentMedicineId: null,
-      scheduledHour: 21,
-      scheduledMinute: 5,
-      daysOfWeek: null,
-      startDate: '2026-06-09',
-      endDate: '2026-06-18',
-      isActive: false,
-    });
 
     expect(repository.updateReminder).toHaveBeenCalledWith(
       { id: 'reminder-1' },
@@ -240,15 +286,21 @@ describe('MedicineRemindersService', () => {
     );
   });
 
-  it('should reject an end date before the start date', async () => {
-    await expect(
+  it('should reject an end date before the start date with VALIDATION_FAILED', async () => {
+    const result = await collectResult(
       service.create('user-1', {
         scheduledHour: 8,
         scheduledMinute: 0,
         startDate: '2026-06-20',
         endDate: '2026-06-10',
       }),
-    ).rejects.toThrow(BadRequestException);
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(repository.createReminder).not.toHaveBeenCalled();
   });
 
   it('should soft-delete reminders', async () => {
@@ -257,8 +309,11 @@ describe('MedicineRemindersService', () => {
       startDate: null,
       endDate: null,
     });
+    repository.updateReminder.mockReturnValue(
+      okAsync(reminderRecord({ id: 'reminder-1' })),
+    );
 
-    await service.delete('user-1', 'reminder-1');
+    await unwrapOk(service.delete('user-1', 'reminder-1'));
 
     expect(repository.updateReminder).toHaveBeenCalledWith(
       { id: 'reminder-1' },
@@ -266,14 +321,32 @@ describe('MedicineRemindersService', () => {
     );
   });
 
-  it('should reject foreign reminder updates', async () => {
+  it('should map foreign reminder updates to FORBIDDEN', async () => {
     repository.findReminderById.mockResolvedValue({
       userId: 'other-user',
     });
 
-    await expect(
+    const result = await collectResult(
       service.update('user-1', 'reminder-1', { scheduledHour: 10 }),
-    ).rejects.toThrow(NotFoundException);
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'authorization', code: 'FORBIDDEN' },
+    });
+    expect(repository.updateReminder).not.toHaveBeenCalled();
+  });
+
+  it('should map a missing reminder delete to RESOURCE_NOT_FOUND', async () => {
+    repository.findReminderById.mockResolvedValue(null);
+
+    const result = await collectResult(service.delete('user-1', 'reminder-1'));
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
+    expect(repository.updateReminder).not.toHaveBeenCalled();
   });
 
   it('should list delivery logs for a date with a capped limit', async () => {
@@ -294,7 +367,9 @@ describe('MedicineRemindersService', () => {
       },
     ]);
 
-    const result = await service.listDeliveries('user-1', '2026-06-10', 200);
+    const result = await unwrapOk(
+      service.listDeliveries('user-1', '2026-06-10', 200),
+    );
 
     expect(repository.findManyDeliveries).toHaveBeenCalledWith(
       {
@@ -318,6 +393,18 @@ describe('MedicineRemindersService', () => {
       errorMessage: null,
       createdAt: '2026-06-08T12:00:00.000Z',
     });
+  });
+
+  it('should map an invalid delivery date filter to VALIDATION_FAILED', async () => {
+    const result = await collectResult(
+      service.listDeliveries('user-1', 'not-a-date', 20),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+    });
+    expect(repository.findManyDeliveries).not.toHaveBeenCalled();
   });
 
   describe('upsertGroup', () => {
@@ -365,13 +452,15 @@ describe('MedicineRemindersService', () => {
       );
       tx.userMedicineReminder.updateMany.mockResolvedValue({ count: 1 });
 
-      const result = await service.upsertGroup('user-1', {
-        currentMedicineId: 'medicine-1',
-        slots: [
-          { id: 'slot-1', scheduledHour: 8, scheduledMinute: 30 },
-          { scheduledHour: 20, scheduledMinute: 5 },
-        ],
-      });
+      const result = await unwrapOk(
+        service.upsertGroup('user-1', {
+          currentMedicineId: 'medicine-1',
+          slots: [
+            { id: 'slot-1', scheduledHour: 8, scheduledMinute: 30 },
+            { scheduledHour: 20, scheduledMinute: 5 },
+          ],
+        }),
+      );
 
       expect(tx.userMedicineReminder.findMany).toHaveBeenNthCalledWith(1, {
         where: {
@@ -420,7 +509,7 @@ describe('MedicineRemindersService', () => {
       expect(result.items).toHaveLength(2);
     });
 
-    it('should return 404 when a slot id does not belong to the group', async () => {
+    it('should map a slot id that does not belong to the group to RESOURCE_NOT_FOUND', async () => {
       repository.findCurrentMedicine.mockResolvedValue({
         id: 'medicine-1',
         userId: 'user-1',
@@ -432,51 +521,56 @@ describe('MedicineRemindersService', () => {
       );
       tx.userMedicineReminder.findMany.mockResolvedValueOnce([]);
 
-      await expect(
+      const result = await collectResult(
         service.upsertGroup('user-1', {
           currentMedicineId: 'medicine-1',
           slots: [{ id: 'foreign-slot', scheduledHour: 8, scheduledMinute: 0 }],
         }),
-      ).rejects.toThrow(NotFoundException);
+      );
 
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+      expect(tx.userMedicineReminder.updateMany).not.toHaveBeenCalled();
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
     });
 
-    it('should reject empty slots with a 400', async () => {
-      const error = await service
-        .upsertGroup('user-1', {
+    it('should reject empty slots with VALIDATION_FAILED', async () => {
+      const result = await collectResult(
+        service.upsertGroup('user-1', {
           currentMedicineId: 'medicine-1',
           slots: [],
-        })
-        .catch((e: unknown) => e);
+        }),
+      );
 
-      expect(error).toBeInstanceOf(BadRequestException);
-      expect((error as BadRequestException).getResponse()).toMatchObject({
-        message: 'medicine-reminders.reminder_group_empty',
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
       });
       expect(repository.transaction).not.toHaveBeenCalled();
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
     });
 
-    it('should reject duplicate slot ids with a 400', async () => {
+    it('should reject duplicate slot ids with VALIDATION_FAILED', async () => {
       repository.findCurrentMedicine.mockResolvedValue({
         id: 'medicine-1',
         userId: 'user-1',
       });
 
-      const error = await service
-        .upsertGroup('user-1', {
+      const result = await collectResult(
+        service.upsertGroup('user-1', {
           currentMedicineId: 'medicine-1',
           slots: [
             { id: 'slot-1', scheduledHour: 8, scheduledMinute: 0 },
             { id: 'slot-1', scheduledHour: 20, scheduledMinute: 0 },
           ],
-        })
-        .catch((e: unknown) => e);
+        }),
+      );
 
-      expect(error).toBeInstanceOf(BadRequestException);
-      expect((error as BadRequestException).getResponse()).toMatchObject({
-        message: 'medicine-reminders.reminder_group_duplicate_slot',
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
       });
       expect(repository.transaction).not.toHaveBeenCalled();
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
@@ -500,10 +594,12 @@ describe('MedicineRemindersService', () => {
       );
       tx.userMedicineReminder.updateMany.mockResolvedValue({ count: 0 });
 
-      await service.upsertGroup('user-1', {
-        currentMedicineId: 'medicine-1',
-        slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
-      });
+      await unwrapOk(
+        service.upsertGroup('user-1', {
+          currentMedicineId: 'medicine-1',
+          slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+        }),
+      );
 
       expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
       expect(eventEmitter.emitAsync).toHaveBeenCalledWith(REMINDER_CHANGED, {
@@ -539,6 +635,32 @@ describe('MedicineRemindersService', () => {
       expect(repository.transaction).toHaveBeenCalledTimes(1);
       expect(tx.userMedicineReminder.updateMany).toHaveBeenCalled();
       expect(tx.userMedicineReminder.create).toHaveBeenCalled();
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('should map a P2002 race inside the transaction to RESOURCE_CONFLICT', async () => {
+      repository.findCurrentMedicine.mockResolvedValue({
+        id: 'medicine-1',
+        userId: 'user-1',
+      });
+
+      repository.transaction.mockRejectedValue(
+        Object.create(Prisma.PrismaClientKnownRequestError.prototype, {
+          code: { value: 'P2002' },
+        }),
+      );
+
+      const result = await collectResult(
+        service.upsertGroup('user-1', {
+          currentMedicineId: 'medicine-1',
+          slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+        }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
+      });
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
     });
   });

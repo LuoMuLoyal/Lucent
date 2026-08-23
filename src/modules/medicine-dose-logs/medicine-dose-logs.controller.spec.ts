@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { createDomainFailure, errAsync, okAsync } from '../../common/result';
 import type { UserPayload } from '../auth';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
 import { MedicineDoseLogsService } from './services/dose-logs.service';
@@ -56,12 +57,33 @@ describe('MedicineDoseLogsController', () => {
         currentMedicineId: 'med-1',
         scheduledFor: '2026-06-10T08:00:00Z',
       };
-      service.create.mockResolvedValue({ id: 'log-1' } as any);
+      service.create.mockReturnValue(okAsync({ id: 'log-1' } as any));
 
       const result = await controller.create(mockUser, dto as any);
 
       expect(service.create).toHaveBeenCalledWith(mockUser.sub, dto);
       expect(result).toEqual({ id: 'log-1' });
+    });
+
+    it('folds a P2002 race on create into DomainFailureException (409)', async () => {
+      service.create.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'conflict',
+            code: 'RESOURCE_CONFLICT',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.create(mockUser, {
+          currentMedicineId: 'med-1',
+          scheduledFor: '2026-06-10T08:00:00Z',
+        } as any),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'RESOURCE_CONFLICT' },
+      });
     });
   });
 
@@ -74,21 +96,45 @@ describe('MedicineDoseLogsController', () => {
         scheduledFor: '2026-07-08',
         scheduledTime: '08:30',
       };
-      service.mark.mockResolvedValue({
-        id: 'log-1',
-        reminderId: 'reminder-1',
-      } as any);
+      service.mark.mockReturnValue(
+        okAsync({
+          id: 'log-1',
+          reminderId: 'reminder-1',
+        } as any),
+      );
 
       const result = await controller.mark(mockUser, dto as any);
 
       expect(service.mark).toHaveBeenCalledWith(mockUser.sub, dto);
       expect(result).toEqual({ id: 'log-1', reminderId: 'reminder-1' });
     });
+
+    it('folds a mark validation failure into DomainFailureException (400)', async () => {
+      service.mark.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'validation',
+            code: 'VALIDATION_FAILED',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.mark(mockUser, {
+          currentMedicineId: 'med-1',
+          status: 'taken',
+          scheduledFor: '2026-07-08',
+        } as any),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'VALIDATION_FAILED' },
+      });
+    });
   });
 
   describe('PATCH /user/medicine-dose-logs/:id', () => {
     it('should update a dose log', async () => {
-      service.update.mockResolvedValue({ id: 'log-1' } as any);
+      service.update.mockReturnValue(okAsync({ id: 'log-1' } as any));
 
       const result = await controller.update(mockUser, 'log-1', {
         status: 'taken',
@@ -103,7 +149,7 @@ describe('MedicineDoseLogsController', () => {
 
   describe('DELETE /user/medicine-dose-logs/:id', () => {
     it('should delete a dose log', async () => {
-      service.delete.mockResolvedValue(undefined);
+      service.delete.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.delete(mockUser, 'log-1'),

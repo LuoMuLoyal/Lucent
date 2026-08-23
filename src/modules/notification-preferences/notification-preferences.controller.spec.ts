@@ -1,4 +1,5 @@
 import { NotificationPreferencesController } from './notification-preferences.controller';
+import { createDomainFailure, errAsync, okAsync } from '../../common/result';
 
 describe('NotificationPreferencesController', () => {
   it('returns the authenticated user preferences resource', async () => {
@@ -37,7 +38,7 @@ describe('NotificationPreferencesController', () => {
     };
     const service = {
       get: vi.fn(),
-      patch: vi.fn().mockResolvedValue(preferences),
+      patch: vi.fn().mockReturnValue(okAsync(preferences)),
     };
     const controller = new NotificationPreferencesController(service as never);
 
@@ -49,6 +50,31 @@ describe('NotificationPreferencesController', () => {
     ).resolves.toEqual(preferences);
     expect(service.patch).toHaveBeenCalledWith('user-1', {
       healthAlertsEnabled: false,
+    });
+  });
+
+  it('folds a patch validation failure into DomainFailureException (400)', async () => {
+    const service = {
+      get: vi.fn(),
+      patch: vi.fn().mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'validation',
+            code: 'VALIDATION_FAILED',
+          }),
+        ),
+      ),
+    };
+    const controller = new NotificationPreferencesController(service as never);
+
+    await expect(
+      controller.patch(
+        { sub: 'user-1', email: 'a@b.c', status: 'active' },
+        { sleepBedtimeMinutes: 9999 },
+      ),
+    ).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'VALIDATION_FAILED' },
     });
   });
 });

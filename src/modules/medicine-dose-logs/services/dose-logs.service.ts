@@ -1,10 +1,20 @@
-import { badRequest, notFound } from '../../../common';
-import { formatDateOnly, now, parseDateOnly } from '../../../common';
-import { nonDeleted } from '../../../common';
-import { normalizeNullableText } from '../../../common';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { I18nService } from 'nestjs-i18n';
+import {
+  formatDateOnly,
+  nonDeleted,
+  normalizeNullableText,
+  now,
+  parseDateOnly,
+} from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 
 import { DoseLogStatus, Prisma } from '#generated/prisma/client';
 import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository';
@@ -18,6 +28,7 @@ import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto';
 import { HealthEventsOwnershipService } from '../../health-events';
 
 import type { UpdateDoseLogDto } from '../dto/update-dose-log.dto';
+import type { DoseLogResponseDto } from '../dto/dose-log-response.dto';
 
 type OwnedReminderRecord = {
   userId: string;
@@ -32,7 +43,6 @@ export class MedicineDoseLogsService {
 
   constructor(
     private readonly repository: MedicineDoseLogRepositoryPort,
-    private readonly i18n: I18nService,
     private readonly eventEmitter: EventEmitter2,
     private readonly healthEventsOwnership: HealthEventsOwnershipService,
   ) {}
@@ -59,135 +69,168 @@ export class MedicineDoseLogsService {
     };
   }
 
-  async create(userId: string, dto: CreateDoseLogDto) {
+  create(
+    userId: string,
+    dto: CreateDoseLogDto,
+  ): ResultAsync<DoseLogResponseDto, DomainFailure> {
     const scheduledFor = parseDateOnly(dto.scheduledFor);
-    await this.ensureActiveHealthEvent(userId, dto.healthEventId);
-    const reminder = await this.ensureReminderOwned(
-      userId,
-      dto.reminderId,
-      dto.currentMedicineId,
-    );
-    const currentMedicineId = await this.resolveCurrentMedicineId(
-      userId,
-      dto.currentMedicineId,
-      reminder,
-    );
-    const scheduledTime = this.resolveScheduledTime(
-      dto.scheduledTime,
-      reminder,
-    );
-
-    const record = await this.repository.create(
-      this.buildCreateData(userId, {
-        currentMedicineId,
-        reminderId: dto.reminderId ?? null,
-        status: dto.status,
-        scheduledFor,
-        scheduledTime,
-        doseText: dto.doseText,
-        note: dto.note,
-        healthEventId: dto.healthEventId,
-      }),
-    );
-    await this.invalidateSuggestionCache(userId, scheduledFor, record.id);
-    return this.toItem(record);
+    return this.ensureActiveHealthEvent(userId, dto.healthEventId)
+      .andThen(() =>
+        this.ensureReminderOwned(userId, dto.reminderId, dto.currentMedicineId),
+      )
+      .andThen((reminder) =>
+        this.resolveCurrentMedicineId(
+          userId,
+          dto.currentMedicineId,
+          reminder,
+        ).map((currentMedicineId) => ({ reminder, currentMedicineId })),
+      )
+      .andThen(({ reminder, currentMedicineId }) => {
+        const scheduledTime = this.resolveScheduledTime(
+          dto.scheduledTime,
+          reminder,
+        );
+        return this.repository
+          .create(
+            this.buildCreateData(userId, {
+              currentMedicineId,
+              reminderId: dto.reminderId ?? null,
+              status: dto.status,
+              scheduledFor,
+              scheduledTime,
+              doseText: dto.doseText,
+              note: dto.note,
+              healthEventId: dto.healthEventId,
+            }),
+          )
+          .andThen((record) =>
+            this.afterWrite(userId, scheduledFor, record.id, () =>
+              this.toItem(record),
+            ),
+          );
+      });
   }
 
-  async mark(userId: string, dto: MarkDoseLogDto) {
+  mark(
+    userId: string,
+    dto: MarkDoseLogDto,
+  ): ResultAsync<DoseLogResponseDto, DomainFailure> {
     const scheduledFor = parseDateOnly(dto.scheduledFor);
-    await this.ensureActiveHealthEvent(userId, dto.healthEventId);
-    const reminder = await this.ensureReminderOwned(
-      userId,
-      dto.reminderId,
-      dto.currentMedicineId,
-    );
-    const currentMedicineId = await this.resolveCurrentMedicineId(
-      userId,
-      dto.currentMedicineId,
-      reminder,
-    );
-    const scheduledTime = this.resolveScheduledTime(
-      dto.scheduledTime,
-      reminder,
-    );
-    const reminderId = dto.reminderId ?? null;
+    return this.ensureActiveHealthEvent(userId, dto.healthEventId)
+      .andThen(() =>
+        this.ensureReminderOwned(userId, dto.reminderId, dto.currentMedicineId),
+      )
+      .andThen((reminder) =>
+        this.resolveCurrentMedicineId(
+          userId,
+          dto.currentMedicineId,
+          reminder,
+        ).map((currentMedicineId) => ({ reminder, currentMedicineId })),
+      )
+      .andThen(({ reminder, currentMedicineId }) => {
+        const scheduledTime = this.resolveScheduledTime(
+          dto.scheduledTime,
+          reminder,
+        );
+        const reminderId = dto.reminderId ?? null;
 
-    const where = this.buildMarkLookupWhere({
-      userId,
-      currentMedicineId,
-      reminderId,
-      scheduledFor,
-      scheduledTime,
-    });
-    if (
-      where == null &&
-      (reminderId != null || currentMedicineId == null || scheduledTime == null)
-    ) {
-      badRequest(this.i18n.t('medicine-dose-logs.missing_slot_identifier'));
-    }
-
-    const existing =
-      where == null
-        ? null
-        : ((await this.repository.findFirst(where, {
-            orderBy: [{ updatedAt: 'desc' }],
-          })) as { id: string } | null);
-
-    if (existing) {
-      const record = await this.repository.update(
-        { id: existing.id },
-        this.buildMarkUpdateData({
+        const where = this.buildMarkLookupWhere({
+          userId,
           currentMedicineId,
           reminderId,
-          status: dto.status,
+          scheduledFor,
           scheduledTime,
-          doseText: dto.doseText,
-          note: dto.note,
-          healthEventId: dto.healthEventId,
-        }),
+        });
+        if (
+          where == null &&
+          (reminderId != null ||
+            currentMedicineId == null ||
+            scheduledTime == null)
+        ) {
+          return errAsync(this.validationFailed());
+        }
+
+        const existingLookup =
+          where == null
+            ? okAsync(null)
+            : fromPromise(
+                this.repository.findFirst(where, {
+                  orderBy: [{ updatedAt: 'desc' }],
+                }),
+                (error) => {
+                  throw error;
+                },
+              );
+
+        return existingLookup.andThen((existing) => {
+          const existingId = (existing as { id: string } | null)?.id ?? null;
+          if (existingId != null) {
+            return this.repository
+              .update(
+                { id: existingId },
+                this.buildMarkUpdateData({
+                  currentMedicineId,
+                  reminderId,
+                  status: dto.status,
+                  scheduledTime,
+                  doseText: dto.doseText,
+                  note: dto.note,
+                  healthEventId: dto.healthEventId,
+                }),
+              )
+              .andThen((record) =>
+                this.afterWrite(userId, scheduledFor, record.id, () =>
+                  this.toItem(record),
+                ),
+              );
+          }
+
+          return this.repository
+            .create(
+              this.buildCreateData(userId, {
+                currentMedicineId,
+                reminderId,
+                status: dto.status,
+                scheduledFor,
+                scheduledTime,
+                doseText: dto.doseText,
+                note: dto.note,
+                healthEventId: dto.healthEventId,
+              }),
+            )
+            .andThen((record) =>
+              this.afterWrite(userId, scheduledFor, record.id, () =>
+                this.toItem(record),
+              ),
+            );
+        });
+      });
+  }
+
+  update(
+    userId: string,
+    id: string,
+    dto: UpdateDoseLogDto,
+  ): ResultAsync<DoseLogResponseDto, DomainFailure> {
+    return this.ensureOwned(userId, id)
+      .andThen(() => this.repository.update({ id }, this.buildUpdateData(dto)))
+      .andThen((record) =>
+        this.afterWriteById(userId, id, () => this.toItem(record)),
       );
-      await this.invalidateSuggestionCache(userId, scheduledFor, record.id);
-      return this.toItem(record);
-    }
-
-    const record = await this.repository.create(
-      this.buildCreateData(userId, {
-        currentMedicineId,
-        reminderId,
-        status: dto.status,
-        scheduledFor,
-        scheduledTime,
-        doseText: dto.doseText,
-        note: dto.note,
-        healthEventId: dto.healthEventId,
-      }),
-    );
-    await this.invalidateSuggestionCache(userId, scheduledFor, record.id);
-    return this.toItem(record);
   }
 
-  async update(userId: string, id: string, dto: UpdateDoseLogDto) {
-    await this.ensureOwned(userId, id);
-    const data: Prisma.UserMedicineDoseLogUpdateInput = {};
-    if (dto.status !== undefined) {
-      data.status = dto.status;
-      data.takenAt = dto.status === DoseLogStatus.taken ? now() : null;
-    }
-    if (dto.doseText !== undefined) {
-      data.doseText = normalizeNullableText(dto.doseText);
-    }
-    if (dto.note !== undefined) {
-      data.note = normalizeNullableText(dto.note);
-    }
-    const record = await this.repository.update({ id }, data);
-    await this.invalidateSuggestionCacheById(userId, id);
-    return this.toItem(record);
-  }
-
-  async delete(userId: string, id: string) {
-    await this.ensureOwned(userId, id);
-    await this.invalidateSuggestionCacheById(userId, id);
-    await this.repository.update({ id }, { deletedAt: now() });
+  delete(userId: string, id: string): ResultAsync<void, DomainFailure> {
+    return this.ensureOwned(userId, id)
+      .andThen(() =>
+        fromPromise(this.invalidateSuggestionCacheById(userId, id), (error) => {
+          throw error;
+        }),
+      )
+      .andThen(() =>
+        this.repository
+          .update({ id }, { deletedAt: now() })
+          .map(() => undefined),
+      );
   }
 
   private async invalidateSuggestionCache(
@@ -227,6 +270,52 @@ export class MedicineDoseLogsService {
         logId,
       );
     }
+  }
+
+  /** Best-effort suggestion-cache invalidation, then maps the written record. */
+  private afterWrite<T>(
+    userId: string,
+    scheduledFor: Date,
+    doseLogId: string,
+    build: () => T,
+  ): ResultAsync<T, DomainFailure> {
+    return fromPromise(
+      this.invalidateSuggestionCache(userId, scheduledFor, doseLogId),
+      (error) => {
+        throw error;
+      },
+    ).map(build);
+  }
+
+  /** Best-effort suggestion-cache invalidation by id, then maps the record. */
+  private afterWriteById<T>(
+    userId: string,
+    logId: string,
+    build: () => T,
+  ): ResultAsync<T, DomainFailure> {
+    return fromPromise(
+      this.invalidateSuggestionCacheById(userId, logId),
+      (error) => {
+        throw error;
+      },
+    ).map(build);
+  }
+
+  private buildUpdateData(
+    dto: UpdateDoseLogDto,
+  ): Prisma.UserMedicineDoseLogUpdateInput {
+    const data: Prisma.UserMedicineDoseLogUpdateInput = {};
+    if (dto.status !== undefined) {
+      data.status = dto.status;
+      data.takenAt = dto.status === DoseLogStatus.taken ? now() : null;
+    }
+    if (dto.doseText !== undefined) {
+      data.doseText = normalizeNullableText(dto.doseText);
+    }
+    if (dto.note !== undefined) {
+      data.note = normalizeNullableText(dto.note);
+    }
+    return data;
   }
 
   private buildCreateData(
@@ -319,49 +408,60 @@ export class MedicineDoseLogsService {
     };
   }
 
-  private async ensureReminderOwned(
+  private ensureReminderOwned(
     userId: string,
     reminderId: string | undefined,
     currentMedicineId: string | undefined,
-  ): Promise<OwnedReminderRecord | null> {
+  ): ResultAsync<OwnedReminderRecord | null, DomainFailure> {
     if (!reminderId) {
-      return null;
+      return okAsync(null);
     }
 
-    const reminder = await this.repository.findReminderById(userId, reminderId);
-    if (!reminder) {
-      notFound(this.i18n.t('medicine-reminders.reminder_not_found'));
-    }
-    if (
-      currentMedicineId != null &&
-      reminder.currentMedicineId != null &&
-      reminder.currentMedicineId !== currentMedicineId
-    ) {
-      badRequest(this.i18n.t('medicine-dose-logs.invalid_slot_identity'));
-    }
-
-    return reminder;
+    return fromPromise(
+      this.repository.findReminderById(userId, reminderId),
+      (error) => {
+        throw error;
+      },
+    ).andThen((reminder) => {
+      if (!reminder) {
+        return errAsync(this.reminderNotFoundFailure());
+      }
+      if (
+        currentMedicineId != null &&
+        reminder.currentMedicineId != null &&
+        reminder.currentMedicineId !== currentMedicineId
+      ) {
+        return errAsync(this.validationFailed());
+      }
+      return okAsync(reminder);
+    });
   }
 
-  private async resolveCurrentMedicineId(
+  private resolveCurrentMedicineId(
     userId: string,
     currentMedicineId: string | undefined,
     reminder: OwnedReminderRecord | null,
-  ) {
+  ): ResultAsync<string | null, DomainFailure> {
     const resolvedCurrentMedicineId =
       currentMedicineId ?? reminder?.currentMedicineId ?? null;
 
-    if (resolvedCurrentMedicineId) {
-      const medicine = await this.repository.findCurrentMedicineById(
-        userId,
-        resolvedCurrentMedicineId,
-      );
-      if (!medicine) {
-        notFound(this.i18n.t('medicine-dose-logs.medicine_not_found'));
-      }
+    if (!resolvedCurrentMedicineId) {
+      return okAsync(null);
     }
 
-    return resolvedCurrentMedicineId;
+    return fromPromise(
+      this.repository.findCurrentMedicineById(
+        userId,
+        resolvedCurrentMedicineId,
+      ),
+      (error) => {
+        throw error;
+      },
+    ).andThen((medicine) =>
+      medicine == null
+        ? errAsync(this.medicineNotFoundFailure())
+        : okAsync(resolvedCurrentMedicineId),
+    );
   }
 
   private resolveScheduledTime(
@@ -380,25 +480,71 @@ export class MedicineDoseLogsService {
     ).padStart(2, '0')}`;
   }
 
-  private async ensureActiveHealthEvent(
+  private ensureActiveHealthEvent(
     userId: string,
     healthEventId: string | null | undefined,
-  ): Promise<void> {
-    if (healthEventId != null) {
-      await this.healthEventsOwnership.ensureActiveOwnedByUser(
-        userId,
-        healthEventId,
-      );
+  ): ResultAsync<void, DomainFailure> {
+    if (healthEventId == null) {
+      return okAsync(undefined);
     }
+    // HealthEventsOwnershipService keeps the legacy Promise<T> contract and
+    // folds the events module ResultAsync with unwrapResult (its DomainFailure
+    // surfaces as DomainFailureException through the global filter). Unknown
+    // failures rethrow. TODO(error): consume the events Result directly when
+    // the health-events ownership shim is removed (Task 10).
+    return fromPromise(
+      this.healthEventsOwnership.ensureActiveOwnedByUser(userId, healthEventId),
+      (error) => {
+        throw error;
+      },
+    ).map(() => undefined);
   }
 
-  private async ensureOwned(userId: string, id: string) {
-    const record = (await this.repository.findFirst(
-      { id, userId, deletedAt: null },
-      { select: { userId: true } },
-    )) as { userId: string } | null;
-    if (!record) {
-      notFound(this.i18n.t('medicine-dose-logs.not_found'));
-    }
+  private ensureOwned(
+    userId: string,
+    id: string,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(
+      this.repository.findFirst(
+        { id, userId, deletedAt: null },
+        { select: { userId: true } },
+      ),
+      (error) => {
+        throw error;
+      },
+    ).andThen((record) => {
+      if (record == null) {
+        return errAsync(this.doseLogNotFoundFailure());
+      }
+      return okAsync(undefined);
+    });
+  }
+
+  private validationFailed(): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+    });
+  }
+
+  private reminderNotFoundFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  }
+
+  private medicineNotFoundFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
+  }
+
+  private doseLogNotFoundFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+    });
   }
 }

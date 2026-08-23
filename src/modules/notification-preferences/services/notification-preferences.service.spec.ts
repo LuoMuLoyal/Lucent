@@ -1,5 +1,17 @@
-import { BadRequestException } from '@nestjs/common';
 import { NotificationPreferencesService } from './notification-preferences.service';
+
+async function unwrapOk<T>(
+  result: ReturnType<NotificationPreferencesService['patch']>,
+): Promise<T> {
+  const outcome = await result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+  if (!outcome.ok) {
+    throw new Error(`Expected ok result, got ${outcome.error.code}`);
+  }
+  return outcome.value as T;
+}
 
 describe('NotificationPreferencesService', () => {
   it('returns default values and configured=false when the row is missing', async () => {
@@ -41,11 +53,13 @@ describe('NotificationPreferencesService', () => {
     const service = new NotificationPreferencesService(prisma as never);
 
     await expect(
-      service.patch('user-1', {
-        healthAlertsEnabled: false,
-        weeklyInsightEnabled: true,
-        sleepBedtimeMinutes: 1380,
-      }),
+      unwrapOk(
+        service.patch('user-1', {
+          healthAlertsEnabled: false,
+          weeklyInsightEnabled: true,
+          sleepBedtimeMinutes: 1380,
+        }),
+      ),
     ).resolves.toEqual({
       healthAlertsEnabled: false,
       weeklyInsightEnabled: true,
@@ -70,19 +84,42 @@ describe('NotificationPreferencesService', () => {
   });
 
   it.each([-1, 1440])(
-    'rejects sleep time minute %s outside 0..1439',
+    'rejects sleep time minute %s outside 0..1439 with VALIDATION_FAILED',
     async (minutes) => {
       const prisma = {
         userNotificationPreference: { upsert: vi.fn() },
       };
       const service = new NotificationPreferencesService(prisma as never);
 
-      await expect(
-        service.patch('user-1', { sleepBedtimeMinutes: minutes }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const outcome = await service
+        .patch('user-1', { sleepBedtimeMinutes: minutes })
+        .match(
+          (value) => ({ ok: true as const, value }),
+          (error) => ({ ok: false as const, error }),
+        );
+
+      expect(outcome).toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
       expect(prisma.userNotificationPreference.upsert).not.toHaveBeenCalled();
     },
   );
+
+  it('returns the current row without writing when the payload is empty', async () => {
+    const prisma = {
+      userNotificationPreference: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        upsert: vi.fn(),
+      },
+    };
+    const service = new NotificationPreferencesService(prisma as never);
+
+    await expect(unwrapOk(service.patch('user-1', {}))).resolves.toMatchObject({
+      configured: false,
+    });
+    expect(prisma.userNotificationPreference.upsert).not.toHaveBeenCalled();
+  });
 
   it.each(['sleep_shortfall', 'event_check_in_trend', 'deteriorating_symptom'])(
     'maps %s to healthAlertsEnabled',

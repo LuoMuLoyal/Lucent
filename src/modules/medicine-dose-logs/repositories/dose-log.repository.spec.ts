@@ -1,7 +1,26 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
+import { Prisma } from '#generated/prisma/client';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 import { MedicineDoseLogRepository } from './dose-log.repository';
 import type { PrismaService } from '../../../prisma';
+
+function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
+  const error = Object.create(
+    Prisma.PrismaClientKnownRequestError.prototype,
+  ) as Prisma.PrismaClientKnownRequestError;
+  error.code = code;
+  return error;
+}
+
+async function collectResult<T>(
+  result: ResultAsync<T, DomainFailure>,
+): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 describe('MedicineDoseLogRepository', () => {
   let repository: MedicineDoseLogRepository;
@@ -227,10 +246,36 @@ describe('MedicineDoseLogRepository', () => {
         ...data,
       } as never);
 
-      const result = await repository.create(data as never);
+      const result = await collectResult(repository.create(data as never));
 
-      expect(result).toMatchObject({ id: 'log-1', status: 'taken' });
+      expect(result).toMatchObject({
+        ok: true,
+        value: { id: 'log-1', status: 'taken' },
+      });
       expect(prisma.userMedicineDoseLog.create).toHaveBeenCalledWith({ data });
+    });
+
+    it('maps a unique constraint violation to RESOURCE_CONFLICT', async () => {
+      prisma.userMedicineDoseLog.create.mockRejectedValue(prismaError('P2002'));
+
+      const result = await collectResult(
+        repository.create({ userId: 'user-1' } as never),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
+      });
+    });
+
+    it('rethrows unknown database errors', async () => {
+      prisma.userMedicineDoseLog.create.mockRejectedValue(
+        new Error('connection lost'),
+      );
+
+      await expect(
+        repository.create({ userId: 'user-1' } as never),
+      ).rejects.toThrow('connection lost');
     });
   });
 
@@ -243,13 +288,41 @@ describe('MedicineDoseLogRepository', () => {
         status: 'taken',
       } as never);
 
-      const result = await repository.update(where as never, data as never);
+      const result = await collectResult(
+        repository.update(where as never, data as never),
+      );
 
-      expect(result).toMatchObject({ id: 'log-1', status: 'taken' });
+      expect(result).toMatchObject({
+        ok: true,
+        value: { id: 'log-1', status: 'taken' },
+      });
       expect(prisma.userMedicineDoseLog.update).toHaveBeenCalledWith({
         where,
         data,
       });
+    });
+
+    it('maps a missing record to RESOURCE_NOT_FOUND', async () => {
+      prisma.userMedicineDoseLog.update.mockRejectedValue(prismaError('P2025'));
+
+      const result = await collectResult(
+        repository.update({ id: 'missing' } as never, {} as never),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+      });
+    });
+
+    it('rethrows unknown database errors', async () => {
+      prisma.userMedicineDoseLog.update.mockRejectedValue(
+        new Error('connection lost'),
+      );
+
+      await expect(
+        repository.update({ id: 'log-1' } as never, {} as never),
+      ).rejects.toThrow('connection lost');
     });
   });
 

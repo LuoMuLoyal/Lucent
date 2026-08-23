@@ -3,6 +3,9 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma';
+import { fromPromise, okAsync } from '../../../common/result';
+import { fromPrismaResult } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import type { UpdateUserSettingsDto } from '../dto/update.dto';
 
 import type { UserSettingsDataDto } from '../dto/response.dto';
@@ -127,10 +130,51 @@ export class UserSettingsService {
     };
   }
 
-  async updateSettings(
+  updateSettings(
     userId: string,
     dto: UpdateUserSettingsDto,
-  ): Promise<UserSettingsDataDto> {
+  ): ResultAsync<UserSettingsDataDto, DomainFailure> {
+    const upserts = this.collectUpserts(dto);
+
+    const write =
+      upserts.length === 0
+        ? okAsync(undefined)
+        : fromPrismaResult(
+            Promise.all(
+              upserts.map(({ key, value }) =>
+                this.prisma.userSetting.upsert({
+                  where: { userId_key: { userId, key } },
+                  create: { userId, key, value },
+                  update: { value },
+                }),
+              ),
+            ),
+          ).map(() => undefined);
+
+    return write
+      .andThen(() =>
+        fromPromise(
+          this.cacheDel(`${UserSettingsService.CACHE_PREFIX}:${userId}`),
+          (error) => {
+            throw error;
+          },
+        ),
+      )
+      .andThen(() =>
+        fromPromise(this.emitSettingsChanged(userId), (error) => {
+          throw error;
+        }),
+      )
+      .andThen(() =>
+        fromPromise(this.getSettings(userId), (error) => {
+          throw error;
+        }),
+      );
+  }
+
+  private collectUpserts(
+    dto: UpdateUserSettingsDto,
+  ): Array<{ key: string; value: SettingValue }> {
     const upserts: Array<{ key: string; value: SettingValue }> = [];
     if (dto.aiSummariesEnabled !== undefined) {
       upserts.push({
@@ -188,18 +232,7 @@ export class UserSettingsService {
       });
     }
 
-    for (const { key, value } of upserts) {
-      await this.prisma.userSetting.upsert({
-        where: { userId_key: { userId, key } },
-        create: { userId, key, value },
-        update: { value },
-      });
-    }
-
-    // Invalidate cache and return fresh data
-    await this.cacheDel(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
-    await this.emitSettingsChanged(userId);
-    return this.getSettings(userId);
+    return upserts;
   }
 
   private async emitSettingsChanged(userId: string): Promise<void> {
