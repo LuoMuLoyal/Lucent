@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-22
+updated: 2026-08-23
 ---
 
 # Lucent Architecture
 
-## HTTP Boundary (2026-08-22)
+## HTTP Boundary (2026-08-23)
 
 The target HTTP boundary separates representations: successful resources are returned directly,
 while ordinary 4xx/5xx responses use RFC 9457 `application/problem+json`. The global exception
@@ -20,6 +20,14 @@ through the request language and the backend i18n catalog; validation may additi
 field-level `errors`. Rate-limit responses use HTTP 429, `retryable`, `retryAfter`, and the
 `Retry-After` header. Ordinary error bodies do not contain `statusCode`, `requestId`, stacks, or
 provider payloads.
+
+Expected, recoverable domain failures are represented by `ResultAsync<T, DomainFailure>` consumed
+from `src/common/result/index.ts`. `DomainFailure` carries a stable `code`, a `kind` category, an
+optional request-specific `detail`, and an optional `args` map of primitive interpolation values for
+i18n. `args` and `errors` are forwarded to the i18n catalog; `cause` is kept for logs/traces only
+and never serialised into the Problem Details body. Each documented business `code` has one
+`DomainFailureKind`, and `createDomainFailure` rejects inconsistent `kind`/`code` pairs as well as
+transport-only codes such as `SERVER_SHUTDOWN` and `STREAM_CANCELLED`.
 
 ## Module Dependency Graph
 

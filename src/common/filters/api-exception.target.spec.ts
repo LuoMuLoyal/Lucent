@@ -104,6 +104,34 @@ describe('ApiExceptionFilter target contract', () => {
     );
   });
 
+  it('writes Retry-After for a DomainFailure that carries retryAfter', () => {
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      header: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new DomainFailureException(
+        createDomainFailure({
+          kind: 'rate_limited',
+          code: 'RATE_LIMITED',
+          retryAfter: 60,
+        }),
+      ),
+      createHost(response, { method: 'GET', url: '/items' }),
+    );
+
+    expect(response.status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS);
+    expect(response.type).toHaveBeenCalledWith('application/problem+json');
+    expect(response.header).toHaveBeenCalledWith('Retry-After', '60');
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({ retryAfter: 60 }),
+    );
+  });
+
   it('normalizes validation arrays into safe structured errors', () => {
     const filter = new ApiExceptionFilter(createI18n());
     const response = {

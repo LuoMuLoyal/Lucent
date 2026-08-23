@@ -34,6 +34,53 @@ describe('DomainFailure', () => {
 
     expect(failure.cause).toBe(cause);
     expect(failure.retryAfter).toBe(3);
+    expect('cause' in failure).toBe(true);
+  });
+
+  it('carries safe i18n args without leaking objects or booleans', () => {
+    const failure = createDomainFailure({
+      kind: 'rate_limited',
+      code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+      args: { minutes: 5 },
+      retryAfter: 300,
+    });
+
+    expect(failure.args).toEqual({ minutes: 5 });
+    expect(isDomainFailure(failure)).toBe(true);
+  });
+
+  it('rejects args containing non-primitive values', () => {
+    expect(() =>
+      createDomainFailure({
+        kind: 'rate_limited',
+        code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+        args: { minutes: { value: 5 } as never },
+      }),
+    ).toThrow();
+
+    expect(() =>
+      createDomainFailure({
+        kind: 'rate_limited',
+        code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+        args: { active: true as never },
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a kind/code pair that is not documented together', () => {
+    expect(() =>
+      createDomainFailure({
+        kind: 'validation',
+        code: 'RESOURCE_NOT_FOUND',
+      }),
+    ).toThrow();
+
+    expect(() =>
+      createDomainFailure({
+        kind: 'not_found',
+        code: 'VALIDATION_FAILED',
+      }),
+    ).toThrow();
   });
 
   it.each([
@@ -72,6 +119,14 @@ describe('DomainFailure', () => {
     expect(isDomainFailure({ _tag: 'DomainFailure' })).toBe(false);
     expect(
       isDomainFailure({ kind: 'validation', code: 'VALIDATION_FAILED' }),
+    ).toBe(false);
+    expect(
+      isDomainFailure({
+        _tag: 'DomainFailure',
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        args: { x: null },
+      }),
     ).toBe(false);
   });
 });

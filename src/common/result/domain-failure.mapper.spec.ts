@@ -4,7 +4,10 @@ import { toProblemDetails } from './domain-failure.mapper';
 
 describe('toProblemDetails', () => {
   const catalog = new ProblemCatalog({
-    t: (key: string) => `translated:${key}`,
+    t: (key: string, options?: { args?: Record<string, string | number> }) =>
+      options?.args
+        ? `translated:${key}:${JSON.stringify(options.args)}`
+        : `translated:${key}`,
   } as never);
 
   it('delegates status, URI, and localization to ProblemCatalog', () => {
@@ -29,6 +32,27 @@ describe('toProblemDetails', () => {
       code: 'RECORD_ALREADY_EXISTS',
       retryable: false,
       traceId: 'trace-123',
+    });
+  });
+
+  it('forwards i18n args to ProblemCatalog for dynamic title/detail', () => {
+    const result = toProblemDetails(
+      createDomainFailure({
+        kind: 'rate_limited',
+        code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+        args: { minutes: 5 },
+        retryAfter: 300,
+      }),
+      { catalog, lang: 'zh-CN' },
+    );
+
+    expect(result).toMatchObject({
+      code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+      title:
+        'translated:common.problem_auth_verification_code_cooldown_title:{"minutes":5}',
+      detail:
+        'translated:common.problem_auth_verification_code_cooldown_detail:{"minutes":5}',
+      retryAfter: 300,
     });
   });
 

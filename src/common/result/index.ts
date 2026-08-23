@@ -17,4 +17,4 @@ export type {
 } from './domain-failure';
 export { toProblemDetails } from './domain-failure.mapper';
 export type { DomainFailureProblemOptions } from './domain-failure.mapper';
-export { DomainFailureException, unwrapResult } from './unwrap-result';
+export { unwrapResult } from './unwrap-result';

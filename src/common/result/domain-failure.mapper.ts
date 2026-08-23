@@ -19,6 +19,7 @@ export function toProblemDetails(
   return options.catalog.build(failure.code, {
     lang: options.lang,
     ...(failure.detail == null ? {} : { detail: failure.detail }),
+    ...(failure.args == null ? {} : { args: { ...failure.args } }),
     ...(failure.errors == null ? {} : { errors: { ...failure.errors } }),
     ...(failure.retryable == null ? {} : { retryable: failure.retryable }),
     ...(failure.retryAfter == null ? {} : { retryAfter: failure.retryAfter }),
