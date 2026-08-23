@@ -2298,7 +2298,7 @@
             }
           },
           "400": {
-            "description": "Verification code expired or does not match",
+            "description": "Verification token is invalid or has expired",
             "content": {
               "application/json": {
                 "schema": {
@@ -2371,17 +2371,7 @@
             "description": "Password reset."
           },
           "400": {
-            "description": "Verification code expired or does not match",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Account not found",
+            "description": "Reset token is invalid, expired, or the password is invalid",
             "content": {
               "application/json": {
                 "schema": {
@@ -10107,7 +10097,6 @@
             "enum": [
               "register",
               "login",
-              "reset-password",
               "change-email",
               "set-password",
               "delete-account"
@@ -10136,20 +10125,13 @@
       "VerifyEmailDto": {
         "type": "object",
         "properties": {
-          "email": {
+          "token": {
             "type": "string",
-            "description": "邮箱地址",
-            "example": "user@example.com"
-          },
-          "code": {
-            "type": "string",
-            "description": "验证码",
-            "example": "123456",
-            "minLength": 6,
-            "maxLength": 6
+            "description": "Better Auth 邮件验证 token",
+            "example": "eyJhbGciOiJIUzI1NiIs..."
           }
         },
-        "required": ["email", "code"]
+        "required": ["token"]
       },
       "VerifyEmailResponseDto": {
         "type": "object",
@@ -10192,17 +10174,10 @@
       "ResetPasswordDto": {
         "type": "object",
         "properties": {
-          "email": {
+          "token": {
             "type": "string",
-            "description": "邮箱地址",
-            "example": "user@example.com"
-          },
-          "code": {
-            "type": "string",
-            "description": "验证码",
-            "example": "123456",
-            "minLength": 6,
-            "maxLength": 6
+            "description": "Better Auth 密码重置 token",
+            "example": "eyJhbGciOiJIUzI1NiIs..."
           },
           "password": {
             "type": "string",
@@ -10212,7 +10187,7 @@
             "maxLength": 32
           }
         },
-        "required": ["email", "code", "password"]
+        "required": ["token", "password"]
       },
       "OAuthAuthorizeDto": {
         "type": "object",
@@ -13884,11 +13859,6 @@
       "SetPasswordDto": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "description": "邮箱（OAuth-only 用户尚无邮箱时必须提供，用于同时绑定邮箱）",
-            "example": "user@example.com"
-          },
           "code": {
             "type": "string",
             "description": "发往邮箱的验证码",

@@ -44,10 +44,32 @@ function toWorktreeEol(content, repoRoot) {
   }
 }
 
+function setIfMissing(key: string, value: string) {
+  if (!process.env[key]) {
+    process.env[key] = value;
+  }
+}
+
 async function main() {
   delete process.env.REDIS_URL;
   process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT = 'true';
   process.env.OPENAPI_EXPORT_SKIP_REDIS = 'true';
+
+  // The OpenAPI export builds the application only to introspect controllers
+  // and DTOs. It never starts the HTTP server or connects to real infra, so
+  // missing secrets should not block artifact generation. Provide safe
+  // placeholders for required environment variables when they are absent.
+  setIfMissing(
+    'BETTER_AUTH_SECRET',
+    'better-auth-export-only-placeholder-0000',
+  );
+  setIfMissing('BETTER_AUTH_URL', 'http://localhost:3000');
+  setIfMissing('JWT_ACCESS_SECRET', 'jwt-access-export-only-placeholder-000');
+  setIfMissing('JWT_REFRESH_SECRET', 'jwt-refresh-export-only-placeholder-00');
+  setIfMissing('ADMIN_EMAIL', 'admin@example.com');
+  setIfMissing('ADMIN_PASSWORD', 'admin-export-only-placeholder-00');
+  setIfMissing('ADMIN_COOKIE_SECRET', 'admin-cookie-export-only-placeholder-0');
+
   const repoRoot = path.resolve(__dirname, '..', '..');
 
   const appModulePath = pathToFileURL(
