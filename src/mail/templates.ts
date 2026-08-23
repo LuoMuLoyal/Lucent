@@ -88,7 +88,41 @@ function emailShell(innerContent: string): string {
 </html>`;
 }
 
-// ── Verification code email ──────────────────────────────────────────
+// ── Shared call-to-action button ───────────────────────────────────────
+
+/**
+ * Renders a centered primary button pointing to the given URL.
+ */
+function ctaButton(labelZh: string, labelEn: string, url: string): string {
+  return `
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${escapeHtml(url)}" style="display:inline-block;padding:14px 32px;background-color:${BRAND_PRIMARY};color:${BRAND_WHITE};text-decoration:none;border-radius:10px;font-size:15px;font-weight:600;">
+                      ${labelZh}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 4px 0;color:${BRAND_TEXT_MUTED};font-size:13px;line-height:1.6;text-align:center;">
+                ${labelEn}
+              </p>
+              <p style="margin:0 0 24px 0;color:${BRAND_TEXT_MUTED};font-size:12px;line-height:1.6;word-break:break-all;text-align:center;">
+                ${escapeHtml(url)}
+              </p>`;
+}
+
+/** Basic HTML attribute escaping for URLs and plain text. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ── Verification code email ────────────────────────────────────────────
 
 /**
  * Bilingual subject line for the verification code email.
@@ -164,6 +198,144 @@ export function renderVerificationCodeEmail(
                     <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
                       &bull; The code expires in ${String(ttlMinutes)} minutes<br>
                       &bull; Do not share this code with anyone
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;color:${BRAND_TEXT_MUTED};font-size:13px;line-height:1.6;">
+                If you did not request this, please ignore this email. Your account security will not be affected.
+              </p>`;
+
+  return emailShell(inner);
+}
+
+// ── Verification link email ──────────────────────────────────────────
+
+/**
+ * Bilingual subject line for the verification link email.
+ */
+export const VERIFICATION_LINK_SUBJECT = `${BRAND_NAME} - 验证您的邮箱 / Verify Your Email`;
+
+/**
+ * Renders an email containing a one-time link to verify the email address.
+ *
+ * @param url - The verification link (contains the token)
+ * @param ttlMinutes - Link validity in minutes (default: 60)
+ */
+export function renderVerificationLinkEmail(
+  url: string,
+  ttlMinutes = 60,
+): string {
+  const inner = `
+              <!-- ── Chinese section ── -->
+
+              <p style="margin:0 0 24px 0;color:${BRAND_TEXT};font-size:16px;line-height:1.7;">
+                您好！请验证您的邮箱地址以完成账户设置。
+              </p>
+
+              ${ctaButton('验证邮箱', 'Verify Email', url)}
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+                <tr>
+                  <td style="background-color:#FEFCE8;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;">
+                    <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
+                      &bull; 链接 ${String(ttlMinutes)} 分钟内有效<br>
+                      &bull; 请勿将此链接分享给他人
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;color:${BRAND_TEXT_MUTED};font-size:13px;line-height:1.6;">
+                如果您没有发起此操作，请忽略此邮件，您的账户安全不会受到影响。
+              </p>
+
+              <!-- ── Language divider ── -->
+
+              <div style="margin:28px 0;">${LANG_DIVIDER}</div>
+
+              <!-- ── English section ── -->
+
+              <p style="margin:0 0 24px 0;color:${BRAND_TEXT};font-size:16px;line-height:1.7;">
+                Hello! Please verify your email address to complete your account setup.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+                <tr>
+                  <td style="background-color:#FEFCE8;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;">
+                    <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
+                      &bull; The link expires in ${String(ttlMinutes)} minutes<br>
+                      &bull; Do not share this link with anyone
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;color:${BRAND_TEXT_MUTED};font-size:13px;line-height:1.6;">
+                If you did not request this, please ignore this email. Your account security will not be affected.
+              </p>`;
+
+  return emailShell(inner);
+}
+
+// ── Password reset link email ────────────────────────────────────────
+
+/**
+ * Bilingual subject line for the password reset link email.
+ */
+export const PASSWORD_RESET_LINK_SUBJECT = `${BRAND_NAME} - 重置密码 / Reset Your Password`;
+
+/**
+ * Renders an email containing a one-time link to reset the password.
+ *
+ * @param url - The password reset link (contains the token)
+ * @param ttlMinutes - Link validity in minutes (default: 60)
+ */
+export function renderPasswordResetLinkEmail(
+  url: string,
+  ttlMinutes = 60,
+): string {
+  const inner = `
+              <!-- ── Chinese section ── -->
+
+              <p style="margin:0 0 24px 0;color:${BRAND_TEXT};font-size:16px;line-height:1.7;">
+                您好！我们收到了重置您账户密码的请求。
+              </p>
+
+              ${ctaButton('重置密码', 'Reset Password', url)}
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+                <tr>
+                  <td style="background-color:#FEFCE8;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;">
+                    <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
+                      &bull; 链接 ${String(ttlMinutes)} 分钟内有效<br>
+                      &bull; 请勿将此链接分享给他人
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;color:${BRAND_TEXT_MUTED};font-size:13px;line-height:1.6;">
+                如果您没有发起此操作，请忽略此邮件，您的账户安全不会受到影响。
+              </p>
+
+              <!-- ── Language divider ── -->
+
+              <div style="margin:28px 0;">${LANG_DIVIDER}</div>
+
+              <!-- ── English section ── -->
+
+              <p style="margin:0 0 24px 0;color:${BRAND_TEXT};font-size:16px;line-height:1.7;">
+                Hello! We received a request to reset your account password.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+                <tr>
+                  <td style="background-color:#FEFCE8;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;">
+                    <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
+                      &bull; The link expires in ${String(ttlMinutes)} minutes<br>
+                      &bull; Do not share this link with anyone
                     </p>
                   </td>
                 </tr>

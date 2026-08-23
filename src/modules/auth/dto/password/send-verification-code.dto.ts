@@ -5,7 +5,6 @@ import { IsEmailAddress } from '../../../../common/validators/auth.decorators';
 export const VERIFICATION_SCENES = [
   'register',
   'login',
-  'reset-password',
   'change-email',
   'set-password',
   'delete-account',

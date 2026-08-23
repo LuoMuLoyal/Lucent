@@ -71,7 +71,8 @@ Better Auth 迁移相关环境变量见 [[environment-variables]]。Task 2 已�
 
 - `BETTER_AUTH_SECRET` 在启动校验中变为必填（`z.string().min(32)`），任何环境缺失都会导致启动失败。
 - `BETTER_AUTH_URL` 可选，未设置时默认回退到 `http://localhost:3000`。
-- Task 1 spike 使用测试数据库与 `scripts/spike/better-auth-spike.ts`；Task 2 仍保留 spike 脚本，但它现在写入合并后的 `User` 表。
+- `BETTER_AUTH_EMAIL_CALLBACK_URL` 可选，默认 `luminous://auth/callback`，供 Better Auth 邮件验证/重置链接作为最终跳转目标。
+- Task 1 spike 使用测试数据库与 `scripts/spike/better-auth-spike.ts`；Task 2 仍保留 spike 脚本，但它现在写入合并后的 `User` 表；Task 3 接入邮箱验证与密码重置生命周期。
 
 Local Docker stack note:
 

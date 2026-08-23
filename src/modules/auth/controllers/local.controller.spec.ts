@@ -179,7 +179,7 @@ describe('LocalController', () => {
       );
 
       const result = await controller.sendVerificationCode(
-        { email: 'test@example.com', type: 'register' } as never,
+        { email: 'test@example.com', scene: 'register' } as never,
         mockRequest,
       );
 
@@ -201,7 +201,7 @@ describe('LocalController', () => {
 
       await expect(
         controller.sendVerificationCode(
-          { email: 'test@example.com', type: 'register' } as never,
+          { email: 'test@example.com', scene: 'register' } as never,
           mockRequest,
         ),
       ).rejects.toMatchObject({
@@ -216,8 +216,7 @@ describe('LocalController', () => {
       authService.verifyEmail.mockReturnValue(okAsync(undefined));
 
       const result = await controller.verifyEmail({
-        email: 'test@example.com',
-        code: '123456',
+        token: 'valid-verification-token',
       });
 
       expect(authService.verifyEmail).toHaveBeenCalled();
@@ -246,8 +245,7 @@ describe('LocalController', () => {
 
       await expect(
         controller.resetPassword({
-          email: 'test@example.com',
-          code: '123456',
+          token: 'valid-reset-token',
           password: 'NewPassword123!',
         }),
       ).resolves.toBeUndefined();

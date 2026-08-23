@@ -1,18 +1,10 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsEmailAddress,
   IsStrongPassword,
   IsVerificationCode,
 } from '../../../../common/validators/auth.decorators';
 
 export class SetPasswordDto {
-  @ApiPropertyOptional({
-    description: '邮箱（OAuth-only 用户尚无邮箱时必须提供，用于同时绑定邮箱）',
-    example: 'user@example.com',
-  })
-  @IsEmailAddress({ optional: true })
-  email?: string;
-
   @ApiProperty({ description: '发往邮箱的验证码', example: '123456' })
   @IsVerificationCode({ exactLength: false })
   code!: string;

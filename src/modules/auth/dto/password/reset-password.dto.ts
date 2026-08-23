@@ -1,23 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEmailAddress,
-  IsStrongPassword,
-  IsVerificationCode,
-} from '../../../../common/validators/auth.decorators';
+import { IsString, IsNotEmpty } from 'class-validator';
+import { IsStrongPassword } from '../../../../common/validators/auth.decorators';
 
 export class ResetPasswordDto {
-  @ApiProperty({ description: '邮箱地址', example: 'user@example.com' })
-  @IsEmailAddress()
-  email!: string;
-
   @ApiProperty({
-    description: '验证码',
-    example: '123456',
-    minLength: 6,
-    maxLength: 6,
+    description: 'Better Auth 密码重置 token',
+    example: 'eyJhbGciOiJIUzI1NiIs...',
   })
-  @IsVerificationCode()
-  code!: string;
+  @IsString({ message: 'token 必须是字符串' })
+  @IsNotEmpty({ message: 'token 不能为空' })
+  token!: string;
 
   @ApiProperty({
     description: '新密码（8-32位，需包含大小写字母和数字）',

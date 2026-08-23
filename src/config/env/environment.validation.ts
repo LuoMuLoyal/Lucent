@@ -106,6 +106,7 @@ const envSchema = z.object({
 
   [EnvKey.BETTER_AUTH_SECRET]: z.string().min(32),
   [EnvKey.BETTER_AUTH_URL]: optionalUri,
+  [EnvKey.BETTER_AUTH_EMAIL_CALLBACK_URL]: optionalString,
 
   [EnvKey.ADMIN_EMAIL]: z.email(),
   [EnvKey.ADMIN_PASSWORD]: z.string().min(8),

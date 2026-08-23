@@ -7,6 +7,11 @@ import * as argon2 from 'argon2';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvKey } from '../../../config/env/env-keys.enum.js';
 import { ARGON2_OPTIONS } from '../config/argon2-options.js';
+import { MailService } from '../../../mail/mail.service.js';
+
+const DEFAULT_EMAIL_CALLBACK_URL = 'luminous://auth/callback';
+const CREDENTIAL_PROVIDER_ID = 'credential';
+const LOCAL_CREDENTIAL_ISSUER = 'local:credential';
 
 /**
  * NestJS adapter wrapping the Better Auth library against Lucent's merged
@@ -26,6 +31,7 @@ export class AuthBetterAuthAdapter {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly mailService: MailService,
   ) {
     const secret = this.config.get<string>(EnvKey.BETTER_AUTH_SECRET);
     if (!secret) {
@@ -52,6 +58,21 @@ export class AuthBetterAuthAdapter {
       },
       emailAndPassword: {
         enabled: true,
+        // Lucent's register flow already verifies the email through its own
+        // anti-enumeration verification code.  We therefore keep Better Auth
+        // from blocking sign-in for unverified users and from sending its own
+        // verification email on sign-up.  The verify-email endpoint is exposed
+        // explicitly when needed.
+        requireEmailVerification: false,
+        autoSignIn: false,
+        minPasswordLength: 8,
+        maxPasswordLength: 32,
+        sendResetPassword: async (data) => {
+          await this.mailService.sendPasswordResetLink(
+            data.user.email,
+            data.url,
+          );
+        },
         password: {
           hash: async (password: string) =>
             argon2.hash(password, ARGON2_OPTIONS),
@@ -59,6 +80,75 @@ export class AuthBetterAuthAdapter {
             argon2.verify(data.hash, data.password, ARGON2_OPTIONS),
         },
       },
+      emailVerification: {
+        sendOnSignUp: false,
+        sendVerificationEmail: async (data) => {
+          await this.mailService.sendVerificationLink(
+            data.user.email,
+            data.url,
+          );
+        },
+      },
+      databaseHooks: {
+        user: {
+          create: {
+            after: async (user, _context) => {
+              // Better Auth creates the user row directly, so Lucent's
+              // UserService.create(profile: { create: {} }) path is bypassed.
+              // Ensure every user still has a profile row for downstream
+              // modules that assume its existence.
+              await this.prisma.userProfile.upsert({
+                where: { userId: user.id },
+                update: {},
+                create: { userId: user.id },
+              });
+            },
+          },
+        },
+      },
     }) as Auth;
+  }
+
+  /**
+   * Hashes a plain-text password using the same Argon2 configuration Better
+   * Auth uses internally.  This lets Lucent facade operations (set/change
+   * password) stay consistent with the credential account stored by Better Auth.
+   */
+  async hashPassword(password: string): Promise<string> {
+    return this.auth.options.emailAndPassword?.password?.hash
+      ? this.auth.options.emailAndPassword.password.hash(password)
+      : argon2.hash(password, ARGON2_OPTIONS);
+  }
+
+  /**
+   * Verifies a plain-text password against a stored Better Auth credential
+   * account hash using the configured Argon2 callback.
+   */
+  async verifyPassword(hash: string, password: string): Promise<boolean> {
+    return this.auth.options.emailAndPassword?.password?.verify
+      ? this.auth.options.emailAndPassword.password.verify({ hash, password })
+      : argon2.verify(hash, password, ARGON2_OPTIONS);
+  }
+
+  /**
+   * Deep-link / web callback URL that Better Auth emails should redirect to
+   * after the user interacts with a verification or reset link.  Defaults
+   * to the Luminous mobile deep-link scheme.
+   */
+  getEmailCallbackUrl(): string {
+    return (
+      this.config.get<string>(EnvKey.BETTER_AUTH_EMAIL_CALLBACK_URL)?.trim() ||
+      DEFAULT_EMAIL_CALLBACK_URL
+    );
+  }
+
+  /** Identifier Better Auth uses for local credential accounts. */
+  get credentialProviderId(): string {
+    return CREDENTIAL_PROVIDER_ID;
+  }
+
+  /** Issuer string stored on local credential accounts. */
+  get credentialIssuer(): string {
+    return LOCAL_CREDENTIAL_ISSUER;
   }
 }

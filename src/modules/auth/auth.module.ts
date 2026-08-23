@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UserModule } from '../user/user.module';
+import { MailModule } from '../../mail/mail.module';
 import {
   AuthSessionRepository,
   AuthSessionRepositoryPort,
@@ -39,6 +40,7 @@ import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
   imports: [
     UserModule,
     NotificationsModule,
+    MailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}), // actual secret is configured per-sign in AuthService
   ],

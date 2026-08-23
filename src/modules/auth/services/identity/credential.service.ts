@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import * as argon2 from 'argon2';
+import { randomUUID } from 'node:crypto';
 
 import { normalizeEmail, now } from '../../../../common';
 import {
@@ -11,11 +11,12 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result';
-import { ARGON2_OPTIONS } from '../../config/argon2-options';
-import { NotificationsService } from '../../../notifications';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
+import { PrismaService } from '../../../../prisma';
 import { UserService } from '../../../user';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
+import { NotificationsService } from '../../../notifications';
 import { VerificationCodeService } from './verification-code.service';
 import { RegisterDto } from '../../dto/credentials/register.dto';
 import { LoginDto } from '../../dto/credentials/login.dto';
@@ -32,6 +33,28 @@ import {
   type TokenPair,
 } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
+
+/**
+ * Narrow subset of Better Auth / better-call API errors that we intentionally
+ * map to Lucent DomainFailures.  Anything else is re-thrown so it surfaces
+ * with its real dependency/internal semantics.
+ */
+interface BetterAuthAPIError {
+  statusCode: number;
+  body?: {
+    code?: string;
+    message?: string;
+  };
+}
+
+function isBetterAuthAPIError(error: unknown): error is BetterAuthAPIError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number'
+  );
+}
 
 /**
  * Handles email/password credential flows: registration, login,
@@ -53,6 +76,8 @@ export class CredentialAuthService {
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
     private readonly notificationsService: NotificationsService,
+    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
+    private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -63,6 +88,7 @@ export class CredentialAuthService {
     context?: AuthRequestContext,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     const email = normalizeEmail(dto.email);
+    const name = dto.nickname?.trim() || email.split('@')[0] || 'User';
 
     // Anti-enumeration: the verification code is validated before the
     // email-existence check, so probing the endpoint cannot distinguish an
@@ -70,30 +96,30 @@ export class CredentialAuthService {
     // a valid code is supplied).
     return this.verificationCodeService
       .verify(email, dto.code, 'register')
-      .andThen(() => this.lift(this.userService.findByEmail(email)))
-      .andThen((exists) => {
-        if (exists) {
-          // Deliberately the same code as other credential failures — never
-          // reveal that the email is already registered.
+      .andThen(() =>
+        this.fromBetterAuth(
+          this.betterAuthAdapter.auth.api.signUpEmail({
+            body: { email, password: dto.password, name },
+          }),
+        ),
+      )
+      .andThen((result) => this.lift(this.userService.findById(result.user.id)))
+      .andThen((user) => {
+        if (!user) {
+          // Better Auth returned a synthetic user because the email already
+          // exists.  Deliberately the same code as other credential failures —
+          // never reveal that the email is registered.
           return errAsync(this.credentialsInvalidFailure());
         }
-
-        return this.lift(argon2.hash(dto.password, ARGON2_OPTIONS))
-          .andThen((passwordHash) =>
-            this.lift(
-              this.userService.create({
-                email,
-                passwordHash,
-                nickname: dto.nickname ?? null,
-                emailVerifiedAt: now(),
-                profile: { create: {} },
-              }),
-            ),
-          )
-          .andThen((user) =>
+        return this.userService
+          .update(user.id, {
+            emailVerified: true,
+            emailVerifiedAt: now(),
+          })
+          .andThen((updatedUser) =>
             this.authTokenService
-              .generateTokenPair(user, context)
-              .map((tokens) => ({ user, ...tokens })),
+              .generateTokenPair(updatedUser, context)
+              .map((tokens) => ({ user: updatedUser, ...tokens })),
           );
       });
   }
@@ -133,19 +159,45 @@ export class CredentialAuthService {
     userId: string,
     dto: ChangePasswordDto,
   ): ResultAsync<void, DomainFailure> {
-    return this.getActiveUser(userId).andThen((user) => {
-      if (!user.passwordHash) {
-        return errAsync(this.credentialsInvalidFailure());
-      }
+    return this.getActiveUser(userId).andThen((_user) =>
+      this.lift(
+        this.prisma.account.findFirst({
+          where: {
+            userId,
+            providerId: this.betterAuthAdapter.credentialProviderId,
+          },
+        }),
+      ).andThen((account) => {
+        if (!account?.password) {
+          return errAsync(this.credentialsInvalidFailure());
+        }
 
-      return this.verifyArgon2Password(user, dto.oldPassword)
-        .andThen(() => this.lift(argon2.hash(dto.newPassword, ARGON2_OPTIONS)))
-        .andThen((passwordHash) =>
-          this.userService.update(userId, { passwordHash }),
+        return this.lift(
+          this.betterAuthAdapter.verifyPassword(
+            account.password,
+            dto.oldPassword,
+          ),
         )
-        .andThen(() => this.authTokenService.revokeAll(userId))
-        .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
-    });
+          .andThen((valid) => {
+            if (!valid) {
+              return errAsync(this.credentialsInvalidFailure());
+            }
+            return this.lift(
+              this.betterAuthAdapter.hashPassword(dto.newPassword),
+            );
+          })
+          .andThen((passwordHash) =>
+            this.lift(
+              this.prisma.account.update({
+                where: { id: account.id },
+                data: { password: passwordHash },
+              }),
+            ),
+          )
+          .andThen(() => this.authTokenService.revokeAll(userId))
+          .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
+      }),
+    );
   }
 
   setPassword(
@@ -153,22 +205,7 @@ export class CredentialAuthService {
     dto: SetPasswordDto,
   ): ResultAsync<void, DomainFailure> {
     return this.getActiveUser(userId).andThen((user) => {
-      if (user.passwordHash) {
-        return errAsync(
-          createDomainFailure({
-            kind: 'conflict',
-            code: 'RESOURCE_CONFLICT',
-          }),
-        );
-      }
-
-      const targetEmail = dto.email
-        ? normalizeEmail(dto.email)
-        : user.email
-          ? normalizeEmail(user.email)
-          : null;
-
-      if (!targetEmail) {
+      if (!user.email) {
         return errAsync(
           createDomainFailure({
             kind: 'validation',
@@ -177,39 +214,47 @@ export class CredentialAuthService {
         );
       }
 
-      return this.verificationCodeService
-        .verify(targetEmail, dto.code, 'set-password')
-        .andThen(() => {
-          if (!user.email) {
-            return this.lift(this.userService.findByEmail(targetEmail)).andThen(
-              (existingUser) => {
-                if (existingUser && existingUser.id !== userId) {
-                  return errAsync(
-                    createDomainFailure({
-                      kind: 'conflict',
-                      code: 'RESOURCE_CONFLICT',
-                    }),
-                  );
-                }
-                return this.userService
-                  .update(userId, {
-                    email: targetEmail,
-                    emailVerifiedAt: now(),
-                  })
-                  .map(() => undefined);
-              },
-            );
-          }
-          return okAsync(undefined);
-        })
-        .andThen(() => this.lift(argon2.hash(dto.password, ARGON2_OPTIONS)))
-        .andThen((passwordHash) =>
-          this.userService
-            .update(userId, { passwordHash })
-            .map(() => undefined),
-        )
-        .andThen(() => this.authTokenService.revokeAll(userId))
-        .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
+      const email = normalizeEmail(user.email);
+
+      return this.lift(
+        this.prisma.account.findFirst({
+          where: {
+            userId,
+            providerId: this.betterAuthAdapter.credentialProviderId,
+          },
+        }),
+      ).andThen((existingAccount) => {
+        if (existingAccount) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'conflict',
+              code: 'RESOURCE_CONFLICT',
+            }),
+          );
+        }
+
+        return this.verificationCodeService
+          .verify(email, dto.code, 'set-password')
+          .andThen(() =>
+            this.lift(this.betterAuthAdapter.hashPassword(dto.password)),
+          )
+          .andThen((passwordHash) =>
+            this.lift(
+              this.prisma.account.create({
+                data: {
+                  id: randomUUID(),
+                  userId,
+                  providerId: this.betterAuthAdapter.credentialProviderId,
+                  issuer: this.betterAuthAdapter.credentialIssuer,
+                  accountId: userId,
+                  password: passwordHash,
+                },
+              }),
+            ),
+          )
+          .andThen(() => this.authTokenService.revokeAll(userId))
+          .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
+      });
     });
   }
 
@@ -255,18 +300,11 @@ export class CredentialAuthService {
   }
 
   verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
-    const email = normalizeEmail(dto.email);
-
-    return this.verificationCodeService
-      .verify(email, dto.code, 'register')
-      .andThen(() =>
-        this.lift(
-          this.userService.updateByEmail(email, {
-            emailVerifiedAt: now(),
-          }),
-        ),
-      )
-      .map(() => undefined);
+    return this.fromBetterAuth(
+      this.betterAuthAdapter.auth.api.verifyEmail({
+        query: { token: dto.token },
+      }),
+    ).map(() => undefined);
   }
 
   // ── Password Reset ───────────────────────────────────────────
@@ -279,42 +317,98 @@ export class CredentialAuthService {
 
     return this.verificationCodeService
       .assertClientRateLimit(clientKey)
-      .andThen(() => this.lift(this.userService.findByEmail(email)))
-      .andThen((user) => {
-        if (!user) {
-          // Anti-enumeration: identical success response whether or not the
-          // account exists.
-          return okAsync(undefined);
-        }
-        return this.verificationCodeService.send(email, 'reset-password');
-      })
+      .andThen(() =>
+        this.fromBetterAuth(
+          this.betterAuthAdapter.auth.api.requestPasswordReset({
+            body: {
+              email,
+              redirectTo: this.betterAuthAdapter.getEmailCallbackUrl(),
+            },
+          }),
+        ),
+      )
       .map(() => ({ message: this.i18n.t('auth.forgot_password_hint') }));
   }
 
   resetPassword(dto: ResetPasswordDto): ResultAsync<void, DomainFailure> {
-    const email = normalizeEmail(dto.email);
+    const identifier = `reset-password:${dto.token}`;
 
-    return this.verificationCodeService
-      .verify(email, dto.code, 'reset-password')
-      .andThen(() => this.lift(this.userService.findByEmail(email)))
-      .andThen((user) => {
-        if (!user) {
-          return errAsync(
-            createDomainFailure({
-              kind: 'not_found',
-              code: 'RESOURCE_NOT_FOUND',
-            }),
-          );
-        }
-        return this.lift(argon2.hash(dto.password, ARGON2_OPTIONS))
-          .andThen((passwordHash) =>
-            this.userService.update(user.id, { passwordHash }),
-          )
-          .andThen(() => this.authTokenService.revokeAll(user.id));
-      });
+    return this.lift(
+      this.prisma.verification.findFirst({ where: { identifier } }),
+    ).andThen((verification) => {
+      if (!verification) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          }),
+        );
+      }
+
+      const userId = verification.value;
+
+      return this.fromBetterAuth(
+        this.betterAuthAdapter.auth.api.resetPassword({
+          body: { token: dto.token, newPassword: dto.password },
+        }),
+      )
+        .andThen(() => this.authTokenService.revokeAll(userId))
+        .map(() => undefined);
+    });
   }
 
   // ── Helpers ──────────────────────────────────────────────────
+
+  /**
+   * Wraps a Better Auth `auth.api.*` promise into a `ResultAsync` and maps
+   * documented business errors to Lucent `DomainFailure`s.  Unknown / internal
+   * Better Auth errors are re-thrown.
+   */
+  private fromBetterAuth<T>(
+    promise: Promise<T>,
+  ): ResultAsync<T, DomainFailure> {
+    return fromPromise(promise, (error) => {
+      if (isBetterAuthAPIError(error)) {
+        return this.mapBetterAuthError(error);
+      }
+      throw error;
+    });
+  }
+
+  /**
+   * Maps Better Auth API error codes to Lucent Problem Details codes.
+   * Authentication failures are folded into the generic anti-enumeration code.
+   */
+  private mapBetterAuthError(error: BetterAuthAPIError): DomainFailure {
+    const code = error.body?.code;
+    switch (code) {
+      case 'USER_ALREADY_EXISTS':
+      case 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL':
+      case 'INVALID_EMAIL_OR_PASSWORD':
+      case 'INVALID_PASSWORD':
+      case 'CREDENTIAL_ACCOUNT_NOT_FOUND':
+      case 'EMAIL_NOT_VERIFIED':
+        return this.credentialsInvalidFailure();
+      case 'INVALID_TOKEN':
+      case 'TOKEN_EXPIRED':
+        return createDomainFailure({
+          kind: 'authentication',
+          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+        });
+      case 'PASSWORD_TOO_SHORT':
+      case 'PASSWORD_TOO_LONG':
+      case 'VALIDATION_ERROR':
+      case 'MISSING_FIELD':
+      case 'INVALID_EMAIL':
+        return createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+        });
+      default:
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw error;
+    }
+  }
 
   /**
    * Validates the provided password (or verification code) for a login
@@ -341,13 +435,14 @@ export class CredentialAuthService {
     }
 
     if (hasPassword) {
-      if (!user.passwordHash) {
-        return this.recordLoginFailure(email);
-      }
-      // A wrong password must still count against the login failure rate
-      // limit before failing generically. A thrown Argon2 failure (malformed
-      // hash, native binding, module/config fault) rethrows without counting.
-      return this.verifyArgon2Password(user, dto.password as string)
+      // Better Auth sign-in already performs constant-time user/account
+      // lookups and password verification.  A wrong password maps to the
+      // generic failure and counts against the rate limit.
+      return this.fromBetterAuth(
+        this.betterAuthAdapter.auth.api.signInEmail({
+          body: { email, password: dto.password as string },
+        }),
+      )
         .map(() => user)
         .orElse((failure) =>
           this.recordLoginFailure(email).andThen(() => errAsync(failure)),
@@ -357,34 +452,6 @@ export class CredentialAuthService {
     return this.verificationCodeService
       .verify(email, dto.code as string, 'login')
       .map(() => user);
-  }
-
-  /**
-   * Verifies a password against the stored Argon2 hash. A hash mismatch
-   * (`argon2.verify` returning `false`) maps to `AUTH_WRONG_PASSWORD`. A
-   * thrown Argon2 failure (malformed or corrupted stored hash, native
-   * binding error, module/config fault) is re-thrown so it surfaces as a
-   * dependency/internal error at the boundary instead of being folded into
-   * a business failure; the underlying error is logged for observability.
-   */
-  private verifyArgon2Password(
-    user: User,
-    password: string,
-  ): ResultAsync<void, DomainFailure> {
-    return fromPromise(
-      argon2.verify(user.passwordHash as string, password),
-      (error) => {
-        this.logger.warn(
-          `argon2.verify threw for user ${user.id}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        throw error;
-      },
-    ).andThen((valid) => {
-      if (!valid) {
-        return errAsync(this.credentialsInvalidFailure());
-      }
-      return okAsync(undefined);
-    });
   }
 
   /**
@@ -447,10 +514,11 @@ export class CredentialAuthService {
   }
 
   /**
-   * Lifts non-Prisma IO (Argon2, token service, user lookups, notification
-   * best-effort) into `ResultAsync`. Unknown exceptions and dependency-level
-   * failures are re-thrown, never converted into a DomainFailure, so they
-   * keep their real dependency/internal semantics.
+   * Lifts non-Prisma IO (Better Auth calls, Argon2 callbacks, token service,
+   * user lookups, notification best-effort) into `ResultAsync`. Unknown
+   * exceptions and dependency-level failures are re-thrown, never converted
+   * into a DomainFailure, so they keep their real dependency/internal
+   * semantics.
    */
   private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
     return fromPromise(promise, (error) => {

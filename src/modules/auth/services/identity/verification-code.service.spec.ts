@@ -327,10 +327,10 @@ describe('VerificationCodeService', () => {
       (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await inspectResult(service.send('user@test.com', 'reset-password'));
+      await inspectResult(service.send('user@test.com', 'delete-account'));
 
       expect(cache.get).toHaveBeenCalledWith(
-        'vcode:cd:reset-password:user@test.com',
+        'vcode:cd:delete-account:user@test.com',
       );
     });
   });

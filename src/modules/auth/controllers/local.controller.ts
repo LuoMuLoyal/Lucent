@@ -129,7 +129,7 @@ export class LocalController {
   @ApiResponse({ status: 200, type: VerifyEmailResponseDto })
   @ApiResponse({
     status: 400,
-    description: 'Verification code expired or does not match',
+    description: 'Verification token is invalid or has expired',
     type: ProblemDetailsDto,
   })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
@@ -171,12 +171,7 @@ export class LocalController {
   @ApiResponse({ status: 204, description: 'Password reset.' })
   @ApiResponse({
     status: 400,
-    description: 'Verification code expired or does not match',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Account not found',
+    description: 'Reset token is invalid, expired, or the password is invalid',
     type: ProblemDetailsDto,
   })
   async resetPassword(@Body() dto: ResetPasswordDto) {

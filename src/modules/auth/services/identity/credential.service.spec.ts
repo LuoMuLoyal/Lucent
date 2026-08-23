@@ -8,6 +8,8 @@ import { VerificationCodeService } from './verification-code.service';
 import { AuthTokenService } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
 import { NotificationsService } from '../../../notifications';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
+import { PrismaService } from '../../../../prisma';
 import type { NotificationListItemDto } from '../../../notifications';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
@@ -18,16 +20,6 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result';
-
-// ── Module-level argon2 mock ──────────────────────────────────
-
-vi.mock('argon2', () => ({
-  argon2id: 2,
-  hash: vi.fn(),
-  verify: vi.fn(),
-}));
-
-import * as argon2 from 'argon2';
 
 /**
  * Folds a ResultAsync into a plain outcome so specs can assert both success
@@ -40,6 +32,13 @@ function collectResult<T, E>(
     (value) => ({ ok: true as const, value }),
     (error) => ({ ok: false as const, error }),
   );
+}
+
+function createBetterAuthAPIError(
+  code: string,
+  statusCode = 400,
+): { statusCode: number; body: { code: string; message: string } } {
+  return { statusCode, body: { code, message: `Better Auth: ${code}` } };
 }
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -59,6 +58,16 @@ const mockUser: User = {
   securityPinChangedAt: null,
   securityElevationVersion: 0,
   deletedAt: null,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-06-01'),
+};
+
+const mockBetterAuthUser = {
+  id: 'user-1',
+  email: 'test@example.com',
+  name: 'Tester',
+  image: null,
+  emailVerified: true,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-06-01'),
 };
@@ -87,6 +96,15 @@ const wrongPasswordFailure: DomainFailure = createDomainFailure({
   code: 'AUTH_WRONG_PASSWORD',
 });
 
+const mockCredentialAccount = {
+  id: 'account-1',
+  userId: 'user-1',
+  providerId: 'credential',
+  issuer: 'local:credential',
+  accountId: 'user-1',
+  password: '$argon2id$hashed',
+};
+
 function buildRegisterDto(overrides: Record<string, unknown> = {}) {
   return {
     email: 'new@example.com',
@@ -114,6 +132,18 @@ describe('CredentialAuthService', () => {
   let authTokenService: vi.Mocked<AuthTokenService>;
   let authRateLimitService: vi.Mocked<AuthRateLimitService>;
   let notificationsService: vi.Mocked<NotificationsService>;
+  let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
+  let prisma: vi.Mocked<PrismaService>;
+
+  let signUpEmailMock: vi.Mock;
+  let signInEmailMock: vi.Mock;
+  let requestPasswordResetMock: vi.Mock;
+  let resetPasswordMock: vi.Mock;
+  let verifyEmailMock: vi.Mock;
+  let accountFindFirstMock: vi.Mock;
+  let accountUpdateMock: vi.Mock;
+  let accountCreateMock: vi.Mock;
+  let verificationFindFirstMock: vi.Mock;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -159,6 +189,43 @@ describe('CredentialAuthService', () => {
           },
         },
         {
+          provide: AuthBetterAuthAdapter,
+          useValue: {
+            auth: {
+              api: {
+                signUpEmail: vi.fn(),
+                signInEmail: vi.fn(),
+                requestPasswordReset: vi.fn(),
+                resetPassword: vi.fn(),
+                verifyEmail: vi.fn(),
+              },
+            },
+            hashPassword: vi.fn(),
+            verifyPassword: vi.fn(),
+            getEmailCallbackUrl: vi
+              .fn()
+              .mockReturnValue('luminous://auth/callback'),
+            credentialProviderId: 'credential',
+            credentialIssuer: 'local:credential',
+          },
+        },
+        {
+          provide: PrismaService,
+          useValue: {
+            account: {
+              findFirst: vi.fn(),
+              update: vi.fn(),
+              create: vi.fn(),
+            },
+            verification: {
+              findFirst: vi.fn(),
+            },
+            userProfile: {
+              upsert: vi.fn(),
+            },
+          },
+        },
+        {
           provide: I18nService,
           useValue: {
             t: vi.fn((key: string) => key),
@@ -173,10 +240,10 @@ describe('CredentialAuthService', () => {
     authTokenService = module.get(AuthTokenService);
     authRateLimitService = module.get(AuthRateLimitService);
     notificationsService = module.get(NotificationsService);
+    betterAuthAdapter = module.get(AuthBetterAuthAdapter);
+    prisma = module.get(PrismaService);
 
     // Default mock responses
-    (argon2.hash as vi.Mock).mockResolvedValue('$argon2id$new-hash');
-    (argon2.verify as vi.Mock).mockResolvedValue(true);
     userService.findByEmail.mockResolvedValue(null);
     userService.findById.mockResolvedValue(mockUser);
     userService.create.mockResolvedValue(mockUser);
@@ -192,6 +259,56 @@ describe('CredentialAuthService', () => {
     authRateLimitService.recordLoginFailure.mockReturnValue(okAsync(undefined));
     authRateLimitService.clearLoginFailures.mockReturnValue(okAsync(undefined));
     notificationsService.create.mockReturnValue(okAsync(mockNotification));
+
+    signUpEmailMock = betterAuthAdapter.auth.api
+      .signUpEmail as unknown as vi.Mock;
+    signInEmailMock = betterAuthAdapter.auth.api
+      .signInEmail as unknown as vi.Mock;
+    requestPasswordResetMock = betterAuthAdapter.auth.api
+      .requestPasswordReset as unknown as vi.Mock;
+    resetPasswordMock = betterAuthAdapter.auth.api
+      .resetPassword as unknown as vi.Mock;
+    verifyEmailMock = betterAuthAdapter.auth.api
+      .verifyEmail as unknown as vi.Mock;
+    accountFindFirstMock = prisma.account.findFirst as unknown as vi.Mock;
+    accountUpdateMock = prisma.account.update as unknown as vi.Mock;
+    accountCreateMock = prisma.account.create as unknown as vi.Mock;
+    verificationFindFirstMock = prisma.verification
+      .findFirst as unknown as vi.Mock;
+
+    signUpEmailMock.mockResolvedValue({
+      token: null,
+      user: mockBetterAuthUser,
+    });
+    signInEmailMock.mockResolvedValue({
+      redirect: false,
+      token: 'better-auth-session-token',
+      user: mockBetterAuthUser,
+    });
+    requestPasswordResetMock.mockResolvedValue({
+      status: true,
+      message: 'If this email exists in our system, check your email',
+    });
+    resetPasswordMock.mockResolvedValue({
+      status: true,
+    });
+    verifyEmailMock.mockResolvedValue({
+      status: true,
+    });
+    betterAuthAdapter.hashPassword.mockResolvedValue('$argon2id$new-hash');
+    betterAuthAdapter.verifyPassword.mockResolvedValue(true);
+
+    accountFindFirstMock.mockResolvedValue(mockCredentialAccount);
+    accountUpdateMock.mockResolvedValue(mockCredentialAccount);
+    accountCreateMock.mockResolvedValue(mockCredentialAccount);
+    verificationFindFirstMock.mockResolvedValue({
+      id: 'v-1',
+      identifier: 'reset-password:token',
+      value: 'user-1',
+      expiresAt: new Date(Date.now() + 3_600_000),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   });
 
   afterEach(() => {
@@ -213,12 +330,17 @@ describe('CredentialAuthService', () => {
         '123456',
         'register',
       );
-      expect(userService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(signUpEmailMock).toHaveBeenCalledWith({
+        body: {
           email: 'new@example.com',
-          nickname: 'NewUser',
-        }),
-      );
+          password: 'Secure@Pass1',
+          name: 'NewUser',
+        },
+      });
+      expect(userService.update).toHaveBeenCalledWith('user-1', {
+        emailVerified: true,
+        emailVerifiedAt: expect.any(Date),
+      });
       expect(authTokenService.generateTokenPair).toHaveBeenCalledWith(
         mockUser,
         undefined,
@@ -233,30 +355,40 @@ describe('CredentialAuthService', () => {
       });
     });
 
-    it('should normalize email to lowercase and trim', async () => {
-      const dto = buildRegisterDto({ email: '  New@Example.COM  ' });
+    it('should normalize email and fallback nickname to email local part', async () => {
+      const dto = buildRegisterDto({
+        email: '  New@Example.COM  ',
+        nickname: undefined,
+      });
       await collectResult(service.register(dto));
 
-      expect(userService.findByEmail).toHaveBeenCalledWith('new@example.com');
+      expect(signUpEmailMock).toHaveBeenCalledWith({
+        body: expect.objectContaining({
+          email: 'new@example.com',
+          name: 'new',
+        }),
+      });
     });
 
     it('should reject an already-registered email with the generic credential failure (anti-enumeration)', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
+      signUpEmailMock.mockResolvedValue({
+        token: null,
+        user: { ...mockBetterAuthUser, id: 'synthetic-id' },
+      });
+      userService.findById.mockResolvedValue(null);
 
       const outcome = await collectResult(service.register(buildRegisterDto()));
 
       expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
     });
 
-    it('should validate the code before the email-existence check (anti-enumeration)', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-
+    it('should validate the code before calling Better Auth (anti-enumeration)', async () => {
       await collectResult(service.register(buildRegisterDto()));
 
       const verifyOrder =
         verificationCodeService.verify.mock.invocationCallOrder;
-      const lookupOrder = userService.findByEmail.mock.invocationCallOrder;
-      expect(verifyOrder[0]!).toBeLessThan(lookupOrder[0]!);
+      const signUpOrder = signUpEmailMock.mock.invocationCallOrder;
+      expect(verifyOrder[0]!).toBeLessThan(signUpOrder[0]!);
     });
 
     it('should propagate verification code failures', async () => {
@@ -277,7 +409,7 @@ describe('CredentialAuthService', () => {
           code: 'AUTH_VERIFICATION_CODE_MISMATCH',
         }),
       });
-      expect(userService.create).not.toHaveBeenCalled();
+      expect(signUpEmailMock).not.toHaveBeenCalled();
     });
 
     it('should pass auth context to token generation', async () => {
@@ -291,7 +423,7 @@ describe('CredentialAuthService', () => {
     });
 
     it('should not mask infrastructure failures as business failures', async () => {
-      userService.create.mockRejectedValue(new Error('db connection lost'));
+      signUpEmailMock.mockRejectedValue(new Error('db connection lost'));
 
       await expect(
         collectResult(service.register(buildRegisterDto())),
@@ -314,10 +446,9 @@ describe('CredentialAuthService', () => {
       expect(authRateLimitService.checkLoginRateLimit).toHaveBeenCalledWith(
         'test@example.com',
       );
-      expect(argon2.verify).toHaveBeenCalledWith(
-        '$argon2id$hashed',
-        'Secure@Pass1',
-      );
+      expect(signInEmailMock).toHaveBeenCalledWith({
+        body: { email: 'test@example.com', password: 'Secure@Pass1' },
+      });
       expect(authRateLimitService.clearLoginFailures).toHaveBeenCalledWith(
         'test@example.com',
       );
@@ -335,7 +466,9 @@ describe('CredentialAuthService', () => {
     });
 
     it('should reject wrong password with the generic code and record the failure', async () => {
-      (argon2.verify as vi.Mock).mockResolvedValue(false);
+      signInEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('INVALID_EMAIL_OR_PASSWORD', 401),
+      );
 
       const outcome = await collectResult(service.login(buildLoginDto()));
 
@@ -356,6 +489,7 @@ describe('CredentialAuthService', () => {
       expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
         'test@example.com',
       );
+      expect(signInEmailMock).not.toHaveBeenCalled();
     });
 
     it('should reject when both password and code are provided', async () => {
@@ -368,13 +502,13 @@ describe('CredentialAuthService', () => {
         'test@example.com',
       );
       expect(verificationCodeService.verify).not.toHaveBeenCalled();
+      expect(signInEmailMock).not.toHaveBeenCalled();
     });
 
-    it('should reject OAuth user without passwordHash', async () => {
-      userService.findByEmail.mockResolvedValue({
-        ...mockUser,
-        passwordHash: null,
-      });
+    it('should reject OAuth-only user without credential account', async () => {
+      signInEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('INVALID_EMAIL_OR_PASSWORD', 401),
+      );
 
       const outcome = await collectResult(service.login(buildLoginDto()));
 
@@ -393,7 +527,7 @@ describe('CredentialAuthService', () => {
         '654321',
         'login',
       );
-      expect(argon2.verify).not.toHaveBeenCalled();
+      expect(signInEmailMock).not.toHaveBeenCalled();
       expect(outcome).toEqual({
         ok: true,
         value: expect.objectContaining({
@@ -434,14 +568,12 @@ describe('CredentialAuthService', () => {
       expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
     });
 
-    it('should rethrow an argon2.verify failure instead of folding it into AUTH_WRONG_PASSWORD', async () => {
-      (argon2.verify as vi.Mock).mockRejectedValue(new Error('malformed hash'));
+    it('should rethrow a Better Auth internal error instead of folding it into AUTH_WRONG_PASSWORD', async () => {
+      signInEmailMock.mockRejectedValue(new Error('session store unavailable'));
 
       await expect(
         collectResult(service.login(buildLoginDto())),
-      ).rejects.toThrow('malformed hash');
-      // Dependency-level Argon2 failures are not credential mismatches and
-      // must not count against the login failure rate limit.
+      ).rejects.toThrow('session store unavailable');
       expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
       expect(authRateLimitService.clearLoginFailures).not.toHaveBeenCalled();
       expect(userService.update).not.toHaveBeenCalled();
@@ -471,11 +603,18 @@ describe('CredentialAuthService', () => {
         }),
       );
 
-      expect(argon2.verify).toHaveBeenCalledWith(
+      expect(accountFindFirstMock).toHaveBeenCalledWith({
+        where: { userId: 'user-1', providerId: 'credential' },
+      });
+      expect(betterAuthAdapter.verifyPassword).toHaveBeenCalledWith(
         '$argon2id$hashed',
         'OldPass1',
       );
-      expect(argon2.hash).toHaveBeenCalledWith('NewPass1', expect.anything());
+      expect(betterAuthAdapter.hashPassword).toHaveBeenCalledWith('NewPass1');
+      expect(accountUpdateMock).toHaveBeenCalledWith({
+        where: { id: 'account-1' },
+        data: { password: '$argon2id$new-hash' },
+      });
       expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-1');
       expect(notificationsService.create).toHaveBeenCalledWith(
         'user-1',
@@ -485,7 +624,7 @@ describe('CredentialAuthService', () => {
     });
 
     it('should reject wrong old password with AUTH_WRONG_PASSWORD', async () => {
-      (argon2.verify as vi.Mock).mockResolvedValue(false);
+      betterAuthAdapter.verifyPassword.mockResolvedValue(false);
 
       const outcome = await collectResult(
         service.changePassword('user-1', {
@@ -498,8 +637,10 @@ describe('CredentialAuthService', () => {
       expect(authTokenService.revokeAll).not.toHaveBeenCalled();
     });
 
-    it('should rethrow an argon2.verify failure instead of AUTH_WRONG_PASSWORD', async () => {
-      (argon2.verify as vi.Mock).mockRejectedValue(new Error('corrupted hash'));
+    it('should rethrow an adapter verify failure instead of AUTH_WRONG_PASSWORD', async () => {
+      betterAuthAdapter.verifyPassword.mockRejectedValue(
+        new Error('corrupted hash'),
+      );
 
       await expect(
         collectResult(
@@ -512,11 +653,8 @@ describe('CredentialAuthService', () => {
       expect(authTokenService.revokeAll).not.toHaveBeenCalled();
     });
 
-    it('should reject OAuth-only user without password hash', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        passwordHash: null,
-      });
+    it('should reject OAuth-only user without credential account', async () => {
+      accountFindFirstMock.mockResolvedValue(null);
 
       const outcome = await collectResult(
         service.changePassword('user-1', {
@@ -586,10 +724,7 @@ describe('CredentialAuthService', () => {
 
   describe('setPassword', () => {
     beforeEach(() => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        passwordHash: null,
-      });
+      accountFindFirstMock.mockResolvedValue(null);
     });
 
     it('should set password for OAuth user and revoke sessions', async () => {
@@ -605,16 +740,24 @@ describe('CredentialAuthService', () => {
         '123456',
         'set-password',
       );
-      expect(argon2.hash).toHaveBeenCalledWith('NewPass1', expect.anything());
+      expect(betterAuthAdapter.hashPassword).toHaveBeenCalledWith('NewPass1');
+      expect(accountCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 'user-1',
+            providerId: 'credential',
+            issuer: 'local:credential',
+            accountId: 'user-1',
+            password: '$argon2id$new-hash',
+          }),
+        }),
+      );
       expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-1');
       expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
     it('should reject when user already has a password', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        passwordHash: '$argon2id$old',
-      });
+      accountFindFirstMock.mockResolvedValue(mockCredentialAccount);
 
       const outcome = await collectResult(
         service.setPassword('user-1', {
@@ -630,26 +773,23 @@ describe('CredentialAuthService', () => {
       expect(verificationCodeService.verify).not.toHaveBeenCalled();
     });
 
-    it('should use provided email for verification when setting password', async () => {
+    it('should reject when user has no email', async () => {
       userService.findById.mockResolvedValue({
         ...mockUser,
-        passwordHash: null,
-      });
+        email: '',
+      } as unknown as User);
 
       const outcome = await collectResult(
         service.setPassword('user-1', {
-          email: 'bound@example.com',
           code: '123456',
           password: 'NewPass1',
         }),
       );
 
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'bound@example.com',
-        '123456',
-        'set-password',
-      );
-      expect(outcome).toEqual({ ok: true, value: undefined });
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
+      });
     });
   });
 
@@ -787,50 +927,46 @@ describe('CredentialAuthService', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('verifyEmail', () => {
-    it('should verify email and update emailVerifiedAt', async () => {
+    it('should verify email with Better Auth token', async () => {
       const outcome = await collectResult(
         service.verifyEmail({
-          email: 'test@example.com',
-          code: '123456',
+          token: 'valid-token',
         }),
       );
 
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'register',
-      );
-      expect(userService.updateByEmail).toHaveBeenCalledWith(
-        'test@example.com',
-        { emailVerifiedAt: expect.any(Date) },
-      );
+      expect(verifyEmailMock).toHaveBeenCalledWith({
+        query: { token: 'valid-token' },
+      });
       expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
-    it('should propagate code mismatch failures', async () => {
-      verificationCodeService.verify.mockReturnValue(
-        errAsync(
-          createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
-          }),
-        ),
+    it('should map invalid token to AUTH_VERIFICATION_CODE_EXPIRED', async () => {
+      verifyEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('INVALID_TOKEN'),
       );
 
       const outcome = await collectResult(
         service.verifyEmail({
-          email: 'test@example.com',
-          code: '999999',
+          token: 'bad-token',
         }),
       );
 
       expect(outcome).toEqual({
         ok: false,
         error: expect.objectContaining({
-          code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
         }),
       });
-      expect(userService.updateByEmail).not.toHaveBeenCalled();
+    });
+
+    it('should rethrow non-business Better Auth errors', async () => {
+      verifyEmailMock.mockRejectedValue(
+        new Error('verification store unavailable'),
+      );
+
+      await expect(
+        collectResult(service.verifyEmail({ token: 'token' })),
+      ).rejects.toThrow('verification store unavailable');
     });
   });
 
@@ -845,9 +981,7 @@ describe('CredentialAuthService', () => {
       );
     });
 
-    it('should send reset code when user exists', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-
+    it('should request a Better Auth password reset email', async () => {
       const outcome = await collectResult(
         service.forgotPassword({
           email: 'test@example.com',
@@ -857,10 +991,12 @@ describe('CredentialAuthService', () => {
       expect(
         verificationCodeService.assertClientRateLimit,
       ).toHaveBeenCalledWith(undefined);
-      expect(verificationCodeService.send).toHaveBeenCalledWith(
-        'test@example.com',
-        'reset-password',
-      );
+      expect(requestPasswordResetMock).toHaveBeenCalledWith({
+        body: {
+          email: 'test@example.com',
+          redirectTo: 'luminous://auth/callback',
+        },
+      });
       expect(outcome).toEqual({
         ok: true,
         value: { message: 'auth.forgot_password_hint' },
@@ -868,7 +1004,10 @@ describe('CredentialAuthService', () => {
     });
 
     it('should return success even when user does not exist (anti-enumeration)', async () => {
-      userService.findByEmail.mockResolvedValue(null);
+      requestPasswordResetMock.mockResolvedValue({
+        status: true,
+        message: 'If this email exists in our system, check your email',
+      });
 
       const outcome = await collectResult(
         service.forgotPassword({
@@ -876,7 +1015,6 @@ describe('CredentialAuthService', () => {
         }),
       );
 
-      expect(verificationCodeService.send).not.toHaveBeenCalled();
       expect(outcome).toEqual({
         ok: true,
         value: { message: 'auth.forgot_password_hint' },
@@ -907,7 +1045,7 @@ describe('CredentialAuthService', () => {
           code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
         }),
       });
-      expect(verificationCodeService.send).not.toHaveBeenCalled();
+      expect(requestPasswordResetMock).not.toHaveBeenCalled();
     });
   });
 
@@ -917,65 +1055,29 @@ describe('CredentialAuthService', () => {
 
   describe('resetPassword', () => {
     it('should reset password and revoke all sessions', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-
       const outcome = await collectResult(
         service.resetPassword({
-          email: 'test@example.com',
-          code: '123456',
+          token: 'token',
           password: 'NewSecure@Pass1',
         }),
       );
 
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'reset-password',
-      );
-      expect(argon2.hash).toHaveBeenCalledWith(
-        'NewSecure@Pass1',
-        expect.anything(),
-      );
-      expect(userService.update).toHaveBeenCalledWith('user-1', {
-        passwordHash: '$argon2id$new-hash',
+      expect(verificationFindFirstMock).toHaveBeenCalledWith({
+        where: { identifier: 'reset-password:token' },
+      });
+      expect(resetPasswordMock).toHaveBeenCalledWith({
+        body: { token: 'token', newPassword: 'NewSecure@Pass1' },
       });
       expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-1');
       expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
-    it('should reject when user not found after code verification', async () => {
-      userService.findByEmail.mockResolvedValue(null);
-      verificationCodeService.verify.mockReturnValue(okAsync(undefined));
+    it('should reject when reset token is not found', async () => {
+      verificationFindFirstMock.mockResolvedValue(null);
 
       const outcome = await collectResult(
         service.resetPassword({
-          email: 'nobody@example.com',
-          code: '123456',
-          password: 'NewSecure@Pass1',
-        }),
-      );
-
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({ code: 'RESOURCE_NOT_FOUND' }),
-      });
-      expect(authTokenService.revokeAll).not.toHaveBeenCalled();
-    });
-
-    it('should propagate code mismatch failures without touching the account', async () => {
-      verificationCodeService.verify.mockReturnValue(
-        errAsync(
-          createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
-          }),
-        ),
-      );
-
-      const outcome = await collectResult(
-        service.resetPassword({
-          email: 'test@example.com',
-          code: '999999',
+          token: 'unknown-token',
           password: 'NewSecure@Pass1',
         }),
       );
@@ -983,10 +1085,46 @@ describe('CredentialAuthService', () => {
       expect(outcome).toEqual({
         ok: false,
         error: expect.objectContaining({
-          code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
         }),
       });
-      expect(userService.update).not.toHaveBeenCalled();
+      expect(resetPasswordMock).not.toHaveBeenCalled();
+      expect(authTokenService.revokeAll).not.toHaveBeenCalled();
+    });
+
+    it('should map Better Auth INVALID_TOKEN to AUTH_VERIFICATION_CODE_EXPIRED', async () => {
+      resetPasswordMock.mockRejectedValue(
+        createBetterAuthAPIError('INVALID_TOKEN'),
+      );
+
+      const outcome = await collectResult(
+        service.resetPassword({
+          token: 'expired-token',
+          password: 'NewSecure@Pass1',
+        }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+        }),
+      });
+    });
+
+    it('should not mask infrastructure failures', async () => {
+      verificationFindFirstMock.mockRejectedValue(
+        new Error('db connection lost'),
+      );
+
+      await expect(
+        collectResult(
+          service.resetPassword({
+            token: 'token',
+            password: 'NewSecure@Pass1',
+          }),
+        ),
+      ).rejects.toThrow('db connection lost');
     });
   });
 });
