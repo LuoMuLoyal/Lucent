@@ -3,6 +3,12 @@
  *
  * Encapsulates all Prisma queries for conversation persistence, including
  * transactional operations like opening and persisting turns.
+ *
+ * Write methods return `ResultAsync<T, DomainFailure>`: known Prisma request
+ * errors (P2002 unique conflict, P2025 target not found) are mapped to
+ * RESOURCE_CONFLICT / RESOURCE_NOT_FOUND; unknown errors are re-thrown so they
+ * reach the global filter unchanged. Read methods keep plain promises because
+ * "no row" is a legitimate outcome for reads, not a failure.
  */
 import { Injectable } from '@nestjs/common';
 import {
@@ -10,6 +16,8 @@ import {
   type Prisma,
 } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
+import { fromPrismaResult } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 const conversationWithMessagesArgs = {
   include: {
@@ -96,32 +104,32 @@ export abstract class AssistantConversationRepositoryPort {
   abstract create(
     userId: string,
     title: string | null,
-  ): Promise<ConversationWithMessages>;
+  ): ResultAsync<ConversationWithMessages, DomainFailure>;
 
   abstract archiveConversation(
     userId: string,
     conversationId: string,
-  ): Promise<ConversationWithMessages>;
+  ): ResultAsync<ConversationWithMessages, DomainFailure>;
 
   abstract softDelete(
     userId: string,
     conversationId: string,
-  ): Promise<ConversationWithMessages>;
+  ): ResultAsync<ConversationWithMessages, DomainFailure>;
 
   abstract updateTitle(
     userId: string,
     conversationId: string,
     title: string | null,
-  ): Promise<ConversationWithMessages>;
+  ): ResultAsync<ConversationWithMessages, DomainFailure>;
 
   abstract activateConversation(
     userId: string,
     conversationId: string,
-  ): Promise<void>;
+  ): ResultAsync<void, DomainFailure>;
 
   abstract persistTurn(
     input: PersistTurnInput,
-  ): Promise<ConversationWithMessages>;
+  ): ResultAsync<ConversationWithMessages, DomainFailure>;
 
   /**
    * Appends a standalone assistant message (no user messages, no dedup) and
@@ -132,7 +140,7 @@ export abstract class AssistantConversationRepositoryPort {
     userId: string,
     content: string,
     usedTools?: string[],
-  ): Promise<ConversationWithMessages>;
+  ): ResultAsync<ConversationWithMessages, DomainFailure>;
 
   /** Latest regeneration record for the message within the idempotency window. */
   abstract findRecentRegeneration(
@@ -143,7 +151,7 @@ export abstract class AssistantConversationRepositoryPort {
   /** Persists the message→checkpoint mapping for a regeneration. */
   abstract createRegeneration(
     input: RegenerationRecordInput,
-  ): Promise<{ id: string }>;
+  ): ResultAsync<{ id: string }, DomainFailure>;
 }
 
 @Injectable()
@@ -211,51 +219,68 @@ export class AssistantConversationRepository implements AssistantConversationRep
     });
   }
 
-  async create(
+  create(
     userId: string,
     title: string | null,
-  ): Promise<ConversationWithMessages> {
-    return this.prisma.assistantConversation.create({
-      ...conversationWithMessagesArgs,
-      data: { userId, title },
-    });
+  ): ResultAsync<ConversationWithMessages, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.assistantConversation.create({
+        ...conversationWithMessagesArgs,
+        data: { userId, title },
+      }),
+    );
   }
 
-  async archiveConversation(
+  archiveConversation(
     userId: string,
     conversationId: string,
-  ): Promise<ConversationWithMessages> {
-    return this.prisma.assistantConversation.update({
-      ...conversationWithMessagesArgs,
-      where: { id: conversationId, userId },
-      data: { status: AssistantConversationStatus.archived },
-    });
+  ): ResultAsync<ConversationWithMessages, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.assistantConversation.update({
+        ...conversationWithMessagesArgs,
+        where: { id: conversationId, userId },
+        data: { status: AssistantConversationStatus.archived },
+      }),
+    );
   }
 
-  async softDelete(
+  softDelete(
     userId: string,
     conversationId: string,
-  ): Promise<ConversationWithMessages> {
-    return this.prisma.assistantConversation.update({
-      ...conversationWithMessagesArgs,
-      where: { id: conversationId, userId },
-      data: { status: AssistantConversationStatus.deleted },
-    });
+  ): ResultAsync<ConversationWithMessages, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.assistantConversation.update({
+        ...conversationWithMessagesArgs,
+        where: { id: conversationId, userId },
+        data: { status: AssistantConversationStatus.deleted },
+      }),
+    );
   }
 
-  async updateTitle(
+  updateTitle(
     userId: string,
     conversationId: string,
     title: string | null,
-  ): Promise<ConversationWithMessages> {
-    return this.prisma.assistantConversation.update({
-      ...conversationWithMessagesArgs,
-      where: { id: conversationId, userId },
-      data: { title },
-    });
+  ): ResultAsync<ConversationWithMessages, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.assistantConversation.update({
+        ...conversationWithMessagesArgs,
+        where: { id: conversationId, userId },
+        data: { title },
+      }),
+    );
   }
 
-  async activateConversation(
+  activateConversation(
+    userId: string,
+    conversationId: string,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(
+      this.doActivateConversation(userId, conversationId),
+    );
+  }
+
+  private async doActivateConversation(
     userId: string,
     conversationId: string,
   ): Promise<void> {
@@ -279,7 +304,13 @@ export class AssistantConversationRepository implements AssistantConversationRep
     );
   }
 
-  async persistTurn(
+  persistTurn(
+    input: PersistTurnInput,
+  ): ResultAsync<ConversationWithMessages, DomainFailure> {
+    return fromPrismaResult(this.doPersistTurn(input));
+  }
+
+  private async doPersistTurn(
     input: PersistTurnInput,
   ): Promise<ConversationWithMessages> {
     await this.prisma.$transaction(
@@ -321,11 +352,22 @@ export class AssistantConversationRepository implements AssistantConversationRep
     return this.findWithMessagesById(input.userId, input.conversationId);
   }
 
-  async appendAssistantMessage(
+  appendAssistantMessage(
     conversationId: string,
     userId: string,
     content: string,
     usedTools: string[] = [],
+  ): ResultAsync<ConversationWithMessages, DomainFailure> {
+    return fromPrismaResult(
+      this.doAppendAssistantMessage(conversationId, userId, content, usedTools),
+    );
+  }
+
+  private async doAppendAssistantMessage(
+    conversationId: string,
+    userId: string,
+    content: string,
+    usedTools: string[],
   ): Promise<ConversationWithMessages> {
     const timestamp = new Date();
     await this.prisma.$transaction(
@@ -363,12 +405,14 @@ export class AssistantConversationRepository implements AssistantConversationRep
     });
   }
 
-  async createRegeneration(
+  createRegeneration(
     input: RegenerationRecordInput,
-  ): Promise<{ id: string }> {
-    return this.prisma.assistantRegeneration.create({
-      data: input,
-      select: { id: true },
-    });
+  ): ResultAsync<{ id: string }, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.assistantRegeneration.create({
+        data: input,
+        select: { id: true },
+      }),
+    );
   }
 }

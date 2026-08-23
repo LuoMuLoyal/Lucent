@@ -6,6 +6,7 @@ import type {
   ConversationSummary,
 } from '../repositories/conversation.repository';
 import type { AssistantMemoryService } from './memory.service';
+import { okAsync } from '../../../common/result';
 import { AssistantConversationService } from './conversation.service';
 
 function buildConversation(
@@ -64,7 +65,7 @@ describe('AssistantConversationService', () => {
       archiveConversation: vi.fn(),
       softDelete: vi.fn(),
       updateTitle: vi.fn(),
-      activateConversation: vi.fn().mockResolvedValue(undefined),
+      activateConversation: vi.fn().mockReturnValue(okAsync(undefined)),
       persistTurn: vi.fn(),
       appendAssistantMessage: vi.fn(),
       findRecentRegeneration: vi.fn(),
@@ -153,31 +154,36 @@ describe('AssistantConversationService', () => {
       repo.findWithMessages.mockResolvedValue(conv);
       repo.findWithMessagesById.mockResolvedValue(conv);
 
-      const result = await service.openConversation('user-1', 'conv-1');
+      const result = (
+        await service.openConversation('user-1', 'conv-1')
+      ).unwrapOr(null);
 
       expect(repo.activateConversation).toHaveBeenCalledWith(
         'user-1',
         'conv-1',
       );
-      expect(result.id).toBe('conv-1');
+      expect(result!.id).toBe('conv-1');
     });
 
-    it('throws when conversation not found', async () => {
+    it('returns RESOURCE_NOT_FOUND when conversation not found', async () => {
       repo.findWithMessages.mockResolvedValue(null);
 
-      await expect(
-        service.openConversation('user-1', 'nonexistent'),
-      ).rejects.toThrow();
+      const result = await service.openConversation('user-1', 'nonexistent');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('RESOURCE_NOT_FOUND');
+      }
     });
 
-    it('throws when the conversation is deleted', async () => {
+    it('returns RESOURCE_NOT_FOUND when the conversation is deleted', async () => {
       repo.findWithMessages.mockResolvedValue(
         buildConversation({ status: 'deleted' as never }),
       );
 
-      await expect(
-        service.openConversation('user-1', 'conv-1'),
-      ).rejects.toThrow();
+      const result = await service.openConversation('user-1', 'conv-1');
+
+      expect(result.isErr()).toBe(true);
       expect(repo.activateConversation).not.toHaveBeenCalled();
     });
   });
@@ -187,49 +193,55 @@ describe('AssistantConversationService', () => {
       const conv = buildConversation();
       const updated = buildConversation({ title: 'New title' });
       repo.findWithMessages.mockResolvedValue(conv);
-      repo.updateTitle.mockResolvedValue(updated);
+      repo.updateTitle.mockReturnValue(okAsync(updated));
 
-      const result = await service.renameConversation(
-        'user-1',
-        'conv-1',
-        'New title',
-      );
+      const result = (
+        await service.renameConversation('user-1', 'conv-1', 'New title')
+      ).unwrapOr(null);
 
       expect(repo.updateTitle).toHaveBeenCalledWith(
         'user-1',
         'conv-1',
         'New title',
       );
-      expect(result.title).toBe('New title');
+      expect(result!.title).toBe('New title');
     });
 
     it('clears the title to null when requested', async () => {
       repo.findWithMessages.mockResolvedValue(buildConversation());
-      repo.updateTitle.mockResolvedValue(buildConversation({ title: null }));
+      repo.updateTitle.mockReturnValue(
+        okAsync(buildConversation({ title: null })),
+      );
 
-      const result = await service.renameConversation('user-1', 'conv-1', null);
+      const result = (
+        await service.renameConversation('user-1', 'conv-1', null)
+      ).unwrapOr(null);
 
       expect(repo.updateTitle).toHaveBeenCalledWith('user-1', 'conv-1', null);
-      expect(result.title).toBeNull();
+      expect(result!.title).toBeNull();
     });
 
-    it('throws when conversation not found', async () => {
+    it('returns RESOURCE_NOT_FOUND when conversation not found', async () => {
       repo.findWithMessages.mockResolvedValue(null);
 
-      await expect(
-        service.renameConversation('user-1', 'nonexistent', 'T'),
-      ).rejects.toThrow();
+      const result = await service.renameConversation(
+        'user-1',
+        'nonexistent',
+        'T',
+      );
+
+      expect(result.isErr()).toBe(true);
       expect(repo.updateTitle).not.toHaveBeenCalled();
     });
 
-    it('throws when the conversation is deleted', async () => {
+    it('returns RESOURCE_NOT_FOUND when the conversation is deleted', async () => {
       repo.findWithMessages.mockResolvedValue(
         buildConversation({ status: 'deleted' as never }),
       );
 
-      await expect(
-        service.renameConversation('user-1', 'conv-1', 'T'),
-      ).rejects.toThrow();
+      const result = await service.renameConversation('user-1', 'conv-1', 'T');
+
+      expect(result.isErr()).toBe(true);
       expect(repo.updateTitle).not.toHaveBeenCalled();
     });
   });
@@ -239,20 +251,25 @@ describe('AssistantConversationService', () => {
       const conv = buildConversation();
       const deleted = buildConversation({ status: 'deleted' as never });
       repo.findWithMessages.mockResolvedValue(conv);
-      repo.softDelete.mockResolvedValue(deleted);
+      repo.softDelete.mockReturnValue(okAsync(deleted));
 
-      const result = await service.deleteConversation('user-1', 'conv-1');
+      const result = (
+        await service.deleteConversation('user-1', 'conv-1')
+      ).unwrapOr(null);
 
       expect(repo.softDelete).toHaveBeenCalledWith('user-1', 'conv-1');
-      expect(result.status).toBe('deleted');
+      expect(result!.status).toBe('deleted');
     });
 
-    it('throws when conversation not found', async () => {
+    it('returns RESOURCE_NOT_FOUND when conversation not found', async () => {
       repo.findWithMessages.mockResolvedValue(null);
 
-      await expect(
-        service.deleteConversation('user-1', 'nonexistent'),
-      ).rejects.toThrow();
+      const result = await service.deleteConversation('user-1', 'nonexistent');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('RESOURCE_NOT_FOUND');
+      }
       expect(repo.softDelete).not.toHaveBeenCalled();
     });
 
@@ -261,9 +278,9 @@ describe('AssistantConversationService', () => {
         buildConversation({ status: 'deleted' as never }),
       );
 
-      await expect(
-        service.deleteConversation('user-1', 'conv-1'),
-      ).rejects.toThrow();
+      const result = await service.deleteConversation('user-1', 'conv-1');
+
+      expect(result.isErr()).toBe(true);
       expect(repo.softDelete).not.toHaveBeenCalled();
     });
   });
@@ -273,7 +290,7 @@ describe('AssistantConversationService', () => {
       const conv = buildConversation();
       const archived = buildConversation({ status: 'archived' as never });
       repo.findLatestActiveWithMessages.mockResolvedValue(conv);
-      repo.archiveConversation.mockResolvedValue(archived);
+      repo.archiveConversation.mockReturnValue(okAsync(archived));
 
       const result = await service.clearLatestConversation('user-1');
 
@@ -285,8 +302,8 @@ describe('AssistantConversationService', () => {
     it('schedules memory extraction for the archived conversation', async () => {
       const conv = buildConversation();
       repo.findLatestActiveWithMessages.mockResolvedValue(conv);
-      repo.archiveConversation.mockResolvedValue(
-        buildConversation({ status: 'archived' as never }),
+      repo.archiveConversation.mockReturnValue(
+        okAsync(buildConversation({ status: 'archived' as never })),
       );
 
       await service.clearLatestConversation('user-1');
@@ -311,9 +328,9 @@ describe('AssistantConversationService', () => {
     it('creates new conversation when none exists', async () => {
       repo.findLatestActiveWithMessages.mockResolvedValue(null);
       const created = buildConversation({ id: 'new-conv' });
-      repo.create.mockResolvedValue(created);
+      repo.create.mockReturnValue(okAsync(created));
       const saved = buildConversation({ id: 'new-conv' });
-      repo.persistTurn.mockResolvedValue(saved);
+      repo.persistTurn.mockReturnValue(okAsync(saved));
 
       const result = await service.persistAssistantTurn({
         userId: 'user-1',
@@ -331,7 +348,7 @@ describe('AssistantConversationService', () => {
       const existing = buildConversation({ id: 'existing-conv' });
       repo.findLatestActiveWithMessages.mockResolvedValue(existing);
       const saved = buildConversation({ id: 'existing-conv' });
-      repo.persistTurn.mockResolvedValue(saved);
+      repo.persistTurn.mockReturnValue(okAsync(saved));
 
       const result = await service.persistAssistantTurn({
         userId: 'user-1',
@@ -346,8 +363,8 @@ describe('AssistantConversationService', () => {
 
     it('filters out empty messages during normalization', async () => {
       repo.findLatestActiveWithMessages.mockResolvedValue(null);
-      repo.create.mockResolvedValue(buildConversation());
-      repo.persistTurn.mockResolvedValue(buildConversation());
+      repo.create.mockReturnValue(okAsync(buildConversation()));
+      repo.persistTurn.mockReturnValue(okAsync(buildConversation()));
 
       await service.persistAssistantTurn({
         userId: 'user-1',
@@ -366,8 +383,8 @@ describe('AssistantConversationService', () => {
 
     it('builds title from first user message', async () => {
       repo.findLatestActiveWithMessages.mockResolvedValue(null);
-      repo.create.mockResolvedValue(buildConversation());
-      repo.persistTurn.mockResolvedValue(buildConversation());
+      repo.create.mockReturnValue(okAsync(buildConversation()));
+      repo.persistTurn.mockReturnValue(okAsync(buildConversation()));
 
       await service.persistAssistantTurn({
         userId: 'user-1',
@@ -384,8 +401,8 @@ describe('AssistantConversationService', () => {
 
     it('builds null title when no user message', async () => {
       repo.findLatestActiveWithMessages.mockResolvedValue(null);
-      repo.create.mockResolvedValue(buildConversation());
-      repo.persistTurn.mockResolvedValue(buildConversation());
+      repo.create.mockReturnValue(okAsync(buildConversation()));
+      repo.persistTurn.mockReturnValue(okAsync(buildConversation()));
 
       await service.persistAssistantTurn({
         userId: 'user-1',
@@ -401,10 +418,12 @@ describe('AssistantConversationService', () => {
   describe('enrichTitleWithLlm (F-2 best-effort title refinement)', () => {
     function setupNewConversation() {
       repo.findLatestActiveWithMessages.mockResolvedValue(null);
-      repo.create.mockResolvedValue(
-        buildConversation({ id: 'new-conv', title: 'Hello' }),
+      repo.create.mockReturnValue(
+        okAsync(buildConversation({ id: 'new-conv', title: 'Hello' })),
       );
-      repo.persistTurn.mockResolvedValue(buildConversation({ id: 'new-conv' }));
+      repo.persistTurn.mockReturnValue(
+        okAsync(buildConversation({ id: 'new-conv' })),
+      );
     }
 
     it('replaces the initial truncated title with the LLM title for a new conversation', async () => {
@@ -413,8 +432,10 @@ describe('AssistantConversationService', () => {
         buildConversation({ id: 'new-conv', title: 'Hello' }),
       );
       invoke.mockResolvedValue({ content: '我今天的饮水情况' });
-      repo.updateTitle.mockResolvedValue(
-        buildConversation({ id: 'new-conv', title: '我今天的饮水情况' }),
+      repo.updateTitle.mockReturnValue(
+        okAsync(
+          buildConversation({ id: 'new-conv', title: '我今天的饮水情况' }),
+        ),
       );
 
       await service.persistAssistantTurn({
@@ -506,8 +527,8 @@ describe('AssistantConversationService', () => {
       repo.findLatestActiveWithMessages.mockResolvedValue(
         buildConversation({ id: 'existing-conv' }),
       );
-      repo.persistTurn.mockResolvedValue(
-        buildConversation({ id: 'existing-conv' }),
+      repo.persistTurn.mockReturnValue(
+        okAsync(buildConversation({ id: 'existing-conv' })),
       );
 
       await service.persistAssistantTurn({

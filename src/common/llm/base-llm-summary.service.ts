@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../constants/user-setting-keys';
-import { forbidden } from '../helpers/errors/api-errors';
 import { PrismaService } from '../../prisma';
 import type { PromptCopy } from '../helpers/format/localized-copy';
 import type { StreamSummaryEvent } from '../api/stream-summary';
 import { LlmSafetyPolicyService } from './llm-safety-policy.service';
 import { BaseLlmGeneratorService } from './base-llm-generator.service';
 import { extractErrorInfo } from '../helpers/errors/error-info.utils';
+import { createDomainFailure } from '../result';
+import { DomainFailureException } from '../result/domain-failure.exception';
 
 export interface LlmSummaryCopyService<TContext, TOutput> {
   resolveLocale(language: string | undefined): string;
@@ -164,7 +165,13 @@ export abstract class BaseLlmSummaryService<
     });
 
     if (setting?.value === false) {
-      forbidden(this.copyService.summariesDisabled(locale));
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'authorization',
+          code: 'FORBIDDEN',
+          detail: this.copyService.summariesDisabled(locale),
+        }),
+      );
     }
   }
 

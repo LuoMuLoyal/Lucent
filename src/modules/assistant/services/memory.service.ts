@@ -15,6 +15,7 @@ import { trace } from '@opentelemetry/api';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { LlmRuntimeService } from '../../../llm-runtime';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import {
   AssistantConversationRepositoryPort,
   type ConversationWithMessages,
@@ -100,13 +101,24 @@ export class AssistantMemoryService {
       return;
     }
 
-    await this.memoryRepository.createMany(
-      userId,
-      items.map((content) => ({
-        sourceConversationId: conversationId,
-        content,
-      })),
-    );
+    // Best-effort persistence: a failure is logged and the extraction is
+    // dropped (memory injection must never break the archive flow).
+    await this.memoryRepository
+      .createMany(
+        userId,
+        items.map((content) => ({
+          sourceConversationId: conversationId,
+          content,
+        })),
+      )
+      .match(
+        () => undefined,
+        (failure) => {
+          this.logger.warn(
+            `Memory persistence failed for user "${userId}" conversation "${conversationId}": ${failure.code}`,
+          );
+        },
+      );
   }
 
   /**
@@ -170,7 +182,7 @@ export class AssistantMemoryService {
    * Removes all persisted memories for a user (memory-erase entry point).
    * Returns the number of deleted memory rows so the API can surface it.
    */
-  async deleteAllForUser(userId: string): Promise<number> {
+  deleteAllForUser(userId: string): ResultAsync<number, DomainFailure> {
     return this.memoryRepository.deleteAllForUser(userId);
   }
 

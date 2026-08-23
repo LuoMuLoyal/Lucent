@@ -1,9 +1,3 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
 import { okAsync, fromPromise } from '../../../common/result';
 import type { AssistantRuntimeService } from '../agent/runtime.service';
 import type { UserSettingsService } from '../../user-settings';
@@ -86,8 +80,6 @@ describe('AssistantService', () => {
 
     userSettings = {
       getSettings: vi.fn().mockResolvedValue(mockSettings),
-      // TODO(error): updateSettings migrated to ResultAsync (Task 8.2);
-      // remove the okAsync wrap when the assistant module migrates (Task 10).
       updateSettings: vi.fn().mockReturnValue(okAsync(mockSettings)),
     } as unknown as vi.Mocked<UserSettingsService>;
 
@@ -117,7 +109,7 @@ describe('AssistantService', () => {
     } as unknown as vi.Mocked<AssistantConversationService>;
 
     memory = {
-      deleteAllForUser: vi.fn().mockResolvedValue(3),
+      deleteAllForUser: vi.fn().mockReturnValue(okAsync(3)),
     } as unknown as vi.Mocked<AssistantMemoryService>;
 
     service = new AssistantService(
@@ -192,9 +184,11 @@ describe('AssistantService', () => {
 
   describe('openConversation', () => {
     it('delegates to conversation service', async () => {
-      conversation.openConversation.mockResolvedValue(mockConversation);
+      conversation.openConversation.mockReturnValue(okAsync(mockConversation));
 
-      const result = await service.openConversation('user-1', 'conv-1');
+      const result = (
+        await service.openConversation('user-1', 'conv-1')
+      ).unwrapOr(null);
 
       expect(conversation.openConversation).toHaveBeenCalledWith(
         'user-1',
@@ -269,30 +263,35 @@ describe('AssistantService', () => {
         pendingReview,
         proposals: [createProposal],
       });
-      runtime.resumeConversation.mockResolvedValue({
-        finalContent: '已确认。',
-      });
+      runtime.resumeConversation.mockReturnValue(
+        okAsync({ finalContent: '已确认。' }),
+      );
     });
 
-    it('throws NotFoundException when the conversation is missing', async () => {
+    it('returns RESOURCE_NOT_FOUND when the conversation is missing', async () => {
       conversation.getConversation.mockResolvedValue(null);
 
-      await expect(
-        service.confirmProposal('user-1', 'conv-1', dto),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      const result = await service.confirmProposal('user-1', 'conv-1', dto);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('RESOURCE_NOT_FOUND');
+      }
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
       expect(runtime.readPendingProposals).not.toHaveBeenCalled();
     });
 
     it('applies approved create_daily_record writes server-side then resumes', async () => {
-      runtime.resumeConversation.mockResolvedValue({
-        finalContent: '已确认。',
-      });
+      runtime.resumeConversation.mockReturnValue(
+        okAsync({ finalContent: '已确认。' }),
+      );
 
-      const result = await service.confirmProposal('user-1', 'conv-1', {
-        ...dto,
-        note: 'ok',
-      });
+      const result = (
+        await service.confirmProposal('user-1', 'conv-1', {
+          ...dto,
+          note: 'ok',
+        })
+      ).unwrapOr(null);
 
       expect(runtime.readPendingProposals).toHaveBeenCalledWith('conv-1');
       expect(dailyRecords.create).toHaveBeenCalledWith('user-1', {
@@ -401,14 +400,16 @@ describe('AssistantService', () => {
     });
 
     it('does not write and only resumes when rejected', async () => {
-      runtime.resumeConversation.mockResolvedValue({
-        finalContent: '已拒绝。',
-      });
+      runtime.resumeConversation.mockReturnValue(
+        okAsync({ finalContent: '已拒绝。' }),
+      );
 
-      const result = await service.confirmProposal('user-1', 'conv-1', {
-        proposalIds: ['proposal-1'],
-        decision: 'rejected',
-      });
+      const result = (
+        await service.confirmProposal('user-1', 'conv-1', {
+          proposalIds: ['proposal-1'],
+          decision: 'rejected',
+        })
+      ).unwrapOr(null);
 
       expect(runtime.readPendingProposals).not.toHaveBeenCalled();
       expect(dailyRecords.create).not.toHaveBeenCalled();
@@ -420,31 +421,37 @@ describe('AssistantService', () => {
         conversationId: 'conv-1',
         decision: 'rejected',
       });
-      expect(result.status).toBe('rejected');
+      expect(result!.status).toBe('rejected');
     });
 
-    it('rejects when the pending review is missing', async () => {
+    it('returns VALIDATION_FAILED when the pending review is missing', async () => {
       runtime.readPendingProposals.mockResolvedValue({
         pendingReview: null,
         proposals: [],
       });
 
-      await expect(
-        service.confirmProposal('user-1', 'conv-1', dto),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.confirmProposal('user-1', 'conv-1', dto);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('VALIDATION_FAILED');
+      }
       expect(dailyRecords.create).not.toHaveBeenCalled();
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
     });
 
-    it('rejects when the pending review is not pending', async () => {
+    it('returns VALIDATION_FAILED when the pending review is not pending', async () => {
       runtime.readPendingProposals.mockResolvedValue({
         pendingReview: { ...pendingReview, status: 'approved' },
         proposals: [createProposal],
       });
 
-      await expect(
-        service.confirmProposal('user-1', 'conv-1', dto),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.confirmProposal('user-1', 'conv-1', dto);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('VALIDATION_FAILED');
+      }
       expect(dailyRecords.create).not.toHaveBeenCalled();
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
     });
@@ -468,12 +475,15 @@ describe('AssistantService', () => {
         proposals: [freshProposal, staleProposal],
       });
 
-      await expect(
-        service.confirmProposal('user-1', 'conv-1', {
-          proposalIds: ['proposal-fresh', 'proposal-stale'],
-          decision: 'approved',
-        }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.confirmProposal('user-1', 'conv-1', {
+        proposalIds: ['proposal-fresh', 'proposal-stale'],
+        decision: 'approved',
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('VALIDATION_FAILED');
+      }
       expect(dailyRecords.create).not.toHaveBeenCalled();
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
     });
@@ -527,9 +537,12 @@ describe('AssistantService', () => {
         proposals: [],
       });
 
-      await expect(
-        service.confirmProposal('user-1', 'conv-1', dto),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.confirmProposal('user-1', 'conv-1', dto);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('VALIDATION_FAILED');
+      }
       expect(dailyRecords.create).not.toHaveBeenCalled();
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
     });
@@ -570,32 +583,11 @@ describe('AssistantService', () => {
 
     const onChunk = vi.fn();
 
-    it('throws ForbiddenException when assistant is disabled', async () => {
+    it('returns FORBIDDEN when assistant is disabled', async () => {
       userSettings.getSettings.mockResolvedValue({
         ...mockSettings,
         assistantEnabled: false,
       } as never);
-
-      await expect(
-        service.streamMessages('user-1', dto, 'zh-CN', onChunk),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('throws ServiceUnavailableException when chat model is not configured', async () => {
-      runtime.describeFoundation.mockResolvedValue({
-        ...mockFoundation,
-        chatModelConfigured: false,
-      });
-
-      await expect(
-        service.streamMessages('user-1', dto, 'zh-CN', onChunk),
-      ).rejects.toThrow(ServiceUnavailableException);
-    });
-
-    it('streams pre-generated content when finalContent is present', async () => {
-      runtime.runConversation.mockResolvedValue(mockRunConversationResult);
-      runtime.streamPreGeneratedContent.mockResolvedValue(mockStreamResult);
-      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
       const result = await service.streamMessages(
         'user-1',
@@ -604,13 +596,47 @@ describe('AssistantService', () => {
         onChunk,
       );
 
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('FORBIDDEN');
+      }
+    });
+
+    it('returns DEPENDENCY_UNAVAILABLE when chat model is not configured', async () => {
+      runtime.describeFoundation.mockResolvedValue({
+        ...mockFoundation,
+        chatModelConfigured: false,
+      });
+
+      const result = await service.streamMessages(
+        'user-1',
+        dto,
+        'zh-CN',
+        onChunk,
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+      }
+    });
+
+    it('streams pre-generated content when finalContent is present', async () => {
+      runtime.runConversation.mockResolvedValue(mockRunConversationResult);
+      runtime.streamPreGeneratedContent.mockResolvedValue(mockStreamResult);
+      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
+
       expect(runtime.streamPreGeneratedContent).toHaveBeenCalledWith(
         'AI response',
         [],
         onChunk,
       );
-      expect(result.role).toBe('assistant');
-      expect(result.content).toBe('AI response');
+      expect(result!.role).toBe('assistant');
+      expect(result!.content).toBe('AI response');
     });
 
     it('does not replay content that the graph already streamed', async () => {
@@ -626,16 +652,13 @@ describe('AssistantService', () => {
       });
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
-      const result = await service.streamMessages(
-        'user-1',
-        dto,
-        'zh-CN',
-        onChunk,
-      );
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
 
       expect(onChunk).toHaveBeenCalledWith({ content: 'AI response' });
       expect(runtime.streamPreGeneratedContent).not.toHaveBeenCalled();
-      expect(result.content).toBe('AI response');
+      expect(result!.content).toBe('AI response');
     });
 
     it('generates stream when finalContent is null', async () => {
@@ -646,10 +669,12 @@ describe('AssistantService', () => {
       runtime.generateStream.mockResolvedValue(mockStreamResult);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
-      const result = await service.streamMessages('user-1', dto, 'en', onChunk);
+      const result = (
+        await service.streamMessages('user-1', dto, 'en', onChunk)
+      ).unwrapOr(null);
 
       expect(runtime.generateStream).toHaveBeenCalled();
-      expect(result.content).toBe('AI response');
+      expect(result!.content).toBe('AI response');
     });
 
     it('persists assistant turn and returns conversation id', async () => {
@@ -657,12 +682,9 @@ describe('AssistantService', () => {
       runtime.streamPreGeneratedContent.mockResolvedValue(mockStreamResult);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
-      const result = await service.streamMessages(
-        'user-1',
-        dto,
-        'zh-CN',
-        onChunk,
-      );
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
 
       expect(conversation.persistAssistantTurn).toHaveBeenCalledWith({
         userId: 'user-1',
@@ -670,7 +692,7 @@ describe('AssistantService', () => {
         assistantContent: 'AI response',
         usedTools: [],
       });
-      expect(result.conversationId).toBe('conv-1');
+      expect(result!.conversationId).toBe('conv-1');
     });
 
     it('maps knowledge tool envelopes into toolDetails', async () => {
@@ -747,14 +769,11 @@ describe('AssistantService', () => {
       } as never);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
-      const result = await service.streamMessages(
-        'user-1',
-        dto,
-        'zh-CN',
-        onChunk,
-      );
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
 
-      expect(result.toolDetails).toEqual([
+      expect(result!.toolDetails).toEqual([
         {
           name: 'search_medicine_leaflets',
           label: '布洛芬缓释胶囊',
@@ -804,14 +823,11 @@ describe('AssistantService', () => {
       } as never);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
-      const result = await service.streamMessages(
-        'user-1',
-        dto,
-        'zh-CN',
-        onChunk,
-      );
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
 
-      expect(result.toolDetails).toEqual([
+      expect(result!.toolDetails).toEqual([
         { name: 'propose_create_daily_record' },
       ]);
     });
@@ -821,14 +837,11 @@ describe('AssistantService', () => {
       runtime.streamPreGeneratedContent.mockResolvedValue(mockStreamResult);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
-      const result = await service.streamMessages(
-        'user-1',
-        dto,
-        'zh-CN',
-        onChunk,
-      );
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
 
-      expect(result.toolDetails).toEqual([]);
+      expect(result!.toolDetails).toEqual([]);
     });
 
     it('degrades malformed tool detail data to name-only details and warns', async () => {
@@ -853,14 +866,11 @@ describe('AssistantService', () => {
       ).logger;
       const warnSpy = vi.spyOn(logger, 'warn');
 
-      const result = await service.streamMessages(
-        'user-1',
-        dto,
-        'zh-CN',
-        onChunk,
-      );
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
 
-      expect(result.toolDetails).toEqual([
+      expect(result!.toolDetails).toEqual([
         { name: 'search_medicine_leaflets' },
       ]);
       expect(warnSpy).toHaveBeenCalled();
@@ -870,10 +880,12 @@ describe('AssistantService', () => {
   describe('regenerateConversation', () => {
     it('replays the recorded checkpoint, streams, and persists the new answer', async () => {
       conversation.getConversation.mockResolvedValue(mockConversation);
-      runtime.regenerateLastMessage.mockResolvedValue({
-        checkpointId: 'checkpoint-1',
-        sourceMessageId: 'msg-last',
-      });
+      runtime.regenerateLastMessage.mockReturnValue(
+        okAsync({
+          checkpointId: 'checkpoint-1',
+          sourceMessageId: 'msg-last',
+        }),
+      );
       runtime.replayFromCheckpoint.mockImplementation(
         async (_id, _cp, onText) => {
           await onText('重新生成');
@@ -884,13 +896,15 @@ describe('AssistantService', () => {
       conversation.appendAssistantMessage.mockResolvedValue(mockConversation);
 
       const chunks: string[] = [];
-      const result = await service.regenerateConversation(
-        'user-1',
-        'conv-1',
-        ({ content }) => {
-          chunks.push(content);
-        },
-      );
+      const result = (
+        await service.regenerateConversation(
+          'user-1',
+          'conv-1',
+          ({ content }) => {
+            chunks.push(content);
+          },
+        )
+      ).unwrapOr(null);
 
       expect(runtime.regenerateLastMessage).toHaveBeenCalledWith(
         'user-1',
@@ -907,7 +921,7 @@ describe('AssistantService', () => {
         '重新生成的回答',
       );
       expect(chunks).toEqual(['重新生成', '的回答']);
-      expect(result).toMatchObject({
+      expect(result!).toMatchObject({
         conversationId: 'conv-1',
         role: 'assistant',
         content: '重新生成的回答',
@@ -915,23 +929,32 @@ describe('AssistantService', () => {
         proposedActions: [],
         toolDetails: [],
       });
-      expect(result.generatedAt).toEqual(expect.any(String));
+      expect(result!.generatedAt).toEqual(expect.any(String));
     });
 
-    it('rejects when the conversation does not exist', async () => {
+    it('returns RESOURCE_NOT_FOUND when the conversation does not exist', async () => {
       conversation.getConversation.mockResolvedValue(null);
 
-      await expect(
-        service.regenerateConversation('user-1', 'conv-1', vi.fn()),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      const result = await service.regenerateConversation(
+        'user-1',
+        'conv-1',
+        vi.fn(),
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('RESOURCE_NOT_FOUND');
+      }
     });
 
     it('does not persist when the replay fails', async () => {
       conversation.getConversation.mockResolvedValue(mockConversation);
-      runtime.regenerateLastMessage.mockResolvedValue({
-        checkpointId: 'checkpoint-1',
-        sourceMessageId: 'msg-last',
-      });
+      runtime.regenerateLastMessage.mockReturnValue(
+        okAsync({
+          checkpointId: 'checkpoint-1',
+          sourceMessageId: 'msg-last',
+        }),
+      );
       runtime.replayFromCheckpoint.mockRejectedValue(
         new Error('LLM unavailable'),
       );

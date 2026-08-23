@@ -22,6 +22,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
+import { okAsync } from '../../common/result';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/core.service';
 import { AuditLogService } from '../audit-log';
@@ -189,9 +190,9 @@ describe('AssistantController', () => {
     const response = { raw: {} } as unknown as FastifyReply;
 
     service.streamMessages.mockImplementation(
-      async (_userId, _dto, _language, onChunk) => {
-        await onChunk({ content: 'Hello' });
-        return {
+      (_userId, _dto, _language, onChunk) => {
+        void Promise.resolve(onChunk({ content: 'Hello' }));
+        return okAsync({
           conversationId: 'conversation-1',
           role: 'assistant',
           content: 'Hello there',
@@ -245,7 +246,7 @@ describe('AssistantController', () => {
               },
             },
           ],
-        };
+        });
       },
     );
 
@@ -370,22 +371,24 @@ describe('AssistantController', () => {
   });
 
   it('opens one persisted conversation resource', async () => {
-    service.openConversation.mockResolvedValue({
-      id: 'conversation-1',
-      title: '最近睡眠怎样？',
-      status: 'active',
-      messages: [
-        {
-          role: 'user',
-          content: '最近睡眠怎样？',
-          usedTools: [],
-          createdAt: '2026-06-18T10:00:00.000Z',
-        },
-      ],
-      lastMessageAt: '2026-06-18T10:00:00.000Z',
-      createdAt: '2026-06-18T10:00:00.000Z',
-      updatedAt: '2026-06-18T10:05:00.000Z',
-    });
+    service.openConversation.mockReturnValue(
+      okAsync({
+        id: 'conversation-1',
+        title: '最近睡眠怎样？',
+        status: 'active',
+        messages: [
+          {
+            role: 'user',
+            content: '最近睡眠怎样？',
+            usedTools: [],
+            createdAt: '2026-06-18T10:00:00.000Z',
+          },
+        ],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:05:00.000Z',
+      }),
+    );
 
     await expect(
       controller.openConversation(
@@ -434,12 +437,14 @@ describe('AssistantController', () => {
   });
 
   it('confirms pending proposals and returns the decision resource', async () => {
-    service.confirmProposal.mockResolvedValue({
-      conversationId: 'conversation-1',
-      decision: 'approved',
-      status: 'approved',
-      finalContent: '已确认。',
-    });
+    service.confirmProposal.mockReturnValue(
+      okAsync({
+        conversationId: 'conversation-1',
+        decision: 'approved',
+        status: 'approved',
+        finalContent: '已确认。',
+      }),
+    );
 
     await expect(
       controller.confirmProposal(
@@ -461,22 +466,24 @@ describe('AssistantController', () => {
   });
 
   it('renames one persisted conversation resource', async () => {
-    service.renameConversation.mockResolvedValue({
-      id: 'conversation-1',
-      title: '新标题',
-      status: 'active',
-      messages: [
-        {
-          role: 'user',
-          content: '最近睡眠怎样？',
-          usedTools: [],
-          createdAt: '2026-06-18T10:00:00.000Z',
-        },
-      ],
-      lastMessageAt: '2026-06-18T10:00:00.000Z',
-      createdAt: '2026-06-18T10:00:00.000Z',
-      updatedAt: '2026-06-18T10:05:00.000Z',
-    });
+    service.renameConversation.mockReturnValue(
+      okAsync({
+        id: 'conversation-1',
+        title: '新标题',
+        status: 'active',
+        messages: [
+          {
+            role: 'user',
+            content: '最近睡眠怎样？',
+            usedTools: [],
+            createdAt: '2026-06-18T10:00:00.000Z',
+          },
+        ],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:05:00.000Z',
+      }),
+    );
 
     await expect(
       controller.renameConversation(
@@ -508,15 +515,17 @@ describe('AssistantController', () => {
   });
 
   it('deletes one persisted conversation resource', async () => {
-    service.deleteConversation.mockResolvedValue({
-      id: 'conversation-1',
-      title: '最近睡眠怎样？',
-      status: 'deleted',
-      messages: [],
-      lastMessageAt: '2026-06-18T10:00:00.000Z',
-      createdAt: '2026-06-18T10:00:00.000Z',
-      updatedAt: '2026-06-18T10:05:00.000Z',
-    });
+    service.deleteConversation.mockReturnValue(
+      okAsync({
+        id: 'conversation-1',
+        title: '最近睡眠怎样？',
+        status: 'deleted',
+        messages: [],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:05:00.000Z',
+      }),
+    );
 
     await expect(
       controller.deleteConversation(
@@ -587,15 +596,15 @@ describe('AssistantController', () => {
   it('streams chunk, result, and done SSE events for regeneration', async () => {
     const response = { raw: {} } as unknown as FastifyReply;
     service.regenerateConversation.mockImplementation(
-      async (_userId, _conversationId, onChunk) => {
-        await onChunk({ content: '新的' });
-        return {
+      (_userId, _conversationId, onChunk) => {
+        void Promise.resolve(onChunk({ content: '新的' }));
+        return okAsync({
           conversationId: 'conversation-1',
           role: 'assistant',
           content: '新的回答',
           usedTools: [],
           generatedAt: '2026-08-17T12:00:00.000Z',
-        };
+        });
       },
     );
 

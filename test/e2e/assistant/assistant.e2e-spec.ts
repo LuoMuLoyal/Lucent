@@ -93,11 +93,14 @@ describe('Assistant API (e2e)', () => {
         .expect(401);
     });
 
-    it('should return 404 for a non-existent conversation', async () => {
-      await request(app.getHttpServer())
+    it('should return 404 RESOURCE_NOT_FOUND for a non-existent conversation', async () => {
+      const res = await request(app.getHttpServer())
         .post(`${BASE_PATH}/conversations/non-existent-conv-id/open`)
         .set('Authorization', bearer(accessToken))
         .expect(404);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('RESOURCE_NOT_FOUND');
     });
 
     it('should activate an archived conversation and return its history', async () => {
@@ -228,30 +231,37 @@ describe('Assistant API (e2e)', () => {
         .expect(401);
     });
 
-    it('should return 400 for invalid request body (empty messages)', async () => {
-      await request(app.getHttpServer())
+    it('should return 400 VALIDATION_FAILED for invalid request body (empty messages)', async () => {
+      const res = await request(app.getHttpServer())
         .post(`${BASE_PATH}/messages/stream`)
         .set('Authorization', bearer(accessToken))
         .send({ messages: [] })
         .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
     });
 
-    it('should return SSE stream or error when LLM is not configured', async () => {
+    it('should emit an SSE error event when LLM is not configured', async () => {
       const res = await request(app.getHttpServer())
         .post(`${BASE_PATH}/messages/stream`)
         .set('Authorization', bearer(accessToken))
-        .send({ messages: [{ role: 'user', content: 'Hello' }] });
+        .send({ messages: [{ role: 'user', content: 'Hello' }] })
+        .expect(200);
 
-      // The endpoint may return 200 (SSE stream) or 403/503 if LLM not configured
-      if (res.status === 200) {
-        expect(res.headers['content-type']).toContain('text/event-stream');
-        // SSE response body should contain event markers
-        const text = res.text as string;
-        expect(text).toContain('event:');
-      } else {
-        // LLM not configured or assistant disabled
-        expect([403, 503]).toContain(res.status);
-      }
+      // prepareSse sends the 200 headers before the handler runs, so after
+      // migration business failures never surface as HTTP 403/503 — they are
+      // emitted as `event: error` frames carrying the stable DomainFailure
+      // code (assistant disabled → FORBIDDEN, LLM not configured →
+      // DEPENDENCY_UNAVAILABLE).
+      expect(res.headers['content-type']).toContain('text/event-stream');
+
+      const text = res.text as string;
+      expect(text).toContain('event: error');
+      const codeMatched =
+        text.includes('"code":"FORBIDDEN"') ||
+        text.includes('"code":"DEPENDENCY_UNAVAILABLE"');
+      expect(codeMatched).toBe(true);
     });
   });
 });

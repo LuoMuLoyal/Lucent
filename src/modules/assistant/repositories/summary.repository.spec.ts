@@ -46,21 +46,23 @@ describe('AssistantSummaryRepository', () => {
         undefined as never,
       );
 
-      await repository.save({
-        userId: 'user-1',
-        kind: 'today',
-        scopeKey: 'today:2026-07-10',
-        date: '2026-07-10',
-        rangeKey: null,
-        startDate: null,
-        endDate: null,
-        generatedAt: '2026-07-10T08:00:00.000Z',
-        summary: 'Summary',
-        bullets: [{ kind: 'tracked', text: 'Bullet' }],
-        actionLabel: 'Review',
-        action: 'check',
-        confidenceNote: 'high',
-      });
+      await repository
+        .save({
+          userId: 'user-1',
+          kind: 'today',
+          scopeKey: 'today:2026-07-10',
+          date: '2026-07-10',
+          rangeKey: null,
+          startDate: null,
+          endDate: null,
+          generatedAt: '2026-07-10T08:00:00.000Z',
+          summary: 'Summary',
+          bullets: [{ kind: 'tracked', text: 'Bullet' }],
+          actionLabel: 'Review',
+          action: 'check',
+          confidenceNote: 'high',
+        })
+        .unwrapOr(null);
 
       expect(prisma.assistantSummaryHistory.upsert).toHaveBeenCalledWith({
         where: {
@@ -82,21 +84,23 @@ describe('AssistantSummaryRepository', () => {
         undefined as never,
       );
 
-      await repository.save({
-        userId: 'user-1',
-        kind: 'report',
-        scopeKey: 'report:7d',
-        date: null,
-        rangeKey: 'last_7_days',
-        startDate: '2026-07-04',
-        endDate: '2026-07-10',
-        generatedAt: '2026-07-10T08:00:00.000Z',
-        summary: 'Report summary',
-        bullets: [],
-        actionLabel: 'OK',
-        action: 'none',
-        confidenceNote: 'low',
-      });
+      await repository
+        .save({
+          userId: 'user-1',
+          kind: 'report',
+          scopeKey: 'report:7d',
+          date: null,
+          rangeKey: 'last_7_days',
+          startDate: '2026-07-04',
+          endDate: '2026-07-10',
+          generatedAt: '2026-07-10T08:00:00.000Z',
+          summary: 'Report summary',
+          bullets: [],
+          actionLabel: 'OK',
+          action: 'none',
+          confidenceNote: 'low',
+        })
+        .unwrapOr(null);
 
       const call = prisma.assistantSummaryHistory.upsert.mock.calls[0]?.[0];
       expect(call?.create).toHaveProperty('kind', AiSummaryHistoryKind.report);
@@ -112,19 +116,21 @@ describe('AssistantSummaryRepository', () => {
         count: 0,
       } as never);
 
-      await repository.save({
-        userId: 'user-1',
-        kind: 'today',
-        scopeKey: 'today:2026-07-10',
-        date: '2026-07-10',
-        generatedAt: '2026-07-10T08:00:00.000Z',
-        summary: 'Older summary',
-        bullets: [],
-        actionLabel: 'Review',
-        action: 'check',
-        confidenceNote: 'high',
-        sourceVersion: 7,
-      });
+      await repository
+        .save({
+          userId: 'user-1',
+          kind: 'today',
+          scopeKey: 'today:2026-07-10',
+          date: '2026-07-10',
+          generatedAt: '2026-07-10T08:00:00.000Z',
+          summary: 'Older summary',
+          bullets: [],
+          actionLabel: 'Review',
+          action: 'check',
+          confidenceNote: 'high',
+          sourceVersion: 7,
+        })
+        .unwrapOr(null);
 
       expect(prisma.assistantSummaryHistory.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -151,19 +157,21 @@ describe('AssistantSummaryRepository', () => {
       prisma.assistantSummaryHistory.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(
-        repository.save({
-          userId: 'user-1',
-          kind: 'today',
-          scopeKey: 'today:2026-07-10',
-          date: '2026-07-10',
-          generatedAt: '2026-07-10T08:00:00.000Z',
-          summary: 'Summary',
-          bullets: [],
-          actionLabel: 'Review',
-          action: 'check',
-          confidenceNote: 'high',
-          sourceVersion: 7,
-        }),
+        repository
+          .save({
+            userId: 'user-1',
+            kind: 'today',
+            scopeKey: 'today:2026-07-10',
+            date: '2026-07-10',
+            generatedAt: '2026-07-10T08:00:00.000Z',
+            summary: 'Summary',
+            bullets: [],
+            actionLabel: 'Review',
+            action: 'check',
+            confidenceNote: 'high',
+            sourceVersion: 7,
+          })
+          .unwrapOr(null),
       ).resolves.toBeUndefined();
 
       expect(prisma.assistantSummaryHistory.updateMany).toHaveBeenCalled();

@@ -1,4 +1,3 @@
-import { notFound } from '../../../common';
 import { truncate } from '../../../common';
 import { Injectable, Logger } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
@@ -6,6 +5,15 @@ import { I18nService } from 'nestjs-i18n';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { LlmRuntimeService } from '../../../llm-runtime';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  unwrapResult,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 
 import type {
   AssistantConversationMessage,
@@ -90,82 +98,83 @@ export class AssistantConversationService {
     return conversations.map((conversation) => this.toSummary(conversation));
   }
 
-  async openConversation(
+  openConversation(
     userId: string,
     conversationId: string,
-  ): Promise<AssistantConversationSnapshot> {
-    const conversation = await this.repository.findWithMessages(
-      userId,
-      conversationId,
-    );
+  ): ResultAsync<AssistantConversationSnapshot, DomainFailure> {
+    return fromPromise(
+      this.repository.findWithMessages(userId, conversationId),
+      (error) => {
+        throw error;
+      },
+    ).andThen((conversation) => {
+      if (conversation == null || conversation.status === 'deleted') {
+        return errAsync(this.conversationNotFound());
+      }
 
-    if (conversation == null) {
-      notFound(this.i18n.t('assistant.conversation_not_found'));
-    }
-
-    if (conversation.status === 'deleted') {
-      notFound(this.i18n.t('assistant.conversation_not_found'));
-    }
-
-    await this.repository.activateConversation(userId, conversationId);
-
-    const opened = await this.repository.findWithMessagesById(
-      userId,
-      conversationId,
-    );
-
-    return this.toSnapshot(opened);
+      return this.repository
+        .activateConversation(userId, conversationId)
+        .andThen(() =>
+          fromPromise(
+            this.repository.findWithMessagesById(userId, conversationId),
+            (error) => {
+              throw error;
+            },
+          ),
+        )
+        .map((opened) => this.toSnapshot(opened));
+    });
   }
 
   /**
    * Renames an existing non-deleted conversation. Deleted conversations are
-   * treated as missing (404) so a soft-deleted conversation can never be
-   * surfaced again through this path.
+   * treated as missing (RESOURCE_NOT_FOUND) so a soft-deleted conversation can
+   * never be surfaced again through this path.
    */
-  async renameConversation(
+  renameConversation(
     userId: string,
     conversationId: string,
     title: string | null,
-  ): Promise<AssistantConversationSnapshot> {
-    const conversation = await this.repository.findWithMessages(
-      userId,
-      conversationId,
-    );
+  ): ResultAsync<AssistantConversationSnapshot, DomainFailure> {
+    return fromPromise(
+      this.repository.findWithMessages(userId, conversationId),
+      (error) => {
+        throw error;
+      },
+    ).andThen((conversation) => {
+      if (conversation == null || conversation.status === 'deleted') {
+        return errAsync(this.conversationNotFound());
+      }
 
-    if (conversation == null || conversation.status === 'deleted') {
-      notFound(this.i18n.t('assistant.conversation_not_found'));
-    }
-
-    const updated = await this.repository.updateTitle(
-      userId,
-      conversationId,
-      title,
-    );
-
-    return this.toSnapshot(updated);
+      return this.repository
+        .updateTitle(userId, conversationId, title)
+        .map((updated) => this.toSnapshot(updated));
+    });
   }
 
   /**
    * Soft-deletes an existing non-deleted conversation. Deleted conversations
-   * are treated as missing (404) so repeated deletes stay idempotent from the
-   * client's perspective.
+   * are treated as missing (RESOURCE_NOT_FOUND) so repeated deletes stay
+   * idempotent from the client's perspective.
    */
-  async deleteConversation(
+  deleteConversation(
     userId: string,
     conversationId: string,
-  ): Promise<AssistantConversationSnapshot> {
-    const conversation = await this.repository.findWithMessages(
-      userId,
-      conversationId,
-    );
+  ): ResultAsync<AssistantConversationSnapshot, DomainFailure> {
+    return fromPromise(
+      this.repository.findWithMessages(userId, conversationId),
+      (error) => {
+        throw error;
+      },
+    ).andThen((conversation) => {
+      if (conversation == null || conversation.status === 'deleted') {
+        return errAsync(this.conversationNotFound());
+      }
 
-    if (conversation == null || conversation.status === 'deleted') {
-      notFound(this.i18n.t('assistant.conversation_not_found'));
-    }
-
-    const deleted = await this.repository.softDelete(userId, conversationId);
-
-    return this.toSnapshot(deleted);
+      return this.repository
+        .softDelete(userId, conversationId)
+        .map((deleted) => this.toSnapshot(deleted));
+    });
   }
 
   async clearLatestConversation(
@@ -177,9 +186,8 @@ export class AssistantConversationService {
       return null;
     }
 
-    const archived = await this.repository.archiveConversation(
-      userId,
-      conversation.id,
+    const archived = await unwrapResult(
+      this.repository.archiveConversation(userId, conversation.id),
     );
 
     // Schedule debounced memory extraction for the archived conversation.
@@ -199,12 +207,14 @@ export class AssistantConversationService {
     const activeConversation =
       await this.repository.findLatestActiveWithMessages(input.userId);
 
-    const conversation =
-      activeConversation ??
-      (await this.repository.create(
-        input.userId,
-        this.buildConversationTitle(normalized),
-      ));
+    const conversation = await unwrapResult(
+      activeConversation != null
+        ? okAsync(activeConversation)
+        : this.repository.create(
+            input.userId,
+            this.buildConversationTitle(normalized),
+          ),
+    );
     const created = activeConversation == null;
 
     const existingMessages = conversation.messages.map((message) => ({
@@ -218,15 +228,17 @@ export class AssistantConversationService {
     const userMessagesToAppend = normalized.slice(appendStartIndex);
     const assistantNow = now();
 
-    const saved = await this.repository.persistTurn({
-      conversationId: conversation.id,
-      userId: input.userId,
-      title: conversation.title ?? this.buildConversationTitle(normalized),
-      messagesToAppend: userMessagesToAppend,
-      assistantContent: input.assistantContent,
-      usedTools: input.usedTools,
-      assistantTimestamp: assistantNow,
-    });
+    const saved = await unwrapResult(
+      this.repository.persistTurn({
+        conversationId: conversation.id,
+        userId: input.userId,
+        title: conversation.title ?? this.buildConversationTitle(normalized),
+        messagesToAppend: userMessagesToAppend,
+        assistantContent: input.assistantContent,
+        usedTools: input.usedTools,
+        assistantTimestamp: assistantNow,
+      }),
+    );
 
     // F-2: best-effort LLM title refinement for brand-new conversations. The
     // synchronous truncated title stays until the background call replaces it;
@@ -255,10 +267,8 @@ export class AssistantConversationService {
     conversationId: string,
     content: string,
   ): Promise<AssistantConversationSnapshot> {
-    const saved = await this.repository.appendAssistantMessage(
-      conversationId,
-      userId,
-      content,
+    const saved = await unwrapResult(
+      this.repository.appendAssistantMessage(conversationId, userId, content),
     );
     return this.toSnapshot(saved);
   }
@@ -408,6 +418,19 @@ export class AssistantConversationService {
     return title.length > TITLE_REFINEMENT_MAX_LENGTH
       ? title.slice(0, TITLE_REFINEMENT_MAX_LENGTH)
       : title;
+  }
+
+  /**
+   * Domain failure for a missing or soft-deleted conversation. The detail is
+   * localized through the request-scoped i18n context, mirroring the previous
+   * 404 message.
+   */
+  private conversationNotFound(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+      detail: this.i18n.t('assistant.conversation_not_found'),
+    });
   }
 
   private toSnapshot(

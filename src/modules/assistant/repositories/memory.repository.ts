@@ -6,6 +6,9 @@
  */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
+import { fromPrismaResult } from '../../../common';
+import { okAsync } from '../../../common/result';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 
 export type AssistantMemoryRow = {
   id: string;
@@ -24,12 +27,17 @@ export interface CreateMemoryItem {
  *
  * Services depend on this interface rather than PrismaService directly,
  * enabling easier unit testing and future data source swaps.
+ *
+ * Write methods return `ResultAsync<T, DomainFailure>` (known Prisma request
+ * errors map to RESOURCE_CONFLICT / RESOURCE_NOT_FOUND; unknown errors
+ * re-throw). Read methods keep plain promises: an empty result is a
+ * legitimate outcome, not a failure.
  */
 export abstract class AssistantMemoryRepositoryPort {
   abstract createMany(
     userId: string,
     items: CreateMemoryItem[],
-  ): Promise<number>;
+  ): ResultAsync<number, DomainFailure>;
 
   abstract findRecent(
     userId: string,
@@ -37,27 +45,32 @@ export abstract class AssistantMemoryRepositoryPort {
   ): Promise<AssistantMemoryRow[]>;
 
   /** Removes all persisted memories for a user (memory-erase entry point). */
-  abstract deleteAllForUser(userId: string): Promise<number>;
+  abstract deleteAllForUser(userId: string): ResultAsync<number, DomainFailure>;
 }
 
 @Injectable()
 export class AssistantMemoryRepository implements AssistantMemoryRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createMany(userId: string, items: CreateMemoryItem[]): Promise<number> {
+  createMany(
+    userId: string,
+    items: CreateMemoryItem[],
+  ): ResultAsync<number, DomainFailure> {
     if (items.length === 0) {
-      return 0;
+      return okAsync(0);
     }
 
-    const result = await this.prisma.assistantMemory.createMany({
-      data: items.map((item) => ({
-        userId,
-        sourceConversationId: item.sourceConversationId,
-        content: item.content,
-      })),
-    });
-
-    return result.count;
+    return fromPrismaResult(
+      this.prisma.assistantMemory
+        .createMany({
+          data: items.map((item) => ({
+            userId,
+            sourceConversationId: item.sourceConversationId,
+            content: item.content,
+          })),
+        })
+        .then((result) => result.count),
+    );
   }
 
   async findRecent(
@@ -78,11 +91,11 @@ export class AssistantMemoryRepository implements AssistantMemoryRepositoryPort 
     }));
   }
 
-  async deleteAllForUser(userId: string): Promise<number> {
-    const result = await this.prisma.assistantMemory.deleteMany({
-      where: { userId },
-    });
-
-    return result.count;
+  deleteAllForUser(userId: string): ResultAsync<number, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.assistantMemory
+        .deleteMany({ where: { userId } })
+        .then((result) => result.count),
+    );
   }
 }

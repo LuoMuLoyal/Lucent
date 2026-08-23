@@ -7,6 +7,7 @@ import {
   type ReportRangeInput,
 } from '../repositories/summary.repository';
 import { parseDateOnly } from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import type { AssistantReportRange } from '../types/ports';
 
 export type {
@@ -21,8 +22,8 @@ export type {
 export class HistoricalAiSummaryService {
   constructor(private readonly repository: AssistantSummaryRepositoryPort) {}
 
-  async save(input: PersistSummaryInput): Promise<void> {
-    await this.repository.save(input);
+  save(input: PersistSummaryInput): ResultAsync<void, DomainFailure> {
+    return this.repository.save(input);
   }
 
   async listRecentTodaySummaries(

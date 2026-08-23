@@ -112,7 +112,9 @@ describe('AssistantConversationRepository', () => {
       const conv = { id: 'conv-1', messages: [] };
       prisma.assistantConversation.create.mockResolvedValue(conv as never);
 
-      const result = await repository.create('user-1', 'New Chat');
+      const result = await repository
+        .create('user-1', 'New Chat')
+        .unwrapOr(null);
 
       expect(result).toBe(conv);
       expect(prisma.assistantConversation.create).toHaveBeenCalledWith(
@@ -125,7 +127,7 @@ describe('AssistantConversationRepository', () => {
     it('creates conversation with null title', async () => {
       prisma.assistantConversation.create.mockResolvedValue({} as never);
 
-      await repository.create('user-1', null);
+      await repository.create('user-1', null).unwrapOr(null);
 
       expect(prisma.assistantConversation.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -139,7 +141,7 @@ describe('AssistantConversationRepository', () => {
     it('updates status to archived with userId filter', async () => {
       prisma.assistantConversation.update.mockResolvedValue({} as never);
 
-      await repository.archiveConversation('user-1', 'conv-1');
+      await repository.archiveConversation('user-1', 'conv-1').unwrapOr(null);
 
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -154,7 +156,7 @@ describe('AssistantConversationRepository', () => {
     it('updates status to deleted with userId filter', async () => {
       prisma.assistantConversation.update.mockResolvedValue({} as never);
 
-      await repository.softDelete('user-1', 'conv-1');
+      await repository.softDelete('user-1', 'conv-1').unwrapOr(null);
 
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -169,7 +171,9 @@ describe('AssistantConversationRepository', () => {
     it('updates the title with userId filter', async () => {
       prisma.assistantConversation.update.mockResolvedValue({} as never);
 
-      await repository.updateTitle('user-1', 'conv-1', 'New title');
+      await repository
+        .updateTitle('user-1', 'conv-1', 'New title')
+        .unwrapOr(null);
 
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -182,7 +186,7 @@ describe('AssistantConversationRepository', () => {
     it('clears the title to null with userId filter', async () => {
       prisma.assistantConversation.update.mockResolvedValue({} as never);
 
-      await repository.updateTitle('user-1', 'conv-1', null);
+      await repository.updateTitle('user-1', 'conv-1', null).unwrapOr(null);
 
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -200,7 +204,9 @@ describe('AssistantConversationRepository', () => {
       } as never);
       prisma.assistantConversation.update.mockResolvedValue({} as never);
 
-      await repository.activateConversation('user-1', 'conv-1');
+      await repository
+        .activateConversation('user-1', 'conv-1')
+        .unwrapOr(undefined);
 
       expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
         maxWait: 5000,
@@ -233,15 +239,17 @@ describe('AssistantConversationRepository', () => {
         messages: [],
       } as never);
 
-      const result = await repository.persistTurn({
-        conversationId: 'conv-1',
-        userId: 'user-1',
-        title: 'Title',
-        messagesToAppend: [{ role: 'user', content: 'hello' }],
-        assistantContent: 'response',
-        usedTools: ['search'],
-        assistantTimestamp: new Date('2026-07-10T12:00:00.000Z'),
-      });
+      const result = await repository
+        .persistTurn({
+          conversationId: 'conv-1',
+          userId: 'user-1',
+          title: 'Title',
+          messagesToAppend: [{ role: 'user', content: 'hello' }],
+          assistantContent: 'response',
+          usedTools: ['search'],
+          assistantTimestamp: new Date('2026-07-10T12:00:00.000Z'),
+        })
+        .unwrapOr(null);
 
       expect(result).toMatchObject({ id: 'conv-1' });
       expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
@@ -268,15 +276,17 @@ describe('AssistantConversationRepository', () => {
         id: 'conv-1',
       } as never);
 
-      await repository.persistTurn({
-        conversationId: 'conv-1',
-        userId: 'user-1',
-        title: null,
-        messagesToAppend: [],
-        assistantContent: 'response',
-        usedTools: [],
-        assistantTimestamp: new Date(),
-      });
+      await repository
+        .persistTurn({
+          conversationId: 'conv-1',
+          userId: 'user-1',
+          title: null,
+          messagesToAppend: [],
+          assistantContent: 'response',
+          usedTools: [],
+          assistantTimestamp: new Date(),
+        })
+        .unwrapOr(null);
 
       expect(prisma.assistantMessage.createMany).not.toHaveBeenCalled();
     });
@@ -290,7 +300,9 @@ describe('AssistantConversationRepository', () => {
         id: 'conv-1',
       } as never);
 
-      await repository.appendAssistantMessage('conv-1', 'user-1', 'response');
+      await repository
+        .appendAssistantMessage('conv-1', 'user-1', 'response')
+        .unwrapOr(null);
 
       expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
         maxWait: 5000,

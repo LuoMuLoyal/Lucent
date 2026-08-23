@@ -1,11 +1,9 @@
 import { AIMessageChunk } from '@langchain/core/messages';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { InternalServerErrorException } from '@nestjs/common';
 import { MemorySaver } from '@langchain/langgraph';
 import type { LlmRuntimeService } from '../../../llm-runtime';
 import { LlmCircuitBreakerService } from '../../../common/llm/llm-circuit-breaker.service';
+import { okAsync } from '../../../common/result';
 import { AssistantRuntimeService } from './runtime.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
 
@@ -633,13 +631,15 @@ describe('AssistantRuntimeService', () => {
       // First turn: the write flow suspends with a pending review.
       await service.runConversation(conversationInput, executeTools as never);
 
-      const resumed = await service.resumeConversation({
-        userId: 'u1',
-        conversationId: 'conv-1',
-        decision: 'approved',
-        note: 'ok',
-      });
-      expect(resumed.finalContent).toBe('已确认，请在记录页完成保存。');
+      const resumed = await service
+        .resumeConversation({
+          userId: 'u1',
+          conversationId: 'conv-1',
+          decision: 'approved',
+          note: 'ok',
+        })
+        .unwrapOr(null);
+      expect(resumed!.finalContent).toBe('已确认，请在记录页完成保存。');
     });
 
     it('rejects an already-decided review', async () => {
@@ -648,19 +648,24 @@ describe('AssistantRuntimeService', () => {
       );
 
       await service.runConversation(conversationInput, executeTools as never);
-      await service.resumeConversation({
-        userId: 'u1',
-        conversationId: 'conv-1',
-        decision: 'approved',
-      });
-
-      await expect(
-        service.resumeConversation({
+      await service
+        .resumeConversation({
           userId: 'u1',
           conversationId: 'conv-1',
-          decision: 'rejected',
-        }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+          decision: 'approved',
+        })
+        .unwrapOr(null);
+
+      const second = await service.resumeConversation({
+        userId: 'u1',
+        conversationId: 'conv-1',
+        decision: 'rejected',
+      });
+
+      expect(second.isErr()).toBe(true);
+      if (second.isErr()) {
+        expect(second.error.code).toBe('VALIDATION_FAILED');
+      }
     });
   });
 
@@ -699,7 +704,7 @@ describe('AssistantRuntimeService', () => {
       const repository = {
         findWithMessages: vi.fn(),
         findRecentRegeneration: vi.fn().mockResolvedValue(null),
-        createRegeneration: vi.fn().mockResolvedValue({ id: 'reg-1' }),
+        createRegeneration: vi.fn().mockReturnValue(okAsync({ id: 'reg-1' })),
       };
       const service = new AssistantRuntimeService(
         llmRuntimeService,
@@ -767,18 +772,17 @@ describe('AssistantRuntimeService', () => {
         buildConversationWithMessages(ASSISTANT_CONTENT),
       );
 
-      const result = await service.regenerateLastMessage(
-        USER_ID,
-        CONVERSATION_ID,
-      );
+      const result = (
+        await service.regenerateLastMessage(USER_ID, CONVERSATION_ID)
+      ).unwrapOr(null);
 
-      expect(result.sourceMessageId).toBe('msg-assistant-last');
-      expect(result.checkpointId).toEqual(expect.any(String));
+      expect(result!.sourceMessageId).toBe('msg-assistant-last');
+      expect(result!.checkpointId).toEqual(expect.any(String));
       expect(repository.createRegeneration).toHaveBeenCalledWith({
         conversationId: CONVERSATION_ID,
         userId: USER_ID,
         sourceMessageId: 'msg-assistant-last',
-        checkpointId: result.checkpointId,
+        checkpointId: result!.checkpointId,
       });
     });
 
@@ -802,9 +806,15 @@ describe('AssistantRuntimeService', () => {
       );
       repository.findWithMessages.mockResolvedValue(conversation);
 
-      await expect(
-        service.regenerateLastMessage(USER_ID, CONVERSATION_ID),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.regenerateLastMessage(
+        USER_ID,
+        CONVERSATION_ID,
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('VALIDATION_FAILED');
+      }
     });
 
     it('rejects when the checkpoint text does not match the persisted message', async () => {
@@ -824,9 +834,15 @@ describe('AssistantRuntimeService', () => {
         buildConversationWithMessages('完全不同的旧答案'),
       );
 
-      await expect(
-        service.regenerateLastMessage(USER_ID, CONVERSATION_ID),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.regenerateLastMessage(
+        USER_ID,
+        CONVERSATION_ID,
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe('VALIDATION_FAILED');
+      }
     });
 
     it('rejects duplicate regenerations within the idempotency window', async () => {
@@ -849,9 +865,15 @@ describe('AssistantRuntimeService', () => {
         createdAt: new Date(),
       });
 
-      await expect(
-        service.regenerateLastMessage(USER_ID, CONVERSATION_ID),
-      ).rejects.toMatchObject({ status: 409 });
+      const duplicate = await service.regenerateLastMessage(
+        USER_ID,
+        CONVERSATION_ID,
+      );
+
+      expect(duplicate.isErr()).toBe(true);
+      if (duplicate.isErr()) {
+        expect(duplicate.error.code).toBe('RESOURCE_CONFLICT');
+      }
     });
 
     it('replays the respond node and appends the new answer to the thread', async () => {
@@ -870,10 +892,9 @@ describe('AssistantRuntimeService', () => {
         buildConversationWithMessages(ASSISTANT_CONTENT),
       );
 
-      const { checkpointId } = await service.regenerateLastMessage(
-        USER_ID,
-        CONVERSATION_ID,
-      );
+      const { checkpointId } = (
+        await service.regenerateLastMessage(USER_ID, CONVERSATION_ID)
+      ).unwrapOr(null) as { checkpointId: string; sourceMessageId: string };
 
       const streamed: string[] = [];
       const { finalContent } = await service.replayFromCheckpoint(

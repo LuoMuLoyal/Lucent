@@ -1,10 +1,14 @@
-import { badRequest, forbidden, notFound } from '../../../common';
-import { unwrapResult } from '../../../common/result';
 import {
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  unwrapResult,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
+import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordsService } from '../../daily-records';
 import type { CreateDailyRecordDto } from '../../daily-records/dto/create-record.dto';
 import type { UpdateDailyRecordDto } from '../../daily-records/dto/update-record.dto';
@@ -96,10 +100,10 @@ export class AssistantService {
     return this.assistantConversationService.listRecentConversations(userId);
   }
 
-  async openConversation(
+  openConversation(
     userId: string,
     conversationId: string,
-  ): Promise<AssistantConversationDataDto> {
+  ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
     return this.assistantConversationService.openConversation(
       userId,
       conversationId,
@@ -118,11 +122,11 @@ export class AssistantService {
     };
   }
 
-  async renameConversation(
+  renameConversation(
     userId: string,
     conversationId: string,
     title: string | null,
-  ): Promise<AssistantConversationDataDto> {
+  ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
     return this.assistantConversationService.renameConversation(
       userId,
       conversationId,
@@ -130,10 +134,10 @@ export class AssistantService {
     );
   }
 
-  async deleteConversation(
+  deleteConversation(
     userId: string,
     conversationId: string,
-  ): Promise<AssistantConversationDataDto> {
+  ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
     return this.assistantConversationService.deleteConversation(
       userId,
       conversationId,
@@ -147,11 +151,24 @@ export class AssistantService {
    * later task.
    */
   async clearAssistantMemory(userId: string): Promise<{ cleared: number }> {
-    const cleared = await this.assistantMemoryService.deleteAllForUser(userId);
+    const cleared = await unwrapResult(
+      this.assistantMemoryService.deleteAllForUser(userId),
+    );
     return { cleared };
   }
 
-  async confirmProposal(
+  confirmProposal(
+    userId: string,
+    conversationId: string,
+    dto: ConfirmAssistantProposalDto,
+  ): ResultAsync<AssistantConfirmResultDto, DomainFailure> {
+    return fromPromise(
+      this.doConfirmProposal(userId, conversationId, dto),
+      (error) => this.toDomainFailure(error),
+    );
+  }
+
+  private async doConfirmProposal(
     userId: string,
     conversationId: string,
     dto: ConfirmAssistantProposalDto,
@@ -162,7 +179,7 @@ export class AssistantService {
         conversationId,
       );
     if (conversation == null) {
-      notFound('Conversation not found.');
+      throw new DomainFailureException(this.conversationNotFound());
     }
 
     // On approval the writes are applied server-side from the suspended
@@ -171,20 +188,19 @@ export class AssistantService {
     // surfaces to the client as a failed confirm — never "confirmed but not
     // written".
     if (dto.decision === 'approved') {
-      await this.applyApprovedProposals(
-        userId,
-        conversationId,
-        dto.proposalIds,
+      await unwrapResult(
+        this.applyApprovedProposals(userId, conversationId, dto.proposalIds),
       );
     }
 
-    const { finalContent } =
-      await this.assistantAgentService.resumeConversation({
+    const { finalContent } = await unwrapResult(
+      this.assistantAgentService.resumeConversation({
         userId,
         conversationId,
         decision: dto.decision,
         ...(dto.note != null ? { note: dto.note } : {}),
-      });
+      }),
+    );
     return {
       conversationId,
       decision: dto.decision,
@@ -203,42 +219,53 @@ export class AssistantService {
    * `expiresAt` is past due rejects the whole confirm, so a stale proposal can
    * never be written just because a sibling in the same batch is still fresh.
    */
-  private async applyApprovedProposals(
+  private applyApprovedProposals(
     userId: string,
     conversationId: string,
     proposalIds: string[],
-  ): Promise<void> {
-    const { pendingReview, proposals } =
-      await this.assistantAgentService.readPendingProposals(conversationId);
-    if (pendingReview == null || pendingReview.status !== 'pending') {
-      badRequest('No pending proposal review for this conversation.');
-    }
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(
+      this.assistantAgentService.readPendingProposals(conversationId),
+      (error) => this.toDomainFailure(error),
+    ).andThen(({ pendingReview, proposals }) => {
+      if (pendingReview == null || pendingReview.status !== 'pending') {
+        return errAsync(
+          this.validation('No pending proposal review for this conversation.'),
+        );
+      }
 
-    const toWrite = proposals.filter((proposal) =>
-      proposalIds.includes(proposal.id),
-    );
-    if (toWrite.length === 0 && proposalIds.length > 0) {
-      badRequest('Proposal not found in the pending review.');
-    }
-
-    const now = Date.now();
-    if (
-      toWrite.some((proposal) => new Date(proposal.expiresAt).getTime() < now)
-    ) {
-      badRequest(
-        'The proposal review expired. Ask the assistant to regenerate it.',
+      const toWrite = proposals.filter((proposal) =>
+        proposalIds.includes(proposal.id),
       );
-    }
+      if (toWrite.length === 0 && proposalIds.length > 0) {
+        return errAsync(
+          this.validation('Proposal not found in the pending review.'),
+        );
+      }
 
-    for (const proposal of toWrite) {
-      await this.applyProposalWrite(userId, proposal);
-    }
+      const now = Date.now();
+      if (
+        toWrite.some((proposal) => new Date(proposal.expiresAt).getTime() < now)
+      ) {
+        return errAsync(
+          this.validation(
+            'The proposal review expired. Ask the assistant to regenerate it.',
+          ),
+        );
+      }
+
+      let chain: ResultAsync<void, DomainFailure> = okAsync(undefined);
+      for (const proposal of toWrite) {
+        chain = chain.andThen(() => this.applyProposalWrite(userId, proposal));
+      }
+      return chain;
+    });
   }
 
-  private async applyProposalWrite(
+  private applyProposalWrite(
     userId: string,
     proposal: AssistantProposedAction,
-  ): Promise<void> {
+  ): ResultAsync<void, DomainFailure> {
     // The payload union is discriminated on its own `type` field; switching on
     // it narrows each payload variant below.
     switch (proposal.payload.type) {
@@ -255,11 +282,9 @@ export class AssistantService {
           ...(draft.note != null ? { note: draft.note } : {}),
           ...(draft.payload != null ? { payload: draft.payload } : {}),
         };
-        // TODO(error): DailyRecordsService.create migrated to ResultAsync
-        // (Task 8.1); fold temporarily until the assistant module migrates
-        // (Task 10).
-        await unwrapResult(this.dailyRecordsService.create(userId, createDto));
-        break;
+        return this.dailyRecordsService
+          .create(userId, createDto)
+          .map(() => undefined);
       }
       case 'update_daily_record': {
         const draft = proposal.payload.draft;
@@ -288,33 +313,18 @@ export class AssistantService {
         if (draft.payload !== undefined) {
           updateDto.payload = draft.payload;
         }
-        // TODO(error): DailyRecordsService.update migrated to ResultAsync
-        // (Task 8.1); fold temporarily until the assistant module migrates
-        // (Task 10).
-        await unwrapResult(
-          this.dailyRecordsService.update(
-            userId,
-            proposal.payload.recordId,
-            updateDto,
-          ),
-        );
-        break;
+        return this.dailyRecordsService
+          .update(userId, proposal.payload.recordId, updateDto)
+          .map(() => undefined);
       }
       case 'delete_daily_record':
-        // TODO(error): DailyRecordsService.delete migrated to ResultAsync
-        // (Task 8.1); fold temporarily until the assistant module migrates
-        // (Task 10).
-        await unwrapResult(
-          this.dailyRecordsService.delete(userId, proposal.payload.recordId),
-        );
-        break;
+        return this.dailyRecordsService
+          .delete(userId, proposal.payload.recordId)
+          .map(() => undefined);
       case 'update_user_settings': {
         const draft = proposal.payload.draft;
-        // TODO(error): UserSettingsService.updateSettings migrated to
-        // ResultAsync (Task 8.2); fold temporarily until the assistant module
-        // migrates (Task 10).
-        await unwrapResult(
-          this.userSettingsService.updateSettings(userId, {
+        return this.userSettingsService
+          .updateSettings(userId, {
             ...(draft.assistantEnabled != null
               ? { assistantEnabled: draft.assistantEnabled }
               : {}),
@@ -324,14 +334,25 @@ export class AssistantService {
             ...(draft.assistantContext != null
               ? { assistantContext: draft.assistantContext }
               : {}),
-          }),
-        );
-        break;
+          })
+          .map(() => undefined);
       }
     }
   }
 
-  async streamMessages(
+  streamMessages(
+    userId: string,
+    dto: StreamAssistantMessagesDto,
+    language: string,
+    onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
+  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+    return fromPromise(
+      this.doStreamMessages(userId, dto, language, onChunk),
+      (error) => this.toDomainFailure(error),
+    );
+  }
+
+  private async doStreamMessages(
     userId: string,
     dto: StreamAssistantMessagesDto,
     language: string,
@@ -346,14 +367,23 @@ export class AssistantService {
     const policy = this.assistantPolicyService.evaluate(foundation, settings);
 
     if (!settings.assistantEnabled) {
-      forbidden(this.chatDisabledMessage(locale));
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'authorization',
+          code: 'FORBIDDEN',
+          detail: this.chatDisabledMessage(locale),
+        }),
+      );
     }
 
     if (!foundation.chatModelConfigured) {
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: this.chatUnavailableMessage(locale),
-      });
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+          detail: this.chatUnavailableMessage(locale),
+        }),
+      );
     }
 
     const toolContext: AssistantToolExecutionContext = {
@@ -445,7 +475,18 @@ export class AssistantService {
    * the conversation as a revision; the new answer is persisted as a new
    * assistant message.
    */
-  async regenerateConversation(
+  regenerateConversation(
+    userId: string,
+    conversationId: string,
+    onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
+  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+    return fromPromise(
+      this.doRegenerateConversation(userId, conversationId, onChunk),
+      (error) => this.toDomainFailure(error),
+    );
+  }
+
+  private async doRegenerateConversation(
     userId: string,
     conversationId: string,
     onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
@@ -456,14 +497,12 @@ export class AssistantService {
         conversationId,
       );
     if (conversation == null) {
-      notFound('Conversation not found.');
+      throw new DomainFailureException(this.conversationNotFound());
     }
 
-    const { checkpointId } =
-      await this.assistantAgentService.regenerateLastMessage(
-        userId,
-        conversationId,
-      );
+    const { checkpointId } = await unwrapResult(
+      this.assistantAgentService.regenerateLastMessage(userId, conversationId),
+    );
 
     const { finalContent } =
       await this.assistantAgentService.replayFromCheckpoint(
@@ -487,6 +526,34 @@ export class AssistantService {
       proposedActions: [],
       toolDetails: [],
     };
+  }
+
+  /**
+   * Converts a DomainFailureException raised inside the imperative body into
+   * the Result Err; any other exception (LLM, program, config) is re-thrown
+   * so it reaches the transport boundary unchanged.
+   */
+  private toDomainFailure(error: unknown): DomainFailure {
+    if (error instanceof DomainFailureException) {
+      return error.failure;
+    }
+    throw error;
+  }
+
+  private conversationNotFound(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+      detail: 'Conversation not found.',
+    });
+  }
+
+  private validation(detail: string): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+      detail,
+    });
   }
 
   /**
@@ -599,7 +666,9 @@ export class AssistantService {
       return last.content;
     }
 
-    badRequest(this.invalidConversationMessage(locale));
+    throw new DomainFailureException(
+      this.validation(this.invalidConversationMessage(locale)),
+    );
   }
 
   private resolveLocale(language: string): 'zh-CN' | 'en' {

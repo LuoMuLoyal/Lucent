@@ -211,7 +211,7 @@ describe('BaseLlmSummaryService', () => {
       expect(mocks.copyService.buildFallback).toHaveBeenCalled();
     });
 
-    it('throws ForbiddenException when AI summaries are disabled', async () => {
+    it('throws DomainFailureException when AI summaries are disabled', async () => {
       mocks.prisma.userSetting.findFirst.mockResolvedValue({ value: false });
 
       await expect(

@@ -7,6 +7,7 @@ import type {
   AssistantMemoryRow,
 } from '../repositories/memory.repository';
 import { AssistantMemoryService } from './memory.service';
+import { okAsync } from '../../../common/result';
 import { MEMORY_EXTRACTION_TIMEOUT_MS } from './memory.service';
 
 function buildConversation(
@@ -60,9 +61,9 @@ describe('AssistantMemoryService', () => {
       createChatModel: vi.fn().mockReturnValue({ invoke }),
     };
     memoryRepository = {
-      createMany: vi.fn().mockResolvedValue(1),
+      createMany: vi.fn().mockReturnValue(okAsync(1)),
       findRecent: vi.fn().mockResolvedValue([]),
-      deleteAllForUser: vi.fn().mockResolvedValue(0),
+      deleteAllForUser: vi.fn().mockReturnValue(okAsync(0)),
     };
     conversationRepository = {
       findWithMessages: vi.fn().mockResolvedValue(null),

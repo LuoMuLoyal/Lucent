@@ -1,6 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
-import { unwrapResult } from '../../../../common/result';
 import type { IMedicineReminderReader } from '../../types/ports';
 import { MEDICINE_REMINDER_READER } from '../../types/ports';
 import { UserHealthContextService } from '../../../user-health-context';
@@ -33,6 +32,8 @@ import { describeReminderFrequency, mapSleepQuality } from './read-helpers';
 
 @Injectable()
 export class AssistantToolReadService {
+  private readonly logger = new Logger(AssistantToolReadService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
@@ -324,12 +325,19 @@ export class AssistantToolReadService {
   async getUserProfile(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    // TODO(error): UserHealthContextService.getForUser migrated to
-    // ResultAsync (Task 8.1); fold temporarily until the assistant module
-    // migrates (Task 10).
-    const health = await unwrapResult(
-      this.userHealthContextService.getForUser(context.userId),
-    );
+    // Best-effort read tool: a failed health-context read degrades to an
+    // empty profile (logged) instead of aborting the agent turn.
+    const health = await this.userHealthContextService
+      .getForUser(context.userId)
+      .match(
+        (value) => value,
+        (failure) => {
+          this.logger.warn(
+            `get_user_profile health context read failed (${failure.code}); degrading to empty profile.`,
+          );
+          return null;
+        },
+      );
     const account = await this.prisma.user.findFirstOrThrow({
       where: { id: context.userId, deletedAt: null },
       select: { nickname: true },
@@ -350,12 +358,12 @@ export class AssistantToolReadService {
       result: {
         profile: {
           nickname: account.nickname ?? null,
-          sexAtBirth: health.profile.sexAtBirth,
-          birthDate: health.profile.birthDate,
-          age: health.summary.age,
-          heightCm: health.profile.heightCm,
-          bloodType: health.profile.bloodType,
-          allergies: health.allergies
+          sexAtBirth: health?.profile.sexAtBirth ?? null,
+          birthDate: health?.profile.birthDate ?? null,
+          age: health?.summary.age ?? null,
+          heightCm: health?.profile.heightCm ?? null,
+          bloodType: health?.profile.bloodType ?? null,
+          allergies: (health?.allergies ?? [])
             .filter((item) => item.isActive)
             .map((item) => item.label),
         },
@@ -402,12 +410,19 @@ export class AssistantToolReadService {
   async getCurrentMedicines(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    // TODO(error): UserHealthContextService.getForUser migrated to
-    // ResultAsync (Task 8.1); fold temporarily until the assistant module
-    // migrates (Task 10).
-    const health = await unwrapResult(
-      this.userHealthContextService.getForUser(context.userId),
-    );
+    // Best-effort read tool: a failed health-context read degrades to an
+    // empty medicine list (logged) instead of aborting the agent turn.
+    const health = await this.userHealthContextService
+      .getForUser(context.userId)
+      .match(
+        (value) => value,
+        (failure) => {
+          this.logger.warn(
+            `get_current_medicines health context read failed (${failure.code}); degrading to empty medicine list.`,
+          );
+          return null;
+        },
+      );
     const reminders = await this.medicineRemindersService.list(
       context.userId,
       true,
@@ -420,7 +435,7 @@ export class AssistantToolReadService {
       current.push(reminder);
       remindersByMedicineId.set(reminder.currentMedicineId, current);
     }
-    const medicines = health.currentMedicines
+    const medicines = (health?.currentMedicines ?? [])
       .filter((item) => item.isCurrent)
       .map((item) => ({
         medicineId: item.id,

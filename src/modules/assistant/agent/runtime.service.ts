@@ -8,7 +8,15 @@ import { trace } from '@opentelemetry/api';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Command, type StateSnapshot } from '@langchain/langgraph';
-import { badRequest, conflict, notFound } from '../../../common';
+import { badRequest } from '../../../common';
+import {
+  createDomainFailure,
+  fromPromise,
+  unwrapResult,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import {
   AIMessage,
   AIMessageChunk,
@@ -226,8 +234,22 @@ export class AssistantRuntimeService {
    * pending proposals. Validates the review state (`getState`), then invokes
    * the graph with `Command({ resume })` so `write_review` writes the decision
    * back and `respond` produces the confirmation reply.
+   *
+   * A missing/non-pending review is an expected client failure and becomes a
+   * `ResultAsync` Err (VALIDATION_FAILED); unknown failures re-throw.
    */
-  async resumeConversation(input: {
+  resumeConversation(input: {
+    userId: string;
+    conversationId: string;
+    decision: 'approved' | 'rejected';
+    note?: string;
+  }): ResultAsync<{ finalContent: string | null }, DomainFailure> {
+    return fromPromise(this.doResumeConversation(input), (error) =>
+      this.toDomainFailure(error),
+    );
+  }
+
+  private async doResumeConversation(input: {
     userId: string;
     conversationId: string;
     decision: 'approved' | 'rejected';
@@ -241,7 +263,13 @@ export class AssistantRuntimeService {
       snapshot.values as { pendingReview?: AssistantPendingReview }
     ).pendingReview;
     if (pending == null || pending.status !== 'pending') {
-      badRequest('No pending proposal review for this conversation.');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail: 'No pending proposal review for this conversation.',
+        }),
+      );
     }
     // Expiry is validated per proposal by the confirm endpoint before the
     // thread is resumed (applyApprovedProposals), so no batch-level expiry
@@ -457,9 +485,25 @@ export class AssistantRuntimeService {
    * assistant message text equal to the persisted one (message 定位).
    *
    * Idempotency: a regeneration for the same (conversation, source message)
-   * within 30 seconds is rejected with 409.
+   * within 30 seconds is rejected with RESOURCE_CONFLICT.
+   *
+   * Expected client failures (conversation missing, invalid state, duplicate
+   * regeneration) become `ResultAsync` Errs; unknown failures re-throw.
    */
-  async regenerateLastMessage(
+  regenerateLastMessage(
+    userId: string,
+    conversationId: string,
+  ): ResultAsync<
+    { checkpointId: string; sourceMessageId: string },
+    DomainFailure
+  > {
+    return fromPromise(
+      this.doRegenerateLastMessage(userId, conversationId),
+      (error) => this.toDomainFailure(error),
+    );
+  }
+
+  private async doRegenerateLastMessage(
     userId: string,
     conversationId: string,
   ): Promise<{ checkpointId: string; sourceMessageId: string }> {
@@ -468,13 +512,25 @@ export class AssistantRuntimeService {
       conversationId,
     );
     if (conversation == null || conversation.status === 'deleted') {
-      notFound('Conversation not found.');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: 'Conversation not found.',
+        }),
+      );
     }
 
     const dbMessages = conversation.messages;
     const lastDbMessage = dbMessages.at(-1);
     if (lastDbMessage == null || lastDbMessage.role !== 'assistant') {
-      badRequest('Only the last assistant message can be regenerated.');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail: 'Only the last assistant message can be regenerated.',
+        }),
+      );
     }
     const lastDbContent = lastDbMessage.content;
 
@@ -490,7 +546,13 @@ export class AssistantRuntimeService {
       this.logger.error(
         `getStateHistory failed for conversation ${conversationId}: ${String(error)}`,
       );
-      badRequest('Cannot read the conversation generation history.');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail: 'Cannot read the conversation generation history.',
+        }),
+      );
     }
 
     // Newest first; the checkpoint right before `respond` still lists it in
@@ -512,14 +574,26 @@ export class AssistantRuntimeService {
     });
 
     if (target == null) {
-      badRequest('Cannot locate the generation state of the last message.');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail: 'Cannot locate the generation state of the last message.',
+        }),
+      );
     }
     const checkpointId =
       target.config.configurable == null
         ? undefined
         : (target.config.configurable['checkpoint_id'] as string | undefined);
     if (checkpointId == null) {
-      badRequest('Cannot locate the generation state of the last message.');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail: 'Cannot locate the generation state of the last message.',
+        }),
+      );
     }
 
     const recent = await this.conversationRepository.findRecentRegeneration(
@@ -527,17 +601,37 @@ export class AssistantRuntimeService {
       lastDbMessage.id,
     );
     if (recent != null) {
-      conflict('A regeneration is already in progress for this message.');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'conflict',
+          code: 'RESOURCE_CONFLICT',
+          detail: 'A regeneration is already in progress for this message.',
+        }),
+      );
     }
 
-    await this.conversationRepository.createRegeneration({
-      conversationId,
-      userId,
-      sourceMessageId: lastDbMessage.id,
-      checkpointId,
-    });
+    await unwrapResult(
+      this.conversationRepository.createRegeneration({
+        conversationId,
+        userId,
+        sourceMessageId: lastDbMessage.id,
+        checkpointId,
+      }),
+    );
 
     return { checkpointId, sourceMessageId: lastDbMessage.id };
+  }
+
+  /**
+   * Converts a DomainFailureException raised inside the imperative body into
+   * the Result Err; any other exception (LLM, program, config) is re-thrown
+   * so it reaches the transport boundary unchanged.
+   */
+  private toDomainFailure(error: unknown): DomainFailure {
+    if (error instanceof DomainFailureException) {
+      return error.failure;
+    }
+    throw error;
   }
 
   /**

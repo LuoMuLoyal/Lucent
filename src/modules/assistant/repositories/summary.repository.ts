@@ -6,7 +6,12 @@
 import { Injectable } from '@nestjs/common';
 import { AiSummaryHistoryKind, type Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { formatDateOnly, parseDateOnly } from '../../../common';
+import {
+  formatDateOnly,
+  fromPrismaResult,
+  parseDateOnly,
+} from '../../../common';
+import type { DomainFailure, ResultAsync } from '../../../common/result';
 import type { AssistantReportRange } from '../types/ports';
 
 export type SummaryBullet = {
@@ -107,7 +112,7 @@ export interface ReportRangeInput {
 }
 
 export abstract class AssistantSummaryRepositoryPort {
-  abstract save(input: PersistSummaryInput): Promise<void>;
+  abstract save(input: PersistSummaryInput): ResultAsync<void, DomainFailure>;
   abstract listRecentTodaySummaries(
     userId: string,
     limit: number,
@@ -130,7 +135,11 @@ export abstract class AssistantSummaryRepositoryPort {
 export class AssistantSummaryRepository implements AssistantSummaryRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async save(input: PersistSummaryInput): Promise<void> {
+  save(input: PersistSummaryInput): ResultAsync<void, DomainFailure> {
+    return fromPrismaResult(this.doSave(input));
+  }
+
+  private async doSave(input: PersistSummaryInput): Promise<void> {
     if (input.kind === 'today' && input.sourceVersion != null) {
       await this.saveVersionedTodaySummary(input);
       return;

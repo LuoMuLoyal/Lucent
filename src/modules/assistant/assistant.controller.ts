@@ -28,6 +28,7 @@ import {
   writeSseEvent,
   SseConnectionRegistry,
 } from '../../common';
+import { unwrapResult } from '../../common/result';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { AssistantService } from './services/core.service';
@@ -112,9 +113,8 @@ export class AssistantController {
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
   ) {
-    return await this.assistantService.openConversation(
-      user.sub,
-      conversationId,
+    return unwrapResult(
+      this.assistantService.openConversation(user.sub, conversationId),
     );
   }
 
@@ -129,10 +129,8 @@ export class AssistantController {
     @Param('conversationId') conversationId: string,
     @Body() dto: ConfirmAssistantProposalDto,
   ) {
-    return await this.assistantService.confirmProposal(
-      user.sub,
-      conversationId,
-      dto,
+    return unwrapResult(
+      this.assistantService.confirmProposal(user.sub, conversationId, dto),
     );
   }
 
@@ -146,10 +144,12 @@ export class AssistantController {
     @Param('conversationId') conversationId: string,
     @Body() dto: RenameConversationDto,
   ) {
-    return await this.assistantService.renameConversation(
-      user.sub,
-      conversationId,
-      dto.title,
+    return unwrapResult(
+      this.assistantService.renameConversation(
+        user.sub,
+        conversationId,
+        dto.title,
+      ),
     );
   }
 
@@ -162,9 +162,8 @@ export class AssistantController {
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
   ) {
-    return await this.assistantService.deleteConversation(
-      user.sub,
-      conversationId,
+    return unwrapResult(
+      this.assistantService.deleteConversation(user.sub, conversationId),
     );
   }
 
@@ -229,14 +228,24 @@ export class AssistantController {
         },
       );
 
-      writeSseEvent(reply.raw, {
-        event: 'result',
-        data: result,
-      });
-      writeSseEvent(reply.raw, {
-        event: 'done',
-        data: {},
-      });
+      result.match(
+        (value) => {
+          writeSseEvent(reply.raw, {
+            event: 'result',
+            data: value,
+          });
+          writeSseEvent(reply.raw, {
+            event: 'done',
+            data: {},
+          });
+        },
+        (failure) => {
+          writeSseEvent(reply.raw, {
+            event: 'error',
+            data: this.sseProblemDetails.build(failure, { lang: language }),
+          });
+        },
+      );
     } catch (error) {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
@@ -287,14 +296,24 @@ export class AssistantController {
         },
       );
 
-      writeSseEvent(reply.raw, {
-        event: 'result',
-        data: result,
-      });
-      writeSseEvent(reply.raw, {
-        event: 'done',
-        data: {},
-      });
+      result.match(
+        (value) => {
+          writeSseEvent(reply.raw, {
+            event: 'result',
+            data: value,
+          });
+          writeSseEvent(reply.raw, {
+            event: 'done',
+            data: {},
+          });
+        },
+        (failure) => {
+          writeSseEvent(reply.raw, {
+            event: 'error',
+            data: this.sseProblemDetails.build(failure, { lang: language }),
+          });
+        },
+      );
     } catch (error) {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
