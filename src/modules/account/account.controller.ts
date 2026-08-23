@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
-import { extractAuthRequestContext } from '../../common';
+import { extractAuthRequestContext, ProblemDetailsDto } from '../../common';
 import { unwrapResult } from '../../common/result';
 import { AuditLogService } from '../audit-log';
 import { AuthService } from '../auth';
@@ -61,6 +61,11 @@ export class AccountController {
   @Get()
   @ApiOperation({ summary: 'Get authenticated account profile' })
   @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async getAccount(@CurrentUser() user: UserPayload) {
     return unwrapResult(this.accountService.getAccount(user.sub));
   }
@@ -68,6 +73,11 @@ export class AccountController {
   @Patch()
   @ApiOperation({ summary: 'Update authenticated account profile' })
   @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async updateAccount(
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateAccountDto,
@@ -80,12 +90,23 @@ export class AccountController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Change authenticated account password' })
   @ApiResponse({ status: 204, description: 'Password changed.' })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Wrong old password (unified code; account password state is not revealed)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async changePassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangePasswordDto,
     @Req() request: FastifyRequest,
   ) {
-    await this.authService.changePassword(user.sub, dto);
+    await unwrapResult(this.authService.changePassword(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -101,12 +122,28 @@ export class AccountController {
       'Set initial password for OAuth-only account using email verification',
   })
   @ApiResponse({ status: 204, description: 'Password set.' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Verification code expired or does not match, or target email is missing',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Password already set or email already in use',
+    type: ProblemDetailsDto,
+  })
   async setPassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: SetPasswordDto,
     @Req() request: FastifyRequest,
   ) {
-    await this.authService.setPassword(user.sub, dto);
+    await unwrapResult(this.authService.setPassword(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -120,12 +157,29 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change authenticated account email' })
   @ApiResponse({ status: 200, type: AccountEmailResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Verification code expired or does not match',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Email already in use',
+    type: ProblemDetailsDto,
+  })
   async changeEmail(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeEmailDto,
     @Req() request: FastifyRequest,
   ) {
-    const updated = await this.authService.changeEmail(user.sub, dto);
+    const updated = await unwrapResult(
+      this.authService.changeEmail(user.sub, dto),
+    );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -143,6 +197,17 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unlink authenticated account OAuth identity' })
   @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Cannot unlink the last identity while the account has no password',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account or identity not found',
+    type: ProblemDetailsDto,
+  })
   async unlinkIdentity(
     @CurrentUser() user: UserPayload,
     @Param('identityId') identityId: string,
@@ -180,6 +245,11 @@ export class AccountController {
     summary: 'Link WeChat web identity to authenticated account',
   })
   @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async linkWechatWebIdentity(
     @CurrentUser() user: UserPayload,
     @Body() dto: OAuthCallbackDto,
@@ -202,6 +272,11 @@ export class AccountController {
     summary: 'Link WeChat mobile identity to authenticated account',
   })
   @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async linkWechatMobileIdentity(
     @CurrentUser() user: UserPayload,
     @Body() dto: OAuthCodeCallbackDto,
@@ -222,12 +297,28 @@ export class AccountController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete authenticated account' })
   @ApiResponse({ status: 204, description: 'Account deleted.' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Verification code expired or does not match, or neither password nor code provided',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Wrong password',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async deleteAccount(
     @CurrentUser() user: UserPayload,
     @Body() dto: DeleteAccountDto,
     @Req() request: FastifyRequest,
   ) {
-    await this.authService.deleteAccount(user.sub, dto);
+    await unwrapResult(this.authService.deleteAccount(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,

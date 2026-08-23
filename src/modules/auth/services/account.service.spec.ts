@@ -1,10 +1,9 @@
 import {
-  UnauthorizedException,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
-import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
-import type { I18nService } from 'nestjs-i18n';
+  createDomainFailure,
+  errAsync,
+  okAsync,
+  type ResultAsync,
+} from '../../../common/result';
 import type { UserService } from '../../user';
 import type { VerificationCodeService } from './identity/verification-code.service';
 import type { AuthAccountRepositoryPort } from '../repositories/account.repository';
@@ -21,6 +20,19 @@ vi.mock('argon2', () => ({
 
 const argon2 = argon2Module as unknown as { verify: vi.Mock };
 
+/**
+ * Folds a ResultAsync into a plain outcome so specs can assert both success
+ * values and DomainFailure codes without throwing.
+ */
+function collectResult<T, E>(
+  result: ResultAsync<T, E>,
+): Promise<{ ok: true; value: T } | { ok: false; error: E }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
 const mockUser = {
   id: 'user-1',
   email: 'test@example.com',
@@ -34,7 +46,6 @@ describe('AuthAccountService', () => {
   let accountRepo: vi.Mocked<AuthAccountRepositoryPort>;
   let userService: vi.Mocked<UserService>;
   let verificationCodeService: vi.Mocked<VerificationCodeService>;
-  let i18n: vi.Mocked<I18nService>;
 
   beforeEach(() => {
     accountRepo = {
@@ -46,15 +57,11 @@ describe('AuthAccountService', () => {
     verificationCodeService = {
       verify: vi.fn().mockReturnValue(okAsync(undefined)),
     } as unknown as vi.Mocked<VerificationCodeService>;
-    i18n = {
-      t: vi.fn().mockReturnValue('translated message'),
-    } as unknown as vi.Mocked<I18nService>;
 
     service = new AuthAccountService(
       accountRepo,
       userService,
       verificationCodeService,
-      i18n,
     );
   });
 
@@ -62,17 +69,28 @@ describe('AuthAccountService', () => {
     it('returns user when found', async () => {
       userService.findById.mockResolvedValue(mockUser as never);
 
-      const result = await service.getActiveUser('user-1');
+      const outcome = await collectResult(service.getActiveUser('user-1'));
 
-      expect(result).toBe(mockUser);
+      expect(outcome).toEqual({ ok: true, value: mockUser });
     });
 
-    it('throws NotFoundException when user not found', async () => {
+    it('returns RESOURCE_NOT_FOUND when user not found', async () => {
       userService.findById.mockResolvedValue(null);
 
-      await expect(service.getActiveUser('nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      const outcome = await collectResult(service.getActiveUser('nonexistent'));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_NOT_FOUND' }),
+      });
+    });
+
+    it('does not mask infrastructure failures', async () => {
+      userService.findById.mockRejectedValue(new Error('db connection lost'));
+
+      await expect(
+        collectResult(service.getActiveUser('user-1')),
+      ).rejects.toThrow('db connection lost');
     });
   });
 
@@ -81,7 +99,9 @@ describe('AuthAccountService', () => {
       userService.findById.mockResolvedValue(mockUser as never);
       argon2.verify.mockResolvedValue(true);
 
-      await service.deleteAccount('user-1', { password: 'correct-pass' });
+      const outcome = await collectResult(
+        service.deleteAccount('user-1', { password: 'correct-pass' }),
+      );
 
       expect(argon2.verify).toHaveBeenCalledWith(
         mockUser.passwordHash,
@@ -91,34 +111,57 @@ describe('AuthAccountService', () => {
         'user-1',
         expect.any(Date),
       );
+      expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
-    it('throws UnauthorizedException when password is wrong', async () => {
+    it('returns AUTH_WRONG_PASSWORD when password is wrong', async () => {
       userService.findById.mockResolvedValue(mockUser as never);
       argon2.verify.mockResolvedValue(false);
 
-      await expect(
+      const outcome = await collectResult(
         service.deleteAccount('user-1', { password: 'wrong-pass' }),
-      ).rejects.toThrow(UnauthorizedException);
+      );
 
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_WRONG_PASSWORD' }),
+      });
       expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
-    it('throws UnauthorizedException when OAuth account has no passwordHash', async () => {
+    it('returns AUTH_WRONG_PASSWORD when OAuth account has no passwordHash', async () => {
       userService.findById.mockResolvedValue({
         ...mockUser,
         passwordHash: null,
       } as never);
 
-      await expect(
+      const outcome = await collectResult(
         service.deleteAccount('user-1', { password: 'any' }),
-      ).rejects.toThrow(UnauthorizedException);
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_WRONG_PASSWORD' }),
+      });
+      expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
+    });
+
+    it('rethrows an argon2.verify failure instead of mapping it to AUTH_WRONG_PASSWORD', async () => {
+      userService.findById.mockResolvedValue(mockUser as never);
+      argon2.verify.mockRejectedValue(new Error('corrupted hash'));
+
+      await expect(
+        collectResult(service.deleteAccount('user-1', { password: 'any' })),
+      ).rejects.toThrow('corrupted hash');
+      expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
     it('deletes with verification code when code is valid', async () => {
       userService.findById.mockResolvedValue(mockUser as never);
 
-      await service.deleteAccount('user-1', { code: '123456' });
+      const outcome = await collectResult(
+        service.deleteAccount('user-1', { code: '123456' }),
+      );
 
       expect(verificationCodeService.verify).toHaveBeenCalledWith(
         'test@example.com',
@@ -126,6 +169,7 @@ describe('AuthAccountService', () => {
         'delete-account',
       );
       expect(accountRepo.softDeleteUser).toHaveBeenCalled();
+      expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
     it('propagates verification-code DomainFailures without soft-deleting', async () => {
@@ -139,32 +183,55 @@ describe('AuthAccountService', () => {
         ),
       );
 
-      await expect(
+      const outcome = await collectResult(
         service.deleteAccount('user-1', { code: '123456' }),
-      ).rejects.toMatchObject({
-        name: 'DomainFailureException',
-        failure: { code: 'AUTH_VERIFICATION_CODE_EXPIRED' },
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+        }),
       });
       expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
-    it('throws BadRequestException when code provided but user has no email', async () => {
+    it('returns VALIDATION_FAILED when code provided but user has no email', async () => {
       userService.findById.mockResolvedValue({
         ...mockUser,
         email: null,
       } as never);
 
-      await expect(
+      const outcome = await collectResult(
         service.deleteAccount('user-1', { code: '123456' }),
-      ).rejects.toThrow(BadRequestException);
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
+      });
+      expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
-    it('throws BadRequestException when neither password nor code provided', async () => {
+    it('returns VALIDATION_FAILED when neither password nor code provided', async () => {
       userService.findById.mockResolvedValue(mockUser as never);
 
-      await expect(service.deleteAccount('user-1', {})).rejects.toThrow(
-        BadRequestException,
-      );
+      const outcome = await collectResult(service.deleteAccount('user-1', {}));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'VALIDATION_FAILED' }),
+      });
+      expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
+    });
+
+    it('does not mask infrastructure failures', async () => {
+      userService.findById.mockRejectedValue(new Error('db connection lost'));
+
+      await expect(
+        collectResult(service.deleteAccount('user-1', { password: 'any' })),
+      ).rejects.toThrow('db connection lost');
+      expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
   });
 });

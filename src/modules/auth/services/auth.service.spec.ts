@@ -2,7 +2,10 @@ import { nonDeleted } from '../../../common';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
@@ -27,6 +30,12 @@ import { WechatWebOAuthProvider } from '../providers/wechat/wechat-web-oauth.pro
 import { AppleOAuthProvider } from '../providers/apple-oauth.provider';
 import { QqOAuthProvider } from '../providers/qq-oauth.provider';
 import { NotificationsService } from '../../notifications';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+  type ResultAsync,
+} from '../../../common/result';
 
 vi.mock('argon2', () => ({
   argon2id: 2,
@@ -34,6 +43,19 @@ vi.mock('argon2', () => ({
   verify: vi.fn(),
   Options: {},
 }));
+
+/**
+ * Folds a ResultAsync into a plain outcome so specs can assert both success
+ * values and DomainFailure codes without throwing.
+ */
+function collectResult<T, E>(
+  result: ResultAsync<T, E>,
+): Promise<{ ok: true; value: T } | { ok: false; error: E }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
 
 const mockUser = {
   id: 'user-uuid-1',
@@ -78,7 +100,6 @@ describe('AuthService', () => {
   let authAccountService: vi.Mocked<AuthAccountService>;
   let authOAuthFacadeService: vi.Mocked<AuthOAuthFacadeService>;
   let credentialAuthService: vi.Mocked<CredentialAuthService>;
-  let i18nService: { t: ReturnType<typeof vi.fn> };
   let module: TestingModule;
 
   beforeEach(async () => {
@@ -170,9 +191,12 @@ describe('AuthService', () => {
           provide: AuthTokenService,
           useValue: {
             generateTokenPair: vi.fn().mockResolvedValue(mockTokenPair),
-            refresh: vi
-              .fn()
-              .mockRejectedValue(new Error('REFRESH_TOKEN_INVALID')),
+            refresh: vi.fn().mockRejectedValue(
+              new UnauthorizedException({
+                code: 'AUTH_REQUIRED',
+                message: 'REFRESH_TOKEN_INVALID',
+              }),
+            ),
             revoke: vi.fn(),
             revokeAll: vi.fn(),
             revokeById: vi.fn(),
@@ -232,28 +256,28 @@ describe('AuthService', () => {
           useValue: {
             register: vi
               .fn()
-              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+              .mockReturnValue(okAsync({ user: mockUser, ...mockTokenPair })),
             login: vi
               .fn()
-              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            changePassword: vi.fn().mockResolvedValue(undefined),
-            setPassword: vi.fn().mockResolvedValue(undefined),
-            changeEmail: vi.fn().mockResolvedValue(mockUser),
+              .mockReturnValue(okAsync({ user: mockUser, ...mockTokenPair })),
+            changePassword: vi.fn().mockReturnValue(okAsync(undefined)),
+            setPassword: vi.fn().mockReturnValue(okAsync(undefined)),
+            changeEmail: vi.fn().mockReturnValue(okAsync(mockUser)),
             sendVerificationCode: vi
               .fn()
-              .mockResolvedValue({ message: 'verification_code_sent' }),
-            verifyEmail: vi.fn().mockResolvedValue(undefined),
+              .mockReturnValue(okAsync({ message: 'verification_code_sent' })),
+            verifyEmail: vi.fn().mockReturnValue(okAsync(undefined)),
             forgotPassword: vi
               .fn()
-              .mockResolvedValue({ message: 'forgot_password_hint' }),
-            resetPassword: vi.fn().mockResolvedValue(undefined),
+              .mockReturnValue(okAsync({ message: 'forgot_password_hint' })),
+            resetPassword: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
         {
           provide: AuthAccountService,
           useValue: {
-            getActiveUser: vi.fn().mockResolvedValue(mockUser),
-            deleteAccount: vi.fn().mockResolvedValue(undefined),
+            getActiveUser: vi.fn().mockReturnValue(okAsync(mockUser)),
+            deleteAccount: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
         {
@@ -307,9 +331,6 @@ describe('AuthService', () => {
     authAccountService = module.get(AuthAccountService);
     authOAuthFacadeService = module.get(AuthOAuthFacadeService);
     credentialAuthService = module.get(CredentialAuthService);
-    i18nService = module.get(I18nService) as unknown as {
-      t: ReturnType<typeof vi.fn>;
-    };
   });
 
   afterEach(() => {
@@ -328,45 +349,64 @@ describe('AuthService', () => {
         mockTokenPair,
       );
 
-      const result = await service.refresh('valid-token', mockRequestContext);
+      const outcome = await collectResult(
+        service.refresh('valid-token', mockRequestContext),
+      );
 
       expect(authTokenService.refresh).toHaveBeenCalledWith(
         'valid-token',
         mockRequestContext,
       );
-      expect(result.accessToken).toBe('mock-jwt-token');
+      expect(outcome).toEqual({ ok: true, value: mockTokenPair });
     });
 
-    it('should throw UnauthorizedException for invalid refresh token', async () => {
-      await expect(service.refresh('bad-token')).rejects.toThrow(
-        UnauthorizedException,
+    it('should return AUTH_REFRESH_TOKEN_INVALID for an invalid refresh token', async () => {
+      const outcome = await collectResult(service.refresh('bad-token'));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+    });
+
+    it('should return AUTH_REFRESH_TOKEN_INVALID for an expired refresh token', async () => {
+      (authTokenService.refresh as vi.Mock).mockRejectedValueOnce(
+        new UnauthorizedException({
+          code: 'AUTH_REQUIRED',
+          message: 'expired',
+        }),
+      );
+
+      const outcome = await collectResult(service.refresh('expired-token'));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+    });
+
+    it('should not mask infrastructure failures as refresh-token-invalid', async () => {
+      (authTokenService.refresh as vi.Mock).mockRejectedValueOnce(
+        new Error('db connection lost'),
+      );
+
+      await expect(collectResult(service.refresh('token'))).rejects.toThrow(
+        'db connection lost',
       );
     });
 
-    it('should throw UnauthorizedException for expired refresh token', async () => {
-      await expect(service.refresh('expired-token')).rejects.toThrow(
-        UnauthorizedException,
+    it('should not mask signing failures as refresh-token-invalid', async () => {
+      (authTokenService.refresh as vi.Mock).mockRejectedValueOnce(
+        new InternalServerErrorException('signing failed'),
       );
-    });
 
-    it('should wrap refresh failures with REFRESH_TOKEN_INVALID code and i18n message', async () => {
-      i18nService.t.mockReturnValueOnce('refresh token invalid');
-
-      try {
-        await service.refresh('bad-token');
-        throw new Error('expected refresh to throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(UnauthorizedException);
-        const response = (error as UnauthorizedException).getResponse() as {
-          code: number;
-          message: string;
-        };
-        expect(response.code).toBe('AUTH_REFRESH_TOKEN_INVALID');
-        expect(response.message).toBe('refresh token invalid');
-        expect(i18nService.t).toHaveBeenCalledWith(
-          'auth.refresh_token_invalid',
-        );
-      }
+      await expect(collectResult(service.refresh('token'))).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -399,47 +439,70 @@ describe('AuthService', () => {
 
   describe('getActiveUser', () => {
     it('should delegate to authAccountService.getActiveUser', async () => {
-      authAccountService.getActiveUser.mockResolvedValue(mockUser);
+      authAccountService.getActiveUser.mockReturnValue(okAsync(mockUser));
 
-      const result = await service.getActiveUser('user-uuid-1');
+      const outcome = await collectResult(service.getActiveUser('user-uuid-1'));
 
       expect(authAccountService.getActiveUser).toHaveBeenCalledWith(
         'user-uuid-1',
       );
-      expect(result).toEqual(mockUser);
+      expect(outcome).toEqual({ ok: true, value: mockUser });
     });
 
-    it('should propagate errors from authAccountService.getActiveUser', async () => {
-      authAccountService.getActiveUser.mockRejectedValue(
-        new NotFoundException('user_not_found'),
+    it('should propagate RESOURCE_NOT_FOUND from authAccountService.getActiveUser', async () => {
+      authAccountService.getActiveUser.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'not_found',
+            code: 'RESOURCE_NOT_FOUND',
+          }),
+        ),
       );
 
-      await expect(service.getActiveUser('user-uuid-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      const outcome = await collectResult(service.getActiveUser('user-uuid-1'));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_NOT_FOUND' }),
+      });
     });
   });
 
   describe('deleteAccount', () => {
     it('should delegate to authAccountService.deleteAccount', async () => {
-      await service.deleteAccount('user-uuid-1', {
-        password: 'Password123!',
-      });
+      authAccountService.deleteAccount.mockReturnValue(okAsync(undefined));
+
+      const outcome = await collectResult(
+        service.deleteAccount('user-uuid-1', {
+          password: 'Password123!',
+        }),
+      );
 
       expect(authAccountService.deleteAccount).toHaveBeenCalledWith(
         'user-uuid-1',
         { password: 'Password123!' },
       );
+      expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
-    it('should propagate errors from authAccountService.deleteAccount', async () => {
-      authAccountService.deleteAccount.mockRejectedValue(
-        new UnauthorizedException('invalid_credentials'),
+    it('should propagate AUTH_WRONG_PASSWORD from authAccountService.deleteAccount', async () => {
+      authAccountService.deleteAccount.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
       );
 
-      await expect(
+      const outcome = await collectResult(
         service.deleteAccount('user-uuid-1', { password: 'wrong' }),
-      ).rejects.toThrow(UnauthorizedException);
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_WRONG_PASSWORD' }),
+      });
     });
   });
 

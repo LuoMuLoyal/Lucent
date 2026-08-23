@@ -18,8 +18,12 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 
-import { extractAuthRequestContext } from '../../../common';
-import { calculateExpiresIn } from '../../../common';
+import {
+  calculateExpiresIn,
+  extractAuthRequestContext,
+  ProblemDetailsDto,
+} from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
@@ -85,10 +89,17 @@ export class SessionController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh token' })
   @ApiResponse({ status: 200, type: RefreshResponseDto })
+  @ApiResponse({
+    status: 401,
+    description: 'Refresh token invalid, expired or already consumed',
+    type: ProblemDetailsDto,
+  })
   async refresh(@Body() dto: RefreshDto, @Req() request: FastifyRequest) {
-    const result = await this.authService.refresh(
-      dto.refreshToken,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.refresh(
+        dto.refreshToken,
+        extractAuthRequestContext(request),
+      ),
     );
     return {
       accessToken: result.accessToken,

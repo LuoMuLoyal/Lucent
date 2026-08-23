@@ -3,6 +3,12 @@ import type { FastifyRequest } from 'fastify';
 import { LocalController } from './local.controller';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/identity/verification-code.service';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+} from '../../../common/result';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },
@@ -64,7 +70,7 @@ describe('LocalController', () => {
 
   describe('POST /auth/register', () => {
     it('registers a user and returns an auth resource', async () => {
-      authService.register.mockResolvedValue(mockAuthResult as never);
+      authService.register.mockReturnValue(okAsync(mockAuthResult as never));
 
       const result = await controller.register(
         {
@@ -86,11 +92,54 @@ describe('LocalController', () => {
       expect(result).toHaveProperty('user');
       expect(result).toHaveProperty('tokens');
     });
+
+    it('folds credential failures into DomainFailureException', async () => {
+      authService.register.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.register(
+          {
+            email: 'taken@example.com',
+            password: 'Password123!',
+            code: '123456',
+          } as never,
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_WRONG_PASSWORD' },
+      });
+    });
+
+    it('does not swallow infrastructure failures', async () => {
+      authService.register.mockImplementation(() =>
+        fromPromise(
+          Promise.reject(new Error('db connection lost')),
+          (error) => {
+            throw error;
+          },
+        ),
+      );
+
+      await expect(
+        controller.register(
+          { email: 'test@example.com', password: 'Password123!' } as never,
+          mockRequest,
+        ),
+      ).rejects.toThrow('db connection lost');
+    });
   });
 
   describe('POST /auth/login', () => {
     it('logs in and returns an auth resource', async () => {
-      authService.login.mockResolvedValue(mockAuthResult as never);
+      authService.login.mockReturnValue(okAsync(mockAuthResult as never));
 
       const result = await controller.login(
         { email: 'test@example.com', password: 'Password123!' },
@@ -100,13 +149,34 @@ describe('LocalController', () => {
       expect(authService.login).toHaveBeenCalled();
       expect(result.user.email).toBe('test@example.com');
     });
+
+    it('folds login failures into DomainFailureException with the generic code', async () => {
+      authService.login.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.login(
+          { email: 'test@example.com', password: 'WrongPass1' },
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_WRONG_PASSWORD' },
+      });
+    });
   });
 
   describe('POST /auth/send-verification-code', () => {
     it('returns cooldown and message resource', async () => {
-      authService.sendVerificationCode.mockResolvedValue({
-        message: 'Code sent',
-      } as never);
+      authService.sendVerificationCode.mockReturnValue(
+        okAsync({ message: 'Code sent' } as never),
+      );
 
       const result = await controller.sendVerificationCode(
         { email: 'test@example.com', type: 'register' } as never,
@@ -116,11 +186,34 @@ describe('LocalController', () => {
       expect(result).toHaveProperty('cooldown', 60);
       expect(result).toHaveProperty('message', 'Code sent');
     });
+
+    it('folds cooldown failures into DomainFailureException', async () => {
+      authService.sendVerificationCode.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
+            retryable: true,
+            retryAfter: 60,
+          }),
+        ),
+      );
+
+      await expect(
+        controller.sendVerificationCode(
+          { email: 'test@example.com', type: 'register' } as never,
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_VERIFICATION_CODE_COOLDOWN' },
+      });
+    });
   });
 
   describe('POST /auth/verify-email', () => {
     it('returns emailVerified true', async () => {
-      authService.verifyEmail.mockResolvedValue(undefined);
+      authService.verifyEmail.mockReturnValue(okAsync(undefined));
 
       const result = await controller.verifyEmail({
         email: 'test@example.com',
@@ -134,9 +227,9 @@ describe('LocalController', () => {
 
   describe('POST /auth/forgot-password', () => {
     it('returns cooldown and message resource', async () => {
-      authService.forgotPassword.mockResolvedValue({
-        message: 'Reset link sent',
-      } as never);
+      authService.forgotPassword.mockReturnValue(
+        okAsync({ message: 'Reset link sent' } as never),
+      );
 
       const result = await controller.forgotPassword(
         { email: 'test@example.com' },
@@ -149,7 +242,7 @@ describe('LocalController', () => {
 
   describe('POST /auth/reset-password', () => {
     it('returns no content on success', async () => {
-      authService.resetPassword.mockResolvedValue(undefined);
+      authService.resetPassword.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.resetPassword({

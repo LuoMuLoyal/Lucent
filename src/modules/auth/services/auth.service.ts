@@ -1,7 +1,12 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
+import {
+  createDomainFailure,
+  fromPromise,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
 import { ChangeEmailDto } from '../dto/password/change-email.dto';
 import { ChangePasswordDto } from '../dto/password/change-password.dto';
@@ -43,7 +48,6 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private readonly i18n: I18nService,
     private readonly authTokenService: AuthTokenService,
     private readonly credentialAuthService: CredentialAuthService,
     private readonly authAccountService: AuthAccountService,
@@ -52,58 +56,89 @@ export class AuthService {
 
   // ── Credential delegation ────────────────────────────────────
 
-  async register(dto: RegisterDto, context?: AuthRequestContext) {
+  register(
+    dto: RegisterDto,
+    context?: AuthRequestContext,
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.credentialAuthService.register(dto, context);
   }
 
-  async login(dto: LoginDto, context?: AuthRequestContext) {
+  login(
+    dto: LoginDto,
+    context?: AuthRequestContext,
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.credentialAuthService.login(dto, context);
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto) {
+  changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+  ): ResultAsync<void, DomainFailure> {
     return this.credentialAuthService.changePassword(userId, dto);
   }
 
-  async setPassword(userId: string, dto: SetPasswordDto) {
+  setPassword(
+    userId: string,
+    dto: SetPasswordDto,
+  ): ResultAsync<void, DomainFailure> {
     return this.credentialAuthService.setPassword(userId, dto);
   }
 
-  async changeEmail(userId: string, dto: ChangeEmailDto) {
+  changeEmail(
+    userId: string,
+    dto: ChangeEmailDto,
+  ): ResultAsync<User, DomainFailure> {
     return this.credentialAuthService.changeEmail(userId, dto);
   }
 
-  async sendVerificationCode(dto: SendVerificationCodeDto, clientKey?: string) {
+  sendVerificationCode(
+    dto: SendVerificationCodeDto,
+    clientKey?: string,
+  ): ResultAsync<{ message: string }, DomainFailure> {
     return this.credentialAuthService.sendVerificationCode(dto, clientKey);
   }
 
-  async verifyEmail(dto: VerifyEmailDto) {
+  verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
     return this.credentialAuthService.verifyEmail(dto);
   }
 
-  async forgotPassword(dto: ForgotPasswordDto, clientKey?: string) {
+  forgotPassword(
+    dto: ForgotPasswordDto,
+    clientKey?: string,
+  ): ResultAsync<{ message: string }, DomainFailure> {
     return this.credentialAuthService.forgotPassword(dto, clientKey);
   }
 
-  async resetPassword(dto: ResetPasswordDto) {
+  resetPassword(dto: ResetPasswordDto): ResultAsync<void, DomainFailure> {
     return this.credentialAuthService.resetPassword(dto);
   }
 
   // ── Token Management ─────────────────────────────────────────
 
-  async refresh(
+  /**
+   * Rotates a refresh token. Only truly invalid, expired or already-consumed
+   * refresh tokens map to `AUTH_REFRESH_TOKEN_INVALID` (the token service
+   * signals those with a 401 UnauthorizedException). Database, signing and
+   * configuration failures keep their real exception semantics — they are
+   * re-thrown instead of being misreported as an invalid token.
+   */
+  refresh(
     refreshToken: string,
     context?: AuthRequestContext,
-  ): Promise<TokenPair> {
-    try {
-      return await this.authTokenService.refresh(refreshToken, context);
-    } catch (error) {
-      this.logger.warn('Token refresh failed', { error });
-      throw new UnauthorizedException({
-        code: 'AUTH_REFRESH_TOKEN_INVALID',
-        message: this.i18n.t('auth.refresh_token_invalid'),
-        cause: error,
-      });
-    }
+  ): ResultAsync<TokenPair, DomainFailure> {
+    return fromPromise(
+      this.authTokenService.refresh(refreshToken, context),
+      (error) => {
+        if (error instanceof UnauthorizedException) {
+          this.logger.warn('Token refresh failed', { error });
+          return createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_REFRESH_TOKEN_INVALID',
+          });
+        }
+        throw error;
+      },
+    );
   }
 
   async logout(userId: string, refreshToken: string): Promise<void> {
@@ -116,13 +151,17 @@ export class AuthService {
 
   // ── Account Management ───────────────────────────────────────
 
-  async getActiveUser(userId: string): Promise<User> {
+  getActiveUser(userId: string): ResultAsync<User, DomainFailure> {
     return this.authAccountService.getActiveUser(userId);
   }
 
-  async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
-    await this.logoutAll(userId);
-    await this.authAccountService.deleteAccount(userId, dto);
+  deleteAccount(
+    userId: string,
+    dto: DeleteAccountDto,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(this.logoutAll(userId), (error) => {
+      throw error;
+    }).andThen(() => this.authAccountService.deleteAccount(userId, dto));
   }
 
   // ── OAuth delegation ─────────────────────────────────────────

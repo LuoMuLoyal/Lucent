@@ -5,7 +5,7 @@ vi.mock('otplib', () => ({
 }));
 
 import { Test, type TestingModule } from '@nestjs/testing';
-import { okAsync } from '../../common/result';
+import { createDomainFailure, errAsync, okAsync } from '../../common/result';
 import type { UserPayload } from '../auth';
 
 import { AccountController } from './account.controller';
@@ -138,7 +138,7 @@ describe('AccountController', () => {
 
   describe('POST /account/password', () => {
     it('should change password and return no content', async () => {
-      authService.changePassword.mockResolvedValue(undefined);
+      authService.changePassword.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.changePassword(
@@ -156,11 +156,36 @@ describe('AccountController', () => {
         newPassword: 'NewPass1',
       });
     });
+
+    it('should fold wrong-password failures into DomainFailureException', async () => {
+      authService.changePassword.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.changePassword(
+          mockUser,
+          {
+            oldPassword: 'WrongOld',
+            newPassword: 'NewPass1',
+          },
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_WRONG_PASSWORD' },
+      });
+    });
   });
 
   describe('POST /account/set-password', () => {
     it('should set initial password and return no content', async () => {
-      authService.setPassword.mockResolvedValue(undefined);
+      authService.setPassword.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.setPassword(
@@ -186,7 +211,9 @@ describe('AccountController', () => {
         email: 'new@example.com',
         emailVerifiedAt: new Date('2026-06-15T08:00:00.000Z'),
       };
-      authService.changeEmail.mockResolvedValue(updatedUser as unknown as User);
+      authService.changeEmail.mockReturnValue(
+        okAsync(updatedUser as unknown as User),
+      );
 
       const result = await controller.changeEmail(
         mockUser,
@@ -208,10 +235,12 @@ describe('AccountController', () => {
     });
 
     it('should return null emailVerifiedAt when the value is null', async () => {
-      authService.changeEmail.mockResolvedValue({
-        email: 'unverified@example.com',
-        emailVerifiedAt: null,
-      } as unknown as User);
+      authService.changeEmail.mockReturnValue(
+        okAsync({
+          email: 'unverified@example.com',
+          emailVerifiedAt: null,
+        } as unknown as User),
+      );
 
       const result = await controller.changeEmail(
         mockUser,
@@ -223,6 +252,31 @@ describe('AccountController', () => {
       );
 
       expect(result.emailVerifiedAt).toBeNull();
+    });
+
+    it('should fold email-conflict failures into DomainFailureException', async () => {
+      authService.changeEmail.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'conflict',
+            code: 'RESOURCE_CONFLICT',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.changeEmail(
+          mockUser,
+          {
+            newEmail: 'taken@example.com',
+            code: '123456',
+          },
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'RESOURCE_CONFLICT' },
+      });
     });
   });
 
@@ -336,7 +390,7 @@ describe('AccountController', () => {
 
   describe('DELETE /account', () => {
     it('should delete account and return no content', async () => {
-      authService.deleteAccount.mockResolvedValue(undefined);
+      authService.deleteAccount.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.deleteAccount(
@@ -350,6 +404,30 @@ describe('AccountController', () => {
 
       expect(authService.deleteAccount).toHaveBeenCalledWith(mockUser.sub, {
         password: 'Passw0rd123',
+      });
+    });
+
+    it('should fold wrong-password failures into DomainFailureException', async () => {
+      authService.deleteAccount.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.deleteAccount(
+          mockUser,
+          {
+            password: 'WrongPass1',
+          },
+          mockRequest,
+        ),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_WRONG_PASSWORD' },
       });
     });
   });

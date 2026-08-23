@@ -3,6 +3,7 @@ import type { FastifyRequest } from 'fastify';
 import { SessionController } from './session.controller';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
+import { okAsync } from '../../../common/result';
 import type { UserPayload } from '../types/auth-request';
 
 const mockUser: UserPayload = {
@@ -37,7 +38,7 @@ describe('SessionController', () => {
           provide: AuthService,
           useValue: {
             logout: vi.fn().mockResolvedValue(undefined),
-            refresh: vi.fn().mockResolvedValue(mockRefreshResult),
+            refresh: vi.fn().mockReturnValue(okAsync(mockRefreshResult)),
           },
         },
         {

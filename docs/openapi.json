@@ -1966,6 +1966,26 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "summary": "User registration",
@@ -1993,6 +2013,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Login verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong credentials (unified code; account state is not revealed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -2028,7 +2078,14 @@
             }
           },
           "429": {
-            "description": "Too many verification code requests"
+            "description": "Too many verification code requests (cooldown or client rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Send email verification code",
@@ -2056,6 +2113,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VerifyEmailResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -2091,7 +2158,14 @@
             }
           },
           "429": {
-            "description": "Too many verification code requests"
+            "description": "Too many verification code requests (cooldown or client rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Forgot password",
@@ -2115,6 +2189,26 @@
         "responses": {
           "204": {
             "description": "Password reset."
+          },
+          "400": {
+            "description": "Verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Reset password",
@@ -2545,6 +2639,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token invalid, expired or already consumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -4318,6 +4422,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4351,6 +4465,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4377,6 +4501,36 @@
         "responses": {
           "204": {
             "description": "Account deleted."
+          },
+          "400": {
+            "description": "Verification code expired or does not match, or neither password nor code provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4405,6 +4559,26 @@
         "responses": {
           "204": {
             "description": "Password changed."
+          },
+          "401": {
+            "description": "Wrong old password (unified code; account password state is not revealed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4433,6 +4607,36 @@
         "responses": {
           "204": {
             "description": "Password set."
+          },
+          "400": {
+            "description": "Verification code expired or does not match, or target email is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Password already set or email already in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4468,6 +4672,36 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4499,6 +4733,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cannot unlink the last identity while the account has no password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account or identity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -4572,6 +4826,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4604,6 +4868,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
                 }
               }
             }
@@ -8339,6 +8613,53 @@
           }
         },
         "required": ["user", "tokens"]
+      },
+      "ProblemDetailsDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Stable URI identifying the problem type.",
+            "example": "https://api.lumos.example/problems/resource-not-found"
+          },
+          "title": {
+            "type": "string",
+            "description": "Localized short summary of the problem.",
+            "example": "Resource not found"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Localized, actionable description for this request.",
+            "example": "The requested resource could not be found."
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable business code.",
+            "example": "RESOURCE_NOT_FOUND"
+          },
+          "errors": {
+            "type": "object",
+            "description": "Safe structured validation errors keyed by field or general.",
+            "additionalProperties": true
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether retrying may succeed, subject to client policy.",
+            "example": false
+          },
+          "retryAfter": {
+            "type": "number",
+            "description": "Minimum delay before retrying, in seconds.",
+            "minimum": 0,
+            "example": 60
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Trace correlation identifier; never a business key.",
+            "example": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+        },
+        "required": ["type", "title", "detail", "code"]
       },
       "LoginDto": {
         "type": "object",
@@ -13111,53 +13432,6 @@
           }
         },
         "required": ["contentType", "sizeBytes"]
-      },
-      "ProblemDetailsDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Stable URI identifying the problem type.",
-            "example": "https://api.lumos.example/problems/resource-not-found"
-          },
-          "title": {
-            "type": "string",
-            "description": "Localized short summary of the problem.",
-            "example": "Resource not found"
-          },
-          "detail": {
-            "type": "string",
-            "description": "Localized, actionable description for this request.",
-            "example": "The requested resource could not be found."
-          },
-          "code": {
-            "type": "string",
-            "description": "Stable machine-readable business code.",
-            "example": "RESOURCE_NOT_FOUND"
-          },
-          "errors": {
-            "type": "object",
-            "description": "Safe structured validation errors keyed by field or general.",
-            "additionalProperties": true
-          },
-          "retryable": {
-            "type": "boolean",
-            "description": "Whether retrying may succeed, subject to client policy.",
-            "example": false
-          },
-          "retryAfter": {
-            "type": "number",
-            "description": "Minimum delay before retrying, in seconds.",
-            "minimum": 0,
-            "example": 60
-          },
-          "traceId": {
-            "type": "string",
-            "description": "Trace correlation identifier; never a business key.",
-            "example": "4bf92f3577b34da6a3ce929d0e0e4736"
-          }
-        },
-        "required": ["type", "title", "detail", "code"]
       },
       "SseProblemDetailsDto": {
         "type": "object",

@@ -1,12 +1,16 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
-import { badRequest, notFound } from '../../../common';
-import { normalizeEmail } from '../../../common';
-import { now } from '../../../common';
-import { unwrapResult } from '../../../common/result';
+import { normalizeEmail, now } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import { UserService } from '../../user';
 import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
 import { VerificationCodeService } from './identity/verification-code.service';
@@ -20,58 +24,106 @@ export class AuthAccountService {
     private readonly accountRepository: AuthAccountRepositoryPort,
     private readonly userService: UserService,
     private readonly verificationCodeService: VerificationCodeService,
-    private readonly i18n: I18nService,
   ) {}
 
-  async getActiveUser(userId: string): Promise<User> {
-    const user = await this.userService.findById(userId);
-    if (!user) {
-      notFound(this.i18n.t('auth.user_not_found'));
-    }
-    return user;
+  getActiveUser(userId: string): ResultAsync<User, DomainFailure> {
+    return this.lift(this.userService.findById(userId)).andThen((user) => {
+      if (!user) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'not_found',
+            code: 'RESOURCE_NOT_FOUND',
+          }),
+        );
+      }
+      return okAsync(user);
+    });
   }
 
-  async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
-    const user = await this.getActiveUser(userId);
-
-    if (dto.password) {
-      if (!user.passwordHash) {
-        throw new UnauthorizedException({
-          code: 'AUTH_WRONG_PASSWORD',
-          message: this.i18n.t('auth.use_code_for_oauth_account_deletion'),
-        });
+  deleteAccount(
+    userId: string,
+    dto: DeleteAccountDto,
+  ): ResultAsync<void, DomainFailure> {
+    return this.getActiveUser(userId).andThen((user) => {
+      if (dto.password) {
+        if (!user.passwordHash) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'authentication',
+              code: 'AUTH_WRONG_PASSWORD',
+            }),
+          );
+        }
+        return this.verifyPasswordForDeletion(
+          userId,
+          user,
+          dto.password,
+        ).andThen(() => this.accountRepository.softDeleteUser(userId, now()));
       }
-      let valid: boolean;
-      try {
-        valid = await argon2.verify(user.passwordHash, dto.password);
-      } catch (error) {
-        // Corrupted or invalid hash — treat as wrong password, not a 500,
-        // but log the underlying error so infrastructure issues (argon2
-        // module misconfiguration, OOM, etc.) are not silently masked.
+
+      if (dto.code) {
+        const email = user.email ? normalizeEmail(user.email) : null;
+        if (!email) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'validation',
+              code: 'VALIDATION_FAILED',
+            }),
+          );
+        }
+        return this.verificationCodeService
+          .verify(email, dto.code, 'delete-account')
+          .andThen(() => this.accountRepository.softDeleteUser(userId, now()));
+      }
+
+      return errAsync(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+        }),
+      );
+    });
+  }
+
+  private verifyPasswordForDeletion(
+    userId: string,
+    user: User,
+    password: string,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(
+      argon2.verify(user.passwordHash as string, password),
+      (error) => {
+        // A thrown Argon2 failure (corrupted hash, native binding error,
+        // module misconfiguration) is re-thrown so it surfaces as a
+        // dependency/internal error — never misreported as a wrong password.
+        // The underlying error is logged so infrastructure issues are not
+        // silently masked.
         this.logger.warn(
           `argon2.verify threw for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
         );
-        valid = false;
-      }
+        throw error;
+      },
+    ).andThen((valid) => {
       if (!valid) {
-        throw new UnauthorizedException({
-          code: 'AUTH_WRONG_PASSWORD',
-          message: this.i18n.t('auth.password_wrong'),
-        });
+        return errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_WRONG_PASSWORD',
+          }),
+        );
       }
-    } else if (dto.code) {
-      const email = user.email ? normalizeEmail(user.email) : null;
-      if (!email) {
-        badRequest(this.i18n.t('auth.email_required_for_delete_account'));
-      }
-      // TODO(error): Task 4 将删除账户流程整体迁移到 ResultAsync，此处为临时折叠
-      await unwrapResult(
-        this.verificationCodeService.verify(email, dto.code, 'delete-account'),
-      );
-    } else {
-      badRequest(this.i18n.t('auth.provide_password_or_code_for_deletion'));
-    }
+      return okAsync(undefined);
+    });
+  }
 
-    await unwrapResult(this.accountRepository.softDeleteUser(userId, now()));
+  /**
+   * Lifts non-Prisma IO into `ResultAsync`. Unknown exceptions and
+   * dependency-level failures are re-thrown, never converted into a
+   * DomainFailure.
+   */
+  private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
+    return fromPromise(promise, (error) => {
+      throw error;
+    });
   }
 }

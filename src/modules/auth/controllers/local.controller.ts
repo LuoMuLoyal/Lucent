@@ -10,6 +10,8 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
 import { extractAuthRequestContext, getRequestClientIp } from '../../../common';
+import { ProblemDetailsDto } from '../../../common';
+import { unwrapResult } from '../../../common/result';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/identity/verification-code.service';
 
@@ -46,10 +48,20 @@ export class LocalController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'User registration' })
   @ApiResponse({ status: 201, type: RegisterResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Verification code expired or does not match',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)',
+    type: ProblemDetailsDto,
+  })
   async register(@Body() dto: RegisterDto, @Req() request: FastifyRequest) {
-    const result = await this.authService.register(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.register(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -60,10 +72,25 @@ export class LocalController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Login verification code expired or does not match',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Wrong credentials (unified code; account state is not revealed)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many failed login attempts',
+    type: ProblemDetailsDto,
+  })
   async login(@Body() dto: LoginDto, @Req() request: FastifyRequest) {
-    const result = await this.authService.login(
-      dto,
-      extractAuthRequestContext(request),
+    const result = await unwrapResult(
+      this.authService.login(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -76,15 +103,16 @@ export class LocalController {
   @ApiResponse({ status: 200, type: SendVerificationCodeResponseDto })
   @ApiResponse({
     status: 429,
-    description: 'Too many verification code requests',
+    description:
+      'Too many verification code requests (cooldown or client rate limit)',
+    type: ProblemDetailsDto,
   })
   async sendVerificationCode(
     @Body() dto: SendVerificationCodeDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.sendVerificationCode(
-      dto,
-      getRequestClientIp(request),
+    const result = await unwrapResult(
+      this.authService.sendVerificationCode(dto, getRequestClientIp(request)),
     );
 
     return {
@@ -99,8 +127,13 @@ export class LocalController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email' })
   @ApiResponse({ status: 200, type: VerifyEmailResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Verification code expired or does not match',
+    type: ProblemDetailsDto,
+  })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
-    await this.authService.verifyEmail(dto);
+    await unwrapResult(this.authService.verifyEmail(dto));
     return { emailVerified: true };
   }
 
@@ -112,15 +145,16 @@ export class LocalController {
   @ApiResponse({ status: 200, type: ForgotPasswordResponseDto })
   @ApiResponse({
     status: 429,
-    description: 'Too many verification code requests',
+    description:
+      'Too many verification code requests (cooldown or client rate limit)',
+    type: ProblemDetailsDto,
   })
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
     @Req() request: FastifyRequest,
   ) {
-    const result = await this.authService.forgotPassword(
-      dto,
-      getRequestClientIp(request),
+    const result = await unwrapResult(
+      this.authService.forgotPassword(dto, getRequestClientIp(request)),
     );
 
     return {
@@ -135,8 +169,18 @@ export class LocalController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Reset password' })
   @ApiResponse({ status: 204, description: 'Password reset.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Verification code expired or does not match',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+    type: ProblemDetailsDto,
+  })
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    await this.authService.resetPassword(dto);
+    await unwrapResult(this.authService.resetPassword(dto));
     return;
   }
 }
