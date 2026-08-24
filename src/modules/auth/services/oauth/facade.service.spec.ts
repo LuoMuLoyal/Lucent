@@ -460,6 +460,63 @@ describe('AuthOAuthFacadeService', () => {
       expect(outcome).toEqual({ ok: false, error: stateInvalidFailure });
       expect(googleProvider.exchangeCodeForTokens).not.toHaveBeenCalled();
     });
+
+    it('maps an unknown Better Auth 4xx error to AUTH_OAUTH_FAILED', async () => {
+      betterAuthAdapter.auth.api.signInSocial.mockRejectedValue({
+        statusCode: 400,
+        body: { code: 'UNKNOWN_OAUTH_ERROR' },
+      });
+
+      const outcome = await collectResult(
+        service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          kind: 'authentication',
+          code: 'AUTH_OAUTH_FAILED',
+        }),
+      });
+    });
+
+    it('maps a disabled social provider error to AUTH_METHOD_DISABLED', async () => {
+      betterAuthAdapter.auth.api.signInSocial.mockRejectedValue({
+        statusCode: 400,
+        body: { code: 'SOCIAL_SIGN_IN_DISABLED' },
+      });
+
+      const outcome = await collectResult(
+        service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          kind: 'dependency',
+          code: 'AUTH_METHOD_DISABLED',
+        }),
+      });
+    });
+
+    it('maps an unknown Better Auth 5xx error to DEPENDENCY_UNAVAILABLE', async () => {
+      betterAuthAdapter.auth.api.signInSocial.mockRejectedValue({
+        statusCode: 500,
+        body: { code: 'FAILED_TO_CREATE_SESSION' },
+      });
+
+      const outcome = await collectResult(
+        service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+        }),
+      });
+    });
   });
 
   describe('createQqAuthorizeUrl', () => {

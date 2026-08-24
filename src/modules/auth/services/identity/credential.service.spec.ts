@@ -1116,7 +1116,7 @@ describe('CredentialAuthService', () => {
       });
     });
 
-    it('should map disabled config errors to INTERNAL_ERROR', async () => {
+    it('should map disabled config errors to AUTH_METHOD_DISABLED', async () => {
       verifyEmailMock.mockRejectedValue(
         createBetterAuthAPIError('VERIFICATION_EMAIL_NOT_ENABLED'),
       );
@@ -1128,8 +1128,44 @@ describe('CredentialAuthService', () => {
       expect(outcome).toEqual({
         ok: false,
         error: expect.objectContaining({
-          kind: 'internal',
-          code: 'INTERNAL_ERROR',
+          kind: 'dependency',
+          code: 'AUTH_METHOD_DISABLED',
+        }),
+      });
+    });
+
+    it('should map an unknown Better Auth 4xx error to AUTH_WRONG_PASSWORD', async () => {
+      verifyEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('UNKNOWN_BETTER_AUTH_ERROR'),
+      );
+
+      const outcome = await collectResult(
+        service.verifyEmail({ token: 'token' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          kind: 'authentication',
+          code: 'AUTH_WRONG_PASSWORD',
+        }),
+      });
+    });
+
+    it('should map an unknown Better Auth 5xx error to DEPENDENCY_UNAVAILABLE', async () => {
+      verifyEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('FAILED_TO_CREATE_SESSION', 500),
+      );
+
+      const outcome = await collectResult(
+        service.verifyEmail({ token: 'token' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
         }),
       });
     });

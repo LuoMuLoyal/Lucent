@@ -33,6 +33,7 @@ import { LogoutDto } from '../dto/credentials/logout.dto';
 import { RefreshDto } from '../dto/credentials/refresh.dto';
 
 import { RefreshResponseDto } from '../dto/shared/auth-responses.dto';
+import { SessionListItemDto } from '../dto/shared/session-list-item.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -49,6 +50,16 @@ export class SessionController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 204, description: 'Logged out.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Access token invalid or expired',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
+    type: ProblemDetailsDto,
+  })
   async logout(@CurrentUser() user: UserPayload, @Body() dto: LogoutDto) {
     await unwrapResult(this.authService.logout(user.sub, dto.refreshToken));
     return;
@@ -60,6 +71,17 @@ export class SessionController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List active sessions for the current user' })
+  @ApiResponse({ status: 200, type: [SessionListItemDto] })
+  @ApiResponse({
+    status: 401,
+    description: 'Access token invalid or expired',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
+    type: ProblemDetailsDto,
+  })
   async listSessions(@CurrentUser() user: UserPayload) {
     const sessions = await unwrapResult(
       this.authTokenService.listSessions(user.sub),
@@ -83,8 +105,18 @@ export class SessionController {
     type: ProblemDetailsDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'Access token invalid or expired',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 404,
     description: 'Session not found',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   async revokeSession(

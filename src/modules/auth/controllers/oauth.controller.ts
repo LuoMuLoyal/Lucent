@@ -77,6 +77,11 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'OAuth sign-in failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 409,
     description: 'OAuth identity is already linked to another account',
     type: ProblemDetailsDto,
@@ -89,7 +94,7 @@ export class OAuthController {
   })
   @ApiResponse({
     status: 503,
-    description: 'OAuth provider is unavailable',
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
@@ -144,6 +149,11 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'OAuth sign-in failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 409,
     description: 'OAuth identity is already linked to another account',
     type: ProblemDetailsDto,
@@ -156,7 +166,7 @@ export class OAuthController {
   })
   @ApiResponse({
     status: 503,
-    description: 'OAuth provider is unavailable',
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
@@ -189,6 +199,11 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'OAuth sign-in failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 409,
     description: 'OAuth identity is already linked to another account',
     type: ProblemDetailsDto,
@@ -201,7 +216,7 @@ export class OAuthController {
   })
   @ApiResponse({
     status: 503,
-    description: 'OAuth provider is unavailable',
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
@@ -247,6 +262,11 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'OAuth sign-in failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 409,
     description: 'OAuth identity is already linked to another account',
     type: ProblemDetailsDto,
@@ -259,7 +279,7 @@ export class OAuthController {
   })
   @ApiResponse({
     status: 503,
-    description: 'OAuth provider is unavailable',
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
@@ -305,6 +325,11 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'OAuth sign-in failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 409,
     description: 'OAuth identity is already linked to another account',
     type: ProblemDetailsDto,
@@ -317,7 +342,7 @@ export class OAuthController {
   })
   @ApiResponse({
     status: 503,
-    description: 'OAuth provider is unavailable',
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
@@ -363,6 +388,11 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'OAuth sign-in failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 409,
     description: 'OAuth identity is already linked to another account',
     type: ProblemDetailsDto,
@@ -375,7 +405,7 @@ export class OAuthController {
   })
   @ApiResponse({
     status: 503,
-    description: 'OAuth provider is unavailable',
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   @ApiResponse({

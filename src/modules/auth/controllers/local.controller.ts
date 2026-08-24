@@ -59,6 +59,11 @@ export class LocalController {
       'Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)',
     type: ProblemDetailsDto,
   })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
+    type: ProblemDetailsDto,
+  })
   async register(@Body() dto: RegisterDto, @Req() request: FastifyRequest) {
     const result = await unwrapResult(
       this.authService.register(dto, extractAuthRequestContext(request)),
@@ -86,6 +91,11 @@ export class LocalController {
   @ApiResponse({
     status: 429,
     description: 'Too many failed login attempts',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   async login(@Body() dto: LoginDto, @Req() request: FastifyRequest) {
@@ -132,6 +142,16 @@ export class LocalController {
     description: 'Verification token is invalid or has expired',
     type: ProblemDetailsDto,
   })
+  @ApiResponse({
+    status: 401,
+    description: 'Authentication failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
+    type: ProblemDetailsDto,
+  })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     await unwrapResult(this.authService.verifyEmail(dto));
     return { emailVerified: true };
@@ -144,9 +164,24 @@ export class LocalController {
   @ApiOperation({ summary: 'Forgot password' })
   @ApiResponse({ status: 200, type: ForgotPasswordResponseDto })
   @ApiResponse({
+    status: 400,
+    description: 'Validation failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Authentication failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
     status: 429,
     description:
       'Too many verification code requests (cooldown or client rate limit)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   async forgotPassword(
@@ -172,6 +207,16 @@ export class LocalController {
   @ApiResponse({
     status: 400,
     description: 'Reset token is invalid, expired, or the password is invalid',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Authentication failed',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
   async resetPassword(@Body() dto: ResetPasswordDto) {

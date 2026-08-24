@@ -66,7 +66,7 @@ graph TD
     subgraph "Internal Services"
         llm["llm-runtime<br>(LLM model factory)<br>src/llm-runtime/"]
         user["user<br>(data layer)"]
-        security["security-pin<br>(PIN + elevation tokens)"]
+        security["password-reauth<br>(account password re-entry)"]
         testing["testing-support<br>(test only)"]
     end
 
@@ -517,12 +517,11 @@ factory do not open external connections while the application graph is inspecte
 
 ## Security Elevation
 
-Sensitive routes are protected by `SecurityElevationGuard` plus the `@RequireSecurityElevation()`
-decorator. Elevation is granted by a short-lived signed JWT minted after verifying the user's
-6-digit Security PIN. The guard reads the token from the `x-security-elevation` header as `Bearer
-<token>` and stores the decoded payload on the request as `securityElevation`. Any PIN
-enable/change/disable operation increments the user's `securityElevationVersion`, invalidating
-prior elevation tokens.
+Sensitive routes require the user to re-enter their account password on each request rather
+than maintaining a separate elevation token or secondary session. The password is verified by
+`PasswordReauthService` against the Better Auth credential account before the protected action
+proceeds; OAuth-only users without a local password receive `AUTH_PASSWORD_NOT_SET` so the client
+can guide them to set one first.
 
 ## Audit Logging
 

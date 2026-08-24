@@ -406,12 +406,32 @@ export class AuthOAuthFacadeService {
         case 'INVALID_TOKEN':
         case 'OAUTH_ACCOUNT_NOT_LINKED':
         case 'INVALID_OAUTH_RESPONSE':
+        case 'EMAIL_NOT_VERIFIED':
+        case 'OAUTH_PROVIDER_ERROR':
+        case 'SOCIAL_PROVIDER_ERROR':
+        case 'INVALID_OAUTH_STATE':
+        case 'OAUTH_ACCESS_DENIED':
           return createDomainFailure({
             kind: 'authentication',
             code: 'AUTH_OAUTH_FAILED',
           });
-        case 'EMAIL_NOT_VERIFIED':
-        case 'OAUTH_PROVIDER_ERROR':
+        // Configuration/disabled errors: the OAuth method is unavailable.
+        case 'SOCIAL_SIGN_IN_DISABLED':
+        case 'PROVIDER_NOT_FOUND':
+          return createDomainFailure({
+            kind: 'dependency',
+            code: 'AUTH_METHOD_DISABLED',
+          });
+        default:
+          // Any other Better Auth API error is treated as an OAuth failure
+          // rather than leaking as a raw 500.  Better Auth 5xx responses are
+          // considered dependency failures.
+          if (error.statusCode >= 500) {
+            return createDomainFailure({
+              kind: 'dependency',
+              code: 'DEPENDENCY_UNAVAILABLE',
+            });
+          }
           return createDomainFailure({
             kind: 'authentication',
             code: 'AUTH_OAUTH_FAILED',

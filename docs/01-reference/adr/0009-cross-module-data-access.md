@@ -38,9 +38,10 @@
 | 药品知识库表（`CnMedicine*`、`Drugbank*`、`MedicineSafetyTip`）      | medicines           |
 
 **User 表字段分组归属**：核心身份字段（email、nickname、avatar、status
-等）归 user 模块；`securityPinEnabled` / `securityPinHash` / `securityPinChangedAt` /
-`securityElevationVersion` 归 security-pin 模块，security-pin 对这四列的读写视为域内
-访问（pin.service 现状保留）。
+等）归 user 模块。`securityPinEnabled` / `securityPinHash` / `securityPinChangedAt` /
+`securityElevationVersion` 曾归 security-pin 模块；该 Security PIN / elevation 机制已移除，
+敏感操作改为要求用户重新输入账户密码进行再认证（password re-authentication），相关字段
+已从 `User` 模型删除。
 
 ### 读规则
 
@@ -60,7 +61,6 @@ update/delete`。具名例外：
 
 - `testing-support` 夹具（仅 `NODE_ENV=test` 注册 + 共享密钥守卫，跨表重置测试数据）
 - AdminJS（整个 client 交给 `@sergiyiva/adminjs-prisma`，由资源配置受控）
-- security-pin 写 User 表的 `securityPin*` 字段组（见字段分组归属）
 - `common/llm/base-llm-summary.service.ts` 读 `userSetting`（现状保留，随
   `LlmCommonModule` 收敛时一并处理）（✅ `LlmCommonModule` 已于 2026-07-17 落地）
 

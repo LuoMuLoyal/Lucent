@@ -1,7 +1,0 @@
-{
-  "not_enabled": "Security PIN is not enabled",
-  "invalid_pin": "Security PIN is invalid",
-  "elevation_token_invalid": "Security elevation token is invalid",
-  "elevation_token_stale": "Security elevation has expired, please verify your PIN again",
-  "invalid_format": "Security PIN must be a 6-digit number"
-}

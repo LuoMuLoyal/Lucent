@@ -63,6 +63,12 @@ const definitions = {
     detailKey: 'common.problem_auth_oauth_failed_detail',
     retryable: false,
   },
+  AUTH_METHOD_DISABLED: {
+    status: 503,
+    titleKey: 'common.problem_auth_method_disabled_title',
+    detailKey: 'common.problem_auth_method_disabled_detail',
+    retryable: true,
+  },
   AUTH_SESSION_NOT_FOUND: {
     status: 404,
     titleKey: 'common.problem_auth_session_not_found_title',
@@ -79,18 +85,6 @@ const definitions = {
     status: 403,
     titleKey: 'common.problem_forbidden_title',
     detailKey: 'common.problem_forbidden_detail',
-    retryable: false,
-  },
-  AUTH_ELEVATION_REQUIRED: {
-    status: 403,
-    titleKey: 'common.problem_auth_elevation_required_title',
-    detailKey: 'common.problem_auth_elevation_required_detail',
-    retryable: false,
-  },
-  AUTH_ELEVATION_TOKEN_INVALID: {
-    status: 403,
-    titleKey: 'common.problem_auth_elevation_token_invalid_title',
-    detailKey: 'common.problem_auth_elevation_token_invalid_detail',
     retryable: false,
   },
   VALIDATION_FAILED: {

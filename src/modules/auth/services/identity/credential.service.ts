@@ -375,8 +375,9 @@ export class CredentialAuthService {
 
   /**
    * Wraps a Better Auth `auth.api.*` promise into a `ResultAsync` and maps
-   * documented business errors to Lucent `DomainFailure`s.  Unknown / internal
-   * Better Auth errors are re-thrown.
+   * every Better Auth API error to a Lucent `DomainFailure`.  Non-Better Auth
+   * exceptions (e.g. DB/network) are re-thrown so they keep their dependency
+   * semantics.
    */
   private fromBetterAuth<T>(
     promise: Promise<T>,
@@ -393,8 +394,11 @@ export class CredentialAuthService {
    * Maps Better Auth API error codes to Lucent Problem Details codes.
    * Authentication failures are folded into the generic anti-enumeration code.
    *
-   * Any code not explicitly mapped below is re-thrown as an internal/dependency
-   * error and must never be leaked to the client as raw Better Auth output.
+   * Every Better Auth API error is mapped to a business DomainFailure:
+   * known codes above are handled explicitly, unknown 4xx responses become
+   * `AUTH_WRONG_PASSWORD` for anti-enumeration, and unknown 5xx responses become
+   * `DEPENDENCY_UNAVAILABLE`. Only non-Better-Auth exceptions (DB/network/etc.)
+   * are re-thrown so they keep their real dependency/internal semantics.
    */
   private mapBetterAuthError(error: BetterAuthAPIError): DomainFailure {
     const code = error.body?.code;
@@ -438,22 +442,28 @@ export class CredentialAuthService {
           kind: 'validation',
           code: 'VALIDATION_FAILED',
         });
-      // Configuration/disabled errors: map to a generic internal failure so
-      // they never surface as raw Better Auth 500s to clients.
+      // Configuration/disabled errors: the method is unavailable, not an
+      // internal crash.  Map to a non-500 dependency failure.
       case 'EMAIL_PASSWORD_SIGN_UP_DISABLED':
       case 'EMAIL_PASSWORD_DISABLED':
       case 'RESET_PASSWORD_DISABLED':
       case 'VERIFICATION_EMAIL_NOT_ENABLED':
         return createDomainFailure({
-          kind: 'internal',
-          code: 'INTERNAL_ERROR',
+          kind: 'dependency',
+          code: 'AUTH_METHOD_DISABLED',
         });
       default:
-        // Internal/dependency failures (e.g. FAILED_TO_CREATE_USER,
-        // FAILED_TO_UPDATE_USER, FAILED_TO_CREATE_SESSION, etc.) are
-        // deliberately re-thrown, not converted to client-facing failures.
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw error;
+        // Any other Better Auth API error is treated as an auth-specific
+        // failure rather than leaking as a raw 500.  Better Auth 5xx responses
+        // are considered dependency failures; everything else is folded into
+        // the anti-enumeration bucket.
+        if (error.statusCode >= 500) {
+          return createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+          });
+        }
+        return this.credentialsInvalidFailure();
     }
   }
 

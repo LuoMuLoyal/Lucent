@@ -188,7 +188,7 @@ interface UpdateUserSettingsDto {
 ```
 
 Partial update; omitted fields are not changed. Returns the full `UserSettingsDto`
-after the update. Successful settings and Security PIN responses are direct resources;
+after the update. Successful settings responses are direct resources;
 they do not include a generic `{ code, message, data }` envelope. Empty successful
 operations use `204 No Content` where applicable.
 
@@ -207,72 +207,3 @@ assistantContext.dailyRecords
 assistantContext.sleepRecords
 assistantContext.currentMedicines
 ```
-
-### 2. Security PIN (deprecated, replaced by password re-authentication)
-
-> Sensitive account and data-export operations now require the user's current password
-> instead of a Security PIN elevation token. The endpoints below remain in Task 8 but are
-> scheduled for removal in Task 9.
-
-**Endpoints:**
-
-```text
-POST /api/v1/user/settings/security-pin
-POST /api/v1/user/settings/security-pin/verify
-POST /api/v1/user/settings/security-pin/change
-POST /api/v1/user/settings/security-pin/disable
-```
-
-All require authentication. Change/disable additionally require the user's current Security
-PIN. If no PIN is set, `security-pin` (enable) only requires the desired new PIN.
-
-**Errors (Problem Details, `application/problem+json`):**
-
-- `400 VALIDATION_FAILED` — PIN is not a 6-digit number.
-- `403 AUTH_ELEVATION_REQUIRED` — the Security PIN is not enabled, the supplied PIN is wrong,
-  or an elevation token is stale because the PIN changed after it was issued (re-verification required).
-  Wrong-PIN and not-enabled responses are deliberately indistinguishable (no PIN-state enumeration).
-- `403 AUTH_ELEVATION_TOKEN_INVALID` — elevation token is expired, has an invalid signature, or its
-  subject/scope does not match (guard boundary).
-- `404 RESOURCE_NOT_FOUND` — the authenticated account does not exist.
-
-**Request bodies:**
-
-```typescript
-interface EnableSecurityPinDto {
-  pin: string; // 6-digit numeric
-}
-
-interface VerifySecurityPinDto {
-  pin: string; // 6-digit numeric
-}
-
-interface ChangeSecurityPinDto {
-  oldPin: string; // current 6-digit PIN
-  newPin: string; // desired 6-digit PIN
-}
-
-interface DisableSecurityPinDto {
-  pin: string; // current 6-digit PIN
-}
-```
-
-**Verify response:** `SecurityPinElevationResponseDto`
-
-```typescript
-interface SecurityPinElevationResponseDto {
-  elevationToken: string; // short-lived signed JWT
-  expiresAt: string; // ISO-8601, 15 minutes after issuance
-}
-```
-
-The elevation token proves a recent PIN verification. Clients must send it as `Bearer
-<elevationToken>` in the `x-security-elevation` header when calling protected sensitive routes.
-
-**Current behavior:**
-
-- PINs are hashed with argon2id on the server; Lucent never stores the raw PIN.
-- Enabling, changing, or disabling a PIN bumps the user's elevation version, invalidating previously
-  issued elevation tokens.
-- A disabled PIN removes the hash; re-enabling requires setting a new PIN from scratch.
-- User queries in `UserService` and `SecurityPinService` use `prisma.nonDeleted` API (soft-delete-aware).

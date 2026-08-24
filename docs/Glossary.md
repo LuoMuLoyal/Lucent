@@ -9,7 +9,8 @@
 - **Prisma** — Lucent ORM 与 schema 工具。参见 [[01-reference/architecture]]。
 - **ADR** — Architecture Decision Record，见 [[01-reference/adr/README]]。
 - **OpenAPI** — 后端 API 合同，导出为 `openapi.json`。
-- **Security PIN** — 6 位应用内安全码，替代旧 TOTP 2FA。
+- **Security PIN** — 已移除；敏感操作改为重新输入账户密码进行再认证（password
+  re-authentication），替代原来的 6 位应用内安全码/elevation token 机制。
 - **AI Pipeline** — Lucent 三层 AI 架构：Context / Generation / Policy & Persistence。参见
   [[01-reference/architecture]]。
 - **Meal Analysis** — 餐食图片异步写入时分析管道。

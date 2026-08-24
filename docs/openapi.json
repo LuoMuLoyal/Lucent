@@ -2166,6 +2166,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "summary": "User registration",
@@ -2219,6 +2229,16 @@
           },
           "429": {
             "description": "Too many failed login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2306,6 +2326,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Verify email",
@@ -2337,8 +2377,38 @@
               }
             }
           },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "429": {
             "description": "Too many verification code requests (cooldown or client rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2372,6 +2442,26 @@
           },
           "400": {
             "description": "Reset token is invalid, expired, or the password is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2460,6 +2550,16 @@
               }
             }
           },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "OAuth identity is already linked to another account",
             "content": {
@@ -2481,7 +2581,7 @@
             }
           },
           "503": {
-            "description": "OAuth provider is unavailable",
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2580,6 +2680,16 @@
               }
             }
           },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "OAuth identity is already linked to another account",
             "content": {
@@ -2601,7 +2711,7 @@
             }
           },
           "503": {
-            "description": "OAuth provider is unavailable",
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2660,6 +2770,16 @@
               }
             }
           },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "OAuth identity is already linked to another account",
             "content": {
@@ -2681,7 +2801,7 @@
             }
           },
           "503": {
-            "description": "OAuth provider is unavailable",
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2780,6 +2900,16 @@
               }
             }
           },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "OAuth identity is already linked to another account",
             "content": {
@@ -2801,7 +2931,7 @@
             }
           },
           "503": {
-            "description": "OAuth provider is unavailable",
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2900,6 +3030,16 @@
               }
             }
           },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "OAuth identity is already linked to another account",
             "content": {
@@ -2921,7 +3061,7 @@
             }
           },
           "503": {
-            "description": "OAuth provider is unavailable",
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3020,6 +3160,16 @@
               }
             }
           },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "OAuth identity is already linked to another account",
             "content": {
@@ -3041,7 +3191,7 @@
             }
           },
           "503": {
-            "description": "OAuth provider is unavailable",
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3082,6 +3232,26 @@
         "responses": {
           "204": {
             "description": "Logged out."
+          },
+          "401": {
+            "description": "Access token invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3099,7 +3269,37 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionListItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3128,6 +3328,16 @@
           "204": {
             "description": "Session revoked."
           },
+          "401": {
+            "description": "Access token invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Session belongs to another user",
             "content": {
@@ -3140,6 +3350,16 @@
           },
           "404": {
             "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -10189,6 +10409,57 @@
           }
         },
         "required": ["refreshToken"]
+      },
+      "SessionListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Session id"
+          },
+          "deviceType": {
+            "type": "string",
+            "description": "Device type",
+            "nullable": true
+          },
+          "deviceName": {
+            "type": "string",
+            "description": "Device name",
+            "nullable": true
+          },
+          "platform": {
+            "type": "string",
+            "description": "Platform",
+            "nullable": true
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "description": "Last used at (ISO-8601)",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO-8601)"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Expires at (ISO-8601)"
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether this is the current session"
+          }
+        },
+        "required": [
+          "id",
+          "deviceType",
+          "deviceName",
+          "platform",
+          "lastUsedAt",
+          "createdAt",
+          "expiresAt",
+          "isCurrent"
+        ]
       },
       "RefreshDto": {
         "type": "object",
