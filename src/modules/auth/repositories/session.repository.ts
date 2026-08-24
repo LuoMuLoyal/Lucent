@@ -69,10 +69,12 @@ export abstract class AuthSessionRepositoryPort {
   abstract deleteSessionsByUserIdAndHash(
     userId: string,
     hash: string,
+    tx?: Prisma.TransactionClient,
   ): ResultAsync<void, DomainFailure>;
 
   abstract deleteSessionsByUserId(
     userId: string,
+    tx?: Prisma.TransactionClient,
   ): ResultAsync<void, DomainFailure>;
 
   abstract findSessionById(
@@ -147,17 +149,23 @@ export class AuthSessionRepository implements AuthSessionRepositoryPort {
   deleteSessionsByUserIdAndHash(
     userId: string,
     hash: string,
+    tx?: Prisma.TransactionClient,
   ): ResultAsync<void, DomainFailure> {
+    const client = tx ?? this.prisma;
     return fromPrismaResult(
-      this.prisma.userSession.deleteMany({
+      client.userSession.deleteMany({
         where: { userId, refreshTokenHash: hash },
       }),
     ).map(() => undefined);
   }
 
-  deleteSessionsByUserId(userId: string): ResultAsync<void, DomainFailure> {
+  deleteSessionsByUserId(
+    userId: string,
+    tx?: Prisma.TransactionClient,
+  ): ResultAsync<void, DomainFailure> {
+    const client = tx ?? this.prisma;
     return fromPrismaResult(
-      this.prisma.userSession.deleteMany({ where: { userId } }),
+      client.userSession.deleteMany({ where: { userId } }),
     ).map(() => undefined);
   }
 

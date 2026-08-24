@@ -121,7 +121,11 @@ export class CredentialAuthService {
           .andThen((updatedUser) =>
             this.authTokenService
               .generateTokenPair(updatedUser, context)
-              .map((tokens) => ({ user: updatedUser, ...tokens })),
+              .andThen((tokens) =>
+                this.betterAuthAdapter
+                  .revokeBetterAuthSessions(updatedUser.id)
+                  .map(() => ({ user: updatedUser, ...tokens })),
+              ),
           );
       });
   }
@@ -433,18 +437,16 @@ export class CredentialAuthService {
     }
 
     if (hasPassword) {
-      // Better Auth sign-in already performs constant-time user/account
-      // lookups and password verification.  A wrong password maps to the
-      // generic failure and counts against the rate limit.
-      return this.fromBetterAuth(
-        this.betterAuthAdapter.auth.api.signInEmail({
-          body: { email, password: dto.password as string },
-        }),
-      )
-        .map(() => user)
-        .orElse((failure) =>
-          this.recordLoginFailure(email).andThen(() => errAsync(failure)),
-        );
+      // Verify directly against the Better Auth credential account so this
+      // path never creates a Better Auth session.  Both "no credential
+      // account" and "wrong password" are folded into the same generic
+      // anti-enumeration failure and counted against the rate limit.
+      return this.betterAuthAdapter
+        .verifyPasswordForUser(user.id, dto.password as string)
+        .andThen((valid) =>
+          valid ? okAsync(user) : errAsync(this.credentialsInvalidFailure()),
+        )
+        .orElse(() => this.recordLoginFailure(email));
     }
 
     return this.verificationCodeService

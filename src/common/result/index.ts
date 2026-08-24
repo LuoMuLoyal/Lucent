@@ -9,6 +9,7 @@ export {
 } from 'neverthrow';
 
 export { createDomainFailure, isDomainFailure } from './domain-failure';
+export { DomainFailureException } from './domain-failure.exception';
 export type {
   CreateDomainFailureInput,
   DomainFailure,

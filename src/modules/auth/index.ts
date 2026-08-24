@@ -2,6 +2,7 @@ export type { OAuthProfile } from './types/oauth.types';
 export type { UserPayload } from './services/token.service';
 export { ARGON2_OPTIONS } from './config/argon2-options';
 export { AppleOAuthProvider } from './providers/apple-oauth.provider';
+export { AuthBetterAuthAdapter } from './adapters/better-auth.adapter';
 export { AuthService } from './services/auth.service';
 export { ChangeEmailDto } from './dto/password/change-email.dto';
 export { ChangePasswordDto } from './dto/password/change-password.dto';

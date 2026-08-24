@@ -12,11 +12,13 @@ import { ConfigKey } from '../../../config/env/config-keys.enum';
 import { now } from '../../../common';
 import {
   createDomainFailure,
+  DomainFailureException,
   errAsync,
   fromPromise,
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
+import { PrismaService } from '../../../prisma';
 import type {
   AuthRequestContext,
   TokenPair,
@@ -26,6 +28,7 @@ import {
   AuthSessionRepositoryPort,
   type SessionContextData,
 } from '../repositories/session.repository';
+import { AuthBetterAuthAdapter } from '../adapters/better-auth.adapter.js';
 
 export type {
   AuthRequestContext,
@@ -50,6 +53,8 @@ export class AuthTokenService {
     private readonly sessionRepository: AuthSessionRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
+    private readonly prisma: PrismaService,
   ) {}
 
   private get jwtConfig(): JwtConfigShape {
@@ -188,14 +193,59 @@ export class AuthTokenService {
     userId: string,
     refreshToken: string,
   ): ResultAsync<void, DomainFailure> {
-    return this.sessionRepository.deleteSessionsByUserIdAndHash(
-      userId,
-      this.hashRefreshToken(refreshToken),
-    );
+    return fromPromise(
+      this.prisma.$transaction(async (tx) => {
+        const lucentResult =
+          await this.sessionRepository.deleteSessionsByUserIdAndHash(
+            userId,
+            this.hashRefreshToken(refreshToken),
+            tx,
+          );
+
+        if (lucentResult.isErr()) {
+          throw new DomainFailureException(lucentResult.error);
+        }
+
+        const betterAuthResult =
+          await this.betterAuthAdapter.revokeBetterAuthSessions(userId, tx);
+
+        if (betterAuthResult.isErr()) {
+          throw new DomainFailureException(betterAuthResult.error);
+        }
+      }),
+      (error) => {
+        if (error instanceof DomainFailureException) {
+          return error.failure;
+        }
+        throw error;
+      },
+    ).map(() => undefined);
   }
 
   revokeAll(userId: string): ResultAsync<void, DomainFailure> {
-    return this.sessionRepository.deleteSessionsByUserId(userId);
+    return fromPromise(
+      this.prisma.$transaction(async (tx) => {
+        const lucentResult =
+          await this.sessionRepository.deleteSessionsByUserId(userId, tx);
+
+        if (lucentResult.isErr()) {
+          throw new DomainFailureException(lucentResult.error);
+        }
+
+        const betterAuthResult =
+          await this.betterAuthAdapter.revokeBetterAuthSessions(userId, tx);
+
+        if (betterAuthResult.isErr()) {
+          throw new DomainFailureException(betterAuthResult.error);
+        }
+      }),
+      (error) => {
+        if (error instanceof DomainFailureException) {
+          return error.failure;
+        }
+        throw error;
+      },
+    ).map(() => undefined);
   }
 
   revokeById(
@@ -214,7 +264,8 @@ export class AuthTokenService {
           );
         }
         return this.sessionRepository.revokeSessionById(sessionId);
-      });
+      })
+      .andThen(() => this.betterAuthAdapter.revokeBetterAuthSessions(userId));
   }
 
   listSessions(userId: string): ResultAsync<

@@ -4,9 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import type { Prisma } from '#generated/prisma/client';
 import { AuthTokenService } from './token.service';
 import { normalizeEmail } from '../../../common';
+import { PrismaService } from '../../../prisma';
 import { AuthSessionRepositoryPort } from '../repositories/session.repository';
+import { AuthBetterAuthAdapter } from '../adapters/better-auth.adapter';
 import {
   createDomainFailure,
   errAsync,
@@ -50,6 +53,10 @@ function collectResult<T>(
 describe('AuthTokenService', () => {
   let service: AuthTokenService;
   let sessionRepo: vi.Mocked<AuthSessionRepositoryPort>;
+  let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
+  let prisma: { $transaction: vi.Mock };
+
+  const mockTx = {} as unknown as Prisma.TransactionClient;
 
   const mockUser: { id: string; email: string; status: string } = {
     id: 'user-1',
@@ -59,6 +66,18 @@ describe('AuthTokenService', () => {
 
   beforeEach(async () => {
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+    prisma = {
+      $transaction: vi
+        .fn()
+        .mockImplementation((fn: (tx: Prisma.TransactionClient) => unknown) =>
+          fn(mockTx),
+        ),
+    };
+
+    const betterAuthAdapterMock = {
+      revokeBetterAuthSessions: vi.fn().mockReturnValue(okAsync(undefined)),
+    };
 
     const sessionRepoMock = {
       createSession: vi.fn().mockResolvedValue(undefined),
@@ -100,11 +119,20 @@ describe('AuthTokenService', () => {
             }),
           },
         },
+        {
+          provide: AuthBetterAuthAdapter,
+          useValue: betterAuthAdapterMock,
+        },
+        {
+          provide: PrismaService,
+          useValue: prisma,
+        },
       ],
     }).compile();
 
     service = module.get(AuthTokenService);
     sessionRepo = module.get(AuthSessionRepositoryPort);
+    betterAuthAdapter = module.get(AuthBetterAuthAdapter);
   });
 
   afterEach(() => {
@@ -360,15 +388,21 @@ describe('AuthTokenService', () => {
   });
 
   describe('revoke', () => {
-    it('should delete the session by refresh token hash', async () => {
+    it('should delete the session by refresh token hash and revoke Better Auth sessions', async () => {
       const outcome = await collectResult(
         service.revoke('user-1', 'some-token'),
       );
 
       expect(outcome).toEqual({ ok: true, value: undefined });
+      expect(prisma.$transaction).toHaveBeenCalled();
       expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
         'user-1',
         hash('some-token'),
+        mockTx,
+      );
+      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
+        'user-1',
+        mockTx,
       );
     });
 
@@ -379,21 +413,62 @@ describe('AuthTokenService', () => {
       expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
         'user-1',
         expectedHash,
+        mockTx,
       );
+    });
+
+    it('should not revoke Better Auth sessions when Lucent session deletion fails', async () => {
+      sessionRepo.deleteSessionsByUserIdAndHash.mockReturnValueOnce(
+        errAsync(refreshTokenInvalid()),
+      );
+
+      const outcome = await collectResult(
+        service.revoke('user-1', 'some-token'),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_REFRESH_TOKEN_INVALID' }),
+      });
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(betterAuthAdapter.revokeBetterAuthSessions).not.toHaveBeenCalled();
     });
   });
 
   describe('revokeAll', () => {
-    it('should delete all sessions for the user', async () => {
+    it('should delete all sessions for the user and revoke Better Auth sessions', async () => {
       const outcome = await collectResult(service.revokeAll('user-1'));
 
       expect(outcome).toEqual({ ok: true, value: undefined });
-      expect(sessionRepo.deleteSessionsByUserId).toHaveBeenCalledWith('user-1');
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(sessionRepo.deleteSessionsByUserId).toHaveBeenCalledWith(
+        'user-1',
+        mockTx,
+      );
+      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
+        'user-1',
+        mockTx,
+      );
+    });
+
+    it('should not revoke Better Auth sessions when Lucent session deletion fails', async () => {
+      sessionRepo.deleteSessionsByUserId.mockReturnValueOnce(
+        errAsync(refreshTokenInvalid()),
+      );
+
+      const outcome = await collectResult(service.revokeAll('user-1'));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_REFRESH_TOKEN_INVALID' }),
+      });
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(betterAuthAdapter.revokeBetterAuthSessions).not.toHaveBeenCalled();
     });
   });
 
   describe('revokeById', () => {
-    it('should revoke a session by its ID', async () => {
+    it('should revoke a session by its ID and clean up Better Auth sessions', async () => {
       sessionRepo.findSessionById.mockReturnValueOnce(
         okAsync({
           id: 'session-1',
@@ -407,6 +482,9 @@ describe('AuthTokenService', () => {
 
       expect(outcome).toEqual({ ok: true, value: undefined });
       expect(sessionRepo.revokeSessionById).toHaveBeenCalledWith('session-1');
+      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
+        'user-1',
+      );
     });
 
     it('should map a missing session to AUTH_SESSION_NOT_FOUND', async () => {

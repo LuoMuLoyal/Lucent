@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { betterAuth, type Auth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import * as argon2 from 'argon2';
+import type { Prisma } from '#generated/prisma/client';
 
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvKey } from '../../../config/env/env-keys.enum.js';
@@ -204,6 +205,30 @@ export class AuthBetterAuthAdapter {
         },
       );
     });
+  }
+
+  /**
+   * Revokes all Better Auth sessions for a user.  This is a safety belt: any
+   * flow that creates a Better Auth session as an internal side effect (or that
+   * should invalidate existing ones) calls this so the Better Auth `Session`
+   * row can never become a hidden second authentication surface for Luminous.
+   *
+   * An optional transaction client keeps the cleanup atomic with the caller's
+   * Lucent `UserSession` deletion.
+   */
+  revokeBetterAuthSessions(
+    userId: string,
+    tx?: Prisma.TransactionClient,
+  ): ResultAsync<void, DomainFailure> {
+    const client = tx ?? this.prisma;
+    return fromPromise(
+      client.session.deleteMany({
+        where: { userId },
+      }),
+      (error) => {
+        throw error;
+      },
+    ).map(() => undefined);
   }
 
   private findCredentialAccount(
