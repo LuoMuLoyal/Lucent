@@ -4,9 +4,10 @@
 - **Date**: 2026-08-01
 - **Deciders**: LuoMuLoyal
 - **Supersedes**: ADR-0006 中「明确推迟 OpenTelemetry / 分布式追踪」的决策
-- **Superseded in part**: trace 后端（Jaeger all-in-one）和 BullMQ worker span（原为"非目标"）
-  已被 [ADR-0016](0016-observability-victoria-migration.md) 取代（VictoriaTraces 单机 +
-  bullmq-otel 补全）；OTel SDK、门控、traceparent/traceresponse 协议、requestId 退役继续有效。
+- **Superseded in part**: BullMQ worker span（原为"非目标"）已被
+  [ADR-0016](0016-observability-victoria-migration.md) 取代（bullmq-otel 补全）；
+  trace 后端策略修正为「生产不部署 trace 后端，开发维持 Jaeger all-in-one」（见 ADR-0016 Decision 3）；
+  OTel SDK、门控、traceparent/traceresponse 协议、requestId 退役继续有效。
 
 ## Context
 
@@ -110,4 +111,6 @@ ADR-0006 预设的触发条件「AI 管道延迟调试需要 span 级可见性�
 - 指标支柱：prom-client + Prometheus/Grafana 策略（ADR-0006）继续有效
 - 日志框架：Winston（ADR-0007）不变，仅格式层新增 trace 字段注入
 - 测试：无 `OTEL_ENABLED=true` 时 SDK 不启动，行为与之前一致
-- 非目标：BullMQ worker span、`generateStream` 手动 span、App 端错误上报页展示 traceId
+- BullMQ worker span：已被 ADR-0016 补全（bullmq-otel），不再是非目标
+- 非目标：`generateStream` 手动 span、App 端错误上报页展示 traceId
+- 生产 trace 后端：不部署（ADR-0016 Decision 3）；OTel SDK 仍启动以保证日志 `trace_id` 注入

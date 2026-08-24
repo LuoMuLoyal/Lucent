@@ -5,8 +5,9 @@
 - **Deciders**: LuoMuLoyal
 - **Superseded in part**: 「明确推迟 OpenTelemetry / 分布式追踪」章节已被
   [ADR-0010](0010-otel-tracing.md) 取代（AI 管道 span 级调试触发条件已满足）；
-  Phase 1 监控栈（Prometheus + Grafana）已被
-  [ADR-0016](0016-observability-victoria-migration.md) 取代（VictoriaMetrics 单机）；
+  Phase 1 监控栈中 Prometheus 被
+  [ADR-0016](0016-observability-victoria-migration.md) 取代（VictoriaMetrics 单机），
+  **Grafana 保留**（datasource URL 改指向 VM）；
   prom-client 指标策略继续有效。
 
 ## Context
