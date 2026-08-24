@@ -1,6 +1,7 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from './env/config-keys.enum';
 import { EnvKey } from './env/env-keys.enum';
+import { loadYamlConfig } from './yaml/yaml-loader';
 
 function parseCorsOrigin(raw: string): boolean | string[] {
   const value = raw.trim();
@@ -19,17 +20,25 @@ function parseCorsOrigin(raw: string): boolean | string[] {
 }
 
 export const appConfig = registerAs(ConfigKey.App, () => {
+  const yaml = loadYamlConfig();
   const env = process.env[EnvKey.NODE_ENV] ?? 'development';
   const isProduction = env === 'production';
+
+  // Sensitive values (metrics credentials) stay in .env / process.env.
+  // Non-sensitive runtime params come from YAML, overridable by env vars.
+  const envHost = process.env[EnvKey.HOST];
+  const envPort = process.env[EnvKey.PORT];
+  const envCorsOrigin = process.env[EnvKey.CORS_ORIGIN];
+  const envPublicBaseUrl = process.env[EnvKey.PUBLIC_BASE_URL];
+
   return {
     env,
-    host: process.env[EnvKey.HOST] ?? (isProduction ? '127.0.0.1' : '0.0.0.0'),
-    port: Number(process.env[EnvKey.PORT] ?? 3000),
-    corsOrigin: parseCorsOrigin(process.env[EnvKey.CORS_ORIGIN] ?? ''),
+    host: envHost ?? (isProduction ? '127.0.0.1' : yaml.app.host),
+    port: Number(envPort ?? yaml.app.port),
+    corsOrigin: parseCorsOrigin(envCorsOrigin ?? yaml.app.corsOrigin),
     trustProxy: process.env[EnvKey.TRUST_PROXY] === 'true',
     metricsUser: process.env[EnvKey.METRICS_USER]?.trim() || undefined,
     metricsPassword: process.env[EnvKey.METRICS_PASSWORD]?.trim() || undefined,
-    publicBaseUrl:
-      process.env[EnvKey.PUBLIC_BASE_URL]?.trim() || 'http://localhost:3000',
+    publicBaseUrl: envPublicBaseUrl?.trim() || yaml.app.publicBaseUrl,
   };
 });

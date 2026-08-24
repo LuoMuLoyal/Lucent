@@ -1,38 +1,9 @@
 import { z } from 'zod';
-import {
-  DEFAULT_COS_MAX_UPLOAD_BYTES,
-  DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-  DEFAULT_EMBEDDING_DIMENSION,
-  DEFAULT_FUZZY_ACCEPT_SCORE,
-  DEFAULT_FUZZY_MIN_LEAD,
-  DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
-  DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
-  DEFAULT_SLOW_QUERY_THRESHOLD_MS,
-  DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS,
-  DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS,
-  DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT,
-  DEFAULT_MAIL_QUEUE_FAIL_AGE_SECONDS,
-  DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT,
-  DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS,
-  DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY,
-  DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G,
-  DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G,
-  DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G,
-  DEFAULT_MEAL_PORTION_GRAMS,
-  DEFAULT_MEAL_SMALL_PORTION_GRAMS,
-  DEFAULT_OAUTH_STATE_TTL_MS,
-  DEFAULT_VERIFICATION_CODE_LENGTH,
-  DEFAULT_VERIFICATION_CODE_TTL_MS,
-  DEFAULT_VERIFICATION_COOLDOWN_MS,
-  DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
-  DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
-  MAX_COS_MAX_UPLOAD_BYTES,
-  MAX_COS_UPLOAD_EXPIRY_SECONDS,
-  MAX_EMBEDDING_DIMENSION,
-} from '../constants';
 import { EnvKey } from './env-keys.enum';
 
-/** Supported runtime environments. */
+/**
+ * Supported runtime environments.
+ */
 export const NodeEnvironment = {
   Development: 'development',
   Test: 'test',
@@ -77,8 +48,17 @@ const httpUrl = z
   .optional();
 
 // ── Schema ──────────────────────────────────────────────────────────
+//
+// Only sensitive values, start selectors, and values that must be in
+// process.env are validated here. Non-sensitive runtime configuration
+// is validated by the YAML loader's Zod schema (yaml-loader.ts).
+//
+// Keys that have been migrated to YAML but might still appear in .env
+// during the compatibility period are allowed as optional strings —
+// they are ignored by the application and will be removed in Phase 3.
 
 const envSchema = z.object({
+  // ── Start selectors (read before Nest/ConfigService) ────────────
   [EnvKey.NODE_ENV]: z
     .enum([
       NodeEnvironment.Development,
@@ -86,32 +66,30 @@ const envSchema = z.object({
       NodeEnvironment.Production,
     ])
     .default(NodeEnvironment.Development),
-
-  // HOST is resolved in validateEnvironment based on NODE_ENV.
-  [EnvKey.HOST]: z.string().optional(),
-
-  [EnvKey.PORT]: z.coerce.number().int().min(1).default(3000),
-  [EnvKey.CORS_ORIGIN]: z.string().default(''),
   [EnvKey.TRUST_PROXY]: z.enum(['true', 'false']).optional(),
+  [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: z.enum(['true', 'false']).optional(),
+
+  // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,
-  [EnvKey.PUBLIC_BASE_URL]: optionalUri,
   [EnvKey.REDIS_URL]: redisUrl,
 
+  // ── JWT secrets (sensitive, in .env) ─────────────────────────────
   [EnvKey.JWT_ACCESS_SECRET]: z.string().min(32),
   [EnvKey.JWT_REFRESH_SECRET]: z.string().min(32),
-  [EnvKey.JWT_ACCESS_TTL]: optionalString,
-  [EnvKey.JWT_REFRESH_TTL]: optionalString,
   [EnvKey.JWT_ISSUER]: optionalString,
   [EnvKey.JWT_AUDIENCE]: optionalString,
 
+  // ── Better Auth (sensitive, in .env) ─────────────────────────────
   [EnvKey.BETTER_AUTH_SECRET]: z.string().min(32),
   [EnvKey.BETTER_AUTH_URL]: optionalUri,
   [EnvKey.BETTER_AUTH_EMAIL_CALLBACK_URL]: optionalString,
 
+  // ── Admin (sensitive, in .env) ───────────────────────────────────
   [EnvKey.ADMIN_EMAIL]: z.email(),
   [EnvKey.ADMIN_PASSWORD]: z.string().min(8),
   [EnvKey.ADMIN_COOKIE_SECRET]: z.string().min(32),
 
+  // ── AI provider (secrets in .env, non-sensitive in YAML) ─────────
   [EnvKey.AI_PROVIDER]: z.enum(['openai-compatible', '']).optional(),
   [EnvKey.AI_ANALYSIS_API_KEY]: optionalString,
   [EnvKey.AI_ANALYSIS_BASE_URL]: optionalUri,
@@ -131,26 +109,13 @@ const envSchema = z.object({
   [EnvKey.AI_EMBEDDING_API_KEY]: optionalString,
   [EnvKey.AI_EMBEDDING_BASE_URL]: optionalUri,
   [EnvKey.AI_EMBEDDING_MODEL]: optionalString,
-  [EnvKey.AI_EMBEDDING_DIMENSION]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(MAX_EMBEDDING_DIMENSION)
-    .default(DEFAULT_EMBEDDING_DIMENSION),
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]: optionalString,
 
-  [EnvKey.LOG_LEVEL]: z
-    .enum(['error', 'warn', 'info', 'debug', 'verbose'])
-    .default('debug'),
-  [EnvKey.LOG_FORMAT]: z.enum(['pretty', 'json']).optional(),
-
-  [EnvKey.MAIL_DRIVER]: z.enum(['log', 'smtp']).default('log'),
-  [EnvKey.MAIL_HOST]: optionalString,
-  [EnvKey.MAIL_PORT]: z.coerce.number().int().min(1).optional(),
+  // ── Mail credentials (sensitive, in .env) ───────────────────────
   [EnvKey.MAIL_USER]: optionalString,
   [EnvKey.MAIL_PASS]: optionalString,
-  [EnvKey.MAIL_FROM]: optionalString,
 
+  // ── OAuth provider credentials (sensitive, in .env) ─────────────
   [EnvKey.WECHAT_WEB_APP_ID]: optionalString,
   [EnvKey.WECHAT_WEB_APP_SECRET]: optionalString,
   [EnvKey.WECHAT_WEB_REDIRECT_URI]: optionalEmptyUri,
@@ -171,217 +136,28 @@ const envSchema = z.object({
   [EnvKey.GOOGLE_CLIENT_SECRET]: optionalString,
   [EnvKey.GOOGLE_REDIRECT_URI]: optionalUri,
 
+  // ── Tencent COS credentials (sensitive, in .env) ────────────────
   [EnvKey.TENCENT_COS_SECRET_ID]: optionalString,
   [EnvKey.TENCENT_COS_SECRET_KEY]: optionalString,
   [EnvKey.TENCENT_COS_BUCKET]: optionalString,
-  [EnvKey.TENCENT_COS_REGION]: optionalString,
   [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]: httpUrl,
-  [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]: z.coerce
-    .number()
-    .int()
-    .min(60)
-    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
-    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
-  [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(MAX_COS_MAX_UPLOAD_BYTES)
-    .default(DEFAULT_COS_MAX_UPLOAD_BYTES),
-  [EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS]: z.coerce
-    .number()
-    .int()
-    .min(60)
-    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
-    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
 
-  // ── Object storage provider selection ───────────────────────────
-  [EnvKey.STORAGE_PROVIDER]: z
-    .enum(['tencent-cos', 's3'])
-    .default('tencent-cos'),
-
-  // ── S3-compatible storage (dev: SeaweedFS) ──────────────────────
-  [EnvKey.STORAGE_S3_ENDPOINT]: httpUrl,
-  [EnvKey.STORAGE_S3_CLIENT_ENDPOINT]: httpUrl,
-  [EnvKey.STORAGE_S3_EXTERNAL_ENDPOINT]: httpUrl,
-  [EnvKey.STORAGE_S3_PUBLIC_BASE_URL]: httpUrl,
+  // ── S3 storage credentials (sensitive, in .env) ─────────────────
   [EnvKey.STORAGE_S3_ACCESS_KEY]: optionalString,
   [EnvKey.STORAGE_S3_SECRET_KEY]: optionalString,
-  [EnvKey.STORAGE_S3_BUCKET]: optionalString,
-  [EnvKey.STORAGE_S3_REGION]: optionalString,
-  [EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS]: z.coerce
-    .number()
-    .int()
-    .min(60)
-    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
-    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
-  [EnvKey.STORAGE_S3_MAX_UPLOAD_BYTES]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(MAX_COS_MAX_UPLOAD_BYTES)
-    .default(DEFAULT_COS_MAX_UPLOAD_BYTES),
-  [EnvKey.STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS]: z.coerce
-    .number()
-    .int()
-    .min(60)
-    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
-    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
 
+  // ── JPush credentials (sensitive, in .env) ──────────────────────
   [EnvKey.JPUSH_APP_KEY]: optionalString,
   [EnvKey.JPUSH_MASTER_SECRET]: optionalString,
-  [EnvKey.JPUSH_APNS_PRODUCTION]: z.enum(['true', 'false']).optional(),
-  [EnvKey.JPUSH_API_BASE_URL]: optionalUri,
 
-  [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: z.enum(['true', 'false']).optional(),
-
-  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(10000)
-    .default(DEFAULT_MEAL_PORTION_GRAMS),
-  [EnvKey.MEAL_SMALL_PORTION_GRAMS]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(10000)
-    .default(DEFAULT_MEAL_SMALL_PORTION_GRAMS),
-  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .default(DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G),
-  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .default(DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G),
-  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .default(DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G),
-
-  [EnvKey.FUZZY_ACCEPT_SCORE]: z.coerce
-    .number()
-    .min(0)
-    .max(1)
-    .default(DEFAULT_FUZZY_ACCEPT_SCORE),
-  [EnvKey.FUZZY_MIN_LEAD]: z.coerce
-    .number()
-    .min(0)
-    .max(1)
-    .default(DEFAULT_FUZZY_MIN_LEAD),
-  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(DEFAULT_FUZZY_QUERY_PREFIX_LENGTH),
-
-  [EnvKey.VERIFICATION_CODE_TTL_MS]: z.coerce
-    .number()
-    .int()
-    .min(10_000)
-    .max(3_600_000)
-    .default(DEFAULT_VERIFICATION_CODE_TTL_MS),
-  [EnvKey.VERIFICATION_COOLDOWN_MS]: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(3_600_000)
-    .default(DEFAULT_VERIFICATION_COOLDOWN_MS),
-  [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]: z.coerce
-    .number()
-    .int()
-    .min(60_000)
-    .max(86_400_000)
-    .default(DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS),
-  [EnvKey.VERIFICATION_RATE_LIMIT_MAX]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(1_000)
-    .default(DEFAULT_VERIFICATION_RATE_LIMIT_MAX),
-  [EnvKey.VERIFICATION_CODE_LENGTH]: z.coerce
-    .number()
-    .int()
-    .min(4)
-    .max(10)
-    .default(DEFAULT_VERIFICATION_CODE_LENGTH),
-  [EnvKey.OAUTH_STATE_TTL_MS]: z.coerce
-    .number()
-    .int()
-    .min(60_000)
-    .max(3_600_000)
-    .default(DEFAULT_OAUTH_STATE_TTL_MS),
-
-  [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(20)
-    .default(DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS),
-  [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]: z.coerce
-    .number()
-    .int()
-    .min(100)
-    .max(300_000)
-    .default(DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS),
-  [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(50)
-    .default(DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY),
-  [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]: z.coerce
-    .number()
-    .int()
-    .min(60)
-    .max(2_592_000)
-    .default(DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS),
-  [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]: z.coerce
-    .number()
-    .int()
-    .min(60)
-    .max(2_592_000)
-    .default(DEFAULT_MAIL_QUEUE_FAIL_AGE_SECONDS),
-  [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(1_000_000)
-    .default(DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT),
-  [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(1_000_000)
-    .default(DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT),
-
-  [EnvKey.SLOW_REQUEST_THRESHOLD_MS]: z.coerce
-    .number()
-    .int()
-    .min(10)
-    .max(300_000)
-    .default(DEFAULT_SLOW_REQUEST_THRESHOLD_MS),
-
-  [EnvKey.SLOW_QUERY_THRESHOLD_MS]: z.coerce
-    .number()
-    .int()
-    .min(10)
-    .max(60_000)
-    .default(DEFAULT_SLOW_QUERY_THRESHOLD_MS),
-
-  [EnvKey.METRICS_ENABLED]: z.enum(['true', 'false']).default('true'),
+  // ── Metrics auth (sensitive, in .env) ────────────────────────────
   [EnvKey.METRICS_USER]: optionalString,
   [EnvKey.METRICS_PASSWORD]: optionalString,
+
+  // ── Testing (sensitive, in .env) ────────────────────────────────
   [EnvKey.TESTING_SHARED_SECRET]: optionalString,
 
+  // ── Client operations (in .env, will migrate to YAML in Phase 2) ─
   [EnvKey.SUPPORT_EMAIL]: z.email().optional(),
   [EnvKey.MIN_CLIENT_VERSION]: optionalString,
   [EnvKey.LATEST_VERSION]: optionalString,
@@ -447,6 +223,10 @@ const AI_ROLE_GROUPS = [
 /**
  * Validates a raw environment object against the project schema.
  *
+ * Only validates sensitive values and start selectors that remain in
+ * `process.env`. Non-sensitive runtime configuration is validated by
+ * the YAML loader.
+ *
  * @throws {Error} When a required or invalid value is detected.
  */
 export function validateEnvironment(
@@ -462,14 +242,6 @@ export function validateEnvironment(
   }
 
   const validated = parsed.data;
-
-  // Resolve HOST default based on NODE_ENV (replaces Joi.when).
-  if (validated[EnvKey.HOST] == null) {
-    validated[EnvKey.HOST] =
-      validated[EnvKey.NODE_ENV] === NodeEnvironment.Production
-        ? '127.0.0.1'
-        : '0.0.0.0';
-  }
 
   assertProductionEnvironment(validated);
   assertTencentCosEnvironment(validated);
@@ -494,23 +266,13 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
     EnvKey.ADMIN_EMAIL,
     EnvKey.ADMIN_PASSWORD,
     EnvKey.ADMIN_COOKIE_SECRET,
-  ].filter((key) => !config[key]);
+  ].filter((key) => !config[key as keyof EnvironmentVariables]);
 
   if (missingKeys.length > 0) {
     throw new Error(
       `Missing required production environment variables: ${missingKeys.join(', ')}`,
     );
   }
-
-  const corsOrigin = config[EnvKey.CORS_ORIGIN].trim();
-  if (corsOrigin === '*') {
-    throw new Error('CORS_ORIGIN must not be * in production');
-  }
-
-  // NOTE: REDIS_URL is required in production (checked above) for the BullMQ
-  // queues, not for rate limiting. Rate limiting (ThrottlerModule in
-  // app.module.ts) intentionally uses in-process memory storage, which is
-  // sufficient for the single-instance deployment; counters reset on restart.
 }
 
 function assertTencentCosEnvironment(config: EnvironmentVariables): void {
@@ -518,7 +280,6 @@ function assertTencentCosEnvironment(config: EnvironmentVariables): void {
     EnvKey.TENCENT_COS_SECRET_ID,
     EnvKey.TENCENT_COS_SECRET_KEY,
     EnvKey.TENCENT_COS_BUCKET,
-    EnvKey.TENCENT_COS_REGION,
   ] as const;
   const triggerKeys = [
     EnvKey.TENCENT_COS_SECRET_ID,
@@ -543,24 +304,12 @@ function assertTencentCosEnvironment(config: EnvironmentVariables): void {
 }
 
 function assertS3StorageEnvironment(config: EnvironmentVariables): void {
-  const provider = config[EnvKey.STORAGE_PROVIDER];
-  if (provider !== 's3') {
-    return;
-  }
-
-  const requiredKeys = [
-    EnvKey.STORAGE_S3_ENDPOINT,
-    EnvKey.STORAGE_S3_ACCESS_KEY,
-    EnvKey.STORAGE_S3_SECRET_KEY,
-    EnvKey.STORAGE_S3_BUCKET,
-  ] as const;
-  const missingKeys = requiredKeys.filter((key) => !(config[key] ?? '').trim());
-
-  if (missingKeys.length > 0) {
-    throw new Error(
-      `Incomplete S3 storage environment variables when STORAGE_PROVIDER=s3: ${missingKeys.join(', ')}`,
-    );
-  }
+  // STORAGE_PROVIDER is now in YAML; this check is deferred to the
+  // storage module's useFactory which reads from ConfigKey.Yaml.
+  // Sensitive S3 credentials are still checked here.
+  // This function is kept as a no-op placeholder — the S3 credential
+  // completeness check is handled at module instantiation time.
+  void config;
 }
 
 function assertJpushEnvironment(config: EnvironmentVariables): void {

@@ -45,7 +45,7 @@ describe('tencentCosConfig', () => {
     expect(config.secretId).toBe('');
     expect(config.secretKey).toBe('');
     expect(config.bucket).toBe('');
-    expect(config.region).toBe('');
+    expect(config.region).toBe('ap-guangzhou');
     expect(config.publicBaseUrl).toBe('');
   });
 

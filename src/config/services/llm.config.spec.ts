@@ -105,6 +105,7 @@ describe('llmConfig', () => {
       apiKey: null,
       baseUrl: null,
       model: null,
+      dimension: 1536,
     });
     expect(config.safety.forbiddenPatterns).toEqual([]);
   });
@@ -155,20 +156,20 @@ describe('llmConfig', () => {
     expect(config.embedding.dimension).toBe(768);
   });
 
-  it('omits dimension when env var is absent', () => {
+  it('uses YAML default dimension when env var is absent', () => {
     process.env[EnvKey.AI_EMBEDDING_API_KEY] = 'sk-embed';
 
     const config = callFactory();
 
-    expect(config.embedding.dimension).toBeUndefined();
+    expect(config.embedding.dimension).toBe(1536);
   });
 
-  it('omits dimension when env var is not a valid number', () => {
+  it('falls back to YAML default when env var is not a valid number', () => {
     process.env[EnvKey.AI_EMBEDDING_DIMENSION] = 'not-a-number';
 
     const config = callFactory();
 
-    expect(config.embedding.dimension).toBeUndefined();
+    expect(config.embedding.dimension).toBe(1536);
   });
 
   it('parses forbidden patterns split by comma', () => {

@@ -46,7 +46,11 @@ describe('appConfig', () => {
     expect(config.env).toBe('development');
     expect(config.host).toBe('0.0.0.0');
     expect(config.port).toBe(3000);
-    expect(config.corsOrigin).toBe(false);
+    // development.yaml overrides corsOrigin to localhost origins
+    expect(config.corsOrigin).toEqual([
+      'http://localhost:3000',
+      'http://localhost:8080',
+    ]);
     expect(config.trustProxy).toBe(false);
     expect(config.publicBaseUrl).toBe('http://localhost:3000');
   });

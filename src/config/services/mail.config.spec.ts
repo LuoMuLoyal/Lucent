@@ -53,7 +53,7 @@ describe('mailConfig', () => {
     const config = callFactory();
 
     expect(config.driver).toBe('log');
-    expect(config.host).toBe('');
+    expect(config.host).toBe('smtp.example.com');
     expect(config.port).toBe(587);
     expect(config.user).toBe('');
     expect(config.pass).toBe('');

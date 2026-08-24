@@ -16,16 +16,20 @@ describe('validateEnvironment', () => {
   const adminCookieSecret = 'dev_lucent_admin_cookie_secret_32_chars';
   const betterAuthSecret = 'dev_better_auth_secret_32_chars_long';
 
+  const baseValidEnv = {
+    [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+    [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+    [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+    [EnvKey.ADMIN_EMAIL]: adminEmail,
+    [EnvKey.ADMIN_PASSWORD]: adminPassword,
+    [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+    [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
+  };
+
   it('keeps explicit local config values outside production', () => {
     const config = validateEnvironment({
-      [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+      ...baseValidEnv,
       [EnvKey.DATABASE_URL]: localDatabaseUrl,
-      [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-      [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-      [EnvKey.ADMIN_EMAIL]: adminEmail,
-      [EnvKey.ADMIN_PASSWORD]: adminPassword,
-      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
     });
 
     expect(config[EnvKey.ADMIN_EMAIL]).toBe(adminEmail);
@@ -41,54 +45,13 @@ describe('validateEnvironment', () => {
         [EnvKey.REDIS_URL]: redisUrl,
         [EnvKey.JWT_ACCESS_SECRET]: prodJwtAccessSecret,
         [EnvKey.JWT_REFRESH_SECRET]: prodJwtRefreshSecret,
-        [EnvKey.CORS_ORIGIN]: 'https://example.com',
       }),
     ).toThrow('ADMIN_EMAIL');
   });
 
-  it('allows empty CORS_ORIGIN in production for app-only deployments', () => {
-    const config = validateEnvironment({
-      [EnvKey.NODE_ENV]: NodeEnvironment.Production,
-      [EnvKey.DATABASE_URL]: prodDatabaseUrl,
-      [EnvKey.REDIS_URL]: redisUrl,
-      [EnvKey.JWT_ACCESS_SECRET]: prodJwtAccessSecret,
-      [EnvKey.JWT_REFRESH_SECRET]: prodJwtRefreshSecret,
-      [EnvKey.ADMIN_EMAIL]: adminEmail,
-      [EnvKey.ADMIN_PASSWORD]: adminPassword,
-      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
-      [EnvKey.CORS_ORIGIN]: '',
-    });
-
-    expect(config[EnvKey.CORS_ORIGIN]).toBe('');
-  });
-
-  it('still rejects wildcard CORS_ORIGIN in production', () => {
-    expect(() =>
-      validateEnvironment({
-        [EnvKey.NODE_ENV]: NodeEnvironment.Production,
-        [EnvKey.DATABASE_URL]: prodDatabaseUrl,
-        [EnvKey.REDIS_URL]: redisUrl,
-        [EnvKey.JWT_ACCESS_SECRET]: prodJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: prodJwtRefreshSecret,
-        [EnvKey.ADMIN_EMAIL]: adminEmail,
-        [EnvKey.ADMIN_PASSWORD]: adminPassword,
-        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
-        [EnvKey.CORS_ORIGIN]: '*',
-      }),
-    ).toThrow('CORS_ORIGIN must not be * in production');
-  });
-
   it('accepts complete AI role configurations', () => {
     const config = validateEnvironment({
-      [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-      [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-      [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-      [EnvKey.ADMIN_EMAIL]: adminEmail,
-      [EnvKey.ADMIN_PASSWORD]: adminPassword,
-      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
+      ...baseValidEnv,
       [EnvKey.AI_PROVIDER]: 'openai-compatible',
       [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
       [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
@@ -119,13 +82,7 @@ describe('validateEnvironment', () => {
   it('rejects incomplete AI role configurations', () => {
     expect(() =>
       validateEnvironment({
-        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-        [EnvKey.ADMIN_EMAIL]: adminEmail,
-        [EnvKey.ADMIN_PASSWORD]: adminPassword,
-        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
+        ...baseValidEnv,
         [EnvKey.AI_PROVIDER]: 'openai-compatible',
         [EnvKey.AI_CHAT_API_KEY]: 'chat-key',
         [EnvKey.AI_CHAT_MODEL]: 'chat-model',
@@ -136,13 +93,7 @@ describe('validateEnvironment', () => {
   it('requires AI_PROVIDER when any AI role is configured', () => {
     expect(() =>
       validateEnvironment({
-        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-        [EnvKey.ADMIN_EMAIL]: adminEmail,
-        [EnvKey.ADMIN_PASSWORD]: adminPassword,
-        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
+        ...baseValidEnv,
         [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
         [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
         [EnvKey.AI_ANALYSIS_MODEL]: 'analysis-model',
@@ -150,33 +101,21 @@ describe('validateEnvironment', () => {
     ).toThrow('AI_PROVIDER is required');
   });
 
-  it('allows default COS region alone without treating COS as configured', () => {
-    const config = validateEnvironment({
-      [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-      [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-      [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-      [EnvKey.ADMIN_EMAIL]: adminEmail,
-      [EnvKey.ADMIN_PASSWORD]: adminPassword,
-      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-      [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
-      [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
-    });
-
-    expect(config[EnvKey.TENCENT_COS_REGION]).toBe('ap-guangzhou');
-  });
-
-  it('still rejects partial COS credentials when upload config really starts', () => {
+  it('allows COS region alone without treating COS as configured', () => {
+    // TENCENT_COS_REGION has been migrated to YAML; it is no longer in
+    // the env schema, so passing it should be silently ignored.
     expect(() =>
       validateEnvironment({
-        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-        [EnvKey.ADMIN_EMAIL]: adminEmail,
-        [EnvKey.ADMIN_PASSWORD]: adminPassword,
-        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
+        ...baseValidEnv,
+      }),
+    ).not.toThrow();
+  });
+
+  it('still rejects partial COS credentials', () => {
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
         [EnvKey.TENCENT_COS_BUCKET]: 'lucent-dev',
-        [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
       }),
     ).toThrow('Incomplete Tencent COS environment variables');
   });
@@ -184,14 +123,7 @@ describe('validateEnvironment', () => {
   it('allows JPush to remain disabled when both credentials are absent', () => {
     expect(() =>
       validateEnvironment({
-        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-        [EnvKey.ADMIN_EMAIL]: adminEmail,
-        [EnvKey.ADMIN_PASSWORD]: adminPassword,
-        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
-        [EnvKey.JPUSH_API_BASE_URL]: 'https://api.jpush.cn',
+        ...baseValidEnv,
       }),
     ).not.toThrow();
   });
@@ -199,13 +131,7 @@ describe('validateEnvironment', () => {
   it('rejects incomplete JPush credentials', () => {
     expect(() =>
       validateEnvironment({
-        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-        [EnvKey.ADMIN_EMAIL]: adminEmail,
-        [EnvKey.ADMIN_PASSWORD]: adminPassword,
-        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
+        ...baseValidEnv,
         [EnvKey.JPUSH_APP_KEY]: 'appkey-1',
       }),
     ).toThrow(
@@ -214,13 +140,7 @@ describe('validateEnvironment', () => {
 
     expect(() =>
       validateEnvironment({
-        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-        [EnvKey.ADMIN_EMAIL]: adminEmail,
-        [EnvKey.ADMIN_PASSWORD]: adminPassword,
-        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-        [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
+        ...baseValidEnv,
         [EnvKey.JPUSH_MASTER_SECRET]: 'secret-1',
       }),
     ).toThrow(
