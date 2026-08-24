@@ -111,7 +111,11 @@ What becomes easier or harder as a result of this decision?
   - Title: Object Storage Provider Abstraction
   - Status: accepted
   - Date: 2026-08-17
-- [0015](0015-config-yaml-coolify-traefik-migration.md)
-  - Title: .env → YAML Configuration + Coolify/Traefik Deployment + VictoriaMetrics
+- [0015](0015-config-yaml-coexistence.md)
+  - Title: .env → .env + YAML Configuration Coexistence
+  - Status: accepted
+  - Date: 2026-08-24
+- [0016](0016-observability-victoria-migration.md)
+  - Title: Observability Stack Migration — VictoriaMetrics + VictoriaLogs + VictoriaTraces
   - Status: accepted
   - Date: 2026-08-24

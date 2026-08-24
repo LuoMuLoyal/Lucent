@@ -32,6 +32,12 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
+- [`2026-08-24-config-yaml-migration-plan.md`](2026-08-24-config-yaml-migration-plan.md)
+  — .env → .env + YAML 共存：非敏感配置迁移到 `config/*.yaml`，敏感变量保留 `.env`
+- [`2026-08-24-observability-victoria-migration-plan.md`](2026-08-24-observability-victoria-migration-plan.md)
+  — 可观测性栈迁移：Prometheus/Grafana → VictoriaMetrics + VictoriaLogs + VictoriaTraces，BullMQ OTel span 补全
+- [`2026-08-24-coolify-deployment-restructure-plan.md`](2026-08-24-coolify-deployment-restructure-plan.md)
+  — 部署重构：deploy.ts + Compose + Nginx → Coolify + Traefik（**待通过**）
 - [`2026-08-22-medium-to-large-migration-inventory.md`](2026-08-22-medium-to-large-migration-inventory.md)
   — 中小型到中大型过渡迁移盘点：配置、Worker/队列、Outbox、Prisma 边界、跨仓合同、数据库发布与可观测性
 - [`2026-08-18-error-contract-and-neverthrow-migration-plan.md`](2026-08-18-error-contract-and-neverthrow-migration-plan.md)

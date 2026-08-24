@@ -4,6 +4,9 @@
 - **Date**: 2026-08-01
 - **Deciders**: LuoMuLoyal
 - **Supersedes**: ADR-0006 中「明确推迟 OpenTelemetry / 分布式追踪」的决策
+- **Superseded in part**: trace 后端（Jaeger all-in-one）和 BullMQ worker span（原为"非目标"）
+  已被 [ADR-0016](0016-observability-victoria-migration.md) 取代（VictoriaTraces 单机 +
+  bullmq-otel 补全）；OTel SDK、门控、traceparent/traceresponse 协议、requestId 退役继续有效。
 
 ## Context
 
