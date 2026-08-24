@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-23
+updated: 2026-08-24
 ---
 
 # Lucent Environment
@@ -41,6 +41,20 @@ Loading order, highest priority first:
 
 Lucent runtime, Prisma CLI, and medicine import scripts all use the same
 explicit resolution order above. There is no root `.env` fallback anymore.
+
+## YAML Configuration
+
+Non-sensitive configuration is loaded from nested YAML files in `config/`:
+
+```text
+config/default.yaml       # defaults for all environments
+config/<env>.yaml         # environment-specific overrides (development/test/production)
+config/<env>.local.yaml   # local overrides (gitignored)
+```
+
+Loading order (lowest to highest priority): `default.yaml` → `<env>.yaml` → `<env>.local.yaml`. The YAML loader (`src/config/yaml/yaml-loader.ts`) performs a deep merge and validates the result with a Zod schema. The merged config is registered in NestJS as `ConfigKey.Yaml = 'yaml'` and accessed via `configService.getOrThrow<YamlConfig>(ConfigKey.Yaml)`.
+
+Sensitive values (API keys, database URLs, secrets) remain in `.env.*` files and are accessed via `configService.get(EnvKey.SOME_KEY)`. Business code must not read `process.env` directly.
 
 ## Local Baseline
 
