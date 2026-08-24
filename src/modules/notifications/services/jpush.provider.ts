@@ -22,10 +22,10 @@ export class JpushPushProvider implements PushProvider {
   private readonly apiBaseUrl: string;
   private readonly apnsProduction: boolean;
 
-  constructor(config: JpushConfig) {
+  constructor(config: JpushConfig, nodeEnv: string = 'development') {
     this.isConfigured =
       config.appKey.trim().length > 0 && config.masterSecret.trim().length > 0;
-    if (!this.isConfigured && process.env['NODE_ENV'] === 'production') {
+    if (!this.isConfigured && nodeEnv === 'production') {
       this.logger.warn(
         'JPush is not configured — push delivery is silently disabled. Fill JPUSH_APP_KEY / JPUSH_MASTER_SECRET before the 0.1.0 release.',
       );

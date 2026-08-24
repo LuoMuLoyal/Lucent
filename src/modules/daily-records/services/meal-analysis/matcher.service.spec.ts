@@ -1,4 +1,16 @@
 import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
+
+const yamlConfig = loadYamlConfig();
+
+function createMockConfigService() {
+  return {
+    getOrThrow: vi.fn((key: string) => {
+      if (key === 'yaml') return yamlConfig;
+      throw new Error(`Missing config: ${key}`);
+    }),
+  };
+}
 
 describe('MealAnalysisMatcherService', () => {
   it('matches recognized foods to food composition items and aggregates conservative nutrition totals', async () => {
@@ -101,9 +113,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = {
-      get: vi.fn().mockReturnValue(undefined),
-    };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -185,7 +195,7 @@ describe('MealAnalysisMatcherService', () => {
         nutritionEstimate: null,
       }),
     };
-    const configService = { get: vi.fn().mockReturnValue(undefined) };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -253,7 +263,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: vi.fn().mockReturnValue(undefined) };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -305,7 +315,7 @@ describe('MealAnalysisMatcherService', () => {
         nutritionEstimate: null,
       }),
     };
-    const configService = { get: vi.fn().mockReturnValue(undefined) };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -355,12 +365,19 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     // Use low thresholds so commentary conditions are triggered
+    const customYaml = {
+      ...yamlConfig,
+      meal: {
+        ...yamlConfig.meal,
+        highProteinThresholdG: 30,
+        highFatThresholdG: 15,
+        lowCarbohydrateThresholdG: 60,
+      },
+    };
     const configService = {
-      get: vi.fn().mockImplementation((key: string) => {
-        if (key === 'MEAL_HIGH_PROTEIN_THRESHOLD_G') return 30;
-        if (key === 'MEAL_HIGH_FAT_THRESHOLD_G') return 15;
-        if (key === 'MEAL_LOW_CARBOHYDRATE_THRESHOLD_G') return 60;
-        return undefined;
+      getOrThrow: vi.fn((key: string) => {
+        if (key === 'yaml') return customYaml;
+        throw new Error(`Missing config: ${key}`);
       }),
     };
     const service = new MealAnalysisMatcherService(
@@ -402,7 +419,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: vi.fn().mockReturnValue(undefined) };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -466,7 +483,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: vi.fn().mockReturnValue(undefined) };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -532,7 +549,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: vi.fn().mockReturnValue(undefined) };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -599,7 +616,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: vi.fn().mockReturnValue(undefined) };
+    const configService = createMockConfigService();
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,

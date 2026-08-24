@@ -1,15 +1,18 @@
-import { Test, type TestingModule } from '@nestjs/testing';
+import {
+  type ExecutionContext,
+  type CallHandler,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
-import { type ExecutionContext, type CallHandler } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { of } from 'rxjs';
 import { SlowRequestInterceptor } from './slow-request.interceptor';
+import { ConfigKey } from '../../config/env/config-keys.enum';
+import { loadYamlConfig } from '../../config/yaml/yaml-loader';
 
 describe('SlowRequestInterceptor', () => {
   let interceptor: SlowRequestInterceptor;
   let loggerWarn: vi.MockInstance<any>;
-  let configGet: vi.MockInstance<any>;
 
   const mockRequest = {
     method: 'GET',
@@ -30,29 +33,24 @@ describe('SlowRequestInterceptor', () => {
     return { handle: () => of(undefined) };
   }
 
-  beforeEach(async () => {
+  function createInterceptor(thresholdMs: number): SlowRequestInterceptor {
+    const yamlConfig = {
+      ...loadYamlConfig(),
+      log: { ...loadYamlConfig().log, slowRequestThresholdMs: thresholdMs },
+    };
+    const mockConfigService = {
+      getOrThrow: vi.fn((key: string) => {
+        if (key === (ConfigKey.Yaml as string)) return yamlConfig;
+        throw new Error(`Missing config: ${key}`);
+      }),
+    } as unknown as ConfigService;
+    const reflector = new Reflector();
+    return new SlowRequestInterceptor(mockConfigService, reflector);
+  }
+
+  beforeEach(() => {
     loggerWarn = vi.fn();
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(loggerWarn as never);
-
-    configGet = vi.fn();
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SlowRequestInterceptor,
-        Reflector,
-        {
-          provide: ConfigService,
-          useValue: { get: configGet },
-        },
-      ],
-    }).compile();
-
-    interceptor = module.get(SlowRequestInterceptor);
-
-    // Reflectors default: no skip metadata
-    vi.spyOn(interceptor['reflector'], 'getAllAndOverride').mockReturnValue(
-      undefined,
-    );
   });
 
   afterEach(() => {
@@ -61,7 +59,7 @@ describe('SlowRequestInterceptor', () => {
 
   it('does not warn when request is fast', () =>
     new Promise<void>((resolve) => {
-      configGet.mockReturnValue(2000);
+      interceptor = createInterceptor(2000);
 
       interceptor
         .intercept(createMockContext(), createMockCallHandler())
@@ -75,7 +73,7 @@ describe('SlowRequestInterceptor', () => {
 
   it('warns when request exceeds threshold', () =>
     new Promise<void>((resolve) => {
-      configGet.mockReturnValue(0); // threshold 0 → always slow
+      interceptor = createInterceptor(0); // threshold 0 → always slow
 
       interceptor
         .intercept(createMockContext(), createMockCallHandler())
@@ -93,10 +91,11 @@ describe('SlowRequestInterceptor', () => {
 
   it('skips when @SkipSlowRequestLog metadata is set', () =>
     new Promise<void>((resolve) => {
+      interceptor = createInterceptor(0);
+
       vi.spyOn(interceptor['reflector'], 'getAllAndOverride').mockReturnValue(
         true,
       );
-      configGet.mockReturnValue(0);
 
       interceptor
         .intercept(createMockContext(), createMockCallHandler())
@@ -110,7 +109,7 @@ describe('SlowRequestInterceptor', () => {
 
   it('logs POST method and handler name when slow', () =>
     new Promise<void>((resolve) => {
-      configGet.mockReturnValue(0);
+      interceptor = createInterceptor(0);
       const ctx = createMockContext('AuthController');
       const postReq = {
         method: 'POST',
@@ -132,7 +131,7 @@ describe('SlowRequestInterceptor', () => {
 
   it('includes durationMs and threshold in slow log', () =>
     new Promise<void>((resolve, reject) => {
-      configGet.mockReturnValue(0);
+      interceptor = createInterceptor(0);
 
       interceptor
         .intercept(createMockContext(), createMockCallHandler())
@@ -155,13 +154,13 @@ describe('SlowRequestInterceptor', () => {
 
   it('uses default threshold when env is not set', () =>
     new Promise<void>((resolve) => {
-      configGet.mockReturnValue(undefined);
+      // Default threshold from YAML is 2000ms → fast request → no warn
+      interceptor = createInterceptor(2000);
 
       interceptor
         .intercept(createMockContext(), createMockCallHandler())
         .subscribe({
           next: () => {
-            // Fast request with default 2000ms threshold → no warn
             expect(loggerWarn).not.toHaveBeenCalled();
             resolve();
           },

@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
 import type { DomainFailure, ResultAsync } from '../../../../common/result';
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -38,9 +39,12 @@ describe('AuthOAuthStateService', () => {
   beforeEach(async () => {
     const mockConfigService = {
       get: vi.fn((key: string, fallback?: unknown) => {
-        if (key === 'OAUTH_STATE_TTL_MS') return DEFAULT_OAUTH_STATE_TTL_MS;
         if (key === 'app.corsOrigin') return false;
         return fallback;
+      }),
+      getOrThrow: vi.fn((key: string) => {
+        if (key === 'yaml') return loadYamlConfig();
+        throw new Error(`Missing config: ${key}`);
       }),
     };
 

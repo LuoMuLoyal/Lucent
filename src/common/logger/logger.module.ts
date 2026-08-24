@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
-import { EnvKey } from '../../config/env/env-keys.enum';
+import { ConfigService } from '@nestjs/config';
+import { ConfigKey } from '../../config/env/config-keys.enum';
+import type { YamlConfig } from '../../config/yaml/yaml-loader';
 import { createLoggerOptions } from './logger.config';
 import { LifecycleService } from './lifecycle.service';
 
@@ -8,10 +10,15 @@ import { LifecycleService } from './lifecycle.service';
 @Module({
   imports: [
     WinstonModule.forRootAsync({
-      useFactory: () => {
-        const nodeEnv = process.env[EnvKey.NODE_ENV] ?? 'development';
-        const logLevel = process.env[EnvKey.LOG_LEVEL] ?? '';
-        return createLoggerOptions(nodeEnv, logLevel);
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const yaml = configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
+        const nodeEnv = process.env['NODE_ENV'] ?? 'development';
+        // env var still wins over YAML default
+        const envLogLevel = process.env['LOG_LEVEL'];
+        const logLevel = envLogLevel ?? yaml.log.level;
+        const logFormat = yaml.log.format;
+        return createLoggerOptions(nodeEnv, logLevel, logFormat);
       },
     }),
   ],

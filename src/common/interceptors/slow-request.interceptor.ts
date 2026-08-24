@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { ConfigKey } from '../../config/env/config-keys.enum';
+import type { YamlConfig } from '../../config/yaml/yaml-loader';
 import { Observable, tap } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import type { FastifyRequest } from 'fastify';
-import { EnvKey } from '../../config/env/env-keys.enum';
-import { DEFAULT_SLOW_REQUEST_THRESHOLD_MS } from '../../config/constants';
 
 export const SKIP_SLOW_REQUEST_KEY = 'skipSlowRequestLog';
 
@@ -25,10 +25,15 @@ export const SKIP_SLOW_REQUEST_KEY = 'skipSlowRequestLog';
 export class SlowRequestInterceptor implements NestInterceptor {
   private readonly logger = new Logger(SlowRequestInterceptor.name);
 
+  private readonly threshold: number;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly reflector: Reflector,
-  ) {}
+  ) {
+    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
+    this.threshold = yaml.log.slowRequestThresholdMs;
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (this.shouldSkip(context)) {
@@ -44,13 +49,10 @@ export class SlowRequestInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const durationMs = performance.now() - start;
-        const threshold =
-          this.configService.get<number>(EnvKey.SLOW_REQUEST_THRESHOLD_MS) ??
-          DEFAULT_SLOW_REQUEST_THRESHOLD_MS;
 
-        if (durationMs >= threshold) {
+        if (durationMs >= this.threshold) {
           this.logger.warn(
-            `Slow request: ${method} ${path} took ${durationMs.toFixed(0)}ms (threshold ${String(threshold)}ms) [handler=${handlerName}, durationMs=${String(Number(durationMs.toFixed(2)))}]`,
+            `Slow request: ${method} ${path} took ${durationMs.toFixed(0)}ms (threshold ${String(this.threshold)}ms) [handler=${handlerName}, durationMs=${String(Number(durationMs.toFixed(2)))}]`,
           );
         }
       }),

@@ -2,12 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { roundNumber } from '../../../../common';
 import { commonCharacterCount } from '../../../../common';
-import { EnvKey } from '../../../../config/env/env-keys.enum';
-import {
-  DEFAULT_FUZZY_ACCEPT_SCORE,
-  DEFAULT_FUZZY_MIN_LEAD,
-  DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
-} from '../../../../config/constants';
+import { ConfigKey } from '../../../../config/env/config-keys.enum';
+import type { YamlConfig } from '../../../../config/yaml/yaml-loader';
 import { PrismaService } from '../../../../prisma';
 import {
   type MealCompositionMatch,
@@ -51,18 +47,10 @@ export class MealIngredientGroundingService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    this.fuzzyAcceptScore = this.configService.get<number>(
-      EnvKey.FUZZY_ACCEPT_SCORE,
-      DEFAULT_FUZZY_ACCEPT_SCORE,
-    );
-    this.fuzzyMinLead = this.configService.get<number>(
-      EnvKey.FUZZY_MIN_LEAD,
-      DEFAULT_FUZZY_MIN_LEAD,
-    );
-    this.fuzzyQueryPrefixLength = this.configService.get<number>(
-      EnvKey.FUZZY_QUERY_PREFIX_LENGTH,
-      DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
-    );
+    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
+    this.fuzzyAcceptScore = yaml.fuzzy.acceptScore;
+    this.fuzzyMinLead = yaml.fuzzy.minLead;
+    this.fuzzyQueryPrefixLength = yaml.fuzzy.queryPrefixLength;
   }
 
   async groundIngredients(

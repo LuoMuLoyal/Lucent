@@ -1,5 +1,17 @@
 import type { PrismaService } from '../../../../prisma';
 import { MealIngredientGroundingService } from '../meal-ingredient/grounding.service';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
+
+const yamlConfig = loadYamlConfig();
+
+function createMockConfigService() {
+  return {
+    getOrThrow: vi.fn((key: string) => {
+      if (key === 'yaml') return yamlConfig;
+      throw new Error(`Missing config: ${key}`);
+    }),
+  } as never;
+}
 
 describe('MealIngredientGroundingService', () => {
   it('accepts exact and alias matches directly and computes partial coverage', async () => {
@@ -22,9 +34,7 @@ describe('MealIngredientGroundingService', () => {
     });
     const service = new MealIngredientGroundingService(
       prisma as never,
-      {
-        get: (_key: string, fallback?: unknown) => fallback,
-      } as never,
+      createMockConfigService(),
     );
 
     const result = await service.groundIngredients([
@@ -107,9 +117,7 @@ describe('MealIngredientGroundingService', () => {
     });
     const service = new MealIngredientGroundingService(
       prisma as never,
-      {
-        get: (_key: string, fallback?: unknown) => fallback,
-      } as never,
+      createMockConfigService(),
     );
 
     const result = await service.groundIngredients([
@@ -174,9 +182,7 @@ describe('MealIngredientGroundingService', () => {
     });
     const service = new MealIngredientGroundingService(
       prisma as never,
-      {
-        get: (_key: string, fallback?: unknown) => fallback,
-      } as never,
+      createMockConfigService(),
     );
 
     const result = await service.groundIngredients([

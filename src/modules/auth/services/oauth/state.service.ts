@@ -16,8 +16,7 @@ import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { ConfigKey } from '../../../../config/env/config-keys.enum';
-import { EnvKey } from '../../../../config/env/env-keys.enum';
-import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
+import type { YamlConfig } from '../../../../config/yaml/yaml-loader';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   OAUTH_PROVIDER_QQ,
@@ -43,10 +42,8 @@ export class AuthOAuthStateService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly configService: ConfigService,
   ) {
-    this.stateTtlMs = this.configService.get<number>(
-      EnvKey.OAUTH_STATE_TTL_MS,
-      DEFAULT_OAUTH_STATE_TTL_MS,
-    );
+    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
+    this.stateTtlMs = yaml.oauth.stateTtlMs;
   }
 
   createState(

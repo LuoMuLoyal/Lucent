@@ -46,7 +46,7 @@ describe('JpushPushProvider', () => {
     const previousNodeEnv = process.env['NODE_ENV'];
     process.env['NODE_ENV'] = 'production';
     try {
-      new JpushPushProvider(buildConfig({ appKey: '' }));
+      new JpushPushProvider(buildConfig({ appKey: '' }), 'production');
 
       expect(warnSpy).toHaveBeenCalledTimes(1);
       expect(warnSpy.mock.calls[0]?.[0]).toContain(

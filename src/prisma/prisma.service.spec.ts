@@ -1,8 +1,12 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Logger as WinstonLogger } from 'winston';
 import { EnvKey } from '../config/env/env-keys.enum.js';
+import { ConfigKey } from '../config/env/config-keys.enum.js';
+import { loadYamlConfig } from '../config/yaml/yaml-loader.js';
 
 const DB_URL = 'postgresql://user:pass@localhost:5432/test';
+
+const yamlConfig = loadYamlConfig();
 
 function makeConfigService(
   overrides: Partial<Record<string, string | number | undefined>> = {},
@@ -13,7 +17,13 @@ function makeConfigService(
     ...overrides,
   };
   return {
-    get: vi.fn((key: string) => values[key]),
+    get: vi.fn((key: string) => values[key] ?? process.env[key]),
+    getOrThrow: vi.fn((key: string) => {
+      if (key === (ConfigKey.Yaml as string)) return yamlConfig;
+      const val = values[key] ?? process.env[key];
+      if (val === undefined) throw new Error(`Missing config: ${key}`);
+      return val;
+    }),
   } as unknown as vi.Mocked<ConfigService>;
 }
 
@@ -211,8 +221,15 @@ describe('PrismaService', () => {
 
   describe('slow query logging', () => {
     it('logs to Winston when query duration exceeds threshold', () => {
-      const configService = makeConfigService({
-        [EnvKey.SLOW_QUERY_THRESHOLD_MS]: 100,
+      const customYaml = {
+        ...yamlConfig,
+        log: { ...yamlConfig.log, slowQueryThresholdMs: 100 },
+      };
+      const configService = makeConfigService();
+      configService.getOrThrow = vi.fn((key: string) => {
+        if (key === (ConfigKey.Yaml as string)) return customYaml;
+        if (key === (EnvKey.DATABASE_URL as string)) return DB_URL;
+        throw new Error(`Missing config: ${key}`);
       });
 
       new PrismaService(configService, mockWinstonLogger);

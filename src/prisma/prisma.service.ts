@@ -10,7 +10,8 @@ import type { Logger as WinstonLogger } from 'winston';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '#generated/prisma/client';
 import { EnvKey } from '../config/env/env-keys.enum.js';
-import { DEFAULT_SLOW_QUERY_THRESHOLD_MS } from '../config/constants.js';
+import { ConfigKey } from '../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../config/yaml/yaml-loader.js';
 import { getActiveTraceId } from '../common/logger/trace-context.utils.js';
 import {
   applySoftDeleteExtension,
@@ -45,6 +46,7 @@ export class PrismaService
   private readonly _extended: ExtendedPrismaClient;
   private readonly _winstonLogger: WinstonLogger;
   private readonly _slowQueryThresholdMs: number;
+  private readonly _configService: ConfigService;
 
   constructor(
     configService: ConfigService,
@@ -67,9 +69,9 @@ export class PrismaService
     });
 
     this._winstonLogger = winstonLogger;
-    this._slowQueryThresholdMs =
-      configService.get<number>(EnvKey.SLOW_QUERY_THRESHOLD_MS) ??
-      DEFAULT_SLOW_QUERY_THRESHOLD_MS;
+    this._configService = configService;
+    const yaml = configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
+    this._slowQueryThresholdMs = yaml.log.slowQueryThresholdMs;
 
     // ── Slow-query logging ──────────────────────────────────────────────
     // Every query emits a `QueryEvent` with `duration` (ms).  Only queries
@@ -122,7 +124,10 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    if (process.env[EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT] === 'true') {
+    if (
+      this._configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT) ===
+      'true'
+    ) {
       return;
     }
     await this.$connect();

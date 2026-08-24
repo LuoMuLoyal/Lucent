@@ -10,8 +10,8 @@ import { MailService } from '../../../../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { RedisService } from '../../../../common';
 import type { DomainFailure, ResultAsync } from '../../../../common/result';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
 import {
-  DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
   DEFAULT_VERIFICATION_COOLDOWN_MS,
   DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
@@ -59,18 +59,10 @@ describe('VerificationCodeService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn((key: string, fallback?: unknown) => {
-              if (key === 'VERIFICATION_CODE_TTL_MS')
-                return DEFAULT_VERIFICATION_CODE_TTL_MS;
-              if (key === 'VERIFICATION_COOLDOWN_MS')
-                return DEFAULT_VERIFICATION_COOLDOWN_MS;
-              if (key === 'VERIFICATION_RATE_LIMIT_WINDOW_MS')
-                return DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS;
-              if (key === 'VERIFICATION_RATE_LIMIT_MAX')
-                return DEFAULT_VERIFICATION_RATE_LIMIT_MAX;
-              if (key === 'VERIFICATION_CODE_LENGTH')
-                return DEFAULT_VERIFICATION_CODE_LENGTH;
-              return fallback;
+            get: vi.fn((_key: string, fallback?: unknown) => fallback),
+            getOrThrow: vi.fn((key: string) => {
+              if (key === 'yaml') return loadYamlConfig();
+              throw new Error(`Missing config: ${key}`);
             }),
           },
         },

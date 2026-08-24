@@ -18,6 +18,7 @@ import { NotificationsController } from './notifications.controller';
       useFactory: (configService: ConfigService) =>
         new JpushPushProvider(
           configService.getOrThrow<JpushConfig>(ConfigKey.Jpush),
+          configService.get<string>('NODE_ENV') ?? 'development',
         ),
       inject: [ConfigService],
     },

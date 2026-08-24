@@ -1,6 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { MetricsService } from './metrics.service';
+import { ConfigKey } from '../../config/env/config-keys.enum';
+import { loadYamlConfig } from '../../config/yaml/yaml-loader';
+
+const yamlConfig = loadYamlConfig();
 
 describe('MetricsService', () => {
   let service: MetricsService;
@@ -10,11 +14,21 @@ describe('MetricsService', () => {
     nodeEnv: string,
     metricsEnabled?: string,
   ): MetricsService {
+    const customYaml = {
+      ...yamlConfig,
+      metrics: {
+        ...yamlConfig.metrics,
+        enabled: metricsEnabled !== 'false',
+      },
+    };
     const mockConfig = {
       get: vi.fn((key: string) => {
         if (key === 'NODE_ENV') return nodeEnv;
-        if (key === 'METRICS_ENABLED') return metricsEnabled;
         return undefined;
+      }),
+      getOrThrow: vi.fn((key: string) => {
+        if (key === (ConfigKey.Yaml as string)) return customYaml;
+        throw new Error(`Missing config: ${key}`);
       }),
     } as unknown as vi.Mocked<ConfigService>;
 
@@ -27,8 +41,14 @@ describe('MetricsService', () => {
     configService = {
       get: vi.fn((key: string) => {
         if (key === 'NODE_ENV') return 'development';
-        if (key === 'METRICS_ENABLED') return 'true';
         return undefined;
+      }),
+      getOrThrow: vi.fn((key: string) => {
+        if (key === (ConfigKey.Yaml as string)) {
+          // Override test.yaml's metrics.enabled=false for these tests
+          return { ...yamlConfig, metrics: { enabled: true } };
+        }
+        throw new Error(`Missing config: ${key}`);
       }),
     } as unknown as vi.Mocked<ConfigService>;
 

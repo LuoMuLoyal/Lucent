@@ -193,6 +193,7 @@ const prodJsonFormat = winstonFormat.combine(
 export function createLoggerOptions(
   nodeEnv: string,
   logLevel: string,
+  logFormat?: string,
 ): WinstonModuleOptions {
   const env = nodeEnv || process.env[EnvKey.NODE_ENV] || 'development';
   const level = resolveLevel(env, logLevel);
@@ -200,8 +201,11 @@ export function createLoggerOptions(
 
   // LOG_FORMAT overrides the environment default. `pretty` forces the dev
   // console format; `json` forces JSON — useful in any direction.
+  // Priority: process.env > YAML default > environment-based default.
   const logFormatOverride = (
-    process.env[EnvKey.LOG_FORMAT] ?? ''
+    process.env[EnvKey.LOG_FORMAT] ??
+    logFormat ??
+    ''
   ).toLowerCase();
   const useJsonFormat =
     logFormatOverride === 'json' ||

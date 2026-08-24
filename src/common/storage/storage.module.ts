@@ -1,6 +1,7 @@
-import { Module, ServiceUnavailableException } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EnvKey } from '../../config/env/env-keys.enum';
+import { ConfigKey } from '../../config/env/config-keys.enum';
+import type { YamlConfig } from '../../config/yaml/yaml-loader';
 import { ObjectStorageRuntime } from './object-storage.runtime';
 import { TencentCosStorageRuntime } from './tencent-cos.runtime';
 import { S3StorageRuntime } from './s3.runtime';
@@ -21,20 +22,12 @@ import { S3StorageRuntime } from './s3.runtime';
     {
       provide: ObjectStorageRuntime,
       useFactory: (configService: ConfigService): ObjectStorageRuntime => {
-        const provider =
-          configService.get<string>(EnvKey.STORAGE_PROVIDER) ?? 'tencent-cos';
+        const yaml = configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
+        const provider = yaml.storage.provider;
         if (provider === 's3') {
           return new S3StorageRuntime(configService);
         }
-        if (provider === 'tencent-cos') {
-          return new TencentCosStorageRuntime(configService);
-        }
-        throw new ServiceUnavailableException({
-          code: 'DEPENDENCY_UNAVAILABLE',
-          message:
-            `STORAGE_PROVIDER "${provider}" is not supported. ` +
-            'Use "tencent-cos" or "s3".',
-        });
+        return new TencentCosStorageRuntime(configService);
       },
       inject: [ConfigService],
     },

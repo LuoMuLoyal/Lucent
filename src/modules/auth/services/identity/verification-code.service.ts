@@ -13,14 +13,8 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result';
-import {
-  DEFAULT_VERIFICATION_CODE_LENGTH,
-  DEFAULT_VERIFICATION_CODE_TTL_MS,
-  DEFAULT_VERIFICATION_COOLDOWN_MS,
-  DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
-  DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
-} from '../../../../config/constants';
-import { EnvKey } from '../../../../config/env/env-keys.enum';
+import { ConfigKey } from '../../../../config/env/config-keys.enum';
+import type { YamlConfig } from '../../../../config/yaml/yaml-loader';
 import { MailService } from '../../../../mail/mail.service';
 import type { VerificationScene } from '../../dto/password/send-verification-code.dto';
 
@@ -51,26 +45,12 @@ export class VerificationCodeService {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {
-    this.codeTtlMs = this.configService.get<number>(
-      EnvKey.VERIFICATION_CODE_TTL_MS,
-      DEFAULT_VERIFICATION_CODE_TTL_MS,
-    );
-    this.cooldownTtlMs = this.configService.get<number>(
-      EnvKey.VERIFICATION_COOLDOWN_MS,
-      DEFAULT_VERIFICATION_COOLDOWN_MS,
-    );
-    this.rateLimitWindowMs = this.configService.get<number>(
-      EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS,
-      DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
-    );
-    this.rateLimitMaxRequests = this.configService.get<number>(
-      EnvKey.VERIFICATION_RATE_LIMIT_MAX,
-      DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
-    );
-    this.codeLength = this.configService.get<number>(
-      EnvKey.VERIFICATION_CODE_LENGTH,
-      DEFAULT_VERIFICATION_CODE_LENGTH,
-    );
+    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
+    this.codeTtlMs = yaml.verification.codeTtlMs;
+    this.cooldownTtlMs = yaml.verification.cooldownMs;
+    this.rateLimitWindowMs = yaml.verification.rateLimitWindowMs;
+    this.rateLimitMaxRequests = yaml.verification.rateLimitMax;
+    this.codeLength = yaml.verification.codeLength;
   }
 
   /** Cooldown period in seconds (exposed for API response). */
