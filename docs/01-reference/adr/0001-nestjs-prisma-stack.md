@@ -17,16 +17,11 @@ database, and Redis for caching and BullMQ queues.
 
 ## Options Considered
 
-- NestJS + Prisma
-  - Pros: Strong TypeScript support, module system, guards/interceptors, OpenAPI generation, mature
-    ecosystem
-  - Cons: Learning curve for NestJS decorator pattern
-- Express + TypeORM
-  - Pros: Simpler mental model, widely known
-  - Cons: Less structure for growing codebase, TypeORM maintenance concerns
-- Fastify + Knex
-  - Pros: High performance, query-builder flexibility
-  - Cons: Less ecosystem for auth/OAuth, manual OpenAPI
+| Option            | Pros                                                                                                | Cons                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| NestJS + Prisma   | Strong TypeScript support, module system, guards/interceptors, OpenAPI generation, mature ecosystem | Learning curve for NestJS decorator pattern                       |
+| Express + TypeORM | Simpler mental model, widely known                                                                  | Less structure for growing codebase, TypeORM maintenance concerns |
+| Fastify + Knex    | High performance, query-builder flexibility                                                         | Less ecosystem for auth/OAuth, manual OpenAPI                     |
 
 ## Consequences
 

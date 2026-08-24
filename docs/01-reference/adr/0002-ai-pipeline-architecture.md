@@ -26,15 +26,11 @@ abstracted from individual feature modules.
 
 ## Options Considered
 
-- Three-layer pipeline with shared runtime
-  - Pros: Clear separation, reusable runtime, feature modules own only business logic
-  - Cons: More files/abstraction upfront
-- Each feature module owns its own AI code end-to-end
-  - Pros: Simpler per-module
-  - Cons: Duplicated model config, prompt safety gaps, harder to enforce consistent safety policy
-- Full LangGraph agent for everything
-  - Pros: Maximum flexibility
-  - Cons: Over-engineered for non-agent features (analysis, extraction, report gen)
+| Option                                              | Pros                                                                        | Cons                                                                                    |
+| --------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Three-layer pipeline with shared runtime            | Clear separation, reusable runtime, feature modules own only business logic | More files/abstraction upfront                                                          |
+| Each feature module owns its own AI code end-to-end | Simpler per-module                                                          | Duplicated model config, prompt safety gaps, harder to enforce consistent safety policy |
+| Full LangGraph agent for everything                 | Maximum flexibility                                                         | Over-engineered for non-agent features (analysis, extraction, report gen)               |
 
 ## Consequences
 

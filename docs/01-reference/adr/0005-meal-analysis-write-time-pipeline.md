@@ -1,8 +1,8 @@
 # ADR-0005: Write-Time Meal Analysis With Imported Food Composition Data
 
-## Status
-
-Accepted
+- **Status**: accepted
+- **Date**: 2026-06-17
+- **Deciders**: LuoMuLoyal
 
 ## Context
 
@@ -33,6 +33,14 @@ instead of an on-demand assistant retrieval feature. The pipeline:
    result is stored.
 7. Exposes a shared read-rule matrix so Today, Report, and Assistant agree on how status and
    coverage affect summaries and aggregation.
+
+## Options Considered
+
+| Option                                             | Pros                                                                                                                                      | Cons                                                                                                                                  |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Write-time analysis pipeline（本方案）**         | Deterministic results; all consumers read the same stored result; status/coverage visible to all; async pipeline doesn't block user input | Requires BullMQ infrastructure; first result delayed until async job completes; JSONB payload may need normalization later            |
+| Read-time analysis (on-demand assistant retrieval) | Always fresh; no stored payload to sync                                                                                                   | Results inconsistent across consumers; higher retrieval cost; cannot show why an estimate is partial or unconfirmed; blocks read path |
+| Synchronous analysis (inline in record creation)   | Simplest pipeline; result immediately available                                                                                           | Blocks HTTP request on LLM call; high latency; no retry/queue semantics                                                               |
 
 ## Consequences
 
