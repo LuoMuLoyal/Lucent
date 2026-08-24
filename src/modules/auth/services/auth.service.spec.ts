@@ -59,7 +59,6 @@ const mockUser = {
   id: 'user-uuid-1',
   email: 'test@example.com',
   emailVerified: true,
-  passwordHash: '$argon2id$mock',
   nickname: 'TestUser',
   avatar: null,
   status: UserStatus.active,

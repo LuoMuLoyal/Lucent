@@ -91,7 +91,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         nickname: 'Health User',
         status: UserStatus.active,
         emailVerifiedAt: new Date('2026-05-01T00:00:00.000Z'),
@@ -236,7 +235,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         profile: {
           create: {
@@ -300,7 +298,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -333,7 +330,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         profile: {
           create: {
@@ -384,7 +380,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -406,7 +401,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -434,7 +428,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -458,7 +451,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -506,7 +498,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         allergies: {
           create: {
@@ -547,7 +538,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         allergies: {
           create: {
@@ -585,7 +575,6 @@ describe('User Health Context API (e2e)', () => {
     const user1 = await ctx.prisma.user.create({
       data: {
         email: email1,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         allergies: {
           create: { kind: UserAllergyKind.drug, label: 'Penicillin' },
@@ -597,7 +586,6 @@ describe('User Health Context API (e2e)', () => {
     const user2 = await ctx.prisma.user.create({
       data: {
         email: email2,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -624,7 +612,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -670,7 +657,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         conditions: {
           create: {
@@ -714,7 +700,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         conditions: {
           create: {
@@ -759,7 +744,6 @@ describe('User Health Context API (e2e)', () => {
     const user1 = await ctx.prisma.user.create({
       data: {
         email: email1,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         conditions: {
           create: { label: 'Asthma', status: UserConditionStatus.active },
@@ -771,7 +755,6 @@ describe('User Health Context API (e2e)', () => {
     const user2 = await ctx.prisma.user.create({
       data: {
         email: email2,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -798,7 +781,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -841,7 +823,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         currentMedicines: {
           create: {
@@ -882,7 +863,6 @@ describe('User Health Context API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         currentMedicines: {
           create: {
@@ -921,7 +901,6 @@ describe('User Health Context API (e2e)', () => {
     const user1 = await ctx.prisma.user.create({
       data: {
         email: email1,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
         currentMedicines: {
           create: {
@@ -936,7 +915,6 @@ describe('User Health Context API (e2e)', () => {
     const user2 = await ctx.prisma.user.create({
       data: {
         email: email2,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });

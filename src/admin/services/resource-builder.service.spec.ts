@@ -24,7 +24,7 @@ describe('buildResources', () => {
                 fields: [
                   { name: 'id', kind: 'scalar', type: 'String' },
                   { name: 'email', kind: 'scalar', type: 'String' },
-                  { name: 'passwordHash', kind: 'scalar', type: 'String' },
+                  { name: 'password', kind: 'scalar', type: 'String' },
                   { name: 'createdAt', kind: 'scalar', type: 'DateTime' },
                   { name: 'posts', kind: 'object', type: 'Post' },
                 ],
@@ -70,10 +70,14 @@ describe('buildResources', () => {
     );
 
     const options = results[0]?.options;
-    // posts (relation) and passwordHash (sensitive) should be hidden
+    // posts (relation) and password (sensitive) should be hidden
     expect(options?.properties).toHaveProperty('posts');
-    expect(options?.properties).toHaveProperty('passwordHash');
+    expect(options?.properties).toHaveProperty('password');
     expect(options?.properties?.['posts']).toMatchObject({
+      isVisible: false,
+      isDisabled: true,
+    });
+    expect(options?.properties?.['password']).toMatchObject({
       isVisible: false,
       isDisabled: true,
     });
@@ -87,10 +91,10 @@ describe('buildResources', () => {
     );
 
     const options = results[0]?.options;
-    // id, email, createdAt are visible (passwordHash is sensitive, posts is relation)
+    // id, email, createdAt are visible (password is sensitive, posts is relation)
     expect(options?.listProperties).toContain('id');
     expect(options?.listProperties).toContain('email');
-    expect(options?.listProperties).not.toContain('passwordHash');
+    expect(options?.listProperties).not.toContain('password');
     expect(options?.listProperties).not.toContain('posts');
   });
 

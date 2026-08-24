@@ -40,6 +40,9 @@ describe('TestingSupportService', () => {
               create: vi.fn(),
               update: vi.fn(),
             },
+            account: {
+              upsert: vi.fn(),
+            },
             userDailyRecord: {
               findMany: vi.fn(),
               deleteMany: vi.fn(),
@@ -87,11 +90,28 @@ describe('TestingSupportService', () => {
     expect(prisma.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         email: 'recordlane@example.com',
-        passwordHash: '$argon2id$e2e',
         nickname: 'Record Lane User',
         profile: { create: {} },
       }),
       select: { id: true, nickname: true },
+    });
+    expect(prisma.account.upsert).toHaveBeenCalledWith({
+      where: {
+        providerId_accountId: {
+          providerId: 'credential',
+          accountId: 'user-1',
+        },
+      },
+      create: expect.objectContaining({
+        userId: 'user-1',
+        providerId: 'credential',
+        issuer: 'local:credential',
+        accountId: 'user-1',
+        password: '$argon2id$e2e',
+      }),
+      update: {
+        password: '$argon2id$e2e',
+      },
     });
     expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
@@ -174,7 +194,6 @@ describe('TestingSupportService', () => {
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: expect.objectContaining({
-        passwordHash: '$argon2id$e2e',
         nickname: 'Record Lane User',
         profile: {
           upsert: {
@@ -184,6 +203,24 @@ describe('TestingSupportService', () => {
         },
       }),
       select: { id: true, nickname: true },
+    });
+    expect(prisma.account.upsert).toHaveBeenCalledWith({
+      where: {
+        providerId_accountId: {
+          providerId: 'credential',
+          accountId: 'user-1',
+        },
+      },
+      create: expect.objectContaining({
+        userId: 'user-1',
+        providerId: 'credential',
+        issuer: 'local:credential',
+        accountId: 'user-1',
+        password: '$argon2id$e2e',
+      }),
+      update: {
+        password: '$argon2id$e2e',
+      },
     });
     expect(prisma.userDailyRecordAttachment.deleteMany).toHaveBeenCalledWith({
       where: {

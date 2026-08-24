@@ -37,7 +37,7 @@
 | `UserNotification`                                                   | notifications       |
 | 药品知识库表（`CnMedicine*`、`Drugbank*`、`MedicineSafetyTip`）      | medicines           |
 
-**User 表字段分组归属**：核心身份字段（email、nickname、avatar、passwordHash、status
+**User 表字段分组归属**：核心身份字段（email、nickname、avatar、status
 等）归 user 模块；`securityPinEnabled` / `securityPinHash` / `securityPinChangedAt` /
 `securityElevationVersion` 归 security-pin 模块，security-pin 对这四列的读写视为域内
 访问（pin.service 现状保留）。

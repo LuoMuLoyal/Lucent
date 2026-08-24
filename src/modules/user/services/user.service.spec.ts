@@ -20,7 +20,6 @@ import { PrismaService } from '../../../prisma';
 const mockUser = {
   id: 'user-uuid-1',
   email: 'test@example.com',
-  passwordHash: '$argon2id$mock',
   nickname: 'TestUser',
   avatar: null,
   status: UserStatus.active,
@@ -220,14 +219,12 @@ describe('UserService', () => {
 
       const result = await service.create({
         email: 'test@example.com',
-        passwordHash: '$argon2id$mock',
         nickname: 'TestUser',
       });
 
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: 'test@example.com',
-          passwordHash: '$argon2id$mock',
           nickname: 'TestUser',
           profile: { create: {} },
         },
@@ -240,7 +237,6 @@ describe('UserService', () => {
 
       await service.create({
         email: 'test@example.com',
-        passwordHash: '$argon2id$mock',
         profile: {
           create: {
             locale: 'zh-CN',
@@ -251,7 +247,6 @@ describe('UserService', () => {
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: 'test@example.com',
-          passwordHash: '$argon2id$mock',
           profile: {
             create: {
               locale: 'zh-CN',
@@ -267,7 +262,6 @@ describe('UserService', () => {
       const verifiedAt = new Date('2026-01-02T00:00:00Z');
       const oauthUser = {
         ...mockUser,
-        passwordHash: null,
         emailVerifiedAt: verifiedAt,
       };
       (prismaService.user.create as vi.Mock).mockResolvedValue(oauthUser);
@@ -289,7 +283,6 @@ describe('UserService', () => {
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: 'test@example.com',
-          passwordHash: null,
           nickname: 'TestUser',
           avatar: null,
           emailVerifiedAt: verifiedAt,
@@ -312,7 +305,6 @@ describe('UserService', () => {
       const oauthUser = {
         ...mockUser,
         email: null,
-        passwordHash: null,
         nickname: 'WechatUser',
         avatar: 'https://example.com/avatar.png',
       };
@@ -334,7 +326,6 @@ describe('UserService', () => {
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: 'wechat@example.com',
-          passwordHash: null,
           nickname: 'WechatUser',
           avatar: 'https://example.com/avatar.png',
           profile: { create: {} },

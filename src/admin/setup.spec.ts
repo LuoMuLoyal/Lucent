@@ -40,7 +40,6 @@ describe('AdminJS resource config generation', () => {
       'User',
     );
 
-    expect(config.hiddenProperties).toContain('passwordHash');
     expect(config.hiddenProperties).toContain('profile');
     expect(config.hiddenProperties).toContain('sessions');
     expect(config.hiddenProperties).toContain('identities');
@@ -53,7 +52,7 @@ describe('AdminJS resource config generation', () => {
     expect(userConfig.navigation).toBe('Users');
     expect(userConfig.titleProperty).toBe('email');
     expect(userConfig.listProperties).toContain('email');
-    expect(userConfig.listProperties).not.toContain('passwordHash');
+    expect(userConfig.listProperties).not.toContain('password');
 
     const tipConfig = getConfig(configs, 'MedicineSafetyTip');
 

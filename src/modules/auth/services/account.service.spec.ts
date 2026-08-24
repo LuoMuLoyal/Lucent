@@ -26,7 +26,6 @@ function collectResult<T, E>(
 const mockUser = {
   id: 'user-1',
   email: 'test@example.com',
-  passwordHash: '$argon2id$mock',
   nickname: 'TestUser',
   deletedAt: null,
 };
@@ -130,10 +129,9 @@ describe('AuthAccountService', () => {
       expect(accountRepo.softDeleteUser).not.toHaveBeenCalled();
     });
 
-    it('returns AUTH_PASSWORD_NOT_SET when OAuth account has no passwordHash', async () => {
+    it('returns AUTH_PASSWORD_NOT_SET when OAuth account has no credential password', async () => {
       userService.findById.mockResolvedValue({
         ...mockUser,
-        passwordHash: null,
       } as never);
       passwordReauthService.verify.mockReturnValue(
         errAsync(

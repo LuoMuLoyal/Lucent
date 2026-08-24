@@ -21,7 +21,6 @@ const mockUser: User = {
   id: 'user-1',
   email: 'test@example.com',
   emailVerified: true,
-  passwordHash: null,
   nickname: 'OAuthUser',
   avatar: 'https://example.com/avatar.jpg',
   status: UserStatus.active,

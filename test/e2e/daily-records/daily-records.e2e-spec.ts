@@ -123,7 +123,6 @@ describe('Daily Records API (e2e)', () => {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -164,7 +163,6 @@ describe('Daily Records API (e2e)', () => {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -203,7 +201,6 @@ describe('Daily Records API (e2e)', () => {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -283,7 +280,6 @@ describe('Daily Records API (e2e)', () => {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -325,7 +321,6 @@ describe('Daily Records API (e2e)', () => {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -368,7 +363,6 @@ describe('Daily Records API (e2e)', () => {
     const user1 = await prisma.user.create({
       data: {
         email: email1,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -389,7 +383,6 @@ describe('Daily Records API (e2e)', () => {
     const user2 = await prisma.user.create({
       data: {
         email: email2,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -416,7 +409,6 @@ describe('Daily Records API (e2e)', () => {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -450,7 +442,6 @@ describe('Daily Records API (e2e)', () => {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
@@ -534,7 +525,6 @@ describe('Daily Records API (e2e)', () => {
       const user = await prisma.user.create({
         data: {
           email,
-          passwordHash: '$argon2id$mock',
           status: UserStatus.active,
         },
       });
@@ -561,7 +551,6 @@ describe('Daily Records API (e2e)', () => {
       const user = await prisma.user.create({
         data: {
           email,
-          passwordHash: '$argon2id$mock',
           status: UserStatus.active,
         },
       });
@@ -582,7 +571,6 @@ describe('Daily Records API (e2e)', () => {
       const user = await prisma.user.create({
         data: {
           email,
-          passwordHash: '$argon2id$mock',
           status: UserStatus.active,
         },
       });

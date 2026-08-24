@@ -5,10 +5,12 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import request from 'supertest';
+import * as argon2 from 'argon2';
 
 import { AppModule } from '../../src/app.module';
+import { ARGON2_OPTIONS } from '../../src/modules/auth';
 import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma';
 import { ConfigKey } from '../../src/config/env/config-keys.enum';
@@ -95,6 +97,7 @@ export async function cleanupDatabase(prisma: PrismaService): Promise<void> {
   await prisma.userIdentity.deleteMany();
   await prisma.userSession.deleteMany();
   await prisma.userProfile.deleteMany();
+  await prisma.account.deleteMany();
 
   // 4. Root table
   await prisma.user.deleteMany();
@@ -131,14 +134,24 @@ export async function createTestUser(
   prisma: PrismaService,
   email?: string,
   nickname?: string,
+  password = 'Test@123456',
 ): Promise<TestUser> {
   const userEmail = email ?? uniqueEmail();
   const user = await prisma.user.create({
     data: {
       email: userEmail,
-      passwordHash: '$argon2id$mock',
       nickname: nickname ?? 'E2eUser',
       status: UserStatus.active,
+    },
+  });
+  await prisma.account.create({
+    data: {
+      id: randomUUID(),
+      userId: user.id,
+      providerId: 'credential',
+      issuer: 'local:credential',
+      accountId: user.id,
+      password: await argon2.hash(password, ARGON2_OPTIONS),
     },
   });
   return {

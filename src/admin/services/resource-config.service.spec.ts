@@ -59,13 +59,13 @@ describe('generateAdminResourceConfigs', () => {
     expect(configs[0]?.hiddenProperties).toContain('user');
   });
 
-  it('hides sensitive fields (passwordHash, refreshTokenHash)', () => {
+  it('hides sensitive fields (password, refreshTokenHash)', () => {
     const module = makeClientModule([
       {
         name: 'TestModel',
         fields: [
           { name: 'id', kind: 'scalar', type: 'String' },
-          { name: 'passwordHash', kind: 'scalar', type: 'String' },
+          { name: 'password', kind: 'scalar', type: 'String' },
           { name: 'refreshTokenHash', kind: 'scalar', type: 'String' },
           { name: 'name', kind: 'scalar', type: 'String' },
         ],
@@ -74,9 +74,9 @@ describe('generateAdminResourceConfigs', () => {
 
     const configs = generateAdminResourceConfigs(module);
 
-    expect(configs[0]?.hiddenProperties).toContain('passwordHash');
+    expect(configs[0]?.hiddenProperties).toContain('password');
     expect(configs[0]?.hiddenProperties).toContain('refreshTokenHash');
-    expect(configs[0]?.listProperties).not.toContain('passwordHash');
+    expect(configs[0]?.listProperties).not.toContain('password');
     expect(configs[0]?.showProperties).not.toContain('refreshTokenHash');
   });
 
@@ -170,7 +170,7 @@ describe('generateAdminResourceConfigs', () => {
         fields: [
           { name: 'id', kind: 'scalar', type: 'String' },
           { name: 'email', kind: 'scalar', type: 'String' },
-          { name: 'passwordHash', kind: 'scalar', type: 'String' },
+          { name: 'nickname', kind: 'scalar', type: 'String' },
           { name: 'createdAt', kind: 'scalar', type: 'DateTime' },
         ],
       },

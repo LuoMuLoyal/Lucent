@@ -830,7 +830,7 @@ describe('Auth API (e2e)', () => {
       ).resolves.toBeNull();
     });
 
-    it('should reject unlinking the last sign-in method when password is wrong', async () => {
+    it('should reject unlinking the last sign-in method when no credential account exists', async () => {
       const { user, tokens } = await registerUser();
       const identity = await ctx.prisma.userIdentity.create({
         data: {
@@ -840,9 +840,8 @@ describe('Auth API (e2e)', () => {
           providerUnionId: `wechat-unionid-${user.id}`,
         },
       });
-      await ctx.prisma.user.update({
-        where: { id: user.id },
-        data: { passwordHash: null },
+      await ctx.prisma.account.deleteMany({
+        where: { userId: user.id, providerId: 'credential' },
       });
 
       const res = await request(app.getHttpServer())
@@ -852,7 +851,7 @@ describe('Auth API (e2e)', () => {
         .expect(401);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
+      expect(body['code']).toBe('AUTH_PASSWORD_NOT_SET');
     });
 
     it('should reject unlinking another account identity', async () => {

@@ -44,7 +44,6 @@ model User {
   id                     String                      @id @default(uuid())
   email                  String                      @unique
   emailVerified          Boolean                     @default(false) @map("email_verified") @db.Boolean
-  passwordHash           String?                     @map("password_hash") // argon2 hashed for local accounts
   nickname               String?
   avatar                 String?
   status                 UserStatus                  @default(active)

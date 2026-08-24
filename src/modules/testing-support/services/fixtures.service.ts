@@ -1,6 +1,7 @@
 import { parseDateOnly, now } from '../../../common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
 
@@ -16,6 +17,7 @@ const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 type TestingSupportDbClient = Pick<
   PrismaService,
   | 'user'
+  | 'account'
   | 'userDailyRecord'
   | 'userDailyRecordAttachment'
   | 'userSession'
@@ -43,7 +45,7 @@ export class TestingSupportService {
   ): Promise<PrepareFullstackRecordLaneResult> {
     const email = dto.email.trim().toLowerCase();
     const nickname = dto.nickname?.trim() || DEFAULT_RECORD_LANE_NICKNAME;
-    const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
+    const credentialPassword = await argon2.hash(dto.password, ARGON2_OPTIONS);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findFirst({
@@ -55,7 +57,6 @@ export class TestingSupportService {
         ? await tx.user.update({
             where: { id: existingUser.id },
             data: {
-              passwordHash,
               nickname,
               status: UserStatus.active,
               emailVerifiedAt: now(),
@@ -71,7 +72,6 @@ export class TestingSupportService {
         : await tx.user.create({
             data: {
               email,
-              passwordHash,
               nickname,
               status: UserStatus.active,
               emailVerifiedAt: now(),
@@ -79,6 +79,26 @@ export class TestingSupportService {
             },
             select: { id: true, nickname: true },
           });
+
+      await tx.account.upsert({
+        where: {
+          providerId_accountId: {
+            providerId: 'credential',
+            accountId: user.id,
+          },
+        },
+        create: {
+          id: randomUUID(),
+          userId: user.id,
+          providerId: 'credential',
+          issuer: 'local:credential',
+          accountId: user.id,
+          password: credentialPassword,
+        },
+        update: {
+          password: credentialPassword,
+        },
+      });
 
       const clearedRecordCount = await this.clearDailyRecordsForDate(
         tx,

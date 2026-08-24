@@ -210,7 +210,6 @@ describe('Notifications API (e2e)', () => {
       const otherUser = await ctx.prisma.user.create({
         data: {
           email: otherEmail,
-          passwordHash: '$argon2id$mock',
           status: UserStatus.active,
         },
       });
@@ -400,7 +399,6 @@ describe('Notifications API (e2e)', () => {
       const otherUser = await ctx.prisma.user.create({
         data: {
           email: otherEmail,
-          passwordHash: '$argon2id$mock',
           status: UserStatus.active,
         },
       });

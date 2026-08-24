@@ -8,14 +8,13 @@ import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client';
 
 import { AccountService } from './account.service';
-import { PasswordReauthService } from '../../auth';
+import { AuthBetterAuthAdapter, PasswordReauthService } from '../../auth';
 import { UserService } from '../../user';
 import type { UpdateAccountDto } from '../dto/update.dto';
 
 const baseUser = {
   id: 'user-uuid-1',
   email: 'test@example.com',
-  passwordHash: '$argon2id$mock',
   nickname: 'TestUser',
   avatar: 'https://example.com/avatar.png',
   status: UserStatus.active,
@@ -63,6 +62,7 @@ describe('AccountService', () => {
   let service: AccountService;
   let userService: DeepMocked<UserService>;
   let passwordReauthService: vi.Mocked<PasswordReauthService>;
+  let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
   let module: TestingModule;
 
   beforeEach(async () => {
@@ -87,12 +87,19 @@ describe('AccountService', () => {
             verify: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
+        {
+          provide: AuthBetterAuthAdapter,
+          useValue: {
+            hasPassword: vi.fn().mockReturnValue(okAsync(true)),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(AccountService);
     userService = module.get(UserService);
     passwordReauthService = module.get(PasswordReauthService);
+    betterAuthAdapter = module.get(AuthBetterAuthAdapter);
   });
 
   afterEach(() => {
@@ -146,10 +153,12 @@ describe('AccountService', () => {
       });
     });
 
-    it('should set hasPassword to false when passwordHash is null', async () => {
+    it('should set hasPassword to false when there is no credential account', async () => {
+      (betterAuthAdapter.hasPassword as vi.Mock).mockReturnValueOnce(
+        okAsync(false),
+      );
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue({
         ...baseUser,
-        passwordHash: null,
         identities: [baseIdentity],
       });
 
@@ -301,12 +310,10 @@ describe('AccountService', () => {
       (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
-          passwordHash: '$argon2id$exists',
           identities: [baseIdentity, secondIdentity],
         })
         .mockResolvedValueOnce({
           ...baseUser,
-          passwordHash: '$argon2id$exists',
           identities: [secondIdentity],
         });
       (userService.unlinkIdentity as vi.Mock).mockReturnValue(
@@ -335,7 +342,6 @@ describe('AccountService', () => {
     it('should return AUTH_WRONG_PASSWORD when password verification fails', async () => {
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
-        passwordHash: '$argon2id$exists',
         identities: [baseIdentity, secondIdentity],
       });
       passwordReauthService.verify.mockReturnValue(
@@ -363,7 +369,6 @@ describe('AccountService', () => {
     it('should return AUTH_PASSWORD_NOT_SET for OAuth-only users', async () => {
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
-        passwordHash: null,
         identities: [baseIdentity, secondIdentity],
       });
       passwordReauthService.verify.mockReturnValue(
@@ -389,9 +394,11 @@ describe('AccountService', () => {
     });
 
     it('should return an authorization DomainFailure when unlinking the last sign-in method', async () => {
+      (betterAuthAdapter.hasPassword as vi.Mock).mockReturnValueOnce(
+        okAsync(false),
+      );
       (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
-        passwordHash: null,
         identities: [baseIdentity],
       });
 
@@ -411,12 +418,10 @@ describe('AccountService', () => {
       (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
-          passwordHash: '$argon2id$exists',
           identities: [baseIdentity],
         })
         .mockResolvedValueOnce({
           ...baseUser,
-          passwordHash: '$argon2id$exists',
           identities: [],
         });
       (userService.unlinkIdentity as vi.Mock).mockReturnValue(
@@ -452,16 +457,17 @@ describe('AccountService', () => {
       });
     });
 
-    it('should allow unlinking when user has multiple identities and no password', async () => {
+    it('should allow unlinking when password verification succeeds and multiple identities remain', async () => {
+      (betterAuthAdapter.hasPassword as vi.Mock).mockReturnValueOnce(
+        okAsync(false),
+      );
       (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
-          passwordHash: null,
           identities: [baseIdentity, secondIdentity],
         })
         .mockResolvedValueOnce({
           ...baseUser,
-          passwordHash: null,
           identities: [secondIdentity],
         });
       (userService.unlinkIdentity as vi.Mock).mockReturnValue(

@@ -159,12 +159,11 @@ describe('Account API (e2e)', () => {
     });
 
     it('should set password for an OAuth-only user (no existing password)', async () => {
-      // Create an OAuth-only user (no passwordHash)
+      // Create an OAuth-only user (no credential account)
       const oauthEmail = uniqueEmail('oauth-setpw');
       const oauthUser = await ctx.prisma.user.create({
         data: {
           email: oauthEmail,
-          passwordHash: null,
           nickname: 'OAuthUser',
           status: UserStatus.active,
         },
@@ -211,7 +210,7 @@ describe('Account API (e2e)', () => {
     });
 
     it('should reject set-password when user already has a password (409)', async () => {
-      // The main test user has a passwordHash
+      // The main test user has a credential account
       // Seed verification code hash (service stores hash, not plaintext)
       const code = '123456';
       const hash = createHash('sha256')
@@ -239,7 +238,6 @@ describe('Account API (e2e)', () => {
       const oauthUser = await ctx.prisma.user.create({
         data: {
           email: oauthEmail,
-          passwordHash: null,
           nickname: 'OAuthUser2',
           status: UserStatus.active,
         },
@@ -269,7 +267,6 @@ describe('Account API (e2e)', () => {
       const oauthUser = await ctx.prisma.user.create({
         data: {
           email: oauthEmail,
-          passwordHash: null,
           nickname: 'OAuthUser3',
           status: UserStatus.active,
         },
@@ -307,7 +304,6 @@ describe('Account API (e2e)', () => {
       const oauthUser = await ctx.prisma.user.create({
         data: {
           email: oauthEmail,
-          passwordHash: null,
           nickname: 'OAuthUser4',
           status: UserStatus.active,
         },
@@ -482,7 +478,6 @@ describe('Account API (e2e)', () => {
       const linkUser = await ctx.prisma.user.create({
         data: {
           email: linkEmail,
-          passwordHash: '$argon2id$mock',
           nickname: 'WxWebLinkUser',
           status: UserStatus.active,
         },
@@ -567,7 +562,6 @@ describe('Account API (e2e)', () => {
       const linkUser = await ctx.prisma.user.create({
         data: {
           email: linkEmail,
-          passwordHash: '$argon2id$mock',
           nickname: 'WxMobileLinkUser',
           status: UserStatus.active,
         },

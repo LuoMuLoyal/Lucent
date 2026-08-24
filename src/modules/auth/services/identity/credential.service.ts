@@ -188,11 +188,11 @@ export class CredentialAuthService {
         }
 
         return this.lift(this.betterAuthAdapter.hashPassword(dto.newPassword))
-          .andThen((passwordHash) =>
+          .andThen((hashedPassword) =>
             this.lift(
               this.prisma.account.update({
                 where: { id: account.id },
-                data: { password: passwordHash },
+                data: { password: hashedPassword },
               }),
             ),
           )
@@ -239,7 +239,7 @@ export class CredentialAuthService {
           .andThen(() =>
             this.lift(this.betterAuthAdapter.hashPassword(dto.password)),
           )
-          .andThen((passwordHash) =>
+          .andThen((hashedPassword) =>
             this.lift(
               this.prisma.account.create({
                 data: {
@@ -248,7 +248,7 @@ export class CredentialAuthService {
                   providerId: this.betterAuthAdapter.credentialProviderId,
                   issuer: this.betterAuthAdapter.credentialIssuer,
                   accountId: userId,
-                  password: passwordHash,
+                  password: hashedPassword,
                 },
               }),
             ),

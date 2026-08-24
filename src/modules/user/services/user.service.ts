@@ -81,7 +81,6 @@ export class UserService {
     return this.prisma.user.create({
       data: {
         email: data.email,
-        passwordHash: null,
         ...(data.nickname !== undefined && { nickname: data.nickname }),
         ...(data.avatar !== undefined && { avatar: data.avatar }),
         ...(data.emailVerifiedAt !== undefined && {

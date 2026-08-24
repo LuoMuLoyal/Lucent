@@ -34,7 +34,6 @@ describe('Medicine Reminders API (e2e)', () => {
     const user = await ctx.prisma.user.create({
       data: {
         email,
-        passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });

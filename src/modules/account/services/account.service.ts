@@ -9,7 +9,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
-import { PasswordReauthService } from '../../auth';
+import { AuthBetterAuthAdapter, PasswordReauthService } from '../../auth';
 import { UserService } from '../../user';
 import { AccountDto } from '../dto/response.dto';
 import { UnlinkIdentityDto } from '../dto/unlink-identity.dto';
@@ -22,11 +22,14 @@ export class AccountService {
   constructor(
     private readonly userService: UserService,
     private readonly passwordReauthService: PasswordReauthService,
+    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
   ) {}
 
   getAccount(userId: string): ResultAsync<AccountDto, DomainFailure> {
-    return this.getActiveAccountUser(userId).map((user) =>
-      this.toAccountDto(user),
+    return this.getActiveAccountUser(userId).andThen((user) =>
+      this.betterAuthAdapter
+        .hasPassword(userId)
+        .map((hasPassword) => this.toAccountDto(user, hasPassword)),
     );
   }
 
@@ -56,7 +59,12 @@ export class AccountService {
       .andThen((user) =>
         this.passwordReauthService.verify(userId, dto.password).map(() => user),
       )
-      .andThen((user) => {
+      .andThen((user) =>
+        this.betterAuthAdapter
+          .hasPassword(userId)
+          .map((hasPassword) => ({ user, hasPassword })),
+      )
+      .andThen(({ user, hasPassword }) => {
         const identity = user.identities.find((item) => item.id === identityId);
         if (!identity) {
           return errAsync(
@@ -67,7 +75,7 @@ export class AccountService {
           );
         }
 
-        if (user.passwordHash === null && user.identities.length <= 1) {
+        if (!hasPassword && user.identities.length <= 1) {
           return errAsync(
             createDomainFailure({
               kind: 'authorization',
@@ -103,14 +111,14 @@ export class AccountService {
     });
   }
 
-  private toAccountDto(user: AccountUser): AccountDto {
+  private toAccountDto(user: AccountUser, hasPassword: boolean): AccountDto {
     return {
       id: user.id,
       email: user.email,
       nickname: user.nickname,
       avatar: user.avatar,
       emailVerifiedAt: this.formatDateTime(user.emailVerifiedAt),
-      hasPassword: user.passwordHash !== null,
+      hasPassword,
       lastLoginAt: this.formatDateTime(user.lastLoginAt),
       linkedIdentities: user.identities.map((identity) => ({
         id: identity.id,

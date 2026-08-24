@@ -9,7 +9,7 @@ export const ADMIN_COOKIE_SECRET_KEY = 'ADMIN_COOKIE_SECRET';
 export const NODE_ENV_KEY = 'NODE_ENV';
 
 export const DEFAULT_SENSITIVE_FIELDS = new Set([
-  'passwordHash',
+  'password',
   'refreshTokenHash',
   'pushToken',
   'rawProfile',
@@ -50,7 +50,11 @@ export const coreResourceOverrides: Record<
     filterProperties: ['email', 'nickname', 'status', 'createdAt'],
     titleProperty: 'email',
     sort: { sortBy: 'createdAt', direction: 'desc' },
-    hiddenProperties: ['passwordHash'],
+  },
+  Account: {
+    navigation: 'Authentication',
+    hiddenProperties: ['password'],
+    titleProperty: 'accountId',
   },
   UserProfile: {
     navigation: 'Users',

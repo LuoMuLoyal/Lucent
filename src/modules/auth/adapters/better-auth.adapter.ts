@@ -18,8 +18,9 @@ import {
 } from '../../../common/result';
 
 const DEFAULT_EMAIL_CALLBACK_URL = 'luminous://auth/callback';
-const CREDENTIAL_PROVIDER_ID = 'credential';
-const LOCAL_CREDENTIAL_ISSUER = 'local:credential';
+
+export const CREDENTIAL_PROVIDER_ID = 'credential';
+export const LOCAL_CREDENTIAL_ISSUER = 'local:credential';
 
 /**
  * NestJS adapter wrapping the Better Auth library against Lucent's merged
@@ -231,6 +232,29 @@ export class AuthBetterAuthAdapter {
     ).map(() => undefined);
   }
 
+  /**
+   * Returns `true` when the user has a local credential account with a stored
+   * password.  This is the single source of truth for "does this user have a
+   * password?" now that `User.passwordHash` has been removed.
+   */
+  hasPassword(userId: string): ResultAsync<boolean, DomainFailure> {
+    return fromPromise(
+      this.prisma.account.findFirst({
+        where: {
+          userId,
+          providerId: CREDENTIAL_PROVIDER_ID,
+        },
+        select: { password: true },
+      }),
+      (error) => {
+        throw error;
+      },
+    ).map(
+      (account) =>
+        account?.password !== null && account?.password !== undefined,
+    );
+  }
+
   private findCredentialAccount(
     userId: string,
   ): ResultAsync<{ password: string | null } | null, DomainFailure> {
@@ -238,7 +262,7 @@ export class AuthBetterAuthAdapter {
       this.prisma.account.findFirst({
         where: {
           userId,
-          providerId: this.credentialProviderId,
+          providerId: CREDENTIAL_PROVIDER_ID,
         },
         select: { password: true },
       }),

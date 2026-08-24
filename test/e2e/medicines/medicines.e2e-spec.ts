@@ -376,7 +376,6 @@ describe('Medicines API (e2e)', () => {
       const user = await prisma.user.create({
         data: {
           email,
-          passwordHash: '$argon2id$mock',
           status: UserStatus.active,
         },
       });
