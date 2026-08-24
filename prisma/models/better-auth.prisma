@@ -32,11 +32,17 @@ model Account {
   refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
   scope                 String?
   password              String?
+  providerUnionId       String?   @map("provider_union_id")
+  providerEmail         String?   @map("provider_email")
+  providerEmailVerifiedAt DateTime? @map("provider_email_verified_at") @db.Timestamptz(3)
+  rawProfile            Json?     @map("raw_profile") @db.JsonB
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@unique([providerId, accountId])
   @@index([userId])
+  @@index([providerUnionId])
+  @@index([providerEmail])
   @@map("accounts")
 }
 

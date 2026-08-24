@@ -83,6 +83,22 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
     return `${GOOGLE_AUTHORIZE_URL}?${params.toString()}`;
   }
 
+  exchangeCodeForTokens(
+    code: string,
+  ): ResultAsync<{ accessToken: string; idToken: string }, DomainFailure> {
+    const config = this.getConfig();
+
+    return this.fetchAccessToken(code, config).andThen((token) => {
+      if (!token.id_token) {
+        return errAsync(dependencyBadGateway());
+      }
+      return okAsync({
+        accessToken: token.access_token,
+        idToken: token.id_token,
+      });
+    });
+  }
+
   fetchProfile(
     credential: Record<string, unknown>,
   ): ResultAsync<OAuthProfile, DomainFailure> {

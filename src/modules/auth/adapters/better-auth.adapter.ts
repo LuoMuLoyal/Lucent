@@ -99,6 +99,13 @@ export class AuthBetterAuthAdapter {
         },
       },
       socialProviders: this.buildSocialProviders(),
+      account: {
+        accountLinking: {
+          enabled: true,
+          trustedProviders: ['apple', 'google'],
+        },
+        updateAccountOnSignIn: true,
+      },
       databaseHooks: {
         user: {
           create: {

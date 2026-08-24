@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { User } from '#generated/prisma/client';
+import { User, UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../../user';
 import {
   createDomainFailure,
@@ -165,9 +165,7 @@ export class AuthOAuthFacadeService {
             }),
           );
         }
-        return this.authTokenService
-          .generateTokenPair(user, context)
-          .map((tokens) => ({ user, ...tokens }));
+        return this.finalizeSocialLogin(user, context);
       });
   }
 
@@ -263,8 +261,31 @@ export class AuthOAuthFacadeService {
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthStateService
       .consume(OAUTH_PROVIDER_GOOGLE, dto.state, 'login')
-      .andThen(() => this.googleOAuthProvider.fetchProfile({ code: dto.code }))
-      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
+      .andThen(() => this.googleOAuthProvider.exchangeCodeForTokens(dto.code))
+      .andThen(({ accessToken, idToken }) =>
+        fromPromise<{ user: { id: string } }, DomainFailure>(
+          this.betterAuthAdapter.auth.api.signInSocial({
+            body: {
+              provider: 'google',
+              idToken: { token: idToken, accessToken },
+            },
+          }) as Promise<{ user: { id: string } }>,
+          (error) => this.mapBetterAuthOAuthError(error),
+        ),
+      )
+      .andThen((result) => this.lift(this.userService.findById(result.user.id)))
+      .andThen((user) => {
+        if (!user) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'authentication',
+              code: 'AUTH_OAUTH_FAILED',
+              detail: 'Better Auth returned a user that does not exist locally',
+            }),
+          );
+        }
+        return this.finalizeSocialLogin(user, context);
+      });
   }
 
   linkWechatWebIdentity(
@@ -338,6 +359,26 @@ export class AuthOAuthFacadeService {
               });
             return { user: updatedUser, ...tokens };
           }),
+      );
+  }
+
+  private finalizeSocialLogin(
+    user: User,
+    context?: AuthRequestContext,
+  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
+    return this.userService
+      .update(user.id, {
+        lastLoginAt: new Date(),
+        status: UserStatus.active,
+      })
+      .andThen((updatedUser) =>
+        this.authTokenService
+          .generateTokenPair(updatedUser, context)
+          .andThen((tokens) =>
+            this.betterAuthAdapter
+              .revokeBetterAuthSessions(updatedUser.id)
+              .map(() => ({ user: updatedUser, ...tokens })),
+          ),
       );
   }
 

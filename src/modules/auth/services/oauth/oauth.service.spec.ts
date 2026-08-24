@@ -2,14 +2,11 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
 import { AuthOAuthService } from './oauth.service';
-import { UserService } from '../../../user';
+import { PrismaService } from '../../../../prisma/prisma.service';
 import { Prisma, type User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
-import type { UserIdentity } from '#generated/prisma/client';
+import type { Account } from '#generated/prisma/client';
 import {
-  createDomainFailure,
-  errAsync,
-  okAsync,
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result';
@@ -31,15 +28,23 @@ const mockUser: User = {
   updatedAt: new Date('2026-01-01'),
 };
 
-const mockIdentity: UserIdentity = {
-  id: 'identity-1',
+const mockAccount: Account = {
+  id: 'account-1',
   userId: 'user-1',
-  provider: 'wechat_web',
-  providerUserId: 'wx-openid-123',
+  issuer: 'wechat_web',
+  providerId: 'wechat_web',
+  accountId: 'wx-openid-123',
   providerUnionId: 'wx-union-456',
-  email: 'wxuser@example.com',
-  emailVerifiedAt: new Date(),
+  providerEmail: 'wxuser@example.com',
+  providerEmailVerifiedAt: new Date(),
   rawProfile: null,
+  accessToken: null,
+  refreshToken: null,
+  idToken: null,
+  accessTokenExpiresAt: null,
+  refreshTokenExpiresAt: null,
+  scope: null,
+  password: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -55,8 +60,8 @@ const wechatProfile: OAuthProfile = {
 };
 
 const googleProfile = {
-  provider: 'wechat_web',
-  providerUserId: 'wechat-sub-789',
+  provider: 'google',
+  providerUserId: 'google-sub-789',
   email: 'google@example.com',
   emailVerifiedAt: new Date(),
   nickname: 'Google User',
@@ -83,37 +88,58 @@ function collectResult<T>(
 
 // ── Suite ─────────────────────────────────────────────────────
 
+type MockedPrisma = {
+  account: {
+    findFirst: vi.Mock;
+    create: vi.Mock;
+  };
+  user: {
+    findFirst: vi.Mock;
+    create: vi.Mock;
+    update: vi.Mock;
+  };
+  $transaction: vi.Mock;
+};
+
 describe('AuthOAuthService', () => {
   let service: AuthOAuthService;
-  let userService: vi.Mocked<UserService>;
+  let prisma: MockedPrisma;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthOAuthService,
         {
-          provide: UserService,
+          provide: PrismaService,
           useValue: {
-            findByIdentity: vi.fn(),
-            findByEmail: vi.fn(),
-            findByProviderUnionId: vi.fn(),
-            createOAuthUser: vi.fn(),
-            update: vi.fn(),
-            linkIdentity: vi.fn(),
+            account: {
+              findFirst: vi.fn(),
+              create: vi.fn(),
+            },
+            user: {
+              findFirst: vi.fn(),
+              create: vi.fn(),
+              update: vi.fn(),
+            },
+            $transaction: vi.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get(AuthOAuthService);
-    userService = module.get(UserService);
+    prisma = module.get(PrismaService) as unknown as MockedPrisma;
 
-    userService.findByIdentity.mockResolvedValue(null);
-    userService.findByEmail.mockResolvedValue(null);
-    userService.findByProviderUnionId.mockResolvedValue(null);
-    userService.createOAuthUser.mockResolvedValue(mockUser);
-    userService.update.mockReturnValue(okAsync(mockUser));
-    userService.linkIdentity.mockResolvedValue(mockIdentity);
+    prisma.account.findFirst.mockResolvedValue(null);
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue(mockUser);
+    prisma.user.update.mockResolvedValue(mockUser);
+    prisma.account.create.mockResolvedValue(mockAccount);
+
+    const runTransaction = async <T>(
+      callback: (tx: MockedPrisma) => Promise<T>,
+    ): Promise<T> => callback(prisma);
+    prisma.$transaction.mockImplementation(runTransaction);
   });
 
   afterEach(() => {
@@ -123,12 +149,16 @@ describe('AuthOAuthService', () => {
 
   describe('findOrCreateOAuthUser', () => {
     it('should return existing user matched by identity', async () => {
-      userService.findByIdentity.mockResolvedValue(mockUser);
+      prisma.account.findFirst.mockResolvedValue({
+        ...mockAccount,
+        user: mockUser,
+      });
       const outcome = await collectResult(
         service.findOrCreateOAuthUser(wechatProfile),
       );
       expect(outcome).toEqual({ ok: true, value: mockUser });
-      expect(userService.createOAuthUser).not.toHaveBeenCalled();
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(prisma.account.create).not.toHaveBeenCalled();
     });
 
     it('should create new user when no identity exists', async () => {
@@ -136,43 +166,80 @@ describe('AuthOAuthService', () => {
         service.findOrCreateOAuthUser(googleProfile),
       );
       expect(outcome.ok).toBe(true);
-      expect(userService.createOAuthUser).toHaveBeenCalledWith(
+      expect(prisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: 'google@example.com',
-          nickname: 'Google User',
-          identity: expect.objectContaining({
-            provider: 'wechat_web',
-            providerUserId: 'wechat-sub-789',
+          data: expect.objectContaining({
+            email: 'google@example.com',
+            nickname: 'Google User',
+            profile: { create: {} },
+          }),
+        }),
+      );
+      expect(prisma.account.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            providerId: 'google',
+            accountId: 'google-sub-789',
+            user: { connect: { id: 'user-1' } },
           }),
         }),
       );
     });
 
     it('should match by unionId when providerUserId not found', async () => {
-      userService.findByProviderUnionId.mockResolvedValue(mockUser);
+      prisma.account.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ ...mockAccount, user: mockUser });
       const outcome = await collectResult(
         service.findOrCreateOAuthUser(wechatProfile),
       );
       expect(outcome).toEqual({ ok: true, value: mockUser });
-      expect(userService.findByProviderUnionId).toHaveBeenCalledWith(
-        'wx-union-456',
-      );
+      expect(prisma.account.findFirst).toHaveBeenNthCalledWith(2, {
+        where: {
+          providerUnionId: 'wx-union-456',
+          user: { deletedAt: null },
+        },
+        include: { user: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(prisma.account.create).toHaveBeenCalled();
     });
 
     it('should match by email when no unionId match exists', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
+      prisma.user.findFirst.mockResolvedValue(mockUser);
       const outcome = await collectResult(
         service.findOrCreateOAuthUser(wechatProfile),
       );
       expect(outcome).toEqual({ ok: true, value: mockUser });
-      expect(userService.findByEmail).toHaveBeenCalledWith(
-        'wxuser@example.com',
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          email: 'wxuser@example.com',
+          deletedAt: null,
+        },
+      });
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(prisma.account.create).toHaveBeenCalled();
+    });
+
+    it('should not link by email when email is unverified', async () => {
+      prisma.user.findFirst.mockResolvedValue(mockUser);
+      const unverifiedProfile: OAuthProfile = {
+        ...googleProfile,
+        emailVerifiedAt: null,
+      };
+
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser(unverifiedProfile),
       );
-      expect(userService.createOAuthUser).not.toHaveBeenCalled();
+
+      expect(outcome.ok).toBe(true);
+      expect(prisma.user.findFirst).toHaveBeenCalled();
+      expect(prisma.user.create).toHaveBeenCalled();
+      expect(prisma.account.create).toHaveBeenCalled();
     });
 
     it('should rethrow database failures instead of masking them', async () => {
-      userService.findByIdentity.mockRejectedValue(
+      prisma.account.findFirst.mockRejectedValue(
         new Error('db connection lost'),
       );
 
@@ -182,7 +249,7 @@ describe('AuthOAuthService', () => {
     });
 
     it('should map a create race (P2002) to RESOURCE_CONFLICT', async () => {
-      userService.createOAuthUser.mockRejectedValue(prismaError('P2002'));
+      prisma.$transaction.mockRejectedValue(prismaError('P2002'));
 
       const outcome = await collectResult(
         service.findOrCreateOAuthUser(googleProfile),
@@ -201,27 +268,22 @@ describe('AuthOAuthService', () => {
         service.updateOAuthLoginUser(mockUser, wechatProfile),
       );
 
-      expect(userService.update).toHaveBeenCalledWith(
-        'user-1',
+      expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          lastLoginAt: expect.any(Date),
-          status: UserStatus.active,
-          nickname: 'WeChat User',
-          avatar: 'https://wx.qlogo.cn/avatar',
+          where: { id: 'user-1' },
+          data: expect.objectContaining({
+            lastLoginAt: expect.any(Date),
+            status: UserStatus.active,
+            nickname: 'WeChat User',
+            avatar: 'https://wx.qlogo.cn/avatar',
+          }),
         }),
       );
       expect(outcome).toEqual({ ok: true, value: mockUser });
     });
 
     it('should propagate a RESOURCE_NOT_FOUND update failure', async () => {
-      userService.update.mockReturnValue(
-        errAsync(
-          createDomainFailure({
-            kind: 'not_found',
-            code: 'RESOURCE_NOT_FOUND',
-          }),
-        ),
-      );
+      prisma.user.update.mockRejectedValue(prismaError('P2025'));
 
       const outcome = await collectResult(
         service.updateOAuthLoginUser(mockUser, wechatProfile),
@@ -241,19 +303,33 @@ describe('AuthOAuthService', () => {
       );
 
       expect(outcome).toEqual({ ok: true, value: undefined });
-      expect(userService.linkIdentity).toHaveBeenCalledWith(
-        'user-1',
+      expect(prisma.account.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          provider: 'wechat_web',
-          providerUserId: 'wx-openid-123',
+          data: expect.objectContaining({
+            providerId: 'wechat_web',
+            accountId: 'wx-openid-123',
+            user: { connect: { id: 'user-1' } },
+          }),
         }),
       );
     });
 
+    it('should reject linking Better Auth-managed providers', async () => {
+      const outcome = await collectResult(
+        service.linkOAuthProfileToUser('user-1', googleProfile),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
+      });
+      expect(prisma.account.create).not.toHaveBeenCalled();
+    });
+
     it('should reject when identity already linked to another user', async () => {
-      userService.findByIdentity.mockResolvedValue({
-        ...mockUser,
-        id: 'other-user',
+      prisma.account.findFirst.mockResolvedValue({
+        ...mockAccount,
+        user: { ...mockUser, id: 'other-user' },
       });
 
       const outcome = await collectResult(
@@ -264,14 +340,16 @@ describe('AuthOAuthService', () => {
         ok: false,
         error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
       });
-      expect(userService.linkIdentity).not.toHaveBeenCalled();
+      expect(prisma.account.create).not.toHaveBeenCalled();
     });
 
     it('should reject when unionId already linked to another user', async () => {
-      userService.findByProviderUnionId.mockResolvedValue({
-        ...mockUser,
-        id: 'other-user',
-      });
+      prisma.account.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          ...mockAccount,
+          user: { ...mockUser, id: 'other-user' },
+        });
 
       const outcome = await collectResult(
         service.linkOAuthProfileToUser('user-1', wechatProfile),
@@ -281,22 +359,25 @@ describe('AuthOAuthService', () => {
         ok: false,
         error: expect.objectContaining({ code: 'RESOURCE_CONFLICT' }),
       });
-      expect(userService.linkIdentity).not.toHaveBeenCalled();
+      expect(prisma.account.create).not.toHaveBeenCalled();
     });
 
     it('should be a no-op when the identity is already linked to the same user', async () => {
-      userService.findByIdentity.mockResolvedValue(mockUser);
+      prisma.account.findFirst.mockResolvedValue({
+        ...mockAccount,
+        user: mockUser,
+      });
 
       const outcome = await collectResult(
         service.linkOAuthProfileToUser('user-1', wechatProfile),
       );
 
       expect(outcome).toEqual({ ok: true, value: undefined });
-      expect(userService.linkIdentity).not.toHaveBeenCalled();
+      expect(prisma.account.create).not.toHaveBeenCalled();
     });
 
     it('should map a link race (P2002) to RESOURCE_CONFLICT', async () => {
-      userService.linkIdentity.mockRejectedValue(prismaError('P2002'));
+      prisma.account.create.mockRejectedValue(prismaError('P2002'));
 
       const outcome = await collectResult(
         service.linkOAuthProfileToUser('user-1', wechatProfile),
@@ -309,7 +390,7 @@ describe('AuthOAuthService', () => {
     });
 
     it('should rethrow database failures instead of masking them', async () => {
-      userService.findByIdentity.mockRejectedValue(
+      prisma.account.findFirst.mockRejectedValue(
         new Error('db connection lost'),
       );
 

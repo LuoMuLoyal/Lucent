@@ -1,26 +1,31 @@
 import { Injectable } from '@nestjs/common';
 
-import { User, UserIdentity } from '#generated/prisma/client';
+import { Account, User } from '#generated/prisma/client';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
-  okAsync,
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
-import { AuthBetterAuthAdapter, PasswordReauthService } from '../../auth';
+import {
+  AuthBetterAuthAdapter,
+  CREDENTIAL_PROVIDER_ID,
+  PasswordReauthService,
+} from '../../auth';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { UserService } from '../../user';
 import { AccountDto } from '../dto/response.dto';
 import { UnlinkIdentityDto } from '../dto/unlink-identity.dto';
 import { UpdateAccountDto } from '../dto/update.dto';
 
-type AccountUser = User & { identities: UserIdentity[] };
+type AccountUser = User & { accounts: Account[] };
 
 @Injectable()
 export class AccountService {
   constructor(
     private readonly userService: UserService,
+    private readonly prisma: PrismaService,
     private readonly passwordReauthService: PasswordReauthService,
     private readonly betterAuthAdapter: AuthBetterAuthAdapter,
   ) {}
@@ -65,7 +70,7 @@ export class AccountService {
           .map((hasPassword) => ({ user, hasPassword })),
       )
       .andThen(({ user, hasPassword }) => {
-        const identity = user.identities.find((item) => item.id === identityId);
+        const identity = user.accounts.find((item) => item.id === identityId);
         if (!identity) {
           return errAsync(
             createDomainFailure({
@@ -75,7 +80,7 @@ export class AccountService {
           );
         }
 
-        if (!hasPassword && user.identities.length <= 1) {
+        if (!hasPassword && user.accounts.length <= 1) {
           return errAsync(
             createDomainFailure({
               kind: 'authorization',
@@ -84,21 +89,18 @@ export class AccountService {
           );
         }
 
-        return this.userService
-          .unlinkIdentity(identityId)
-          .andThen(() => this.getAccount(userId));
+        return this.deleteAccountIdentity(userId, identityId).andThen(() =>
+          this.getAccount(userId),
+        );
       });
   }
 
   private getActiveAccountUser(
     userId: string,
   ): ResultAsync<AccountUser, DomainFailure> {
-    return fromPromise(
-      this.userService.findByIdWithIdentities(userId),
-      (error) => {
-        throw error;
-      },
-    ).andThen((user) => {
+    return fromPromise(this.userService.findById(userId), (error) => {
+      throw error;
+    }).andThen((user) => {
       if (!user) {
         return errAsync(
           createDomainFailure({
@@ -107,7 +109,46 @@ export class AccountService {
           }),
         );
       }
-      return okAsync(user);
+      return fromPromise(
+        this.prisma.account.findMany({
+          where: {
+            userId,
+            providerId: { not: CREDENTIAL_PROVIDER_ID },
+          },
+          orderBy: { createdAt: 'asc' },
+        }),
+        (error) => {
+          throw error;
+        },
+      ).map((accounts) => ({ ...user, accounts }));
+    });
+  }
+
+  private deleteAccountIdentity(
+    userId: string,
+    identityId: string,
+  ): ResultAsync<void, DomainFailure> {
+    return fromPromise(
+      this.prisma.account.deleteMany({
+        where: {
+          id: identityId,
+          userId,
+          providerId: { not: CREDENTIAL_PROVIDER_ID },
+        },
+      }),
+      (error) => {
+        throw error;
+      },
+    ).andThen((result) => {
+      if (result.count === 0) {
+        return errAsync(
+          createDomainFailure({
+            kind: 'not_found',
+            code: 'RESOURCE_NOT_FOUND',
+          }),
+        );
+      }
+      return this.betterAuthAdapter.revokeBetterAuthSessions(userId);
     });
   }
 
@@ -120,11 +161,11 @@ export class AccountService {
       emailVerifiedAt: this.formatDateTime(user.emailVerifiedAt),
       hasPassword,
       lastLoginAt: this.formatDateTime(user.lastLoginAt),
-      linkedIdentities: user.identities.map((identity) => ({
+      linkedIdentities: user.accounts.map((identity) => ({
         id: identity.id,
-        provider: identity.provider,
-        email: identity.email,
-        emailVerifiedAt: this.formatDateTime(identity.emailVerifiedAt),
+        provider: identity.providerId,
+        email: identity.providerEmail,
+        emailVerifiedAt: this.formatDateTime(identity.providerEmailVerifiedAt),
         linkedAt: identity.createdAt.toISOString(),
       })),
       createdAt: user.createdAt.toISOString(),
