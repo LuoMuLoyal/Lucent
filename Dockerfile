@@ -21,6 +21,7 @@ COPY prisma.config.ts ./prisma.config.ts
 COPY tsconfig.json tsconfig.build.json .swcrc nest-cli.json ./
 COPY scripts ./scripts
 COPY src ./src
+COPY config ./config
 # 生成 Prisma Client（输出到 generated/prisma，由 schema.prisma output 字段决定）
 # 使用 pnpm prisma:generate 而非直接 prisma generate：prisma 7 的 prisma-client
 # provider 只生成 .ts 文件，prisma:generate 脚本会额外运行 fix-generated-prisma-internal.ts
@@ -40,8 +41,10 @@ WORKDIR /app
 RUN addgroup -S lucent && adduser -S lucent -G lucent
 # 生产依赖（已 prune）
 COPY --from=builder /app/node_modules ./node_modules
-# 编译产物（含 dist/i18n/ 翻译文件）
+# 编译产物（含 dist/i18n/ 翻译文件 + dist/config/ YAML 配置）
 COPY --from=builder /app/dist ./dist
+# YAML 配置文件（生产镜像运行时需要）
+COPY config ./config
 # Prisma 生成的客户端（schema.prisma output = ../generated/prisma，即仓库根 generated/）
 # package.json imports 字段 "#generated/*": "./generated/*" 依赖此路径
 COPY --from=builder /app/generated/prisma ./generated/prisma
