@@ -76,7 +76,6 @@ const AUTH_PATH = {
 const AUTH_SCENE = {
   register: 'register',
   login: 'login',
-  resetPassword: 'reset-password',
   changeEmail: 'change-email',
 } as const;
 
@@ -509,31 +508,27 @@ describe('Auth API (e2e)', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('POST /api/v1/auth/verify-email', () => {
-    it('should verify email with correct code', async () => {
-      const { email } = await registerUser();
-      const code = await seedVerificationCode(AUTH_SCENE.register, email);
+    const INVALID_BETTER_AUTH_TOKEN =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
+    it('should reject missing token with VALIDATION_FAILED', async () => {
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.verifyEmail)
-        .send({ email, code })
-        .expect(200);
+        .send({})
+        .expect(400);
 
-      const body = res.body as { emailVerified: boolean };
-      const data = expectData(body);
-      expect(data.emailVerified).toBe(true);
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
     });
 
-    it('should reject invalid verification code', async () => {
-      const { email } = await registerUser();
-      await seedVerificationCode(AUTH_SCENE.register, email);
-
+    it('should reject an invalid or expired Better Auth token with AUTH_VERIFICATION_CODE_EXPIRED', async () => {
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.verifyEmail)
-        .send({ email, code: INVALID_VERIFICATION_CODE })
+        .send({ token: INVALID_BETTER_AUTH_TOKEN })
         .expect(401);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('BAD_REQUEST');
+      expect(body['code']).toBe('AUTH_VERIFICATION_CODE_EXPIRED');
     });
   });
 
@@ -558,27 +553,36 @@ describe('Auth API (e2e)', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('POST /api/v1/auth/reset-password', () => {
-    it('should reset password with valid code', async () => {
-      const { email } = await registerUser();
+    it('should reset password with valid Better Auth reset token', async () => {
+      const { email, user } = await registerUser();
 
       await forgotPasswordRequest(email);
-      const code = await seedVerificationCode(AUTH_SCENE.resetPassword, email);
 
+      const verification = await ctx.prisma.verification.findFirst({
+        where: {
+          identifier: { startsWith: 'reset-password:' },
+          value: user.id,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(verification).not.toBeNull();
+
+      const token = verification!.identifier.replace('reset-password:', '');
       const newPassword = RESET_PASSWORD;
       await request(app.getHttpServer())
         .post(AUTH_PATH.resetPassword)
-        .send({ email, code, password: newPassword })
-        .expect(200);
-
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.login)
-        .send({ email, password: newPassword })
-        .expect(200);
+        .send({ token, password: newPassword })
+        .expect(204);
 
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
         .expect(401);
+
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, password: newPassword })
+        .expect(200);
     });
   });
 

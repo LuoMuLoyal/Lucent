@@ -582,9 +582,9 @@ describe('AuthService', () => {
         'key',
       );
 
-      await service.verifyEmail({ code: '123456' } as never);
+      await service.verifyEmail({ token: 'valid-token' });
       expect(credentialAuthService.verifyEmail).toHaveBeenCalledWith({
-        code: '123456',
+        token: 'valid-token',
       });
 
       await service.forgotPassword({ email: 'a@b.c' } as never, 'key');
@@ -593,9 +593,13 @@ describe('AuthService', () => {
         'key',
       );
 
-      await service.resetPassword({ code: '123456' } as never);
+      await service.resetPassword({
+        token: 'reset-token',
+        password: 'NewPassword123!',
+      });
       expect(credentialAuthService.resetPassword).toHaveBeenCalledWith({
-        code: '123456',
+        token: 'reset-token',
+        password: 'NewPassword123!',
       });
     });
   });

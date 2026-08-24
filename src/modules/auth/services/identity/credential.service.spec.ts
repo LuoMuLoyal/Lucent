@@ -1080,6 +1080,62 @@ describe('CredentialAuthService', () => {
   });
 
   // ════════════════════════════════════════════════════════════
+  // mapBetterAuthError
+  // ════════════════════════════════════════════════════════════
+
+  describe('mapBetterAuthError', () => {
+    it('should map USER_NOT_FOUND to AUTH_WRONG_PASSWORD (anti-enumeration)', async () => {
+      verifyEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('USER_NOT_FOUND'),
+      );
+
+      const outcome = await collectResult(
+        service.verifyEmail({ token: 'bad-token' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: wrongPasswordFailure,
+      });
+    });
+
+    it('should map PASSWORD_ALREADY_SET to RESOURCE_CONFLICT', async () => {
+      verifyEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('PASSWORD_ALREADY_SET'),
+      );
+
+      const outcome = await collectResult(
+        service.verifyEmail({ token: 'token' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'RESOURCE_CONFLICT',
+        }),
+      });
+    });
+
+    it('should map disabled config errors to INTERNAL_ERROR', async () => {
+      verifyEmailMock.mockRejectedValue(
+        createBetterAuthAPIError('VERIFICATION_EMAIL_NOT_ENABLED'),
+      );
+
+      const outcome = await collectResult(
+        service.verifyEmail({ token: 'token' }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+        }),
+      });
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════
   // forgotPassword
   // ════════════════════════════════════════════════════════════
 

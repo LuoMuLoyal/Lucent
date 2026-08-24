@@ -279,6 +279,9 @@ export class CredentialAuthService {
             }),
           );
         }
+        // The code here is the product-level anti-abuse verification code;
+        // Better Auth email-verification / password-reset tokens are handled
+        // by verifyEmail, forgotPassword, and resetPassword instead.
         return this.verificationCodeService
           .verify(newEmail, dto.code, 'change-email')
           .andThen(() =>
@@ -296,6 +299,8 @@ export class CredentialAuthService {
     dto: SendVerificationCodeDto,
     clientKey?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
+    // This code is a product-level anti-abuse verification code stored in
+    // cache; it is unrelated to Better Auth's Verification table tokens.
     return this.verificationCodeService
       .send(normalizeEmail(dto.email), dto.scene, clientKey)
       .map(() => ({ message: this.i18n.t('auth.verification_code_sent') }));
@@ -335,6 +340,13 @@ export class CredentialAuthService {
   resetPassword(dto: ResetPasswordDto): ResultAsync<void, DomainFailure> {
     const identifier = `reset-password:${dto.token}`;
 
+    // Pre-check: Better Auth's resetPassword consumes the token and does not
+    // return the user id, but Lucent must revoke all JWT sessions after a
+    // successful reset. Resolving userId before the token is consumed is
+    // therefore a necessary business guard.
+    // The find-then-consume flow is intentionally non-atomic because the token
+    // is single-use; a concurrent consume is acceptable and surfaces as
+    // AUTH_VERIFICATION_CODE_EXPIRED.
     return this.lift(
       this.prisma.verification.findFirst({ where: { identifier } }),
     ).andThen((verification) => {
@@ -380,17 +392,38 @@ export class CredentialAuthService {
   /**
    * Maps Better Auth API error codes to Lucent Problem Details codes.
    * Authentication failures are folded into the generic anti-enumeration code.
+   *
+   * Any code not explicitly mapped below is re-thrown as an internal/dependency
+   * error and must never be leaked to the client as raw Better Auth output.
    */
   private mapBetterAuthError(error: BetterAuthAPIError): DomainFailure {
     const code = error.body?.code;
     switch (code) {
+      // Anti-enumeration bucket: never reveal whether the account exists,
+      // whether it has a password, or whether the email is registered.
       case 'USER_ALREADY_EXISTS':
       case 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL':
       case 'INVALID_EMAIL_OR_PASSWORD':
+      case 'USER_NOT_FOUND':
       case 'INVALID_PASSWORD':
+      case 'INVALID_EMAIL':
+      case 'USER_EMAIL_NOT_FOUND':
+      case 'ACCOUNT_NOT_FOUND':
       case 'CREDENTIAL_ACCOUNT_NOT_FOUND':
       case 'EMAIL_NOT_VERIFIED':
         return this.credentialsInvalidFailure();
+      case 'USER_ALREADY_HAS_PASSWORD':
+      case 'PASSWORD_ALREADY_SET':
+        return createDomainFailure({
+          kind: 'conflict',
+          code: 'RESOURCE_CONFLICT',
+        });
+      case 'EMAIL_CAN_NOT_BE_UPDATED':
+      case 'CHANGE_EMAIL_DISABLED':
+        return createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+        });
       case 'INVALID_TOKEN':
       case 'TOKEN_EXPIRED':
         return createDomainFailure({
@@ -401,12 +434,24 @@ export class CredentialAuthService {
       case 'PASSWORD_TOO_LONG':
       case 'VALIDATION_ERROR':
       case 'MISSING_FIELD':
-      case 'INVALID_EMAIL':
         return createDomainFailure({
           kind: 'validation',
           code: 'VALIDATION_FAILED',
         });
+      // Configuration/disabled errors: map to a generic internal failure so
+      // they never surface as raw Better Auth 500s to clients.
+      case 'EMAIL_PASSWORD_SIGN_UP_DISABLED':
+      case 'EMAIL_PASSWORD_DISABLED':
+      case 'RESET_PASSWORD_DISABLED':
+      case 'VERIFICATION_EMAIL_NOT_ENABLED':
+        return createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+        });
       default:
+        // Internal/dependency failures (e.g. FAILED_TO_CREATE_USER,
+        // FAILED_TO_UPDATE_USER, FAILED_TO_CREATE_SESSION, etc.) are
+        // deliberately re-thrown, not converted to client-facing failures.
         // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw error;
     }
