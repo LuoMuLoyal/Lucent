@@ -2,41 +2,30 @@ import request from 'supertest';
 import {
   createTestApp,
   cleanupDatabase,
-  createTestUser,
-  createAccessToken,
+  registerTestUser,
   bearer,
-  createSecurityElevationToken,
   expectData,
-  SECURITY_ELEVATION_HEADER,
 } from '../../helpers/e2e-helpers';
 import type {
   E2eTestContext,
   E2eApp,
-  TestUser,
+  RegisteredTestUser,
 } from '../../helpers/e2e-helpers';
 
 const EXPORT_PATH = '/api/v1/user/data-export-requests';
+const TEST_PASSWORD = 'Test@123456';
 
 describe('Data Export API (e2e)', () => {
   let ctx: E2eTestContext;
   let app: E2eApp;
-  let user: TestUser;
-  let accessToken: string;
-  let elevationToken: string;
+  let user: RegisteredTestUser;
 
   beforeAll(async () => {
     ctx = await createTestApp();
     app = ctx.app;
     await cleanupDatabase(ctx.prisma);
 
-    user = await createTestUser(ctx.prisma, undefined, 'ExportUser');
-    accessToken = await createAccessToken(
-      ctx.jwtService,
-      ctx.configService,
-      user.id,
-      user.email,
-    );
-    elevationToken = await createSecurityElevationToken(ctx, user.id);
+    user = await registerTestUser(ctx, undefined, TEST_PASSWORD, 'ExportUser');
   });
 
   afterAll(async () => {
@@ -49,12 +38,19 @@ describe('Data Export API (e2e)', () => {
       await request(app.getHttpServer()).post(EXPORT_PATH).expect(401);
     });
 
+    it('should reject a request without password re-authentication', async () => {
+      await request(app.getHttpServer())
+        .post(EXPORT_PATH)
+        .set('Authorization', bearer(user.accessToken))
+        .send({})
+        .expect(400);
+    });
+
     it('should create a data export request with default values', async () => {
       const response = await request(app.getHttpServer())
         .post(EXPORT_PATH)
-        .set('Authorization', bearer(accessToken))
-        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
-        .send({})
+        .set('Authorization', bearer(user.accessToken))
+        .send({ password: TEST_PASSWORD })
         .expect(201);
 
       const data = expectData(
@@ -83,8 +79,7 @@ describe('Data Export API (e2e)', () => {
     it('should return the latest export request for authenticated user', async () => {
       const response = await request(app.getHttpServer())
         .get(`${EXPORT_PATH}/latest`)
-        .set('Authorization', bearer(accessToken))
-        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
+        .set('Authorization', bearer(user.accessToken))
         .expect(200);
 
       const data = expectData(

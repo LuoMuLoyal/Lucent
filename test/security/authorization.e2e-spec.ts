@@ -8,8 +8,6 @@ import {
   bearer,
   expectData,
   uniqueEmail,
-  createSecurityElevationToken,
-  SECURITY_ELEVATION_HEADER,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
 import { UserStatus } from '#generated/prisma/client';
@@ -386,10 +384,9 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
   describe('Data Export', () => {
     let aliceExportId: string;
-    let bobElevationToken: string;
 
     beforeAll(async () => {
-      // Data export POST requires security elevation; create directly in DB
+      // Data export rows are isolated by user; create Alice's directly in DB.
       const exportRequest = await ctx.prisma.dataExportRequest.create({
         data: {
           userId: alice.id,
@@ -400,16 +397,12 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         },
       });
       aliceExportId = exportRequest.id;
-
-      // GET /latest also requires security elevation; mint token for Bob
-      bobElevationToken = await createSecurityElevationToken(ctx, bob.id);
     });
 
     it('Bob cannot see Alice export request in latest', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/data-export-requests/latest')
         .set('Authorization', bearer(bobToken))
-        .set(SECURITY_ELEVATION_HEADER, `Bearer ${bobElevationToken}`)
         .expect(200);
 
       // Bob should get null or his own (non-existent) export, not Alice's

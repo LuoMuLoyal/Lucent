@@ -388,7 +388,7 @@ describe('AssistantPolicyService', () => {
         currentMedicines: currentMedicines ?? true,
       },
       updatedAt: '2026-06-17T12:00:00.000Z',
-      securityPin: { enabled: false, lastChangedAt: null },
+      passwordReauthenticationRequired: true,
       ...rest,
     };
   }

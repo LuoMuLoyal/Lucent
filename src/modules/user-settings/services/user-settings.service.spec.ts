@@ -95,10 +95,7 @@ describe('UserSettingsService', () => {
         upsert: vi.fn(),
       },
       user: {
-        findUniqueOrThrow: vi.fn().mockResolvedValue({
-          securityPinEnabled: true,
-          securityPinChangedAt: new Date('2026-07-03T12:00:00.000Z'),
-        }),
+        findUniqueOrThrow: vi.fn(),
       },
     });
 

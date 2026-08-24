@@ -1,23 +1,24 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { createHash } from 'node:crypto';
+import request from 'supertest';
 
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma';
 import { ConfigKey } from '../../src/config/env/config-keys.enum';
-import { SecurityPinService } from '../../src/modules/security-pin';
-import { unwrapResult } from '../../src/common/result';
 import { UserStatus } from '#generated/prisma/client';
 
 // ── Constants ──────────────────────────────────────────────────
 
 export const AUTHORIZATION_HEADER = 'Authorization';
 export const BEARER_AUTH_SCHEME = 'Bearer';
-export const SECURITY_ELEVATION_HEADER = 'x-security-elevation';
-export const DEFAULT_SECURITY_PIN = '123456';
+const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
 
 // ── E2E Test App Setup ─────────────────────────────────────────
 
@@ -29,7 +30,6 @@ export interface E2eTestContext {
   prisma: PrismaService;
   jwtService: JwtService;
   configService: ConfigService;
-  securityPinService: SecurityPinService;
 }
 
 /**
@@ -59,9 +59,8 @@ export async function createTestApp(): Promise<E2eTestContext> {
 
   const prisma = app.get(PrismaService);
   const jwtService = app.get(JwtService);
-  const securityPinService = app.get(SecurityPinService);
 
-  return { app, prisma, jwtService, configService, securityPinService };
+  return { app, prisma, jwtService, configService };
 }
 
 // ── Database Cleanup ───────────────────────────────────────────
@@ -120,6 +119,11 @@ export interface TestUser {
   status: UserStatus;
 }
 
+export interface RegisteredTestUser extends TestUser {
+  accessToken: string;
+  refreshToken: string;
+}
+
 /**
  * Create a minimal active test user and return its info.
  */
@@ -142,6 +146,55 @@ export async function createTestUser(
     email: user.email,
     nickname: user.nickname,
     status: user.status,
+  };
+}
+
+/**
+ * Register a credential user through the public auth API so that the account
+ * has a valid credential password and Better Auth account record.
+ */
+export async function registerTestUser(
+  ctx: E2eTestContext,
+  email?: string,
+  password = 'Test@123456',
+  nickname = 'RegisteredUser',
+): Promise<RegisteredTestUser> {
+  const userEmail = email ?? uniqueEmail('registered');
+  const code = '123456';
+  const cache = ctx.app.get(CACHE_MANAGER) as Cache;
+  const hash = createHash('sha256')
+    .update(`register:${userEmail}:${code}`)
+    .digest('hex');
+  await cache.set(
+    `vcode:register:${userEmail}`,
+    hash,
+    VERIFICATION_CODE_TTL_MS,
+  );
+
+  const res = await request(ctx.app.getHttpServer())
+    .post('/api/v1/auth/register')
+    .send({
+      email: userEmail,
+      password,
+      code,
+      nickname,
+    })
+    .expect(201);
+
+  const body = res.body as {
+    data: {
+      user: { id: string; email: string; nickname: string | null };
+      tokens: { accessToken: string; refreshToken: string };
+    };
+  };
+  const { user, tokens } = body.data;
+  return {
+    id: user.id,
+    email: user.email,
+    nickname: user.nickname,
+    status: UserStatus.active,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
   };
 }
 
@@ -173,21 +226,6 @@ export async function createAccessToken(
       audience: jwtCfg.audience,
     },
   );
-}
-
-/**
- * Enable a Security PIN for the user and mint a fresh elevation token.
- */
-export async function createSecurityElevationToken(
-  ctx: E2eTestContext,
-  userId: string,
-  pin = DEFAULT_SECURITY_PIN,
-): Promise<string> {
-  await unwrapResult(ctx.securityPinService.enable(userId, { pin }));
-  const result = await unwrapResult(
-    ctx.securityPinService.verify(userId, { pin }),
-  );
-  return result.elevationToken;
 }
 
 // ── HTTP Helpers ───────────────────────────────────────────────

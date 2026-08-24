@@ -4,14 +4,18 @@ import {
   createTestApp,
   cleanupDatabase,
   createTestUser,
+  registerTestUser,
   createAccessToken,
   bearer,
   expectData,
   uniqueEmail,
-  createSecurityElevationToken,
-  SECURITY_ELEVATION_HEADER,
 } from '../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
+import type {
+  E2eTestContext,
+  E2eApp,
+  TestUser,
+  RegisteredTestUser,
+} from '../helpers/e2e-helpers';
 
 /**
  * Security tests:
@@ -20,12 +24,13 @@ import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
  * 2. IDOR for medicine dose logs — cross-user isolation.
  * 3. Mass assignment — extra fields in PATCH body are ignored.
  */
-describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
+const ALICE_PASSWORD = 'Test@123456';
+
+describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
   let ctx: E2eTestContext;
   let app: E2eApp;
-  let alice: TestUser;
+  let alice: RegisteredTestUser;
   let bob: TestUser;
-  let aliceToken: string;
   let bobToken: string;
 
   beforeAll(async () => {
@@ -33,19 +38,14 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
     app = ctx.app;
     await cleanupDatabase(ctx.prisma);
 
-    alice = await createTestUser(
-      ctx.prisma,
+    alice = await registerTestUser(
+      ctx,
       uniqueEmail('elev-alice'),
+      ALICE_PASSWORD,
       'Alice',
     );
     bob = await createTestUser(ctx.prisma, uniqueEmail('elev-bob'), 'Bob');
 
-    aliceToken = await createAccessToken(
-      ctx.jwtService,
-      ctx.configService,
-      alice.id,
-      alice.email,
-    );
     bobToken = await createAccessToken(
       ctx.jwtService,
       ctx.configService,
@@ -66,45 +66,50 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
     ]);
   }, 30_000);
 
-  // ── Security Elevation Guard ───────────────────────────────
+  // ── Sensitive Operation Password Reauthentication ───────────────
 
-  describe('Security elevation guard', () => {
-    it('should reject data-export POST without elevation token', async () => {
+  describe('Sensitive operation password reauthentication', () => {
+    it('should reject data-export POST without password', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/user/data-export-requests')
-        .set('Authorization', bearer(aliceToken))
+        .set('Authorization', bearer(alice.accessToken))
         .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
-        .expect(403);
+        .expect(400);
     });
 
-    it('should reject data-export POST with invalid elevation token', async () => {
+    it('should reject data-export POST with wrong password', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/user/data-export-requests')
-        .set('Authorization', bearer(aliceToken))
-        .set(SECURITY_ELEVATION_HEADER, 'Bearer invalid-token')
-        .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
-        .expect(403);
+        .set('Authorization', bearer(alice.accessToken))
+        .send({
+          kind: 'hospital',
+          format: 'pdf',
+          range: 'last_30_days',
+          password: 'wrong-password',
+        })
+        .expect(401);
     });
 
-    it('should accept data-export POST with valid elevation token', async () => {
-      const elevationToken = await createSecurityElevationToken(ctx, alice.id);
-
+    it('should accept data-export POST with valid password', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/user/data-export-requests')
-        .set('Authorization', bearer(aliceToken))
-        .set(SECURITY_ELEVATION_HEADER, `Bearer ${elevationToken}`)
-        .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
+        .set('Authorization', bearer(alice.accessToken))
+        .send({
+          kind: 'hospital',
+          format: 'pdf',
+          range: 'last_30_days',
+          password: ALICE_PASSWORD,
+        })
         .expect(201);
 
       expect(res.body).toHaveProperty('id');
     });
 
-    it('should accept data-export GET/latest without elevation token', async () => {
+    it('should accept data-export GET/latest without password', async () => {
       // GET /latest is a read-only status check that only requires JWT auth.
-      // Security elevation is only required for POST (creating an export).
       await request(app.getHttpServer())
         .get('/api/v1/user/data-export-requests/latest')
-        .set('Authorization', bearer(aliceToken))
+        .set('Authorization', bearer(alice.accessToken))
         .expect(200);
     });
   });
@@ -118,7 +123,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
       // Create a current medicine for Alice first
       const medRes = await request(app.getHttpServer())
         .post('/api/v1/user/health-context/current-medicines')
-        .set('Authorization', bearer(aliceToken))
+        .set('Authorization', bearer(alice.accessToken))
         .send({
           displayName: 'DoseLog Med',
           source: 'drugbank',
@@ -130,7 +135,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
       // Create a medicine reminder
       const reminderRes = await request(app.getHttpServer())
         .post('/api/v1/user/medicine-reminders')
-        .set('Authorization', bearer(aliceToken))
+        .set('Authorization', bearer(alice.accessToken))
         .send({
           currentMedicineId: medId,
           scheduledHour: 8,
@@ -142,7 +147,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
       // Create a dose log for Alice
       const doseLogRes = await request(app.getHttpServer())
         .post('/api/v1/user/medicine-dose-logs')
-        .set('Authorization', bearer(aliceToken))
+        .set('Authorization', bearer(alice.accessToken))
         .send({
           reminderId,
           scheduledFor: '2026-07-12',
@@ -195,7 +200,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
     it('PATCH /account should reject unknown fields like role (forbidNonWhitelisted)', async () => {
       const res = await request(app.getHttpServer())
         .patch('/api/v1/account')
-        .set('Authorization', bearer(aliceToken))
+        .set('Authorization', bearer(alice.accessToken))
         .send({
           nickname: 'UpdatedNick',
           role: 'admin',
@@ -211,7 +216,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
     it('POST /daily-records should reject unknown fields (forbidNonWhitelisted)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/user/daily-records')
-        .set('Authorization', bearer(aliceToken))
+        .set('Authorization', bearer(alice.accessToken))
         .send({
           occurredAt: '2026-07-13',
           kind: 'meal',
