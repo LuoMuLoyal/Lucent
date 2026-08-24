@@ -58,6 +58,9 @@ lerna-debug.log*
 .env.local
 .deploy-image.env
 
+# YAML local overrides (machine-specific, never committed)
+config/*.local.yaml
+
 # temp directory
 .temp
 .tmp

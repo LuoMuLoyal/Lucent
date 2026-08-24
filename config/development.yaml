@@ -1,0 +1,7 @@
+# 开发环境覆盖值（仅包含与 default.yaml 不同的值）
+app:
+  corsOrigin: 'http://localhost:3000,http://localhost:8080'
+
+log:
+  level: debug
+  format: pretty

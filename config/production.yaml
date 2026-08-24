@@ -1,0 +1,10 @@
+# 生产环境覆盖值（仅包含与 default.yaml 不同的值）
+app:
+  host: 127.0.0.1
+
+log:
+  level: info
+  format: json
+
+mail:
+  driver: smtp

@@ -1,0 +1,77 @@
+# 非敏感运行时配置默认值。
+# 入库、可审查；环境特定覆盖在 config/<env>.yaml 中。
+# 敏感值（密码、secret、API key）保留在 .env.<env> 中，不在此文件。
+
+app:
+  host: 0.0.0.0
+  port: 3000
+  corsOrigin: ''
+  publicBaseUrl: 'http://localhost:3000'
+
+log:
+  level: debug
+  format: pretty
+  slowRequestThresholdMs: 2000
+  slowQueryThresholdMs: 500
+
+mail:
+  driver: log
+  host: 'smtp.example.com'
+  port: 587
+  from: 'noreply@example.com'
+  queue:
+    maxAttempts: 3
+    backoffDelayMs: 5000
+    workerConcurrency: 3
+    completeAgeSeconds: 86400
+    failAgeSeconds: 604800
+    completeMaxCount: 1000
+    failMaxCount: 5000
+
+storage:
+  provider: tencent-cos
+  tencentCos:
+    uploadExpiresSeconds: 600
+    maxUploadBytes: 10485760
+    downloadExpiresSeconds: 600
+  s3:
+    region: 'us-east-1'
+    uploadExpiresSeconds: 600
+    maxUploadBytes: 10485760
+    downloadExpiresSeconds: 600
+
+ai:
+  embeddingDimension: 1536
+
+fuzzy:
+  acceptScore: 0.7
+  minLead: 0.1
+  queryPrefixLength: 1
+
+meal:
+  defaultPortionGrams: 100
+  smallPortionGrams: 30
+  highProteinThresholdG: 20
+  lowCarbohydrateThresholdG: 20
+  highFatThresholdG: 20
+
+verification:
+  codeTtlMs: 300000
+  cooldownMs: 60000
+  rateLimitWindowMs: 600000
+  rateLimitMax: 20
+  codeLength: 6
+
+oauth:
+  stateTtlMs: 600000
+
+jwt:
+  accessTtl: 7200
+  refreshTtl: 2592000
+
+metrics:
+  enabled: true
+
+jpush:
+  apnsProduction: false
+  apiBaseUrl: 'https://api.jpush.cn'
