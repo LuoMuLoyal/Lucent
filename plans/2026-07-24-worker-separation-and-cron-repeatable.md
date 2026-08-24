@@ -9,11 +9,6 @@ I/O 密集（等待 LLM API），但高并发下同样占用内存与 event loop
 
 ADR-0004 已规划"未来将 worker 拆到独立进程/容器"。本计划执行该规划。
 
-> 进度说明（2026-08-03 更新）：原计划中的「`@Cron` → BullMQ Repeatable 迁移」
-> （Phase 4 / D3）已于 2026-07-27 完成（见 `docs/02-logs/migration-log/2026-07-27.md`），
-> 3 个 `@Cron` 任务已迁移为 `upsertJobScheduler` 注册的 Repeatable Job。
-> 本文件仅保留**未执行**的进程分离部分（Phase 1-3、D1/D2/D4/D5/D6）。
-
 ## 现状清单（与进程分离相关）
 
 ### BullMQ 队列（9 个）

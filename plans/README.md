@@ -40,5 +40,15 @@ YYYY-MM-DD-short-task-name.md
   — 部署重构：deploy.ts + Compose + Nginx → Coolify + Traefik（**待通过**）
 - [`2026-08-22-medium-to-large-migration-inventory.md`](2026-08-22-medium-to-large-migration-inventory.md)
   — 中小型到中大型过渡迁移盘点：配置、Worker/队列、Outbox、Prisma 边界、跨仓合同、数据库发布与可观测性
+- [`2026-08-23-better-auth-mobile-jwt-reassessment.md`](2026-08-23-better-auth-mobile-jwt-reassessment.md)
+  — Better Auth 主认证迁移计划：替代手写 auth，保持移动端 JWT 合同不变
+- [`2026-08-22-better-auth-feasibility.md`](2026-08-22-better-auth-feasibility.md)
+  — Better Auth 可行性调研：确认可替代部分认证基础设施，但需适配层
 - [`2026-08-18-error-contract-and-neverthrow-migration-plan.md`](2026-08-18-error-contract-and-neverthrow-migration-plan.md)
   — RFC 9457 + neverthrow 错误处理硬切；2026-08-22 已进入冻结新功能的硬切窗口
+- [`2026-08-14-saas-modules-and-node-monorepo.md`](2026-08-14-saas-modules-and-node-monorepo.md)
+  — SaaS 化后端模块与 Node monorepo 合并计划（0.1.0 后启动）
+- [`2026-08-02-rnacos-runtime-config-tuning.md`](2026-08-02-rnacos-runtime-config-tuning.md)
+  — rnacos 动态运行时配置与调优：餐食识别/队列/缓存参数热更新
+- [`2026-07-24-worker-separation-and-cron-repeatable.md`](2026-07-24-worker-separation-and-cron-repeatable.md)
+  — BullMQ Worker 进程分离：`WORKER_MODE` 环境变量拆分 api/worker 进程
