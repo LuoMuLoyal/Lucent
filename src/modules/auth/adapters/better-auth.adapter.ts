@@ -13,6 +13,8 @@ import {
   createDomainFailure,
   errAsync,
   fromPromise,
+  mapUnknownToDependencyFailure,
+  mapUnknownToInternalFailure,
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
@@ -208,9 +210,8 @@ export class AuthBetterAuthAdapter {
 
       return fromPromise(
         this.verifyPassword(account.password, password),
-        (error) => {
-          throw error;
-        },
+        (error) =>
+          mapUnknownToInternalFailure(error, 'Password verification failed'),
       );
     });
   }
@@ -233,9 +234,11 @@ export class AuthBetterAuthAdapter {
       client.session.deleteMany({
         where: { userId },
       }),
-      (error) => {
-        throw error;
-      },
+      (error) =>
+        mapUnknownToDependencyFailure(
+          error,
+          'Failed to revoke Better Auth sessions',
+        ),
     ).map(() => undefined);
   }
 
@@ -253,9 +256,11 @@ export class AuthBetterAuthAdapter {
         },
         select: { password: true },
       }),
-      (error) => {
-        throw error;
-      },
+      (error) =>
+        mapUnknownToDependencyFailure(
+          error,
+          'Failed to check credential account',
+        ),
     ).map(
       (account) =>
         account?.password !== null && account?.password !== undefined,
@@ -273,9 +278,11 @@ export class AuthBetterAuthAdapter {
         },
         select: { password: true },
       }),
-      (error) => {
-        throw error;
-      },
+      (error) =>
+        mapUnknownToDependencyFailure(
+          error,
+          'Failed to load credential account',
+        ),
     );
   }
 

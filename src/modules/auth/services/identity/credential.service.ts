@@ -7,6 +7,7 @@ import {
   createDomainFailure,
   errAsync,
   fromPromise,
+  mapUnknownToDependencyFailure,
   okAsync,
   type DomainFailure,
   type ResultAsync,
@@ -64,8 +65,8 @@ function isBetterAuthAPIError(error: unknown): error is BetterAuthAPIError {
  * All expected business failures are expressed as
  * `ResultAsync<T, DomainFailure>`. Unknown exceptions, config errors and
  * dependency-level failures (Argon2 hashing, DB, token signing, cache) are
- * deliberately re-thrown so they keep their real internal/dependency
- * semantics instead of being misreported as wrong credentials.
+ * returned as `internal` or `dependency` DomainFailures so they keep their
+ * real semantics instead of being misreported as wrong credentials.
  */
 @Injectable()
 export class CredentialAuthService {
@@ -376,8 +377,8 @@ export class CredentialAuthService {
   /**
    * Wraps a Better Auth `auth.api.*` promise into a `ResultAsync` and maps
    * every Better Auth API error to a Lucent `DomainFailure`.  Non-Better Auth
-   * exceptions (e.g. DB/network) are re-thrown so they keep their dependency
-   * semantics.
+   * exceptions (e.g. DB/network) are mapped to `DEPENDENCY_UNAVAILABLE` so they
+   * are surfaced through the Result instead of becoming unhandled rejections.
    */
   private fromBetterAuth<T>(
     promise: Promise<T>,
@@ -386,7 +387,7 @@ export class CredentialAuthService {
       if (isBetterAuthAPIError(error)) {
         return this.mapBetterAuthError(error);
       }
-      throw error;
+      return mapUnknownToDependencyFailure(error, 'Better Auth call failed');
     });
   }
 
@@ -397,8 +398,9 @@ export class CredentialAuthService {
    * Every Better Auth API error is mapped to a business DomainFailure:
    * known codes above are handled explicitly, unknown 4xx responses become
    * `AUTH_WRONG_PASSWORD` for anti-enumeration, and unknown 5xx responses become
-   * `DEPENDENCY_UNAVAILABLE`. Only non-Better-Auth exceptions (DB/network/etc.)
-   * are re-thrown so they keep their real dependency/internal semantics.
+   * `DEPENDENCY_UNAVAILABLE`. Non-Better-Auth exceptions (DB/network/etc.) are
+   * mapped to `DEPENDENCY_UNAVAILABLE` by `fromBetterAuth` so they stay inside
+   * the Result channel.
    */
   private mapBetterAuthError(error: BetterAuthAPIError): DomainFailure {
     const code = error.body?.code;
@@ -496,12 +498,19 @@ export class CredentialAuthService {
       // path never creates a Better Auth session.  Both "no credential
       // account" and "wrong password" are folded into the same generic
       // anti-enumeration failure and counted against the rate limit.
+      // Internal/dependency failures from the adapter are propagated unchanged
+      // so they are not masked as wrong credentials.
       return this.betterAuthAdapter
         .verifyPasswordForUser(user.id, dto.password as string)
         .andThen((valid) =>
           valid ? okAsync(user) : errAsync(this.credentialsInvalidFailure()),
         )
-        .orElse(() => this.recordLoginFailure(email));
+        .orElse((error) => {
+          if (error.kind === 'internal' || error.kind === 'dependency') {
+            return errAsync(error);
+          }
+          return this.recordLoginFailure(email);
+        });
     }
 
     return this.verificationCodeService
@@ -571,13 +580,12 @@ export class CredentialAuthService {
   /**
    * Lifts non-Prisma IO (Better Auth calls, Argon2 callbacks, token service,
    * user lookups, notification best-effort) into `ResultAsync`. Unknown
-   * exceptions and dependency-level failures are re-thrown, never converted
-   * into a DomainFailure, so they keep their real dependency/internal
-   * semantics.
+   * exceptions are mapped to `DEPENDENCY_UNAVAILABLE` so they stay inside the
+   * Result channel instead of becoming unhandled rejections.
    */
   private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
-    return fromPromise(promise, (error) => {
-      throw error;
-    });
+    return fromPromise(promise, (error) =>
+      mapUnknownToDependencyFailure(error, 'Credential operation failed'),
+    );
   }
 }

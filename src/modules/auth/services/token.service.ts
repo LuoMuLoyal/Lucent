@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
@@ -15,6 +11,8 @@ import {
   DomainFailureException,
   errAsync,
   fromPromise,
+  mapUnknownToDependencyFailure,
+  mapUnknownToInternalFailure,
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
@@ -101,9 +99,7 @@ export class AuthTokenService {
 
     return fromPromise(
       this.sessionRepository.createSession(sessionInput),
-      (error) => {
-        throw error;
-      },
+      (error) => mapUnknownToInternalFailure(error, 'Failed to create session'),
     )
       .andThen(() =>
         fromPromise(
@@ -120,11 +116,10 @@ export class AuthTokenService {
               `JWT signing failed for user ${user.id} after session creation: ${error instanceof Error ? error.message : String(error)}`,
               error instanceof Error ? error.stack : undefined,
             );
-            throw new InternalServerErrorException({
-              code: 'INTERNAL_ERROR',
-              message:
-                'Token signing failed after session creation; please re-authenticate.',
-            });
+            return mapUnknownToInternalFailure(
+              error,
+              'Token signing failed after session creation',
+            );
           },
         ),
       )
@@ -217,7 +212,10 @@ export class AuthTokenService {
         if (error instanceof DomainFailureException) {
           return error.failure;
         }
-        throw error;
+        return mapUnknownToDependencyFailure(
+          error,
+          'Session revocation failed',
+        );
       },
     ).map(() => undefined);
   }
@@ -243,7 +241,10 @@ export class AuthTokenService {
         if (error instanceof DomainFailureException) {
           return error.failure;
         }
-        throw error;
+        return mapUnknownToDependencyFailure(
+          error,
+          'Session revocation failed',
+        );
       },
     ).map(() => undefined);
   }

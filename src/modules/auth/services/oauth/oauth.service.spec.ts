@@ -238,14 +238,21 @@ describe('AuthOAuthService', () => {
       expect(prisma.account.create).toHaveBeenCalled();
     });
 
-    it('should rethrow database failures instead of masking them', async () => {
-      prisma.account.findFirst.mockRejectedValue(
-        new Error('db connection lost'),
+    it('maps database failures to DEPENDENCY_UNAVAILABLE instead of masking them', async () => {
+      const error = new Error('db connection lost');
+      prisma.account.findFirst.mockRejectedValue(error);
+
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser(wechatProfile),
       );
 
-      await expect(
-        collectResult(service.findOrCreateOAuthUser(wechatProfile)),
-      ).rejects.toThrow('db connection lost');
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          cause: error,
+        }),
+      });
     });
 
     it('should map a create race (P2002) to RESOURCE_CONFLICT', async () => {
@@ -389,14 +396,21 @@ describe('AuthOAuthService', () => {
       });
     });
 
-    it('should rethrow database failures instead of masking them', async () => {
-      prisma.account.findFirst.mockRejectedValue(
-        new Error('db connection lost'),
+    it('maps database failures to DEPENDENCY_UNAVAILABLE instead of masking them', async () => {
+      const error = new Error('db connection lost');
+      prisma.account.findFirst.mockRejectedValue(error);
+
+      const outcome = await collectResult(
+        service.linkOAuthProfileToUser('user-1', wechatProfile),
       );
 
-      await expect(
-        collectResult(service.linkOAuthProfileToUser('user-1', wechatProfile)),
-      ).rejects.toThrow('db connection lost');
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          cause: error,
+        }),
+      });
     });
   });
 });

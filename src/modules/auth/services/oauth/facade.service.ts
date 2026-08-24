@@ -6,6 +6,8 @@ import {
   createDomainFailure,
   errAsync,
   fromPromise,
+  mapUnknownToDependencyFailure,
+  mapUnknownToInternalFailure,
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result';
@@ -292,9 +294,12 @@ export class AuthOAuthFacadeService {
     userId: string,
     dto: OAuthCallbackDto,
   ): ResultAsync<void, DomainFailure> {
-    return fromPromise(this.userService.findById(userId), (error) => {
-      throw error;
-    })
+    return fromPromise(this.userService.findById(userId), (error) =>
+      mapUnknownToDependencyFailure(
+        error,
+        'Failed to load user for identity link',
+      ),
+    )
       .andThen(() =>
         this.authOAuthStateService.consume(
           OAUTH_PROVIDER_WECHAT_WEB,
@@ -325,9 +330,12 @@ export class AuthOAuthFacadeService {
     userId: string,
     dto: OAuthCodeCallbackDto,
   ): ResultAsync<void, DomainFailure> {
-    return fromPromise(this.userService.findById(userId), (error) => {
-      throw error;
-    })
+    return fromPromise(this.userService.findById(userId), (error) =>
+      mapUnknownToDependencyFailure(
+        error,
+        'Failed to load user for identity link',
+      ),
+    )
       .andThen(() =>
         this.wechatMobileOAuthProvider.fetchProfile({ code: dto.code }),
       )
@@ -439,17 +447,17 @@ export class AuthOAuthFacadeService {
       }
     }
 
-    throw error;
+    return mapUnknownToInternalFailure(error, 'Unexpected OAuth error');
   }
 
   /**
-   * Lifts a plain Promise into a ResultAsync.  Unexpected errors are re-thrown
-   * so they keep their internal/dependency semantics instead of being reported
-   * as an OAuth failure.
+   * Lifts a plain Promise into a ResultAsync.  Unexpected errors are mapped to
+   * `DEPENDENCY_UNAVAILABLE` so they stay inside the Result channel instead of
+   * becoming unhandled rejections.
    */
   private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
-    return fromPromise(promise, (error) => {
-      throw error;
-    });
+    return fromPromise(promise, (error) =>
+      mapUnknownToDependencyFailure(error, 'OAuth user lookup failed'),
+    );
   }
 }

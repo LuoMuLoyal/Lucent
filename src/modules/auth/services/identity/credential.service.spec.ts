@@ -17,7 +17,6 @@ import { UserStatus } from '#generated/prisma/client';
 import {
   createDomainFailure,
   errAsync,
-  fromPromise,
   okAsync,
   type DomainFailure,
   type ResultAsync,
@@ -441,12 +440,19 @@ describe('CredentialAuthService', () => {
       );
     });
 
-    it('should not mask infrastructure failures as business failures', async () => {
-      signUpEmailMock.mockRejectedValue(new Error('db connection lost'));
+    it('maps infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
+      const error = new Error('db connection lost');
+      signUpEmailMock.mockRejectedValue(error);
 
-      await expect(
-        collectResult(service.register(buildRegisterDto())),
-      ).rejects.toThrow('db connection lost');
+      const outcome = await collectResult(service.register(buildRegisterDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          cause: error,
+        }),
+      });
     });
   });
 
@@ -600,32 +606,41 @@ describe('CredentialAuthService', () => {
       expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
     });
 
-    it('should rethrow a Better Auth internal error instead of folding it into AUTH_WRONG_PASSWORD', async () => {
+    it('maps a Better Auth internal error to DEPENDENCY_UNAVAILABLE instead of folding it into AUTH_WRONG_PASSWORD', async () => {
       verifyPasswordForUserMock.mockReturnValue(
-        fromPromise(
-          Promise.reject(new Error('session store unavailable')),
-          (error) => {
-            throw error;
-          },
+        errAsync(
+          createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+            detail: 'session store unavailable',
+          }),
         ),
       );
 
-      await expect(
-        collectResult(service.login(buildLoginDto())),
-      ).rejects.toThrow('session store unavailable');
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'DEPENDENCY_UNAVAILABLE' }),
+      });
       expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
       expect(authRateLimitService.clearLoginFailures).not.toHaveBeenCalled();
       expect(userService.update).not.toHaveBeenCalled();
     });
 
-    it('should not mask infrastructure failures as business failures', async () => {
-      userService.findByEmail.mockRejectedValue(
-        new Error('db connection lost'),
-      );
+    it('maps infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
+      const error = new Error('db connection lost');
+      userService.findByEmail.mockRejectedValue(error);
 
-      await expect(
-        collectResult(service.login(buildLoginDto())),
-      ).rejects.toThrow('db connection lost');
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          cause: error,
+        }),
+      });
     });
   });
 
@@ -1068,14 +1083,21 @@ describe('CredentialAuthService', () => {
       });
     });
 
-    it('should rethrow non-business Better Auth errors', async () => {
-      verifyEmailMock.mockRejectedValue(
-        new Error('verification store unavailable'),
+    it('maps non-business Better Auth errors to DEPENDENCY_UNAVAILABLE', async () => {
+      const error = new Error('verification store unavailable');
+      verifyEmailMock.mockRejectedValue(error);
+
+      const outcome = await collectResult(
+        service.verifyEmail({ token: 'token' }),
       );
 
-      await expect(
-        collectResult(service.verifyEmail({ token: 'token' })),
-      ).rejects.toThrow('verification store unavailable');
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          cause: error,
+        }),
+      });
     });
   });
 
@@ -1313,19 +1335,24 @@ describe('CredentialAuthService', () => {
       });
     });
 
-    it('should not mask infrastructure failures', async () => {
-      verificationFindFirstMock.mockRejectedValue(
-        new Error('db connection lost'),
+    it('maps infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
+      const error = new Error('db connection lost');
+      verificationFindFirstMock.mockRejectedValue(error);
+
+      const outcome = await collectResult(
+        service.resetPassword({
+          token: 'token',
+          password: 'NewSecure@Pass1',
+        }),
       );
 
-      await expect(
-        collectResult(
-          service.resetPassword({
-            token: 'token',
-            password: 'NewSecure@Pass1',
-          }),
-        ),
-      ).rejects.toThrow('db connection lost');
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          cause: error,
+        }),
+      });
     });
   });
 });

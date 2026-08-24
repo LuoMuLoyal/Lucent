@@ -4,6 +4,7 @@ import {
   createDomainFailure,
   errAsync,
   fromPromise,
+  mapUnknownToDependencyFailure,
   okAsync,
   type DomainFailure,
   type ResultAsync,
@@ -102,9 +103,8 @@ export class AuthOAuthService {
             deletedAt: null,
           },
         }),
-        (error) => {
-          throw error;
-        },
+        (error) =>
+          mapUnknownToDependencyFailure(error, 'Failed to load user by email'),
       ).andThen((existingUser) => {
         if (existingUser && profile.emailVerifiedAt) {
           return this.createAccount(existingUser.id, profile).map(
@@ -224,9 +224,8 @@ export class AuthOAuthService {
         },
         include: { user: true },
       }),
-      (error) => {
-        throw error;
-      },
+      (error) =>
+        mapUnknownToDependencyFailure(error, 'Failed to load OAuth account'),
     ).map((account) => (account ? { user: account.user } : null));
   }
 
@@ -242,9 +241,11 @@ export class AuthOAuthService {
         include: { user: true },
         orderBy: { createdAt: 'asc' },
       }),
-      (error) => {
-        throw error;
-      },
+      (error) =>
+        mapUnknownToDependencyFailure(
+          error,
+          'Failed to load OAuth account by union id',
+        ),
     ).map((account) => (account ? { user: account.user } : null));
   }
 

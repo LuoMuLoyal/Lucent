@@ -5,6 +5,7 @@ import {
   createDomainFailure,
   errAsync,
   fromPromise,
+  mapUnknownToDependencyFailure,
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
@@ -98,9 +99,12 @@ export class AccountService {
   private getActiveAccountUser(
     userId: string,
   ): ResultAsync<AccountUser, DomainFailure> {
-    return fromPromise(this.userService.findById(userId), (error) => {
-      throw error;
-    }).andThen((user) => {
+    return fromPromise(this.userService.findById(userId), (error) =>
+      mapUnknownToDependencyFailure(
+        error,
+        'Failed to load user for account operation',
+      ),
+    ).andThen((user) => {
       if (!user) {
         return errAsync(
           createDomainFailure({
@@ -117,9 +121,11 @@ export class AccountService {
           },
           orderBy: { createdAt: 'asc' },
         }),
-        (error) => {
-          throw error;
-        },
+        (error) =>
+          mapUnknownToDependencyFailure(
+            error,
+            'Failed to load linked identities',
+          ),
       ).map((accounts) => ({ ...user, accounts }));
     });
   }
@@ -136,9 +142,11 @@ export class AccountService {
           providerId: { not: CREDENTIAL_PROVIDER_ID },
         },
       }),
-      (error) => {
-        throw error;
-      },
+      (error) =>
+        mapUnknownToDependencyFailure(
+          error,
+          'Failed to delete linked identity',
+        ),
     ).andThen((result) => {
       if (result.count === 0) {
         return errAsync(

@@ -18,4 +18,8 @@ export type {
 } from './domain-failure';
 export { toProblemDetails } from './domain-failure.mapper';
 export type { DomainFailureProblemOptions } from './domain-failure.mapper';
+export {
+  mapUnknownToDependencyFailure,
+  mapUnknownToInternalFailure,
+} from './unknown-error.mapper';
 export { unwrapResult } from './unwrap-result';

@@ -198,17 +198,18 @@ describe('AuthTokenService', () => {
       }
     });
 
-    it('should not mask signing failures as a domain failure', async () => {
-      (service['jwtService'].signAsync as vi.Mock).mockRejectedValueOnce(
-        new Error('signing backend down'),
+    it('maps signing failures to an INTERNAL_ERROR DomainFailure', async () => {
+      const error = new Error('signing backend down');
+      (service['jwtService'].signAsync as vi.Mock).mockRejectedValueOnce(error);
+
+      const result = await collectResult(
+        service.generateTokenPair(mockUser as never),
       );
 
-      await expect(
-        collectResult(service.generateTokenPair(mockUser as never)),
-      ).rejects.toMatchObject({
-        name: 'InternalServerErrorException',
-        response: { code: 'INTERNAL_ERROR' },
-      });
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error('expected failure');
+      expect(result.error.code).toBe('INTERNAL_ERROR');
+      expect(result.error.cause).toBe(error);
     });
   });
 

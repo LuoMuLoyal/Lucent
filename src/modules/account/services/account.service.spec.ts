@@ -206,16 +206,16 @@ describe('AccountService', () => {
       expect(result.value.hasPassword).toBe(false);
     });
 
-    it('rethrows unexpected user-service failures', async () => {
+    it('maps unexpected user-service failures to DEPENDENCY_UNAVAILABLE', async () => {
       const error = new Error('database unavailable');
       (userService.findById as vi.Mock).mockRejectedValue(error);
 
-      await expect(
-        service.getAccount('db-failure').match(
-          (value) => value,
-          (failure) => failure,
-        ),
-      ).rejects.toBe(error);
+      const result = await inspectResult(service.getAccount('db-failure'));
+
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error('expected failure');
+      expect(result.error.code).toBe('DEPENDENCY_UNAVAILABLE');
+      expect(result.error.cause).toBe(error);
     });
 
     it('should return null fields when dates are null', async () => {
