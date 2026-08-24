@@ -42,7 +42,6 @@ describe('AdminJS resource config generation', () => {
 
     expect(config.hiddenProperties).toContain('profile');
     expect(config.hiddenProperties).toContain('sessions');
-    expect(config.hiddenProperties).toContain('identities');
   });
 
   it('keeps manual overrides for core models', () => {

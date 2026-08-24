@@ -24,11 +24,6 @@ export function createPrismaServiceMock(): DeepMocked<PrismaService> {
       update: vi.fn(),
       create: vi.fn(),
     },
-    userIdentity: {
-      delete: vi.fn(),
-      findFirst: vi.fn(),
-      create: vi.fn(),
-    },
     userSession: {
       deleteMany: vi.fn(),
       create: vi.fn(),

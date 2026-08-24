@@ -53,7 +53,6 @@ model User {
   createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   profile                UserProfile?
-  identities             UserIdentity[]
   lucentSessions         UserSession[]               @relation("lucentSessions")
   sessions               Session[]
   accounts               Account[]
@@ -87,26 +86,6 @@ model User {
 
   // status index removed — no runtime query filters by status; PK serves all lookups
   @@map("users")
-}
-
-model UserIdentity {
-  id              String    @id @default(uuid())
-  userId          String    @map("user_id")
-  provider        String
-  providerUserId  String    @map("provider_user_id")
-  providerUnionId String?   @map("provider_union_id")
-  email           String?
-  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
-  rawProfile      Json?     @map("raw_profile") @db.JsonB
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerUserId])
-  @@index([userId])
-  @@index([providerUnionId])
-  @@index([email])
-  @@map("user_identities")
 }
 
 model UserProfile {

@@ -113,11 +113,7 @@ describe('AuthService', () => {
           useValue: {
             findByEmail: vi.fn(),
             findById: vi.fn(),
-            findByIdentity: vi.fn(),
-            findByProviderUnionId: vi.fn(),
             create: vi.fn(),
-            createOAuthUser: vi.fn(),
-            linkIdentity: vi.fn(),
             update: vi.fn(),
             updateByEmail: vi.fn(),
           },

@@ -94,7 +94,6 @@ export async function cleanupDatabase(prisma: PrismaService): Promise<void> {
   await prisma.userDailyRecord.deleteMany();
   await prisma.assistantSummaryHistory.deleteMany();
   await prisma.assistantConversation.deleteMany();
-  await prisma.userIdentity.deleteMany();
   await prisma.userSession.deleteMany();
   await prisma.userProfile.deleteMany();
   await prisma.account.deleteMany();
