@@ -1,7 +1,6 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { MedicinesService } from './medicines.service';
@@ -10,6 +9,7 @@ import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';
 import { PrismaService } from '../../../prisma';
 import { LlmRuntimeService } from '../../../llm-runtime';
+import { DomainFailureException, unwrapResult } from '../../../common/result';
 
 describe('MedicinesService', () => {
   let service: MedicinesService;
@@ -93,13 +93,14 @@ describe('MedicinesService', () => {
       async (_input, _bypass, load) => load(),
     );
 
-    await expect(
+    const result = await unwrapResult(
       service.search({
         q: ' ibuprofen ',
         page: 1,
         pageSize: 20,
       }),
-    ).resolves.toEqual(expectedResult);
+    );
+    expect(result).toEqual(expectedResult);
 
     expect(medicinesCacheService.getOrSetSearch).toHaveBeenCalledWith(
       {
@@ -129,12 +130,14 @@ describe('MedicinesService', () => {
       async (_input, _bypass, load) => load(),
     );
 
-    await service.search({
-      source: 'cn',
-      q: '布洛芬',
-      page: 2,
-      pageSize: 10,
-    });
+    await unwrapResult(
+      service.search({
+        source: 'cn',
+        q: '布洛芬',
+        page: 2,
+        pageSize: 10,
+      }),
+    );
 
     expect(medicinesCacheService.getOrSetSearch).toHaveBeenCalledWith(
       {
@@ -156,25 +159,30 @@ describe('MedicinesService', () => {
 
   it('should reject unsupported source values', async () => {
     await expect(
-      service.search({
-        source: 'raw-db',
-        q: 'ibuprofen',
-        page: 1,
-        pageSize: 20,
-      }),
-    ).rejects.toThrow(BadRequestException);
+      unwrapResult(
+        service.search({
+          source: 'raw-db',
+          q: 'ibuprofen',
+          page: 1,
+          pageSize: 20,
+        }),
+      ),
+    ).rejects.toThrow(DomainFailureException);
 
     await expect(
-      service.search({
-        source: 'raw-db',
-        q: 'ibuprofen',
-        page: 1,
-        pageSize: 20,
-      }),
+      unwrapResult(
+        service.search({
+          source: 'raw-db',
+          q: 'ibuprofen',
+          page: 1,
+          pageSize: 20,
+        }),
+      ),
     ).rejects.toMatchObject({
-      response: {
+      failure: {
+        kind: 'validation',
         code: 'VALIDATION_FAILED',
-        message: 'medicine.source_invalid',
+        detail: 'medicine.source_invalid',
       },
     });
   });
@@ -186,15 +194,16 @@ describe('MedicinesService', () => {
     );
 
     await expect(
-      service.getDetail('DB00001', { source: 'drugbank' }),
-    ).rejects.toThrow(NotFoundException);
+      unwrapResult(service.getDetail('DB00001', { source: 'drugbank' })),
+    ).rejects.toThrow(DomainFailureException);
 
     await expect(
-      service.getDetail('DB00001', { source: 'drugbank' }),
+      unwrapResult(service.getDetail('DB00001', { source: 'drugbank' })),
     ).rejects.toMatchObject({
-      response: {
+      failure: {
+        kind: 'not_found',
         code: 'RESOURCE_NOT_FOUND',
-        message: 'medicine.not_found',
+        detail: 'medicine.not_found',
       },
     });
   });
@@ -236,9 +245,10 @@ describe('MedicinesService', () => {
       async (_source, _id, _bypass, load) => load(),
     );
 
-    await expect(
+    const result = await unwrapResult(
       service.getDetail(' DB01050 ', { source: 'drugbank' }),
-    ).resolves.toEqual(expectedDetail);
+    );
+    expect(result).toEqual(expectedDetail);
 
     expect(medicinesCacheService.getOrSetDetail).toHaveBeenCalledWith(
       'drugbank',

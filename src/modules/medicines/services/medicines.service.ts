@@ -1,14 +1,16 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
 
-import { shuffleArray } from '../../../common';
-import { safeParseLlmJson } from '../../../common';
+import { shuffleArray, safeParseLlmJson } from '../../../common';
+import {
+  createDomainFailure,
+  errAsync,
+  fromPromise,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../common/result';
 import { PrismaService } from '../../../prisma';
 import {
   DEFAULT_MEDICINE_SOURCE,
@@ -93,67 +95,89 @@ export class MedicinesService {
     );
   }
 
-  async search(query: MedicineSearchQueryDto): Promise<MedicineSearchResult> {
+  search(
+    query: MedicineSearchQueryDto,
+  ): ResultAsync<MedicineSearchResult, DomainFailure> {
     return this.searchWithCache(query, false);
   }
 
-  async searchWithCache(
+  searchWithCache(
     query: MedicineSearchQueryDto,
     bypassCache: boolean,
-  ): Promise<MedicineSearchResult> {
-    const source = this.resolveSource(query.source);
-    const criteria = {
-      q: query.q?.trim() ?? '',
-      page: query.page,
-      pageSize: query.pageSize,
-    };
+  ): ResultAsync<MedicineSearchResult, DomainFailure> {
+    return this.resolveSource(query.source).andThen((source) => {
+      const criteria = {
+        q: query.q?.trim() ?? '',
+        page: query.page,
+        pageSize: query.pageSize,
+      };
 
-    return this.medicinesCacheService.getOrSetSearch(
-      {
-        source,
-        ...criteria,
-      },
-      bypassCache,
-      () =>
-        source === 'drugbank'
-          ? this.drugbankMedicinesService.search(criteria)
-          : this.cnMedicinesService.search(criteria),
-    );
+      return fromPromise(
+        this.medicinesCacheService.getOrSetSearch(
+          {
+            source,
+            ...criteria,
+          },
+          bypassCache,
+          () =>
+            source === 'drugbank'
+              ? this.drugbankMedicinesService.search(criteria)
+              : this.cnMedicinesService.search(criteria),
+        ),
+        (error) =>
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+            cause: error instanceof Error ? error : undefined,
+          }),
+      );
+    });
   }
 
-  async getDetail(
+  getDetail(
     id: string,
     query: MedicineDetailQueryDto,
-  ): Promise<MedicineDetailDataDto> {
+  ): ResultAsync<MedicineDetailDataDto, DomainFailure> {
     return this.getDetailWithCache(id, query, false);
   }
 
-  async getDetailWithCache(
+  getDetailWithCache(
     id: string,
     query: MedicineDetailQueryDto,
     bypassCache: boolean,
-  ): Promise<MedicineDetailDataDto> {
-    const source = this.resolveSource(query.source);
-    const normalizedId = id.trim();
+  ): ResultAsync<MedicineDetailDataDto, DomainFailure> {
+    return this.resolveSource(query.source).andThen((source) => {
+      const normalizedId = id.trim();
 
-    const detail = await this.medicinesCacheService.getOrSetDetail(
-      source,
-      normalizedId,
-      bypassCache,
-      () =>
-        source === 'drugbank'
-          ? this.drugbankMedicinesService.getDetail(normalizedId)
-          : this.cnMedicinesService.getDetail(normalizedId),
-    );
-
-    if (!detail) {
-      throw new NotFoundException({
-        code: 'RESOURCE_NOT_FOUND',
-        message: this.i18n.t('medicine.not_found'),
+      return fromPromise(
+        this.medicinesCacheService.getOrSetDetail(
+          source,
+          normalizedId,
+          bypassCache,
+          () =>
+            source === 'drugbank'
+              ? this.drugbankMedicinesService.getDetail(normalizedId)
+              : this.cnMedicinesService.getDetail(normalizedId),
+        ),
+        (error) =>
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+            cause: error instanceof Error ? error : undefined,
+          }),
+      ).andThen((detail) => {
+        if (!detail) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'not_found',
+              code: 'RESOURCE_NOT_FOUND',
+              detail: this.i18n.t('medicine.not_found'),
+            }),
+          );
+        }
+        return okAsync(detail);
       });
-    }
-
-    return detail;
+    });
   }
 
   // TODO(archive): 接口完整但当前无任何 C 端 UI 消费方（死代码保留）；
@@ -192,18 +216,23 @@ export class MedicinesService {
       }));
   }
 
-  private resolveSource(source: string | undefined): MedicineKnowledgeSource {
+  private resolveSource(
+    source: string | undefined,
+  ): ResultAsync<MedicineKnowledgeSource, DomainFailure> {
     if (source === undefined || source.trim() === '') {
-      return DEFAULT_MEDICINE_SOURCE;
+      return okAsync(DEFAULT_MEDICINE_SOURCE);
     }
 
     if (source === 'drugbank' || source === 'cn') {
-      return source;
+      return okAsync(source);
     }
 
-    throw new BadRequestException({
-      code: 'VALIDATION_FAILED',
-      message: this.i18n.t('medicine.source_invalid'),
-    });
+    return errAsync(
+      createDomainFailure({
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        detail: this.i18n.t('medicine.source_invalid'),
+      }),
+    );
   }
 }
