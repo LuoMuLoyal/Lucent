@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { RiskContextBuilderService } from './risk-context-builder.service';
 import type { PrismaService } from '../../../../prisma';
 import type { MedicinesService } from '../medicines.service';
+import {
+  okAsync,
+  errAsync,
+  createDomainFailure,
+} from '../../../../common/result';
 
 function userRecord(overrides: Record<string, unknown> = {}) {
   return {
@@ -74,22 +79,32 @@ describe('RiskContextBuilderService.buildLlmContext', () => {
     vi.mocked(prisma.user.findFirst).mockResolvedValue(userRecord());
     vi.mocked(prisma.userMedicineReminder.findMany).mockResolvedValue([]);
     vi.mocked(medicinesService.getDetailWithCache)
-      .mockResolvedValueOnce({
-        id: 'cn-1',
-        source: 'cn',
-        name: '布洛芬缓释胶囊',
-        detail: {
-          ingredients: '布洛芬',
-          contraindications: '胃溃疡',
-          precautions: '饭后服用',
-          foodInteractions: ['酒', 42],
-          drugInteractions: [
-            { drugbankId: 'DB0001', description: '相互作用说明' },
-            { drugbankId: '', description: 'x' },
-          ],
-        },
-      } as never)
-      .mockRejectedValueOnce(new Error('fetch failed'));
+      .mockReturnValueOnce(
+        okAsync({
+          id: 'cn-1',
+          source: 'cn',
+          name: '布洛芬缓释胶囊',
+          detail: {
+            ingredients: '布洛芬',
+            contraindications: '胃溃疡',
+            precautions: '饭后服用',
+            foodInteractions: ['酒', 42],
+            drugInteractions: [
+              { drugbankId: 'DB0001', description: '相互作用说明' },
+              { drugbankId: '', description: 'x' },
+            ],
+          },
+        } as never),
+      )
+      .mockReturnValueOnce(
+        errAsync(
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+            detail: 'fetch failed',
+          }),
+        ),
+      );
 
     const ctx = await svc.buildLlmContext('u1', staticResult);
 
@@ -138,12 +153,14 @@ describe('RiskContextBuilderService.buildLlmContext', () => {
         isActive: true,
       } as never,
     ]);
-    vi.mocked(medicinesService.getDetailWithCache).mockResolvedValue({
-      id: 'cn-1',
-      source: 'cn',
-      name: '布洛芬缓释胶囊',
-      detail: {},
-    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+      okAsync({
+        id: 'cn-1',
+        source: 'cn',
+        name: '布洛芬缓释胶囊',
+        detail: {},
+      } as never),
+    );
 
     const ctx = await svc.buildLlmContext('u1', staticResult);
 
@@ -162,12 +179,14 @@ describe('RiskContextBuilderService.buildLlmContext', () => {
     const { prisma, medicinesService, svc } = build();
     vi.mocked(prisma.user.findFirst).mockResolvedValue(userRecord());
     vi.mocked(prisma.userMedicineReminder.findMany).mockResolvedValue([]);
-    vi.mocked(medicinesService.getDetailWithCache).mockResolvedValue({
-      id: 'cn-1',
-      source: 'cn',
-      name: '布洛芬缓释胶囊',
-      detail: {},
-    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+      okAsync({
+        id: 'cn-1',
+        source: 'cn',
+        name: '布洛芬缓释胶囊',
+        detail: {},
+      } as never),
+    );
 
     const ctx = await svc.buildLlmContext('u1', staticResult);
 

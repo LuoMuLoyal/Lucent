@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
 import { MedicinesService } from '../medicines.service';
 import { nonDeleted, formatDateOnly } from '../../../../common';
+import { unwrapResult } from '../../../../common/result';
 import type { MedicineRiskCheckResponseDto } from '../../dto/risk/risk-check-response.dto';
 import type { MedicineRiskLlmContext } from '../../prompts/risk-check.prompt';
 import {
@@ -63,10 +64,12 @@ export class RiskContextBuilderService {
 
       const llmDetailResults = await Promise.allSettled(
         eligibleItems.map(async ({ item, source, sourceRefId }) => {
-          const detail = await this.medicinesService.getDetailWithCache(
-            sourceRefId,
-            { source },
-            false,
+          const detail = await unwrapResult(
+            this.medicinesService.getDetailWithCache(
+              sourceRefId,
+              { source },
+              false,
+            ),
           );
           return { item, detail, source };
         }),
