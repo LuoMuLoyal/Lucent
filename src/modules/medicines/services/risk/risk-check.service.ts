@@ -57,10 +57,23 @@ export class MedicineRiskCheckService {
     llm: MedicineRiskCheckRecordDto | null;
   }> {
     const cacheKey = this.buildRecordsCacheKey(userId);
-    const cached = await this.cache.get<{
-      static: MedicineRiskCheckRecordDto | null;
-      llm: MedicineRiskCheckRecordDto | null;
-    }>(cacheKey);
+    let cached:
+      | {
+          static: MedicineRiskCheckRecordDto | null;
+          llm: MedicineRiskCheckRecordDto | null;
+        }
+      | undefined;
+    try {
+      cached = await this.cache.get<{
+        static: MedicineRiskCheckRecordDto | null;
+        llm: MedicineRiskCheckRecordDto | null;
+      }>(cacheKey);
+    } catch (error) {
+      this.logger.warn(
+        `Risk-check cache get failed (key=${cacheKey}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
     if (cached != null) {
       return cached;
     }
@@ -79,7 +92,13 @@ export class MedicineRiskCheckService {
       llm: result.llm != null ? this.toDto(result.llm) : null,
     };
 
-    await this.cache.set(cacheKey, mapped, RISK_CHECK_CACHE_TTL_MS);
+    try {
+      await this.cache.set(cacheKey, mapped, RISK_CHECK_CACHE_TTL_MS);
+    } catch (error) {
+      this.logger.warn(
+        `Risk-check cache set failed (key=${cacheKey}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     this.logger.debug(`Cache set: risk-check records (userId=${userId})`);
     return mapped;
   }

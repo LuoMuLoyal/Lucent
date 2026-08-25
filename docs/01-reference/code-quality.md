@@ -310,3 +310,7 @@ Last updated: 2026-08-25
     连续失败 3 次后日志从 warn 升级为 error，触发监控告警；成功后计数器重置。
   - `MedicinesCacheAdminService` 内省逻辑在 stores 为空或 rawStore 不暴露 keys()
     时新增 warn 日志，cache-manager 版本升级后内省失败可观测。
+
+- 2026-08-25 错误处理预防性扫尾 — 残留缓存保护与裸 throw 收口：
+  - `MedicineRiskCheckService.getRecords` 中 `cache.get`/`cache.set` 补充
+    try-catch 保护，Redis 故障时降级而非 500。
