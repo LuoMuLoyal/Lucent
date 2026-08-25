@@ -1,8 +1,8 @@
 #!/bin/sh
 # Lucent 监控配置渲染脚本（在服务器 /opt/lucent 下运行）
 #
-# prometheus/prometheus.yml 与 alertmanager/alertmanager.yml 是【模板】，
-# 含 ${VAR} 占位符；prometheus/alertmanager 均不支持配置内环境变量插值。
+# victoriametrics/vmscraper.yml 与 alertmanager/alertmanager.yml 是【模板】，
+# 含 ${VAR} 占位符；VictoriaMetrics/alertmanager 均不支持配置内环境变量插值。
 # 渲染统一在宿主机执行（此前容器内 sh -c 渲染因 compose 内联脚本的
 # 转义差异导致 sed 失败，故改为宿主机渲染，见 deployment.md）。
 #
@@ -11,11 +11,11 @@
 #
 # deploy.ts 每次发布会在 pre-flight 自动调用本脚本（失败仅警告不阻塞发布）。
 # 手动修改 .env 的 METRICS_* / WECOM_* 后需重跑本脚本并重启对应容器：
-#   docker compose up -d prometheus
+#   docker compose up -d victoriametrics
 #   docker compose --profile alerting up -d alertmanager
 #
 # 渲染产物（含密钥，已被 .gitignore 排除，不离开服务器）：
-#   prometheus/.rendered/prometheus.yml
+#   victoriametrics/.rendered/vmscraper.yml
 #   alertmanager/.rendered/alertmanager.yml （仅当 WECOM_* 全部配置时生成）
 
 set -eu
@@ -61,7 +61,7 @@ render() {
   echo "[render] rendered $output"
 }
 
-# ── prometheus（必需 METRICS_USER / METRICS_PASSWORD） ──────────────
+# ── VictoriaMetrics（必需 METRICS_USER / METRICS_PASSWORD） ──────────
 missing=0
 for v in METRICS_USER METRICS_PASSWORD; do
   if [ -z "$(get_env "$v")" ]; then
@@ -71,7 +71,7 @@ for v in METRICS_USER METRICS_PASSWORD; do
 done
 [ "$missing" -eq 0 ] || exit 1
 
-render prometheus/prometheus.yml prometheus/.rendered/prometheus.yml \
+render victoriametrics/vmscraper.yml victoriametrics/.rendered/vmscraper.yml \
   METRICS_USER METRICS_PASSWORD
 
 # ── alertmanager（可选：WECOM_* 全部配置才渲染） ────────────────────

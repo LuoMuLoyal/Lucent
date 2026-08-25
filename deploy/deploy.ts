@@ -62,7 +62,7 @@ function ensureDirectories(): void {
     'certs',
     'data/postgresql',
     'data/redis',
-    'data/prometheus',
+    'data/victoriametrics',
     'data/grafana',
     'data/backups',
     'data/alertmanager',
@@ -70,8 +70,7 @@ function ensureDirectories(): void {
     'logs/app',
     'logs/nginx',
     'nginx',
-    'prometheus',
-    'prometheus/rules',
+    'victoriametrics/rules',
     'alertmanager',
   ];
   for (const dir of dirs) {
@@ -80,9 +79,9 @@ function ensureDirectories(): void {
 }
 
 /**
- * Render prometheus/alertmanager configs from .env via render-configs.sh.
+ * Render VictoriaMetrics/alertmanager configs from .env via render-configs.sh.
  * Best-effort: monitoring is not on the deploy critical path, so a render
- * failure only warns (prometheus keeps running with its previous config).
+ * failure only warns (VM keeps running with its previous config).
  */
 function runRenderConfigs(): void {
   const scriptPath = path.join(DEPLOY_DIR, 'render-configs.sh');
@@ -97,7 +96,7 @@ function runRenderConfigs(): void {
   });
   if (result.status !== 0) {
     console.warn(
-      '  WARNING: render-configs.sh failed — prometheus/alertmanager configs may be stale. Continuing deploy.',
+      '  WARNING: render-configs.sh failed — VictoriaMetrics/alertmanager configs may be stale. Continuing deploy.',
     );
   }
 }

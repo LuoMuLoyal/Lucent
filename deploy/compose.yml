@@ -164,24 +164,29 @@ services:
           cpus: '0.1'
           memory: 32M
 
-  prometheus:
-    image: prom/prometheus:v3.4.2
-    container_name: lucent-prometheus
+  # ── VictoriaMetrics（单机时序数据库，替代 Prometheus） ──────────
+  # 抓取 Lucent app /metrics（localhost 不走公网），绑定 127.0.0.1:8428。
+  # VMUI 通过 SSH 隧道访问（ssh -L 8428:127.0.0.1:8428 <server>），
+  # 日常监控使用 Grafana（datasource URL 指向 VM）。
+  # prom-client 和 /metrics 端点不变，VM 兼容 Prometheus exposition format。
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.128.0
+    container_name: lucent-victoriametrics
     restart: unless-stopped
     ports:
-      # 仅本机回环：配合 SSH 隧道访问（ssh -L 9090:127.0.0.1:9090 <server>）
-      - '127.0.0.1:9090:9090'
+      # 仅本机回环：配合 SSH 隧道访问（ssh -L 8428:127.0.0.1:8428 <server>）
+      - '127.0.0.1:8428:8428'
     volumes:
       # 渲染产物由宿主机 ./render-configs.sh 生成（含 METRICS_* 密钥，不入库）。
       # 首次启动或修改 .env 后先执行 ./render-configs.sh，再重启本服务。
-      - ./prometheus/.rendered/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/rules:/etc/prometheus/rules:ro
-      - ./data/prometheus:/prometheus
+      - ./victoriametrics/.rendered/vmscraper.yml:/etc/vmscraper.yml:ro
+      - ./data/victoriametrics:/storage
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=15d'
-      - '--web.listen-address=0.0.0.0:9090'
+      - '-storageDataPath=/storage'
+      - '-retentionPeriod=30d'
+      - '-httpListenAddr=0.0.0.0:8428'
+      # Prometheus 兼容：reproducePrometheusSchema=true 使指标名和标签与 Prometheus 一致
+      - '-reproducePrometheusSchema=true'
     networks:
       - observability
       - backend
@@ -198,6 +203,38 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+
+  # ── vmalert（告警规则评估 + 告警通知） ────────────────────────
+  # vmalert 评估 ./victoriametrics/rules/*.yml 中的告警规则（语法兼容 Prometheus）。
+  # 规则触发后推送到 Alertmanager（profile=alerting）或仅记录日志。
+  vmalert:
+    image: victoriametrics/vmalert:v1.128.0
+    container_name: lucent-vmalert
+    restart: unless-stopped
+    volumes:
+      - ./victoriametrics/rules:/etc/vmalert/rules:ro
+    command:
+      - '-rule=/etc/vmalert/rules/*.yml'
+      - '-datasource.url=http://victoriametrics:8428'
+      - '-notifier.url=http://alertmanager:9093'
+      - '-remoteWrite.url=http://victoriametrics:8428/api/v1/write'
+    networks:
+      - observability
+    depends_on:
+      - victoriametrics
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
   grafana:
     image: grafana/grafana:12.1.0
@@ -230,7 +267,8 @@ services:
           memory: 64M
 
   # ── Alertmanager（企业微信应用消息告警） ────────────────────────
-  # 默认不启动（profile=alerting）。启用步骤：
+  # vmalert 规则触发后推送到 Alertmanager。默认不启动（profile=alerting）。
+  # 启用步骤：
   #   1. .env 配好 WECOM_CORP_ID / WECOM_CORP_SECRET / WECOM_AGENT_ID / WECOM_TO_USER
   #   2. ./render-configs.sh（WECOM_* 配齐时才会生成 .rendered/alertmanager.yml）
   #   3. docker compose --profile alerting up -d
@@ -250,52 +288,6 @@ services:
       - '--web.listen-address=0.0.0.0:9093'
     networks:
       - observability
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
-
-  # ── 基础设施 exporters（默认启动） ──────────────────────────────
-  postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.18.1
-    container_name: lucent-postgres-exporter
-    restart: unless-stopped
-    environment:
-      DATA_SOURCE_NAME: postgresql://lucent:${POSTGRES_PASSWORD}@postgres:5432/lucent?sslmode=disable
-    networks:
-      - backend
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
-
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.75.0
-    container_name: lucent-redis-exporter
-    restart: unless-stopped
-    environment:
-      REDIS_ADDR: redis://redis:6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    networks:
-      - backend
     logging:
       driver: json-file
       options:

@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-16
+updated: 2026-08-25
 ---
 
 # Lucent Deployment
 
-Last updated: 2026-08-16
+Last updated: 2026-08-25
 
 这份文档描述当前生产部署模型：Docker Compose 单机部署 + **单 slot 停机部署**（每次发布
 15~45s 停机窗口，低峰时段发布）+ 镜像 tag 回滚。蓝绿双 slot 已于 2026-07-17 移除，决策
@@ -25,15 +25,15 @@ Last updated: 2026-08-16
 ├── package.json                  ← CI 管理（{"type":"module"}，使 deploy.ts / smoke.ts 以 ESM 运行）
 ├── backup.sh                     ← CI 管理（每日 pg_dump 备份 + 可选 COS 异地副本）
 ├── check-cert.sh                 ← CI 管理（TLS 证书过期 textfile 指标）
-├── render-configs.sh             ← CI 管理（渲染 prometheus/alertmanager 配置模板）
+├── render-configs.sh             ← CI 管理（渲染 VictoriaMetrics/alertmanager 配置模板）
 ├── nginx/
 │   └── nginx.conf                ← CI 管理
-├── prometheus/
-│   ├── prometheus.yml            ← CI 管理（模板，含 ${METRICS_*} 占位符）
+├── victoriametrics/
+│   ├── vmscraper.yml            ← CI 管理（模板，含 ${METRICS_*} 占位符）
 │   ├── rules/
 │   │   └── lucent.yml            ← CI 管理（告警规则）
 │   └── .rendered/
-│       └── prometheus.yml        ← render-configs.sh 生成（含密钥，不入库）
+│       └── vmscraper.yml        ← render-configs.sh 生成（含密钥，不入库）
 ├── alertmanager/
 │   ├── alertmanager.yml          ← CI 管理（模板，含 ${WECOM_*} 占位符）
 │   └── .rendered/
@@ -55,7 +55,7 @@ Last updated: 2026-08-16
 ├── data/                         ← 运维管理
 │   ├── postgresql/
 │   ├── redis/
-│   ├── prometheus/
+│   ├── victoriametrics/
 │   ├── grafana/
 │   ├── alertmanager/
 │   ├── backups/                  ← pre-deploy 快照（保留 10 份）+ daily 备份（保留 7 份）
@@ -72,7 +72,7 @@ Last updated: 2026-08-16
 - 运维文件（`.env`、`certs/`、`data/`、`logs/`）CI 永不触碰
 - `deploy.ts` 在任何修改之前把 `.env` 快照为 `.env.previous`（回滚只取其中的
   `LUCENT_IMAGE`）；对 `.env` 的写入是行级替换（保留注释与格式），写完 `chmod 600`
-- `prometheus/.rendered/` 与 `alertmanager/.rendered/` 含密钥，由
+- `victoriametrics/.rendered/` 与 `alertmanager/.rendered/` 含密钥，由
   `render-configs.sh` 在服务器本地生成，已 gitignore，不离开服务器
 
 ## .env 统一
@@ -125,7 +125,7 @@ CORS_ORIGIN=https://your-domain.example
 # ... 其他 app 环境变量
 ```
 
-`METRICS_USER` / `METRICS_PASSWORD` 用于 `/metrics` 端点的 Basic Auth 认证，Prometheus 抓取时通过 `render-configs.sh` 渲染进配置。Nginx 层同时拦截外部对 `/metrics` 的直接访问（返回 403）。
+`METRICS_USER` / `METRICS_PASSWORD` 用于 `/metrics` 端点的 Basic Auth 认证，VictoriaMetrics 抓取时通过 `render-configs.sh` 渲染进配置。Nginx 层同时拦截外部对 `/metrics` 的直接访问（返回 403）。
 
 `DATABASE_URL` 和 `REDIS_URL` 在 compose.yml 的 `environment:` 块中用 `${POSTGRES_PASSWORD}` / `${REDIS_PASSWORD}` 拼接，不直接写在 `.env` 中。
 
@@ -137,7 +137,7 @@ CORS_ORIGIN=https://your-domain.example
 ## 首次准备
 
 ```bash
-mkdir -p /opt/lucent/{certs,data/{postgresql,redis,prometheus,grafana,alertmanager,backups,node-exporter-textfile},logs/{app,nginx},nginx,prometheus/rules,alertmanager}
+mkdir -p /opt/lucent/{certs,data/{postgresql,redis,victoriametrics,grafana,alertmanager,backups,node-exporter-textfile},logs/{app,nginx},nginx,victoriametrics/rules,alertmanager}
 ```
 
 然后把这些本地文件放好：
@@ -286,7 +286,7 @@ docker exec lucent-app curl -u ${METRICS_USER}:${METRICS_PASSWORD} http://127.0.
 
 通过标准：
 
-- `app`、`postgres`、`redis`、`nginx`、`prometheus`、`grafana` 容器在运行
+- `app`、`postgres`、`redis`、`nginx`、`victoriametrics`、`vmalert`、`grafana` 容器在运行
 - `/api/v1/health/ready` 返回 `200`
 - Nginx 能正常反代 HTTPS 请求
 - `/metrics` 通过 Nginx 返回 `403`
@@ -407,7 +407,7 @@ Postgres 慢查询日志：compose 启动参数 `log_min_duration_statement=500`
 - **Helmet 中间件**：自动设置 HTTP 安全响应头（CSP、X-Content-Type-Options、X-Frame-Options、Strict-Transport-Security 等），与 Nginx 层安全头形成纵深防御
 - **限流存储**：ThrottlerModule 使用进程内存存储（单实例部署下足够，计数器随进程重
   启清零）；Redis 用于 BullMQ 队列，不用于限流
-- **`/metrics` Basic Auth**：当 `METRICS_USER` 和 `METRICS_PASSWORD` 同时配置时，`/metrics` 端点要求 Basic Auth 认证。Prometheus 通过 `basic_auth` 配置传递凭据
+- **`/metrics` Basic Auth**：当 `METRICS_USER` 和 `METRICS_PASSWORD` 同时配置时，`/metrics` 端点要求 Basic Auth 认证。VictoriaMetrics 通过 `basic_auth` 配置传递凭据
 - **测试端点守卫**：`/api/v1/testing/*` 端点同时要求 JWT 认证和 `TESTING_SHARED_SECRET` 共享密钥守卫，仅在 `NODE_ENV=test` 时注册
 - **Admin 面板认证**：AdminJS 凭据比较使用 `crypto.timingSafeEqual` 常量时间比较，防止计时攻击
 - **验证码安全存储**：短信/邮件验证码以 SHA-256 哈希存入 Redis，验证时使用 `timingSafeEqual` 常量时间比较
@@ -419,8 +419,8 @@ Postgres 慢查询日志：compose 启动参数 `log_min_duration_statement=500`
 ## 网络隔离
 
 ```text
-backend 网络:       nginx, app, postgres, redis, prometheus, postgres-exporter, redis-exporter
-observability 网络:  app, prometheus, grafana, node-exporter, alertmanager（profile 启用时）
+backend 网络:       nginx, app, postgres, redis, victoriametrics
+observability 网络:  app, victoriametrics, vmalert, grafana, node-exporter, alertmanager（profile 启用时）
 ```
 
 Postgres 和 Redis 只在 `backend` 网络内，不暴露端口到宿主机。
@@ -458,23 +458,22 @@ STAGING_DEPLOY_SSH_KNOWN_HOSTS
 
 生产 compose 的监控组件：
 
-| 容器                       | 镜像                                            | 端口/地址        | 说明                                                               |
-| -------------------------- | ----------------------------------------------- | ---------------- | ------------------------------------------------------------------ |
-| `lucent-prometheus`        | `prom/prometheus:v3.4.2`                        | `127.0.0.1:9090` | 15s 间隔 scrape app/postgres/redis/node 四类 target，15 天数据保留 |
-| `lucent-grafana`           | `grafana/grafana:12.1.0`                        | `127.0.0.1:3001` | 预置 Prometheus 数据源和 Lucent Backend Overview 仪表盘            |
-| `lucent-alertmanager`      | `prom/alertmanager:v0.28.1`                     | 仅容器网络       | 企业微信应用消息告警，profile=alerting，默认不启动                 |
-| `lucent-postgres-exporter` | `prometheuscommunity/postgres-exporter:v0.18.1` | 仅容器网络       | DB 连接数/锁/缓存命中等指标                                        |
-| `lucent-redis-exporter`    | `oliver006/redis_exporter:v1.75.0`              | 仅容器网络       | Redis 内存/命中率等指标                                            |
-| `lucent-node-exporter`     | `prom/node-exporter:v1.9.1`                     | 仅容器网络       | 宿主机 CPU/内存/磁盘水位 + textfile collector（证书过期指标）      |
+| 容器                     | 镜像                                        | 端口/地址        | 说明                                                                |
+| ------------------------ | ------------------------------------------- | ---------------- | ------------------------------------------------------------------- |
+| `lucent-victoriametrics` | `victoriametrics/victoria-metrics:v1.128.0` | `127.0.0.1:8428` | 单机时序数据库，15s 间隔 scrape app/node 两类 target，30 天数据保留 |
+| `lucent-vmalert`         | `victoriametrics/vmalert:v1.128.0`          | 仅容器网络       | 告警规则评估，推送到 Alertmanager，规则在 `victoriametrics/rules/`  |
+| `lucent-grafana`         | `grafana/grafana:12.1.0`                    | `127.0.0.1:3001` | 预置 VictoriaMetrics 数据源和 Lucent Backend Overview 仪表盘        |
+| `lucent-alertmanager`    | `prom/alertmanager:v0.28.1`                 | 仅容器网络       | 企业微信应用消息告警，profile=alerting，默认不启动                  |
+| `lucent-node-exporter`   | `prom/node-exporter:v1.9.1`                 | 仅容器网络       | 宿主机 CPU/内存/磁盘水位 + textfile collector（证书过期指标）       |
 
-Prometheus 和 Grafana 的端口只绑定 `127.0.0.1`，不暴露公网，Nginx 不代理。通过 SSH
+VictoriaMetrics 和 Grafana 的端口只绑定 `127.0.0.1`，不暴露公网，Nginx 不代理。通过 SSH
 隧道访问：
 
 ```bash
 # Grafana
 ssh -L 3001:localhost:3001 user@server
-# Prometheus
-ssh -L 9090:localhost:9090 user@server
+# VictoriaMetrics (VMUI)
+ssh -L 8428:127.0.0.1:8428 user@server
 ```
 
 node-exporter 走容器 bridge 网络（不把 9100 暴露到宿主机网卡），network 指标只反映
@@ -483,8 +482,8 @@ node-exporter 走容器 bridge 网络（不把 9100 暴露到宿主机网卡）�
 
 ### 配置模板渲染
 
-`prometheus/prometheus.yml` 和 `alertmanager/alertmanager.yml` 是**模板**（含
-`${METRICS_*}` / `${WECOM_*}` 占位符），Prometheus/Alertmanager 均不支持配置内环境变
+`victoriametrics/vmscraper.yml` 和 `alertmanager/alertmanager.yml` 是**模板**（含
+`${METRICS_*}` / `${WECOM_*}` 占位符），VictoriaMetrics/Alertmanager 均不支持配置内环境变
 量插值。由宿主机 `render-configs.sh` 渲染到 `.rendered/` 子目录后挂载使用：
 
 - `deploy.ts` 每次发布在 pre-flight 自动调用（失败仅警告，不阻塞发布）
@@ -493,13 +492,13 @@ node-exporter 走容器 bridge 网络（不把 9100 暴露到宿主机网卡）�
 ```bash
 cd /opt/lucent
 ./render-configs.sh
-docker compose up -d prometheus
+docker compose up -d victoriametrics
 docker compose --profile alerting up -d alertmanager
 ```
 
 ### 告警
 
-告警规则在 `deploy/prometheus/rules/lucent.yml`（CI 管理，直接挂载），severity 约定：
+告警规则在 `deploy/victoriametrics/rules/lucent.yml`（CI 管理，直接挂载到 vmalert），severity 约定：
 critical = 立即处理，warning = 关注趋势。当前规则：
 
 - **可用性**：`LucentDown`（app 不可达 1m）、`LucentHigh5xxRate`（5xx 占比 > 5% 持续 5m）
@@ -517,7 +516,7 @@ adapter）。启用步骤：
 2. `./render-configs.sh`（WECOM\_\* 配齐时才会生成 `.rendered/alertmanager.yml`）
 3. `docker compose --profile alerting up -d`
 
-未启用 alertmanager 时 Prometheus 只会报 DNS 解析失败日志，规则照常评估，不影响指
+未启用 alertmanager 时 vmalert 只会报连接失败日志，规则照常评估，不影响指
 标采集。发布成功/失败/回滚事件走另一条独立通道：`WECOM_WEBHOOK_URL` 群机器人
 （deploy.ts 内置 curl，只需一个 webhook URL）。
 

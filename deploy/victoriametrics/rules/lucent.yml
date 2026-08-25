@@ -1,5 +1,6 @@
-# Lucent 告警规则
-# 挂载到 prometheus 容器的 /etc/prometheus/rules（见 deploy/compose.yml）。
+# Lucent 告警规则（vmalert）
+# 挂载到 vmalert 容器的 /etc/vmalert/rules（见 deploy/compose.yml）。
+# vmalert 规则语法兼容 Prometheus recording / alerting rules。
 # severity 约定：critical = 立即处理（可用性/错误率/磁盘/证书红线）；
 #                 warning  = 关注排队与资源趋势。
 
@@ -13,7 +14,7 @@ groups:
           severity: critical
         annotations:
           summary: 'Lucent 后端不可达'
-          description: 'Prometheus 已连续 1 分钟无法抓取 app:3000/metrics，后端大概率已挂或网络分区。'
+          description: 'VictoriaMetrics 已连续 1 分钟无法抓取 app:3000/metrics，后端大概率已挂或网络分区。'
 
       - alert: LucentHigh5xxRate
         expr: |
