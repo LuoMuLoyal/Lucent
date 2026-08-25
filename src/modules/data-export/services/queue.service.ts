@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory';
+import { createDomainFailure } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import { DataExportProcessorService } from './processor.service';
 
 interface DataExportJobData {
@@ -36,7 +38,13 @@ export class DataExportQueueService {
 
   async enqueue(data: DataExportJobData): Promise<void> {
     if (!this.queue) {
-      throw new Error('Data export queue is not configured');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+          detail: 'Data export queue is not configured',
+        }),
+      );
     }
 
     await this.queue.add(JOB_NAME, data, {

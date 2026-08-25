@@ -5,11 +5,13 @@ import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
 import { now } from '../../../common';
 import {
+  createDomainFailure,
   fromPromise,
   okAsync,
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import { fromPrismaResult } from '../../../common';
 import {
   DELIVERY_CHANNEL_LOCAL,
@@ -119,8 +121,12 @@ export class DeliveryReceiptsService {
               // 防御。行缺失属于程序不变式破坏，直接抛出（500），不伪装成
               // 客户端可恢复的业务失败。
               if (created == null) {
-                throw new Error(
-                  `Local delivery receipt row missing after write: userId=${userId}, reminderId=${dto.reminderId}`,
+                throw new DomainFailureException(
+                  createDomainFailure({
+                    kind: 'internal',
+                    code: 'INTERNAL_ERROR',
+                    detail: `Local delivery receipt row missing after write: userId=${userId}, reminderId=${dto.reminderId}`,
+                  }),
                 );
               }
               return okAsync(this.toItem(created));

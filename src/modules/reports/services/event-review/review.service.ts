@@ -395,7 +395,13 @@ export class EventReviewService {
     // Prisma-backed read always populates it. Fail loudly on a missing value
     // instead of silently defaulting to `symptom` and mislabeling the event.
     if (event.kind == null) {
-      throw new Error(`Health event ${event.id} has no kind.`);
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+          detail: `Health event ${event.id} has no kind.`,
+        }),
+      );
     }
     return {
       id: event.id,

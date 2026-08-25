@@ -314,3 +314,7 @@ Last updated: 2026-08-25
 - 2026-08-25 错误处理预防性扫尾 — 残留缓存保护与裸 throw 收口：
   - `MedicineRiskCheckService.getRecords` 中 `cache.get`/`cache.set` 补充
     try-catch 保护，Redis 故障时降级而非 500。
+  - 4 处业务代码裸 `throw new Error` 收口为 `DomainFailureException`：
+    `review.service.ts`（不变式 `INTERNAL_ERROR`）、`summary.service.ts`
+    （前置条件 `INTERNAL_ERROR`）、`delivery-receipts.service.ts`（不变式
+    `INTERNAL_ERROR`）、`queue.service.ts`（`DEPENDENCY_UNAVAILABLE` 503）。

@@ -333,7 +333,13 @@ export class ClinicSummaryService {
     // Event scope wins (plan: event scope 优先).
     if (options.eventId != null && options.eventId !== '') {
       if (this.eventReview == null) {
-        throw new Error('Event scope requires the event review service.');
+        throw new DomainFailureException(
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+            detail: 'Event scope requires the event review service.',
+          }),
+        );
       }
       const review = await this.eventReview.buildForEvent(
         userId,
