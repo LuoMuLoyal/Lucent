@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -57,6 +56,11 @@ import { MedicinesService } from './services/medicines.service';
 
 import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
 import { MedicineRiskCheckService } from './services/risk/risk-check.service';
+import {
+  createDomainFailure,
+  DomainFailureException,
+  unwrapResult,
+} from '../../common/result';
 
 @ApiTags('Medicines')
 @ApiExtraModels(
@@ -123,9 +127,11 @@ export class MedicinesController {
     @Query() query: MedicineSearchQueryDto,
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
-    const result = await this.medicinesService.searchWithCache(
-      query,
-      this.shouldBypassCache(bypassCacheHeader),
+    const result = await unwrapResult(
+      this.medicinesService.searchWithCache(
+        query,
+        this.shouldBypassCache(bypassCacheHeader),
+      ),
     );
 
     return {
@@ -152,10 +158,12 @@ export class MedicinesController {
     @Query() query: MedicineDetailQueryDto,
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
-    const result = await this.medicinesService.getDetailWithCache(
-      id,
-      query,
-      this.shouldBypassCache(bypassCacheHeader),
+    const result = await unwrapResult(
+      this.medicinesService.getDetailWithCache(
+        id,
+        query,
+        this.shouldBypassCache(bypassCacheHeader),
+      ),
     );
     return result;
   }
@@ -193,16 +201,20 @@ export class MedicinesController {
     @Body() dto: RunRiskCheckDto,
   ) {
     if (dto.candidate != null && dto.type === 'llm') {
-      throw new BadRequestException({
-        code: 'VALIDATION_FAILED',
-        message: '候选预检仅支持 static 检查',
-      });
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail: '候选预检仅支持 static 检查',
+        }),
+      );
     }
 
-    const record =
+    const record = await unwrapResult(
       dto.type === 'llm'
-        ? await this.riskCheckService.runLlmCheck(user.sub)
-        : await this.riskCheckService.runStaticCheck(user.sub, dto.candidate);
+        ? this.riskCheckService.runLlmCheck(user.sub)
+        : this.riskCheckService.runStaticCheck(user.sub, dto.candidate),
+    );
     return record;
   }
 

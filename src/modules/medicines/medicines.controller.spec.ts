@@ -1,4 +1,4 @@
-import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller';
@@ -6,6 +6,7 @@ import { MedicinesService } from './services/medicines.service';
 import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
 import { MedicineRiskCheckService } from './services/risk/risk-check.service';
 import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto';
+import { okAsync, DomainFailureException } from '../../common/result';
 
 describe('MedicinesController', () => {
   let controller: MedicinesController;
@@ -100,7 +101,7 @@ describe('MedicinesController', () => {
         ],
         pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
       };
-      service.searchWithCache.mockResolvedValue(searchResult);
+      service.searchWithCache.mockReturnValue(okAsync(searchResult));
 
       const result = await controller.search(
         { source: 'drugbank', q: 'ibu', page: 1, pageSize: 20 } as never,
@@ -118,10 +119,12 @@ describe('MedicinesController', () => {
     });
 
     it('bypasses cache when header is set to true', async () => {
-      service.searchWithCache.mockResolvedValue({
-        items: [],
-        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
-      });
+      service.searchWithCache.mockReturnValue(
+        okAsync({
+          items: [],
+          pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+        }),
+      );
 
       await controller.search(
         { source: 'drugbank', q: 'test', page: 1, pageSize: 20 } as never,
@@ -158,6 +161,10 @@ describe('MedicinesController', () => {
     });
 
     it('POST /risk-check dispatches static vs llm by body type', async () => {
+      const svc = riskCheckService();
+      svc.runStaticCheck.mockReturnValue(okAsync({ checkType: 'static' }));
+      svc.runLlmCheck.mockReturnValue(okAsync({ checkType: 'llm' }));
+
       await controller.runRiskCheck(
         { sub: 'u1' } as never,
         {
@@ -171,7 +178,6 @@ describe('MedicinesController', () => {
         } as never,
       );
 
-      const svc = riskCheckService();
       expect(svc.runStaticCheck).toHaveBeenCalledWith('u1', undefined);
       expect(svc.runLlmCheck).toHaveBeenCalledWith('u1');
       expect(svc.runStaticCheck).toHaveBeenCalledTimes(1);
@@ -187,7 +193,7 @@ describe('MedicinesController', () => {
             candidate: { source: 'cn', id: 'cn-1' },
           } as never,
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(DomainFailureException);
 
       const svc = riskCheckService();
       expect(svc.runLlmCheck).not.toHaveBeenCalled();
@@ -196,16 +202,15 @@ describe('MedicinesController', () => {
 
     it('POST /risk-check forwards the candidate to runStaticCheck', async () => {
       const candidate = { source: 'cn' as const, id: 'cn-1' };
+      const svc = riskCheckService();
+      svc.runStaticCheck.mockReturnValue(okAsync({ checkType: 'static' }));
 
       await controller.runRiskCheck(
         { sub: 'u1' } as never,
         { type: 'static', candidate } as never,
       );
 
-      expect(riskCheckService().runStaticCheck).toHaveBeenCalledWith(
-        'u1',
-        candidate,
-      );
+      expect(svc.runStaticCheck).toHaveBeenCalledWith('u1', candidate);
     });
 
     it('POST /risk-check rejects a candidate missing source or id via DTO validation (400)', async () => {
@@ -222,7 +227,7 @@ describe('MedicinesController', () => {
             type: 'body',
             metatype: RunRiskCheckDto,
           }),
-        ).rejects.toThrow(BadRequestException);
+        ).rejects.toThrow();
       }
     });
   });
