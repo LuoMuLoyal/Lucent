@@ -319,3 +319,7 @@ Last updated: 2026-08-25
     （前置条件 `INTERNAL_ERROR`）、`delivery-receipts.service.ts`（不变式
     `INTERNAL_ERROR`）、`queue.service.ts`（`DEPENDENCY_UNAVAILABLE` 503）。
   - 9 处空 catch 块按 ADR-0012 补充 warn 日志，不再静默吞错。
+  - 新增 ESLint 自定义规则 `no-bare-throw-error` + `no-silent-catch`
+    （`eslint-plugins/error-handling.ts`），从源头预防裸 throw 和静默 catch。
+    规则为 `error` 级别；20 个现有违规文件在 `eslint.config.ts` override 块中
+    暂时关闭，逐步清理后删除。

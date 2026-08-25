@@ -59,6 +59,7 @@ export class SuggestionRecomputeWorkerService {
         }
         if (current.sourceVersion > currentJob.sourceVersion) {
           if (followUpCount >= MAX_RECOMPUTE_VERSION_FOLLOW_UPS) {
+            // eslint-disable-next-line error-handling/no-bare-throw-error -- 控制流异常，跳出 recompute 循环
             throw new Error('RECOMPUTE_VERSION_CONFLICT');
           }
           currentJob = this.followUpJob(currentJob, current);
@@ -87,6 +88,7 @@ export class SuggestionRecomputeWorkerService {
                   signals,
                 );
                 await this.cache.invalidateBaseline(currentJob.userId);
+                // eslint-disable-next-line error-handling/no-silent-catch -- 错误延迟到外层处理，非静默吞咽
               } catch (error) {
                 baselineObservationError = error;
               }
@@ -111,6 +113,7 @@ export class SuggestionRecomputeWorkerService {
         );
         if (latest.sourceVersion > currentJob.sourceVersion) {
           if (followUpCount >= MAX_RECOMPUTE_VERSION_FOLLOW_UPS) {
+            // eslint-disable-next-line error-handling/no-bare-throw-error -- 控制流异常，跳出 recompute 循环
             throw new Error('RECOMPUTE_VERSION_CONFLICT');
           }
           currentJob = this.followUpJob(currentJob, latest);
@@ -130,6 +133,7 @@ export class SuggestionRecomputeWorkerService {
         );
         if (afterReady.sourceVersion > currentJob.sourceVersion) {
           if (followUpCount >= MAX_RECOMPUTE_VERSION_FOLLOW_UPS) {
+            // eslint-disable-next-line error-handling/no-bare-throw-error -- 控制流异常，跳出 recompute 循环
             throw new Error('RECOMPUTE_VERSION_CONFLICT');
           }
           currentJob = this.followUpJob(currentJob, afterReady);
@@ -191,6 +195,7 @@ export class SuggestionRecomputeWorkerService {
       }
     }
 
+    // eslint-disable-next-line error-handling/no-bare-throw-error -- 控制流异常，跳出 recompute 循环
     throw new Error('RECOMPUTE_VERSION_CONFLICT');
   }
 

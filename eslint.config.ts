@@ -2,11 +2,13 @@ import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import { errorHandlingPlugin } from './eslint-plugins/error-handling';
 
 export default tseslint.config(
   {
     ignores: [
       'eslint.config.ts',
+      'eslint-plugins/**/*.ts',
       'commitlint.config.ts',
       'deploy/**/*.ts',
       'scripts/**/*.ts',
@@ -18,6 +20,9 @@ export default tseslint.config(
   ...tseslint.configs.strictTypeChecked,
   eslintConfigPrettier,
   {
+    plugins: {
+      'error-handling': errorHandlingPlugin,
+    },
     languageOptions: {
       globals: {
         ...globals.node,
@@ -57,6 +62,11 @@ export default tseslint.config(
       ],
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-confusing-void-expression': 'error',
+
+      // ── 错误处理（ADR-0012）──
+      // 规则启用为 error，现有违规文件在下方 override 中暂时 off，清理后逐个删除。
+      'error-handling/no-bare-throw-error': 'error',
+      'error-handling/no-silent-catch': 'error',
 
       // ── 跨模块深路径引用禁止 ──
       // All barrel-restricted-imports patterns removed — barrel-cleanup refactoring
@@ -100,6 +110,38 @@ export default tseslint.config(
     },
   },
   {
+    // ── 错误处理规则渐进式清理 ──
+    // 以下文件仍有 ADR-0012 违规（裸 throw new Error / 空 catch），
+    // 暂时关闭规则。每修复一个文件就从此列表中删除对应条目。
+    // TODO: 清理完毕后删除整个 override 块。
+    files: [
+      'src/admin/services/resource-config.service.ts',
+      'src/app.service.ts',
+      'src/common/api/problem-catalog.ts',
+      'src/common/helpers/format/json.utils.ts',
+      'src/common/helpers/infra/redis-url.ts',
+      'src/common/helpers/infra/retry.utils.ts',
+      'src/common/queue/queue.factory.ts',
+      'src/config/env/environment.validation.ts',
+      'src/config/yaml/yaml-loader.ts',
+      'src/mail/mail-transport.service.ts',
+      'src/modules/assistant/agent/runtime.service.ts',
+      'src/modules/assistant/agent/runtime/model-stream.ts',
+      'src/modules/assistant/agent/runtime/respond.ts',
+      'src/modules/auth/adapters/better-auth.adapter.ts',
+      'src/modules/daily-records/services/ownership.service.ts',
+      'src/modules/legal-documents/services/documents.service.ts',
+      'src/modules/product-events/services/events.service.ts',
+      'src/modules/today-analysis/services/analysis.service.ts',
+      'src/modules/today-suggestion/services/cache/suggestion-cache-invalidation.listener.ts',
+      'src/setup-app.ts',
+    ],
+    rules: {
+      'error-handling/no-bare-throw-error': 'off',
+      'error-handling/no-silent-catch': 'off',
+    },
+  },
+  {
     files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
     rules: {
       '@typescript-eslint/unbound-method': 'off',
@@ -117,6 +159,9 @@ export default tseslint.config(
       '@typescript-eslint/no-non-null-assertion': 'off',
       // 测试中某些类型断言可能是多余的，但保留它们有助于文档化意图。
       '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      // 测试文件允许 `throw new Error` 和空 catch（断言 helper 中的惯用模式）。
+      'error-handling/no-bare-throw-error': 'off',
+      'error-handling/no-silent-catch': 'off',
     },
   },
 );

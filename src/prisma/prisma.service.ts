@@ -54,6 +54,7 @@ export class PrismaService
   ) {
     const connectionString = configService.get<string>(EnvKey.DATABASE_URL);
     if (connectionString === undefined) {
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- 构造函数在 DI 初始化阶段执行，ApiExceptionFilter 尚未就绪
       throw new Error(
         `Missing required environment variable: ${EnvKey.DATABASE_URL}`,
       );

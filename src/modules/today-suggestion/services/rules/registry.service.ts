@@ -12,6 +12,7 @@ export class RegistryService {
 
   register(rule: SuggestionRule): void {
     if (this.rules.has(rule.ruleId)) {
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- 启动阶段不变式违反，ApiExceptionFilter 尚未就绪
       throw new Error(`Duplicate suggestion rule: ${rule.ruleId}`);
     }
     this.rules.set(rule.ruleId, rule);

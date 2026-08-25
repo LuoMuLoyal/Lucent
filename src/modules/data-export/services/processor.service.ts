@@ -104,6 +104,7 @@ export class DataExportProcessorService {
         data: { status: 'failed', errorMessage: message },
       });
 
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- BullMQ worker re-throw to mark job failed
       throw new Error(
         `Export processing failed for request ${exportRequestId}`,
       );
