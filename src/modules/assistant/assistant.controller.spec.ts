@@ -22,7 +22,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
-import { okAsync } from '../../common/result';
+import { okAsync, errAsync } from '../../common/result';
+import { createDomainFailure } from '../../common/result';
+import { DomainFailureException } from '../../common/result/domain-failure.exception';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/core.service';
 import { AuditLogService } from '../audit-log';
@@ -545,6 +547,84 @@ describe('AssistantController', () => {
       'u1',
       'conversation-1',
     );
+  });
+
+  it('rethrows DomainFailureException when openConversation fails', async () => {
+    service.openConversation.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: 'Conversation not found.',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.openConversation(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'missing-conversation',
+      ),
+    ).rejects.toBeInstanceOf(DomainFailureException);
+  });
+
+  it('rethrows DomainFailureException when confirmProposal fails', async () => {
+    service.confirmProposal.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'validation',
+          code: 'VALIDATION_FAILED',
+          detail: 'No pending proposal review.',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.confirmProposal(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'conversation-1',
+        { proposalIds: ['proposal-1'], decision: 'approved' },
+      ),
+    ).rejects.toBeInstanceOf(DomainFailureException);
+  });
+
+  it('rethrows DomainFailureException when renameConversation fails', async () => {
+    service.renameConversation.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: 'Conversation not found.',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.renameConversation(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'missing-conversation',
+        { title: 'new title' },
+      ),
+    ).rejects.toBeInstanceOf(DomainFailureException);
+  });
+
+  it('rethrows DomainFailureException when deleteConversation fails', async () => {
+    service.deleteConversation.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: 'Conversation not found.',
+        }),
+      ),
+    );
+
+    await expect(
+      controller.deleteConversation(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'missing-conversation',
+      ),
+    ).rejects.toBeInstanceOf(DomainFailureException);
   });
 
   it('erases assistant memories and returns the cleared count resource', async () => {
