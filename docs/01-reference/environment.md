@@ -9,7 +9,7 @@ updated: 2026-08-24
 
 本文档保留本地环境、Docker 和快速命令总览。
 
-详细参考：[[environment-variables]]。关于将普通配置迁移到 YAML、敏感值保留在环境/Secret 的可行性、Prisma 兼容性和部署边界，见 [[env-yaml-evaluation-research]]。
+详细参考：[[environment-variables]]。关于将普通配置迁移到 YAML、敏感值保留在环境/Secret 的可行性、Prisma 兼容性和部署边界，见迁移日志 2026-08-22。
 
 ## Env Files
 
