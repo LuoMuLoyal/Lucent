@@ -249,6 +249,7 @@ METRICS_USER
 METRICS_PASSWORD
 OTEL_ENABLED
 OTEL_EXPORTER_OTLP_ENDPOINT
+VICTORIALOGS_URL
 ```
 
 - `LOG_LEVEL` — Winston log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
@@ -276,6 +277,11 @@ OTEL_EXPORTER_OTLP_ENDPOINT
   export failures are silently dropped. In development, the endpoint points to
   the Jaeger all-in-one container (`docker-compose.dev.yml`). See ADR-0016
   Decision 3 for the trace backend strategy.
+- `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
+  Winston batches log entries as newline-delimited JSON and POSTs them directly
+  to this URL (no Vector sidecar needed). The `compose.yml` injects
+  `http://victorialogs:9428/insert/jsonline` automatically. Unset = only
+  Console (stdout) transport is used. See ADR-0016 for the log backend strategy.
 
 Security:
 

@@ -89,6 +89,7 @@ services:
       JPUSH_MASTER_SECRET: ${JPUSH_MASTER_SECRET:-}
       JPUSH_APNS_PRODUCTION: ${JPUSH_APNS_PRODUCTION:-false}
       TRUST_PROXY: 'true'
+      VICTORIALOGS_URL: http://victorialogs:9428/insert/jsonline
     expose:
       - '3000'
     volumes:
@@ -366,35 +367,6 @@ services:
         reservations:
           cpus: '0.1'
           memory: 64M
-
-  # ── Vector（日志采集器，读取 Docker json-file 推送到 VictoriaLogs） ──
-  # 采集 app 容器的 stdout JSON 日志，解析后推送到 VictoriaLogs HTTP ingest。
-  vector:
-    image: timberio/vector:0.48.0-debian
-    container_name: lucent-vector
-    restart: unless-stopped
-    volumes:
-      # 读取 app 容器日志（Docker json-file 驱动写入宿主机）
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./vector/vector.toml:/etc/vector/vector.toml:ro
-    command: ['--config', '/etc/vector/vector.toml']
-    networks:
-      - observability
-    depends_on:
-      - victorialogs
-    logging:
-      driver: json-file
-      options:
-        max-size: '10m'
-        max-file: '3'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
 
 networks:
   backend:

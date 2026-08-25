@@ -70,6 +70,7 @@ const envSchema = z.object({
   [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: z.enum(['true', 'false']).optional(),
   [EnvKey.OTEL_ENABLED]: z.enum(['true', 'false']).optional(),
   [EnvKey.OTEL_EXPORTER_OTLP_ENDPOINT]: optionalEmptyUri,
+  [EnvKey.VICTORIALOGS_URL]: optionalEmptyUri,
 
   // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,

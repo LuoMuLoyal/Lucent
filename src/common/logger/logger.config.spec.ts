@@ -88,11 +88,30 @@ describe('createLoggerOptions', () => {
     expect(getConsoleLevel(options)).toBe('debug');
   });
 
-  it('uses info level in production with console + rotate transports', () => {
-    const options = createLoggerOptions('production', '');
+  it('uses info level in production with console + VictoriaLogs transports', () => {
+    const originalUrl = process.env[EnvKey.VICTORIALOGS_URL] ?? '';
+    process.env[EnvKey.VICTORIALOGS_URL] =
+      'http://localhost:9428/insert/jsonline';
+    try {
+      const options = createLoggerOptions('production', '');
 
-    expect(options.transports).toHaveLength(2);
-    expect(getConsoleLevel(options)).toBe('info');
+      expect(options.transports).toHaveLength(2);
+      expect(getConsoleLevel(options)).toBe('info');
+    } finally {
+      process.env[EnvKey.VICTORIALOGS_URL] = originalUrl;
+    }
+  });
+
+  it('uses only Console in production when VICTORIALOGS_URL is unset', () => {
+    const originalUrl = process.env[EnvKey.VICTORIALOGS_URL] ?? '';
+    process.env[EnvKey.VICTORIALOGS_URL] = '';
+    try {
+      const options = createLoggerOptions('production', '');
+
+      expect(options.transports).toHaveLength(1);
+    } finally {
+      process.env[EnvKey.VICTORIALOGS_URL] = originalUrl;
+    }
   });
 
   it('honors an explicit log level override', () => {

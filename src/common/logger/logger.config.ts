@@ -5,6 +5,7 @@ import {
 } from 'winston';
 import { EnvKey } from '../../config/env/env-keys.enum';
 import { getActiveTraceIds } from './trace-context.utils';
+import { VictoriaLogsTransport } from './victorialogs-transport';
 
 type LogLevel =
   | 'error'
@@ -175,7 +176,8 @@ const prodJsonFormat = winstonFormat.combine(
  *
  * Transport configuration:
  * - Development: `Console` at debug level
- * - Production: `Console` (JSON format for Vector → VictoriaLogs ingestion)
+ * - Production: `Console` (JSON format, stdout) + `VictoriaLogsTransport`
+ *   (batch HTTP POST to VictoriaLogs `/insert/jsonline`)
  * - Test: `Console` at `error` level only (near-silent)
  *
  * Per-request HTTP access logging IS emitted, but not from this file:
@@ -216,8 +218,25 @@ export function createLoggerOptions(
     handleExceptions: true,
   });
 
+  const transports: winstonTransports.StreamTransportInstance[] = [
+    consoleTransport,
+  ];
+
+  // Production: also ship logs to VictoriaLogs via HTTP (no Vector needed).
+  const victoriaLogsUrl = process.env[EnvKey.VICTORIALOGS_URL] ?? '';
+  if (env === 'production' && victoriaLogsUrl) {
+    transports.push(
+      new VictoriaLogsTransport({
+        url: victoriaLogsUrl,
+        level,
+        batchCount: 100,
+        batchIntervalMs: 5000,
+      }) as unknown as winstonTransports.StreamTransportInstance,
+    );
+  }
+
   return {
     format,
-    transports: [consoleTransport],
+    transports,
   };
 }

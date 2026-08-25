@@ -360,10 +360,10 @@ collector 暴露 `lucent_cert_expiry_days` 指标，剩余 < 14 天触发 warnin
 
 ## 生产日志
 
-生产环境日志通过 Docker json-file 驱动输出到 stdout，Vector 采集后推送到 VictoriaLogs：
+生产环境日志通过 Winston 双 transport 输出（无 Vector sidecar）：
 
-1. **stdout JSON**：Winston 默认输出到 stdout（JSON 格式），Docker json-file 驱动采集（10MB × 3 文件轮转，临时查看用）
-2. **VictoriaLogs**：Vector 读取 app 容器 stdout JSON，解析后推送到 VictoriaLogs（全文索引，30 天保留，按 `trace_id` 检索整条链路日志）
+1. **stdout JSON**：Winston Console transport 输出到 stdout（JSON 格式），Docker json-file 驱动采集（10MB × 3 文件轮转，临时查看用）
+2. **VictoriaLogs**：Winston `VictoriaLogsTransport` 批量 HTTP POST 到 VictoriaLogs `/insert/jsonline` 端点（newline-delimited JSON，100 行或 5 秒批量发送，全文索引，30 天保留，按 `trace_id` 检索整条链路日志）
 
 每行日志在活跃 OTel span 内携带顶层 `trace_id`/`span_id` 字段（无 span 的启动、定时任务、队列
 等上下文不注入——Phase 1 的 bullmq-otel 补全后队列 worker 日志也有 `trace_id`），可直接在
@@ -469,6 +469,7 @@ STAGING_DEPLOY_SSH_KNOWN_HOSTS
 | `lucent-grafana`         | `grafana/grafana:12.1.0`                    | `127.0.0.1:3001` | 预置 VictoriaMetrics 数据源和 Lucent Backend Overview 仪表盘        |
 | `lucent-alertmanager`    | `prom/alertmanager:v0.28.1`                 | 仅容器网络       | 企业微信应用消息告警，profile=alerting，默认不启动                  |
 | `lucent-node-exporter`   | `prom/node-exporter:v1.9.1`                 | 仅容器网络       | 宿主机 CPU/内存/磁盘水位 + textfile collector（证书过期指标）       |
+| `lucent-victorialogs`    | `victoriametrics/victoria-logs:v1.15.0`     | `127.0.0.1:9428` | 单机全文索引日志数据库，接收 Winston HTTP 批量推送，30 天保留       |
 
 VictoriaMetrics 和 Grafana 的端口只绑定 `127.0.0.1`，不暴露公网，Nginx 不代理。通过 SSH
 隧道访问：

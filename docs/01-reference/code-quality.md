@@ -118,8 +118,9 @@ Last updated: 2026-08-25
     `SLOW_REQUEST_THRESHOLD_MS` (default 2000ms).
   - `LifecycleService` logs application start and graceful shutdown (signal, uptime).
     `main.ts` calls `enableShutdownHooks()` so SIGTERM triggers NestJS destroy hooks.
-  - Production logs: Winston JSON stdout → Docker json-file (10MB×3) → Vector →
-    VictoriaLogs (30-day retention, full-text index, `trace_id` search).
+  - Production logs: Winston JSON → stdout (Console transport) + direct HTTP
+    batch POST to VictoriaLogs (VictoriaLogsTransport, no Vector sidecar).
+    30-day retention, full-text index, `trace_id` search.
     `winston-daily-rotate-file` retired (see ADR-0016).
   - `MetricsService` (`src/common/metrics/metrics.service.ts`) collects Prometheus
     metrics via `prom-client`: default Node.js runtime metrics, HTTP request
