@@ -59,6 +59,27 @@ describe('RedisService', () => {
       mockRedisInstance.quit.mockResolvedValue(undefined);
     });
 
+    it('logs a warning when quit fails during onModuleDestroy', async () => {
+      const quitError = new Error('Connection already closed');
+      mockRedisInstance.quit.mockRejectedValueOnce(quitError);
+
+      const configService = {
+        get: vi.fn((key: string) =>
+          key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
+        ),
+      } as unknown as ConfigService;
+      const svc = new RedisService(configService);
+
+      await svc.onModuleInit();
+      const logger = (svc as unknown as { logger: { warn: vi.Mock } }).logger;
+      const warnSpy = vi.spyOn(logger, 'warn');
+
+      await expect(svc.onModuleDestroy()).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Redis quit failed during shutdown'),
+      );
+    });
+
     it('isAvailable is true after onModuleInit', async () => {
       const configService = {
         get: vi.fn((key: string) =>

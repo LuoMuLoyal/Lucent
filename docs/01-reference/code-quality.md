@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-22
+updated: 2026-08-25
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-22
+Last updated: 2026-08-25
 
 - HTTP errors use the single `ApiExceptionFilter` Problem Details boundary: JSON errors are
   `application/problem+json`, stable string `code` values, and never expose `statusCode`,
@@ -291,3 +291,9 @@ Last updated: 2026-08-22
 - 2026-08-17 today-suggestion evidence i18n：规则生成的 evidence label（如
   `caffeine_mentioned_records`、`mood_parsed_records`）需在
   `src/i18n/{zh-CN,en}/today-suggestion.json` 中保持同 key，确保文案/解释层能一致本地化。
+
+- 2026-08-25 错误处理基础设施层扫尾（P0）：
+  - `RedisService.onModuleDestroy` 的 `.catch(() => undefined)` 改为记录 warn 日志，
+    graceful shutdown 时 Redis quit 失败不再被静默吞掉。
+  - `AssistantToolService` 新增 `cacheGet`/`cacheSet` 包装器，Redis 故障时降级为无缓存
+    执行而非崩溃；仓库中所有缓存使用点现已统一有错误保护。

@@ -77,7 +77,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.client?.quit().catch(() => undefined);
+    await this.client?.quit().catch((error: unknown) => {
+      this.logger.warn(
+        `Redis quit failed during shutdown: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    });
   }
 
   /**
