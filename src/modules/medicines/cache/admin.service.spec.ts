@@ -99,6 +99,18 @@ describe('MedicinesCacheAdminService', () => {
     expect(cache.del).not.toHaveBeenCalled();
   });
 
+  it('logs a warning when no stores are available', async () => {
+    cache.stores = [] as typeof cache.stores;
+    const logger = (service as unknown as { logger: { warn: vi.Mock } }).logger;
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    await expect(service.invalidateAll()).resolves.toBe(0);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('no stores available'),
+    );
+  });
+
   it('keeps working when the raw store returns unprefixed keys', async () => {
     cache.stores = [
       new Keyv({

@@ -33,6 +33,9 @@ export class MedicinesCacheAdminService {
   private async listMedicineKeys(): Promise<string[]> {
     const stores = this.cache.stores as KeyvLikeStore[] | undefined;
     if (!stores || stores.length === 0) {
+      this.logger.warn(
+        'Medicine cache key listing skipped: no stores available (cache-manager may have changed its internal API)',
+      );
       return [];
     }
 
@@ -40,6 +43,9 @@ export class MedicinesCacheAdminService {
     for (const store of stores) {
       const rawStore = this.resolveRawStore(store);
       if (!rawStore?.keys) {
+        this.logger.warn(
+          'Medicine cache store skipped: underlying store does not expose keys() (cache-manager version may have changed)',
+        );
         continue;
       }
 
