@@ -278,7 +278,10 @@ export class AssistantMemoryService {
             typeof item === 'string' && item.trim().length > 0,
         )
         .map((item) => item.trim());
-    } catch {
+    } catch (error) {
+      this.logger.warn(
+        `Failed to parse JSON array, returning empty: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return [];
     }
   }

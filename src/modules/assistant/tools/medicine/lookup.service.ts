@@ -408,7 +408,10 @@ function parseLookupPayload(raw: string): {
         readString(base.filters['drugbankId']) ??
         id,
     };
-  } catch {
+  } catch (error) {
+    console.warn(
+      `Failed to parse lookup payload, returning base query: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return {
       query: base.query,
       limit: base.limit,

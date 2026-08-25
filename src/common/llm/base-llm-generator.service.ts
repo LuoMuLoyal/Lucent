@@ -220,8 +220,11 @@ export abstract class BaseLlmGeneratorService<
         if (typeof maybeReturn === 'function') {
           try {
             await maybeReturn.call(lastStream, undefined);
-          } catch {
+          } catch (error) {
             // best-effort — ignore cleanup errors
+            this.logger.warn(
+              `LLM stream cleanup callback failed (ignored): ${error instanceof Error ? error.message : String(error)}`,
+            );
           }
         }
       }

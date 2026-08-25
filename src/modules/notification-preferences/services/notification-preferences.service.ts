@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
 import {
@@ -30,6 +30,8 @@ const WATER_RULE_ID = 'water_behind_target';
 
 @Injectable()
 export class NotificationPreferencesService {
+  private readonly logger = new Logger(NotificationPreferencesService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async get(userId: string): Promise<NotificationPreferencesDataDto> {
@@ -58,10 +60,13 @@ export class NotificationPreferencesService {
       return HEALTH_ALERT_RULE_IDS.has(ruleId)
         ? preferences.healthAlertsEnabled
         : preferences.waterRemindersEnabled;
-    } catch {
+    } catch (error) {
       // Notification preferences are a delivery gate, not a prerequisite for
       // materializing Today suggestions. Fail closed for the notification
       // only when the preference store is unavailable.
+      this.logger.warn(
+        `Notification preference lookup failed for user ${userId}, failing closed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return false;
     }
   }

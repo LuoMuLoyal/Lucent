@@ -253,8 +253,11 @@ export class AssistantToolService {
           const result = JSON.parse(cached) as AssistantToolExecutionResult;
           this.metricsService.recordCacheAccess('tool', true);
           return result;
-        } catch {
+        } catch (error) {
           // Corrupted cache entry: fall through and re-execute.
+          this.logger.warn(
+            `Corrupted tool cache entry, falling through to re-execute: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       }
       this.metricsService.recordCacheAccess('tool', false);

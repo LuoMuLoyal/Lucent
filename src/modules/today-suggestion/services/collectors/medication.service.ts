@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { nonDeleted } from '../../../../common';
 import {
   DEFAULT_USER_TIMEZONE,
@@ -47,6 +47,8 @@ type ReminderShape = Prisma.UserMedicineReminderGetPayload<{
  */
 @Injectable()
 export class MedicationCollectorService {
+  private readonly logger = new Logger(MedicationCollectorService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly doseLogReader: MedicineDoseLogReaderPort,
@@ -554,7 +556,10 @@ export class MedicationCollectorService {
         new Date(0),
       );
       return trimmed;
-    } catch {
+    } catch (error) {
+      this.logger.warn(
+        `Invalid timezone "${trimmed}", falling back to default: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return DEFAULT_USER_TIMEZONE;
     }
   }

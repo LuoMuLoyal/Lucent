@@ -318,3 +318,4 @@ Last updated: 2026-08-25
     `review.service.ts`（不变式 `INTERNAL_ERROR`）、`summary.service.ts`
     （前置条件 `INTERNAL_ERROR`）、`delivery-receipts.service.ts`（不变式
     `INTERNAL_ERROR`）、`queue.service.ts`（`DEPENDENCY_UNAVAILABLE` 503）。
+  - 9 处空 catch 块按 ADR-0012 补充 warn 日志，不再静默吞错。

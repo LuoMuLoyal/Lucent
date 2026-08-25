@@ -27,7 +27,10 @@ export function decodeVectorCursor(
   try {
     const raw = Buffer.from(cursor, 'base64url').toString('utf8');
     return JSON.parse(raw) as AssistantVectorCursorPayload;
-  } catch {
+  } catch (error) {
+    console.warn(
+      `Failed to decode vector cursor, returning null: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return null;
   }
 }

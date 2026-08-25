@@ -180,7 +180,10 @@ export function parseSearchPayload(raw: string): {
     }
 
     return result;
-  } catch {
+  } catch (error) {
+    console.warn(
+      `Failed to parse drugbank entity resolve payload, returning base query: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return {
       query: trimmed,
       filters: {},

@@ -171,7 +171,10 @@ export class WeeklyInsightSchedulerService {
         hour: Number(value('hour')),
         minute: Number(value('minute')),
       };
-    } catch {
+    } catch (error) {
+      this.logger.warn(
+        `Timezone-based date parts failed, falling back to local: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return this.localParts(at, DEFAULT_USER_TIMEZONE);
     }
   }
