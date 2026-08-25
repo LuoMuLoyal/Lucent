@@ -238,8 +238,7 @@ describe('Medicines API (e2e)', () => {
       .expect(400);
 
     const body = response.body as Record<string, unknown>;
-    expect(body['code']).toBe('BAD_REQUEST');
-    expect(body['detail']).toBe('Invalid medicine source');
+    expect(body['code']).toBe('VALIDATION_FAILED');
   });
 
   // ── Safety Tips ──────────────────────────────────────────────

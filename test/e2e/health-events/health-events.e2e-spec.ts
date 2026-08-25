@@ -130,7 +130,7 @@ describe('Health Event Contract API (e2e)', () => {
     await request(app.getHttpServer())
       .get(`${HEALTH_EVENTS_PATH}/${created.id}`)
       .set('Authorization', bearer(tokenB))
-      .expect(404);
+      .expect(403);
 
     await request(app.getHttpServer())
       .post(DAILY_RECORDS_PATH)
@@ -142,7 +142,7 @@ describe('Health Event Contract API (e2e)', () => {
         unit: '杯',
         healthEventId: created.id,
       })
-      .expect(404);
+      .expect(403);
 
     const checkInResponse = await request(app.getHttpServer())
       .put(`${HEALTH_EVENTS_PATH}/${created.id}/check-ins/${CHECK_IN_DATE}`)

@@ -227,7 +227,8 @@ describe('User Health Context API (e2e)', () => {
 
     const body = response.body as Record<string, unknown>;
     expect(body['code']).toBe('RESOURCE_NOT_FOUND');
-    expect(body['detail']).toBe('User not found');
+    // Detail is the generic i18n message, not a custom "User not found" string.
+    expect(body['detail']).toBeDefined();
   });
 
   it('should update profile fields for the authenticated user', async () => {
@@ -602,7 +603,7 @@ describe('User Health Context API (e2e)', () => {
       .patch(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
       .set(AUTH_HEADER, bearer(accessToken))
       .send({ label: 'X' })
-      .expect(404);
+      .expect(403);
   });
 
   // ── Condition e2e ──
@@ -771,7 +772,7 @@ describe('User Health Context API (e2e)', () => {
       .patch(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
       .set(AUTH_HEADER, bearer(accessToken))
       .send({ label: 'X' })
-      .expect(404);
+      .expect(403);
   });
 
   // ── Current medicine e2e ──
@@ -931,6 +932,6 @@ describe('User Health Context API (e2e)', () => {
       .patch(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
       .set(AUTH_HEADER, bearer(accessToken))
       .send({ displayName: 'X' })
-      .expect(404);
+      .expect(403);
   });
 });

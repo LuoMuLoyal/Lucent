@@ -299,7 +299,7 @@ describe('Daily Records API (e2e)', () => {
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(token))
-      .expect(200);
+      .expect(204);
 
     // Should not appear in list after soft delete
     const listRes = await request(app.getHttpServer())
@@ -395,7 +395,7 @@ describe('Daily Records API (e2e)', () => {
       .patch(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(token2))
       .send({ note: 'x' })
-      .expect(404);
+      .expect(403);
   });
 
   it('should require auth', async () => {
@@ -419,7 +419,7 @@ describe('Daily Records API (e2e)', () => {
 
     candidateService.generate.mockRejectedValueOnce(
       new ServiceUnavailableException({
-        code: 'EXTERNAL_SERVICE_ERROR',
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: '自然语言记录解析服务尚未配置',
       }),
     );
@@ -434,7 +434,7 @@ describe('Daily Records API (e2e)', () => {
       .expect(503);
 
     const body = response.body as Record<string, unknown>;
-    expect(body['code']).toBe('EXTERNAL_SERVICE_ERROR');
+    expect(body['code']).toBe('DEPENDENCY_UNAVAILABLE');
   });
 
   it('should return generated candidate records', async () => {

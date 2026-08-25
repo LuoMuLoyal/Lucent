@@ -9,7 +9,6 @@ import {
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 import { WechatWebOAuthProvider } from '../../../src/modules/auth';
 import { WechatMobileOAuthProvider } from '../../../src/modules/auth';
-import { AppleOAuthProvider } from '../../../src/modules/auth';
 import { QqOAuthProvider } from '../../../src/modules/auth';
 import type { OAuthProfile } from '../../../src/modules/auth';
 import { okAsync } from '../../../src/common/result';
@@ -58,7 +57,6 @@ describe('OAuth API (e2e)', () => {
   let app: E2eApp;
   let wechatWebProvider: WechatWebOAuthProvider;
   let wechatMobileProvider: WechatMobileOAuthProvider;
-  let appleProvider: AppleOAuthProvider;
   let qqProvider: QqOAuthProvider;
 
   beforeAll(async () => {
@@ -68,7 +66,6 @@ describe('OAuth API (e2e)', () => {
 
     wechatWebProvider = app.get(WechatWebOAuthProvider);
     wechatMobileProvider = app.get(WechatMobileOAuthProvider);
-    appleProvider = app.get(AppleOAuthProvider);
     qqProvider = app.get(QqOAuthProvider);
   });
 
@@ -172,6 +169,8 @@ describe('OAuth API (e2e)', () => {
         provider: 'wechat_web',
         providerUserId: `wx-openid-${Date.now()}`,
         unionId: `wx-union-${Date.now()}`,
+        email: uniqueEmail('wechat-web'),
+        emailVerifiedAt: new Date(),
         nickname: 'WeChat Login User',
         avatar: 'https://wx.qlogo.cn/login-avatar',
       };
@@ -210,6 +209,8 @@ describe('OAuth API (e2e)', () => {
         provider: 'wechat_web',
         providerUserId: `wx-openid-returning-${Date.now()}`,
         unionId: `wx-union-returning-${Date.now()}`,
+        email: uniqueEmail('wechat-web-return'),
+        emailVerifiedAt: new Date(),
         nickname: 'Returning WeChat User',
         avatar: 'https://wx.qlogo.cn/returning-avatar',
       };
@@ -318,6 +319,8 @@ describe('OAuth API (e2e)', () => {
         provider: 'wechat_mobile',
         providerUserId: `wx-mobile-openid-${Date.now()}`,
         unionId: `wx-mobile-union-${Date.now()}`,
+        email: uniqueEmail('wechat-mobile'),
+        emailVerifiedAt: new Date(),
         nickname: 'WeChat Mobile User',
         avatar: 'https://wx.qlogo.cn/mobile-avatar',
       };
@@ -354,71 +357,19 @@ describe('OAuth API (e2e)', () => {
         .expect(400);
     });
 
-    it('should create new user and return tokens with valid identityToken (mocked)', async () => {
-      const mockProfile: OAuthProfile = {
-        provider: 'apple',
-        providerUserId: `apple-sub-${Date.now()}`,
-        email: uniqueEmail('apple'),
-        emailVerifiedAt: new Date(),
-        nickname: 'Apple User',
-      };
-      vi.spyOn(appleProvider, 'fetchProfile').mockReturnValue(
-        okAsync(mockProfile),
-      );
-
-      const res = await request(app.getHttpServer())
+    it('should return 503 when Apple provider is not configured in Better Auth (test env)', async () => {
+      // Apple Sign-In is now handled by Better Auth signInSocial, which
+      // requires APPLE_APP_ID and APPLE_CLIENT_SECRET in the environment.
+      // In the test environment these are not set, so the provider is
+      // not registered and the endpoint returns 503 AUTH_METHOD_DISABLED.
+      await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
         .send({
           identityToken: 'mock-apple-identity-token',
           givenName: 'Apple',
           familyName: 'User',
         })
-        .expect(200);
-
-      const data = expectData(res.body as AuthResponseData);
-      expect(data.user.id).toBeDefined();
-      expect(data.user.email).toBe(mockProfile.email);
-      expect(data.user.emailVerified).toBe(true);
-      expect(data.tokens.accessToken).toBeDefined();
-      expect(data.tokens.refreshToken).toBeDefined();
-    });
-
-    it('should login existing Apple user on second callback (mocked)', async () => {
-      const appleSub = `apple-sub-returning-${Date.now()}`;
-      const profile: OAuthProfile = {
-        provider: 'apple',
-        providerUserId: appleSub,
-        email: uniqueEmail('apple-return'),
-        emailVerifiedAt: new Date(),
-        nickname: 'Apple Return User',
-      };
-      vi.spyOn(appleProvider, 'fetchProfile').mockReturnValue(okAsync(profile));
-
-      const res1 = await request(app.getHttpServer())
-        .post(OAUTH_PATH.appleCallback)
-        .send({ identityToken: 'mock-token-1' })
-        .expect(200);
-      const data1 = expectData(res1.body as AuthResponseData);
-
-      // Second login — Apple returns no name after first login
-      const profileNoName: OAuthProfile = {
-        provider: 'apple',
-        providerUserId: appleSub,
-        email: profile.email ?? null,
-        emailVerifiedAt: new Date(),
-        nickname: null,
-      };
-      vi.spyOn(appleProvider, 'fetchProfile').mockReturnValue(
-        okAsync(profileNoName),
-      );
-
-      const res2 = await request(app.getHttpServer())
-        .post(OAUTH_PATH.appleCallback)
-        .send({ identityToken: 'mock-token-2' })
-        .expect(200);
-      const data2 = expectData(res2.body as AuthResponseData);
-
-      expect(data2.user.id).toBe(data1.user.id);
+        .expect(503);
     });
   });
 
@@ -516,6 +467,8 @@ describe('OAuth API (e2e)', () => {
       const mockProfile: OAuthProfile = {
         provider: 'qq',
         providerUserId: `qq-openid-${Date.now()}`,
+        email: uniqueEmail('qq'),
+        emailVerifiedAt: new Date(),
         nickname: 'QQ Login User',
         avatar: 'https://q.qlogo.cn/qq-avatar',
       };

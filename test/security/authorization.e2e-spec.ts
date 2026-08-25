@@ -105,14 +105,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .patch(`/api/v1/user/health-context/allergies/${aliceAllergyId}`)
         .set('Authorization', bearer(bobToken))
         .send({ label: 'Hacked' })
-        .expect(404);
+        .expect(403);
     });
 
     it('Bob cannot delete Alice allergy', async () => {
       await request(app.getHttpServer())
         .delete(`/api/v1/user/health-context/allergies/${aliceAllergyId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(404);
+        .expect(403);
     });
 
     it('Bob cannot update Alice condition', async () => {
@@ -120,14 +120,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .patch(`/api/v1/user/health-context/conditions/${aliceConditionId}`)
         .set('Authorization', bearer(bobToken))
         .send({ label: 'Hacked' })
-        .expect(404);
+        .expect(403);
     });
 
     it('Bob cannot delete Alice condition', async () => {
       await request(app.getHttpServer())
         .delete(`/api/v1/user/health-context/conditions/${aliceConditionId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(404);
+        .expect(403);
     });
   });
 
@@ -167,7 +167,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       await request(app.getHttpServer())
         .get(`/api/v1/user/daily-records/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(404);
+        .expect(403);
     });
 
     it('Bob cannot update Alice daily record', async () => {
@@ -175,14 +175,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .patch(`/api/v1/user/daily-records/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
         .send({ payload: { mealType: 'lunch', items: [] } })
-        .expect(404);
+        .expect(403);
     });
 
     it('Bob cannot delete Alice daily record', async () => {
       await request(app.getHttpServer())
         .delete(`/api/v1/user/daily-records/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(404);
+        .expect(403);
     });
   });
 
@@ -234,14 +234,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .patch(`/api/v1/user/medicine-reminders/${aliceReminderId}`)
         .set('Authorization', bearer(bobToken))
         .send({ note: 'Hacked' })
-        .expect(404);
+        .expect(403);
     });
 
     it('Bob cannot delete Alice medicine reminder', async () => {
       await request(app.getHttpServer())
         .delete(`/api/v1/user/medicine-reminders/${aliceReminderId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(404);
+        .expect(403);
     });
   });
 

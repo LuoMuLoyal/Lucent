@@ -227,7 +227,7 @@ describe('Medicine Reminders API (e2e)', () => {
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(token))
-      .expect(200);
+      .expect(204);
 
     const listRes = await request(app.getHttpServer())
       .get(BASE_PATH)
@@ -244,7 +244,7 @@ describe('Medicine Reminders API (e2e)', () => {
     expect(stored.isActive).toBe(false);
   });
 
-  it('should return 404 for foreign reminder updates', async () => {
+  it('should return 403 for foreign reminder updates', async () => {
     const { token } = await createUserWithToken();
     const { token: otherToken } = await createUserWithToken();
 
@@ -263,7 +263,7 @@ describe('Medicine Reminders API (e2e)', () => {
       .patch(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(otherToken))
       .send({ scheduledHour: 10 })
-      .expect(404);
+      .expect(403);
   });
 
   it('should reject invalid schedule values', async () => {
@@ -704,7 +704,7 @@ describe('Medicine Reminders API (e2e)', () => {
       expect(body!.item.scheduledFor).toBe('2026-07-10T12:00:00.000Z');
     });
 
-    it('should return 404 when the receipt targets a foreign reminder', async () => {
+    it('should return 403 when the receipt targets a foreign reminder', async () => {
       const { token } = await createUserWithToken();
       const { user: otherUser } = await createUserWithToken();
       const medicine = await createCurrentMedicine(otherUser.id);
@@ -725,7 +725,7 @@ describe('Medicine Reminders API (e2e)', () => {
           scheduledDate: '2026-07-10',
           scheduledTime: '08:00',
         })
-        .expect(404);
+        .expect(403);
     });
 
     it('should reject a receipt with an invalid scheduledTime', async () => {

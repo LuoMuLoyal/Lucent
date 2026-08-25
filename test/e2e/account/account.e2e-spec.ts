@@ -190,7 +190,7 @@ describe('Account API (e2e)', () => {
       await request(app.getHttpServer())
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
-        .send({ email: oauthEmail, code, password: TEST_PASSWORD })
+        .send({ code, password: TEST_PASSWORD })
         .expect(204);
 
       // Verify user can now login with the new password
@@ -225,7 +225,7 @@ describe('Account API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(accessToken))
-        .send({ email: user.email, code, password: TEST_PASSWORD })
+        .send({ code, password: TEST_PASSWORD })
         .expect(409);
 
       const body = res.body as Record<string, unknown>;
@@ -254,7 +254,6 @@ describe('Account API (e2e)', () => {
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
         .send({
-          email: oauthEmail,
           code: '000000',
           password: TEST_PASSWORD,
         })
@@ -289,7 +288,6 @@ describe('Account API (e2e)', () => {
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
         .send({
-          email: oauthEmail,
           code: '000000',
           password: TEST_PASSWORD,
         })
@@ -319,7 +317,6 @@ describe('Account API (e2e)', () => {
         .post(SET_PASSWORD_PATH)
         .set('Authorization', bearer(oauthToken))
         .send({
-          email: oauthEmail,
           code: '123456',
           password: 'weak',
         })

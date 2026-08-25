@@ -272,7 +272,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(token))
-      .expect(200);
+      .expect(204);
 
     const listRes = await request(app.getHttpServer())
       .get(`${BASE_PATH}?date=2026-06-04`)

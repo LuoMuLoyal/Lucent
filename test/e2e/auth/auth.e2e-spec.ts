@@ -224,17 +224,25 @@ describe('Auth API (e2e)', () => {
       const email = uniqueEmail('auth');
       await registerUser(email);
 
+      // Re-issue a fresh verification code — the anti-enumeration design
+      // folds duplicate-email into the same generic failure as a wrong code,
+      // so the second attempt must use a valid code to reach the
+      // duplicate-email check rather than failing at verification first.
+      const code = await issueVerificationCode(AUTH_SCENE.register, email);
+      // Anti-enumeration: duplicate email is folded into AUTH_WRONG_PASSWORD
+      // (401) so the client cannot distinguish "email already registered"
+      // from "wrong credentials".
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.register)
         .send({
           email,
           password: TEST_PASSWORD,
-          code: DEFAULT_VERIFICATION_CODE,
+          code,
         })
-        .expect(409);
+        .expect(401);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('CONFLICT');
+      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
     });
 
     it('should reject invalid email format', async () => {
@@ -295,7 +303,7 @@ describe('Auth API (e2e)', () => {
         .expect(401);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('AUTH_REQUIRED');
+      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
     });
 
     it('should reject non-existent email', async () => {
@@ -305,7 +313,7 @@ describe('Auth API (e2e)', () => {
         .expect(401);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('AUTH_REQUIRED');
+      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
     });
 
     it('should login with verification code', async () => {
@@ -336,7 +344,7 @@ describe('Auth API (e2e)', () => {
         .post(AUTH_PATH.logout)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ refreshToken: tokens.refreshToken })
-        .expect(200);
+        .expect(204);
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.refresh)
@@ -362,7 +370,7 @@ describe('Auth API (e2e)', () => {
         .post(AUTH_PATH.logout)
         .set(AUTHORIZATION_HEADER, bearer(firstUser.tokens.accessToken))
         .send({ refreshToken: secondUser.tokens.refreshToken })
-        .expect(200);
+        .expect(204);
 
       await request(app.getHttpServer())
         .post(AUTH_PATH.refresh)
@@ -469,10 +477,10 @@ describe('Auth API (e2e)', () => {
         .post(AUTH_PATH.sendVerificationCode)
         .set('x-forwarded-for', clientIp)
         .send({ email, scene: AUTH_SCENE.login })
-        .expect(400);
+        .expect(429);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('BAD_REQUEST');
+      expect(body['code']).toBe('AUTH_VERIFICATION_CODE_COOLDOWN');
     });
 
     it('should rate limit repeated requests from the same client', async () => {
@@ -497,7 +505,7 @@ describe('Auth API (e2e)', () => {
         .expect(429);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('RATE_LIMITED');
+      expect(body['code']).toBe('AUTH_VERIFICATION_CODE_RATE_LIMITED');
     });
   });
 
@@ -523,7 +531,7 @@ describe('Auth API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.verifyEmail)
         .send({ token: INVALID_BETTER_AUTH_TOKEN })
-        .expect(401);
+        .expect(400);
 
       const body = res.body as Record<string, unknown>;
       expect(body['code']).toBe('AUTH_VERIFICATION_CODE_EXPIRED');
@@ -760,7 +768,7 @@ describe('Auth API (e2e)', () => {
         .expect(400);
 
       const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('BAD_REQUEST');
+      expect(body['code']).toBe('AUTH_VERIFICATION_CODE_EXPIRED');
     });
 
     it('should return normalized email after change', async () => {
@@ -814,7 +822,7 @@ describe('Auth API (e2e)', () => {
         .delete(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ password: TEST_PASSWORD })
-        .expect(200);
+        .expect(204);
 
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)

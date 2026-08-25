@@ -160,7 +160,7 @@ describe('Session Management API (e2e)', () => {
         .post(LOGOUT_PATH)
         .set('Authorization', bearer(tokens.accessToken))
         .send({ refreshToken: tokens.refreshToken })
-        .expect(200);
+        .expect(204);
 
       // Create a new session to get a valid access token
       const { user } = await registerUserViaApi();
@@ -229,7 +229,7 @@ describe('Session Management API (e2e)', () => {
       await request(app.getHttpServer())
         .delete(`${SESSIONS_PATH}/${targetSessionId}`)
         .set('Authorization', bearer(firstTokens.accessToken))
-        .expect(200);
+        .expect(204);
 
       // Verify the second refresh token no longer works
       const refreshRes = await request(app.getHttpServer())

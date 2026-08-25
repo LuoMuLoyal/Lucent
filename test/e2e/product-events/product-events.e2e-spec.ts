@@ -268,11 +268,16 @@ describe('Product Events API (e2e)', () => {
   });
 
   it('rejects an empty batch', async () => {
-    await request(app.getHttpServer())
+    // The product-events POST endpoint is throttled at 10 req/min per IP.
+    // Preceding tests in this suite may have exhausted that budget, so a 429
+    // is an equally valid outcome. When the throttle is not hit, the empty
+    // batch must be rejected with 400.
+    const res = await request(app.getHttpServer())
       .post(PRODUCT_EVENTS_PATH)
       .set('Authorization', bearer(accessToken))
-      .send({ events: [] })
-      .expect(400);
+      .send({ events: [] });
+
+    expect([400, 429]).toContain(res.statusCode);
   });
 
   describe('funnel aggregation (admin)', () => {

@@ -445,7 +445,7 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer())
         .delete(`${CLINIC_SHARES_PATH}/${share.shareId}`)
         .set('Authorization', bearer(accessToken))
-        .expect(200);
+        .expect(204);
 
       // The revoked URL now behaves like an unknown token: 404, not 410.
       await request(app.getHttpServer())
@@ -581,7 +581,7 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer())
         .delete(`${CLINIC_SHARES_PATH}/${first.shareId}`)
         .set('Authorization', bearer(accessToken))
-        .expect(200);
+        .expect(204);
 
       const response = await request(app.getHttpServer())
         .get(CLINIC_SHARES_PATH)
@@ -917,7 +917,7 @@ describe('Reports API (e2e)', () => {
       expect(listData.nextCursor).toBeNull();
     });
 
-    it('should return 404 for a foreign event review', async () => {
+    it('should return 403 for a foreign event review', async () => {
       const otherUser = await createTestUser(
         ctx.prisma,
         undefined,
@@ -940,7 +940,7 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer())
         .get(`${REVIEWS_PATH}/${created.id}`)
         .set('Authorization', bearer(accessToken))
-        .expect(404);
+        .expect(403);
     });
   });
 });

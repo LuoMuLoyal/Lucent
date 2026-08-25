@@ -6,10 +6,12 @@ import { ConfigService } from '@nestjs/config';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { I18nService } from 'nestjs-i18n';
 import request from 'supertest';
 import { AppController } from '../../../src/app.controller';
 import { AppService } from '../../../src/app.service';
 import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter';
+import { ProblemCatalog } from '../../../src/common/api/problem-catalog';
 import { MetricsService } from '../../../src/common/metrics/metrics.service';
 import { SlowRequestInterceptor } from '../../../src/common';
 import { PrismaService } from '../../../src/prisma';
@@ -63,11 +65,39 @@ describe('Lucent API (e2e)', () => {
               }
               return undefined;
             }),
+            getOrThrow: vi.fn().mockImplementation((key: string) => {
+              // MetricsService and SlowRequestInterceptor require the YAML
+              // config; return a minimal stub with the needed fields.
+              if (key === 'yaml') {
+                return {
+                  metrics: { enabled: false, path: '/metrics' },
+                  log: { slowRequestThresholdMs: 5000 },
+                };
+              }
+              throw new Error(`Config key not mocked: ${key}`);
+            }),
           },
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
           useValue: { log: vi.fn() },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            translate: vi.fn().mockReturnValue('Error'),
+            t: vi.fn().mockReturnValue('Error'),
+          },
+        },
+        {
+          provide: ProblemCatalog,
+          useValue: {
+            resolve: vi.fn().mockReturnValue({
+              type: 'about:blank',
+              title: 'Error',
+              status: 500,
+            }),
+          },
         },
         ApiExceptionFilter,
         MetricsService,

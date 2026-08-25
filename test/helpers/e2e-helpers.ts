@@ -194,12 +194,10 @@ export async function registerTestUser(
     .expect(201);
 
   const body = res.body as {
-    data: {
-      user: { id: string; email: string; nickname: string | null };
-      tokens: { accessToken: string; refreshToken: string };
-    };
+    user: { id: string; email: string; nickname: string | null };
+    tokens: { accessToken: string; refreshToken: string };
   };
-  const { user, tokens } = body.data;
+  const { user, tokens } = body;
   return {
     id: user.id,
     email: user.email,
