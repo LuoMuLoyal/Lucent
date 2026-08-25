@@ -68,6 +68,8 @@ const envSchema = z.object({
     .default(NodeEnvironment.Development),
   [EnvKey.TRUST_PROXY]: z.enum(['true', 'false']).optional(),
   [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: z.enum(['true', 'false']).optional(),
+  [EnvKey.OTEL_ENABLED]: z.enum(['true', 'false']).optional(),
+  [EnvKey.OTEL_EXPORTER_OTLP_ENDPOINT]: optionalEmptyUri,
 
   // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,
