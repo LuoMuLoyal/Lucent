@@ -113,8 +113,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: '50m'
-        max-file: '5'
+        max-size: '10m'
+        max-file: '3'
     deploy:
       resources:
         limits:
@@ -326,6 +326,67 @@ services:
       options:
         max-size: '50m'
         max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  # ── VictoriaLogs（单机全文索引日志数据库） ──────────────────
+  # 接收 Winston stdout JSON 日志，全文索引支持按 trace_id 检索整条链路日志。
+  # 绑定 127.0.0.1:9428，Web UI 通过 SSH 隧道访问。
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.15.0
+    container_name: lucent-victorialogs
+    restart: unless-stopped
+    ports:
+      # 仅本机回环：配合 SSH 隧道访问（ssh -L 9428:127.0.0.1:9428 <server>）
+      - '127.0.0.1:9428:9428'
+    volumes:
+      - ./data/victorialogs:/storage
+    command:
+      - '-storageDataPath=/storage'
+      - '-retentionPeriod=30d'
+      - '-httpListenAddr=0.0.0.0:9428'
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # ── Vector（日志采集器，读取 Docker json-file 推送到 VictoriaLogs） ──
+  # 采集 app 容器的 stdout JSON 日志，解析后推送到 VictoriaLogs HTTP ingest。
+  vector:
+    image: timberio/vector:0.48.0-debian
+    container_name: lucent-vector
+    restart: unless-stopped
+    volumes:
+      # 读取 app 容器日志（Docker json-file 驱动写入宿主机）
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./vector/vector.toml:/etc/vector/vector.toml:ro
+    command: ['--config', '/etc/vector/vector.toml']
+    networks:
+      - observability
+    depends_on:
+      - victorialogs
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
     deploy:
       resources:
         limits:

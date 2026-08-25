@@ -3,7 +3,6 @@ import {
   format as winstonFormat,
   transports as winstonTransports,
 } from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
 import { EnvKey } from '../../config/env/env-keys.enum';
 import { getActiveTraceIds } from './trace-context.utils';
 
@@ -176,7 +175,7 @@ const prodJsonFormat = winstonFormat.combine(
  *
  * Transport configuration:
  * - Development: `Console` at debug level
- * - Production: `Console` + `DailyRotateFile` (daily, 500 MB max)
+ * - Production: `Console` (JSON format for Vector → VictoriaLogs ingestion)
  * - Test: `Console` at `error` level only (near-silent)
  *
  * Per-request HTTP access logging IS emitted, but not from this file:
@@ -197,7 +196,6 @@ export function createLoggerOptions(
 ): WinstonModuleOptions {
   const env = nodeEnv || process.env[EnvKey.NODE_ENV] || 'development';
   const level = resolveLevel(env, logLevel);
-  const isProduction = env === 'production';
 
   // LOG_FORMAT overrides the environment default. `pretty` forces the dev
   // console format; `json` forces JSON — useful in any direction.
@@ -217,23 +215,6 @@ export function createLoggerOptions(
     level,
     handleExceptions: true,
   });
-
-  if (isProduction) {
-    const rotateTransport = new DailyRotateFile({
-      filename: 'lucent-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      dirname: './logs',
-      maxSize: '500m',
-      maxFiles: '14d',
-      zippedArchive: true,
-      level,
-    });
-
-    return {
-      format,
-      transports: [consoleTransport, rotateTransport],
-    };
-  }
 
   return {
     format,

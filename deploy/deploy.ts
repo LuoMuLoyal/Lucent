@@ -63,6 +63,7 @@ function ensureDirectories(): void {
     'data/postgresql',
     'data/redis',
     'data/victoriametrics',
+    'data/victorialogs',
     'data/grafana',
     'data/backups',
     'data/alertmanager',

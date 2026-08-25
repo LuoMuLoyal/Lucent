@@ -360,26 +360,30 @@ collector 暴露 `lucent_cert_expiry_days` 指标，剩余 < 14 天触发 warnin
 
 ## 生产日志
 
-生产环境日志双写：
+生产环境日志通过 Docker json-file 驱动输出到 stdout，Vector 采集后推送到 VictoriaLogs：
 
-1. **stdout JSON**：Winston 默认输出到 stdout，Docker json-file 驱动采集（50MB × 5 文件轮转）
-2. **文件按天分割**：Winston 通过 `winston-daily-rotate-file` transport 写入 `/app/logs/` 目录（挂载到宿主机 `./logs/app/`），文件名格式 `lucent.YYYY-MM-DD.log`，单文件上限 500MB
+1. **stdout JSON**：Winston 默认输出到 stdout（JSON 格式），Docker json-file 驱动采集（10MB × 3 文件轮转，临时查看用）
+2. **VictoriaLogs**：Vector 读取 app 容器 stdout JSON，解析后推送到 VictoriaLogs（全文索引，30 天保留，按 `trace_id` 检索整条链路日志）
 
 每行日志在活跃 OTel span 内携带顶层 `trace_id`/`span_id` 字段（无 span 的启动、定时任务、队列
-等上下文不注入），可直接 `jq` / `grep` 按 trace 检索单个请求的完整日志链，并关联 Jaeger 同一
+等上下文不注入——Phase 1 的 bullmq-otel 补全后队列 worker 日志也有 `trace_id`），可直接在
+VictoriaLogs Web UI 按 `trace_id` 检索单个请求的完整日志链，并关联 Jaeger 同一
 链路（`OTEL_ENABLED=true` 时启用，见 ADR-0010）。成功请求由 Fastify `onResponse` hook 写一条
 结构化完成日志（method/route/status/durationMs），`onSend` hook 回写 `traceresponse` 响应头。
 
 Postgres 慢查询日志：compose 启动参数 `log_min_duration_statement=500`，超过 500ms
-的语句写入容器日志（`docker logs lucent-postgres`，随 json-file 50m×5 轮转）。
+的语句写入容器日志（`docker logs lucent-postgres`，随 json-file 10m×3 轮转）。
 
-日志文件清理（服务器 cron）：
+日志检索：
 
 ```bash
-# crontab -e
-# 每天凌晨删除 30 天前的日志文件
-0 3 * * * find /opt/lucent/logs/app -name "lucent.*.log" -mtime +30 -delete
+# SSH 隧道访问 VictoriaLogs Web UI
+ssh -L 9428:127.0.0.1:9428 user@server
+# 然后访问 http://localhost:9428
+# 按 trace_id 检索：在 LogsQL 搜索栏输入 trace_id:xxx
 ```
+
+旧的日志文件清理 cron 不再需要（`winston-daily-rotate-file` 已退役，VictoriaLogs 自带数据保留和压缩）。
 
 ## 安全加固
 
