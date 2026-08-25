@@ -34,7 +34,7 @@ Task 11 最终门禁已通过，以下问题非阻塞，列为后续 P2：
 
 ## 错误处理总计划进度
 
-依据 `plans/2026-08-18-error-contract-and-neverthrow-migration-plan.md`（Lucent）与 `Luminous/plans/2026-08-17-error-handling-reform-plan.md`（Luminous）核对：
+Lucent `plans/2026-08-18-error-contract-and-neverthrow-migration-plan.md` 与 Luminous `plans/2026-08-17-error-handling-reform-plan.md` 均已完成并删除。
 
 ### Lucent（后端）
 
@@ -49,11 +49,11 @@ Task 11 最终门禁已通过，以下问题非阻塞，列为后续 P2：
 
 - [x] `fpdart: ^1.2.0` 已引入，`core/errors/lucent_failure.dart` 已定义 `LucentFailure` / `LucentFailureKind`。
 - [x] `LucentFailure.fromProblemDetails` / `fromSseProblemDetails` 已按 Lucent 字段解析 `type/title/detail/code/errors/retryable/retryAfter/traceId/status`。
-- [x] `features/health_event/data/repositories/lucent.dart` 已使用 `TaskEither<LucentFailure, T>` 作为 repository 边界示例。
-- [ ] 仍有旧模式：`lib/core/network/api_exception.dart` 保留 `requestId` 字段；`runGuarded`、旧 `Result<T>` / `Success` / `Failure`、`AppError` 等未确认全部清除。
-- [ ] 阶段 1–4（health_context + today、record + assistant + medicine、其余 repository/UI、删除旧规则）尚未完成；当前仅完成阶段 0 契约准备与单个 feature 示例。
+- [x] 所有 domain repository 已迁移到 `TaskEither<LucentFailure, T>`；`api_exception.dart`、`runGuarded`、旧 `Result<T>` / `Success` / `Failure`、`AppError` 已全部删除。
+- [x] 阶段 0–4 全部完成；旧类型、旧 helper、旧错误码 fallback 无生产引用。
+- [ ] 后续收尾见 `plans/2026-08-25-error-handling-and-l10n-remediation-plan.md`。
 
-**结论：Lucent 后端硬切已主体完成；Luminous 前端处于契约准备完成、repository 迁移刚开始的状态。**
+**结论：Lucent 后端与 Luminous 前端的错误契约硬切均已主体完成。**
 
 ## 通用后续
 

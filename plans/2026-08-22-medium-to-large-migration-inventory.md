@@ -14,81 +14,33 @@
 
 审查快照：2026-08-22。当前 Lucent 已经不是需要“引入模块化”的小项目：Prisma schema 已拆到 `prisma/models/`，HTTP 错误已经进入 RFC 9457/Problem Details 窗口，代码中已经有 reader port、BullMQ 基础队列、OTel 和 Prometheus。现在最值得迁移的是“运行时可靠性和变更发布边界”，不是再次大规模改目录。
 
-### 已完成或已有独立计划，不在本计划重复拆解
+### 已有独立计划，不在本计划重复拆解
 
-| 项目                       | 当前状态                                                                                                                                                   | 本计划处理方式                                                             |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Prisma 巨型 model 文件拆分 | 已完成；`prisma/schema.prisma` 为入口，`prisma/models/` 已按领域拆分，模型文件合计约 1400 行                                                               | 不再继续按行数拆分；转为 schema 所有权、迁移治理和数据库访问边界           |
-| RFC 9457 + neverthrow      | 已有 [`2026-08-18-error-contract-and-neverthrow-migration-plan.md`](2026-08-18-error-contract-and-neverthrow-migration-plan.md)，2026-08-22 已进入硬切窗口 | 作为 P0 前置；本计划只引用其完成条件，不另建错误类型方案                   |
-| BullMQ Worker 进程分离     | 已有 [`2026-07-24-worker-separation-and-cron-repeatable.md`](2026-07-24-worker-separation-and-cron-repeatable.md)，但源码中尚未形成 `WORKER_MODE` 运行路径 | 作为 P0/P1 现有计划继续执行；本计划补充它与事件、队列运维的依赖            |
-| rnacos 运行时调参          | 已有 [`2026-08-02-rnacos-runtime-config-tuning.md`](2026-08-02-rnacos-runtime-config-tuning.md)；这是动态调参，不等于静态配置迁移                          | 与本计划的 YAML 配置加载分开，先完成静态配置边界，再决定是否引入运行时中心 |
-| 可观测性轻量化             | 已有 `docs/01-reference/observability-lightweight-research.md`，尚未改 Compose                                                                             | 按 benchmark 结果决定，不把“换监控栈”当作无证据的立即重构                  |
+| 项目                   | 当前状态                                                                                                                                                   | 本计划处理方式                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| BullMQ Worker 进程分离 | 已有 [`2026-07-24-worker-separation-and-cron-repeatable.md`](2026-07-24-worker-separation-and-cron-repeatable.md)，但源码中尚未形成 `WORKER_MODE` 运行路径 | 作为 P0/P1 现有计划继续执行；本计划补充它与事件、队列运维的依赖            |
+| rnacos 运行时调参      | 已有 [`2026-08-02-rnacos-runtime-config-tuning.md`](2026-08-02-rnacos-runtime-config-tuning.md)；这是动态调参，不等于静态配置迁移                          | 与本计划的 YAML 配置加载分开，先完成静态配置边界，再决定是否引入运行时中心 |
+| 可观测性轻量化         | 已有 `docs/01-reference/observability-lightweight-research.md`，尚未改 Compose                                                                             | 按 benchmark 结果决定，不把"换监控栈"当作无证据的立即重构                  |
 
 ### 候选迁移总表
 
-| 优先级 | 迁移项                          | 当前证据                                                                                            | 目标                                                                                                | 依赖                            |
-| ------ | ------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------- |
-| P0     | 错误契约与 `neverthrow` 硬切    | 计划已 active，客户端/服务端仍在迁移                                                                | 预期失败由 Result 边界表达，异常只保留给编程错误、协议错误、取消和流断裂                            | 当前硬切计划                    |
-| P0/P1  | API 与 Worker 进程分离          | BullMQ 队列和 cron 已集中在 API 进程；已有进程分离计划但代码尚未完全接线                            | API、Worker、cron 可独立重启和扩容，部署时有健康探针和回滚顺序                                      | 错误契约、队列幂等              |
-| P1     | `.env` + YAML + Secret 配置边界 | 36 个生产/脚本文件仍直接读 `process.env`；配置工厂多为扁平 key；已有 YAML 调研                      | 普通、嵌套、类型化配置进入 YAML；凭证和 Prisma `DATABASE_URL` 保持 env/Secret；启动前变量有明确例外 | 配置 loader、构建资产、部署脚本 |
-| P1     | 事务内事件与持久化 Outbox       | `EventEmitterModule`/`@OnEvent` 仍是进程内投递；事件驱动 Today、Suggestion、风险检查和缓存失效      | 写入和事件记录同事务，队列消费者可重试、去重、恢复，应用重启不丢事件                                | Worker 分离、数据库迁移         |
-| P1     | 持久化访问与跨模块数据边界收口  | 生产代码仍有多处服务直接注入 `PrismaService`；已有 reader port，但例外和写入边界需逐项清理          | owner module 负责写入；跨模块读取走 reader port/只读投影；read-model 例外有清单和静态门禁           | 错误边界、事务策略              |
-| P1     | 队列运行合同与运维闭环          | `BaseAsyncQueueService` 统一了 enqueue/poll/cache，但队列重试、失败保留、重放和幂等仍分散在业务服务 | 统一 job envelope、attempt/backoff/DLQ/replay/idempotency/metrics，且 Worker/API 分离后可诊断       | Worker 分离、Outbox             |
-| P1     | 跨仓 API 合同发布流水线         | OpenAPI 导出与 Flutter client bootstrap 仍是本地顺序；Luminous CI 不 checkout Lucent                | 版本化合同、兼容性 diff、生成客户端漂移检查、可回滚的发布顺序自动化                                 | Problem Details 硬切            |
-| P1     | 数据库迁移与发布治理            | 当前已有约 55 个 Prisma migration；部署需停止 Worker、迁移、再启动新进程                            | expand/contract、升级库验证、备份恢复演练、破坏性迁移检查和 schema drift 门禁                       | Worker 分离、部署文档           |
-| P2     | 可观测性栈瘦身                  | 生产 Compose 默认包含 Prometheus、Grafana、多个 exporter；应用指标/OTel 已在进程内                  | 先测量，再选择精简 Prometheus、VictoriaMetrics 或托管 agent；保留可行动指标                         | 部署基线、告警清单              |
-| P2     | API 版本与弃用策略              | 路由已有 `/api/v1`，但 v2、兼容窗口、deprecation headers 仍是 Roadmap 项                            | 把版本、合同兼容、客户端最低版本和弃用窗口写成可执行策略                                            | 跨仓合同流水线                  |
-| P2     | 多实例运行门禁                  | 当前部署仍按单实例假设；TODO 已注明需验证多实例限流                                                 | 在真的需要水平扩展前，补 Redis 限流、session、cache、cron、事件和 tracing 的多实例验证              | Worker、Outbox、可观测性        |
+| 优先级 | 迁移项                         | 当前证据                                                                                            | 目标                                                                                          | 依赖                     |
+| ------ | ------------------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------ |
+| P0/P1  | API 与 Worker 进程分离         | BullMQ 队列和 cron 已集中在 API 进程；已有进程分离计划但代码尚未完全接线                            | API、Worker、cron 可独立重启和扩容，部署时有健康探针和回滚顺序                                | 队列幂等                 |
+| P1     | 事务内事件与持久化 Outbox      | `EventEmitterModule`/`@OnEvent` 仍是进程内投递；事件驱动 Today、Suggestion、风险检查和缓存失效      | 写入和事件记录同事务，队列消费者可重试、去重、恢复，应用重启不丢事件                          | Worker 分离、数据库迁移  |
+| P1     | 持久化访问与跨模块数据边界收口 | 生产代码仍有多处服务直接注入 `PrismaService`；已有 reader port，但例外和写入边界需逐项清理          | owner module 负责写入；跨模块读取走 reader port/只读投影；read-model 例外有清单和静态门禁     | 事务策略                 |
+| P1     | 队列运行合同与运维闭环         | `BaseAsyncQueueService` 统一了 enqueue/poll/cache，但队列重试、失败保留、重放和幂等仍分散在业务服务 | 统一 job envelope、attempt/backoff/DLQ/replay/idempotency/metrics，且 Worker/API 分离后可诊断 | Worker 分离、Outbox      |
+| P1     | 跨仓 API 合同发布流水线        | OpenAPI 导出与 Flutter client bootstrap 仍是本地顺序；Luminous CI 不 checkout Lucent                | 版本化合同、兼容性 diff、生成客户端漂移检查、可回滚的发布顺序自动化                           | —                        |
+| P1     | 数据库迁移与发布治理           | 当前已有约 55 个 Prisma migration；部署需停止 Worker、迁移、再启动新进程                            | expand/contract、升级库验证、备份恢复演练、破坏性迁移检查和 schema drift 门禁                 | Worker 分离、部署文档    |
+| P2     | 可观测性栈瘦身                 | 生产 Compose 默认包含 Prometheus、Grafana、多个 exporter；应用指标/OTel 已在进程内                  | 先测量，再选择精简 Prometheus、VictoriaMetrics 或托管 agent；保留可行动指标                   | 部署基线、告警清单       |
+| P2     | API 版本与弃用策略             | 路由已有 `/api/v1`，但 v2、兼容窗口、deprecation headers 仍是 Roadmap 项                            | 把版本、合同兼容、客户端最低版本和弃用窗口写成可执行策略                                      | 跨仓合同流水线           |
+| P2     | 多实例运行门禁                 | 当前部署仍按单实例假设；TODO 已注明需验证多实例限流                                                 | 在真的需要水平扩展前，补 Redis 限流、session、cache、cron、事件和 tracing 的多实例验证        | Worker、Outbox、可观测性 |
 
-结论：当前最急的不是 API v2 或拆微服务，而是配置、事件/队列可靠性和跨仓合同。没有这些边界，继续增加功能会把运行时复杂度分散到更多调用方。
+结论：当前最急的不是 API v2 或拆微服务，而是事件/队列可靠性和跨仓合同。没有这些边界，继续增加功能会把运行时复杂度分散到更多调用方。
 
 ## 二、执行计划
 
-### Task 1: 完成现有错误契约硬切
-
-**Files:**
-
-- Continue: `plans/2026-08-18-error-contract-and-neverthrow-migration-plan.md`
-- Inspect: `src/common/result/`, `src/common/api/`, `src/common/filters/api-exception.filter.ts`
-- Inspect: `src/modules/**/repositories/`, `src/modules/**/services/`
-- Verify: `test/contract/`, `test/e2e/`, `docs/01-reference/adr/0012-error-contract-and-result-boundary.md`
-
-- [ ] 重新运行计划要求的 catch/throw/Result inventory，并给每个命中项分类：可恢复失败、明确降级、编程/协议错误、取消/SSE。
-- [ ] 先完成剩余 repository/provider 边界，再删除旧 `Result`、旧错误响应 fallback、无原因的静默 catch；不要通过把所有异常改成 Result 来“清零 throw”。
-- [ ] 运行 `pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm test:ci`、`pnpm test:e2e:ci`、`pnpm docs:verify`。
-- [ ] 按 Lucent 现有规则追加当天 `docs/02-logs/migration-log/YYYY-MM-DD.md`，把稳定结果写入 `docs/01-reference/architecture.md` 和 ADR；完成后删除已执行计划文件并同步 `plans/README.md`。
-
-**完成判据：** Problem Details、`neverthrow`、OpenAPI 和所有生产 repository 的错误边界一致；旧公共类型、helper 和 fallback 无生产引用。
-
-### Task 2: 实现静态配置加载链（`.env` + YAML + Secret）
-
-**Files:**
-
-- Modify: `prisma.config.ts`
-- Modify: `src/config/env/env-file-paths.ts`
-- Modify: `src/config/env/environment.validation.ts`
-- Modify: `src/app.module.ts`
-- Modify: `src/main.ts`
-- Modify: `src/tracing.ts`
-- Modify: `src/config/app.config.ts`
-- Modify: `src/config/services/*.config.ts`
-- Modify: `Dockerfile`
-- Modify: `deploy/compose.yml`, `deploy/deploy.ts`, `deploy/render-configs.sh`
-- Modify: `.env*.example` and `docs/01-reference/environment*.md`
-- Test: `src/config/env/*.spec.ts`, `src/config/services/*.spec.ts`, new loader precedence tests
-
-- [ ] 先定义来源优先级并写测试：平台环境变量/Secret 覆盖 YAML；环境选择器 `NODE_ENV` 在预启动阶段可用；普通 YAML 缺失时使用经验证的默认值；同一字段重复定义时报告来源。
-- [ ] 新增唯一的 YAML loader 和类型化配置对象。普通配置按 `http`、`storage`、`queue`、`llm` 等命名空间组织；不要把 YAML 解析结果无条件 flatten 回 `process.env`。
-- [ ] 明确保留在 env/Secret 的字段：`DATABASE_URL`、数据库/Redis 连接串、JWT/OAuth/AI/COS/S3/JPush/mail 凭证，以及 Compose/deploy 预启动变量。
-- [ ] 让 Nest 配置工厂从统一 loader 取值，消除业务配置工厂对 `process.env` 的散落读取；`prisma.config.ts` 继续独立读取 dotenv/`process.env`，不依赖 Nest bootstrap。
-- [ ] 为生产构建复制 YAML 资产，为本地、test、production 分别提供安全的示例文件；检查 Docker Compose 插值、容器 env 和应用 YAML 之间没有同名冲突。
-- [ ] 运行 `pnpm test -- config env`、`pnpm typecheck`、`pnpm build`、`pnpm docs:verify`，并用 `pnpm export:openapi` 验证导出脚本不依赖完整应用配置。
-
-**不在范围：** 本任务不迁移 Prisma 的 `DATABASE_URL` 到 YAML，不动态修改连接池/Secret，不把 rnacos 热更新和静态配置 loader 混在一次发布中。
-
-**完成判据：** 源码运行、`dist` 运行、Prisma CLI、import 脚本、Docker Compose 和 OpenAPI export 的配置来源均可独立说明并有优先级测试；生产日志不打印 Secret。
-
-### Task 3: 完成 API/Worker 进程分离，并补队列运行合同
+### Task 1: 完成 API/Worker 进程分离，并补队列运行合同
 
 **Files:**
 
@@ -106,7 +58,7 @@
 
 **完成判据：** API 和 Worker 可独立重启，Redis 暂时不可用时 API 不启动不可控的 Worker；长任务失败能定位、重试或人工重放，cron 不会因 API 多实例重复注册。
 
-### Task 4: 把进程内领域事件迁移为事务 Outbox
+### Task 2: 把进程内领域事件迁移为事务 Outbox
 
 **Files:**
 
@@ -125,7 +77,7 @@
 
 **完成判据：** 应用重启、Worker 重启或 Redis 短暂不可用不丢掉已提交的必要事件；同一事件重复投递不会重复写业务结果；事件消费者失败不会静默吞掉。
 
-### Task 5: 收口 Prisma 所有权、reader port 和事务边界
+### Task 3: 收口 Prisma 所有权、reader port 和事务边界
 
 **Files:**
 
@@ -144,7 +96,7 @@
 
 **完成判据：** 跨模块关系通过少量、稳定、可测试的 port；数据库实现变化不会迫使多个模块同时修改；read-model 例外可审计而不是靠口头约定。
 
-### Task 6: 把 OpenAPI/Flutter client 变成跨仓发布门
+### Task 4: 把 OpenAPI/Flutter client 变成跨仓发布门
 
 **Files:**
 
@@ -161,7 +113,7 @@
 
 **完成判据：** API 改动在合并前能检测破坏性变化和客户端漂移；两仓库能追溯“客户端代码来自哪个 OpenAPI 版本”。
 
-### Task 7: 建立数据库迁移和发布安全门
+### Task 5: 建立数据库迁移和发布安全门
 
 **Files:**
 
@@ -178,7 +130,7 @@
 
 **完成判据：** 新 migration 经过 fresh/upgrade 两类验证；生产部署不会在 Worker 仍使用旧 schema 时切换；恢复路径有命令、前置条件和可观察结果。
 
-### Task 8: 按实测结果瘦身可观测性栈，并准备 API 版本策略
+### Task 6: 按实测结果瘦身可观测性栈，并准备 API 版本策略
 
 **Files:**
 
@@ -196,14 +148,12 @@
 
 ## 三、推荐顺序与暂停条件
 
-1. 完成现有错误契约硬切。
-2. 完成静态配置 loader；不要先上 rnacos 热更新。
-3. 完成 API/Worker 分离，同时固化 job envelope、幂等和失败重放。
-4. 以数据库 transaction + Outbox 改造跨进程事件。
-5. 收口 Prisma owner/reader port，并接入静态依赖门禁。
-6. 自动化 OpenAPI/Flutter client 发布和兼容性检查。
-7. 增加数据库 migration/backup 发布门。
-8. 最后根据实测决定观测栈与 API 版本策略。
+1. 完成 API/Worker 分离，同时固化 job envelope、幂等和失败重放。
+2. 以数据库 transaction + Outbox 改造跨进程事件。
+3. 收口 Prisma owner/reader port，并接入静态依赖门禁。
+4. 自动化 OpenAPI/Flutter client 发布和兼容性检查。
+5. 增加数据库 migration/backup 发布门。
+6. 最后根据实测决定观测栈与 API 版本策略。
 
 暂停条件：若某一步需要引入多租户、微服务、Kubernetes、远程配置中心或真实支付等新的产品/部署前提，先创建独立 ADR 和子计划；不得把这些前提偷偷塞进本迁移计划。
 
