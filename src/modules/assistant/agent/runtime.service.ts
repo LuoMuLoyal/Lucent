@@ -550,8 +550,8 @@ export class AssistantRuntimeService {
       );
       throw new DomainFailureException(
         createDomainFailure({
-          kind: 'validation',
-          code: 'VALIDATION_FAILED',
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
           detail: 'Cannot read the conversation generation history.',
         }),
       );
