@@ -119,10 +119,12 @@ describe('UserService', () => {
     it('should create a user and backfill an empty profile when one is not provided', async () => {
       (prismaService.user.create as vi.Mock).mockResolvedValue(mockUser);
 
-      const result = await service.create({
-        email: 'test@example.com',
-        nickname: 'TestUser',
-      });
+      const result = await inspectResult(
+        service.create({
+          email: 'test@example.com',
+          nickname: 'TestUser',
+        }),
+      );
 
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
@@ -131,20 +133,22 @@ describe('UserService', () => {
           profile: { create: {} },
         },
       });
-      expect(result).toEqual(mockUser);
+      expect(result).toMatchObject({ ok: true, value: mockUser });
     });
 
     it('should preserve an explicitly provided profile relation', async () => {
       (prismaService.user.create as vi.Mock).mockResolvedValue(mockUser);
 
-      await service.create({
-        email: 'test@example.com',
-        profile: {
-          create: {
-            locale: 'zh-CN',
+      await inspectResult(
+        service.create({
+          email: 'test@example.com',
+          profile: {
+            create: {
+              locale: 'zh-CN',
+            },
           },
-        },
-      });
+        }),
+      );
 
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
@@ -155,6 +159,23 @@ describe('UserService', () => {
             },
           },
         },
+      });
+    });
+
+    it('should map a P2002 unique constraint violation to RESOURCE_CONFLICT', async () => {
+      const error = Object.create(
+        Prisma.PrismaClientKnownRequestError.prototype,
+      );
+      error.code = 'P2002';
+      (prismaService.user.create as vi.Mock).mockRejectedValue(error);
+
+      const result = await inspectResult(
+        service.create({ email: 'duplicate@example.com' }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
       });
     });
   });

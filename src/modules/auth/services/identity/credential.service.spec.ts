@@ -257,7 +257,7 @@ describe('CredentialAuthService', () => {
     // Default mock responses
     userService.findByEmail.mockResolvedValue(null);
     userService.findById.mockResolvedValue(mockUser);
-    userService.create.mockResolvedValue(mockUser);
+    userService.create.mockReturnValue(okAsync(mockUser));
     userService.update.mockReturnValue(okAsync(mockUser));
     userService.updateByEmail.mockResolvedValue(mockUser);
     authTokenService.generateTokenPair.mockReturnValue(okAsync(mockTokenPair));

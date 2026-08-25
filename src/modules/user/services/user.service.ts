@@ -16,18 +16,25 @@ export class UserService {
     return this.prisma.nonDeleted.user.findFirst({ where: { email } });
   }
 
-  async create(data: Prisma.UserCreateInput): Promise<User> {
+  /**
+   * Creates a user, mapping P2002 unique-constraint violations to
+   * `RESOURCE_CONFLICT` so concurrent same-email registrations receive a
+   * proper domain failure instead of an unhandled 500.
+   */
+  create(data: Prisma.UserCreateInput): ResultAsync<User, DomainFailure> {
     const profileData =
       data.profile === undefined
         ? { create: {} satisfies Prisma.UserProfileCreateWithoutUserInput }
         : data.profile;
 
-    return this.prisma.user.create({
-      data: {
-        ...data,
-        profile: profileData,
-      },
-    });
+    return fromPrismaResult(
+      this.prisma.user.create({
+        data: {
+          ...data,
+          profile: profileData,
+        },
+      }),
+    );
   }
 
   update(
