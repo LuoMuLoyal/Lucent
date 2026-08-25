@@ -53,6 +53,60 @@ describe('SuggestionCacheInvalidationListener', () => {
       // Should resolve without throwing
       expect(cache.invalidateSignals).toHaveBeenCalled();
     });
+
+    it('upgrades to error log after consecutive failures exceed threshold', async () => {
+      cache.invalidateSignals.mockRejectedValue(new Error('cache error'));
+      const logger = (
+        listener as unknown as { logger: { warn: vi.Mock; error: vi.Mock } }
+      ).logger;
+      const warnSpy = vi.spyOn(logger, 'warn');
+      const errorSpy = vi.spyOn(logger, 'error');
+
+      // First two failures: warn level
+      await listener.handleDailyRecordChanged({
+        userId: 'user-1',
+        date: '2026-07-17',
+      });
+      await listener.handleDailyRecordChanged({
+        userId: 'user-1',
+        date: '2026-07-17',
+      });
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      // Third failure: error level
+      await listener.handleDailyRecordChanged({
+        userId: 'user-1',
+        date: '2026-07-17',
+      });
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('consecutive=3');
+    });
+
+    it('resets failure counter on success', async () => {
+      const logger = (
+        listener as unknown as { logger: { warn: vi.Mock; error: vi.Mock } }
+      ).logger;
+      const errorSpy = vi.spyOn(logger, 'error');
+
+      // Two failures then a success then two more failures
+      cache.invalidateSignals.mockRejectedValueOnce(new Error('err'));
+      cache.invalidateSignals.mockRejectedValueOnce(new Error('err'));
+      cache.invalidateSignals.mockResolvedValueOnce(undefined);
+      cache.invalidateSignals.mockRejectedValueOnce(new Error('err'));
+      cache.invalidateSignals.mockRejectedValueOnce(new Error('err'));
+
+      for (let i = 0; i < 5; i += 1) {
+        await listener.handleDailyRecordChanged({
+          userId: 'user-1',
+          date: '2026-07-17',
+        });
+      }
+
+      // Counter reset on success, so the 5th call (2nd consecutive failure
+      // after reset) should still be warn, not error.
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleDoseLogChanged', () => {

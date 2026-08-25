@@ -35,6 +35,9 @@ export class SuggestionCacheInvalidationListener {
   private readonly logger = new Logger(
     SuggestionCacheInvalidationListener.name,
   );
+  private consecutiveFailures = 0;
+
+  private static readonly ERROR_THRESHOLD = 3;
 
   constructor(
     private readonly cache: SuggestionCacheService,
@@ -47,11 +50,9 @@ export class SuggestionCacheInvalidationListener {
   ): Promise<void> {
     try {
       await this.cache.invalidateSignals(payload.userId, payload.date);
+      this.onCacheSuccess();
     } catch (error) {
-      this.logger.warn('Failed to invalidate cache on daily-record.changed', {
-        userId: payload.userId,
-        error,
-      });
+      this.handleCacheError('daily-record.changed', payload.userId, error);
     }
   }
 
@@ -59,11 +60,9 @@ export class SuggestionCacheInvalidationListener {
   async handleDoseLogChanged(payload: DoseLogChangedPayload): Promise<void> {
     try {
       await this.cache.invalidateSignals(payload.userId, payload.date);
+      this.onCacheSuccess();
     } catch (error) {
-      this.logger.warn('Failed to invalidate cache on dose-log.changed', {
-        userId: payload.userId,
-        error,
-      });
+      this.handleCacheError('dose-log.changed', payload.userId, error);
     }
   }
 
@@ -76,11 +75,9 @@ export class SuggestionCacheInvalidationListener {
       const date = await this.todayForUser(payload.userId);
       await this.cache.invalidateSignals(payload.userId, date);
       await this.cache.invalidateBaseline(payload.userId);
+      this.onCacheSuccess();
     } catch (error) {
-      this.logger.warn('Failed to invalidate cache on reminder.changed', {
-        userId: payload.userId,
-        error,
-      });
+      this.handleCacheError('reminder.changed', payload.userId, error);
     }
   }
 
@@ -94,11 +91,9 @@ export class SuggestionCacheInvalidationListener {
       const date = await this.todayForUser(payload.userId);
       await this.cache.invalidateSignals(payload.userId, date);
       await this.cache.invalidateBaseline(payload.userId);
+      this.onCacheSuccess();
     } catch (error) {
-      this.logger.warn('Failed to invalidate cache on health-context.changed', {
-        userId: payload.userId,
-        error,
-      });
+      this.handleCacheError('health-context.changed', payload.userId, error);
     }
   }
 
@@ -110,11 +105,9 @@ export class SuggestionCacheInvalidationListener {
       const date = await this.todayForUser(payload.userId);
       await this.cache.invalidateSignals(payload.userId, date);
       await this.cache.invalidateBaseline(payload.userId);
+      this.onCacheSuccess();
     } catch (error) {
-      this.logger.warn('Failed to invalidate cache on settings.changed', {
-        userId: payload.userId,
-        error,
-      });
+      this.handleCacheError('settings.changed', payload.userId, error);
     }
   }
 
@@ -124,13 +117,46 @@ export class SuggestionCacheInvalidationListener {
   ): Promise<void> {
     try {
       await this.cache.invalidateSignals(payload.userId, payload.date);
+      this.onCacheSuccess();
     } catch (error) {
-      this.logger.warn('Failed to invalidate cache on health-event.changed', {
-        userId: payload.userId,
-        date: payload.date,
+      this.handleCacheError(
+        'health-event.changed',
+        payload.userId,
         error,
-      });
+        payload.date,
+      );
     }
+  }
+
+  /**
+   * Resets the consecutive failure counter on success.  Called after every
+   * successful cache invalidation so transient failures don't accumulate.
+   */
+  private onCacheSuccess(): void {
+    this.consecutiveFailures = 0;
+  }
+
+  /**
+   * Logs cache invalidation failures with escalating severity: warn for the
+   * first few failures, then error once the threshold is exceeded so
+   * monitoring alerts fire.
+   */
+  private handleCacheError(
+    event: string,
+    userId: string,
+    error: unknown,
+    date?: string,
+  ): void {
+    this.consecutiveFailures += 1;
+    const logFn =
+      this.consecutiveFailures >=
+      SuggestionCacheInvalidationListener.ERROR_THRESHOLD
+        ? this.logger.error.bind(this.logger)
+        : this.logger.warn.bind(this.logger);
+    logFn(
+      `Failed to invalidate cache on ${event} (consecutive=${String(this.consecutiveFailures)})`,
+      { userId, ...(date != null ? { date } : {}), error },
+    );
   }
 
   /**

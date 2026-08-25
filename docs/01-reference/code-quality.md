@@ -304,3 +304,9 @@ Last updated: 2026-08-25
     `RedisService.atomicIncrement`、`S3StorageRuntime.createSignedGetUrl`
     （`DEPENDENCY_UNAVAILABLE`，503 可重试）。
   - `ApiExceptionFilter` 现可对这些异常正确映射 HTTP status，而非无差别 500。
+
+- 2026-08-25 错误处理基础设施层扫尾（P2）：
+  - `SuggestionCacheInvalidationListener` 6 个事件处理器统一走 `handleCacheError`，
+    连续失败 3 次后日志从 warn 升级为 error，触发监控告警；成功后计数器重置。
+  - `MedicinesCacheAdminService` 内省逻辑在 stores 为空或 rawStore 不暴露 keys()
+    时新增 warn 日志，cache-manager 版本升级后内省失败可观测。
