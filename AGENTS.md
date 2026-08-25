@@ -61,6 +61,27 @@ After every code change, run the documentation check tool (`pnpm docs:check`) to
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby code.
 - `pnpm typecheck` validates spec/e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
 
+## Error Handling Rules (ADR-0012)
+
+Enforced by ESLint custom rules `error-handling/no-bare-throw-error` and
+`error-handling/no-silent-catch` (defined in `eslint-plugins/error-handling.ts`).
+
+- **No bare `throw new Error()` in `src/`** (excluding `*.spec.ts`): use
+  `throw new DomainFailureException(createDomainFailure({ ... }))` for domain
+  failures, or NestJS `HttpException` subclasses for client errors.
+  Module constructor / `onModuleInit` env-validation throws are exempt —
+  `ApiExceptionFilter` is not ready during DI init; use `// eslint-disable-next-line`
+  with a reason.
+- **No silent catch**: every `catch` block must either log (`this.logger.warn` /
+  `this.logger.error` / `console.warn`) or re-throw the error.
+  Deferred-error patterns (catch → store in variable → handle later) must use
+  `// eslint-disable-next-line error-handling/no-silent-catch` with a reason.
+- **Cache calls must be protected**: `this.cache.get/set/del` must be wrapped
+  in try-catch with a logged fallback. The only exception is `testing-support/`.
+- **Control-flow exceptions** (`throw new Error('CONSTANT')` used to break
+  loops) are a code smell — refactor to return a discriminated union instead.
+  If unavoidable, add `// eslint-disable-next-line` with a reason.
+
 ## File Naming Rules
 
 **Core principle**: File name = responsibility, not location. Directory = namespace,
