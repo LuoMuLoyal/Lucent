@@ -297,3 +297,10 @@ Last updated: 2026-08-25
     graceful shutdown 时 Redis quit 失败不再被静默吞掉。
   - `AssistantToolService` 新增 `cacheGet`/`cacheSet` 包装器，Redis 故障时降级为无缓存
     执行而非崩溃；仓库中所有缓存使用点现已统一有错误保护。
+
+- 2026-08-25 错误处理基础设施层扫尾（P1）：
+  - 基础设施层四处裸 `throw new Error` 收口为 `DomainFailureException`：
+    `domain-failure.ts`、`domain-failure.mapper.ts`（`INTERNAL_ERROR`）、
+    `RedisService.atomicIncrement`、`S3StorageRuntime.createSignedGetUrl`
+    （`DEPENDENCY_UNAVAILABLE`，503 可重试）。
+  - `ApiExceptionFilter` 现可对这些异常正确映射 HTTP status，而非无差别 500。

@@ -1,6 +1,7 @@
 import type { ProblemCatalog } from '../api/problem-catalog';
 import type { ProblemDetails } from '../api/problem-details';
 import { isDomainFailure, type DomainFailure } from './domain-failure';
+import { DomainFailureException } from './domain-failure.exception';
 
 export interface DomainFailureProblemOptions {
   catalog: ProblemCatalog;
@@ -13,7 +14,13 @@ export function toProblemDetails(
   options: DomainFailureProblemOptions,
 ): ProblemDetails {
   if (!isDomainFailure(failure) || !options.catalog.isKnown(failure.code)) {
-    throw new Error('Invalid or undocumented DomainFailure code');
+    throw new DomainFailureException({
+      _tag: 'DomainFailure',
+      kind: 'internal',
+      code: 'INTERNAL_ERROR',
+      detail: 'Invalid or undocumented DomainFailure code',
+      cause: failure,
+    });
   }
 
   return options.catalog.build(failure.code, {

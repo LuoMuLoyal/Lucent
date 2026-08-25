@@ -1,4 +1,5 @@
 import type { ProblemCode } from '../api/problem-catalog';
+import { DomainFailureException } from './domain-failure.exception';
 
 const domainFailureKinds = [
   'validation',
@@ -91,7 +92,13 @@ export function createDomainFailure(
 ): DomainFailure {
   const candidate = { _tag: 'DomainFailure' as const, ...input };
   if (!isDomainFailure(candidate)) {
-    throw new Error('Invalid DomainFailure input');
+    throw new DomainFailureException({
+      _tag: 'DomainFailure',
+      kind: 'internal',
+      code: 'INTERNAL_ERROR',
+      detail: 'Invalid DomainFailure input',
+      cause: input,
+    });
   }
 
   return Object.freeze({
