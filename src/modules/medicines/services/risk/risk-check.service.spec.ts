@@ -1,9 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  BadRequestException,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { MedicineRiskCheckService } from './risk-check.service';
 import type { PrismaService } from '../../../../prisma';
@@ -12,6 +7,14 @@ import type { MedicineRiskLlmGeneratorService } from './risk-llm-generator.servi
 import type { RiskDetectionService } from './risk-detection.service';
 import type { RiskContextBuilderService } from './risk-context-builder.service';
 import type { I18nService } from 'nestjs-i18n';
+import {
+  okAsync,
+  errAsync,
+  createDomainFailure,
+  DomainFailureException,
+  type ResultAsync,
+  type DomainFailure,
+} from '../../../../common/result';
 
 function build() {
   const prisma = {
@@ -80,6 +83,22 @@ const recordRow = {
   updatedAt: new Date('2026-06-01T00:00:00.000Z'),
 };
 
+/**
+ * Unwraps a ResultAsync into a thrown DomainFailureException on error,
+ * matching the controller-layer unwrapResult behaviour so tests can use
+ * `await expect(...).rejects.toThrow(DomainFailureException)`.
+ */
+async function unwrap<T>(
+  resultAsync: ResultAsync<T, DomainFailure>,
+): Promise<T> {
+  return resultAsync.match(
+    (v) => v as T,
+    (f) => {
+      throw new DomainFailureException(f);
+    },
+  );
+}
+
 describe('MedicineRiskCheckService', () => {
   it('getRecords returns cached value without touching the DB', async () => {
     const { prisma, cache, svc } = build();
@@ -118,18 +137,18 @@ describe('MedicineRiskCheckService', () => {
       recordRow as never,
     );
 
-    const result = await svc.runStaticCheck('u1');
+    const result = await unwrap(svc.runStaticCheck('u1'));
 
     expect(result.checkType).toBe('static');
     expect(prisma.medicineRiskCheckRecord.upsert).toHaveBeenCalled();
   });
 
-  it('runLlmCheck throws ServiceUnavailableException when the LLM analysis model is not configured', async () => {
+  it('runLlmCheck throws DomainFailureException when the LLM analysis model is not configured', async () => {
     const { llmGenerator, svc } = build();
     vi.mocked(llmGenerator.hasAnalysisModel).mockReturnValue(false);
 
-    await expect(svc.runLlmCheck('u1')).rejects.toThrow(
-      ServiceUnavailableException,
+    await expect(unwrap(svc.runLlmCheck('u1'))).rejects.toThrow(
+      DomainFailureException,
     );
   });
 
@@ -183,7 +202,7 @@ describe('MedicineRiskCheckService', () => {
       overallRecommendation: 'consult doctor',
     } as never);
 
-    const result = await svc.runLlmCheck('u1');
+    const result = await unwrap(svc.runLlmCheck('u1'));
 
     expect(result.checkType).toBe('llm');
     expect(riskContextBuilder.buildLlmContext).toHaveBeenCalledWith(
@@ -269,16 +288,18 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     } as never);
-    vi.mocked(medicinesService.getDetailWithCache).mockResolvedValue({
-      id: 'detail-cn-1',
-      name: '对乙酰氨基酚',
-      ingredients: [],
-    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+      okAsync({
+        id: 'detail-cn-1',
+        name: '对乙酰氨基酚',
+        ingredients: [],
+      } as never),
+    );
     vi.mocked(prisma.medicineRiskCheckRecord.upsert).mockResolvedValue(
       recordRow as never,
     );
 
-    const result = await svc.runStaticCheck('u1');
+    const result = await unwrap(svc.runStaticCheck('u1'));
 
     // m1 走 detail 获取;m2/m3 无合法 sourceRefId,落入 uncovered
     expect(medicinesService.getDetailWithCache).toHaveBeenCalledTimes(1);
@@ -319,14 +340,20 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     } as never);
-    vi.mocked(medicinesService.getDetailWithCache).mockRejectedValue(
-      new Error('db down'),
+    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+          detail: 'db down',
+        }),
+      ),
     );
     vi.mocked(prisma.medicineRiskCheckRecord.upsert).mockResolvedValue(
       recordRow as never,
     );
 
-    await svc.runStaticCheck('u1');
+    await unwrap(svc.runStaticCheck('u1'));
 
     expect(riskDetection.evaluateStaticRisk).toHaveBeenCalledWith(
       [],
@@ -346,7 +373,7 @@ describe('MedicineRiskCheckService', () => {
       .spyOn(svc['logger'], 'error')
       .mockImplementation(() => undefined);
 
-    await expect(svc.runStaticCheck('u1')).resolves.toMatchObject({
+    await expect(unwrap(svc.runStaticCheck('u1'))).resolves.toMatchObject({
       checkType: 'static',
     });
 
@@ -402,7 +429,7 @@ describe('MedicineRiskCheckService', () => {
       overallRecommendation: '',
     } as never);
 
-    const result = await svc.runLlmCheck('u1');
+    const result = await unwrap(svc.runLlmCheck('u1'));
 
     expect(result.result.findings[0]).not.toHaveProperty(
       'secondaryMedicineName',
@@ -427,11 +454,11 @@ describe('MedicineRiskCheckService', () => {
     } as never);
     vi.mocked(medicinesService.getDetailWithCache).mockImplementation(
       (id: string) =>
-        Promise.resolve(
-          id === 'cn-1'
+        okAsync(
+          (id === 'cn-1'
             ? { id: 'cn-1', name: '对乙酰氨基酚', source: 'cn' }
-            : { id, name: `候选药品-${id}`, source: 'cn' },
-        ) as never,
+            : { id, name: `候选药品-${id}`, source: 'cn' }) as never,
+        ),
     );
     vi.mocked(riskDetection.evaluateStaticRisk).mockReturnValue({
       findings: [
@@ -450,10 +477,12 @@ describe('MedicineRiskCheckService', () => {
       riskLevel: 'caution',
     });
 
-    const result = await svc.runStaticCheck('u1', {
-      source: 'cn',
-      id: 'cn-2',
-    });
+    const result = await unwrap(
+      svc.runStaticCheck('u1', {
+        source: 'cn',
+        id: 'cn-2',
+      }),
+    );
 
     expect(medicinesService.getDetailWithCache).toHaveBeenCalledWith(
       'cn-2',
@@ -507,16 +536,20 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     } as never);
-    vi.mocked(medicinesService.getDetailWithCache).mockResolvedValue({
-      id: 'cn-1',
-      name: '对乙酰氨基酚',
-      source: 'cn',
-    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+      okAsync({
+        id: 'cn-1',
+        name: '对乙酰氨基酚',
+        source: 'cn',
+      } as never),
+    );
 
-    const result = await svc.runStaticCheck('u1', {
-      source: 'cn',
-      id: 'cn-1',
-    });
+    const result = await unwrap(
+      svc.runStaticCheck('u1', {
+        source: 'cn',
+        id: 'cn-1',
+      }),
+    );
 
     // 药箱已有同 source + sourceRefId（trim 后比较），候选不再单独加入
     expect(medicinesService.getDetailWithCache).toHaveBeenCalledTimes(1);
@@ -527,38 +560,50 @@ describe('MedicineRiskCheckService', () => {
     expect(result.result.checkedMedicineCount).toBe(1);
   });
 
-  it('runStaticCheck propagates NotFoundException when the candidate detail is missing', async () => {
+  it('runStaticCheck propagates DomainFailureException when the candidate detail is missing', async () => {
     const { prisma, medicinesService, svc } = build();
     vi.mocked(prisma.user.findFirst).mockResolvedValue({
       allergies: [],
       conditions: [],
       currentMedicines: [],
     } as never);
-    vi.mocked(medicinesService.getDetailWithCache).mockRejectedValue(
-      new NotFoundException('medicine not found'),
+    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: 'medicine not found',
+        }),
+      ),
     );
 
     await expect(
-      svc.runStaticCheck('u1', { source: 'cn', id: 'missing' }),
-    ).rejects.toThrow(NotFoundException);
+      unwrap(svc.runStaticCheck('u1', { source: 'cn', id: 'missing' })),
+    ).rejects.toThrow(DomainFailureException);
 
     expect(prisma.medicineRiskCheckRecord.upsert).not.toHaveBeenCalled();
   });
 
-  it('runStaticCheck wraps non-NotFound candidate resolution failures as badRequest', async () => {
+  it('runStaticCheck wraps non-NotFound candidate resolution failures as DomainFailureException', async () => {
     const { prisma, medicinesService, svc } = build();
     vi.mocked(prisma.user.findFirst).mockResolvedValue({
       allergies: [],
       conditions: [],
       currentMedicines: [],
     } as never);
-    vi.mocked(medicinesService.getDetailWithCache).mockRejectedValue(
-      new Error('upstream timeout'),
+    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+          detail: 'upstream timeout',
+        }),
+      ),
     );
 
     await expect(
-      svc.runStaticCheck('u1', { source: 'drugbank', id: 'DB00001' }),
-    ).rejects.toThrow(BadRequestException);
+      unwrap(svc.runStaticCheck('u1', { source: 'drugbank', id: 'DB00001' })),
+    ).rejects.toThrow(DomainFailureException);
 
     expect(prisma.medicineRiskCheckRecord.upsert).not.toHaveBeenCalled();
   });

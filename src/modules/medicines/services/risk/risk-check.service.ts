@@ -1,12 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma';
@@ -15,16 +8,25 @@ import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
 import { RiskDetectionService } from './risk-detection.service';
 import { RiskContextBuilderService } from './risk-context-builder.service';
 import { nonDeleted, toInputJsonValue } from '../../../../common';
+import {
+  createDomainFailure,
+  DomainFailureException,
+  fromPromise,
+  mapUnknownToInternalFailure,
+  unwrapResult,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result';
+import type { RiskCheckCandidateDto } from '../../dto/risk/risk-check-request.dto';
 import type {
-  MedicineRiskCheckResponseDto,
   MedicineRiskCheckRecordDto,
+  MedicineRiskCheckResponseDto,
   MedicineRiskLevel,
 } from '../../dto/risk/risk-check-response.dto';
-import type { RiskCheckCandidateDto } from '../../dto/risk/risk-check-request.dto';
-import type { MedicineRiskLlmOutput } from '../../schemas/risk-check.schema';
 import type { MedicineDetailDataDto } from '../../dto/detail.dto';
 import type { MedicineDetailWrapper } from '../../utils/ingredient-canonicalization';
 import type { AllergyRecord } from '../../utils/allergy-severity';
+import type { MedicineRiskLlmOutput } from '../../schemas/risk-check.schema';
 
 const RISK_CHECK_CACHE_KEY_PREFIX = 'medicines:risk-check';
 const RISK_CHECK_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -103,7 +105,16 @@ export class MedicineRiskCheckService {
     return mapped;
   }
 
-  async runStaticCheck(
+  runStaticCheck(
+    userId: string,
+    candidate?: RiskCheckCandidateDto,
+  ): ResultAsync<MedicineRiskCheckRecordDto, DomainFailure> {
+    return fromPromise(this.doRunStaticCheck(userId, candidate), (error) =>
+      this.toDomainFailure(error),
+    );
+  }
+
+  private async doRunStaticCheck(
     userId: string,
     candidate?: RiskCheckCandidateDto,
   ): Promise<MedicineRiskCheckRecordDto> {
@@ -126,12 +137,25 @@ export class MedicineRiskCheckService {
     return this.persistRecord(userId, 'static', response);
   }
 
-  async runLlmCheck(userId: string): Promise<MedicineRiskCheckRecordDto> {
+  runLlmCheck(
+    userId: string,
+  ): ResultAsync<MedicineRiskCheckRecordDto, DomainFailure> {
+    return fromPromise(this.doRunLlmCheck(userId), (error) =>
+      this.toDomainFailure(error),
+    );
+  }
+
+  private async doRunLlmCheck(
+    userId: string,
+  ): Promise<MedicineRiskCheckRecordDto> {
     if (!this.llmGenerator.hasAnalysisModel()) {
-      throw new ServiceUnavailableException({
-        code: 'DEPENDENCY_UNAVAILABLE',
-        message: 'LLM analysis model is not configured',
-      });
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+          detail: 'LLM analysis model is not configured',
+        }),
+      );
     }
 
     // 1. Run static check to get baseline findings
@@ -231,10 +255,12 @@ export class MedicineRiskCheckService {
 
     const detailResults = await Promise.allSettled(
       eligibleMedicines.map(async ({ item, source, sourceRefId }) => {
-        const detail = await this.medicinesService.getDetailWithCache(
-          sourceRefId,
-          { source },
-          false,
+        const detail = await unwrapResult(
+          this.medicinesService.getDetailWithCache(
+            sourceRefId,
+            { source },
+            false,
+          ),
         );
         return {
           item: {
@@ -276,19 +302,25 @@ export class MedicineRiskCheckService {
       if (!alreadyInBox) {
         let detail: MedicineDetailDataDto;
         try {
-          detail = await this.medicinesService.getDetailWithCache(
-            candidateSourceRefId,
-            { source: candidate.source },
-            false,
+          detail = await unwrapResult(
+            this.medicinesService.getDetailWithCache(
+              candidateSourceRefId,
+              { source: candidate.source },
+              false,
+            ),
           );
         } catch (error) {
-          if (error instanceof NotFoundException) {
+          if (error instanceof DomainFailureException) {
             throw error;
           }
-          throw new BadRequestException({
-            code: 'VALIDATION_FAILED',
-            message: this.i18n.t('medicine.candidate_unavailable'),
-          });
+          throw new DomainFailureException(
+            createDomainFailure({
+              kind: 'validation',
+              code: 'VALIDATION_FAILED',
+              detail: this.i18n.t('medicine.candidate_unavailable'),
+              cause: error instanceof Error ? error : undefined,
+            }),
+          );
         }
         details.push({
           item: {
@@ -417,6 +449,19 @@ export class MedicineRiskCheckService {
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };
+  }
+
+  // ── Error mapping ────────────────────────────────────────────────────────
+
+  /**
+   * Converts an unknown error thrown inside `doRun*` methods into a
+   * `DomainFailure`. `DomainFailureException` instances are unwrapped to
+   * preserve their original domain semantics; all other errors are mapped
+   * to `INTERNAL_ERROR` so no raw exception leaks past the ResultAsync
+   * boundary.
+   */
+  private toDomainFailure(error: unknown): DomainFailure {
+    return mapUnknownToInternalFailure(error);
   }
 
   // ── Cache keys ──────────────────────────────────────────────────────────

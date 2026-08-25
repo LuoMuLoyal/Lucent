@@ -71,10 +71,13 @@ export class MedicineRiskCheckListener implements OnModuleDestroy {
 
     const timer = setTimeout(() => {
       this.pendingTimers.delete(userId);
-      this.riskCheckService.runStaticCheck(userId).catch((err: unknown) => {
-        this.logger.warn(`Async static risk check failed for ${userId}`, err);
-        // Failure: keep stale=true, next event/manual trigger will retry
-      });
+      void this.riskCheckService.runStaticCheck(userId).match(
+        () => undefined,
+        (err) => {
+          this.logger.warn(`Async static risk check failed for ${userId}`, err);
+          // Failure: keep stale=true, next event/manual trigger will retry
+        },
+      );
     }, MedicineRiskCheckListener.DEBOUNCE_MS);
 
     this.pendingTimers.set(userId, timer);

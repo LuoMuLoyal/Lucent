@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MedicineRiskCheckListener } from './risk-check.listener';
 import { type MedicineRiskCheckService } from './risk-check.service';
+import {
+  okAsync,
+  errAsync,
+  createDomainFailure,
+} from '../../../../common/result';
 
 describe('MedicineRiskCheckListener', () => {
   const runStaticCheck = vi.fn();
@@ -11,7 +16,7 @@ describe('MedicineRiskCheckListener', () => {
     vi.useFakeTimers();
     runStaticCheck.mockReset();
     markStale.mockReset();
-    runStaticCheck.mockResolvedValue(undefined);
+    runStaticCheck.mockReturnValue(okAsync(undefined as never));
     markStale.mockResolvedValue(undefined);
     const svc = {
       markStale,
@@ -53,9 +58,17 @@ describe('MedicineRiskCheckListener', () => {
   });
 
   it('does not throw when the async static check rejects', async () => {
-    runStaticCheck.mockRejectedValue(new Error('boom'));
+    runStaticCheck.mockReturnValue(
+      errAsync(
+        createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+          detail: 'boom',
+        }),
+      ),
+    );
     await listener.handleHealthContextChanged({ userId: 'u1' } as never);
-    // timer 回调内 catch 吞掉 rejection，advance 不应抛错
+    // timer 回调内 match 吞掉 rejection，advance 不应抛错
     await vi.advanceTimersByTimeAsync(5000);
     expect(runStaticCheck).toHaveBeenCalledTimes(1);
   });
