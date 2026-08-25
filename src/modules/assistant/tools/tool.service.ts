@@ -247,7 +247,7 @@ export class AssistantToolService {
       });
       const cacheKey = `assistant:tool:${toolName}:${context.locale}:${makeShortHash(keySeed)}`;
 
-      const cached = await this.cache.get<string>(cacheKey);
+      const cached = await this.cacheGet<string>(cacheKey);
       if (cached != null) {
         try {
           const result = JSON.parse(cached) as AssistantToolExecutionResult;
@@ -260,11 +260,48 @@ export class AssistantToolService {
       this.metricsService.recordCacheAccess('tool', false);
 
       const result = await this.executeUncached(context, toolName);
-      await this.cache.set(cacheKey, JSON.stringify(result), TOOL_CACHE_TTL_MS);
+      await this.cacheSet(cacheKey, JSON.stringify(result), TOOL_CACHE_TTL_MS);
       return result;
     }
 
     return this.executeUncached(context, toolName);
+  }
+
+  /**
+   * Cache get with error protection — a Redis failure degrades to a cache
+   * miss (returns `undefined`) so the tool still executes uncached.
+   */
+  private async cacheGet<T>(key: string): Promise<T | undefined> {
+    try {
+      return await this.cache.get<T>(key);
+    } catch (error) {
+      this.logger.warn(
+        `Assistant tool cache get failed (key=${key}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * Cache set with error protection — a Redis failure is logged and
+   * swallowed so the tool result is still returned to the caller.
+   */
+  private async cacheSet(
+    key: string,
+    value: string,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttl);
+    } catch (error) {
+      this.logger.warn(
+        `Assistant tool cache set failed (key=${key}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private async executeUncached(

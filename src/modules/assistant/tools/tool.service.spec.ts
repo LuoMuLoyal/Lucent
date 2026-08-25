@@ -634,6 +634,45 @@ describe('AssistantToolService', () => {
     ).toBe(true);
   });
 
+  it('degrades to uncached execution when cache get fails', async () => {
+    const { service, deps } = buildExecutor();
+    deps.cache.get.mockRejectedValueOnce(new Error('Redis connection refused'));
+    const logger = (service as unknown as { logger: { warn: vi.Mock } }).logger;
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    const results = await service.executeMany(
+      buildContext({ userMessage: '查一下阿司匹林的厂家' }),
+      ['search_cn_medicine_products'],
+    );
+
+    expect(results).toHaveLength(1);
+    // The underlying retrieval service must have been called (cache miss → fallback).
+    expect(
+      deps.medicineLookupService.searchCnMedicineProducts,
+    ).toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Assistant tool cache get failed'),
+    );
+  });
+
+  it('returns the result even when cache set fails', async () => {
+    const { service, deps } = buildExecutor();
+    deps.cache.set.mockRejectedValueOnce(new Error('Redis connection refused'));
+    const logger = (service as unknown as { logger: { warn: vi.Mock } }).logger;
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    const results = await service.executeMany(
+      buildContext({ userMessage: '查一下阿司匹林的厂家' }),
+      ['search_cn_medicine_products'],
+    );
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.name).toBe('search_cn_medicine_products');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Assistant tool cache set failed'),
+    );
+  });
+
   it('runs read tools in parallel and preserves the input order (F-6)', async () => {
     const { service, deps } = buildExecutor();
     let releaseSummary!: (value: unknown) => void;
