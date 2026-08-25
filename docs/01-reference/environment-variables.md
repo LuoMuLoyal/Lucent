@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-23
+updated: 2026-08-25
 ---
 
 # Environment Variables
@@ -265,11 +265,17 @@ OTEL_EXPORTER_OTLP_ENDPOINT
   with `METRICS_USER`.
 - `OTEL_ENABLED` — set to `true` to start the OpenTelemetry SDK with automatic
   instrumentation (HTTP/DB/Redis); all logs then carry `trace_id` / `span_id`.
+  BullMQ Worker and Cron Job spans are also created via `bullmq-otel` telemetry,
+  so async job logs carry `trace_id` too.
   Default: `false` (SDK not started; tests and existing flows unaffected). See
   ADR-0010 for the full tracing strategy.
 - `OTEL_EXPORTER_OTLP_ENDPOINT` — OTLP HTTP trace reporting endpoint. Default:
   `http://127.0.0.1:4318/v1/traces` (local Jaeger all-in-one port 4318). Only
-  used when `OTEL_ENABLED=true`.
+  used when `OTEL_ENABLED=true`. In production, no trace backend is deployed —
+  the OTel SDK still starts so that `trace_id` is injected into logs, but OTLP
+  export failures are silently dropped. In development, the endpoint points to
+  the Jaeger all-in-one container (`docker-compose.dev.yml`). See ADR-0016
+  Decision 3 for the trace backend strategy.
 
 Security:
 
