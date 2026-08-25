@@ -14,6 +14,10 @@ describe('BullmqQueueFactory', () => {
     configService = {
       get: vi.fn(),
     } as unknown as vi.Mocked<ConfigService>;
+    // OTEL_ENABLED defaults to 'false' so telemetry is not activated in tests.
+    configService.get.mockImplementation((key: string) =>
+      key === 'OTEL_ENABLED' ? 'false' : undefined,
+    );
 
     metricsService = {
       recordBullmqJob: vi.fn(),
@@ -36,7 +40,9 @@ describe('BullmqQueueFactory', () => {
     });
 
     it('returns true when REDIS_URL is set', () => {
-      configService.get.mockReturnValue('redis://127.0.0.1:6379');
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
+      );
       const factory = new BullmqQueueFactory(configService, metricsService);
       expect(factory.isAvailable).toBe(true);
     });
@@ -57,7 +63,9 @@ describe('BullmqQueueFactory', () => {
     });
 
     it('creates queue and worker when Redis is configured', async () => {
-      configService.get.mockReturnValue('redis://127.0.0.1:6379');
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
+      );
       const factory = new BullmqQueueFactory(configService, metricsService);
 
       const result = factory.createQueue({
@@ -75,7 +83,9 @@ describe('BullmqQueueFactory', () => {
 
   describe('onModuleDestroy', () => {
     it('closes all managed queues and workers', async () => {
-      configService.get.mockReturnValue('redis://127.0.0.1:6379');
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
+      );
       const factory = new BullmqQueueFactory(configService, metricsService);
 
       const { queue, worker } = factory.createQueue({
@@ -103,7 +113,9 @@ describe('BullmqQueueFactory', () => {
     });
 
     it('writes active/waiting job counts to the gauges on each interval', async () => {
-      configService.get.mockReturnValue('redis://127.0.0.1:6379');
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
+      );
       const factory = new BullmqQueueFactory(configService, metricsService);
 
       const { queue, worker } = factory.createQueue({
@@ -132,7 +144,9 @@ describe('BullmqQueueFactory', () => {
     });
 
     it('stops polling after onModuleDestroy', async () => {
-      configService.get.mockReturnValue('redis://127.0.0.1:6379');
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
+      );
       const factory = new BullmqQueueFactory(configService, metricsService);
 
       const { queue, worker } = factory.createQueue({

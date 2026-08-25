@@ -6,7 +6,8 @@
 import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
-import type { ConnectionOptions, JobsOptions } from 'bullmq';
+import type { ConnectionOptions, JobsOptions, Telemetry } from 'bullmq';
+import { BullMQOtel } from 'bullmq-otel';
 import { EnvKey } from '../../config/env/env-keys.enum';
 import { parseRedisUrl } from '../helpers/infra/redis-url';
 import { MetricsService } from '../metrics/metrics.service';
@@ -61,6 +62,8 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   private readonly logger = new Logger(BullmqQueueFactory.name);
   private readonly redisUrl: string | null;
   private readonly managed: ManagedQueue[] = [];
+  /** BullMQ OTel telemetry instance, created once when OTel is enabled. */
+  private readonly telemetry: Telemetry<unknown> | undefined;
 
   constructor(
     private readonly configService: ConfigService,
@@ -74,6 +77,22 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       : url && url.trim().length > 0
         ? url
         : null;
+
+    // Conditionally activate BullMQ OTel telemetry when OTEL_ENABLED=true.
+    // The telemetry instance creates spans for Queue.add (producer) and
+    // Worker process (consumer) so that async job logs carry trace_id.
+    // When OTel SDK is not started, the tracer is a no-op — so we guard here
+    // to avoid unnecessary overhead.
+    const otelEnabled =
+      this.configService.get<string>(EnvKey.OTEL_ENABLED) === 'true';
+    this.telemetry = otelEnabled
+      ? new BullMQOtel({ tracerName: 'lucent' })
+      : undefined;
+  }
+
+  /** Returns the telemetry option object, or an empty object when OTel is disabled. */
+  private get telemetryOptions(): { telemetry: Telemetry<unknown> } | object {
+    return this.telemetry ? { telemetry: this.telemetry } : {};
   }
 
   get isAvailable(): boolean {
@@ -101,6 +120,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     const queue = new Queue<TData, TResult>(options.name, {
       connection: queueConnection,
       defaultJobOptions: options.defaultJobOptions ?? DEFAULT_QUEUE_OPTIONS,
+      ...this.telemetryOptions,
     });
     queue.on('error', (error) => {
       this.logger.error(
@@ -121,6 +141,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       {
         connection: workerConnection,
         concurrency: options.workerConcurrency ?? 1,
+        ...this.telemetryOptions,
         ...DEFAULT_WORKER_RETENTION,
       },
     );
