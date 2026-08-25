@@ -28,7 +28,7 @@ describe('RedisService', () => {
       expect(svc.isAvailable).toBe(false);
     });
 
-    it('atomicIncrement throws when Redis is not available', async () => {
+    it('throws DomainFailureException when Redis is not available', async () => {
       const configService = {
         get: vi.fn(() => undefined),
       } as unknown as ConfigService;
@@ -37,7 +37,7 @@ describe('RedisService', () => {
       await svc.onModuleInit();
 
       await expect(svc.atomicIncrement('key', 60_000)).rejects.toThrow(
-        'Redis is not available',
+        'Domain failure: DEPENDENCY_UNAVAILABLE',
       );
     });
 

@@ -7,6 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type Redis from 'ioredis';
 import { EnvKey } from '../../config/env/env-keys.enum';
+import { DomainFailureException } from '../result/domain-failure.exception';
+import { createDomainFailure } from '../result/domain-failure';
 
 /**
  * Lua script for atomic increment-and-expire.
@@ -96,7 +98,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async atomicIncrement(key: string, ttlMs: number): Promise<number> {
     if (this.client == null) {
-      throw new Error('Redis is not available');
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+          detail: 'Redis is not available',
+          retryable: true,
+        }),
+      );
     }
     const result = await this.client.eval(
       ATOMIC_INCREMENT_SCRIPT,

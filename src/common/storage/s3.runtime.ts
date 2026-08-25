@@ -10,6 +10,8 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigKey } from '../../config/env/config-keys.enum';
 import type { S3StorageConfig } from '../../config/services/s3-storage.config';
+import { DomainFailureException } from '../result/domain-failure.exception';
+import { createDomainFailure } from '../result/domain-failure';
 import {
   ObjectStorageRuntime,
   type ObjectStorageConfig,
@@ -113,10 +115,14 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
   async createSignedGetUrl(input: SignedGetUrlInput): Promise<string> {
     if (input.audience === 'external') {
       if (this.externalClient == null) {
-        throw new Error(
-          'STORAGE_S3_EXTERNAL_ENDPOINT is not configured. ' +
-            'A public HTTPS endpoint is required to generate signed URLs ' +
-            'for remote services (e.g. vision models).',
+        throw new DomainFailureException(
+          createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+            detail:
+              'STORAGE_S3_EXTERNAL_ENDPOINT is not configured; ' +
+              'external audience signed URLs are unavailable.',
+          }),
         );
       }
       return getSignedUrl(
