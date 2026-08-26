@@ -90,6 +90,8 @@ describe('createLoggerOptions', () => {
     const options = createLoggerOptions({
       nodeEnv: 'development',
       logLevel: '',
+      logFormat: undefined,
+      victoriaLogsUrl: undefined,
     });
 
     expect(options.transports).toHaveLength(1);
@@ -100,6 +102,7 @@ describe('createLoggerOptions', () => {
     const options = createLoggerOptions({
       nodeEnv: 'production',
       logLevel: '',
+      logFormat: undefined,
       victoriaLogsUrl: 'http://localhost:9428/insert/jsonline',
     });
 
@@ -111,6 +114,7 @@ describe('createLoggerOptions', () => {
     const options = createLoggerOptions({
       nodeEnv: 'production',
       logLevel: '',
+      logFormat: undefined,
       victoriaLogsUrl: '',
     });
 
@@ -121,20 +125,32 @@ describe('createLoggerOptions', () => {
     const options = createLoggerOptions({
       nodeEnv: 'production',
       logLevel: 'warn',
+      logFormat: undefined,
+      victoriaLogsUrl: undefined,
     });
 
     expect(getConsoleLevel(options)).toBe('warn');
   });
 
   it('uses error level in test mode for minimal output', () => {
-    const options = createLoggerOptions({ nodeEnv: 'test', logLevel: '' });
+    const options = createLoggerOptions({
+      nodeEnv: 'test',
+      logLevel: '',
+      logFormat: undefined,
+      victoriaLogsUrl: undefined,
+    });
 
     expect(getConsoleLevel(options)).toBe('error');
   });
 
   it('falls back to development when nodeEnv is empty', () => {
     // With an empty nodeEnv the factory defaults to 'development' → debug level.
-    const options = createLoggerOptions({ nodeEnv: '', logLevel: '' });
+    const options = createLoggerOptions({
+      nodeEnv: '',
+      logLevel: '',
+      logFormat: undefined,
+      victoriaLogsUrl: undefined,
+    });
 
     expect(getConsoleLevel(options)).toBe('debug');
   });
