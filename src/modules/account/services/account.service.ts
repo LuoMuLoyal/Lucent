@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Account, User } from '#generated/prisma/client';
 import {
   createDomainFailure,
+  DomainFailureException,
   errAsync,
   fromPromise,
   mapUnknownToDependencyFailure,
@@ -90,9 +91,76 @@ export class AccountService {
           );
         }
 
-        return this.deleteAccountIdentity(userId, identityId).andThen(() =>
-          this.getAccount(userId),
-        );
+        // Re-check hasPassword and accounts inside a transaction to close
+        // the TOCTOU window between the initial read and the delete: another
+        // concurrent transaction could have added a credential account (e.g.
+        // user successfully set a password) or deleted the last social
+        // identity. The transaction ensures atomicity.
+        return fromPromise(
+          this.prisma.$transaction(async (tx) => {
+            // Re-check hasPassword and accounts inside the transaction to
+            // close the TOCTOU window: another concurrent transaction could
+            // have added a credential account (e.g. user successfully set a
+            // password) or deleted the last social identity.
+            const txHasPasswordResult = await this.betterAuthAdapter
+              .hasPassword(userId, tx)
+              .then((r) => r.isOk());
+            const txAccounts = await tx.account.findMany({
+              where: {
+                userId,
+                providerId: { not: CREDENTIAL_PROVIDER_ID },
+              },
+            });
+
+            const txIdentity = txAccounts.find(
+              (item) => item.id === identityId,
+            );
+            if (!txIdentity) {
+              throw new DomainFailureException(
+                createDomainFailure({
+                  kind: 'not_found',
+                  code: 'RESOURCE_NOT_FOUND',
+                }),
+              );
+            }
+
+            if (!txHasPasswordResult && txAccounts.length <= 1) {
+              throw new DomainFailureException(
+                createDomainFailure({
+                  kind: 'authorization',
+                  code: 'FORBIDDEN',
+                }),
+              );
+            }
+
+            const result = await tx.account.deleteMany({
+              where: {
+                id: identityId,
+                userId,
+                providerId: { not: CREDENTIAL_PROVIDER_ID },
+              },
+            });
+            if (result.count === 0) {
+              throw new DomainFailureException(
+                createDomainFailure({
+                  kind: 'not_found',
+                  code: 'RESOURCE_NOT_FOUND',
+                }),
+              );
+            }
+
+            await this.betterAuthAdapter.revokeBetterAuthSessions(userId, tx);
+          }),
+          (error) => {
+            if (error instanceof DomainFailureException) {
+              return error.failure;
+            }
+            return mapUnknownToDependencyFailure(
+              error,
+              'Failed to unlink identity',
+            );
+          },
+        ).andThen(() => this.getAccount(userId));
       });
   }
 
@@ -127,36 +195,6 @@ export class AccountService {
             'Failed to load linked identities',
           ),
       ).map((accounts) => ({ ...user, accounts }));
-    });
-  }
-
-  private deleteAccountIdentity(
-    userId: string,
-    identityId: string,
-  ): ResultAsync<void, DomainFailure> {
-    return fromPromise(
-      this.prisma.account.deleteMany({
-        where: {
-          id: identityId,
-          userId,
-          providerId: { not: CREDENTIAL_PROVIDER_ID },
-        },
-      }),
-      (error) =>
-        mapUnknownToDependencyFailure(
-          error,
-          'Failed to delete linked identity',
-        ),
-    ).andThen((result) => {
-      if (result.count === 0) {
-        return errAsync(
-          createDomainFailure({
-            kind: 'not_found',
-            code: 'RESOURCE_NOT_FOUND',
-          }),
-        );
-      }
-      return this.betterAuthAdapter.revokeBetterAuthSessions(userId);
     });
   }
 

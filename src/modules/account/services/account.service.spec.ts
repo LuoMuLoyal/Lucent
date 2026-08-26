@@ -78,6 +78,7 @@ async function inspectResult<T>(
 }
 
 type MockedPrisma = {
+  $transaction: vi.Mock;
   account: {
     findMany: vi.Mock;
     deleteMany: vi.Mock;
@@ -93,6 +94,19 @@ describe('AccountService', () => {
   let module: TestingModule;
 
   beforeEach(async () => {
+    const prismaMock: MockedPrisma = {
+      $transaction: vi.fn(async (cb: (tx: MockedPrisma) => Promise<unknown>) =>
+        // Pass the same prismaMock as the transaction client so the test's
+        // mock return values on account.findMany/deleteMany are visible
+        // inside the transaction callback.
+        cb(prismaMock),
+      ),
+      account: {
+        findMany: vi.fn(),
+        deleteMany: vi.fn(),
+      },
+    };
+
     module = await Test.createTestingModule({
       providers: [
         {
@@ -109,12 +123,7 @@ describe('AccountService', () => {
         },
         {
           provide: PrismaService,
-          useValue: {
-            account: {
-              findMany: vi.fn(),
-              deleteMany: vi.fn(),
-            },
-          } as MockedPrisma,
+          useValue: prismaMock,
         },
         {
           provide: PasswordReauthService,
@@ -344,7 +353,9 @@ describe('AccountService', () => {
       (userService.findById as vi.Mock)
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
+      // 3 calls to findMany: getActiveAccountUser, tx re-check, getAccount
       prisma.account.findMany
+        .mockResolvedValueOnce([baseIdentity, secondIdentity])
         .mockResolvedValueOnce([baseIdentity, secondIdentity])
         .mockResolvedValueOnce([secondIdentity]);
       prisma.account.deleteMany.mockResolvedValue({ count: 1 });
@@ -368,6 +379,7 @@ describe('AccountService', () => {
       });
       expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
         baseUser.id,
+        expect.anything(),
       );
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
@@ -456,7 +468,9 @@ describe('AccountService', () => {
       (userService.findById as vi.Mock)
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
+      // 3 calls: getActiveAccountUser, tx re-check, getAccount
       prisma.account.findMany
+        .mockResolvedValueOnce([baseIdentity])
         .mockResolvedValueOnce([baseIdentity])
         .mockResolvedValueOnce([]);
       prisma.account.deleteMany.mockResolvedValue({ count: 1 });
@@ -495,7 +509,9 @@ describe('AccountService', () => {
       (userService.findById as vi.Mock)
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
+      // 3 calls: getActiveAccountUser, tx re-check, getAccount
       prisma.account.findMany
+        .mockResolvedValueOnce([baseIdentity, secondIdentity])
         .mockResolvedValueOnce([baseIdentity, secondIdentity])
         .mockResolvedValueOnce([secondIdentity]);
       prisma.account.deleteMany.mockResolvedValue({ count: 1 });
@@ -520,10 +536,10 @@ describe('AccountService', () => {
 
     it('should return not-found when deleteMany removes no rows', async () => {
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
-      prisma.account.findMany.mockResolvedValueOnce([
-        baseIdentity,
-        secondIdentity,
-      ]);
+      // 2 calls: getActiveAccountUser, tx re-check
+      prisma.account.findMany
+        .mockResolvedValueOnce([baseIdentity, secondIdentity])
+        .mockResolvedValueOnce([baseIdentity, secondIdentity]);
       prisma.account.deleteMany.mockResolvedValue({ count: 0 });
 
       const result = await inspectResult(
