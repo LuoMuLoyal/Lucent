@@ -71,10 +71,12 @@ export class MedicineRiskCheckService {
         llm: MedicineRiskCheckRecordDto | null;
       }>(cacheKey);
     } catch (error) {
+      // Cache get failure is non-fatal: treat as a cache miss and fall
+      // through to DB read. This is consistent with cache.set below (which
+      // also swallows errors) — cache is an accelerator, not a gate.
       this.logger.warn(
-        `Risk-check cache get failed (key=${cacheKey}): ${error instanceof Error ? error.message : String(error)}`,
+        `Risk-check cache get failed (key=${cacheKey}), falling through to DB: ${error instanceof Error ? error.message : String(error)}`,
       );
-      throw error;
     }
     if (cached != null) {
       return cached;
