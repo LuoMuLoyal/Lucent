@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import { Logger } from '@nestjs/common';
+
+const logger = new Logger('VectorCursor');
 
 export interface AssistantVectorCursorPayload {
   offset: number;
@@ -28,7 +31,7 @@ export function decodeVectorCursor(
     const raw = Buffer.from(cursor, 'base64url').toString('utf8');
     return JSON.parse(raw) as AssistantVectorCursorPayload;
   } catch (error) {
-    console.warn(
+    logger.warn(
       `Failed to decode vector cursor, returning null: ${error instanceof Error ? error.message : String(error)}`,
     );
     return null;

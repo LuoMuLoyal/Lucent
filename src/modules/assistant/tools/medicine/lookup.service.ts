@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { AssistantReadResultEnvelope } from '../../types/assistant.types';
 import type { AssistantToolExecutionContext } from '../../types/assistant.types';
 import type { MedicineSearchItemDto } from '../../../medicines';
@@ -13,6 +13,8 @@ const DETAIL_RESOLVE_LIMIT = 5;
 
 @Injectable()
 export class AssistantToolMedicineLookupService {
+  private readonly logger = new Logger(AssistantToolMedicineLookupService.name);
+
   constructor(
     private readonly cnMedicinesService: CnMedicinesService,
     private readonly drugbankMedicinesService: DrugbankMedicinesService,
@@ -21,7 +23,7 @@ export class AssistantToolMedicineLookupService {
   async searchCnMedicineProducts(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseLookupPayload(context.userMessage);
+    const payload = parseLookupPayload(context.userMessage, this.logger);
     const query = payload.query.trim();
     const limit = normalizeLimit(payload.limit);
 
@@ -93,7 +95,7 @@ export class AssistantToolMedicineLookupService {
   async getCnMedicineDetail(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseLookupPayload(context.userMessage);
+    const payload = parseLookupPayload(context.userMessage, this.logger);
     const directId = payload.productId;
     const query = payload.query.trim();
 
@@ -189,7 +191,7 @@ export class AssistantToolMedicineLookupService {
   async getDrugbankDetail(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseLookupPayload(context.userMessage);
+    const payload = parseLookupPayload(context.userMessage, this.logger);
     const directId = payload.drugbankId;
     const query = payload.query.trim();
 
@@ -375,13 +377,16 @@ function normalizeLimit(limit: number | undefined): number {
   return Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.trunc(limit)));
 }
 
-function parseLookupPayload(raw: string): {
+function parseLookupPayload(
+  raw: string,
+  logger?: Logger,
+): {
   query: string;
   limit: number | undefined;
   productId: string | null;
   drugbankId: string | null;
 } {
-  const base = parseSearchPayload(raw);
+  const base = parseSearchPayload(raw, logger);
   const trimmed = raw.trim();
 
   if (!trimmed.startsWith('{')) {
@@ -408,8 +413,9 @@ function parseLookupPayload(raw: string): {
         readString(base.filters['drugbankId']) ??
         id,
     };
+    // eslint-disable-next-line error-handling/no-silent-catch -- optional logger; caller passes DI Logger for structured logging
   } catch (error) {
-    console.warn(
+    logger?.warn(
       `Failed to parse lookup payload, returning base query: ${error instanceof Error ? error.message : String(error)}`,
     );
     return {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { VectorStoreFactory } from '../vector/vector-store.factory';
 import type {
   AssistantReadResultEnvelope,
@@ -23,6 +23,8 @@ const DRUGBANK_EMBEDDINGS_TABLE = 'drugbank_passage_embeddings';
 
 @Injectable()
 export class AssistantToolDrugbankSearchService {
+  private readonly logger = new Logger(AssistantToolDrugbankSearchService.name);
+
   constructor(
     private readonly vectorStoreFactory: VectorStoreFactory,
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
@@ -31,7 +33,7 @@ export class AssistantToolDrugbankSearchService {
   async search(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseSearchPayload(context.userMessage);
+    const payload = parseSearchPayload(context.userMessage, this.logger);
     const query = payload.query.trim();
     const filters = payload.filters;
     const requestedDrugbankId =

@@ -196,7 +196,7 @@ export class AssistantToolService {
       return context;
     }
 
-    const payload = parseSearchPayload(context.userMessage);
+    const payload = parseSearchPayload(context.userMessage, this.logger);
     return {
       ...context,
       userMessage: JSON.stringify({
@@ -240,7 +240,7 @@ export class AssistantToolService {
     if (KNOWLEDGE_TOOL_NAMES.has(toolName)) {
       // Key on the parsed query (plus filters, e.g. a resolved productId for
       // leaflet lookups) so different lookups never share a cached result.
-      const payload = parseSearchPayload(context.userMessage);
+      const payload = parseSearchPayload(context.userMessage, this.logger);
       const keySeed = JSON.stringify({
         query: payload.query.trim().toLowerCase(),
         filters: payload.filters,

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
 import type {
   AssistantReadResultEnvelope,
@@ -10,12 +10,16 @@ const DRUGBANK_ENTITY_LIMIT = 5;
 
 @Injectable()
 export class AssistantToolDrugbankEntityResolveService {
+  private readonly logger = new Logger(
+    AssistantToolDrugbankEntityResolveService.name,
+  );
+
   constructor(private readonly prisma: PrismaService) {}
 
   async resolve(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseSearchPayload(context.userMessage);
+    const payload = parseSearchPayload(context.userMessage, this.logger);
     const query = payload.query.trim();
 
     if (!query) {
@@ -138,7 +142,10 @@ export class AssistantToolDrugbankEntityResolveService {
   }
 }
 
-export function parseSearchPayload(raw: string): {
+export function parseSearchPayload(
+  raw: string,
+  logger?: Logger,
+): {
   query: string;
   limit?: number;
   cursor?: string | null;
@@ -180,8 +187,9 @@ export function parseSearchPayload(raw: string): {
     }
 
     return result;
+    // eslint-disable-next-line error-handling/no-silent-catch -- optional logger; caller passes DI Logger for structured logging
   } catch (error) {
-    console.warn(
+    logger?.warn(
       `Failed to parse drugbank entity resolve payload, returning base query: ${error instanceof Error ? error.message : String(error)}`,
     );
     return {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { VectorStoreFactory } from '../vector/vector-store.factory';
 import type {
@@ -31,6 +31,10 @@ const OPEN_CORPUS_SOURCE_NOTE = '开放语料,低可信教育参考,无独立可
 
 @Injectable()
 export class AssistantToolMedicalKnowledgeService {
+  private readonly logger = new Logger(
+    AssistantToolMedicalKnowledgeService.name,
+  );
+
   constructor(
     private readonly vectorStoreFactory: VectorStoreFactory,
     private readonly i18n: I18nService,
@@ -39,7 +43,7 @@ export class AssistantToolMedicalKnowledgeService {
   async searchMedicalQaCorpus(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseSearchPayload(context.userMessage);
+    const payload = parseSearchPayload(context.userMessage, this.logger);
     const query = payload.query.trim();
     const limit = normalizeLimit(payload.limit);
     const queryHash = buildVectorQueryHash(query, payload.filters);

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { PrismaService } from '../../../../prisma';
 import { VectorStoreFactory } from '../vector/vector-store.factory';
@@ -25,6 +25,8 @@ const EMBEDDINGS_TABLE = 'leaflet_embeddings';
 
 @Injectable()
 export class AssistantToolLeafletReadService {
+  private readonly logger = new Logger(AssistantToolLeafletReadService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly vectorStoreFactory: VectorStoreFactory,
@@ -40,7 +42,7 @@ export class AssistantToolLeafletReadService {
   async searchMedicineLeaflets(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseSearchPayload(context.userMessage);
+    const payload = parseSearchPayload(context.userMessage, this.logger);
     const query = payload.query.trim();
     const limit = normalizeLimit(payload.limit);
     const queryHash = buildVectorQueryHash(query, payload.filters);
