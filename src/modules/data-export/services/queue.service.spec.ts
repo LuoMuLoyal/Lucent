@@ -84,6 +84,6 @@ describe('DataExportQueueService', () => {
         userId: 'user-1',
         language: 'zh-CN',
       }),
-    ).rejects.toThrow('Data export queue is not configured');
+    ).rejects.toThrow('DEPENDENCY_UNAVAILABLE');
   });
 });

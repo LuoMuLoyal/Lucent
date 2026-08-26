@@ -104,6 +104,10 @@ function statementHasLoggingOrThrow(stmt: import('estree').Statement): boolean {
 }
 
 function calleeToText(callee: import('estree').Node): string {
+  // Handle optional chaining: logger?.warn → 'logger.warn'
+  if (callee.type === 'ChainExpression') {
+    return calleeToText(callee.expression);
+  }
   if (callee.type === 'MemberExpression') {
     const obj =
       callee.object.type === 'Identifier'

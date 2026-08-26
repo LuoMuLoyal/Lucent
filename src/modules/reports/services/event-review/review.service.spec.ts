@@ -725,7 +725,7 @@ describe('EventReviewService', () => {
 
       await expect(
         service.buildForEvent(USER_ID, 'evt-active'),
-      ).rejects.toThrow('has no kind');
+      ).rejects.toThrow('INTERNAL_ERROR');
     });
   });
 

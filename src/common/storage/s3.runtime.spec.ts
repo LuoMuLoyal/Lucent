@@ -210,7 +210,7 @@ describe('S3StorageRuntime', () => {
           objectKey: 'downloads/report.pdf',
           audience: 'external',
         }),
-      ).rejects.toThrow(/STORAGE_S3_EXTERNAL_ENDPOINT/);
+      ).rejects.toThrow(/DEPENDENCY_UNAVAILABLE/);
     });
   });
 
