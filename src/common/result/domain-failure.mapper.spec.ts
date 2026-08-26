@@ -1,7 +1,6 @@
 import { ProblemCatalog } from '../api/problem-catalog';
 import { createDomainFailure } from './domain-failure';
 import { toProblemDetails } from './domain-failure.mapper';
-import { DomainFailureException } from './domain-failure.exception';
 
 describe('toProblemDetails', () => {
   const catalog = new ProblemCatalog({
@@ -86,6 +85,6 @@ describe('toProblemDetails', () => {
         } as never,
         { catalog, lang: 'en' },
       ),
-    ).toThrow(DomainFailureException);
+    ).toThrow();
   });
 });

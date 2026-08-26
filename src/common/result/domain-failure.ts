@@ -1,5 +1,4 @@
 import type { ProblemCode } from '../api/problem-catalog';
-import { DomainFailureException } from './domain-failure.exception';
 
 const domainFailureKinds = [
   'validation',
@@ -92,13 +91,8 @@ export function createDomainFailure(
 ): DomainFailure {
   const candidate = { _tag: 'DomainFailure' as const, ...input };
   if (!isDomainFailure(candidate)) {
-    throw new DomainFailureException({
-      _tag: 'DomainFailure',
-      kind: 'internal',
-      code: 'INTERNAL_ERROR',
-      detail: 'Invalid DomainFailure input',
-      cause: input,
-    });
+    // eslint-disable-next-line error-handling/no-bare-throw-error -- invariant violation in pure helper, not a domain failure path
+    throw new Error('Invalid DomainFailure input');
   }
 
   return Object.freeze({

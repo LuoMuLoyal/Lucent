@@ -1,5 +1,4 @@
 import { createDomainFailure, isDomainFailure } from './domain-failure';
-import { DomainFailureException } from './domain-failure.exception';
 
 describe('DomainFailure', () => {
   it('creates a typed recoverable failure without HTTP fields', () => {
@@ -74,14 +73,14 @@ describe('DomainFailure', () => {
         kind: 'validation',
         code: 'RESOURCE_NOT_FOUND',
       }),
-    ).toThrow(DomainFailureException);
+    ).toThrow();
 
     expect(() =>
       createDomainFailure({
         kind: 'not_found',
         code: 'VALIDATION_FAILED',
       }),
-    ).toThrow(DomainFailureException);
+    ).toThrow();
   });
 
   it.each([
