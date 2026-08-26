@@ -190,6 +190,12 @@ export class AuthTokenService {
   ): ResultAsync<void, DomainFailure> {
     return fromPromise(
       this.prisma.$transaction(async (tx) => {
+        // Throw-to-short-circuit inside a Prisma transaction callback: the
+        // throw triggers a rollback and is caught by the fromPromise mapper
+        // below, which unwraps DomainFailureException back to its original
+        // DomainFailure (preserving the precise error code). This is the
+        // standard pattern for Result-based code inside transaction callbacks
+        // that cannot return ResultAsync themselves.
         const lucentResult =
           await this.sessionRepository.deleteSessionsByUserIdAndHash(
             userId,
@@ -223,6 +229,8 @@ export class AuthTokenService {
   revokeAll(userId: string): ResultAsync<void, DomainFailure> {
     return fromPromise(
       this.prisma.$transaction(async (tx) => {
+        // Same throw-to-short-circuit pattern as revoke() — see the
+        // comment there for the rationale.
         const lucentResult =
           await this.sessionRepository.deleteSessionsByUserId(userId, tx);
 

@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiExtraModels,
   ApiOperation,
   ApiResponse,
@@ -37,6 +38,7 @@ export class DataExportController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new data export request' })
+  @ApiBody({ type: CreateDataExportRequestDto })
   @ApiResponse({ status: 201, type: DataExportRequestResponseDto })
   @ApiResponse({
     status: 401,
