@@ -4,6 +4,7 @@ export { ARGON2_OPTIONS } from './config/argon2-options';
 export { AppleOAuthProvider } from './providers/apple-oauth.provider';
 export {
   AuthBetterAuthAdapter,
+  BETTER_AUTH_TRUSTED_PROVIDERS,
   CREDENTIAL_PROVIDER_ID,
   LOCAL_CREDENTIAL_ISSUER,
 } from './adapters/better-auth.adapter';

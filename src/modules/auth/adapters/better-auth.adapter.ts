@@ -25,6 +25,17 @@ export const CREDENTIAL_PROVIDER_ID = 'credential';
 export const LOCAL_CREDENTIAL_ISSUER = 'local:credential';
 
 /**
+ * Providers that Better Auth treats as "trusted" — it will automatically
+ * link new social accounts to existing users without requiring an explicit
+ * account-linking step.  Lucent's OAuth service mirrors this list to reject
+ * manual linking of the same providers (they go through the signIn flow).
+ *
+ * Keep this as the single source of truth; both the Better Auth config and
+ * {@link AuthOAuthService.linkOAuthProfileToUser} reference it.
+ */
+export const BETTER_AUTH_TRUSTED_PROVIDERS = ['apple', 'google'] as const;
+
+/**
  * NestJS adapter wrapping the Better Auth library against Lucent's merged
  * `User` model.  This service is intentionally not exposed as an HTTP route —
  * it only constructs and holds the configured `auth` instance so that later
@@ -104,7 +115,7 @@ export class AuthBetterAuthAdapter {
       account: {
         accountLinking: {
           enabled: true,
-          trustedProviders: ['apple', 'google'],
+          trustedProviders: [...BETTER_AUTH_TRUSTED_PROVIDERS],
         },
         updateAccountOnSignIn: true,
       },
@@ -247,9 +258,13 @@ export class AuthBetterAuthAdapter {
    * password.  This is the single source of truth for "does this user have a
    * password?" now that `User.passwordHash` has been removed.
    */
-  hasPassword(userId: string): ResultAsync<boolean, DomainFailure> {
+  hasPassword(
+    userId: string,
+    tx?: Prisma.TransactionClient,
+  ): ResultAsync<boolean, DomainFailure> {
+    const client = tx ?? this.prisma;
     return fromPromise(
-      this.prisma.account.findFirst({
+      client.account.findFirst({
         where: {
           userId,
           providerId: CREDENTIAL_PROVIDER_ID,
