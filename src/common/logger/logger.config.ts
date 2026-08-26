@@ -3,7 +3,6 @@ import {
   format as winstonFormat,
   transports as winstonTransports,
 } from 'winston';
-import { EnvKey } from '../../config/env/env-keys.enum';
 import { getActiveTraceIds } from './trace-context.utils';
 import { VictoriaLogsTransport } from './victorialogs-transport';
 
@@ -191,22 +190,26 @@ const prodJsonFormat = winstonFormat.combine(
  *   - SlowRequestInterceptor (configurable threshold + handler name)
  *   - Prometheus histogram + counter (aggregated latency / Grafana)
  */
+export interface LoggerOptionsInput {
+  /** Active environment: 'development' | 'production' | 'test' */
+  nodeEnv: string;
+  /** Explicit log level override (from env var or YAML). */
+  logLevel: string | undefined;
+  /** Explicit log format override: 'pretty' | 'json' | undefined. */
+  logFormat: string | undefined;
+  /** VictoriaLogs ingest URL; when set in production, a transport is created. */
+  victoriaLogsUrl: string | undefined;
+}
+
 export function createLoggerOptions(
-  nodeEnv: string,
-  logLevel: string,
-  logFormat?: string,
+  input: LoggerOptionsInput,
 ): WinstonModuleOptions {
-  const env = nodeEnv || process.env[EnvKey.NODE_ENV] || 'development';
-  const level = resolveLevel(env, logLevel);
+  const env = input.nodeEnv || 'development';
+  const level = resolveLevel(env, input.logLevel ?? '');
 
   // LOG_FORMAT overrides the environment default. `pretty` forces the dev
   // console format; `json` forces JSON — useful in any direction.
-  // Priority: process.env > YAML default > environment-based default.
-  const logFormatOverride = (
-    process.env[EnvKey.LOG_FORMAT] ??
-    logFormat ??
-    ''
-  ).toLowerCase();
+  const logFormatOverride = (input.logFormat ?? '').toLowerCase();
   const useJsonFormat =
     logFormatOverride === 'json' ||
     (logFormatOverride !== 'pretty' && env !== 'development');
@@ -218,20 +221,38 @@ export function createLoggerOptions(
     handleExceptions: true,
   });
 
-  const transports: winstonTransports.StreamTransportInstance[] = [
+  // Use the type from WinstonModuleOptions to avoid importing 'winston-transport'
+  // directly (it may not be hoisted to the project root in pnpm setups).
+  const transports: NonNullable<WinstonModuleOptions['transports']> = [
     consoleTransport,
   ];
 
   // Production: also ship logs to VictoriaLogs via HTTP (no Vector needed).
-  const victoriaLogsUrl = process.env[EnvKey.VICTORIALOGS_URL] ?? '';
+  const victoriaLogsUrl = input.victoriaLogsUrl ?? '';
   if (env === 'production' && victoriaLogsUrl) {
+    const victoriaTransport = new VictoriaLogsTransport({
+      url: victoriaLogsUrl,
+      level,
+      batchCount: 100,
+      batchIntervalMs: 5000,
+    });
+    // Wire the transport's 'warn' event to the console transport so HTTP
+    // ingest errors are never silently swallowed (ADR-0012: no silent
+    // failures). Without this listener, emit('warn', err) in the transport
+    // would be lost.
+    (
+      victoriaTransport as unknown as {
+        on: (event: string, cb: (err: unknown) => void) => void;
+      }
+    ).on('warn', (err: unknown) => {
+      // Use console.error as a fallback — the Winston logger is not
+      // available at this point in the factory.
+      console.error(
+        `VictoriaLogs ingest warning: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
     transports.push(
-      new VictoriaLogsTransport({
-        url: victoriaLogsUrl,
-        level,
-        batchCount: 100,
-        batchIntervalMs: 5000,
-      }) as unknown as winstonTransports.StreamTransportInstance,
+      victoriaTransport as unknown as (typeof transports)[number],
     );
   }
 

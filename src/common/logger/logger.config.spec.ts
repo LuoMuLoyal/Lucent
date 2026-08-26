@@ -2,7 +2,6 @@ import { Writable } from 'node:stream';
 import { createLogger, transports as winstonTransports } from 'winston';
 import { createLoggerOptions } from './logger.config';
 import type { WinstonModuleOptions } from 'nest-winston';
-import { EnvKey } from '../../config/env/env-keys.enum';
 
 interface LeveledTransport {
   level: string;
@@ -19,6 +18,7 @@ function getConsoleLevel(options: WinstonModuleOptions): string {
 function createCapturingLogger(
   nodeEnv: string,
   level: string = 'silly',
+  extra?: { logFormat?: string; victoriaLogsUrl?: string },
 ): {
   logger: ReturnType<typeof createLogger>;
   lines: string[];
@@ -35,7 +35,12 @@ function createCapturingLogger(
       }
     },
   });
-  const options = createLoggerOptions(nodeEnv, level);
+  const options = createLoggerOptions({
+    nodeEnv,
+    logLevel: level,
+    logFormat: extra?.logFormat,
+    victoriaLogsUrl: extra?.victoriaLogsUrl,
+  });
   const logger = createLogger({
     ...options,
     transports: [new winstonTransports.Stream({ stream })],
@@ -64,7 +69,7 @@ async function logAndFlush(
   await written;
 }
 
-// ── OTel span mock ────────────────────────────────────────────────
+// ── OTel span mock ────────────────────────────────────────────────────────
 let mockSpanContext: { traceId: string; spanId?: string } | undefined;
 
 vi.mock('@opentelemetry/api', () => ({
@@ -82,70 +87,66 @@ afterEach(() => {
 
 describe('createLoggerOptions', () => {
   it('uses debug level in development', () => {
-    const options = createLoggerOptions('development', '');
+    const options = createLoggerOptions({
+      nodeEnv: 'development',
+      logLevel: '',
+    });
 
     expect(options.transports).toHaveLength(1);
     expect(getConsoleLevel(options)).toBe('debug');
   });
 
   it('uses info level in production with console + VictoriaLogs transports', () => {
-    const originalUrl = process.env[EnvKey.VICTORIALOGS_URL] ?? '';
-    process.env[EnvKey.VICTORIALOGS_URL] =
-      'http://localhost:9428/insert/jsonline';
-    try {
-      const options = createLoggerOptions('production', '');
+    const options = createLoggerOptions({
+      nodeEnv: 'production',
+      logLevel: '',
+      victoriaLogsUrl: 'http://localhost:9428/insert/jsonline',
+    });
 
-      expect(options.transports).toHaveLength(2);
-      expect(getConsoleLevel(options)).toBe('info');
-    } finally {
-      process.env[EnvKey.VICTORIALOGS_URL] = originalUrl;
-    }
+    expect(options.transports).toHaveLength(2);
+    expect(getConsoleLevel(options)).toBe('info');
   });
 
   it('uses only Console in production when VICTORIALOGS_URL is unset', () => {
-    const originalUrl = process.env[EnvKey.VICTORIALOGS_URL] ?? '';
-    process.env[EnvKey.VICTORIALOGS_URL] = '';
-    try {
-      const options = createLoggerOptions('production', '');
+    const options = createLoggerOptions({
+      nodeEnv: 'production',
+      logLevel: '',
+      victoriaLogsUrl: '',
+    });
 
-      expect(options.transports).toHaveLength(1);
-    } finally {
-      process.env[EnvKey.VICTORIALOGS_URL] = originalUrl;
-    }
+    expect(options.transports).toHaveLength(1);
   });
 
   it('honors an explicit log level override', () => {
-    const options = createLoggerOptions('production', 'warn');
+    const options = createLoggerOptions({
+      nodeEnv: 'production',
+      logLevel: 'warn',
+    });
 
     expect(getConsoleLevel(options)).toBe('warn');
   });
 
   it('uses error level in test mode for minimal output', () => {
-    const options = createLoggerOptions('test', '');
+    const options = createLoggerOptions({ nodeEnv: 'test', logLevel: '' });
 
     expect(getConsoleLevel(options)).toBe('error');
   });
 
-  it('falls back to process.env.NODE_ENV when nodeEnv is empty', () => {
-    // During tests, process.env.NODE_ENV is 'test', so the level should be 'error'
-    const options = createLoggerOptions('', '');
+  it('falls back to development when nodeEnv is empty', () => {
+    // With an empty nodeEnv the factory defaults to 'development' → debug level.
+    const options = createLoggerOptions({ nodeEnv: '', logLevel: '' });
 
-    expect(getConsoleLevel(options)).toBe('error');
+    expect(getConsoleLevel(options)).toBe('debug');
   });
 });
 
 // ── format selection ─────────────────────────────────────────────────────
 
 describe('format selection', () => {
-  const originalLogFormat = process.env[EnvKey.LOG_FORMAT] ?? '';
-
-  afterEach(() => {
-    process.env[EnvKey.LOG_FORMAT] = originalLogFormat;
-  });
-
   it('uses pretty (non-JSON) format in development', async () => {
-    process.env[EnvKey.LOG_FORMAT] = '';
-    const capture = createCapturingLogger('development');
+    const capture = createCapturingLogger('development', 'silly', {
+      logFormat: '',
+    });
 
     await logAndFlush(capture, 'hello world');
 
@@ -156,8 +157,7 @@ describe('format selection', () => {
   });
 
   it('uses JSON format in test', async () => {
-    process.env[EnvKey.LOG_FORMAT] = '';
-    const capture = createCapturingLogger('test');
+    const capture = createCapturingLogger('test', 'silly', { logFormat: '' });
 
     await logAndFlush(capture, 'hello');
 
@@ -166,8 +166,9 @@ describe('format selection', () => {
   });
 
   it('uses JSON format in production', async () => {
-    process.env[EnvKey.LOG_FORMAT] = '';
-    const capture = createCapturingLogger('production');
+    const capture = createCapturingLogger('production', 'silly', {
+      logFormat: '',
+    });
 
     await logAndFlush(capture, 'hello');
 
@@ -176,8 +177,9 @@ describe('format selection', () => {
   });
 
   it('LOG_FORMAT=json overrides dev to JSON', async () => {
-    process.env[EnvKey.LOG_FORMAT] = 'json';
-    const capture = createCapturingLogger('development');
+    const capture = createCapturingLogger('development', 'silly', {
+      logFormat: 'json',
+    });
 
     await logAndFlush(capture, 'hello');
 
@@ -186,8 +188,9 @@ describe('format selection', () => {
   });
 
   it('LOG_FORMAT=pretty overrides test to pretty', async () => {
-    process.env[EnvKey.LOG_FORMAT] = 'pretty';
-    const capture = createCapturingLogger('test');
+    const capture = createCapturingLogger('test', 'silly', {
+      logFormat: 'pretty',
+    });
 
     await logAndFlush(capture, 'hello');
 
@@ -198,8 +201,9 @@ describe('format selection', () => {
   });
 
   it('dev format includes timestamp and context', async () => {
-    process.env[EnvKey.LOG_FORMAT] = '';
-    const capture = createCapturingLogger('development');
+    const capture = createCapturingLogger('development', 'silly', {
+      logFormat: '',
+    });
 
     await logAndFlush(capture, 'hello');
 
@@ -212,8 +216,9 @@ describe('format selection', () => {
   });
 
   it('dev format shows trace tag when present', async () => {
-    process.env[EnvKey.LOG_FORMAT] = '';
-    const capture = createCapturingLogger('development');
+    const capture = createCapturingLogger('development', 'silly', {
+      logFormat: '',
+    });
 
     mockSpanContext = {
       traceId: '0123456789abcdef0123456789abcdef',
@@ -227,8 +232,9 @@ describe('format selection', () => {
   });
 
   it('dev format omits the span suffix when span id is absent', async () => {
-    process.env[EnvKey.LOG_FORMAT] = '';
-    const capture = createCapturingLogger('development');
+    const capture = createCapturingLogger('development', 'silly', {
+      logFormat: '',
+    });
 
     mockSpanContext = {
       traceId: '0123456789abcdef0123456789abcdef',
@@ -241,8 +247,9 @@ describe('format selection', () => {
   });
 
   it('JSON format includes timestamp field', async () => {
-    process.env[EnvKey.LOG_FORMAT] = '';
-    const capture = createCapturingLogger('production');
+    const capture = createCapturingLogger('production', 'silly', {
+      logFormat: '',
+    });
 
     await logAndFlush(capture, 'hello');
 
