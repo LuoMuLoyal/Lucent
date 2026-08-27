@@ -10573,6 +10573,7 @@
           },
           "groups": {
             "example": ["approved", "small molecule"],
+            "nullable": true,
             "type": "array",
             "items": {
               "type": "string"
@@ -10580,6 +10581,7 @@
           },
           "categories": {
             "example": ["Anti-inflammatory Agents"],
+            "nullable": true,
             "type": "array",
             "items": {
               "type": "string"
@@ -10587,6 +10589,7 @@
           },
           "atcCodes": {
             "example": ["M01AE01"],
+            "nullable": true,
             "type": "array",
             "items": {
               "type": "string"
@@ -10594,6 +10597,7 @@
           },
           "synonyms": {
             "example": ["Ibuprofen"],
+            "nullable": true,
             "type": "array",
             "items": {
               "type": "string"
@@ -10601,6 +10605,7 @@
           },
           "foodInteractions": {
             "example": ["Avoid taking with alcohol."],
+            "nullable": true,
             "type": "array",
             "items": {
               "type": "string"
@@ -10627,14 +10632,7 @@
             "additionalProperties": true
           }
         },
-        "required": [
-          "kind",
-          "groups",
-          "categories",
-          "atcCodes",
-          "synonyms",
-          "foodInteractions"
-        ]
+        "required": ["kind"]
       },
       "CnMedicineDetailDto": {
         "type": "object",

@@ -78,23 +78,40 @@ export class DrugbankMedicineDetailDto {
   @ApiPropertyOptional({ nullable: true, type: String })
   clearance!: string | null;
 
-  @ApiProperty({ type: [String], example: ['approved', 'small molecule'] })
-  groups!: string[];
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['approved', 'small molecule'],
+    nullable: true,
+  })
+  groups!: string[] | null;
 
-  @ApiProperty({ type: [String], example: ['Anti-inflammatory Agents'] })
-  categories!: string[];
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Anti-inflammatory Agents'],
+    nullable: true,
+  })
+  categories!: string[] | null;
 
-  @ApiProperty({ type: [String], example: ['M01AE01'] })
-  atcCodes!: string[];
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['M01AE01'],
+    nullable: true,
+  })
+  atcCodes!: string[] | null;
 
-  @ApiProperty({ type: [String], example: ['Ibuprofen'] })
-  synonyms!: string[];
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Ibuprofen'],
+    nullable: true,
+  })
+  synonyms!: string[] | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [String],
     example: ['Avoid taking with alcohol.'],
+    nullable: true,
   })
-  foodInteractions!: string[];
+  foodInteractions!: string[] | null;
 
   @ApiPropertyOptional({
     description: 'DrugBank interaction entries used for interaction checking.',
