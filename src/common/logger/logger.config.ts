@@ -199,6 +199,12 @@ export interface LoggerOptionsInput {
   logFormat: string | undefined;
   /** VictoriaLogs ingest URL; when set in production, a transport is created. */
   victoriaLogsUrl: string | undefined;
+  /**
+   * Optional fallback sink for VictoriaLogs transport warnings.
+   * When provided, ingest warnings are routed here instead of console.error.
+   * The LoggerModule factory injects a NestJS Logger instance.
+   */
+  fallbackLogger?: (msg: string) => void;
 }
 
 export function createLoggerOptions(
@@ -236,18 +242,22 @@ export function createLoggerOptions(
       batchCount: 100,
       batchIntervalMs: 5000,
     });
-    // Wire the transport's 'warn' event to the console transport so HTTP
-    // ingest errors are never silently swallowed (ADR-0012: no silent
-    // failures). Without this listener, emit('warn', err) in the transport
-    // would be lost.
+    // Wire the transport's 'warn' event so HTTP ingest errors are never
+    // silently swallowed (ADR-0012: no silent failures). Without this
+    // listener, emit('warn', err) in the transport would be lost.
+    // Use the injected fallbackLogger when available; otherwise fall back
+    // to console.error (e.g. during early bootstrap or unit tests).
+    const fallbackLogger =
+      input.fallbackLogger ??
+      ((msg: string) => {
+        console.error(msg);
+      });
     (
       victoriaTransport as unknown as {
         on: (event: string, cb: (err: unknown) => void) => void;
       }
     ).on('warn', (err: unknown) => {
-      // Use console.error as a fallback — the Winston logger is not
-      // available at this point in the factory.
-      console.error(
+      fallbackLogger(
         `VictoriaLogs ingest warning: ${err instanceof Error ? err.message : String(err)}`,
       );
     });

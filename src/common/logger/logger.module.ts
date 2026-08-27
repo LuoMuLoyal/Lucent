@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import { ConfigService } from '@nestjs/config';
 import { ConfigKey } from '../../config/env/config-keys.enum';
@@ -23,11 +23,18 @@ import { LifecycleService } from './lifecycle.service';
           configService.get<string>(EnvKey.LOG_FORMAT) ?? yaml.log.format;
         const victoriaLogsUrl =
           configService.get<string>(EnvKey.VICTORIALOGS_URL) ?? '';
+        // Inject a NestJS Logger for VictoriaLogs transport warnings so
+        // ingest errors never hit console.error (ADR-0012: no console.*
+        // in application code).
+        const victoriaLogger = new Logger('VictoriaLogsTransport');
         return createLoggerOptions({
           nodeEnv,
           logLevel,
           logFormat,
           victoriaLogsUrl,
+          fallbackLogger: (msg: string) => {
+            victoriaLogger.warn(msg);
+          },
         });
       },
     }),
