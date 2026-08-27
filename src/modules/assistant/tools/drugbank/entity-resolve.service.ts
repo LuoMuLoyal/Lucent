@@ -144,7 +144,7 @@ export class AssistantToolDrugbankEntityResolveService {
 
 export function parseSearchPayload(
   raw: string,
-  logger?: Logger,
+  logger: Logger,
 ): {
   query: string;
   limit?: number;
@@ -187,9 +187,8 @@ export function parseSearchPayload(
     }
 
     return result;
-    // eslint-disable-next-line error-handling/no-silent-catch -- optional logger; caller passes DI Logger for structured logging
   } catch (error) {
-    logger?.warn(
+    logger.warn(
       `Failed to parse drugbank entity resolve payload, returning base query: ${error instanceof Error ? error.message : String(error)}`,
     );
     return {

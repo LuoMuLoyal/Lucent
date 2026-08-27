@@ -379,7 +379,7 @@ function normalizeLimit(limit: number | undefined): number {
 
 function parseLookupPayload(
   raw: string,
-  logger?: Logger,
+  logger: Logger,
 ): {
   query: string;
   limit: number | undefined;
@@ -413,9 +413,8 @@ function parseLookupPayload(
         readString(base.filters['drugbankId']) ??
         id,
     };
-    // eslint-disable-next-line error-handling/no-silent-catch -- optional logger; caller passes DI Logger for structured logging
   } catch (error) {
-    logger?.warn(
+    logger.warn(
       `Failed to parse lookup payload, returning base query: ${error instanceof Error ? error.message : String(error)}`,
     );
     return {
