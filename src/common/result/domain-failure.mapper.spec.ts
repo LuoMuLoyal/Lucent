@@ -85,6 +85,6 @@ describe('toProblemDetails', () => {
         } as never,
         { catalog, lang: 'en' },
       ),
-    ).toThrow();
+    ).toThrow('NOT_IN_CATALOG');
   });
 });

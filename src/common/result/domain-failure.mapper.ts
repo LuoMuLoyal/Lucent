@@ -14,7 +14,9 @@ export function toProblemDetails(
 ): ProblemDetails {
   if (!isDomainFailure(failure) || !options.catalog.isKnown(failure.code)) {
     // eslint-disable-next-line error-handling/no-bare-throw-error -- invariant violation in pure helper, not a domain failure path
-    throw new Error('Invalid or undocumented DomainFailure code');
+    throw new Error(
+      `Invalid or undocumented DomainFailure code: ${JSON.stringify({ code: failure.code, kind: failure.kind })}`,
+    );
   }
 
   return options.catalog.build(failure.code, {

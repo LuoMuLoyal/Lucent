@@ -92,7 +92,7 @@ export function createDomainFailure(
   const candidate = { _tag: 'DomainFailure' as const, ...input };
   if (!isDomainFailure(candidate)) {
     // eslint-disable-next-line error-handling/no-bare-throw-error -- invariant violation in pure helper, not a domain failure path
-    throw new Error('Invalid DomainFailure input');
+    throw new Error(`Invalid DomainFailure input: ${JSON.stringify(input)}`);
   }
 
   return Object.freeze({
