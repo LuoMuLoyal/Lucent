@@ -553,5 +553,43 @@ describe('AccountService', () => {
         error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
       });
     });
+
+    it('should propagate the hasPassword Err path inside the transaction (C-1)', async () => {
+      // The first hasPassword call (pre-transaction) returns true so the
+      // initial guard passes. The second call (inside the transaction) returns
+      // a DomainFailure Err — this must propagate as a dependency failure,
+      // NOT be silently folded into `false` (which would incorrectly trigger
+      // the FORBIDDEN guard).
+      (betterAuthAdapter.hasPassword as vi.Mock)
+        .mockReturnValueOnce(okAsync(true)) // pre-transaction check
+        .mockReturnValueOnce(
+          errAsync(
+            createDomainFailure({
+              kind: 'dependency',
+              code: 'DEPENDENCY_UNAVAILABLE',
+            }),
+          ),
+        ); // in-transaction check → Err
+      (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
+      prisma.account.findMany.mockResolvedValueOnce([
+        baseIdentity,
+        secondIdentity,
+      ]);
+      prisma.account.deleteMany.mockResolvedValue({ count: 1 });
+
+      const result = await inspectResult(
+        service.unlinkIdentity(baseUser.id, baseIdentity.id, {
+          password: 'Passw0rd123',
+        }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { kind: 'dependency', code: 'DEPENDENCY_UNAVAILABLE' },
+      });
+      // deleteMany must NOT be called because the transaction was rolled back
+      // by the DomainFailureException thrown from the hasPassword Err path.
+      expect(prisma.account.deleteMany).not.toHaveBeenCalled();
+    });
   });
 });

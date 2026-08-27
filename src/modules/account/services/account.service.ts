@@ -102,9 +102,16 @@ export class AccountService {
             // close the TOCTOU window: another concurrent transaction could
             // have added a credential account (e.g. user successfully set a
             // password) or deleted the last social identity.
-            const txHasPasswordResult = await this.betterAuthAdapter
-              .hasPassword(userId, tx)
-              .then((r) => r.isOk());
+            // Distinguish Ok(false) from Err: a Prisma failure inside the
+            // transaction must propagate so the transaction rolls back,
+            // rather than being silently folded into "no password" (which
+            // would incorrectly trigger the FORBIDDEN guard).
+            const txHasPasswordResult =
+              await this.betterAuthAdapter.hasPassword(userId, tx);
+            if (txHasPasswordResult.isErr()) {
+              throw new DomainFailureException(txHasPasswordResult.error);
+            }
+            const txHasPassword = txHasPasswordResult.value;
             const txAccounts = await tx.account.findMany({
               where: {
                 userId,
@@ -124,7 +131,7 @@ export class AccountService {
               );
             }
 
-            if (!txHasPasswordResult && txAccounts.length <= 1) {
+            if (!txHasPassword && txAccounts.length <= 1) {
               throw new DomainFailureException(
                 createDomainFailure({
                   kind: 'authorization',
