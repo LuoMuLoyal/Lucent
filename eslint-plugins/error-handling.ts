@@ -104,24 +104,33 @@ function statementHasLoggingOrThrow(stmt: import('estree').Statement): boolean {
 }
 
 function calleeToText(callee: import('estree').Node): string {
-  // Handle optional chaining: logger?.warn → 'logger.warn'
-  if (callee.type === 'ChainExpression') {
-    return calleeToText(callee.expression);
-  }
-  if (callee.type === 'MemberExpression') {
+  // Unwrap ChainExpression at the entry point so that optional chaining
+  // in any position (top-level or mid-chain) is handled uniformly.
+  // e.g. logger?.warn → MemberExpression(logger, warn)
+  //      obj?.foo.bar() → MemberExpression(MemberExpression(obj, foo), bar)
+  //      this?.logger?.warn → MemberExpression(this, logger, warn)
+  const unwrapped =
+    callee.type === 'ChainExpression' ? callee.expression : callee;
+  if (unwrapped.type === 'MemberExpression') {
+    // Recursively unwrap ChainExpression on the object side too, so
+    // `obj?.foo.bar()` is recognised as 'obj.foo.bar'.
+    const objNode =
+      unwrapped.object.type === 'ChainExpression'
+        ? unwrapped.object.expression
+        : unwrapped.object;
     const obj =
-      callee.object.type === 'Identifier'
-        ? callee.object.name
-        : callee.object.type === 'MemberExpression'
-          ? calleeToText(callee.object)
-          : callee.object.type === 'ThisExpression'
+      objNode.type === 'Identifier'
+        ? objNode.name
+        : objNode.type === 'MemberExpression'
+          ? calleeToText(objNode)
+          : objNode.type === 'ThisExpression'
             ? 'this'
             : '';
     const prop =
-      callee.property.type === 'Identifier' ? callee.property.name : '';
+      unwrapped.property.type === 'Identifier' ? unwrapped.property.name : '';
     return prop ? `${obj}.${prop}` : obj;
   }
-  if (callee.type === 'Identifier') return callee.name;
+  if (unwrapped.type === 'Identifier') return unwrapped.name;
   return '';
 }
 
@@ -191,6 +200,9 @@ const noSilentCatch: Rule.RuleModule = {
     };
   },
 };
+
+// Exported for unit tests (see error-handling.spec.ts).
+export const calleeToTextInternal = calleeToText;
 
 export const errorHandlingPlugin = {
   rules: {
