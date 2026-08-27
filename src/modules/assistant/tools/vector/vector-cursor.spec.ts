@@ -1,9 +1,15 @@
+import type { Logger } from '@nestjs/common';
 import {
   encodeVectorCursor,
   decodeVectorCursor,
   buildVectorQueryHash,
   buildVectorPage,
 } from './vector-cursor';
+
+/** Minimal mock logger that silently swallows warn calls. */
+const mockLogger = {
+  warn: () => {},
+} as unknown as Logger;
 
 describe('vector-cursor', () => {
   // -----------------------------------------------------------------------
@@ -20,7 +26,7 @@ describe('vector-cursor', () => {
       expect(typeof encoded).toBe('string');
       expect(encoded).not.toBe('');
 
-      const decoded = decodeVectorCursor(encoded);
+      const decoded = decodeVectorCursor(encoded, mockLogger as never);
       expect(decoded).toEqual(payload);
     });
 
@@ -35,24 +41,26 @@ describe('vector-cursor', () => {
     });
 
     it('decodes to null for null input', () => {
-      expect(decodeVectorCursor(null)).toBeNull();
+      expect(decodeVectorCursor(null, mockLogger as never)).toBeNull();
     });
 
     it('decodes to null for undefined input', () => {
-      expect(decodeVectorCursor(undefined)).toBeNull();
+      expect(decodeVectorCursor(undefined, mockLogger as never)).toBeNull();
     });
 
     it('decodes to null for empty string', () => {
-      expect(decodeVectorCursor('')).toBeNull();
+      expect(decodeVectorCursor('', mockLogger as never)).toBeNull();
     });
 
     it('decodes to null for invalid base64', () => {
-      expect(decodeVectorCursor('!!!invalid!!!')).toBeNull();
+      expect(
+        decodeVectorCursor('!!!invalid!!!', mockLogger as never),
+      ).toBeNull();
     });
 
     it('decodes to null for valid base64 but invalid JSON', () => {
       const invalidJson = Buffer.from('not json', 'utf8').toString('base64url');
-      expect(decodeVectorCursor(invalidJson)).toBeNull();
+      expect(decodeVectorCursor(invalidJson, mockLogger as never)).toBeNull();
     });
 
     it('decodes to null for valid JSON with wrong shape (missing fields)', () => {
@@ -61,7 +69,7 @@ describe('vector-cursor', () => {
         'utf8',
       ).toString('base64url');
       // The function returns the parsed object as-is, it doesn't validate shape
-      const result = decodeVectorCursor(wrongShape);
+      const result = decodeVectorCursor(wrongShape, mockLogger as never);
       expect(result).not.toBeNull();
       expect(result).toEqual({ foo: 'bar' });
     });
@@ -127,7 +135,7 @@ describe('vector-cursor', () => {
       expect(page.hasMore).toBe(true);
       expect(page.nextCursor).not.toBeNull();
 
-      const decoded = decodeVectorCursor(page.nextCursor);
+      const decoded = decodeVectorCursor(page.nextCursor, mockLogger as never);
       expect(decoded).toEqual({
         offset: 5,
         limit: 5,
@@ -155,7 +163,7 @@ describe('vector-cursor', () => {
         queryHash: 'hash',
       });
 
-      const decoded = decodeVectorCursor(page.nextCursor);
+      const decoded = decodeVectorCursor(page.nextCursor, mockLogger as never);
       expect(decoded?.offset).toBe(30);
       expect(decoded?.limit).toBe(10);
     });
@@ -168,7 +176,7 @@ describe('vector-cursor', () => {
         queryHash: 'hash',
       });
 
-      const decoded = decodeVectorCursor(page.nextCursor);
+      const decoded = decodeVectorCursor(page.nextCursor, mockLogger as never);
       expect(decoded?.offset).toBe(10);
     });
   });

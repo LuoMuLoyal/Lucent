@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-import { Logger } from '@nestjs/common';
-
-const logger = new Logger('VectorCursor');
+import type { Logger } from '@nestjs/common';
 
 export interface AssistantVectorCursorPayload {
   offset: number;
@@ -24,6 +22,7 @@ export function encodeVectorCursor(
 
 export function decodeVectorCursor(
   cursor: string | null | undefined,
+  logger: Logger,
 ): AssistantVectorCursorPayload | null {
   if (!cursor) return null;
 

@@ -65,7 +65,7 @@ export class AssistantToolDrugbankSearchService {
     const queryHash = buildVectorQueryHash(query, {
       drugbankId: resolvedDrugbankId,
     });
-    const cursor = decodeVectorCursor(payload.cursor);
+    const cursor = decodeVectorCursor(payload.cursor, this.logger);
     const offset =
       cursor != null && cursor.queryHash === queryHash ? cursor.offset : 0;
     const rawResults = await store.similaritySearchWithScore(

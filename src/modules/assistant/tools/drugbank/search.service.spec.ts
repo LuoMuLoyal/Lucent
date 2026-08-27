@@ -44,6 +44,7 @@ describe('AssistantToolDrugbankSearchService', () => {
           limit: 4,
           queryHash: 'abc',
         }),
+        { warn: () => {} } as never,
       ),
     ).toEqual({
       offset: 4,

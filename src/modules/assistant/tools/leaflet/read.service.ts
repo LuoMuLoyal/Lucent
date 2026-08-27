@@ -46,7 +46,7 @@ export class AssistantToolLeafletReadService {
     const query = payload.query.trim();
     const limit = normalizeLimit(payload.limit);
     const queryHash = buildVectorQueryHash(query, payload.filters);
-    const cursor = decodeVectorCursor(payload.cursor);
+    const cursor = decodeVectorCursor(payload.cursor, this.logger);
     const offset =
       cursor != null && cursor.queryHash === queryHash ? cursor.offset : 0;
 
