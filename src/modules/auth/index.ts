@@ -6,6 +6,7 @@ export {
   AuthBetterAuthAdapter,
   BETTER_AUTH_TRUSTED_PROVIDERS,
   CREDENTIAL_PROVIDER_ID,
+  isBetterAuthTrustedProvider,
   LOCAL_CREDENTIAL_ISSUER,
 } from './adapters/better-auth.adapter';
 export { AuthService } from './services/auth.service';

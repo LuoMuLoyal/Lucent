@@ -14,7 +14,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, User, UserStatus } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { OAuthProfile } from '../../types/oauth.types';
-import { BETTER_AUTH_TRUSTED_PROVIDERS } from '../../adapters/better-auth.adapter';
+import { isBetterAuthTrustedProvider } from '../../adapters/better-auth.adapter';
 
 @Injectable()
 export class AuthOAuthService {
@@ -55,11 +55,7 @@ export class AuthOAuthService {
     userId: string,
     profile: OAuthProfile,
   ): ResultAsync<void, DomainFailure> {
-    if (
-      (BETTER_AUTH_TRUSTED_PROVIDERS as readonly string[]).includes(
-        profile.provider,
-      )
-    ) {
+    if (isBetterAuthTrustedProvider(profile.provider)) {
       return errAsync(this.identityInUse());
     }
 

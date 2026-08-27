@@ -36,6 +36,17 @@ export const LOCAL_CREDENTIAL_ISSUER = 'local:credential';
 export const BETTER_AUTH_TRUSTED_PROVIDERS = ['apple', 'google'] as const;
 
 /**
+ * Type guard: returns `true` when `provider` is one of the trusted providers.
+ * Encapsulates the `readonly` → `string[]` cast so call sites don't need
+ * ad-hoc type assertions.
+ */
+export function isBetterAuthTrustedProvider(provider: string): boolean {
+  return (BETTER_AUTH_TRUSTED_PROVIDERS as readonly string[]).includes(
+    provider,
+  );
+}
+
+/**
  * NestJS adapter wrapping the Better Auth library against Lucent's merged
  * `User` model.  This service is intentionally not exposed as an HTTP route —
  * it only constructs and holds the configured `auth` instance so that later
