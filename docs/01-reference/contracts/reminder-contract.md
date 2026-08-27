@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-08-22
+Last updated: 2026-08-27
 
 ## Boundary
 
@@ -40,6 +40,10 @@ Medicine recognition's queued response is an endpoint-specific resource with exa
 - Dose-log to health-event association
   - Status: Dose logs may explicitly carry an active `healthEventId`; reminder schedules remain
     independent, and no dose log is automatically assigned to the user's latest event.
+- Dose-log mark (temporary logging)
+  - Status: `POST /api/v1/user/medicine-dose-logs/mark` accepts temporary (non-reminder) dose logs.
+    When `reminderId` is absent, the endpoint requires only `currentMedicineId` (and optionally
+    `scheduledTime`); it does **not** reject a missing `scheduledTime` for temporary logs.
 - Dose-log recomputation trigger
   - Status: A successful dose-log write emits a date-scoped `dose-log.changed` event with the
     persisted log id. Suggestion materialization consumes it; Today Analysis can enqueue a

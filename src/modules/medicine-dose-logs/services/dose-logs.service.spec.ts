@@ -637,8 +637,19 @@ describe('MedicineDoseLogsService', () => {
     });
   });
 
-  it('should reject mark when currentMedicineId is provided without scheduledTime', async () => {
+  it('should create mark when currentMedicineId is provided without scheduledTime (temporary log)', async () => {
     repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u1' });
+    repository.create.mockReturnValue(
+      okAsync(
+        doseLogRecord({
+          id: 'log-1',
+          currentMedicineId: 'medicine-1',
+          status: DoseLogStatus.taken,
+          scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+          scheduledTime: null,
+        }),
+      ),
+    );
 
     const result = await collectResult(
       service.mark('u1', {
@@ -648,11 +659,13 @@ describe('MedicineDoseLogsService', () => {
       } as MarkDoseLogDto),
     );
 
-    expect(result).toMatchObject({
-      ok: false,
-      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
-    });
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: true });
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentMedicineId: 'medicine-1',
+        scheduledTime: null,
+      }),
+    );
   });
 
   it('should reject mark when the slot medicine does not match the reminder', async () => {

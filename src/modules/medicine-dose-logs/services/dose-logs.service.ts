@@ -141,12 +141,7 @@ export class MedicineDoseLogsService {
           scheduledFor,
           scheduledTime,
         });
-        if (
-          where == null &&
-          (reminderId != null ||
-            currentMedicineId == null ||
-            scheduledTime == null)
-        ) {
+        if (where == null && currentMedicineId == null) {
           return errAsync(this.validationFailed());
         }
 
