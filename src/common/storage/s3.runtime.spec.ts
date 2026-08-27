@@ -210,7 +210,12 @@ describe('S3StorageRuntime', () => {
           objectKey: 'downloads/report.pdf',
           audience: 'external',
         }),
-      ).rejects.toThrow(/DEPENDENCY_UNAVAILABLE/);
+      ).rejects.toMatchObject({
+        failure: {
+          code: 'DEPENDENCY_UNAVAILABLE',
+          detail: expect.stringContaining('external audience'),
+        },
+      });
     });
   });
 

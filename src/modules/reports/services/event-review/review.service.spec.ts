@@ -725,7 +725,9 @@ describe('EventReviewService', () => {
 
       await expect(
         service.buildForEvent(USER_ID, 'evt-active'),
-      ).rejects.toThrow('INTERNAL_ERROR');
+      ).rejects.toMatchObject({
+        failure: { code: 'INTERNAL_ERROR' },
+      });
     });
   });
 
