@@ -5,7 +5,7 @@ It is a living document — directions shift as the product and community grow.
 
 ## Status
 
-Lucent is currently at `v1.0.0-dev`. The core feature set is implemented and
+Lucent is currently at `0.1.0-dev`. The core feature set is implemented and
 CI/CD is operational, but the project has not yet shipped a stable release.
 
 **What works today**
@@ -65,24 +65,15 @@ Priority framework follows the cross-project Product Brainstorm
 (`Luminous/docs/01-product/Product_Brainstorm_2026-07-07.md`). Lucent's
 roadmap aligns backend work with the frontend P0/P1/P2/P3 priorities.
 
-### Production Readiness → `v1.0.0`
+### Production Readiness → `0.1.0`
 
-Ship the first stable release. Most infrastructure items are complete.
+Ship the first stable release. All infrastructure items are complete.
 
-- **✅ Observability** — Prometheus metrics export, Grafana dashboards, LLM/BullMQ
-  metrics integration
-- **✅ AI Rate Limiting** — per-endpoint Redis-backed throttling with
-  configurable thresholds
-- **✅ Staging Environment** — dedicated GitHub Environment, auto-deploy on main
-- **✅ Backup & Recovery** — daily `pg_dump` via `deploy/backup.sh` (7 local copies +
-  optional COS offsite with 30-day lifecycle), pre-deploy snapshots (10 kept), documented
-  restore drill (`docs/01-reference/how-to/restore-database-backup.md`)
-- **Audit Logging** — `audit_logs` table for security-sensitive operations
-  (password changes, identity binding, data exports, admin panel writes)
-- **Quality Gate** — raise coverage thresholds, add AI safety policy edge-case
-  tests, expand E2E coverage for critical user journeys
+All production-readiness items (Observability, AI Rate Limiting, Staging
+Environment, Backup & Recovery, Audit Logging, Quality Gate) have been
+implemented and are no longer tracked here.
 
-### Stability & Operations → `v1.1.0`
+### Stability & Operations → `0.2.0`
 
 Keep the system running smoothly as usage grows. Supports frontend P2 features.
 
@@ -97,7 +88,7 @@ Keep the system running smoothly as usage grows. Supports frontend P2 features.
 - **Clinic Summary Support** — backend APIs for frontend P2 clinic summary
   template (data already available, may need export format enhancements)
 
-### Feature Expansion → `v1.2.0`
+### Feature Expansion → `0.3.0`
 
 Extend product capabilities on a stable foundation. Supports frontend P3 features.
 
@@ -117,7 +108,7 @@ Extend product capabilities on a stable foundation. Supports frontend P3 feature
 - **Internationalization** — multi-language AI output, timezone-aware date
   queries
 
-### Scale & Compliance → `v2.0.0`
+### Scale & Compliance → `1.0.0`
 
 Prepare for larger scale and stricter compliance requirements.
 
@@ -139,10 +130,10 @@ Prepare for larger scale and stricter compliance requirements.
 
 | Version  | Theme                  | Status      |
 | -------- | ---------------------- | ----------- |
-| `v1.0.0` | Production readiness   | In progress |
-| `v1.1.0` | Stability & operations | Planned     |
-| `v1.2.0` | Feature expansion      | Planned     |
-| `v2.0.0` | Scale & compliance     | Planned     |
+| `0.1.0` | Production readiness   | In progress |
+| `0.2.0` | Stability & operations | Planned     |
+| `0.3.0` | Feature expansion      | Planned     |
+| `1.0.0` | Scale & compliance     | Planned     |
 
 Releases follow [Semantic Versioning](https://semver.org/). Each release passes
 the full `pnpm check` gate and staging smoke tests before production deploy.

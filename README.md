@@ -8,7 +8,7 @@ Lucent is the NestJS backend for [Luminous](https://github.com/LuoMuLoyal/Lumino
 management assistant. It provides authentication, health records, AI-powered analysis, medicine
 knowledge retrieval, and data export.
 
-**Current version:** `v1.0.0-dev` — see the [Roadmap](ROADMAP.md) for the path to stable release.
+**Current version:** `0.1.0-dev` — see the [Roadmap](ROADMAP.md) for the path to stable release.
 
 ## Key Features
 

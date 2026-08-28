@@ -1,6 +1,6 @@
 {
   "name": "lucent",
-  "version": "1.0.0-dev",
+  "version": "0.1.0-dev",
   "description": "NestJS backend for Luminous — a personal health management assistant with medication safety, daily records, and AI-powered insights.",
   "author": "LuoMuLoyal",
   "private": true,

@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-14
+updated: 2026-08-28
 ---
 
 # Lucent TODO
 
-Last updated: 2026-08-14
+Last updated: 2026-08-28
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
