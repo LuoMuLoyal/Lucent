@@ -29,7 +29,7 @@ describe('SuggestionCacheService', () => {
       const result = await service.getSignals('user-1', '2026-07-09');
       expect(result).toEqual(mockSignals);
       expect(cacheGetMock).toHaveBeenCalledWith(
-        'today_suggestion:signals:user-1:2026-07-09',
+        'today-suggestion:signals:user-1:2026-07-09',
       );
     });
 
@@ -45,7 +45,7 @@ describe('SuggestionCacheService', () => {
       await service.setSignals('user-1', '2026-07-09', signals as never);
 
       expect(cacheSetMock).toHaveBeenCalledWith(
-        'today_suggestion:signals:user-1:2026-07-09',
+        'today-suggestion:signals:user-1:2026-07-09',
         signals,
         expect.any(Number),
       );
@@ -71,13 +71,13 @@ describe('SuggestionCacheService', () => {
 
       // Should set the suggestion cache entry
       expect(cacheSetMock).toHaveBeenCalledWith(
-        'today_suggestion:suggestions:user-1:2026-07-09:none',
+        'today-suggestion:suggestions:user-1:2026-07-09:none',
         result,
         expect.any(Number),
       );
       // Should also track the excludeKey in the registry
       expect(cacheSetMock).toHaveBeenCalledWith(
-        'today_suggestion:exclude_keys:user-1:2026-07-09',
+        'today-suggestion:exclude_keys:user-1:2026-07-09',
         ['none'],
         expect.any(Number),
       );
@@ -113,7 +113,7 @@ describe('SuggestionCacheService', () => {
       await service.setBaselineStatus('user-1', status);
 
       expect(cacheSetMock).toHaveBeenCalledWith(
-        'today_suggestion:baseline:user-1',
+        'today-suggestion:baseline:user-1',
         { water_intake: true, sleep_duration: false },
         expect.any(Number),
       );
@@ -132,18 +132,18 @@ describe('SuggestionCacheService', () => {
 
       // Should delete signal cache
       expect(cacheDelMock).toHaveBeenCalledWith(
-        'today_suggestion:signals:user-1:2026-07-09',
+        'today-suggestion:signals:user-1:2026-07-09',
       );
       // First pass: delete all registered suggestion cache variants
       expect(cacheDelMock).toHaveBeenCalledWith(
-        'today_suggestion:suggestions:user-1:2026-07-09:none',
+        'today-suggestion:suggestions:user-1:2026-07-09:none',
       );
       expect(cacheDelMock).toHaveBeenCalledWith(
-        'today_suggestion:suggestions:user-1:2026-07-09:id1,id2',
+        'today-suggestion:suggestions:user-1:2026-07-09:id1,id2',
       );
       // Should delete the registry itself (both passes)
       expect(cacheDelMock).toHaveBeenCalledWith(
-        'today_suggestion:exclude_keys:user-1:2026-07-09',
+        'today-suggestion:exclude_keys:user-1:2026-07-09',
       );
       // Second pass: delete the fallback 'none' variant and re-delete the
       // registry, catching variants registered during the first pass.
@@ -158,10 +158,10 @@ describe('SuggestionCacheService', () => {
       await service.invalidateSuggestions('user-1', '2026-07-09');
 
       expect(cacheDelMock).toHaveBeenCalledWith(
-        'today_suggestion:suggestions:user-1:2026-07-09:none',
+        'today-suggestion:suggestions:user-1:2026-07-09:none',
       );
       expect(cacheDelMock).toHaveBeenCalledWith(
-        'today_suggestion:exclude_keys:user-1:2026-07-09',
+        'today-suggestion:exclude_keys:user-1:2026-07-09',
       );
     });
 
@@ -170,7 +170,7 @@ describe('SuggestionCacheService', () => {
 
       expect(cacheDelMock).toHaveBeenCalledTimes(1);
       expect(cacheDelMock).toHaveBeenCalledWith(
-        'today_suggestion:baseline:user-1',
+        'today-suggestion:baseline:user-1',
       );
     });
   });

@@ -13,7 +13,7 @@ import {
 
 import { COPY_CACHE_TTL_MS } from '../../constants/lifecycle.constants';
 
-const CACHE_KEY_PREFIX = 'today_suggestion';
+const CACHE_KEY_PREFIX = 'today-suggestion';
 
 /**
  * Multi-layer cache for the Today suggestion engine.
