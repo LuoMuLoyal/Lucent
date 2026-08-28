@@ -32,6 +32,8 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
+- [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
+  — 药品风险检查图数据结构引入：Phase 1 关系化 JSONB（PG18），Phase 2 SQL/PGQ 图查询（PG19 GA 后）
 - [`2026-08-24-config-yaml-migration-plan.md`](2026-08-24-config-yaml-migration-plan.md)
   — .env → .env + YAML 共存：非敏感配置迁移到 `config/*.yaml`，敏感变量保留 `.env`
 - [`2026-08-24-observability-victoria-migration-plan.md`](2026-08-24-observability-victoria-migration-plan.md)
