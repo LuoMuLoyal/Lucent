@@ -30,6 +30,10 @@ export class TodayAnalysisTriggerListener {
   async handleDailyRecordChanged(
     payload: DailyRecordChangedPayload,
   ): Promise<void> {
+    await this.contextService.invalidateContext(
+      payload.userId,
+      payload.date,
+    );
     if (payload.kind === DailyRecordKind.symptom) {
       await this.trigger(
         payload.userId,
@@ -66,6 +70,10 @@ export class TodayAnalysisTriggerListener {
 
   @OnEvent(DOSE_LOG_CHANGED)
   async handleDoseLogChanged(payload: DoseLogChangedPayload): Promise<void> {
+    await this.contextService.invalidateContext(
+      payload.userId,
+      payload.date,
+    );
     await this.trigger(
       payload.userId,
       payload.date,
@@ -78,6 +86,10 @@ export class TodayAnalysisTriggerListener {
   async handleHealthEventChanged(
     payload: HealthEventChangedPayload,
   ): Promise<void> {
+    await this.contextService.invalidateContext(
+      payload.userId,
+      payload.date,
+    );
     if (
       payload.change === 'check-in' &&
       payload.kind !== HealthEventKind.symptom

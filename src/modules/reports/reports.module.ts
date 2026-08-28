@@ -30,6 +30,7 @@ import { ReportsContextService } from './dashboard/context.service';
 import { ReportsPresenterService } from './dashboard/presenter.service';
 
 import { ReportsService } from './dashboard/dashboard.service';
+import { ReportsCacheInvalidationListener } from './dashboard/cache-invalidation.listener';
 import { EventReviewService } from './services/event-review/review.service';
 import { EventReviewFactsService } from './services/event-review/facts.service';
 import { EventReviewChangesService } from './services/event-review/changes.service';
@@ -69,6 +70,7 @@ import { ReportsController } from './reports.controller';
     EventReviewChangesService,
     EventReviewActionsService,
     EventReviewNextStepService,
+    ReportsCacheInvalidationListener,
   ],
   exports: [ReportsService, ReportsAiSummaryService, EventReviewService],
 })
