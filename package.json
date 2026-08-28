@@ -8,10 +8,10 @@
   "imports": {
     "#generated/*": "./generated/*"
   },
-  "packageManager": "pnpm@11.9.0",
+  "packageManager": "pnpm@12.0.0",
   "engines": {
     "node": ">=24 <25",
-    "pnpm": ">=11 <12"
+    "pnpm": ">=11 <13"
   },
   "scripts": {
     "check": "pnpm lint:check && pnpm format:check && pnpm typecheck && pnpm typecheck:tools && pnpm build && pnpm test:ci && pnpm test:e2e:ci",

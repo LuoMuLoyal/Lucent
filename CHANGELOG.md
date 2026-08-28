@@ -171,7 +171,7 @@ Detailed daily entries live in `docs/02-logs/migration-log/` and
 - **BaseAiGeneratorService** depends on `LlmRuntimePort` interface instead of
   concrete `LlmRuntimeService`
 - **OpenAPI CI gate** switched from raw `git diff` to semantic JSON comparison
-- **pnpm baseline** raised from 10 to 11.x (CI pinned to 11.9.0)
+- **pnpm baseline** raised from 10 to 11.x/12.x (CI pinned to 12.0.0; 11.9.0 also accepted)
 - **`pnpm check`** chain now includes `format:check` and `deploy:assets:check`
 - **Env file resolution** unified via `env-file-paths.ts` helper
   (`.env.<NODE_ENV>.local` → `.env.<NODE_ENV>` priority)

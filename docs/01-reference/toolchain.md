@@ -2,15 +2,15 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-24
+updated: 2026-08-28
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-24
+Last updated: 2026-08-28
 
-- Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
-  recommended baseline to `11.9.0`.
+- Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x` or `12.x`; CI and Corepack docs pin the
+  recommended baseline to `12.0.0` (`11.9.0` also accepted).
 - local `docs/openapi.json` remains the exported backend contract artifact that Luminous
   regenerates its `generated/lucent_api/` client from.
 - The OpenAPI export registers the shared `ProblemDetailsDto` and `SseProblemDetailsDto` schemas;
