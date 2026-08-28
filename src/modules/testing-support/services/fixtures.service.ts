@@ -10,7 +10,7 @@ import { loginFailureCacheKey } from '../../auth';
 import { PrismaService } from '../../../prisma';
 import { UserStatus } from '#generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto';
-import { listDefaultBooleanUserSettings } from '../../user-settings';
+import { listDefaultBooleanUserSettings, userSettingsCacheKey } from '../../user-settings';
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 
@@ -137,7 +137,7 @@ export class TestingSupportService {
     });
 
     await this.cache.del(loginFailureCacheKey(email));
-    await this.cache.del(`user-settings:${result.user.id}`);
+    await this.cache.del(userSettingsCacheKey(result.user.id));
 
     return {
       createdUser: result.createdUser,

@@ -23,10 +23,17 @@ import {
 /** Type union for settings values stored in the DB. */
 type SettingValue = boolean | number;
 
+/** Cache key prefix for user-settings. */
+const USER_SETTINGS_CACHE_KEY_PREFIX = 'user-settings';
+
+/** Builds the cache key for a user's settings. */
+export function userSettingsCacheKey(userId: string): string {
+  return `${USER_SETTINGS_CACHE_KEY_PREFIX}:${userId}`;
+}
+
 @Injectable()
 export class UserSettingsService {
   private static readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-  private static readonly CACHE_PREFIX = 'user-settings';
   private readonly logger = new Logger(UserSettingsService.name);
 
   constructor(
@@ -36,11 +43,11 @@ export class UserSettingsService {
   ) {}
 
   async invalidateUserCache(userId: string): Promise<void> {
-    await this.cacheDel(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
+    await this.cacheDel(userSettingsCacheKey(userId));
   }
 
   async getSettings(userId: string): Promise<UserSettingsDataDto> {
-    const cacheKey = `${UserSettingsService.CACHE_PREFIX}:${userId}`;
+    const cacheKey = userSettingsCacheKey(userId);
     const cached = (await this.cacheGet(cacheKey)) as
       | UserSettingsDataDto
       | undefined;
@@ -143,7 +150,7 @@ export class UserSettingsService {
     return write
       .andThen(() =>
         fromPromise(
-          this.cacheDel(`${UserSettingsService.CACHE_PREFIX}:${userId}`),
+          this.cacheDel(userSettingsCacheKey(userId)),
           (error) => {
             throw error;
           },
