@@ -143,6 +143,7 @@
   },
   "devDependencies": {
     "@adminjs/fastify": "^4.2.0",
+    "acorn": "^8.0.0",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@compodoc/compodoc": "^2.0.0",

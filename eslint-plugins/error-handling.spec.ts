@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const acorn =
-  require('../node_modules/.pnpm/acorn@8.18.0/node_modules/acorn') as typeof import('acorn');
+import { parse as acornParse } from 'acorn';
 
 /**
  * Parses a JavaScript expression string and returns the `callee` node of the
@@ -23,7 +19,7 @@ const acorn =
  *               └─ property: Identifier(bar)
  */
 function parseCallee(code: string): import('estree').Node {
-  const ast = acorn.parse(code, {
+  const ast = acornParse(code, {
     ecmaVersion: 2024,
     sourceType: 'module',
   }) as unknown as import('estree').Program;
