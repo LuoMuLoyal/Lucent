@@ -38,6 +38,7 @@ const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
 
 /** TTL for tool-level retrieval caches (ms). */
 const TOOL_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const TOOL_CACHE_KEY_PREFIX = 'assistant:tool';
 
 /**
  * Read-only tool names, as a Set for O(1) classification of tools eligible
@@ -245,7 +246,7 @@ export class AssistantToolService {
         query: payload.query.trim().toLowerCase(),
         filters: payload.filters,
       });
-      const cacheKey = `assistant:tool:${toolName}:${context.locale}:${makeShortHash(keySeed)}`;
+      const cacheKey = `${TOOL_CACHE_KEY_PREFIX}:${toolName}:${context.locale}:${makeShortHash(keySeed)}`;
 
       const cached = await this.cacheGet<string>(cacheKey);
       if (cached != null) {

@@ -35,6 +35,8 @@ export type { OAuthStateEntry };
 
 @Injectable()
 export class AuthOAuthStateService {
+  private static readonly CACHE_KEY_PREFIX = 'auth:oauth-state';
+
   private readonly logger = new Logger(AuthOAuthStateService.name);
   private readonly stateTtlMs: number;
 
@@ -144,7 +146,7 @@ export class AuthOAuthStateService {
 
   private stateKey(provider: OAuthProviderName, state: string): string {
     const digest = createHash('sha256').update(state).digest('hex');
-    return `auth:oauth-state:${provider}:${digest}`;
+    return `${AuthOAuthStateService.CACHE_KEY_PREFIX}:${provider}:${digest}`;
   }
 
   private isValidEntry(

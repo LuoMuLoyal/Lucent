@@ -19,6 +19,9 @@ type HealthComponent = HealthProbeDto['components'][number];
 /** TTL (ms) for the health-check cache probe key. */
 const PROBE_TTL_MS = 5_000;
 
+/** Cache key prefix for the health-check probe. */
+const HEALTH_PROBE_CACHE_KEY_PREFIX = 'health:probe';
+
 @Injectable()
 export class AppService {
   private readonly logger = new Logger(AppService.name);
@@ -174,7 +177,7 @@ export class AppService {
       });
     }
 
-    const probeKey = `health:probe:${randomUUID()}`;
+    const probeKey = `${HEALTH_PROBE_CACHE_KEY_PREFIX}:${randomUUID()}`;
 
     try {
       await this.cache.set(probeKey, 'ok', PROBE_TTL_MS);

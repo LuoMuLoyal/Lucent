@@ -11,6 +11,7 @@ import { ReportsContextService } from './context.service';
 @Injectable()
 export class ReportsService {
   private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private static readonly CACHE_KEY_PREFIX = 'reports:dashboard';
 
   private readonly logger = new Logger(ReportsService.name);
 
@@ -26,7 +27,7 @@ export class ReportsService {
     locale: string,
   ): Promise<ReportDashboardDataDto> {
     const range = query.range ?? 'last_7_days';
-    const cacheKey = `reports:dashboard:${userId}:${range}:${query.startDate ?? 'auto'}:${query.endDate ?? 'auto'}:${locale}`;
+    const cacheKey = `${ReportsService.CACHE_KEY_PREFIX}:${userId}:${range}:${query.startDate ?? 'auto'}:${query.endDate ?? 'auto'}:${locale}`;
 
     let cached: ReportDashboardDataDto | undefined;
     try {
@@ -68,5 +69,46 @@ export class ReportsService {
       `Cache set: dashboard (userId=${userId}, key=${cacheKey})`,
     );
     return result;
+  }
+
+  /**
+   * Invalidates all dashboard cache entries for a user by enumerating
+   * cache keys with the user's segment and deleting matching ones.
+   *
+   * Cache is an accelerator (DB is source of truth), so failures are
+   * logged as warnings and do not throw — TTL expiry is the safety net.
+   */
+  async invalidateUserDashboard(userId: string): Promise<void> {
+    const userSegment = `${ReportsService.CACHE_KEY_PREFIX}:${userId}:`;
+    try {
+      const stores = this.cache.stores as
+        | Array<{ keys?: () => Promise<string[]> }>
+        | undefined;
+      if (!stores || stores.length === 0) return;
+
+      for (const store of stores) {
+        if (!store.keys) continue;
+        let keys: string[];
+        try {
+          keys = await store.keys();
+        } catch {
+          continue;
+        }
+        const matching = keys.filter((key) => key.includes(userSegment));
+        await Promise.all(
+          matching.map((key) =>
+            this.cache.del(key).catch((error: unknown) => {
+              this.logger.warn(
+                `Reports dashboard cache del failed (key=${key}): ${String(error)}`,
+              );
+            }),
+          ),
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Reports dashboard cache invalidation failed (userId=${userId}): ${String(error)}`,
+      );
+    }
   }
 }

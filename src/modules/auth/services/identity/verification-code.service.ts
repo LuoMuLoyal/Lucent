@@ -31,6 +31,8 @@ interface RateLimitBucket {
  */
 @Injectable()
 export class VerificationCodeService {
+  private static readonly CACHE_KEY_PREFIX = 'vcode';
+
   private readonly logger = new Logger(VerificationCodeService.name);
 
   private readonly codeTtlMs: number;
@@ -260,16 +262,16 @@ export class VerificationCodeService {
   }
 
   private codeKey(scene: string, email: string): string {
-    return `vcode:${scene}:${email}`;
+    return `${VerificationCodeService.CACHE_KEY_PREFIX}:${scene}:${email}`;
   }
 
   private cooldownKey(scene: string, email: string): string {
-    return `vcode:cd:${scene}:${email}`;
+    return `${VerificationCodeService.CACHE_KEY_PREFIX}:cd:${scene}:${email}`;
   }
 
   private clientRateLimitKey(clientKey: string): string {
     const digest = createHash('sha256').update(clientKey).digest('hex');
-    return `vcode:rl:client:${digest}`;
+    return `${VerificationCodeService.CACHE_KEY_PREFIX}:rl:client:${digest}`;
   }
 
   private isValidBucket(bucket: unknown): bucket is RateLimitBucket {

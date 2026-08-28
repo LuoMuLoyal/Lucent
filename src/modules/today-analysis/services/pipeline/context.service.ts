@@ -72,6 +72,7 @@ export interface TodayAnalysisContext {
 @Injectable()
 export class TodayAnalysisContextService {
   private static readonly CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+  private static readonly CACHE_KEY_PREFIX = 'today-analysis:context';
 
   private readonly logger = new Logger(TodayAnalysisContextService.name);
 
@@ -84,7 +85,7 @@ export class TodayAnalysisContextService {
   ) {}
 
   async build(userId: string, date: string): Promise<TodayAnalysisContext> {
-    const cacheKey = `today-analysis:context:${userId}:${date}`;
+    const cacheKey = `${TodayAnalysisContextService.CACHE_KEY_PREFIX}:${userId}:${date}`;
     let cached: TodayAnalysisContext | undefined;
     try {
       cached = await this.cache.get<TodayAnalysisContext>(cacheKey);
@@ -112,6 +113,18 @@ export class TodayAnalysisContextService {
       throw error;
     }
     return result;
+  }
+
+  /** Invalidates the context cache for a user+date. */
+  async invalidateContext(userId: string, date: string): Promise<void> {
+    const cacheKey = `${TodayAnalysisContextService.CACHE_KEY_PREFIX}:${userId}:${date}`;
+    try {
+      await this.cache.del(cacheKey);
+    } catch (error) {
+      this.logger.warn(
+        `Today analysis context cache invalidate failed (key=${cacheKey}): ${String(error)}`,
+      );
+    }
   }
 
   private async fetchContext(

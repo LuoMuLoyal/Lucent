@@ -25,6 +25,8 @@ import {
 export class LegalDocumentsService {
   private static readonly LIST_TTL_MS = 60 * 60 * 1000; // 1 hour
   private static readonly DETAIL_TTL_MS = 60 * 60 * 1000; // 1 hour
+  private static readonly LIST_CACHE_KEY_PREFIX = 'legal-documents:list';
+  private static readonly DETAIL_CACHE_KEY_PREFIX = 'legal-documents:detail';
 
   private readonly logger = new Logger(LegalDocumentsService.name);
 
@@ -46,7 +48,7 @@ export class LegalDocumentsService {
     query: LegalDocumentQueryDto,
   ): ResultAsync<LegalDocumentListDataDto, DomainFailure> {
     const lang = this.resolveLang(query.lang);
-    const cacheKey = `legal-documents:list:${lang}`;
+    const cacheKey = `${LegalDocumentsService.LIST_CACHE_KEY_PREFIX}:${lang}`;
 
     return fromPromise(
       this.readCache<LegalDocumentListDataDto>(cacheKey, 'list read'),
@@ -102,7 +104,7 @@ export class LegalDocumentsService {
     query: LegalDocumentQueryDto,
   ): ResultAsync<LegalDocumentDetailDto, DomainFailure> {
     const lang = this.resolveLang(query.lang);
-    const cacheKey = `legal-documents:detail:${docType}:${lang}`;
+    const cacheKey = `${LegalDocumentsService.DETAIL_CACHE_KEY_PREFIX}:${docType}:${lang}`;
 
     return fromPromise(
       this.readCache<LegalDocumentDetailDto>(cacheKey, 'detail read'),

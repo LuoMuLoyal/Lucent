@@ -22,6 +22,7 @@ import {
 const HISTORY_MAX_LIMIT = 500;
 const HISTORY_DEFAULT_LIMIT = 100;
 const HISTORY_DEFAULT_DAYS = 30;
+const HISTORY_CACHE_KEY_PREFIX = 'suggestion:history';
 
 /**
  * Manages suggestion card lifecycle: persisting new suggestions,
@@ -280,7 +281,7 @@ export class LifecycleService {
     );
 
     const cacheKey = [
-      'suggestion:history',
+      HISTORY_CACHE_KEY_PREFIX,
       userId,
       startDate,
       endDate,
