@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -16,9 +17,11 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
+import type { FastifyRequest } from 'fastify';
 
-import { ProblemDetailsDto } from '../../common';
+import { extractAuthRequestContext, ProblemDetailsDto } from '../../common';
 import { unwrapResult } from '../../common/result';
+import { AuditLogService } from '../audit-log';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { DataExportService } from './services/export.service';
@@ -33,7 +36,10 @@ import {
 @ApiExtraModels(DataExportRequestDataDto)
 @Controller('data-export-requests')
 export class DataExportController {
-  constructor(private readonly exportService: DataExportService) {}
+  constructor(
+    private readonly exportService: DataExportService,
+    private readonly auditLogService: AuditLogService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -64,11 +70,21 @@ export class DataExportController {
   async createRequest(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateDataExportRequestDto,
+    @Req() request: FastifyRequest,
     @I18nLang() language: string,
   ) {
-    return await unwrapResult(
+    const result = await unwrapResult(
       this.exportService.createRequest(user.sub, dto, language),
     );
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'data_export.request',
+      resourceType: 'data_export',
+      resourceId: result.id,
+      metadata: { kind: dto.kind, format: dto.format, range: dto.range },
+    });
+    return result;
   }
 
   @Get('latest')

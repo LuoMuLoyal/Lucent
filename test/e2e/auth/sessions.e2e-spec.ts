@@ -231,6 +231,17 @@ describe('Session Management API (e2e)', () => {
         .set('Authorization', bearer(firstTokens.accessToken))
         .expect(204);
 
+      // Verify audit log was written
+      const auditLog = await ctx.prisma.auditLog.findFirst({
+        where: {
+          userId: user.id,
+          action: 'session.revoke',
+          resourceId: targetSessionId,
+        },
+      });
+      expect(auditLog).not.toBeNull();
+      expect(auditLog!.resourceType).toBe('session');
+
       // Verify the second refresh token no longer works
       const refreshRes = await request(app.getHttpServer())
         .post(REFRESH_PATH)

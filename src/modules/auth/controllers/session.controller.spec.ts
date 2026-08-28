@@ -3,6 +3,7 @@ import type { FastifyRequest } from 'fastify';
 import { SessionController } from './session.controller';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
+import { AuditLogService } from '../../audit-log';
 import { DomainFailureException } from '../../../common/result/unwrap-result';
 import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
 import type { UserPayload } from '../types/auth-request';
@@ -30,6 +31,7 @@ describe('SessionController', () => {
   let controller: SessionController;
   let authService: vi.Mocked<AuthService>;
   let authTokenService: vi.Mocked<AuthTokenService>;
+  let auditLogService: vi.Mocked<AuditLogService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -49,12 +51,19 @@ describe('SessionController', () => {
             revokeById: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
+        {
+          provide: AuditLogService,
+          useValue: {
+            logFireAndForget: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(SessionController);
     authService = module.get(AuthService);
     authTokenService = module.get(AuthTokenService);
+    auditLogService = module.get(AuditLogService);
   });
 
   afterEach(() => {
@@ -111,18 +120,26 @@ describe('SessionController', () => {
   });
 
   describe('DELETE /auth/sessions/:sessionId', () => {
-    it('revokes session and returns no content (204)', async () => {
+    it('revokes session, writes audit log, and returns no content (204)', async () => {
       await expect(
-        controller.revokeSession(mockUser, 'sess-1'),
+        controller.revokeSession(mockUser, 'sess-1', mockRequest),
       ).resolves.toBeUndefined();
 
       expect(authTokenService.revokeById).toHaveBeenCalledWith(
         'user-1',
         'sess-1',
       );
+      expect(auditLogService.logFireAndForget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          action: 'session.revoke',
+          resourceType: 'session',
+          resourceId: 'sess-1',
+        }),
+      );
     });
 
-    it('rethrows DomainFailureException for a foreign session (403 path)', async () => {
+    it('does not write audit log when revocation fails (403 path)', async () => {
       authTokenService.revokeById.mockReturnValue(
         errAsync(
           createDomainFailure({
@@ -133,8 +150,9 @@ describe('SessionController', () => {
       );
 
       await expect(
-        controller.revokeSession(mockUser, 'sess-1'),
+        controller.revokeSession(mockUser, 'sess-1', mockRequest),
       ).rejects.toBeInstanceOf(DomainFailureException);
+      expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
     });
 
     it('rethrows DomainFailureException for a missing session (404 path)', async () => {
@@ -148,8 +166,9 @@ describe('SessionController', () => {
       );
 
       await expect(
-        controller.revokeSession(mockUser, 'missing'),
+        controller.revokeSession(mockUser, 'missing', mockRequest),
       ).rejects.toBeInstanceOf(DomainFailureException);
+      expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
     });
   });
 

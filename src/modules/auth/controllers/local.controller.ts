@@ -12,6 +12,7 @@ import type { FastifyRequest } from 'fastify';
 import { extractAuthRequestContext, getRequestClientIp } from '../../../common';
 import { ProblemDetailsDto } from '../../../common';
 import { unwrapResult } from '../../../common/result';
+import { AuditLogService } from '../../audit-log';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/identity/verification-code.service';
 
@@ -40,6 +41,7 @@ export class LocalController {
   constructor(
     private readonly authService: AuthService,
     private readonly verificationCodeService: VerificationCodeService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   // ── POST /api/v1/auth/register ──────────────────────────────
@@ -68,6 +70,13 @@ export class LocalController {
     const result = await unwrapResult(
       this.authService.register(dto, extractAuthRequestContext(request)),
     );
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: result.user.id,
+      action: 'user.register',
+      resourceType: 'user',
+      resourceId: result.user.id,
+    });
     return buildAuthResponse(result.user, result);
   }
 

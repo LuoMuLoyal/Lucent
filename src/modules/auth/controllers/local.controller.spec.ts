@@ -3,6 +3,7 @@ import type { FastifyRequest } from 'fastify';
 import { LocalController } from './local.controller';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/identity/verification-code.service';
+import { AuditLogService } from '../../audit-log';
 import {
   createDomainFailure,
   errAsync,
@@ -35,6 +36,7 @@ const mockAuthResult = {
 describe('LocalController', () => {
   let controller: LocalController;
   let authService: vi.Mocked<AuthService>;
+  let auditLogService: vi.Mocked<AuditLogService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -57,11 +59,18 @@ describe('LocalController', () => {
             getCooldownSec: vi.fn().mockReturnValue(60),
           },
         },
+        {
+          provide: AuditLogService,
+          useValue: {
+            logFireAndForget: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(LocalController);
     authService = module.get(AuthService);
+    auditLogService = module.get(AuditLogService);
   });
 
   afterEach(() => {
@@ -69,7 +78,7 @@ describe('LocalController', () => {
   });
 
   describe('POST /auth/register', () => {
-    it('registers a user and returns an auth resource', async () => {
+    it('registers a user, writes audit log, and returns an auth resource', async () => {
       authService.register.mockReturnValue(okAsync(mockAuthResult as never));
 
       const result = await controller.register(
@@ -91,9 +100,17 @@ describe('LocalController', () => {
       );
       expect(result).toHaveProperty('user');
       expect(result).toHaveProperty('tokens');
+      expect(auditLogService.logFireAndForget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          action: 'user.register',
+          resourceType: 'user',
+          resourceId: 'user-1',
+        }),
+      );
     });
 
-    it('folds credential failures into DomainFailureException', async () => {
+    it('does not write audit log when registration fails', async () => {
       authService.register.mockReturnValue(
         errAsync(
           createDomainFailure({
@@ -116,6 +133,7 @@ describe('LocalController', () => {
         name: 'DomainFailureException',
         failure: { code: 'AUTH_WRONG_PASSWORD' },
       });
+      expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
     });
 
     it('does not swallow infrastructure failures', async () => {

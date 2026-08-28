@@ -66,6 +66,17 @@ describe('Data Export API (e2e)', () => {
       expect(data.kind).toBe('hospital');
       expect(data.format).toBe('pdf');
       expect(data.status).toBeTruthy();
+
+      // Verify audit log was written
+      const auditLog = await ctx.prisma.auditLog.findFirst({
+        where: {
+          userId: user.id,
+          action: 'data_export.request',
+          resourceId: data.id,
+        },
+      });
+      expect(auditLog).not.toBeNull();
+      expect(auditLog!.resourceType).toBe('data_export');
     });
   });
 

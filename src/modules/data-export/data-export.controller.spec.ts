@@ -1,6 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { FastifyRequest } from 'fastify';
 import { errAsync, okAsync } from '../../common/result';
 import type { DomainFailure } from '../../common/result';
+import { AuditLogService } from '../audit-log';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './services/export.service';
 import type {
@@ -8,9 +10,22 @@ import type {
   DataExportRequestDataDto,
 } from './dto/export-response.dto';
 
+const mockRequest = {
+  headers: { 'user-agent': 'test-agent' },
+  ip: '127.0.0.1',
+  raw: { socket: { remoteAddress: '127.0.0.1' } },
+} as unknown as FastifyRequest;
+
+const mockUser = {
+  sub: 'u1',
+  email: 'a@b.c',
+  status: 'active' as const,
+};
+
 describe('DataExportController', () => {
   let controller: DataExportController;
   let service: vi.Mocked<DataExportService>;
+  let auditLogService: vi.Mocked<AuditLogService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -23,14 +38,21 @@ describe('DataExportController', () => {
             getLatestRequest: vi.fn(),
           },
         },
+        {
+          provide: AuditLogService,
+          useValue: {
+            logFireAndForget: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(DataExportController);
     service = module.get(DataExportService);
+    auditLogService = module.get(AuditLogService);
   });
 
-  it('should create a data export request', async () => {
+  it('should create a data export request and write audit log', async () => {
     const exportReq = makeExportRequest();
     service.createRequest.mockReturnValue(okAsync(exportReq));
     const dto: CreateDataExportRequestDto = {
@@ -41,21 +63,27 @@ describe('DataExportController', () => {
     };
 
     const result = await controller.createRequest(
-      {
-        sub: 'u1',
-        email: 'a@b.c',
-        status: 'active',
-      },
+      mockUser,
       dto,
+      mockRequest,
       'zh-CN',
     );
 
     expect(result).toBeDefined();
     expect(result.status).toBe('requested');
     expect(service.createRequest).toHaveBeenCalledWith('u1', dto, 'zh-CN');
+    expect(auditLogService.logFireAndForget).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u1',
+        action: 'data_export.request',
+        resourceType: 'data_export',
+        resourceId: 'export-1',
+        metadata: { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+      }),
+    );
   });
 
-  it('folds a service Err into a DomainFailureException', async () => {
+  it('folds a service Err into a DomainFailureException and does not audit', async () => {
     const failure: DomainFailure = {
       _tag: 'DomainFailure',
       kind: 'dependency',
@@ -65,34 +93,28 @@ describe('DataExportController', () => {
 
     await expect(
       controller.createRequest(
-        {
-          sub: 'u1',
-          email: 'a@b.c',
-          status: 'active',
-        },
+        mockUser,
         {
           kind: 'hospital',
           format: 'pdf',
           range: 'last_7_days',
           password: 'Passw0rd123',
         },
+        mockRequest,
         'zh-CN',
       ),
     ).rejects.toMatchObject({
       name: 'DomainFailureException',
       failure: expect.objectContaining({ code: 'DEPENDENCY_UNAVAILABLE' }),
     });
+    expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
   });
 
   it('should return the latest export request', async () => {
     const exportReq = makeExportRequest({ status: 'processing' });
     service.getLatestRequest.mockReturnValue(okAsync(exportReq));
 
-    const result = await controller.getLatestRequest({
-      sub: 'u1',
-      email: 'a@b.c',
-      status: 'active',
-    });
+    const result = await controller.getLatestRequest(mockUser);
 
     expect(result).toBeDefined();
     expect(result?.status).toBe('processing');
@@ -102,11 +124,7 @@ describe('DataExportController', () => {
   it('should return null data when no export request exists', async () => {
     service.getLatestRequest.mockReturnValue(okAsync(null));
 
-    const result = await controller.getLatestRequest({
-      sub: 'u1',
-      email: 'a@b.c',
-      status: 'active',
-    });
+    const result = await controller.getLatestRequest(mockUser);
 
     expect(result).toBeNull();
   });

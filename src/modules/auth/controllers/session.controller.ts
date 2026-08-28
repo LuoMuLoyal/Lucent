@@ -23,6 +23,7 @@ import {
   ProblemDetailsDto,
 } from '../../../common';
 import { unwrapResult } from '../../../common/result';
+import { AuditLogService } from '../../audit-log';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
@@ -41,6 +42,7 @@ export class SessionController {
   constructor(
     private readonly authService: AuthService,
     private readonly authTokenService: AuthTokenService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   // ── POST /api/v1/auth/logout ────────────────────────────────
@@ -122,8 +124,16 @@ export class SessionController {
   async revokeSession(
     @CurrentUser() user: UserPayload,
     @Param('sessionId') sessionId: string,
+    @Req() request: FastifyRequest,
   ) {
     await unwrapResult(this.authTokenService.revokeById(user.sub, sessionId));
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'session.revoke',
+      resourceType: 'session',
+      resourceId: sessionId,
+    });
     return;
   }
 
