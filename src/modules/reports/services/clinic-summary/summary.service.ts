@@ -73,11 +73,11 @@ export const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
  * time and `getSharedSummary` (the single public-read gate) reads it, so the
  * derivation MUST stay in one place — never re-derive it elsewhere.
  */
-export const SHARE_CACHE_KEY_PREFIX = 'clinic-share:';
+export const SHARE_CACHE_KEY_PREFIX = 'clinic-share:token';
 
 /** Cache key of the shared summary view for a plaintext share token. */
 export function sharedSummaryCacheKey(token: string): string {
-  return `${SHARE_CACHE_KEY_PREFIX}${createHash('sha256')
+  return `${SHARE_CACHE_KEY_PREFIX}:${createHash('sha256')
     .update(token)
     .digest('hex')}`;
 }
