@@ -113,8 +113,9 @@ Local Docker stack note:
 - **`pnpm start` / `pnpm start:dev`**: Development runtime with `NODE_ENV=development`
 - **`pnpm start:test:dev`**: Test runtime with `NODE_ENV=test` for full-stack lane support
 - **`pnpm start:prod`**: Built production runtime with `NODE_ENV=production`
-- **`pnpm test`**: Unit tests with `NODE_ENV=test`
-- **`pnpm test:ci`**: Unit tests in CI with `fileParallelism: false` (sequential execution)
+- **`pnpm test`**: Unit tests + eslint-plugins tests with `NODE_ENV=test`
+- **`pnpm test:ci`**: Unit tests + eslint-plugins tests in CI with `fileParallelism: false` (sequential execution)
+- **`pnpm test:eslint-plugins`**: Run eslint-plugins test suite (standalone vitest config)
 - **`pnpm test:e2e`**: E2E tests with Prisma 7 VM-module compatibility
 - **`pnpm test:e2e:ci`**: E2E tests in CI with `fileParallelism: false` (sequential execution)
 - **`pnpm export:openapi`**: Build then export `docs/openapi.json` from `dist`
