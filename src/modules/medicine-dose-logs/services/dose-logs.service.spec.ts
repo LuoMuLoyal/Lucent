@@ -637,7 +637,7 @@ describe('MedicineDoseLogsService', () => {
     });
   });
 
-  it('should create mark when currentMedicineId is provided without scheduledTime (temporary log)', async () => {
+  it('should create mark when currentMedicineId is provided without scheduledTime (temporary log without reminder)', async () => {
     repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u1' });
     repository.create.mockReturnValue(
       okAsync(
@@ -666,6 +666,39 @@ describe('MedicineDoseLogsService', () => {
         scheduledTime: null,
       }),
     );
+  });
+
+  it('should reject mark with RESOURCE_NOT_FOUND when reminder exists but currentMedicineId resolves to null', async () => {
+    // Covers the edge-case where a reminder is provided but the medicine
+    // lookup fails (findCurrentMedicineById returns null). This prevents the
+    // old `where == null` bug from regressing: `buildMarkLookupWhere` returns
+    // a non-null `where` (because reminderId is set), so the code should
+    // proceed past the `where == null && currentMedicineId == null` guard
+    // and surface the medicine-not-found failure instead.
+    repository.findReminderById.mockResolvedValue({
+      userId: 'u1',
+      currentMedicineId: 'medicine-1',
+      scheduledHour: 8,
+      scheduledMinute: 30,
+    });
+    repository.findCurrentMedicineById.mockResolvedValue(null);
+
+    const result = await collectResult(
+      service.mark('u1', {
+        currentMedicineId: 'medicine-1',
+        reminderId: 'reminder-1',
+        status: DoseLogStatus.taken,
+        scheduledFor: '2026-07-08',
+        scheduledTime: '08:30',
+      } as MarkDoseLogDto),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
+    });
+    expect(repository.findFirst).not.toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
   });
 
   it('should reject mark when the slot medicine does not match the reminder', async () => {
