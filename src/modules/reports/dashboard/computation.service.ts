@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { ObservedMetric } from '../../../common';
-import type { ReportMetricDto } from '../dto/report-dashboard-response.dto';
+import type {
+  ReportMetricDto,
+  ReportObservedMetricDto,
+  ReportTrendDto,
+} from '../dto/report-dashboard-response.dto';
 import type {
   MetricDirection,
   MetricStatus,
@@ -30,28 +34,37 @@ export class ReportsComputationService {
     const sleepMetric = this.buildSleepMetric(facts.sleepSeries);
     const metrics = [medicationMetric, waterMetric, sleepMetric];
 
+    const medicationTrend = this.buildTrend(
+      'medication',
+      '%',
+      medicationMetric.value,
+      facts.medicationSeries,
+      facts.observedMedicationSeries,
+      facts.startDate,
+      facts.endDate,
+    );
+    const waterTrend = this.buildTrend(
+      'water',
+      'L',
+      waterMetric.value,
+      waterSeries,
+      facts.observedWaterSeries,
+      facts.startDate,
+      facts.endDate,
+    );
+    const sleepTrend = this.buildTrend(
+      'sleep',
+      'h',
+      sleepMetric.value,
+      facts.sleepSeries,
+      facts.observedSleepSeries,
+      facts.startDate,
+      facts.endDate,
+    );
+
     return {
       metrics,
-      trends: [
-        {
-          kind: 'medication',
-          unit: '%',
-          currentValue: medicationMetric.value,
-          values: facts.medicationSeries,
-        },
-        {
-          kind: 'water',
-          unit: 'L',
-          currentValue: waterMetric.value,
-          values: waterSeries,
-        },
-        {
-          kind: 'sleep',
-          unit: 'h',
-          currentValue: sleepMetric.value,
-          values: facts.sleepSeries,
-        },
-      ],
+      trends: [medicationTrend, waterTrend, sleepTrend],
       findings: this.presenter.buildFindings(
         {
           range: facts.range,
@@ -221,6 +234,79 @@ export class ReportsComputationService {
       ),
       sparkline: series,
     };
+  }
+
+  /**
+   * Builds a trend DTO with observed-only values and an optional
+   * observedMetric summary.
+   *
+   * When `observedSeries` is available, values are extracted from observed
+   * days only (unknown days are omitted, not zero-filled). When it is not,
+   * the scalar series is used as-is (sleep fallback).
+   */
+  private buildTrend(
+    kind: 'medication' | 'water' | 'sleep',
+    unit: string,
+    currentValue: string,
+    scalarSeries: number[],
+    observedSeries?: ObservedMetric<number>[] | ObservedMedicationMetric[],
+    windowStart?: Date,
+    windowEnd?: Date,
+  ): ReportTrendDto {
+    if (observedSeries == null) {
+      // No sparse series — fall back to scalar (sleep path).
+      return { kind, unit, currentValue, values: scalarSeries };
+    }
+
+    const observedValues = observedSeries
+      .filter((m) => m.state === 'observed' && m.value != null)
+      .flatMap((m) => {
+        const v = m.value;
+        if (v == null) return [];
+        return [kind === 'water' ? Number((v / 1000).toFixed(2)) : v];
+      });
+
+    const observedCount = observedSeries.filter(
+      (m) => m.state === 'observed',
+    ).length;
+    const expectedCount = observedSeries.length;
+
+    const coverage =
+      observedCount === 0
+        ? 'none'
+        : observedCount === expectedCount
+          ? 'sufficient'
+          : 'partial';
+
+    const observedMetric: ReportObservedMetricDto = {
+      value:
+        observedValues.length > 0
+          ? observedValues.reduce((a, b) => a + b, 0) / observedValues.length
+          : null,
+      state: observedCount > 0 ? 'observed' : 'unknown',
+      coverage,
+      sources: this.trendSources(kind),
+      observedCount,
+      expectedCount,
+      windowStart: windowStart?.toISOString() ?? '',
+      windowEnd: windowEnd?.toISOString() ?? '',
+    };
+
+    return {
+      kind,
+      unit,
+      currentValue,
+      values: observedValues,
+      observedMetric,
+    };
+  }
+
+  private trendSources(
+    kind: 'medication' | 'water' | 'sleep',
+  ): Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'> {
+    if (kind === 'medication') return ['reminder_plan'];
+    if (kind === 'water') return ['manual'];
+    return ['manual'];
   }
 
   private compareDirection(

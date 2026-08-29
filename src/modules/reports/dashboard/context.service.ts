@@ -73,13 +73,16 @@ export class ReportsContextService {
       endDate,
       generatedAt: nowIsoString(),
       aiSummaryEnabled: settings.aiSummariesEnabled,
+      // Scalar series remain for metric sparkline and presenter
+      // (findings/patterns). Trend values are extracted from
+      // observedMedicationSeries in computation.service.ts to
+      // ensure unknown days are omitted, not zero-filled.
       medicationSeries: observedMedicationSeries.map((metric) =>
         metric.value == null ? 0 : metric.value,
       ),
       observedMedicationSeries,
-      // Keep the scalar series for the existing report response until the
-      // observed metric is promoted through the OpenAPI DTO. It is derived
-      // from the same canonical ml observations below.
+      // Scalar water series for metric sparkline and presenter.
+      // Trend values use observedWaterSeries directly (see computation).
       waterSeries: observedWaterSeries.map((metric) =>
         metric.value == null ? 0 : Number((metric.value / 1000).toFixed(2)),
       ),

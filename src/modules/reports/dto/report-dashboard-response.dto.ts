@@ -80,8 +80,15 @@ export class ReportTrendDto {
   @ApiProperty()
   currentValue!: string;
 
-  @ApiProperty({ type: [Number] })
+  @ApiProperty({
+    type: [Number],
+    description:
+      'Observed values only — unknown days are omitted, not zero-filled.',
+  })
   values!: number[];
+
+  @ApiPropertyOptional({ type: () => ReportObservedMetricDto })
+  observedMetric?: ReportObservedMetricDto;
 }
 
 export class ReportFindingDto {

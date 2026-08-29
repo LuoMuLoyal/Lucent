@@ -49,25 +49,34 @@ describe('ReportsComputationService', () => {
       expect(result.metrics[1]!.kind).toBe('water');
       expect(result.metrics[2]!.kind).toBe('sleep');
 
+      // Without observed series, trends fall back to scalar values.
       expect(result.trends).toHaveLength(3);
-      expect(result.trends[0]!).toEqual({
-        kind: 'medication',
-        unit: '%',
-        currentValue: expect.any(String),
-        values: facts.medicationSeries,
-      });
-      expect(result.trends[1]!).toEqual({
-        kind: 'water',
-        unit: 'L',
-        currentValue: expect.any(String),
-        values: facts.waterSeries,
-      });
-      expect(result.trends[2]!).toEqual({
-        kind: 'sleep',
-        unit: 'h',
-        currentValue: expect.any(String),
-        values: facts.sleepSeries,
-      });
+      expect(result.trends[0]!).toEqual(
+        expect.objectContaining({
+          kind: 'medication',
+          unit: '%',
+          currentValue: expect.any(String),
+          values: facts.medicationSeries,
+        }),
+      );
+      expect(result.trends[1]!).toEqual(
+        expect.objectContaining({
+          kind: 'water',
+          unit: 'L',
+          currentValue: expect.any(String),
+          values: facts.waterSeries,
+        }),
+      );
+      expect(result.trends[2]!).toEqual(
+        expect.objectContaining({
+          kind: 'sleep',
+          unit: 'h',
+          currentValue: expect.any(String),
+          values: facts.sleepSeries,
+        }),
+      );
+      // No observed series → no observedMetric on trends.
+      expect(result.trends[0]?.observedMetric).toBeUndefined();
 
       expect(presenter.buildFindings).toHaveBeenCalledWith(
         expect.objectContaining({ range: 'last_7_days' }),
@@ -124,9 +133,18 @@ describe('ReportsComputationService', () => {
       expect(
         result.metrics.find((metric) => metric.kind === 'water')?.sparkline,
       ).toEqual([0, 2]);
-      expect(
-        result.trends.find((trend) => trend.kind === 'water')?.values,
-      ).toEqual([0, 2]);
+      // Trend values should be observed-only (unknown days omitted).
+      const waterTrend = result.trends.find((trend) => trend.kind === 'water');
+      expect(waterTrend?.values).toEqual([0, 2]);
+      // Trend should carry an observedMetric summary.
+      expect(waterTrend?.observedMetric).toEqual(
+        expect.objectContaining({
+          observedCount: 2,
+          expectedCount: 3,
+          coverage: 'partial',
+          state: 'observed',
+        }),
+      );
       expect(presenter.buildFindings).toHaveBeenCalledWith(
         expect.objectContaining({ waterSeries: [0, 2] }),
         'en',

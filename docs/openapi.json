@@ -8641,10 +8641,14 @@
             "type": "string"
           },
           "values": {
+            "description": "Observed values only — unknown days are omitted, not zero-filled.",
             "type": "array",
             "items": {
               "type": "number"
             }
+          },
+          "observedMetric": {
+            "$ref": "#/components/schemas/ReportObservedMetricDto"
           }
         },
         "required": ["kind", "unit", "currentValue", "values"]
