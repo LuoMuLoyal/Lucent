@@ -26,6 +26,9 @@ COPY config ./config
 # 使用 pnpm prisma:generate 而非直接 prisma generate：prisma 7 的 prisma-client
 # provider 只生成 .ts 文件，prisma:generate 脚本会额外运行 fix-generated-prisma-internal.ts
 # 将 .ts 编译为 .js（运行时 dist/ 中的 require() 需要 .js 文件）
+# prisma.config.ts requires DATABASE_URL to load; the build stage doesn't
+# connect to a database, but prisma generate needs it for config validation.
+ENV DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?schema=public
 RUN pnpm prisma:generate
 # 编译 TypeScript（nest build 会根据 assets 配置复制 i18n JSON 到 dist/）
 RUN --mount=type=cache,id=swc,target=/root/.swc \

@@ -20,15 +20,18 @@ jobs:
     timeout-minutes: 10
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # prisma.config.ts requires DATABASE_URL to load; these jobs don't
+      # connect to a database, but the postinstall + prisma:generate steps
+      # need the variable to pass config validation.
+      DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.9.0
-          run_install: false
+        # version is read from package.json#packageManager (pnpm@12.0.0)
+        run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -70,15 +73,17 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       NODE_ENV: test
+      # prisma.config.ts requires DATABASE_URL to load; this job doesn't
+      # connect to a database, but postinstall + prisma:generate need it.
+      DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.9.0
-          run_install: false
+        # version is read from package.json#packageManager (pnpm@12.0.0)
+        run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -155,9 +160,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11.9.0
-          run_install: false
+        # version is read from package.json#packageManager (pnpm@12.0.0)
+        run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
