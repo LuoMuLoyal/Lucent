@@ -19,6 +19,10 @@ import { parse as acornParse } from 'acorn';
  *               └─ property: Identifier(bar)
  */
 function parseCallee(code: string): import('estree').Node {
+  // TODO(acorn9): `as unknown as import('estree').Program` is a type-system hack
+  // needed because acorn.Node and estree.Node are maintained by different teams.
+  // When upgrading to acorn 9.x (which plans to converge acorn-loose / estree
+  // into a single type), switch to @types/estree or acorn's own ParseResult type.
   const ast = acornParse(code, {
     ecmaVersion: 2024,
     sourceType: 'module',

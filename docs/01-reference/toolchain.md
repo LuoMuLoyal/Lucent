@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-28
+updated: 2026-08-29
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x` or `12.x`; CI and Corepack docs pin the
   recommended baseline to `12.0.0` (`11.9.0` also accepted).
@@ -132,3 +132,6 @@ Last updated: 2026-08-28
 - **迁移日志条目约定**（2026-08-14）：日志条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数），见 AGENTS.md。
 - **文档工具链加固**（2026-08-14）：模块豁免列表参数化并补单测（常量命名对齐 `EXEMPT_*_PATTERNS` 前缀）、冻结豁免抽 `withoutFrozenDocs` 助手、导出脚本改 `prettier.resolveConfig` 解析配置并以临时文件原子写盘。
 - **OpenAPI 导出自包含占位 secret**（2026-08-24）：`scripts/contract/export-openapi.ts` 在缺少环境变量时为 `BETTER_AUTH_SECRET`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`、`ADMIN_COOKIE_SECRET`、`ADMIN_EMAIL`、`ADMIN_PASSWORD`、`BETTER_AUTH_URL` 提供安全的导出专用占位值。导出仅用于内省控制器与 DTO，不启动 HTTP 服务或连接真实 infra，因此不再依赖本地 `.env.development` 包含全部 secret。
+- **acorn 版本范围收紧**（2026-08-29）：`package.json` 中 `acorn` devDependency 从 `^8.0.0` 收紧为
+  `^8.18.0`，与当前实际安装版本一致，避免 8.0.0 ~ 8.17.x 范围内引入回归。`eslint-plugins/error-handling.spec.ts`
+  中的 `as unknown as import('estree').Program` 类型断言已标注 `TODO(acorn9)`，待升级 acorn 9.x 时迁移到统一类型。
