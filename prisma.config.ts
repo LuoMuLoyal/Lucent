@@ -13,13 +13,23 @@ for (const envPath of getDotenvLoadOrder()) {
   });
 }
 
+const PLACEHOLDER_DATABASE_URL =
+  'postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?schema=public';
+
 const databaseUrl = process.env['DATABASE_URL'];
 if (!databaseUrl || databaseUrl.trim() === '') {
+  // eslint-disable-next-line error-handling/no-bare-throw-error -- prisma.config.ts runs outside NestJS DI; no DomainFailureException available
   throw new Error(
     'DATABASE_URL environment variable is required but not set. ' +
       'Please define it in your .env file (see docs/environment.md for reference).',
   );
 }
+
+// CI and Docker build stages use a placeholder DATABASE_URL so that
+// prisma.config.ts loads without a real DB connection. Short-circuit the
+// datasource URL here to avoid prisma trying to parse/validate the
+// placeholder as a real connection string.
+const isPlaceholder = databaseUrl === PLACEHOLDER_DATABASE_URL;
 
 export default defineConfig({
   schema: 'prisma/',
@@ -27,6 +37,6 @@ export default defineConfig({
     path: 'prisma/migrations',
   },
   datasource: {
-    url: databaseUrl,
+    url: isPlaceholder ? undefined : databaseUrl,
   },
 });
