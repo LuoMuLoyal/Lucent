@@ -4,6 +4,8 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import { errorHandlingPlugin } from './eslint-plugins/error-handling';
 
+const rootDir = __dirname;
+
 export default tseslint.config(
   {
     ignores: [
@@ -29,8 +31,8 @@ export default tseslint.config(
       },
       sourceType: 'commonjs',
       parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+        project: './tsconfig.typecheck.json',
+        tsconfigRootDir: rootDir,
       },
     },
   },
