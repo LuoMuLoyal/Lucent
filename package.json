@@ -146,7 +146,6 @@
   "devDependencies": {
     "@adminjs/fastify": "^4.2.0",
     "acorn": "^8.18.0",
-    "//acorn": "TODO(acorn9): upgrade to acorn 9.x and migrate type assertions in eslint-plugins/error-handling.spec.ts — see plans/2026-08-29-acorn9-migration.md",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@compodoc/compodoc": "^2.0.0",
