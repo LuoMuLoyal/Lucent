@@ -88,6 +88,19 @@ describe('ReportsComputationService', () => {
       );
     });
 
+    it('sleep trend does not carry observedMetric when observedSleepSeries is undefined', () => {
+      // Sleep path uses scalar fallback (no observedSleepSeries),
+      // so the trend should NOT include an observedMetric field —
+      // distinguishing it from medication/water which do carry one.
+      const facts = makeFacts(); // observedSleepSeries is undefined by default
+      const result = service.compute(facts, 'en');
+
+      const sleepTrend = result.trends.find((trend) => trend.kind === 'sleep');
+      expect(sleepTrend).toBeDefined();
+      expect(sleepTrend?.observedMetric).toBeUndefined();
+      expect(sleepTrend?.values).toEqual(facts.sleepSeries);
+    });
+
     it('uses observed water values for every user-visible water series', () => {
       const observedWaterSeries: ObservedMetric<number>[] = [
         {
