@@ -8,7 +8,7 @@ import { VerificationCodeService } from './verification-code.service';
 import { AuthTokenService } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
 import { PasswordReauthService } from './password-reauth.service';
-import { NotificationsService } from '../../../notifications';
+import { INotificationSender } from '../../../notifications';
 import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
 import { PrismaService } from '../../../../prisma';
 import type { NotificationListItemDto } from '../../../notifications';
@@ -128,7 +128,7 @@ describe('CredentialAuthService', () => {
   let authTokenService: vi.Mocked<AuthTokenService>;
   let authRateLimitService: vi.Mocked<AuthRateLimitService>;
   let passwordReauthService: vi.Mocked<PasswordReauthService>;
-  let notificationsService: vi.Mocked<NotificationsService>;
+  let notificationsService: vi.Mocked<INotificationSender>;
   let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
   let prisma: vi.Mocked<PrismaService>;
 
@@ -191,7 +191,7 @@ describe('CredentialAuthService', () => {
           },
         },
         {
-          provide: NotificationsService,
+          provide: INotificationSender,
           useValue: {
             create: vi.fn(),
           },
@@ -250,7 +250,7 @@ describe('CredentialAuthService', () => {
     authTokenService = module.get(AuthTokenService);
     authRateLimitService = module.get(AuthRateLimitService);
     passwordReauthService = module.get(PasswordReauthService);
-    notificationsService = module.get(NotificationsService);
+    notificationsService = module.get(INotificationSender);
     betterAuthAdapter = module.get(AuthBetterAuthAdapter);
     prisma = module.get(PrismaService);
 
