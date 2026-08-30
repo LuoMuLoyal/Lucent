@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
-import { NotificationsService } from '../../notifications';
+import { INotificationSender } from '../../notifications';
 import { ReportsService } from '../../reports';
 import { DataExportStorageService } from './storage.service';
 import { ReportExportPdfService } from './report-pdf/pdf.service';
@@ -32,7 +32,7 @@ export class DataExportProcessorService {
     private readonly reportsService: ReportsService,
     private readonly storageService: DataExportStorageService,
     private readonly reportExportPdfService: ReportExportPdfService,
-    private readonly notificationsService: NotificationsService,
+    private readonly notificationsService: INotificationSender,
   ) {}
 
   async process(input: DataExportProcessorInput): Promise<void> {

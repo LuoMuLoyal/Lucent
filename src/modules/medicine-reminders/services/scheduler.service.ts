@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../prisma';
-import { NotificationsService } from '../../notifications';
+import { INotificationSender } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
 import { now } from '../../../common';
 import { formatDateOnly } from '../../../common';
@@ -93,7 +93,7 @@ export class ReminderSchedulerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly notificationsService: INotificationSender,
     private readonly pushDeliveryService: PushDeliveryService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly i18n: I18nService,

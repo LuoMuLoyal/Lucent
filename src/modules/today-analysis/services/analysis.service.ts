@@ -19,7 +19,7 @@ import {
 import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import type { CreateNotificationDto } from '../../notifications';
 import { HistoricalAiSummaryService } from '../../assistant';
-import { NotificationsService, PushDeliveryService } from '../../notifications';
+import { INotificationSender, PushDeliveryService } from '../../notifications';
 import { PrismaService } from '../../../prisma';
 import { BaseLlmSummaryService } from '../../../common/llm/base-llm-summary.service';
 import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
@@ -72,7 +72,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     copyService: TodayAnalysisCopyService,
     generatorService: TodayAnalysisGeneratorService,
     policyService: LlmSafetyPolicyService,
-    private readonly notificationsService: NotificationsService,
+    private readonly notificationsService: INotificationSender,
     private readonly pushDeliveryService: PushDeliveryService,
     @Optional()
     private readonly materializationStore?: TodayAnalysisMaterializationStore,

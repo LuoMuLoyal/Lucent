@@ -5,9 +5,9 @@ import {
   formatDateOnlyInTimezone,
 } from '../../../common';
 import { PrismaService } from '../../../prisma';
-import { NotificationsService } from '../../notifications';
+import { INotificationSender } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
-import { ReportsAiSummaryService } from '../../reports';
+import { IReportSummaryReader } from '../../reports';
 import { NotificationPreferencesService } from './notification-preferences.service';
 
 const WEEKLY_INSIGHT_SOURCE = 'ai_weekly_insight';
@@ -20,8 +20,8 @@ export class WeeklyInsightSchedulerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly preferences: NotificationPreferencesService,
-    private readonly reports: ReportsAiSummaryService,
-    private readonly notifications: NotificationsService,
+    private readonly reports: IReportSummaryReader,
+    private readonly notifications: INotificationSender,
     private readonly pushDelivery: PushDeliveryService,
     private readonly i18n: I18nService,
   ) {}

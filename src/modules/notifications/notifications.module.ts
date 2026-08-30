@@ -7,12 +7,14 @@ import { NotificationsService } from './services/notifications.service';
 import { JpushPushProvider } from './services/jpush.provider';
 import { PushDeliveryService } from './services/push-delivery.service';
 import { NotificationsController } from './notifications.controller';
+import { INotificationSender } from './ports/notification-sender.port';
 
 @Module({
   imports: [PrismaModule],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
+    { provide: INotificationSender, useExisting: NotificationsService },
     {
       provide: JpushPushProvider,
       useFactory: (configService: ConfigService) =>
@@ -29,6 +31,6 @@ import { NotificationsController } from './notifications.controller';
       inject: [JpushPushProvider],
     },
   ],
-  exports: [NotificationsService, PushDeliveryService],
+  exports: [NotificationsService, PushDeliveryService, INotificationSender],
 })
 export class NotificationsModule {}

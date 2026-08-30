@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
-import { NotificationsService } from '../../../notifications';
+import { INotificationSender } from '../../../notifications';
 import { PushDeliveryService } from '../../../notifications';
 import { NotificationPreferencesService } from '../../../notification-preferences';
 import { now } from '../../../../common';
@@ -15,7 +15,7 @@ const ESCALATION_MIN_PRIORITY_SCORE = 700;
 
 /**
  * Determines whether a suggestion should be escalated to a push notification
- * and triggers the notification via NotificationsService.
+ * and triggers the notification via INotificationSender.
  *
  * Escalation conditions (all must be true):
  * 1. notificationEligible == true
@@ -32,7 +32,7 @@ export class EscalationService {
   private readonly logger = new Logger(EscalationService.name);
 
   constructor(
-    private readonly notificationsService: NotificationsService,
+    private readonly notificationsService: INotificationSender,
     private readonly pushDeliveryService: PushDeliveryService,
     private readonly prisma: PrismaService,
     private readonly notificationPreferencesService: NotificationPreferencesService,

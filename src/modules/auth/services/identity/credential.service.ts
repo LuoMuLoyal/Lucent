@@ -17,7 +17,7 @@ import { UserStatus } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma';
 import { UserService } from '../../../user';
 import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
-import { NotificationsService } from '../../../notifications';
+import { INotificationSender } from '../../../notifications';
 import { VerificationCodeService } from './verification-code.service';
 import { RegisterDto } from '../../dto/credentials/register.dto';
 import { LoginDto } from '../../dto/credentials/login.dto';
@@ -78,7 +78,7 @@ export class CredentialAuthService {
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
     private readonly passwordReauthService: PasswordReauthService,
-    private readonly notificationsService: NotificationsService,
+    private readonly notificationsService: INotificationSender,
     private readonly betterAuthAdapter: AuthBetterAuthAdapter,
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,

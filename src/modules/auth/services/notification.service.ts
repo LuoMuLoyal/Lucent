@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { NotificationsService } from '../../notifications';
+import { INotificationSender } from '../../notifications';
 import type { OAuthProfile } from '../types/oauth.types';
 
 @Injectable()
 export class AuthNotificationService {
   private readonly logger = new Logger(AuthNotificationService.name);
 
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly notificationsService: INotificationSender) {}
 
   async notifyOAuthLogin(userId: string, profile: OAuthProfile): Promise<void> {
     await this.createBestEffort(userId, {
@@ -38,7 +38,7 @@ export class AuthNotificationService {
    */
   private async createBestEffort(
     userId: string,
-    dto: Parameters<NotificationsService['create']>[1],
+    dto: Parameters<INotificationSender['create']>[1],
   ): Promise<void> {
     try {
       const result = await this.notificationsService.create(userId, dto);
