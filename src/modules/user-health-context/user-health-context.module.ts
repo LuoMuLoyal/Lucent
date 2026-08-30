@@ -17,6 +17,7 @@ import {
   UserHealthContextRepositoryPort,
   UserHealthContextRepository,
 } from './repositories/health-context.repository';
+import { IUserHealthContextReader } from './ports/health-context-reader.port';
 
 @Module({
   controllers: [UserHealthContextController],
@@ -33,7 +34,11 @@ import {
     UserHealthContextConditionWriteService,
     UserHealthContextMedicineWriteService,
     UserHealthContextService,
+    {
+      provide: IUserHealthContextReader,
+      useExisting: UserHealthContextService,
+    },
   ],
-  exports: [UserHealthContextService],
+  exports: [UserHealthContextService, IUserHealthContextReader],
 })
 export class UserHealthContextModule {}

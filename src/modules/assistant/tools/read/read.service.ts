@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
 import type { IMedicineReminderReader } from '../../types/ports';
 import { MEDICINE_REMINDER_READER } from '../../types/ports';
-import { UserHealthContextService } from '../../../user-health-context';
-import { UserSettingsService } from '../../../user-settings';
+import { IUserHealthContextReader } from '../../../user-health-context';
+import { IUserSettingsPort } from '../../../user-settings';
 import { HistoricalAiSummaryService } from '../../services/historical-ai-summary.service';
 import type {
   AssistantReadResultEnvelope,
@@ -37,10 +37,10 @@ export class AssistantToolReadService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
-    private readonly userHealthContextService: UserHealthContextService,
+    private readonly userHealthContextService: IUserHealthContextReader,
     @Inject(MEDICINE_REMINDER_READER)
     private readonly medicineRemindersService: IMedicineReminderReader,
-    private readonly userSettingsService: UserSettingsService,
+    private readonly userSettingsService: IUserSettingsPort,
     private readonly recordQueryService: AssistantToolRecordQueryService,
   ) {}
 
