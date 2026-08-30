@@ -2,6 +2,7 @@ import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import oxlint from 'eslint-plugin-oxlint';
 import { errorHandlingPlugin } from './eslint-plugins/error-handling';
 
 const rootDir = __dirname;
@@ -21,6 +22,11 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   eslintConfigPrettier,
+  // ── oxlint 增量迁移 ──
+  // oxlint 已经覆盖的规则在此关闭，ESLint 仅保留 error-handling 自定义规则
+  // 和 oxlint 尚不支持的 type-aware 规则。
+  // 当 oxlint 完全接管后可删除此配置及所有 @typescript-eslint 规则。
+  ...oxlint.configs['flat/recommended'],
   {
     plugins: {
       'error-handling': errorHandlingPlugin,
@@ -136,6 +142,7 @@ export default tseslint.config(
       'src/modules/product-events/services/events.service.ts',
       'src/modules/today-analysis/services/analysis.service.ts',
       'src/modules/today-suggestion/services/cache/suggestion-cache-invalidation.listener.ts',
+      'src/modules/reports/dashboard/dashboard.service.ts',
       'src/setup-app.ts',
     ],
     rules: {

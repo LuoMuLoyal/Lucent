@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-29
+updated: 2026-08-30
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x` or `12.x`; CI and Corepack docs pin the
   recommended baseline to `12.0.0` (`11.9.0` also accepted).
@@ -58,6 +58,16 @@ Last updated: 2026-08-29
   providers in their in-memory/disabled modes.
 - ESLint uses `eslint-config-prettier` (not `eslint-plugin-prettier`) — Prettier formatting is
   enforced by the standalone `pnpm format:check` command and `lint-staged` in pre-commit.
+- oxlint 增量迁移（2026-08-30）：oxlint 作为快速一层 lint 先行运行（`pnpm lint:oxlint`），
+  覆盖 `typescript-eslint` strictTypeChecked 中的类型感知规则、ESLint `recommended` 基线规则，
+  以及 ESLint 未覆盖的额外规则（`eqeqeq`、`prefer-const`、`no-misused-promises`、
+  `switch-exhaustiveness-check`、`prefer-nullish-coalescing`、unicorn 系列 modern-API 规则等）。
+  `eslint-plugin-oxlint` 关闭 ESLint 中重叠的规则，ESLint 退为二层残留 lint（`pnpm lint:eslint`），
+  仅保留自定义 `error-handling/no-bare-throw-error` 和 `error-handling/no-silent-catch` 规则。
+  `lint-staged` 和 `pnpm check` 均按 oxlint → ESLint → Prettier 顺序执行。
+  `consistent-type-imports` 规则暂由 ESLint 独占（oxlint 不支持 `inline-type-imports` fixStyle）。
+  零违规规则设为 `error`（阻断 CI），有少量违规的规则设为 `warn`（渐进清理，不阻断）。
+  `lint:oxlint` 不使用 `--deny-warnings`，warning 修复后逐条升级为 `error`。
 - CI caches the `.swc` directory across runs via `actions/cache`.
 - `cancel-in-progress` is enabled for PR events (disabled for push events).
 - `.swcrc` target is `es2023`, aligned with `tsconfig.json`.

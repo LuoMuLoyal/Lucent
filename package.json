@@ -14,14 +14,18 @@
     "pnpm": ">=11 <13"
   },
   "scripts": {
-    "check": "pnpm lint:check && pnpm format:check && pnpm typecheck && pnpm typecheck:tools && pnpm build && pnpm test:ci && pnpm test:e2e:ci",
+    "check": "pnpm lint:oxlint && pnpm lint:eslint && pnpm format:check && pnpm typecheck && pnpm typecheck:tools && pnpm build && pnpm test:ci && pnpm test:e2e:ci",
     "prepare": "simple-git-hooks",
     "postinstall": "pnpm prisma:generate",
     "build": "nest build",
     "typecheck": "pnpm exec tsc -p tsconfig.typecheck.json --noEmit",
     "typecheck:tools": "pnpm exec tsc -p scripts/tsconfig.json --noEmit && pnpm exec tsc -p deploy/tsconfig.json --noEmit",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --fix",
-    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --max-warnings=0",
+    "lint": "oxlint --fix && eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --fix",
+    "lint:check": "oxlint && eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --max-warnings=0",
+    "lint:oxlint": "oxlint",
+    "lint:oxlint:fix": "oxlint --fix",
+    "lint:eslint": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --max-warnings=0",
+    "lint:eslint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" \"deploy/**/*.ts\" \"*.{ts,json,yml,yaml,md}\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" \"deploy/**/*.ts\" \"*.{ts,json,yml,yaml,md}\"",
     "start": "cross-env NODE_ENV=development nest start",
@@ -145,7 +149,6 @@
   },
   "devDependencies": {
     "@adminjs/fastify": "^4.2.0",
-    "acorn": "^8.18.0",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@compodoc/compodoc": "^2.0.0",
@@ -166,12 +169,15 @@
     "@types/qrcode": "^1.5.6",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.10",
+    "acorn": "^8.18.0",
     "cross-env": "^10.1.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-oxlint": "^1.80.0",
     "globals": "^17.0.0",
     "jiti": "^2.7.0",
     "lint-staged": "^17.0.5",
+    "oxlint": "^1.80.0",
     "prettier": "^3.4.2",
     "simple-git-hooks": "^2.13.1",
     "source-map-support": "^0.5.21",
@@ -188,6 +194,7 @@
   },
   "lint-staged": {
     "*.ts": [
+      "oxlint --fix --no-error-on-unmatched-pattern",
       "eslint --fix --no-warn-ignored",
       "prettier --write"
     ],
