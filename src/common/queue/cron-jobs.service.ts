@@ -1,13 +1,19 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { BullmqQueueFactory } from './queue.factory';
-import { DataRetentionService } from '../../modules/data-retention/services/data-retention.service';
-import { DATA_RETENTION_CRON } from '../../modules/data-retention/services/data-retention.service';
-import { LifecycleService } from '../../modules/today-suggestion/services/lifecycle/manager.service';
-import { LIFECYCLE_REFRESH_CRON } from '../../modules/today-suggestion/constants/lifecycle.constants';
-import { ReminderSchedulerService } from '../../modules/medicine-reminders/services/scheduler.service';
-import { REMINDER_SCHEDULER_CRON } from '../../modules/medicine-reminders/services/scheduler.service';
-import { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/services/weekly-insight-scheduler.service';
+import {
+  DataRetentionService,
+  DATA_RETENTION_CRON,
+} from '../../modules/data-retention';
+import {
+  LifecycleService,
+  LIFECYCLE_REFRESH_CRON,
+} from '../../modules/today-suggestion';
+import {
+  ReminderSchedulerService,
+  REMINDER_SCHEDULER_CRON,
+} from '../../modules/medicine-reminders';
+import { WeeklyInsightSchedulerService } from '../../modules/notification-preferences';
 
 /** BullMQ queue name for low-frequency cron jobs (lifecycle + data-retention). */
 export const CRON_QUEUE_NAME = 'lucent-cron';

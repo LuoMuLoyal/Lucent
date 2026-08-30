@@ -7,6 +7,12 @@ import {
   UserDevicePlatform,
 } from '#generated/prisma/client';
 import type { PrismaService } from '../../../prisma';
+// Deep imports into today-suggestion/services/rules/* are intentional:
+// the test verifies that the product-events rule-code allowlist stays in
+// sync with the actual rule registry. These rule services are internal
+// implementation details of the today-suggestion module and should NOT be
+// exported via its barrel — the spec directly instantiates them to read
+// their ruleId, which is the contract under test.
 import { CaffeineSleepRuleService } from '../../today-suggestion/services/rules/sleep/caffeine-sleep.service';
 import { MoodSleepRuleService } from '../../today-suggestion/services/rules/sleep/mood-sleep.service';
 import { SleepShortfallRuleService } from '../../today-suggestion/services/rules/sleep/sleep-shortfall.service';

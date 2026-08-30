@@ -35,7 +35,7 @@ import type {
 import { EventReviewService } from '../event-review/review.service';
 import { ClinicSummaryPdfService } from './pdf.service';
 import { ProductEventsService } from '../../../product-events';
-import type { DailyRecordFact } from '../../../daily-records/repositories/daily-record.repository';
+import type { DailyRecordFact } from '../../../daily-records';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,

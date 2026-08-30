@@ -10,8 +10,10 @@ import {
 import { DomainFailureException } from '../../../common/result/domain-failure.exception';
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordsService } from '../../daily-records';
-import type { CreateDailyRecordDto } from '../../daily-records/dto/create-record.dto';
-import type { UpdateDailyRecordDto } from '../../daily-records/dto/update-record.dto';
+import type {
+  CreateDailyRecordDto,
+  UpdateDailyRecordDto,
+} from '../../daily-records';
 import type { AssistantCapabilitiesDataDto } from '../dto/capabilities-response.dto';
 
 import type { AssistantConversationDataDto } from '../dto/conversation-response.dto';

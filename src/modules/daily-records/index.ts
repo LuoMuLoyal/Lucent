@@ -7,3 +7,5 @@ export { DailyRecordReaderPort } from './repositories/daily-record.repository';
 export { DailyRecordsService } from './services/records.service';
 export type { MealAnalysisStatus } from './types/meal-analysis.types';
 export { parseMealRecordPayload } from './types/meal-analysis.types';
+export type { CreateDailyRecordDto } from './dto/create-record.dto';
+export type { UpdateDailyRecordDto } from './dto/update-record.dto';

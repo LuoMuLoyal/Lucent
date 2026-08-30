@@ -32,6 +32,8 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
+- [`2026-08-30-module-boundary-hygiene-audit.md`](2026-08-30-module-boundary-hygiene-audit.md)
+  — 模块边界卫生审计与修复 + 微服务式管理实践：补全 index.ts 导出，修复 6 处跨模块深引用，推广 port 接口隔离（`INotificationSender`/`IUserSettingsReader` 等，约 15 处直接注入改 port），事件契约文档化（6 事件 × 21 监听器），可选补 3 个复杂模块 README
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
   — 药品风险检查图数据结构引入：Phase 1 关系化 JSONB（PG18），Phase 2 SQL/PGQ 图查询（PG19 GA 后）
 - [`2026-08-24-config-yaml-migration-plan.md`](2026-08-24-config-yaml-migration-plan.md)

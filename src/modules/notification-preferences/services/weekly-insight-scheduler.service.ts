@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../../prisma';
 import { NotificationsService } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
-import { ReportsAiSummaryService } from '../../reports/services/ai-summary/summary.service';
+import { ReportsAiSummaryService } from '../../reports';
 import { NotificationPreferencesService } from './notification-preferences.service';
 
 const WEEKLY_INSIGHT_SOURCE = 'ai_weekly_insight';

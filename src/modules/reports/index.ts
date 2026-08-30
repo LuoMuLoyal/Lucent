@@ -10,3 +10,4 @@ export {
 } from './dto/report-dashboard-query.dto';
 export { ReportsService } from './dashboard/dashboard.service';
 export { EventReviewService } from './services/event-review/review.service';
+export { ReportsAiSummaryService } from './services/ai-summary/summary.service';

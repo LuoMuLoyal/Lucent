@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
 import type { BullmqQueueFactory } from './queue.factory';
-import type { DataRetentionService } from '../../modules/data-retention/services/data-retention.service';
-import type { LifecycleService } from '../../modules/today-suggestion/services/lifecycle/manager.service';
-import type { ReminderSchedulerService } from '../../modules/medicine-reminders/services/scheduler.service';
-import type { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/services/weekly-insight-scheduler.service';
+import type { DataRetentionService } from '../../modules/data-retention';
+import type { LifecycleService } from '../../modules/today-suggestion';
+import type { ReminderSchedulerService } from '../../modules/medicine-reminders';
+import type { WeeklyInsightSchedulerService } from '../../modules/notification-preferences';
 import {
   CronJobsService,
   CRON_QUEUE_NAME,
