@@ -12,9 +12,6 @@ concurrency:
 # ── Reusable snippet: setup pnpm + Node + install ──────────────────
 # Defined as a composite action inline via anchors (GitHub Actions does not
 # support YAML anchors natively, so each job repeats the setup steps).
-# TODO(S-9): pnpm/action-setup@v4 reads version from package.json#packageManager.
-# If packageManager is ever removed, CI will fail with an unclear error.
-# Consider adding a guard step or explicit corepack activation.
 
 jobs:
   ci-lint-typecheck:
