@@ -11,3 +11,4 @@ export {
 export { ReportsService } from './dashboard/dashboard.service';
 export { EventReviewService } from './services/event-review/review.service';
 export { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+export { IReportSummaryReader } from './ports/report-summary-reader.port';

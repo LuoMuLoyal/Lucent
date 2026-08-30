@@ -37,6 +37,7 @@ import { EventReviewChangesService } from './services/event-review/changes.servi
 import { EventReviewActionsService } from './services/event-review/actions.service';
 import { EventReviewNextStepService } from './services/event-review/next-step.service';
 import { ReportsController } from './reports.controller';
+import { IReportSummaryReader } from './ports/report-summary-reader.port';
 
 @Module({
   imports: [
@@ -71,7 +72,13 @@ import { ReportsController } from './reports.controller';
     EventReviewActionsService,
     EventReviewNextStepService,
     ReportsCacheInvalidationListener,
+    { provide: IReportSummaryReader, useExisting: ReportsAiSummaryService },
   ],
-  exports: [ReportsService, ReportsAiSummaryService, EventReviewService],
+  exports: [
+    ReportsService,
+    ReportsAiSummaryService,
+    EventReviewService,
+    IReportSummaryReader,
+  ],
 })
 export class ReportsModule {}
