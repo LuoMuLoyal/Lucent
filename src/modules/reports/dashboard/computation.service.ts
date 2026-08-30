@@ -14,6 +14,17 @@ import type {
 } from './metrics.types';
 import { ReportsPresenterService } from './presenter.service';
 
+type TrendKind = 'medication' | 'water' | 'sleep';
+type TrendSource = 'manual' | 'health_platform' | 'reminder_plan' | 'derived';
+type Coverage = 'sufficient' | 'partial' | 'none';
+
+/** Trend data-source mapping per metric kind, table-driven for testability. */
+const TREND_SOURCES: Record<TrendKind, TrendSource[]> = {
+  medication: ['reminder_plan'],
+  water: ['manual'],
+  sleep: ['manual'],
+};
+
 @Injectable()
 export class ReportsComputationService {
   constructor(private readonly presenter: ReportsPresenterService) {}
@@ -245,38 +256,32 @@ export class ReportsComputationService {
    * the scalar series is used as-is (sleep fallback).
    */
   private buildTrend(
-    kind: 'medication' | 'water' | 'sleep',
+    kind: TrendKind,
     unit: string,
     currentValue: string,
     scalarSeries: number[],
-    observedSeries?: ObservedMetric<number>[] | ObservedMedicationMetric[],
-    windowStart?: Date,
-    windowEnd?: Date,
+    observedSeries:
+      | ObservedMetric<number>[]
+      | ObservedMedicationMetric[]
+      | undefined,
+    windowStart: Date,
+    windowEnd: Date,
   ): ReportTrendDto {
     if (observedSeries == null) {
       // No sparse series — fall back to scalar (sleep path).
       return { kind, unit, currentValue, values: scalarSeries };
     }
 
-    const observedValues = observedSeries
-      .filter((m) => m.state === 'observed' && m.value != null)
-      .flatMap((m) => {
-        const v = m.value;
-        if (v == null) return [];
-        return [kind === 'water' ? Number((v / 1000).toFixed(2)) : v];
-      });
+    const observedValues = observedSeries.flatMap((m) => {
+      if (m.state !== 'observed' || m.value == null) return [];
+      const v = m.value; // narrowed to number
+      return [kind === 'water' ? Number((v / 1000).toFixed(2)) : v];
+    });
 
     const observedCount = observedSeries.filter(
       (m) => m.state === 'observed',
     ).length;
     const expectedCount = observedSeries.length;
-
-    const coverage =
-      observedCount === 0
-        ? 'none'
-        : observedCount === expectedCount
-          ? 'sufficient'
-          : 'partial';
 
     const observedMetric: ReportObservedMetricDto = {
       value:
@@ -284,12 +289,12 @@ export class ReportsComputationService {
           ? observedValues.reduce((a, b) => a + b, 0) / observedValues.length
           : null,
       state: observedCount > 0 ? 'observed' : 'unknown',
-      coverage,
-      sources: this.trendSources(kind),
+      coverage: this.classifyCoverage(observedCount, expectedCount),
+      sources: TREND_SOURCES[kind],
       observedCount,
       expectedCount,
-      windowStart: windowStart?.toISOString() ?? '',
-      windowEnd: windowEnd?.toISOString() ?? '',
+      windowStart: windowStart.toISOString(),
+      windowEnd: windowEnd.toISOString(),
     };
 
     return {
@@ -301,12 +306,10 @@ export class ReportsComputationService {
     };
   }
 
-  private trendSources(
-    kind: 'medication' | 'water' | 'sleep',
-  ): Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'> {
-    if (kind === 'medication') return ['reminder_plan'];
-    if (kind === 'water') return ['manual'];
-    return ['manual'];
+  private classifyCoverage(observed: number, expected: number): Coverage {
+    if (observed === 0) return 'none';
+    if (observed === expected) return 'sufficient';
+    return 'partial';
   }
 
   private compareDirection(
