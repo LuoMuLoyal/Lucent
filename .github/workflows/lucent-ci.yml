@@ -12,6 +12,9 @@ concurrency:
 # ── Reusable snippet: setup pnpm + Node + install ──────────────────
 # Defined as a composite action inline via anchors (GitHub Actions does not
 # support YAML anchors natively, so each job repeats the setup steps).
+# TODO(S-9): pnpm/action-setup@v4 reads version from package.json#packageManager.
+# If packageManager is ever removed, CI will fail with an unclear error.
+# Consider adding a guard step or explicit corepack activation.
 
 jobs:
   ci-lint-typecheck:
@@ -31,7 +34,8 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         # version is read from package.json#packageManager (pnpm@12.0.0)
-        run_install: false
+        with:
+          run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -83,7 +87,8 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         # version is read from package.json#packageManager (pnpm@12.0.0)
-        run_install: false
+        with:
+          run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -161,7 +166,8 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         # version is read from package.json#packageManager (pnpm@12.0.0)
-        run_install: false
+        with:
+          run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
