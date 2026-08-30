@@ -190,12 +190,16 @@ internal `repositories/` for cleanliness.
 ## Domain Event Notifications
 
 `src/common/events/domain-events.ts` defines the typed event-name union and minimal
-payloads used for cross-module invalidation and recomputation. The health-event owner
-publishes `health-event.changed` only after a successful repository transaction for
-event creation, event ending, or daily check-in. Its payload contains only `userId`,
-`eventId`, the user's local `date`, and a fixed `change` value (`create`, `end`, or
-`check-in`); it never carries health-content payloads. Subscribers must treat these
-notifications as post-write triggers and must not mutate the source event state.
+payloads used for cross-module invalidation and recomputation. The complete event
+catalog — including all 7 event names, payload structures, publisher modules, subscriber
+lists, and subscriber behaviors — is documented in [[01-reference/event-catalog]].
+
+The health-event owner publishes `health-event.changed` only after a successful
+repository transaction for event creation, event ending, or daily check-in. Its
+payload contains only `userId`, `eventId`, the user's local `date`, and a fixed
+`change` value (`create`, `end`, or `check-in`); it never carries health-content
+payloads. Subscribers must treat these notifications as post-write triggers and must
+not mutate the source event state.
 
 `TodayAnalysisTriggerListener` consumes the same post-write events plus dose-log and
 suggestion-materialization changes. It only schedules symptom records, symptom check-ins,

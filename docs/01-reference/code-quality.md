@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-25
+updated: 2026-08-30
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-25
+Last updated: 2026-08-30
 
 - HTTP errors use the single `ApiExceptionFilter` Problem Details boundary: JSON errors are
   `application/problem+json`, stable string `code` values, and never expose `statusCode`,
@@ -86,6 +86,9 @@ Last updated: 2026-08-25
     `report-pdf.theme.ts` moved to `data-export/utils/`.
   - `user-settings/config/user-settings.constants.ts` moved to `user-settings/constants/`.
   - `architecture.md` directory example updated to match the whitelist.
+- Domain event contracts are documented in `docs/01-reference/event-catalog.md`
+  (7 events, all publishers/subscribers/payloads). `doc-map.yaml` routes relevant
+  code areas to this document so event infrastructure changes prompt a sync.
 
 - Prisma-generated client moved out of `src/` to root-level `generated/prisma`.
   - Introduced Node.js subpath import `#generated/*` with synchronized TS/SWC/Vitest configuration.

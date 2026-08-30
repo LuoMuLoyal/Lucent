@@ -164,65 +164,6 @@ Lucent 是 NestJS monolith，不拆独立 package，但可以借鉴其 **barrel 
 
 ## 三、修复计划
 
-### Phase 3: 推广 Port 接口隔离（"微服务式管理"核心）
-
-将 `assistant` 模块已有的 port 接口模式推广到其他"顶层聚合"模块。目标：跨模块 DI 注入从"具体 service class"改为"port 接口"。
-
-#### 3a. 定义跨模块 port 接口
-
-需要为以下高频被注入的 service 定义 reader port 接口（只暴露读取方法，不暴露写入方法）：
-
-- [ ] 3.1 `notifications` — 定义 `INotificationSender` port（暴露 `send()` / `sendBatch()` 等发送方法）
-  - 当前直接注入方：`today-suggestion`, `today-analysis`, `auth`, `medicine-reminders`, `data-export`
-- [ ] 3.2 `user-settings` — 定义 `IUserSettingsReader` port（暴露 `get()` / `getMany()` 等读取方法）
-  - 当前直接注入方：`today-suggestion`, `reports`, `assistant`
-- [ ] 3.3 `daily-records` — 已有 `DailyRecordReaderPort` ✓，确认 `assistant/core.service.ts` 是否通过 port 注入；如果不是，改为通过 port
-- [ ] 3.4 `user-health-context` — 定义 `IUserHealthContextReader` port（暴露 `getSnapshot()` 等读取方法）
-  - 当前直接注入方：`assistant/read.service.ts`
-- [ ] 3.5 `reports` — 定义 `IReportReader` port（暴露 `getClinicSummary()` / `getAiSummary()` 等读取方法）
-  - 当前直接注入方：`notification-preferences`, `data-export`
-- [ ] 3.6 `user` — 已有 `AuthAccountRepositoryPort` ✓，确认 `auth` 模块是否通过 port 注入
-
-#### 3b. 在 `index.ts` 中导出 port 接口
-
-- [ ] 3.7 各模块的 `index.ts` 导出对应 port 接口（不导出具体 service 实现类）
-- [ ] 3.8 各模块的 `*.module.ts` 中将 port 接口注册为 provider（`{ provide: INotificationSender, useExisting: NotificationsService }`）
-
-#### 3c. 改造消费方注入
-
-- [ ] 3.9 `today-suggestion/services/notification/escalation.service.ts` — `NotificationsService` → `INotificationSender`
-- [ ] 3.10 `today-suggestion/services/collectors/record.service.ts` — `UserSettingsService` → `IUserSettingsReader`
-- [ ] 3.11 `today-analysis/services/analysis.service.ts` — `NotificationsService` → `INotificationSender`
-- [ ] 3.12 `reports/services/dashboard/context.service.ts` — `UserSettingsService` → `IUserSettingsReader`
-- [ ] 3.13 `data-export/services/processor.service.ts` — `ReportsService` → `IReportReader`，`NotificationsService` → `INotificationSender`
-- [ ] 3.14 `auth/services/notification.service.ts` — `NotificationsService` → `INotificationSender`
-- [ ] 3.15 `auth/services/credential.service.ts` — `NotificationsService` → `INotificationSender`
-- [ ] 3.16 `medicine-reminders/services/scheduler.service.ts` — `NotificationsService` → `INotificationSender`
-- [ ] 3.17 `assistant/services/core.service.ts` — `UserSettingsService` → `IUserSettingsReader`，`DailyRecordsService` → `DailyRecordReaderPort`
-- [ ] 3.18 `assistant/services/read/read.service.ts` — `UserHealthContextService` → `IUserHealthContextReader`，`UserSettingsService` → `IUserSettingsReader`
-- [ ] 3.19 `pnpm lint:check` + `pnpm typecheck` + `pnpm test:ci` 验证
-
-#### 3d. 保留直接注入的场景
-
-以下场景**保留直接注入具体 service**，不改为 port 接口：
-
-- `auth` → `UserService`：`UserService` 同时承担读写且 auth 是 account 管理的协作者，port 化收益低
-- `data-export` → `ReportsService`：data-export 是横切工具不是核心聚合层，且只调用 report 生成方法
-- 聚合层内部跨子 service 调用（如 `today-suggestion/services/` 内部的子 service 互调）：模块内部不需要 port 隔离
-
-### Phase 4: 事件契约文档化
-
-- [ ] 4.1 创建 `docs/01-reference/event-catalog.md`，记录 6 个事件的完整契约
-- [ ] 4.2 每个事件记录：发布者模块、发布触发条件、payload 结构、监听者列表、监听者行为（缓存失效 / 重算 / 通知）
-- [ ] 4.3 在 `docs/01-reference/` 目录注册该文档
-- [ ] 4.4 `pnpm docs:check` 验证
-
-### Phase 5: 模块 README（可选，P2 优先级）
-
-- [ ] 5.1 为 `today-suggestion` 模块补 README — 最复杂模块，记录职责、子服务依赖图、规则引擎设计
-- [ ] 5.2 为 `assistant` 模块补 README — AI 工具链，记录 agent runtime、tool 注册、LLM 适配、port 接口设计
-- [ ] 5.3 为 `auth` 模块补 README — OAuth + JWT + 多策略，记录认证流程图
-
 ## 四、不建议做的
 
 - **不拆独立 package**：NestJS DI 容器假设模块在同一编译单元，拆 package 会引入大量 `peerDependencies` 管理负担，收益极低
@@ -234,21 +175,17 @@ Lucent 是 NestJS monolith，不拆独立 package，但可以借鉴其 **barrel 
 
 ## 五、风险与注意事项
 
-1. **Phase 1 是纯增量**：只在 `index.ts` 中添加 export，不删除现有导出，不改调用方，零破坏性。
+1. **`product-events` spec 深引用**：7 处对 `today-suggestion/services/rules/` 的深引用可能是有意设计（rule service 的副作用测试），不要强行改走 barrel——先评估再决定。
 
-2. **Phase 2 修改 import 路径**：需要确保 `index.ts` 已先导出对应符号（Phase 1 先做）。
-
-3. **`product-events` spec 深引用**：7 处对 `today-suggestion/services/rules/` 的深引用可能是有意设计（rule service 的副作用测试），不要强行改走 barrel——先评估再决定。
-
-4. **Phase 3 的 port 接口设计原则**：
+1. **Port 接口设计原则**：
    - 只为**高频被跨模块注入的 service** 定义 port（`NotificationsService` 5 处、`UserSettingsService` 3 处）
    - port 接口只暴露**消费方实际调用的方法子集**，不是完整 service API 的镜像
    - port 命名用 `I*Reader` / `I*Sender` 等行为语义，不用 `I*Service`
    - 通过 `{ provide: IXxx, useExisting: XxxService }` 注册，零运行时开销
 
-5. **Phase 3 的渐进迁移策略**：不要求一次性改造全部 ~15 处直接注入。先定义 port 接口并注册 provider（3a-3b），然后按 feature 渐进迁移消费方（3c）。新代码强制走 port，旧代码在自然接触时迁移。
+1. **渐进迁移策略**：新代码强制走 port，旧代码在自然接触时迁移。
 
-6. **Phase 4 的事件契约文档**：如果未来某个事件需要拆为跨进程消息（如 BullMQ 事件），该文档就是迁移契约的起点。
+1. **Phase 4 的事件契约文档**：如果未来某个事件需要拆为跨进程消息（如 BullMQ 事件），该文档就是迁移契约的起点。
 
 ## 六、迁移路径：从单体到微服务
 

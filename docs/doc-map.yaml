@@ -71,6 +71,7 @@ rules:
     docs_any_of:
       - docs/01-reference/architecture.md
       - docs/01-reference/code-quality.md
+      - docs/01-reference/event-catalog.md
 
   # ──────────────────────────────────────────────
   # 认证与安全（auth、security-pin、account）
@@ -107,6 +108,7 @@ rules:
       - docs/02-logs/migration-log/*.md
     docs_any_of:
       - docs/01-reference/contracts/mine-settings-contract.md
+      - docs/01-reference/event-catalog.md
 
   # ──────────────────────────────────────────────
   # 健康事件合同
@@ -118,6 +120,7 @@ rules:
       - docs/02-logs/migration-log/*.md
     docs_any_of:
       - docs/00-current/Active_Product_Loop.md
+      - docs/01-reference/event-catalog.md
 
   # ──────────────────────────────────────────────
   # 日常记录与餐食分析
@@ -127,6 +130,8 @@ rules:
       - src/modules/daily-records/**
     docs_required:
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/event-catalog.md
 
   # ──────────────────────────────────────────────
   # 药品域（medicines、dose-logs、reminders）
@@ -140,6 +145,7 @@ rules:
       - docs/02-logs/migration-log/*.md
     docs_any_of:
       - docs/01-reference/contracts/reminder-contract.md
+      - docs/01-reference/event-catalog.md
 
   # ──────────────────────────────────────────────
   # Assistant AI 管道
@@ -168,6 +174,8 @@ rules:
       - src/modules/today-suggestion/**
     docs_required:
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/event-catalog.md
 
   # ──────────────────────────────────────────────
   # 报告与导出
@@ -181,6 +189,7 @@ rules:
     docs_any_of:
       - docs/01-reference/contracts/data-export-contract.md
       - docs/01-reference/data-retention.md
+      - docs/01-reference/event-catalog.md
 
   # ──────────────────────────────────────────────
   # 产品事件测量（product-events）
