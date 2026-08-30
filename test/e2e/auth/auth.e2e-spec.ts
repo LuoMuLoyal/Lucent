@@ -3,7 +3,7 @@ import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
 
-import { DEFAULT_VERIFICATION_RATE_LIMIT_MAX } from '../../../src/config/constants';
+import { DEFAULT_VERIFICATION_RATE_LIMIT_MAX } from '../../../src/config/app-defaults.constants';
 import {
   createTestApp,
   cleanupDatabase,

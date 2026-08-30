@@ -7,7 +7,7 @@ import {
   DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT,
   DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS,
   DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY,
-} from '../constants';
+} from '../app-defaults.constants';
 import { mailConfig } from './mail.config';
 
 describe('mailConfig', () => {

@@ -1,6 +1,6 @@
 import { SystemMessage } from '@langchain/core/messages';
 import type { HumanMessage } from '@langchain/core/messages';
-import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service';
 import type { LlmRuntimeService } from '../../../../llm-runtime';
 import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
 
@@ -118,7 +118,7 @@ describe('MealAnalysisVisionService', () => {
         mealDescription: '<script>alert("xss")</script>一份米饭',
         foodItems: [
           {
-            name: '鸡\x00肉',
+            name: '鸡\u0000肉',
             confidence: 0.8,
             portionText: '<b>一份</b>',
           },

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma';
-import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service';
 import { extractErrorInfo } from '../../../../common';
 import { resolveLocale } from '../../../../common';
 import { createDomainFailure, fromPromise } from '../../../../common/result';

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { BaseLlmGeneratorService } from '../../../../common/llm/base-llm-generator.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
 import { LlmRuntimeService } from '../../../../llm-runtime';
 import { MetricsService } from '../../../../common/metrics/metrics.service';
 import {

@@ -2,7 +2,7 @@ import { EnvKey } from '../env/env-keys.enum';
 import {
   DEFAULT_COS_MAX_UPLOAD_BYTES,
   DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-} from '../constants';
+} from '../app-defaults.constants';
 import { s3StorageConfig } from './s3-storage.config';
 
 describe('s3StorageConfig', () => {

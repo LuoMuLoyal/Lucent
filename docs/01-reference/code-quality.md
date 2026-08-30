@@ -27,7 +27,7 @@ Last updated: 2026-08-30
   `fetchWithRetry`); QQ and Apple OAuth providers share the same retry semantics.
 - Public exports across `setup-app.ts`, `app.module.ts`, `adminjs.setup.ts`, `api-envelope.ts`,
   filters/interceptors, and `config/` now have JSDoc descriptions.
-- COS and embedding defaults/limits are centralized in `src/config/constants.ts`; both
+- COS and embedding defaults/limits are centralized in `src/config/app-defaults.constants.ts`; both
   `tencent-cos.config.ts` and `environment.validation.ts` reference the same constants.
 - Repeated test literals in `environment.validation.spec.ts` (DB URLs, admin credentials) and
   hard-coded ports/codes in `cache.config.spec.ts` / `mail.service.spec.ts` are now extracted.
@@ -56,7 +56,7 @@ Last updated: 2026-08-30
   were removed after the neverthrow migration; business failures use `ResultAsync<T, DomainFailure>`
   from `src/common/result/index.ts` and client-error throws are plain Nest `HttpException` instances
   folded by `ApiExceptionFilter` into Problem Details.
-- AI model invocation timeout is centralized as `AI_MODEL_TIMEOUT_MS` in `src/config/constants.ts`;
+- AI model invocation timeout is centralized as `AI_MODEL_TIMEOUT_MS` in `src/config/app-defaults.constants.ts`;
   `BaseLlmGeneratorService` and `AssistantRuntimeService` both reference the same constant instead
   of hardcoding `10_000`.
 - LLM calls are protected by a circuit breaker (`LlmCircuitBreakerService`) that wraps

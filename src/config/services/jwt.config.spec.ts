@@ -2,7 +2,7 @@ import { EnvKey } from '../env/env-keys.enum';
 import {
   DEFAULT_JWT_ACCESS_TTL_SECONDS,
   DEFAULT_JWT_REFRESH_TTL_SECONDS,
-} from '../constants';
+} from '../app-defaults.constants';
 import { jwtConfig } from './jwt.config';
 
 describe('jwtConfig', () => {

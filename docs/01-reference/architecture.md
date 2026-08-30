@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-23
+updated: 2026-08-30
 ---
 
 # Lucent Architecture
@@ -289,7 +289,7 @@ Root-level `src/config/` is split by role:
 
 - `config/services/` — 8 `registerAs()` config factories (cache, jwt, jpush, llm, mail, oauth, tencent-cos, throttler)
 - `config/env/` — environment validation, env-file paths, `EnvKey` and `ConfigKey` enums
-- `config/app.config.ts` — root app config; `config/constants.ts` — shared config constants
+- `config/app.config.ts` — root app config; `config/app-defaults.constants.ts` — shared config constants
 
 ```
 src/modules/{module}/

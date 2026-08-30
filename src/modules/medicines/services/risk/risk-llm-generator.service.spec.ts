@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
 import type { LlmRuntimeService } from '../../../../llm-runtime';
 import type { MetricsService } from '../../../../common/metrics/metrics.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
 import type { MedicineRiskLlmContext } from '../../prompts/risk-check.prompt';
 
 function build(hasAnalysisModel = true) {

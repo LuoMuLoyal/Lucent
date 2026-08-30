@@ -7,7 +7,7 @@ import {
 import type { ReportsAiSummaryContextService } from './context.service';
 import type { ReportsLlmSummaryCopyService } from './copy.service';
 import type { ReportsAiSummaryGeneratorService } from './generator.service';
-import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service';
 import { ReportsAiSummaryService } from './summary.service';
 import { okAsync } from '../../../../common/result';
 import type { ReportsComputationService } from '../../dashboard/computation.service';

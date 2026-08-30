@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
 import { I18nService } from 'nestjs-i18n';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
 import { LlmRuntimeService } from '../../../llm-runtime';
 import {
   createDomainFailure,

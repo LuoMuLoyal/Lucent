@@ -7,7 +7,7 @@ import type {
 } from './pipeline/context.service';
 import type { NotificationsService } from '../../notifications';
 import type { TodayAnalysisGeneratorService } from './pipeline/generator.service';
-import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service';
 import { TodayAnalysisService } from './analysis.service';
 import { fromPromise, okAsync } from '../../../common/result';
 import type { PushDeliveryService } from '../../notifications';

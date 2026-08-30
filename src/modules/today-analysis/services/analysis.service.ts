@@ -21,8 +21,8 @@ import type { CreateNotificationDto } from '../../notifications';
 import { HistoricalAiSummaryService } from '../../assistant';
 import { INotificationSender, PushDeliveryService } from '../../notifications';
 import { PrismaService } from '../../../prisma';
-import { BaseLlmSummaryService } from '../../../common/llm/base-llm-summary.service';
-import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
+import { BaseLlmSummaryService } from '../../../common/llm/generators/base-llm-summary.service';
+import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service';
 import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
 
 import type {

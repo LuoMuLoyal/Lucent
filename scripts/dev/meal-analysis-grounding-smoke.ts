@@ -3,13 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import winston from 'winston';
 import { EnvKey } from '../../src/config/env/env-keys.enum';
 import { llmConfig } from '../../src/config/services/llm.config';
-import { LlmRuntimeService } from '../../src/llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../src/llm-runtime/llm-runtime.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { MealAnalysisVisionService } from '../../src/modules/daily-records/services/meal-analysis/vision.service';
 import { MealDishDecompositionService } from '../../src/modules/daily-records/services/meal-dish/decomposition.service';
 import { MealIngredientGroundingService } from '../../src/modules/daily-records/services/meal-ingredient/grounding.service';
 import { MealAnalysisMatcherService } from '../../src/modules/daily-records/services/meal-analysis/matcher.service';
-import { LlmSafetyPolicyService } from '../../src/common/llm/llm-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../src/common/llm/safety/llm-safety-policy.service';
 
 loadEnv({ path: '.env.development.local', override: false });
 loadEnv({ path: '.env.development', override: false });

@@ -1,5 +1,5 @@
 import type { AIMessage } from '@langchain/core/messages';
-import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
 import type { LlmRuntimeService } from '../../../llm-runtime';
 import type { AssistantConversationRepositoryPort } from '../repositories/conversation.repository';
 import type {

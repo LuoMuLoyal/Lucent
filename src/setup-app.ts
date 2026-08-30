@@ -21,7 +21,7 @@ import { ProblemDetailsDto, SseProblemDetailsDto } from './common';
 import { ConfigKey } from './config/env/config-keys.enum';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { SlowRequestInterceptor } from './common';
-import type { FastifyRequestWithMetrics } from './common/middleware/metrics.types';
+import type { FastifyRequestWithMetrics } from './common/types/metrics.types';
 import { getActiveTraceIds } from './common/logger/trace-context.utils';
 import { buildAccessLogEntry } from './common/logger/access-log.utils';
 import { MetricsService } from './common/metrics/metrics.service';

@@ -16,7 +16,7 @@ import {
   DEFAULT_VERIFICATION_COOLDOWN_MS,
   DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
   DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
-} from '../../../../config/constants';
+} from '../../../../config/app-defaults.constants';
 
 async function inspectResult<T>(
   result: ResultAsync<T, DomainFailure>,

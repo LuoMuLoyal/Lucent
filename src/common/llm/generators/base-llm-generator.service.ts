@@ -13,11 +13,11 @@ import { JsonOutputKeyToolsParser } from '@langchain/core/output_parsers/openai_
 import { ChatGenerationChunk } from '@langchain/core/outputs';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import type { ZodObject, ZodType } from 'zod';
-import type { LlmRole, LlmRuntimePort } from './llm-runtime.port';
-import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
-import { withLlmRetry, isRetryableLlmError } from './llm-retry.helper';
-import { LlmCircuitBreakerService } from './llm-circuit-breaker.service';
-import { MetricsService } from '../metrics/metrics.service';
+import type { LlmRole, LlmRuntimePort } from '../llm-runtime.port';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
+import { withLlmRetry, isRetryableLlmError } from '../retry/llm-retry.helper';
+import { LlmCircuitBreakerService } from '../safety/llm-circuit-breaker.service';
+import { MetricsService } from '../../metrics/metrics.service';
 
 const MODEL_OPTIONS = {
   timeout: AI_MODEL_TIMEOUT_MS,

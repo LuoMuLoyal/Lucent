@@ -4,9 +4,9 @@ import { BaseLlmGeneratorService } from './base-llm-generator.service';
 import {
   LlmCircuitBreakerService,
   LlmCircuitOpenError,
-} from './llm-circuit-breaker.service';
-import type { LlmRuntimePort, LlmRole } from './llm-runtime.port';
-import type { MetricsService } from '../metrics/metrics.service';
+} from '../safety/llm-circuit-breaker.service';
+import type { LlmRuntimePort, LlmRole } from '../llm-runtime.port';
+import type { MetricsService } from '../../metrics/metrics.service';
 
 // ── Test fixture ───────────────────────────────────────────────────────────
 

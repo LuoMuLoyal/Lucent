@@ -61,7 +61,7 @@ update/delete`。具名例外：
 
 - `testing-support` 夹具（仅 `NODE_ENV=test` 注册 + 共享密钥守卫，跨表重置测试数据）
 - AdminJS（整个 client 交给 `@sergiyiva/adminjs-prisma`，由资源配置受控）
-- `common/llm/base-llm-summary.service.ts` 读 `userSetting`（现状保留，随
+- `common/llm/generators/base-llm-summary.service.ts` 读 `userSetting`（现状保留，随
   `LlmCommonModule` 收敛时一并处理）（✅ `LlmCommonModule` 已于 2026-07-17 落地）
 
 ### Port 标准（架构审查 #6 补充）

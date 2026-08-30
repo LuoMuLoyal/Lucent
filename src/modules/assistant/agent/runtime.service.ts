@@ -43,7 +43,7 @@ import type {
   AssistantContextSource,
   AssistantToolName,
 } from '../tools/shared/tool-types';
-import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
 import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service';
 import {
   buildAssistantSystemPrompt,
@@ -67,8 +67,8 @@ import type { AssistantRespondCache } from './runtime/respond';
 import {
   withLlmRetry,
   isRetryableLlmError,
-} from '../../../common/llm/llm-retry.helper';
-import { LlmCircuitBreakerService } from '../../../common/llm/llm-circuit-breaker.service';
+} from '../../../common/llm/retry/llm-retry.helper';
+import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service';
 
 const CHAT_MODEL_OPTIONS = {
   timeout: AI_MODEL_TIMEOUT_MS,

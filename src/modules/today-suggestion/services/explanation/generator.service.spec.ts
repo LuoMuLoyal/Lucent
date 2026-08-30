@@ -1,5 +1,5 @@
 import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port';
-import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
 import type { LlmRuntimeService } from '../../../../llm-runtime';
 import type { MetricsService } from '../../../../common/metrics/metrics.service';
 import {
