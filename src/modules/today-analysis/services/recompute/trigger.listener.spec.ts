@@ -12,7 +12,10 @@ describe('TodayAnalysisTriggerListener', () => {
   let listener: TodayAnalysisTriggerListener;
   let store: { markPending: vi.Mock };
   let queue: { enqueue: vi.Mock };
-  let contextService: { shouldTriggerForDimension: vi.Mock };
+  let contextService: {
+    shouldTriggerForDimension: vi.Mock;
+    invalidateContext: vi.Mock;
+  };
 
   beforeEach(() => {
     store = {
@@ -25,6 +28,7 @@ describe('TodayAnalysisTriggerListener', () => {
     queue = { enqueue: vi.fn().mockResolvedValue('job-1') };
     contextService = {
       shouldTriggerForDimension: vi.fn().mockResolvedValue(false),
+      invalidateContext: vi.fn().mockResolvedValue(undefined),
     };
     listener = new TodayAnalysisTriggerListener(
       store as never,
