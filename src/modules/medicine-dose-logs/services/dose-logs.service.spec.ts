@@ -669,12 +669,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should reject mark with RESOURCE_NOT_FOUND when reminder exists but currentMedicineId resolves to null', async () => {
-    // Covers the edge-case where a reminder is provided but the medicine
-    // lookup fails (findCurrentMedicineById returns null). This prevents the
-    // old `where == null` bug from regressing: `buildMarkLookupWhere` returns
-    // a non-null `where` (because reminderId is set), so the code should
-    // proceed past the `where == null && currentMedicineId == null` guard
-    // and surface the medicine-not-found failure instead.
+    // Regression guard for old 'where == null' bug.
     repository.findReminderById.mockResolvedValue({
       userId: 'u1',
       currentMedicineId: 'medicine-1',
@@ -697,6 +692,11 @@ describe('MedicineDoseLogsService', () => {
       ok: false,
       error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
     });
+    // Verify service actually read the reminder before deciding to reject.
+    expect(repository.findReminderById).toHaveBeenCalledWith(
+      'u1',
+      'reminder-1',
+    );
     expect(repository.findFirst).not.toHaveBeenCalled();
     expect(repository.create).not.toHaveBeenCalled();
   });
