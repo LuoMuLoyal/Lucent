@@ -8,7 +8,12 @@ export class ReportObservedMetricDto {
   @ApiProperty({ type: Number, nullable: true })
   value!: number | null;
 
-  @ApiProperty({ enum: ['observed', 'unknown'], type: String })
+  @ApiProperty({
+    enum: ['observed', 'unknown'],
+    type: String,
+    description:
+      'Whether at least one observation exists. See coverage for the proportion of observed vs expected days.',
+  })
   state!: 'observed' | 'unknown';
 
   @ApiProperty({ enum: ['sufficient', 'partial', 'none'], type: String })
@@ -83,8 +88,13 @@ export class ReportTrendDto {
   @ApiProperty({
     type: [Number],
     description:
-      'Observed values only — unknown days are omitted, not zero-filled.',
+      'Observed values only — unknown days are omitted, not zero-filled. ' +
+      'BREAKING (2026-08-29): values.length no longer matches the date window length; ' +
+      'use observedMetric.observedCount/expectedCount to align dates.',
   })
+  // TODO(W-1-legacy): consider adding a deprecated `legacyValues` field
+  // (zero-filled, window-aligned) to give frontend a migration window.
+  // Remove when R-4 roadmap cleanup is done.
   values!: number[];
 
   @ApiPropertyOptional({ type: () => ReportObservedMetricDto })
