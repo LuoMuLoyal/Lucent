@@ -13,7 +13,7 @@ import { DailyRecordReaderPort } from '../../../daily-records';
 import type { DailyRecordFact } from '../../../daily-records';
 import type { SuggestionSignal } from '../../types/signal.types';
 import { TriggerType } from '../../types/suggestion.types';
-import { UserSettingsService } from '../../../user-settings';
+import { IUserSettingsPort } from '../../../user-settings';
 import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants';
 import type { ObservedMetric } from '../../../../common';
 
@@ -38,7 +38,7 @@ type ParsedSleepEpisode = SleepEpisode & {
 @Injectable()
 export class RecordCollectorService {
   constructor(
-    private readonly userSettingsService: UserSettingsService,
+    private readonly userSettingsService: IUserSettingsPort,
     private readonly dailyRecordReader: DailyRecordReaderPort,
   ) {}
 

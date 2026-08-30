@@ -12,7 +12,7 @@ import type { ObservedMetric, WaterMetricInput } from '../../../common';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
 import { DailyRecordReaderPort } from '../../daily-records';
 import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs';
-import { UserSettingsService } from '../../user-settings';
+import { IUserSettingsPort } from '../../user-settings';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
@@ -31,7 +31,7 @@ import type {
 @Injectable()
 export class ReportsContextService {
   constructor(
-    private readonly userSettingsService: UserSettingsService,
+    private readonly userSettingsService: IUserSettingsPort,
     private readonly dailyRecordReader: DailyRecordReaderPort,
     private readonly doseLogReader: MedicineDoseLogReaderPort,
   ) {}

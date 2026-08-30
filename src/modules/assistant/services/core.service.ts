@@ -30,7 +30,7 @@ import type {
 } from '../dto/confirm-proposal.dto';
 import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import { AssistantRuntimeService } from '../agent/runtime.service';
-import { UserSettingsService } from '../../user-settings';
+import { IUserSettingsPort } from '../../user-settings';
 import { AssistantPolicyService } from './policy.service';
 import { AssistantToolService } from '../tools/tool.service';
 import { AssistantConversationService } from './conversation.service';
@@ -56,7 +56,7 @@ export class AssistantService {
 
   constructor(
     private readonly assistantAgentService: AssistantRuntimeService,
-    private readonly userSettingsService: UserSettingsService,
+    private readonly userSettingsService: IUserSettingsPort,
     private readonly assistantPolicyService: AssistantPolicyService,
     private readonly assistantToolExecutor: AssistantToolService,
     private readonly assistantConversationService: AssistantConversationService,
