@@ -24,7 +24,7 @@
 - **生成物**：`docs/reference/generated/openapi.json` 与 `docs/reference/generated/compodoc/`
   由 `pnpm export:openapi` / `pnpm docs:compodoc` 产出，**禁止手改**。
 - **ADR**（`docs/reference/adr/NNNN-title.md`）只增不改：新决策→新文件。
-- **硬生命周期**：`plans/backlog.md` 是唯一 TODO 台账——延后项带上下文追加，完成即删行；
+- **硬生命周期**：`docs/TODO.md` 是唯一 TODO 台账——延后项带上下文追加，完成即删行；
   计划执行完毕整体删除 `plans/*.md`；完成项一律直接删除，不留任何标记。
 - **Front-matter**：`docs/reference/*.md` 与 `docs/howto/*.md` 必须带
   （`status: active|frozen|stale` / `owner: backend` / `quadrant: reference|howto|explanation` /
@@ -33,14 +33,14 @@
   `status: frozen` 豁免新鲜度检查。归档 = `git mv` 到 `docs/archive/` + `status: archived`。
 - **工具**：`pnpm docs:check`（变更→文档映射**报告**，旧 pre-commit 门禁已退役，仅观察两周）、
   `pnpm docs:verify`（结构与新鲜度门禁 + append-only 守卫）、
-  `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/backlog 与根入口文档中
+  `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/README 与根入口文档中
   的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。
   文档变更不再被 pre-commit 阻断；推送前 `pre-push` 汇总 `lint:check + build + test:ci + arch:check`。
 
 ## Architecture Checks (arch:check)
 
 `pnpm arch:check` 聚合三类观察期检查（全部 warn 不阻断；逐条评估后转 error，进度见
-`plans/backlog.md`）：
+`docs/TODO.md`）：
 
 - **依赖图**（dependency-cruiser，`.dependency-cruiser.cjs`）：模块间只准 barrel import
   （module 类直引对方 `.module.ts` 豁免）；跨模块 import 其他模块 `repositories/`、`dto/` 禁止；

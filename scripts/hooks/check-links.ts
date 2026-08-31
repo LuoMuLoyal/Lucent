@@ -89,8 +89,9 @@ function collectPathCheckFiles(
     for (const entry of readdirSync(plansDir)) {
       // Dated plan files are point-in-time snapshots: executed plans mention
       // since-removed paths, and forward plans reference files that do not
-      // exist yet. Only the living index and backlog are path-checked.
-      if (entry === 'README.md' || entry === 'backlog.md') {
+      // exist yet. Only the living index is path-checked; the TODO ledger
+      // lives at docs/TODO.md and enters via the docs surface above.
+      if (entry === 'README.md') {
         add(`plans/${entry}`);
       }
     }

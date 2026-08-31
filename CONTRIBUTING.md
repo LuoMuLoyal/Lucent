@@ -80,5 +80,5 @@ When module structure, dependencies, or AI pipeline architecture changes:
 
 - See `docs/README.md` for the document boundaries and update map.
 - Any backend code change: append to today's `docs/logs/migration-log/YYYY-MM-DD.md`.
-- Completed TODO items: delete the line from `plans/backlog.md`.
+- Completed TODO items: delete the line from `docs/TODO.md`.
 - Active multi-step plans: `plans/YYYY-MM-DD-short-task-name.md`.

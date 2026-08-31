@@ -1,12 +1,12 @@
-# Lucent 文档覆盖映射(过渡期机制,两周观察后随 --report 一并退役,进度见 plans/backlog.md G1)
+# Lucent 文档覆盖映射(过渡期机制,两周观察后随 --report 一并退役,进度见 docs/TODO.md G1)
 #
 # scripts/hooks/check-docs-updated.ts 读取本文件:
 # - docs_required：必改文档,全部命中才满足(通常只有迁移日志)
 # - docs_any_of：  至少命中其一(模块意图变更首选对应 src/modules/<m>/README.md)
 # - docs_info：    仅建议,缺失不警告
-# - 阻断模式(默认,pre-commit):有代码变更但无任何 docs/ 文件变更 → exit(1)
+# - 报告模式(默认):有代码变更时打印覆盖映射报告,永不阻断(--report;--warning-only 为退役别名)
 # - 校验模式(--verify):引用文件存在、迁移日志单 H1、plans/spec 引用有效、活跃文档新鲜度与读者
-# - 旁路：SKIP_DOC_CHECK=1
+#   迁移日志 append-only 守卫(单文件 diff 删除行 >5 报违规)亦在 --verify 内
 #
 # glob 规则：* 匹配单层路径,** 匹配多层路径。
 # 历史与过程性文档在 docs/archive/,不参与覆盖映射(只进不出,不强制同步)。
@@ -35,7 +35,7 @@ rules:
       - docs/reference/environment-variables.md
       - docs/README.md
     docs_info:
-      - plans/backlog.md
+      - docs/TODO.md
       - docs/reference/glossary.md
 
   # ──────────────────────────────────────────────

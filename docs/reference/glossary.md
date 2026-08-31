@@ -25,7 +25,7 @@ updated: 2026-08-31
 - **Forui** — Luminous Flutter UI 库，项目根主题来源。
 - **Riverpod** — Luminous 状态管理方案。
 - **GoRouter** — Luminous 路由方案，使用 `StatefulShellRoute`。
-- **P0–P3 优先级体系** — 跨项目产品优先级框架，定义于 `Luminous/docs/01-product/Product_Brainstorm_2026-07-07.md`。P0 为发布前必做项，P1 为首发版本内，P2 为 1.1.0 候选，P3 为 1.2.0+ 候选。核心主闭环是 `记录 -> 主动建议卡 -> 用户确认动作 -> 回顾`。
+- **P0–P3 优先级体系** — 跨项目产品优先级框架，定义于 `Luminous/docs/archive/product/Product_Brainstorm_2026-07-07.md`（已归档）。P0 为发布前必做项，P1 为首发版本内，P2 为 1.1.0 候选，P3 为 1.2.0+ 候选。核心主闭环是 `记录 -> 主动建议卡 -> 用户确认动作 -> 回顾`。
 - **Proactive Guidance Card（主动建议卡）** — Luminous 核心产品对象。每张卡都必须包含
   `证据 -> 建议 -> 动作 -> 边界`，并且只在具备时效性和可干预性时进入 `Today` 首屏。
 - **Observation Item（观察项）** — 证据不足、置信度较低或暂时不值得单独出卡的内容。

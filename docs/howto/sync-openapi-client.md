@@ -65,5 +65,5 @@ dart run tool/verify_lucent_openapi_sync.dart \
 ## 详细参考
 
 - `Lucent/docs/howto/sync-openapi-client.md`（本文）
-- `Luminous/docs/02-reference/OpenApi_Client.md` — 生成物边界与使用规则
+- `Luminous/docs/reference/OpenApi_Client.md` — 生成物边界与使用规则
 - `Lucent/docs/reference/generated/openapi.json` — API 合同唯一事实源（生成物，禁手改）

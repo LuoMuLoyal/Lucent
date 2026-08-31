@@ -45,7 +45,7 @@ Prerequisites: Node.js `24.x`, pnpm `11.x` or `12.x`, Docker (for `dev:stack`).
 | API contract          | `docs/reference/generated/openapi.json` (generated, tracked)                       |
 | ADRs                  | [docs/reference/adr/](docs/reference/adr/)                                         |
 | Docs index            | [docs/README.md](docs/README.md)                                                   |
-| Backlog               | [plans/backlog.md](plans/backlog.md)                                               |
+| TODO                  | [docs/TODO.md](docs/TODO.md)                                                       |
 | Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md)                                                 |
 | Security policy       | [SECURITY.md](SECURITY.md)                                                         |
 
@@ -56,7 +56,7 @@ Prerequisites: Node.js `24.x`, pnpm `11.x` or `12.x`, Docker (for `dev:stack`).
 - Database model: [prisma/schema.prisma](prisma/schema.prisma).
 - Runtime configuration: [docs/reference/environment-variables.md](docs/reference/environment-variables.md).
 - Medicine data imports: [src/modules/medicines/README.md](src/modules/medicines/README.md).
-- Product direction: [../Luminous/docs/01-product/Product_Vision.md](../Luminous/docs/01-product/Product_Vision.md).
+- Product direction: [../Luminous/docs/product/Product_Vision.md](../Luminous/docs/product/Product_Vision.md).
 
 Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI when API code changes:
 
@@ -269,7 +269,7 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
 ## Docs
 
 Start with [docs/README.md](docs/README.md) — the唯一文档索引(布局、六向裁决、模块 README 索引)。
-活跃规划见 [plans/](plans/),延后项台账见 [plans/backlog.md](plans/backlog.md)。
+活跃规划见 [plans/](plans/),延后项台账见 [docs/TODO.md](docs/TODO.md)。
 
 - [docs/explanation/architecture.md](docs/explanation/architecture.md) — 跨模块心智模型
 - [docs/reference/environment-variables.md](docs/reference/environment-variables.md) — 环境变量与本地基线

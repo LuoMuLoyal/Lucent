@@ -32,7 +32,6 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
-- [`backlog.md`](backlog.md) — 唯一 TODO 台账(延后项/观察期项,完成即删行)
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
   — 药品风险检查图数据结构引入:Phase 1 关系化 JSONB(PG18),Phase 2 SQL/PGQ 图查询(PG19 GA 后)
 - [`2026-08-24-coolify-deployment-restructure-plan.md`](2026-08-24-coolify-deployment-restructure-plan.md)

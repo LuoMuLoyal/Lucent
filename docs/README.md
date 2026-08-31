@@ -29,7 +29,7 @@ Lucent(NestJS 11 后端)文档库唯一索引。目录即裁决:`explanation/` �
 - [howto/run-medicine-import.md](howto/run-medicine-import.md) — 药品数据导入
 - [howto/sync-openapi-client.md](howto/sync-openapi-client.md) — 导出 OpenAPI 并再生 Flutter 客户端
 
-活跃延后项见 [../plans/backlog.md](../plans/backlog.md)(唯一 TODO 台账,条目完成即删行)。
+活跃延后项见 [TODO.md](TODO.md)(唯一 TODO 台账,条目完成即删行)。
 
 ## 模块 README 索引
 
