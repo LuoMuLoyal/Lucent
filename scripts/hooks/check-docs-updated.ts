@@ -31,6 +31,8 @@ import {
   loadDocMap,
   buildReport,
   renderReport,
+  MIGRATION_LOG_DIR,
+  MIGRATION_LOG_DIR_LEGACY,
   STALE_DOC_THRESHOLD_DAYS,
   withoutFrozenDocs,
 } from './doc-coverage-lib.ts';
@@ -104,12 +106,19 @@ function collectAvailableDocs(repoRoot: string): string[] {
   );
 }
 
+/** Collect migration-log entries from both the new and the legacy dir. */
 function collectLogFiles(repoRoot: string): string[] {
-  const logDir = resolve(repoRoot, 'docs', '02-logs', 'migration-log');
-  if (!existsSync(logDir)) return [];
-  return readdirSync(logDir)
-    .filter((f) => f.endsWith('.md'))
-    .map((f) => `docs/02-logs/migration-log/${f}`);
+  const files: string[] = [];
+  for (const dir of [MIGRATION_LOG_DIR, MIGRATION_LOG_DIR_LEGACY]) {
+    const logDir = resolve(repoRoot, ...dir.split('/'));
+    if (!existsSync(logDir)) continue;
+    files.push(
+      ...readdirSync(logDir)
+        .filter((f) => f.endsWith('.md'))
+        .map((f) => `${dir}/${f}`),
+    );
+  }
+  return files;
 }
 
 function getLastModifiedMap(
@@ -132,7 +141,13 @@ function runVerify(repoRoot: string): void {
   const rules = loadDocMap(repoRoot);
   const availableDocs = collectAvailableDocs(repoRoot);
   const logFiles = collectLogFiles(repoRoot);
-  const todayLogPath = `docs/02-logs/migration-log/${getTodayDate()}.md`;
+  // Authoring-time semantics apply to today's log wherever it lives
+  // (new dir preferred; falls back to the legacy dir during transition).
+  const legacyToday = `${MIGRATION_LOG_DIR_LEGACY}/${getTodayDate()}.md`;
+  const canonicalToday = getTodayLogPath();
+  const todayLogPath = logFiles.includes(canonicalToday)
+    ? canonicalToday
+    : legacyToday;
   const problems = collectVerifyProblems(
     repoRoot,
     rules,

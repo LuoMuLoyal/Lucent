@@ -86,6 +86,22 @@ describe('isActiveDoc', () => {
       false,
     );
   });
+  it('classifies the new Diátaxis layout (2026-08-31 governance)', () => {
+    expect(isActiveDoc('docs/explanation/architecture.md')).toBe(true);
+    expect(isActiveDoc('docs/reference/glossary.md')).toBe(true);
+    expect(isActiveDoc('docs/reference/adr/0001-nestjs-prisma-stack.md')).toBe(
+      true,
+    );
+    expect(isActiveDoc('docs/howto/deploy.md')).toBe(true);
+    // Generated artifacts and the append-only ledger are never "active".
+    expect(isActiveDoc('docs/reference/generated/openapi.json')).toBe(false);
+    expect(isActiveDoc('docs/reference/generated/compodoc/index.html')).toBe(
+      false,
+    );
+    expect(isActiveDoc('docs/logs/migration-log/2026-08-31.md')).toBe(false);
+    expect(isActiveDoc('docs/archive/old-note.md')).toBe(false);
+    expect(isActiveDoc('docs/archive/nested/dir/old-note.md')).toBe(false);
+  });
 });
 
 describe('buildReport 3-tier', () => {
@@ -236,6 +252,15 @@ describe('isFrontMatterRequired', () => {
       false,
     );
     expect(isFrontMatterRequired('docs/README.md')).toBe(false);
+  });
+  it('new layout: reference/howto required, explanation/ADR exempt', () => {
+    expect(isFrontMatterRequired('docs/reference/glossary.md')).toBe(true);
+    expect(isFrontMatterRequired('docs/howto/deploy.md')).toBe(true);
+    expect(isFrontMatterRequired('docs/explanation/architecture.md')).toBe(
+      false,
+    );
+    expect(isFrontMatterRequired('docs/reference/adr/0001-x.md')).toBe(false);
+    expect(isFrontMatterRequired('docs/reference/generated/x.md')).toBe(false);
   });
 });
 

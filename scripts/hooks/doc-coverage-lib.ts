@@ -8,9 +8,31 @@ export const MIGRATION_LOG_MAX_DELETIONS = 5;
 export const REPO_TIMEZONE = 'Asia/Shanghai';
 export const STALE_DOC_THRESHOLD_DAYS = 90;
 
-/** Active docs that MUST stay fresh — everything outside 03-archive. */
+/** Canonical migration-log dir (new structure) and its legacy counterpart. */
+export const MIGRATION_LOG_DIR = 'docs/logs/migration-log';
+export const MIGRATION_LOG_DIR_LEGACY = 'docs/02-logs/migration-log';
+/** Matches the migration log under both the new and the legacy dir. */
+export const MIGRATION_LOG_PATH_RE =
+  /^docs\/(?:02-logs|logs)\/migration-log\/.+\.md$/;
+
+/**
+ * Active docs that MUST stay fresh.
+ *
+ * Covers the new Diátaxis layout (explanation/reference/howto) and, during
+ * the 2026-08-31 governance transition, the legacy numbered layout. The
+ * legacy entries are pruned together with the Phase 2 docs rebuild.
+ * Deliberately NOT active: `docs/archive/**` (frozen history),
+ * `docs/reference/generated/**` (build artifacts),
+ * `docs/logs/migration-log/*` (append-only ledger, guarded by the
+ * overwrite check instead of freshness).
+ */
 export const ACTIVE_DOC_PATTERNS: string[] = [
   'docs/README.md',
+  'docs/explanation/*.md',
+  'docs/reference/*.md',
+  'docs/reference/adr/*.md',
+  'docs/howto/*.md',
+  // Legacy numbered layout — remove after the Phase 2 rebuild.
   'docs/00-current/*.md',
   'docs/01-reference/*.md',
   'docs/01-reference/adr/*.md',
@@ -24,8 +46,17 @@ export function isActiveDoc(path: string): boolean {
 }
 
 // --- YAML front-matter -------------------------------------------------
-/** Content docs that MUST carry front-matter (status / owner / quadrant / updated). */
+/**
+ * Content docs that MUST carry front-matter (status / owner / quadrant /
+ * updated). New structure: `reference/` and `howto/` require it;
+ * `explanation/` is gate-free (freshness still applies via git
+ * last-modified) and ADRs are append-only. Legacy patterns are pruned
+ * together with the Phase 2 rebuild.
+ */
 export const FRONT_MATTER_REQUIRED_PATTERNS: string[] = [
+  'docs/reference/*.md',
+  'docs/howto/*.md',
+  // Legacy numbered layout — remove after the Phase 2 rebuild.
   'docs/00-current/*.md',
   'docs/01-reference/*.md',
   'docs/01-reference/how-to/*.md',
@@ -365,7 +396,7 @@ export function getTodayDate(): string {
 }
 
 export function getTodayLogPath(): string {
-  return `docs/02-logs/migration-log/${getTodayDate()}.md`;
+  return `${MIGRATION_LOG_DIR}/${getTodayDate()}.md`;
 }
 
 // --- Migration log overwrite detection ---------------------------------
@@ -374,7 +405,7 @@ export function checkMigrationLogOverwrite(run: (cmd: string) => string): void {
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
-  const migrationLogPattern = /^docs\/02-logs\/migration-log\/.+\.md$/;
+  const migrationLogPattern = MIGRATION_LOG_PATH_RE;
   const logFiles = stagedModified.filter((f) =>
     migrationLogPattern.test(f.replace(/\\/g, '/')),
   );
@@ -470,8 +501,18 @@ export function getStaleDocs(
   });
 }
 
-/** Docs with a standing reader channel (AGENTS Read First / README nav / subdir READMEs). */
+/**
+ * Docs with a standing reader channel (AGENTS Read First / README nav /
+ * subdir READMEs). Covers both layouts during the 2026-08-31 governance
+ * transition; legacy entries are pruned with the Phase 2 rebuild.
+ */
 export const EXEMPT_UNREFERENCED_PATTERNS: string[] = [
+  'docs/reference/adr/**',
+  'docs/reference/generated/**',
+  'docs/howto/**',
+  'docs/reference/deployment.md',
+  'docs/reference/environment-variables.md',
+  // Legacy numbered layout — remove after the Phase 2 rebuild.
   'docs/01-reference/adr/**',
   'docs/01-reference/how-to/**',
   'docs/01-reference/contracts/**',

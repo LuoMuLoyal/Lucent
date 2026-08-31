@@ -2,60 +2,61 @@
 
 ## Documentation Rules
 
-After every code change, run the documentation check tool (`pnpm docs:check`) to confirm which documents need updating. It reads `docs/doc-map.yaml` (three tiers: `docs_required` all-must-update, usually just the migration log; `docs_any_of` at-least-one; `docs_info` suggested) and prints a per-rule report of which docs each touched code area expects. The pre-commit hook runs the same tool in **blocking** mode: `src/**/*.ts` staged but no `docs/` file staged → commit blocked. Bypass with `SKIP_DOC_CHECK=1`.
+文档按六向裁决处置，动笔前先归入其一：
+① **生成消除**：能由 openapi/compodoc/测试断言产出的内容不再手写；
+② **结构固化**：模块意图下沉到 `src/modules/<module>/README.md`（与代码同址，AI 按需读取）；
+③ **测试承接**：可机器验证的断言归测试，文档归档；
+④ **独立归宿**：决策→ADR、事实→迁移日志、规划→`plans/`；
+⑤ **前移编码时刻**：规则改成 lint/AST 检查，而非文字约定；
+⑥ **降级快照**：低频稳定叙事进 `docs/explanation/`（只减不增）。
+
+布局（详见 `docs/README.md`，唯一索引）：`docs/explanation/`（为什么）、
+`docs/reference/`（是什么，含 `adr/` 只增不改、`generated/` 生成物）、`docs/howto/`（怎么做）、
+`docs/logs/migration-log/`（按日追加账本）、`docs/archive/`（归档只进不出）。
 
 ### Standing rules
 
-- **Migration log**: append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md`.
-  **Never overwrite** an existing entry — always append new sections below existing content.
-  The pre-commit hook blocks commits where a staged migration-log file has more than 5 deleted
-  lines (indicating overwrite rather than append).
-  - Single-day log files keep exactly one `# ` H1; sections use `##` (no date prefix).
-  - When referencing a plan file, note it was executed and the file is gone
-    (「实施完毕文件已删」), otherwise `--verify` flags an orphan reference.
-  - Entries describe change scope and verification conclusions; do not write exact
-    numbers that must stay in sync on later edits (e.g. total test counts).
-    （日志条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数）。）
-- **Current state**: runtime/architecture changes go into the relevant `docs/00-current/*.md`
-  sub-file, not into `Current_State.md` (index only).
-- **Closing a TODO**: delete the line from `docs/00-current/TODO.md`.
-- **Finishing a plan**: delete the entire section from `plans/*.md`.
-- **Env/Docker/import/commands**: sync `docs/01-reference/environment.md`,
-  `environment-variables.md`, and `README.md`.
-- **Doc lifecycle**: active docs older than 90 days without updates, or unreferenced by
-  `doc-map.yaml`, are flagged by `node scripts/hooks/check-docs-updated.ts --verify` — review,
-  update, or archive them to `docs/03-archive/`. Docs marked `status: frozen` are exempt from
-  the 90-day freshness checks.
-- **Front-matter**: every active doc in `01-reference/*.md`, `01-reference/how-to/*.md`, and
-  `00-current/*.md` must carry YAML front-matter (`status: active|frozen` / `owner: backend` /
-  `quadrant: reference|how-to|explanation` / `updated: YYYY-MM-DD`); `--verify` flags missing
-  blocks, stale `updated`, and `status: stale` docs not yet archived. `status: frozen` marks a
-  doc intentionally frozen (desktop/Web-freeze, feature-freeze) — exempt from the freshness
-  checks but still must carry valid front-matter; `status: stale` means the doc should be
-  archived, not frozen.
-- Completed items are **deleted** outright — no markers.
+- **Migration log**：每次代码变更向 `docs/logs/migration-log/YYYY-MM-DD.md` 追加当日条目。
+  **永不覆写**已有内容——pre-commit 阻断单个日志文件 staged diff 删除行 >5。
+  - 单日文件只保留一个 `# ` H1；章节用 `##`（不加日期前缀）。
+  - 引用计划文件时注明「实施完毕文件已删」，否则 `--verify` 报孤儿引用。
+  - 条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数）。
+- **生成物**：`docs/reference/generated/openapi.json` 与 `docs/reference/generated/compodoc/`
+  由 `pnpm export:openapi` / `pnpm docs:compodoc` 产出，**禁止手改**。
+- **ADR**（`docs/reference/adr/NNNN-title.md`）只增不改：新决策→新文件。
+- **硬生命周期**：`plans/backlog.md` 是唯一 TODO 台账——延后项带上下文追加，完成即删行；
+  计划执行完毕整体删除 `plans/*.md`；完成项一律直接删除，不留任何标记。
+- **Front-matter**：`docs/reference/*.md` 与 `docs/howto/*.md` 必须带
+  （`status: active|frozen|stale` / `owner: backend` / `quadrant: reference|howto|explanation` /
+  `updated: YYYY-MM-DD`）；`explanation/` 无门禁（新鲜度仍由 git 时间兜底）。
+  `--verify` 通报缺失块、>90 天未更新、`status: stale` 未归档、无读者活跃文档；
+  `status: frozen` 豁免新鲜度检查。归档 = `git mv` 到 `docs/archive/` + `status: archived`。
+- **工具**：`pnpm docs:check`（变更→文档映射报告）、`pnpm docs:verify`（结构与新鲜度门禁）、
+  `pnpm docs:links`（链接完整性）。pre-commit 阻断「有源码变更但零 docs 变更」的提交。
 
 ## Read First
 
-- `README.md`, `CONTRIBUTING.md`, `docs/README.md`
-- `docs/01-reference/architecture.md`, `environment.md`, `environment-variables.md`
-- `docs/01-reference/contracts/README.md`（改 API 时）、`docs/01-reference/adr/`（架构决策）
-- 功能实现细节以代码为准；历史状态文档归档在 `docs/03-archive/`
+- `README.md`, `CONTRIBUTING.md`, `docs/README.md`（文档唯一索引）
+- `docs/explanation/architecture.md`（跨模块心智模型）、`docs/reference/environment-variables.md`（环境变量）
+- `src/modules/<module>/README.md`（模块边界与契约）、`docs/reference/adr/`（架构决策）
+- 功能实现细节以代码为准；历史状态文档归档在 `docs/archive/`
 
 ## Current Baseline
 
 - NestJS 11, Prisma 7, PostgreSQL, Redis, JWT auth.
 - Dev DB: `postgres/postgres@127.0.0.1:15432/lucent`. Test DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`.
 - Redis: `redis://127.0.0.1:6379`.
-- Response envelope: `{ code, message, data }`. Health check: `GET /api/v1/health`.
+- Response: controllers return resources directly (no envelope); errors use RFC 9457
+  Problem Details — [ADR-0012](docs/reference/adr/0012-error-contract-and-result-boundary.md).
+  Health check: `GET /api/v1/health`.
 
 ## Working Rules
 
 - API contract changed → `pnpm export:openapi`. Do not hand-write endpoint docs.
 - Architecture/module structure changed → `pnpm docs:compodoc`.
 - API docs UI at `/api/docs` via Scalar.
-- Medicine import strategy changed → update `data-sources.md` + relevant source-specific file.
-- Significant architectural decision → create ADR in `docs/01-reference/adr/NNNN-title.md`.
+- Medicine import strategy changed → update `src/modules/medicines/README.md`.
+- Significant architectural decision → create ADR in `docs/reference/adr/NNNN-title.md`.
 - Localized backend copy: `AcceptLanguageResolver + I18nService` by default; `@I18nLang()` only
   when branching on locale for AI/prompt code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby code.
@@ -143,6 +144,6 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
 
 - Export a service from `@Module` `exports` **iff** another module directly imports and uses it.
 - Mapper services: `mapper.service.ts`. Ownership services: `ownership.service.ts`.
-- Cross-module data access governed by [ADR-0009](docs/01-reference/adr/0009-cross-module-data-access.md):
+- Cross-module data access governed by [ADR-0009](docs/reference/adr/0009-cross-module-data-access.md):
   cross-module writes via owning module's exported service; cross-module reads on soft-delete
   models use shared `nonDeleted` helper.
