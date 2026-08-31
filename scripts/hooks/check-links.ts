@@ -5,6 +5,10 @@
 // `docs/` vault root (wikilinks) or the file's own directory (relative
 // markdown links), and verifies the target file exists.
 //
+// Excluded from scanning: `docs/archive/**` (frozen history — links rot
+// by design, the folder is add-only) and `docs/reference/generated/**`
+// (machine-generated artifacts, never hand-edited).
+//
 // Modes:
 // - Default: print a broken-link report without blocking.
 // - Verify (--verify): exit(1) on any broken link (CI / pre-push gate).
@@ -36,13 +40,18 @@ function walkMarkdownFiles(dir: string): string[] {
   return out;
 }
 
+/** Frozen or generated trees that are exempt from link checking. */
+const EXEMPT_DIRS = ['archive', join('reference', 'generated')];
+
 function collectMarkdownFiles(repoRoot: string): string[] {
   const docsDir = resolve(repoRoot, VAULT_ROOT);
   if (!existsSync(docsDir)) return [];
   const docsBase = docsDir.replace(/\\/g, '/');
-  return walkMarkdownFiles(docsDir).map((f) =>
-    f.replace(docsBase + '/', `${VAULT_ROOT}/`),
-  );
+  return walkMarkdownFiles(docsDir)
+    .map((f) => f.replace(docsBase + '/', `${VAULT_ROOT}/`))
+    .filter(
+      (f) => !EXEMPT_DIRS.some((dir) => f.startsWith(`${VAULT_ROOT}/${dir}/`)),
+    );
 }
 
 // --- Link parsing -------------------------------------------------------
@@ -52,6 +61,18 @@ const MARKDOWN_LINK_RE = /\[[^\]]*\]\(([^)]+)\)/g;
 /** Skip fenced code blocks — link-looking text inside fences is not a link. */
 function isLineInFence(line: string, inFence: boolean): boolean {
   return /^\s*(```|~~~)/.test(line) ? !inFence : inFence;
+}
+
+/**
+ * Skip inline code spans — bracket syntax inside `backticks` is literal
+ * text (e.g. a log entry describing `[[old-note]]` syntax), not a link.
+ */
+function isInsideInlineCode(line: string, index: number): boolean {
+  let inside = false;
+  for (let i = 0; i < index; i++) {
+    if (line[i] === '`') inside = !inside;
+  }
+  return inside;
 }
 
 /** Strip `#anchor` / `#^block` suffixes; returns null for non-file targets. */
@@ -95,7 +116,7 @@ function targetExists(
   if (/\s/.test(target)) return null;
 
   // Obsidian short links: a wikilink without `/` resolves by basename
-  // across the whole vault (e.g. [[deploy]] → 01-reference/how-to/deploy.md).
+  // across the whole vault (e.g. [[deploy]] → howto/deploy.md).
   if (kind === 'wikilink' && !target.includes('/')) {
     if (findByBasename(allFiles, target)) return true;
     // Fall through to vault-root path resolution.
@@ -116,7 +137,7 @@ function targetExists(
   if (existsSync(resolve(repoRoot, path))) return true;
 
   // Fallback: a path-style wikilink may be relative to the current file's
-  // directory (e.g. [[adr/0004-...]] written from 01-reference/).
+  // directory (e.g. [[adr/0004-...]] written from reference/).
   if (kind === 'wikilink' && base === VAULT_ROOT) {
     const rel = /\.md$/i.test(target)
       ? `${dirname(file)}/${target}`
@@ -144,6 +165,7 @@ function checkFile(
     if (inFence) continue;
 
     for (const m of line.matchAll(WIKILINK_RE)) {
+      if (isInsideInlineCode(line, m.index ?? 0)) continue;
       const rawTarget = m[1].split('|')[0];
       const exists = targetExists(
         file,
@@ -158,6 +180,7 @@ function checkFile(
     for (const m of line.matchAll(MARKDOWN_LINK_RE)) {
       // Skip image links: `![alt](path)` — the char before `[` is `!`.
       if (m.index > 0 && line[m.index - 1] === '!') continue;
+      if (isInsideInlineCode(line, m.index ?? 0)) continue;
       const exists = targetExists(file, m[1], 'markdown', repoRoot, allFiles);
       if (exists === null || exists) continue;
       broken.push({ file, line: i + 1, target: m[1], kind: 'markdown' });

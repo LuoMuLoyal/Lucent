@@ -8,9 +8,62 @@ const { SwaggerModule } = require('@nestjs/swagger');
 const { FastifyAdapter } = require('@nestjs/platform-fastify');
 
 /**
+ * Generated region markers: module READMEs may reserve an endpoint summary
+ * block between these markers; the export backfills it from the freshly
+ * generated spec, so endpoint prose never goes stale by hand.
+ */
+const REGION_RE =
+  /<!--[\s]*@generated openapi:BEGIN prefix=([^\s]+)[\s]*-->[\s\S]*?<!--[\s]*@generated openapi:END[\s]*-->/g;
+
+/** Render one compact line per operation for paths under `prefix`. */
+function renderRegionEntries(document, prefix) {
+  const lines = [];
+  for (const [route, pathItem] of Object.entries(document.paths ?? {})) {
+    if (route !== prefix && !route.startsWith(`${prefix}/`)) continue;
+    for (const method of ['get', 'post', 'patch', 'put', 'delete']) {
+      const op = pathItem[method];
+      if (!op) continue;
+      const label = op.summary ?? op.operationId ?? '';
+      lines.push(
+        `- \`${method.toUpperCase()} ${route}\`${label ? ` — ${label}` : ''}`,
+      );
+    }
+  }
+  return lines.sort().join('\n');
+}
+
+/**
+ * Backfill `<!-- @generated openapi:BEGIN prefix=… -->` regions inside
+ * `src/modules/<name>/README.md` from the generated document. Idempotent: a
+ * clean re-export produces zero diff.
+ */
+function fillGeneratedRegions(repoRoot, document) {
+  const modulesDir = path.resolve(repoRoot, 'src', 'modules');
+  if (!fs.existsSync(modulesDir)) return;
+  let filled = 0;
+  for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const readmePath = path.join(modulesDir, entry.name, 'README.md');
+    if (!fs.existsSync(readmePath)) continue;
+    const original = fs.readFileSync(readmePath, 'utf-8');
+    let hits = 0;
+    const updated = original.replace(REGION_RE, (marker, prefix) => {
+      hits += 1;
+      return `<!-- @generated openapi:BEGIN prefix=${prefix} -->\n${renderRegionEntries(document, prefix)}\n<!-- @generated openapi:END -->`;
+    });
+    if (hits > 0 && updated !== original) {
+      fs.writeFileSync(readmePath, updated, 'utf-8');
+      filled += hits;
+    }
+  }
+  if (filled > 0) console.log(`Generated regions filled: ${filled}`);
+}
+
+/**
  * Format JSON with the repo's prettier config (scripts/format uses prettier).
- * Keeps `docs/openapi.json` in the same style as a committed artifact, so
- * re-running the export produces zero diff on a clean tree.
+ * Keeps `docs/reference/generated/openapi.json` in the same style as a
+ * committed artifact, so re-running the export produces zero diff on a clean
+ * tree.
  */
 async function formatJsonWithRepoPrettier(content, outputPath, repoRoot) {
   const prettier = await import('prettier');
@@ -114,7 +167,13 @@ async function main() {
     },
   );
 
-  const outputPath = path.resolve(repoRoot, 'docs', 'openapi.json');
+  const outputPath = path.resolve(
+    repoRoot,
+    'docs',
+    'reference',
+    'generated',
+    'openapi.json',
+  );
   const json = `${JSON.stringify(document, null, 2)}\n`;
   const formatted = await formatJsonWithRepoPrettier(
     json,
@@ -137,6 +196,7 @@ async function main() {
   console.log(
     `Schemas: ${Object.keys(document.components?.schemas ?? {}).length}`,
   );
+  fillGeneratedRegions(repoRoot, document);
 
   await app.close();
 }

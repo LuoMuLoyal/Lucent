@@ -16,11 +16,7 @@ export const MIGRATION_LOG_PATH_RE =
   /^docs\/(?:02-logs|logs)\/migration-log\/.+\.md$/;
 
 /**
- * Active docs that MUST stay fresh.
- *
- * Covers the new Diátaxis layout (explanation/reference/howto) and, during
- * the 2026-08-31 governance transition, the legacy numbered layout. The
- * legacy entries are pruned together with the Phase 2 docs rebuild.
+ * Active docs that MUST stay fresh (2026-08-31 Diátaxis layout).
  * Deliberately NOT active: `docs/archive/**` (frozen history),
  * `docs/reference/generated/**` (build artifacts),
  * `docs/logs/migration-log/*` (append-only ledger, guarded by the
@@ -32,13 +28,6 @@ export const ACTIVE_DOC_PATTERNS: string[] = [
   'docs/reference/*.md',
   'docs/reference/adr/*.md',
   'docs/howto/*.md',
-  // Legacy numbered layout — remove after the Phase 2 rebuild.
-  'docs/00-current/*.md',
-  'docs/01-reference/*.md',
-  'docs/01-reference/adr/*.md',
-  'docs/01-reference/contracts/*.md',
-  'docs/01-reference/how-to/*.md',
-  'docs/02-logs/README.md',
 ];
 
 export function isActiveDoc(path: string): boolean {
@@ -48,18 +37,12 @@ export function isActiveDoc(path: string): boolean {
 // --- YAML front-matter -------------------------------------------------
 /**
  * Content docs that MUST carry front-matter (status / owner / quadrant /
- * updated). New structure: `reference/` and `howto/` require it;
- * `explanation/` is gate-free (freshness still applies via git
- * last-modified) and ADRs are append-only. Legacy patterns are pruned
- * together with the Phase 2 rebuild.
+ * updated). `reference/` and `howto/` require it; `explanation/` is gate-free
+ * (freshness still applies via git last-modified) and ADRs are append-only.
  */
 export const FRONT_MATTER_REQUIRED_PATTERNS: string[] = [
   'docs/reference/*.md',
   'docs/howto/*.md',
-  // Legacy numbered layout — remove after the Phase 2 rebuild.
-  'docs/00-current/*.md',
-  'docs/01-reference/*.md',
-  'docs/01-reference/how-to/*.md',
 ];
 
 export function isFrontMatterRequired(path: string): boolean {
@@ -501,23 +484,13 @@ export function getStaleDocs(
   });
 }
 
-/**
- * Docs with a standing reader channel (AGENTS Read First / README nav /
- * subdir READMEs). Covers both layouts during the 2026-08-31 governance
- * transition; legacy entries are pruned with the Phase 2 rebuild.
- */
+/** Docs with a standing reader channel (AGENTS Read First / README nav / subdir READMEs). */
 export const EXEMPT_UNREFERENCED_PATTERNS: string[] = [
   'docs/reference/adr/**',
   'docs/reference/generated/**',
   'docs/howto/**',
   'docs/reference/deployment.md',
   'docs/reference/environment-variables.md',
-  // Legacy numbered layout — remove after the Phase 2 rebuild.
-  'docs/01-reference/adr/**',
-  'docs/01-reference/how-to/**',
-  'docs/01-reference/contracts/**',
-  'docs/01-reference/deployment.md',
-  'docs/01-reference/environment-variables.md',
 ];
 
 /**

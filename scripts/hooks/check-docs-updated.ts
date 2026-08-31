@@ -106,6 +106,34 @@ function collectAvailableDocs(repoRoot: string): string[] {
   );
 }
 
+/**
+ * Docs surface outside `docs/`: module READMEs (code-adjacent module intent)
+ * and the plans ledger. Used so doc-map rules may reference them without the
+ * orphan check falsely reporting them as missing.
+ */
+function collectRepoSurfaceDocs(repoRoot: string): string[] {
+  const out: string[] = [];
+  const pushRelative = (full: string) =>
+    out.push(full.slice(repoRoot.length + 1).replace(/\\/g, '/'));
+  const plansDir = resolve(repoRoot, 'plans');
+  if (existsSync(plansDir)) {
+    for (const f of readdirSync(plansDir)) {
+      if (f.endsWith('.md')) pushRelative(join(plansDir, f));
+    }
+  }
+  const modulesDir = resolve(repoRoot, 'src', 'modules');
+  if (existsSync(modulesDir)) {
+    for (const entry of readdirSync(modulesDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const readme = join(modulesDir, entry.name, 'README.md');
+      if (existsSync(readme)) pushRelative(readme);
+    }
+  }
+  const commonReadme = resolve(repoRoot, 'src', 'common', 'README.md');
+  if (existsSync(commonReadme)) pushRelative(commonReadme);
+  return out;
+}
+
 /** Collect migration-log entries from both the new and the legacy dir. */
 function collectLogFiles(repoRoot: string): string[] {
   const files: string[] = [];
@@ -151,7 +179,7 @@ function runVerify(repoRoot: string): void {
   const problems = collectVerifyProblems(
     repoRoot,
     rules,
-    availableDocs,
+    [...availableDocs, ...collectRepoSurfaceDocs(repoRoot)],
     logFiles,
     todayLogPath,
   );
@@ -174,7 +202,7 @@ function runVerify(repoRoot: string): void {
         `${p}: stale (front-matter updated >${STALE_DOC_THRESHOLD_DAYS}d — review or archive)`,
     ),
     ...findStaleStatusDocs(activeDocs, contentByPath).map(
-      (p) => `${p}: status=stale but not archived — move to 03-archive/`,
+      (p) => `${p}: status=stale but not archived — move to docs/archive/`,
     ),
   );
   // Frozen docs are exempt from freshness checks; everything else is judged
@@ -318,7 +346,7 @@ function main(): void {
 │                                                                 │
 │    ${todayLogPath}                                              │
 │                                                                 │
-│  (or any file under docs/00-current/ or docs/02-logs/)          │
+│  (or any file under docs/logs/)                                 │
 │                                                                 │
 │  To bypass:  SKIP_DOC_CHECK=1 git commit ...                   │
 │             or  git commit --no-verify                          │

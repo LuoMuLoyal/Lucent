@@ -34,7 +34,10 @@ interface OpenApiSchema {
 }
 
 function loadOpenApiSpec(): OpenApiSpec {
-  const specPath = resolve(__dirname, '../../docs/openapi.json');
+  const specPath = resolve(
+    __dirname,
+    '../../docs/reference/generated/openapi.json',
+  );
   return JSON.parse(readFileSync(specPath, 'utf-8')) as OpenApiSpec;
 }
 

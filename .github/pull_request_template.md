@@ -20,9 +20,9 @@
 - [ ] `pnpm build` passes
 - [ ] `pnpm test:ci` passes
 - [ ] `pnpm test:e2e:ci` passes
-- [ ] API contract changed → ran `pnpm export:openapi` and committed `docs/openapi.json`
+- [ ] API contract changed → ran `pnpm export:openapi` and committed `docs/reference/generated/openapi.json`
 - [ ] Module structure changed → ran `pnpm docs:compodoc`
-- [ ] Documentation updated (migration log, current state, ADR if applicable)
+- [ ] Documentation updated (migration log; ADR if applicable)
 
 ## Breaking changes
 

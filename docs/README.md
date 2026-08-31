@@ -1,81 +1,54 @@
+---
+status: active
+owner: backend
+quadrant: index
+updated: 2026-08-31
+---
+
 # Lucent Docs
 
-Lucent NestJS 后端的文档库。**活跃文档最小化**——只有会被 AI 或人读取的文档才保留，
-实现状态以代码为准，历史状态归档在 `03-archive/`。
+Lucent(NestJS 11 后端)文档库唯一索引。目录即裁决:`explanation/` 讲为什么(低频稳定叙事,只减不增);
+`reference/` 讲是什么(含 `adr/` 决策只增不改、`generated/` 生成物禁手改);`howto/` 讲怎么做(少而精,
+新增须过审计);`logs/migration-log/` 按日追加变更事实,永不覆写已有内容;`archive/` 归档只进不出,
+不参与链接与新鲜度校验。实现状态以代码为准;新增文档先做六向裁决(一句版:能由生成器/测试产出的
+不手写——生成消除;模块意图下沉模块 README——结构固化;可机器验证的断言归测试——测试承接;
+决策→ADR、事实→迁移日志、规划→plans——独立归宿;约束前移到 lint/AST——前移编码时刻;
+低频叙事降级为只减不增的快照——降级快照),详见根 [AGENTS.md](../AGENTS.md)。
 
-## 导航
+## 存活文档
 
-按 Diátaxis 四象限组织，每篇活跃文档必须能归入一个象限：
+- [reference/glossary.md](reference/glossary.md) — 术语单一来源
+- [reference/environment-variables.md](reference/environment-variables.md) — 环境变量完整参考;本地环境、YAML 配置与运行时基线也在此文件
+- [reference/deployment.md](reference/deployment.md) — 生产部署模型参考(单机 Compose、单 slot、备份链路)
+- [reference/data-retention.md](reference/data-retention.md) — 数据保留、清理管道与账户删除级联
+- [reference/assistant-safety.md](reference/assistant-safety.md) — 跨模块 AI 医疗红线与安全策略
+- [explanation/architecture.md](explanation/architecture.md) — 跨模块心智模型与设计权衡(细节以 ADR 与代码为准)
+- [howto/add-new-module.md](howto/add-new-module.md) — 新增 NestJS 模块
+- [howto/deploy.md](howto/deploy.md) — 生产部署快速路径
+- [howto/restore-database-backup.md](howto/restore-database-backup.md) — 数据库备份恢复演练
+- [howto/run-medicine-import.md](howto/run-medicine-import.md) — 药品数据导入
+- [howto/sync-openapi-client.md](howto/sync-openapi-client.md) — 导出 OpenAPI 并再生 Flutter 客户端
 
-- **参考（reference）**：事实清单，给正在实现/排查功能的人
-  - [[01-reference/environment]]、[[01-reference/environment-variables]]、
-    [[01-reference/toolchain]]、[[01-reference/code-quality]]、[[01-reference/deployment]]、
-    [[01-reference/data-retention]]（数据保留与账户删除语义）、
-    [[01-reference/event-catalog]]（跨模块领域事件契约）、
-    [[01-reference/contracts/README]]（前后端 API 边界）、[[Glossary]]
-- **操作指南（how-to）**：完成任务的最小可执行步骤
-  - [[01-reference/how-to/README]]（新增模块 / 部署 / 备份恢复 / 药品导入 / 客户端同步）
-- **解释（explanation）**：跨模块心智模型与设计权衡（「为什么」主要留在 ADR）
-  - [[01-reference/architecture]]
-- **决策（decision）**：架构决策记录，只增不改
-  - [[01-reference/adr/README]]
-- **变更记录**：`02-logs/migration-log/`（按日期排序）、[[02-logs/README]]
-- **当前状态**：[[00-current/TODO]]（活跃延后项，完成后删除条目）、[[00-current/Active_Product_Loop]]（产品闭环运行时状态）
+活跃延后项见 [../plans/backlog.md](../plans/backlog.md)(唯一 TODO 台账,条目完成即删行)。
 
-## 写文档先选象限
+## 模块 README 索引
 
-新增文档前先问：**谁会读它？多久更新一次？** 若回答是「没人读」或「不会更新」，归档而不是新增。
-然后按下表判定象限：
+模块意图、边界与陷阱以各模块 README 为准(与代码同址;进入模块前先读):
 
-| 象限             | 读者是谁                       | 典型内容                                   | 放哪里                                                   |
-| ---------------- | ------------------------------ | ------------------------------------------ | -------------------------------------------------------- |
-| 参考 reference   | 正在实现/排查功能的人          | 环境变量、工具链、部署模型、API 合同、术语 | `01-reference/`（含 `contracts/`、`Glossary.md`）        |
-| 操作指南 how-to  | 正在做某个任务的人             | 最小可执行步骤，按时间顺序                 | `01-reference/how-to/`                                   |
-| 解释 explanation | 需要跨模块心智模型的人         | 概念、权衡、为什么这么设计                 | `01-reference/architecture.md`（仅跨模块稳定模型才新建） |
-| 决策 decision    | 想知道「为什么当时这么定」的人 | 上下文 + 决策 + 后果                       | `01-reference/adr/`（只增不改）                          |
+- 身份与账户:[auth](../src/modules/auth/README.md)、[account](../src/modules/account/README.md)、[user](../src/modules/user/README.md)、[user-settings](../src/modules/user-settings/README.md)、[user-health-context](../src/modules/user-health-context/README.md)、[audit-log](../src/modules/audit-log/README.md)
+- 记录与建议:[daily-records](../src/modules/daily-records/README.md)、[assistant](../src/modules/assistant/README.md)、[today-suggestion](../src/modules/today-suggestion/README.md)、[today-analysis](../src/modules/today-analysis/README.md)、[reports](../src/modules/reports/README.md)、[health-events](../src/modules/health-events/README.md)、[data-export](../src/modules/data-export/README.md)
+- 药品域:[medicines](../src/modules/medicines/README.md)、[medicine-dose-logs](../src/modules/medicine-dose-logs/README.md)、[medicine-reminders](../src/modules/medicine-reminders/README.md)
+- 通知:[notifications](../src/modules/notifications/README.md)、[notification-preferences](../src/modules/notification-preferences/README.md)
+- 基础设施与支撑:[app-info](../src/modules/app-info/README.md)、[environment](../src/modules/environment/README.md)、[files](../src/modules/files/README.md)、[legal-documents](../src/modules/legal-documents/README.md)、[product-events](../src/modules/product-events/README.md)、[testing-support](../src/modules/testing-support/README.md)、[data-retention](../src/modules/data-retention/README.md)、[src/common](../src/common/README.md)
 
-反例：
+## 生成物
 
-- ❌ 把「如何部署」写进 `deployment.md`（参考）→ ✅ 快速步骤进 `how-to/deploy.md`，部署模型留在 `deployment.md`
-- ❌ 把某个设计权衡写进 `architecture.md` 正文 → ✅ 写 ADR，`architecture.md` 只留一句指向 ADR 的链接
-- ❌ 新文档不选象限直接丢进 `01-reference/` → ✅ 先按上表判定；归不进任何象限的说明「没人读」，归档
+`docs/reference/generated/openapi.json` 与 `docs/reference/generated/compodoc/` 分别由
+`pnpm export:openapi` / `pnpm docs:compodoc` 产出,**禁止手改**;API 合同与模块/类图事实以生成物为准。
+ADR 位于 [reference/adr/](reference/adr/README.md),只增不改,新决策写新文件。
 
-## 文档边界
+## 归档
 
-- `01-reference/architecture.md`（解释）— 模块依赖、AI 管道、路由、DB 约定、可观测性
-- `01-reference/environment.md`（参考）— 本地环境、Docker、脚本与运行时基线
-- `01-reference/environment-variables.md`（参考）— 环境变量完整参考（唯一事实源）
-- `01-reference/deployment.md`（参考）— 生产部署模型参考
-- `01-reference/data-retention.md`（参考）— 数据保留、清理管道与账户删除级联
-- `01-reference/event-catalog.md`（参考）— 跨模块领域事件契约（事件名、payload、发布者、监听者）
-- `01-reference/toolchain.md`（参考）— 工具链、OpenAPI 导出、CI、hooks
-- `01-reference/code-quality.md`（参考）— 代码质量与可维护性约定
-- `01-reference/adr/`（决策）— 架构决策记录
-- `01-reference/contracts/`（参考）— 前后端 API 边界（Luminous 引用）
-- `01-reference/how-to/`（操作指南）— 每篇指南聚焦一个常见任务
-- `00-current/TODO.md`（当前状态）— 活跃延后项（完成后删除条目）
-- `00-current/Active_Product_Loop.md`（当前状态）— 产品闭环合同与验证边界
-- `02-logs/README.md` — 变更日志索引与主题导航
-- `openapi.json` — 生成产物（`pnpm export:openapi`，禁止手改）
-
-## 文档生命周期
-
-- 新增文档前先问：**谁会读它？多久更新一次？** 若回答是「没人读」或「不会更新」，归档而不是新增。
-- 每篇活跃文档头部带 YAML front-matter：`status: active` / `owner: backend` /
-  `quadrant: reference | how-to | explanation` / `updated: YYYY-MM-DD`。
-- 活跃文档数量上限：**reference ≤ 12、how-to ≤ 10、explanation ≤ 8**、adr 不设限（只增不改）、
-  **00-current ≤ 5**。超限时合并或归档，新文档必须替换旧文档。
-- 活跃文档超过 90 天未更新（git 变更或 front-matter `updated` 均计入）：
-  `pnpm docs:verify` 会报警，处理流程：**`--verify` 报警 → owner 审阅 → 更新 `updated`
-  或 `git mv` 到 `03-archive/`**。
-- 归档：`git mv` 到 `03-archive/`，头部加 `status: archived`，信息不丢、可追溯；归档文档不参与覆盖校验。
-- 未被 `docs/doc-map.yaml` 引用的活跃文档：`--verify` 报警「无读者」，归档。
-- 变更记录只写 `02-logs/migration-log/YYYY-MM-DD.md`（单日文件一个 H1，章节用 `##`）。
-
-## 覆盖校验
-
-`docs/doc-map.yaml` 是映射规则的唯一事实源（本文件不再维护手工映射表）。运行
-`pnpm docs:check` 查看当前变更需要更新哪些文档；pre-commit hook 阻断「代码变更但零文档」的提交。
-
-- `pnpm docs:verify` — 引用完整性、单 H1、front-matter 元数据与 stale 检测
-- `pnpm docs:links` — 全库 wikilink 与相对链接完整性（断链时 exit(1)）
+`archive/` 只进不出:被裁决淘汰的文档经 `git mv` 进入,信息不丢、可追溯,不参与链接完整性与
+新鲜度校验。历史审计与一次性分析也落在这里,例如
+[2026-08-31-doc-governance-audit.md](archive/2026-08-31-doc-governance-audit.md)。

@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/compodoc/compodoc/develop/src/config/config.schema.json",
   "tsconfig": "tsconfig.json",
-  "output": "docs/compodoc",
+  "output": "docs/reference/generated/compodoc",
   "name": "Lucent Architecture",
   "theme": "stripe",
   "disableCoverage": true,

@@ -1,16 +1,17 @@
-# Lucent 文档覆盖映射
+# Lucent 文档覆盖映射(过渡期机制,退役计划见 plans/2026-08-31-doc-governance-overhaul-plan.md)
 #
-# scripts/hooks/check-docs-updated.ts 读取本文件（唯一事实源）：
-# - docs_required：必改文档，全部命中才满足（通常只有迁移日志）
-# - docs_any_of：  至少命中其一（按变更性质选择）
-# - docs_info：    仅建议，缺失不警告
-# - 阻断模式（默认，pre-commit）：有代码变更但无任何 docs/ 文件变更 → exit(1)
-# - 校验模式（--verify）：引用文件存在、迁移日志单 H1、plans/spec 引用有效、活跃文档新鲜度与读者
+# scripts/hooks/check-docs-updated.ts 读取本文件:
+# - docs_required：必改文档,全部命中才满足(通常只有迁移日志)
+# - docs_any_of：  至少命中其一(模块意图变更首选对应 src/modules/<m>/README.md)
+# - docs_info：    仅建议,缺失不警告
+# - 阻断模式(默认,pre-commit):有代码变更但无任何 docs/ 文件变更 → exit(1)
+# - 校验模式(--verify):引用文件存在、迁移日志单 H1、plans/spec 引用有效、活跃文档新鲜度与读者
 # - 旁路：SKIP_DOC_CHECK=1
 #
-# glob 规则：* 匹配单层路径，** 匹配多层路径。
-# 归档的功能状态文档在 03-archive/，不参与覆盖映射（历史可追溯，不强制同步）。
-# 迁移日志条目约定：描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数），见 AGENTS.md。
+# glob 规则：* 匹配单层路径,** 匹配多层路径。
+# 历史与过程性文档在 docs/archive/,不参与覆盖映射(只进不出,不强制同步)。
+# 生成物在 docs/reference/generated/(openapi.json、compodoc),由生成器产出,禁止手改。
+# 迁移日志条目约定:描述变更范围与验证结论,不写需要持续同步的精确数字(如测试总数),见 AGENTS.md。
 
 rules:
   # ──────────────────────────────────────────────
@@ -29,16 +30,16 @@ rules:
       - AGENTS.md
       - docs/doc-map.yaml
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/toolchain.md
-      - docs/01-reference/code-quality.md
-      - docs/01-reference/environment.md
+      - docs/reference/environment-variables.md
+      - docs/README.md
     docs_info:
-      - docs/00-current/TODO.md
+      - plans/backlog.md
+      - docs/reference/glossary.md
 
   # ──────────────────────────────────────────────
-  # 基础设施（bootstrap、配置、Prisma、i18n、Admin、邮件）
+  # 基础设施(bootstrap、配置、Prisma、i18n、Admin、邮件)
   # ──────────────────────────────────────────────
   - name: infrastructure
     code:
@@ -53,51 +54,50 @@ rules:
       - prisma/schema.prisma
       - prisma/migrations/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/architecture.md
-      - docs/01-reference/environment.md
-      - docs/01-reference/toolchain.md
-      - docs/01-reference/code-quality.md
+      - docs/explanation/architecture.md
+      - docs/reference/environment-variables.md
 
   # ──────────────────────────────────────────────
-  # 共享层（common/）
+  # 共享层(common/)
   # ──────────────────────────────────────────────
   - name: common-shared
     code:
       - src/common/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/architecture.md
-      - docs/01-reference/code-quality.md
-      - docs/01-reference/event-catalog.md
+      - docs/explanation/architecture.md
+      - src/common/README.md
 
   # ──────────────────────────────────────────────
-  # 认证与安全（auth、security-pin、account）
+  # 认证与安全(auth、account)
   # ──────────────────────────────────────────────
   - name: auth-security
     code:
       - src/modules/auth/**
-      - src/modules/security-pin/**
       - src/modules/account/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
+    docs_any_of:
+      - src/modules/auth/README.md
+      - src/modules/account/README.md
 
   # ──────────────────────────────────────────────
-  # 审计日志（audit-log，全局安全操作记录）
+  # 审计日志(audit-log,全局安全操作记录)
   # ──────────────────────────────────────────────
   - name: audit-log
     code:
       - src/modules/audit-log/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/architecture.md
-      - docs/01-reference/code-quality.md
+      - docs/explanation/architecture.md
+      - src/modules/audit-log/README.md
 
   # ──────────────────────────────────────────────
-  # 用户域（user、health-context、settings）
+  # 用户域(user、health-context、settings)
   # ──────────────────────────────────────────────
   - name: user-domain
     code:
@@ -105,22 +105,22 @@ rules:
       - src/modules/user-health-context/**
       - src/modules/user-settings/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/contracts/mine-settings-contract.md
-      - docs/01-reference/event-catalog.md
+      - src/modules/user-settings/README.md
+      - src/modules/user-health-context/README.md
+      - src/modules/user/README.md
 
   # ──────────────────────────────────────────────
-  # 健康事件合同
+  # 健康事件
   # ──────────────────────────────────────────────
   - name: health-events
     code:
       - src/modules/health-events/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/00-current/Active_Product_Loop.md
-      - docs/01-reference/event-catalog.md
+      - src/modules/health-events/README.md
 
   # ──────────────────────────────────────────────
   # 日常记录与餐食分析
@@ -129,12 +129,12 @@ rules:
     code:
       - src/modules/daily-records/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/event-catalog.md
+      - src/modules/daily-records/README.md
 
   # ──────────────────────────────────────────────
-  # 药品域（medicines、dose-logs、reminders）
+  # 药品域(medicines、dose-logs、reminders)
   # ──────────────────────────────────────────────
   - name: medicine
     code:
@@ -142,10 +142,11 @@ rules:
       - src/modules/medicine-dose-logs/**
       - src/modules/medicine-reminders/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/contracts/reminder-contract.md
-      - docs/01-reference/event-catalog.md
+      - src/modules/medicines/README.md
+      - src/modules/medicine-reminders/README.md
+      - src/modules/medicine-dose-logs/README.md
 
   # ──────────────────────────────────────────────
   # Assistant AI 管道
@@ -157,14 +158,13 @@ rules:
       - src/llm-runtime/**
       - src/common/llm/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/architecture.md
-      - docs/01-reference/contracts/assistant-contract.md
-      - docs/01-reference/contracts/assistant-capabilities.md
-      - docs/01-reference/contracts/assistant-safety.md
+      - docs/explanation/architecture.md
+      - src/modules/assistant/README.md
+      - docs/reference/assistant-safety.md
     docs_info:
-      - docs/01-reference/contracts/assistant-rollout.md
+      - src/modules/today-analysis/README.md
 
   # ──────────────────────────────────────────────
   # Today 主动建议引擎
@@ -173,9 +173,9 @@ rules:
     code:
       - src/modules/today-suggestion/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/event-catalog.md
+      - src/modules/today-suggestion/README.md
 
   # ──────────────────────────────────────────────
   # 报告与导出
@@ -185,23 +185,23 @@ rules:
       - src/modules/reports/**
       - src/modules/data-export/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/contracts/data-export-contract.md
-      - docs/01-reference/data-retention.md
-      - docs/01-reference/event-catalog.md
+      - src/modules/reports/README.md
+      - src/modules/data-export/README.md
+      - docs/reference/data-retention.md
 
   # ──────────────────────────────────────────────
-  # 产品事件测量（product-events）
+  # 产品事件测量(product-events)
   # ──────────────────────────────────────────────
   - name: product-events
     code:
       - src/modules/product-events/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/data-retention.md
-      - docs/00-current/Active_Product_Loop.md
+      - src/modules/product-events/README.md
+      - docs/reference/data-retention.md
 
   # ──────────────────────────────────────────────
   # 数据保留与账户删除级联
@@ -210,9 +210,10 @@ rules:
     code:
       - src/modules/data-retention/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/data-retention.md
+      - docs/reference/data-retention.md
+      - src/modules/data-retention/README.md
 
   # ──────────────────────────────────────────────
   # 通知
@@ -221,17 +222,18 @@ rules:
     code:
       - src/modules/notifications/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
+    docs_any_of:
+      - src/modules/notifications/README.md
 
   # 跨设备通知偏好与服务端通知门禁
   - name: notification-preferences
     code:
       - src/modules/notification-preferences/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/00-current/Notification_Preferences.md
-      - docs/01-reference/contracts/reminder-contract.md
+      - src/modules/notification-preferences/README.md
 
   # ──────────────────────────────────────────────
   # 支持文件、环境快照、测试支持
@@ -244,23 +246,21 @@ rules:
       - src/modules/testing-support/**
       - src/modules/legal-documents/**
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      - docs/01-reference/contracts/app-info-contract.md
-      - docs/01-reference/contracts/environment-contract.md
+      - src/modules/app-info/README.md
+      - src/modules/environment/README.md
+      - src/modules/files/README.md
+      - src/modules/testing-support/README.md
+      - src/modules/legal-documents/README.md
 
   # ──────────────────────────────────────────────
-  # OpenAPI 合同与公共合同文件
+  # OpenAPI 生成物
   # ──────────────────────────────────────────────
   - name: docs-openapi
     code:
-      - docs/openapi.json
-      - docs/01-reference/contracts/**
+      - docs/reference/generated/openapi.json
     docs_required:
-      - docs/02-logs/migration-log/*.md
+      - docs/logs/migration-log/*.md
     docs_any_of:
-      # Editing a contract doc itself satisfies the rule (`*` matches the
-      # single-level files directly under contracts/); toolchain.md remains an
-      # alternative for openapi.json-only edits.
-      - docs/01-reference/toolchain.md
-      - docs/01-reference/contracts/*.md
+      - docs/README.md

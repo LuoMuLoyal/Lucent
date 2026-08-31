@@ -106,7 +106,7 @@ function runRenderConfigs(): void {
  * JPush credential precheck (0.1.0 release gate, best-effort).
  * Reads JPUSH_APP_KEY / JPUSH_MASTER_SECRET from .env. Missing credentials
  * only warn loudly — push stays silently disabled and the deploy proceeds;
- * the release gate itself is enforced via docs/01-reference/deployment.md.
+ * the release gate itself is enforced via docs/howto/deploy.md.
  */
 function checkJpushConfig(): void {
   const envPath = path.join(DEPLOY_DIR, '.env');

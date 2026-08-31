@@ -37,26 +37,25 @@ Prerequisites: Node.js `24.x`, pnpm `11.x` or `12.x`, Docker (for `dev:stack`).
 
 ## Documentation
 
-| Resource              | Link                                                                                     |
-| --------------------- | ---------------------------------------------------------------------------------------- |
-| Architecture          | [docs/01-reference/architecture.md](docs/01-reference/architecture.md)                   |
-| Environment setup     | [docs/01-reference/environment.md](docs/01-reference/environment.md)                     |
-| Environment variables | [docs/01-reference/environment-variables.md](docs/01-reference/environment-variables.md) |
-| Deployment            | [docs/01-reference/deployment.md](docs/01-reference/deployment.md)                       |
-| API contract          | `docs/openapi.json` (generated, tracked)                                                 |
-| ADRs                  | [docs/01-reference/adr/](docs/01-reference/adr/)                                         |
-| Current state         | [docs/00-current/Current_State.md](docs/00-current/Current_State.md)                     |
-| Roadmap               | [ROADMAP.md](ROADMAP.md)                                                                 |
-| Changelog             | [CHANGELOG.md](CHANGELOG.md)                                                             |
-| Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md)                                                       |
-| Security policy       | [SECURITY.md](SECURITY.md)                                                               |
+| Resource              | Link                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| Architecture          | [docs/explanation/architecture.md](docs/explanation/architecture.md)               |
+| Environment variables | [docs/reference/environment-variables.md](docs/reference/environment-variables.md) |
+| Deployment            | [docs/reference/deployment.md](docs/reference/deployment.md)                       |
+| API contract          | `docs/reference/generated/openapi.json` (generated, tracked)                       |
+| ADRs                  | [docs/reference/adr/](docs/reference/adr/)                                         |
+| Docs index            | [docs/README.md](docs/README.md)                                                   |
+| Backlog               | [plans/backlog.md](plans/backlog.md)                                               |
+| Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md)                                                 |
+| Security policy       | [SECURITY.md](SECURITY.md)                                                         |
 
 ## Source Of Truth
 
-- API contract: controller / DTO code plus a local generated `docs/openapi.json` export.
+- API contract: controller / DTO code plus a local generated
+  `docs/reference/generated/openapi.json` export.
 - Database model: [prisma/schema.prisma](prisma/schema.prisma).
-- Runtime configuration: [docs/01-reference/environment.md](docs/01-reference/environment.md).
-- Medicine data imports: [docs/01-reference/contracts/data-sources.md](docs/01-reference/contracts/data-sources.md).
+- Runtime configuration: [docs/reference/environment-variables.md](docs/reference/environment-variables.md).
+- Medicine data imports: [src/modules/medicines/README.md](src/modules/medicines/README.md).
 - Product direction: [../Luminous/docs/01-product/Product_Vision.md](../Luminous/docs/01-product/Product_Vision.md).
 
 Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI when API code changes:
@@ -65,7 +64,7 @@ Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI
 pnpm export:openapi
 ```
 
-Before merging API contract changes, export a fresh local `docs/openapi.json` and regenerate the Flutter client from `../Luminous`:
+Before merging API contract changes, export a fresh local `docs/reference/generated/openapi.json` and regenerate the Flutter client from `../Luminous`:
 
 ```bash
 cd ../Luminous
@@ -77,11 +76,11 @@ Generated artifact policy in this repo:
 
 - `generated/prisma/` is intentionally local-only and stays ignored. Regenerate it from
   `prisma/schema.prisma` plus migrations through the normal Prisma flow instead of committing it.
-- `docs/openapi.json` is tracked in git (marked as `linguist-generated`). Regenerate it with `pnpm export:openapi` after API changes, then commit.
+- `docs/reference/generated/openapi.json` is tracked in git (marked as `linguist-generated`). Regenerate it with `pnpm export:openapi` after API changes, then commit.
   before regenerating the Luminous client or validating cross-repo contract sync.
 
-Lucent CI now exports `docs/openapi.json` as a local build artifact instead of enforcing a
-committed generated contract file in git history.
+Lucent CI re-exports the spec and fails when the committed
+`docs/reference/generated/openapi.json` does not match current code.
 
 ## Stack
 
@@ -164,7 +163,7 @@ Daily-record image uploads are signed by Lucent for Tencent COS. Configure
 AI runtime configuration is role-based and OpenAI-compatible only. Configure
 `AI_PROVIDER=openai-compatible`, then give each role its own
 `BASE_URL` / `API_KEY` / `MODEL`, including analysis, vision, language,
-chat, chat compression, and embedding. See [docs/01-reference/environment.md](docs/01-reference/environment.md).
+chat, chat compression, and embedding. See [docs/reference/environment-variables.md](docs/reference/environment-variables.md).
 `AI_LANGUAGE_MODEL` now powers `POST /api/v1/user/daily-records/candidate-records/generate`,
 which converts one natural-language note into user-confirmed candidate daily records
 without writing directly into the final daily-record table.
@@ -264,36 +263,21 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
 - The server does not keep a git checkout.
 - The server keeps a single directory at `/opt/lucent/` containing compose assets,
   `.env`, certs, data volumes, and logs — see
-  [docs/01-reference/deployment.md](docs/01-reference/deployment.md) for the full layout
+  [docs/reference/deployment.md](docs/reference/deployment.md) for the full layout
 - The app itself is always deployed from the pushed image, not built on the server
 
 ## Docs
 
-Start with [docs/README.md](docs/README.md). For planned evolution see [ROADMAP.md](ROADMAP.md).
+Start with [docs/README.md](docs/README.md) — the唯一文档索引(布局、六向裁决、模块 README 索引)。
+活跃规划见 [plans/](plans/),延后项台账见 [plans/backlog.md](plans/backlog.md)。
 
-Active docs:
-
-- [docs/00-current/Current_State.md](docs/00-current/Current_State.md) — Current implementation state
-- [docs/00-current/TODO.md](docs/00-current/TODO.md) — Deferred follow-up items
-- [docs/00-current/MigrationLog.md](docs/00-current/MigrationLog.md) — Change history index
-- [docs/01-reference/environment.md](docs/01-reference/environment.md)
-- [docs/01-reference/environment-variables.md](docs/01-reference/environment-variables.md)
-- [docs/01-reference/deployment.md](docs/01-reference/deployment.md)
-- [docs/01-reference/architecture.md](docs/01-reference/architecture.md)
-- [docs/01-reference/adr/](docs/01-reference/adr/) — Architecture Decision Records
-- `docs/openapi.json` (generated, tracked in git)
-- [docs/01-reference/contracts/data-sources.md](docs/01-reference/contracts/data-sources.md)
-- [docs/01-reference/contracts/data-sources-cn-products.md](docs/01-reference/contracts/data-sources-cn-products.md)
-- [docs/01-reference/contracts/data-sources-drugbank.md](docs/01-reference/contracts/data-sources-drugbank.md)
-- [docs/01-reference/contracts/data-sources-medical-qa.md](docs/01-reference/contracts/data-sources-medical-qa.md)
-- [docs/01-reference/contracts/data-sources-food-composition.md](docs/01-reference/contracts/data-sources-food-composition.md)
-- [docs/01-reference/contracts/assistant-contract.md](docs/01-reference/contracts/assistant-contract.md)
-- [docs/01-reference/contracts/assistant-capabilities.md](docs/01-reference/contracts/assistant-capabilities.md)
-- [docs/01-reference/contracts/assistant-rollout.md](docs/01-reference/contracts/assistant-rollout.md)
-- [docs/01-reference/contracts/assistant-safety.md](docs/01-reference/contracts/assistant-safety.md)
-- [docs/01-reference/contracts/reminder-contract.md](docs/01-reference/contracts/reminder-contract.md)
-- [docs/01-reference/contracts/environment-contract.md](docs/01-reference/contracts/environment-contract.md)
-- [docs/01-reference/contracts/mine-settings-contract.md](docs/01-reference/contracts/mine-settings-contract.md)
-- [docs/01-reference/contracts/support-resources-contract.md](docs/01-reference/contracts/support-resources-contract.md)
-- [docs/01-reference/contracts/app-info-contract.md](docs/01-reference/contracts/app-info-contract.md)
-- [docs/01-reference/contracts/data-export-contract.md](docs/01-reference/contracts/data-export-contract.md)
+- [docs/explanation/architecture.md](docs/explanation/architecture.md) — 跨模块心智模型
+- [docs/reference/environment-variables.md](docs/reference/environment-variables.md) — 环境变量与本地基线
+- [docs/reference/deployment.md](docs/reference/deployment.md) — 部署模型参考
+- [docs/reference/glossary.md](docs/reference/glossary.md) — 术语表
+- [docs/reference/assistant-safety.md](docs/reference/assistant-safety.md) — AI 医疗安全红线
+- [docs/reference/adr/](docs/reference/adr/) — Architecture Decision Records
+- `docs/reference/generated/` — 生成物(openapi.json、compodoc,禁手改)
+- [docs/howto/](docs/howto/) — 操作指南
+- [docs/logs/migration-log/](docs/logs/migration-log/) — 按日变更账本
+- 模块边界与契约:`src/modules/<m>/README.md`(与代码同址)

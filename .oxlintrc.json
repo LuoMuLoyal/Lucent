@@ -172,6 +172,7 @@
     "test/performance/**/*.ts",
     "generated/**",
     "dist/**",
-    "node_modules/**"
+    "node_modules/**",
+    "docs/reference/generated/**"
   ]
 }

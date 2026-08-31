@@ -40,19 +40,19 @@ describe('TodayRecommendationsService', () => {
 
     it('returns Chinese text when lang starts with zh', () => {
       const result = service.getColdStartGuides([], 'zh-CN');
-      const allChinese = result.every((r) => /[\u4e00-\u9fff]/.test(r.text));
+      const allChinese = result.every((r) => /[\u4E00-\u9FFF]/.test(r.text));
       expect(allChinese).toBe(true);
     });
 
     it('returns English text when lang is en', () => {
       const result = service.getColdStartGuides([], 'en');
-      const allEnglish = result.every((r) => !/[\u4e00-\u9fff]/.test(r.text));
+      const allEnglish = result.every((r) => !/[\u4E00-\u9FFF]/.test(r.text));
       expect(allEnglish).toBe(true);
     });
 
     it('defaults to English when lang is undefined', () => {
       const result = service.getColdStartGuides([], undefined);
-      const allEnglish = result.every((r) => !/[\u4e00-\u9fff]/.test(r.text));
+      const allEnglish = result.every((r) => !/[\u4E00-\u9FFF]/.test(r.text));
       expect(allEnglish).toBe(true);
     });
 

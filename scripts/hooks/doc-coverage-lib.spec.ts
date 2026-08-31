@@ -78,15 +78,7 @@ describe('globToRegExp', () => {
 });
 
 describe('isActiveDoc', () => {
-  it('classifies active vs archived', () => {
-    expect(isActiveDoc('docs/01-reference/architecture.md')).toBe(true);
-    expect(isActiveDoc('docs/00-current/TODO.md')).toBe(true);
-    expect(isActiveDoc('docs/02-logs/README.md')).toBe(true);
-    expect(isActiveDoc('docs/03-archive/current-state/Meal_Analysis.md')).toBe(
-      false,
-    );
-  });
-  it('classifies the new Diátaxis layout (2026-08-31 governance)', () => {
+  it('classifies the Diátaxis layout (2026-08-31 governance)', () => {
     expect(isActiveDoc('docs/explanation/architecture.md')).toBe(true);
     expect(isActiveDoc('docs/reference/glossary.md')).toBe(true);
     expect(isActiveDoc('docs/reference/adr/0001-nestjs-prisma-stack.md')).toBe(
@@ -101,6 +93,11 @@ describe('isActiveDoc', () => {
     expect(isActiveDoc('docs/logs/migration-log/2026-08-31.md')).toBe(false);
     expect(isActiveDoc('docs/archive/old-note.md')).toBe(false);
     expect(isActiveDoc('docs/archive/nested/dir/old-note.md')).toBe(false);
+  });
+  it('legacy numbered layout is no longer active', () => {
+    expect(isActiveDoc('docs/01-reference/architecture.md')).toBe(false);
+    expect(isActiveDoc('docs/00-current/TODO.md')).toBe(false);
+    expect(isActiveDoc('docs/02-logs/README.md')).toBe(false);
   });
 });
 
@@ -186,13 +183,22 @@ describe('findUnreferencedActiveDocs', () => {
     ]);
   });
   it('exempts docs with standing reader channels', () => {
-    const rules = parseDocMapYaml(SAMPLE_YAML);
+    const rules = parseDocMapYaml(`
+rules:
+- name: infra
+  code:
+    - src/setup-app.ts
+  docs_required:
+    - docs/logs/migration-log/*.md
+  docs_any_of:
+    - docs/reference/glossary.md
+`);
     const active = [
-      'docs/01-reference/deployment.md',
-      'docs/01-reference/environment-variables.md',
-      'docs/01-reference/adr/0001-nestjs-prisma-stack.md',
-      'docs/01-reference/how-to/deploy.md',
-      'docs/01-reference/contracts/reminder-contract.md',
+      'docs/reference/deployment.md',
+      'docs/reference/environment-variables.md',
+      'docs/reference/adr/0001-nestjs-prisma-stack.md',
+      'docs/howto/deploy.md',
+      'docs/reference/glossary.md',
     ];
     expect(findUnreferencedActiveDocs(rules, active)).toEqual([]);
   });
@@ -237,22 +243,6 @@ describe('findDocMapOrphans / findDocMapGlobOrphans', () => {
 });
 
 describe('isFrontMatterRequired', () => {
-  it('requires front-matter for reference/how-to/current docs only', () => {
-    expect(isFrontMatterRequired('docs/01-reference/architecture.md')).toBe(
-      true,
-    );
-    expect(isFrontMatterRequired('docs/01-reference/how-to/deploy.md')).toBe(
-      true,
-    );
-    expect(isFrontMatterRequired('docs/00-current/TODO.md')).toBe(true);
-    expect(isFrontMatterRequired('docs/01-reference/adr/0001-x.md')).toBe(
-      false,
-    );
-    expect(isFrontMatterRequired('docs/01-reference/contracts/x.md')).toBe(
-      false,
-    );
-    expect(isFrontMatterRequired('docs/README.md')).toBe(false);
-  });
   it('new layout: reference/howto required, explanation/ADR exempt', () => {
     expect(isFrontMatterRequired('docs/reference/glossary.md')).toBe(true);
     expect(isFrontMatterRequired('docs/howto/deploy.md')).toBe(true);
@@ -261,6 +251,13 @@ describe('isFrontMatterRequired', () => {
     );
     expect(isFrontMatterRequired('docs/reference/adr/0001-x.md')).toBe(false);
     expect(isFrontMatterRequired('docs/reference/generated/x.md')).toBe(false);
+    expect(isFrontMatterRequired('docs/README.md')).toBe(false);
+  });
+  it('legacy numbered layout no longer requires front-matter', () => {
+    expect(isFrontMatterRequired('docs/01-reference/architecture.md')).toBe(
+      false,
+    );
+    expect(isFrontMatterRequired('docs/00-current/TODO.md')).toBe(false);
   });
 });
 
@@ -290,8 +287,8 @@ updated: 2026-08-02
 describe('findDocsMissingFrontMatter', () => {
   it('flags required docs without a full front-matter block', () => {
     const contents: Record<string, string> = {
-      'docs/01-reference/a.md': '# A',
-      'docs/01-reference/b.md': `---
+      'docs/reference/a.md': '# A',
+      'docs/reference/b.md': `---
 status: active
 owner: backend
 quadrant: reference
@@ -299,24 +296,24 @@ updated: 2026-08-02
 ---
 
 # B`,
-      'docs/01-reference/c.md': `---
+      'docs/reference/c.md': `---
 status: active
 ---
 
 # C`,
-      'docs/01-reference/adr/0001-x.md': '# ADR',
+      'docs/reference/adr/0001-x.md': '# ADR',
     };
     expect(
       findDocsMissingFrontMatter(
         [
-          'docs/01-reference/a.md',
-          'docs/01-reference/b.md',
-          'docs/01-reference/c.md',
-          'docs/01-reference/adr/0001-x.md',
+          'docs/reference/a.md',
+          'docs/reference/b.md',
+          'docs/reference/c.md',
+          'docs/reference/adr/0001-x.md',
         ],
         contents,
       ),
-    ).toEqual(['docs/01-reference/a.md', 'docs/01-reference/c.md']);
+    ).toEqual(['docs/reference/a.md', 'docs/reference/c.md']);
   });
 });
 

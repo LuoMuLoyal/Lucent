@@ -183,7 +183,7 @@ jobs:
 
       # 对比 base 分支与本 PR 的 schema，检测破坏性 migration（DROP/TRUNCATE/
       # 改列类型），只打警告不阻断——用于评估停机窗口时长与回滚风险
-      # （单 slot 部署下回滚不回退 schema，见 docs/01-reference/deployment.md）。
+      # （单 slot 部署下回滚不回退 schema，见 docs/reference/deployment.md）。
       - name: Destructive migration check
         if: github.event_name == 'pull_request'
         run: |
@@ -212,7 +212,7 @@ jobs:
         run: pnpm build
 
       # OpenAPI spec must be generated before E2E tests — the contract test
-      # suite (test/contract/) loads docs/openapi.json at startup. The file is
+      # suite (test/contract/) loads docs/reference/generated/openapi.json at startup. The file is
       # tracked in git, but re-export here to ensure it matches the current code.
       # Reuses the dist/ from the previous Build step — no redundant recompilation.
       - name: Export OpenAPI spec
