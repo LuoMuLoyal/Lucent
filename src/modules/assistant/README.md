@@ -7,7 +7,7 @@ owner: backend
 
 基于 LangGraph 的多意图路由 AI 助手：SSE 流式对话、健康数据读取、药品知识
 检索（RAG）、日报/设置写入提案（HITL 确认）、跨对话记忆与对话持久化。
-历史契约细节见 `docs/archive/assistant-contract.md` 与 `assistant-capabilities.md`。
+历史契约细节见 `docs/archive/01-reference/contracts/assistant-contract.md` 与 `assistant-capabilities.md`。
 
 ## Endpoints（挂 `/user` 前缀，事实源 = openapi.json）
 

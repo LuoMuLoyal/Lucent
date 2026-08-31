@@ -7,12 +7,12 @@ updated: 2026-08-31
 
 # Assistant Safety
 
-本文件是 [[archive/assistant-contract]] 拆分后的子文档。
+本文件是 [[archive/01-reference/contracts/assistant-contract]] 拆分后的子文档。
 
 相关子文档：
 
-- [[archive/assistant-capabilities]]
-- [[archive/assistant-rollout]]
+- [[archive/01-reference/contracts/assistant-capabilities]]
+- [[archive/01-reference/contracts/assistant-rollout]]
 
 ## AI Safety Policy
 

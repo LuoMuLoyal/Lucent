@@ -17,7 +17,7 @@ updated: 2026-08-31
 
 ### 1. 创建模块目录
 
-在 `src/modules/` 下新建模块目录，遵循 [[archive/toolchain]] 和 `AGENTS.md` 的 Module Subdirectory Whitelist：
+在 `src/modules/` 下新建模块目录，遵循 [[archive/01-reference/toolchain]] 和 `AGENTS.md` 的 Module Subdirectory Whitelist：
 
 ```
 src/modules/{module}/
