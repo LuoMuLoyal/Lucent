@@ -11,6 +11,8 @@ export default tseslint.config(
   {
     ignores: [
       'eslint.config.ts',
+      // 架构观察期独立 flat config(--no-config-lookup 运行),不参与主配置 typed-linting
+      'eslint.arch.config.ts',
       'eslint-plugins/**/*.ts',
       'commitlint.config.ts',
       'deploy/**/*.ts',

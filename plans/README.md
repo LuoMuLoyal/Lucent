@@ -10,9 +10,9 @@ Use this directory for active, repo-local execution plans that are too detailed 
 
 ## What Does Not Go Here
 
-- runtime or setup facts: put those in `docs/01-reference/environment.md` or `README.md`
-- API contract details: keep those in code plus generated `docs/openapi.json`
-- shared contract boundaries: keep those in `docs/01-reference/contracts/*.md`
+- runtime or setup facts: put those in `docs/reference/environment-variables.md` or `README.md`
+- API contract details: keep those in code plus generated `docs/reference/generated/openapi.json`
+- shared contract boundaries: keep those in the owning module's README plus ADRs
 - completed plans that no longer drive work
 
 ## Naming
@@ -32,25 +32,18 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
+- [`backlog.md`](backlog.md) — 唯一 TODO 台账(延后项/观察期项,完成即删行)
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
-  — 药品风险检查图数据结构引入：Phase 1 关系化 JSONB（PG18），Phase 2 SQL/PGQ 图查询（PG19 GA 后）
-- [`2026-08-24-config-yaml-migration-plan.md`](2026-08-24-config-yaml-migration-plan.md)
-  — .env → .env + YAML 共存：非敏感配置迁移到 `config/*.yaml`，敏感变量保留 `.env`
-- [`2026-08-24-observability-victoria-migration-plan.md`](2026-08-24-observability-victoria-migration-plan.md)
-  — 可观测性栈迁移：Prometheus/Grafana → VictoriaMetrics + VictoriaLogs + VictoriaTraces，BullMQ OTel span 补全
+  — 药品风险检查图数据结构引入:Phase 1 关系化 JSONB(PG18),Phase 2 SQL/PGQ 图查询(PG19 GA 后)
 - [`2026-08-24-coolify-deployment-restructure-plan.md`](2026-08-24-coolify-deployment-restructure-plan.md)
-  — 部署重构：deploy.ts + Compose + Nginx → Coolify + Traefik（**待通过**）
+  — 部署重构:deploy.ts + Compose + Nginx → Coolify + Traefik(**待通过**)
 - [`2026-08-22-medium-to-large-migration-inventory.md`](2026-08-22-medium-to-large-migration-inventory.md)
-  — 中小型到中大型过渡迁移盘点：配置、Worker/队列、Outbox、Prisma 边界、跨仓合同、数据库发布与可观测性
-- [`2026-08-23-better-auth-mobile-jwt-reassessment.md`](2026-08-23-better-auth-mobile-jwt-reassessment.md)
-  — Better Auth 主认证迁移计划：替代手写 auth，保持移动端 JWT 合同不变
-- [`2026-08-22-better-auth-feasibility.md`](2026-08-22-better-auth-feasibility.md)
-  — Better Auth 可行性调研：确认可替代部分认证基础设施，但需适配层
-- [`2026-08-18-error-contract-and-neverthrow-migration-plan.md`](2026-08-18-error-contract-and-neverthrow-migration-plan.md)
-  — RFC 9457 + neverthrow 错误处理硬切；2026-08-22 已进入冻结新功能的硬切窗口
+  — 中小型到中大型过渡迁移盘点:配置、Worker/队列、Outbox、Prisma 边界、跨仓合同、数据库发布与可观测性
 - [`2026-08-14-saas-modules-and-node-monorepo.md`](2026-08-14-saas-modules-and-node-monorepo.md)
-  — SaaS 化后端模块与 Node monorepo 合并计划（0.1.0 后启动）
+  — SaaS 化后端模块与 Node monorepo 合并计划(0.1.0 后启动)
 - [`2026-08-02-rnacos-runtime-config-tuning.md`](2026-08-02-rnacos-runtime-config-tuning.md)
-  — rnacos 动态运行时配置与调优：餐食识别/队列/缓存参数热更新
+  — rnacos 动态运行时配置与调优:餐食识别/队列/缓存参数热更新
 - [`2026-07-24-worker-separation-and-cron-repeatable.md`](2026-07-24-worker-separation-and-cron-repeatable.md)
-  — BullMQ Worker 进程分离：`WORKER_MODE` 环境变量拆分 api/worker 进程
+  — BullMQ Worker 进程分离:`WORKER_MODE` 环境变量拆分 api/worker 进程
+
+已完成的计划按约定直接删除,持久决策落 ADR(`docs/reference/adr/`)与迁移日志。

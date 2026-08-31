@@ -143,7 +143,7 @@ date before the Flutter lane starts.
 
 The embedded AdminJS panel is available at `/admin`. Resources are auto-discovered
 from `prisma/schema.prisma`, and all registered models support full CRUD by
-default. Customizations for core models live in `src/admin/adminjs.setup.ts`.
+default. Customizations for core models live in `src/admin/setup.ts`.
 In local development the template credentials are `admin@lucent.local` /
 `admin12345`; override `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and
 `ADMIN_COOKIE_SECRET` in your local env file before exposing it.

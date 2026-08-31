@@ -47,4 +47,4 @@
 
 ## Cross-References
 
-- 实施计划：`plans/2026-08-24-config-yaml-migration-plan.md`
+- 实施计划:已完成,按计划生命周期删除;过程见迁移日志 2026-08-24 条目

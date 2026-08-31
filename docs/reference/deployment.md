@@ -223,7 +223,7 @@ reload nginx → smoke test。**注意：数据库 schema 不回退**。
 
 单 slot 停机部署没有新旧实例 overlap，发布会掐断进行中的 SSE 流。缓解措施：
 
-- 应用内 `SseConnectionRegistry`（`src/common/api/sse-connection-registry.service.ts`）
+- 应用内 `SseConnectionRegistry`（`src/common/api/sse/sse-connection-registry.service.ts`）
   追踪所有活跃 SSE 连接；收到 SIGTERM 后 `beforeApplicationShutdown` 先向每个连接推送
   终止 `error` 事件（`reason: 'server_shutdown'`）再关闭，客户端可据此重试或提示用户，
   而不是看到一个无声断流

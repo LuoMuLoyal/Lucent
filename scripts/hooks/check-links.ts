@@ -5,9 +5,16 @@
 // `docs/` vault root (wikilinks) or the file's own directory (relative
 // markdown links), and verifies the target file exists.
 //
+// Additionally validates path-like tokens (`docs/**`, `src/**`, `plans/**`,
+// `scripts/**`, `test/**`, `deploy/**`, `prisma/**` with a file extension)
+// appearing in the docs surface, module READMEs, plans, and root entry docs,
+// so renamed/moved files can never leave stale references behind.
+//
 // Excluded from scanning: `docs/archive/**` (frozen history — links rot
 // by design, the folder is add-only) and `docs/reference/generated/**`
-// (machine-generated artifacts, never hand-edited).
+// (machine-generated artifacts, never hand-edited). Migration logs
+// (`docs/logs/**`) are excluded from PATH validation only — they are
+// append-only historical narrative that legitimately mentions removed paths.
 //
 // Modes:
 // - Default: print a broken-link report without blocking.
@@ -25,7 +32,7 @@ interface BrokenLink {
   file: string;
   line: number;
   target: string;
-  kind: 'wikilink' | 'markdown';
+  kind: 'wikilink' | 'markdown' | 'path';
 }
 
 // --- Walk docs tree -----------------------------------------------------
@@ -52,6 +59,51 @@ function collectMarkdownFiles(repoRoot: string): string[] {
     .filter(
       (f) => !EXEMPT_DIRS.some((dir) => f.startsWith(`${VAULT_ROOT}/${dir}/`)),
     );
+}
+
+/**
+ * Files subject to path-token validation: the active docs surface plus
+ * module/common READMEs, active plans, and root entry docs. Migration logs
+ * are excluded (append-only history mentions removed paths by design).
+ */
+function collectPathCheckFiles(
+  repoRoot: string,
+  docsFiles: string[],
+): string[] {
+  const set = new Set<string>();
+  for (const f of docsFiles) {
+    if (!f.startsWith('docs/logs/')) set.add(f);
+  }
+  const add = (rel: string) => {
+    if (existsSync(resolve(repoRoot, rel))) set.add(rel.replace(/\\/g, '/'));
+  };
+  const modulesDir = resolve(repoRoot, 'src', 'modules');
+  if (existsSync(modulesDir)) {
+    for (const entry of readdirSync(modulesDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) add(`src/modules/${entry.name}/README.md`);
+    }
+  }
+  add('src/common/README.md');
+  const plansDir = resolve(repoRoot, 'plans');
+  if (existsSync(plansDir)) {
+    for (const entry of readdirSync(plansDir)) {
+      // Dated plan files are point-in-time snapshots: executed plans mention
+      // since-removed paths, and forward plans reference files that do not
+      // exist yet. Only the living index and backlog are path-checked.
+      if (entry === 'README.md' || entry === 'backlog.md') {
+        add(`plans/${entry}`);
+      }
+    }
+  }
+  for (const root of [
+    'README.md',
+    'CONTRIBUTING.md',
+    'AGENTS.md',
+    'CLAUDE.md',
+  ]) {
+    add(root);
+  }
+  return [...set];
 }
 
 // --- Link parsing -------------------------------------------------------
@@ -189,24 +241,73 @@ function checkFile(
   return broken;
 }
 
+// --- Path token validation (Phase 3 C3) --------------------------------
+//
+// Bare and inline-code path tokens must point at real files. Fenced code
+// blocks are skipped (commands/templates); placeholder-ish tokens (globs,
+// `<name>`, `YYYY-MM-DD`, any uppercase segment) are skipped so the check
+// stays at zero false positives — a missed reference is acceptable, a wrong
+// one is not.
+const PATH_TOKEN_RE =
+  /(?:^|[\s(`"'\[>])((?:docs|src|plans|scripts|test|deploy|prisma)\/[a-z0-9][a-zA-Z0-9_.\-/]*\.[a-z0-9]{1,6})(?=[\s)`"'\],.;:!?]|$)/g;
+
+function isPlaceholderPath(token: string): boolean {
+  return /[*<>{}]/.test(token) || /[A-Z]/.test(token);
+}
+
+function findBrokenPaths(file: string, repoRoot: string): BrokenLink[] {
+  const full = resolve(repoRoot, file);
+  if (!existsSync(full)) return [];
+  const content = readFileSync(full, 'utf-8');
+  const broken: BrokenLink[] = [];
+  const lines = content.split(/\r?\n/);
+
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    inFence = isLineInFence(line, inFence);
+    if (inFence) continue;
+
+    for (const m of line.matchAll(PATH_TOKEN_RE)) {
+      const token = m[1];
+      if (isPlaceholderPath(token)) continue;
+      if (!existsSync(resolve(repoRoot, token))) {
+        broken.push({ file, line: i + 1, target: token, kind: 'path' });
+      }
+    }
+  }
+  return broken;
+}
+
 // --- Verify -------------------------------------------------------------
 function runCheck(repoRoot: string, verify: boolean): void {
   const files = collectMarkdownFiles(repoRoot);
   const broken: BrokenLink[] = [];
   for (const file of files) broken.push(...checkFile(file, repoRoot, files));
 
-  if (broken.length === 0) {
+  const pathFiles = collectPathCheckFiles(repoRoot, files);
+  const brokenPaths: BrokenLink[] = [];
+  for (const file of pathFiles) {
+    brokenPaths.push(...findBrokenPaths(file, repoRoot));
+  }
+
+  if (broken.length === 0 && brokenPaths.length === 0) {
     console.log(
-      `Link check passed (${files.length} markdown files, no broken links).`,
+      `Link check passed (${files.length} markdown files, no broken links; ` +
+        `${pathFiles.length} files path-checked, no missing paths).`,
     );
     return;
   }
 
+  const report = [
+    ...broken.map((b) => `- ${b.file}:${b.line} [${b.kind}] → "${b.target}"`),
+    ...brokenPaths.map(
+      (b) => `- ${b.file}:${b.line} [path] → "${b.target}" (not found)`,
+    ),
+  ];
   console.error(
-    `Link check found ${broken.length} broken link(s):\n` +
-      broken
-        .map((b) => `- ${b.file}:${b.line} [${b.kind}] → "${b.target}"`)
-        .join('\n'),
+    `Link check found ${broken.length + brokenPaths.length} problem(s):\n` +
+      report.join('\n'),
   );
   if (verify) process.exit(1);
 }
@@ -231,7 +332,9 @@ const USAGE = `
 Usage: node scripts/hooks/check-links.ts [options]
 
 Scans docs/**/*.md and verifies Obsidian wikilinks and markdown relative
-links resolve to existing files (vault root = docs/).
+links resolve to existing files (vault root = docs/). Also validates
+path-like tokens (docs|src|plans|scripts|test|deploy|prisma/**) across the
+docs surface, module READMEs, plans, and root entry docs.
 
 Options:
   --verify            Exit(1) on any broken link (CI gate).

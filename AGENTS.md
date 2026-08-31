@@ -32,7 +32,25 @@
   `--verify` 通报缺失块、>90 天未更新、`status: stale` 未归档、无读者活跃文档；
   `status: frozen` 豁免新鲜度检查。归档 = `git mv` 到 `docs/archive/` + `status: archived`。
 - **工具**：`pnpm docs:check`（变更→文档映射报告）、`pnpm docs:verify`（结构与新鲜度门禁）、
-  `pnpm docs:links`（链接完整性）。pre-commit 阻断「有源码变更但零 docs 变更」的提交。
+  `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/backlog 与根入口文档中
+  的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。pre-commit 阻断「有源码变更
+  但零 docs 变更」的提交。
+
+## Architecture Checks (arch:check)
+
+`pnpm arch:check` 聚合三类观察期检查（全部 warn 不阻断；逐条评估后转 error，进度见
+`plans/backlog.md`）：
+
+- **依赖图**（dependency-cruiser，`.dependency-cruiser.cjs`）：模块间只准 barrel import
+  （module 类直引对方 `.module.ts` 豁免）；跨模块 import 其他模块 `repositories/`、`dto/` 禁止；
+  `src/common/**` 禁止 import `src/modules/**`；业务模块禁止直连 `ioredis`/`keyv`（走公共缓存封装）；
+  controller 禁止 import `@prisma/client` 与 `src/prisma/**`。
+- **代码模式**（`eslint.arch.config.ts`，独立 flat config，与主 lint 互不影响）：空 catch 块、
+  service 层裸 `throw new Error`（ADR-0012 例外见下节）、`no-magic-numbers` 白名单、
+  测试文件 `: any`。
+- **AST 约定**（`scripts/hooks/check-ast-conventions.ts`）：DTO 每个实例属性至少一个 `@Is*`
+  校验器；controller 端点鉴权姿态显式化（方法或类级 `@Public()` / `@UseGuards`）。
+  加 `--strict` 时有告警则 exit 1（转 error 后启用）。
 
 ## Read First
 
@@ -61,6 +79,8 @@
   when branching on locale for AI/prompt code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby code.
 - `pnpm typecheck` validates spec/e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
+- e2e 约定：每个资源端点必须有「跨用户访问 → 404」用例；所有 list 端点必须有 limit 上限用例
+  （沿 `test/` 既有 e2e 模板，新端点一并补齐）。
 
 ## Error Handling Rules (ADR-0012)
 
