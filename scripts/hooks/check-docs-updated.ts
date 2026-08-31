@@ -1,23 +1,23 @@
 // Documentation coverage check for Lucent (CLI entry).
 //
-// Reads `docs/doc-map.yaml` and maps staged/changed code files to required
-// documentation updates. Pure logic lives in ./doc-coverage-lib (testable).
+// Reads `docs/doc-map.yaml` and maps changed code files to the documentation
+// that the coverage mapping suggests. Pure logic lives in ./doc-coverage-lib
+// (testable).
 //
-// Modes:
-// - Blocking (default, pre-commit): code staged but NO docs/ staged → exit(1).
-// - Warning-only (--warning-only): print per-rule report without blocking.
+// Modes (Phase 4 退役:覆盖映射不再是门禁):
+// - Report (default / --report): print the per-rule coverage report, never
+//   blocks. Retired pre-commit gate kept as a two-week observation report.
 // - Verify (--verify): check doc-map references, migration-log plan/spec
 //   references, single-H1 structure, front-matter metadata (missing / stale
-//   `updated` / `status: stale`), stale active docs, unreferenced docs, and
-//   module-dir doc-map coverage. `status: frozen` docs are exempt from the
-//   freshness checks. Bypass: SKIP_DOC_CHECK=1 or `git commit --no-verify`.
+//   `updated` / `status: stale`), stale active docs, unreferenced docs,
+//   module-dir coverage, and the migration-log append-only guard (a staged
+//   log-file diff deleting more than 5 lines is a problem). `status: frozen`
+//   docs are exempt from the freshness checks. exit(1) on problems.
 
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
-  BYPASS_ENV,
-  checkMigrationLogOverwrite,
   collectVerifyProblems,
   findDocsMissingFrontMatter,
   findStaleStatusDocs,
@@ -37,15 +37,6 @@ import {
   withoutFrozenDocs,
 } from './doc-coverage-lib.ts';
 
-const SOURCE_CODE_PATTERNS: RegExp[] = [/^src\/.*\.ts$/];
-const EXCLUDE_PATTERNS: RegExp[] = [
-  /\.spec\.ts$/,
-  /\.e2e-spec\.ts$/,
-  /^src\/generated\//,
-  /^generated\//,
-  /^test\//,
-];
-
 function run(cmd: string, cwd?: string): string {
   return execSync(cmd, {
     encoding: 'utf-8',
@@ -64,15 +55,11 @@ function resolveRepoRoot(): string {
   }
 }
 
-function getChangedFiles(stagedOnly: boolean, cwd: string): string[] {
-  const diffCmd = stagedOnly
-    ? 'git diff --cached --name-only --diff-filter=ACMR'
-    : 'git diff --name-only --diff-filter=ACMR';
-  const changed = run(diffCmd, cwd)
+function getChangedFiles(cwd: string): string[] {
+  const changed = run('git diff --name-only --diff-filter=ACMR', cwd)
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
-  if (stagedOnly) return changed;
   const untracked = run('git ls-files --others --exclude-standard', cwd)
     .split('\n')
     .map((l) => l.trim())
@@ -80,9 +67,34 @@ function getChangedFiles(stagedOnly: boolean, cwd: string): string[] {
   return [...new Set([...changed, ...untracked])];
 }
 
-function isSourceCode(filePath: string): boolean {
-  if (EXCLUDE_PATTERNS.some((p) => p.test(filePath))) return false;
-  return SOURCE_CODE_PATTERNS.some((p) => p.test(filePath));
+/**
+ * Migration-log append-only guard: a working-tree diff against HEAD that
+ * deletes more than 5 lines from a single log file is reported as a problem
+ * (formerly the pre-commit blocking check, now folded into --verify).
+ */
+function collectLogOverwriteProblems(repoRoot: string): string[] {
+  try {
+    const out = run(
+      `git diff HEAD --numstat -- ${MIGRATION_LOG_DIR} ${MIGRATION_LOG_DIR_LEGACY}`,
+      repoRoot,
+    );
+    const problems: string[] = [];
+    for (const line of out.split('\n')) {
+      const m = line.trim().match(/^(\d+)\t(\d+)\t(.+)$/);
+      if (!m) continue;
+      const deleted = Number(m[2]);
+      const file = m[3].replace(/\\/g, '/');
+      if (deleted > 5) {
+        problems.push(
+          `${file}: migration-log append-only violation — ${deleted} deleted lines (>5) in one diff`,
+        );
+      }
+    }
+    return problems;
+  } catch {
+    // Outside a git repo or no diff available — nothing to guard here.
+    return [];
+  }
 }
 
 // --- Verify helpers ----------------------------------------------------
@@ -235,6 +247,8 @@ function runVerify(repoRoot: string): void {
     );
   }
 
+  problems.push(...collectLogOverwriteProblems(repoRoot));
+
   if (problems.length > 0) {
     console.error(
       'Doc verification failed:\n' + problems.map((p) => `- ${p}`).join('\n'),
@@ -248,41 +262,36 @@ function runVerify(repoRoot: string): void {
 
 // --- Args --------------------------------------------------------------
 interface ParsedArgs {
-  stagedOnly: boolean;
-  warningOnly: boolean;
   verify: boolean;
   showHelp: boolean;
 }
 function parseArgs(args: string[]): ParsedArgs {
-  let stagedOnly = false,
-    warningOnly = false,
-    verify = false,
+  let verify = false,
     showHelp = false;
   for (const arg of args) {
-    if (arg === '--staged') stagedOnly = true;
-    else if (arg === '--warning-only') warningOnly = true;
+    // --report / --warning-only: report is the default mode — accept and no-op.
+    if (arg === '--report' || arg === '--warning-only') continue;
     else if (arg === '--verify') verify = true;
     else if (arg === '--help' || arg === '-h') showHelp = true;
     else throw new Error(`Unexpected argument: ${arg}`);
   }
-  return { stagedOnly, warningOnly, verify, showHelp };
+  return { verify, showHelp };
 }
 
 const USAGE = `
 Usage: node scripts/hooks/check-docs-updated.ts [options]
 
 Options:
-  --staged            Read staged changes instead of the working tree.
-  --warning-only      Do not block; just print the per-rule report.
+  --report            Print the doc-map coverage report for the working tree
+                      (never blocks; retired pre-commit gate kept as a
+                      two-week observation report). Default without flags.
+  --warning-only      Retired alias of --report.
   --verify            Verify doc-map + migration-log references, H1 structure,
                       front-matter metadata, stale active docs, doc readership,
-                      and module-dir coverage (every src/modules/* dir must be
-                      matched by a doc-map rule). Docs marked 'status: frozen'
-                      are exempt from the freshness checks; exit(1) on problems.
+                      module-dir coverage, and the migration-log append-only
+                      guard. Docs marked 'status: frozen' are exempt from the
+                      freshness checks; exit(1) on problems.
   --help              Show this help text.
-
-Environment:
-  SKIP_DOC_CHECK=1    Bypass the blocking check (ignored with --warning-only).
 `;
 
 function main(): void {
@@ -301,17 +310,8 @@ function main(): void {
     return;
   }
 
-  if (!args.warningOnly && process.env[BYPASS_ENV] === '1') {
-    console.log(`[doc-check] Skipped (${BYPASS_ENV}=1)`);
-    return;
-  }
-
-  if (!args.warningOnly) {
-    checkMigrationLogOverwrite((cmd) => run(cmd, repoRoot));
-  }
-
   const rules = loadDocMap(repoRoot);
-  const changedFiles = getChangedFiles(args.stagedOnly, repoRoot);
+  const changedFiles = getChangedFiles(repoRoot);
   if (changedFiles.length === 0) {
     console.log('Documentation coverage: no changed files detected.');
     return;
@@ -321,40 +321,9 @@ function main(): void {
   );
   const report = buildReport(rules, changedFiles, documentedFiles);
   console.log(renderReport(report));
-
-  if (!args.warningOnly && report.matchedRules.length > 0) {
-    const hasCodeChanges = report.matchedRules.some(
-      (m) => m.touchedCodeFiles.length > 0,
-    );
-    if (hasCodeChanges && documentedFiles.length === 0) {
-      const sourceCodeFiles = changedFiles.filter(isSourceCode);
-      const fileCount = sourceCodeFiles.length;
-      const filePreview = sourceCodeFiles.slice(0, 5).join('\n  ');
-      const moreCount =
-        fileCount > 5 ? `\n  ... and ${fileCount - 5} more` : '';
-      const todayLogPath = getTodayLogPath();
-      console.error(`
-┌─────────────────────────────────────────────────────────────────┐
-│  ⚠  Documentation Check Failed                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ${fileCount} source-code file(s) staged but no doc update detected:
-│  ${filePreview}${moreCount}
-│                                                                 │
-│  Run \`pnpm docs:check\` to see which docs need updating,        │
-│  or append a migration-log entry:                               │
-│                                                                 │
-│    ${todayLogPath}                                              │
-│                                                                 │
-│  (or any file under docs/logs/)                                 │
-│                                                                 │
-│  To bypass:  SKIP_DOC_CHECK=1 git commit ...                   │
-│             or  git commit --no-verify                          │
-└─────────────────────────────────────────────────────────────────┘
-`);
-      process.exit(1);
-    }
-  }
+  console.log(
+    '[doc-check] Coverage mapping is retired (Phase 4): report only, never blocks.',
+  );
 }
 
 main();

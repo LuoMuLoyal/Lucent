@@ -68,7 +68,7 @@
     "deploy:smoke": "node deploy/smoke.ts",
     "deploy:server": "node deploy/deploy.ts",
     "docs:compodoc": "compodoc -c compodoc.json",
-    "docs:check": "node scripts/hooks/check-docs-updated.ts --warning-only",
+    "docs:check": "node scripts/hooks/check-docs-updated.ts --report",
     "docs:verify": "node scripts/hooks/check-docs-updated.ts --verify",
     "docs:links": "node scripts/hooks/check-links.ts"
   },
@@ -190,9 +190,9 @@
     "vitest": "^4.1.10"
   },
   "simple-git-hooks": {
-    "pre-commit": "node scripts/hooks/check-docs-updated.ts --staged && npx --no-install lint-staged",
+    "pre-commit": "npx --no-install lint-staged",
     "commit-msg": "npx --no-install commitlint --edit $1",
-    "pre-push": "npx --no-install tsc -p tsconfig.typecheck.json --noEmit"
+    "pre-push": "pnpm lint:check && pnpm build && pnpm test:ci && pnpm arch:check"
   },
   "lint-staged": {
     "*.ts": [

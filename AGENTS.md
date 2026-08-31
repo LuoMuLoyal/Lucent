@@ -17,7 +17,7 @@
 ### Standing rules
 
 - **Migration log**：每次代码变更向 `docs/logs/migration-log/YYYY-MM-DD.md` 追加当日条目。
-  **永不覆写**已有内容——pre-commit 阻断单个日志文件 staged diff 删除行 >5。
+  **永不覆写**已有内容——`pnpm docs:verify` 的 append-only 守卫报单个日志文件 diff 删除行 >5。
   - 单日文件只保留一个 `# ` H1；章节用 `##`（不加日期前缀）。
   - 引用计划文件时注明「实施完毕文件已删」，否则 `--verify` 报孤儿引用。
   - 条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数）。
@@ -31,10 +31,11 @@
   `updated: YYYY-MM-DD`）；`explanation/` 无门禁（新鲜度仍由 git 时间兜底）。
   `--verify` 通报缺失块、>90 天未更新、`status: stale` 未归档、无读者活跃文档；
   `status: frozen` 豁免新鲜度检查。归档 = `git mv` 到 `docs/archive/` + `status: archived`。
-- **工具**：`pnpm docs:check`（变更→文档映射报告）、`pnpm docs:verify`（结构与新鲜度门禁）、
+- **工具**：`pnpm docs:check`（变更→文档映射**报告**，旧 pre-commit 门禁已退役，仅观察两周）、
+  `pnpm docs:verify`（结构与新鲜度门禁 + append-only 守卫）、
   `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/backlog 与根入口文档中
-  的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。pre-commit 阻断「有源码变更
-  但零 docs 变更」的提交。
+  的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。
+  文档变更不再被 pre-commit 阻断；推送前 `pre-push` 汇总 `lint:check + build + test:ci + arch:check`。
 
 ## Architecture Checks (arch:check)
 
