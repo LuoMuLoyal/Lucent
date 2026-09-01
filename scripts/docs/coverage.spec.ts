@@ -19,7 +19,7 @@ import {
   parseDocMapYaml,
   parseFrontMatter,
   withoutFrozenDocs,
-} from './doc-coverage-lib.ts';
+} from './coverage.ts';
 
 const SAMPLE_YAML = `
 rules:

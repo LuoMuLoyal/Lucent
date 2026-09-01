@@ -1,6 +1,6 @@
 # Lucent 文档覆盖映射(过渡期机制,两周观察后随 --report 一并退役,进度见 docs/TODO.md G1)
 #
-# scripts/hooks/check-docs-updated.ts 读取本文件:
+# scripts/docs/verify.ts 读取本文件:
 # - docs_required：必改文档,全部命中才满足(通常只有迁移日志)
 # - docs_any_of：  至少命中其一(模块意图变更首选对应 src/modules/<m>/README.md)
 # - docs_info：    仅建议,缺失不警告
@@ -19,7 +19,8 @@ rules:
   # ──────────────────────────────────────────────
   - name: docs-tooling
     code:
-      - scripts/hooks/**
+      - scripts/docs/**
+      - scripts/arch/**
       - scripts/contract/**
       - .github/**
       - package.json

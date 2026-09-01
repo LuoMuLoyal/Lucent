@@ -33,7 +33,7 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
 
 `pnpm docs:check --report` 现仅打印覆盖映射报告不阻断。两周观察期内无阻断痛点即删除
 buildReport/renderReport 报告路径、`docs/doc-map.yaml` 与 `docs:check` 脚本条目
-(check-docs-updated.ts 保留 `--verify` 结构检查);若期间发现仍需映射,回退本项并重新评估。
+(verify.ts 保留 `--verify` 结构检查);若期间发现仍需映射,回退本项并重新评估。
 
 ### G2:arch:check 观察期规则转级(warn → error,一周评估)
 

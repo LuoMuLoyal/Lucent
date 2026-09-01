@@ -35,7 +35,7 @@
   `pnpm docs:verify`（结构与新鲜度门禁 + append-only 守卫）、
   `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/README 与根入口文档中
   的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。
-  文档变更不再被 pre-commit 阻断；推送前 `pre-push` 汇总 `lint:check + build + test:ci + arch:check`。
+  文档变更不再被 pre-commit 阻断；推送前 `pre-push` 汇总 `lint:check + build + test:ci + arch:check + docs:verify + docs:links`。
 
 ## Architecture Checks (arch:check)
 
@@ -49,7 +49,7 @@
 - **代码模式**（`eslint.arch.config.ts`，独立 flat config，与主 lint 互不影响）：空 catch 块、
   service 层裸 `throw new Error`（ADR-0012 例外见下节）、`no-magic-numbers` 白名单、
   测试文件 `: any`。
-- **AST 约定**（`scripts/hooks/check-ast-conventions.ts`）：DTO 每个实例属性至少一个 `@Is*`
+- **AST 约定**（`scripts/arch/check-ast-conventions.ts`）：DTO 每个实例属性至少一个 `@Is*`
   校验器；controller 端点鉴权姿态显式化（方法或类级 `@Public()` / `@UseGuards`）。
   加 `--strict` 时有告警则 exit 1（转 error 后启用）。
 

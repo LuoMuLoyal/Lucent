@@ -1,9 +1,8 @@
 // Link integrity check for Lucent docs (CLI entry).
 //
-// Scans `docs/**/*.md`, parses Obsidian wikilinks (`[[path|alias]]`) and
-// markdown relative links (`[text](path)`), resolves targets against the
-// `docs/` vault root (wikilinks) or the file's own directory (relative
-// markdown links), and verifies the target file exists.
+// Scans `docs/**/*.md`, parses markdown relative links (`[text](path)`),
+// resolves targets against the file's own directory, and verifies the
+// target file exists.
 //
 // Additionally validates path-like tokens (`docs/**`, `src/**`, `plans/**`,
 // `scripts/**`, `test/**`, `deploy/**`, `prisma/**` with a file extension)
@@ -32,7 +31,7 @@ interface BrokenLink {
   file: string;
   line: number;
   target: string;
-  kind: 'wikilink' | 'markdown' | 'path';
+  kind: 'markdown' | 'path';
 }
 
 // --- Walk docs tree -----------------------------------------------------
@@ -108,7 +107,6 @@ function collectPathCheckFiles(
 }
 
 // --- Link parsing -------------------------------------------------------
-const WIKILINK_RE = /\[\[([^\[\]]+)\]\]/g;
 const MARKDOWN_LINK_RE = /\[[^\]]*\]\(([^)]+)\)/g;
 
 /** Skip fenced code blocks — link-looking text inside fences is not a link. */
@@ -118,7 +116,7 @@ function isLineInFence(line: string, inFence: boolean): boolean {
 
 /**
  * Skip inline code spans — bracket syntax inside `backticks` is literal
- * text (e.g. a log entry describing `[[old-note]]` syntax), not a link.
+ * text (e.g. a log entry describing `[text](path)` syntax), not a link.
  */
 function isInsideInlineCode(line: string, index: number): boolean {
   let inside = false;
@@ -140,27 +138,16 @@ function isProtocolLink(target: string): boolean {
   return /^[a-z][a-z0-9+.-]*:/i.test(target);
 }
 
-/** Obsidian short-link lookup: basename match (case-insensitive) across the vault. */
-function findByBasename(allFiles: string[], name: string): boolean {
-  const stem = name.toLowerCase();
-  return allFiles.some((f) => {
-    const base = f.slice(f.lastIndexOf('/') + 1);
-    return base.toLowerCase().replace(/\.md$/i, '') === stem;
-  });
-}
-
 /**
  * Resolve a link target. Returns:
  * - `null` when the target is not a file reference (protocol, anchor, prose);
- * - `true` when the target file exists (or matches by basename);
+ * - `true` when the target file exists;
  * - `false` when the target file is missing.
  */
 function targetExists(
   file: string,
   rawTarget: string,
-  kind: 'wikilink' | 'markdown',
   repoRoot: string,
-  allFiles: string[],
 ): boolean | null {
   const target = stripAnchor(rawTarget);
   if (target === null) return null;
@@ -168,43 +155,15 @@ function targetExists(
   // Targets containing spaces are almost certainly prose, not file paths.
   if (/\s/.test(target)) return null;
 
-  // Obsidian short links: a wikilink without `/` resolves by basename
-  // across the whole vault (e.g. [[deploy]] → howto/deploy.md).
-  if (kind === 'wikilink' && !target.includes('/')) {
-    if (findByBasename(allFiles, target)) return true;
-    // Fall through to vault-root path resolution.
-  }
-
-  let base: string;
-  if (target.startsWith('./') || target.startsWith('../')) {
-    base = dirname(file); // explicit relative path — resolve from the file
-  } else if (kind === 'wikilink') {
-    base = VAULT_ROOT; // Obsidian short links resolve from the vault root
-  } else {
-    base = dirname(file); // standard markdown relative link
-  }
-
+  // Markdown links resolve relative to the file's own directory.
+  const base = dirname(file);
   const path = /\.md$/i.test(target)
     ? `${base}/${target}`
     : `${base}/${target}.md`;
-  if (existsSync(resolve(repoRoot, path))) return true;
-
-  // Fallback: a path-style wikilink may be relative to the current file's
-  // directory (e.g. [[adr/0004-...]] written from reference/).
-  if (kind === 'wikilink' && base === VAULT_ROOT) {
-    const rel = /\.md$/i.test(target)
-      ? `${dirname(file)}/${target}`
-      : `${dirname(file)}/${target}.md`;
-    return existsSync(resolve(repoRoot, rel));
-  }
-  return false;
+  return existsSync(resolve(repoRoot, path));
 }
 
-function checkFile(
-  file: string,
-  repoRoot: string,
-  allFiles: string[],
-): BrokenLink[] {
+function checkFile(file: string, repoRoot: string): BrokenLink[] {
   const full = resolve(repoRoot, file);
   if (!existsSync(full)) return [];
   const content = readFileSync(full, 'utf-8');
@@ -217,24 +176,11 @@ function checkFile(
     inFence = isLineInFence(line, inFence);
     if (inFence) continue;
 
-    for (const m of line.matchAll(WIKILINK_RE)) {
-      if (isInsideInlineCode(line, m.index ?? 0)) continue;
-      const rawTarget = m[1].split('|')[0];
-      const exists = targetExists(
-        file,
-        rawTarget,
-        'wikilink',
-        repoRoot,
-        allFiles,
-      );
-      if (exists === null || exists) continue;
-      broken.push({ file, line: i + 1, target: rawTarget, kind: 'wikilink' });
-    }
     for (const m of line.matchAll(MARKDOWN_LINK_RE)) {
       // Skip image links: `![alt](path)` — the char before `[` is `!`.
       if (m.index > 0 && line[m.index - 1] === '!') continue;
       if (isInsideInlineCode(line, m.index ?? 0)) continue;
-      const exists = targetExists(file, m[1], 'markdown', repoRoot, allFiles);
+      const exists = targetExists(file, m[1], repoRoot);
       if (exists === null || exists) continue;
       broken.push({ file, line: i + 1, target: m[1], kind: 'markdown' });
     }
@@ -284,7 +230,7 @@ function findBrokenPaths(file: string, repoRoot: string): BrokenLink[] {
 function runCheck(repoRoot: string, verify: boolean): void {
   const files = collectMarkdownFiles(repoRoot);
   const broken: BrokenLink[] = [];
-  for (const file of files) broken.push(...checkFile(file, repoRoot, files));
+  for (const file of files) broken.push(...checkFile(file, repoRoot));
 
   const pathFiles = collectPathCheckFiles(repoRoot, files);
   const brokenPaths: BrokenLink[] = [];
@@ -330,12 +276,12 @@ function parseArgs(args: string[]): ParsedArgs {
 }
 
 const USAGE = `
-Usage: node scripts/hooks/check-links.ts [options]
+Usage: node scripts/docs/links.ts [options]
 
-Scans docs/**/*.md and verifies Obsidian wikilinks and markdown relative
-links resolve to existing files (vault root = docs/). Also validates
-path-like tokens (docs|src|plans|scripts|test|deploy|prisma/**) across the
-docs surface, module READMEs, plans, and root entry docs.
+Scans docs/**/*.md and verifies markdown relative links resolve to existing
+files. Also validates path-like tokens
+(docs|src|plans|scripts|test|deploy|prisma/**) across the docs surface,
+module READMEs, plans, and root entry docs.
 
 Options:
   --verify            Exit(1) on any broken link (CI gate).

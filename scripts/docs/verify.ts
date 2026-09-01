@@ -1,7 +1,7 @@
 // Documentation coverage check for Lucent (CLI entry).
 //
 // Reads `docs/doc-map.yaml` and maps changed code files to the documentation
-// that the coverage mapping suggests. Pure logic lives in ./doc-coverage-lib
+// that the coverage mapping suggests. Pure logic lives in ./coverage
 // (testable).
 //
 // Modes (Phase 4 退役:覆盖映射不再是门禁):
@@ -35,7 +35,7 @@ import {
   MIGRATION_LOG_DIR_LEGACY,
   STALE_DOC_THRESHOLD_DAYS,
   withoutFrozenDocs,
-} from './doc-coverage-lib.ts';
+} from './coverage.ts';
 
 function run(cmd: string, cwd?: string): string {
   return execSync(cmd, {
@@ -279,7 +279,7 @@ function parseArgs(args: string[]): ParsedArgs {
 }
 
 const USAGE = `
-Usage: node scripts/hooks/check-docs-updated.ts [options]
+Usage: node scripts/docs/verify.ts [options]
 
 Options:
   --report            Print the doc-map coverage report for the working tree
@@ -302,7 +302,7 @@ function main(): void {
   }
 
   // Resolve the repo root explicitly so the script works when invoked from a
-  // subdirectory (e.g. `node Lucent/scripts/hooks/check-docs-updated.ts`).
+  // subdirectory (e.g. `node Lucent/scripts/docs/verify.ts`).
   const repoRoot = resolveRepoRoot();
 
   if (args.verify) {

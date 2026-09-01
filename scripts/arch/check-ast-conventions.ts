@@ -27,10 +27,10 @@
 // - Strict (--strict): exit(1) when any WARN exists (reserved for the
 //   planned WARN -> error promotion).
 //
-// Run via `node scripts/hooks/check-ast-conventions.ts`.
+// Run via `node scripts/arch/check-ast-conventions.ts`.
 //
 // The pure check functions are exported for tests
-// (scripts/hooks/check-ast-conventions.spec.ts, run by `pnpm test:tools`).
+// (scripts/arch/check-ast-conventions.spec.ts, run by `pnpm test:tools`).
 // The CLI entry is guarded by an argv check (see bottom) so importing this
 // module from the spec does not trigger a repo scan.
 
@@ -309,7 +309,7 @@ function parseArgs(args: string[]): ParsedArgs {
 }
 
 const USAGE = `
-Usage: node scripts/hooks/check-ast-conventions.ts [options]
+Usage: node scripts/arch/check-ast-conventions.ts [options]
 
 Scans src/**/*.dto.ts and src/**/*.controller.ts and reports WARN-level
 convention findings:

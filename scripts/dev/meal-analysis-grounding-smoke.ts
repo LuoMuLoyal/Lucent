@@ -1,15 +1,15 @@
 import { config as loadEnv } from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import winston from 'winston';
-import { EnvKey } from '../../src/config/env/env-keys.enum';
-import { llmConfig } from '../../src/config/services/llm.config';
-import { LlmRuntimeService } from '../../src/llm-runtime/llm-runtime.service';
-import { PrismaService } from '../../src/prisma/prisma.service';
-import { MealAnalysisVisionService } from '../../src/modules/daily-records/services/meal-analysis/vision.service';
-import { MealDishDecompositionService } from '../../src/modules/daily-records/services/meal-dish/decomposition.service';
-import { MealIngredientGroundingService } from '../../src/modules/daily-records/services/meal-ingredient/grounding.service';
-import { MealAnalysisMatcherService } from '../../src/modules/daily-records/services/meal-analysis/matcher.service';
-import { LlmSafetyPolicyService } from '../../src/common/llm/safety/llm-safety-policy.service';
+import { EnvKey } from '../../src/config/env/env-keys.enum.ts';
+import { llmConfig } from '../../src/config/services/llm.config.ts';
+import { LlmRuntimeService } from '../../src/llm-runtime/llm-runtime.service.ts';
+import { PrismaService } from '../../src/prisma/prisma.service.ts';
+import { MealAnalysisVisionService } from '../../src/modules/daily-records/services/meal-analysis/vision.service.ts';
+import { MealDishDecompositionService } from '../../src/modules/daily-records/services/meal-dish/decomposition.service.ts';
+import { MealIngredientGroundingService } from '../../src/modules/daily-records/services/meal-ingredient/grounding.service.ts';
+import { MealAnalysisMatcherService } from '../../src/modules/daily-records/services/meal-analysis/matcher.service.ts';
+import { LlmSafetyPolicyService } from '../../src/common/llm/safety/llm-safety-policy.service.ts';
 
 loadEnv({ path: '.env.development.local', override: false });
 loadEnv({ path: '.env.development', override: false });
