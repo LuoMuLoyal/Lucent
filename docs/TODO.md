@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-31
+updated: 2026-09-01
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-08-31
+Last updated: 2026-09-01
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -54,11 +54,6 @@ lucent-ci.yml 现仅在 E2E 前重导出 spec 供契约测试;增加
 逐项裁决实现或从契约/文档移除:user-settings `waterTargetCount` 契约缺失;
 environment 为简化实现(静态数据,关联 B2);`GET /environment/advice` 未实现;
 周报 push 通知通道未实现。
-
-### G5:跨仓联动(Luminous / Luminous-website)
-
-Luminous 侧文档路径更新(工作区已有未提交修改,需在其仓库内验证提交);
-Luminous-website 目录治理另行开计划。
 
 ## 后续可做
 
