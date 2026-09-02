@@ -1,21 +1,26 @@
 #!/usr/bin/env node
 
-const path = require('node:path');
-const { Client } = require('pg');
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { Client } from 'pg';
 
-const { loadEnvironment, REPO_ROOT } = require('../../shared/env');
-const { stableUuid } = require('../../shared/stable-id');
-const {
+import { loadEnvironment, REPO_ROOT } from '../../shared/env.ts';
+import { stableUuid } from '../../shared/stable-id.ts';
+import {
   executeUpsert,
   startImportRun,
   finishImportRun,
   parsePositiveIntegerOption,
   parseArgs,
   streamParseAndUpsert,
-} = require('../../shared/db-upsert');
+} from '../../shared/db-upsert.ts';
+
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Re-export for backwards compatibility (rebuild scripts + tests depend on these)
-module.exports = {
+export {
   invalidateMedicineCache,
   listMedicineCacheKeys,
   redisStoreFromUrl,
@@ -29,7 +34,7 @@ const IMPORT_RUNS_TABLE = 'drug_source_imports';
 
 const COMMANDS = {
   'cn-products': {
-    parser: path.join(__dirname, 'parsers', 'cn_products.py'),
+    parser: path.join(thisDir, 'parsers', 'cn_products.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
       'ChineseDrugData_Master_V2',
@@ -144,7 +149,7 @@ const COMMANDS = {
     ],
   },
   'cn-leaflets': {
-    parser: path.join(__dirname, 'parsers', 'cn_leaflets.py'),
+    parser: path.join(thisDir, 'parsers', 'cn_leaflets.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
       'ChineseDrugData_Master_V2',
@@ -235,7 +240,7 @@ const COMMANDS = {
     ],
   },
   'cn-product-leaflet-links': {
-    parser: path.join(__dirname, 'parsers', 'cn_product_leaflet_links.py'),
+    parser: path.join(thisDir, 'parsers', 'cn_product_leaflet_links.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
       'ChineseDrugData_Master_V2',
@@ -266,7 +271,7 @@ const COMMANDS = {
     ],
   },
   'drugbank-drugs': {
-    parser: path.join(__dirname, 'parsers', 'drugbank_drugs.py'),
+    parser: path.join(thisDir, 'parsers', 'drugbank_drugs.py'),
     defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'full database.xml'),
     sourceKey: 'drugbank_drugs',
     sourceName: 'drugbank_full_database_xml',
@@ -345,7 +350,7 @@ const COMMANDS = {
     ],
   },
   'drugbank-links': {
-    parser: path.join(__dirname, 'parsers', 'drugbank_external_links.py'),
+    parser: path.join(thisDir, 'parsers', 'drugbank_external_links.py'),
     defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'drug links.csv'),
     sourceKey: 'drugbank_external_links',
     sourceName: 'drugbank_drug_links_csv',
@@ -400,7 +405,7 @@ const COMMANDS = {
     ],
   },
   'drugbank-targets-all': {
-    parser: path.join(__dirname, 'parsers', 'drugbank_targets.py'),
+    parser: path.join(thisDir, 'parsers', 'drugbank_targets.py'),
     defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'all.csv'),
     sourceKey: 'drugbank_targets_all',
     sourceName: 'drugbank_all_targets_csv',
@@ -441,7 +446,7 @@ const COMMANDS = {
     ],
   },
   'drugbank-targets-active': {
-    parser: path.join(__dirname, 'parsers', 'drugbank_targets.py'),
+    parser: path.join(thisDir, 'parsers', 'drugbank_targets.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
       'unziped',
@@ -512,7 +517,9 @@ Options:
 // ─── Redis cache invalidation (medicine-specific) ─────────────
 
 async function redisStoreFromUrl(redisUrl) {
-  const { redisStore } = require('cache-manager-ioredis-yet');
+  // Dynamic import keeps the lazy-load behavior of the previous require():
+  // the Redis store dependency is only loaded when cache invalidation runs.
+  const { redisStore } = await import('cache-manager-ioredis-yet');
   const url = new URL(redisUrl);
 
   return redisStore({
@@ -524,7 +531,7 @@ async function redisStoreFromUrl(redisUrl) {
   });
 }
 
-function uniqueStrings(values) {
+function uniqueStrings(values: string[]): string[] {
   return [...new Set(values)];
 }
 
@@ -535,7 +542,10 @@ function stripNamespacePrefix(key, namespacePrefix) {
   return key.slice(namespacePrefix.length);
 }
 
-async function listMedicineCacheKeys(store, namespace = 'keyv') {
+async function listMedicineCacheKeys(
+  store,
+  namespace = 'keyv',
+): Promise<string[]> {
   const namespacePrefix = namespace ? `${namespace}:` : null;
   const patterns = namespacePrefix
     ? [
@@ -572,7 +582,10 @@ async function invalidateMedicineCache() {
       return { invalidated: 0 };
     }
 
-    await Promise.all(keys.map((key) => store.del(key)));
+    // redisStore() from cache-manager-ioredis-yet exposes a v5-style .del at
+    // runtime, but its bundled types extend cache-manager 7's Store, which no
+    // longer declares it. Go through the underlying ioredis client instead.
+    await Promise.all(keys.map((key) => store.client.del(key)));
     return { invalidated: keys.length };
   } finally {
     store.client.disconnect();
@@ -708,7 +721,6 @@ async function runImport(command, cliOptions) {
     cliOptions.source ? String(cliOptions.source) : config.defaultSourcePath,
   );
 
-  const fs = require('node:fs');
   await fs.promises.access(sourcePath, fs.constants.R_OK);
 
   if (!process.env.DATABASE_URL) {
@@ -838,6 +850,11 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// CLI entry guard (ESM): run main() only when this file is the executed
+// script, replacing the CommonJS require.main === module check. Basename
+// comparison works under Node's TS type stripping and when the module is
+// imported for its exported helpers (rebuild scripts + tests).
+const entry = process.argv[1];
+if (entry && path.basename(entry) === 'import-medicine-knowledge.ts') {
   void main();
 }

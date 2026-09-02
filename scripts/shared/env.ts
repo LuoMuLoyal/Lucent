@@ -1,9 +1,11 @@
-const path = require('node:path');
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
+import { getDotenvLoadOrder } from '../../src/config/env/env-file-paths.ts';
 
-const dotenv = require('dotenv');
-const { getDotenvLoadOrder } = require('../../src/config/env/env-file-paths');
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(thisDir, '..', '..');
 
 /**
  * Loads .env files in the standard order for the current NODE_ENV.
@@ -20,4 +22,4 @@ function loadEnvironment() {
   return nodeEnv;
 }
 
-module.exports = { loadEnvironment, REPO_ROOT };
+export { loadEnvironment, REPO_ROOT };

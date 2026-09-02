@@ -1,8 +1,11 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(thisDir, '..', '..');
 const PID_FILE = path.join(REPO_ROOT, '.runtime-test.pid');
 const IS_WINDOWS = process.platform === 'win32';
 

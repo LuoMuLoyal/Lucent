@@ -12,19 +12,19 @@
  *   python -c "import json; data=json.load(open('alpaca_zh_demo.json')); [print(json.dumps(r,ensure_ascii=False)) for r in data]" > medical_qa.ndjson
  */
 
-const crypto = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
-const readline = require('node:readline');
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import readline from 'node:readline';
+import { fileURLToPath } from 'node:url';
 
-const { Client } = require('pg');
-const { loadEnvironment } = require('../../shared/env');
-const {
-  createEmbeddingStore,
-  embedDocuments,
-} = require('../../shared/chunking');
+import { Client } from 'pg';
+import { loadEnvironment } from '../../shared/env.ts';
+import { createEmbeddingStore, embedDocuments } from '../../shared/chunking.ts';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(thisDir, '..', '..', '..');
 const DRUG_DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
 const DEFAULT_SOURCE_PATH = path.join(
   DRUG_DATA_ROOT,
@@ -93,7 +93,7 @@ interface QaRecord {
 async function filterAndWrite(options: {
   sourcePath: string;
   limit?: number;
-  client: ReturnType<typeof Client.prototype>;
+  client: Client;
 }): Promise<{
   total: number;
   safe: number;
@@ -219,7 +219,7 @@ async function filterAndWrite(options: {
 // ── Phase 2: embed ─────────────────────────────────────────────
 
 async function embedChunks(options: {
-  client: ReturnType<typeof Client.prototype>;
+  client: Client;
   batchSize: number;
   force: boolean;
 }): Promise<{ embedded: number }> {

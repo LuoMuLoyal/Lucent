@@ -1,6 +1,10 @@
-const fs = require('node:fs/promises');
-const path = require('node:path');
-const { transformFile } = require('@swc/core');
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { transformFile } from '@swc/core';
+
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Prisma 7's `prisma-client` generator emits only `.ts` files.
@@ -37,7 +41,7 @@ async function transpileDir(dir: string): Promise<void> {
 }
 
 async function main() {
-  const prismaDir = path.resolve(__dirname, '../../generated/prisma');
+  const prismaDir = path.resolve(thisDir, '../../generated/prisma');
 
   // Transpile root-level .ts files (client.ts, enums.ts, models.ts, etc.)
   await transpileDir(prismaDir);

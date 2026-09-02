@@ -1,25 +1,29 @@
 #!/usr/bin/env node
 
-const path = require('node:path');
-const fs = require('node:fs');
-const { Client } = require('pg');
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { Client } from 'pg';
 
-const { loadEnvironment, REPO_ROOT } = require('../../shared/env');
-const {
+import { loadEnvironment, REPO_ROOT } from '../../shared/env.ts';
+import {
   executeUpsert,
   startImportRun,
   finishImportRun,
   parsePositiveIntegerOption,
   parseArgs,
   streamParseAndUpsert,
-} = require('../../shared/db-upsert');
+} from '../../shared/db-upsert.ts';
+
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
 const IMPORT_RUNS_TABLE = 'food_composition_imports';
 
 const COMMANDS = {
   categories: {
-    parser: path.join(__dirname, 'parsers', 'food_categories.py'),
+    parser: path.join(thisDir, 'parsers', 'food_categories.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
       '中国食物成分表',
@@ -48,7 +52,7 @@ const COMMANDS = {
     ],
   },
   items: {
-    parser: path.join(__dirname, 'parsers', 'food_items.py'),
+    parser: path.join(thisDir, 'parsers', 'food_items.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
       '中国食物成分表',
@@ -296,6 +300,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// CLI entry guard (ESM): run main() only when this file is the executed
+// script, replacing the CommonJS require.main === module check. Basename
+// comparison works under Node's TS type stripping.
+const entry = process.argv[1];
+if (entry && path.basename(entry) === 'import-food-composition.ts') {
   void main();
 }

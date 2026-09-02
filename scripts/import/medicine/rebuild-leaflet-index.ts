@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
-const path = require('node:path');
-const { Client } = require('pg');
+import { Client } from 'pg';
 
-const { loadEnvironment } = require('../../shared/env');
-const { stableUuid } = require('../../shared/stable-id');
-const {
+import { loadEnvironment } from '../../shared/env.ts';
+import { stableUuid } from '../../shared/stable-id.ts';
+import {
   chunkText,
   normalizeValue,
   computeSourceHash,
@@ -13,7 +12,7 @@ const {
   createEmbeddingStore,
   embedDocuments,
   parseRebuildArgs,
-} = require('../../shared/chunking');
+} from '../../shared/chunking.ts';
 
 const CHUNK_TABLE = 'medicine_leaflet_chunks';
 const EMBEDDING_TABLE = 'leaflet_embeddings';

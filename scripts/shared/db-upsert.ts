@@ -1,11 +1,11 @@
-const crypto = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
-const readline = require('node:readline');
-const { spawn } = require('node:child_process');
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import readline from 'node:readline';
+import { spawn } from 'node:child_process';
 
-const { REPO_ROOT } = require('./env');
-const { normalizeStableIdPart } = require('./stable-id');
+import { REPO_ROOT } from './env.ts';
+import { normalizeStableIdPart } from './stable-id.ts';
 
 // ─── Value normalisation ──────────────────────────────────────
 
@@ -311,7 +311,7 @@ async function streamParseAndUpsert(config, sourcePath, options, flushBatch) {
   return stats;
 }
 
-module.exports = {
+export {
   normalizeValue,
   sqlIdentifier,
   buildUpsertStatement,

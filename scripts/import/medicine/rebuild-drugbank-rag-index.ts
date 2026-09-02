@@ -10,12 +10,11 @@
  * Use --limit for smoke tests; it does not trigger a full import.
  */
 
-const path = require('node:path');
-const { Client } = require('pg');
+import { Client } from 'pg';
 
-const { loadEnvironment } = require('../../shared/env');
-const { stableUuid } = require('../../shared/stable-id');
-const {
+import { loadEnvironment } from '../../shared/env.ts';
+import { stableUuid } from '../../shared/stable-id.ts';
+import {
   chunkText,
   normalizeValue,
   computeSourceHash,
@@ -23,7 +22,7 @@ const {
   createEmbeddingStore,
   embedDocuments,
   parseRebuildArgs,
-} = require('../../shared/chunking');
+} from '../../shared/chunking.ts';
 
 const CHUNK_TABLE = 'drugbank_passage_chunks';
 const EMBEDDING_TABLE = 'drugbank_passage_embeddings';

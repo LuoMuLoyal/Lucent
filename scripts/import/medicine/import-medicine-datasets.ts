@@ -1,7 +1,10 @@
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(thisDir, '..', '..', '..');
 const IMPORT_SCRIPT = path.join(
   REPO_ROOT,
   'scripts',

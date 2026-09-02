@@ -1,11 +1,14 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { execSync } = require('node:child_process');
-const { pathToFileURL } = require('node:url');
-const { NestFactory } = require('@nestjs/core');
-const { ConfigService } = require('@nestjs/config');
-const { SwaggerModule } = require('@nestjs/swagger');
-const { FastifyAdapter } = require('@nestjs/platform-fastify');
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { SwaggerModule } from '@nestjs/swagger';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
+
+// ESM equivalent of __dirname (scripts/ is a "type": "module" package).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Generated region markers: module READMEs may reserve an endpoint summary
@@ -123,7 +126,7 @@ async function main() {
   setIfMissing('ADMIN_PASSWORD', 'admin-export-only-placeholder-00');
   setIfMissing('ADMIN_COOKIE_SECRET', 'admin-cookie-export-only-placeholder-0');
 
-  const repoRoot = path.resolve(__dirname, '..', '..');
+  const repoRoot = path.resolve(thisDir, '..', '..');
 
   const appModulePath = pathToFileURL(
     path.resolve(repoRoot, 'dist', 'app.module.js'),

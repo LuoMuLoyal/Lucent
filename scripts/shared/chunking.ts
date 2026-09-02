@@ -1,4 +1,4 @@
-const crypto = require('node:crypto');
+import crypto from 'node:crypto';
 
 const DEFAULT_MAX_CHUNK_LENGTH = 1000;
 const DEFAULT_CHUNK_OVERLAP = 100;
@@ -311,7 +311,7 @@ function parseRebuildArgs(argv) {
   return options;
 }
 
-module.exports = {
+export {
   DEFAULT_MAX_CHUNK_LENGTH,
   DEFAULT_CHUNK_OVERLAP,
   splitByParagraphs,

@@ -1,4 +1,4 @@
-const crypto = require('node:crypto');
+import crypto from 'node:crypto';
 
 const STABLE_ID_NAMESPACE = 'lucent:medicine-import';
 
@@ -39,4 +39,4 @@ function stableUuid(...parts) {
   return formatUuid(bytes);
 }
 
-module.exports = { stableUuid, normalizeStableIdPart };
+export { stableUuid, normalizeStableIdPart };
