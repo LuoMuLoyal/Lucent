@@ -32,6 +32,8 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
+- [`2026-09-02-agentic-proactive-evolution.md`](2026-09-02-agentic-proactive-evolution.md)
+  — Agentic → Proactive → 伴身演进后端任务清单:AI 上下文统一、proposal 服务域化、today/review/reminders 提案工具、BullMQ 事件总线与依从性触发器、跨端会话一致(远期)
 - [`2026-09-01-nestjs12-upgrade-plan.md`](2026-09-01-nestjs12-upgrade-plan.md)
   — NestJS 12 激进升级:全仓 ESM、zod 全面替换 class-validator(含 OpenAPI 直出)、可观测性保持自研栈(observe SaaS 不采用)
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
