@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Stage 1: deps ──────────────────────────────────────────────
-FROM node:24-alpine AS deps
+FROM node:24.20-alpine AS deps
 RUN corepack enable
 WORKDIR /app
 # pnpm-workspace.yaml 携带 overrides（stack-trace 固定版本）等工作区配置；
@@ -11,7 +11,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
 # ── Stage 2: builder ───────────────────────────────────────────
-FROM node:24-alpine AS builder
+FROM node:24.20-alpine AS builder
 RUN corepack enable
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -37,7 +37,7 @@ RUN --mount=type=cache,id=swc,target=/root/.swc \
 RUN pnpm prune --prod --ignore-scripts
 
 # ── Stage 3: production ────────────────────────────────────────
-FROM node:24-alpine AS production
+FROM node:24.20-alpine AS production
 RUN apk add --no-cache tini curl
 WORKDIR /app
 # 创建非 root 用户
