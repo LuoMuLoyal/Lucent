@@ -34,7 +34,7 @@
     "start:test:dev": "cross-env NODE_ENV=test nest start --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/main",
     "test": "cross-env NODE_ENV=test vitest run && pnpm test:eslint-plugins",
-    "test:ci": "cross-env NODE_ENV=test vitest run --reporter=dot && pnpm test:eslint-plugins:ci",
+    "test:ci": "cross-env NODE_ENV=test vitest run --reporter=dot && pnpm test:eslint-plugins:ci && pnpm test:tools",
     "test:coverage": "cross-env NODE_ENV=test vitest run --coverage && pnpm test:eslint-plugins",
     "test:ci:coverage": "cross-env NODE_ENV=test vitest run --coverage --reporter=dot && pnpm test:eslint-plugins:ci",
     "test:e2e": "cross-env NODE_ENV=test vitest run --config ./vitest.e2e.config.ts",
