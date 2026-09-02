@@ -8642,7 +8642,7 @@
             "type": "string"
           },
           "values": {
-            "description": "Observed values only — unknown days are omitted, not zero-filled. BREAKING (2026-08-29): values.length no longer matches the date window length; use observedMetric.observedCount/expectedCount to align dates.",
+            "description": "Observed values only — unknown days are omitted, not zero-filled. BREAKING (since 2026-08-29): values.length no longer matches the date window length; use observedMetric.observedCount/expectedCount to align dates.",
             "type": "array",
             "items": {
               "type": "number"
