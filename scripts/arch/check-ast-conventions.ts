@@ -326,14 +326,28 @@ Options:
 `;
 
 /** Resolve the git worktree root; fall back to process.cwd() outside a repo. */
-function resolveRepoRoot(): string {
+function resolveRepoRoot(strict: boolean): string {
   try {
     const top = execSync('git rev-parse --show-toplevel', {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
     return top || process.cwd();
-  } catch {
+  } catch (error) {
+    // --strict is the planned error gate: a missing git context would silently
+    // scan the wrong root (no src/ found) and report a false pass, so fail
+    // fast there.
+    if (strict) {
+      console.error(
+        'check-ast-conventions: git rev-parse failed — --strict requires a git repository context:',
+        error,
+      );
+      process.exit(1);
+    }
+    console.warn(
+      'check-ast-conventions: git rev-parse failed, falling back to process.cwd():',
+      error,
+    );
     return process.cwd();
   }
 }
@@ -344,13 +358,16 @@ function main(): void {
     console.log(USAGE);
     return;
   }
-  runCheck(resolveRepoRoot(), args.strict);
+  runCheck(resolveRepoRoot(args.strict), args.strict);
 }
 
 // CLI entry guard: run main() only when this file is the executed script,
-// so the vitest spec can import the pure check functions safely. The repo
-// typechecks scripts as CommonJS, which forbids import.meta — comparing the
-// entry basename is sufficient: this file is only ever executed directly.
+// so the vitest spec can import the pure check functions safely. This module
+// loads in several contexts — ESM via `node` (scripts/package.json sets
+// `type: module`) and transformed by vitest when imported from the spec —
+// and the entry basename comparison is the one guard that behaves identically
+// in all of them. Do not switch to import.meta.url without re-verifying the
+// vitest loading path.
 const entry = process.argv[1];
 if (entry && basename(entry) === 'check-ast-conventions.ts') {
   main();

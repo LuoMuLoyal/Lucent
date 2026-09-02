@@ -88,7 +88,7 @@ function collectPathCheckFiles(
     for (const entry of readdirSync(plansDir)) {
       // Dated plan files are point-in-time snapshots: executed plans mention
       // since-removed paths, and forward plans reference files that do not
-      // exist yet. Only the living index is path-checked; the TODO ledger
+      // exist yet. Only the living index is path-checked; the task ledger
       // lives at docs/TODO.md and enters via the docs surface above.
       if (entry === 'README.md') {
         add(`plans/${entry}`);
@@ -289,14 +289,27 @@ Options:
 `;
 
 /** Resolve the git worktree root; fall back to process.cwd() outside a repo. */
-function resolveRepoRoot(): string {
+function resolveRepoRoot(verify: boolean): string {
   try {
     const top = execSync('git rev-parse --show-toplevel', {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
     return top || process.cwd();
-  } catch {
+  } catch (error) {
+    // --verify is the CI/pre-push gate: a missing git context would silently
+    // scan the wrong root and report a false pass, so fail fast there.
+    if (verify) {
+      console.error(
+        'docs:links: git rev-parse failed — --verify requires a git repository context:',
+        error,
+      );
+      process.exit(1);
+    }
+    console.warn(
+      'docs:links: git rev-parse failed, falling back to process.cwd():',
+      error,
+    );
     return process.cwd();
   }
 }
@@ -307,7 +320,7 @@ function main(): void {
     console.log(USAGE);
     return;
   }
-  runCheck(resolveRepoRoot(), args.verify);
+  runCheck(resolveRepoRoot(args.verify), args.verify);
 }
 
 main();

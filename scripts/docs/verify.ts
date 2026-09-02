@@ -46,11 +46,24 @@ function run(cmd: string, cwd?: string): string {
 }
 
 /** Resolve the git worktree root; fall back to process.cwd() outside a repo. */
-function resolveRepoRoot(): string {
+function resolveRepoRoot(verify: boolean): string {
   try {
     const top = run('git rev-parse --show-toplevel').trim();
     return top || process.cwd();
-  } catch {
+  } catch (error) {
+    // --verify is the CI/pre-push gate: a missing git context would silently
+    // verify the wrong root and report a false pass, so fail fast there.
+    if (verify) {
+      console.error(
+        'docs:verify: git rev-parse failed — --verify requires a git repository context:',
+        error,
+      );
+      process.exit(1);
+    }
+    console.warn(
+      'docs:verify: git rev-parse failed, falling back to process.cwd():',
+      error,
+    );
     return process.cwd();
   }
 }
@@ -303,7 +316,7 @@ function main(): void {
 
   // Resolve the repo root explicitly so the script works when invoked from a
   // subdirectory (e.g. `node Lucent/scripts/docs/verify.ts`).
-  const repoRoot = resolveRepoRoot();
+  const repoRoot = resolveRepoRoot(args.verify);
 
   if (args.verify) {
     runVerify(repoRoot);
