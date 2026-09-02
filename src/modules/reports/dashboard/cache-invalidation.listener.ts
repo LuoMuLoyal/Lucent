@@ -40,9 +40,7 @@ export class ReportsCacheInvalidationListener {
   }
 
   @OnEvent(DOSE_LOG_CHANGED)
-  async handleDoseLogChanged(
-    payload: DoseLogChangedPayload,
-  ): Promise<void> {
+  async handleDoseLogChanged(payload: DoseLogChangedPayload): Promise<void> {
     await this.invalidate(payload.userId, 'dose-log.changed');
   }
 
@@ -61,16 +59,12 @@ export class ReportsCacheInvalidationListener {
   }
 
   @OnEvent(SETTINGS_CHANGED)
-  async handleSettingsChanged(
-    payload: SettingsChangedPayload,
-  ): Promise<void> {
+  async handleSettingsChanged(payload: SettingsChangedPayload): Promise<void> {
     await this.invalidate(payload.userId, 'settings.changed');
   }
 
   @OnEvent(REMINDER_CHANGED)
-  async handleReminderChanged(
-    payload: ReminderChangedPayload,
-  ): Promise<void> {
+  async handleReminderChanged(payload: ReminderChangedPayload): Promise<void> {
     await this.invalidate(payload.userId, 'reminder.changed');
   }
 

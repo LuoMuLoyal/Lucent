@@ -149,12 +149,9 @@ export class UserSettingsService {
 
     return write
       .andThen(() =>
-        fromPromise(
-          this.cacheDel(userSettingsCacheKey(userId)),
-          (error) => {
-            throw error;
-          },
-        ),
+        fromPromise(this.cacheDel(userSettingsCacheKey(userId)), (error) => {
+          throw error;
+        }),
       )
       .andThen(() =>
         fromPromise(this.emitSettingsChanged(userId), (error) => {
