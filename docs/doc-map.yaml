@@ -22,6 +22,8 @@ rules:
       - scripts/docs/**
       - scripts/arch/**
       - scripts/contract/**
+      - scripts/dev/**
+      - scripts/spike/**
       - .github/**
       - package.json
       - tsconfig.json
