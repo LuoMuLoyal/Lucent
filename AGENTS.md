@@ -35,7 +35,8 @@
   `pnpm docs:verify`（结构与新鲜度门禁 + append-only 守卫）、
   `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/README 与根入口文档中
   的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。
-  文档变更不再被 pre-commit 阻断；推送前 `pre-push` 汇总 `lint:check + build + test:ci + arch:check + docs:verify + docs:links`。
+  文档变更不再被 pre-commit 阻断；推送前 `pre-push` 仅汇总
+  `lint:check + arch:check + docs:verify + docs:links`（build、test:ci 有意下沉到 CI）。
 
 ## Architecture Checks (arch:check)
 
