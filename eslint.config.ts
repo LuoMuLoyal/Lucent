@@ -144,7 +144,6 @@ export default tseslint.config(
       'src/modules/product-events/services/events.service.ts',
       'src/modules/today-analysis/services/analysis.service.ts',
       'src/modules/today-suggestion/services/cache/suggestion-cache-invalidation.listener.ts',
-      'src/modules/reports/dashboard/dashboard.service.ts',
       'src/setup-app.ts',
     ],
     rules: {

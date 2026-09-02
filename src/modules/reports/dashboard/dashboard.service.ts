@@ -91,7 +91,10 @@ export class ReportsService {
         let keys: string[];
         try {
           keys = await store.keys();
-        } catch {
+        } catch (error) {
+          this.logger.warn(
+            `Reports dashboard cache key enumeration failed: ${String(error)}`,
+          );
           continue;
         }
         const matching = keys.filter((key) => key.includes(userSegment));
