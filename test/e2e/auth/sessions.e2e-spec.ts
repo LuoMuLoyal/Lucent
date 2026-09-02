@@ -231,14 +231,26 @@ describe('Session Management API (e2e)', () => {
         .set('Authorization', bearer(firstTokens.accessToken))
         .expect(204);
 
-      // Verify audit log was written
-      const auditLog = await ctx.prisma.auditLog.findFirst({
-        where: {
-          userId: user.id,
-          action: 'session.revoke',
-          resourceId: targetSessionId,
-        },
-      });
+      // Verify audit log was written. `session.revoke` audit persistence is
+      // fire-and-forget by contract (AuditLogService.logFireAndForget is not
+      // awaited by the controller), so the row may land a moment after the
+      // 204 response — poll briefly instead of asserting immediate visibility.
+      let auditLog: Awaited<
+        ReturnType<E2eTestContext['prisma']['auditLog']['findFirst']>
+      > = null;
+      const deadline = Date.now() + 3_000;
+      while (auditLog == null && Date.now() < deadline) {
+        auditLog = await ctx.prisma.auditLog.findFirst({
+          where: {
+            userId: user.id,
+            action: 'session.revoke',
+            resourceId: targetSessionId,
+          },
+        });
+        if (auditLog == null) {
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      }
       expect(auditLog).not.toBeNull();
       expect(auditLog!.resourceType).toBe('session');
 
