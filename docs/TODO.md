@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -56,6 +56,24 @@ environment 为简化实现(静态数据,关联 B2);`GET /environment/advice` �
 周报 push 通知通道未实现。
 
 ## 后续可做
+
+### F1：ReportTrendDto.values 的 legacyValues 迁移窗口（P3，2026-08-30 审查 W-1-legacy）
+
+考虑为 `ReportTrendDto` 增加废弃的 `legacyValues` 字段（补零、与日期窗口对齐）给前端一个迁移窗口
+（`src/modules/reports/dto/report-dashboard-response.dto.ts`，DTO 内仅留一行指针注释）。
+R-4 路线图清理完成时裁决去留：若 Luminous 已全面切换 `observedMetric` 对齐则直接放弃，不再实现。
+
+### F2：Port 接口规范集中化（P3，2026-08-30 审查 Suggestion）
+
+4 个跨模块 port（`INotificationSender`/`IUserSettingsPort`/`IUserHealthContextReader`/
+`IReportSummaryReader`）的命名与 useExisting 约定在各 port 文件 JSDoc 里各写一遍，知识散落。
+`docs/explanation/` 只减不增且 architecture.md 已瘦身，不新增小节；候选去向：AST 约定检查
+（`scripts/arch/check-ast-conventions.ts` 新增 C3 规则）或新 ADR，逐项评估后择一落地。
+
+### F3：CI lint 作业并行化（P3，2026-08-30 审查 Suggestion）
+
+oxlint 落地稳定后，将 `lucent-ci.yml` ci-lint-typecheck 作业中的 `lint:oxlint` 与
+`typecheck`/`typecheck:tools` 并行（独立 step 或 matrix），缩短 CI 时长；当前串行稳妥但低效。
 
 ### B2：环境数据接入真实天气 API（P3）
 
