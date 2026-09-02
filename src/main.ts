@@ -20,7 +20,14 @@ async function bootstrap() {
     // urlencoded content-type parser; NestJS's default parser would
     // duplicate it and crash with "Content type parser already present".
     // JSON parsing is registered manually in setupApp().
-    { bufferLogs: true, bodyParser: false },
+    //
+    // routeConflictPolicy (v12): fail fast on duplicate route declarations
+    // and warn when a route silently shadows a more specific one.
+    {
+      bufferLogs: true,
+      bodyParser: false,
+      routeConflictPolicy: { duplicate: 'error', shadow: 'warn' },
+    },
   );
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 

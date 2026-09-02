@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { core } from 'zod';
 import { EnvKey } from './env-keys.enum';
 
 /**
@@ -170,6 +171,36 @@ const envSchema = z.object({
 /** Strongly typed shape of validated environment variables. */
 export type EnvironmentVariables = z.infer<typeof envSchema>;
 
+// ── Cross-field validation (schema-level refinements) ───────────────
+//
+// The cross-field assertions below are attached to the schema itself so
+// that `ConfigModule.forRoot({ validationSchema })` (NestJS 12 Standard
+// Schema option) carries the full validation in one declarative unit.
+// `validateEnvironment` remains a thin wrapper for direct callers and
+// tests, preserving the historical error format.
+
+function addIssue(ctx: { issues: core.$ZodRawIssue[] }, message: string): void {
+  ctx.issues.push({ code: 'custom', input: undefined, message });
+}
+
+/**
+ * Full env schema (field validation + cross-field refinements) exposed
+ * for `ConfigModule.forRoot({ validationSchema })` — NestJS 12 accepts
+ * any Standard Schema compatible validator, and zod 4 implements the
+ * spec natively.
+ */
+export const validatedEnvSchema = envSchema.check((ctx) => {
+  const config = ctx.value;
+  const report = (message: string): void => {
+    addIssue(ctx, message);
+  };
+  assertProductionEnvironment(config, report);
+  assertTencentCosEnvironment(config, report);
+  assertS3StorageEnvironment(config);
+  assertJpushEnvironment(config, report);
+  assertAiEnvironment(config, report);
+});
+
 // ── Cross-field validation helpers ──────────────────────────────────
 
 const AI_ROLE_GROUPS = [
@@ -230,12 +261,17 @@ const AI_ROLE_GROUPS = [
  * `process.env`. Non-sensitive runtime configuration is validated by
  * the YAML loader.
  *
+ * Thin wrapper around {@link validatedEnvSchema} that keeps the
+ * historical `Environment validation failed: ...` error format for
+ * direct callers and tests. The application itself uses the schema
+ * through `ConfigModule.forRoot({ validationSchema })`.
+ *
  * @throws {Error} When a required or invalid value is detected.
  */
 export function validateEnvironment(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
-  const parsed = envSchema.safeParse(config);
+  const parsed = validatedEnvSchema.safeParse(config);
 
   if (!parsed.success) {
     const issues = parsed.error.issues
@@ -244,18 +280,13 @@ export function validateEnvironment(
     throw new Error(`Environment validation failed: ${issues}`);
   }
 
-  const validated = parsed.data;
-
-  assertProductionEnvironment(validated);
-  assertTencentCosEnvironment(validated);
-  assertS3StorageEnvironment(validated);
-  assertJpushEnvironment(validated);
-  assertAiEnvironment(validated);
-
-  return validated;
+  return parsed.data;
 }
 
-function assertProductionEnvironment(config: EnvironmentVariables): void {
+function assertProductionEnvironment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
   if (config[EnvKey.NODE_ENV] !== NodeEnvironment.Production) {
     return;
   }
@@ -272,13 +303,16 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
   ].filter((key) => !config[key as keyof EnvironmentVariables]);
 
   if (missingKeys.length > 0) {
-    throw new Error(
+    report(
       `Missing required production environment variables: ${missingKeys.join(', ')}`,
     );
   }
 }
 
-function assertTencentCosEnvironment(config: EnvironmentVariables): void {
+function assertTencentCosEnvironment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
   const requiredKeys = [
     EnvKey.TENCENT_COS_SECRET_ID,
     EnvKey.TENCENT_COS_SECRET_KEY,
@@ -300,22 +334,24 @@ function assertTencentCosEnvironment(config: EnvironmentVariables): void {
   const missingKeys = requiredKeys.filter((key) => !(config[key] ?? '').trim());
 
   if (missingKeys.length > 0) {
-    throw new Error(
+    report(
       `Incomplete Tencent COS environment variables: ${missingKeys.join(', ')}`,
     );
   }
 }
 
-function assertS3StorageEnvironment(config: EnvironmentVariables): void {
+function assertS3StorageEnvironment(_config: EnvironmentVariables): void {
   // STORAGE_PROVIDER is now in YAML; this check is deferred to the
   // storage module's useFactory which reads from ConfigKey.Yaml.
   // Sensitive S3 credentials are still checked here.
   // This function is kept as a no-op placeholder — the S3 credential
   // completeness check is handled at module instantiation time.
-  void config;
 }
 
-function assertJpushEnvironment(config: EnvironmentVariables): void {
+function assertJpushEnvironment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
   const credentialKeys = [
     EnvKey.JPUSH_APP_KEY,
     EnvKey.JPUSH_MASTER_SECRET,
@@ -332,13 +368,14 @@ function assertJpushEnvironment(config: EnvironmentVariables): void {
     (key) => !(config[key] ?? '').trim(),
   );
   if (missingKeys.length > 0) {
-    throw new Error(
-      `Incomplete JPush environment variables: ${missingKeys.join(', ')}`,
-    );
+    report(`Incomplete JPush environment variables: ${missingKeys.join(', ')}`);
   }
 }
 
-function assertAiEnvironment(config: EnvironmentVariables): void {
+function assertAiEnvironment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
   const provider = (config[EnvKey.AI_PROVIDER] ?? '').trim();
   const hasAnyAiRoleConfig = AI_ROLE_GROUPS.some((group) =>
     group.keys.some((key) => (config[key] ?? '').trim()),
@@ -349,7 +386,7 @@ function assertAiEnvironment(config: EnvironmentVariables): void {
   }
 
   if (!provider) {
-    throw new Error(
+    report(
       `AI_PROVIDER is required when any AI role is configured; expected openai-compatible`,
     );
   }
@@ -365,7 +402,7 @@ function assertAiEnvironment(config: EnvironmentVariables): void {
       const missingKeys = group.keys.filter(
         (key) => !(config[key] ?? '').trim(),
       );
-      throw new Error(
+      report(
         `Incomplete AI ${group.name} configuration: ${missingKeys.join(', ')}`,
       );
     }

@@ -99,8 +99,14 @@ export async function setupApp(
       }
       try {
         done(null, JSON.parse(body as string));
-      } catch (err) {
-        done(err as Error, undefined);
+      } catch {
+        // NestJS 12 reworked HTTP adapter error mapping: errors raised by a
+        // content-type parser reach the global exception filter directly, and
+        // the filter only maps `HttpException` instances — a plain error
+        // (even one carrying `statusCode`) surfaces as a 500. Malformed JSON
+        // must stay a client error (400), as asserted by the security fuzzing
+        // e2e suite, so hand the adapter a BadRequestException.
+        done(new BadRequestException('Malformed JSON payload'), undefined);
       }
     },
   );

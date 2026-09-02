@@ -11,6 +11,7 @@ import { LifecycleService } from './lifecycle.service';
 @Module({
   imports: [
     WinstonModule.forRootAsync({
+      imports: [],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const yaml = configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);

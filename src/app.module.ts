@@ -16,7 +16,7 @@ import { tencentCosConfig } from './config/services/tencent-cos.config';
 import { s3StorageConfig } from './config/services/s3-storage.config';
 import { jpushConfig } from './config/services/jpush.config';
 import { getEnvFilePaths } from './config/env/env-file-paths';
-import { validateEnvironment } from './config/env/environment.validation';
+import { validatedEnvSchema } from './config/env/environment.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma';
@@ -76,7 +76,11 @@ import { SlowRequestInterceptor } from './common';
         s3StorageConfig,
         jpushConfig,
       ],
-      validate: validateEnvironment,
+      // NestJS 12 Standard Schema option — the zod schema (including the
+      // cross-field refinements) validates the merged env in one
+      // declarative unit; undeclared variables are merged back by
+      // @nestjs/config and stay available.
+      validationSchema: validatedEnvSchema,
     }),
     CacheModule.registerAsync({
       isGlobal: true,
@@ -85,6 +89,7 @@ import { SlowRequestInterceptor } from './common';
     EventEmitterModule.forRoot(),
     // Rate limiting: Redis-backed when REDIS_URL is set, in-memory fallback
     ThrottlerModule.forRootAsync({
+      imports: [],
       useClass: ThrottlerConfigService,
     }),
     I18nModule,
