@@ -90,6 +90,13 @@ v2.0.0 水平扩展时需验证多实例限流计数器在 Redis 中的正确性
 `DataRetentionService` 已实现 `@Cron` 清理管道（过期会话/通知/反馈抑制）和软删除账户 30 天后硬删除。
 仍缺：账户删除流程增加匿名化数据导出 → 数据可移植性 JSON 导出（GDPR/PIPL 合规）。
 
+### @nestjs/throttler 与 nest-winston 的 ^12 peer 跟进（2026-09-02，NestJS 12 Phase 1 实查）
+
+`@nestjs/throttler@6.5.0`（npm latest）与 `nest-winston@1.10.2` 的 peerDependencies 尚未纳入
+`@nestjs/* ^12`（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；Phase 1 e2e 全量运行时行为已验证正常
+（rate-limiting 套件与日志链路通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
+评估替代方案或 fork peer 声明。
+
 ### 高级可观测性（基础已完成）
 
 基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则 + OpenTelemetry 分布式追踪：`src/tracing.ts`、`trace-context.utils.ts`、base-llm-generator 集成）。以下为进阶项：
