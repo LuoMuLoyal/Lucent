@@ -32,6 +32,8 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
+- [`2026-09-01-nestjs12-upgrade-plan.md`](2026-09-01-nestjs12-upgrade-plan.md)
+  — NestJS 12 激进升级:全仓 ESM、zod 全面替换 class-validator(含 OpenAPI 直出)、可观测性保持自研栈(observe SaaS 不采用)
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
   — 药品风险检查图数据结构引入:Phase 1 关系化 JSONB(PG18),Phase 2 SQL/PGQ 图查询(PG19 GA 后)
 - [`2026-08-24-coolify-deployment-restructure-plan.md`](2026-08-24-coolify-deployment-restructure-plan.md)
