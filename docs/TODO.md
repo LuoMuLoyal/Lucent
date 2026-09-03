@@ -119,3 +119,19 @@ ESM 化后遗留清单与后续跟进：
 基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则 + OpenTelemetry 分布式追踪：`src/tracing.ts`、`trace-context.utils.ts`、base-llm-generator 集成）。以下为进阶项：
 
 - 添加 synthetic uptime monitoring
+
+### 响应侧 Standard Schema 序列化的未竟事项（2026-09-03，NestJS 12 计划收尾）
+
+响应侧 zod + `StandardSchemaSerializerInterceptor` 已全量落地并闸门绿，以下边角留待后续：
+
+- 201/202 主成功响应在 export 期已回写 `$ref`；若新端点引入其他非 200 成功码语义，需在导出
+  脚本的成功码回写列表同步扩展（现 200→201→202）。
+- `@SerializeOptions` 未被 Swagger 自省,响应组件靠 export 期注册表注入;注册路径必须与导出
+  operation 逐字一致(含 RouterModule 前缀与 `{…}` 参数),不一致导出会显式报错——新增模块照此约定。
+- SSE/text 流端点不注册响应组件(非 JSON 200),如需结构化 `event: error` 语义遵循 ADR-0012/0017。
+
+### `@nestjs/observe` 复议条件（2026-09-03，NestJS 12 计划收尾）
+
+v12 升级与自研 observability 栈(metrics/logger/tracing)完成,未采用 `@nestjs/observe`;
+当官方模块覆盖自研 OTel 注入点(BullMQ worker span、HTTP/LLM span、queue 深度 gauges)或
+staging 基线对照暴露缺口时复议。
