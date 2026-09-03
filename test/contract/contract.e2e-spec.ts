@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import request from 'supertest';
 
@@ -9,8 +10,12 @@ import {
   createAccessToken,
   bearer,
   uniqueEmail,
-} from '../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
+} from '../helpers/e2e-helpers.js';
+import type {
+  E2eTestContext,
+  E2eApp,
+  TestUser,
+} from '../helpers/e2e-helpers.js';
 
 // ── OpenAPI spec loader ─────────────────────────────────────────
 
@@ -35,7 +40,7 @@ interface OpenApiSchema {
 
 function loadOpenApiSpec(): OpenApiSpec {
   const specPath = resolve(
-    __dirname,
+    dirname(fileURLToPath(import.meta.url)),
     '../../docs/reference/generated/openapi.json',
   );
   return JSON.parse(readFileSync(specPath, 'utf-8')) as OpenApiSpec;

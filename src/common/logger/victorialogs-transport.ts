@@ -12,11 +12,7 @@
 import { request, type RequestOptions } from 'node:http';
 import { type EventEmitter } from 'node:events';
 import { URL } from 'node:url';
-
-/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment */
-
-const TransportStream = require('winston-transport');
-/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment */
+import TransportStream from 'winston-transport';
 
 interface VictoriaLogsTransportOptions {
   /** Full ingest URL, e.g. http://victorialogs:9428/insert/jsonline */
@@ -49,7 +45,6 @@ export class VictoriaLogsTransport extends TransportStream {
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(opts: VictoriaLogsTransportOptions) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super(opts);
     this.endpoint = new URL(opts.url);
     this.maxBatch = opts.batchCount ?? 100;
@@ -57,7 +52,7 @@ export class VictoriaLogsTransport extends TransportStream {
     this.timeoutMs = opts.timeoutMs ?? 10000;
   }
 
-  log(info: object, callback: () => void): void {
+  override log(info: object, callback: () => void): void {
     // Serialise to a single-line JSON string (no trailing newline).
     const line = JSON.stringify(info);
     this.buffer.push(line);
@@ -87,7 +82,7 @@ export class VictoriaLogsTransport extends TransportStream {
 
     if (this.buffer.length === 0) return;
 
-    const body = this.buffer.join('\n') + '\n';
+    const body = `${this.buffer.join('\n')}\n`;
     this.buffer = [];
 
     const options: RequestOptions = {
@@ -129,7 +124,7 @@ export class VictoriaLogsTransport extends TransportStream {
   /**
    * Flush remaining entries on close (graceful shutdown).
    */
-  close(): void {
+  override close(): void {
     this.flush();
   }
 }

@@ -1,10 +1,42 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { getDMMF } from '@prisma/internals';
+import { SCHEMA_DIR, SCHEMA_MAIN_FILE } from '../constants/admin.constants.js';
+import type { PrismaClientModule } from '../types/admin.types.js';
 
-import { SCHEMA_DIR, SCHEMA_MAIN_FILE } from '../constants/admin.constants';
-import type { PrismaClientModule } from '../types/admin.types';
+/**
+ * `@prisma/internals` is CommonJS whose named-export surface is not
+ * statically analyzable by Node's cjs-module-lexer (`getDMMF` is re-exported
+ * dynamically). A bare named import therefore fails at ESM runtime, so the
+ * module is loaded via dynamic import and the interop `default` (the CJS
+ * `module.exports` object) is unwrapped — registered in the ESM
+ * legacy-dependency list in docs/TODO.md.
+ */
+interface PrismaInternals {
+  getDMMF: (options: { datamodel: string }) => Promise<unknown>;
+}
+
+async function loadPrismaInternals(): Promise<PrismaInternals> {
+  const loaded = (await import('@prisma/internals')) as PrismaInternals & {
+    default?: PrismaInternals;
+  };
+  // Named export first (vitest mocks / statically-analyzable entries); fall
+  // back to the CJS interop `default` only when the named surface is missing
+  // (real Node, where cjs-module-lexer cannot see the re-exported `getDMMF`).
+  // The `default` property must not be read eagerly — vitest throws when a
+  // mocked CJS module has no default export.
+  if (typeof loaded.getDMMF === 'function') {
+    return loaded;
+  }
+  const internals = loaded.default;
+  if (internals === undefined) {
+    // eslint-disable-next-line error-handling/no-bare-throw-error -- module-loading invariant (admin panel only), not a request-path failure
+    throw new Error(
+      '@prisma/internals interop failed: no default export available',
+    );
+  }
+  return internals;
+}
 
 /**
  * Builds a minimal Prisma client module from the multi-file Prisma schema for
@@ -13,6 +45,7 @@ import type { PrismaClientModule } from '../types/admin.types';
  * combined datamodel to `getDMMF`.
  */
 export async function buildPrismaClientModule(): Promise<PrismaClientModule> {
+  const { getDMMF } = await loadPrismaInternals();
   const mainPath = join(SCHEMA_DIR, SCHEMA_MAIN_FILE);
   const modelsDir = join(SCHEMA_DIR, 'models');
 
@@ -30,7 +63,7 @@ export async function buildPrismaClientModule(): Promise<PrismaClientModule> {
 
   return {
     Prisma: {
-      dmmf: dmmf as unknown as PrismaClientModule['Prisma']['dmmf'],
+      dmmf: dmmf as PrismaClientModule['Prisma']['dmmf'],
     },
   };
 }

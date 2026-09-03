@@ -1,6 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ValidationError } from '@nestjs/common';
 import {
   BadRequestException,
@@ -16,16 +17,20 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Logger as WinstonLogger } from 'winston';
-import { safeCompare } from './common';
-import { ProblemDetailsDto, SseProblemDetailsDto } from './common';
-import { ConfigKey } from './config/env/config-keys.enum';
-import { ApiExceptionFilter } from './common/filters/api-exception.filter';
-import { SlowRequestInterceptor } from './common';
-import type { FastifyRequestWithMetrics } from './common/types/metrics.types';
-import { getActiveTraceIds } from './common/logger/trace-context.utils';
-import { buildAccessLogEntry } from './common/logger/access-log.utils';
-import { MetricsService } from './common/metrics/metrics.service';
-import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils';
+import { safeCompare } from './common/index.js';
+import { ProblemDetailsDto, SseProblemDetailsDto } from './common/index.js';
+import { ConfigKey } from './config/env/config-keys.enum.js';
+import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
+import { SlowRequestInterceptor } from './common/index.js';
+import type { FastifyRequestWithMetrics } from './common/types/metrics.types.js';
+import { getActiveTraceIds } from './common/logger/trace-context.utils.js';
+import { buildAccessLogEntry } from './common/logger/access-log.utils.js';
+import { MetricsService } from './common/metrics/metrics.service.js';
+import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils.js';
+
+// ESM equivalent of `__dirname` — resolves project-root-relative files
+// regardless of the process working directory (PM2 / systemd / Docker).
+const thisDir = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Resolves the URL for the self-hosted Scalar standalone bundle. The bundle
@@ -50,7 +55,7 @@ async function resolveScalarStandaloneUrl(): Promise<string> {
 
   try {
     const pkg = JSON.parse(
-      await readFile(join(__dirname, '..', 'package.json'), 'utf-8'),
+      await readFile(join(thisDir, '..', 'package.json'), 'utf-8'),
     ) as { dependencies?: Record<string, string> };
     const version = (pkg.dependencies?.['@scalar/api-reference'] ?? '').replace(
       /^[\^~]/,
@@ -289,10 +294,10 @@ export async function setupApp(
   void fastify.get('/scalar/standalone.js', async (_request, reply) => {
     try {
       // Resolve relative to this file so it works regardless of the process
-      // working directory (PM2 / systemd / Docker). `__dirname` is the project
+      // working directory (PM2 / systemd / Docker). `thisDir` is the project
       // root both in dev (src/) and after `nest build` (dist/).
       const file = join(
-        __dirname,
+        thisDir,
         '..',
         'node_modules',
         '@scalar',

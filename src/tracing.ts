@@ -10,13 +10,18 @@
  * OTEL_EXPORTER_OTLP_ENDPOINT（默认 http://127.0.0.1:4318/v1/traces）。
  */
 
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { config as loadDotenv } from 'dotenv';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getEnvFilePaths } from './config/env/env-file-paths';
+import { getEnvFilePaths } from './config/env/env-file-paths.js';
+
+// ESM equivalent of `__dirname` — this module is the first import of
+// `main.ts` and must not rely on CJS globals.
+const thisDir = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Loads the same environment files that ConfigModule will use later during
@@ -24,14 +29,14 @@ import { getEnvFilePaths } from './config/env/env-file-paths';
  * enablement flag must be available here rather than only after Nest starts.
  * Existing process environment variables keep precedence over dotenv files.
  *
- * Resolves env files relative to `__dirname` (project root in both dev `src/`
+ * Resolves env files relative to `thisDir` (project root in both dev `src/`
  * and built `dist/`), so tracing works regardless of the process working
  * directory (PM2 / systemd / Docker).
  */
 function loadTracingEnvironment(): void {
   for (const envFilePath of getEnvFilePaths()) {
     loadDotenv({
-      path: join(__dirname, '..', envFilePath),
+      path: join(thisDir, '..', envFilePath),
       override: false,
     });
   }

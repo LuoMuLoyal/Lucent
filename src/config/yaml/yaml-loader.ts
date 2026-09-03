@@ -19,10 +19,14 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
 import { registerAs } from '@nestjs/config';
+
+// ESM equivalent of `__dirname` (config YAML files live next to this module).
+const thisDir = dirname(fileURLToPath(import.meta.url));
 
 // ── YAML schema (non-sensitive config) ──────────────────────────────
 
@@ -154,7 +158,7 @@ function deepMerge<T>(base: T, override: unknown): T {
 // ── YAML file loading ──────────────────────────────────────────────
 
 function getConfigDir(): string {
-  return join(__dirname, '..', '..', '..');
+  return join(thisDir, '..', '..', '..');
 }
 
 function loadYamlFile(filePath: string): Record<string, unknown> {

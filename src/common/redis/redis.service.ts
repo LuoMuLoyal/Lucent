@@ -5,10 +5,10 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type Redis from 'ioredis';
-import { EnvKey } from '../../config/env/env-keys.enum';
-import { DomainFailureException } from '../result/domain-failure.exception';
-import { createDomainFailure } from '../result/domain-failure';
+import type { Redis } from 'ioredis';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import { DomainFailureException } from '../result/domain-failure.exception.js';
+import { createDomainFailure } from '../result/domain-failure.js';
 
 /**
  * Lua script for atomic increment-and-expire.

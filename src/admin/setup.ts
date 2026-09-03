@@ -1,30 +1,25 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { ConfigService } from '@nestjs/config';
 
-import { PrismaService } from '../prisma';
-import { ADMIN_ROOT_PATH } from './constants/admin.constants';
-import { buildPrismaClientModule } from './services/prisma-module.service';
-import { buildResources } from './services/resource-builder.service';
-import { buildAdminAuthRouter } from './services/auth-router.service';
+import { PrismaService } from '../prisma/index.js';
+import { ADMIN_ROOT_PATH } from './constants/admin.constants.js';
+import { buildPrismaClientModule } from './services/prisma-module.service.js';
+import { buildResources } from './services/resource-builder.service.js';
+import { buildAdminAuthRouter } from './services/auth-router.service.js';
 import type {
   AdminJsFastifyModule,
   AdminJsModule,
   AdminJsPrismaModule,
-  DynamicImport,
-} from './types/admin.types';
+} from './types/admin.types.js';
 
 /**
- * AdminJS packages are ESM-only and must be imported dynamically.
- * SWC compiles standard `import()` to `require()` in this CJS build, which
- * breaks ESM interop. Using `new Function` bypasses SWC's transform so the
- * runtime `import()` is preserved as-is. This is safe because the specifiers
- * are hardcoded string literals ('adminjs', '@adminjs/fastify',
- * '@sergiyiva/adminjs-prisma') and never come from user input.
+ * AdminJS packages are ESM-only and must be imported dynamically. In the ESM
+ * build SWC preserves `import()` as-is, so a plain wrapper is sufficient —
+ * the previous `new Function('specifier', 'return import(specifier)')`
+ * indirection only existed to survive the old CommonJS build.
  */
-const dynamicImport = new Function(
-  'specifier',
-  'return import(specifier)',
-) as DynamicImport;
+const dynamicImport = async <T>(specifier: string): Promise<T> =>
+  import(specifier) as Promise<T>;
 
 /**
  * Registers the AdminJS panel and authenticated router on the given NestJS

@@ -5,8 +5,8 @@ import {
   type ThrottlerModuleOptions,
   type ThrottlerStorage as IThrottlerStorage,
 } from '@nestjs/throttler';
-import type Redis from 'ioredis';
-import { EnvKey } from '../env/env-keys.enum';
+import type { Redis } from 'ioredis';
+import { EnvKey } from '../env/env-keys.enum.js';
 
 interface ThrottlerStorageRecord {
   totalHits: number;

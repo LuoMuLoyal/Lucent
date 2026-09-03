@@ -2,23 +2,24 @@ import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
-import type { ReportDashboardDataDto } from '../../../reports';
+import { createRequire } from 'node:module';
+import type { ReportDashboardDataDto } from '../../../reports/index.js';
 import {
   kindLabel,
   statusLabel,
   statusPalette,
-} from '../../utils/report-pdf.theme';
+} from '../../utils/report-pdf.theme.js';
 import {
   CONTENT_WIDTH,
   MARGIN_X,
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../../constants/report-pdf.constants';
+} from '../../constants/report-pdf.constants.js';
 import type {
   EmbeddedFont,
   PageContext,
-} from '../../constants/report-pdf.constants';
+} from '../../constants/report-pdf.constants.js';
 import {
   drawInsightBlock,
   drawMetricsGrid,
@@ -29,10 +30,14 @@ import {
   drawTrendTable,
   drawWrappedText,
   ensureSpace,
-} from './draw.service';
+} from './draw.service.js';
 
-const FONT_PATH =
-  require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');
+// `require.resolve` is unavailable in ESM — createRequire keeps the ability to
+// resolve a package asset path inside node_modules.
+const nodeRequire = createRequire(import.meta.url);
+const FONT_PATH = nodeRequire.resolve(
+  '@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf',
+);
 
 type ReportPdfKind = 'hospital' | 'monthly' | 'print';
 

@@ -3,8 +3,8 @@ import {
   format as winstonFormat,
   transports as winstonTransports,
 } from 'winston';
-import { getActiveTraceIds } from './trace-context.utils';
-import { VictoriaLogsTransport } from './victorialogs-transport';
+import { getActiveTraceIds } from './trace-context.utils.js';
+import { VictoriaLogsTransport } from './victorialogs-transport.js';
 
 type LogLevel =
   | 'error'
@@ -55,9 +55,9 @@ const otelTraceFormat = winstonFormat((info) => {
 // ── ANSI color constants (used only for trace tag highlighting) ──────────
 
 const C = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  gray: '\x1b[90m',
+  reset: '\x1B[0m',
+  green: '\x1B[32m',
+  gray: '\x1B[90m',
 } as const;
 
 /**
@@ -140,12 +140,12 @@ const devConsoleFormat = winstonFormat.combine(
       : undefined;
     const reqTag =
       tracePart != null
-        ? `${C.green}[trace=${tracePart}${spanPart != null ? ':' + spanPart : ''}]${C.reset} `
+        ? `${C.green}[trace=${tracePart}${spanPart != null ? `:${spanPart}` : ''}]${C.reset} `
         : '';
     const meta = formatMeta(info);
     const metaTag = meta ? `${C.gray}${meta}${C.reset}` : '';
 
-    const line = `${C.gray}${ts}${C.reset} ${level} ${C.gray}[${context}]${C.reset} ${reqTag}${message}${metaTag ? ' ' + metaTag : ''}`;
+    const line = `${C.gray}${ts}${C.reset} ${level} ${C.gray}[${context}]${C.reset} ${reqTag}${message}${metaTag ? ` ${metaTag}` : ''}`;
     return stack ? `${line}\n${stack}` : line;
   }),
 );
@@ -261,9 +261,7 @@ export function createLoggerOptions(
         `VictoriaLogs ingest warning: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
-    transports.push(
-      victoriaTransport as unknown as (typeof transports)[number],
-    );
+    transports.push(victoriaTransport);
   }
 
   return {

@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Global, Module } from '@nestjs/common';
 import {
   I18nOptions,
@@ -6,20 +7,23 @@ import {
   AcceptLanguageResolver,
 } from 'nestjs-i18n';
 
+// ESM equivalent of `__dirname` (translation JSON lives next to this module).
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
+
 const i18nOptions: I18nOptions = {
   fallbackLanguage: 'en',
   loaderOptions: {
-    path: path.join(__dirname),
+    path: path.join(thisDir),
     watch: process.env['NODE_ENV'] !== 'production',
   },
   resolvers: [AcceptLanguageResolver],
 };
 
-const runtimeRoot = path.basename(path.dirname(__dirname));
+const runtimeRoot = path.basename(path.dirname(thisDir));
 
 if (process.env['NODE_ENV'] === 'development' && runtimeRoot !== 'dist') {
   i18nOptions.typesOutputPath = path.join(
-    __dirname,
+    thisDir,
     '..',
     'generated',
     'i18n.generated.ts',
