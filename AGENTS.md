@@ -69,8 +69,8 @@
 - Dev DB: `postgres/postgres@127.0.0.1:15432/lucent`. Test DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`.
 - Redis: `redis://127.0.0.1:6379`.
 - Response: controllers return resources directly (no envelope); errors use RFC 9457
-  Problem Details — [ADR-0012](docs/reference/adr/0012-error-contract-and-result-boundary.md)、
-  [ADR-0017](docs/reference/adr/0017-machine-readable-error-code-catalog.md)。
+  Problem Details — [ADR-0012](docs/reference/adr/0012-error-contract-and-result-boundary.md)
+  (稳定 `code` 注册表与回落语义见 `src/common/api/problem-catalog.ts` 头注释)。
   Health check: `GET /api/v1/health`.
 - 模块路由前缀见 `src/app.module.ts` 的 RouterModule 注册(如用户域挂在 `user` 前缀下);
   `export-openapi` 会把响应 schema 注册路径与真实 operation 对账,不一致即报错终止。

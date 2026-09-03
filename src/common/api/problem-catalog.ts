@@ -2,6 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { buildProblemDetails, type ProblemDetails } from './problem-details.js';
 
+/**
+ * Machine-readable error-code registry (RFC 9457 Problem Details `code`).
+ *
+ * 本文件是全部稳定错误码的唯一事实源(与 ADR-0012 第 2 节对齐,该 ADR 定义传输契约,
+ * 本文件落实现级注册表):
+ * - code 一律 `SCREAMING_SNAKE_CASE`、不编码 HTTP status(允许多个 code 共享同一 status)。
+ * - 每条目声明 HTTP status + i18n title/detail key + retryable 默认值;`build()` 是
+ *   title/detail 的唯一 i18n 映射点(zh-CN / en 双语文案,支持 args 插值)。
+ * - `ApiExceptionFilter` 的出站兜底语义:显式携带的 code 仅在「已登记且 status 匹配」
+ *   (`matchesStatus`)时才采纳;否则按 status 回落默认码(400→VALIDATION_FAILED、
+ *   401→AUTH_REQUIRED、403→FORBIDDEN、404→RESOURCE_NOT_FOUND、409→RESOURCE_CONFLICT、
+ *   429→RATE_LIMITED、502/503/504→DEPENDENCY_*、其余→INTERNAL_ERROR)。未知异常一律
+ *   INTERNAL_ERROR。行为断言见 `api-exception.target.spec.ts`。
+ * - `DomainFailure`(common/result)的 `code` 与本注册表共用同一词汇;`toProblemDetails`
+ *   对未登记 code 直接抛错(纯 helper 不变量),保证失败码未登记就无法出网。
+ * - 新增码流程:本文件加条目 + `src/i18n/{zh-CN,en}/common.json` 补双语 key + 涉及 HTTP
+ *   语义变化时 e2e 断言;删除或改 status 属 breaking change。
+ *   (原 ADR-0017 追认内容并入此处:与 ADR-0012 对齐的注册表与回落规则属实现级约定,
+ *   按代码同址裁决落本注释,不单独成 ADR。)
+ */
 const definitions = {
   AUTH_REQUIRED: {
     status: 401,
@@ -209,7 +229,7 @@ export class ProblemCatalog {
   constructor(private readonly i18n: I18nService) {}
 
   isKnown(code: string): code is ProblemCode {
-    return Object.prototype.hasOwnProperty.call(definitions, code);
+    return Object.hasOwn(definitions, code);
   }
 
   matchesStatus(code: string, status: number): code is ProblemCode {
