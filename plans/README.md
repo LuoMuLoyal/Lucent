@@ -32,8 +32,6 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
-- [`2026-09-03-zod-bulk-runbook.md`](2026-09-03-zod-bulk-runbook.md)
-  — zod 批量迁移(请求侧)执行手册:验证结论、迁移规则、模块批次清单与闸门,供多子 agent 并行执行
 - [`2026-09-02-agentic-proactive-evolution.md`](2026-09-02-agentic-proactive-evolution.md)
   — Agentic → Proactive → 伴身演进后端任务清单:AI 上下文统一、proposal 服务域化、today/review/reminders 提案工具、BullMQ 事件总线与依从性触发器、跨端会话一致(远期)
 - [`2026-09-01-nestjs12-upgrade-plan.md`](2026-09-01-nestjs12-upgrade-plan.md)

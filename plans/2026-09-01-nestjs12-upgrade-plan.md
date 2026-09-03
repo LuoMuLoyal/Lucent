@@ -1,7 +1,7 @@
 # Plan: NestJS 12 激进升级（v12 + 全仓 ESM + Zod 全面替换）
 
 Created: 2026-09-01
-Status: 已评审并修订（2026-09-02：修正队列使用方计数、env 校验现状描述、find-my-way pin 结论、admin/setup.ts hack 写法；新增生态发版实查、合同 revert 约定、响应侧复评决策点。口径不变：激进派——新特性能用尽用，不留双轨长期态；可观测性已定：不采用官方 @nestjs/observe SaaS，保持自研栈）。执行进度：框架升级（v12 全家桶 + 生命周期审计 + validationSchema + routeConflictPolicy）已于 2026-09-02 合并；全仓 ESM 切换（type:module + nodenext 扩展名 + CJS 互操作迁移）已于 2026-09-03 合并。细节均见当日迁移日志；deploy compose 级容器冒烟归计划全量闸门复查。zod 全面替换进行中：Standard Schema 校验管道与 OpenAPI zod 直出机制已验证（零配置成立），environment 模块试点已合入（2026-09-03，语义映射与 example 元数据补全见当日迁移日志与 TODO），后续按模块批次推进。
+Status: 已评审并修订（2026-09-02：修正队列使用方计数、env 校验现状描述、find-my-way pin 结论、admin/setup.ts hack 写法；新增生态发版实查、合同 revert 约定、响应侧复评决策点。口径不变：激进派——新特性能用尽用，不留双轨长期态；可观测性已定：不采用官方 @nestjs/observe SaaS，保持自研栈）。执行进度：框架升级（v12 全家桶 + 生命周期审计 + validationSchema + routeConflictPolicy）已于 2026-09-02 合并；全仓 ESM 切换（type:module + nodenext 扩展名 + CJS 互操作迁移）已于 2026-09-03 合并。细节均见当日迁移日志；deploy compose 级容器冒烟归计划全量闸门复查。zod 全面替换进行中：Standard Schema 校验管道与 OpenAPI zod 直出机制已验证（零配置成立），environment 模块试点已合入（2026-09-03，语义映射与 example 元数据补全见当日迁移日志与 TODO），后续按模块批次推进。请求侧全面替换（20 模块 DTO+控制器,runbook 批量执行）已于 2026-09-03 合入后端(`pnpm check` 全绿、openapi 193 components)；Luminous 合同联动因请求 schema 命名问题阻塞(见 TODO),响应侧试点与 errorCode 等后续步骤待办。
 Baseline: NestJS 11 / Node 24 / SWC builder（CJS）/ Fastify 5 / Prisma 7 / class-validator 0.15 + 110 DTO / 自研 OTel + prom-client
 Policy: 三条主线一次规划、四个 Phase 串行执行；**每个 Phase 结束时 `pnpm check` 全绿、独立可回滚**。激进体现在目标终态，不体现在"一把梭"——每个 Phase 都是一道闸门。
 
