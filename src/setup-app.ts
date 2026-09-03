@@ -2,12 +2,11 @@ import { performance } from 'node:perf_hooks';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ValidationError } from '@nestjs/common';
+
 import {
   BadRequestException,
   Logger,
   StandardSchemaValidationPipe,
-  ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
@@ -229,19 +228,8 @@ export async function setupApp(
     defaultVersion: '1',
   });
   app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      exceptionFactory: (errors: ValidationError[]) =>
-        new BadRequestException({
-          code: 'VALIDATION_FAILED',
-          message: formatValidationErrors(errors),
-        }),
-    }),
     // Standard Schema pipe validates params that carry `{ schema }` metadata
-    // (zod-converted endpoints) and is a no-op everywhere else. It runs after
-    // the class-validator pipe so the two can coexist during the migration.
+    // (all request DTOs are zod schemas since the request-side migration).
     new StandardSchemaValidationPipe(),
   );
   app.useGlobalInterceptors(app.get(SlowRequestInterceptor));
@@ -337,16 +325,4 @@ export async function setupApp(
       docsHandler(request, reply);
     },
   );
-}
-
-export function formatValidationErrors(errors: ValidationError[]): string {
-  return errors.flatMap(collectValidationMessages).join('; ');
-}
-
-export function collectValidationMessages(error: ValidationError): string[] {
-  const currentMessages = Object.values(error.constraints ?? {});
-  const childMessages = (error.children ?? []).flatMap(
-    collectValidationMessages,
-  );
-  return [...currentMessages, ...childMessages];
 }

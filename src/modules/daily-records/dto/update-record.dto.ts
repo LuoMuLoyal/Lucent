@@ -26,7 +26,9 @@ const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export const updateDailyRecordSchema = z
   .object({
     kind: z.enum(DAILY_RECORD_KIND_VALUES).optional(),
-    occurredAt: dateOnlySchema().describe('Date in YYYY-MM-DD format.').optional(),
+    occurredAt: dateOnlySchema()
+      .describe('Date in YYYY-MM-DD format.')
+      .optional(),
     occurredTime: z
       .string()
       .regex(TIME_24H_PATTERN)

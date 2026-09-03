@@ -52,10 +52,7 @@ export function isoDateOrDatetimeSchema(
  * as a bare calendar date. Runtime validation stays native via `z.iso.date`.
  */
 export function dateOnlySchema(message?: string) {
-  return z.string().refine(
-    (value) => z.iso.date().safeParse(value).success,
-    {
-      message: message ?? 'Invalid date. Expected YYYY-MM-DD.',
-    },
-  );
+  return z.string().refine((value) => z.iso.date().safeParse(value).success, {
+    message: message ?? 'Invalid date. Expected YYYY-MM-DD.',
+  });
 }
