@@ -63,12 +63,17 @@
 
 ## Current Baseline
 
-- NestJS 11, Prisma 7, PostgreSQL, Redis, JWT auth.
+- NestJS 12 (ESM, SWC builder), Prisma 7, PostgreSQL, Redis, JWT auth.
+- 请求/响应校验与序列化走 zod 4 + Standard Schema(`@Body/@Query/@Param({ schema })` 与
+  `@SerializeOptions({ schema })`;DTO 为 `z.infer` 类型导出),不引入 class-validator。
 - Dev DB: `postgres/postgres@127.0.0.1:15432/lucent`. Test DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`.
 - Redis: `redis://127.0.0.1:6379`.
 - Response: controllers return resources directly (no envelope); errors use RFC 9457
-  Problem Details — [ADR-0012](docs/reference/adr/0012-error-contract-and-result-boundary.md).
+  Problem Details — [ADR-0012](docs/reference/adr/0012-error-contract-and-result-boundary.md)、
+  [ADR-0017](docs/reference/adr/0017-machine-readable-error-code-catalog.md)。
   Health check: `GET /api/v1/health`.
+- 模块路由前缀见 `src/app.module.ts` 的 RouterModule 注册(如用户域挂在 `user` 前缀下);
+  `export-openapi` 会把响应 schema 注册路径与真实 operation 对账,不一致即报错终止。
 
 ## Working Rules
 

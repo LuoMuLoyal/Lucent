@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-02
+updated: 2026-09-03
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -96,17 +96,6 @@ zod `.describe` 仅产出 description;原 `@ApiProperty` 的 `example`(及个别
 后丢失。对需要 example 的 query/body 字段,统一经 zod-openapi(或 schema 元数据)补 example/nullable
 语义,逐模块迁移时顺带核对,验收以 openapi.json diff 为准。
 
-### Luminous 合同联动阻塞:zod 请求 schema 命名与流水线修复(2026-09-03)
-
-请求侧 zod 迁移完成后 `export:openapi` 的请求 schema 为内联、无命名组件,Luminous `bootstrap.dart`
-再生成按 operation 派生模型名(`XxxControllerXxxV1Request` 等),既有 DTO 名调用点全部失效
-(flutter analyze 539 处),无法干净落地。后续合同批次前需先决策其一并落地:
-
-- 后端让请求 body/query schema 以命名组件进 openapi(swagger 组件化/`title`),保住客户端 DTO 类名;或
-- Luminous 按新模型名全面适配调用点。
-  bootstrap 附带问题同批处理:合并拷贝不清除旧生成文件(需生成前清理)、dart format 版本漂移噪音、
-  build hooks 本机 Windows 偶发文件锁失败(error 1224)。
-
 ### ESM 遗留 CJS 依赖与互操作跟踪（2026-09-03，NestJS 12 升级第二步）
 
 ESM 化后遗留清单与后续跟进：
@@ -130,10 +119,3 @@ ESM 化后遗留清单与后续跟进：
 基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则 + OpenTelemetry 分布式追踪：`src/tracing.ts`、`trace-context.utils.ts`、base-llm-generator 集成）。以下为进阶项：
 
 - 添加 synthetic uptime monitoring
-
-### date wire 口径:客户端 DateTime vs 后端 date-only(2026-09-03,zod 合同联动遗留)
-
-再生成客户端把 date 参数定为 DateTime(序列化可能带时间/本地形态),Lucent 端 zod date 字段为
-date-only(`z.iso.date()`)。record/health_event 等 list/body date 的 wire 行为需 e2e 确认;若后端
-不接受,统一方案候选:Luminous data 层以 date-only 字符串提交(需生成端该参数字段类型回退 String
-或加自定义序列化),或后端相应字段放宽为日期前缀解析——二选一做决策后落地并删本行。

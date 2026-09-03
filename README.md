@@ -84,7 +84,7 @@ Lucent CI re-exports the spec and fails when the committed
 
 ## Stack
 
-- NestJS 11
+- NestJS 12 (ESM / SWC builder), zod 4 + Standard Schema validation
 - Prisma 7 / PostgreSQL
 - Redis / BullMQ
 - Passport JWT

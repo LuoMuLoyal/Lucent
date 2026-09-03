@@ -7,7 +7,7 @@ updated: 2026-08-31
 
 # Lucent Docs
 
-Lucent(NestJS 11 后端)文档库唯一索引。目录即裁决:`explanation/` 讲为什么(低频稳定叙事,只减不增);
+Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`explanation/` 讲为什么(低频稳定叙事,只减不增);
 `reference/` 讲是什么(含 `adr/` 决策只增不改、`generated/` 生成物禁手改);`howto/` 讲怎么做(少而精,
 新增须过审计);`logs/migration-log/` 按日追加变更事实,永不覆写已有内容;`archive/` 归档只进不出,
 不参与链接与新鲜度校验。实现状态以代码为准;新增文档先做六向裁决(一句版:能由生成器/测试产出的
