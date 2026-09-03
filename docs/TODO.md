@@ -98,9 +98,9 @@ zod `.describe` 仅产出 description;原 `@ApiProperty` 的 `example`(及个别
 
 ### Luminous contract bootstrap 流水线修复(2026-09-03)
 
-`dart run scripts/contract/bootstrap.dart` 的 build hooks 步骤失败,dart format 对 generated 输出大
-范围重排(版本漂移噪音)。本次合同 delta 无结构变化未受影响;后续结构性合同批次前需修复该流水线并
-消除 format 噪音,否则逐模块合同联动无法干净落地。
+Luminous 仓库的 contract bootstrap(bootstrap.dart)的 build hooks 步骤失败,dart format 对 generated
+输出大范围重排(版本漂移噪音)。本次合同 delta 无结构变化未受影响;后续结构性合同批次前需修复该
+流水线并消除 format 噪音,否则逐模块合同联动无法干净落地。
 
 ### ESM 遗留 CJS 依赖与互操作跟踪（2026-09-03，NestJS 12 升级第二步）
 
