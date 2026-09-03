@@ -146,7 +146,7 @@ export function getDisplayName(medicine: MedicineDetailWrapper): string {
 export function getDetailJson(
   detail: MedicineDetailDataDto,
 ): Record<string, unknown> {
-  return detail.detail as unknown as Record<string, unknown>;
+  return detail.detail;
 }
 
 export function getNormalizedIngredientTokens(

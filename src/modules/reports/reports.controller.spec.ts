@@ -584,12 +584,12 @@ describe('ReportsController', () => {
       items: [
         {
           id: 'share-1',
-          createdAt: new Date('2026-08-14T08:00:00.000Z'),
-          expiresAt: new Date('2026-08-21T08:00:00.000Z'),
+          createdAt: '2026-08-14T08:00:00.000Z',
+          expiresAt: '2026-08-21T08:00:00.000Z',
           revokedAt: null,
           accessCount: 2,
-          firstAccessedAt: new Date('2026-08-15T08:00:00.000Z'),
-          lastAccessedAt: new Date('2026-08-16T08:00:00.000Z'),
+          firstAccessedAt: '2026-08-15T08:00:00.000Z',
+          lastAccessedAt: '2026-08-16T08:00:00.000Z',
           scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
           selectedFields: ['event_overview'],
         },

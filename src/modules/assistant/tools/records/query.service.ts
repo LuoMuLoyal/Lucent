@@ -57,7 +57,7 @@ export class AssistantToolRecordQueryService {
         mealAnalysisUpdatedAt: item.mealAnalysisUpdatedAt ?? null,
         mealAnalysisFailureReason: item.mealAnalysisFailureReason ?? null,
         mealShortDescription: item.mealShortDescription ?? null,
-        mealTopFoods: item.mealTopFoods ?? [],
+        mealTopFoods: item.mealTopFoods,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
       }));

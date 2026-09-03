@@ -436,8 +436,31 @@ export class ReportsController {
   })
   @SerializeOptions({ schema: clinicSummaryShareListResponseSchema })
   async listClinicSummaryShares(@CurrentUser() user: UserPayload) {
+    const items = await this.shareService.listSharesForUser(user.sub);
+    // Normalize read-model timestamps (may be `Date` or already an ISO
+    // string) before the response serializer validates the string contract.
+    const toIso = (value: Date | string | null): string | null =>
+      value == null
+        ? null
+        : value instanceof Date
+          ? value.toISOString()
+          : value;
     return {
-      items: await this.shareService.listSharesForUser(user.sub),
+      items: items.map((item) => ({
+        id: item.id,
+        createdAt: toIso(item.createdAt) ?? '',
+        expiresAt: toIso(item.expiresAt) ?? '',
+        revokedAt: toIso(item.revokedAt),
+        accessCount: item.accessCount,
+        firstAccessedAt: toIso(item.firstAccessedAt),
+        lastAccessedAt: toIso(item.lastAccessedAt),
+        scope: {
+          eventId: item.scope.eventId,
+          dateFrom: toIso(item.scope.dateFrom),
+          dateTo: toIso(item.scope.dateTo),
+        },
+        selectedFields: item.selectedFields,
+      })),
     };
   }
 
