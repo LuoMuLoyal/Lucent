@@ -130,3 +130,10 @@ ESM 化后遗留清单与后续跟进：
 基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则 + OpenTelemetry 分布式追踪：`src/tracing.ts`、`trace-context.utils.ts`、base-llm-generator 集成）。以下为进阶项：
 
 - 添加 synthetic uptime monitoring
+
+### date wire 口径:客户端 DateTime vs 后端 date-only(2026-09-03,zod 合同联动遗留)
+
+再生成客户端把 date 参数定为 DateTime(序列化可能带时间/本地形态),Lucent 端 zod date 字段为
+date-only(`z.iso.date()`)。record/health_event 等 list/body date 的 wire 行为需 e2e 确认;若后端
+不接受,统一方案候选:Luminous data 层以 date-only 字符串提交(需生成端该参数字段类型回退 String
+或加自定义序列化),或后端相应字段放宽为日期前缀解析——二选一做决策后落地并删本行。
