@@ -6,9 +6,11 @@ import { fileURLToPath } from 'node:url';
 import {
   BadRequestException,
   Logger,
+  StandardSchemaSerializerInterceptor,
   StandardSchemaValidationPipe,
   VersioningType,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { FastifyRequest, FastifyReply } from 'fastify';
@@ -232,7 +234,12 @@ export async function setupApp(
     // (all request DTOs are zod schemas since the request-side migration).
     new StandardSchemaValidationPipe(),
   );
-  app.useGlobalInterceptors(app.get(SlowRequestInterceptor));
+  app.useGlobalInterceptors(
+    app.get(SlowRequestInterceptor),
+    // Response-side standard-schema serialization: validates responses that
+    // carry `@SerializeOptions({ schema })`; a no-op everywhere else.
+    new StandardSchemaSerializerInterceptor(app.get(Reflector)),
+  );
   app.useGlobalFilters(app.get(ApiExceptionFilter));
 
   app.enableCors({

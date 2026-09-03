@@ -170,6 +170,42 @@ async function main() {
     },
   );
 
+  // Inject registered response schemas (Standard Schema / zod) as named
+  // components and point their operations at the `$ref`, since Swagger does
+  // not introspect `@SerializeOptions({ schema })`. Component names match the
+  // former DTO class names so the Luminous client model names stay stable.
+  const { z } = await import('zod');
+  const { responseSchemaRegistrations } = await import(
+    pathToFileURL(
+      path.resolve(
+        repoRoot,
+        'dist',
+        'common',
+        'api',
+        'response-schema.registry.js',
+      ),
+    ).href
+  );
+  for (const registration of responseSchemaRegistrations) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    const draft: any = document;
+    draft.components ??= {};
+    draft.components.schemas ??= {};
+    draft.components.schemas[registration.componentName] = z.toJSONSchema(
+      registration.schema,
+    );
+    const operation = draft.paths?.[registration.path]?.[registration.method];
+    const response = operation?.responses?.['200'];
+    if (operation && response && typeof response === 'object') {
+      response.description ??= registration.description ?? '';
+      response.content ??= {};
+      response.content['application/json'] ??= {};
+      response.content['application/json'].schema = {
+        $ref: `#/components/schemas/${registration.componentName}`,
+      };
+    }
+  }
+
   const outputPath = path.resolve(
     repoRoot,
     'docs',

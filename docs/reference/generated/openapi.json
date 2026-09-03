@@ -8462,7 +8462,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Application metadata.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14754,27 +14754,6 @@
         },
         "required": ["id", "text"]
       },
-      "AppInfoResponseDto": {
-        "type": "object",
-        "properties": {
-          "minClientVersion": {
-            "type": "string",
-            "nullable": true
-          },
-          "latestVersion": {
-            "type": "string",
-            "nullable": true
-          },
-          "downloadUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "supportEmail": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
       "LegalDocumentListItemDto": {
         "type": "object",
         "properties": {
@@ -15036,6 +15015,59 @@
           }
         },
         "required": ["type", "title", "detail", "code", "status"]
+      },
+      "AppInfoResponseDto": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "supportEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minClientVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latestVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "downloadUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "supportEmail",
+          "minClientVersion",
+          "latestVersion",
+          "downloadUrl"
+        ],
+        "additionalProperties": false
       }
     }
   }
