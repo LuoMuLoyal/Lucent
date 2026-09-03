@@ -1,4 +1,3 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { z } from 'zod';
 
 export const DATA_EXPORT_STATUSES = [
@@ -27,8 +26,6 @@ export type DataExportRange = (typeof DATA_EXPORT_RANGES)[number];
  * - `@IsString` + `@IsNotEmpty` on `password` → `z.string().min(1)` (empty
  *   string rejected, whitespace-only accepted — same as `IsNotEmpty`);
  * - the global `forbidNonWhitelisted` behaviour is preserved with `.strict()`.
- *
- * The response DTO classes below are pure response shapes and stay untouched.
  */
 export const createDataExportRequestSchema = z
   .object({
@@ -56,55 +53,47 @@ export type CreateDataExportRequestDto = z.infer<
   typeof createDataExportRequestSchema
 >;
 
-export class DataExportRequestDataDto {
-  @ApiProperty({ description: 'Unique request identifier.' })
-  id!: string;
+/**
+ * Standard Schema (zod 4) for a single data export request resource (the
+ * `POST /data-export-requests` result and the payload of
+ * `GET /data-export-requests/latest`).
+ *
+ * Replaces the former `DataExportRequestDataDto` response class. Response
+ * schemas intentionally carry no `.strict()` / `.default()` so outbound
+ * parsing tolerates whatever the service layer produces.
+ */
+export const dataExportRequestDataSchema = z.object({
+  id: z.string().describe('Unique request identifier.'),
+  kind: z.enum(DATA_EXPORT_KINDS),
+  format: z.enum(DATA_EXPORT_FORMATS),
+  range: z.enum(DATA_EXPORT_RANGES),
+  status: z.enum(DATA_EXPORT_STATUSES),
+  requestedAt: z
+    .string()
+    .describe('ISO-8601 timestamp when the request was created.'),
+  completedAt: z.string().nullable(),
+  downloadUrl: z.string().nullable(),
+  fileName: z.string().nullable(),
+  fileSizeBytes: z.number().nullable(),
+  errorMessage: z.string().nullable(),
+});
 
-  @ApiProperty({
-    enum: DATA_EXPORT_KINDS,
-    enumName: 'DataExportKind',
-  })
-  kind!: DataExportKind;
+/** Strongly typed single data export request resource. */
+export type DataExportRequestDataDto = z.infer<
+  typeof dataExportRequestDataSchema
+>;
 
-  @ApiProperty({
-    enum: DATA_EXPORT_FORMATS,
-    enumName: 'DataExportFormat',
-  })
-  format!: DataExportFormat;
+/**
+ * Standard Schema (zod 4) for `GET /data-export-requests/latest`, which
+ * resolves to a request resource or `null` when no request exists yet.
+ */
+export const dataExportLatestResponseSchema =
+  dataExportRequestDataSchema.nullable();
 
-  @ApiProperty({
-    enum: DATA_EXPORT_RANGES,
-    enumName: 'DataExportRange',
-  })
-  range!: DataExportRange;
+/** Strongly typed result of the latest-request lookup. */
+export type DataExportLatestResponseDto = z.infer<
+  typeof dataExportLatestResponseSchema
+>;
 
-  @ApiProperty({
-    enum: DATA_EXPORT_STATUSES,
-    enumName: 'DataExportStatus',
-  })
-  status!: DataExportStatus;
-
-  @ApiProperty({
-    description: 'ISO-8601 timestamp when the request was created.',
-  })
-  requestedAt!: string;
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  completedAt!: string | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  downloadUrl!: string | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  fileName!: string | null;
-
-  @ApiPropertyOptional({ type: Number, nullable: true })
-  fileSizeBytes!: number | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  errorMessage!: string | null;
-}
-
-export class DataExportRequestResponseDto extends DataExportRequestDataDto {}
-
-export class DataExportLatestResponseDto extends DataExportRequestDataDto {}
+/** Backwards-compatible response alias kept for the former DTO class name. */
+export type DataExportRequestResponseDto = DataExportRequestDataDto;

@@ -1,64 +1,78 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { LocalCapabilityState } from '../constants/delivery.constants.js';
+import { z } from 'zod';
 
-export class ReminderDeliveryItemDto {
-  @ApiProperty({ description: 'Delivery log id.' })
-  id!: string;
+/**
+ * zod 4 Standard Schemas for the reminder-delivery response bodies
+ * (`GET /reminder-deliveries`, `POST /reminder-deliveries/receipts`,
+ * `PUT /reminder-deliveries/local-capability`).
+ *
+ * Migrated from the former `@ApiProperty` response classes (class names kept
+ * as `z.infer` type aliases; descriptions preserved via `.describe`):
+ * - nullable columns → `.nullable()` (key always present, value may be null);
+ * - `channel`/`status` are free-form strings persisted from shared constants;
+ * - `state` mirrors the request-side `localCapabilityStateSchema` enum values;
+ * - timestamps stay plain strings (no `format` added) so the client contract
+ *   is unchanged.
+ *
+ * No `.strict()` / `.default()` — outbound validation must accept the wire
+ * shapes produced by the mapper / capability service (every key present).
+ */
 
-  @ApiPropertyOptional({ description: 'Linked medicine reminder id.' })
-  reminderId!: string | null;
+export const reminderDeliveryItemSchema = z.object({
+  id: z.string().describe('Delivery log id.'),
+  reminderId: z.string().nullable().describe('Linked medicine reminder id.'),
+  deviceId: z.string().nullable().describe('Target device id.'),
+  channel: z.string().describe('Delivery channel.'),
+  status: z.string().describe('Delivery status.'),
+  scheduledFor: z.string().describe('Scheduled delivery time (ISO 8601).'),
+  deliveredAt: z
+    .string()
+    .nullable()
+    .describe('Actual delivery time (ISO 8601).'),
+  errorMessage: z.string().nullable().describe('Failure reason, if any.'),
+  createdAt: z.string().describe('Created at (ISO 8601).'),
+});
 
-  @ApiPropertyOptional({ description: 'Target device id.' })
-  deviceId!: string | null;
+export const reminderDeliveryListDataSchema = z.object({
+  items: z.array(reminderDeliveryItemSchema).describe('Delivery audit rows.'),
+});
 
-  @ApiProperty({
-    description: 'Delivery channel.',
-    example: 'local',
-  })
-  channel!: string;
+/** List body of `GET /reminder-deliveries`. */
+export const reminderDeliveryListResponseSchema =
+  reminderDeliveryListDataSchema;
 
-  @ApiProperty({
-    description: 'Delivery status.',
-    example: 'scheduled',
-  })
-  status!: string;
+export const reminderDeliveryReceiptDataSchema = z.object({
+  item: reminderDeliveryItemSchema.describe('The recorded delivery row.'),
+});
 
-  @ApiProperty({ description: 'Scheduled delivery time (ISO 8601).' })
-  scheduledFor!: string;
+/** 本地通知回执响应体：`{ item }`。 */
+export const reminderDeliveryReceiptResponseSchema =
+  reminderDeliveryReceiptDataSchema;
 
-  @ApiPropertyOptional({ description: 'Actual delivery time (ISO 8601).' })
-  deliveredAt!: string | null;
+export const localCapabilityDataSchema = z.object({
+  state: z
+    .enum(['active', 'unavailable', 'disabled'])
+    .describe('Persisted local scheduling capability state.'),
+});
 
-  @ApiPropertyOptional({ description: 'Failure reason, if any.' })
-  errorMessage!: string | null;
+/** 本地调度能力上报响应体：`{ state }`。 */
+export const localCapabilityResponseSchema = localCapabilityDataSchema;
 
-  @ApiProperty({ description: 'Created at (ISO 8601).' })
-  createdAt!: string;
-}
+/** Strongly typed delivery audit row. */
+export type ReminderDeliveryItemDto = z.infer<
+  typeof reminderDeliveryItemSchema
+>;
 
-class ReminderDeliveryListDataDto {
-  @ApiProperty({ type: () => ReminderDeliveryItemDto, isArray: true })
-  items!: ReminderDeliveryItemDto[];
-}
+/** Strongly typed delivery list body. */
+export type ReminderDeliveryListResponseDto = z.infer<
+  typeof reminderDeliveryListResponseSchema
+>;
 
-export class ReminderDeliveryListResponseDto extends ReminderDeliveryListDataDto {}
+/** Strongly typed receipt response body (`{ item }`). */
+export type ReminderDeliveryReceiptResponseDto = z.infer<
+  typeof reminderDeliveryReceiptResponseSchema
+>;
 
-class ReminderDeliveryReceiptDataDto {
-  @ApiProperty({ type: () => ReminderDeliveryItemDto })
-  item!: ReminderDeliveryItemDto;
-}
-
-/** 本地通知回执响应信封：`{ code, message, data: { item } }`。 */
-export class ReminderDeliveryReceiptResponseDto extends ReminderDeliveryReceiptDataDto {}
-
-class LocalCapabilityDataDto {
-  @ApiProperty({
-    description: 'Persisted local scheduling capability state.',
-    enum: ['active', 'unavailable', 'disabled'],
-    example: 'active',
-  })
-  state!: LocalCapabilityState;
-}
-
-/** 本地调度能力上报响应信封：`{ code, message, data: { state } }`。 */
-export class LocalCapabilityResponseDto extends LocalCapabilityDataDto {}
+/** Strongly typed capability response body (`{ state }`). */
+export type LocalCapabilityResponseDto = z.infer<
+  typeof localCapabilityResponseSchema
+>;

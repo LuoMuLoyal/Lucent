@@ -1,164 +1,103 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type {
-  SuggestionType,
-  TriggerType,
-  SuggestionLifecycleState,
-  SuggestionCardTone,
+import { z } from 'zod';
+import {
   SuggestionConfidence,
   SuggestionFeedback,
+  SuggestionLifecycleState,
+  SuggestionType,
+  TriggerType,
 } from '../types/suggestion.types.js';
 
-/** Evidence item shown on a suggestion card. */
-export class EvidenceItemDto {
-  @ApiProperty({
-    enum: ['record', 'reminder', 'risk_check', 'trend', 'profile', 'baseline'],
-  })
-  kind!: string;
+/**
+ * Standard Schema (zod 4) for an evidence item shown on a suggestion card.
+ * Replaces the former `EvidenceItemDto` response class.
+ */
+export const evidenceItemSchema = z.object({
+  kind: z.string(),
+  label: z.string().describe('Human-readable label'),
+  value: z.string().describe('Human-readable value'),
+  recordId: z.string().optional().describe('Related record id for navigation'),
+  medicineId: z
+    .string()
+    .optional()
+    .describe('Related medicine id for navigation'),
+});
 
-  @ApiProperty({ description: 'Human-readable label' })
-  label!: string;
+/** Strongly typed evidence item shown on a suggestion card. */
+export type EvidenceItemDto = z.infer<typeof evidenceItemSchema>;
 
-  @ApiProperty({ description: 'Human-readable value' })
-  value!: string;
+/**
+ * Standard Schema (zod 4) for an action the user can take from a suggestion
+ * card. Replaces the former `SuggestionActionDto` response class.
+ */
+export const suggestionActionSchema = z.object({
+  actionId: z.string().describe('Unique action id'),
+  label: z.string().describe('Localized action label'),
+  route: z.string().describe('Deep-link route for navigation'),
+  authRequired: z.boolean().describe('Whether authentication is required'),
+});
 
-  @ApiPropertyOptional({ description: 'Related record id for navigation' })
-  recordId?: string | undefined;
+/** Strongly typed suggestion card action. */
+export type SuggestionActionDto = z.infer<typeof suggestionActionSchema>;
 
-  @ApiPropertyOptional({ description: 'Related medicine id for navigation' })
-  medicineId?: string | undefined;
-}
+/**
+ * Standard Schema (zod 4) for the observed-metric block attached to a
+ * suggestion card. Replaces the former `SuggestionObservedMetricDto` response
+ * class.
+ */
+export const suggestionObservedMetricSchema = z.object({
+  value: z.number().nullable(),
+  state: z.enum(['observed', 'unknown']),
+  coverage: z.enum(['sufficient', 'partial', 'none']),
+  sources: z.array(
+    z.enum(['manual', 'health_platform', 'reminder_plan', 'derived']),
+  ),
+  observedCount: z.number(),
+  expectedCount: z.number().nullable(),
+  windowStart: z.string(),
+  windowEnd: z.string(),
+});
 
-/** Action that the user can take from a suggestion card. */
-export class SuggestionActionDto {
-  @ApiProperty({ description: 'Unique action id' })
-  actionId!: string;
+/** Strongly typed observed-metric block of a suggestion card. */
+export type SuggestionObservedMetricDto = z.infer<
+  typeof suggestionObservedMetricSchema
+>;
 
-  @ApiProperty({ description: 'Localized action label' })
-  label!: string;
+/**
+ * Standard Schema (zod 4) for a single suggestion card in the API response.
+ * Replaces the former `SuggestionItemDto` response class.
+ */
+export const suggestionItemSchema = z.object({
+  id: z.string().describe('Unique suggestion id'),
+  type: z.enum(SuggestionType).describe('Suggestion type'),
+  cardTone: z
+    .enum(['urgent', 'warning', 'emphasis', 'soft', 'neutral'])
+    .describe('Visual tone hint'),
+  icon: z.string().describe('Icon identifier for the frontend'),
+  title: z.string().describe('Localized short title'),
+  reason: z.string().describe('Why this suggestion appeared'),
+  evidence: z.array(evidenceItemSchema).describe('Evidence items'),
+  boundary: z.string().describe('Medical disclaimer / boundary text'),
+  primaryAction: suggestionActionSchema.describe('Primary action'),
+  secondaryActions: z
+    .array(suggestionActionSchema)
+    .optional()
+    .describe('Secondary actions'),
+  confidence: z.enum(SuggestionConfidence).describe('Confidence level'),
+  ruleId: z.string().describe('Rule identifier for auditability'),
+  ruleVersion: z.string().describe('Rule version'),
+  triggerType: z.enum(TriggerType).describe('Trigger type'),
+  lifecycleState: z.enum(SuggestionLifecycleState).describe('Lifecycle state'),
+  notificationEligible: z
+    .boolean()
+    .optional()
+    .describe('Whether this card can trigger a notification'),
+  feedbackOptions: z
+    .array(z.enum(SuggestionFeedback))
+    .optional()
+    .describe('Available feedback options for this card'),
+  subtype: z.string().optional().describe('Sub-type for rendering variety'),
+  observedMetric: suggestionObservedMetricSchema.optional(),
+});
 
-  @ApiProperty({ description: 'Deep-link route for navigation' })
-  route!: string;
-
-  @ApiProperty({ description: 'Whether authentication is required' })
-  authRequired!: boolean;
-}
-
-export class SuggestionObservedMetricDto {
-  @ApiProperty({ type: Number, nullable: true })
-  value!: number | null;
-
-  @ApiProperty({ enum: ['observed', 'unknown'], type: String })
-  state!: 'observed' | 'unknown';
-
-  @ApiProperty({ enum: ['sufficient', 'partial', 'none'], type: String })
-  coverage!: 'sufficient' | 'partial' | 'none';
-
-  @ApiProperty({
-    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
-    isArray: true,
-    type: String,
-  })
-  sources!: Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'>;
-
-  @ApiProperty({ type: Number })
-  observedCount!: number;
-
-  @ApiProperty({ type: Number, nullable: true })
-  expectedCount!: number | null;
-
-  @ApiProperty({ type: String })
-  windowStart!: string;
-
-  @ApiProperty({ type: String })
-  windowEnd!: string;
-}
-
-/** A single suggestion card in the API response. */
-export class SuggestionItemDto {
-  @ApiProperty({ description: 'Unique suggestion id' })
-  id!: string;
-
-  @ApiProperty({
-    description: 'Suggestion type',
-    enum: [
-      'confirmed_risk',
-      'compliance',
-      'trend',
-      'behavior_advice',
-      'coverage',
-    ],
-  })
-  type!: SuggestionType;
-
-  @ApiProperty({
-    description: 'Visual tone hint',
-    enum: ['urgent', 'warning', 'emphasis', 'soft', 'neutral'],
-  })
-  cardTone!: SuggestionCardTone;
-
-  @ApiProperty({ description: 'Icon identifier for the frontend' })
-  icon!: string;
-
-  @ApiProperty({ description: 'Localized short title' })
-  title!: string;
-
-  @ApiProperty({ description: 'Why this suggestion appeared' })
-  reason!: string;
-
-  @ApiProperty({ type: () => [EvidenceItemDto], description: 'Evidence items' })
-  evidence!: EvidenceItemDto[];
-
-  @ApiProperty({ description: 'Medical disclaimer / boundary text' })
-  boundary!: string;
-
-  @ApiProperty({
-    type: () => SuggestionActionDto,
-    description: 'Primary action',
-  })
-  primaryAction!: SuggestionActionDto;
-
-  @ApiPropertyOptional({
-    type: () => [SuggestionActionDto],
-    description: 'Secondary actions',
-  })
-  secondaryActions?: SuggestionActionDto[] | undefined;
-
-  @ApiProperty({
-    description: 'Confidence level',
-    enum: ['high', 'medium', 'low'],
-  })
-  confidence!: SuggestionConfidence;
-
-  @ApiProperty({ description: 'Rule identifier for auditability' })
-  ruleId!: string;
-
-  @ApiProperty({ description: 'Rule version' })
-  ruleVersion!: string;
-
-  @ApiProperty({ description: 'Trigger type', enum: ['event', 'timer'] })
-  triggerType!: TriggerType;
-
-  @ApiProperty({
-    description: 'Lifecycle state',
-    enum: ['generated', 'active', 'fading', 'expired', 'dismissed'],
-  })
-  lifecycleState!: SuggestionLifecycleState;
-
-  @ApiPropertyOptional({
-    description: 'Whether this card can trigger a notification',
-  })
-  notificationEligible?: boolean | undefined;
-
-  @ApiPropertyOptional({
-    type: () => [String],
-    description: 'Available feedback options for this card',
-    enum: ['accepted', 'later', 'not_applicable', 'suppress'],
-  })
-  feedbackOptions?: SuggestionFeedback[] | undefined;
-
-  @ApiPropertyOptional({ description: 'Sub-type for rendering variety' })
-  subtype?: string | undefined;
-
-  @ApiPropertyOptional({ type: () => SuggestionObservedMetricDto })
-  observedMetric?: SuggestionObservedMetricDto;
-}
+/** Strongly typed single suggestion card. */
+export type SuggestionItemDto = z.infer<typeof suggestionItemSchema>;

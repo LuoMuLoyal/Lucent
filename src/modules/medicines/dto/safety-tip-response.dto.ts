@@ -1,12 +1,24 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class MedicineSafetyTipResponseDto {
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  id!: string;
+/**
+ * zod 4 Standard Schema for the `GET /medicines/safety-tips` response items.
+ *
+ * Migrated from the former `@ApiProperty` response class (class name kept as
+ * `z.infer` type alias). No `.strict()` / `.default()`.
+ */
 
-  @ApiProperty({ example: '服药期间如需饮酒，建议间隔至少 24 小时以上。' })
-  text!: string;
+export const medicineSafetyTipResponseSchema = z.object({
+  id: z.string().describe('Safety tip id.'),
+  text: z.string().describe('Localized safety tip text.'),
+  category: z.string().describe('Tip category.'),
+});
 
-  @ApiProperty({ example: 'alcohol' })
-  category!: string;
-}
+/** Array schema of the `GET /medicines/safety-tips` success body. */
+export const medicineSafetyTipsResponseSchema = z
+  .array(medicineSafetyTipResponseSchema)
+  .describe('Random medication safety tips.');
+
+/** Strongly typed safety tip item. */
+export type MedicineSafetyTipResponseDto = z.infer<
+  typeof medicineSafetyTipResponseSchema
+>;

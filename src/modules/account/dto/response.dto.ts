@@ -1,115 +1,72 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-class AccountIdentityDto {
-  @ApiProperty({ description: 'Account identity ID.' })
-  id!: string;
+/**
+ * Standard Schema (zod 4) for one linked third-party identity inside the
+ * account resource. Replaces the former `AccountIdentityDto` response class.
+ * Response schemas intentionally carry no `.strict()` / `.default()` so
+ * outbound parsing tolerates whatever the service layer produces.
+ */
+export const accountIdentitySchema = z.object({
+  id: z.string().describe('Account identity ID.'),
+  provider: z.string().describe('OAuth provider name.'),
+  email: z
+    .string()
+    .nullable()
+    .describe('Provider email when the provider exposes one.'),
+  emailVerifiedAt: z
+    .string()
+    .nullable()
+    .describe('Provider email verification time in ISO 8601.'),
+  linkedAt: z.string().describe('Identity linked time in ISO 8601.'),
+});
 
-  @ApiProperty({ description: 'OAuth provider name.', example: 'wechat_web' })
-  provider!: string;
+/**
+ * Standard Schema (zod 4) for the authenticated account profile resource
+ * (`GET`/`PATCH /account`, identity link/unlink callbacks).
+ *
+ * Replaces the former `AccountDto` response class.
+ */
+export const accountDataSchema = z.object({
+  id: z.string().describe('User ID.'),
+  email: z
+    .string()
+    .nullable()
+    .describe('Account email. OAuth-only accounts may not have one.'),
+  nickname: z.string().nullable().describe('Display nickname.'),
+  avatar: z.string().nullable().describe('Avatar URL.'),
+  emailVerifiedAt: z
+    .string()
+    .nullable()
+    .describe('Account email verification time in ISO 8601.'),
+  hasPassword: z
+    .boolean()
+    .describe('Whether the account has a local password.'),
+  lastLoginAt: z.string().nullable().describe('Last login time in ISO 8601.'),
+  linkedIdentities: z
+    .array(accountIdentitySchema)
+    .describe('Linked third-party identities without provider user ids.'),
+  createdAt: z.string().describe('Created time in ISO 8601.'),
+  updatedAt: z.string().describe('Updated time in ISO 8601.'),
+});
 
-  @ApiProperty({
-    description: 'Provider email when the provider exposes one.',
-    example: 'user@example.com',
-    nullable: true,
-    type: String,
-  })
-  email!: string | null;
+/** Strongly typed authenticated account profile. */
+export type AccountDto = z.infer<typeof accountDataSchema>;
 
-  @ApiProperty({
-    description: 'Provider email verification time in ISO 8601.',
-    example: '2026-01-01T00:00:00.000Z',
-    nullable: true,
-    type: String,
-  })
-  emailVerifiedAt!: string | null;
+/** Backwards-compatible response alias kept for the former DTO class name. */
+export type AccountResponseDto = AccountDto;
 
-  @ApiProperty({
-    description: 'Identity linked time in ISO 8601.',
-    example: '2026-01-01T00:00:00.000Z',
-  })
-  linkedAt!: string;
-}
+/**
+ * Standard Schema (zod 4) for the `POST /account/email` change-email result.
+ *
+ * Replaces the former `AccountEmailDataDto` response class.
+ */
+export const accountEmailDataSchema = z.object({
+  email: z.string().describe('New email address.'),
+  emailVerifiedAt: z
+    .string()
+    .nullable()
+    .describe('Email verification time in ISO 8601.'),
+});
 
-export class AccountDto {
-  @ApiProperty({ description: 'User ID.' })
-  id!: string;
-
-  @ApiProperty({
-    description: 'Account email. OAuth-only accounts may not have one.',
-    example: 'user@example.com',
-    nullable: true,
-    type: String,
-  })
-  email!: string | null;
-
-  @ApiProperty({
-    description: 'Display nickname.',
-    example: 'Lumi User',
-    nullable: true,
-    type: String,
-  })
-  nickname!: string | null;
-
-  @ApiProperty({
-    description: 'Avatar URL.',
-    example: 'https://example.com/avatar.png',
-    nullable: true,
-    type: String,
-  })
-  avatar!: string | null;
-
-  @ApiProperty({
-    description: 'Account email verification time in ISO 8601.',
-    example: '2026-01-01T00:00:00.000Z',
-    nullable: true,
-    type: String,
-  })
-  emailVerifiedAt!: string | null;
-
-  @ApiProperty({ description: 'Whether the account has a local password.' })
-  hasPassword!: boolean;
-
-  @ApiProperty({
-    description: 'Last login time in ISO 8601.',
-    example: '2026-01-01T00:00:00.000Z',
-    nullable: true,
-    type: String,
-  })
-  lastLoginAt!: string | null;
-
-  @ApiProperty({
-    description: 'Linked third-party identities without provider user ids.',
-    type: () => [AccountIdentityDto],
-  })
-  linkedIdentities!: AccountIdentityDto[];
-
-  @ApiProperty({
-    description: 'Created time in ISO 8601.',
-    example: '2026-01-01T00:00:00.000Z',
-  })
-  createdAt!: string;
-
-  @ApiProperty({
-    description: 'Updated time in ISO 8601.',
-    example: '2026-01-01T00:00:00.000Z',
-  })
-  updatedAt!: string;
-}
-
-export class AccountResponseDto extends AccountDto {}
-
-class AccountEmailDataDto {
-  @ApiProperty({
-    description: 'New email address.',
-    example: 'new@example.com',
-  })
-  email!: string;
-
-  @ApiProperty({
-    description: 'Email verification time in ISO 8601.',
-    example: '2026-01-01T00:00:00.000Z',
-  })
-  emailVerifiedAt!: string;
-}
-
-export class AccountEmailResponseDto extends AccountEmailDataDto {}
+/** Strongly typed account email change result. */
+export type AccountEmailResponseDto = z.infer<typeof accountEmailDataSchema>;

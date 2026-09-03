@@ -1,73 +1,96 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 import {
-  CooldownMessageDto,
-  TokensDto,
-  UserBriefDto,
-  UserFullDto,
+  cooldownMessageSchema,
+  tokensSchema,
+  userBriefSchema,
+  userFullSchema,
 } from './auth-response-common.dto.js';
 
-// ── Inner data DTOs ────────────────────────────────────────────
+/**
+ * Auth endpoint response schemas (register / login / refresh / OAuth /
+ * verification-code flows).
+ *
+ * Each schema replaces the former `@ApiProperty` response class of the same
+ * name (minus the `Schema` suffix). Wire shapes mirror the old classes: the
+ * register response carries a brief user block, the login/OAuth responses a
+ * full user block, and refresh / verification-code endpoints reuse the shared
+ * tokens / cooldown+message shapes.
+ */
 
-/** 注册响应 data */
-class RegisterDataDto {
-  @ApiProperty({ type: () => UserBriefDto })
-  user!: UserBriefDto;
+/** Replaces the private `RegisterDataDto` + exported `RegisterResponseDto`. */
+export const registerResponseSchema = z.object({
+  user: userBriefSchema,
+  tokens: tokensSchema,
+});
 
-  @ApiProperty({ type: () => TokensDto })
-  tokens!: TokensDto;
-}
+/** Strongly typed register response body. */
+export type RegisterResponseDto = z.infer<typeof registerResponseSchema>;
 
-/** 登录响应 data */
-class LoginDataDto {
-  @ApiProperty({ type: () => UserFullDto })
-  user!: UserFullDto;
+/** Replaces the private `LoginDataDto` + exported `LoginResponseDto`. */
+export const loginResponseSchema = z.object({
+  user: userFullSchema,
+  tokens: tokensSchema,
+});
 
-  @ApiProperty({ type: () => TokensDto })
-  tokens!: TokensDto;
-}
+/** Strongly typed login / OAuth-callback response body. */
+export type LoginResponseDto = z.infer<typeof loginResponseSchema>;
 
-/** OAuth 授权地址响应 data */
-class OAuthAuthorizeDataDto {
-  @ApiProperty({ description: '第三方授权地址' })
-  authorizeUrl!: string;
+/** Replaces the private `OAuthAuthorizeDataDto` + exported `OAuthAuthorizeResponseDto`. */
+export const oauthAuthorizeResponseSchema = z.object({
+  authorizeUrl: z.string().describe('第三方授权地址'),
+  state: z.string().describe('本次授权 state'),
+  expiresIn: z.number().describe('state 过期时间（秒）'),
+  callbackUri: z
+    .string()
+    .optional()
+    .describe('客户端回跳地址。桌面端 loopback 或可信 Web 回调登录时返回。'),
+});
 
-  @ApiProperty({ description: '本次授权 state' })
-  state!: string;
+/** Strongly typed OAuth authorize response body. */
+export type OAuthAuthorizeResponseDto = z.infer<
+  typeof oauthAuthorizeResponseSchema
+>;
 
-  @ApiProperty({ description: 'state 过期时间（秒）', example: 600 })
-  expiresIn!: number;
+/**
+ * Response schema of the refresh endpoint — wire-identical to
+ * {@link tokensSchema}. Replaces the former response class
+ * `RefreshResponseDto` (which extended `TokensDto` without adding fields).
+ */
+export const refreshResponseSchema = tokensSchema;
 
-  @ApiProperty({
-    description: '客户端回跳地址。桌面端 loopback 或可信 Web 回调登录时返回。',
-    required: false,
-    example: 'https://api.lumos.app/oauth/wechat',
-  })
-  callbackUri?: string;
-}
+/** Strongly typed refresh token response body. */
+export type RefreshResponseDto = z.infer<typeof refreshResponseSchema>;
 
-/** 验证邮箱响应 data */
-class VerifyEmailDataDto {
-  @ApiProperty({ description: '邮箱是否已验证', example: true })
-  emailVerified!: boolean;
-}
+/**
+ * Response schema of the send-verification-code endpoint — wire-identical to
+ * {@link cooldownMessageSchema}. Replaces the former response class
+ * `SendVerificationCodeResponseDto` (which extended `CooldownMessageDto`
+ * without adding fields).
+ */
+export const sendVerificationCodeResponseSchema = cooldownMessageSchema;
 
-/** 注册响应 */
-export class RegisterResponseDto extends RegisterDataDto {}
+/** Strongly typed send-verification-code response body. */
+export type SendVerificationCodeResponseDto = z.infer<
+  typeof sendVerificationCodeResponseSchema
+>;
 
-/** 登录响应 */
-export class LoginResponseDto extends LoginDataDto {}
+/** Replaces the private `VerifyEmailDataDto` + exported `VerifyEmailResponseDto`. */
+export const verifyEmailResponseSchema = z.object({
+  emailVerified: z.boolean().describe('邮箱是否已验证'),
+});
 
-/** OAuth 授权地址响应 */
-export class OAuthAuthorizeResponseDto extends OAuthAuthorizeDataDto {}
+/** Strongly typed verify-email response body. */
+export type VerifyEmailResponseDto = z.infer<typeof verifyEmailResponseSchema>;
 
-/** 刷新令牌响应 */
-export class RefreshResponseDto extends TokensDto {}
+/**
+ * Response schema of the forgot-password endpoint — wire-identical to
+ * {@link cooldownMessageSchema}. Replaces the former response class
+ * `ForgotPasswordResponseDto` (which extended `CooldownMessageDto` without
+ * adding fields).
+ */
+export const forgotPasswordResponseSchema = cooldownMessageSchema;
 
-/** 发送验证码响应 */
-export class SendVerificationCodeResponseDto extends CooldownMessageDto {}
-
-/** 验证邮箱响应 */
-export class VerifyEmailResponseDto extends VerifyEmailDataDto {}
-
-/** 忘记密码响应 */
-export class ForgotPasswordResponseDto extends CooldownMessageDto {}
+/** Strongly typed forgot-password response body. */
+export type ForgotPasswordResponseDto = z.infer<
+  typeof forgotPasswordResponseSchema
+>;

@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
 /**
@@ -29,39 +28,50 @@ export type CreateDailyRecordImageUploadDto = z.infer<
   typeof createDailyRecordImageUploadSchema
 >;
 
-export class DailyRecordImageUploadDto {
-  @ApiProperty({ example: 'tencent-cos' })
-  provider!: string;
+/**
+ * Standard Schema (zod 4) for the presigned image-upload response
+ * (`POST /daily-records/attachments/images/presign-upload`, 201).
+ *
+ * Replaces the former `@ApiProperty` class `DailyRecordImageUploadDto`
+ * (`DailyRecordImageUploadResponseDto` extended it without adding fields).
+ * The service always emits every key; `publicUrl` is `null` when no public
+ * base URL is configured.
+ */
+export const dailyRecordImageUploadSchema = z.object({
+  provider: z.string(),
+  bucket: z.string(),
+  objectKey: z.string(),
+  uploadUrl: z
+    .string()
+    .describe('Signed PUT URL for direct object storage upload.'),
+  headers: z
+    .record(z.string(), z.string())
+    .describe('Headers that must be sent with the PUT upload.'),
+  publicUrl: z
+    .string()
+    .describe('Optional public/CDN URL when a public base URL is configured.')
+    .nullable(),
+  expiresAt: z.string().describe('Signed URL expiry timestamp (ISO 8601).'),
+  maxSizeBytes: z
+    .number()
+    .int()
+    .describe('Maximum accepted upload size in bytes.'),
+});
 
-  @ApiProperty({ example: 'lucent-test-bucket' })
-  bucket!: string;
+/** Strongly typed presigned image-upload response payload. */
+export type DailyRecordImageUploadDto = z.infer<
+  typeof dailyRecordImageUploadSchema
+>;
 
-  @ApiProperty({
-    example: 'daily-records/user-id/2026/06/06/generated-id.jpg',
-  })
-  objectKey!: string;
+/**
+ * Standard Schema (zod 4) for the presign-upload (201) response body.
+ *
+ * Replaces the former response class `DailyRecordImageUploadResponseDto`.
+ */
+export const dailyRecordImageUploadResponseSchema =
+  dailyRecordImageUploadSchema;
 
-  @ApiProperty({
-    description: 'Signed PUT URL for direct object storage upload.',
-  })
-  uploadUrl!: string;
-
-  @ApiProperty({
-    description: 'Headers that must be sent with the PUT upload.',
-  })
-  headers!: Record<string, string>;
-
-  @ApiProperty({
-    description:
-      'Optional public/CDN URL when a public base URL is configured.',
-  })
-  publicUrl!: string | null;
-
-  @ApiProperty({ description: 'Signed URL expiry timestamp (ISO 8601).' })
-  expiresAt!: string;
-
-  @ApiProperty({ description: 'Maximum accepted upload size in bytes.' })
-  maxSizeBytes!: number;
-}
-
-export class DailyRecordImageUploadResponseDto extends DailyRecordImageUploadDto {}
+/** Strongly typed response body of the presign-upload endpoint. */
+export type DailyRecordImageUploadResponseDto = z.infer<
+  typeof dailyRecordImageUploadResponseSchema
+>;

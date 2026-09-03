@@ -1,168 +1,121 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  REPORT_SUPPORTED_RANGES,
-  type ReportRange,
-} from './report-dashboard-query.dto.js';
+import { z } from 'zod';
+import { REPORT_SUPPORTED_RANGES } from './report-dashboard-query.dto.js';
 
-export class ReportObservedMetricDto {
-  @ApiProperty({ type: Number, nullable: true })
-  value!: number | null;
+/**
+ * Report dashboard response schemas.
+ *
+ * Each schema replaces the former `@ApiProperty` response class of the same
+ * name (minus the `Schema` suffix). Metric/trend items that carry a legacy
+ * flat `value`/`status` surface keep those fields for backward compatibility;
+ * the source-backed `observedMetric` block is the primary read model.
+ */
 
-  @ApiProperty({
-    enum: ['observed', 'unknown'],
-    type: String,
-    description:
+/** Replaces `ReportObservedMetricDto`. */
+export const reportObservedMetricSchema = z.object({
+  value: z.number().nullable(),
+  state: z
+    .enum(['observed', 'unknown'])
+    .describe(
       'Whether at least one observation exists. See coverage for the proportion of observed vs expected days.',
-  })
-  state!: 'observed' | 'unknown';
+    ),
+  coverage: z.enum(['sufficient', 'partial', 'none']),
+  sources: z.array(
+    z.enum(['manual', 'health_platform', 'reminder_plan', 'derived']),
+  ),
+  observedCount: z.number(),
+  expectedCount: z.number().nullable(),
+  windowStart: z.string(),
+  windowEnd: z.string(),
+});
 
-  @ApiProperty({ enum: ['sufficient', 'partial', 'none'], type: String })
-  coverage!: 'sufficient' | 'partial' | 'none';
+/** Strongly typed observed-metric block of a dashboard item. */
+export type ReportObservedMetricDto = z.infer<
+  typeof reportObservedMetricSchema
+>;
 
-  @ApiProperty({
-    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
-    isArray: true,
-    type: String,
-  })
-  sources!: Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'>;
+/** Replaces `ReportMetricDto`. */
+export const reportMetricSchema = z.object({
+  kind: z.enum(['medication', 'water', 'sleep']),
+  value: z.string(),
+  unit: z.string(),
+  status: z.enum(['good', 'stable', 'needs_attention', 'insufficient_data']),
+  delta: z.string(),
+  direction: z.enum(['up', 'down', 'flat']),
+  sparkline: z.array(z.number()),
+  observedMetric: reportObservedMetricSchema.optional(),
+});
 
-  @ApiProperty({ type: Number })
-  observedCount!: number;
+/** Strongly typed metric item of the report dashboard. */
+export type ReportMetricDto = z.infer<typeof reportMetricSchema>;
 
-  @ApiProperty({ type: Number, nullable: true })
-  expectedCount!: number | null;
-
-  @ApiProperty({ type: String })
-  windowStart!: string;
-
-  @ApiProperty({ type: String })
-  windowEnd!: string;
-}
-
-export class ReportMetricDto {
-  @ApiProperty({
-    enum: ['medication', 'water', 'sleep'],
-  })
-  kind!: 'medication' | 'water' | 'sleep';
-
-  @ApiProperty({ deprecated: true })
-  value!: string;
-
-  @ApiProperty({ deprecated: true })
-  unit!: string;
-
-  @ApiProperty({
-    enum: ['good', 'stable', 'needs_attention', 'insufficient_data'],
-    deprecated: true,
-  })
-  status!: 'good' | 'stable' | 'needs_attention' | 'insufficient_data';
-
-  @ApiProperty({ deprecated: true })
-  delta!: string;
-
-  @ApiProperty({
-    enum: ['up', 'down', 'flat'],
-    deprecated: true,
-  })
-  direction!: 'up' | 'down' | 'flat';
-
-  @ApiProperty({ type: [Number], deprecated: true })
-  sparkline!: number[];
-
-  @ApiPropertyOptional({ type: () => ReportObservedMetricDto })
-  observedMetric?: ReportObservedMetricDto;
-}
-
-export class ReportTrendDto {
-  @ApiProperty({
-    enum: ['medication', 'water', 'sleep'],
-  })
-  kind!: 'medication' | 'water' | 'sleep';
-
-  @ApiProperty()
-  unit!: string;
-
-  @ApiProperty()
-  currentValue!: string;
-
-  @ApiProperty({
-    type: [Number],
-    description:
+/** Replaces `ReportTrendDto`. */
+export const reportTrendSchema = z.object({
+  kind: z.enum(['medication', 'water', 'sleep']),
+  unit: z.string(),
+  currentValue: z.string(),
+  values: z
+    .array(z.number())
+    .describe(
       'Observed values only — unknown days are omitted, not zero-filled. ' +
-      'BREAKING (since 2026-08-29): values.length no longer matches the date window length; ' +
-      'use observedMetric.observedCount/expectedCount to align dates.',
-  })
-  // Possible deprecated `legacyValues` field (zero-filled, window-aligned)
-  // for a frontend migration window: tracked in docs/TODO.md.
-  values!: number[];
+        'BREAKING (since 2026-08-29): values.length no longer matches the date window length; ' +
+        'use observedMetric.observedCount/expectedCount to align dates.',
+    ),
+  observedMetric: reportObservedMetricSchema.optional(),
+});
 
-  @ApiPropertyOptional({ type: () => ReportObservedMetricDto })
-  observedMetric?: ReportObservedMetricDto;
-}
+/** Strongly typed trend item of the report dashboard. */
+export type ReportTrendDto = z.infer<typeof reportTrendSchema>;
 
-export class ReportFindingDto {
-  @ApiProperty({
-    enum: ['medication', 'hydration', 'sleep', 'general'],
-  })
-  kind!: 'medication' | 'hydration' | 'sleep' | 'general';
+/** Replaces `ReportFindingDto`. */
+export const reportFindingSchema = z.object({
+  kind: z.enum(['medication', 'hydration', 'sleep', 'general']),
+  title: z.string(),
+  body: z.string(),
+});
 
-  @ApiProperty()
-  title!: string;
+/** Strongly typed finding of the report dashboard. */
+export type ReportFindingDto = z.infer<typeof reportFindingSchema>;
 
-  @ApiProperty()
-  body!: string;
-}
+/** Replaces `ReportPatternDto`. */
+export const reportPatternSchema = z.object({
+  kind: z.enum(['medication', 'hydration', 'sleep', 'general']),
+  title: z.string(),
+  status: z.enum(['good', 'stable', 'needs_attention', 'insufficient_data']),
+  body: z.string(),
+  sparkline: z.array(z.number()),
+});
 
-export class ReportPatternDto {
-  @ApiProperty({
-    enum: ['medication', 'hydration', 'sleep', 'general'],
-  })
-  kind!: 'medication' | 'hydration' | 'sleep' | 'general';
+/** Strongly typed pattern of the report dashboard. */
+export type ReportPatternDto = z.infer<typeof reportPatternSchema>;
 
-  @ApiProperty()
-  title!: string;
+/**
+ * The shared dashboard data shape. Replaces the former `@ApiProperty`
+ * response class `ReportDashboardDataDto`.
+ */
+export const reportDashboardDataSchema = z.object({
+  range: z.enum(REPORT_SUPPORTED_RANGES),
+  startDate: z.string(),
+  endDate: z.string(),
+  generatedAt: z.string(),
+  metrics: z.array(reportMetricSchema),
+  trends: z.array(reportTrendSchema),
+  findings: z.array(reportFindingSchema),
+  patterns: z.array(reportPatternSchema),
+  aiSummaryEnabled: z.boolean(),
+});
 
-  @ApiProperty({
-    enum: ['good', 'stable', 'needs_attention', 'insufficient_data'],
-  })
-  status!: 'good' | 'stable' | 'needs_attention' | 'insufficient_data';
+/** Strongly typed report dashboard data payload. */
+export type ReportDashboardDataDto = z.infer<typeof reportDashboardDataSchema>;
 
-  @ApiProperty()
-  body!: string;
+/**
+ * Response schema of `GET /reports/dashboard` — wire-identical to
+ * {@link reportDashboardDataSchema}. Replaces the former response class
+ * `ReportDashboardResponseDto` (which extended `ReportDashboardDataDto`
+ * without adding fields).
+ */
+export const reportDashboardResponseSchema = reportDashboardDataSchema;
 
-  @ApiProperty({ type: [Number] })
-  sparkline!: number[];
-}
-
-export class ReportDashboardDataDto {
-  @ApiProperty({
-    enum: REPORT_SUPPORTED_RANGES,
-  })
-  range!: ReportRange;
-
-  @ApiProperty()
-  startDate!: string;
-
-  @ApiProperty()
-  endDate!: string;
-
-  @ApiProperty()
-  generatedAt!: string;
-
-  @ApiProperty({ type: [ReportMetricDto] })
-  metrics!: ReportMetricDto[];
-
-  @ApiProperty({ type: [ReportTrendDto] })
-  trends!: ReportTrendDto[];
-
-  @ApiProperty({ type: [ReportFindingDto] })
-  findings!: ReportFindingDto[];
-
-  @ApiProperty({ type: [ReportPatternDto] })
-  patterns!: ReportPatternDto[];
-
-  @ApiProperty()
-  aiSummaryEnabled!: boolean;
-}
-
-export class ReportDashboardResponseDto extends ReportDashboardDataDto {}
+/** Strongly typed report dashboard response body. */
+export type ReportDashboardResponseDto = z.infer<
+  typeof reportDashboardResponseSchema
+>;

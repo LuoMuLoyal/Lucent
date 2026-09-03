@@ -1,4 +1,3 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { z } from 'zod';
 
 import { DailyRecordAttachmentKind } from '#generated/prisma/client.js';
@@ -73,75 +72,30 @@ export type DailyRecordAttachmentInputDto = z.infer<
   typeof dailyRecordAttachmentInputSchema
 >;
 
-export class DailyRecordAttachmentDto {
-  @ApiProperty({ description: 'Attachment id.' })
-  id!: string;
+/**
+ * Standard Schema (zod 4) for one `attachments` entry of daily-record read
+ * responses (list/detail/create/update).
+ *
+ * Replaces the former `@ApiProperty` response class `DailyRecordAttachmentDto`.
+ * The mapper always emits every key, so nullable storage columns surface as an
+ * explicit `null` (no `.optional()`/`.default()` on the response side).
+ */
+export const dailyRecordAttachmentSchema = z.object({
+  id: z.string().describe('Attachment id.'),
+  kind: z.enum(DAILY_RECORD_ATTACHMENT_KIND_VALUES),
+  objectKey: z.string().describe('Object storage key.'),
+  bucket: z.string().describe('Object storage bucket.').nullable(),
+  provider: z.string().describe('Storage provider.').nullable(),
+  fileName: z.string().describe('Original file name.').nullable(),
+  contentType: z.string().describe('MIME content type.').nullable(),
+  sizeBytes: z.number().int().describe('File size in bytes.').nullable(),
+  width: z.number().int().describe('Image width in pixels.').nullable(),
+  height: z.number().int().describe('Image height in pixels.').nullable(),
+  publicUrl: z.string().describe('Public or signed display URL.').nullable(),
+  createdAt: z.string().describe('Created at (ISO 8601).'),
+});
 
-  @ApiProperty({
-    enum: DailyRecordAttachmentKind,
-    enumName: 'DailyRecordAttachmentKind',
-  })
-  kind!: DailyRecordAttachmentKind;
-
-  @ApiProperty({ description: 'Object storage key.' })
-  objectKey!: string;
-
-  @ApiPropertyOptional({
-    description: 'Object storage bucket.',
-    type: String,
-    nullable: true,
-  })
-  bucket!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Storage provider.',
-    type: String,
-    nullable: true,
-  })
-  provider!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Original file name.',
-    type: String,
-    nullable: true,
-  })
-  fileName!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'MIME content type.',
-    type: String,
-    nullable: true,
-  })
-  contentType!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'File size in bytes.',
-    type: Number,
-    nullable: true,
-  })
-  sizeBytes!: number | null;
-
-  @ApiPropertyOptional({
-    description: 'Image width in pixels.',
-    type: Number,
-    nullable: true,
-  })
-  width!: number | null;
-
-  @ApiPropertyOptional({
-    description: 'Image height in pixels.',
-    type: Number,
-    nullable: true,
-  })
-  height!: number | null;
-
-  @ApiPropertyOptional({
-    description: 'Public or signed display URL.',
-    type: String,
-    nullable: true,
-  })
-  publicUrl!: string | null;
-
-  @ApiProperty({ description: 'Created at (ISO 8601).' })
-  createdAt!: string;
-}
+/** Strongly typed attachment metadata of daily-record read responses. */
+export type DailyRecordAttachmentDto = z.infer<
+  typeof dailyRecordAttachmentSchema
+>;

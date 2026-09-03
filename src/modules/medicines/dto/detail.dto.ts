@@ -1,236 +1,123 @@
-import {
-  ApiProperty,
-  ApiPropertyOptional,
-  getSchemaPath,
-} from '@nestjs/swagger';
+import { z } from 'zod';
 
-import {
-  DEFAULT_MEDICINE_SOURCE,
-  MEDICINE_KNOWLEDGE_SOURCES,
-  type MedicineKnowledgeSource,
-} from './source.dto.js';
+import { MEDICINE_KNOWLEDGE_SOURCES } from './source.dto.js';
 
-export class DrugbankDrugInteractionDto {
-  @ApiProperty({ example: 'DB00001' })
-  drugbankId!: string;
+/**
+ * zod 4 Standard Schemas for the medicine detail response bodies
+ * (`GET /medicines/:id`).
+ *
+ * Migrated from the former `@ApiProperty` response classes (class names kept
+ * as `z.infer` type aliases; descriptions preserved via `.describe`):
+ * - nullable columns → `.nullable()` (key always present, value may be null);
+ * - `kind` discriminator stays a literal, so the two detail variants are
+ *   modelled as a `z.discriminatedUnion` on `kind`;
+ * - source lists that the adapters always emit as arrays are
+ *   `z.array(z.string()).nullable()` (accepts `[]` as well as `null`);
+ * - raw source JSON payloads stay `unknown` (Prisma `Json?` values).
+ *
+ * No `.strict()` / `.default()`: outbound validation must accept exactly the
+ * wire shape produced by the medicine adapters.
+ */
 
-  @ApiProperty({
-    example: 'The serum concentration of X can be increased when Y is used.',
-  })
-  description!: string;
-}
+export const drugbankDrugInteractionSchema = z.object({
+  drugbankId: z.string().describe('Interacting DrugBank drug id.'),
+  description: z.string().describe('Interaction description.'),
+});
 
-export class DrugbankMedicineDetailDto {
-  @ApiProperty({ example: 'drugbank' })
-  kind!: 'drugbank';
+export const drugbankMedicineDetailSchema = z.object({
+  kind: z.literal('drugbank'),
+  drugType: z.string().nullable().describe('Drug type (e.g. small molecule).'),
+  state: z.string().nullable().describe('Physical state (e.g. solid).'),
+  description: z.string().nullable().describe('Drug description.'),
+  indication: z.string().nullable().describe('Approved indications.'),
+  mechanismOfAction: z.string().nullable().describe('Mechanism of action.'),
+  pharmacodynamics: z.string().nullable().describe('Pharmacodynamics.'),
+  toxicity: z.string().nullable().describe('Toxicity summary.'),
+  metabolism: z.string().nullable().describe('Metabolism summary.'),
+  absorption: z.string().nullable().describe('Absorption summary.'),
+  halfLife: z.string().nullable().describe('Half life.'),
+  proteinBinding: z.string().nullable().describe('Protein binding.'),
+  routeOfElimination: z.string().nullable().describe('Route of elimination.'),
+  volumeOfDistribution: z
+    .string()
+    .nullable()
+    .describe('Volume of distribution.'),
+  clearance: z.string().nullable().describe('Clearance.'),
+  groups: z
+    .array(z.string())
+    .nullable()
+    .describe('Approval groups (e.g. approved, small molecule).'),
+  categories: z.array(z.string()).nullable().describe('ATC-like categories.'),
+  atcCodes: z.array(z.string()).nullable().describe('ATC codes.'),
+  synonyms: z.array(z.string()).nullable().describe('Synonyms.'),
+  foodInteractions: z
+    .array(z.string())
+    .nullable()
+    .describe('Food interactions.'),
+  drugInteractions: drugbankDrugInteractionSchema
+    .array()
+    .nullable()
+    .describe('DrugBank interaction entries used for interaction checking.'),
+  externalIdentifiers: z
+    .unknown()
+    .nullable()
+    .describe('Raw source external identifier payload.'),
+  externalLinks: z
+    .unknown()
+    .nullable()
+    .describe('Raw source external link payload.'),
+});
 
-  @ApiPropertyOptional({
-    nullable: true,
-    type: String,
-    example: 'small molecule',
-  })
-  drugType!: string | null;
+export const cnMedicineDetailSchema = z.object({
+  kind: z.literal('cnProduct'),
+  approvalNumber: z.string().nullable().describe('Approval number (国药准字).'),
+  manufacturer: z.string().nullable().describe('Manufacturer.'),
+  packageSpec: z.string().nullable().describe('Package specification.'),
+  brandName: z.string().nullable().describe('Brand name.'),
+  ingredients: z.string().nullable().describe('Ingredients.'),
+  properties: z.string().nullable().describe('Properties.'),
+  indications: z.string().nullable().describe('Indications.'),
+  dosage: z.string().nullable().describe('Dosage.'),
+  adverseReactions: z.string().nullable().describe('Adverse reactions.'),
+  contraindications: z.string().nullable().describe('Contraindications.'),
+  precautions: z.string().nullable().describe('Precautions.'),
+  pharmacologyToxicology: z
+    .string()
+    .nullable()
+    .describe('Pharmacology / toxicology.'),
+  pharmacokinetics: z.string().nullable().describe('Pharmacokinetics.'),
+  overdose: z.string().nullable().describe('Overdose handling.'),
+  storage: z.string().nullable().describe('Storage conditions.'),
+  validityPeriod: z.string().nullable().describe('Validity period.'),
+  barcode: z.string().nullable().describe('Barcode.'),
+  nationalDrugCode: z.string().nullable().describe('National drug code.'),
+  sourceUrl: z.string().nullable().describe('Source URL.'),
+  imageUrl: z.string().nullable().describe('Image URL.'),
+});
 
-  @ApiPropertyOptional({ nullable: true, type: String, example: 'solid' })
-  state!: string | null;
+export const medicineDetailDataSchema = z.object({
+  id: z.string().describe('Medicine id in the selected source.'),
+  source: z.enum(MEDICINE_KNOWLEDGE_SOURCES).describe('Knowledge source.'),
+  name: z.string().describe('Display name.'),
+  subtitle: z.string().nullable().describe('Short supporting subtitle.'),
+  detail: z.discriminatedUnion('kind', [
+    drugbankMedicineDetailSchema,
+    cnMedicineDetailSchema,
+  ]),
+});
 
-  @ApiPropertyOptional({
-    nullable: true,
-    type: String,
-    example: 'A non-steroidal anti-inflammatory drug.',
-  })
-  description!: string | null;
+/** Strongly typed detail resource returned by `GET /medicines/:id`. */
+export type MedicineDetailDataDto = z.infer<typeof medicineDetailDataSchema>;
 
-  @ApiPropertyOptional({
-    nullable: true,
-    type: String,
-    example: 'Used for pain, fever, and inflammation.',
-  })
-  indication!: string | null;
+/** DrugBank interaction entry embedded in a drugbank detail variant. */
+export type DrugbankDrugInteractionDto = z.infer<
+  typeof drugbankDrugInteractionSchema
+>;
 
-  @ApiPropertyOptional({ nullable: true, type: String })
-  mechanismOfAction!: string | null;
+/** DrugBank knowledge-source detail variant. */
+export type DrugbankMedicineDetailDto = z.infer<
+  typeof drugbankMedicineDetailSchema
+>;
 
-  @ApiPropertyOptional({ nullable: true, type: String })
-  pharmacodynamics!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  toxicity!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  metabolism!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  absorption!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  halfLife!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  proteinBinding!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  routeOfElimination!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  volumeOfDistribution!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  clearance!: string | null;
-
-  @ApiPropertyOptional({
-    type: [String],
-    example: ['approved', 'small molecule'],
-    nullable: true,
-  })
-  groups!: string[] | null;
-
-  @ApiPropertyOptional({
-    type: [String],
-    example: ['Anti-inflammatory Agents'],
-    nullable: true,
-  })
-  categories!: string[] | null;
-
-  @ApiPropertyOptional({
-    type: [String],
-    example: ['M01AE01'],
-    nullable: true,
-  })
-  atcCodes!: string[] | null;
-
-  @ApiPropertyOptional({
-    type: [String],
-    example: ['Ibuprofen'],
-    nullable: true,
-  })
-  synonyms!: string[] | null;
-
-  @ApiPropertyOptional({
-    type: [String],
-    example: ['Avoid taking with alcohol.'],
-    nullable: true,
-  })
-  foodInteractions!: string[] | null;
-
-  @ApiPropertyOptional({
-    description: 'DrugBank interaction entries used for interaction checking.',
-    type: [DrugbankDrugInteractionDto],
-    nullable: true,
-  })
-  drugInteractions!: DrugbankDrugInteractionDto[] | null;
-
-  @ApiPropertyOptional({
-    description: 'Raw source external identifier payload.',
-    type: Object,
-    nullable: true,
-    additionalProperties: true,
-  })
-  externalIdentifiers!: unknown;
-
-  @ApiPropertyOptional({
-    description: 'Raw source external link payload.',
-    type: Object,
-    nullable: true,
-    additionalProperties: true,
-  })
-  externalLinks!: unknown;
-}
-
-export class CnMedicineDetailDto {
-  @ApiProperty({ example: 'cnProduct' })
-  kind!: 'cnProduct';
-
-  @ApiPropertyOptional({
-    nullable: true,
-    type: String,
-    example: '国药准字H10900089',
-  })
-  approvalNumber!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String, example: '某某制药' })
-  manufacturer!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String, example: '0.3g*10粒' })
-  packageSpec!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String, example: '布洛芬' })
-  brandName!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  ingredients!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  properties!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  indications!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  dosage!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  adverseReactions!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  contraindications!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  precautions!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  pharmacologyToxicology!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  pharmacokinetics!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  overdose!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  storage!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  validityPeriod!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  barcode!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  nationalDrugCode!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  sourceUrl!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  imageUrl!: string | null;
-}
-
-export class MedicineDetailDataDto {
-  @ApiProperty({ example: 'DB01050' })
-  id!: string;
-
-  @ApiProperty({
-    enum: MEDICINE_KNOWLEDGE_SOURCES,
-    example: DEFAULT_MEDICINE_SOURCE,
-  })
-  source!: MedicineKnowledgeSource;
-
-  @ApiProperty({ example: 'Ibuprofen' })
-  name!: string;
-
-  @ApiProperty({
-    example: 'CAS 15687-27-1',
-    nullable: true,
-    type: String,
-  })
-  subtitle!: string | null;
-
-  @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(DrugbankMedicineDetailDto) },
-      { $ref: getSchemaPath(CnMedicineDetailDto) },
-    ],
-  })
-  detail!: DrugbankMedicineDetailDto | CnMedicineDetailDto;
-}
+/** CN product knowledge-source detail variant. */
+export type CnMedicineDetailDto = z.infer<typeof cnMedicineDetailSchema>;

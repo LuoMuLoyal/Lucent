@@ -1,72 +1,63 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class AssistantConversationMessageDto {
-  @ApiProperty({
-    enum: ['user', 'assistant'],
-    description: 'Persisted conversation role visible to the client.',
-  })
-  role!: 'user' | 'assistant';
-
-  @ApiProperty({
-    description: 'Persisted Markdown-ready message content.',
-  })
-  content!: string;
-
-  @ApiProperty({
-    type: [String],
-    description:
+/**
+ * Standard Schema (zod 4) for a persisted conversation message visible to the
+ * client. Replaces the former `AssistantConversationMessageDto` response
+ * class.
+ */
+export const assistantConversationMessageSchema = z.object({
+  role: z
+    .enum(['user', 'assistant'])
+    .describe('Persisted conversation role visible to the client.'),
+  content: z.string().describe('Persisted Markdown-ready message content.'),
+  usedTools: z
+    .array(z.string())
+    .describe(
       'Tool names recorded for this message. Non-empty for assistant messages that used tools.',
-    example: [],
-  })
-  usedTools!: string[];
+    ),
+  createdAt: z
+    .string()
+    .describe('ISO-8601 timestamp when the message was created.'),
+});
 
-  @ApiProperty({
-    description: 'ISO-8601 timestamp when the message was created.',
-  })
-  createdAt!: string;
-}
+/** Strongly typed persisted conversation message. */
+export type AssistantConversationMessageDto = z.infer<
+  typeof assistantConversationMessageSchema
+>;
 
-export class AssistantConversationDataDto {
-  @ApiProperty({
-    description: 'Stable persisted conversation identifier.',
-  })
-  id!: string;
+/**
+ * Standard Schema (zod 4) for the full persisted conversation resource
+ * returned by `GET /assistant/latest`, `POST /assistant/conversations/:id/open`,
+ * the rename and the delete endpoints. Replaces the former
+ * `AssistantConversationDataDto` response class.
+ */
+export const assistantConversationDataSchema = z.object({
+  id: z.string().describe('Stable persisted conversation identifier.'),
+  title: z
+    .string()
+    .nullable()
+    .describe('Optional server-derived conversation title.'),
+  status: z
+    .enum(['active', 'archived', 'deleted'])
+    .describe('Current conversation status.'),
+  messages: z
+    .array(assistantConversationMessageSchema)
+    .describe('Persisted messages in chronological order.'),
+  lastMessageAt: z
+    .string()
+    .nullable()
+    .describe('ISO-8601 timestamp of the latest conversation activity.'),
+  createdAt: z.string().describe('ISO-8601 creation timestamp.'),
+  updatedAt: z.string().describe('ISO-8601 update timestamp.'),
+});
 
-  @ApiProperty({
-    description: 'Optional server-derived conversation title.',
-    nullable: true,
-    type: String,
-  })
-  title!: string | null;
+/** Strongly typed persisted assistant conversation resource. */
+export type AssistantConversationDataDto = z.infer<
+  typeof assistantConversationDataSchema
+>;
 
-  @ApiProperty({
-    enum: ['active', 'archived', 'deleted'],
-    description: 'Current conversation status.',
-  })
-  status!: 'active' | 'archived' | 'deleted';
-
-  @ApiProperty({
-    type: [AssistantConversationMessageDto],
-    description: 'Persisted messages in chronological order.',
-  })
-  messages!: AssistantConversationMessageDto[];
-
-  @ApiProperty({
-    description: 'ISO-8601 timestamp of the latest conversation activity.',
-    nullable: true,
-    type: String,
-  })
-  lastMessageAt!: string | null;
-
-  @ApiProperty({
-    description: 'ISO-8601 creation timestamp.',
-  })
-  createdAt!: string;
-
-  @ApiProperty({
-    description: 'ISO-8601 update timestamp.',
-  })
-  updatedAt!: string;
-}
-
-export class AssistantConversationResponseDto extends AssistantConversationDataDto {}
+/**
+ * Backwards-compatible response alias for the conversation endpoints;
+ * identical to {@link AssistantConversationDataDto} on the wire.
+ */
+export type AssistantConversationResponseDto = AssistantConversationDataDto;

@@ -1,4 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
+
+/**
+ * Environment snapshot response schemas.
+ *
+ * The static reference snapshot is keyed by latitude band. All indicator
+ * blocks are always present; unobserved optional readings surface as explicit
+ * `null` values rather than omitted keys.
+ *
+ * Each schema replaces the former `@ApiProperty` response class of the same
+ * name (minus the `Schema` suffix). The enum constant arrays and their union
+ * types below are kept unchanged.
+ */
 
 export const ENVIRONMENT_DATA_SOURCES = ['static', 'live'] as const;
 export type EnvironmentDataSource = (typeof ENVIRONMENT_DATA_SOURCES)[number];
@@ -25,106 +37,83 @@ export const AIR_QUALITY_LEVELS = [
 ] as const;
 export type AirQualityLevel = (typeof AIR_QUALITY_LEVELS)[number];
 
-export class PollenIndicatorDto {
-  @ApiProperty({ enum: POLLEN_LEVELS, enumName: 'PollenLevel' })
-  level!: PollenLevel;
+/** Replaces `PollenIndicatorDto`. */
+export const pollenIndicatorSchema = z.object({
+  level: z.enum(POLLEN_LEVELS),
+  primaryType: z.string().nullable(),
+  value: z.number().nullable(),
+  unit: z.string().nullable(),
+});
 
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    example: 'grass',
-  })
-  primaryType!: string | null;
+/** Strongly typed pollen indicator block of the environment snapshot. */
+export type PollenIndicatorDto = z.infer<typeof pollenIndicatorSchema>;
 
-  @ApiProperty({
-    type: Number,
-    nullable: true,
-    example: 18,
-  })
-  value!: number | null;
+/** Replaces `UvIndicatorDto`. */
+export const uvIndicatorSchema = z.object({
+  index: z.number(),
+  level: z.enum(UV_LEVELS),
+});
 
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    example: 'grains/m3',
-  })
-  unit!: string | null;
-}
+/** Strongly typed UV indicator block of the environment snapshot. */
+export type UvIndicatorDto = z.infer<typeof uvIndicatorSchema>;
 
-export class UvIndicatorDto {
-  @ApiProperty({ example: 6 })
-  index!: number;
+/** Replaces `AirQualityIndicatorDto`. */
+export const airQualityIndicatorSchema = z.object({
+  aqi: z.number(),
+  level: z.enum(AIR_QUALITY_LEVELS),
+  primaryPollutant: z.string().nullable(),
+});
 
-  @ApiProperty({ enum: UV_LEVELS, enumName: 'UvLevel' })
-  level!: UvLevel;
-}
+/** Strongly typed air-quality indicator block of the environment snapshot. */
+export type AirQualityIndicatorDto = z.infer<typeof airQualityIndicatorSchema>;
 
-export class AirQualityIndicatorDto {
-  @ApiProperty({ example: 82 })
-  aqi!: number;
+/** Replaces `TemperatureIndicatorDto`. */
+export const temperatureIndicatorSchema = z.object({
+  celsius: z.number(),
+  feelsLike: z.number(),
+});
 
-  @ApiProperty({
-    enum: AIR_QUALITY_LEVELS,
-    enumName: 'AirQualityLevel',
-  })
-  level!: AirQualityLevel;
+/** Strongly typed temperature indicator block of the environment snapshot. */
+export type TemperatureIndicatorDto = z.infer<
+  typeof temperatureIndicatorSchema
+>;
 
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    example: 'pm2.5',
-  })
-  primaryPollutant!: string | null;
-}
+/** Replaces `HumidityIndicatorDto`. */
+export const humidityIndicatorSchema = z.object({
+  percent: z.number(),
+});
 
-export class TemperatureIndicatorDto {
-  @ApiProperty({ example: 24 })
-  celsius!: number;
+/** Strongly typed humidity indicator block of the environment snapshot. */
+export type HumidityIndicatorDto = z.infer<typeof humidityIndicatorSchema>;
 
-  @ApiProperty({ example: 26 })
-  feelsLike!: number;
-}
+/**
+ * Replaces the former `@ApiProperty` response class `EnvironmentSnapshotDto`.
+ */
+export const environmentSnapshotSchema = z.object({
+  dataSource: z.enum(ENVIRONMENT_DATA_SOURCES),
+  updatedAt: z
+    .string()
+    .describe('ISO-8601 timestamp for the static reference data refresh.'),
+  regionHint: z.string().nullable(),
+  pollen: pollenIndicatorSchema,
+  uv: uvIndicatorSchema,
+  airQuality: airQualityIndicatorSchema,
+  temperature: temperatureIndicatorSchema,
+  humidity: humidityIndicatorSchema,
+});
 
-export class HumidityIndicatorDto {
-  @ApiProperty({ example: 58 })
-  percent!: number;
-}
+/** Strongly typed environment snapshot data payload. */
+export type EnvironmentSnapshotDto = z.infer<typeof environmentSnapshotSchema>;
 
-export class EnvironmentSnapshotDto {
-  @ApiProperty({
-    enum: ENVIRONMENT_DATA_SOURCES,
-    enumName: 'EnvironmentDataSource',
-    example: 'static',
-  })
-  dataSource!: EnvironmentDataSource;
+/**
+ * Response schema of `GET /environment/snapshot` — wire-identical to
+ * {@link environmentSnapshotSchema}. Replaces the former response class
+ * `EnvironmentSnapshotResponseDto` (which extended `EnvironmentSnapshotDto`
+ * without adding fields).
+ */
+export const environmentSnapshotResponseSchema = environmentSnapshotSchema;
 
-  @ApiProperty({
-    description: 'ISO-8601 timestamp for the static reference data refresh.',
-    example: '2026-06-06T00:00:00.000Z',
-  })
-  updatedAt!: string;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    example: 'China temperate latitude band',
-  })
-  regionHint!: string | null;
-
-  @ApiProperty({ type: () => PollenIndicatorDto })
-  pollen!: PollenIndicatorDto;
-
-  @ApiProperty({ type: () => UvIndicatorDto })
-  uv!: UvIndicatorDto;
-
-  @ApiProperty({ type: () => AirQualityIndicatorDto })
-  airQuality!: AirQualityIndicatorDto;
-
-  @ApiProperty({ type: () => TemperatureIndicatorDto })
-  temperature!: TemperatureIndicatorDto;
-
-  @ApiProperty({ type: () => HumidityIndicatorDto })
-  humidity!: HumidityIndicatorDto;
-}
-
-export class EnvironmentSnapshotResponseDto extends EnvironmentSnapshotDto {}
+/** Strongly typed environment snapshot response body. */
+export type EnvironmentSnapshotResponseDto = z.infer<
+  typeof environmentSnapshotResponseSchema
+>;

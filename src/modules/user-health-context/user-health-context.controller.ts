@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -17,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 
 import { ProblemDetailsDto } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
@@ -26,7 +28,7 @@ import { createHealthContextConditionSchema } from './dto/create-condition.dto.j
 import type { CreateHealthContextConditionDto } from './dto/create-condition.dto.js';
 import { createCurrentMedicineSchema } from './dto/create-current-medicine.dto.js';
 import type { CreateCurrentMedicineDto } from './dto/create-current-medicine.dto.js';
-import { HealthContextResponseDto } from './dto/response.dto.js';
+import { healthContextResponseSchema } from './dto/response.dto.js';
 import { updateHealthContextAllergySchema } from './dto/update-allergy.dto.js';
 import type { UpdateHealthContextAllergyDto } from './dto/update-allergy.dto.js';
 import { updateHealthContextConditionSchema } from './dto/update-condition.dto.js';
@@ -47,12 +49,16 @@ export class UserHealthContextController {
   @Get()
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get the current user health context aggregate' })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The current user health-context aggregate.',
+  })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async getUserHealthContext(@CurrentUser() user: UserPayload) {
     return unwrapResult(this.userHealthContextService.getForUser(user.sub));
   }
@@ -62,12 +68,16 @@ export class UserHealthContextController {
   @ApiOperation({
     summary: 'Update the current user health-context profile',
   })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async updateUserHealthContextProfile(
     @CurrentUser() user: UserPayload,
     @Body({ schema: updateHealthContextProfileSchema })
@@ -83,12 +93,19 @@ export class UserHealthContextController {
   @Post('allergies')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create an allergy record' })
-  @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  // NOTE: 201 success body is the same aggregate as GET; the response
+  // registry/export only wires 200 responses, so this endpoint stays
+  // description-only in OpenAPI until the export side grows 201 support.
+  @ApiResponse({
+    status: 201,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async createAllergy(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createHealthContextAllergySchema })
@@ -103,7 +120,10 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update an allergy record' })
   @ApiParam({ name: 'id', description: 'Allergy id' })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 403,
     description: 'Allergy is owned by another user',
@@ -114,6 +134,7 @@ export class UserHealthContextController {
     description: 'Allergy not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async updateAllergy(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -129,7 +150,10 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Deactivate an allergy record (soft delete)' })
   @ApiParam({ name: 'id', description: 'Allergy id' })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 403,
     description: 'Allergy is owned by another user',
@@ -140,6 +164,7 @@ export class UserHealthContextController {
     description: 'Allergy not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async deleteAllergy(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -154,12 +179,19 @@ export class UserHealthContextController {
   @Post('conditions')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a condition record' })
-  @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  // NOTE: 201 success body is the same aggregate as GET; the response
+  // registry/export only wires 200 responses, so this endpoint stays
+  // description-only in OpenAPI until the export side grows 201 support.
+  @ApiResponse({
+    status: 201,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async createCondition(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createHealthContextConditionSchema })
@@ -174,7 +206,10 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a condition record' })
   @ApiParam({ name: 'id', description: 'Condition id' })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 403,
     description: 'Condition is owned by another user',
@@ -185,6 +220,7 @@ export class UserHealthContextController {
     description: 'Condition not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async updateCondition(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -200,7 +236,10 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Resolve a condition record (soft delete)' })
   @ApiParam({ name: 'id', description: 'Condition id' })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 403,
     description: 'Condition is owned by another user',
@@ -211,6 +250,7 @@ export class UserHealthContextController {
     description: 'Condition not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async deleteCondition(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -225,12 +265,19 @@ export class UserHealthContextController {
   @Post('current-medicines')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Add a current medicine record' })
-  @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  // NOTE: 201 success body is the same aggregate as GET; the response
+  // registry/export only wires 200 responses, so this endpoint stays
+  // description-only in OpenAPI until the export side grows 201 support.
+  @ApiResponse({
+    status: 201,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async createCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createCurrentMedicineSchema })
@@ -245,7 +292,10 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a current medicine record' })
   @ApiParam({ name: 'id', description: 'Current medicine id' })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 403,
     description: 'Current medicine is owned by another user',
@@ -256,6 +306,7 @@ export class UserHealthContextController {
     description: 'Current medicine not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async updateCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -273,7 +324,10 @@ export class UserHealthContextController {
     summary: 'Deactivate a current medicine record (soft delete)',
   })
   @ApiParam({ name: 'id', description: 'Current medicine id' })
-  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated user health-context aggregate.',
+  })
   @ApiResponse({
     status: 403,
     description: 'Current medicine is owned by another user',
@@ -284,6 +338,7 @@ export class UserHealthContextController {
     description: 'Current medicine not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: healthContextResponseSchema })
   async deleteCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -293,3 +348,94 @@ export class UserHealthContextController {
     );
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context',
+  method: 'get',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The current user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/profile',
+  method: 'patch',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+// 201 主成功体注记:export-openapi 目前只把注册组件的 200 响应回写为 $ref;
+// 三个 201 端点(POST allergies/conditions/current-medicines)的响应体与 GET
+// 同一 aggregate,按稳定组件名登记,导出脚本支持 201 回写后自动生效。
+registerResponseSchema({
+  path: '/api/v1/user/health-context/allergies',
+  method: 'post',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/conditions',
+  method: 'post',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/current-medicines',
+  method: 'post',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/allergies/{id}',
+  method: 'patch',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/allergies/{id}',
+  method: 'delete',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/conditions/{id}',
+  method: 'patch',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/conditions/{id}',
+  method: 'delete',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/current-medicines/{id}',
+  method: 'patch',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/health-context/current-medicines/{id}',
+  method: 'delete',
+  componentName: 'HealthContextResponseDto',
+  schema: healthContextResponseSchema,
+  description: 'The updated user health-context aggregate.',
+});

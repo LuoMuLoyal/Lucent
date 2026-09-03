@@ -1,73 +1,77 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class AssistantContextSettingsDto {
-  @ApiProperty({
-    description:
+/**
+ * Standard Schema (zod 4) for the fine-grained assistant context permission
+ * block nested in the user settings resource.
+ *
+ * Replaces the former `AssistantContextSettingsDto` response class.
+ * Response schemas intentionally carry no `.strict()` / `.default()` so
+ * outbound parsing tolerates whatever the service layer produces.
+ */
+export const assistantContextSettingsSchema = z.object({
+  healthProfile: z
+    .boolean()
+    .describe(
       'Whether the assistant may read stored health profile, allergies, and conditions.',
-  })
-  healthProfile!: boolean;
-
-  @ApiProperty({
-    description: 'Whether the assistant may read recent daily records.',
-  })
-  dailyRecords!: boolean;
-
-  @ApiProperty({
-    description: 'Whether the assistant may read sleep records and summaries.',
-  })
-  sleepRecords!: boolean;
-
-  @ApiProperty({
-    description:
+    ),
+  dailyRecords: z
+    .boolean()
+    .describe('Whether the assistant may read recent daily records.'),
+  sleepRecords: z
+    .boolean()
+    .describe('Whether the assistant may read sleep records and summaries.'),
+  currentMedicines: z
+    .boolean()
+    .describe(
       'Whether the assistant may read current medicines and medicine-box data.',
-  })
-  currentMedicines!: boolean;
-}
+    ),
+});
 
-export class UserSettingsDataDto {
-  @ApiProperty({ description: 'Allow AI-generated summaries and advice.' })
-  aiSummariesEnabled!: boolean;
+/** Strongly typed assistant context permission flags. */
+export type AssistantContextSettingsDto = z.infer<
+  typeof assistantContextSettingsSchema
+>;
 
-  @ApiProperty({
-    description: 'Consent to share anonymized data for research.',
-  })
-  dataSharingConsent!: boolean;
-
-  @ApiProperty({
-    description: 'Allow the authenticated user to use the assistant feature.',
-  })
-  assistantEnabled!: boolean;
-
-  @ApiProperty({
-    description:
+/**
+ * Standard Schema (zod 4) for the authenticated user's settings resource
+ * (`GET`/`PATCH /settings`).
+ *
+ * Replaces the former `UserSettingsDataDto` response class.
+ */
+export const userSettingsDataSchema = z.object({
+  aiSummariesEnabled: z
+    .boolean()
+    .describe('Allow AI-generated summaries and advice.'),
+  dataSharingConsent: z
+    .boolean()
+    .describe('Consent to share anonymized data for research.'),
+  assistantEnabled: z
+    .boolean()
+    .describe('Allow the authenticated user to use the assistant feature.'),
+  assistantMemoryEnabled: z
+    .boolean()
+    .describe(
       'Allow the assistant to reuse persisted conversation history as cross-conversation memory.',
-  })
-  assistantMemoryEnabled!: boolean;
-
-  @ApiProperty({
-    description: 'Daily water intake target (number of glasses).',
-    example: 8,
-  })
-  waterTargetCount!: number;
-
-  @ApiProperty({
-    description: 'Fine-grained assistant context permissions.',
-    type: () => AssistantContextSettingsDto,
-  })
-  assistantContext!: AssistantContextSettingsDto;
-
-  @ApiProperty({
-    type: String,
-    description: 'ISO-8601 timestamp of last update.',
-    nullable: true,
-  })
-  updatedAt!: string | null;
-
-  @ApiProperty({
-    description:
+    ),
+  waterTargetCount: z
+    .number()
+    .describe('Daily water intake target (number of glasses).'),
+  assistantContext: assistantContextSettingsSchema.describe(
+    'Fine-grained assistant context permissions.',
+  ),
+  updatedAt: z
+    .string()
+    .nullable()
+    .describe('ISO-8601 timestamp of last update.'),
+  passwordReauthenticationRequired: z
+    .boolean()
+    .describe(
       'Whether sensitive operations require password re-authentication.',
-  })
-  passwordReauthenticationRequired!: boolean;
-}
+    ),
+});
 
-export class UserSettingsResponseDto extends UserSettingsDataDto {}
+/** Strongly typed user settings resource. */
+export type UserSettingsDataDto = z.infer<typeof userSettingsDataSchema>;
+
+/** Backwards-compatible response alias kept for the former DTO class name. */
+export type UserSettingsResponseDto = UserSettingsDataDto;

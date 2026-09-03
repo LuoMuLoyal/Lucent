@@ -7,17 +7,16 @@ import {
   Post,
   Query,
   Res,
+  SerializeOptions,
 } from '@nestjs/common';
 import { Optional } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
-  ApiExtraModels,
   ApiOperation,
   ApiQuery,
   ApiResponse,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
@@ -29,6 +28,7 @@ import {
   SseProblemDetailsMapper,
 } from '../../common/index.js';
 import { extractErrorInfo } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { createDomainFailure } from '../../common/result/index.js';
 import { DomainFailureException } from '../../common/result/domain-failure.exception.js';
 import type { UserPayload } from '../auth/index.js';
@@ -45,40 +45,22 @@ import { TodayAnalysisService } from './services/analysis.service.js';
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
 import { generateTodayAnalysisSchema } from './dto/generate-today-analysis.dto.js';
 import type { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto.js';
-
 import {
-  TodayAnalysisAsyncJobDataDto,
-  TodayAnalysisAsyncResultDataDto,
-  TodayAnalysisAsyncStatusDataDto,
-  TodayAnalysisReadResponseDto,
-  TodayAnalysisRefreshPendingDataDto,
-  TodayAnalysisRefreshReadyDataDto,
-  TodayAnalysisDataDto,
-  TodayAnalysisReadDataDto,
+  todayRecommendationResponseSchema,
+  todayRecommendationsResponseSchema,
+} from './dto/recommendation-response.dto.js';
+import {
+  todayAnalysisAsyncJobDataSchema,
+  todayAnalysisAsyncResultDataSchema,
+  todayAnalysisAsyncStatusDataSchema,
+  todayAnalysisDataSchema,
+  todayAnalysisReadDataSchema,
+  todayAnalysisRefreshPendingDataSchema,
+  todayAnalysisRefreshReadyDataSchema,
 } from './dto/analysis-response.dto.js';
-import {
-  TodayAnalysisStreamErrorDto,
-  TodayAnalysisStreamResultDto,
-  TodayAnalysisStreamSummaryDto,
-} from './dto/analysis-stream-response.dto.js';
-
-import { TodayRecommendationResponseDto } from './dto/recommendation-response.dto.js';
 
 @ApiTags('Today Analysis')
 @ApiBearerAuth('access-token')
-@ApiExtraModels(
-  TodayAnalysisAsyncJobDataDto,
-  TodayAnalysisAsyncResultDataDto,
-  TodayAnalysisAsyncStatusDataDto,
-  TodayAnalysisDataDto,
-  TodayAnalysisReadDataDto,
-  TodayAnalysisReadResponseDto,
-  TodayAnalysisRefreshPendingDataDto,
-  TodayAnalysisRefreshReadyDataDto,
-  TodayAnalysisStreamErrorDto,
-  TodayAnalysisStreamResultDto,
-  TodayAnalysisStreamSummaryDto,
-)
 @Controller('today-analysis')
 export class TodayAnalysisController {
   private readonly logger = new Logger(TodayAnalysisController.name);
@@ -96,7 +78,11 @@ export class TodayAnalysisController {
   @Get()
   @ApiOperation({ summary: 'Read the latest persisted Today AI analysis' })
   @ApiQuery({ name: 'date', required: false, type: String })
-  @ApiResponse({ status: 200, type: TodayAnalysisReadResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The latest persisted analysis with its read state.',
+  })
+  @SerializeOptions({ schema: todayAnalysisReadDataSchema })
   async read(
     @CurrentUser() user: UserPayload,
     @Query('date') date: string | undefined,
@@ -115,14 +101,21 @@ export class TodayAnalysisController {
 
   @Post('refresh')
   @ApiOperation({ summary: 'Request a bounded Today AI analysis refresh' })
+  // 201 主成功体是四态联合(fresh analysis / read state / pending / ready)。
+  // 注册器/export 现只回填 200 的单组件 $ref;此处保留联合文档,四个成员组件按
+  // 旧类名在本文件尾登记,导出脚本支持 201/多态回写后自动生效。
   @ApiResponse({
     status: 201,
+    description:
+      'Fresh analysis, current read state, or the queued/synchronous refresh outcome.',
     schema: {
       oneOf: [
-        { $ref: getSchemaPath(TodayAnalysisDataDto) },
-        { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
-        { $ref: getSchemaPath(TodayAnalysisRefreshPendingDataDto) },
-        { $ref: getSchemaPath(TodayAnalysisRefreshReadyDataDto) },
+        { $ref: '#/components/schemas/TodayAnalysisDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisReadDataDto' },
+        {
+          $ref: '#/components/schemas/TodayAnalysisRefreshPendingDataDto',
+        },
+        { $ref: '#/components/schemas/TodayAnalysisRefreshReadyDataDto' },
       ],
     },
   })
@@ -173,12 +166,17 @@ export class TodayAnalysisController {
 
   @Post('generate')
   @ApiOperation({ summary: 'Generate authenticated user today AI analysis' })
+  // 200 主成功体是二态联合(fresh analysis / read state)。注册器/export 现只
+  // 回填 200 的单组件 $ref,故本端点保留联合文档;成员组件(Data/ReadData)已按
+  // 旧类名在 refresh(201)登记,导出脚本支持多态回写后自动生效。
   @ApiResponse({
     status: 200,
+    description:
+      'The freshly generated analysis, or the current read state when a generation is already in flight.',
     schema: {
       oneOf: [
-        { $ref: getSchemaPath(TodayAnalysisDataDto) },
-        { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
+        { $ref: '#/components/schemas/TodayAnalysisDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisReadDataDto' },
       ],
     },
   })
@@ -214,14 +212,18 @@ export class TodayAnalysisController {
 
   @Post('generate/async')
   @ApiOperation({ summary: 'Enqueue async today AI analysis generation' })
+  // 202 主成功体是三态联合(job / synchronous result / status)。注册器/export
+  // 现只回填 200,故保留联合文档;三个成员组件按旧类名在本文件尾登记(202 锚点),
+  // 导出脚本支持 202/多态回写后自动生效。
   @ApiResponse({
     status: 202,
-    description: 'Job enqueued. Returns jobId for polling.',
+    description:
+      'Job enqueued. Returns jobId, or the synchronous result/status when the queue is unavailable.',
     schema: {
       oneOf: [
-        { $ref: getSchemaPath(TodayAnalysisAsyncJobDataDto) },
-        { $ref: getSchemaPath(TodayAnalysisAsyncResultDataDto) },
-        { $ref: getSchemaPath(TodayAnalysisAsyncStatusDataDto) },
+        { $ref: '#/components/schemas/TodayAnalysisAsyncJobDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisAsyncResultDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisAsyncStatusDataDto' },
       ],
     },
   })
@@ -302,11 +304,14 @@ export class TodayAnalysisController {
     type: String,
     description: 'Guide IDs from the last response, used for deduplication',
   })
+  // NOTE: JSON array body. Outbound validation uses the item schema (the
+  // global serializer validates array items one by one); the OpenAPI
+  // registration below uses the array schema.
   @ApiResponse({
     status: 200,
-    type: TodayRecommendationResponseDto,
-    isArray: true,
+    description: 'Cold-start onboarding guide cards.',
   })
+  @SerializeOptions({ schema: todayRecommendationResponseSchema })
   getRecommendations(
     @Query('exclude') exclude?: string | string[],
     @I18nLang() lang?: string,
@@ -456,6 +461,84 @@ export class TodayAnalysisController {
     return current.analysis;
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis',
+  method: 'get',
+  componentName: 'TodayAnalysisReadResponseDto',
+  schema: todayAnalysisReadDataSchema,
+  description: 'The latest persisted analysis with its read state.',
+});
+
+// NOTE: array body — the component schema is the full response array (the
+// 200 schema is rewritten to `$ref` this component by the export hook);
+// runtime outbound validation uses the item schema on the handler.
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/recommendations',
+  method: 'get',
+  componentName: 'TodayRecommendationResponseDto',
+  schema: todayRecommendationsResponseSchema,
+  description: 'Cold-start onboarding guide cards.',
+});
+
+// 联合端点成员组件登记(refresh 201 / generate 200 / generate/async 202 的
+// oneOf 分支引用这些稳定组件名)。refresh 与 async 无 200 响应,export 现不会
+// 重写其响应;generate(200)未在此登记,避免其联合 200 被单组件 $ref 覆盖。
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/refresh',
+  method: 'post',
+  componentName: 'TodayAnalysisDataDto',
+  schema: todayAnalysisDataSchema,
+  description: 'A freshly generated Today AI analysis resource.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/refresh',
+  method: 'post',
+  componentName: 'TodayAnalysisReadDataDto',
+  schema: todayAnalysisReadDataSchema,
+  description: 'The persisted analysis read state.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/refresh',
+  method: 'post',
+  componentName: 'TodayAnalysisRefreshPendingDataDto',
+  schema: todayAnalysisRefreshPendingDataSchema,
+  description: 'The enqueued refresh outcome.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/refresh',
+  method: 'post',
+  componentName: 'TodayAnalysisRefreshReadyDataDto',
+  schema: todayAnalysisRefreshReadyDataSchema,
+  description: 'The synchronous refresh outcome.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/generate/async',
+  method: 'post',
+  componentName: 'TodayAnalysisAsyncJobDataDto',
+  schema: todayAnalysisAsyncJobDataSchema,
+  description: 'The enqueued async generation job.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/generate/async',
+  method: 'post',
+  componentName: 'TodayAnalysisAsyncResultDataDto',
+  schema: todayAnalysisAsyncResultDataSchema,
+  description: 'The synchronous async-endpoint result.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today-analysis/generate/async',
+  method: 'post',
+  componentName: 'TodayAnalysisAsyncStatusDataDto',
+  schema: todayAnalysisAsyncStatusDataSchema,
+  description: 'The async job status payload.',
+});
 
 interface ManualGenerationRequest {
   date: string;

@@ -1,131 +1,64 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordAttachmentDto } from './record-attachment.dto.js';
+import { dailyRecordAttachmentSchema } from './record-attachment.dto.js';
 
-export class DailyRecordItemDto {
-  @ApiProperty({ description: 'Record id.' })
-  id!: string;
-
-  @ApiProperty({ enum: DailyRecordKind, enumName: 'DailyRecordKind' })
-  kind!: DailyRecordKind;
-
-  @ApiPropertyOptional({
-    description: 'Linked health event id.',
-    format: 'uuid',
-    nullable: true,
-    type: String,
-  })
-  healthEventId?: string | null;
-
-  @ApiProperty({
-    description: 'Date in YYYY-MM-DD format.',
-    example: '2026-06-04',
-  })
-  occurredAt!: string;
-
-  @ApiPropertyOptional({
-    description: 'Time in HH:mm 24-hour format when available.',
-    example: '09:45',
-    nullable: true,
-    type: String,
-  })
-  occurredTime?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Short label.',
-    type: String,
-    nullable: true,
-  })
-  title?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Measured value.',
-    type: String,
-    nullable: true,
-  })
-  value?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Unit label.',
-    example: 'bpm',
-    type: String,
-    nullable: true,
-  })
-  unit?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Free-text note.',
-    type: String,
-    nullable: true,
-  })
-  note?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Source.',
-    example: 'manual',
-    type: String,
-    nullable: true,
-  })
-  source?: string | null;
-
-  @ApiPropertyOptional({
-    description:
+/**
+ * Standard Schema (zod 4) for one daily-record read item — the wire shape of
+ * `GET/POST/PATCH /daily-records` responses.
+ *
+ * Replaces the former `@ApiProperty` response class `DailyRecordItemDto`. The
+ * mapper always emits every key (nullable columns become an explicit `null`;
+ * `mealTopFoods`/`attachments` default to empty arrays), so fields are
+ * required and `.nullable()` marks null-capable columns only.
+ */
+export const dailyRecordItemSchema = z.object({
+  id: z.string().describe('Record id.'),
+  kind: z.enum(DailyRecordKind),
+  healthEventId: z.string().describe('Linked health event id.').nullable(),
+  occurredAt: z.string().describe('Date in YYYY-MM-DD format.'),
+  occurredTime: z
+    .string()
+    .describe('Time in HH:mm 24-hour format when available.')
+    .nullable(),
+  title: z.string().describe('Short label.').nullable(),
+  value: z.string().describe('Measured value.').nullable(),
+  unit: z.string().describe('Unit label.').nullable(),
+  note: z.string().describe('Free-text note.').nullable(),
+  source: z.string().describe('Source.').nullable(),
+  payload: z
+    .record(z.string(), z.unknown())
+    .describe(
       'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.',
-    type: Object,
-    additionalProperties: true,
-    nullable: true,
-  })
-  payload?: Record<string, unknown> | null;
+    )
+    .nullable(),
+  mealAnalysisStatus: z
+    .string()
+    .describe('Meal analysis status for meal records.')
+    .nullable(),
+  mealAnalysisCoverage: z
+    .string()
+    .describe('Meal analysis coverage for meal records.')
+    .nullable(),
+  mealAnalysisUpdatedAt: z
+    .string()
+    .describe('Meal analysis updated timestamp (ISO 8601).')
+    .nullable(),
+  mealAnalysisFailureReason: z
+    .string()
+    .describe('Display-safe meal analysis failure reason.')
+    .nullable(),
+  mealShortDescription: z
+    .string()
+    .describe('Short meal description for list reads.')
+    .nullable(),
+  mealTopFoods: z
+    .array(z.string())
+    .describe('Top recognized foods for list reads.'),
+  attachments: z.array(dailyRecordAttachmentSchema),
+  createdAt: z.string().describe('Created at (ISO 8601).'),
+  updatedAt: z.string().describe('Updated at (ISO 8601).'),
+});
 
-  @ApiPropertyOptional({
-    description: 'Meal analysis status for meal records.',
-    nullable: true,
-    type: String,
-  })
-  mealAnalysisStatus?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Meal analysis coverage for meal records.',
-    nullable: true,
-    type: String,
-  })
-  mealAnalysisCoverage?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Meal analysis updated timestamp (ISO 8601).',
-    nullable: true,
-    type: String,
-  })
-  mealAnalysisUpdatedAt?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Display-safe meal analysis failure reason.',
-    nullable: true,
-    type: String,
-  })
-  mealAnalysisFailureReason?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Short meal description for list reads.',
-    nullable: true,
-    type: String,
-  })
-  mealShortDescription?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Top recognized foods for list reads.',
-    isArray: true,
-    type: String,
-  })
-  mealTopFoods?: string[];
-
-  @ApiProperty({ type: () => DailyRecordAttachmentDto, isArray: true })
-  attachments!: DailyRecordAttachmentDto[];
-
-  @ApiProperty({ description: 'Created at (ISO 8601).' })
-  createdAt!: string;
-
-  @ApiProperty({ description: 'Updated at (ISO 8601).' })
-  updatedAt!: string;
-}
+/** Strongly typed daily-record read item returned by record endpoints. */
+export type DailyRecordItemDto = z.infer<typeof dailyRecordItemSchema>;

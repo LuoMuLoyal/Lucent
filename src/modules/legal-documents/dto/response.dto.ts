@@ -1,58 +1,55 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-/** Metadata item for the legal document list endpoint. */
-export class LegalDocumentListItemDto {
-  @ApiProperty({
-    description: 'Document type identifier used in URL paths.',
-    example: 'privacy',
-  })
-  docType!: string;
+/**
+ * Standard Schema (zod 4) for one entry of the `GET /legal-documents` list.
+ *
+ * Replaces the former `LegalDocumentListItemDto` response class. Response
+ * schemas intentionally carry no `.strict()` / `.default()` so outbound
+ * parsing tolerates whatever the service layer produces.
+ */
+export const legalDocumentListItemSchema = z.object({
+  docType: z.string().describe('Document type identifier used in URL paths.'),
+  title: z.string(),
+  updatedAt: z.string().describe('ISO-8601 timestamp of last update.'),
+});
 
-  @ApiProperty({ example: '隐私政策' })
-  title!: string;
+/** Strongly typed metadata item for the legal document list endpoint. */
+export type LegalDocumentListItemDto = z.infer<
+  typeof legalDocumentListItemSchema
+>;
 
-  @ApiProperty({
-    description: 'ISO-8601 timestamp of last update.',
-  })
-  updatedAt!: string;
-}
+/**
+ * Standard Schema (zod 4) for the `GET /legal-documents/:docType` response.
+ *
+ * Replaces the former `LegalDocumentDetailDto` response class.
+ */
+export const legalDocumentDetailSchema = z.object({
+  docType: z.string().describe('Document type identifier used in URL paths.'),
+  title: z.string(),
+  content: z.string().describe('Markdown content of the document.'),
+  updatedAt: z.string().describe('ISO-8601 timestamp of last update.'),
+});
 
-/** Full legal document with Markdown content. */
-export class LegalDocumentDetailDto {
-  @ApiProperty({
-    description: 'Document type identifier used in URL paths.',
-    example: 'terms',
-  })
-  docType!: string;
+/** Strongly typed full legal document with Markdown content. */
+export type LegalDocumentDetailDto = z.infer<typeof legalDocumentDetailSchema>;
 
-  @ApiProperty({ example: '用户协议' })
-  title!: string;
+/**
+ * Standard Schema (zod 4) for the `GET /legal-documents` list response body.
+ *
+ * Replaces the former `LegalDocumentListDataDto` response class.
+ */
+export const legalDocumentListSchema = z.object({
+  items: z.array(legalDocumentListItemSchema),
+  updatedAt: z
+    .string()
+    .describe('ISO-8601 timestamp of the most recent document update.'),
+});
 
-  @ApiProperty({
-    description: 'Markdown content of the document.',
-    type: String,
-  })
-  content!: string;
+/** Strongly typed response data for the list endpoint. */
+export type LegalDocumentListDataDto = z.infer<typeof legalDocumentListSchema>;
 
-  @ApiProperty({
-    description: 'ISO-8601 timestamp of last update.',
-  })
-  updatedAt!: string;
-}
+/** Backwards-compatible response alias for the list endpoint. */
+export type LegalDocumentListResponseDto = LegalDocumentListDataDto;
 
-/** Response data for the list endpoint. */
-export class LegalDocumentListDataDto {
-  @ApiProperty({ type: [LegalDocumentListItemDto] })
-  items!: LegalDocumentListItemDto[];
-
-  @ApiProperty({
-    description: 'ISO-8601 timestamp of the most recent document update.',
-  })
-  updatedAt!: string;
-}
-
-/** Envelope for the list endpoint. */
-export class LegalDocumentListResponseDto extends LegalDocumentListDataDto {}
-
-/** Envelope for the detail endpoint. */
-export class LegalDocumentDetailResponseDto extends LegalDocumentDetailDto {}
+/** Backwards-compatible response alias for the detail endpoint. */
+export type LegalDocumentDetailResponseDto = LegalDocumentDetailDto;

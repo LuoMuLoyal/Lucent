@@ -1,17 +1,12 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
 import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
-import type {
-  ObservedMetricCoverage,
-  ObservedMetricSource,
-  ObservedMetricState,
-} from '../../../common/index.js';
 
 /**
- * Event Review read model DTOs.
+ * Event Review read model response schemas.
  *
  * The review envelope centers on one health event. The four fixed sections
  * each carry `state: available | unknown`; unknown sections expose a fixed
@@ -19,6 +14,9 @@ import type {
  * observed-metric contract (state/coverage/sources/observedCount/
  * expectedCount/windowStart/windowEnd) without duplicating the aggregation
  * rules of the dashboard or suggestion pipelines.
+ *
+ * Each schema replaces the former `@ApiProperty` response class of the same
+ * name (minus the `Schema` suffix).
  */
 
 export type EventReviewSectionState = 'available' | 'unknown';
@@ -38,268 +36,253 @@ export type EventReviewAction =
   | 'clinic_summary'
   | 'export';
 
-export class EventReviewSectionFactsDto {
-  @ApiProperty({
-    description: 'Structured fact code; localized by the client.',
-  })
-  code!: string;
+/** Replaces `EventReviewSectionFactsDto`. */
+export const eventReviewSectionFactsSchema = z.object({
+  code: z.string().describe('Structured fact code; localized by the client.'),
+  arguments: z
+    .record(z.string(), z.unknown())
+    .describe('Structured fact arguments for the client localizer.'),
+});
 
-  @ApiProperty({
-    type: Object,
-    description: 'Structured fact arguments for the client localizer.',
-  })
-  arguments!: Record<string, unknown>;
-}
+/** Strongly typed structured section facts of an event review. */
+export type EventReviewSectionFactsDto = z.infer<
+  typeof eventReviewSectionFactsSchema
+>;
 
-export class EventReviewSectionDto {
-  @ApiProperty({ enum: ['available', 'unknown'] })
-  state!: EventReviewSectionState;
-
-  @ApiPropertyOptional({
-    enum: ['no_observations', 'no_completed_actions', 'insufficient_coverage'],
-    type: String,
-    description:
+/** Replaces `EventReviewSectionDto`. */
+export const eventReviewSectionSchema = z.object({
+  state: z.enum(['available', 'unknown']),
+  reasonCode: z
+    .enum(['no_observations', 'no_completed_actions', 'insufficient_coverage'])
+    .optional()
+    .describe(
       'Fixed reason code when state is unknown: no_observations (window has ' +
-      'no observations), no_completed_actions (no confirmed doses or ' +
-      'check-ins), insufficient_coverage (observations exist but no trend is ' +
-      'computable).',
-  })
-  reasonCode?: EventReviewSectionReasonCode;
+        'no observations), no_completed_actions (no confirmed doses or ' +
+        'check-ins), insufficient_coverage (observations exist but no trend is ' +
+        'computable).',
+    ),
+  facts: eventReviewSectionFactsSchema
+    .optional()
+    .describe('Basic facts when state is available.'),
+});
 
-  @ApiPropertyOptional({
-    type: () => EventReviewSectionFactsDto,
-    description: 'Basic facts when state is available.',
-  })
-  facts?: EventReviewSectionFactsDto;
-}
+/** Strongly typed one review section (whatHappened/keyChanges/…). */
+export type EventReviewSectionDto = z.infer<typeof eventReviewSectionSchema>;
 
-export class EventReviewSectionsDto {
-  @ApiProperty({ type: () => EventReviewSectionDto })
-  whatHappened!: EventReviewSectionDto;
+/** Replaces `EventReviewSectionsDto`. */
+export const eventReviewSectionsSchema = z.object({
+  whatHappened: eventReviewSectionSchema,
+  keyChanges: eventReviewSectionSchema,
+  completedActions: eventReviewSectionSchema,
+  nextStep: eventReviewSectionSchema,
+});
 
-  @ApiProperty({ type: () => EventReviewSectionDto })
-  keyChanges!: EventReviewSectionDto;
+/** Strongly typed four fixed review sections. */
+export type EventReviewSectionsDto = z.infer<typeof eventReviewSectionsSchema>;
 
-  @ApiProperty({ type: () => EventReviewSectionDto })
-  completedActions!: EventReviewSectionDto;
+/** Replaces `EventReviewEventDto`. */
+export const eventReviewEventSchema = z.object({
+  id: z.string(),
+  kind: z.enum(HealthEventKind),
+  title: z.string(),
+  status: z.enum(HealthEventStatus),
+  startedAt: z.string().describe('Start time in ISO 8601 format.'),
+  endedAt: z
+    .string()
+    .nullable()
+    .describe('End time in ISO 8601 format, or null while active.'),
+  outcome: z.enum(HealthEventOutcome).nullable(),
+  currentMedicineIds: z.array(z.string()),
+});
 
-  @ApiProperty({ type: () => EventReviewSectionDto })
-  nextStep!: EventReviewSectionDto;
-}
+/** Strongly typed health event of an event review. */
+export type EventReviewEventDto = z.infer<typeof eventReviewEventSchema>;
 
-export class EventReviewEventDto {
-  @ApiProperty()
-  id!: string;
+/** Replaces `EventReviewTodayCheckInDto`. */
+export const eventReviewTodayCheckInSchema = z.object({
+  date: z.string().describe('Calendar date in YYYY-MM-DD format.'),
+  outcome: z.enum(HealthEventOutcome),
+  updatedAt: z.string().describe('Last update time in ISO 8601 format.'),
+});
 
-  @ApiProperty({ enum: HealthEventKind, enumName: 'HealthEventKind' })
-  kind!: HealthEventKind;
+/** Strongly typed today check-in of an event review. */
+export type EventReviewTodayCheckInDto = z.infer<
+  typeof eventReviewTodayCheckInSchema
+>;
 
-  @ApiProperty({ maxLength: 80 })
-  title!: string;
-
-  @ApiProperty({ enum: HealthEventStatus, enumName: 'HealthEventStatus' })
-  status!: HealthEventStatus;
-
-  @ApiProperty({ description: 'Start time in ISO 8601 format.' })
-  startedAt!: string;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description: 'End time in ISO 8601 format, or null while active.',
-  })
-  endedAt!: string | null;
-
-  @ApiProperty({
-    enum: HealthEventOutcome,
-    enumName: 'HealthEventOutcome',
-    nullable: true,
-  })
-  outcome!: HealthEventOutcome | null;
-
-  @ApiProperty({ type: String, isArray: true })
-  currentMedicineIds!: string[];
-}
-
-export class EventReviewTodayCheckInDto {
-  @ApiProperty({ description: 'Calendar date in YYYY-MM-DD format.' })
-  date!: string;
-
-  @ApiProperty({ enum: HealthEventOutcome, enumName: 'HealthEventOutcome' })
-  outcome!: HealthEventOutcome;
-
-  @ApiProperty({ description: 'Last update time in ISO 8601 format.' })
-  updatedAt!: string;
-}
-
-export class EventReviewCheckInCoverageDto {
-  @ApiProperty({ enum: ['observed', 'unknown'] })
-  state!: ObservedMetricState;
-
-  @ApiProperty({
-    enum: ['sufficient', 'partial', 'none'],
-    description:
+/** Replaces `EventReviewCheckInCoverageDto`. */
+export const eventReviewCheckInCoverageSchema = z.object({
+  state: z.enum(['observed', 'unknown']),
+  coverage: z
+    .enum(['sufficient', 'partial', 'none'])
+    .describe(
       "'none' when no check-ins exist; 'partial' when check-ins exist but " +
-      'sufficiency is not yet assessed by the section services.',
-  })
-  coverage!: ObservedMetricCoverage;
+        'sufficiency is not yet assessed by the section services.',
+    ),
+  sources: z.array(
+    z.enum(['manual', 'health_platform', 'reminder_plan', 'derived']),
+  ),
+  observedCount: z.number().describe('Number of user-confirmed check-ins.'),
+  expectedCount: z
+    .number()
+    .nullable()
+    .describe('No fixed expectation exists for check-ins.'),
+  firstCheckInDate: z
+    .string()
+    .nullable()
+    .describe('First check-in calendar date, or null when none exists.'),
+  lastCheckInDate: z
+    .string()
+    .nullable()
+    .describe('Last check-in calendar date, or null when none exists.'),
+  todayCheckIn: eventReviewTodayCheckInSchema.nullable(),
+  windowStart: z.string().describe('Event window start in ISO 8601 format.'),
+  windowEnd: z.string().describe('Event window end in ISO 8601 format.'),
+});
 
-  @ApiProperty({
-    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
-    isArray: true,
-  })
-  sources!: ObservedMetricSource[];
+/** Strongly typed check-in coverage of an event review. */
+export type EventReviewCheckInCoverageDto = z.infer<
+  typeof eventReviewCheckInCoverageSchema
+>;
 
-  @ApiProperty({ description: 'Number of user-confirmed check-ins.' })
-  observedCount!: number;
-
-  @ApiProperty({
-    type: Number,
-    nullable: true,
-    description: 'No fixed expectation exists for check-ins.',
-  })
-  expectedCount!: number | null;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description: 'First check-in calendar date, or null when none exists.',
-  })
-  firstCheckInDate!: string | null;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description: 'Last check-in calendar date, or null when none exists.',
-  })
-  lastCheckInDate!: string | null;
-
-  @ApiProperty({ type: () => EventReviewTodayCheckInDto, nullable: true })
-  todayCheckIn!: EventReviewTodayCheckInDto | null;
-
-  @ApiProperty({ description: 'Event window start in ISO 8601 format.' })
-  windowStart!: string;
-
-  @ApiProperty({ description: 'Event window end in ISO 8601 format.' })
-  windowEnd!: string;
-}
-
-export class EventReviewObservedSourceDto {
-  @ApiProperty({ enum: ['observed', 'unknown'] })
-  state!: ObservedMetricState;
-
-  @ApiProperty({
-    enum: ['sufficient', 'partial', 'none'],
-    description:
+/** Replaces `EventReviewObservedSourceDto`. */
+export const eventReviewObservedSourceSchema = z.object({
+  state: z.enum(['observed', 'unknown']),
+  coverage: z
+    .enum(['sufficient', 'partial', 'none'])
+    .describe(
       "The skeleton emits 'none' or 'partial'; sufficiency assessment lands " +
-      'with the section services.',
-  })
-  coverage!: ObservedMetricCoverage;
+        'with the section services.',
+    ),
+  sources: z.array(
+    z.enum(['manual', 'health_platform', 'reminder_plan', 'derived']),
+  ),
+  observedCount: z
+    .number()
+    .describe('Number of observations in the event window.'),
+  expectedCount: z
+    .number()
+    .nullable()
+    .describe('No fixed expectation is defined for this source yet.'),
+  windowStart: z.string().describe('Event window start in ISO 8601 format.'),
+  windowEnd: z.string().describe('Event window end in ISO 8601 format.'),
+});
 
-  @ApiProperty({
-    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
-    isArray: true,
-  })
-  sources!: ObservedMetricSource[];
+/** Strongly typed observed-source coverage of an event review. */
+export type EventReviewObservedSourceDto = z.infer<
+  typeof eventReviewObservedSourceSchema
+>;
 
-  @ApiProperty({ description: 'Number of observations in the event window.' })
-  observedCount!: number;
+/** Replaces `EventReviewCoverageSummaryDto`. */
+export const eventReviewCoverageSummarySchema = z.object({
+  checkIns: eventReviewCheckInCoverageSchema,
+  dailyRecords: eventReviewObservedSourceSchema,
+  doseLogs: eventReviewObservedSourceSchema,
+});
 
-  @ApiProperty({
-    type: Number,
-    nullable: true,
-    description: 'No fixed expectation is defined for this source yet.',
-  })
-  expectedCount!: number | null;
+/** Strongly typed coverage summary of an event review. */
+export type EventReviewCoverageSummaryDto = z.infer<
+  typeof eventReviewCoverageSummarySchema
+>;
 
-  @ApiProperty({ description: 'Event window start in ISO 8601 format.' })
-  windowStart!: string;
-
-  @ApiProperty({ description: 'Event window end in ISO 8601 format.' })
-  windowEnd!: string;
-}
-
-export class EventReviewCoverageSummaryDto {
-  @ApiProperty({ type: () => EventReviewCheckInCoverageDto })
-  checkIns!: EventReviewCheckInCoverageDto;
-
-  @ApiProperty({ type: () => EventReviewObservedSourceDto })
-  dailyRecords!: EventReviewObservedSourceDto;
-
-  @ApiProperty({ type: () => EventReviewObservedSourceDto })
-  doseLogs!: EventReviewObservedSourceDto;
-}
-
-export class EventReviewSourceTimestampsDto {
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description: 'Last check-in calendar date (YYYY-MM-DD), or null.',
-  })
-  checkIns!: string | null;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description:
+/** Replaces `EventReviewSourceTimestampsDto`. */
+export const eventReviewSourceTimestampsSchema = z.object({
+  checkIns: z
+    .string()
+    .nullable()
+    .describe('Last check-in calendar date (YYYY-MM-DD), or null.'),
+  dailyRecords: z
+    .string()
+    .nullable()
+    .describe(
       'Latest daily-record creation time in the event window (ISO 8601), ' +
-      'or null.',
-  })
-  dailyRecords!: string | null;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description:
+        'or null.',
+    ),
+  doseLogs: z
+    .string()
+    .nullable()
+    .describe(
       'Latest dose-log scheduled time in the event window (ISO 8601), or null.',
-  })
-  doseLogs!: string | null;
-}
+    ),
+});
 
-export class EventReviewDataDto {
-  @ApiProperty({ type: () => EventReviewEventDto })
-  event!: EventReviewEventDto;
+/** Strongly typed source timestamps of an event review. */
+export type EventReviewSourceTimestampsDto = z.infer<
+  typeof eventReviewSourceTimestampsSchema
+>;
 
-  @ApiProperty({ type: () => EventReviewSectionsDto })
-  sections!: EventReviewSectionsDto;
-
-  @ApiProperty({ type: () => EventReviewCoverageSummaryDto })
-  coverage!: EventReviewCoverageSummaryDto;
-
-  @ApiProperty({ type: () => EventReviewSourceTimestampsDto })
-  sourceTimestamps!: EventReviewSourceTimestampsDto;
-
-  @ApiProperty({
-    enum: ['check_in', 'end_event', 'clinic_summary', 'export'],
-    isArray: true,
-    description:
+/**
+ * The shared event-review data shape. Replaces the former `@ApiProperty`
+ * response class `EventReviewDataDto`.
+ */
+export const eventReviewDataSchema = z.object({
+  event: eventReviewEventSchema,
+  sections: eventReviewSectionsSchema,
+  coverage: eventReviewCoverageSummarySchema,
+  sourceTimestamps: eventReviewSourceTimestampsSchema,
+  availableActions: z
+    .array(z.enum(['check_in', 'end_event', 'clinic_summary', 'export']))
+    .describe(
       'Actions the user can take from this review, mapped by the client.',
-  })
-  availableActions!: EventReviewAction[];
+    ),
+  generatedAt: z.string().describe('Review assembly time in ISO 8601 format.'),
+});
 
-  @ApiProperty({ description: 'Review assembly time in ISO 8601 format.' })
-  generatedAt!: string;
-}
+/** Strongly typed event review data payload. */
+export type EventReviewDataDto = z.infer<typeof eventReviewDataSchema>;
 
-export class EventReviewListDataDto {
-  @ApiProperty({ type: () => EventReviewEventDto, isArray: true })
-  items!: EventReviewEventDto[];
-
-  @ApiProperty({ description: 'Total matching events for the filter.' })
-  total!: number;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description:
+/**
+ * Replaces `EventReviewListDataDto` — the paginated history payload.
+ */
+export const eventReviewListDataSchema = z.object({
+  items: z.array(eventReviewEventSchema),
+  total: z.number().describe('Total matching events for the filter.'),
+  nextCursor: z
+    .string()
+    .nullable()
+    .describe(
       'Cursor for the next page (last item startedAt in ISO 8601), or null ' +
-      'on the last page.',
-  })
-  nextCursor!: string | null;
-}
+        'on the last page.',
+    ),
+});
 
-export class EventReviewResponseDto extends EventReviewDataDto {}
+/** Strongly typed event-review history list payload. */
+export type EventReviewListDataDto = z.infer<typeof eventReviewListDataSchema>;
 
-export class EventReviewNullableResponseDto extends EventReviewDataDto {}
+/**
+ * Response schema of `GET /reports/reviews/:eventId` — wire-identical to
+ * {@link eventReviewDataSchema}. Replaces the former response class
+ * `EventReviewResponseDto` (which extended `EventReviewDataDto` without
+ * adding fields).
+ */
+export const eventReviewResponseSchema = eventReviewDataSchema;
 
-export class EventReviewListResponseDto extends EventReviewListDataDto {}
+/** Strongly typed single-event review response body. */
+export type EventReviewResponseDto = z.infer<typeof eventReviewResponseSchema>;
+
+/**
+ * Response schema of `GET /reports/reviews/current` — the event review data,
+ * or `null` when the user has no review. Replaces the former response class
+ * `EventReviewNullableResponseDto` (which extended `EventReviewDataDto`
+ * without adding fields).
+ */
+export const eventReviewNullableResponseSchema =
+  eventReviewDataSchema.nullable();
+
+/** Strongly typed nullable current-review response body. */
+export type EventReviewNullableResponseDto = z.infer<
+  typeof eventReviewNullableResponseSchema
+>;
+
+/**
+ * Response schema of `GET /reports/reviews` — wire-identical to
+ * {@link eventReviewListDataSchema}. Replaces the former response class
+ * `EventReviewListResponseDto` (which extended `EventReviewListDataDto`
+ * without adding fields).
+ */
+export const eventReviewListResponseSchema = eventReviewListDataSchema;
+
+/** Strongly typed event-review list response body. */
+export type EventReviewListResponseDto = z.infer<
+  typeof eventReviewListResponseSchema
+>;

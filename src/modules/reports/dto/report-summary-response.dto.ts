@@ -1,99 +1,111 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  REPORT_SUPPORTED_RANGES,
-  type ReportRange,
-} from './report-dashboard-query.dto.js';
+import { z } from 'zod';
+import { REPORT_SUPPORTED_RANGES } from './report-dashboard-query.dto.js';
 
-export class ReportCoverageDimensionDto {
-  @ApiProperty()
-  trackedDays!: number;
+/**
+ * AI report summary response schemas.
+ *
+ * Each schema replaces the former `@ApiProperty` response class of the same
+ * name (minus the `Schema` suffix).
+ */
 
-  @ApiProperty()
-  totalDays!: number;
-}
+/** Replaces `ReportCoverageDimensionDto`. */
+export const reportCoverageDimensionSchema = z.object({
+  trackedDays: z.number(),
+  totalDays: z.number(),
+});
 
-export class ReportCoverageDto {
-  @ApiProperty({ type: () => ReportCoverageDimensionDto })
-  medication!: ReportCoverageDimensionDto;
+/** Strongly typed tracked/total day counts of one coverage dimension. */
+export type ReportCoverageDimensionDto = z.infer<
+  typeof reportCoverageDimensionSchema
+>;
 
-  @ApiProperty({ type: () => ReportCoverageDimensionDto })
-  water!: ReportCoverageDimensionDto;
+/** Replaces `ReportCoverageDto`. */
+export const reportCoverageSchema = z.object({
+  medication: reportCoverageDimensionSchema,
+  water: reportCoverageDimensionSchema,
+  sleep: reportCoverageDimensionSchema,
+});
 
-  @ApiProperty({ type: () => ReportCoverageDimensionDto })
-  sleep!: ReportCoverageDimensionDto;
-}
+/** Strongly typed coverage block of the report summary. */
+export type ReportCoverageDto = z.infer<typeof reportCoverageSchema>;
 
-export class ReportObservedPatternDto {
-  @ApiProperty({ enum: ['medication', 'hydration', 'sleep'] })
-  kind!: 'medication' | 'hydration' | 'sleep';
+/** Replaces `ReportObservedPatternDto`. */
+export const reportObservedPatternSchema = z.object({
+  kind: z.enum(['medication', 'hydration', 'sleep']),
+  text: z.string(),
+  source: z.string(),
+});
 
-  @ApiProperty()
-  text!: string;
+/** Strongly typed source-backed observed pattern of the report summary. */
+export type ReportObservedPatternDto = z.infer<
+  typeof reportObservedPatternSchema
+>;
 
-  @ApiProperty()
-  source!: string;
-}
+/** Replaces `ReportLowRiskActionDto`. */
+export const reportLowRiskActionSchema = z.object({
+  label: z.string(),
+  text: z.string(),
+});
 
-export class ReportLowRiskActionDto {
-  @ApiProperty()
-  label!: string;
+/** Strongly typed low-risk action of the report summary. */
+export type ReportLowRiskActionDto = z.infer<typeof reportLowRiskActionSchema>;
 
-  @ApiProperty()
-  text!: string;
-}
-
-export class ReportSummaryDataDto {
-  @ApiProperty({
-    enum: REPORT_SUPPORTED_RANGES,
-  })
-  range!: ReportRange;
-
-  @ApiProperty()
-  startDate!: string;
-
-  @ApiProperty()
-  endDate!: string;
-
-  @ApiProperty()
-  generatedAt!: string;
-
-  @ApiProperty()
-  summary!: string;
-
-  @ApiProperty({ type: () => ReportCoverageDto })
-  coverage!: ReportCoverageDto;
-
-  @ApiPropertyOptional({
-    type: () => ReportObservedPatternDto,
-    nullable: true,
-    description:
+/**
+ * The shared report summary data shape. Replaces the former `@ApiProperty`
+ * response class `ReportSummaryDataDto`.
+ */
+export const reportSummaryDataSchema = z.object({
+  range: z.enum(REPORT_SUPPORTED_RANGES),
+  startDate: z.string(),
+  endDate: z.string(),
+  generatedAt: z.string(),
+  summary: z.string(),
+  coverage: reportCoverageSchema,
+  observedPattern: reportObservedPatternSchema
+    .nullable()
+    .describe(
       'At most one source-backed observed pattern. Null when data is insufficient.',
-  })
-  observedPattern!: ReportObservedPatternDto | null;
+    ),
+  lowRiskAction: reportLowRiskActionSchema
+    .nullable()
+    .describe('At most one low-risk action. Null when no action is warranted.'),
+  disclaimer: z.string(),
+});
 
-  @ApiPropertyOptional({
-    type: () => ReportLowRiskActionDto,
-    nullable: true,
-    description:
-      'At most one low-risk action. Null when no action is warranted.',
-  })
-  lowRiskAction!: ReportLowRiskActionDto | null;
+/** Strongly typed report summary data payload. */
+export type ReportSummaryDataDto = z.infer<typeof reportSummaryDataSchema>;
 
-  @ApiProperty()
-  disclaimer!: string;
-}
+/**
+ * Response schema of `POST /reports/summary/generate` — wire-identical to
+ * {@link reportSummaryDataSchema}. Replaces the former response class
+ * `ReportSummaryResponseDto` (which extended `ReportSummaryDataDto` without
+ * adding fields).
+ */
+export const reportSummaryResponseSchema = reportSummaryDataSchema;
 
-export class ReportSummaryResponseDto extends ReportSummaryDataDto {}
+/** Strongly typed synchronous report summary response body. */
+export type ReportSummaryResponseDto = z.infer<
+  typeof reportSummaryResponseSchema
+>;
 
-/** Exactly one of `jobId` and `result` is present in the response. */
-export class ReportSummaryAsyncResponseDto {
-  @ApiPropertyOptional({ description: 'Queued report summary job identifier.' })
-  jobId?: string;
-
-  @ApiPropertyOptional({
-    type: () => ReportSummaryDataDto,
-    description:
+/**
+ * Response schema of `POST /reports/summary/generate/async` — either a queued
+ * `jobId` or the inline summary `result`. Replaces the former response class
+ * `ReportSummaryAsyncResponseDto`.
+ */
+export const reportSummaryAsyncResponseSchema = z.object({
+  jobId: z
+    .string()
+    .optional()
+    .describe('Queued report summary job identifier.'),
+  result: reportSummaryDataSchema
+    .optional()
+    .describe(
       'Inline report summary resource when queue processing is unavailable.',
-  })
-  result?: ReportSummaryDataDto;
-}
+    ),
+});
+
+/** Strongly typed async report summary response body. */
+export type ReportSummaryAsyncResponseDto = z.infer<
+  typeof reportSummaryAsyncResponseSchema
+>;

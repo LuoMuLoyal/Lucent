@@ -1,32 +1,37 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class AssistantConversationSummaryDto {
-  @ApiProperty({ description: 'Stable persisted conversation identifier.' })
-  id!: string;
+/**
+ * Standard Schema (zod 4) for one entry of
+ * `GET /assistant/conversations`. Replaces the former
+ * `AssistantConversationSummaryDto` response class.
+ */
+export const assistantConversationSummarySchema = z.object({
+  id: z.string().describe('Stable persisted conversation identifier.'),
+  title: z
+    .string()
+    .nullable()
+    .describe('Optional server-derived conversation title.'),
+  status: z
+    .enum(['active', 'archived', 'deleted'])
+    .describe('Current conversation status.'),
+  lastMessageAt: z
+    .string()
+    .nullable()
+    .describe('ISO-8601 timestamp of the latest conversation activity.'),
+  createdAt: z.string().describe('ISO-8601 creation timestamp.'),
+  updatedAt: z.string().describe('ISO-8601 update timestamp.'),
+});
 
-  @ApiProperty({
-    description: 'Optional server-derived conversation title.',
-    nullable: true,
-    type: String,
-  })
-  title!: string | null;
+/** Strongly typed recent conversation summary item. */
+export type AssistantConversationSummaryDto = z.infer<
+  typeof assistantConversationSummarySchema
+>;
 
-  @ApiProperty({
-    enum: ['active', 'archived', 'deleted'],
-    description: 'Current conversation status.',
-  })
-  status!: 'active' | 'archived' | 'deleted';
-
-  @ApiProperty({
-    description: 'ISO-8601 timestamp of the latest conversation activity.',
-    nullable: true,
-    type: String,
-  })
-  lastMessageAt!: string | null;
-
-  @ApiProperty({ description: 'ISO-8601 creation timestamp.' })
-  createdAt!: string;
-
-  @ApiProperty({ description: 'ISO-8601 update timestamp.' })
-  updatedAt!: string;
-}
+/**
+ * Array schema of the `GET /assistant/conversations` success body. Outbound
+ * validation uses the item schema (the global serializer validates array
+ * items one by one); this array schema backs the OpenAPI registration.
+ */
+export const assistantConversationListResponseSchema = z
+  .array(assistantConversationSummarySchema)
+  .describe('Recent assistant conversation summaries.');

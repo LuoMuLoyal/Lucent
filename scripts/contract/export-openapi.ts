@@ -195,8 +195,13 @@ async function main() {
       registration.schema,
     );
     const operation = draft.paths?.[registration.path]?.[registration.method];
-    const response = operation?.responses?.['200'];
-    if (operation && response && typeof response === 'object') {
+    // Wire the primary success response (prefer 200, then 201, then 202).
+    const successCode = ['200', '201', '202'].find(
+      (code) => operation?.responses?.[code] != null,
+    );
+    const response =
+      successCode != null ? operation.responses[successCode] : undefined;
+    if (response && typeof response === 'object') {
       response.description ??= registration.description ?? '';
       response.content ??= {};
       response.content['application/json'] ??= {};

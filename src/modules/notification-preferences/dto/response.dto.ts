@@ -1,31 +1,30 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class NotificationPreferencesDataDto {
-  @ApiProperty()
-  healthAlertsEnabled!: boolean;
+/**
+ * Standard Schema (zod 4) for the authenticated user's notification
+ * preferences resource (`GET`/`PATCH /notification-preferences`).
+ *
+ * Replaces the former `NotificationPreferencesDataDto` response class.
+ * Response schemas intentionally carry no `.strict()` / `.default()` so
+ * outbound parsing tolerates whatever the service layer produces.
+ */
+export const notificationPreferencesSchema = z.object({
+  healthAlertsEnabled: z.boolean(),
+  weeklyInsightEnabled: z.boolean(),
+  waterRemindersEnabled: z.boolean(),
+  sleepReminderEnabled: z.boolean(),
+  sleepBedtimeMinutes: z.number().int().nullable(),
+  sleepWakeTimeMinutes: z.number().int().nullable(),
+  configured: z
+    .boolean()
+    .describe('Whether the user has a persisted preference row.'),
+  updatedAt: z.string().nullable(),
+});
 
-  @ApiProperty()
-  weeklyInsightEnabled!: boolean;
+/** Strongly typed notification preferences resource. */
+export type NotificationPreferencesDataDto = z.infer<
+  typeof notificationPreferencesSchema
+>;
 
-  @ApiProperty()
-  waterRemindersEnabled!: boolean;
-
-  @ApiProperty()
-  sleepReminderEnabled!: boolean;
-
-  @ApiProperty({ type: Number, format: 'int32', nullable: true })
-  sleepBedtimeMinutes!: number | null;
-
-  @ApiProperty({ type: Number, format: 'int32', nullable: true })
-  sleepWakeTimeMinutes!: number | null;
-
-  @ApiProperty({
-    description: 'Whether the user has a persisted preference row.',
-  })
-  configured!: boolean;
-
-  @ApiProperty({ type: String, nullable: true })
-  updatedAt!: string | null;
-}
-
-export class NotificationPreferencesResponseDto extends NotificationPreferencesDataDto {}
+/** Backwards-compatible response alias kept for the former DTO class name. */
+export type NotificationPreferencesResponseDto = NotificationPreferencesDataDto;

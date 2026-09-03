@@ -1,85 +1,50 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-import {
-  DEFAULT_MEDICINE_SOURCE,
-  MEDICINE_KNOWLEDGE_SOURCES,
-  type MedicineKnowledgeSource,
-} from './source.dto.js';
+import { MEDICINE_KNOWLEDGE_SOURCES } from './source.dto.js';
 
-export class MedicineSearchItemDto {
-  @ApiProperty({ description: 'Stable medicine id.', example: 'DB01050' })
-  id!: string;
+/**
+ * zod 4 Standard Schema for the medicine search response body
+ * (`GET /medicines`).
+ *
+ * Migrated from the former `@ApiProperty` response classes (class names kept
+ * as `z.infer` type aliases; descriptions preserved via `.describe`).
+ * No `.strict()` / `.default()` — outbound validation accepts the wire shape
+ * produced by the search adapters.
+ */
 
-  @ApiProperty({
-    description: 'Knowledge source.',
-    enum: MEDICINE_KNOWLEDGE_SOURCES,
-    example: DEFAULT_MEDICINE_SOURCE,
-  })
-  source!: MedicineKnowledgeSource;
+export const medicineSearchItemSchema = z.object({
+  id: z.string().describe('Stable medicine id.'),
+  source: z.enum(MEDICINE_KNOWLEDGE_SOURCES).describe('Knowledge source.'),
+  name: z.string().describe('Display name.'),
+  subtitle: z.string().nullable().describe('Short supporting subtitle.'),
+  summary: z.string().nullable().describe('Short preview summary.'),
+  tags: z.array(z.string()).describe('Compact tags for search cards.'),
+  imageUrl: z.string().nullable().describe('Optional image URL.'),
+  matchedBy: z
+    .array(z.string())
+    .describe('Which fields matched the current query.'),
+});
 
-  @ApiProperty({ description: 'Display name.', example: 'Ibuprofen' })
-  name!: string;
+export const medicinePaginationSchema = z.object({
+  page: z.number().describe('Page number, 1-based.'),
+  pageSize: z.number().describe('Page size.'),
+  total: z.number().describe('Total result count.'),
+  totalPages: z.number().describe('Total page count.'),
+});
 
-  @ApiProperty({
-    description: 'Short supporting subtitle.',
-    example: 'CAS 15687-27-1',
-    nullable: true,
-    type: String,
-  })
-  subtitle!: string | null;
+export const medicineSearchDataSchema = z.object({
+  items: z.array(medicineSearchItemSchema).describe('Matched medicine items.'),
+  pagination: medicinePaginationSchema.describe('Pagination metadata.'),
+});
 
-  @ApiProperty({
-    description: 'Short preview summary.',
-    example: 'A non-steroidal anti-inflammatory drug...',
-    nullable: true,
-    type: String,
-  })
-  summary!: string | null;
+/** Strongly typed search result item. */
+export type MedicineSearchItemDto = z.infer<typeof medicineSearchItemSchema>;
 
-  @ApiProperty({
-    description: 'Compact tags for search cards.',
-    type: [String],
-    example: ['approved', 'small molecule'],
-  })
-  tags!: string[];
+/** Pagination metadata of a search result. */
+export type MedicinePaginationDto = z.infer<typeof medicinePaginationSchema>;
 
-  @ApiProperty({
-    description: 'Optional image URL.',
-    example: null,
-    nullable: true,
-    type: String,
-  })
-  imageUrl!: string | null;
-
-  @ApiProperty({
-    description: 'Which fields matched the current query.',
-    type: [String],
-    example: ['name'],
-  })
-  matchedBy!: string[];
-}
-
-export class MedicinePaginationDto {
-  @ApiProperty({ example: 1 })
-  page!: number;
-
-  @ApiProperty({ example: 20 })
-  pageSize!: number;
-
-  @ApiProperty({ example: 87 })
-  total!: number;
-
-  @ApiProperty({ example: 5 })
-  totalPages!: number;
-}
-
-export class MedicineSearchDataDto {
-  @ApiProperty({ type: () => MedicineSearchItemDto, isArray: true })
-  items!: MedicineSearchItemDto[];
-
-  @ApiProperty({ type: () => MedicinePaginationDto })
-  pagination!: MedicinePaginationDto;
-}
+/** Strongly typed search data payload (items + pagination). */
+export type MedicineSearchDataDto = z.infer<typeof medicineSearchDataSchema>;
 
 export interface MedicinePagination {
   page: number;

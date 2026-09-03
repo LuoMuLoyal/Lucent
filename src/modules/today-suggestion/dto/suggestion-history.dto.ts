@@ -1,59 +1,53 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SuggestionItemDto } from './suggestion-response.dto.js';
-import type { MaterializationStatus } from '../types/materialization.types.js';
+import { z } from 'zod';
+import { suggestionItemSchema } from './suggestion-response.dto.js';
 
-/** Data payload for GET /today/suggestions. */
-export class TodaySuggestionsDataDto {
-  @ApiProperty({ description: 'When the suggestions were generated' })
-  generatedAt!: string;
-
-  @ApiPropertyOptional({
-    type: () => SuggestionItemDto,
-    description: 'Primary suggestion card (highest priority)',
-  })
-  primary?: SuggestionItemDto | undefined;
-
-  @ApiPropertyOptional({
-    type: () => [SuggestionItemDto],
-    description: 'Secondary suggestion cards (max 2)',
-  })
-  secondary?: SuggestionItemDto[] | undefined;
-
-  @ApiPropertyOptional({
-    type: () => [SuggestionItemDto],
-    description: 'Low-confidence observations',
-  })
-  observations?: SuggestionItemDto[] | undefined;
-
-  @ApiPropertyOptional({
-    description:
+/**
+ * Standard Schema (zod 4) for the Today page suggestion cards returned by
+ * `GET /today/suggestions`. Replaces the former `TodaySuggestionsDataDto`
+ * response class.
+ */
+export const todaySuggestionsDataSchema = z.object({
+  generatedAt: z.string().describe('When the suggestions were generated'),
+  primary: suggestionItemSchema
+    .optional()
+    .describe('Primary suggestion card (highest priority)'),
+  secondary: z
+    .array(suggestionItemSchema)
+    .optional()
+    .describe('Secondary suggestion cards (max 2)'),
+  observations: z
+    .array(suggestionItemSchema)
+    .optional()
+    .describe('Low-confidence observations'),
+  degraded: z
+    .boolean()
+    .optional()
+    .describe(
       'When true, one or more suggestion rules threw an error during evaluation — the returned list may be incomplete.',
-  })
-  degraded?: boolean | undefined;
+    ),
+  materializationStatus: z
+    .enum(['empty', 'pending', 'ready', 'stale', 'failed'])
+    .describe('Current background materialization state'),
+  sourceVersion: z
+    .number()
+    .describe('Latest source version observed for this date'),
+  computedAt: z
+    .string()
+    .nullable()
+    .describe('When the last successful materialization completed'),
+  retryAfterSeconds: z
+    .number()
+    .nullable()
+    .describe('Suggested client polling delay in seconds'),
+});
 
-  @ApiProperty({
-    enum: ['empty', 'pending', 'ready', 'stale', 'failed'],
-    description: 'Current background materialization state',
-  })
-  materializationStatus!: MaterializationStatus;
+/** Strongly typed Today page suggestion cards payload. */
+export type TodaySuggestionsDataDto = z.infer<
+  typeof todaySuggestionsDataSchema
+>;
 
-  @ApiProperty({ description: 'Latest source version observed for this date' })
-  sourceVersion!: number;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description: 'When the last successful materialization completed',
-  })
-  computedAt!: string | null;
-
-  @ApiProperty({
-    type: Number,
-    nullable: true,
-    description: 'Suggested client polling delay in seconds',
-  })
-  retryAfterSeconds!: number | null;
-}
-
-/** Envelope response for GET /today/suggestions. */
-export class TodaySuggestionsResponseDto extends TodaySuggestionsDataDto {}
+/**
+ * Backwards-compatible response alias for `GET /today/suggestions`;
+ * identical to {@link TodaySuggestionsDataDto} on the wire.
+ */
+export type TodaySuggestionsResponseDto = TodaySuggestionsDataDto;

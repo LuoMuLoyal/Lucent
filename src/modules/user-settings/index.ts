@@ -1,4 +1,4 @@
-export { AssistantContextSettingsDto } from './dto/response.dto.js';
+export type { AssistantContextSettingsDto } from './dto/response.dto.js';
 export {
   USER_SETTING_KEYS,
   listDefaultBooleanUserSettings,

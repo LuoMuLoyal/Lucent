@@ -1,76 +1,39 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type {
+import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
+import {
+  SuggestionConfidence,
+  SuggestionLifecycleState,
   SuggestionType,
   TriggerType,
-  SuggestionLifecycleState,
-  SuggestionConfidence,
 } from '../types/suggestion.types.js';
 
-/** A single suggestion history item for the Report page. */
-export class SuggestionHistoryItemDto {
-  @ApiProperty({ description: 'Unique suggestion id' })
-  id!: string;
+/**
+ * Standard Schema (zod 4) for a single suggestion history item returned by
+ * `GET /today/suggestions/history`. Replaces the former
+ * `SuggestionHistoryItemDto` response class.
+ */
+export const suggestionHistoryItemSchema = z.object({
+  id: z.string().describe('Unique suggestion id'),
+  date: z.string().describe('Date (YYYY-MM-DD)'),
+  type: z.enum(SuggestionType).describe('Suggestion type'),
+  title: z.string().describe('Localized short title'),
+  reason: z.string().describe('Why this suggestion appeared'),
+  ruleId: z.string().describe('Rule identifier'),
+  ruleVersion: z.string().describe('Rule version'),
+  triggerType: z.enum(TriggerType).describe('Trigger type'),
+  lifecycleState: z.enum(SuggestionLifecycleState).describe('Lifecycle state'),
+  confidence: z.enum(SuggestionConfidence).describe('Confidence level'),
+  subtype: z.string().optional().describe('Sub-type'),
+  feedback: z.string().optional().describe('User feedback, if any'),
+  feedbackAt: z.string().optional().describe('When feedback was recorded'),
+  generatedAt: z.string().describe('When the suggestion was generated'),
+  expiredAt: z.string().optional().describe('When the suggestion was expired'),
+});
 
-  @ApiProperty({ description: 'Date (YYYY-MM-DD)' })
-  date!: string;
-
-  @ApiProperty({
-    description: 'Suggestion type',
-    enum: [
-      'confirmed_risk',
-      'compliance',
-      'trend',
-      'behavior_advice',
-      'coverage',
-    ],
-  })
-  type!: SuggestionType;
-
-  @ApiProperty({ description: 'Localized short title' })
-  title!: string;
-
-  @ApiProperty({ description: 'Why this suggestion appeared' })
-  reason!: string;
-
-  @ApiProperty({ description: 'Rule identifier' })
-  ruleId!: string;
-
-  @ApiProperty({ description: 'Rule version' })
-  ruleVersion!: string;
-
-  @ApiProperty({ description: 'Trigger type', enum: ['event', 'timer'] })
-  triggerType!: TriggerType;
-
-  @ApiProperty({
-    description: 'Lifecycle state',
-    enum: ['generated', 'active', 'fading', 'expired', 'dismissed'],
-  })
-  lifecycleState!: SuggestionLifecycleState;
-
-  @ApiProperty({
-    description: 'Confidence level',
-    enum: ['high', 'medium', 'low'],
-  })
-  confidence!: SuggestionConfidence;
-
-  @ApiPropertyOptional({ description: 'Sub-type' })
-  subtype?: string | undefined;
-
-  @ApiPropertyOptional({
-    description: 'User feedback, if any',
-    enum: ['accepted', 'later', 'not_applicable', 'suppress'],
-  })
-  feedback?: string | undefined;
-
-  @ApiPropertyOptional({ description: 'When feedback was recorded' })
-  feedbackAt?: string | undefined;
-
-  @ApiProperty({ description: 'When the suggestion was generated' })
-  generatedAt!: string;
-
-  @ApiPropertyOptional({ description: 'When the suggestion was expired' })
-  expiredAt?: string | undefined;
-}
+/** Strongly typed single suggestion history item. */
+export type SuggestionHistoryItemDto = z.infer<
+  typeof suggestionHistoryItemSchema
+>;
 
 /** Query parameters for GET /today/suggestions/history. */
 export class SuggestionHistoryQueryDto {
@@ -113,23 +76,27 @@ export class SuggestionHistoryQueryDto {
   limit?: number | undefined;
 }
 
-/** Data payload for GET /today/suggestions/history. */
-export class SuggestionHistoryDataDto {
-  @ApiProperty({
-    type: () => [SuggestionHistoryItemDto],
-    description: 'Suggestion history items',
-  })
-  items!: SuggestionHistoryItemDto[];
+/**
+ * Standard Schema (zod 4) for the data payload of
+ * `GET /today/suggestions/history`. Replaces the former
+ * `SuggestionHistoryDataDto` response class.
+ */
+export const suggestionHistoryDataSchema = z.object({
+  items: z
+    .array(suggestionHistoryItemSchema)
+    .describe('Suggestion history items'),
+  total: z.number().describe('Total count of matching items'),
+  startDate: z.string().describe('Start date used for the query'),
+  endDate: z.string().describe('End date used for the query'),
+});
 
-  @ApiProperty({ description: 'Total count of matching items' })
-  total!: number;
+/** Strongly typed suggestion history data payload. */
+export type SuggestionHistoryDataDto = z.infer<
+  typeof suggestionHistoryDataSchema
+>;
 
-  @ApiProperty({ description: 'Start date used for the query' })
-  startDate!: string;
-
-  @ApiProperty({ description: 'End date used for the query' })
-  endDate!: string;
-}
-
-/** Envelope response for GET /today/suggestions/history. */
-export class SuggestionHistoryResponseDto extends SuggestionHistoryDataDto {}
+/**
+ * Backwards-compatible response alias for `GET /today/suggestions/history`;
+ * identical to {@link SuggestionHistoryDataDto} on the wire.
+ */
+export type SuggestionHistoryResponseDto = SuggestionHistoryDataDto;

@@ -17,7 +17,7 @@ import {
 } from '../../auth/index.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { UserService } from '../../user/index.js';
-import { AccountDto } from '../dto/response.dto.js';
+import type { AccountDto } from '../dto/response.dto.js';
 import type { UnlinkIdentityDto } from '../dto/unlink-identity.dto.js';
 import type { UpdateAccountDto } from '../dto/update.dto.js';
 

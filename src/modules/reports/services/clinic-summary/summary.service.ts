@@ -213,10 +213,7 @@ export class ClinicSummaryService {
     };
     // Single selected-field view model: preview, PDF and share all consume
     // this filtered view, so deselected fields cannot reach any path.
-    return applySelectedFields(
-      summary,
-      options.selectedFields,
-    ) as ClinicSummaryDto;
+    return applySelectedFields(summary, options.selectedFields);
   }
 
   /**

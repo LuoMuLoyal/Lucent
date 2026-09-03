@@ -1,114 +1,57 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-/** 注册/简略用户信息 */
-export class UserBriefDto {
-  @ApiProperty({ description: '用户 ID' })
-  id!: string;
+/**
+ * Shared auth response schemas.
+ *
+ * Each schema replaces the former `@ApiProperty` response class of the same
+ * name (minus the `Schema` suffix). The wire shapes (nullable user profile
+ * fields etc.) are mirrored exactly; examples are not migrated (see the zod
+ * migration TODO for example/nullable metadata completion).
+ */
 
-  @ApiProperty({
-    description: '邮箱地址，第三方账号可能为空',
-    example: 'user@example.com',
-    nullable: true,
-    type: String,
-  })
-  email!: string | null;
+/** Replaces `UserBriefDto` — 注册/简略用户信息. */
+export const userBriefSchema = z.object({
+  id: z.string().describe('用户 ID'),
+  email: z.string().nullable().describe('邮箱地址，第三方账号可能为空'),
+  nickname: z.string().nullable().describe('昵称'),
+  emailVerified: z.boolean().describe('邮箱是否已验证'),
+  emailVerifiedAt: z.string().nullable().describe('邮箱验证时间 (ISO 8601)'),
+  createdAt: z.string().describe('创建时间 (ISO 8601)'),
+});
 
-  @ApiProperty({
-    description: '昵称',
-    example: '小明',
-    nullable: true,
-    type: String,
-  })
-  nickname!: string | null;
+/** Strongly typed brief user block of the auth responses. */
+export type UserBriefDto = z.infer<typeof userBriefSchema>;
 
-  @ApiProperty({ description: '邮箱是否已验证', example: true })
-  emailVerified!: boolean;
+/** Replaces `UserFullDto` — 登录/完整用户信息. */
+export const userFullSchema = z.object({
+  id: z.string().describe('用户 ID'),
+  email: z.string().nullable().describe('邮箱地址，第三方账号可能为空'),
+  nickname: z.string().nullable().describe('昵称'),
+  avatar: z.string().nullable().describe('头像 URL'),
+  emailVerified: z.boolean().describe('邮箱是否已验证'),
+  emailVerifiedAt: z.string().nullable().describe('邮箱验证时间 (ISO 8601)'),
+  createdAt: z.string().describe('创建时间 (ISO 8601)'),
+  updatedAt: z.string().describe('更新时间 (ISO 8601)'),
+});
 
-  @ApiProperty({
-    description: '邮箱验证时间 (ISO 8601)',
-    example: '2026-01-01T00:00:00.000Z',
-    nullable: true,
-    type: String,
-  })
-  emailVerifiedAt!: string | null;
+/** Strongly typed full user block of the auth responses. */
+export type UserFullDto = z.infer<typeof userFullSchema>;
 
-  @ApiProperty({
-    description: '创建时间 (ISO 8601)',
-    example: '2026-01-01T00:00:00.000Z',
-  })
-  createdAt!: string;
-}
+/** Replaces `TokensDto` — 令牌信息. */
+export const tokensSchema = z.object({
+  accessToken: z.string().describe('访问令牌'),
+  refreshToken: z.string().describe('刷新令牌'),
+  expiresIn: z.number().describe('访问令牌过期时间（秒）'),
+});
 
-/** 登录/完整用户信息 */
-export class UserFullDto {
-  @ApiProperty({ description: '用户 ID' })
-  id!: string;
+/** Strongly typed token pair of the auth responses. */
+export type TokensDto = z.infer<typeof tokensSchema>;
 
-  @ApiProperty({
-    description: '邮箱地址，第三方账号可能为空',
-    example: 'user@example.com',
-    nullable: true,
-    type: String,
-  })
-  email!: string | null;
+/** Replaces `CooldownMessageDto` — 冷却时间 + 提示消息. */
+export const cooldownMessageSchema = z.object({
+  cooldown: z.number().describe('冷却时间（秒）'),
+  message: z.string().describe('提示消息'),
+});
 
-  @ApiProperty({
-    description: '昵称',
-    example: '小明',
-    nullable: true,
-    type: String,
-  })
-  nickname!: string | null;
-
-  @ApiProperty({
-    description: '头像 URL',
-    example: 'https://example.com/avatar.png',
-    nullable: true,
-    type: String,
-  })
-  avatar!: string | null;
-
-  @ApiProperty({ description: '邮箱是否已验证', example: true })
-  emailVerified!: boolean;
-
-  @ApiProperty({
-    description: '邮箱验证时间 (ISO 8601)',
-    example: '2026-01-01T00:00:00.000Z',
-    nullable: true,
-    type: String,
-  })
-  emailVerifiedAt!: string | null;
-
-  @ApiProperty({
-    description: '创建时间 (ISO 8601)',
-    example: '2026-01-01T00:00:00.000Z',
-  })
-  createdAt!: string;
-
-  @ApiProperty({
-    description: '更新时间 (ISO 8601)',
-    example: '2026-01-01T00:00:00.000Z',
-  })
-  updatedAt!: string;
-}
-
-/** 令牌信息 */
-export class TokensDto {
-  @ApiProperty({ description: '访问令牌' })
-  accessToken!: string;
-
-  @ApiProperty({ description: '刷新令牌' })
-  refreshToken!: string;
-
-  @ApiProperty({ description: '访问令牌过期时间（秒）', example: 3600 })
-  expiresIn!: number;
-}
-
-/** 冷却时间 + 提示消息 */
-export class CooldownMessageDto {
-  @ApiProperty({ description: '冷却时间（秒）', example: 60 })
-  cooldown!: number;
-
-  @ApiProperty({ description: '提示消息', example: '验证码已发送' })
-  message!: string;
-}
+/** Strongly typed cooldown + message block of the auth responses. */
+export type CooldownMessageDto = z.infer<typeof cooldownMessageSchema>;

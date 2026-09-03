@@ -1,5 +1,5 @@
 import { TodayAnalysisController } from './today-analysis.controller.js';
-import { TodayAnalysisReadResponseDto } from './dto/analysis-response.dto.js';
+import { todayAnalysisReadDataSchema } from './dto/analysis-response.dto.js';
 
 describe('TodayAnalysisController OpenAPI contract', () => {
   const responsesFor = (method: keyof TodayAnalysisController) =>
@@ -8,21 +8,48 @@ describe('TodayAnalysisController OpenAPI contract', () => {
       TodayAnalysisController.prototype[method],
     ) as Record<string, { type?: unknown; schema?: unknown }> | undefined;
 
-  it('documents the read endpoint as direct read data', () => {
-    expect(responsesFor('read')?.['200']?.type).toBe(
-      TodayAnalysisReadResponseDto,
+  const serializeOptionsFor = (method: keyof TodayAnalysisController) =>
+    Reflect.getMetadata(
+      'class_serializer:options',
+      TodayAnalysisController.prototype[method],
+    ) as { schema?: unknown } | undefined;
+
+  it('wires the read endpoint to the zod response schema', () => {
+    expect(serializeOptionsFor('read')?.schema).toBe(
+      todayAnalysisReadDataSchema,
     );
+    // The former class-based `type` is gone; the schema is carried by
+    // `@SerializeOptions` and registered in the response-schema registry.
+    expect(responsesFor('read')?.['200']?.type).toBeUndefined();
   });
 
-  it('documents refresh, generate, and async direct unions explicitly', () => {
-    expect(responsesFor('refresh')?.['201']?.schema).toMatchObject({
-      oneOf: expect.any(Array),
-    });
-    expect(responsesFor('generate')?.['200']?.schema).toMatchObject({
-      oneOf: expect.any(Array),
-    });
-    expect(responsesFor('generateAsync')?.['202']?.schema).toMatchObject({
-      oneOf: expect.any(Array),
-    });
+  it('keeps the polymorphic union docs for refresh, generate, and async with stable member $refs', () => {
+    const oneOfRefs = (schema: unknown): unknown => {
+      const branches = (
+        schema as { oneOf?: Array<{ $ref: string }> } | undefined
+      )?.oneOf;
+      return branches?.map((branch) => branch.$ref);
+    };
+
+    expect(responsesFor('refresh')?.['201']?.type).toBeUndefined();
+    expect(oneOfRefs(responsesFor('refresh')?.['201']?.schema)).toEqual([
+      '#/components/schemas/TodayAnalysisDataDto',
+      '#/components/schemas/TodayAnalysisReadDataDto',
+      '#/components/schemas/TodayAnalysisRefreshPendingDataDto',
+      '#/components/schemas/TodayAnalysisRefreshReadyDataDto',
+    ]);
+
+    expect(responsesFor('generate')?.['200']?.type).toBeUndefined();
+    expect(oneOfRefs(responsesFor('generate')?.['200']?.schema)).toEqual([
+      '#/components/schemas/TodayAnalysisDataDto',
+      '#/components/schemas/TodayAnalysisReadDataDto',
+    ]);
+
+    expect(responsesFor('generateAsync')?.['202']?.type).toBeUndefined();
+    expect(oneOfRefs(responsesFor('generateAsync')?.['202']?.schema)).toEqual([
+      '#/components/schemas/TodayAnalysisAsyncJobDataDto',
+      '#/components/schemas/TodayAnalysisAsyncResultDataDto',
+      '#/components/schemas/TodayAnalysisAsyncStatusDataDto',
+    ]);
   });
 });

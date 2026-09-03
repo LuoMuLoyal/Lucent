@@ -13,6 +13,7 @@ import {
   Post,
   Query,
   Res,
+  SerializeOptions,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -20,17 +21,16 @@ import { ConfigService } from '@nestjs/config';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
-  ApiExtraModels,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang, I18nService } from 'nestjs-i18n';
 
 import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 
 import {
   endSse,
@@ -50,17 +50,19 @@ import type { GenerateReportSummaryDto } from './dto/generate-report-summary.dto
 import { reportDashboardQuerySchema } from './dto/report-dashboard-query.dto.js';
 import type { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto.js';
 
-import { ReportDashboardResponseDto } from './dto/report-dashboard-response.dto.js';
-
-import { ReportSummaryResponseDto } from './dto/report-summary-response.dto.js';
-import { ReportSummaryAsyncResponseDto } from './dto/report-summary-response.dto.js';
+import { reportDashboardResponseSchema } from './dto/report-dashboard-response.dto.js';
 
 import {
-  ClinicSummaryResponseDto,
-  ClinicSummaryShareResponseDto,
-  ClinicSummaryExportAsyncResponseDto,
+  reportSummaryAsyncResponseSchema,
+  reportSummaryResponseSchema,
+} from './dto/report-summary-response.dto.js';
+
+import {
+  clinicSummaryExportAsyncResponseSchema,
+  clinicSummaryResponseSchema,
+  clinicSummaryShareResponseSchema,
 } from './dto/clinic-summary-response.dto.js';
-import { ClinicSummaryShareListResponseDto } from './dto/clinic-summary-share-list.dto.js';
+import { clinicSummaryShareListResponseSchema } from './dto/clinic-summary-share-list.dto.js';
 import {
   clinicSummaryRequestSchema,
   CLINIC_SUMMARY_SELECTABLE_FIELDS,
@@ -69,9 +71,10 @@ import type { ClinicSummaryRequestDto } from './dto/clinic-summary-request.dto.j
 import { eventReviewListQuerySchema } from './dto/event-review-list-query.dto.js';
 import type { EventReviewListQueryDto } from './dto/event-review-list-query.dto.js';
 import {
-  EventReviewListResponseDto,
-  EventReviewResponseDto,
-  EventReviewDataDto,
+  eventReviewDataSchema,
+  eventReviewListResponseSchema,
+  eventReviewNullableResponseSchema,
+  eventReviewResponseSchema,
 } from './dto/event-review-response.dto.js';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
 
@@ -92,7 +95,6 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')
-@ApiExtraModels(EventReviewDataDto)
 @Controller('reports')
 export class ReportsController {
   private readonly logger = new Logger(ReportsController.name);
@@ -189,7 +191,11 @@ export class ReportsController {
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get authenticated user report dashboard' })
-  @ApiResponse({ status: 200, type: ReportDashboardResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Report dashboard with metric/trend/finding/pattern blocks.',
+  })
+  @SerializeOptions({ schema: reportDashboardResponseSchema })
   async getDashboard(
     @CurrentUser() user: UserPayload,
     @Query({ schema: reportDashboardQuerySchema })
@@ -203,7 +209,11 @@ export class ReportsController {
   @ApiOperation({
     summary: 'Generate authenticated user AI summary for report',
   })
-  @ApiResponse({ status: 200, type: ReportSummaryResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'AI report summary resource.',
+  })
+  @SerializeOptions({ schema: reportSummaryResponseSchema })
   async generateSummary(
     @CurrentUser() user: UserPayload,
     @Body({ schema: generateReportSummarySchema })
@@ -221,8 +231,8 @@ export class ReportsController {
     status: 202,
     description:
       'Returns either a queued jobId or the synchronous summary resource when the queue is unavailable.',
-    type: ReportSummaryAsyncResponseDto,
   })
+  @SerializeOptions({ schema: reportSummaryAsyncResponseSchema })
   async generateSummaryAsync(
     @CurrentUser() user: UserPayload,
     @Body({ schema: generateReportSummarySchema })
@@ -327,7 +337,11 @@ export class ReportsController {
     summary:
       'Generate a de-identified clinic summary for sharing with a doctor',
   })
-  @ApiResponse({ status: 201, type: ClinicSummaryResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'The de-identified clinic summary preview.',
+  })
+  @SerializeOptions({ schema: clinicSummaryResponseSchema })
   async previewClinicSummary(
     @CurrentUser() user: UserPayload,
     @Body({ schema: clinicSummaryRequestSchema })
@@ -346,7 +360,11 @@ export class ReportsController {
     summary:
       'Create a revocable share link for the clinic summary (7-day expiry)',
   })
-  @ApiResponse({ status: 201, type: ClinicSummaryShareResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'The created share record with its one-time token.',
+  })
+  @SerializeOptions({ schema: clinicSummaryShareResponseSchema })
   async shareClinicSummary(
     @CurrentUser() user: UserPayload,
     @Body({ schema: clinicSummaryRequestSchema })
@@ -412,7 +430,11 @@ export class ReportsController {
   @ApiOperation({
     summary: 'List the clinic summary shares of the authenticated user',
   })
-  @ApiResponse({ status: 200, type: ClinicSummaryShareListResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The caller clinic-summary shares, newest first.',
+  })
+  @SerializeOptions({ schema: clinicSummaryShareListResponseSchema })
   async listClinicSummaryShares(@CurrentUser() user: UserPayload) {
     return {
       items: await this.shareService.listSharesForUser(user.sub),
@@ -428,7 +450,11 @@ export class ReportsController {
     // generated spec (the runtime guard already opts out via @Public()).
     security: [],
   })
-  @ApiResponse({ status: 200, type: ClinicSummaryResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The shared clinic summary.',
+  })
+  @SerializeOptions({ schema: clinicSummaryResponseSchema })
   async getSharedClinicSummary(
     @Param('token') token: string,
     @I18nLang() language: string,
@@ -490,8 +516,8 @@ export class ReportsController {
       'honored (pdfBase64) because the queue job only carries the default ' +
       'scope. When no queue is configured, both paths return the base64 PDF ' +
       'synchronously.',
-    type: ClinicSummaryExportAsyncResponseDto,
   })
+  @SerializeOptions({ schema: clinicSummaryExportAsyncResponseSchema })
   async exportClinicSummaryPdfAsync(
     @CurrentUser() user: UserPayload,
     @Body({ schema: clinicSummaryRequestSchema })
@@ -626,11 +652,10 @@ export class ReportsController {
   })
   @ApiResponse({
     status: 200,
-    schema: {
-      nullable: true,
-      allOf: [{ $ref: getSchemaPath(EventReviewDataDto) }],
-    },
+    description:
+      'The current event review, or null when the user has no event review.',
   })
+  @SerializeOptions({ schema: eventReviewDataSchema })
   async getCurrentReview(@CurrentUser() user: UserPayload) {
     // Prefers the active event, then the most recent ended one. No events:
     // a successful 200 response with a null resource, not a 404.
@@ -639,7 +664,11 @@ export class ReportsController {
 
   @Get('reviews')
   @ApiOperation({ summary: 'List the user event review history' })
-  @ApiResponse({ status: 200, type: EventReviewListResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated event review history.',
+  })
+  @SerializeOptions({ schema: eventReviewListResponseSchema })
   async listReviews(
     @CurrentUser() user: UserPayload,
     @Query({ schema: eventReviewListQuerySchema })
@@ -651,7 +680,11 @@ export class ReportsController {
   @Get('reviews/:eventId')
   @ApiOperation({ summary: 'Get one user event review by event id' })
   @ApiParam({ name: 'eventId' })
-  @ApiResponse({ status: 200, type: EventReviewResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The event review for the requested event.',
+  })
+  @SerializeOptions({ schema: eventReviewResponseSchema })
   async getEventReview(
     @CurrentUser() user: UserPayload,
     @Param('eventId') eventId: string,
@@ -659,3 +692,100 @@ export class ReportsController {
     return await this.eventReviewService.buildForEvent(user.sub, eventId);
   }
 }
+
+// 201/202 主成功响应注记:export-openapi 目前只把注册组件的 200 响应回写为
+// $ref;以下 201/202 端点(preview/share/export-async/summary-async)的响应体
+// 同样按稳定组件名登记,导出脚本支持对应状态码回写后自动生效。
+registerResponseSchema({
+  path: '/api/v1/user/reports/dashboard',
+  method: 'get',
+  componentName: 'ReportDashboardResponseDto',
+  schema: reportDashboardResponseSchema,
+  description: 'Report dashboard with metric/trend/finding/pattern blocks.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/summary/generate',
+  method: 'post',
+  componentName: 'ReportSummaryResponseDto',
+  schema: reportSummaryResponseSchema,
+  description: 'AI report summary resource.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/summary/generate/async',
+  method: 'post',
+  componentName: 'ReportSummaryAsyncResponseDto',
+  schema: reportSummaryAsyncResponseSchema,
+  description:
+    'Returns either a queued jobId or the synchronous summary resource when the queue is unavailable.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/preview',
+  method: 'post',
+  componentName: 'ClinicSummaryResponseDto',
+  schema: clinicSummaryResponseSchema,
+  description: 'The de-identified clinic summary preview.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/share',
+  method: 'post',
+  componentName: 'ClinicSummaryShareResponseDto',
+  schema: clinicSummaryShareResponseSchema,
+  description: 'The created share record with its one-time token.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/shares',
+  method: 'get',
+  componentName: 'ClinicSummaryShareListResponseDto',
+  schema: clinicSummaryShareListResponseSchema,
+  description: 'The caller clinic-summary shares, newest first.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/shared/{token}',
+  method: 'get',
+  componentName: 'ClinicSummaryResponseDto',
+  schema: clinicSummaryResponseSchema,
+  description: 'The shared clinic summary.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/export/async',
+  method: 'post',
+  componentName: 'ClinicSummaryExportAsyncResponseDto',
+  schema: clinicSummaryExportAsyncResponseSchema,
+  description:
+    'Unscoped requests use the async queue job (jobId for polling); an explicit scope is exported synchronously with the requested scope honored (pdfBase64). When no queue is configured, both paths return the base64 PDF synchronously.',
+});
+
+// GET /reviews/current returns the event review data or null — the registered
+// component schema carries `.nullable()` so the 200 `$ref` keeps the
+// “resource or null” semantics of the former inline nullable allOf document.
+registerResponseSchema({
+  path: '/api/v1/user/reports/reviews/current',
+  method: 'get',
+  componentName: 'EventReviewDataDto',
+  schema: eventReviewNullableResponseSchema,
+  description:
+    'The current event review, or null when the user has no event review.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/reviews',
+  method: 'get',
+  componentName: 'EventReviewListResponseDto',
+  schema: eventReviewListResponseSchema,
+  description: 'Paginated event review history.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/reviews/{eventId}',
+  method: 'get',
+  componentName: 'EventReviewResponseDto',
+  schema: eventReviewResponseSchema,
+  description: 'The event review for the requested event.',
+});

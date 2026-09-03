@@ -8,6 +8,7 @@ import {
   Query,
   Req,
   Res,
+  SerializeOptions,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest, FastifyReply } from 'fastify';
@@ -16,6 +17,7 @@ import {
   extractAuthRequestContext,
   ProblemDetailsDto,
 } from '../../../common/index.js';
+import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuthService } from '../services/auth.service.js';
 
@@ -45,8 +47,8 @@ import type {
 } from '../dto/shared/oauth.dto.js';
 
 import {
-  LoginResponseDto,
-  OAuthAuthorizeResponseDto,
+  loginResponseSchema,
+  oauthAuthorizeResponseSchema,
 } from '../dto/shared/auth-responses.dto.js';
 
 import { buildAuthResponse } from './auth-response.helper.js';
@@ -63,7 +65,11 @@ export class OAuthController {
   @Post('oauth/wechat-web/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create WeChat web OAuth authorize URL' })
-  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'OAuth authorize URL with state and expiry.',
+  })
+  @SerializeOptions({ schema: oauthAuthorizeResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
@@ -80,7 +86,11 @@ export class OAuthController {
   @Post('oauth/wechat-web/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'WeChat web OAuth callback login' })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Authenticated user with token pair.',
+  })
+  @SerializeOptions({ schema: loginResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid OAuth state or missing/malformed callback credential',
@@ -150,7 +160,11 @@ export class OAuthController {
   @Post('oauth/wechat-mobile/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'WeChat mobile OAuth callback login' })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Authenticated user with token pair.',
+  })
+  @SerializeOptions({ schema: loginResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Missing/malformed callback credential',
@@ -200,7 +214,11 @@ export class OAuthController {
   @Post('oauth/apple/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Apple Sign-In callback' })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Authenticated user with token pair.',
+  })
+  @SerializeOptions({ schema: loginResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Missing or invalid identity token',
@@ -247,7 +265,11 @@ export class OAuthController {
   @Post('oauth/qq/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create QQ OAuth authorize URL' })
-  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'OAuth authorize URL with state and expiry.',
+  })
+  @SerializeOptions({ schema: oauthAuthorizeResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
@@ -264,7 +286,11 @@ export class OAuthController {
   @Post('oauth/qq/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'QQ OAuth callback login' })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Authenticated user with token pair.',
+  })
+  @SerializeOptions({ schema: loginResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid OAuth state or missing/malformed callback credential',
@@ -311,7 +337,11 @@ export class OAuthController {
   @Post('oauth/weibo/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create Weibo OAuth authorize URL' })
-  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'OAuth authorize URL with state and expiry.',
+  })
+  @SerializeOptions({ schema: oauthAuthorizeResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
@@ -328,7 +358,11 @@ export class OAuthController {
   @Post('oauth/weibo/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Weibo OAuth callback login' })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Authenticated user with token pair.',
+  })
+  @SerializeOptions({ schema: loginResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid OAuth state or missing/malformed callback credential',
@@ -375,7 +409,11 @@ export class OAuthController {
   @Post('oauth/google/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create Google OAuth authorize URL' })
-  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'OAuth authorize URL with state and expiry.',
+  })
+  @SerializeOptions({ schema: oauthAuthorizeResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
@@ -392,7 +430,11 @@ export class OAuthController {
   @Post('oauth/google/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Google OAuth callback login' })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Authenticated user with token pair.',
+  })
+  @SerializeOptions({ schema: loginResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid OAuth state or missing/malformed callback credential',
@@ -434,3 +476,83 @@ export class OAuthController {
     return buildAuthResponse(result.user, result);
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/wechat-web/authorize',
+  method: 'post',
+  componentName: 'OAuthAuthorizeResponseDto',
+  schema: oauthAuthorizeResponseSchema,
+  description: 'OAuth authorize URL with state and expiry.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/wechat-web/callback',
+  method: 'post',
+  componentName: 'LoginResponseDto',
+  schema: loginResponseSchema,
+  description: 'Authenticated user with token pair.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/wechat-mobile/callback',
+  method: 'post',
+  componentName: 'LoginResponseDto',
+  schema: loginResponseSchema,
+  description: 'Authenticated user with token pair.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/apple/callback',
+  method: 'post',
+  componentName: 'LoginResponseDto',
+  schema: loginResponseSchema,
+  description: 'Authenticated user with token pair.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/qq/authorize',
+  method: 'post',
+  componentName: 'OAuthAuthorizeResponseDto',
+  schema: oauthAuthorizeResponseSchema,
+  description: 'OAuth authorize URL with state and expiry.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/qq/callback',
+  method: 'post',
+  componentName: 'LoginResponseDto',
+  schema: loginResponseSchema,
+  description: 'Authenticated user with token pair.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/weibo/authorize',
+  method: 'post',
+  componentName: 'OAuthAuthorizeResponseDto',
+  schema: oauthAuthorizeResponseSchema,
+  description: 'OAuth authorize URL with state and expiry.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/weibo/callback',
+  method: 'post',
+  componentName: 'LoginResponseDto',
+  schema: loginResponseSchema,
+  description: 'Authenticated user with token pair.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/google/authorize',
+  method: 'post',
+  componentName: 'OAuthAuthorizeResponseDto',
+  schema: oauthAuthorizeResponseSchema,
+  description: 'OAuth authorize URL with state and expiry.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/oauth/google/callback',
+  method: 'post',
+  componentName: 'LoginResponseDto',
+  schema: loginResponseSchema,
+  description: 'Authenticated user with token pair.',
+});

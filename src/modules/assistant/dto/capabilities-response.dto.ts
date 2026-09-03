@@ -1,135 +1,132 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 import {
   ASSISTANT_CONTEXT_SOURCES,
+  ASSISTANT_TOOL_DISABLED_REASONS,
   ASSISTANT_TOOL_NAMES,
-  type AssistantContextSource,
-  type AssistantToolDisabledReason,
-  type AssistantToolName,
 } from '../tools/shared/tool-types.js';
-import { AssistantContextSettingsDto } from '../../user-settings/index.js';
 
-export class AssistantToolCapabilityDto {
-  @ApiProperty({
-    description: 'Stable tool identifier exposed to the client.',
-    enum: ASSISTANT_TOOL_NAMES,
-  })
-  name!: AssistantToolName;
-
-  @ApiProperty({
-    description: `Context sources this tool requires before it may run. Allowed values: ${ASSISTANT_CONTEXT_SOURCES.join(', ')}.`,
-    type: [String],
-    example: ['health_profile'],
-  })
-  requiredContextSources!: AssistantContextSource[];
-
-  @ApiProperty({
-    description:
+/**
+ * Standard Schema (zod 4) for one tool capability entry of
+ * `GET /assistant/capabilities`. Replaces the former
+ * `AssistantToolCapabilityDto` response class.
+ */
+export const assistantToolCapabilitySchema = z.object({
+  name: z
+    .enum(ASSISTANT_TOOL_NAMES)
+    .describe('Stable tool identifier exposed to the client.'),
+  requiredContextSources: z
+    .array(z.enum(ASSISTANT_CONTEXT_SOURCES))
+    .describe(
+      `Context sources this tool requires before it may run. Allowed values: ${ASSISTANT_CONTEXT_SOURCES.join(', ')}.`,
+    ),
+  permittedByUser: z
+    .boolean()
+    .describe(
       'Whether the current user settings permit this tool in principle.',
-  })
-  permittedByUser!: boolean;
-
-  @ApiProperty({
-    description: 'Whether this tool is currently executable for this user.',
-  })
-  enabled!: boolean;
-
-  @ApiProperty({
-    description:
+    ),
+  enabled: z
+    .boolean()
+    .describe('Whether this tool is currently executable for this user.'),
+  implemented: z
+    .boolean()
+    .describe(
       'Whether the server has already implemented this tool beyond planning/foundation wiring.',
-  })
-  implemented!: boolean;
+    ),
+  disabledReason: z
+    .enum(ASSISTANT_TOOL_DISABLED_REASONS)
+    .nullable()
+    .describe('Why the tool is currently disabled, or null when enabled.'),
+});
 
-  @ApiProperty({
-    description: 'Why the tool is currently disabled, or null when enabled.',
-    nullable: true,
-    enum: [
-      'chat_disabled',
-      'context_disabled',
-      'model_not_configured',
-      'not_implemented',
-    ],
-  })
-  disabledReason!: AssistantToolDisabledReason | null;
-}
+/** Strongly typed single-tool capability entry. */
+export type AssistantToolCapabilityDto = z.infer<
+  typeof assistantToolCapabilitySchema
+>;
 
-export class AssistantCapabilitiesDataDto {
-  @ApiProperty({
-    description: 'Current backend rollout phase for the assistant.',
-    example: 'foundation',
-  })
-  phase!: 'foundation';
-
-  @ApiProperty({
-    description: 'Whether the user has left the assistant enabled in settings.',
-  })
-  assistantEnabled!: boolean;
-
-  @ApiProperty({
-    description:
+/**
+ * Standard Schema (zod 4) for the authenticated user assistant capabilities
+ * and permissions returned by `GET /assistant/capabilities`. Replaces the
+ * former `AssistantCapabilitiesDataDto` response class.
+ */
+export const assistantCapabilitiesDataSchema = z.object({
+  phase: z
+    .literal('foundation')
+    .describe('Current backend rollout phase for the assistant.'),
+  assistantEnabled: z
+    .boolean()
+    .describe('Whether the user has left the assistant enabled in settings.'),
+  assistantMemoryEnabled: z
+    .boolean()
+    .describe(
       'Whether cross-conversation assistant memory reuse is enabled for this user.',
-  })
-  assistantMemoryEnabled!: boolean;
-
-  @ApiProperty({
-    description:
-      'Fine-grained assistant context permissions from user settings.',
-    type: () => AssistantContextSettingsDto,
-  })
-  assistantContext!: AssistantContextSettingsDto;
-
-  @ApiProperty({
-    description: 'Whether the configured chat model role exists server-side.',
-  })
-  chatModelConfigured!: boolean;
-
-  @ApiProperty({
-    description:
+    ),
+  assistantContext: z
+    .object({
+      healthProfile: z
+        .boolean()
+        .describe(
+          'Whether the assistant may read stored health profile, allergies, and conditions.',
+        ),
+      dailyRecords: z
+        .boolean()
+        .describe('Whether the assistant may read recent daily records.'),
+      sleepRecords: z
+        .boolean()
+        .describe(
+          'Whether the assistant may read sleep records and summaries.',
+        ),
+      currentMedicines: z
+        .boolean()
+        .describe(
+          'Whether the assistant may read current medicines and medicine-box data.',
+        ),
+    })
+    .describe('Fine-grained assistant context permissions from user settings.'),
+  chatModelConfigured: z
+    .boolean()
+    .describe('Whether the configured chat model role exists server-side.'),
+  interactiveChatReady: z
+    .boolean()
+    .describe(
       'Whether an actual end-user chat interaction route is ready to be exposed.',
-  })
-  interactiveChatReady!: boolean;
-
-  @ApiProperty({
-    description: 'Whether the LangGraph orchestration foundation is active.',
-  })
-  langGraphReady!: boolean;
-
-  @ApiProperty({
-    description: 'Whether the current backend intends to stream responses.',
-  })
-  streamingSupported!: boolean;
-
-  @ApiProperty({
-    description:
-      'Recommended streaming transport for the current chat contract.',
-    example: 'sse',
-  })
-  streamingTransport!: 'sse';
-
-  @ApiProperty({
-    description:
+    ),
+  langGraphReady: z
+    .boolean()
+    .describe('Whether the LangGraph orchestration foundation is active.'),
+  streamingSupported: z
+    .boolean()
+    .describe('Whether the current backend intends to stream responses.'),
+  streamingTransport: z
+    .literal('sse')
+    .describe('Recommended streaming transport for the current chat contract.'),
+  markdownRenderingRecommended: z
+    .boolean()
+    .describe(
       'Whether the frontend should expect Markdown output and render it faithfully.',
-  })
-  markdownRenderingRecommended!: boolean;
-
-  @ApiProperty({
-    description:
+    ),
+  ragEnabled: z
+    .boolean()
+    .describe(
       'Whether medicine-leaflet retrieval augmentation is currently enabled.',
-  })
-  ragEnabled!: boolean;
-
-  @ApiProperty({
-    description:
+    ),
+  tools: z
+    .array(assistantToolCapabilitySchema)
+    .describe(
       'Tool-by-tool capability breakdown after combining system state and user permissions.',
-    type: () => [AssistantToolCapabilityDto],
-  })
-  tools!: AssistantToolCapabilityDto[];
+    ),
+  updatedAt: z
+    .string()
+    .nullable()
+    .describe('ISO-8601 timestamp of the latest related settings update.'),
+});
 
-  @ApiProperty({
-    type: String,
-    description: 'ISO-8601 timestamp of the latest related settings update.',
-    nullable: true,
-  })
-  updatedAt!: string | null;
-}
+/** Strongly typed assistant capabilities and permissions payload. */
+export type AssistantCapabilitiesDataDto = z.infer<
+  typeof assistantCapabilitiesDataSchema
+>;
 
-export class AssistantCapabilitiesResponseDto extends AssistantCapabilitiesDataDto {}
+/**
+ * Backwards-compatible response alias for `GET /assistant/capabilities`;
+ * identical to {@link AssistantCapabilitiesDataDto} on the wire.
+ */
+export type AssistantCapabilitiesResponseDto = AssistantCapabilitiesDataDto;

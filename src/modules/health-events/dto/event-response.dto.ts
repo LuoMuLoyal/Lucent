@@ -1,105 +1,132 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
+
 import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
 
-export class HealthEventCheckInResponseDto {
-  @ApiProperty()
-  id!: string;
+/**
+ * Standard Schema (zod 4) for one user-confirmed daily check-in of a health
+ * event (nested in event responses).
+ *
+ * Replaces the former `@ApiProperty` response class
+ * `HealthEventCheckInResponseDto`.
+ */
+export const healthEventCheckInResponseSchema = z.object({
+  id: z.string(),
+  eventId: z.string(),
+  date: z.string().describe('Calendar date in YYYY-MM-DD format.'),
+  outcome: z.enum(HealthEventOutcome),
+  createdAt: z.string().describe('Creation time in ISO 8601 format.'),
+  updatedAt: z.string().describe('Last update time in ISO 8601 format.'),
+});
 
-  @ApiProperty()
-  eventId!: string;
+/** Strongly typed daily check-in nested in health-event responses. */
+export type HealthEventCheckInResponseDto = z.infer<
+  typeof healthEventCheckInResponseSchema
+>;
 
-  @ApiProperty({ description: 'Calendar date in YYYY-MM-DD format.' })
-  date!: string;
+/**
+ * Standard Schema (zod 4) for the check-in coverage block nested in health
+ * event responses.
+ *
+ * Replaces the former `@ApiProperty` response class `HealthEventCoverageDto`.
+ */
+export const healthEventCoverageSchema = z.object({
+  checkInCount: z
+    .number()
+    .int()
+    .describe('Number of user-confirmed daily check-ins.'),
+  firstCheckInDate: z
+    .string()
+    .describe('First check-in calendar date, or null when none exists.')
+    .nullable(),
+  lastCheckInDate: z
+    .string()
+    .describe('Last check-in calendar date, or null when none exists.')
+    .nullable(),
+});
 
-  @ApiProperty({ enum: HealthEventOutcome, enumName: 'HealthEventOutcome' })
-  outcome!: HealthEventOutcome;
+/** Strongly typed check-in coverage block of health-event responses. */
+export type HealthEventCoverageDto = z.infer<typeof healthEventCoverageSchema>;
 
-  @ApiProperty({ description: 'Creation time in ISO 8601 format.' })
-  createdAt!: string;
+/**
+ * Standard Schema (zod 4) for one health-event read item — the wire shape of
+ * the health-event detail/active/list payloads.
+ *
+ * Replaces the former `@ApiProperty` response class `HealthEventItemDto`. The
+ * controller mapper always emits every key; nullable columns surface as an
+ * explicit `null` and `checkIn` is `null` while no check-in exists.
+ */
+export const healthEventItemSchema = z.object({
+  kind: z.enum(HealthEventKind),
+  id: z.string(),
+  title: z.string(),
+  status: z.enum(HealthEventStatus),
+  startedAt: z.string().describe('Start time in ISO 8601 format.'),
+  endedAt: z
+    .string()
+    .describe('End time in ISO 8601 format, or null while active.')
+    .nullable(),
+  outcome: z.enum(HealthEventOutcome).nullable(),
+  reasonRecordId: z.string().nullable(),
+  currentMedicineIds: z.array(z.string()),
+  checkIn: healthEventCheckInResponseSchema.nullable(),
+  coverage: healthEventCoverageSchema,
+});
 
-  @ApiProperty({ description: 'Last update time in ISO 8601 format.' })
-  updatedAt!: string;
-}
+/** Strongly typed health-event read item returned by event endpoints. */
+export type HealthEventItemDto = z.infer<typeof healthEventItemSchema>;
 
-export class HealthEventCoverageDto {
-  @ApiProperty({ description: 'Number of user-confirmed daily check-ins.' })
-  checkInCount!: number;
+/**
+ * Standard Schema (zod 4) for the `GET /health-events` list payload.
+ *
+ * Replaces the former `@ApiProperty` data class `HealthEventListDataDto`.
+ */
+export const healthEventListDataSchema = z.object({
+  items: z.array(healthEventItemSchema),
+  total: z.number().int(),
+});
 
-  @ApiPropertyOptional({
-    type: String,
-    description: 'First check-in calendar date, or null when none exists.',
-    nullable: true,
-  })
-  firstCheckInDate!: string | null;
+/** Strongly typed health-event list payload of `GET /health-events`. */
+export type HealthEventListDataDto = z.infer<typeof healthEventListDataSchema>;
 
-  @ApiPropertyOptional({
-    type: String,
-    description: 'Last check-in calendar date, or null when none exists.',
-    nullable: true,
-  })
-  lastCheckInDate!: string | null;
-}
+/**
+ * Standard Schema (zod 4) for the health-event responses whose body is one
+ * event item (`POST /health-events`, `GET/PUT /health-events/:id...`).
+ *
+ * Replaces the former response class `HealthEventResponseDto` (which extended
+ * `HealthEventItemDto` without adding fields).
+ */
+export const healthEventResponseSchema = healthEventItemSchema;
 
-export class HealthEventItemDto {
-  @ApiProperty({ enum: HealthEventKind, enumName: 'HealthEventKind' })
-  kind!: HealthEventKind;
+/** Strongly typed single-event response body of the event endpoints. */
+export type HealthEventResponseDto = z.infer<typeof healthEventResponseSchema>;
 
-  @ApiProperty()
-  id!: string;
+/**
+ * Standard Schema (zod 4) for `GET /health-events/active` (200): one event
+ * item, or `null` when the user has no active event.
+ *
+ * Replaces the former response class `HealthEventNullableResponseDto`.
+ */
+export const healthEventNullableResponseSchema =
+  healthEventItemSchema.nullable();
 
-  @ApiProperty({ maxLength: 80 })
-  title!: string;
+/** Strongly typed response body of `GET /health-events/active`. */
+export type HealthEventNullableResponseDto = z.infer<
+  typeof healthEventNullableResponseSchema
+>;
 
-  @ApiProperty({ enum: HealthEventStatus, enumName: 'HealthEventStatus' })
-  status!: HealthEventStatus;
+/**
+ * Standard Schema (zod 4) for `GET /health-events` (200).
+ *
+ * Replaces the former response class `HealthEventListResponseDto` (which
+ * extended `HealthEventListDataDto` without adding fields).
+ */
+export const healthEventListResponseSchema = healthEventListDataSchema;
 
-  @ApiProperty({ description: 'Start time in ISO 8601 format.' })
-  startedAt!: string;
-
-  @ApiProperty({
-    type: String,
-    description: 'End time in ISO 8601 format, or null while active.',
-    nullable: true,
-  })
-  endedAt!: string | null;
-
-  @ApiProperty({
-    enum: HealthEventOutcome,
-    enumName: 'HealthEventOutcome',
-    nullable: true,
-  })
-  outcome!: HealthEventOutcome | null;
-
-  @ApiProperty({ type: String, nullable: true })
-  reasonRecordId!: string | null;
-
-  @ApiProperty({ type: String, isArray: true })
-  currentMedicineIds!: string[];
-
-  @ApiProperty({
-    type: () => HealthEventCheckInResponseDto,
-    nullable: true,
-  })
-  checkIn!: HealthEventCheckInResponseDto | null;
-
-  @ApiProperty({ type: () => HealthEventCoverageDto })
-  coverage!: HealthEventCoverageDto;
-}
-
-export class HealthEventListDataDto {
-  @ApiProperty({ type: () => HealthEventItemDto, isArray: true })
-  items!: HealthEventItemDto[];
-
-  @ApiProperty()
-  total!: number;
-}
-
-export class HealthEventResponseDto extends HealthEventItemDto {}
-
-export class HealthEventNullableResponseDto extends HealthEventItemDto {}
-
-export class HealthEventListResponseDto extends HealthEventListDataDto {}
+/** Strongly typed response body of `GET /health-events`. */
+export type HealthEventListResponseDto = z.infer<
+  typeof healthEventListResponseSchema
+>;

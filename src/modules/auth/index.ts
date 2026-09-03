@@ -28,7 +28,8 @@ export {
   oauthCallbackSchema,
   oauthCodeCallbackSchema,
 } from './dto/shared/oauth.dto.js';
-export { OAuthAuthorizeResponseDto } from './dto/shared/auth-responses.dto.js';
+export type { OAuthAuthorizeResponseDto } from './dto/shared/auth-responses.dto.js';
+export { oauthAuthorizeResponseSchema } from './dto/shared/auth-responses.dto.js';
 export { Public } from './decorators/public.decorator.js';
 export { QqOAuthProvider } from './providers/qq-oauth.provider.js';
 export type { SetPasswordDto } from './dto/password/set-password.dto.js';

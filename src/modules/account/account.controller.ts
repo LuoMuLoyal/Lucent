@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Req,
+  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,6 +23,7 @@ import {
   extractAuthRequestContext,
   ProblemDetailsDto,
 } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { AuditLogService } from '../audit-log/index.js';
 import { AuthService } from '../auth/index.js';
@@ -37,7 +39,7 @@ import {
   oauthCodeCallbackSchema,
   setPasswordSchema,
 } from '../auth/index.js';
-import { OAuthAuthorizeResponseDto } from '../auth/index.js';
+import { oauthAuthorizeResponseSchema } from '../auth/index.js';
 import type {
   ChangeEmailDto,
   ChangePasswordDto,
@@ -49,8 +51,8 @@ import type {
 } from '../auth/index.js';
 import { AccountService } from './services/account.service.js';
 import {
-  AccountEmailResponseDto,
-  AccountResponseDto,
+  accountDataSchema,
+  accountEmailDataSchema,
 } from './dto/response.dto.js';
 import { unlinkIdentitySchema } from './dto/unlink-identity.dto.js';
 import type { UnlinkIdentityDto } from './dto/unlink-identity.dto.js';
@@ -69,24 +71,32 @@ export class AccountController {
 
   @Get()
   @ApiOperation({ summary: 'Get authenticated account profile' })
-  @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Authenticated account profile.',
+  })
   @ApiResponse({
     status: 404,
     description: 'Account not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: accountDataSchema })
   async getAccount(@CurrentUser() user: UserPayload) {
     return unwrapResult(this.accountService.getAccount(user.sub));
   }
 
   @Patch()
   @ApiOperation({ summary: 'Update authenticated account profile' })
-  @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated authenticated account profile.',
+  })
   @ApiResponse({
     status: 404,
     description: 'Account not found',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: accountDataSchema })
   async updateAccount(
     @CurrentUser() user: UserPayload,
     @Body({ schema: updateAccountSchema }) dto: UpdateAccountDto,
@@ -168,7 +178,10 @@ export class AccountController {
   @Post('email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change authenticated account email' })
-  @ApiResponse({ status: 200, type: AccountEmailResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated account email with verification time.',
+  })
   @ApiResponse({
     status: 400,
     description: 'Verification code expired or does not match',
@@ -195,6 +208,7 @@ export class AccountController {
     description: 'Too many failed re-authentication attempts',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: accountEmailDataSchema })
   async changeEmail(
     @CurrentUser() user: UserPayload,
     @Body({ schema: changeEmailSchema }) dto: ChangeEmailDto,
@@ -218,7 +232,10 @@ export class AccountController {
   @Delete('identities/:identityId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unlink authenticated account OAuth identity' })
-  @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Account profile with the identity unlinked.',
+  })
   @ApiResponse({
     status: 401,
     description:
@@ -241,6 +258,7 @@ export class AccountController {
     description: 'Too many failed re-authentication attempts',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: accountDataSchema })
   async unlinkIdentity(
     @CurrentUser() user: UserPayload,
     @Param('identityId') identityId: string,
@@ -265,7 +283,8 @@ export class AccountController {
   @ApiOperation({
     summary: 'Create WeChat web OAuth authorize URL for linking',
   })
-  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  @ApiResponse({ status: 200, description: 'OAuth authorize URL.' })
+  @SerializeOptions({ schema: oauthAuthorizeResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
@@ -284,7 +303,10 @@ export class AccountController {
   @ApiOperation({
     summary: 'Link WeChat web identity to authenticated account',
   })
-  @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Account profile with the linked identity.',
+  })
   @ApiResponse({
     status: 400,
     description: 'Invalid OAuth state or missing/malformed callback credential',
@@ -316,6 +338,7 @@ export class AccountController {
     description: 'OAuth provider timed out',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: accountDataSchema })
   async linkWechatWebIdentity(
     @CurrentUser() user: UserPayload,
     @Body({ schema: oauthCallbackSchema }) dto: OAuthCallbackDto,
@@ -337,7 +360,10 @@ export class AccountController {
   @ApiOperation({
     summary: 'Link WeChat mobile identity to authenticated account',
   })
-  @ApiResponse({ status: 200, type: AccountResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Account profile with the linked identity.',
+  })
   @ApiResponse({
     status: 400,
     description: 'Missing/malformed callback credential',
@@ -369,6 +395,7 @@ export class AccountController {
     description: 'OAuth provider timed out',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: accountDataSchema })
   async linkWechatMobileIdentity(
     @CurrentUser() user: UserPayload,
     @Body({ schema: oauthCodeCallbackSchema }) dto: OAuthCodeCallbackDto,
@@ -427,3 +454,59 @@ export class AccountController {
     return;
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/account',
+  method: 'get',
+  componentName: 'AccountResponseDto',
+  schema: accountDataSchema,
+  description: 'Authenticated account profile.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/account',
+  method: 'patch',
+  componentName: 'AccountResponseDto',
+  schema: accountDataSchema,
+  description: 'Updated authenticated account profile.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/account/email',
+  method: 'post',
+  componentName: 'AccountEmailResponseDto',
+  schema: accountEmailDataSchema,
+  description: 'Updated account email with verification time.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/account/identities/{identityId}',
+  method: 'delete',
+  componentName: 'AccountResponseDto',
+  schema: accountDataSchema,
+  description: 'Account profile with the identity unlinked.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/account/identities/wechat-web/callback',
+  method: 'post',
+  componentName: 'AccountResponseDto',
+  schema: accountDataSchema,
+  description: 'Account profile with the linked identity.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/account/identities/wechat-mobile/callback',
+  method: 'post',
+  componentName: 'AccountResponseDto',
+  schema: accountDataSchema,
+  description: 'Account profile with the linked identity.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/account/identities/wechat-web/authorize',
+  method: 'post',
+  componentName: 'OAuthAuthorizeResponseDto',
+  schema: oauthAuthorizeResponseSchema,
+  description: 'WeChat web OAuth authorize URL for identity linking.',
+});

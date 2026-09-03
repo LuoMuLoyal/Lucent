@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Query,
+  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -23,12 +24,13 @@ import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { createMedicineReminderSchema } from './dto/create.dto.js';
 import type { CreateMedicineReminderDto } from './dto/create.dto.js';
 
 import {
-  MedicineReminderListResponseDto,
-  MedicineReminderResponseDto,
+  medicineReminderListResponseSchema,
+  medicineReminderResponseSchema,
 } from './dto/response.dto.js';
 
 import { updateMedicineReminderSchema } from './dto/update.dto.js';
@@ -50,7 +52,8 @@ export class MedicineRemindersController {
     required: false,
     description: 'Set to true to return active reminders only.',
   })
-  @ApiResponse({ status: 200, type: MedicineReminderListResponseDto })
+  @ApiResponse({ status: 200, description: 'Medicine reminder schedules.' })
+  @SerializeOptions({ schema: medicineReminderListResponseSchema })
   async list(
     @CurrentUser() user: UserPayload,
     @Query('activeOnly') activeOnly?: string,
@@ -63,7 +66,8 @@ export class MedicineRemindersController {
 
   @Post()
   @ApiOperation({ summary: 'Create a medicine reminder schedule' })
-  @ApiResponse({ status: 201, type: MedicineReminderResponseDto })
+  @ApiResponse({ status: 201, description: 'The created medicine reminder.' })
+  @SerializeOptions({ schema: medicineReminderResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid reminder payload (VALIDATION_FAILED)',
@@ -85,7 +89,8 @@ export class MedicineRemindersController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update a medicine reminder schedule' })
   @ApiParam({ name: 'id' })
-  @ApiResponse({ status: 200, type: MedicineReminderResponseDto })
+  @ApiResponse({ status: 200, description: 'The updated medicine reminder.' })
+  @SerializeOptions({ schema: medicineReminderResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid reminder payload (VALIDATION_FAILED)',
@@ -132,7 +137,8 @@ export class MedicineRemindersController {
 
   @Put('group')
   @ApiOperation({ summary: 'Upsert a whole medicine reminder group' })
-  @ApiResponse({ status: 200, type: MedicineReminderListResponseDto })
+  @ApiResponse({ status: 200, description: 'The upserted reminder group.' })
+  @SerializeOptions({ schema: medicineReminderListResponseSchema })
   @ApiResponse({
     status: 400,
     description:
@@ -156,3 +162,35 @@ export class MedicineRemindersController {
     return value === 'true' || value === '1' || value === 'yes';
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-reminders',
+  method: 'get',
+  componentName: 'MedicineReminderListResponseDto',
+  schema: medicineReminderListResponseSchema,
+  description: 'Medicine reminder schedules.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-reminders',
+  method: 'post',
+  componentName: 'MedicineReminderResponseDto',
+  schema: medicineReminderResponseSchema,
+  description: 'The created medicine reminder.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-reminders/{id}',
+  method: 'patch',
+  componentName: 'MedicineReminderResponseDto',
+  schema: medicineReminderResponseSchema,
+  description: 'The updated medicine reminder.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-reminders/group',
+  method: 'put',
+  componentName: 'MedicineReminderListResponseDto',
+  schema: medicineReminderListResponseSchema,
+  description: 'The upserted reminder group.',
+});

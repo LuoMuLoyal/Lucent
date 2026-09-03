@@ -1,92 +1,78 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
+
 import { DAILY_RECORD_CANDIDATE_KINDS } from '../../schemas/daily-record-candidates.schema.js';
 
 export type DailyRecordCandidateKind =
   (typeof DAILY_RECORD_CANDIDATE_KINDS)[number];
 
-class DailyRecordCandidateItemDto {
-  @ApiProperty({
-    enum: DAILY_RECORD_CANDIDATE_KINDS,
-    enumName: 'DailyRecordCandidateKind',
-  })
-  kind!: DailyRecordCandidateKind;
-
-  @ApiProperty({
-    description: 'Candidate occurred date in YYYY-MM-DD format.',
-    example: '2026-06-14',
-  })
-  occurredAt!: string;
-
-  @ApiPropertyOptional({
-    description: 'Short candidate title.',
-    nullable: true,
-    type: String,
-  })
-  title!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Candidate measured value.',
-    nullable: true,
-    type: String,
-  })
-  value!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Candidate unit.',
-    nullable: true,
-    type: String,
-  })
-  unit!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Candidate free-text note.',
-    nullable: true,
-    type: String,
-  })
-  note!: string | null;
-
-  @ApiPropertyOptional({
-    description:
+/**
+ * Standard Schema (zod 4) for one AI-generated candidate item of
+ * `POST /daily-records/candidate-records/generate`.
+ *
+ * Replaces the former `@ApiProperty` class `DailyRecordCandidateItemDto`
+ * (module-internal, not exported). Every key is always emitted; nullable
+ * fields surface as an explicit `null`.
+ */
+const dailyRecordCandidateItemSchema = z.object({
+  kind: z.enum(DAILY_RECORD_CANDIDATE_KINDS),
+  occurredAt: z
+    .string()
+    .describe('Candidate occurred date in YYYY-MM-DD format.'),
+  title: z.string().describe('Short candidate title.').nullable(),
+  value: z.string().describe('Candidate measured value.').nullable(),
+  unit: z.string().describe('Candidate unit.').nullable(),
+  note: z.string().describe('Candidate free-text note.').nullable(),
+  payload: z
+    .record(z.string(), z.unknown())
+    .describe(
       'Structured candidate payload. For sleep, this may include durationMinutes and optional timing hints.',
-    type: Object,
-    additionalProperties: true,
-    nullable: true,
-  })
-  payload!: Record<string, unknown> | null;
-
-  @ApiProperty({
-    description:
+    )
+    .nullable(),
+  rationale: z
+    .string()
+    .describe(
       'Human-readable reason showing which phrase or fact led to this candidate.',
-    example: 'Detected headache symptom from “今天头疼”.',
-  })
-  rationale!: string;
-}
+    ),
+});
 
-class DailyRecordCandidateDataDto {
-  @ApiProperty({
-    description: 'Normalized parse locale.',
-    example: 'zh-CN',
-  })
-  locale!: string;
-
-  @ApiProperty({
-    description: 'ISO-8601 timestamp when candidates were generated.',
-    example: '2026-06-14T10:20:30.000Z',
-  })
-  generatedAt!: string;
-
-  @ApiProperty({
-    description:
+/**
+ * Standard Schema (zod 4) for the generate-candidates payload
+ * (`locale` + `generatedAt` + `confirmationHint` + candidate `items`).
+ *
+ * Replaces the former `@ApiProperty` data class `DailyRecordCandidateDataDto`.
+ */
+export const dailyRecordCandidateDataSchema = z.object({
+  locale: z.string().describe('Normalized parse locale.'),
+  generatedAt: z
+    .string()
+    .describe('ISO-8601 timestamp when candidates were generated.'),
+  confirmationHint: z
+    .string()
+    .describe(
       'Short UI hint telling the client that these are candidates, not saved records.',
-    example:
-      'Review these candidates before saving them to your daily records.',
-  })
-  confirmationHint!: string;
+    ),
+  items: z.array(dailyRecordCandidateItemSchema),
+});
 
-  @ApiProperty({ type: () => DailyRecordCandidateItemDto, isArray: true })
-  items!: DailyRecordCandidateItemDto[];
-}
+/** Strongly typed generate-candidates payload (shared alias). */
+export type DailyRecordCandidateDataDto = z.infer<
+  typeof dailyRecordCandidateDataSchema
+>;
 
-export class DailyRecordCandidateResponseDto extends DailyRecordCandidateDataDto {}
+/**
+ * Standard Schema (zod 4) for the `POST /daily-records/candidate-records/
+ * generate` (200) response body.
+ *
+ * Replaces the former response class `DailyRecordCandidateResponseDto` (which
+ * extended `DailyRecordCandidateDataDto` without adding fields).
+ */
+export const dailyRecordCandidateResponseSchema =
+  dailyRecordCandidateDataSchema;
 
+/** Strongly typed response body of the generate-candidates endpoint. */
+export type DailyRecordCandidateResponseDto = z.infer<
+  typeof dailyRecordCandidateResponseSchema
+>;
+
+/** Backwards-compatible alias used by the candidates orchestration layer. */
 export type DailyRecordCandidateData = DailyRecordCandidateDataDto;

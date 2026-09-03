@@ -1,34 +1,34 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
 /**
- * Single active session entry returned by `GET /api/v1/auth/sessions`.
+ * Session list response schemas for `GET /api/v1/auth/sessions`.
+ *
+ * The endpoint returns a JSON array of session items. Outbound validation
+ * uses the item schema (the global serializer validates array items one by
+ * one); the array schema backs the OpenAPI registration (component keeps the
+ * former `SessionListItemDto` class name).
  */
-export class SessionListItemDto {
-  @ApiProperty({ description: 'Session id' })
-  id!: string;
 
-  @ApiProperty({ description: 'Device type', type: String, nullable: true })
-  deviceType!: string | null;
+/** Replaces `SessionListItemDto`. */
+export const sessionListItemSchema = z.object({
+  id: z.string().describe('Session id'),
+  deviceType: z.string().nullable().describe('Device type'),
+  deviceName: z.string().nullable().describe('Device name'),
+  platform: z.string().nullable().describe('Platform'),
+  lastUsedAt: z.string().nullable().describe('Last used at (ISO-8601)'),
+  createdAt: z.string().describe('Created at (ISO-8601)'),
+  expiresAt: z.string().describe('Expires at (ISO-8601)'),
+  isCurrent: z.boolean().describe('Whether this is the current session'),
+});
 
-  @ApiProperty({ description: 'Device name', type: String, nullable: true })
-  deviceName!: string | null;
+/** Strongly typed single active-session entry. */
+export type SessionListItemDto = z.infer<typeof sessionListItemSchema>;
 
-  @ApiProperty({ description: 'Platform', type: String, nullable: true })
-  platform!: string | null;
-
-  @ApiProperty({
-    description: 'Last used at (ISO-8601)',
-    type: String,
-    nullable: true,
-  })
-  lastUsedAt!: string | null;
-
-  @ApiProperty({ description: 'Created at (ISO-8601)' })
-  createdAt!: string;
-
-  @ApiProperty({ description: 'Expires at (ISO-8601)' })
-  expiresAt!: string;
-
-  @ApiProperty({ description: 'Whether this is the current session' })
-  isCurrent!: boolean;
-}
+/**
+ * Array schema of the `GET /auth/sessions` success body — the full response
+ * JSON is a bare array of {@link sessionListItemSchema}. Used for the OpenAPI
+ * registration only; runtime validation is per item.
+ */
+export const sessionListSchema = z
+  .array(sessionListItemSchema)
+  .describe('The active sessions of the current user.');

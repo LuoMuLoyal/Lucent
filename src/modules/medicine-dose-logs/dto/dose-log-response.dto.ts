@@ -1,65 +1,60 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
+
 import { DoseLogStatus } from '#generated/prisma/client.js';
 
-class DoseLogItemDto {
-  @ApiProperty({ description: 'Dose log id.' })
-  id!: string;
+/**
+ * zod 4 Standard Schemas for the medicine dose-log response bodies
+ * (`GET`/`POST`/`PATCH /medicine-dose-logs`).
+ *
+ * Migrated from the former `@ApiProperty` response classes (class names kept
+ * as `z.infer` type aliases; descriptions preserved via `.describe`):
+ * - nullable columns → `.nullable()` (key always present, value may be null);
+ * - `@IsEnum`-style `DoseLogStatus` → `z.enum(DoseLogStatus)` (Prisma exports
+ *   a const object);
+ * - date/time strings stay plain strings (no `format` added) so the client
+ *   contract for `scheduledFor`/`createdAt` is unchanged.
+ *
+ * No `.strict()` / `.default()` — outbound validation must accept the wire
+ * shape produced by `MedicineDoseLogsService.toItem` (every key present).
+ */
 
-  @ApiPropertyOptional({
-    description: 'Linked health event id.',
-    format: 'uuid',
-    nullable: true,
-    type: String,
-  })
-  healthEventId!: string | null;
+export const doseLogItemSchema = z.object({
+  id: z.string().describe('Dose log id.'),
+  healthEventId: z.string().nullable().describe('Linked health event id.'),
+  currentMedicineId: z
+    .string()
+    .nullable()
+    .describe('Linked current medicine id.'),
+  reminderId: z
+    .string()
+    .nullable()
+    .describe('Linked reminder id for slot-aware logs.'),
+  status: z.enum(DoseLogStatus).describe('Dose log status.'),
+  scheduledFor: z.string().describe('Scheduled date in YYYY-MM-DD format.'),
+  scheduledTime: z
+    .string()
+    .nullable()
+    .describe('Scheduled slot time in HH:mm format.'),
+  doseText: z.string().nullable().describe('Dose text.'),
+  note: z.string().nullable().describe('Free-text note.'),
+  source: z.string().nullable().describe('Source.'),
+  createdAt: z.string().describe('Created at (ISO 8601).'),
+  updatedAt: z.string().describe('Updated at (ISO 8601).'),
+});
 
-  @ApiPropertyOptional({ description: 'Linked current medicine id.' })
-  currentMedicineId!: string | null;
+export const doseLogListDataSchema = z.object({
+  items: z.array(doseLogItemSchema).describe('Dose logs for the date.'),
+  total: z.number().describe('Total count of dose logs for the date.'),
+});
 
-  @ApiPropertyOptional({
-    description: 'Linked reminder id for slot-aware logs.',
-  })
-  reminderId!: string | null;
+/** List body: dose logs for the requested date. */
+export const doseLogListResponseSchema = doseLogListDataSchema;
 
-  @ApiProperty({ enum: DoseLogStatus, enumName: 'DoseLogStatus' })
-  status!: DoseLogStatus;
+/** Single dose log body (create / mark / update). */
+export const doseLogResponseSchema = doseLogItemSchema;
 
-  @ApiProperty({
-    description: 'Scheduled date in YYYY-MM-DD format.',
-    example: '2026-06-04',
-  })
-  scheduledFor!: string;
+/** Strongly typed single dose log. */
+export type DoseLogResponseDto = z.infer<typeof doseLogResponseSchema>;
 
-  @ApiPropertyOptional({
-    description: 'Scheduled slot time in HH:mm format.',
-    example: '08:30',
-  })
-  scheduledTime!: string | null;
-
-  @ApiPropertyOptional({ description: 'Dose text.' })
-  doseText!: string | null;
-
-  @ApiPropertyOptional({ description: 'Free-text note.' })
-  note!: string | null;
-
-  @ApiPropertyOptional({ description: 'Source.', example: 'manual' })
-  source!: string | null;
-
-  @ApiProperty({ description: 'Created at (ISO 8601).' })
-  createdAt!: string;
-
-  @ApiProperty({ description: 'Updated at (ISO 8601).' })
-  updatedAt!: string;
-}
-
-class DoseLogListDataDto {
-  @ApiProperty({ type: () => DoseLogItemDto, isArray: true })
-  items!: DoseLogItemDto[];
-
-  @ApiProperty({ description: 'Total count of dose logs for the date.' })
-  total!: number;
-}
-
-export class DoseLogListResponseDto extends DoseLogListDataDto {}
-
-export class DoseLogResponseDto extends DoseLogItemDto {}
+/** Strongly typed dose-log list body. */
+export type DoseLogListResponseDto = z.infer<typeof doseLogListResponseSchema>;

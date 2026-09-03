@@ -1,28 +1,37 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class MedicineRecognitionResultDto {
-  @ApiProperty({ nullable: true })
-  name!: string | null;
+/**
+ * zod 4 Standard Schemas for the `POST /medicines/recognize/async` response.
+ *
+ * Migrated from the former `@ApiProperty` response classes (class names kept
+ * as `z.infer` type aliases). The recognition result fields are always
+ * present, holding `null` when the LLM could not extract a value. Exactly one
+ * of `jobId` / `result` is present on the wire — both stay optional so the
+ * queue-first / synchronous-fallback shapes both validate.
+ */
 
-  @ApiProperty({ nullable: true })
-  approvalNumber!: string | null;
+export const medicineRecognitionResultSchema = z.object({
+  name: z.string().nullable().describe('Recognized medicine name.'),
+  approvalNumber: z.string().nullable().describe('Approval number.'),
+  specification: z.string().nullable().describe('Package specification.'),
+  manufacturer: z.string().nullable().describe('Manufacturer.'),
+});
 
-  @ApiProperty({ nullable: true })
-  specification!: string | null;
+export const medicineRecognitionAsyncResponseSchema = z.object({
+  jobId: z.string().optional().describe('Queued recognition job identifier.'),
+  result: medicineRecognitionResultSchema
+    .optional()
+    .describe(
+      'Inline recognition resource when queue processing is unavailable.',
+    ),
+});
 
-  @ApiProperty({ nullable: true })
-  manufacturer!: string | null;
-}
+/** Inline recognition resource when the queue is unavailable. */
+export type MedicineRecognitionResultDto = z.infer<
+  typeof medicineRecognitionResultSchema
+>;
 
 /** Exactly one of `jobId` and `result` is present in the response. */
-export class MedicineRecognitionAsyncResponseDto {
-  @ApiPropertyOptional({ description: 'Queued recognition job identifier.' })
-  jobId?: string;
-
-  @ApiPropertyOptional({
-    type: () => MedicineRecognitionResultDto,
-    description:
-      'Inline recognition resource when queue processing is unavailable.',
-  })
-  result?: MedicineRecognitionResultDto;
-}
+export type MedicineRecognitionAsyncResponseDto = z.infer<
+  typeof medicineRecognitionAsyncResponseSchema
+>;

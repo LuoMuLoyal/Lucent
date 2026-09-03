@@ -7,17 +7,18 @@ import {
   Post,
   Put,
   Query,
+  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { z } from 'zod';
 import { HealthEventKind } from '#generated/prisma/client.js';
 import { ProblemDetailsDto, formatDateOnly } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
@@ -31,10 +32,11 @@ import {
 } from './dto/event-list-query.dto.js';
 import type { EventListQueryDto } from './dto/event-list-query.dto.js';
 import {
-  HealthEventListResponseDto,
-  HealthEventResponseDto,
-  HealthEventItemDto,
+  healthEventListResponseSchema,
+  healthEventNullableResponseSchema,
+  healthEventResponseSchema,
 } from './dto/event-response.dto.js';
+import type { HealthEventItemDto } from './dto/event-response.dto.js';
 import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.dto.js';
 import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
 import type {
@@ -60,7 +62,8 @@ export class HealthEventsController {
 
   @Post()
   @ApiOperation({ summary: 'Start a user-confirmed health event' })
-  @ApiResponse({ status: 201, type: HealthEventResponseDto })
+  @ApiResponse({ status: 201, description: 'The created health event.' })
+  @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({
     status: 404,
     description: 'Related medicine or reason record not found',
@@ -84,11 +87,9 @@ export class HealthEventsController {
   @ApiOperation({ summary: 'Get the current active health event' })
   @ApiResponse({
     status: 200,
-    schema: {
-      nullable: true,
-      allOf: [{ $ref: getSchemaPath(HealthEventItemDto) }],
-    },
+    description: 'The active health event, or null when none is active.',
   })
+  @SerializeOptions({ schema: healthEventNullableResponseSchema })
   async active(
     @CurrentUser() user: UserPayload,
     @Query({ schema: eventListQuerySchema })
@@ -100,7 +101,11 @@ export class HealthEventsController {
 
   @Get()
   @ApiOperation({ summary: 'List the user health event history' })
-  @ApiResponse({ status: 200, type: HealthEventListResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The user health event history page.',
+  })
+  @SerializeOptions({ schema: healthEventListResponseSchema })
   async list(
     @CurrentUser() user: UserPayload,
     @Query({ schema: eventListQuerySchema })
@@ -115,7 +120,8 @@ export class HealthEventsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get one user health event' })
-  @ApiResponse({ status: 200, type: HealthEventResponseDto })
+  @ApiResponse({ status: 200, description: 'The health event.' })
+  @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({
     status: 403,
     description: 'Health event is owned by another user',
@@ -140,7 +146,8 @@ export class HealthEventsController {
 
   @Put(':id/check-ins/:date')
   @ApiOperation({ summary: 'Upsert a user-confirmed daily event check-in' })
-  @ApiResponse({ status: 200, type: HealthEventResponseDto })
+  @ApiResponse({ status: 200, description: 'The updated health event.' })
+  @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid outcome or date, or event is not active',
@@ -179,7 +186,8 @@ export class HealthEventsController {
 
   @Post(':id/end')
   @ApiOperation({ summary: 'End a health event with an explicit outcome' })
-  @ApiResponse({ status: 200, type: HealthEventResponseDto })
+  @ApiResponse({ status: 200, description: 'The ended health event.' })
+  @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid outcome or event already ended',
@@ -277,3 +285,54 @@ export class HealthEventsController {
         : formatDateOnly(value);
   }
 }
+
+// 201 主成功响应注记:export-openapi 目前只把注册组件的 200 响应回写为
+// $ref;POST /health-events 的 201 响应体同样按稳定组件名登记,导出脚本
+// 支持 201 回写后自动生效。
+registerResponseSchema({
+  path: '/api/v1/health-events',
+  method: 'post',
+  componentName: 'HealthEventResponseDto',
+  schema: healthEventResponseSchema,
+  description: 'The created health event.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/health-events/active',
+  method: 'get',
+  componentName: 'HealthEventNullableResponseDto',
+  schema: healthEventNullableResponseSchema,
+  description: 'The active health event, or null when none is active.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/health-events',
+  method: 'get',
+  componentName: 'HealthEventListResponseDto',
+  schema: healthEventListResponseSchema,
+  description: 'The user health event history page.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/health-events/:id',
+  method: 'get',
+  componentName: 'HealthEventResponseDto',
+  schema: healthEventResponseSchema,
+  description: 'The health event.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/health-events/:id/check-ins/:date',
+  method: 'put',
+  componentName: 'HealthEventResponseDto',
+  schema: healthEventResponseSchema,
+  description: 'The updated health event.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/health-events/:id/end',
+  method: 'post',
+  componentName: 'HealthEventResponseDto',
+  schema: healthEventResponseSchema,
+  description: 'The ended health event.',
+});

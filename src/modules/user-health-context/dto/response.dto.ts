@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
 import {
   MedicineSource,
   SexAtBirth,
@@ -8,414 +8,159 @@ import {
   UserConditionStatus,
 } from '#generated/prisma/client.js';
 
-class UserHealthSummaryDto {
-  @ApiProperty({
-    description:
-      'Age derived from birth date. Null when birth date is missing.',
-    example: 28,
-    nullable: true,
-    type: Number,
-  })
-  age!: number | null;
-
-  @ApiProperty({
-    description: 'Whether the onboarding flow has been completed.',
-    example: true,
-  })
-  onboardingCompleted!: boolean;
-
-  @ApiProperty({
-    description: 'Number of active allergy records returned in this payload.',
-    example: 2,
-  })
-  activeAllergyCount!: number;
-
-  @ApiProperty({
-    description: 'Number of condition records returned in this payload.',
-    example: 3,
-  })
-  conditionCount!: number;
-
-  @ApiProperty({
-    description: 'Number of current medicine records returned in this payload.',
-    example: 1,
-  })
-  currentMedicineCount!: number;
-
-  @ApiProperty({
-    description:
+/**
+ * Standard Schema (zod 4) for the summary block of the health-context
+ * aggregate. Replaces the former module-private `UserHealthSummaryDto`
+ * response class.
+ */
+const userHealthSummarySchema = z.object({
+  age: z
+    .number()
+    .nullable()
+    .describe('Age derived from birth date. Null when birth date is missing.'),
+  onboardingCompleted: z
+    .boolean()
+    .describe('Whether the onboarding flow has been completed.'),
+  activeAllergyCount: z
+    .number()
+    .describe('Number of active allergy records returned in this payload.'),
+  conditionCount: z
+    .number()
+    .describe('Number of condition records returned in this payload.'),
+  currentMedicineCount: z
+    .number()
+    .describe('Number of current medicine records returned in this payload.'),
+  missingCoreProfileFields: z
+    .array(z.string())
+    .describe(
       'Missing core profile fields that the frontend can use for onboarding nudges.',
-    example: ['birthDate', 'heightCm'],
-    type: [String],
-  })
-  missingCoreProfileFields!: string[];
-}
+    ),
+});
 
-class EmergencyContactDto {
-  @ApiProperty({
-    description: 'Emergency contact name.',
-    example: '张三',
-    nullable: true,
-    type: String,
-  })
-  name!: string | null;
+/**
+ * Standard Schema (zod 4) for the emergency-contact block of the health
+ * profile. Replaces the former module-private `EmergencyContactDto` response
+ * class.
+ */
+const emergencyContactSchema = z.object({
+  name: z.string().nullable().describe('Emergency contact name.'),
+  phone: z.string().nullable().describe('Emergency contact phone.'),
+});
 
-  @ApiProperty({
-    description: 'Emergency contact phone.',
-    example: '13800138000',
-    nullable: true,
-    type: String,
-  })
-  phone!: string | null;
-}
+/**
+ * Standard Schema (zod 4) for the profile block of the health-context
+ * aggregate. Replaces the former module-private `UserHealthProfileDto`
+ * response class.
+ */
+const userHealthProfileSchema = z.object({
+  birthDate: z.string().nullable().describe('Birth date in YYYY-MM-DD format.'),
+  sexAtBirth: z.enum(SexAtBirth).nullable().describe('Sex assigned at birth.'),
+  heightCm: z.number().nullable().describe('Height in centimeters.'),
+  weightKg: z
+    .number()
+    .nullable()
+    .describe('Weight in kilograms. Extracted from extras JSONB.'),
+  bloodType: z.string().nullable().describe('Blood type.'),
+  locale: z.string().nullable().describe('Preferred locale.'),
+  timezone: z.string().nullable().describe('Preferred timezone.'),
+  unitSystem: z.enum(UnitSystem).nullable().describe('Preferred unit system.'),
+  onboardingCompletedAt: z
+    .string()
+    .nullable()
+    .describe('When the onboarding flow was completed.'),
+  emergencyContact: emergencyContactSchema
+    .nullable()
+    .describe('Emergency contact extracted from extras JSONB.'),
+  extras: z.unknown().describe('Sparse profile extensions stored in jsonb.'),
+});
 
-class UserHealthProfileDto {
-  @ApiProperty({
-    description: 'Birth date in YYYY-MM-DD format.',
-    example: '1998-03-15',
-    nullable: true,
-    type: String,
-  })
-  birthDate!: string | null;
+/**
+ * Standard Schema (zod 4) for one allergy item of the health-context
+ * aggregate. Replaces the former module-private `UserAllergyItemDto`
+ * response class.
+ */
+const userAllergyItemSchema = z.object({
+  id: z.string().describe('Allergy id.'),
+  kind: z.enum(UserAllergyKind).describe('Allergy kind.'),
+  label: z.string().describe('User-visible allergy label.'),
+  reaction: z.string().nullable().describe('Recorded reaction.'),
+  severity: z.enum(UserAllergySeverity).nullable().describe('Severity level.'),
+  isActive: z.boolean().describe('Whether the allergy is currently active.'),
+  note: z.string().nullable().describe('User note for the allergy.'),
+  extras: z.unknown().describe('Sparse allergy extensions stored in jsonb.'),
+  recordedAt: z.string().nullable().describe('When this allergy was recorded.'),
+  createdAt: z.string().describe('Created time in ISO 8601 format.'),
+  updatedAt: z.string().describe('Updated time in ISO 8601 format.'),
+});
 
-  @ApiPropertyOptional({
-    description: 'Sex assigned at birth.',
-    enum: SexAtBirth,
-    enumName: 'SexAtBirth',
-    example: SexAtBirth.female,
-  })
-  sexAtBirth!: SexAtBirth | null;
+/**
+ * Standard Schema (zod 4) for one condition item of the health-context
+ * aggregate. Replaces the former module-private `UserConditionItemDto`
+ * response class.
+ */
+const userConditionItemSchema = z.object({
+  id: z.string().describe('Condition id.'),
+  label: z.string().describe('Condition label.'),
+  status: z.enum(UserConditionStatus).describe('Condition status.'),
+  diagnosedAt: z
+    .string()
+    .nullable()
+    .describe('Diagnosis date in YYYY-MM-DD format.'),
+  resolvedAt: z
+    .string()
+    .nullable()
+    .describe('Resolved date in YYYY-MM-DD format.'),
+  note: z.string().nullable().describe('User note for the condition.'),
+  extras: z.unknown().describe('Sparse condition extensions stored in jsonb.'),
+  createdAt: z.string().describe('Created time in ISO 8601 format.'),
+  updatedAt: z.string().describe('Updated time in ISO 8601 format.'),
+});
 
-  @ApiProperty({
-    description: 'Height in centimeters.',
-    example: 168,
-    nullable: true,
-    type: Number,
-  })
-  heightCm!: number | null;
+/**
+ * Standard Schema (zod 4) for one current-medicine item of the health-context
+ * aggregate. Replaces the former module-private
+ * `UserCurrentMedicineItemDto` response class.
+ */
+const userCurrentMedicineItemSchema = z.object({
+  id: z.string().describe('Current medicine id.'),
+  source: z
+    .enum(MedicineSource)
+    .describe('Upstream source used to anchor this medicine.'),
+  sourceRefId: z.string().nullable().describe('Source-specific reference id.'),
+  displayName: z.string().describe('Display name shown to the user.'),
+  strengthText: z.string().nullable().describe('Strength text.'),
+  doseText: z.string().nullable().describe('Dose text.'),
+  route: z.string().nullable().describe('Administration route.'),
+  startedAt: z.string().nullable().describe('Start date in YYYY-MM-DD format.'),
+  endedAt: z.string().nullable().describe('End date in YYYY-MM-DD format.'),
+  isCurrent: z.boolean().describe('Whether the medicine is currently active.'),
+  note: z.string().nullable().describe('User note for the medicine.'),
+  sourcePayload: z
+    .unknown()
+    .describe('Original source payload stored in jsonb.'),
+  createdAt: z.string().describe('Created time in ISO 8601 format.'),
+  updatedAt: z.string().describe('Updated time in ISO 8601 format.'),
+});
 
-  @ApiProperty({
-    description: 'Weight in kilograms. Extracted from extras JSONB.',
-    example: 65,
-    nullable: true,
-    type: Number,
-  })
-  weightKg!: number | null;
+/**
+ * Standard Schema (zod 4) for the full health-context aggregate returned by
+ * every `/health-context` endpoint (GET, profile/allergy/condition/medicine
+ * writes). Replaces the former `HealthContextDataDto` /
+ * `HealthContextResponseDto` response classes.
+ */
+export const healthContextResponseSchema = z.object({
+  summary: userHealthSummarySchema,
+  profile: userHealthProfileSchema,
+  allergies: z.array(userAllergyItemSchema),
+  conditions: z.array(userConditionItemSchema),
+  currentMedicines: z.array(userCurrentMedicineItemSchema),
+});
 
-  @ApiProperty({
-    description: 'Blood type.',
-    example: 'O+',
-    nullable: true,
-    type: String,
-  })
-  bloodType!: string | null;
+/** Strongly typed health-context aggregate payload. */
+export type HealthContextDataDto = z.infer<typeof healthContextResponseSchema>;
 
-  @ApiProperty({
-    description: 'Preferred locale.',
-    example: 'en-US',
-    nullable: true,
-    type: String,
-  })
-  locale!: string | null;
+/** Backwards-compatible response alias for the health-context endpoints. */
+export type HealthContextResponseDto = HealthContextDataDto;
 
-  @ApiProperty({
-    description: 'Preferred timezone.',
-    example: 'Asia/Shanghai',
-    nullable: true,
-    type: String,
-  })
-  timezone!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Preferred unit system.',
-    enum: UnitSystem,
-    enumName: 'UnitSystem',
-    example: UnitSystem.metric,
-  })
-  unitSystem!: UnitSystem | null;
-
-  @ApiProperty({
-    description: 'When the onboarding flow was completed.',
-    example: '2026-05-30T09:00:00.000Z',
-    nullable: true,
-    type: String,
-  })
-  onboardingCompletedAt!: string | null;
-
-  @ApiProperty({
-    description: 'Emergency contact extracted from extras JSONB.',
-    type: () => EmergencyContactDto,
-    nullable: true,
-  })
-  emergencyContact!: EmergencyContactDto | null;
-
-  @ApiProperty({
-    description: 'Sparse profile extensions stored in jsonb.',
-    nullable: true,
-    type: Object,
-    additionalProperties: true,
-    example: {
-      preferredReminderHour: 9,
-    },
-  })
-  extras!: unknown;
-}
-
-class UserAllergyItemDto {
-  @ApiProperty({ description: 'Allergy id.' })
-  id!: string;
-
-  @ApiProperty({
-    description: 'Allergy kind.',
-    enum: UserAllergyKind,
-    enumName: 'UserAllergyKind',
-    example: UserAllergyKind.drug,
-  })
-  kind!: UserAllergyKind;
-
-  @ApiProperty({
-    description: 'User-visible allergy label.',
-    example: 'Penicillin',
-  })
-  label!: string;
-
-  @ApiProperty({
-    description: 'Recorded reaction.',
-    example: 'Rash',
-    nullable: true,
-    type: String,
-  })
-  reaction!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Severity level.',
-    enum: UserAllergySeverity,
-    enumName: 'UserAllergySeverity',
-    example: UserAllergySeverity.moderate,
-  })
-  severity!: UserAllergySeverity | null;
-
-  @ApiProperty({ description: 'Whether the allergy is currently active.' })
-  isActive!: boolean;
-
-  @ApiProperty({
-    description: 'User note for the allergy.',
-    example: 'Avoid completely',
-    nullable: true,
-    type: String,
-  })
-  note!: string | null;
-
-  @ApiProperty({
-    description: 'Sparse allergy extensions stored in jsonb.',
-    nullable: true,
-    type: Object,
-    additionalProperties: true,
-    example: {
-      source: 'manual',
-    },
-  })
-  extras!: unknown;
-
-  @ApiProperty({
-    description: 'When this allergy was recorded.',
-    example: '2026-05-20T09:00:00.000Z',
-    nullable: true,
-    type: String,
-  })
-  recordedAt!: string | null;
-
-  @ApiProperty({
-    description: 'Created time in ISO 8601 format.',
-    example: '2026-05-20T09:00:00.000Z',
-  })
-  createdAt!: string;
-
-  @ApiProperty({
-    description: 'Updated time in ISO 8601 format.',
-    example: '2026-05-21T09:00:00.000Z',
-  })
-  updatedAt!: string;
-}
-
-class UserConditionItemDto {
-  @ApiProperty({ description: 'Condition id.' })
-  id!: string;
-
-  @ApiProperty({
-    description: 'Condition label.',
-    example: 'Asthma',
-  })
-  label!: string;
-
-  @ApiProperty({
-    description: 'Condition status.',
-    enum: UserConditionStatus,
-    enumName: 'UserConditionStatus',
-    example: UserConditionStatus.active,
-  })
-  status!: UserConditionStatus;
-
-  @ApiProperty({
-    description: 'Diagnosis date in YYYY-MM-DD format.',
-    example: '2024-02-01',
-    nullable: true,
-    type: String,
-  })
-  diagnosedAt!: string | null;
-
-  @ApiProperty({
-    description: 'Resolved date in YYYY-MM-DD format.',
-    example: '2025-03-12',
-    nullable: true,
-    type: String,
-  })
-  resolvedAt!: string | null;
-
-  @ApiProperty({
-    description: 'User note for the condition.',
-    example: 'Triggered during pollen season',
-    nullable: true,
-    type: String,
-  })
-  note!: string | null;
-
-  @ApiProperty({
-    description: 'Sparse condition extensions stored in jsonb.',
-    nullable: true,
-    type: Object,
-    additionalProperties: true,
-  })
-  extras!: unknown;
-
-  @ApiProperty({
-    description: 'Created time in ISO 8601 format.',
-    example: '2024-02-01T00:00:00.000Z',
-  })
-  createdAt!: string;
-
-  @ApiProperty({
-    description: 'Updated time in ISO 8601 format.',
-    example: '2026-05-18T00:00:00.000Z',
-  })
-  updatedAt!: string;
-}
-
-class UserCurrentMedicineItemDto {
-  @ApiProperty({ description: 'Current medicine id.' })
-  id!: string;
-
-  @ApiProperty({
-    description: 'Upstream source used to anchor this medicine.',
-    enum: MedicineSource,
-    enumName: 'MedicineSource',
-    example: MedicineSource.drugbank,
-  })
-  source!: MedicineSource;
-
-  @ApiProperty({
-    description: 'Source-specific reference id.',
-    example: 'DB01050',
-    nullable: true,
-    type: String,
-  })
-  sourceRefId!: string | null;
-
-  @ApiProperty({
-    description: 'Display name shown to the user.',
-    example: 'Ibuprofen',
-  })
-  displayName!: string;
-
-  @ApiProperty({
-    description: 'Strength text.',
-    example: '200 mg',
-    nullable: true,
-    type: String,
-  })
-  strengthText!: string | null;
-
-  @ApiProperty({
-    description: 'Dose text.',
-    example: '1 tablet after meals',
-    nullable: true,
-    type: String,
-  })
-  doseText!: string | null;
-
-  @ApiProperty({
-    description: 'Administration route.',
-    example: 'oral',
-    nullable: true,
-    type: String,
-  })
-  route!: string | null;
-
-  @ApiProperty({
-    description: 'Start date in YYYY-MM-DD format.',
-    example: '2026-05-01',
-    nullable: true,
-    type: String,
-  })
-  startedAt!: string | null;
-
-  @ApiProperty({
-    description: 'End date in YYYY-MM-DD format.',
-    example: '2026-05-07',
-    nullable: true,
-    type: String,
-  })
-  endedAt!: string | null;
-
-  @ApiProperty({ description: 'Whether the medicine is currently active.' })
-  isCurrent!: boolean;
-
-  @ApiProperty({
-    description: 'User note for the medicine.',
-    example: 'Use only when needed for headaches',
-    nullable: true,
-    type: String,
-  })
-  note!: string | null;
-
-  @ApiProperty({
-    description: 'Original source payload stored in jsonb.',
-    nullable: true,
-    type: Object,
-    additionalProperties: true,
-  })
-  sourcePayload!: unknown;
-
-  @ApiProperty({
-    description: 'Created time in ISO 8601 format.',
-    example: '2026-05-01T00:00:00.000Z',
-  })
-  createdAt!: string;
-
-  @ApiProperty({
-    description: 'Updated time in ISO 8601 format.',
-    example: '2026-05-21T00:00:00.000Z',
-  })
-  updatedAt!: string;
-}
-
-class HealthContextDataDto {
-  @ApiProperty({ type: () => UserHealthSummaryDto })
-  summary!: UserHealthSummaryDto;
-
-  @ApiProperty({ type: () => UserHealthProfileDto })
-  profile!: UserHealthProfileDto;
-
-  @ApiProperty({ type: () => UserAllergyItemDto, isArray: true })
-  allergies!: UserAllergyItemDto[];
-
-  @ApiProperty({ type: () => UserConditionItemDto, isArray: true })
-  conditions!: UserConditionItemDto[];
-
-  @ApiProperty({ type: () => UserCurrentMedicineItemDto, isArray: true })
-  currentMedicines!: UserCurrentMedicineItemDto[];
-}
-
-export class HealthContextResponseDto extends HealthContextDataDto {}
-
+/** Backwards-compatible data alias kept for in-module references. */
 export type HealthContextResponseData = HealthContextDataDto;

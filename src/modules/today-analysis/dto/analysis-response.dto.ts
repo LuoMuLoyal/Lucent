@@ -1,149 +1,159 @@
-import {
-  ApiProperty,
-  ApiPropertyOptional,
-  getSchemaPath,
-} from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class TodayAnalysisBulletDto {
-  @ApiProperty({
-    enum: ['medication', 'hydration', 'sleep', 'general'],
-  })
-  kind!: 'medication' | 'hydration' | 'sleep' | 'general';
+/**
+ * Standard Schema (zod 4) for one bullet point of a Today analysis.
+ * Replaces the former `TodayAnalysisBulletDto` response class.
+ */
+export const todayAnalysisBulletSchema = z.object({
+  kind: z.enum(['medication', 'hydration', 'sleep', 'general']),
+  text: z.string(),
+});
 
-  @ApiProperty()
-  text!: string;
-}
+/** Strongly typed Today-analysis bullet point. */
+export type TodayAnalysisBulletDto = z.infer<typeof todayAnalysisBulletSchema>;
 
-export class TodayAnalysisObservedMetricDto {
-  @ApiProperty({ type: Number, nullable: true })
-  value!: number | null;
+/**
+ * Standard Schema (zod 4) for the observed-metric block attached to a Today
+ * analysis. Replaces the former `TodayAnalysisObservedMetricDto` response
+ * class.
+ */
+export const todayAnalysisObservedMetricSchema = z.object({
+  value: z.number().nullable(),
+  state: z.enum(['observed', 'unknown']),
+  coverage: z.enum(['sufficient', 'partial', 'none']),
+  sources: z.array(
+    z.enum(['manual', 'health_platform', 'reminder_plan', 'derived']),
+  ),
+  observedCount: z.number(),
+  expectedCount: z.number().nullable(),
+  windowStart: z.string(),
+  windowEnd: z.string(),
+});
 
-  @ApiProperty({ enum: ['observed', 'unknown'], type: String })
-  state!: 'observed' | 'unknown';
+/** Strongly typed Today-analysis observed-metric block. */
+export type TodayAnalysisObservedMetricDto = z.infer<
+  typeof todayAnalysisObservedMetricSchema
+>;
 
-  @ApiProperty({ enum: ['sufficient', 'partial', 'none'], type: String })
-  coverage!: 'sufficient' | 'partial' | 'none';
+/**
+ * Standard Schema (zod 4) for one metric of a Today analysis. Replaces the
+ * former `TodayAnalysisMetricDto` response class.
+ */
+export const todayAnalysisMetricSchema = z.object({
+  kind: z.enum(['medication', 'water', 'sleep']),
+  observedMetric: todayAnalysisObservedMetricSchema,
+});
 
-  @ApiProperty({
-    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
-    isArray: true,
-    type: String,
-  })
-  sources!: Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'>;
+/** Strongly typed Today-analysis metric entry. */
+export type TodayAnalysisMetricDto = z.infer<typeof todayAnalysisMetricSchema>;
 
-  @ApiProperty({ type: Number })
-  observedCount!: number;
+/**
+ * Standard Schema (zod 4) for a generated Today AI analysis resource.
+ * Replaces the former `TodayAnalysisDataDto` response class.
+ */
+export const todayAnalysisDataSchema = z.object({
+  date: z.string(),
+  generatedAt: z.string(),
+  sourceVersion: z.number().optional(),
+  summary: z.string(),
+  bullets: z.array(todayAnalysisBulletSchema),
+  actionLabel: z.string(),
+  action: z.string(),
+  confidenceNote: z.string(),
+  aiGenerated: z.boolean(),
+  metrics: z.array(todayAnalysisMetricSchema).optional(),
+});
 
-  @ApiProperty({ type: Number, nullable: true })
-  expectedCount!: number | null;
+/** Strongly typed generated Today AI analysis resource. */
+export type TodayAnalysisDataDto = z.infer<typeof todayAnalysisDataSchema>;
 
-  @ApiProperty({ type: String })
-  windowStart!: string;
+/**
+ * Standard Schema (zod 4) for the persisted analysis read state. Replaces the
+ * former `TodayAnalysisReadDataDto` response class.
+ */
+export const todayAnalysisReadDataSchema = z.object({
+  analysis: todayAnalysisDataSchema.nullable(),
+  status: z.enum(['empty', 'pending', 'ready', 'stale', 'failed']),
+  sourceVersion: z.number(),
+  computedVersion: z.number(),
+  computedAt: z.string().nullable(),
+  retryAfterSeconds: z.number().nullable(),
+});
 
-  @ApiProperty({ type: String })
-  windowEnd!: string;
-}
+/** Strongly typed persisted Today-analysis read state. */
+export type TodayAnalysisReadDataDto = z.infer<
+  typeof todayAnalysisReadDataSchema
+>;
 
-export class TodayAnalysisMetricDto {
-  @ApiProperty({ enum: ['medication', 'water', 'sleep'], type: String })
-  kind!: 'medication' | 'water' | 'sleep';
+/**
+ * Backwards-compatible response alias for `GET /today-analysis`; identical to
+ * {@link TodayAnalysisReadDataDto} on the wire.
+ */
+export type TodayAnalysisReadResponseDto = TodayAnalysisReadDataDto;
 
-  @ApiProperty({ type: () => TodayAnalysisObservedMetricDto })
-  observedMetric!: TodayAnalysisObservedMetricDto;
-}
+/**
+ * Standard Schema (zod 4) for the enqueued-refresh outcome. Replaces the
+ * former `TodayAnalysisRefreshPendingDataDto` response class.
+ */
+export const todayAnalysisRefreshPendingDataSchema = z.object({
+  status: z.literal('pending'),
+  jobId: z.string(),
+});
 
-export class TodayAnalysisDataDto {
-  @ApiProperty()
-  date!: string;
+/** Strongly typed enqueued-refresh outcome. */
+export type TodayAnalysisRefreshPendingDataDto = z.infer<
+  typeof todayAnalysisRefreshPendingDataSchema
+>;
 
-  @ApiProperty()
-  generatedAt!: string;
+/**
+ * Standard Schema (zod 4) for the synchronous-refresh outcome. Replaces the
+ * former `TodayAnalysisRefreshReadyDataDto` response class.
+ */
+export const todayAnalysisRefreshReadyDataSchema = z.object({
+  status: z.literal('ready'),
+  analysis: todayAnalysisDataSchema,
+});
 
-  @ApiProperty({ required: false })
-  sourceVersion?: number;
+/** Strongly typed synchronous-refresh outcome. */
+export type TodayAnalysisRefreshReadyDataDto = z.infer<
+  typeof todayAnalysisRefreshReadyDataSchema
+>;
 
-  @ApiProperty()
-  summary!: string;
+/**
+ * Standard Schema (zod 4) for the async job acknowledgement. Replaces the
+ * former `TodayAnalysisAsyncJobDataDto` response class.
+ */
+export const todayAnalysisAsyncJobDataSchema = z.object({
+  jobId: z.string(),
+});
 
-  @ApiProperty({ type: () => TodayAnalysisBulletDto, isArray: true })
-  bullets!: TodayAnalysisBulletDto[];
+/** Strongly typed async job acknowledgement. */
+export type TodayAnalysisAsyncJobDataDto = z.infer<
+  typeof todayAnalysisAsyncJobDataSchema
+>;
 
-  @ApiProperty()
-  actionLabel!: string;
+/**
+ * Standard Schema (zod 4) for the synchronous async-endpoint result. Replaces
+ * the former `TodayAnalysisAsyncResultDataDto` response class.
+ */
+export const todayAnalysisAsyncResultDataSchema = z.object({
+  result: z.union([todayAnalysisDataSchema, todayAnalysisReadDataSchema]),
+});
 
-  @ApiProperty()
-  action!: string;
+/** Strongly typed synchronous async-endpoint result. */
+export type TodayAnalysisAsyncResultDataDto = z.infer<
+  typeof todayAnalysisAsyncResultDataSchema
+>;
 
-  @ApiProperty()
-  confidenceNote!: string;
+/**
+ * Standard Schema (zod 4) for the async job status payload. Replaces the
+ * former `TodayAnalysisAsyncStatusDataDto` response class.
+ */
+export const todayAnalysisAsyncStatusDataSchema = z.object({
+  status: z.enum(['empty', 'pending', 'ready', 'stale', 'failed']),
+});
 
-  @ApiProperty({ type: Boolean })
-  aiGenerated!: boolean;
-
-  @ApiPropertyOptional({ type: () => [TodayAnalysisMetricDto] })
-  metrics?: TodayAnalysisMetricDto[];
-}
-
-export class TodayAnalysisReadDataDto {
-  @ApiProperty({ nullable: true, type: () => TodayAnalysisDataDto })
-  analysis!: TodayAnalysisDataDto | null;
-
-  @ApiProperty({
-    enum: ['empty', 'pending', 'ready', 'stale', 'failed'],
-    type: String,
-  })
-  status!: 'empty' | 'pending' | 'ready' | 'stale' | 'failed';
-
-  @ApiProperty({ type: Number })
-  sourceVersion!: number;
-
-  @ApiProperty({ type: Number })
-  computedVersion!: number;
-
-  @ApiProperty({ type: String, nullable: true })
-  computedAt!: string | null;
-
-  @ApiProperty({ type: Number, nullable: true })
-  retryAfterSeconds!: number | null;
-}
-
-export class TodayAnalysisReadResponseDto extends TodayAnalysisReadDataDto {}
-
-export class TodayAnalysisRefreshPendingDataDto {
-  @ApiProperty({ enum: ['pending'], type: String })
-  status!: 'pending';
-
-  @ApiProperty({ type: String })
-  jobId!: string;
-}
-
-export class TodayAnalysisRefreshReadyDataDto {
-  @ApiProperty({ enum: ['ready'], type: String })
-  status!: 'ready';
-
-  @ApiProperty({ type: () => TodayAnalysisDataDto })
-  analysis!: TodayAnalysisDataDto;
-}
-
-export class TodayAnalysisAsyncJobDataDto {
-  @ApiProperty({ type: String })
-  jobId!: string;
-}
-
-export class TodayAnalysisAsyncResultDataDto {
-  @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(TodayAnalysisDataDto) },
-      { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
-    ],
-  })
-  result!: TodayAnalysisDataDto | TodayAnalysisReadDataDto;
-}
-
-export class TodayAnalysisAsyncStatusDataDto {
-  @ApiProperty({
-    enum: ['empty', 'pending', 'ready', 'stale', 'failed'],
-    type: String,
-  })
-  status!: 'empty' | 'pending' | 'ready' | 'stale' | 'failed';
-}
+/** Strongly typed async job status payload. */
+export type TodayAnalysisAsyncStatusDataDto = z.infer<
+  typeof todayAnalysisAsyncStatusDataSchema
+>;

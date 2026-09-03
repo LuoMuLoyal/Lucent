@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -23,15 +24,17 @@ import {
   clampPageSize,
   ProblemDetailsDto,
 } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 import { NotificationsService } from './services/notifications.service.js';
-import { createNotificationSchema } from './dto/response.dto.js';
 import {
-  NotificationListResponseDto,
-  NotificationDetailResponseDto,
-  UnreadCountResponseDto,
+  createNotificationSchema,
+  notificationDetailSchema,
+  notificationListItemSchema,
+  notificationListSchema,
+  unreadCountSchema,
 } from './dto/response.dto.js';
 import type { CreateNotificationDto } from './dto/response.dto.js';
 
@@ -44,12 +47,16 @@ export class NotificationsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a notification (internal/test)' })
-  @ApiResponse({ status: 201, type: NotificationListResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Created notification.',
+  })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
     description: 'Notification already exists (RESOURCE_CONFLICT, P2002 race)',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: notificationListItemSchema })
   async create(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createNotificationSchema }) dto: CreateNotificationDto,
@@ -59,7 +66,8 @@ export class NotificationsController {
 
   @Get()
   @ApiOperation({ summary: 'List user notifications' })
-  @ApiResponse({ status: 200, type: NotificationListResponseDto })
+  @ApiResponse({ status: 200, description: 'Paginated notification list.' })
+  @SerializeOptions({ schema: notificationListSchema })
   async findAll(
     @CurrentUser() user: UserPayload,
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
@@ -75,7 +83,8 @@ export class NotificationsController {
 
   @Get('unread-count')
   @ApiOperation({ summary: 'Get unread notification count' })
-  @ApiResponse({ status: 200, type: UnreadCountResponseDto })
+  @ApiResponse({ status: 200, description: 'Unread notification count.' })
+  @SerializeOptions({ schema: unreadCountSchema })
   async getUnreadCount(@CurrentUser() user: UserPayload) {
     const count = await this.notificationsService.getUnreadCount(user.sub);
     return { count };
@@ -83,24 +92,26 @@ export class NotificationsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a notification detail' })
-  @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
+  @ApiResponse({ status: 200, description: 'Notification detail.' })
   @ApiResponse({
     status: 404,
     type: ProblemDetailsDto,
     description: 'Notification not found.',
   })
+  @SerializeOptions({ schema: notificationDetailSchema })
   async findOne(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     return await unwrapResult(this.notificationsService.findOne(user.sub, id));
   }
 
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark a notification as read' })
-  @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
+  @ApiResponse({ status: 200, description: 'Notification marked as read.' })
   @ApiResponse({
     status: 404,
     type: ProblemDetailsDto,
     description: 'Notification not found.',
   })
+  @SerializeOptions({ schema: notificationDetailSchema })
   async markAsRead(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     return await unwrapResult(
       this.notificationsService.markAsRead(user.sub, id),
@@ -109,12 +120,13 @@ export class NotificationsController {
 
   @Patch(':id/unread')
   @ApiOperation({ summary: 'Mark a notification as unread' })
-  @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
+  @ApiResponse({ status: 200, description: 'Notification marked as unread.' })
   @ApiResponse({
     status: 404,
     type: ProblemDetailsDto,
     description: 'Notification not found.',
   })
+  @SerializeOptions({ schema: notificationDetailSchema })
   async markAsUnread(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
@@ -126,7 +138,11 @@ export class NotificationsController {
 
   @Patch('mark-all-read')
   @ApiOperation({ summary: 'Mark all notifications as read' })
-  @ApiResponse({ status: 200, type: UnreadCountResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Number of notifications marked as read.',
+  })
+  @SerializeOptions({ schema: unreadCountSchema })
   async markAllAsRead(@CurrentUser() user: UserPayload) {
     const count = await this.notificationsService.markAllAsRead(user.sub);
     return { count };
@@ -148,3 +164,51 @@ export class NotificationsController {
     await unwrapResult(this.notificationsService.remove(user.sub, id));
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/notifications',
+  method: 'get',
+  componentName: 'NotificationListResponseDto',
+  schema: notificationListSchema,
+  description: 'Paginated notification list.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/notifications/unread-count',
+  method: 'get',
+  componentName: 'UnreadCountResponseDto',
+  schema: unreadCountSchema,
+  description: 'Unread notification count.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/notifications/{id}',
+  method: 'get',
+  componentName: 'NotificationDetailResponseDto',
+  schema: notificationDetailSchema,
+  description: 'Notification detail.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/notifications/{id}/read',
+  method: 'patch',
+  componentName: 'NotificationDetailResponseDto',
+  schema: notificationDetailSchema,
+  description: 'Notification marked as read.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/notifications/{id}/unread',
+  method: 'patch',
+  componentName: 'NotificationDetailResponseDto',
+  schema: notificationDetailSchema,
+  description: 'Notification marked as unread.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/notifications/mark-all-read',
+  method: 'patch',
+  componentName: 'UnreadCountResponseDto',
+  schema: unreadCountSchema,
+  description: 'Number of notifications marked as read.',
+});

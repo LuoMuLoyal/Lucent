@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -25,14 +26,15 @@ import {
   ProblemDetailsDto,
 } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { createDoseLogSchema } from './dto/create-dose-log.dto.js';
 import type { CreateDoseLogDto } from './dto/create-dose-log.dto.js';
 
 import {
-  DoseLogListResponseDto,
-  DoseLogResponseDto,
+  doseLogListResponseSchema,
+  doseLogResponseSchema,
 } from './dto/dose-log-response.dto.js';
 
 import { markDoseLogSchema } from './dto/mark-dose-log.dto.js';
@@ -53,7 +55,11 @@ export class MedicineDoseLogsController {
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'pageSize', required: false, example: 50 })
-  @ApiResponse({ status: 200, type: DoseLogListResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Dose logs for the requested date.',
+  })
+  @SerializeOptions({ schema: doseLogListResponseSchema })
   async list(
     @CurrentUser() user: UserPayload,
     @Query('date') date: string,
@@ -71,7 +77,8 @@ export class MedicineDoseLogsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a dose log' })
-  @ApiResponse({ status: 201, type: DoseLogResponseDto })
+  @ApiResponse({ status: 201, description: 'The created dose log.' })
+  @SerializeOptions({ schema: doseLogResponseSchema })
   @ApiResponse({
     status: 400,
     description: 'Invalid slot identity (VALIDATION_FAILED)',
@@ -99,7 +106,11 @@ export class MedicineDoseLogsController {
   @ApiOperation({
     summary: 'Mark a dose log idempotently for one reminder slot',
   })
-  @ApiResponse({ status: 201, type: DoseLogResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'The created or updated dose log for the slot.',
+  })
+  @SerializeOptions({ schema: doseLogResponseSchema })
   @ApiResponse({
     status: 400,
     description:
@@ -127,7 +138,8 @@ export class MedicineDoseLogsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update a dose log' })
   @ApiParam({ name: 'id' })
-  @ApiResponse({ status: 200, type: DoseLogResponseDto })
+  @ApiResponse({ status: 200, description: 'The updated dose log.' })
+  @SerializeOptions({ schema: doseLogResponseSchema })
   @ApiResponse({
     status: 404,
     description: 'Dose log not found (RESOURCE_NOT_FOUND)',
@@ -156,3 +168,35 @@ export class MedicineDoseLogsController {
     return;
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-dose-logs',
+  method: 'get',
+  componentName: 'DoseLogListResponseDto',
+  schema: doseLogListResponseSchema,
+  description: 'Dose logs for the requested date.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-dose-logs',
+  method: 'post',
+  componentName: 'DoseLogResponseDto',
+  schema: doseLogResponseSchema,
+  description: 'The created dose log.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-dose-logs/mark',
+  method: 'post',
+  componentName: 'DoseLogResponseDto',
+  schema: doseLogResponseSchema,
+  description: 'The created or updated dose log for the slot.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/medicine-dose-logs/{id}',
+  method: 'patch',
+  componentName: 'DoseLogResponseDto',
+  schema: doseLogResponseSchema,
+  description: 'The updated dose log.',
+});

@@ -1,19 +1,34 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-import { DailyRecordItemDto } from './record-item.dto.js';
-import { DailyRecordSummaryDto } from './record-summary.dto.js';
+import { dailyRecordItemSchema } from './record-item.dto.js';
+import { dailyRecordSummarySchema } from './record-summary.dto.js';
 
-export class DailyRecordListDataDto {
-  @ApiProperty({ type: () => DailyRecordItemDto, isArray: true })
-  items!: DailyRecordItemDto[];
+/**
+ * Standard Schema (zod 4) for the `GET /daily-records` list payload.
+ *
+ * Replaces the former `@ApiProperty` data class `DailyRecordListDataDto`.
+ */
+export const dailyRecordListDataSchema = z.object({
+  items: z.array(dailyRecordItemSchema),
+  total: z
+    .number()
+    .int()
+    .describe('Total records for the date (before pagination).'),
+});
 
-  @ApiProperty({
-    description: 'Total records for the date (before pagination).',
-  })
-  total!: number;
-}
+/** Strongly typed daily-record list payload of `GET /daily-records`. */
+export type DailyRecordListDataDto = z.infer<typeof dailyRecordListDataSchema>;
 
-export class DailyRecordSummaryDataDto {
-  @ApiProperty({ type: () => DailyRecordSummaryDto, isArray: true })
-  summaries!: DailyRecordSummaryDto[];
-}
+/**
+ * Standard Schema (zod 4) for the `GET /daily-records/summary` payload.
+ *
+ * Replaces the former `@ApiProperty` data class `DailyRecordSummaryDataDto`.
+ */
+export const dailyRecordSummaryDataSchema = z.object({
+  summaries: z.array(dailyRecordSummarySchema),
+});
+
+/** Strongly typed per-kind summary payload of `GET /daily-records/summary`. */
+export type DailyRecordSummaryDataDto = z.infer<
+  typeof dailyRecordSummaryDataSchema
+>;

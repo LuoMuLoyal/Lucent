@@ -17,7 +17,7 @@ import {
   type MedicineKnowledgeSource,
 } from '../dto/source.dto.js';
 
-import { MedicineSafetyTipResponseDto } from '../dto/safety-tip-response.dto.js';
+import type { MedicineSafetyTipResponseDto } from '../dto/safety-tip-response.dto.js';
 
 import type { MedicineDetailDataDto } from '../dto/detail.dto.js';
 

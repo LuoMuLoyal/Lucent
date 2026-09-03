@@ -250,8 +250,9 @@ export class NotificationsService {
       title: row.title,
       content: row.content,
       action: row.action ?? null,
-      actionPayload:
-        (row.actionPayload as Record<string, unknown> | null) ?? null,
+      // The response schema types actionPayload as `unknown` (legacy JSON
+      // posture), so the raw Prisma JSON value maps through as-is.
+      actionPayload: row.actionPayload ?? null,
       isRead: row.isRead,
       createdAt: row.createdAt.toISOString(),
     };

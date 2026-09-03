@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  SerializeOptions,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
@@ -7,6 +15,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ProblemDetailsDto } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
@@ -14,7 +23,7 @@ import { createProductEventBatchSchema } from './dto/create-product-event.dto.js
 import type { CreateProductEventBatchDto } from './dto/create-product-event.dto.js';
 import { productFunnelQuerySchema } from './dto/funnel-query.dto.js';
 import type { FunnelQueryDto } from './dto/funnel-query.dto.js';
-import { FunnelResponseDto } from './dto/funnel-response.dto.js';
+import { funnelResponseSchema } from './dto/funnel-response.dto.js';
 import { AdminGuard } from './guards/admin.guard.js';
 import { ProductEventsService } from './services/events.service.js';
 import { ProductFunnelService } from './services/funnel.service.js';
@@ -69,7 +78,6 @@ export class ProductEventsController {
   })
   @ApiResponse({
     status: 200,
-    type: FunnelResponseDto,
     description: 'Aggregated funnel counts for the requested window.',
   })
   @ApiResponse({
@@ -85,9 +93,18 @@ export class ProductEventsController {
     type: ProblemDetailsDto,
     description: 'Invalid funnel query window (dates or range).',
   })
+  @SerializeOptions({ schema: funnelResponseSchema })
   async getFunnel(
     @Query({ schema: productFunnelQuerySchema }) query: FunnelQueryDto,
   ) {
     return await unwrapResult(this.funnelService.getFunnel(query));
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/product-events/funnel',
+  method: 'get',
+  componentName: 'FunnelResponseDto',
+  schema: funnelResponseSchema,
+  description: 'Aggregated funnel counts for the requested window.',
+});

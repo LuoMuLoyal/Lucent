@@ -6,6 +6,7 @@ import {
   Body,
   Query,
   Headers,
+  SerializeOptions,
 } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import {
@@ -16,6 +17,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { formatDateOnly, now } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
@@ -32,21 +34,17 @@ import {
 } from './dto/feedback.dto.js';
 import type { SuggestionFeedbackDto } from './dto/feedback.dto.js';
 
-import {
-  TodaySuggestionsDataDto,
-  TodaySuggestionsResponseDto,
-} from './dto/suggestion-history.dto.js';
+import { todaySuggestionsDataSchema } from './dto/suggestion-history.dto.js';
+import type { TodaySuggestionsDataDto } from './dto/suggestion-history.dto.js';
 
 import {
-  SuggestionExplanationDataDto,
-  SuggestionExplanationAsyncResponseDto,
-  SuggestionExplanationResponseDto,
+  suggestionExplanationAsyncResponseSchema,
+  suggestionExplanationDataSchema,
 } from './dto/explanation.dto.js';
+import type { SuggestionExplanationDataDto } from './dto/explanation.dto.js';
 
-import {
-  SuggestionHistoryDataDto,
-  SuggestionHistoryResponseDto,
-} from './dto/suggestion-history-query.dto.js';
+import { suggestionHistoryDataSchema } from './dto/suggestion-history-query.dto.js';
+import type { SuggestionHistoryDataDto } from './dto/suggestion-history-query.dto.js';
 
 @ApiTags('Today Suggestion')
 @ApiBearerAuth('access-token')
@@ -62,7 +60,10 @@ export class TodaySuggestionController {
 
   @Get()
   @ApiOperation({ summary: 'Get Today page suggestion cards' })
-  @ApiResponse({ status: 200, type: TodaySuggestionsResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Today page suggestion cards with materialization state.',
+  })
   @ApiQuery({
     name: 'date',
     required: false,
@@ -75,6 +76,7 @@ export class TodaySuggestionController {
     type: String,
     description: 'Suggestion IDs the user has dismissed.',
   })
+  @SerializeOptions({ schema: todaySuggestionsDataSchema })
   async getSuggestions(
     @CurrentUser() user: UserPayload,
     @Query('date') date?: string,
@@ -124,8 +126,14 @@ export class TodaySuggestionController {
 
   @Post(':id/explain')
   @ApiOperation({ summary: 'Get AI explanation for a suggestion card' })
-  @ApiResponse({ status: 201, type: SuggestionExplanationResponseDto })
+  // 201 主成功体注记:export-openapi 目前只回写 200;本端点按稳定组件名登记,
+  // 导出脚本支持 201 回写后自动生效。
+  @ApiResponse({
+    status: 201,
+    description: 'The AI explanation for the suggestion card.',
+  })
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @SerializeOptions({ schema: suggestionExplanationDataSchema })
   async explainSuggestion(
     @CurrentUser() user: UserPayload,
     @Param('id') suggestionId: string,
@@ -149,13 +157,15 @@ export class TodaySuggestionController {
   @ApiOperation({
     summary: 'Enqueue async AI explanation for a suggestion card',
   })
+  // 202 主成功体注记:export-openapi 目前只回写 200;本端点按稳定组件名登记,
+  // 导出脚本支持 202 回写后自动生效。
   @ApiResponse({
     status: 202,
     description:
       'Returns either a queued jobId or the synchronous explanation resource when the queue is unavailable.',
-    type: SuggestionExplanationAsyncResponseDto,
   })
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @SerializeOptions({ schema: suggestionExplanationAsyncResponseSchema })
   async explainSuggestionAsync(
     @CurrentUser() user: UserPayload,
     @Param('id') suggestionId: string,
@@ -202,7 +212,10 @@ export class TodaySuggestionController {
 
   @Get('history')
   @ApiOperation({ summary: 'Get suggestion history for the Report page' })
-  @ApiResponse({ status: 200, type: SuggestionHistoryResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion history items with the query window used.',
+  })
   @ApiQuery({
     name: 'startDate',
     required: false,
@@ -237,6 +250,7 @@ export class TodaySuggestionController {
     type: Number,
     description: 'Max items (default 100, max 500).',
   })
+  @SerializeOptions({ schema: suggestionHistoryDataSchema })
   async getHistory(
     @CurrentUser() user: UserPayload,
     @Query('startDate') startDate?: string,
@@ -278,3 +292,39 @@ export class TodaySuggestionController {
     return response;
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/today/suggestions',
+  method: 'get',
+  componentName: 'TodaySuggestionsResponseDto',
+  schema: todaySuggestionsDataSchema,
+  description: 'Today page suggestion cards with materialization state.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today/suggestions/history',
+  method: 'get',
+  componentName: 'SuggestionHistoryResponseDto',
+  schema: suggestionHistoryDataSchema,
+  description: 'Suggestion history items with the query window used.',
+});
+
+// 201/202 主成功体注记:export-openapi 目前只把注册组件的 200 响应回写为
+// $ref;explain(201)与 explain/async(202)的响应体按稳定组件名登记,导出脚本
+// 支持对应状态码回写后自动生效。
+registerResponseSchema({
+  path: '/api/v1/user/today/suggestions/{id}/explain',
+  method: 'post',
+  componentName: 'SuggestionExplanationResponseDto',
+  schema: suggestionExplanationDataSchema,
+  description: 'The AI explanation for the suggestion card.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/today/suggestions/{id}/explain/async',
+  method: 'post',
+  componentName: 'SuggestionExplanationAsyncResponseDto',
+  schema: suggestionExplanationAsyncResponseSchema,
+  description:
+    'Returns either a queued jobId or the synchronous explanation resource when the queue is unavailable.',
+});

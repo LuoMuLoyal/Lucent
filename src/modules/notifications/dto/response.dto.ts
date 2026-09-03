@@ -1,4 +1,3 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { z } from 'zod';
 import { type UserNotificationType } from '#generated/prisma/client.js';
 
@@ -31,72 +30,85 @@ export const USER_CREATABLE_NOTIFICATION_TYPES = USER_NOTIFICATION_TYPES.filter(
   (t) => !SYSTEM_ONLY_NOTIFICATION_TYPES.has(t),
 ) as unknown as readonly UserNotificationType[];
 
-export class NotificationListItemDto {
-  @ApiProperty({ description: 'Unique notification identifier.' })
-  id!: string;
+// ── Response schemas (Standard Schema / zod) ────────────────────────────────
+//
+// Response-side counterpart of the app-info pilot: these schemas describe the
+// outbound wire shapes, are consumed by `StandardSchemaSerializerInterceptor`
+// via `@SerializeOptions({ schema })`, and are registered in
+// `response-schema.registry` so the OpenAPI export keeps the former DTO class
+// names as named components (Luminous model names stay stable). Unlike request
+// schemas they carry no `.strict()` / `.default()`: outbound parsing must
+// tolerate whatever the service layer produces.
 
-  @ApiProperty({
-    enum: USER_NOTIFICATION_TYPES,
-    enumName: 'UserNotificationType',
-  })
-  type!: UserNotificationType;
+/**
+ * Wire shape of a single notification list entry (`GET /notifications` items
+ * and the `POST /notifications` creation result).
+ */
+export const notificationListItemSchema = z.object({
+  id: z.string().describe('Unique notification identifier.'),
+  type: z.enum(USER_NOTIFICATION_TYPES),
+  title: z.string().describe('Notification title.'),
+  content: z.string().describe('Notification content body.'),
+  action: z
+    .string()
+    .nullable()
+    .describe('Action route target for the frontend.'),
+  // Legacy posture: the payload is stored/echoed as-is (may be any JSON), so
+  // outbound parsing stays permissive instead of enforcing a map shape.
+  actionPayload: z
+    .unknown()
+    .nullable()
+    .describe('Extra payload for the action.'),
+  isRead: z.boolean().describe('Whether the notification has been read.'),
+  createdAt: z
+    .string()
+    .describe('ISO-8601 timestamp when the notification was created.'),
+});
 
-  @ApiProperty({ description: 'Notification title.' })
-  title!: string;
+/** Strongly typed notification list entry. */
+export type NotificationListItemDto = z.infer<
+  typeof notificationListItemSchema
+>;
 
-  @ApiProperty({ description: 'Notification content body.' })
-  content!: string;
+/**
+ * Wire shape of a notification detail (`GET /notifications/:id`, the
+ * read/unread PATCH responses): a list entry plus the read timestamp.
+ */
+export const notificationDetailSchema = notificationListItemSchema.extend({
+  readAt: z
+    .string()
+    .nullable()
+    .describe('ISO-8601 timestamp when the notification was read.'),
+});
 
-  @ApiPropertyOptional({
-    type: String,
-    nullable: true,
-    description: 'Action route target for the frontend.',
-  })
-  action!: string | null;
+/** Strongly typed notification detail. */
+export type NotificationDetailDto = z.infer<typeof notificationDetailSchema>;
 
-  @ApiPropertyOptional({
-    type: Object,
-    nullable: true,
-    description: 'Extra payload for the action.',
-  })
-  actionPayload!: Record<string, unknown> | null;
+/** Wire shape of the paginated `GET /notifications` response. */
+export const notificationListSchema = z.object({
+  items: z.array(notificationListItemSchema),
+  total: z.number().describe('Total count of notifications for the user.'),
+});
 
-  @ApiProperty({ description: 'Whether the notification has been read.' })
-  isRead!: boolean;
+/** Strongly typed paginated notification list. */
+export type NotificationListDataDto = z.infer<typeof notificationListSchema>;
 
-  @ApiProperty({
-    description: 'ISO-8601 timestamp when the notification was created.',
-  })
-  createdAt!: string;
-}
+/** Backwards-compatible alias kept for the former response DTO name. */
+export type NotificationListResponseDto = NotificationListDataDto;
 
-export class NotificationDetailDto extends NotificationListItemDto {
-  @ApiPropertyOptional({
-    type: String,
-    nullable: true,
-    description: 'ISO-8601 timestamp when the notification was read.',
-  })
-  readAt!: string | null;
-}
+/** Backwards-compatible alias kept for the former response DTO name. */
+export type NotificationDetailResponseDto = NotificationDetailDto;
 
-export class NotificationListDataDto {
-  @ApiProperty({ type: () => [NotificationListItemDto] })
-  items!: NotificationListItemDto[];
+/** Wire shape of the unread-count responses (`GET /unread-count`, mark-all-read). */
+export const unreadCountSchema = z.object({
+  count: z.number().describe('Number of unread notifications.'),
+});
 
-  @ApiProperty({ description: 'Total count of notifications for the user.' })
-  total!: number;
-}
+/** Strongly typed unread count resource. */
+export type UnreadCountDataDto = z.infer<typeof unreadCountSchema>;
 
-export class NotificationListResponseDto extends NotificationListDataDto {}
-
-export class NotificationDetailResponseDto extends NotificationDetailDto {}
-
-export class UnreadCountDataDto {
-  @ApiProperty({ description: 'Number of unread notifications.', example: 3 })
-  count!: number;
-}
-
-export class UnreadCountResponseDto extends UnreadCountDataDto {}
+/** Backwards-compatible alias kept for the former response DTO name. */
+export type UnreadCountResponseDto = UnreadCountDataDto;
 
 /**
  * Standard Schema (zod 4) for `POST /notifications` — mirrors the former
