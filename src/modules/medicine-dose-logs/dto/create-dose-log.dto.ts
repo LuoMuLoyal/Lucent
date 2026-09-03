@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
 
 import { DoseLogStatus } from '#generated/prisma/client.js';
 
@@ -37,7 +38,7 @@ export const createDoseLogSchema = z
       .describe('Linked active health event id.')
       .nullish(),
     status: z.enum(DoseLogStatus),
-    scheduledFor: z.iso.date().describe('Scheduled date YYYY-MM-DD.'),
+    scheduledFor: dateOnlySchema().describe('Scheduled date YYYY-MM-DD.'),
     scheduledTime: z
       .string()
       .regex(/^\d{2}:\d{2}$/)

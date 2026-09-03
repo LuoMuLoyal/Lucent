@@ -41,3 +41,21 @@ export function isoDateOrDatetimeSchema(
     },
   );
 }
+
+/**
+ * Zod fragment for date-only wire fields (`YYYY-MM-DD` calendar days).
+ *
+ * Deliberately a refined `string` (no `format: date`) so the OpenAPI
+ * conversion emits a plain string and the Luminous client keeps `String`
+ * parameters — `z.iso.date()` would render `format: date` and make the
+ * generator type these as `DateTime`, which its serializers cannot express
+ * as a bare calendar date. Runtime validation stays native via `z.iso.date`.
+ */
+export function dateOnlySchema(message?: string) {
+  return z.string().refine(
+    (value) => z.iso.date().safeParse(value).success,
+    {
+      message: message ?? 'Invalid date. Expected YYYY-MM-DD.',
+    },
+  );
+}

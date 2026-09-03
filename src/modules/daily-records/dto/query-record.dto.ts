@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
 
@@ -21,7 +22,7 @@ const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
  */
 export const queryDailyRecordSchema = z
   .object({
-    date: z.iso.date().describe('Date in YYYY-MM-DD format.'),
+    date: dateOnlySchema().describe('Date in YYYY-MM-DD format.'),
     kind: z.enum(DAILY_RECORD_KIND_VALUES).optional(),
     page: z.coerce
       .number({ message: 'page must be a number' })
