@@ -119,3 +119,7 @@ What becomes easier or harder as a result of this decision?
   - Title: Observability Stack Migration — VictoriaMetrics + VictoriaLogs + VictoriaTraces
   - Status: accepted
   - Date: 2026-08-24
+- [0017](0017-machine-readable-error-code-catalog.md)
+  - Title: Machine-Readable Error Codes — Stable `code` Registry in `ProblemCatalog`
+  - Status: accepted
+  - Date: 2026-09-03
