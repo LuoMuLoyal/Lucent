@@ -132,6 +132,9 @@ importers:
 
   .:
     dependencies:
+      '@adminjs/fastify':
+        specifier: ^4.2.0
+        version: 4.2.0(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.18)(supports-color@5.5.0))
       '@aws-sdk/client-s3':
         specifier: ^3.765.0
         version: 3.1113.0
@@ -237,6 +240,9 @@ importers:
       '@scalar/api-reference':
         specifier: ^1.64.0
         version: 1.64.0(axios@1.18.0(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0))(qrcode@1.5.4)(supports-color@5.5.0)(tailwindcss@4.3.3)(typescript@6.0.3)(zod@4.4.3)
+      '@scalar/nestjs-api-reference':
+        specifier: ^1.2.6
+        version: 1.2.6
       '@sergiyiva/adminjs-prisma':
         specifier: ^2.0.1
         version: 2.0.1(@prisma/client@7.9.1(prisma@7.9.1(@types/react@19.2.18)(magicast@0.5.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(typescript@6.0.3))(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.18)(supports-color@5.5.0))
@@ -358,9 +364,6 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
     devDependencies:
-      '@adminjs/fastify':
-        specifier: ^4.2.0
-        version: 4.2.0(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.18)(supports-color@5.5.0))
       '@commitlint/cli':
         specifier: ^21.0.1
         version: 21.0.1(@types/node@24.12.4)(conventional-commits-parser@6.4.0)(typescript@6.0.3)
@@ -388,9 +391,6 @@ importers:
       '@nestjs/testing':
         specifier: ^12.0.1
         version: 12.0.1(@nestjs/common@12.0.1(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(reflect-metadata@0.2.2)(rxjs@7.8.2))
-      '@scalar/nestjs-api-reference':
-        specifier: ^1.2.6
-        version: 1.2.6
       '@swc/cli':
         specifier: ^0.8.1
         version: 0.8.1(@swc/core@1.15.40(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@5.5.0)

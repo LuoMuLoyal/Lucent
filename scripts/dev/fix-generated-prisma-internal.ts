@@ -8,11 +8,12 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Prisma 7's `prisma-client` generator emits only `.ts` files.
- * The runtime (compiled `dist/`) imports `generated/prisma/client.js`,
- * so we must transpile every `.ts` file under `generated/prisma/`
- * (both root-level and `internal/`) to `.js` using SWC with CommonJS
- * module output. SWC is significantly faster than the TypeScript compiler
- * for single-file transpilation.
+ * The runtime (compiled `dist/`, ESM since the full-repo ESM switch) imports
+ * `generated/prisma/client.js`, so we must transpile every `.ts` file under
+ * `generated/prisma/` (both root-level and `internal/`) to `.js` using SWC
+ * with ES module output — the root `package.json` is `"type": "module"`, so
+ * `.js` artifacts are interpreted as ESM. SWC is significantly faster than
+ * the TypeScript compiler for single-file transpilation.
  */
 async function transpileDir(dir: string): Promise<void> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -33,7 +34,7 @@ async function transpileDir(dir: string): Promise<void> {
         },
       },
       module: {
-        type: 'commonjs',
+        type: 'es6',
       },
     });
     await fs.writeFile(outputPath, result.code, 'utf8');

@@ -19,7 +19,7 @@
     }
   },
   "module": {
-    "type": "commonjs"
+    "type": "es6"
   },
   "exclude": ["node_modules"]
 }
