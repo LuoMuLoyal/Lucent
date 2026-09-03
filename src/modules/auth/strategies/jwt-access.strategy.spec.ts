@@ -1,8 +1,8 @@
 import type { ConfigService } from '@nestjs/config';
 
-import { ConfigKey } from '../../../config/env/config-keys.enum';
-import { JwtAccessStrategy } from './jwt-access.strategy';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
+import { ConfigKey } from '../../../config/env/config-keys.enum.js';
+import { JwtAccessStrategy } from './jwt-access.strategy.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
 
 describe('JwtAccessStrategy', () => {
   const jwtConfig = {

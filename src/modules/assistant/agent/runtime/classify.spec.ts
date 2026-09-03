@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyIntent } from './classify';
+import { classifyIntent } from './classify.js';
 
 const ALLOWED = [
   'get_today_records',

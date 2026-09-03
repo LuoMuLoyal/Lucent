@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
-import { BullmqQueueFactory } from '../../../common/queue/queue.factory';
-import { createDomainFailure } from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
-import { DataExportProcessorService } from './processor.service';
+import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
+import { createDomainFailure } from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
+import { DataExportProcessorService } from './processor.service.js';
 
 interface DataExportJobData {
   exportRequestId: string;

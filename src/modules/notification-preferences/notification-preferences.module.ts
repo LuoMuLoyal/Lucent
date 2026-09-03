@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { ReportsModule } from '../reports/reports.module';
-import { NotificationPreferencesController } from './notification-preferences.controller';
-import { NotificationPreferencesService } from './services/notification-preferences.service';
-import { WeeklyInsightSchedulerService } from './services/weekly-insight-scheduler.service';
+import { PrismaModule } from '../../prisma/index.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { ReportsModule } from '../reports/reports.module.js';
+import { NotificationPreferencesController } from './notification-preferences.controller.js';
+import { NotificationPreferencesService } from './services/notification-preferences.service.js';
+import { WeeklyInsightSchedulerService } from './services/weekly-insight-scheduler.service.js';
 
 @Module({
   imports: [PrismaModule, NotificationsModule, ReportsModule],

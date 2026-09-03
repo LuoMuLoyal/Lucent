@@ -1,9 +1,9 @@
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
 import { Command, MemorySaver } from '@langchain/langgraph';
 import { describe, expect, it, vi } from 'vitest';
-import type { AssistantToolExecutionResult } from '../../types/assistant.types';
-import { buildAssistantRuntimeGraph } from './graph';
-import { collectProposalReview } from './review';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import { buildAssistantRuntimeGraph } from './graph.js';
+import { collectProposalReview } from './review.js';
 
 const BASE_INPUT = {
   userId: 'user-1',

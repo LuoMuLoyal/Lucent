@@ -1,10 +1,13 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 
-import type { OAuthConfig } from '../../../../config/services/oauth.config';
-import { OAUTH_PROVIDER_WECHAT_MOBILE } from '../../types/oauth.types';
-import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
+import type { OAuthConfig } from '../../../../config/services/oauth.config.js';
+import { OAUTH_PROVIDER_WECHAT_MOBILE } from '../../types/oauth.types.js';
+import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
 
 const mockOAuthConfig: OAuthConfig = {
   wechatWeb: {

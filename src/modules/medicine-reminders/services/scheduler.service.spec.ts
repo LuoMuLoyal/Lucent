@@ -1,9 +1,9 @@
-import { ReminderSchedulerService } from './scheduler.service';
-import { errAsync, okAsync } from '../../../common/result';
-import { createDomainFailure } from '../../../common/result';
-import type { NotificationsService } from '../../notifications';
-import type { PushDeliveryService } from '../../notifications';
-import type { PrismaService } from '../../../prisma';
+import { ReminderSchedulerService } from './scheduler.service.js';
+import { errAsync, okAsync } from '../../../common/result/index.js';
+import { createDomainFailure } from '../../../common/result/index.js';
+import type { NotificationsService } from '../../notifications/index.js';
+import type { PushDeliveryService } from '../../notifications/index.js';
+import type { PrismaService } from '../../../prisma/index.js';
 import type { Cache } from 'cache-manager';
 import type { I18nService } from 'nestjs-i18n';
 

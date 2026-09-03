@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
-import type { DeepMocked } from '../../../../common/types/deep-mocked';
-import type { PrismaService } from '../../../../prisma';
-import type { ProductEventsService } from '../../../product-events';
-import { ShareService } from './share.service';
+} from '#generated/prisma/client.js';
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { ProductEventsService } from '../../../product-events/index.js';
+import { ShareService } from './share.service.js';
 
 /**
  * Persisted-share store fake. Mirrors the generated `userClinicSummaryShare`

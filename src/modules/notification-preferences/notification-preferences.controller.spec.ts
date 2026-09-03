@@ -1,5 +1,9 @@
-import { NotificationPreferencesController } from './notification-preferences.controller';
-import { createDomainFailure, errAsync, okAsync } from '../../common/result';
+import { NotificationPreferencesController } from './notification-preferences.controller.js';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../common/result/index.js';
 
 describe('NotificationPreferencesController', () => {
   it('returns the authenticated user preferences resource', async () => {

@@ -13,14 +13,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
-import { LlmRuntimeService } from '../../../llm-runtime';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
+import { LlmRuntimeService } from '../../../llm-runtime/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 import {
   AssistantConversationRepositoryPort,
   type ConversationWithMessages,
-} from '../repositories/conversation.repository';
-import { AssistantMemoryRepositoryPort } from '../repositories/memory.repository';
+} from '../repositories/conversation.repository.js';
+import { AssistantMemoryRepositoryPort } from '../repositories/memory.repository.js';
 
 /** Independent guard for providers that ignore the model client's timeout. */
 export const MEMORY_EXTRACTION_TIMEOUT_MS = AI_MODEL_TIMEOUT_MS + 1_000;

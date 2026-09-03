@@ -1,11 +1,11 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 
-import { MetricsService } from '../../../../common/metrics/metrics.service';
-import { SuggestionService } from '../suggestion.service';
-import { MaterializationStore } from '../materialization/store.service';
-import { SuggestionCacheService } from '../cache/suggestion-cache.service';
-import { BaselineService } from '../lifecycle/baseline.service';
-import type { RecomputeJobData } from './queue.service';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { SuggestionService } from '../suggestion.service.js';
+import { MaterializationStore } from '../materialization/store.service.js';
+import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
+import { BaselineService } from '../lifecycle/baseline.service.js';
+import type { RecomputeJobData } from './queue.service.js';
 
 const MAX_RECOMPUTE_VERSION_FOLLOW_UPS = 3;
 

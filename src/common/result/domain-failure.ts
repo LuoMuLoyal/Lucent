@@ -1,4 +1,4 @@
-import type { ProblemCode } from '../api/problem-catalog';
+import type { ProblemCode } from '../api/problem-catalog.js';
 
 const domainFailureKinds = [
   'validation',

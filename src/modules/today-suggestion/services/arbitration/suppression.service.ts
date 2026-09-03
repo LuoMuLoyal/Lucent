@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { SuggestionCandidate } from '../../types/candidate.types';
-import { SuggestionFeedback } from '../../types/suggestion.types';
-import { FeedbackService } from '../feedback/recorder.service';
-import type { FeedbackEntry } from '../feedback/recorder.service';
-import { FeedbackStatsService } from '../feedback/stats.service';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
+import { SuggestionFeedback } from '../../types/suggestion.types.js';
+import { FeedbackService } from '../feedback/recorder.service.js';
+import type { FeedbackEntry } from '../feedback/recorder.service.js';
+import { FeedbackStatsService } from '../feedback/stats.service.js';
 
 /** Result of filtering and adjusting candidates with feedback data. */
 export interface SuppressionResult {

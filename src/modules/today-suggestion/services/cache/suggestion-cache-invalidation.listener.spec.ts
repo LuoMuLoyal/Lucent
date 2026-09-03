@@ -1,4 +1,4 @@
-import { SuggestionCacheInvalidationListener } from './suggestion-cache-invalidation.listener';
+import { SuggestionCacheInvalidationListener } from './suggestion-cache-invalidation.listener.js';
 
 describe('SuggestionCacheInvalidationListener', () => {
   let listener: SuggestionCacheInvalidationListener;

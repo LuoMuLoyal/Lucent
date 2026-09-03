@@ -6,9 +6,9 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import { of } from 'rxjs';
-import { SlowRequestInterceptor } from './slow-request.interceptor';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import { loadYamlConfig } from '../../config/yaml/yaml-loader';
+import { SlowRequestInterceptor } from './slow-request.interceptor.js';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import { loadYamlConfig } from '../../config/yaml/yaml-loader.js';
 
 describe('SlowRequestInterceptor', () => {
   let interceptor: SlowRequestInterceptor;

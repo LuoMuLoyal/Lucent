@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { PrismaService } from '../../../prisma';
+import { PrismaService } from '../../../prisma/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -9,17 +9,17 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 import type {
   LegalDocumentDetailDto,
   LegalDocumentListDataDto,
   LegalDocumentListItemDto,
-} from '../dto/response.dto';
-import type { LegalDocumentQueryDto } from '../dto/query.dto';
+} from '../dto/response.dto.js';
+import type { LegalDocumentQueryDto } from '../dto/query.dto.js';
 import {
   DEFAULT_LEGAL_LANG,
   type LegalLang,
-} from '../constants/legal.constants';
+} from '../constants/legal.constants.js';
 
 @Injectable()
 export class LegalDocumentsService {

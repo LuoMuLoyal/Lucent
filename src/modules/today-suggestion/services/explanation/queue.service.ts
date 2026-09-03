@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../../common';
-import { unwrapResult } from '../../../../common/result';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { BaseAsyncQueueService } from '../../../../common/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
 import {
   ExplanationService,
   type ExplanationResult,
-} from './explainer.service';
+} from './explainer.service.js';
 
 interface ExplanationJobData {
   userId: string;

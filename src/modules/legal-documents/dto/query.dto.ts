@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
-import { LEGAL_LANGS } from '../constants/legal.constants';
+import { LEGAL_LANGS } from '../constants/legal.constants.js';
 
 /** Query parameters for the legal document detail endpoint. */
 export class LegalDocumentQueryDto {

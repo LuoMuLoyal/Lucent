@@ -1,15 +1,15 @@
-import { SuppressionService } from './suppression.service';
-import type { FeedbackService } from '../feedback/recorder.service';
-import type { FeedbackEntry } from '../feedback/recorder.service';
-import type { FeedbackStatsService } from '../feedback/stats.service';
-import type { RuleFeedbackStats } from '../feedback/stats.service';
+import { SuppressionService } from './suppression.service.js';
+import type { FeedbackService } from '../feedback/recorder.service.js';
+import type { FeedbackEntry } from '../feedback/recorder.service.js';
+import type { FeedbackStatsService } from '../feedback/stats.service.js';
+import type { RuleFeedbackStats } from '../feedback/stats.service.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
   SuggestionFeedback,
-} from '../../types/suggestion.types';
-import type { SuggestionCandidate } from '../../types/candidate.types';
+} from '../../types/suggestion.types.js';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},

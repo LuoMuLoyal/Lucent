@@ -1,12 +1,15 @@
-import { DeliveryReceiptsService } from './delivery-receipts.service';
-import type { PrismaService } from '../../../prisma';
-import type { MedicineRemindersOwnershipService } from './ownership.service';
-import type { MedicineRemindersMapperService } from './mapper.service';
+import { DeliveryReceiptsService } from './delivery-receipts.service.js';
+import type { PrismaService } from '../../../prisma/index.js';
+import type { MedicineRemindersOwnershipService } from './ownership.service.js';
+import type { MedicineRemindersMapperService } from './mapper.service.js';
 import type { Cache } from 'cache-manager';
-import { errAsync, okAsync } from '../../../common/result';
-import { createDomainFailure } from '../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import type { ReminderDeliveryReceiptDto } from '../dto/reminder-delivery-receipt.dto';
+import { errAsync, okAsync } from '../../../common/result/index.js';
+import { createDomainFailure } from '../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import type { ReminderDeliveryReceiptDto } from '../dto/reminder-delivery-receipt.dto.js';
 
 /** Unwraps a ResultAsync, failing the test when it is an Err. */
 async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {

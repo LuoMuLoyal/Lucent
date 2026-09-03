@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { Account, User } from '#generated/prisma/client';
+import { Account, User } from '#generated/prisma/client.js';
 import {
   createDomainFailure,
   DomainFailureException,
@@ -9,17 +9,17 @@ import {
   mapUnknownToDependencyFailure,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 import {
   AuthBetterAuthAdapter,
   CREDENTIAL_PROVIDER_ID,
   PasswordReauthService,
-} from '../../auth';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { UserService } from '../../user';
-import { AccountDto } from '../dto/response.dto';
-import { UnlinkIdentityDto } from '../dto/unlink-identity.dto';
-import { UpdateAccountDto } from '../dto/update.dto';
+} from '../../auth/index.js';
+import { PrismaService } from '../../../prisma/prisma.service.js';
+import { UserService } from '../../user/index.js';
+import { AccountDto } from '../dto/response.dto.js';
+import { UnlinkIdentityDto } from '../dto/unlink-identity.dto.js';
+import { UpdateAccountDto } from '../dto/update.dto.js';
 
 type AccountUser = User & { accounts: Account[] };
 

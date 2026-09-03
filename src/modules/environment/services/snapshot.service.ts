@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { EnvironmentSnapshotDto } from '../dto/snapshot.dto';
-import type { EnvironmentSnapshotQueryDto } from '../dto/snapshot-query.dto';
+import type { EnvironmentSnapshotDto } from '../dto/snapshot.dto.js';
+import type { EnvironmentSnapshotQueryDto } from '../dto/snapshot-query.dto.js';
 import {
   type EnvironmentSnapshotLocationInput,
   getStaticEnvironmentSnapshot,
-} from '../config/reference';
+} from '../config/reference.js';
 
 @Injectable()
 export class EnvironmentService {

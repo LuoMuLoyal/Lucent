@@ -1,4 +1,4 @@
-import type { PromptCopy } from '../../../common';
+import type { PromptCopy } from '../../../common/index.js';
 
 export type MedicineRiskLlmPromptCopy = PromptCopy;
 

@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types';
+import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types';
+import type { SuggestionSignal } from '../../../types/signal.types.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types';
+import type { SuggestionCandidate } from '../../../types/candidate.types.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types';
+} from '../../../types/suggestion.types.js';
 
 interface EventCheckIn {
   date: string;

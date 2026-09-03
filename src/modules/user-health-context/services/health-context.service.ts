@@ -7,21 +7,21 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
-import type { CreateCurrentMedicineDto } from '../dto/create-current-medicine.dto';
-import type { CreateHealthContextAllergyDto } from '../dto/create-allergy.dto';
-import type { CreateHealthContextConditionDto } from '../dto/create-condition.dto';
-import type { HealthContextResponseData } from '../dto/response.dto';
-import type { UpdateCurrentMedicineDto } from '../dto/update-current-medicine.dto';
-import type { UpdateHealthContextAllergyDto } from '../dto/update-allergy.dto';
-import type { UpdateHealthContextConditionDto } from '../dto/update-condition.dto';
-import type { UpdateHealthContextProfileDto } from '../dto/update-profile.dto';
-import { UserHealthContextMapperService } from './mapper.service';
-import { UserHealthContextProfileWriteService } from './writes/profile-write.service';
-import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service';
-import { UserHealthContextConditionWriteService } from './writes/condition-write.service';
-import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service';
+} from '../../../common/result/index.js';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
+import type { CreateCurrentMedicineDto } from '../dto/create-current-medicine.dto.js';
+import type { CreateHealthContextAllergyDto } from '../dto/create-allergy.dto.js';
+import type { CreateHealthContextConditionDto } from '../dto/create-condition.dto.js';
+import type { HealthContextResponseData } from '../dto/response.dto.js';
+import type { UpdateCurrentMedicineDto } from '../dto/update-current-medicine.dto.js';
+import type { UpdateHealthContextAllergyDto } from '../dto/update-allergy.dto.js';
+import type { UpdateHealthContextConditionDto } from '../dto/update-condition.dto.js';
+import type { UpdateHealthContextProfileDto } from '../dto/update-profile.dto.js';
+import { UserHealthContextMapperService } from './mapper.service.js';
+import { UserHealthContextProfileWriteService } from './writes/profile-write.service.js';
+import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service.js';
+import { UserHealthContextConditionWriteService } from './writes/condition-write.service.js';
+import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service.js';
 import {
   HEALTH_CONTEXT_CHANGED,
   type HealthContextChangedPayload,

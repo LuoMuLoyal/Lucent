@@ -4,22 +4,22 @@ import type { Cache } from 'cache-manager';
 import type {
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
-} from '../types/assistant.types';
-import type { AssistantToolName } from './shared/tool-types';
-import { ASSISTANT_READ_TOOL_NAMES } from './shared/tool-types';
-import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants';
-import { AssistantToolLeafletReadService } from './leaflet/read.service';
+} from '../types/assistant.types.js';
+import type { AssistantToolName } from './shared/tool-types.js';
+import { ASSISTANT_READ_TOOL_NAMES } from './shared/tool-types.js';
+import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants.js';
+import { AssistantToolLeafletReadService } from './leaflet/read.service.js';
 import {
   AssistantToolDrugbankEntityResolveService,
   parseSearchPayload,
-} from './drugbank/entity-resolve.service';
-import { AssistantToolDrugbankSearchService } from './drugbank/search.service';
-import { AssistantToolMedicalKnowledgeService } from './knowledge/medical.service';
-import { AssistantToolMedicineLookupService } from './medicine/lookup.service';
-import { AssistantToolProposalService } from './proposal/proposal.service';
-import { AssistantToolReadService } from './read/read.service';
-import { MetricsService } from '../../../common/metrics/metrics.service';
-import { makeShortHash } from '../../../common/helpers/infra/hash.utils';
+} from './drugbank/entity-resolve.service.js';
+import { AssistantToolDrugbankSearchService } from './drugbank/search.service.js';
+import { AssistantToolMedicalKnowledgeService } from './knowledge/medical.service.js';
+import { AssistantToolMedicineLookupService } from './medicine/lookup.service.js';
+import { AssistantToolProposalService } from './proposal/proposal.service.js';
+import { AssistantToolReadService } from './read/read.service.js';
+import { MetricsService } from '../../../common/metrics/metrics.service.js';
+import { makeShortHash } from '../../../common/helpers/infra/hash.utils.js';
 
 /**
  * Retrieval tools whose results are public medicine knowledge (no user data).

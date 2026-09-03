@@ -1,9 +1,9 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { createDomainFailure } from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { createDomainFailure } from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 
 /**
  * JWT Access Token Guard

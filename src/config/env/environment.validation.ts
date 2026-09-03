@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { core } from 'zod';
-import { EnvKey } from './env-keys.enum';
+import { EnvKey } from './env-keys.enum.js';
 
 /**
  * Supported runtime environments.

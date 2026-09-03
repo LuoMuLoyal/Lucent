@@ -1,11 +1,11 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { SystemMessage } from '@langchain/core/messages';
-import type { AssistantToolName } from '../../../tools/shared/tool-types';
-import { MAX_TOOL_LOOPS } from '../../../tools/shared/tool-constants';
-import { AssistantRuntimeState } from '../state';
-import { createAgentNode, createToolsNode } from '../nodes';
-import { validateReadResults } from '../validate';
-import type { AssistantGraphDeps } from '../graph';
+import type { AssistantToolName } from '../../../tools/shared/tool-types.js';
+import { MAX_TOOL_LOOPS } from '../../../tools/shared/tool-constants.js';
+import { AssistantRuntimeState } from '../state.js';
+import { createAgentNode, createToolsNode } from '../nodes.js';
+import { validateReadResults } from '../validate.js';
+import type { AssistantGraphDeps } from '../graph.js';
 
 /**
  * Dependency order for knowledge-retrieval tools: a medicine leaflet query

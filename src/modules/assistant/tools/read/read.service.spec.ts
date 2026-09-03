@@ -1,13 +1,13 @@
-import type { DeepMocked } from '../../../../common/types/deep-mocked';
-import { okAsync } from '../../../../common/result';
-import type { PrismaService } from '../../../../prisma';
-import type { HistoricalAiSummaryService } from '../../services/historical-ai-summary.service';
-import type { UserHealthContextService } from '../../../user-health-context';
-import type { IMedicineReminderReader } from '../../types/ports';
-import type { UserSettingsService } from '../../../user-settings';
-import type { AssistantToolRecordQueryService } from '../records/query.service';
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
-import { AssistantToolReadService } from './read.service';
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+import { okAsync } from '../../../../common/result/index.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { HistoricalAiSummaryService } from '../../services/historical-ai-summary.service.js';
+import type { UserHealthContextService } from '../../../user-health-context/index.js';
+import type { IMedicineReminderReader } from '../../types/ports.js';
+import type { UserSettingsService } from '../../../user-settings/index.js';
+import type { AssistantToolRecordQueryService } from '../records/query.service.js';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
+import { AssistantToolReadService } from './read.service.js';
 
 const mockContext: AssistantToolExecutionContext = {
   userId: 'user-1',

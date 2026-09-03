@@ -7,7 +7,7 @@ import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_PATTERN,
   VERIFICATION_CODE_LENGTH,
-} from './auth.decorators';
+} from './auth.decorators.js';
 
 class PasswordTestDto {
   @IsStrongPassword()

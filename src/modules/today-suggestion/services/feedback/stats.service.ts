@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma';
+import { PrismaService } from '../../../../prisma/index.js';
 
 /** Statistics for a single rule's feedback. */
 export interface RuleFeedbackStats {

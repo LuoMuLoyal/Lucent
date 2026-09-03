@@ -1,8 +1,11 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
-import { AuthSessionRepository } from './session.repository';
-import type { PrismaService } from '../../../prisma';
+import { AuthSessionRepository } from './session.repository.js';
+import type { PrismaService } from '../../../prisma/index.js';
 
 /**
  * Folds a ResultAsync into a plain outcome so specs can assert both success

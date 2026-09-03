@@ -1,12 +1,12 @@
 import { AIMessageChunk } from '@langchain/core/messages';
 import { z } from 'zod';
-import { BaseLlmGeneratorService } from './base-llm-generator.service';
+import { BaseLlmGeneratorService } from './base-llm-generator.service.js';
 import {
   LlmCircuitBreakerService,
   LlmCircuitOpenError,
-} from '../safety/llm-circuit-breaker.service';
-import type { LlmRuntimePort, LlmRole } from '../llm-runtime.port';
-import type { MetricsService } from '../../metrics/metrics.service';
+} from '../safety/llm-circuit-breaker.service.js';
+import type { LlmRuntimePort, LlmRole } from '../llm-runtime.port.js';
+import type { MetricsService } from '../../metrics/metrics.service.js';
 
 // ── Test fixture ───────────────────────────────────────────────────────────
 

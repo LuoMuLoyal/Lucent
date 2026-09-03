@@ -1,7 +1,10 @@
-import type { PrismaService } from '../../../prisma';
-import { Prisma } from '#generated/prisma/client';
-import { UserSettingsService } from './user-settings.service';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import type { PrismaService } from '../../../prisma/index.js';
+import { Prisma } from '#generated/prisma/client.js';
+import { UserSettingsService } from './user-settings.service.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 function createMockCache() {
   return {

@@ -1,4 +1,4 @@
-import { NotificationPreferencesService } from './notification-preferences.service';
+import { NotificationPreferencesService } from './notification-preferences.service.js';
 
 async function unwrapOk<T>(
   result: ReturnType<NotificationPreferencesService['patch']>,

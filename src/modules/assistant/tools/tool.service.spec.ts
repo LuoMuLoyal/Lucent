@@ -1,14 +1,14 @@
-import { DailyRecordKind } from '#generated/prisma/client';
-import type { AssistantToolExecutionContext } from '../types/assistant.types';
-import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants';
-import { AssistantToolLeafletReadService } from './leaflet/read.service';
-import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-resolve.service';
-import { AssistantToolDrugbankSearchService } from './drugbank/search.service';
-import type { AssistantToolMedicineLookupService } from './medicine/lookup.service';
-import { AssistantToolProposalService } from './proposal/proposal.service';
-import { AssistantToolReadService } from './read/read.service';
-import { AssistantToolRecordQueryService } from './records/query.service';
-import { AssistantToolService } from './tool.service';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import type { AssistantToolExecutionContext } from '../types/assistant.types.js';
+import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants.js';
+import { AssistantToolLeafletReadService } from './leaflet/read.service.js';
+import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-resolve.service.js';
+import { AssistantToolDrugbankSearchService } from './drugbank/search.service.js';
+import type { AssistantToolMedicineLookupService } from './medicine/lookup.service.js';
+import { AssistantToolProposalService } from './proposal/proposal.service.js';
+import { AssistantToolReadService } from './read/read.service.js';
+import { AssistantToolRecordQueryService } from './records/query.service.js';
+import { AssistantToolService } from './tool.service.js';
 
 describe('AssistantToolService', () => {
   beforeEach(() => {

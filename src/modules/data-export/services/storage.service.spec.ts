@@ -1,9 +1,12 @@
 import type {
   ObjectStorageConfig,
   ObjectStorageRuntime,
-} from '../../../common';
-import type { ResultAsync, DomainFailure } from '../../../common/result';
-import { DataExportStorageService } from './storage.service';
+} from '../../../common/index.js';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
+import { DataExportStorageService } from './storage.service.js';
 
 /** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
 async function collectResult<T>(

@@ -1,5 +1,5 @@
-import { HealthEventKind } from '#generated/prisma/client';
-import { formatDateOnlyInTimezone } from '../../../../common';
+import { HealthEventKind } from '#generated/prisma/client.js';
+import { formatDateOnlyInTimezone } from '../../../../common/index.js';
 import {
   DAILY_RECORD_CHANGED,
   DOSE_LOG_CHANGED,
@@ -7,8 +7,8 @@ import {
   HEALTH_EVENT_CHANGED,
   REMINDER_CHANGED,
   SETTINGS_CHANGED,
-} from '../../../../common/events/domain-events';
-import { RecomputeTriggerListener } from './trigger.listener';
+} from '../../../../common/events/domain-events.js';
+import { RecomputeTriggerListener } from './trigger.listener.js';
 
 const CURRENT = {
   id: 'materialization-1',

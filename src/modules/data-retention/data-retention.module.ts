@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma';
-import { DataRetentionService } from './services/data-retention.service';
+import { PrismaModule } from '../../prisma/index.js';
+import { DataRetentionService } from './services/data-retention.service.js';
 
 /**
  * Global data retention module.

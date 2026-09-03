@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { DailyRecordKind, HealthEventOutcome } from '#generated/prisma/client';
-import { formatDateOnly, summarizeWaterMetrics } from '../../../../common';
-import type { WaterMetricInput } from '../../../../common';
-import type { EventReviewSectionDto } from '../../dto/event-review-response.dto';
+import {
+  DailyRecordKind,
+  HealthEventOutcome,
+} from '#generated/prisma/client.js';
+import {
+  formatDateOnly,
+  summarizeWaterMetrics,
+} from '../../../../common/index.js';
+import type { WaterMetricInput } from '../../../../common/index.js';
+import type { EventReviewSectionDto } from '../../dto/event-review-response.dto.js';
 
 /** Check-in rows ordered by date ascending within the event window. */
 export interface ReviewChangeCheckIn {

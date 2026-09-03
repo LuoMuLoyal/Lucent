@@ -19,21 +19,25 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { clampPage, clampPageSize, ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { CurrentUser } from '../auth';
-import type { UserPayload } from '../auth';
-import { CreateDoseLogDto } from './dto/create-dose-log.dto';
+import {
+  clampPage,
+  clampPageSize,
+  ProblemDetailsDto,
+} from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { CreateDoseLogDto } from './dto/create-dose-log.dto.js';
 
 import {
   DoseLogListResponseDto,
   DoseLogResponseDto,
-} from './dto/dose-log-response.dto';
+} from './dto/dose-log-response.dto.js';
 
-import { MarkDoseLogDto } from './dto/mark-dose-log.dto';
+import { MarkDoseLogDto } from './dto/mark-dose-log.dto.js';
 
-import { UpdateDoseLogDto } from './dto/update-dose-log.dto';
-import { MedicineDoseLogsService } from './services/dose-logs.service';
+import { UpdateDoseLogDto } from './dto/update-dose-log.dto.js';
+import { MedicineDoseLogsService } from './services/dose-logs.service.js';
 
 @ApiTags('Medicine Dose Logs')
 @ApiBearerAuth('access-token')

@@ -2,12 +2,12 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../../prisma';
-import { MedicinesService } from '../medicines.service';
-import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
-import { RiskDetectionService } from './risk-detection.service';
-import { RiskContextBuilderService } from './risk-context-builder.service';
-import { nonDeleted, toInputJsonValue } from '../../../../common';
+import { PrismaService } from '../../../../prisma/index.js';
+import { MedicinesService } from '../medicines.service.js';
+import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service.js';
+import { RiskDetectionService } from './risk-detection.service.js';
+import { RiskContextBuilderService } from './risk-context-builder.service.js';
+import { nonDeleted, toInputJsonValue } from '../../../../common/index.js';
 import {
   createDomainFailure,
   DomainFailureException,
@@ -16,17 +16,17 @@ import {
   unwrapResult,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
-import type { RiskCheckCandidateDto } from '../../dto/risk/risk-check-request.dto';
+} from '../../../../common/result/index.js';
+import type { RiskCheckCandidateDto } from '../../dto/risk/risk-check-request.dto.js';
 import type {
   MedicineRiskCheckRecordDto,
   MedicineRiskCheckResponseDto,
   MedicineRiskLevel,
-} from '../../dto/risk/risk-check-response.dto';
-import type { MedicineDetailDataDto } from '../../dto/detail.dto';
-import type { MedicineDetailWrapper } from '../../utils/ingredient-canonicalization';
-import type { AllergyRecord } from '../../utils/allergy-severity';
-import type { MedicineRiskLlmOutput } from '../../schemas/risk-check.schema';
+} from '../../dto/risk/risk-check-response.dto.js';
+import type { MedicineDetailDataDto } from '../../dto/detail.dto.js';
+import type { MedicineDetailWrapper } from '../../utils/ingredient-canonicalization.js';
+import type { AllergyRecord } from '../../utils/allergy-severity.js';
+import type { MedicineRiskLlmOutput } from '../../schemas/risk-check.schema.js';
 
 const RISK_CHECK_CACHE_KEY_PREFIX = 'medicines:risk-check';
 const RISK_CHECK_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes

@@ -9,12 +9,12 @@ import { createHash, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import * as argon2 from 'argon2';
 
-import { AppModule } from '../../src/app.module';
-import { ARGON2_OPTIONS } from '../../src/modules/auth';
-import { setupApp } from '../../src/setup-app';
-import { PrismaService } from '../../src/prisma';
-import { ConfigKey } from '../../src/config/env/config-keys.enum';
-import { UserStatus } from '#generated/prisma/client';
+import { AppModule } from '../../src/app.module.js';
+import { ARGON2_OPTIONS } from '../../src/modules/auth/index.js';
+import { setupApp } from '../../src/setup-app.js';
+import { PrismaService } from '../../src/prisma/index.js';
+import { ConfigKey } from '../../src/config/env/config-keys.enum.js';
+import { UserStatus } from '#generated/prisma/client.js';
 
 // ── Constants ──────────────────────────────────────────────────
 

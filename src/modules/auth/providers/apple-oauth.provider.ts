@@ -9,7 +9,7 @@ import {
   withRetry,
   extractErrorInfo,
   HttpStatusError,
-} from '../../../common';
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -17,16 +17,19 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { ConfigKey } from '../../../config/env/config-keys.enum';
-import type { OAuthConfig } from '../../../config/services/oauth.config';
-import { OAUTH_PROVIDER_APPLE, type OAuthProfile } from '../types/oauth.types';
-import type { OAuthProvider } from './oauth-provider.interface';
+} from '../../../common/result/index.js';
+import { ConfigKey } from '../../../config/env/config-keys.enum.js';
+import type { OAuthConfig } from '../../../config/services/oauth.config.js';
+import {
+  OAUTH_PROVIDER_APPLE,
+  type OAuthProfile,
+} from '../types/oauth.types.js';
+import type { OAuthProvider } from './oauth-provider.interface.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from './dependency-failure.utils';
-import { now } from '../../../common';
+} from './dependency-failure.utils.js';
+import { now } from '../../../common/index.js';
 
 interface AppleJwk {
   kty: string;

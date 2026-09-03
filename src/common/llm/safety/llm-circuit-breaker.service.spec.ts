@@ -1,7 +1,7 @@
 import {
   LlmCircuitBreakerService,
   LlmCircuitOpenError,
-} from './llm-circuit-breaker.service';
+} from './llm-circuit-breaker.service.js';
 
 describe('LlmCircuitBreakerService', () => {
   describe('closed state (initial)', () => {

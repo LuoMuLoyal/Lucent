@@ -1,4 +1,4 @@
-import { normalizeNullableText } from './string.utils';
+import { normalizeNullableText } from './string.utils.js';
 
 export function buildSearchText(
   parts: Array<string | null | undefined>,

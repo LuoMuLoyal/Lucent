@@ -6,16 +6,16 @@ import {
   summarizeWaterMetrics,
   toObservedWaterMetric,
   WATER_TARGET_ML_PER_COUNT,
-} from '../../../../common';
-import { DailyRecordKind } from '#generated/prisma/client';
-import { DailyRecordReaderPort } from '../../../daily-records';
+} from '../../../../common/index.js';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import { DailyRecordReaderPort } from '../../../daily-records/index.js';
 
-import type { DailyRecordFact } from '../../../daily-records';
-import type { SuggestionSignal } from '../../types/signal.types';
-import { TriggerType } from '../../types/suggestion.types';
-import { IUserSettingsPort } from '../../../user-settings';
-import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants';
-import type { ObservedMetric } from '../../../../common';
+import type { DailyRecordFact } from '../../../daily-records/index.js';
+import type { SuggestionSignal } from '../../types/signal.types.js';
+import { TriggerType } from '../../types/suggestion.types.js';
+import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants.js';
+import type { ObservedMetric } from '../../../../common/index.js';
 
 type SleepEpisode = {
   sleepType: 'nightSleep' | 'nap';

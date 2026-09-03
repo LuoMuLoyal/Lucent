@@ -3,7 +3,7 @@ import type {
   ObservedMetricCoverage,
   ObservedMetricSource,
   ObservedMetricState,
-} from '../../../common';
+} from '../../../common/index.js';
 
 export class ClinicSummaryCoverageEntryDto {
   @ApiProperty({ enum: ['observed', 'unknown'] })

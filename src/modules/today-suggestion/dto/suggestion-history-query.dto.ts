@@ -4,7 +4,7 @@ import type {
   TriggerType,
   SuggestionLifecycleState,
   SuggestionConfidence,
-} from '../types/suggestion.types';
+} from '../types/suggestion.types.js';
 
 /** A single suggestion history item for the Report page. */
 export class SuggestionHistoryItemDto {

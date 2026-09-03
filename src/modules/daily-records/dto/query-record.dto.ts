@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 
-import { DailyRecordKind } from '#generated/prisma/client';
+import { DailyRecordKind } from '#generated/prisma/client.js';
 
 export class QueryDailyRecordDto {
   @ApiProperty({

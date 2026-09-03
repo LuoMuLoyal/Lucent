@@ -2,12 +2,15 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-} from '#generated/prisma/client';
-import { Prisma } from '#generated/prisma/client';
-import type { DeepMocked } from '../../../common/types/deep-mocked';
-import type { PrismaService } from '../../../prisma';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { PrismaEventRepository } from './prisma-event.repository';
+} from '#generated/prisma/client.js';
+import { Prisma } from '#generated/prisma/client.js';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
+import type { PrismaService } from '../../../prisma/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { PrismaEventRepository } from './prisma-event.repository.js';
 
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';

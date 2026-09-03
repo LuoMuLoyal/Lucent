@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../common';
-import { TodayAnalysisService } from './analysis.service';
+import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
+import { BaseAsyncQueueService } from '../../../common/index.js';
+import { TodayAnalysisService } from './analysis.service.js';
 import type {
   TodayAnalysisDataDto,
   TodayAnalysisReadDataDto,
-} from '../dto/analysis-response.dto';
+} from '../dto/analysis-response.dto.js';
 
-import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
+import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto.js';
 
 export interface AnalysisJobData {
   userId: string;

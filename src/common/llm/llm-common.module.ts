@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { LlmSafetyPolicyService } from './safety/llm-safety-policy.service';
-import { LlmCircuitBreakerService } from './safety/llm-circuit-breaker.service';
+import { LlmSafetyPolicyService } from './safety/llm-safety-policy.service.js';
+import { LlmCircuitBreakerService } from './safety/llm-circuit-breaker.service.js';
 
 /**
  * Shared LLM infrastructure module.

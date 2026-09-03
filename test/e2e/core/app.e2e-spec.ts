@@ -8,14 +8,14 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
 import request from 'supertest';
-import { AppController } from '../../../src/app.controller';
-import { AppService } from '../../../src/app.service';
-import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter';
-import { ProblemCatalog } from '../../../src/common/api/problem-catalog';
-import { MetricsService } from '../../../src/common/metrics/metrics.service';
-import { SlowRequestInterceptor } from '../../../src/common';
-import { PrismaService } from '../../../src/prisma';
-import { setupApp } from '../../../src/setup-app';
+import { AppController } from '../../../src/app.controller.js';
+import { AppService } from '../../../src/app.service.js';
+import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter.js';
+import { ProblemCatalog } from '../../../src/common/api/problem-catalog.js';
+import { MetricsService } from '../../../src/common/metrics/metrics.service.js';
+import { SlowRequestInterceptor } from '../../../src/common/index.js';
+import { PrismaService } from '../../../src/prisma/index.js';
+import { setupApp } from '../../../src/setup-app.js';
 
 describe('Lucent API (e2e)', () => {
   let app: NestFastifyApplication;

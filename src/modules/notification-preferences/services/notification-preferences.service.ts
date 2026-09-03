@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
+import type { Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { fromPrismaResult } from '../../../common';
-import type { UpdateNotificationPreferencesDto } from '../dto/update.dto';
-import type { NotificationPreferencesDataDto } from '../dto/response.dto';
+} from '../../../common/result/index.js';
+import { fromPrismaResult } from '../../../common/index.js';
+import type { UpdateNotificationPreferencesDto } from '../dto/update.dto.js';
+import type { NotificationPreferencesDataDto } from '../dto/response.dto.js';
 
 export const NOTIFICATION_PREFERENCE_DEFAULTS = {
   healthAlertsEnabled: true,

@@ -3,15 +3,15 @@ import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
 
-import { DEFAULT_VERIFICATION_RATE_LIMIT_MAX } from '../../../src/config/app-defaults.constants';
+import { DEFAULT_VERIFICATION_RATE_LIMIT_MAX } from '../../../src/config/app-defaults.constants.js';
 import {
   createTestApp,
   cleanupDatabase,
   bearer,
   expectData,
   uniqueEmail,
-} from '../../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
 
 // ── Types ─────────────────────────────────────────────────────
 

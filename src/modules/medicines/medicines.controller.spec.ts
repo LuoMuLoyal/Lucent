@@ -1,12 +1,12 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { MedicinesController } from './medicines.controller';
-import { MedicinesService } from './services/medicines.service';
-import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
-import { MedicineRiskCheckService } from './services/risk/risk-check.service';
-import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto';
-import { okAsync, DomainFailureException } from '../../common/result';
+import { MedicinesController } from './medicines.controller.js';
+import { MedicinesService } from './services/medicines.service.js';
+import { MedicineRecognitionQueueService } from './services/recognition-queue.service.js';
+import { MedicineRiskCheckService } from './services/risk/risk-check.service.js';
+import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto.js';
+import { okAsync, DomainFailureException } from '../../common/result/index.js';
 
 describe('MedicinesController', () => {
   let controller: MedicinesController;

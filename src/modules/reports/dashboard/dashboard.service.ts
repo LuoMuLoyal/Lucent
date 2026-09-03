@@ -1,12 +1,12 @@
-import { formatDateOnly } from '../../../common';
+import { formatDateOnly } from '../../../common/index.js';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import type { ReportDashboardDataDto } from '../dto/report-dashboard-response.dto';
+import type { ReportDashboardDataDto } from '../dto/report-dashboard-response.dto.js';
 
-import type { ReportDashboardQueryDto } from '../dto/report-dashboard-query.dto';
-import { ReportsComputationService } from './computation.service';
-import { ReportsContextService } from './context.service';
+import type { ReportDashboardQueryDto } from '../dto/report-dashboard-query.dto.js';
+import { ReportsComputationService } from './computation.service.js';
+import { ReportsContextService } from './context.service.js';
 
 @Injectable()
 export class ReportsService {

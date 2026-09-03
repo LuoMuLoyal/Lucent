@@ -1,11 +1,11 @@
 import { ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { AssistantToolName } from '../../tools/shared/tool-types';
-import { buildToolDefinitions } from '../../tools/shared/tool-definitions';
-import type { AssistantToolExecutionResult } from '../../types/assistant.types';
-import type { AssistantRuntimeState } from './state';
-import { streamModelResponse } from './model-stream';
-import { extractMessageText } from './message-text.utils';
+import type { AssistantToolName } from '../../tools/shared/tool-types.js';
+import { buildToolDefinitions } from '../../tools/shared/tool-definitions.js';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import type { AssistantRuntimeState } from './state.js';
+import { streamModelResponse } from './model-stream.js';
+import { extractMessageText } from './message-text.utils.js';
 
 /** Runtime node signature shared by the main graph and sub-graphs. */
 export type RuntimeNode = (

@@ -1,8 +1,12 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { OAuthController } from './oauth.controller';
-import { AuthService } from '../services/auth.service';
-import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
+import { OAuthController } from './oauth.controller.js';
+import { AuthService } from '../services/auth.service.js';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../../common/result/index.js';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },

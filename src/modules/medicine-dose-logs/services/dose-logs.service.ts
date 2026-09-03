@@ -6,7 +6,7 @@ import {
   normalizeNullableText,
   now,
   parseDateOnly,
-} from '../../../common';
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -14,21 +14,21 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
-import { DoseLogStatus, Prisma } from '#generated/prisma/client';
-import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository';
+import { DoseLogStatus, Prisma } from '#generated/prisma/client.js';
+import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository.js';
 import {
   DOSE_LOG_CHANGED,
   type DoseLogChangedPayload,
 } from '../../../common/events/domain-events.js';
-import type { CreateDoseLogDto } from '../dto/create-dose-log.dto';
+import type { CreateDoseLogDto } from '../dto/create-dose-log.dto.js';
 
-import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto';
-import { HealthEventsOwnershipService } from '../../health-events';
+import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto.js';
+import { HealthEventsOwnershipService } from '../../health-events/index.js';
 
-import type { UpdateDoseLogDto } from '../dto/update-dose-log.dto';
-import type { DoseLogResponseDto } from '../dto/dose-log-response.dto';
+import type { UpdateDoseLogDto } from '../dto/update-dose-log.dto.js';
+import type { DoseLogResponseDto } from '../dto/dose-log-response.dto.js';
 
 type OwnedReminderRecord = {
   userId: string;

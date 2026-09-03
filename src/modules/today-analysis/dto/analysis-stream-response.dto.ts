@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SseProblemDetailsDto } from '../../../common';
-import { TodayAnalysisDataDto } from './analysis-response.dto';
+import { SseProblemDetailsDto } from '../../../common/index.js';
+import { TodayAnalysisDataDto } from './analysis-response.dto.js';
 
 export class TodayAnalysisStreamSummaryDto {
   @ApiProperty({ type: String })

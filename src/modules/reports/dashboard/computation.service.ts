@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import type { ObservedMetric } from '../../../common';
+import type { ObservedMetric } from '../../../common/index.js';
 import type {
   ReportMetricDto,
   ReportObservedMetricDto,
   ReportTrendDto,
-} from '../dto/report-dashboard-response.dto';
+} from '../dto/report-dashboard-response.dto.js';
 import type {
   MetricDirection,
   MetricStatus,
   ObservedMedicationMetric,
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from './metrics.types';
-import { ReportsPresenterService } from './presenter.service';
+} from './metrics.types.js';
+import { ReportsPresenterService } from './presenter.service.js';
 
 type TrendKind = 'medication' | 'water' | 'sleep';
 type TrendSource = 'manual' | 'health_platform' | 'reminder_plan' | 'derived';

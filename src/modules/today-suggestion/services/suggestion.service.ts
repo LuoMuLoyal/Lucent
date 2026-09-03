@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { now, nowIsoString, formatDateOnly } from '../../../common';
-import type { SuggestionCandidate } from '../types/candidate.types';
-import { SuggestionLifecycleState } from '../types/suggestion.types';
-import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto';
-import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto';
-import { SuggestionPipelineService } from './pipeline.service';
-import { SuggestionPresentationService } from './presentation.service';
-import { LifecycleService } from './lifecycle/manager.service';
-import { EscalationService } from './notification/escalation.service';
-import { SuggestionCacheService } from './cache/suggestion-cache.service';
-import { MaterializationStore } from './materialization/store.service';
-import type { MaterializationStatusView } from '../types/materialization.types';
-import type { SuggestionSignal } from '../types/signal.types';
+import { now, nowIsoString, formatDateOnly } from '../../../common/index.js';
+import type { SuggestionCandidate } from '../types/candidate.types.js';
+import { SuggestionLifecycleState } from '../types/suggestion.types.js';
+import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto.js';
+import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto.js';
+import { SuggestionPipelineService } from './pipeline.service.js';
+import { SuggestionPresentationService } from './presentation.service.js';
+import { LifecycleService } from './lifecycle/manager.service.js';
+import { EscalationService } from './notification/escalation.service.js';
+import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
+import { MaterializationStore } from './materialization/store.service.js';
+import type { MaterializationStatusView } from '../types/materialization.types.js';
+import type { SuggestionSignal } from '../types/signal.types.js';
 
 export interface SuggestionRecomputeOptions {
   locale?: string;

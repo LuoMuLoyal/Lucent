@@ -1,9 +1,9 @@
-import { wrapText, ensureHeight, ensureSpace } from './draw.service';
+import { wrapText, ensureHeight, ensureSpace } from './draw.service.js';
 import type {
   PageContext,
   EmbeddedFont,
   PdfPage,
-} from '../../constants/report-pdf.constants';
+} from '../../constants/report-pdf.constants.js';
 import type { PDFDocument } from 'pdf-lib';
 
 function createMockFont(): vi.Mocked<EmbeddedFont> {

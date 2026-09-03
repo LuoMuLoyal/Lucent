@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
-import { ProblemCatalog } from '../problem-catalog';
-import { SseConnectionRegistry } from './sse-connection-registry.service';
-import { SseProblemDetailsMapper } from './sse-problem-details';
+import { ProblemCatalog } from '../problem-catalog.js';
+import { SseConnectionRegistry } from './sse-connection-registry.service.js';
+import { SseProblemDetailsMapper } from './sse-problem-details.js';
 
 /**
  * Global module exposing the SSE connection registry as a single shared

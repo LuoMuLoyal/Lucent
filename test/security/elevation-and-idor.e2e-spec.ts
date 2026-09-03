@@ -9,13 +9,13 @@ import {
   bearer,
   expectData,
   uniqueEmail,
-} from '../helpers/e2e-helpers';
+} from '../helpers/e2e-helpers.js';
 import type {
   E2eTestContext,
   E2eApp,
   TestUser,
   RegisteredTestUser,
-} from '../helpers/e2e-helpers';
+} from '../helpers/e2e-helpers.js';
 
 /**
  * Security tests:

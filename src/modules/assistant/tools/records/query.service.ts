@@ -1,17 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DailyRecordKind } from '#generated/prisma/client';
-import type { IDailyRecordReader } from '../../types/ports';
-import { DAILY_RECORD_READER } from '../../types/ports';
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
-import { resolveSingleDate } from '../shared/date-resolver';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import type { IDailyRecordReader } from '../../types/ports.js';
+import { DAILY_RECORD_READER } from '../../types/ports.js';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
+import { resolveSingleDate } from '../shared/date-resolver.js';
 import type {
   ToolMutationHints,
   ToolMutationRankedRecord,
   ToolMutationTargetMatch,
   ToolRecordItem,
   ToolSingleDateResolution,
-} from '../shared/tool-constants';
-import { MUTATION_MATCH_WEIGHTS } from '../shared/tool-constants';
+} from '../shared/tool-constants.js';
+import { MUTATION_MATCH_WEIGHTS } from '../shared/tool-constants.js';
 
 @Injectable()
 export class AssistantToolRecordQueryService {

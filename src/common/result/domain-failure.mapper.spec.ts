@@ -1,6 +1,6 @@
-import { ProblemCatalog } from '../api/problem-catalog';
-import { createDomainFailure } from './domain-failure';
-import { toProblemDetails } from './domain-failure.mapper';
+import { ProblemCatalog } from '../api/problem-catalog.js';
+import { createDomainFailure } from './domain-failure.js';
+import { toProblemDetails } from './domain-failure.mapper.js';
 
 describe('toProblemDetails', () => {
   const catalog = new ProblemCatalog({

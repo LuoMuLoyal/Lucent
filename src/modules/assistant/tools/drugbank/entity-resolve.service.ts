@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma';
+import { PrismaService } from '../../../../prisma/index.js';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/assistant.types';
-import { buildReadConfidence, buildReadEnvelope } from '../presenters';
+} from '../../types/assistant.types.js';
+import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
 
 const DRUGBANK_ENTITY_LIMIT = 5;
 

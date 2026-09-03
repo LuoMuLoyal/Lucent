@@ -1,17 +1,17 @@
-import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import type { LlmRuntimeService } from '../../../../llm-runtime';
-import type { MetricsService } from '../../../../common/metrics/metrics.service';
+import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import type { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../types/suggestion.types';
+} from '../../types/suggestion.types.js';
 import type {
   ExplanationContext,
   ExplanationPromptCopy,
-} from '../../prompts/explanation.prompt';
-import { ExplanationGeneratorService } from './generator.service';
+} from '../../prompts/explanation.prompt.js';
+import { ExplanationGeneratorService } from './generator.service.js';
 
 describe('ExplanationGeneratorService', () => {
   let service: ExplanationGeneratorService;

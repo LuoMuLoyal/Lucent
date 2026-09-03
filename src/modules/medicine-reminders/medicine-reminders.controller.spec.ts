@@ -1,8 +1,12 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { okAsync, errAsync, createDomainFailure } from '../../common/result';
-import type { UserPayload } from '../auth';
-import { MedicineRemindersController } from './medicine-reminders.controller';
-import { MedicineRemindersService } from './services/reminders.service';
+import {
+  okAsync,
+  errAsync,
+  createDomainFailure,
+} from '../../common/result/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { MedicineRemindersController } from './medicine-reminders.controller.js';
+import { MedicineRemindersService } from './services/reminders.service.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

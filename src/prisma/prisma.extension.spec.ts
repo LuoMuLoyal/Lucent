@@ -105,7 +105,7 @@ vi.mock('#generated/prisma/client', () => ({
   PrismaClient: class MockPrismaClient {},
 }));
 
-import { applySoftDeleteExtension } from './prisma.extension';
+import { applySoftDeleteExtension } from './prisma.extension.js';
 
 /** Helper to get a model delegate from the mock client by name. */
 function getModel(

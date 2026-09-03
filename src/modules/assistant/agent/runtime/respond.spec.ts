@@ -1,7 +1,7 @@
 import { AIMessageChunk } from '@langchain/core/messages';
 import { describe, expect, it, vi } from 'vitest';
-import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants';
-import { buildRespondNode } from './respond';
+import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants.js';
+import { buildRespondNode } from './respond.js';
 
 function stateWith(overrides: Record<string, unknown>) {
   return overrides as never;

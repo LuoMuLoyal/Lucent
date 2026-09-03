@@ -1,4 +1,4 @@
-import type { StreamSummaryEvent } from './stream-summary';
+import type { StreamSummaryEvent } from './stream-summary.js';
 
 describe('stream-summary', () => {
   describe('StreamSummaryEvent interface', () => {

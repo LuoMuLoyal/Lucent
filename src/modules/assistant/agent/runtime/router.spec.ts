@@ -1,7 +1,7 @@
 import {
   selectAllowedToolsForContextSources,
   selectRelevantToolsForMessage,
-} from './router';
+} from './router.js';
 
 describe('selectAllowedToolsForContextSources', () => {
   it('returns only tools with no required sources when no context sources are enabled', () => {

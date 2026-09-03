@@ -1,6 +1,6 @@
-import type { ProblemCatalog } from '../api/problem-catalog';
-import type { ProblemDetails } from '../api/problem-details';
-import { isDomainFailure, type DomainFailure } from './domain-failure';
+import type { ProblemCatalog } from '../api/problem-catalog.js';
+import type { ProblemDetails } from '../api/problem-details.js';
+import { isDomainFailure, type DomainFailure } from './domain-failure.js';
 
 export interface DomainFailureProblemOptions {
   catalog: ProblemCatalog;

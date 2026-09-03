@@ -1,7 +1,7 @@
 import type { Cache } from 'cache-manager';
-import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import { ClinicSummaryPdfQueueService } from './pdf-queue.service';
-import type { ClinicSummaryService } from './summary.service';
+import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { ClinicSummaryPdfQueueService } from './pdf-queue.service.js';
+import type { ClinicSummaryService } from './summary.service.js';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;

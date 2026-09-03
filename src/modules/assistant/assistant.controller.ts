@@ -27,33 +27,33 @@ import {
   SseProblemDetailsMapper,
   writeSseEvent,
   SseConnectionRegistry,
-} from '../../common';
-import { unwrapResult } from '../../common/result';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { AssistantService } from './services/core.service';
-import { AuditLogService } from '../audit-log';
-import { AssistantCapabilitiesResponseDto } from './dto/capabilities-response.dto';
+} from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { AssistantService } from './services/core.service.js';
+import { AuditLogService } from '../audit-log/index.js';
+import { AssistantCapabilitiesResponseDto } from './dto/capabilities-response.dto.js';
 
-import { AssistantClearResultResponseDto } from './dto/stream-response.dto';
+import { AssistantClearResultResponseDto } from './dto/stream-response.dto.js';
 
-import { AssistantClearMemoryResponseDto } from './dto/clear-memory-response.dto';
+import { AssistantClearMemoryResponseDto } from './dto/clear-memory-response.dto.js';
 
-import { AssistantConversationSummaryDto } from './dto/conversation-list-response.dto';
+import { AssistantConversationSummaryDto } from './dto/conversation-list-response.dto.js';
 
 import {
   AssistantConversationDataDto,
   AssistantConversationResponseDto,
-} from './dto/conversation-response.dto';
+} from './dto/conversation-response.dto.js';
 
-import { StreamAssistantMessagesDto } from './dto/stream-messages.dto';
+import { StreamAssistantMessagesDto } from './dto/stream-messages.dto.js';
 
-import { RenameConversationDto } from './dto/rename-conversation.dto';
+import { RenameConversationDto } from './dto/rename-conversation.dto.js';
 
 import {
   AssistantConfirmResultResponseDto,
   ConfirmAssistantProposalDto,
-} from './dto/confirm-proposal.dto';
+} from './dto/confirm-proposal.dto.js';
 
 @ApiTags('Assistant')
 @ApiBearerAuth('access-token')

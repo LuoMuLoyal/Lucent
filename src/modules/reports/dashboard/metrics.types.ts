@@ -3,9 +3,9 @@ import type {
   ReportMetricDto,
   ReportPatternDto,
   ReportTrendDto,
-} from '../dto/report-dashboard-response.dto';
-import type { ReportRange } from '../dto/report-dashboard-query.dto';
-import type { ObservedMetric } from '../../../common';
+} from '../dto/report-dashboard-response.dto.js';
+import type { ReportRange } from '../dto/report-dashboard-query.dto.js';
+import type { ObservedMetric } from '../../../common/index.js';
 
 export type MetricStatus =
   | 'good'

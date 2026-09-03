@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { LlmRuntimeService } from '../../../../llm-runtime';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildMedicineRiskSystemPrompt,
   buildMedicineRiskUserPrompt,
   type MedicineRiskLlmContext,
   type MedicineRiskLlmPromptCopy,
-} from '../../prompts/risk-check.prompt';
+} from '../../prompts/risk-check.prompt.js';
 import {
   medicineRiskLlmSchema,
   type MedicineRiskLlmOutput,
-} from '../../schemas/risk-check.schema';
+} from '../../schemas/risk-check.schema.js';
 
 @Injectable()
 export class MedicineRiskLlmGeneratorService extends BaseLlmGeneratorService<

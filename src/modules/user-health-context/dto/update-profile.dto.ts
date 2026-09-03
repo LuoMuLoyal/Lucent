@@ -10,7 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { SexAtBirth, UnitSystem } from '#generated/prisma/client';
+import { SexAtBirth, UnitSystem } from '#generated/prisma/client.js';
 
 export class UpdateHealthContextProfileDto {
   @ApiPropertyOptional({

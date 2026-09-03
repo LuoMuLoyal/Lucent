@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import type { ThrottlerModuleOptions } from '@nestjs/throttler';
-import { ThrottlerConfigService } from './throttler.config';
+import { ThrottlerConfigService } from './throttler.config.js';
 
 /** Extract the object variant of ThrottlerModuleOptions for property access. */
 type ObjectThrottlerOptions = Extract<

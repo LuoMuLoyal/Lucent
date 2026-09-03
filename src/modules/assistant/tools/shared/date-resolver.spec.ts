@@ -8,13 +8,13 @@ import {
   enumerateDates,
   offsetDateString,
   todayDateString,
-} from './date-resolver';
-import { DEFAULT_RANGE_DAYS, MAX_RANGE_DAYS } from './tool-constants';
+} from './date-resolver.js';
+import { DEFAULT_RANGE_DAYS, MAX_RANGE_DAYS } from './tool-constants.js';
 import {
   REPORT_RANGE_LAST_7_DAYS,
   REPORT_RANGE_LAST_30_DAYS,
-} from '../../../reports';
-import { formatDateOnly, parseDateOnly } from '../../../../common';
+} from '../../../reports/index.js';
+import { formatDateOnly, parseDateOnly } from '../../../../common/index.js';
 
 describe('date-resolver', () => {
   // -----------------------------------------------------------------------

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { betterAuth, type Auth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import * as argon2 from 'argon2';
-import type { Prisma } from '#generated/prisma/client';
+import type { Prisma } from '#generated/prisma/client.js';
 
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvKey } from '../../../config/env/env-keys.enum.js';
@@ -17,7 +17,7 @@ import {
   mapUnknownToInternalFailure,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
 const DEFAULT_EMAIL_CALLBACK_URL = 'luminous://auth/callback';
 

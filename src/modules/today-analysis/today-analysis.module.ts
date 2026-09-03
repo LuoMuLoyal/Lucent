@@ -1,26 +1,26 @@
 import { Module } from '@nestjs/common';
-import { AssistantModule } from '../assistant/assistant.module';
-import { DailyRecordsModule } from '../daily-records/daily-records.module';
-import { LlmCommonModule } from '../../common';
-import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
-import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
-import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { PrismaModule } from '../../prisma';
-import { TodayAnalysisContextService } from './services/pipeline/context.service';
+import { AssistantModule } from '../assistant/assistant.module.js';
+import { DailyRecordsModule } from '../daily-records/daily-records.module.js';
+import { LlmCommonModule } from '../../common/index.js';
+import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
+import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module.js';
+import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { PrismaModule } from '../../prisma/index.js';
+import { TodayAnalysisContextService } from './services/pipeline/context.service.js';
 
-import { TodayAnalysisCopyService } from './services/pipeline/copy.service';
+import { TodayAnalysisCopyService } from './services/pipeline/copy.service.js';
 
-import { TodayAnalysisGeneratorService } from './services/pipeline/generator.service';
+import { TodayAnalysisGeneratorService } from './services/pipeline/generator.service.js';
 
-import { TodayAnalysisQueueService } from './services/analysis-queue.service';
+import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
 
-import { TodayAnalysisService } from './services/analysis.service';
-import { TodayAnalysisMaterializationStore } from './services/materialization/store.service';
-import { TodayAnalysisTriggerListener } from './services/recompute/trigger.listener';
+import { TodayAnalysisService } from './services/analysis.service.js';
+import { TodayAnalysisMaterializationStore } from './services/materialization/store.service.js';
+import { TodayAnalysisTriggerListener } from './services/recompute/trigger.listener.js';
 
-import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
-import { TodayAnalysisController } from './today-analysis.controller';
+import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
+import { TodayAnalysisController } from './today-analysis.controller.js';
 
 @Module({
   imports: [

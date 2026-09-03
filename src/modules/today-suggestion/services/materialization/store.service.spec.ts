@@ -1,8 +1,8 @@
-import { MaterializationStore } from './store.service';
+import { MaterializationStore } from './store.service.js';
 import type {
   MaterializationRow,
   MaterializationStatus,
-} from '../../types/materialization.types';
+} from '../../types/materialization.types.js';
 
 function row(overrides: Partial<MaterializationRow> = {}): MaterializationRow {
   return {

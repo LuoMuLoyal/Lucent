@@ -6,7 +6,7 @@ import {
   truncateText,
   detectMatchedBy,
   toPagination,
-} from './data-format';
+} from './data-format.js';
 
 describe('medicines/utils/data-format', () => {
   // -----------------------------------------------------------------------

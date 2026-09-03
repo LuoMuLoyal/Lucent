@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MailQueueService } from './mail-queue.service';
+import { MailQueueService } from './mail-queue.service.js';
 import {
   PASSWORD_RESET_LINK_SUBJECT,
   VERIFICATION_CODE_SUBJECT,
@@ -7,7 +7,7 @@ import {
   renderPasswordResetLinkEmail,
   renderVerificationCodeEmail,
   renderVerificationLinkEmail,
-} from './templates';
+} from './templates.js';
 
 /**
  * Queues outbound emails via the configured mail queue.

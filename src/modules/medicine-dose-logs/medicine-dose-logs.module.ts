@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { HealthEventsModule } from '../health-events/health-events.module';
-import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
-import { MedicineDoseLogsService } from './services/dose-logs.service';
+import { HealthEventsModule } from '../health-events/health-events.module.js';
+import { MedicineDoseLogsController } from './medicine-dose-logs.controller.js';
+import { MedicineDoseLogsService } from './services/dose-logs.service.js';
 import {
   MedicineDoseLogReaderPort,
   MedicineDoseLogRepositoryPort,
   MedicineDoseLogRepository,
-} from './repositories/dose-log.repository';
+} from './repositories/dose-log.repository.js';
 @Module({
   imports: [HealthEventsModule],
   controllers: [MedicineDoseLogsController],

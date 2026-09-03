@@ -1,11 +1,11 @@
-import { DataExportProcessorService } from './processor.service';
-import type { PrismaService } from '../../../prisma';
-import type { ReportsService } from '../../reports';
-import type { DataExportStorageService } from './storage.service';
-import type { ReportExportPdfService } from './report-pdf/pdf.service';
-import type { NotificationsService } from '../../notifications';
-import { errAsync, okAsync } from '../../../common/result';
-import { createDomainFailure } from '../../../common/result';
+import { DataExportProcessorService } from './processor.service.js';
+import type { PrismaService } from '../../../prisma/index.js';
+import type { ReportsService } from '../../reports/index.js';
+import type { DataExportStorageService } from './storage.service.js';
+import type { ReportExportPdfService } from './report-pdf/pdf.service.js';
+import type { NotificationsService } from '../../notifications/index.js';
+import { errAsync, okAsync } from '../../../common/result/index.js';
+import { createDomainFailure } from '../../../common/result/index.js';
 
 type MockPrisma = {
   dataExportRequest: {

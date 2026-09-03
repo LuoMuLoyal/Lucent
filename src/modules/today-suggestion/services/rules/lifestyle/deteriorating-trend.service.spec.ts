@@ -1,6 +1,6 @@
-import { DeterioratingTrendRuleService } from './deteriorating-trend.service';
-import { SuggestionType } from '../../../types/suggestion.types';
-import { buildContext, buildSignal } from '../test-helpers';
+import { DeterioratingTrendRuleService } from './deteriorating-trend.service.js';
+import { SuggestionType } from '../../../types/suggestion.types.js';
+import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('DeterioratingTrendRuleService', () => {
   let rule: DeterioratingTrendRuleService;

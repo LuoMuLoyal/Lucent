@@ -19,30 +19,33 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
-import { extractAuthRequestContext, ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { AuditLogService } from '../audit-log';
-import { AuthService } from '../auth';
+import {
+  extractAuthRequestContext,
+  ProblemDetailsDto,
+} from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { AuditLogService } from '../audit-log/index.js';
+import { AuthService } from '../auth/index.js';
 
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { ChangeEmailDto } from '../auth';
-import { ChangePasswordDto } from '../auth';
-import { SetPasswordDto } from '../auth';
-import { DeleteAccountDto } from '../auth';
-import { OAuthAuthorizeResponseDto } from '../auth';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { ChangeEmailDto } from '../auth/index.js';
+import { ChangePasswordDto } from '../auth/index.js';
+import { SetPasswordDto } from '../auth/index.js';
+import { DeleteAccountDto } from '../auth/index.js';
+import { OAuthAuthorizeResponseDto } from '../auth/index.js';
 import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
-} from '../auth';
-import { AccountService } from './services/account.service';
+} from '../auth/index.js';
+import { AccountService } from './services/account.service.js';
 import {
   AccountEmailResponseDto,
   AccountResponseDto,
-} from './dto/response.dto';
-import { UnlinkIdentityDto } from './dto/unlink-identity.dto';
-import { UpdateAccountDto } from './dto/update.dto';
+} from './dto/response.dto.js';
+import { UnlinkIdentityDto } from './dto/unlink-identity.dto.js';
+import { UpdateAccountDto } from './dto/update.dto.js';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')

@@ -2,7 +2,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
-import { TestingSharedSecretGuard } from './testing-shared-secret.guard';
+import { TestingSharedSecretGuard } from './testing-shared-secret.guard.js';
 
 describe('TestingSharedSecretGuard', () => {
   let configService: vi.Mocked<ConfigService>;

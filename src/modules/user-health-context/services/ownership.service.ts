@@ -6,8 +6,8 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
+} from '../../../common/result/index.js';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
 
 /**
  * Ownership + existence guards for user health context.

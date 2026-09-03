@@ -1,13 +1,16 @@
-import { parseDateOnly } from '../../../../common';
+import { parseDateOnly } from '../../../../common/index.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
-import { okAsync, errAsync } from '../../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
-import { UserHealthContextProfileWriteService } from './profile-write.service';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository';
-import { UserHealthContextOwnershipService } from '../ownership.service';
-import { UserHealthContextMapperService } from '../mapper.service';
+import { okAsync, errAsync } from '../../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
+import { UserHealthContextProfileWriteService } from './profile-write.service.js';
+import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
+import { UserHealthContextOwnershipService } from '../ownership.service.js';
+import { UserHealthContextMapperService } from '../mapper.service.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,

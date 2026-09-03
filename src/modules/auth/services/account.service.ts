@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import { User } from '#generated/prisma/client';
-import { normalizeEmail, now } from '../../../common';
+import { User } from '#generated/prisma/client.js';
+import { normalizeEmail, now } from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -9,12 +9,12 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { UserService } from '../../user';
-import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
-import { PasswordReauthService } from './identity/password-reauth.service';
-import { VerificationCodeService } from './identity/verification-code.service';
-import { AuthAccountRepositoryPort } from '../repositories/account.repository';
+} from '../../../common/result/index.js';
+import { UserService } from '../../user/index.js';
+import { DeleteAccountDto } from '../dto/shared/delete-account.dto.js';
+import { PasswordReauthService } from './identity/password-reauth.service.js';
+import { VerificationCodeService } from './identity/verification-code.service.js';
+import { AuthAccountRepositoryPort } from '../repositories/account.repository.js';
 
 @Injectable()
 export class AuthAccountService {

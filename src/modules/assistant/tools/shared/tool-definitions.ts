@@ -7,7 +7,7 @@
  * {@link AssistantToolService} using the conversation context (userId, locale,
  * userMessage), so most tools take no parameters.
  */
-import type { AssistantToolName } from './tool-types';
+import type { AssistantToolName } from './tool-types.js';
 
 interface ToolDefinition {
   type: 'function';

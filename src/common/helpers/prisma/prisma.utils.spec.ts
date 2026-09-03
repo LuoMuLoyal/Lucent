@@ -1,4 +1,4 @@
-import { nonDeleted } from './prisma.utils';
+import { nonDeleted } from './prisma.utils.js';
 
 describe('prisma.utils', () => {
   describe('nonDeleted', () => {

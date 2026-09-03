@@ -1,6 +1,9 @@
 import type { ValidationError } from '@nestjs/common';
 
-import { formatValidationErrors, collectValidationMessages } from './setup-app';
+import {
+  formatValidationErrors,
+  collectValidationMessages,
+} from './setup-app.js';
 
 describe('collectValidationMessages', () => {
   it('returns constraint messages from a flat error', () => {

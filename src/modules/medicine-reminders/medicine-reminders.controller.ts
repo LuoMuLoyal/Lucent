@@ -19,20 +19,20 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { CreateMedicineReminderDto } from './dto/create.dto';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { ProblemDetailsDto } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { CreateMedicineReminderDto } from './dto/create.dto.js';
 
 import {
   MedicineReminderListResponseDto,
   MedicineReminderResponseDto,
-} from './dto/response.dto';
+} from './dto/response.dto.js';
 
-import { UpdateMedicineReminderDto } from './dto/update.dto';
-import { UpsertMedicineReminderGroupDto } from './dto/upsert-group.dto';
-import { MedicineRemindersService } from './services/reminders.service';
+import { UpdateMedicineReminderDto } from './dto/update.dto.js';
+import { UpsertMedicineReminderGroupDto } from './dto/upsert-group.dto.js';
+import { MedicineRemindersService } from './services/reminders.service.js';
 
 @ApiTags('Medicine Reminders')
 @ApiBearerAuth('access-token')

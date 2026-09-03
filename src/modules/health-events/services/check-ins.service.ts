@@ -5,35 +5,35 @@ import {
   HealthEventStatus,
   ProductEventName,
   ProductEventSurface,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnly,
   formatDateOnlyInTimezone,
   now,
   parseDateOnly,
-} from '../../../common';
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 import {
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
-} from '../repositories/event.repository';
+} from '../repositories/event.repository.js';
 import {
   parseHealthEventOutcome,
   toProductEventResult,
   type EndHealthEventInput,
-} from './events.service';
+} from './events.service.js';
 import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../product-events';
+import { ProductEventsService } from '../../product-events/index.js';
 
 export type UpsertCheckInInput = EndHealthEventInput;
 

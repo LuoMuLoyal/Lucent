@@ -5,18 +5,21 @@ import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 
-import { VerificationCodeService } from './verification-code.service';
-import { MailService } from '../../../../mail/mail.service';
+import { VerificationCodeService } from './verification-code.service.js';
+import { MailService } from '../../../../mail/mail.service.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { RedisService } from '../../../../common';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
+import { RedisService } from '../../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
 import {
   DEFAULT_VERIFICATION_CODE_TTL_MS,
   DEFAULT_VERIFICATION_COOLDOWN_MS,
   DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
   DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
-} from '../../../../config/app-defaults.constants';
+} from '../../../../config/app-defaults.constants.js';
 
 async function inspectResult<T>(
   result: ResultAsync<T, DomainFailure>,

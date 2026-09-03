@@ -5,17 +5,20 @@ import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
   HealthEventCheckInRecord,
-} from '../repositories/event.repository';
-import type { ProductEventsService } from '../../product-events';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { fromPromise, okAsync } from '../../../common/result';
-import { CheckInsService } from './check-ins.service';
+} from '../repositories/event.repository.js';
+import type { ProductEventsService } from '../../product-events/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { fromPromise, okAsync } from '../../../common/result/index.js';
+import { CheckInsService } from './check-ins.service.js';
 
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';

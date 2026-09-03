@@ -1,17 +1,27 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
-import { nonDeleted } from '../../../common';
-import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
+import { nonDeleted } from '../../../common/index.js';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import { UserStatus } from '#generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client.js';
 
-import { AccountService } from './account.service';
-import { AuthBetterAuthAdapter, PasswordReauthService } from '../../auth';
-import { UserService } from '../../user';
-import { PrismaService } from '../../../prisma/prisma.service';
-import type { UpdateAccountDto } from '../dto/update.dto';
+import { AccountService } from './account.service.js';
+import {
+  AuthBetterAuthAdapter,
+  PasswordReauthService,
+} from '../../auth/index.js';
+import { UserService } from '../../user/index.js';
+import { PrismaService } from '../../../prisma/prisma.service.js';
+import type { UpdateAccountDto } from '../dto/update.dto.js';
 
 const baseUser = {
   id: 'user-uuid-1',

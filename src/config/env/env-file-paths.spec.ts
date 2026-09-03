@@ -1,4 +1,4 @@
-import { getDotenvLoadOrder, getEnvFilePaths } from './env-file-paths';
+import { getDotenvLoadOrder, getEnvFilePaths } from './env-file-paths.js';
 
 describe('env file path helpers', () => {
   const originalNodeEnv = process.env['NODE_ENV'];

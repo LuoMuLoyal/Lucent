@@ -1,4 +1,4 @@
-import { AssistantToolDrugbankEntityResolveService } from './entity-resolve.service';
+import { AssistantToolDrugbankEntityResolveService } from './entity-resolve.service.js';
 
 describe('AssistantToolDrugbankEntityResolveService', () => {
   it('returns a single DrugBank entity when one clear candidate matches', async () => {

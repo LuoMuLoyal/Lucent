@@ -30,7 +30,7 @@ import {
 import type { FastifyReply } from 'fastify';
 import { I18nLang, I18nService } from 'nestjs-i18n';
 
-import { ConfigKey } from '../../config/env/config-keys.enum';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
 
 import {
   endSse,
@@ -38,50 +38,50 @@ import {
   SseProblemDetailsMapper,
   writeSseEvent,
   SseConnectionRegistry,
-} from '../../common';
-import { extractErrorInfo, enqueueOrFallback } from '../../common';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
+} from '../../common/index.js';
+import { extractErrorInfo, enqueueOrFallback } from '../../common/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
 
-import { Public } from '../auth';
-import { GenerateReportSummaryDto } from './dto/generate-report-summary.dto';
+import { Public } from '../auth/index.js';
+import { GenerateReportSummaryDto } from './dto/generate-report-summary.dto.js';
 
-import { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto';
+import { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto.js';
 
-import { ReportDashboardResponseDto } from './dto/report-dashboard-response.dto';
+import { ReportDashboardResponseDto } from './dto/report-dashboard-response.dto.js';
 
-import { ReportSummaryResponseDto } from './dto/report-summary-response.dto';
-import { ReportSummaryAsyncResponseDto } from './dto/report-summary-response.dto';
+import { ReportSummaryResponseDto } from './dto/report-summary-response.dto.js';
+import { ReportSummaryAsyncResponseDto } from './dto/report-summary-response.dto.js';
 
 import {
   ClinicSummaryResponseDto,
   ClinicSummaryShareResponseDto,
   ClinicSummaryExportAsyncResponseDto,
-} from './dto/clinic-summary-response.dto';
-import { ClinicSummaryShareListResponseDto } from './dto/clinic-summary-share-list.dto';
+} from './dto/clinic-summary-response.dto.js';
+import { ClinicSummaryShareListResponseDto } from './dto/clinic-summary-share-list.dto.js';
 import {
   ClinicSummaryRequestDto,
   CLINIC_SUMMARY_SELECTABLE_FIELDS,
-} from './dto/clinic-summary-request.dto';
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
+} from './dto/clinic-summary-request.dto.js';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
 
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
+import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
 
 import {
   ClinicSummaryService,
   sharedSummaryCacheKey,
-} from './services/clinic-summary/summary.service';
-import type { ClinicSummaryOptions } from './services/clinic-summary/summary.service';
-import { ShareService } from './services/clinic-summary/share.service';
-import { EventReviewService } from './services/event-review/review.service';
-import { ReportsService } from './dashboard/dashboard.service';
-import { EventReviewListQueryDto } from './dto/event-review-list-query.dto';
+} from './services/clinic-summary/summary.service.js';
+import type { ClinicSummaryOptions } from './services/clinic-summary/summary.service.js';
+import { ShareService } from './services/clinic-summary/share.service.js';
+import { EventReviewService } from './services/event-review/review.service.js';
+import { ReportsService } from './dashboard/dashboard.service.js';
+import { EventReviewListQueryDto } from './dto/event-review-list-query.dto.js';
 import {
   EventReviewListResponseDto,
   EventReviewResponseDto,
   EventReviewDataDto,
-} from './dto/event-review-response.dto';
+} from './dto/event-review-response.dto.js';
 
 /** Milliseconds per day — used to materialize the default share range. */
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

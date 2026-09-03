@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../../common';
-import { ClinicSummaryService } from './summary.service';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { BaseAsyncQueueService } from '../../../../common/index.js';
+import { ClinicSummaryService } from './summary.service.js';
 
 interface PdfExportJobData {
   userId: string;

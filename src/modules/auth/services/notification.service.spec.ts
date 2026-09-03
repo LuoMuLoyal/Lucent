@@ -1,8 +1,8 @@
-import { errAsync, okAsync } from '../../../common/result';
-import { createDomainFailure } from '../../../common/result';
-import type { NotificationsService } from '../../notifications';
-import type { OAuthProfile } from '../types/oauth.types';
-import { AuthNotificationService } from './notification.service';
+import { errAsync, okAsync } from '../../../common/result/index.js';
+import { createDomainFailure } from '../../../common/result/index.js';
+import type { NotificationsService } from '../../notifications/index.js';
+import type { OAuthProfile } from '../types/oauth.types.js';
+import { AuthNotificationService } from './notification.service.js';
 
 describe('AuthNotificationService', () => {
   let service: AuthNotificationService;

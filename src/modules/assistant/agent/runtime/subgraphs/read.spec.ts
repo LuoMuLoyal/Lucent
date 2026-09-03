@@ -5,7 +5,7 @@ import {
   SystemMessage,
 } from '@langchain/core/messages';
 import { describe, expect, it, vi } from 'vitest';
-import { buildReadSubGraph } from './read';
+import { buildReadSubGraph } from './read.js';
 
 function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
   return vi.fn().mockImplementation(async (...args: unknown[]) => {

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { INotificationSender } from '../../notifications';
-import type { OAuthProfile } from '../types/oauth.types';
+import { INotificationSender } from '../../notifications/index.js';
+import type { OAuthProfile } from '../types/oauth.types.js';
 
 @Injectable()
 export class AuthNotificationService {

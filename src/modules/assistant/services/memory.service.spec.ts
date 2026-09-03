@@ -1,14 +1,14 @@
 import type { AIMessage } from '@langchain/core/messages';
-import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
-import type { LlmRuntimeService } from '../../../llm-runtime';
-import type { AssistantConversationRepositoryPort } from '../repositories/conversation.repository';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
+import type { LlmRuntimeService } from '../../../llm-runtime/index.js';
+import type { AssistantConversationRepositoryPort } from '../repositories/conversation.repository.js';
 import type {
   AssistantMemoryRepositoryPort,
   AssistantMemoryRow,
-} from '../repositories/memory.repository';
-import { AssistantMemoryService } from './memory.service';
-import { okAsync } from '../../../common/result';
-import { MEMORY_EXTRACTION_TIMEOUT_MS } from './memory.service';
+} from '../repositories/memory.repository.js';
+import { AssistantMemoryService } from './memory.service.js';
+import { okAsync } from '../../../common/result/index.js';
+import { MEMORY_EXTRACTION_TIMEOUT_MS } from './memory.service.js';
 
 function buildConversation(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,

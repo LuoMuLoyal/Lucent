@@ -1,4 +1,4 @@
-import { isRetryableLlmError, withLlmRetry } from './llm-retry.helper';
+import { isRetryableLlmError, withLlmRetry } from './llm-retry.helper.js';
 
 describe('llm-retry.helper', () => {
   describe('isRetryableLlmError', () => {

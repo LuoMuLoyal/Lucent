@@ -6,7 +6,7 @@ import type {
   SuggestionCardTone,
   SuggestionConfidence,
   SuggestionFeedback,
-} from '../types/suggestion.types';
+} from '../types/suggestion.types.js';
 
 /** Evidence item shown on a suggestion card. */
 export class EvidenceItemDto {

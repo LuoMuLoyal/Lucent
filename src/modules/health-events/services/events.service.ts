@@ -7,12 +7,12 @@ import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
   now,
-} from '../../../common';
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -20,17 +20,17 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 import {
   HealthEventRepositoryPort,
   type HealthEventView,
   type HealthEventRecord,
-} from '../repositories/event.repository';
+} from '../repositories/event.repository.js';
 import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../product-events';
+import { ProductEventsService } from '../../product-events/index.js';
 
 /**
  * `ProductEventResult` mirrors `HealthEventOutcome` string-for-string in the

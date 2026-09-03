@@ -21,46 +21,46 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
-import { CurrentUser } from '../auth';
+import { CurrentUser } from '../auth/index.js';
 
-import { Public } from '../auth';
-import type { UserPayload } from '../auth';
+import { Public } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
 import {
   CnMedicineDetailDto,
   DrugbankMedicineDetailDto,
-} from './dto/detail.dto';
+} from './dto/detail.dto.js';
 
 import {
   MedicineDetailQueryDto,
   MedicineSearchQueryDto,
-} from './dto/query.dto';
+} from './dto/query.dto.js';
 
 import {
   MedicineDetailResponseDto,
   MedicineSearchResponseDto,
-} from './dto/response.dto';
+} from './dto/response.dto.js';
 
-import { MedicineSafetyTipResponseDto } from './dto/safety-tip-response.dto';
+import { MedicineSafetyTipResponseDto } from './dto/safety-tip-response.dto.js';
 
-import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
-import { MedicineRecognitionAsyncResponseDto } from './dto/recognition-response.dto';
-import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto';
+import { RecognizeMedicineDto } from './dto/recognize-medicine.dto.js';
+import { MedicineRecognitionAsyncResponseDto } from './dto/recognition-response.dto.js';
+import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto.js';
 import {
   MedicineRiskCheckRecordDto,
   MedicineRiskCheckRecordsDto,
   MedicineRiskCheckRecordResponseDto,
   MedicineRiskCheckRecordsResponseDto,
-} from './dto/risk/risk-check-response.dto';
-import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/store.constants';
-import { MedicinesService } from './services/medicines.service';
+} from './dto/risk/risk-check-response.dto.js';
+import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/store.constants.js';
+import { MedicinesService } from './services/medicines.service.js';
 
-import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
-import { MedicineRiskCheckService } from './services/risk/risk-check.service';
+import { MedicineRecognitionQueueService } from './services/recognition-queue.service.js';
+import { MedicineRiskCheckService } from './services/risk/risk-check.service.js';
 import {
   createDomainFailure,
   DomainFailureException,
   unwrapResult,
-} from '../../common/result';
+} from '../../common/result/index.js';
 
 @ApiTags('Medicines')
 @ApiExtraModels(

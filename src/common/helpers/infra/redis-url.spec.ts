@@ -1,4 +1,4 @@
-import { parseRedisUrl } from './redis-url';
+import { parseRedisUrl } from './redis-url.js';
 
 describe('parseRedisUrl', () => {
   it('parses host and default port', () => {

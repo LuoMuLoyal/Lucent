@@ -7,11 +7,11 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import type { Cache } from 'cache-manager';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
-import { PrismaService } from '../../../src/prisma';
-import { ConfigKey } from '../../../src/config/env/config-keys.enum';
-import { UserStatus } from '#generated/prisma/client';
+import { AppModule } from '../../../src/app.module.js';
+import { setupApp } from '../../../src/setup-app.js';
+import { PrismaService } from '../../../src/prisma/index.js';
+import { ConfigKey } from '../../../src/config/env/config-keys.enum.js';
+import { UserStatus } from '#generated/prisma/client.js';
 
 interface MedicineSearchItem {
   id: string;

@@ -1,7 +1,7 @@
 import type {
   AssistantUpdateDailyRecordProposalPayload,
   AssistantUpdateUserSettingsProposalPayload,
-} from '../../types/assistant.types';
+} from '../../types/assistant.types.js';
 
 /**
  * Negation words that may precede a toggle keyword, reversing its meaning.

@@ -4,7 +4,7 @@ import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
-import { RedisService } from '../../../../common';
+import { RedisService } from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -12,11 +12,11 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
-import { ConfigKey } from '../../../../config/env/config-keys.enum';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader';
-import { MailService } from '../../../../mail/mail.service';
-import type { VerificationScene } from '../../dto/password/send-verification-code.dto';
+} from '../../../../common/result/index.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { MailService } from '../../../../mail/mail.service.js';
+import type { VerificationScene } from '../../dto/password/send-verification-code.dto.js';
 
 interface RateLimitBucket {
   count: number;

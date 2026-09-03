@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 import {
   IsEmailAddress,
   IsVerificationCode,
-} from '../../../../common/validators/auth.decorators';
+} from '../../../../common/validators/auth.decorators.js';
 
 export class ChangeEmailDto {
   @ApiProperty({ description: '新邮箱', example: 'newuser@example.com' })

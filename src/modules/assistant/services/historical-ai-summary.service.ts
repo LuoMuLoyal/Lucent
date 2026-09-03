@@ -5,10 +5,13 @@ import {
   type TodaySummaryRow,
   type ReportSummaryRow,
   type ReportRangeInput,
-} from '../repositories/summary.repository';
-import { parseDateOnly } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import type { AssistantReportRange } from '../types/ports';
+} from '../repositories/summary.repository.js';
+import { parseDateOnly } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import type { AssistantReportRange } from '../types/ports.js';
 
 export type {
   PersistSummaryInput,
@@ -16,7 +19,7 @@ export type {
   ReportSummaryRow,
   ReportRangeInput,
   SummaryBullet,
-} from '../repositories/summary.repository';
+} from '../repositories/summary.repository.js';
 
 @Injectable()
 export class HistoricalAiSummaryService {

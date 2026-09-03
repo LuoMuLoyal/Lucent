@@ -1,5 +1,5 @@
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
-import { AssistantToolMedicineLookupService } from './lookup.service';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
+import { AssistantToolMedicineLookupService } from './lookup.service.js';
 
 describe('AssistantToolMedicineLookupService', () => {
   function buildContext(message: string): AssistantToolExecutionContext {

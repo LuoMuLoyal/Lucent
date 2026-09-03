@@ -2,9 +2,12 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 
-import { AuthRateLimitService } from './rate-limit.service';
+import { AuthRateLimitService } from './rate-limit.service.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
 
 async function inspectResult<T>(
   result: ResultAsync<T, DomainFailure>,

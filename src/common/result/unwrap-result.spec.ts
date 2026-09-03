@@ -1,6 +1,6 @@
-import { errAsync, okAsync } from '.';
-import { createDomainFailure } from './domain-failure';
-import { DomainFailureException, unwrapResult } from './unwrap-result';
+import { errAsync, okAsync } from './index.js';
+import { createDomainFailure } from './domain-failure.js';
+import { DomainFailureException, unwrapResult } from './unwrap-result.js';
 
 describe('unwrapResult', () => {
   it('returns the Ok value', async () => {

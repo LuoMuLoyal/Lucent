@@ -1,6 +1,6 @@
 import type { I18nService } from 'nestjs-i18n';
-import { LocalizedCopyService } from './localized-copy.service';
-import type { PromptCopy } from '../helpers/format/localized-copy';
+import { LocalizedCopyService } from './localized-copy.service.js';
+import type { PromptCopy } from '../helpers/format/localized-copy.js';
 
 // ── Test fixture ───────────────────────────────────────────────────────────
 

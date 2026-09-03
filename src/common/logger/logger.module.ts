@@ -1,11 +1,11 @@
 import { Global, Logger, Module } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import { EnvKey } from '../../config/env/env-keys.enum';
-import type { YamlConfig } from '../../config/yaml/yaml-loader';
-import { createLoggerOptions } from './logger.config';
-import { LifecycleService } from './lifecycle.service';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import type { YamlConfig } from '../../config/yaml/yaml-loader.js';
+import { createLoggerOptions } from './logger.config.js';
+import { LifecycleService } from './lifecycle.service.js';
 
 @Global()
 @Module({

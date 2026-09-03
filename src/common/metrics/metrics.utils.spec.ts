@@ -1,4 +1,4 @@
-import { normalizeRoute, shouldSkip } from './metrics.utils';
+import { normalizeRoute, shouldSkip } from './metrics.utils.js';
 
 describe('metrics.utils', () => {
   // ── normalizeRoute ──────────────────────────────────────────────────────

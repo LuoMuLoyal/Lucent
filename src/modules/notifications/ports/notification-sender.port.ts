@@ -1,8 +1,11 @@
 import type {
   CreateNotificationDto,
   NotificationListItemDto,
-} from '../dto/response.dto';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+} from '../dto/response.dto.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 /**
  * Scope metadata for idempotent notification creation.  When a notification

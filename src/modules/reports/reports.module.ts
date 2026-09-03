@@ -1,43 +1,43 @@
 import { Module } from '@nestjs/common';
-import { AssistantModule } from '../assistant/assistant.module';
-import { DailyRecordsModule } from '../daily-records/daily-records.module';
-import { HealthEventsModule } from '../health-events/health-events.module';
-import { LlmCommonModule } from '../../common';
-import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
-import { MedicinesModule } from '../medicines/medicines.module';
-import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
-import { UserSettingsModule } from '../user-settings/user-settings.module';
-import { ProductEventsModule } from '../product-events/product-events.module';
-import { ReportsAiSummaryContextService } from './services/ai-summary/context.service';
+import { AssistantModule } from '../assistant/assistant.module.js';
+import { DailyRecordsModule } from '../daily-records/daily-records.module.js';
+import { HealthEventsModule } from '../health-events/health-events.module.js';
+import { LlmCommonModule } from '../../common/index.js';
+import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
+import { MedicinesModule } from '../medicines/medicines.module.js';
+import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module.js';
+import { UserSettingsModule } from '../user-settings/user-settings.module.js';
+import { ProductEventsModule } from '../product-events/product-events.module.js';
+import { ReportsAiSummaryContextService } from './services/ai-summary/context.service.js';
 
-import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service';
+import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service.js';
 
-import { ReportsAiSummaryGeneratorService } from './services/ai-summary/generator.service';
+import { ReportsAiSummaryGeneratorService } from './services/ai-summary/generator.service.js';
 
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
 
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
-import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
+import { ClinicSummaryService } from './services/clinic-summary/summary.service.js';
 
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
 
-import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service';
-import { ShareService } from './services/clinic-summary/share.service';
-import { ReportsComputationService } from './dashboard/computation.service';
+import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
+import { ShareService } from './services/clinic-summary/share.service.js';
+import { ReportsComputationService } from './dashboard/computation.service.js';
 
-import { ReportsContextService } from './dashboard/context.service';
+import { ReportsContextService } from './dashboard/context.service.js';
 
-import { ReportsPresenterService } from './dashboard/presenter.service';
+import { ReportsPresenterService } from './dashboard/presenter.service.js';
 
-import { ReportsService } from './dashboard/dashboard.service';
-import { ReportsCacheInvalidationListener } from './dashboard/cache-invalidation.listener';
-import { EventReviewService } from './services/event-review/review.service';
-import { EventReviewFactsService } from './services/event-review/facts.service';
-import { EventReviewChangesService } from './services/event-review/changes.service';
-import { EventReviewActionsService } from './services/event-review/actions.service';
-import { EventReviewNextStepService } from './services/event-review/next-step.service';
-import { ReportsController } from './reports.controller';
-import { IReportSummaryReader } from './ports/report-summary-reader.port';
+import { ReportsService } from './dashboard/dashboard.service.js';
+import { ReportsCacheInvalidationListener } from './dashboard/cache-invalidation.listener.js';
+import { EventReviewService } from './services/event-review/review.service.js';
+import { EventReviewFactsService } from './services/event-review/facts.service.js';
+import { EventReviewChangesService } from './services/event-review/changes.service.js';
+import { EventReviewActionsService } from './services/event-review/actions.service.js';
+import { EventReviewNextStepService } from './services/event-review/next-step.service.js';
+import { ReportsController } from './reports.controller.js';
+import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
 
 @Module({
   imports: [

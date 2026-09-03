@@ -1,19 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult, now, toInputJsonValue } from '../../../common';
+import type { Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import {
+  fromPrismaResult,
+  now,
+  toInputJsonValue,
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 import type {
   CreateNotificationDto,
   NotificationListItemDto,
   NotificationDetailDto,
-} from '../dto/response.dto';
+} from '../dto/response.dto.js';
 
 const notificationSelect = {
   id: true,

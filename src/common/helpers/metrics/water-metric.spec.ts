@@ -2,7 +2,7 @@ import {
   parseWaterMetric,
   summarizeWaterMetrics,
   type WaterMetricInput,
-} from './water-metric';
+} from './water-metric.js';
 
 describe('water-metric helpers', () => {
   describe('parseWaterMetric', () => {

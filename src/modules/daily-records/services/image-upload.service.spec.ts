@@ -5,9 +5,9 @@ import {
 import type {
   ObjectStorageConfig,
   ObjectStorageRuntime,
-} from '../../../common';
+} from '../../../common/index.js';
 import type { I18nService } from 'nestjs-i18n';
-import { DailyRecordImageUploadService } from './image-upload.service';
+import { DailyRecordImageUploadService } from './image-upload.service.js';
 
 const mockI18n = {
   t: vi.fn().mockReturnValue('error'),

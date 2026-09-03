@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service';
-import { safeParseLlmJson } from '../../../../common';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import { safeParseLlmJson } from '../../../../common/index.js';
 
-import { normalizeNullableText } from '../../../../common';
-import { LlmRuntimeService } from '../../../../llm-runtime';
+import { normalizeNullableText } from '../../../../common/index.js';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 
 const MEAL_DESCRIPTION_MAX_LENGTH = 200;
 const FOOD_NAME_MAX_LENGTH = 100;

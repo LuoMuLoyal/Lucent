@@ -1,5 +1,8 @@
-import type { ResultAsync, DomainFailure } from '../../../common/result';
-import type { OAuthProfile, OAuthProviderName } from '../types/oauth.types';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
+import type { OAuthProfile, OAuthProviderName } from '../types/oauth.types.js';
 
 export interface OAuthProvider {
   readonly provider: OAuthProviderName;

@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { BaseCheckpointSaver } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { Pool } from 'pg';
-import { EnvKey } from '../../../config/env/env-keys.enum';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
 
 /**
  * Process-wide Postgres checkpoint provider for the assistant graph.

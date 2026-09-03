@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
-import type { LlmRuntimeService } from '../../../../llm-runtime';
-import type { MetricsService } from '../../../../common/metrics/metrics.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import type { MedicineRiskLlmContext } from '../../prompts/risk-check.prompt';
+import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service.js';
+import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import type { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import type { MedicineRiskLlmContext } from '../../prompts/risk-check.prompt.js';
 
 function build(hasAnalysisModel = true) {
   const mockModel = {

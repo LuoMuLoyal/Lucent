@@ -5,14 +5,14 @@ import {
 } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { extname } from 'node:path';
-import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
+import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.js';
 import {
   ObjectStorageRuntime,
   type ObjectStorageConfig,
   createDatePartitionedObjectKey,
   buildPublicUrl,
-} from '../../../common';
-import type { CreateDailyRecordImageUploadDto } from '../dto/candidates/record-image-upload.dto';
+} from '../../../common/index.js';
+import type { CreateDailyRecordImageUploadDto } from '../dto/candidates/record-image-upload.dto.js';
 
 @Injectable()
 export class DailyRecordImageUploadService {

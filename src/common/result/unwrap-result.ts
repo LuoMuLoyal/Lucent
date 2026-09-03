@@ -1,8 +1,8 @@
-import type { ResultAsync } from '.';
-import type { DomainFailure } from './domain-failure';
-import { DomainFailureException } from './domain-failure.exception';
+import type { ResultAsync } from './index.js';
+import type { DomainFailure } from './domain-failure.js';
+import { DomainFailureException } from './domain-failure.exception.js';
 
-export { DomainFailureException } from './domain-failure.exception';
+export { DomainFailureException } from './domain-failure.exception.js';
 
 export async function unwrapResult<T>(
   result: ResultAsync<T, DomainFailure>,

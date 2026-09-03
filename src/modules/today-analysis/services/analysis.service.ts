@@ -10,35 +10,38 @@ import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
   now,
-} from '../../../common';
-import { unwrapResult } from '../../../common/result';
+} from '../../../common/index.js';
+import { unwrapResult } from '../../../common/result/index.js';
 import {
   createDomainFailure,
   type DomainFailure,
-} from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
-import type { CreateNotificationDto } from '../../notifications';
-import { HistoricalAiSummaryService } from '../../assistant';
-import { INotificationSender, PushDeliveryService } from '../../notifications';
-import { PrismaService } from '../../../prisma';
-import { BaseLlmSummaryService } from '../../../common/llm/generators/base-llm-summary.service';
-import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service';
-import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
+} from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
+import type { CreateNotificationDto } from '../../notifications/index.js';
+import { HistoricalAiSummaryService } from '../../assistant/index.js';
+import {
+  INotificationSender,
+  PushDeliveryService,
+} from '../../notifications/index.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { BaseLlmSummaryService } from '../../../common/llm/generators/base-llm-summary.service.js';
+import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service.js';
+import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto.js';
 
 import type {
   TodayAnalysisDataDto,
   TodayAnalysisReadDataDto,
-} from '../dto/analysis-response.dto';
-import { TodayAnalysisCopyService } from './pipeline/copy.service';
+} from '../dto/analysis-response.dto.js';
+import { TodayAnalysisCopyService } from './pipeline/copy.service.js';
 import {
   TodayAnalysisContextService,
   type TodayAnalysisContext,
-} from './pipeline/context.service';
-import { TodayAnalysisGeneratorService } from './pipeline/generator.service';
-import type { TodayAnalysisStructuredOutput } from '../schemas/analysis.schema';
-import { nowIsoString } from '../../../common';
-import { TodayAnalysisMaterializationStore } from './materialization/store.service';
-import type { StreamSummaryEvent } from '../../../common/api/stream-summary';
+} from './pipeline/context.service.js';
+import { TodayAnalysisGeneratorService } from './pipeline/generator.service.js';
+import type { TodayAnalysisStructuredOutput } from '../schemas/analysis.schema.js';
+import { nowIsoString } from '../../../common/index.js';
+import { TodayAnalysisMaterializationStore } from './materialization/store.service.js';
+import type { StreamSummaryEvent } from '../../../common/api/stream-summary.js';
 
 interface PreparedTodayAnalysis {
   context: TodayAnalysisContext;

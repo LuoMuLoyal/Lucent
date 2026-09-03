@@ -14,7 +14,7 @@ import {
   type SettingsChangedPayload,
   type ReminderChangedPayload,
 } from '../../../common/events/domain-events.js';
-import { ReportsService } from './dashboard.service';
+import { ReportsService } from './dashboard.service.js';
 
 /**
  * Subscribes to domain events and invalidates the reports dashboard cache

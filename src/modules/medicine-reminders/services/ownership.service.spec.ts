@@ -1,8 +1,11 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
-import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
-import { MedicineRemindersOwnershipService } from './ownership.service';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository.js';
+import { MedicineRemindersOwnershipService } from './ownership.service.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,

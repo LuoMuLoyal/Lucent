@@ -1,4 +1,4 @@
-import { buildSearchText } from './search-text.utils';
+import { buildSearchText } from './search-text.utils.js';
 
 describe('search-text.utils', () => {
   describe('buildSearchText', () => {

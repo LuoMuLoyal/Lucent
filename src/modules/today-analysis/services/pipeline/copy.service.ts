@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { LocalizedCopyService } from '../../../../common/services/localized-copy.service';
-import type { TodayAnalysisContext } from './context.service';
-import type { TodayAnalysisStructuredOutput } from '../../schemas/analysis.schema';
-import type { TodayAnalysisPromptCopy } from '../../prompts/analysis.prompt';
+import { LocalizedCopyService } from '../../../../common/services/localized-copy.service.js';
+import type { TodayAnalysisContext } from './context.service.js';
+import type { TodayAnalysisStructuredOutput } from '../../schemas/analysis.schema.js';
+import type { TodayAnalysisPromptCopy } from '../../prompts/analysis.prompt.js';
 
 @Injectable()
 export class TodayAnalysisCopyService extends LocalizedCopyService<TodayAnalysisPromptCopy> {

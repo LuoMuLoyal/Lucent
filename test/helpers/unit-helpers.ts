@@ -1,6 +1,6 @@
-import type { PrismaService } from '../../src/prisma';
-export type { DeepMocked } from '../../src/common/types/deep-mocked';
-import type { DeepMocked } from '../../src/common/types/deep-mocked';
+import type { PrismaService } from '../../src/prisma/index.js';
+export type { DeepMocked } from '../../src/common/types/deep-mocked.js';
+import type { DeepMocked } from '../../src/common/types/deep-mocked.js';
 
 /**
  * Create a minimal PrismaService mock with no pre-defined methods.

@@ -6,36 +6,36 @@ import {
   unwrapResult,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
+} from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
 import { Injectable, Logger } from '@nestjs/common';
-import { DailyRecordsService } from '../../daily-records';
+import { DailyRecordsService } from '../../daily-records/index.js';
 import type {
   CreateDailyRecordDto,
   UpdateDailyRecordDto,
-} from '../../daily-records';
-import type { AssistantCapabilitiesDataDto } from '../dto/capabilities-response.dto';
+} from '../../daily-records/index.js';
+import type { AssistantCapabilitiesDataDto } from '../dto/capabilities-response.dto.js';
 
-import type { AssistantConversationDataDto } from '../dto/conversation-response.dto';
+import type { AssistantConversationDataDto } from '../dto/conversation-response.dto.js';
 
 import type {
   AssistantMessageDataDto,
   AssistantToolDetailDto,
-} from '../dto/stream-response.dto';
+} from '../dto/stream-response.dto.js';
 
-import type { StreamAssistantMessagesDto } from '../dto/stream-messages.dto';
+import type { StreamAssistantMessagesDto } from '../dto/stream-messages.dto.js';
 import type {
   AssistantConfirmResultDto,
   ConfirmAssistantProposalDto,
-} from '../dto/confirm-proposal.dto';
-import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
-import { AssistantRuntimeService } from '../agent/runtime.service';
-import { IUserSettingsPort } from '../../user-settings';
-import { AssistantPolicyService } from './policy.service';
-import { AssistantToolService } from '../tools/tool.service';
-import { AssistantConversationService } from './conversation.service';
-import { AssistantMemoryService } from './memory.service';
-import { nowIsoString } from '../../../common';
+} from '../dto/confirm-proposal.dto.js';
+import type { AssistantRuntimeCapabilities } from '../types/assistant.types.js';
+import { AssistantRuntimeService } from '../agent/runtime.service.js';
+import { IUserSettingsPort } from '../../user-settings/index.js';
+import { AssistantPolicyService } from './policy.service.js';
+import { AssistantToolService } from '../tools/tool.service.js';
+import { AssistantConversationService } from './conversation.service.js';
+import { AssistantMemoryService } from './memory.service.js';
+import { nowIsoString } from '../../../common/index.js';
 import type {
   AssistantConversationMessage,
   AssistantMessageResult,
@@ -43,12 +43,12 @@ import type {
   AssistantStreamChunkEvent,
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
-} from '../types/assistant.types';
-import type { AssistantToolName } from '../tools/shared/tool-types';
+} from '../types/assistant.types.js';
+import type { AssistantToolName } from '../tools/shared/tool-types.js';
 import {
   assistantToolDetailDataSchema,
   type AssistantToolDetailData,
-} from '../schemas/tool-detail.schema';
+} from '../schemas/tool-detail.schema.js';
 
 @Injectable()
 export class AssistantService {

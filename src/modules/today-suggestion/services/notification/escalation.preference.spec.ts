@@ -1,11 +1,11 @@
-import { EscalationService } from './escalation.service';
-import { okAsync } from '../../../../common/result';
+import { EscalationService } from './escalation.service.js';
+import { okAsync } from '../../../../common/result/index.js';
 import {
   SuggestionConfidence,
   SuggestionType,
   TriggerType,
-} from '../../types/suggestion.types';
-import type { SuggestionCandidate } from '../../types/candidate.types';
+} from '../../types/suggestion.types.js';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
 
 function candidate(ruleId: string): SuggestionCandidate {
   return {

@@ -1,7 +1,7 @@
-import { buildAuthResponse } from './auth-response.helper';
-import { calculateExpiresIn } from '../../../common';
-import type { User } from '#generated/prisma/client';
-import type { TokenPair } from '../types/auth-request';
+import { buildAuthResponse } from './auth-response.helper.js';
+import { calculateExpiresIn } from '../../../common/index.js';
+import type { User } from '#generated/prisma/client.js';
+import type { TokenPair } from '../types/auth-request.js';
 
 describe('auth-response.helper', () => {
   const mockUser: Pick<

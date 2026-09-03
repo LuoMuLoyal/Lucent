@@ -1,10 +1,10 @@
-import type { ClinicSummaryShareField } from '#generated/prisma/client';
+import type { ClinicSummaryShareField } from '#generated/prisma/client.js';
 import type {
   ClinicSummaryDto,
   ClinicSummaryNoteEntryDto,
   ClinicSummarySleepEntryDto,
   ClinicSummaryWaterEntryDto,
-} from '../../dto/clinic-summary-response.dto';
+} from '../../dto/clinic-summary-response.dto.js';
 
 /**
  * Share-field keys that control non-section DTO fields (findings, coverage

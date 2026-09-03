@@ -1,6 +1,6 @@
-import type { PrismaService } from '../../../../prisma';
-import { MealIngredientGroundingService } from '../meal-ingredient/grounding.service';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
+import type { PrismaService } from '../../../../prisma/index.js';
+import { MealIngredientGroundingService } from '../meal-ingredient/grounding.service.js';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
 
 const yamlConfig = loadYamlConfig();
 

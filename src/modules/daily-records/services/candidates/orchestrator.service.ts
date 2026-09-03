@@ -3,13 +3,13 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { DailyRecordCandidateData } from '../../dto/candidates/record-candidate-response.dto';
+import type { DailyRecordCandidateData } from '../../dto/candidates/record-candidate-response.dto.js';
 
-import type { GenerateDailyRecordCandidatesDto } from '../../dto/candidates/generate-record-candidates.dto';
-import { DailyRecordCandidatesCopyService } from '../candidates/copy.service';
-import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
-import { nowIsoString } from '../../../../common';
-import { extractErrorInfo } from '../../../../common';
+import type { GenerateDailyRecordCandidatesDto } from '../../dto/candidates/generate-record-candidates.dto.js';
+import { DailyRecordCandidatesCopyService } from '../candidates/copy.service.js';
+import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service.js';
+import { nowIsoString } from '../../../../common/index.js';
+import { extractErrorInfo } from '../../../../common/index.js';
 
 interface DailyRecordCandidatesContext {
   text: string;

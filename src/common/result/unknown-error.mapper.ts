@@ -1,5 +1,5 @@
-import { createDomainFailure, type DomainFailure } from './domain-failure';
-import { DomainFailureException } from './domain-failure.exception';
+import { createDomainFailure, type DomainFailure } from './domain-failure.js';
+import { DomainFailureException } from './domain-failure.exception.js';
 
 /**
  * Maps an unknown error to a `DomainFailure` without losing the original cause.

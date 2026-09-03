@@ -1,25 +1,25 @@
-import { parseDateOnly } from '../../../../common';
+import { parseDateOnly } from '../../../../common/index.js';
 import {
   summarizeWaterMetrics,
   toObservedWaterMetric,
   WATER_TARGET_ML_PER_COUNT,
-} from '../../../../common';
-import type { ObservedMetric } from '../../../../common';
+} from '../../../../common/index.js';
+import type { ObservedMetric } from '../../../../common/index.js';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma';
-import { DailyRecordReaderPort } from '../../../daily-records';
-import type { DailyRecordFact } from '../../../daily-records';
-import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs';
-import { MedicineReminderReaderPort } from '../../../medicine-reminders';
-import type { MedicineReminderFact } from '../../../medicine-reminders';
-import { parseMealRecordPayload } from '../../../daily-records';
+import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { DailyRecordReaderPort } from '../../../daily-records/index.js';
+import type { DailyRecordFact } from '../../../daily-records/index.js';
+import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
+import { MedicineReminderReaderPort } from '../../../medicine-reminders/index.js';
+import type { MedicineReminderFact } from '../../../medicine-reminders/index.js';
+import { parseMealRecordPayload } from '../../../daily-records/index.js';
 import {
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../../../user-settings';
+} from '../../../user-settings/index.js';
 
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;

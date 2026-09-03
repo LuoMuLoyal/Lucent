@@ -3,10 +3,13 @@ import {
   HealthEventOutcome,
   HealthEventStatus,
   Prisma,
-} from '#generated/prisma/client';
-import { fromPrismaResult, parseDateOnly } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { PrismaService } from '../../../prisma';
+} from '#generated/prisma/client.js';
+import { fromPrismaResult, parseDateOnly } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { PrismaService } from '../../../prisma/index.js';
 import {
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
@@ -15,7 +18,7 @@ import {
   type HealthEventPageQuery,
   type HealthEventRecord,
   type HealthEventUpdateInput,
-} from './event.repository';
+} from './event.repository.js';
 
 const eventSelect = {
   id: true,

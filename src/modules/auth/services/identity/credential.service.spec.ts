@@ -2,25 +2,25 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 
-import { CredentialAuthService } from './credential.service';
-import { UserService } from '../../../user';
-import { VerificationCodeService } from './verification-code.service';
-import { AuthTokenService } from '../token.service';
-import { AuthRateLimitService } from './rate-limit.service';
-import { PasswordReauthService } from './password-reauth.service';
-import { INotificationSender } from '../../../notifications';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
-import { PrismaService } from '../../../../prisma';
-import type { NotificationListItemDto } from '../../../notifications';
-import type { User } from '#generated/prisma/client';
-import { UserStatus } from '#generated/prisma/client';
+import { CredentialAuthService } from './credential.service.js';
+import { UserService } from '../../../user/index.js';
+import { VerificationCodeService } from './verification-code.service.js';
+import { AuthTokenService } from '../token.service.js';
+import { AuthRateLimitService } from './rate-limit.service.js';
+import { PasswordReauthService } from './password-reauth.service.js';
+import { INotificationSender } from '../../../notifications/index.js';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import type { NotificationListItemDto } from '../../../notifications/index.js';
+import type { User } from '#generated/prisma/client.js';
+import { UserStatus } from '#generated/prisma/client.js';
 import {
   createDomainFailure,
   errAsync,
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 
 /**
  * Folds a ResultAsync into a plain outcome so specs can assert both success

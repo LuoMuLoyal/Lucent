@@ -1,5 +1,5 @@
-import { LlmRuntimeModule } from './llm-runtime.module';
-import { LlmRuntimeService } from './llm-runtime.service';
+import { LlmRuntimeModule } from './llm-runtime.module.js';
+import { LlmRuntimeService } from './llm-runtime.service.js';
 
 describe('LlmRuntimeModule', () => {
   it('is a valid NestJS module', () => {

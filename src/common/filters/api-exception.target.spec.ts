@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import type { I18nService } from 'nestjs-i18n';
-import { createDomainFailure } from '../result/domain-failure';
-import { DomainFailureException } from '../result/unwrap-result';
-import { ApiExceptionFilter } from './api-exception.filter';
+import { createDomainFailure } from '../result/domain-failure.js';
+import { DomainFailureException } from '../result/unwrap-result.js';
+import { ApiExceptionFilter } from './api-exception.filter.js';
 
 function createI18n(): I18nService {
   const translations: Record<string, string> = {

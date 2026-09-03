@@ -3,7 +3,7 @@ import { extname } from 'node:path';
 import {
   ObjectStorageRuntime,
   createDatePartitionedObjectKey,
-} from '../../../common';
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -11,7 +11,7 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
 export interface PdfUploadResult {
   objectKey: string;

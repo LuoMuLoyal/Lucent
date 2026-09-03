@@ -3,7 +3,7 @@ import {
   RECOMPUTE_DEBOUNCE_MS,
   RecomputeQueueService,
   type RecomputeJobData,
-} from './queue.service';
+} from './queue.service.js';
 
 function buildFactory(queue: { add: vi.Mock; getJob: vi.Mock }): {
   createQueue: vi.Mock;

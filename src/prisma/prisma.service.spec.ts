@@ -85,7 +85,7 @@ const mockExtendedClient = {
 };
 
 // Import after mocks are set up
-import { PrismaService } from './prisma.service';
+import { PrismaService } from './prisma.service.js';
 
 describe('PrismaService', () => {
   beforeEach(() => {

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MedicineRiskCheckListener } from './risk-check.listener';
-import { type MedicineRiskCheckService } from './risk-check.service';
+import { MedicineRiskCheckListener } from './risk-check.listener.js';
+import { type MedicineRiskCheckService } from './risk-check.service.js';
 import {
   okAsync,
   errAsync,
   createDomainFailure,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 
 describe('MedicineRiskCheckListener', () => {
   const runStaticCheck = vi.fn();

@@ -8,7 +8,7 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
-import { HealthEventKind } from '#generated/prisma/client';
+import { HealthEventKind } from '#generated/prisma/client.js';
 
 export class CreateHealthEventDto {
   @ApiPropertyOptional({

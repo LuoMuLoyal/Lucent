@@ -1,4 +1,4 @@
-import { LlmSafetyPolicyService } from './llm-safety-policy.service';
+import { LlmSafetyPolicyService } from './llm-safety-policy.service.js';
 
 describe('LlmSafetyPolicyService', () => {
   function createService(

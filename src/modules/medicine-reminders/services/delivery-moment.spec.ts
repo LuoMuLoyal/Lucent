@@ -2,7 +2,7 @@ import {
   DEFAULT_TIMEZONE,
   formatLocalDate,
   wallClockToScheduledFor,
-} from './delivery-moment';
+} from './delivery-moment.js';
 
 describe('delivery-moment', () => {
   describe('DEFAULT_TIMEZONE', () => {

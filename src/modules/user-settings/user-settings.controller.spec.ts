@@ -1,8 +1,12 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { UserSettingsController } from './user-settings.controller';
-import { UserSettingsService } from './services/user-settings.service';
-import type { UserSettingsDataDto } from './dto/response.dto';
-import { createDomainFailure, errAsync, okAsync } from '../../common/result';
+import { UserSettingsController } from './user-settings.controller.js';
+import { UserSettingsService } from './services/user-settings.service.js';
+import type { UserSettingsDataDto } from './dto/response.dto.js';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../common/result/index.js';
 
 describe('UserSettingsController', () => {
   let controller: UserSettingsController;

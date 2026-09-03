@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Cache } from 'cache-manager';
-import { MedicineRiskCheckService } from './risk-check.service';
-import type { PrismaService } from '../../../../prisma';
-import type { MedicinesService } from '../medicines.service';
-import type { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
-import type { RiskDetectionService } from './risk-detection.service';
-import type { RiskContextBuilderService } from './risk-context-builder.service';
+import { MedicineRiskCheckService } from './risk-check.service.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { MedicinesService } from '../medicines.service.js';
+import type { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service.js';
+import type { RiskDetectionService } from './risk-detection.service.js';
+import type { RiskContextBuilderService } from './risk-context-builder.service.js';
 import type { I18nService } from 'nestjs-i18n';
 import {
   okAsync,
@@ -14,7 +14,7 @@ import {
   DomainFailureException,
   type ResultAsync,
   type DomainFailure,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 
 function build() {
   const prisma = {

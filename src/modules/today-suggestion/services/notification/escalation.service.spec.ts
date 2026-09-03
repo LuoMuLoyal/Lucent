@@ -1,11 +1,11 @@
-import { EscalationService } from './escalation.service';
-import { okAsync } from '../../../../common/result';
+import { EscalationService } from './escalation.service.js';
+import { okAsync } from '../../../../common/result/index.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../types/suggestion.types';
-import type { SuggestionCandidate } from '../../types/candidate.types';
+} from '../../types/suggestion.types.js';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},

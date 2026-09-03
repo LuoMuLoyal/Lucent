@@ -1,5 +1,5 @@
-import type { GenerateReportSummaryDto } from '../dto/generate-report-summary.dto';
-import type { ReportSummaryDataDto } from '../dto/report-summary-response.dto';
+import type { GenerateReportSummaryDto } from '../dto/generate-report-summary.dto.js';
+import type { ReportSummaryDataDto } from '../dto/report-summary-response.dto.js';
 
 /**
  * Read-only port for AI report summaries.  Consumed by the

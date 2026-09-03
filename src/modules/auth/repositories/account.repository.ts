@@ -4,10 +4,13 @@
  * Decouples AuthAccountService from direct PrismaService usage.
  */
 import { Injectable } from '@nestjs/common';
-import { UserStatus } from '#generated/prisma/client';
-import { fromPrismaResult } from '../../../common';
-import { PrismaService } from '../../../prisma';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { UserStatus } from '#generated/prisma/client.js';
+import { fromPrismaResult } from '../../../common/index.js';
+import { PrismaService } from '../../../prisma/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 export abstract class AuthAccountRepositoryPort {
   abstract softDeleteUser(

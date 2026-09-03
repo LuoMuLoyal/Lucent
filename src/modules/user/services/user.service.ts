@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma';
-import { Prisma, User } from '#generated/prisma/client';
-import { fromPrismaResult } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { PrismaService } from '../../../prisma/index.js';
+import { Prisma, User } from '#generated/prisma/client.js';
+import { fromPrismaResult } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 @Injectable()
 export class UserService {

@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { DailyRecordKind } from '#generated/prisma/client';
-import { DailyRecordReaderPort } from '../../../daily-records';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import { DailyRecordReaderPort } from '../../../daily-records/index.js';
 import {
   HealthEventsOwnershipService,
   type HealthEventRecord,
-} from '../../../health-events';
+} from '../../../health-events/index.js';
 
-import type { SuggestionSignal } from '../../types/signal.types';
-import { TriggerType } from '../../types/suggestion.types';
-import { now, parseDateOnly } from '../../../../common';
+import type { SuggestionSignal } from '../../types/signal.types.js';
+import { TriggerType } from '../../types/suggestion.types.js';
+import { now, parseDateOnly } from '../../../../common/index.js';
 
 /**
  * Collects health-event signals for the today-suggestion engine.

@@ -2,7 +2,7 @@ import {
   extractErrorInfo,
   fetchWithRetry,
   toInputJsonValue,
-} from '../../../common';
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   err,
@@ -13,7 +13,7 @@ import {
   type DomainFailure,
   type Result,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 import {
   Injectable,
   Logger,
@@ -21,14 +21,14 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../config/env/config-keys.enum';
-import type { OAuthConfig } from '../../../config/services/oauth.config';
-import { OAUTH_PROVIDER_QQ, type OAuthProfile } from '../types/oauth.types';
-import type { OAuthProvider } from './oauth-provider.interface';
+import { ConfigKey } from '../../../config/env/config-keys.enum.js';
+import type { OAuthConfig } from '../../../config/services/oauth.config.js';
+import { OAUTH_PROVIDER_QQ, type OAuthProfile } from '../types/oauth.types.js';
+import type { OAuthProvider } from './oauth-provider.interface.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from './dependency-failure.utils';
+} from './dependency-failure.utils.js';
 
 const QQ_AUTHORIZE_URL = 'https://graph.qq.com/oauth2.0/authorize';
 const QQ_ACCESS_TOKEN_URL = 'https://graph.qq.com/oauth2.0/token';

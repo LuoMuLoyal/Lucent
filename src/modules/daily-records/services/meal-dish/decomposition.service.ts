@@ -1,18 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { type Prisma } from '#generated/prisma/client';
-import { safeParseLlmJson } from '../../../../common';
+import { type Prisma } from '#generated/prisma/client.js';
+import { safeParseLlmJson } from '../../../../common/index.js';
 
-import { buildSearchText } from '../../../../common';
-import { normalizeNullableNumber } from '../../../../common';
-import { normalizeNullableText } from '../../../../common';
-import { PrismaService } from '../../../../prisma';
-import { LlmRuntimeService } from '../../../../llm-runtime';
+import { buildSearchText } from '../../../../common/index.js';
+import { normalizeNullableNumber } from '../../../../common/index.js';
+import { normalizeNullableText } from '../../../../common/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import {
   normalizeMealEntityName,
   type MealRecognizedDish,
   type MealResolvedIngredient,
-} from '../../types/meal-analysis.types';
+} from '../../types/meal-analysis.types.js';
 
 interface ResolveRecognizedDishesResult {
   recognizedDishes: MealRecognizedDish[];

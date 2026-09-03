@@ -7,13 +7,13 @@ import {
   bearer,
   expectData,
   uniqueEmail,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 import type {
   E2eTestContext,
   E2eApp,
   TestUser,
-} from '../../helpers/e2e-helpers';
-import { UserStatus } from '#generated/prisma/client';
+} from '../../helpers/e2e-helpers.js';
+import { UserStatus } from '#generated/prisma/client.js';
 
 const NOTIFICATIONS_PATH = '/api/v1/user/notifications';
 

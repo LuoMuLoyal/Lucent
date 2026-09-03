@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { MetricsService } from './metrics.service';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import { loadYamlConfig } from '../../config/yaml/yaml-loader';
+import { MetricsService } from './metrics.service.js';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import { loadYamlConfig } from '../../config/yaml/yaml-loader.js';
 
 const yamlConfig = loadYamlConfig();
 

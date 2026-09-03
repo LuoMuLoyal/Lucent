@@ -1,1 +1,1 @@
-export { HistoricalAiSummaryService } from './services/historical-ai-summary.service';
+export { HistoricalAiSummaryService } from './services/historical-ai-summary.service.js';

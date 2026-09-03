@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
-import type { S3StorageConfig } from '../../config/services/s3-storage.config';
-import { S3StorageRuntime } from './s3.runtime';
+import type { S3StorageConfig } from '../../config/services/s3-storage.config.js';
+import { S3StorageRuntime } from './s3.runtime.js';
 
 // ── Mock AWS SDK v3 ──────────────────────────────────────────────
 

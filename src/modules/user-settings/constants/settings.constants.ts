@@ -8,7 +8,7 @@ import {
   ASSISTANT_MEMORY_ENABLED_SETTING_KEY,
   DATA_SHARING_CONSENT_SETTING_KEY,
   WATER_TARGET_COUNT_SETTING_KEY,
-} from '../../../common/constants/user-setting-keys';
+} from '../../../common/constants/user-setting-keys.js';
 
 export const USER_SETTING_KEYS = {
   aiSummariesEnabled: AI_SUMMARIES_ENABLED_SETTING_KEY,

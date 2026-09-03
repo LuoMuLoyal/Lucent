@@ -1,21 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { VectorStoreFactory } from '../vector/vector-store.factory';
+import { VectorStoreFactory } from '../vector/vector-store.factory.js';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/assistant.types';
-import { buildReadConfidence, buildReadEnvelope } from '../presenters';
+} from '../../types/assistant.types.js';
+import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
 import {
   buildVectorPage,
   buildVectorQueryHash,
   decodeVectorCursor,
-} from '../vector/vector-cursor';
-import { parseSearchPayload } from '../drugbank/entity-resolve.service';
+} from '../vector/vector-cursor.js';
+import { parseSearchPayload } from '../drugbank/entity-resolve.service.js';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   MEDICAL_QA_MAX_LIMIT,
-} from '../shared/tool-constants';
+} from '../shared/tool-constants.js';
 
 const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
 

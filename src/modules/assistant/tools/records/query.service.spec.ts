@@ -1,4 +1,4 @@
-import { AssistantToolRecordQueryService } from './query.service';
+import { AssistantToolRecordQueryService } from './query.service.js';
 
 describe('AssistantToolRecordQueryService', () => {
   it('surfaces meal estimate status and keeps payload available for assistant reasoning', async () => {

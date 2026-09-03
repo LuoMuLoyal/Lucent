@@ -5,7 +5,7 @@ import {
   normalizeEmail,
   commonCharacterCount,
   truncate,
-} from './string.utils';
+} from './string.utils.js';
 
 describe('string.utils', () => {
   describe('isBlank', () => {

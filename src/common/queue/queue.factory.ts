@@ -8,9 +8,9 @@ import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions, JobsOptions, Telemetry } from 'bullmq';
 import { BullMQOtel } from 'bullmq-otel';
-import { EnvKey } from '../../config/env/env-keys.enum';
-import { parseRedisUrl } from '../helpers/infra/redis-url';
-import { MetricsService } from '../metrics/metrics.service';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import { parseRedisUrl } from '../helpers/infra/redis-url.js';
+import { MetricsService } from '../metrics/metrics.service.js';
 
 /** Common defaults shared across all BullMQ queues. */
 export const DEFAULT_QUEUE_OPTIONS: JobsOptions = {

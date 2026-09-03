@@ -1,6 +1,6 @@
 import { AIMessageChunk, HumanMessage } from '@langchain/core/messages';
 import { describe, expect, it, vi } from 'vitest';
-import { createAgentNode } from './nodes';
+import { createAgentNode } from './nodes.js';
 
 describe('assistant agent node', () => {
   it('forwards model text chunks while returning the aggregated final response', async () => {

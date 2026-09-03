@@ -19,17 +19,20 @@ import {
 import { I18nLang } from 'nestjs-i18n';
 import type { FastifyRequest } from 'fastify';
 
-import { extractAuthRequestContext, ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { AuditLogService } from '../audit-log';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { DataExportService } from './services/export.service';
+import {
+  extractAuthRequestContext,
+  ProblemDetailsDto,
+} from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { AuditLogService } from '../audit-log/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { DataExportService } from './services/export.service.js';
 import {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
   DataExportRequestResponseDto,
-} from './dto/export-response.dto';
+} from './dto/export-response.dto.js';
 
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')

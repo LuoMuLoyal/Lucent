@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
-import { ConfigKey } from '../env/config-keys.enum';
-import { EnvKey } from '../env/env-keys.enum';
+import { ConfigKey } from '../env/config-keys.enum.js';
+import { EnvKey } from '../env/env-keys.enum.js';
 
 export interface OAuthProviderConfig {
   appId: string;

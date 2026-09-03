@@ -1,22 +1,22 @@
-import { formatDateOnly, now } from '../../../../common';
-import { generatePrefixedId } from '../../../../common';
+import { formatDateOnly, now } from '../../../../common/index.js';
+import { generatePrefixedId } from '../../../../common/index.js';
 import { Inject, Injectable } from '@nestjs/common';
-import type { IDailyRecordCandidateGenerator } from '../../types/ports';
-import { DAILY_RECORD_CANDIDATE_GENERATOR } from '../../types/ports';
+import type { IDailyRecordCandidateGenerator } from '../../types/ports.js';
+import { DAILY_RECORD_CANDIDATE_GENERATOR } from '../../types/ports.js';
 import type {
   AssistantCreateDailyRecordProposalPayload,
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
   AssistantUpdateDailyRecordProposalPayload,
   AssistantUpdateUserSettingsProposalPayload,
-} from '../../types/assistant.types';
-import type { AssistantToolName } from '../shared/tool-types';
-import { AssistantToolRecordQueryService } from '../records/query.service';
+} from '../../types/assistant.types.js';
+import type { AssistantToolName } from '../shared/tool-types.js';
+import { AssistantToolRecordQueryService } from '../records/query.service.js';
 import {
   ASSISTANT_CREATE_RECORD_KINDS,
   DEFAULT_PROPOSAL_DATE_OFFSET_DAYS,
   PROPOSAL_TTL_MINUTES,
-} from '../shared/tool-constants';
+} from '../shared/tool-constants.js';
 import {
   buildCreateRecordPreviewFields,
   buildProposalExpiryIso,
@@ -28,11 +28,11 @@ import {
   describeRecordTargetLabel,
   describeUpdateRecordSummary,
   localeText,
-} from '../presenters';
+} from '../presenters.js';
 import {
   extractRecordUpdateDraft,
   extractSettingsDraft,
-} from './proposal-draft-extractor';
+} from './proposal-draft-extractor.js';
 
 @Injectable()
 export class AssistantToolProposalService {

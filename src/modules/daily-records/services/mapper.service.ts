@@ -1,24 +1,24 @@
-import { normalizeNullableText } from '../../../common';
-import { formatDateOnly } from '../../../common';
-import { parseDateOnly } from '../../../common';
-import { toNullableInputJsonValue } from '../../../common';
+import { normalizeNullableText } from '../../../common/index.js';
+import { formatDateOnly } from '../../../common/index.js';
+import { parseDateOnly } from '../../../common/index.js';
+import { toNullableInputJsonValue } from '../../../common/index.js';
 import { Injectable } from '@nestjs/common';
-import type { DailyRecordAttachmentInputDto } from '../dto/record-attachment.dto';
+import type { DailyRecordAttachmentInputDto } from '../dto/record-attachment.dto.js';
 
-import type { UpdateDailyRecordDto } from '../dto/update-record.dto';
+import type { UpdateDailyRecordDto } from '../dto/update-record.dto.js';
 import type {
   DailyRecordShape,
   OwnedRecordSnapshot,
-} from '../types/record.types';
+} from '../types/record.types.js';
 import {
   DailyRecordAttachmentKind,
   DailyRecordKind,
   Prisma,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 import {
   buildMealPayloadFromClientInput,
   getMealListSummary,
-} from '../types/meal-analysis.types';
+} from '../types/meal-analysis.types.js';
 
 interface DailyRecordItemOptions {
   includeMealPayload?: boolean;

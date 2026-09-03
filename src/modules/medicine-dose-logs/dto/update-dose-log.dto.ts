@@ -7,7 +7,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
-import { DoseLogStatus } from '#generated/prisma/client';
+import { DoseLogStatus } from '#generated/prisma/client.js';
 
 export class UpdateDoseLogDto {
   @ApiPropertyOptional({ enum: DoseLogStatus, enumName: 'DoseLogStatus' })

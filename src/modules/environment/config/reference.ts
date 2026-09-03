@@ -1,4 +1,4 @@
-import type { EnvironmentSnapshotDto } from '../dto/snapshot.dto';
+import type { EnvironmentSnapshotDto } from '../dto/snapshot.dto.js';
 
 export interface EnvironmentSnapshotLocationInput {
   lat?: number;

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { SuggestionCandidate } from '../../types/candidate.types';
-import { SuggestionConfidence } from '../../types/suggestion.types';
-import { MAX_SECONDARY_CARDS } from '../../constants/thresholds.constants';
-import { ScoringService } from './scoring.service';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
+import { SuggestionConfidence } from '../../types/suggestion.types.js';
+import { MAX_SECONDARY_CARDS } from '../../constants/thresholds.constants.js';
+import { ScoringService } from './scoring.service.js';
 
 interface ScoredCandidate {
   candidate: SuggestionCandidate;

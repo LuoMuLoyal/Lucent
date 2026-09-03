@@ -1,25 +1,28 @@
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
-import type { DeepMocked } from '../../../../common/types/deep-mocked';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
-import { ClinicSummaryService, sharedSummaryCacheKey } from './summary.service';
-import type { ClinicSummaryPdfService } from './pdf.service';
-import type { PrismaService } from '../../../../prisma';
-import type { ProductEventsService } from '../../../product-events';
+} from '#generated/prisma/client.js';
+import {
+  ClinicSummaryService,
+  sharedSummaryCacheKey,
+} from './summary.service.js';
+import type { ClinicSummaryPdfService } from './pdf.service.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { ProductEventsService } from '../../../product-events/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
   resolveSectionKeys,
-} from './summary-view';
+} from './summary-view.js';
 import type {
   ClinicSummaryDto,
   ClinicSummaryShareDataDto,
-} from '../../dto/clinic-summary-response.dto';
+} from '../../dto/clinic-summary-response.dto.js';
 
 /**
  * TDD red-lock surface (Workstream 2, VS2-VS4 will make these real).

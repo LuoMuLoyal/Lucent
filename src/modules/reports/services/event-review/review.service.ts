@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createDomainFailure } from '../../../../common/result';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
-import { DailyRecordKind, HealthEventStatus } from '#generated/prisma/client';
+import { createDomainFailure } from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import {
+  DailyRecordKind,
+  HealthEventStatus,
+} from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnly,
@@ -9,32 +12,32 @@ import {
   now,
   nowIsoString,
   parseDateOnly,
-} from '../../../../common';
-import type { ObservedMetricSource } from '../../../../common';
+} from '../../../../common/index.js';
+import type { ObservedMetricSource } from '../../../../common/index.js';
 import {
   HealthEventsOwnershipService,
   type HealthEventCheckInRecord,
   type HealthEventCoverageRecord,
   type HealthEventRecord,
-} from '../../../health-events';
+} from '../../../health-events/index.js';
 import {
   DailyRecordReaderPort,
   type DailyRecordFact,
-} from '../../../daily-records';
-import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs';
-import { MedicineRiskCheckService } from '../../../medicines';
+} from '../../../daily-records/index.js';
+import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
+import { MedicineRiskCheckService } from '../../../medicines/index.js';
 import type {
   EventReviewDataDto,
   EventReviewEventDto,
   EventReviewListDataDto,
   EventReviewTodayCheckInDto,
-} from '../../dto/event-review-response.dto';
-import type { EventReviewListQueryDto } from '../../dto/event-review-list-query.dto';
-import { EventReviewFactsService } from './facts.service';
-import { EventReviewChangesService } from './changes.service';
-import { EventReviewActionsService } from './actions.service';
-import { EventReviewNextStepService } from './next-step.service';
-import type { ReviewRedFlagInput } from './next-step.service';
+} from '../../dto/event-review-response.dto.js';
+import type { EventReviewListQueryDto } from '../../dto/event-review-list-query.dto.js';
+import { EventReviewFactsService } from './facts.service.js';
+import { EventReviewChangesService } from './changes.service.js';
+import { EventReviewActionsService } from './actions.service.js';
+import { EventReviewNextStepService } from './next-step.service.js';
+import type { ReviewRedFlagInput } from './next-step.service.js';
 
 const DEFAULT_REVIEW_LIST_LIMIT = 20;
 

@@ -2,9 +2,9 @@ import {
   calculateExpiresIn,
   formatDateTime,
   toEmailVerified,
-} from '../../../common';
-import type { User } from '#generated/prisma/client';
-import type { TokenPair } from '../services/token.service';
+} from '../../../common/index.js';
+import type { User } from '#generated/prisma/client.js';
+import type { TokenPair } from '../services/token.service.js';
 
 /**
  * Shared auth resource returned by register, login, OAuth callback, and refresh

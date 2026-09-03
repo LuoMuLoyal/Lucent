@@ -1,6 +1,6 @@
 import { Writable } from 'node:stream';
 import { createLogger, transports as winstonTransports } from 'winston';
-import { createLoggerOptions } from './logger.config';
+import { createLoggerOptions } from './logger.config.js';
 import type { WinstonModuleOptions } from 'nest-winston';
 
 interface LeveledTransport {

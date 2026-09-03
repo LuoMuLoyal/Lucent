@@ -1,6 +1,6 @@
-import type { AssistantToolName } from '../../tools/shared/tool-types';
-import { selectRelevantToolsForMessage } from './router';
-import { WRITE_INTENT_RULES } from './tool-keyword-rules';
+import type { AssistantToolName } from '../../tools/shared/tool-types.js';
+import { selectRelevantToolsForMessage } from './router.js';
+import { WRITE_INTENT_RULES } from './tool-keyword-rules.js';
 
 /**
  * Semantic intent of the user message, used by the runtime graph to route to

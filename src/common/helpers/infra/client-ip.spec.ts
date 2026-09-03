@@ -1,5 +1,5 @@
 import type { FastifyRequest } from 'fastify';
-import { getRequestClientIp } from './client-ip';
+import { getRequestClientIp } from './client-ip.js';
 
 describe('client-ip', () => {
   const mockSocket = { remoteAddress: '192.168.1.100' };

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { HealthEventStatus } from '#generated/prisma/client';
+import { HealthEventStatus } from '#generated/prisma/client.js';
 import type {
   EventReviewEventDto,
   EventReviewSectionDto,
-} from '../../dto/event-review-response.dto';
+} from '../../dto/event-review-response.dto.js';
 
 /**
  * Reviewed static red-flag rules only (medication safety module).

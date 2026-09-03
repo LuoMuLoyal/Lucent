@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { MedicineSource, Prisma } from '#generated/prisma/client';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository';
-import { normalizeNullableText, now } from '../../../../common';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
-import { UserHealthContextOwnershipService } from '../ownership.service';
-import { UserHealthContextMapperService } from '../mapper.service';
-import type { CreateCurrentMedicineDto } from '../../dto/create-current-medicine.dto';
+import { MedicineSource, Prisma } from '#generated/prisma/client.js';
+import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
+import { normalizeNullableText, now } from '../../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
+import { UserHealthContextOwnershipService } from '../ownership.service.js';
+import { UserHealthContextMapperService } from '../mapper.service.js';
+import type { CreateCurrentMedicineDto } from '../../dto/create-current-medicine.dto.js';
 
-import type { UpdateCurrentMedicineDto } from '../../dto/update-current-medicine.dto';
+import type { UpdateCurrentMedicineDto } from '../../dto/update-current-medicine.dto.js';
 
 @Injectable()
 export class UserHealthContextMedicineWriteService {

@@ -6,9 +6,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { safeCompare } from '../../../common';
-import { EnvKey } from '../../../config/env/env-keys.enum';
-import type { UserPayload } from '../../auth';
+import { safeCompare } from '../../../common/index.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import type { UserPayload } from '../../auth/index.js';
 
 /**
  * Internal-admin guard for the product measurement funnel endpoint.

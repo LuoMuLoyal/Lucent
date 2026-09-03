@@ -1,8 +1,8 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
 
-import { AssistantConversationStatus } from '#generated/prisma/client';
-import { AssistantConversationRepository } from './conversation.repository';
-import type { PrismaService } from '../../../prisma';
+import { AssistantConversationStatus } from '#generated/prisma/client.js';
+import { AssistantConversationRepository } from './conversation.repository.js';
+import type { PrismaService } from '../../../prisma/index.js';
 
 describe('AssistantConversationRepository', () => {
   let repository: AssistantConversationRepository;

@@ -3,11 +3,17 @@ import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 
-import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
+import {
+  AuthOAuthStateService,
+  type OAuthStateEntry,
+} from './state.service.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/app-defaults.constants';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
+import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/app-defaults.constants.js';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
 
 // ── Fixtures ──────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common';
+import { nonDeleted } from '../../../common/index.js';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -7,33 +7,33 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 
-import { AuthService } from './auth.service';
-import { AuthSessionRepositoryPort } from '../repositories/session.repository';
+import { AuthService } from './auth.service.js';
+import { AuthSessionRepositoryPort } from '../repositories/session.repository.js';
 
-import { AuthAccountRepositoryPort } from '../repositories/account.repository';
-import { UserService } from '../../user';
-import { VerificationCodeService } from './identity/verification-code.service';
-import { AuthRateLimitService } from './identity/rate-limit.service';
-import { AuthTokenService } from './token.service';
-import { AuthOAuthStateService } from './oauth/state.service';
-import { AuthOAuthService } from './oauth/oauth.service';
-import { CredentialAuthService } from './identity/credential.service';
-import { AuthAccountService } from './account.service';
-import { AuthOAuthFacadeService } from './oauth/facade.service';
-import { AuthNotificationService } from './notification.service';
-import { UserStatus } from '#generated/prisma/client';
-import { WechatMobileOAuthProvider } from '../providers/wechat/wechat-mobile-oauth.provider';
-import { WechatWebOAuthProvider } from '../providers/wechat/wechat-web-oauth.provider';
-import { AppleOAuthProvider } from '../providers/apple-oauth.provider';
-import { QqOAuthProvider } from '../providers/qq-oauth.provider';
-import { NotificationsService } from '../../notifications';
+import { AuthAccountRepositoryPort } from '../repositories/account.repository.js';
+import { UserService } from '../../user/index.js';
+import { VerificationCodeService } from './identity/verification-code.service.js';
+import { AuthRateLimitService } from './identity/rate-limit.service.js';
+import { AuthTokenService } from './token.service.js';
+import { AuthOAuthStateService } from './oauth/state.service.js';
+import { AuthOAuthService } from './oauth/oauth.service.js';
+import { CredentialAuthService } from './identity/credential.service.js';
+import { AuthAccountService } from './account.service.js';
+import { AuthOAuthFacadeService } from './oauth/facade.service.js';
+import { AuthNotificationService } from './notification.service.js';
+import { UserStatus } from '#generated/prisma/client.js';
+import { WechatMobileOAuthProvider } from '../providers/wechat/wechat-mobile-oauth.provider.js';
+import { WechatWebOAuthProvider } from '../providers/wechat/wechat-web-oauth.provider.js';
+import { AppleOAuthProvider } from '../providers/apple-oauth.provider.js';
+import { QqOAuthProvider } from '../providers/qq-oauth.provider.js';
+import { NotificationsService } from '../../notifications/index.js';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
   okAsync,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
 vi.mock('argon2', () => ({
   argon2id: 2,

@@ -5,7 +5,7 @@ import {
   type BaseMessage,
 } from '@langchain/core/messages';
 import { describe, expect, it, vi } from 'vitest';
-import { streamModelResponse } from './model-stream';
+import { streamModelResponse } from './model-stream.js';
 
 async function* chunks(values: AIMessageChunk[]) {
   for (const value of values) {

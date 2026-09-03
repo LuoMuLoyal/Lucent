@@ -1,8 +1,11 @@
 import type { ConfigService } from '@nestjs/config';
-import { GoogleOAuthProvider } from './google-oauth.provider';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { GoogleOAuthProvider } from './google-oauth.provider.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
-import * as commonUtils from '../../../common';
+import * as commonUtils from '../../../common/index.js';
 
 vi.mock('../../../common', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;

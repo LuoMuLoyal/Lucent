@@ -1,9 +1,9 @@
 import { EventEmitter } from 'node:events';
 import type { ServerResponse } from 'node:http';
 import { Logger } from '@nestjs/common';
-import { ProblemCatalog } from '../problem-catalog';
-import { SseProblemDetailsMapper } from './sse-problem-details';
-import { SseConnectionRegistry } from './sse-connection-registry.service';
+import { ProblemCatalog } from '../problem-catalog.js';
+import { SseProblemDetailsMapper } from './sse-problem-details.js';
+import { SseConnectionRegistry } from './sse-connection-registry.service.js';
 
 interface MockSseResponse {
   response: ServerResponse;

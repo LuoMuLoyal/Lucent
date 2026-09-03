@@ -1,5 +1,5 @@
-import { TodayAnalysisController } from './today-analysis.controller';
-import { TodayAnalysisReadResponseDto } from './dto/analysis-response.dto';
+import { TodayAnalysisController } from './today-analysis.controller.js';
+import { TodayAnalysisReadResponseDto } from './dto/analysis-response.dto.js';
 
 describe('TodayAnalysisController OpenAPI contract', () => {
   const responsesFor = (method: keyof TodayAnalysisController) =>

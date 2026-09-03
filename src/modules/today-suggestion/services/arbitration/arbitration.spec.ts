@@ -1,12 +1,12 @@
-import { ArbitrationService } from './arbiter.service';
-import { ScoringService } from './scoring.service';
+import { ArbitrationService } from './arbiter.service.js';
+import { ScoringService } from './scoring.service.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../types/suggestion.types';
-import type { SuggestionCandidate } from '../../types/candidate.types';
-import { MAX_SECONDARY_CARDS } from '../../constants/thresholds.constants';
+} from '../../types/suggestion.types.js';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
+import { MAX_SECONDARY_CARDS } from '../../constants/thresholds.constants.js';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},

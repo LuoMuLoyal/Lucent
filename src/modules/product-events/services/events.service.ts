@@ -7,22 +7,22 @@ import {
   ProductEventResult,
   ProductEventSurface,
   UserDevicePlatform,
-} from '#generated/prisma/client';
-import { fromPrismaResult, now } from '../../../common';
+} from '#generated/prisma/client.js';
+import { fromPrismaResult, now } from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
   isDomainFailure,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { MetricsService } from '../../../common/metrics/metrics.service';
-import { PrismaService } from '../../../prisma';
-import { isKnownSuggestionRuleCode } from '../constants/rule-code-allowlist.constants';
+} from '../../../common/result/index.js';
+import { MetricsService } from '../../../common/metrics/metrics.service.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { isKnownSuggestionRuleCode } from '../constants/rule-code-allowlist.constants.js';
 import {
   MAX_PRODUCT_EVENT_FUTURE_SKEW_MS,
   CreateProductEventDto,
-} from '../dto/create-product-event.dto';
+} from '../dto/create-product-event.dto.js';
 
 /** Result of a batch write: events received vs rows actually inserted. */
 export interface ProductEventRecordResult {

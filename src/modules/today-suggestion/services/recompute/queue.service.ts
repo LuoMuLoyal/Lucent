@@ -1,10 +1,10 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
-import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
-import type { MaterializationReasonCode } from '../../types/materialization.types';
-import { SuggestionRecomputeWorkerService } from './worker.service';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import type { MaterializationReasonCode } from '../../types/materialization.types.js';
+import { SuggestionRecomputeWorkerService } from './worker.service.js';
 
 export const RECOMPUTE_QUEUE_NAME = 'suggestion-recompute';
 export const RECOMPUTE_JOB_NAME = 'recompute';

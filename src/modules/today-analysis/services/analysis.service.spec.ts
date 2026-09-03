@@ -1,16 +1,16 @@
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
-import type { LlmConfig } from '../../../config/services/llm.config';
-import type { TodayAnalysisCopyService } from './pipeline/copy.service';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
+import type { LlmConfig } from '../../../config/services/llm.config.js';
+import type { TodayAnalysisCopyService } from './pipeline/copy.service.js';
 import type {
   TodayAnalysisContext,
   TodayAnalysisContextService,
-} from './pipeline/context.service';
-import type { NotificationsService } from '../../notifications';
-import type { TodayAnalysisGeneratorService } from './pipeline/generator.service';
-import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service';
-import { TodayAnalysisService } from './analysis.service';
-import { fromPromise, okAsync } from '../../../common/result';
-import type { PushDeliveryService } from '../../notifications';
+} from './pipeline/context.service.js';
+import type { NotificationsService } from '../../notifications/index.js';
+import type { TodayAnalysisGeneratorService } from './pipeline/generator.service.js';
+import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service.js';
+import { TodayAnalysisService } from './analysis.service.js';
+import { fromPromise, okAsync } from '../../../common/result/index.js';
+import type { PushDeliveryService } from '../../notifications/index.js';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
   return vi.spyOn(

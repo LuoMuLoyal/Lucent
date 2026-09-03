@@ -1,14 +1,14 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { PasswordReauthService } from './password-reauth.service';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
-import { AuthRateLimitService } from './rate-limit.service';
+import { PasswordReauthService } from './password-reauth.service.js';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { AuthRateLimitService } from './rate-limit.service.js';
 import {
   createDomainFailure,
   errAsync,
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 
 function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,

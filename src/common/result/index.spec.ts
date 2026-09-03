@@ -1,4 +1,10 @@
-import { errAsync, ok, okAsync, type Result, type ResultAsync } from '.';
+import {
+  errAsync,
+  ok,
+  okAsync,
+  type Result,
+  type ResultAsync,
+} from './index.js';
 
 describe('common/result entry point', () => {
   it('exposes synchronous Result constructors', () => {

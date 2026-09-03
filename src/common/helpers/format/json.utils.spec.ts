@@ -2,8 +2,8 @@ import {
   extractJsonObject,
   toInputJsonValue,
   toNullableInputJsonValue,
-} from './json.utils';
-import { Prisma } from '#generated/prisma/client';
+} from './json.utils.js';
+import { Prisma } from '#generated/prisma/client.js';
 
 describe('json.utils', () => {
   describe('extractJsonObject', () => {

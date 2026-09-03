@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { ObservedMetric } from '../../../../../common';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types';
+import type { ObservedMetric } from '../../../../../common/index.js';
+import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types';
+import type { SuggestionSignal } from '../../../types/signal.types.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types';
+import type { SuggestionCandidate } from '../../../types/candidate.types.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types';
-import { BaselineDimension } from '../../../types/baseline.types';
+} from '../../../types/suggestion.types.js';
+import { BaselineDimension } from '../../../types/baseline.types.js';
 import {
   WATER_SHORTFALL_THRESHOLD,
   WATER_SHORTFALL_BASE_SCORE,
   WATER_SHORTFALL_MIN_DAYS,
-} from '../../../constants/thresholds.constants';
+} from '../../../constants/thresholds.constants.js';
 
 /**
  * Rule: water_behind_target

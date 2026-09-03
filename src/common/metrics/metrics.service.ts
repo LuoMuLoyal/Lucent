@@ -1,7 +1,7 @@
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import type { YamlConfig } from '../../config/yaml/yaml-loader';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../../config/yaml/yaml-loader.js';
 import {
   collectDefaultMetrics,
   Counter,
@@ -9,7 +9,7 @@ import {
   Histogram,
   Registry,
 } from 'prom-client';
-import { EnvKey } from '../../config/env/env-keys.enum';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
 
 /**
  * Centralised Prometheus metrics registry for the Lucent backend.

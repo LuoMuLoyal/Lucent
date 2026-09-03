@@ -8,7 +8,7 @@ import {
   DEFAULT_MEDICINE_SOURCE,
   MEDICINE_KNOWLEDGE_SOURCES,
   type MedicineKnowledgeSource,
-} from './source.dto';
+} from './source.dto.js';
 
 export class DrugbankDrugInteractionDto {
   @ApiProperty({ example: 'DB00001' })

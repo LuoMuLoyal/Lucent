@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { DataRetentionModule } from '../../modules/data-retention/data-retention.module';
-import { MedicineRemindersModule } from '../../modules/medicine-reminders/medicine-reminders.module';
-import { TodaySuggestionModule } from '../../modules/today-suggestion/today-suggestion.module';
-import { NotificationPreferencesModule } from '../../modules/notification-preferences/notification-preferences.module';
-import { CronJobsService } from './cron-jobs.service';
+import { DataRetentionModule } from '../../modules/data-retention/data-retention.module.js';
+import { MedicineRemindersModule } from '../../modules/medicine-reminders/medicine-reminders.module.js';
+import { TodaySuggestionModule } from '../../modules/today-suggestion/today-suggestion.module.js';
+import { NotificationPreferencesModule } from '../../modules/notification-preferences/notification-preferences.module.js';
+import { CronJobsService } from './cron-jobs.service.js';
 
 /**
  * Registers BullMQ Repeatable Jobs that replace `@Cron` decorators.

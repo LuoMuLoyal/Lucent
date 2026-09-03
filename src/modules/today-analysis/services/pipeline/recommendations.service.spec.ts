@@ -1,4 +1,4 @@
-import { TodayRecommendationsService } from './recommendations.service';
+import { TodayRecommendationsService } from './recommendations.service.js';
 
 describe('TodayRecommendationsService', () => {
   let service: TodayRecommendationsService;

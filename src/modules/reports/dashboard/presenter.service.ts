@@ -3,10 +3,10 @@ import { I18nService } from 'nestjs-i18n';
 import type {
   ReportFindingDto,
   ReportPatternDto,
-} from '../dto/report-dashboard-response.dto';
+} from '../dto/report-dashboard-response.dto.js';
 
-import type { ReportRange } from '../dto/report-dashboard-query.dto';
-import type { MetricStatus } from './metrics.types';
+import type { ReportRange } from '../dto/report-dashboard-query.dto.js';
+import type { MetricStatus } from './metrics.types.js';
 
 @Injectable()
 export class ReportsPresenterService {

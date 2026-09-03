@@ -3,27 +3,33 @@ import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma';
-import { now, formatDateOnly } from '../../../../common';
-import { fromPromise, createDomainFailure } from '../../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
+} from '#generated/prisma/client.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { now, formatDateOnly } from '../../../../common/index.js';
+import {
+  fromPromise,
+  createDomainFailure,
+} from '../../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import {
   SuggestionFeedback,
   SuggestionLifecycleState,
-} from '../../types/suggestion.types';
-import type { SuggestionType } from '../../types/suggestion.types';
-import type { Prisma } from '#generated/prisma/client';
+} from '../../types/suggestion.types.js';
+import type { SuggestionType } from '../../types/suggestion.types.js';
+import type { Prisma } from '#generated/prisma/client.js';
 import {
   FEEDBACK_LATER_DURATION_MS,
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,
   FEEDBACK_SUPPRESS_DURATION_MS,
   FEEDBACK_ACCEPTED_BOOST_PERCENT,
   FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
-} from '../../constants/feedback.constants';
-import { SuggestionCacheService } from '../cache/suggestion-cache.service';
-import { ProductEventsService } from '../../../product-events';
+} from '../../constants/feedback.constants.js';
+import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
+import { ProductEventsService } from '../../../product-events/index.js';
 
 /** Effect label returned to the client after recording feedback. */
 export type FeedbackEffect =

@@ -1,7 +1,7 @@
-import type { DeepMocked } from '../../../../common/types/deep-mocked';
-import { MealDishTemplateLearningService } from './template-learning.service';
-import type { PrismaService } from '../../../../prisma';
-import type { MealAnalysisPayload } from '../../types/meal-analysis.types';
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+import { MealDishTemplateLearningService } from './template-learning.service.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { MealAnalysisPayload } from '../../types/meal-analysis.types.js';
 
 describe('MealDishTemplateLearningService', () => {
   let service: MealDishTemplateLearningService;

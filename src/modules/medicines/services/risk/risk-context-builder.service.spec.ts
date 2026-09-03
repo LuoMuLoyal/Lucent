@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RiskContextBuilderService } from './risk-context-builder.service';
-import type { PrismaService } from '../../../../prisma';
-import type { MedicinesService } from '../medicines.service';
+import { RiskContextBuilderService } from './risk-context-builder.service.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { MedicinesService } from '../medicines.service.js';
 import {
   okAsync,
   errAsync,
   createDomainFailure,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 
 function userRecord(overrides: Record<string, unknown> = {}) {
   return {

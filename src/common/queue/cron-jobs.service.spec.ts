@@ -1,14 +1,14 @@
 import { Logger } from '@nestjs/common';
-import type { BullmqQueueFactory } from './queue.factory';
-import type { DataRetentionService } from '../../modules/data-retention';
-import type { LifecycleService } from '../../modules/today-suggestion';
-import type { ReminderSchedulerService } from '../../modules/medicine-reminders';
-import type { WeeklyInsightSchedulerService } from '../../modules/notification-preferences';
+import type { BullmqQueueFactory } from './queue.factory.js';
+import type { DataRetentionService } from '../../modules/data-retention/index.js';
+import type { LifecycleService } from '../../modules/today-suggestion/index.js';
+import type { ReminderSchedulerService } from '../../modules/medicine-reminders/index.js';
+import type { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/index.js';
 import {
   CronJobsService,
   CRON_QUEUE_NAME,
   REMINDER_QUEUE_NAME,
-} from './cron-jobs.service';
+} from './cron-jobs.service.js';
 
 type ProcessorFn = (job: {
   id: string | undefined;

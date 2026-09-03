@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import type { ConfigService } from '@nestjs/config';
-import { buildAdminAuthRouter } from './auth-router.service';
+import { buildAdminAuthRouter } from './auth-router.service.js';
 
 describe('buildAdminAuthRouter', () => {
   let mockAdmin: unknown;

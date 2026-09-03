@@ -9,19 +9,22 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
-import { extractAuthRequestContext, getRequestClientIp } from '../../../common';
-import { ProblemDetailsDto } from '../../../common';
-import { unwrapResult } from '../../../common/result';
-import { AuditLogService } from '../../audit-log';
-import { AuthService } from '../services/auth.service';
-import { VerificationCodeService } from '../services/identity/verification-code.service';
+import {
+  extractAuthRequestContext,
+  getRequestClientIp,
+} from '../../../common/index.js';
+import { ProblemDetailsDto } from '../../../common/index.js';
+import { unwrapResult } from '../../../common/result/index.js';
+import { AuditLogService } from '../../audit-log/index.js';
+import { AuthService } from '../services/auth.service.js';
+import { VerificationCodeService } from '../services/identity/verification-code.service.js';
 
-import { RegisterDto } from '../dto/credentials/register.dto';
-import { LoginDto } from '../dto/credentials/login.dto';
-import { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto';
-import { VerifyEmailDto } from '../dto/password/verify-email.dto';
-import { ForgotPasswordDto } from '../dto/password/forgot-password.dto';
-import { ResetPasswordDto } from '../dto/password/reset-password.dto';
+import { RegisterDto } from '../dto/credentials/register.dto.js';
+import { LoginDto } from '../dto/credentials/login.dto.js';
+import { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto.js';
+import { VerifyEmailDto } from '../dto/password/verify-email.dto.js';
+import { ForgotPasswordDto } from '../dto/password/forgot-password.dto.js';
+import { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
 
 import {
   ForgotPasswordResponseDto,
@@ -29,10 +32,10 @@ import {
   RegisterResponseDto,
   SendVerificationCodeResponseDto,
   VerifyEmailResponseDto,
-} from '../dto/shared/auth-responses.dto';
+} from '../dto/shared/auth-responses.dto.js';
 
-import { buildAuthResponse } from './auth-response.helper';
-import { Public } from '../decorators/public.decorator';
+import { buildAuthResponse } from './auth-response.helper.js';
+import { Public } from '../decorators/public.decorator.js';
 
 @ApiTags('Auth')
 @Public()

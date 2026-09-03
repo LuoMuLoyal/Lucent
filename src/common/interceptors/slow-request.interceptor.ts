@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import type { YamlConfig } from '../../config/yaml/yaml-loader';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../../config/yaml/yaml-loader.js';
 import { Observable, tap } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import type { FastifyRequest } from 'fastify';

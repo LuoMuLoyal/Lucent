@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { RiskDetectionService } from './risk-detection.service';
-import type { MedicineDetailWrapper } from '../../utils/ingredient-canonicalization';
-import type { AllergyRecord } from '../../utils/allergy-severity';
+import { RiskDetectionService } from './risk-detection.service.js';
+import type { MedicineDetailWrapper } from '../../utils/ingredient-canonicalization.js';
+import type { AllergyRecord } from '../../utils/allergy-severity.js';
 
 const svc = new RiskDetectionService();
 

@@ -1,17 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { nonDeleted } from '../../../../common';
+import { nonDeleted } from '../../../../common/index.js';
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
   now,
   parseDateOnly,
-} from '../../../../common';
-import { DoseLogStatus, type Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma';
-import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs';
-import { MISSED_DOSE_GRACE_MINUTES } from '../../constants/thresholds.constants';
-import type { SuggestionSignal } from '../../types/signal.types';
-import { TriggerType } from '../../types/suggestion.types';
+} from '../../../../common/index.js';
+import { DoseLogStatus, type Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
+import { MISSED_DOSE_GRACE_MINUTES } from '../../constants/thresholds.constants.js';
+import type { SuggestionSignal } from '../../types/signal.types.js';
+import { TriggerType } from '../../types/suggestion.types.js';
 
 type DoseSlotStatus =
   | 'taken'

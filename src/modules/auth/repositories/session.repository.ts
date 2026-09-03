@@ -4,16 +4,16 @@
  * Decouples AuthTokenService from direct PrismaService usage.
  */
 import { Injectable } from '@nestjs/common';
-import type { Prisma, UserSession, User } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult, now } from '../../../common';
+import type { Prisma, UserSession, User } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPrismaResult, now } from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
 export interface SessionContextData {
   ipAddress?: string;

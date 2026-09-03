@@ -1,9 +1,9 @@
-import { WaterShortfallRuleService } from './water-shortfall.service';
+import { WaterShortfallRuleService } from './water-shortfall.service.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types';
-import { buildContext, buildSignal } from '../test-helpers';
+} from '../../../types/suggestion.types.js';
+import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('WaterShortfallRuleService', () => {
   let rule: WaterShortfallRuleService;

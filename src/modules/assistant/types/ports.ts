@@ -1,9 +1,9 @@
-import type { MedicineReminderItemDto } from '../../medicine-reminders';
-import type { DailyRecordCandidateData } from '../../daily-records';
+import type { MedicineReminderItemDto } from '../../medicine-reminders/index.js';
+import type { DailyRecordCandidateData } from '../../daily-records/index.js';
 
-import type { DailyRecordItemDto } from '../../daily-records';
+import type { DailyRecordItemDto } from '../../daily-records/index.js';
 
-import type { GenerateDailyRecordCandidatesDto } from '../../daily-records';
+import type { GenerateDailyRecordCandidatesDto } from '../../daily-records/index.js';
 
 /**
  * Minimal read-only view of user settings needed by the assistant policy layer.

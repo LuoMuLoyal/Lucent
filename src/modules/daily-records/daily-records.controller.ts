@@ -18,33 +18,33 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../auth';
-import type { UserPayload } from '../auth';
-import { ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { CreateDailyRecordDto } from './dto/create-record.dto';
+import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { ProblemDetailsDto } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { CreateDailyRecordDto } from './dto/create-record.dto.js';
 
-import { UpdateDailyRecordDto } from './dto/update-record.dto';
+import { UpdateDailyRecordDto } from './dto/update-record.dto.js';
 
 import {
   DailyRecordListResponseDto,
   DailyRecordSummaryResponseDto,
   DailyRecordResponseDto,
-} from './dto/record-response.dto';
+} from './dto/record-response.dto.js';
 
 import {
   CreateDailyRecordImageUploadDto,
   DailyRecordImageUploadResponseDto,
-} from './dto/candidates/record-image-upload.dto';
+} from './dto/candidates/record-image-upload.dto.js';
 
-import { DailyRecordCandidateResponseDto } from './dto/candidates/record-candidate-response.dto';
+import { DailyRecordCandidateResponseDto } from './dto/candidates/record-candidate-response.dto.js';
 
-import { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate-record-candidates.dto';
+import { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate-record-candidates.dto.js';
 
-import { QueryDailyRecordDto } from './dto/query-record.dto';
-import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service';
-import { DailyRecordImageUploadService } from './services/image-upload.service';
-import { DailyRecordsService } from './services/records.service';
+import { QueryDailyRecordDto } from './dto/query-record.dto.js';
+import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
+import { DailyRecordImageUploadService } from './services/image-upload.service.js';
+import { DailyRecordsService } from './services/records.service.js';
 import { I18nLang } from 'nestjs-i18n';
 
 @ApiTags('Daily Records')

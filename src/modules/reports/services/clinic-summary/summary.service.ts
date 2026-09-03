@@ -1,6 +1,6 @@
 import { randomBytes, createHash } from 'node:crypto';
-import { createDomainFailure } from '../../../../common/result';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
+import { createDomainFailure } from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -10,11 +10,11 @@ import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma';
-import { calculateAge, now, nowIsoString } from '../../../../common';
-import { ConfigKey } from '../../../../config/env/config-keys.enum';
-import { CLINIC_SUMMARY_MAX_RANGE_DAYS } from '../../dto/clinic-summary-request.dto';
+} from '#generated/prisma/client.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { calculateAge, now, nowIsoString } from '../../../../common/index.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import { CLINIC_SUMMARY_MAX_RANGE_DAYS } from '../../dto/clinic-summary-request.dto.js';
 import type {
   ClinicSummaryCoverageDto,
   ClinicSummaryCoverageEntryDto,
@@ -27,19 +27,19 @@ import type {
   ClinicSummaryShareDataDto,
   ClinicSummarySleepEntryDto,
   ClinicSummaryWaterEntryDto,
-} from '../../dto/clinic-summary-response.dto';
+} from '../../dto/clinic-summary-response.dto.js';
 import type {
   EventReviewCoverageSummaryDto,
   EventReviewDataDto,
-} from '../../dto/event-review-response.dto';
-import { EventReviewService } from '../event-review/review.service';
-import { ClinicSummaryPdfService } from './pdf.service';
-import { ProductEventsService } from '../../../product-events';
-import type { DailyRecordFact } from '../../../daily-records';
+} from '../../dto/event-review-response.dto.js';
+import { EventReviewService } from '../event-review/review.service.js';
+import { ClinicSummaryPdfService } from './pdf.service.js';
+import { ProductEventsService } from '../../../product-events/index.js';
+import type { DailyRecordFact } from '../../../daily-records/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
-} from './summary-view';
+} from './summary-view.js';
 
 const SHARE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

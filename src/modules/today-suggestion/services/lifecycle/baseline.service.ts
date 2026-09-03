@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma';
-import { parseDateOnly } from '../../../../common';
+import { Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { parseDateOnly } from '../../../../common/index.js';
 import {
   BaselineDimension,
   BASELINE_MIN_DAYS,
-} from '../../types/baseline.types';
-import type { BaselineRecord } from '../../types/baseline.types';
-import type { SuggestionSignal } from '../../types/signal.types';
+} from '../../types/baseline.types.js';
+import type { BaselineRecord } from '../../types/baseline.types.js';
+import type { SuggestionSignal } from '../../types/signal.types.js';
 
 /**
  * Tracks cold-start baselines per user per dimension.

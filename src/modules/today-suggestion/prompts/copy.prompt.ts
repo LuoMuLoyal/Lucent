@@ -5,7 +5,7 @@
 import type {
   CopyGenerationContext,
   CopyPromptCopy,
-} from '../types/copy-generation.types';
+} from '../types/copy-generation.types.js';
 
 export interface CopyGenerationOptions {
   tone?: 'gentle' | 'direct' | 'professional';

@@ -18,17 +18,21 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { clampPage, clampPageSize, ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { NotificationsService } from './services/notifications.service';
+import {
+  clampPage,
+  clampPageSize,
+  ProblemDetailsDto,
+} from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { NotificationsService } from './services/notifications.service.js';
 import {
   NotificationListResponseDto,
   NotificationDetailResponseDto,
   UnreadCountResponseDto,
   CreateNotificationDto,
-} from './dto/response.dto';
+} from './dto/response.dto.js';
 
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')

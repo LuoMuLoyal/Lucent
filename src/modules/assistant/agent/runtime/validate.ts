@@ -1,6 +1,6 @@
-import type { AssistantToolExecutionResult } from '../../types/assistant.types';
-import type { AssistantValidationFlags } from './state';
-import { DEFAULT_VALIDATION_FLAGS } from './state';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import type { AssistantValidationFlags } from './state.js';
+import { DEFAULT_VALIDATION_FLAGS } from './state.js';
 
 /**
  * Validates read-tool results against the server-owned envelope.

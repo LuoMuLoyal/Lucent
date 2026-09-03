@@ -1,5 +1,5 @@
-import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto';
-import { ClinicSummaryPdfService } from './pdf.service';
+import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
+import { ClinicSummaryPdfService } from './pdf.service.js';
 
 describe('ClinicSummaryPdfService', () => {
   let service: ClinicSummaryPdfService;

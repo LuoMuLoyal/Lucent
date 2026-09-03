@@ -1,13 +1,16 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
 
-import { DataExportService } from './export.service';
-import type { PasswordReauthService } from '../../auth';
-import type { PrismaService } from '../../../prisma';
-import type { DataExportStorageService } from './storage.service';
-import type { DataExportQueueService } from './queue.service';
-import type { DataExportProcessorService } from './processor.service';
-import { errAsync, okAsync } from '../../../common/result';
-import type { ResultAsync, DomainFailure } from '../../../common/result';
+import { DataExportService } from './export.service.js';
+import type { PasswordReauthService } from '../../auth/index.js';
+import type { PrismaService } from '../../../prisma/index.js';
+import type { DataExportStorageService } from './storage.service.js';
+import type { DataExportQueueService } from './queue.service.js';
+import type { DataExportProcessorService } from './processor.service.js';
+import { errAsync, okAsync } from '../../../common/result/index.js';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
 
 /** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
 async function collectResult<T>(

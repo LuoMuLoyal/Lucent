@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma } from '#generated/prisma/client';
-import { fromPrismaResult, nonDeleted, now } from '../../../common';
+import { Prisma } from '#generated/prisma/client.js';
+import { fromPrismaResult, nonDeleted, now } from '../../../common/index.js';
 import {
   createDomainFailure,
   err,
@@ -12,16 +12,16 @@ import {
   type DomainFailure,
   type Result,
   type ResultAsync,
-} from '../../../common/result';
-import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
-import type { CreateMedicineReminderDto } from '../dto/create.dto';
+} from '../../../common/result/index.js';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository.js';
+import type { CreateMedicineReminderDto } from '../dto/create.dto.js';
 
-import type { UpdateMedicineReminderDto } from '../dto/update.dto';
-import type { UpsertMedicineReminderGroupDto } from '../dto/upsert-group.dto';
-import type { MedicineReminderItemDto } from '../dto/response.dto';
-import type { ReminderDeliveryItemDto } from '../dto/reminder-delivery-response.dto';
-import { MedicineRemindersOwnershipService } from './ownership.service';
-import { MedicineRemindersMapperService } from './mapper.service';
+import type { UpdateMedicineReminderDto } from '../dto/update.dto.js';
+import type { UpsertMedicineReminderGroupDto } from '../dto/upsert-group.dto.js';
+import type { MedicineReminderItemDto } from '../dto/response.dto.js';
+import type { ReminderDeliveryItemDto } from '../dto/reminder-delivery-response.dto.js';
+import { MedicineRemindersOwnershipService } from './ownership.service.js';
+import { MedicineRemindersMapperService } from './mapper.service.js';
 import {
   REMINDER_CHANGED,
   type ReminderChangedPayload,

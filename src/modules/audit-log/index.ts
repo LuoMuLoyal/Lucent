@@ -1,1 +1,1 @@
-export { AuditLogService } from './services/audit-log.service';
+export { AuditLogService } from './services/audit-log.service.js';

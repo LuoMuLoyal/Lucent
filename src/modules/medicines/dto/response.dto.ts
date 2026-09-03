@@ -1,5 +1,5 @@
-import { MedicineDetailDataDto } from './detail.dto';
-import { MedicineSearchDataDto } from './search.dto';
+import { MedicineDetailDataDto } from './detail.dto.js';
+import { MedicineSearchDataDto } from './search.dto.js';
 
 export class MedicineSearchResponseDto extends MedicineSearchDataDto {}
 

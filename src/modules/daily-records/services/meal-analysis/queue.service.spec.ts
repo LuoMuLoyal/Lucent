@@ -1,6 +1,6 @@
-import { MealAnalysisQueueService } from './queue.service';
-import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import type { MealAnalysisWorkerService } from './worker.service';
+import { MealAnalysisQueueService } from './queue.service.js';
+import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import type { MealAnalysisWorkerService } from './worker.service.js';
 
 describe('MealAnalysisQueueService', () => {
   let service: MealAnalysisQueueService;

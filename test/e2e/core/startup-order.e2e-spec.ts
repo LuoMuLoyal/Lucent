@@ -5,22 +5,22 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import { MetricsService } from '../../../src/common/metrics/metrics.service';
-import { BullmqQueueFactory } from '../../../src/common/queue/queue.factory';
+import { MetricsService } from '../../../src/common/metrics/metrics.service.js';
+import { BullmqQueueFactory } from '../../../src/common/queue/queue.factory.js';
 import {
   CRON_QUEUE_NAME,
   CronJobsService,
   REMINDER_QUEUE_NAME,
-} from '../../../src/common/queue/cron-jobs.service';
-import { RedisService } from '../../../src/common/redis/redis.service';
-import { SseConnectionRegistry } from '../../../src/common/api/sse/sse-connection-registry.service';
-import { SseProblemDetailsMapper } from '../../../src/common/api/sse/sse-problem-details';
-import { ProblemCatalog } from '../../../src/common/api/problem-catalog';
-import { DataRetentionService } from '../../../src/modules/data-retention';
-import { LifecycleService } from '../../../src/modules/today-suggestion';
-import { ReminderSchedulerService } from '../../../src/modules/medicine-reminders';
-import { WeeklyInsightSchedulerService } from '../../../src/modules/notification-preferences';
-import { EnvKey } from '../../../src/config/env/env-keys.enum';
+} from '../../../src/common/queue/cron-jobs.service.js';
+import { RedisService } from '../../../src/common/redis/redis.service.js';
+import { SseConnectionRegistry } from '../../../src/common/api/sse/sse-connection-registry.service.js';
+import { SseProblemDetailsMapper } from '../../../src/common/api/sse/sse-problem-details.js';
+import { ProblemCatalog } from '../../../src/common/api/problem-catalog.js';
+import { DataRetentionService } from '../../../src/modules/data-retention/index.js';
+import { LifecycleService } from '../../../src/modules/today-suggestion/index.js';
+import { ReminderSchedulerService } from '../../../src/modules/medicine-reminders/index.js';
+import { WeeklyInsightSchedulerService } from '../../../src/modules/notification-preferences/index.js';
+import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
 
 /**
  * Startup/shutdown ordering integration test (NestJS 12 lifecycle audit).

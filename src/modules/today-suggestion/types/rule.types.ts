@@ -1,7 +1,7 @@
-import type { SuggestionType, TriggerType } from './suggestion.types';
-import type { SuggestionSignal } from './signal.types';
-import type { SuggestionCandidate } from './candidate.types';
-import type { BaselineDimension } from './baseline.types';
+import type { SuggestionType, TriggerType } from './suggestion.types.js';
+import type { SuggestionSignal } from './signal.types.js';
+import type { SuggestionCandidate } from './candidate.types.js';
+import type { BaselineDimension } from './baseline.types.js';
 
 /** Context passed to each rule during matching. */
 export interface RuleContext {

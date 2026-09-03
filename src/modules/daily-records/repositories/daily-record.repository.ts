@@ -7,15 +7,18 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { Prisma, type DailyRecordKind } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult, nonDeleted } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { Prisma, type DailyRecordKind } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPrismaResult, nonDeleted } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 import {
   dailyRecordWithAttachments,
   type DailyRecordShape,
   type OwnedRecordSnapshot,
-} from '../types/record.types';
+} from '../types/record.types.js';
 
 /** Query filters for listing daily records. */
 export interface DailyRecordListFilter {

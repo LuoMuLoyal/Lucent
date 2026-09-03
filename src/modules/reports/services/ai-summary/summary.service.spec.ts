@@ -1,17 +1,17 @@
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
-import type { LlmConfig } from '../../../../config/services/llm.config';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import type { LlmConfig } from '../../../../config/services/llm.config.js';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../../dto/report-dashboard-query.dto';
-import type { ReportsAiSummaryContextService } from './context.service';
-import type { ReportsLlmSummaryCopyService } from './copy.service';
-import type { ReportsAiSummaryGeneratorService } from './generator.service';
-import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service';
-import { ReportsAiSummaryService } from './summary.service';
-import { okAsync } from '../../../../common/result';
-import type { ReportsComputationService } from '../../dashboard/computation.service';
-import type { ReportsContextService } from '../../dashboard/context.service';
+} from '../../dto/report-dashboard-query.dto.js';
+import type { ReportsAiSummaryContextService } from './context.service.js';
+import type { ReportsLlmSummaryCopyService } from './copy.service.js';
+import type { ReportsAiSummaryGeneratorService } from './generator.service.js';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import { ReportsAiSummaryService } from './summary.service.js';
+import { okAsync } from '../../../../common/result/index.js';
+import type { ReportsComputationService } from '../../dashboard/computation.service.js';
+import type { ReportsContextService } from '../../dashboard/context.service.js';
 
 function modelGenerateSpy(service: ReportsAiSummaryService) {
   return vi.spyOn(

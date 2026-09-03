@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { SuggestionRule } from '../../types/rule.types';
+import type { SuggestionRule } from '../../types/rule.types.js';
 
 /**
  * Registry for all suggestion rules.

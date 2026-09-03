@@ -1,5 +1,5 @@
-import { PushDeliveryService } from './push-delivery.service';
-import type { PushMessage, PushProvider } from './push-provider.port';
+import { PushDeliveryService } from './push-delivery.service.js';
+import type { PushMessage, PushProvider } from './push-provider.port.js';
 
 function buildProvider(
   overrides: Partial<PushProvider> = {},

@@ -1,5 +1,5 @@
-import type { TriggerType } from './suggestion.types';
-import type { ObservedMetric } from '../../../common';
+import type { TriggerType } from './suggestion.types.js';
+import type { ObservedMetric } from '../../../common/index.js';
 
 /** Signal source categories. */
 export type SignalSource =

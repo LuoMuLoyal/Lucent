@@ -1,13 +1,13 @@
 // Prevent @prisma/adapter-pg from failing at module load in test env
 vi.mock('@prisma/adapter-pg', () => ({ PrismaPg: vi.fn() }));
 
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
-import { AssistantToolLeafletReadService } from './read.service';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
+import { AssistantToolLeafletReadService } from './read.service.js';
 import {
   buildVectorQueryHash,
   decodeVectorCursor,
   encodeVectorCursor,
-} from '../vector/vector-cursor';
+} from '../vector/vector-cursor.js';
 
 // Mock PGVectorStore
 const mockSimilaritySearchWithScore = vi.fn();

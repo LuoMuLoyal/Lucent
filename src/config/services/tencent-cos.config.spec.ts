@@ -1,9 +1,9 @@
-import { EnvKey } from '../env/env-keys.enum';
+import { EnvKey } from '../env/env-keys.enum.js';
 import {
   DEFAULT_COS_MAX_UPLOAD_BYTES,
   DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-} from '../app-defaults.constants';
-import { tencentCosConfig } from './tencent-cos.config';
+} from '../app-defaults.constants.js';
+import { tencentCosConfig } from './tencent-cos.config.js';
 
 describe('tencentCosConfig', () => {
   const saved: Record<string, string | undefined> = {};

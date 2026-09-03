@@ -1,9 +1,9 @@
-import type { MailQueueService } from './mail-queue.service';
-import { MailService } from './mail.service';
+import type { MailQueueService } from './mail-queue.service.js';
+import { MailService } from './mail.service.js';
 import {
   VERIFICATION_CODE_SUBJECT,
   renderVerificationCodeEmail,
-} from './templates';
+} from './templates.js';
 
 describe('MailService', () => {
   const TEST_VERIFICATION_CODE = '123456';

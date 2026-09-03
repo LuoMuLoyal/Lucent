@@ -1,15 +1,18 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 
-import { MedicinesService } from './medicines.service';
-import { MedicinesCacheService } from '../cache/store.service';
-import { CnMedicinesService } from '../adapters/cn.service';
-import { DrugbankMedicinesService } from '../adapters/drugbank.service';
-import { PrismaService } from '../../../prisma';
-import { LlmRuntimeService } from '../../../llm-runtime';
-import { DomainFailureException, unwrapResult } from '../../../common/result';
+import { MedicinesService } from './medicines.service.js';
+import { MedicinesCacheService } from '../cache/store.service.js';
+import { CnMedicinesService } from '../adapters/cn.service.js';
+import { DrugbankMedicinesService } from '../adapters/drugbank.service.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { LlmRuntimeService } from '../../../llm-runtime/index.js';
+import {
+  DomainFailureException,
+  unwrapResult,
+} from '../../../common/result/index.js';
 
 describe('MedicinesService', () => {
   let service: MedicinesService;

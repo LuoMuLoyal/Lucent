@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
-import { ConfigKey } from '../env/config-keys.enum';
-import { EnvKey } from '../env/env-keys.enum';
-import { loadYamlConfig } from '../yaml/yaml-loader';
+import { ConfigKey } from '../env/config-keys.enum.js';
+import { EnvKey } from '../env/env-keys.enum.js';
+import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 /** Default JPush REST API base URL (mirrors config/default.yaml). */
 export const DEFAULT_JPUSH_API_BASE_URL = 'https://api.jpush.cn';

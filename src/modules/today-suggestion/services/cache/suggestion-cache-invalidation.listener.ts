@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { SuggestionCacheService } from './suggestion-cache.service';
-import { formatDateOnlyInTimezone, now } from '../../../../common';
-import { PrismaService } from '../../../../prisma';
+import { SuggestionCacheService } from './suggestion-cache.service.js';
+import { formatDateOnlyInTimezone, now } from '../../../../common/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import {
   DAILY_RECORD_CHANGED,
   DOSE_LOG_CHANGED,

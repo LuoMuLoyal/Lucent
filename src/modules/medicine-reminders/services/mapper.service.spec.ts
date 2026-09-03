@@ -1,8 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
-import { Prisma } from '#generated/prisma/client';
+import { Prisma } from '#generated/prisma/client.js';
 
-import { MedicineRemindersMapperService } from './mapper.service';
+import { MedicineRemindersMapperService } from './mapper.service.js';
 
 const now = new Date('2026-06-08T12:00:00.000Z');
 

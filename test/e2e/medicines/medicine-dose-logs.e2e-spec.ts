@@ -8,9 +8,9 @@ import {
   expectData,
   expectDefined,
   uniqueEmail,
-} from '../../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
-import { MedicineSource, UserStatus } from '#generated/prisma/client';
+} from '../../helpers/e2e-helpers.js';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
+import { MedicineSource, UserStatus } from '#generated/prisma/client.js';
 
 const BASE_PATH = '/api/v1/user/medicine-dose-logs';
 const AUTH_HEADER = 'Authorization';

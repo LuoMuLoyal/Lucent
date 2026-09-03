@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { now } from '../helpers/format/date-time.utils';
+import { now } from '../helpers/format/date-time.utils.js';
 
 /**
  * Builds a date-partitioned object key.

@@ -4,8 +4,8 @@ import {
   DEFAULT_QUEUE_OPTIONS,
   DEFAULT_WORKER_RETENTION,
   QUEUE_METRICS_POLL_INTERVAL_MS,
-} from './queue.factory';
-import type { MetricsService } from '../metrics/metrics.service';
+} from './queue.factory.js';
+import type { MetricsService } from '../metrics/metrics.service.js';
 describe('BullmqQueueFactory', () => {
   let configService: vi.Mocked<ConfigService>;
   let metricsService: vi.Mocked<MetricsService>;

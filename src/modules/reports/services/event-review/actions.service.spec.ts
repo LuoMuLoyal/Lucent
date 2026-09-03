@@ -1,10 +1,10 @@
-import { DoseLogStatus, HealthEventOutcome } from '#generated/prisma/client';
+import { DoseLogStatus, HealthEventOutcome } from '#generated/prisma/client.js';
 import {
   EventReviewActionsService,
   type ReviewActionCheckIn,
   type ReviewActionDoseLog,
   type ReviewActionFacts,
-} from './actions.service';
+} from './actions.service.js';
 
 const DAY_05 = new Date('2026-08-05T00:00:00.000Z');
 const DAY_06 = new Date('2026-08-06T00:00:00.000Z');

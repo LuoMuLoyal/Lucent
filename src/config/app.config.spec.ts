@@ -1,5 +1,5 @@
-import { EnvKey } from './env/env-keys.enum';
-import { appConfig } from './app.config';
+import { EnvKey } from './env/env-keys.enum.js';
+import { appConfig } from './app.config.js';
 
 describe('appConfig', () => {
   const saved: Record<string, string | undefined> = {};

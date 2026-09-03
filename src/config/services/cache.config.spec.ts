@@ -2,7 +2,7 @@ import type { ConfigService } from '@nestjs/config';
 import { KeyvAdapter } from 'cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import Keyv from 'keyv';
-import { CacheConfigService } from './cache.config';
+import { CacheConfigService } from './cache.config.js';
 
 type RedisStoreMock = Awaited<ReturnType<typeof redisStore>>;
 

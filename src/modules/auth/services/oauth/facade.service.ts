@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { User, UserStatus } from '#generated/prisma/client';
-import { UserService } from '../../../user';
+import { User, UserStatus } from '#generated/prisma/client.js';
+import { UserService } from '../../../user/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -10,7 +10,7 @@ import {
   mapUnknownToInternalFailure,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 import {
   AppleOAuthCallbackDto,
   GoogleOAuthAuthorizeDto,
@@ -22,12 +22,12 @@ import {
   QqOAuthCallbackDto,
   WeiboOAuthAuthorizeDto,
   WeiboOAuthCallbackDto,
-} from '../../dto/shared/oauth.dto';
-import { GoogleOAuthProvider } from '../../providers/google-oauth.provider';
-import { QqOAuthProvider } from '../../providers/qq-oauth.provider';
-import { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider';
-import { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider';
-import { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider';
+} from '../../dto/shared/oauth.dto.js';
+import { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
+import { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
+import { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider.js';
+import { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider.js';
+import { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider.js';
 import {
   OAUTH_PROVIDER_GOOGLE,
   OAUTH_PROVIDER_QQ,
@@ -35,13 +35,16 @@ import {
   OAUTH_PROVIDER_WEIBO,
   type OAuthAuthorizeResult,
   type OAuthProfile,
-} from '../../types/oauth.types';
-import { AuthNotificationService } from '../notification.service';
-import { AuthOAuthService } from './oauth.service';
-import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
-import { AuthTokenService, type TokenPair } from '../token.service';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
-import type { AuthRequestContext } from '../../types/auth-request';
+} from '../../types/oauth.types.js';
+import { AuthNotificationService } from '../notification.service.js';
+import { AuthOAuthService } from './oauth.service.js';
+import {
+  AuthOAuthStateService,
+  type OAuthStateEntry,
+} from './state.service.js';
+import { AuthTokenService, type TokenPair } from '../token.service.js';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import type { AuthRequestContext } from '../../types/auth-request.js';
 
 @Injectable()
 export class AuthOAuthFacadeService {

@@ -27,23 +27,23 @@ import {
   writeSseEvent,
   SseConnectionRegistry,
   SseProblemDetailsMapper,
-} from '../../common';
-import { extractErrorInfo } from '../../common';
-import { createDomainFailure } from '../../common/result';
-import { DomainFailureException } from '../../common/result/domain-failure.exception';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { TodayAnalysisQueueService } from './services/analysis-queue.service';
+} from '../../common/index.js';
+import { extractErrorInfo } from '../../common/index.js';
+import { createDomainFailure } from '../../common/result/index.js';
+import { DomainFailureException } from '../../common/result/domain-failure.exception.js';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
 import {
   TodayAnalysisMaterializationStore,
   type TodayAnalysisPendingResult,
-} from './services/materialization/store.service';
-import type { TodayAnalysisMaterializationView } from './types/materialization.types';
+} from './services/materialization/store.service.js';
+import type { TodayAnalysisMaterializationView } from './types/materialization.types.js';
 
-import { TodayAnalysisService } from './services/analysis.service';
+import { TodayAnalysisService } from './services/analysis.service.js';
 
-import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
-import { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto';
+import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
+import { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto.js';
 
 import {
   TodayAnalysisAsyncJobDataDto,
@@ -54,14 +54,14 @@ import {
   TodayAnalysisRefreshReadyDataDto,
   TodayAnalysisDataDto,
   TodayAnalysisReadDataDto,
-} from './dto/analysis-response.dto';
+} from './dto/analysis-response.dto.js';
 import {
   TodayAnalysisStreamErrorDto,
   TodayAnalysisStreamResultDto,
   TodayAnalysisStreamSummaryDto,
-} from './dto/analysis-stream-response.dto';
+} from './dto/analysis-stream-response.dto.js';
 
-import { TodayRecommendationResponseDto } from './dto/recommendation-response.dto';
+import { TodayRecommendationResponseDto } from './dto/recommendation-response.dto.js';
 
 @ApiTags('Today Analysis')
 @ApiBearerAuth('access-token')

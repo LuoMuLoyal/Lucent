@@ -11,17 +11,17 @@ import {
   bearer,
   expectData,
   uniqueEmail,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 import type {
   E2eTestContext,
   E2eApp,
   TestUser,
-} from '../../helpers/e2e-helpers';
-import { UserStatus } from '#generated/prisma/client';
-import { WechatWebOAuthProvider } from '../../../src/modules/auth';
-import { WechatMobileOAuthProvider } from '../../../src/modules/auth';
-import type { OAuthProfile } from '../../../src/modules/auth';
-import { okAsync } from '../../../src/common/result';
+} from '../../helpers/e2e-helpers.js';
+import { UserStatus } from '#generated/prisma/client.js';
+import { WechatWebOAuthProvider } from '../../../src/modules/auth/index.js';
+import { WechatMobileOAuthProvider } from '../../../src/modules/auth/index.js';
+import type { OAuthProfile } from '../../../src/modules/auth/index.js';
+import { okAsync } from '../../../src/common/result/index.js';
 
 const ACCOUNT_PATH = '/api/v1/account';
 const SET_PASSWORD_PATH = `${ACCOUNT_PATH}/set-password`;

@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing';
-import { LlmRuntimeService } from '../../../../llm-runtime';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service.js';
 
 interface GeneratorInternals {
   modelRole: string;

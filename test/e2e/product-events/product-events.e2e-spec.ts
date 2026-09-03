@@ -4,7 +4,7 @@ import {
   ProductEventResult,
   ProductEventSurface,
   type Prisma,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 
 import {
   createTestApp,
@@ -13,12 +13,12 @@ import {
   createAccessToken,
   bearer,
   expectData,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 import type {
   E2eTestContext,
   E2eApp,
   TestUser,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 
 const PRODUCT_EVENTS_PATH = '/api/v1/user/product-events';
 const FUNNEL_PATH = `${PRODUCT_EVENTS_PATH}/funnel`;

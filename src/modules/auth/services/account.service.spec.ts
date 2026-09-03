@@ -3,12 +3,12 @@ import {
   errAsync,
   okAsync,
   type ResultAsync,
-} from '../../../common/result';
-import type { UserService } from '../../user';
-import type { VerificationCodeService } from './identity/verification-code.service';
-import type { PasswordReauthService } from './identity/password-reauth.service';
-import type { AuthAccountRepositoryPort } from '../repositories/account.repository';
-import { AuthAccountService } from './account.service';
+} from '../../../common/result/index.js';
+import type { UserService } from '../../user/index.js';
+import type { VerificationCodeService } from './identity/verification-code.service.js';
+import type { PasswordReauthService } from './identity/password-reauth.service.js';
+import type { AuthAccountRepositoryPort } from '../repositories/account.repository.js';
+import { AuthAccountService } from './account.service.js';
 
 /**
  * Folds a ResultAsync into a plain outcome so specs can assert both success

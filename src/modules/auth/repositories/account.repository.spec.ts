@@ -1,9 +1,12 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
-import { Prisma } from '#generated/prisma/client';
-import { UserStatus } from '#generated/prisma/client';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { AuthAccountRepository } from './account.repository';
-import type { PrismaService } from '../../../prisma';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
+import { Prisma } from '#generated/prisma/client.js';
+import { UserStatus } from '#generated/prisma/client.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { AuthAccountRepository } from './account.repository.js';
+import type { PrismaService } from '../../../prisma/index.js';
 
 async function inspectResult<T>(
   result: ResultAsync<T, DomainFailure>,

@@ -1,9 +1,12 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
-import { Prisma } from '#generated/prisma/client';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
+import { Prisma } from '#generated/prisma/client.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
-import { MedicineReminderRepository } from './reminder.repository';
-import type { PrismaService } from '../../../prisma';
+import { MedicineReminderRepository } from './reminder.repository.js';
+import type { PrismaService } from '../../../prisma/index.js';
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
   const error = Object.create(

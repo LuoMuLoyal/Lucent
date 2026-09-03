@@ -1,30 +1,30 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { LlmCommonModule } from '../../common';
-import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
-import { PrismaModule } from '../../prisma';
-import { StorageModule } from '../../common';
-import { HealthEventsModule } from '../health-events/health-events.module';
+import { LlmCommonModule } from '../../common/index.js';
+import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
+import { PrismaModule } from '../../prisma/index.js';
+import { StorageModule } from '../../common/index.js';
+import { HealthEventsModule } from '../health-events/health-events.module.js';
 import {
   DailyRecordReaderPort,
   DailyRecordRepository,
   DailyRecordRepositoryPort,
-} from './repositories/daily-record.repository';
-import { DailyRecordCandidatesCopyService } from './services/candidates/copy.service';
-import { DailyRecordCandidatesGeneratorService } from './services/candidates/generator.service';
-import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service';
-import { DailyRecordsOwnershipService } from './services/ownership.service';
-import { DailyRecordImageUploadService } from './services/image-upload.service';
-import { DailyRecordsController } from './daily-records.controller';
-import { DailyRecordsMapperService } from './services/mapper.service';
-import { DailyRecordsService } from './services/records.service';
-import { MealAnalysisQueueService } from './services/meal-analysis/queue.service';
-import { MealAnalysisMatcherService } from './services/meal-analysis/matcher.service';
-import { MealAnalysisVisionService } from './services/meal-analysis/vision.service';
-import { MealAnalysisWorkerService } from './services/meal-analysis/worker.service';
-import { MealDishDecompositionService } from './services/meal-dish/decomposition.service';
-import { MealIngredientGroundingService } from './services/meal-ingredient/grounding.service';
-import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
+} from './repositories/daily-record.repository.js';
+import { DailyRecordCandidatesCopyService } from './services/candidates/copy.service.js';
+import { DailyRecordCandidatesGeneratorService } from './services/candidates/generator.service.js';
+import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
+import { DailyRecordsOwnershipService } from './services/ownership.service.js';
+import { DailyRecordImageUploadService } from './services/image-upload.service.js';
+import { DailyRecordsController } from './daily-records.controller.js';
+import { DailyRecordsMapperService } from './services/mapper.service.js';
+import { DailyRecordsService } from './services/records.service.js';
+import { MealAnalysisQueueService } from './services/meal-analysis/queue.service.js';
+import { MealAnalysisMatcherService } from './services/meal-analysis/matcher.service.js';
+import { MealAnalysisVisionService } from './services/meal-analysis/vision.service.js';
+import { MealAnalysisWorkerService } from './services/meal-analysis/worker.service.js';
+import { MealDishDecompositionService } from './services/meal-dish/decomposition.service.js';
+import { MealIngredientGroundingService } from './services/meal-ingredient/grounding.service.js';
+import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service.js';
 
 @Module({
   imports: [

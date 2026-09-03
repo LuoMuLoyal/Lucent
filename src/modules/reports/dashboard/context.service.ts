@@ -1,32 +1,38 @@
 import { Injectable } from '@nestjs/common';
-import { createDomainFailure } from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
-import { summarizeWaterMetrics, toObservedWaterMetric } from '../../../common';
+import { createDomainFailure } from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
+import {
+  summarizeWaterMetrics,
+  toObservedWaterMetric,
+} from '../../../common/index.js';
 import {
   formatDateOnly,
   parseDateOnly,
   now,
   nowIsoString,
-} from '../../../common';
-import type { ObservedMetric, WaterMetricInput } from '../../../common';
-import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
-import { DailyRecordReaderPort } from '../../daily-records';
-import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs';
-import { IUserSettingsPort } from '../../user-settings';
+} from '../../../common/index.js';
+import type {
+  ObservedMetric,
+  WaterMetricInput,
+} from '../../../common/index.js';
+import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
+import { DailyRecordReaderPort } from '../../daily-records/index.js';
+import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs/index.js';
+import { IUserSettingsPort } from '../../user-settings/index.js';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
-} from '../../daily-records';
+} from '../../daily-records/index.js';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardQueryDto,
-} from '../dto/report-dashboard-query.dto';
+} from '../dto/report-dashboard-query.dto.js';
 import type {
   ObservedMedicationMetric,
   ReportDashboardFacts,
-} from './metrics.types';
+} from './metrics.types.js';
 
 @Injectable()
 export class ReportsContextService {

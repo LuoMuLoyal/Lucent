@@ -1,4 +1,4 @@
-import { buildAccessLogEntry } from './access-log.utils';
+import { buildAccessLogEntry } from './access-log.utils.js';
 
 describe('buildAccessLogEntry', () => {
   it('prefers the route pattern over the raw URL', () => {

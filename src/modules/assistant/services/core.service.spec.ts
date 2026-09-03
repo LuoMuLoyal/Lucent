@@ -1,18 +1,18 @@
-import { okAsync, fromPromise } from '../../../common/result';
-import type { AssistantRuntimeService } from '../agent/runtime.service';
-import type { UserSettingsService } from '../../user-settings';
-import type { DailyRecordsService } from '../../daily-records';
-import type { AssistantPolicyService } from './policy.service';
-import type { AssistantToolService } from '../tools/tool.service';
-import type { AssistantConversationService } from './conversation.service';
-import type { AssistantMemoryService } from './memory.service';
+import { okAsync, fromPromise } from '../../../common/result/index.js';
+import type { AssistantRuntimeService } from '../agent/runtime.service.js';
+import type { UserSettingsService } from '../../user-settings/index.js';
+import type { DailyRecordsService } from '../../daily-records/index.js';
+import type { AssistantPolicyService } from './policy.service.js';
+import type { AssistantToolService } from '../tools/tool.service.js';
+import type { AssistantConversationService } from './conversation.service.js';
+import type { AssistantMemoryService } from './memory.service.js';
 import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
   AssistantConversationSnapshot,
   AssistantProposedAction,
-} from '../types/assistant.types';
-import { AssistantService } from './core.service';
+} from '../types/assistant.types.js';
+import { AssistantService } from './core.service.js';
 
 const mockFoundation: AssistantRuntimeCapabilities = {
   phase: 'foundation',

@@ -7,7 +7,7 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
-import { UserConditionStatus } from '#generated/prisma/client';
+import { UserConditionStatus } from '#generated/prisma/client.js';
 
 export class CreateHealthContextConditionDto {
   @ApiProperty({

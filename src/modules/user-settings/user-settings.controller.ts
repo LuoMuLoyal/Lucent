@@ -13,14 +13,14 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { unwrapResult } from '../../common/result';
-import { ProblemDetailsDto } from '../../common';
-import { UserSettingsService } from './services/user-settings.service';
-import { UpdateUserSettingsDto } from './dto/update.dto';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { ProblemDetailsDto } from '../../common/index.js';
+import { UserSettingsService } from './services/user-settings.service.js';
+import { UpdateUserSettingsDto } from './dto/update.dto.js';
 
-import { UserSettingsResponseDto } from './dto/response.dto';
+import { UserSettingsResponseDto } from './dto/response.dto.js';
 
 @ApiTags('User Settings')
 @ApiBearerAuth('access-token')

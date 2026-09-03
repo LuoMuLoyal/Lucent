@@ -1,17 +1,17 @@
-import type { UserService } from '../../../user';
-import type { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider';
-import type { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider';
-import type { QqOAuthProvider } from '../../providers/qq-oauth.provider';
-import type { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider';
-import type { GoogleOAuthProvider } from '../../providers/google-oauth.provider';
-import type { AuthOAuthStateService } from './state.service';
-import type { AuthTokenService } from '../token.service';
-import type { AuthOAuthService } from './oauth.service';
-import type { AuthNotificationService } from '../notification.service';
-import type { OAuthProfile } from '../../types/oauth.types';
-import type { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
-import { AuthOAuthFacadeService } from './facade.service';
-import { UserStatus } from '#generated/prisma/client';
+import type { UserService } from '../../../user/index.js';
+import type { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider.js';
+import type { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider.js';
+import type { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
+import type { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider.js';
+import type { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
+import type { AuthOAuthStateService } from './state.service.js';
+import type { AuthTokenService } from '../token.service.js';
+import type { AuthOAuthService } from './oauth.service.js';
+import type { AuthNotificationService } from '../notification.service.js';
+import type { OAuthProfile } from '../../types/oauth.types.js';
+import type { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { AuthOAuthFacadeService } from './facade.service.js';
+import { UserStatus } from '#generated/prisma/client.js';
 import {
   createDomainFailure,
   errAsync,
@@ -19,7 +19,7 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 
 const mockProfile: OAuthProfile = {
   provider: 'wechat_web',

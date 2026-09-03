@@ -1,4 +1,4 @@
-import { AssistantToolMedicalKnowledgeService } from './medical.service';
+import { AssistantToolMedicalKnowledgeService } from './medical.service.js';
 
 const mockSimilaritySearchWithScore = vi.fn();
 const mockEnsureTable = vi.fn();

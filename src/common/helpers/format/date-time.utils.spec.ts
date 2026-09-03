@@ -8,7 +8,7 @@ import {
   formatDateOnlyInTimezone,
   parseDateOnly,
   calculateAge,
-} from './date-time.utils';
+} from './date-time.utils.js';
 
 describe('date-time.utils', () => {
   describe('now', () => {

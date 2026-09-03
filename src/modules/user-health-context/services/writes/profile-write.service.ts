@@ -1,16 +1,16 @@
-import { normalizeNullableText, now } from '../../../../common';
+import { normalizeNullableText, now } from '../../../../common/index.js';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
+import { Prisma } from '#generated/prisma/client.js';
 import {
   fromPromise,
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository';
-import type { UpdateHealthContextProfileDto } from '../../dto/update-profile.dto';
-import { UserHealthContextOwnershipService } from '../ownership.service';
-import { UserHealthContextMapperService } from '../mapper.service';
+} from '../../../../common/result/index.js';
+import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
+import type { UpdateHealthContextProfileDto } from '../../dto/update-profile.dto.js';
+import { UserHealthContextOwnershipService } from '../ownership.service.js';
+import { UserHealthContextMapperService } from '../mapper.service.js';
 
 interface ProfileWriteData {
   createData: Prisma.UserProfileUncheckedCreateInput;

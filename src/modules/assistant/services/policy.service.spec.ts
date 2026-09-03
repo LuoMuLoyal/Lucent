@@ -1,5 +1,5 @@
-import { AssistantPolicyService } from './policy.service';
-import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
+import { AssistantPolicyService } from './policy.service.js';
+import type { AssistantRuntimeCapabilities } from '../types/assistant.types.js';
 
 describe('AssistantPolicyService', () => {
   const service = new AssistantPolicyService();

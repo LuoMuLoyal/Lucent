@@ -5,16 +5,20 @@ vi.mock('otplib', () => ({
 }));
 
 import { Test, type TestingModule } from '@nestjs/testing';
-import { createDomainFailure, errAsync, okAsync } from '../../common/result';
-import type { UserPayload } from '../auth';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../common/result/index.js';
+import type { UserPayload } from '../auth/index.js';
 
-import { AccountController } from './account.controller';
-import { AccountService } from './services/account.service';
-import { AuthService } from '../auth';
-import { AuditLogService } from '../audit-log';
-import type { UpdateAccountDto } from './dto/update.dto';
-import type { AccountDto } from './dto/response.dto';
-import type { User } from '#generated/prisma/client';
+import { AccountController } from './account.controller.js';
+import { AccountService } from './services/account.service.js';
+import { AuthService } from '../auth/index.js';
+import { AuditLogService } from '../audit-log/index.js';
+import type { UpdateAccountDto } from './dto/update.dto.js';
+import type { AccountDto } from './dto/response.dto.js';
+import type { User } from '#generated/prisma/client.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn } from 'class-validator';
-import type { SuggestionFeedback } from '../types/suggestion.types';
+import type { SuggestionFeedback } from '../types/suggestion.types.js';
 
 const FEEDBACK_VALUES = [
   'accepted',

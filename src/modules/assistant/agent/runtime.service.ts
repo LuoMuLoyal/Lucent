@@ -15,8 +15,8 @@ import {
   unwrapResult,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
+} from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
 import {
   AIMessage,
   AIMessageChunk,
@@ -24,51 +24,51 @@ import {
   SystemMessage,
   type BaseMessage,
 } from '@langchain/core/messages';
-import { LlmRuntimeService } from '../../../llm-runtime';
-import { MetricsService } from '../../../common/metrics/metrics.service';
-import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
+import { LlmRuntimeService } from '../../../llm-runtime/index.js';
+import { MetricsService } from '../../../common/metrics/metrics.service.js';
+import type { AssistantRuntimeCapabilities } from '../types/assistant.types.js';
 import type {
   AssistantMessageResult,
   AssistantConversationMessage,
   AssistantProposedAction,
   AssistantStreamChunkEvent,
   AssistantToolExecutionResult,
-} from '../types/assistant.types';
+} from '../types/assistant.types.js';
 import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_IMPLEMENTED_TOOL_NAMES,
   ASSISTANT_TOOL_NAMES,
-} from '../tools/shared/tool-types';
+} from '../tools/shared/tool-types.js';
 import type {
   AssistantContextSource,
   AssistantToolName,
-} from '../tools/shared/tool-types';
-import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
-import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service';
+} from '../tools/shared/tool-types.js';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
+import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service.js';
 import {
   buildAssistantSystemPrompt,
   buildReadSystemPrompt,
   buildWriteSystemPrompt,
   buildKnowledgeSystemPrompt,
   buildSimpleChatSystemPrompt,
-} from '../prompts/system.prompt';
-import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state';
-import type { AssistantValidationFlags } from './runtime/state';
-import type { AssistantPendingReview } from './runtime/state';
-import { AssistantCheckpointerService } from './checkpointer.service';
-import { extractMessageText } from './runtime/message-text.utils';
-import { AssistantConversationRepositoryPort } from '../repositories/conversation.repository';
+} from '../prompts/system.prompt.js';
+import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state.js';
+import type { AssistantValidationFlags } from './runtime/state.js';
+import type { AssistantPendingReview } from './runtime/state.js';
+import { AssistantCheckpointerService } from './checkpointer.service.js';
+import { extractMessageText } from './runtime/message-text.utils.js';
+import { AssistantConversationRepositoryPort } from '../repositories/conversation.repository.js';
 
 import {
   buildAssistantRuntimeGraph,
   type ToolExecutorFn,
-} from './runtime/graph';
-import type { AssistantRespondCache } from './runtime/respond';
+} from './runtime/graph.js';
+import type { AssistantRespondCache } from './runtime/respond.js';
 import {
   withLlmRetry,
   isRetryableLlmError,
-} from '../../../common/llm/retry/llm-retry.helper';
-import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service';
+} from '../../../common/llm/retry/llm-retry.helper.js';
+import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service.js';
 
 const CHAT_MODEL_OPTIONS = {
   timeout: AI_MODEL_TIMEOUT_MS,

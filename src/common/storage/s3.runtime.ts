@@ -8,17 +8,17 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import type { S3StorageConfig } from '../../config/services/s3-storage.config';
-import { DomainFailureException } from '../result/domain-failure.exception';
-import { createDomainFailure } from '../result/domain-failure';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import type { S3StorageConfig } from '../../config/services/s3-storage.config.js';
+import { DomainFailureException } from '../result/domain-failure.exception.js';
+import { createDomainFailure } from '../result/domain-failure.js';
 import {
   ObjectStorageRuntime,
   type ObjectStorageConfig,
   type SignedGetUrlInput,
   type SignedPutUrlInput,
   type UploadBufferInput,
-} from './object-storage.runtime';
+} from './object-storage.runtime.js';
 
 /**
  * S3-compatible object storage runtime.

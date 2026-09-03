@@ -1,18 +1,18 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma';
-import type { IMedicineReminderReader } from '../../types/ports';
-import { MEDICINE_REMINDER_READER } from '../../types/ports';
-import { IUserHealthContextReader } from '../../../user-health-context';
-import { IUserSettingsPort } from '../../../user-settings';
-import { HistoricalAiSummaryService } from '../../services/historical-ai-summary.service';
+import { PrismaService } from '../../../../prisma/index.js';
+import type { IMedicineReminderReader } from '../../types/ports.js';
+import { MEDICINE_REMINDER_READER } from '../../types/ports.js';
+import { IUserHealthContextReader } from '../../../user-health-context/index.js';
+import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { HistoricalAiSummaryService } from '../../services/historical-ai-summary.service.js';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/assistant.types';
+} from '../../types/assistant.types.js';
 import {
   DEFAULT_HISTORY_LIMIT,
   MAX_RANGE_DAYS,
-} from '../shared/tool-constants';
+} from '../shared/tool-constants.js';
 import {
   enumerateDates,
   extractReportRangeKey,
@@ -20,15 +20,15 @@ import {
   resolveReportRangeFromKey,
   resolveSingleDate,
   todayDateString,
-} from '../shared/date-resolver';
+} from '../shared/date-resolver.js';
 import {
   buildDailyRecordCoverage,
   buildDailyRecordRangeCoverage,
   buildReadConfidence,
   buildReadEnvelope,
-} from '../presenters';
-import { AssistantToolRecordQueryService } from '../records/query.service';
-import { describeReminderFrequency, mapSleepQuality } from './read-helpers';
+} from '../presenters.js';
+import { AssistantToolRecordQueryService } from '../records/query.service.js';
+import { describeReminderFrequency, mapSleepQuality } from './read-helpers.js';
 
 @Injectable()
 export class AssistantToolReadService {

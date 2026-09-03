@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { LlmRuntimeService } from '../../../../llm-runtime';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildDailyRecordCandidatesSystemPrompt,
   buildDailyRecordCandidatesUserPrompt,
   type DailyRecordCandidatesPromptCopy,
-} from '../../prompts/daily-record-candidates.prompt';
+} from '../../prompts/daily-record-candidates.prompt.js';
 import {
   dailyRecordCandidatesSchema,
   type DailyRecordCandidateStructuredOutput,
-} from '../../schemas/daily-record-candidates.schema';
+} from '../../schemas/daily-record-candidates.schema.js';
 
 @Injectable()
 export class DailyRecordCandidatesGeneratorService extends BaseLlmGeneratorService<

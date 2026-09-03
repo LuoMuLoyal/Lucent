@@ -1,7 +1,10 @@
 import { Test } from '@nestjs/testing';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
-import { DailyRecordsOwnershipService } from './ownership.service';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository.js';
+import { DailyRecordsOwnershipService } from './ownership.service.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,

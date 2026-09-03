@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn } from 'class-validator';
-import type { LocalCapabilityState } from '../constants/delivery.constants';
+import type { LocalCapabilityState } from '../constants/delivery.constants.js';
 
 /**
  * 客户端本地调度能力上报请求体。

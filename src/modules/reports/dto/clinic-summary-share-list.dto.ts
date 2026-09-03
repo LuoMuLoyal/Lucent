@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ClinicSummaryShareScopeDto } from './clinic-summary-response.dto';
+import { ClinicSummaryShareScopeDto } from './clinic-summary-response.dto.js';
 
 /**
  * Share-management list response DTOs.

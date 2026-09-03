@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsStrongPassword,
   IsVerificationCode,
-} from '../../../../common/validators/auth.decorators';
+} from '../../../../common/validators/auth.decorators.js';
 
 export class SetPasswordDto {
   @ApiProperty({ description: '发往邮箱的验证码', example: '123456' })

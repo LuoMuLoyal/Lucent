@@ -4,10 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import { ConfigKey } from '../../../config/env/config-keys.enum';
-import { createDomainFailure } from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
-import { UserPayload } from '../services/auth.service';
+import { ConfigKey } from '../../../config/env/config-keys.enum.js';
+import { createDomainFailure } from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
+import { UserPayload } from '../services/auth.service.js';
 
 interface JwtConfigShape {
   accessSecret: string;

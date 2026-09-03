@@ -1,5 +1,5 @@
-import { EnvKey } from '../env/env-keys.enum';
-import { llmConfig } from './llm.config';
+import { EnvKey } from '../env/env-keys.enum.js';
+import { llmConfig } from './llm.config.js';
 
 describe('llmConfig', () => {
   const saved: Record<string, string | undefined> = {};

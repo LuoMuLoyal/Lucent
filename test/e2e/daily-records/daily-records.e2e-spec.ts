@@ -6,12 +6,12 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
-import { DailyRecordCandidatesService } from '../../../src/modules/daily-records';
-import { PrismaService } from '../../../src/prisma';
-import { DailyRecordKind, UserStatus } from '#generated/prisma/client';
-import { ConfigKey } from '../../../src/config/env/config-keys.enum';
+import { AppModule } from '../../../src/app.module.js';
+import { setupApp } from '../../../src/setup-app.js';
+import { DailyRecordCandidatesService } from '../../../src/modules/daily-records/index.js';
+import { PrismaService } from '../../../src/prisma/index.js';
+import { DailyRecordKind, UserStatus } from '#generated/prisma/client.js';
+import { ConfigKey } from '../../../src/config/env/config-keys.enum.js';
 
 const BASE_PATH = '/api/v1/user/daily-records';
 const AUTH_HEADER = 'Authorization';

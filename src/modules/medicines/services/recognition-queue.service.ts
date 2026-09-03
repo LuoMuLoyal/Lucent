@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../common';
-import { MedicinesService } from './medicines.service';
+import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
+import { BaseAsyncQueueService } from '../../../common/index.js';
+import { MedicinesService } from './medicines.service.js';
 
 interface RecognitionJobData {
   userId: string;

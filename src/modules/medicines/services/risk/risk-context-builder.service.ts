@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma';
-import { MedicinesService } from '../medicines.service';
-import { nonDeleted, formatDateOnly } from '../../../../common';
-import { unwrapResult } from '../../../../common/result';
-import type { MedicineRiskCheckResponseDto } from '../../dto/risk/risk-check-response.dto';
-import type { MedicineRiskLlmContext } from '../../prompts/risk-check.prompt';
+import { PrismaService } from '../../../../prisma/index.js';
+import { MedicinesService } from '../medicines.service.js';
+import { nonDeleted, formatDateOnly } from '../../../../common/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import type { MedicineRiskCheckResponseDto } from '../../dto/risk/risk-check-response.dto.js';
+import type { MedicineRiskLlmContext } from '../../prompts/risk-check.prompt.js';
 import {
   asNonEmptyString,
   getDetailJson,
-} from '../../utils/ingredient-canonicalization';
+} from '../../utils/ingredient-canonicalization.js';
 
 @Injectable()
 export class RiskContextBuilderService {

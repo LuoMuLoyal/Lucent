@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ConfigService } from '@nestjs/config';
-import { RedisService } from './redis.service';
+import { RedisService } from './redis.service.js';
 
 const mockRedisInstance = {
   eval: vi.fn(),

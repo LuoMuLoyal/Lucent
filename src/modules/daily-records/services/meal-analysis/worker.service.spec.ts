@@ -1,8 +1,8 @@
-import type { PrismaService } from '../../../../prisma';
-import type { ObjectStorageRuntime } from '../../../../common';
-import type { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
-import type { MealAnalysisVisionService } from '../meal-analysis/vision.service';
-import { MealAnalysisWorkerService } from '../meal-analysis/worker.service';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { ObjectStorageRuntime } from '../../../../common/index.js';
+import type { MealAnalysisMatcherService } from '../meal-analysis/matcher.service.js';
+import type { MealAnalysisVisionService } from '../meal-analysis/vision.service.js';
+import { MealAnalysisWorkerService } from '../meal-analysis/worker.service.js';
 
 describe('MealAnalysisWorkerService', () => {
   it('marks stale jobs as no-op when source revision no longer matches', async () => {

@@ -5,7 +5,7 @@ import {
   buildReadSystemPrompt,
   buildSimpleChatSystemPrompt,
   buildWriteSystemPrompt,
-} from './system.prompt';
+} from './system.prompt.js';
 
 const READ_TOOLS = ['get_today_records', 'get_sleep_summary_by_range'] as const;
 

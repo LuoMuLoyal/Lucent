@@ -4,7 +4,7 @@ import {
   decodeVectorCursor,
   buildVectorQueryHash,
   buildVectorPage,
-} from './vector-cursor';
+} from './vector-cursor.js';
 
 /** Minimal mock logger that silently swallows warn calls. */
 const mockLogger = {

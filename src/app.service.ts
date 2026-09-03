@@ -8,11 +8,11 @@ import {
   type HealthOverallStatus,
   type HealthProbeDto,
   type HealthProbeType,
-} from './app.dto';
-import { EnvKey } from './config/env/env-keys.enum';
-import { PrismaService } from './prisma';
-import { nowIsoString } from './common';
-import { extractErrorInfo } from './common';
+} from './app.dto.js';
+import { EnvKey } from './config/env/env-keys.enum.js';
+import { PrismaService } from './prisma/index.js';
+import { nowIsoString } from './common/index.js';
+import { extractErrorInfo } from './common/index.js';
 
 type HealthComponent = HealthProbeDto['components'][number];
 

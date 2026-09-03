@@ -1,4 +1,4 @@
-import { withRetry, fetchWithRetry, HttpStatusError } from './retry.utils';
+import { withRetry, fetchWithRetry, HttpStatusError } from './retry.utils.js';
 
 describe('retry.utils', () => {
   describe('withRetry', () => {

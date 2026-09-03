@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { buildProblemDetails, problemTypeForCode } from './problem-details';
+import { buildProblemDetails, problemTypeForCode } from './problem-details.js';
 
 describe('problem-details', () => {
   it('builds the target Problem Details representation without HTTP duplicate fields', () => {

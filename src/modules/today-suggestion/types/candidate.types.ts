@@ -2,8 +2,8 @@ import type {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from './suggestion.types';
-import type { EvidenceItem, SuggestionAction } from './signal.types';
+} from './suggestion.types.js';
+import type { EvidenceItem, SuggestionAction } from './signal.types.js';
 
 /**
  * Copy generation metadata for AI-powered suggestion copy.

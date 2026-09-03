@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { SuggestionRule } from '../../types/rule.types';
+import type { SuggestionRule } from '../../types/rule.types.js';
 
 /**
  * Manages A/B rule version selection.

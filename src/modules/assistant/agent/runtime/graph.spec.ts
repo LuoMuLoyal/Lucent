@@ -7,8 +7,8 @@ import type { BaseMessage } from '@langchain/core/messages';
 import {
   buildAssistantRuntimeGraph,
   selectAllowedToolsForContextSources,
-} from './graph';
-import { selectRelevantToolsForMessage } from './router';
+} from './graph.js';
+import { selectRelevantToolsForMessage } from './router.js';
 
 function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
   return vi.fn().mockImplementation(async (...args: unknown[]) => {

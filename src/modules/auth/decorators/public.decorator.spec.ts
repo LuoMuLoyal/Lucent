@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { Public, IS_PUBLIC_KEY } from './public.decorator';
+import { Public, IS_PUBLIC_KEY } from './public.decorator.js';
 
 describe('Public', () => {
   it('sets IS_PUBLIC_KEY metadata to true on the decorated method', () => {

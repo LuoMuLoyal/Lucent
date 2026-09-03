@@ -1,9 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { Public } from '../auth';
-import { AppInfoResponseDto } from './dto/response.dto';
-import { AppInfoService } from './services/info.service';
+import { Public } from '../auth/index.js';
+import { AppInfoResponseDto } from './dto/response.dto.js';
+import { AppInfoService } from './services/info.service.js';
 
 @ApiTags('App Info')
 @Public()

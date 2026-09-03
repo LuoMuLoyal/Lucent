@@ -4,7 +4,11 @@ import {
   eachDayOfInterval,
   isValid,
 } from 'date-fns';
-import { formatDateOnly, now, parseDateOnly } from '../../../../common';
+import {
+  formatDateOnly,
+  now,
+  parseDateOnly,
+} from '../../../../common/index.js';
 import {
   DEFAULT_RANGE_DAYS,
   DEFAULT_RANGE_FALLBACK_MESSAGE,
@@ -13,13 +17,13 @@ import {
   type ToolDateRange,
   type ToolSingleDateResolution,
   type ToolRangeResolution,
-} from './tool-constants';
+} from './tool-constants.js';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../../../reports';
+} from '../../../reports/index.js';
 
-import type { ReportRange } from '../../../reports';
+import type { ReportRange } from '../../../reports/index.js';
 
 export function resolveSingleDate(
   userMessage: string,

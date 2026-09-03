@@ -1,1 +1,1 @@
-export { MedicineDoseLogReaderPort } from './repositories/dose-log.repository';
+export { MedicineDoseLogReaderPort } from './repositories/dose-log.repository.js';

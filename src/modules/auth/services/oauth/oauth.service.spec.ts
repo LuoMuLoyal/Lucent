@@ -1,16 +1,16 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
-import { AuthOAuthService } from './oauth.service';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import { Prisma, type User } from '#generated/prisma/client';
-import { UserStatus } from '#generated/prisma/client';
-import type { Account } from '#generated/prisma/client';
+import { AuthOAuthService } from './oauth.service.js';
+import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { Prisma, type User } from '#generated/prisma/client.js';
+import { UserStatus } from '#generated/prisma/client.js';
+import type { Account } from '#generated/prisma/client.js';
 import {
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
-import type { OAuthProfile } from '../../types/oauth.types';
+} from '../../../../common/result/index.js';
+import type { OAuthProfile } from '../../types/oauth.types.js';
 
 // ── Fixtures ──────────────────────────────────────────────────
 

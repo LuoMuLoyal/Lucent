@@ -9,7 +9,7 @@ import {
 import {
   IsEmailAddress,
   IsStrongPassword,
-} from '../../../common/validators/auth.decorators';
+} from '../../../common/validators/auth.decorators.js';
 
 export class PrepareFullstackRecordLaneDto {
   @IsEmailAddress()

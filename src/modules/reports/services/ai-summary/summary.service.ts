@@ -1,25 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createDomainFailure, unwrapResult } from '../../../../common/result';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
+import {
+  createDomainFailure,
+  unwrapResult,
+} from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 
-import { HistoricalAiSummaryService } from '../../../assistant';
-import { PrismaService } from '../../../../prisma';
-import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service';
-import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service';
-import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto';
+import { HistoricalAiSummaryService } from '../../../assistant/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service.js';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
 
-import type { ReportDashboardQueryDto } from '../../dto/report-dashboard-query.dto';
+import type { ReportDashboardQueryDto } from '../../dto/report-dashboard-query.dto.js';
 
-import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto';
+import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto.js';
 import {
   ReportsAiSummaryContextService,
   type ReportsAiSummaryContext,
-} from './context.service';
-import { ReportsLlmSummaryCopyService } from './copy.service';
-import { ReportsAiSummaryGeneratorService } from './generator.service';
-import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema';
-import { ReportsComputationService } from '../../dashboard/computation.service';
-import { ReportsContextService } from '../../dashboard/context.service';
+} from './context.service.js';
+import { ReportsLlmSummaryCopyService } from './copy.service.js';
+import { ReportsAiSummaryGeneratorService } from './generator.service.js';
+import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema.js';
+import { ReportsComputationService } from '../../dashboard/computation.service.js';
+import { ReportsContextService } from '../../dashboard/context.service.js';
 
 interface PreparedReportSummary {
   context: ReportsAiSummaryContext;

@@ -1,8 +1,11 @@
-import { AuditLogService } from './audit-log.service';
-import type { PrismaService } from '../../../prisma';
-import { Prisma } from '#generated/prisma/client';
-import type { MetricsService } from '../../../common/metrics/metrics.service';
-import type { ResultAsync, DomainFailure } from '../../../common/result';
+import { AuditLogService } from './audit-log.service.js';
+import type { PrismaService } from '../../../prisma/index.js';
+import { Prisma } from '#generated/prisma/client.js';
+import type { MetricsService } from '../../../common/metrics/metrics.service.js';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
 
 /** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
 async function collectResult<T>(

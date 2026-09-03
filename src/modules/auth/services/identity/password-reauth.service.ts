@@ -5,9 +5,9 @@ import {
   errAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
-import { AuthRateLimitService } from './rate-limit.service';
+} from '../../../../common/result/index.js';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { AuthRateLimitService } from './rate-limit.service.js';
 
 /**
  * Verifies the user's current password for sensitive operations. It combines

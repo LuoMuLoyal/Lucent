@@ -1,13 +1,13 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { formatDateOnly, now } from '../../common';
-import type { UserPayload } from '../auth';
-import { TodaySuggestionController } from './today-suggestion.controller';
-import { SuggestionService } from './services/suggestion.service';
-import { okAsync } from '../../common/result';
-import { FeedbackService } from './services/feedback/recorder.service';
-import { ExplanationService } from './services/explanation/explainer.service';
-import { ExplanationQueueService } from './services/explanation/queue.service';
-import { LifecycleService } from './services/lifecycle/manager.service';
+import { formatDateOnly, now } from '../../common/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { TodaySuggestionController } from './today-suggestion.controller.js';
+import { SuggestionService } from './services/suggestion.service.js';
+import { okAsync } from '../../common/result/index.js';
+import { FeedbackService } from './services/feedback/recorder.service.js';
+import { ExplanationService } from './services/explanation/explainer.service.js';
+import { ExplanationQueueService } from './services/explanation/queue.service.js';
+import { LifecycleService } from './services/lifecycle/manager.service.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

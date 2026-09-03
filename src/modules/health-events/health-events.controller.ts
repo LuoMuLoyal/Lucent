@@ -17,28 +17,28 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { HealthEventKind } from '#generated/prisma/client';
-import { ProblemDetailsDto, formatDateOnly } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { CurrentUser } from '../auth';
-import type { UserPayload } from '../auth';
-import { CreateHealthEventDto } from './dto/create-event.dto';
-import { EndHealthEventDto } from './dto/end-event.dto';
-import { EventListQueryDto } from './dto/event-list-query.dto';
+import { HealthEventKind } from '#generated/prisma/client.js';
+import { ProblemDetailsDto, formatDateOnly } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { CreateHealthEventDto } from './dto/create-event.dto.js';
+import { EndHealthEventDto } from './dto/end-event.dto.js';
+import { EventListQueryDto } from './dto/event-list-query.dto.js';
 import {
   HealthEventListResponseDto,
   HealthEventResponseDto,
   HealthEventItemDto,
-} from './dto/event-response.dto';
-import { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto';
+} from './dto/event-response.dto.js';
+import { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
 import type {
   HealthEventCheckInRecord,
   HealthEventCoverageRecord,
   HealthEventRecord,
   HealthEventView,
-} from './repositories/event.repository';
-import { CheckInsService } from './services/check-ins.service';
-import { EventsService } from './services/events.service';
+} from './repositories/event.repository.js';
+import { CheckInsService } from './services/check-ins.service.js';
+import { EventsService } from './services/events.service.js';
 
 @ApiTags('Health Events')
 @ApiBearerAuth('access-token')

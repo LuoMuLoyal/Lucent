@@ -1,12 +1,12 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { ProblemCatalog, type ProblemCode } from '../problem-catalog';
-import type { SseErrorStatus, SseProblemDetails } from '../problem-details';
-import { DomainFailureException } from '../../result/domain-failure.exception';
+import { ProblemCatalog, type ProblemCode } from '../problem-catalog.js';
+import type { SseErrorStatus, SseProblemDetails } from '../problem-details.js';
+import { DomainFailureException } from '../../result/domain-failure.exception.js';
 import {
   isDomainFailure,
   type DomainFailure,
   type DomainFailureKind,
-} from '../../result';
+} from '../../result/index.js';
 
 export interface SseProblemDetailsOptions {
   lang: string;

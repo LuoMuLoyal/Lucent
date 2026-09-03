@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../../common';
-import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { BaseAsyncQueueService } from '../../../../common/index.js';
+import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
 
-import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto';
-import { ReportsAiSummaryService } from './summary.service';
+import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto.js';
+import { ReportsAiSummaryService } from './summary.service.js';
 
 interface SummaryJobData {
   userId: string;

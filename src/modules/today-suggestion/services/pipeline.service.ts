@@ -1,19 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { SuggestionCandidate } from '../types/candidate.types';
-import type { RuleContext } from '../types/rule.types';
-import { MedicationCollectorService } from './collectors/medication.service';
-import { RecordCollectorService } from './collectors/record.service';
-import { ProfileCollectorService } from './collectors/profile.service';
-import { HealthEventCollectorService } from './collectors/health-event.service';
-import { RegistryService } from './rules/registry.service';
-import { SuppressionService } from './arbitration/suppression.service';
+import type { SuggestionCandidate } from '../types/candidate.types.js';
+import type { RuleContext } from '../types/rule.types.js';
+import { MedicationCollectorService } from './collectors/medication.service.js';
+import { RecordCollectorService } from './collectors/record.service.js';
+import { ProfileCollectorService } from './collectors/profile.service.js';
+import { HealthEventCollectorService } from './collectors/health-event.service.js';
+import { RegistryService } from './rules/registry.service.js';
+import { SuppressionService } from './arbitration/suppression.service.js';
 import {
   ArbitrationService,
   type ArbitrationResult,
-} from './arbitration/arbiter.service';
-import { BaselineService } from './lifecycle/baseline.service';
-import { SuggestionCacheService } from './cache/suggestion-cache.service';
-import type { SuggestionSignal } from '../types/signal.types';
+} from './arbitration/arbiter.service.js';
+import { BaselineService } from './lifecycle/baseline.service.js';
+import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
+import type { SuggestionSignal } from '../types/signal.types.js';
 
 /**
  * Output of the suggestion pipeline: arbitration result + degraded flag.

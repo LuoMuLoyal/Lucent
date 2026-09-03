@@ -1,8 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult, toNullableInputJsonValue } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { MetricsService } from '../../../common/metrics/metrics.service';
+import { PrismaService } from '../../../prisma/index.js';
+import {
+  fromPrismaResult,
+  toNullableInputJsonValue,
+} from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { MetricsService } from '../../../common/metrics/metrics.service.js';
 
 /** Input for a single audit log entry. */
 export interface AuditLogEntry {

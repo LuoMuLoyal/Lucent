@@ -2,39 +2,39 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
-import { NotificationsModule } from '../notifications/notifications.module';
-import { UserModule } from '../user/user.module';
-import { MailModule } from '../../mail/mail.module';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { UserModule } from '../user/user.module.js';
+import { MailModule } from '../../mail/mail.module.js';
 import {
   AuthSessionRepository,
   AuthSessionRepositoryPort,
-} from './repositories/session.repository';
+} from './repositories/session.repository.js';
 
 import {
   AuthAccountRepository,
   AuthAccountRepositoryPort,
-} from './repositories/account.repository';
-import { AuthService } from './services/auth.service';
-import { LocalController } from './controllers/local.controller';
-import { OAuthController } from './controllers/oauth.controller';
-import { SessionController } from './controllers/session.controller';
-import { AuthRateLimitService } from './services/identity/rate-limit.service';
-import { PasswordReauthService } from './services/identity/password-reauth.service';
-import { AuthTokenService } from './services/token.service';
-import { AuthOAuthStateService } from './services/oauth/state.service';
-import { AuthOAuthService } from './services/oauth/oauth.service';
-import { CredentialAuthService } from './services/identity/credential.service';
-import { AuthAccountService } from './services/account.service';
-import { AuthOAuthFacadeService } from './services/oauth/facade.service';
-import { AuthNotificationService } from './services/notification.service';
-import { VerificationCodeService } from './services/identity/verification-code.service';
-import { WechatMobileOAuthProvider } from './providers/wechat/wechat-mobile-oauth.provider';
-import { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.provider';
-import { AppleOAuthProvider } from './providers/apple-oauth.provider';
-import { GoogleOAuthProvider } from './providers/google-oauth.provider';
-import { QqOAuthProvider } from './providers/qq-oauth.provider';
-import { WeiboOAuthProvider } from './providers/weibo-oauth.provider';
-import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
+} from './repositories/account.repository.js';
+import { AuthService } from './services/auth.service.js';
+import { LocalController } from './controllers/local.controller.js';
+import { OAuthController } from './controllers/oauth.controller.js';
+import { SessionController } from './controllers/session.controller.js';
+import { AuthRateLimitService } from './services/identity/rate-limit.service.js';
+import { PasswordReauthService } from './services/identity/password-reauth.service.js';
+import { AuthTokenService } from './services/token.service.js';
+import { AuthOAuthStateService } from './services/oauth/state.service.js';
+import { AuthOAuthService } from './services/oauth/oauth.service.js';
+import { CredentialAuthService } from './services/identity/credential.service.js';
+import { AuthAccountService } from './services/account.service.js';
+import { AuthOAuthFacadeService } from './services/oauth/facade.service.js';
+import { AuthNotificationService } from './services/notification.service.js';
+import { VerificationCodeService } from './services/identity/verification-code.service.js';
+import { WechatMobileOAuthProvider } from './providers/wechat/wechat-mobile-oauth.provider.js';
+import { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.provider.js';
+import { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
+import { GoogleOAuthProvider } from './providers/google-oauth.provider.js';
+import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
+import { WeiboOAuthProvider } from './providers/weibo-oauth.provider.js';
+import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
 
 @Module({

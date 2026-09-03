@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AssistantProposedActionDto } from './proposed-action.dto';
+import { AssistantProposedActionDto } from './proposed-action.dto.js';
 
 /**
  * Client-facing projection of tool metadata included in an assistant SSE

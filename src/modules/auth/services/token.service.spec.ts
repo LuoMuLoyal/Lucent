@@ -4,12 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import type { Prisma } from '#generated/prisma/client';
-import { AuthTokenService } from './token.service';
-import { normalizeEmail } from '../../../common';
-import { PrismaService } from '../../../prisma';
-import { AuthSessionRepositoryPort } from '../repositories/session.repository';
-import { AuthBetterAuthAdapter } from '../adapters/better-auth.adapter';
+import type { Prisma } from '#generated/prisma/client.js';
+import { AuthTokenService } from './token.service.js';
+import { normalizeEmail } from '../../../common/index.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { AuthSessionRepositoryPort } from '../repositories/session.repository.js';
+import { AuthBetterAuthAdapter } from '../adapters/better-auth.adapter.js';
 import {
   createDomainFailure,
   errAsync,
@@ -17,7 +17,7 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
 function hash(token: string): string {
   return createHash('sha256').update(token).digest('hex');

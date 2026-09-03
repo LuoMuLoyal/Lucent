@@ -1,5 +1,8 @@
-import { fromPrismaResult, normalizeNullableText } from '../../../common';
-import { parseDateOnly, now, formatDateOnly } from '../../../common';
+import {
+  fromPrismaResult,
+  normalizeNullableText,
+} from '../../../common/index.js';
+import { parseDateOnly, now, formatDateOnly } from '../../../common/index.js';
 import {
   Injectable,
   InternalServerErrorException,
@@ -13,18 +16,18 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
-import { DailyRecordKind, Prisma } from '#generated/prisma/client';
-import { toInputJsonValue } from '../../../common';
-import type { CreateDailyRecordDto } from '../dto/create-record.dto';
-import type { UpdateDailyRecordDto } from '../dto/update-record.dto';
-import { DailyRecordsOwnershipService } from './ownership.service';
-import { DailyRecordsMapperService } from './mapper.service';
+} from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
+import { DailyRecordKind, Prisma } from '#generated/prisma/client.js';
+import { toInputJsonValue } from '../../../common/index.js';
+import type { CreateDailyRecordDto } from '../dto/create-record.dto.js';
+import type { UpdateDailyRecordDto } from '../dto/update-record.dto.js';
+import { DailyRecordsOwnershipService } from './ownership.service.js';
+import { DailyRecordsMapperService } from './mapper.service.js';
 import {
   dailyRecordWithAttachments,
   type OwnedRecordSnapshot,
-} from '../types/record.types';
+} from '../types/record.types.js';
 import {
   buildConfirmedMealPayload,
   buildMealPayloadFromClientInput,
@@ -35,11 +38,11 @@ import {
   parseMealRecordPayload,
   type MealAnalysisCoverage,
   type MealAnalysisStatus,
-} from '../types/meal-analysis.types';
-import { MealAnalysisQueueService } from './meal-analysis/queue.service';
-import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
-import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
-import { HealthEventsOwnershipService } from '../../health-events';
+} from '../types/meal-analysis.types.js';
+import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
+import { MealDishTemplateLearningService } from './meal-dish/template-learning.service.js';
+import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository.js';
+import { HealthEventsOwnershipService } from '../../health-events/index.js';
 import {
   DAILY_RECORD_CHANGED,
   type DailyRecordChangedPayload,

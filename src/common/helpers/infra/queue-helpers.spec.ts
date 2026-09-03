@@ -1,4 +1,4 @@
-import { enqueueOrFallback } from './queue-helpers';
+import { enqueueOrFallback } from './queue-helpers.js';
 
 describe('enqueueOrFallback', () => {
   it('returns { jobId } when queue is configured and enqueue succeeds', async () => {

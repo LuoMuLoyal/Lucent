@@ -6,10 +6,10 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
-import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
-import type { OwnedMedicineReminderRecord } from '../types/reminder.types';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository.js';
+import type { OwnedMedicineReminderRecord } from '../types/reminder.types.js';
 
 @Injectable()
 export class MedicineRemindersOwnershipService {

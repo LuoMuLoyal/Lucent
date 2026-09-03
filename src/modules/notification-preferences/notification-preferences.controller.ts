@@ -5,13 +5,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { UpdateNotificationPreferencesDto } from './dto/update.dto';
-import { NotificationPreferencesResponseDto } from './dto/response.dto';
-import { NotificationPreferencesService } from './services/notification-preferences.service';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { ProblemDetailsDto } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { UpdateNotificationPreferencesDto } from './dto/update.dto.js';
+import { NotificationPreferencesResponseDto } from './dto/response.dto.js';
+import { NotificationPreferencesService } from './services/notification-preferences.service.js';
 
 @ApiTags('Notification Preferences')
 @ApiBearerAuth('access-token')

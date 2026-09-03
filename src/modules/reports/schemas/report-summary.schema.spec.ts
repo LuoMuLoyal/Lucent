@@ -1,4 +1,4 @@
-import { reportSummarySchema } from './report-summary.schema';
+import { reportSummarySchema } from './report-summary.schema.js';
 
 describe('reportSummarySchema', () => {
   function buildValid(overrides: Record<string, unknown> = {}) {

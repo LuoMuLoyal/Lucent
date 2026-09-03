@@ -1,10 +1,10 @@
-import { EventCheckInTrendRuleService } from './event-check-in-trend.service';
+import { EventCheckInTrendRuleService } from './event-check-in-trend.service.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types';
-import { buildContext, buildSignal } from '../test-helpers';
+} from '../../../types/suggestion.types.js';
+import { buildContext, buildSignal } from '../test-helpers.js';
 
 function buildPayload(
   overrides: Record<string, unknown> = {},

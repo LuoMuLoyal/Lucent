@@ -1,4 +1,4 @@
-import { describeReminderFrequency, mapSleepQuality } from './read-helpers';
+import { describeReminderFrequency, mapSleepQuality } from './read-helpers.js';
 
 describe('read-helpers', () => {
   // -----------------------------------------------------------------------

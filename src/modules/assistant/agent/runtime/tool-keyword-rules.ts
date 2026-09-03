@@ -1,4 +1,4 @@
-import type { AssistantToolName } from '../../tools/shared/tool-types';
+import type { AssistantToolName } from '../../tools/shared/tool-types.js';
 
 // ─── Per-tool keyword matching rules ─────────────────────────────────────────
 

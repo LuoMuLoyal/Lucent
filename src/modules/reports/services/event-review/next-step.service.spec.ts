@@ -2,12 +2,12 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-} from '#generated/prisma/client';
-import type { EventReviewEventDto } from '../../dto/event-review-response.dto';
+} from '#generated/prisma/client.js';
+import type { EventReviewEventDto } from '../../dto/event-review-response.dto.js';
 import {
   EventReviewNextStepService,
   type ReviewNextStepInput,
-} from './next-step.service';
+} from './next-step.service.js';
 
 function eventFixture(
   overrides: Partial<EventReviewEventDto> = {},

@@ -1,16 +1,16 @@
-import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import type { LlmRuntimeService } from '../../../../llm-runtime';
-import type { MetricsService } from '../../../../common/metrics/metrics.service';
+import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import type { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../types/suggestion.types';
+} from '../../types/suggestion.types.js';
 import type {
   CopyGenerationContext,
   CopyPromptCopy,
-} from '../../types/copy-generation.types';
-import { SuggestionCopyLlmService } from './llm-generator.service';
+} from '../../types/copy-generation.types.js';
+import { SuggestionCopyLlmService } from './llm-generator.service.js';
 
 describe('SuggestionCopyLlmService', () => {
   let service: SuggestionCopyLlmService;

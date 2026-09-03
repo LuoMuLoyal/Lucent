@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 
-import { User } from '#generated/prisma/client';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
-import { ChangeEmailDto } from '../dto/password/change-email.dto';
-import { ChangePasswordDto } from '../dto/password/change-password.dto';
-import { ForgotPasswordDto } from '../dto/password/forgot-password.dto';
-import { LoginDto } from '../dto/credentials/login.dto';
+import { User } from '#generated/prisma/client.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { DeleteAccountDto } from '../dto/shared/delete-account.dto.js';
+import { ChangeEmailDto } from '../dto/password/change-email.dto.js';
+import { ChangePasswordDto } from '../dto/password/change-password.dto.js';
+import { ForgotPasswordDto } from '../dto/password/forgot-password.dto.js';
+import { LoginDto } from '../dto/credentials/login.dto.js';
 import {
   AppleOAuthCallbackDto,
   GoogleOAuthAuthorizeDto,
@@ -18,20 +21,20 @@ import {
   QqOAuthCallbackDto,
   WeiboOAuthAuthorizeDto,
   WeiboOAuthCallbackDto,
-} from '../dto/shared/oauth.dto';
-import { RegisterDto } from '../dto/credentials/register.dto';
-import { ResetPasswordDto } from '../dto/password/reset-password.dto';
-import { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto';
-import { SetPasswordDto } from '../dto/password/set-password.dto';
-import { VerifyEmailDto } from '../dto/password/verify-email.dto';
-import { AuthRequestContext, TokenPair } from '../types/auth-request';
-import { OAuthAuthorizeResult } from '../types/oauth.types';
-import { AuthAccountService } from './account.service';
-import { AuthOAuthFacadeService } from './oauth/facade.service';
-import { AuthTokenService } from './token.service';
-import { CredentialAuthService } from './identity/credential.service';
+} from '../dto/shared/oauth.dto.js';
+import { RegisterDto } from '../dto/credentials/register.dto.js';
+import { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
+import { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto.js';
+import { SetPasswordDto } from '../dto/password/set-password.dto.js';
+import { VerifyEmailDto } from '../dto/password/verify-email.dto.js';
+import { AuthRequestContext, TokenPair } from '../types/auth-request.js';
+import { OAuthAuthorizeResult } from '../types/oauth.types.js';
+import { AuthAccountService } from './account.service.js';
+import { AuthOAuthFacadeService } from './oauth/facade.service.js';
+import { AuthTokenService } from './token.service.js';
+import { CredentialAuthService } from './identity/credential.service.js';
 
-export type { AuthRequestContext, UserPayload } from '../types/auth-request';
+export type { AuthRequestContext, UserPayload } from '../types/auth-request.js';
 
 /**
  * Central authentication facade that orchestrates credential flows,

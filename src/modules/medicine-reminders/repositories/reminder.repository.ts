@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult, nonDeleted } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPrismaResult, nonDeleted } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 /**
  * Lean read-model shape for cross-module consumers (ADR-0009). Exposes

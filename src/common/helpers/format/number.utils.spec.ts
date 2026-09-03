@@ -1,4 +1,4 @@
-import { roundNumber, normalizeNullableNumber } from './number.utils';
+import { roundNumber, normalizeNullableNumber } from './number.utils.js';
 
 describe('number.utils', () => {
   describe('roundNumber', () => {

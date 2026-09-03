@@ -13,15 +13,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { createHash } from 'crypto';
-import { SuggestionCopyLlmService } from './llm-generator.service';
-import { SuggestionCacheService } from '../cache/suggestion-cache.service';
-import { getFallbackCopy } from '../../constants/copy-fallback';
+import { SuggestionCopyLlmService } from './llm-generator.service.js';
+import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
+import { getFallbackCopy } from '../../constants/copy-fallback.js';
 
-import { validateCopyTemplate } from '../../constants/copy-templates';
+import { validateCopyTemplate } from '../../constants/copy-templates.js';
 import type {
   CopyJobData,
   CopyPromptCopy,
-} from '../../types/copy-generation.types';
+} from '../../types/copy-generation.types.js';
 
 export interface CopyGenerationResult {
   title: string;

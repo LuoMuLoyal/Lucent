@@ -4,32 +4,38 @@ import type { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { I18nService } from 'nestjs-i18n';
-import { HealthEventKind, HealthEventStatus } from '#generated/prisma/client';
-import type { ClinicSummaryShareField } from '#generated/prisma/client';
-import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
+import {
+  HealthEventKind,
+  HealthEventStatus,
+} from '#generated/prisma/client.js';
+import type { ClinicSummaryShareField } from '#generated/prisma/client.js';
+import {
+  SseConnectionRegistry,
+  SseProblemDetailsMapper,
+} from '../../common/index.js';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from './dto/report-dashboard-query.dto';
+} from './dto/report-dashboard-query.dto.js';
 
-import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto';
+import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto.js';
 
-import type { ReportSummaryDataDto } from './dto/report-summary-response.dto';
-import type { EventReviewDataDto } from './dto/event-review-response.dto';
-import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto';
-import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './dto/clinic-summary-request.dto';
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
+import type { ReportSummaryDataDto } from './dto/report-summary-response.dto.js';
+import type { EventReviewDataDto } from './dto/event-review-response.dto.js';
+import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto.js';
+import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './dto/clinic-summary-request.dto.js';
+import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
 import {
   ClinicSummaryService,
   sharedSummaryCacheKey,
-} from './services/clinic-summary/summary.service';
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
-import { ShareService } from './services/clinic-summary/share.service';
-import { EventReviewService } from './services/event-review/review.service';
-import { ReportsController } from './reports.controller';
-import { ReportsService } from './dashboard/dashboard.service';
+} from './services/clinic-summary/summary.service.js';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
+import { ShareService } from './services/clinic-summary/share.service.js';
+import { EventReviewService } from './services/event-review/review.service.js';
+import { ReportsController } from './reports.controller.js';
+import { ReportsService } from './dashboard/dashboard.service.js';
 
 /** TTL mirror of ReportsController.SHARED_VIEW_TTL_MS (7 days). */
 const SHARED_VIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;

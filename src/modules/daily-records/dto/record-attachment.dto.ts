@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 
-import { DailyRecordAttachmentKind } from '#generated/prisma/client';
+import { DailyRecordAttachmentKind } from '#generated/prisma/client.js';
 
 export class DailyRecordAttachmentInputDto {
   @ApiPropertyOptional({

@@ -1,5 +1,5 @@
-import type { DailyRecordKind } from '#generated/prisma/client';
-import type { AssistantReadConfidence } from '../../types/assistant.types';
+import type { DailyRecordKind } from '#generated/prisma/client.js';
+import type { AssistantReadConfidence } from '../../types/assistant.types.js';
 
 // ---------------------------------------------------------------------------
 // Numerical constants

@@ -1,22 +1,22 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { PrismaService } from '../../../../prisma';
-import { now, nowIsoString, formatDateOnly } from '../../../../common';
-import type { SuggestionCandidate } from '../../types/candidate.types';
-import type { SuggestionItemDto } from '../../dto/suggestion-response.dto';
+import { PrismaService } from '../../../../prisma/index.js';
+import { now, nowIsoString, formatDateOnly } from '../../../../common/index.js';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
+import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
 
-import type { SuggestionAction } from '../../types/signal.types';
+import type { SuggestionAction } from '../../types/signal.types.js';
 import {
   SuggestionFeedback,
   SuggestionLifecycleState,
-} from '../../types/suggestion.types';
-import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto';
-import type { Prisma } from '#generated/prisma/client';
+} from '../../types/suggestion.types.js';
+import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto.js';
+import type { Prisma } from '#generated/prisma/client.js';
 import {
   SUGGESTION_ACTIVE_DURATION_MS,
   SUGGESTION_FADING_DURATION_MS,
-} from '../../constants/lifecycle.constants';
+} from '../../constants/lifecycle.constants.js';
 
 /** Max items returned by the history endpoint. */
 const HISTORY_MAX_LIMIT = 500;

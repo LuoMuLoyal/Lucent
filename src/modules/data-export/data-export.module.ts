@@ -19,16 +19,16 @@
  */
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '../auth/auth.module';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { ReportsModule } from '../reports/reports.module';
-import { StorageModule } from '../../common';
-import { DataExportController } from './data-export.controller';
-import { DataExportProcessorService } from './services/processor.service';
-import { DataExportService } from './services/export.service';
-import { DataExportStorageService } from './services/storage.service';
-import { DataExportQueueService } from './services/queue.service';
-import { ReportExportPdfService } from './services/report-pdf/pdf.service';
+import { AuthModule } from '../auth/auth.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { ReportsModule } from '../reports/reports.module.js';
+import { StorageModule } from '../../common/index.js';
+import { DataExportController } from './data-export.controller.js';
+import { DataExportProcessorService } from './services/processor.service.js';
+import { DataExportService } from './services/export.service.js';
+import { DataExportStorageService } from './services/storage.service.js';
+import { DataExportQueueService } from './services/queue.service.js';
+import { ReportExportPdfService } from './services/report-pdf/pdf.service.js';
 
 @Module({
   imports: [AuthModule, ReportsModule, NotificationsModule, StorageModule],

@@ -1,15 +1,15 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
-import { LocalController } from './local.controller';
-import { AuthService } from '../services/auth.service';
-import { VerificationCodeService } from '../services/identity/verification-code.service';
-import { AuditLogService } from '../../audit-log';
+import { LocalController } from './local.controller.js';
+import { AuthService } from '../services/auth.service.js';
+import { VerificationCodeService } from '../services/identity/verification-code.service.js';
+import { AuditLogService } from '../../audit-log/index.js';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
   okAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },

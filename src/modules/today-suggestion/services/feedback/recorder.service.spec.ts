@@ -2,19 +2,19 @@ import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
-import { FeedbackService } from './recorder.service';
+} from '#generated/prisma/client.js';
+import { FeedbackService } from './recorder.service.js';
 import {
   SuggestionType,
   SuggestionFeedback,
-} from '../../types/suggestion.types';
+} from '../../types/suggestion.types.js';
 import {
   FEEDBACK_LATER_DURATION_MS,
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,
   FEEDBACK_SUPPRESS_DURATION_MS,
   FEEDBACK_ACCEPTED_BOOST_PERCENT,
   FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
-} from '../../constants/feedback.constants';
+} from '../../constants/feedback.constants.js';
 
 describe('FeedbackService', () => {
   let service: FeedbackService;

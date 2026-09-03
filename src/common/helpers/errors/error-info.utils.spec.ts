@@ -1,4 +1,4 @@
-import { extractErrorInfo } from './error-info.utils';
+import { extractErrorInfo } from './error-info.utils.js';
 
 describe('extractErrorInfo', () => {
   it('extracts message and stack from an Error instance', () => {

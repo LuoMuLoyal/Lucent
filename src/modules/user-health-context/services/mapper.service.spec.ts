@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { UserHealthContextMapperService } from './mapper.service';
+import { UserHealthContextMapperService } from './mapper.service.js';
 
 describe('UserHealthContextMapperService', () => {
   let service: UserHealthContextMapperService;

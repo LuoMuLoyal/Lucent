@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SuggestionItemDto } from './suggestion-response.dto';
-import type { MaterializationStatus } from '../types/materialization.types';
+import { SuggestionItemDto } from './suggestion-response.dto.js';
+import type { MaterializationStatus } from '../types/materialization.types.js';
 
 /** Data payload for GET /today/suggestions. */
 export class TodaySuggestionsDataDto {

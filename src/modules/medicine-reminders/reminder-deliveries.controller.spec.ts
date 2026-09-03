@@ -1,12 +1,16 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
-import { createDomainFailure, errAsync, okAsync } from '../../common/result';
-import type { UserPayload } from '../auth';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../common/result/index.js';
+import type { UserPayload } from '../auth/index.js';
 
-import { ReminderDeliveriesController } from './reminder-deliveries.controller';
-import { MedicineRemindersService } from './services/reminders.service';
-import { DeliveryReceiptsService } from './services/delivery-receipts.service';
-import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto';
+import { ReminderDeliveriesController } from './reminder-deliveries.controller.js';
+import { MedicineRemindersService } from './services/reminders.service.js';
+import { DeliveryReceiptsService } from './services/delivery-receipts.service.js';
+import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

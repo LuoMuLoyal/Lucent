@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client';
+import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
 import {
   DAILY_RECORD_CHANGED,
   DOSE_LOG_CHANGED,
@@ -10,11 +10,11 @@ import {
   type DoseLogChangedPayload,
   type HealthEventChangedPayload,
   type TodaySuggestionMaterializationChangedPayload,
-} from '../../../../common/events/domain-events';
-import { TodayAnalysisMaterializationStore } from '../materialization/store.service';
-import type { TodayAnalysisReasonCode } from '../../types/materialization.types';
-import { TodayAnalysisQueueService } from '../analysis-queue.service';
-import { TodayAnalysisContextService } from '../pipeline/context.service';
+} from '../../../../common/events/domain-events.js';
+import { TodayAnalysisMaterializationStore } from '../materialization/store.service.js';
+import type { TodayAnalysisReasonCode } from '../../types/materialization.types.js';
+import { TodayAnalysisQueueService } from '../analysis-queue.service.js';
+import { TodayAnalysisContextService } from '../pipeline/context.service.js';
 
 @Injectable()
 export class TodayAnalysisTriggerListener {

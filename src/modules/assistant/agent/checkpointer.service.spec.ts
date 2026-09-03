@@ -23,7 +23,7 @@ vi.mock('pg', () => ({
   ),
 }));
 
-import { AssistantCheckpointerService } from './checkpointer.service';
+import { AssistantCheckpointerService } from './checkpointer.service.js';
 
 function buildService(databaseUrl: string | undefined) {
   const configService = {

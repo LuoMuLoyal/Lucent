@@ -10,7 +10,7 @@ import {
   IsString,
   ValidateIf,
 } from 'class-validator';
-import { ClinicSummaryShareField } from '#generated/prisma/client';
+import { ClinicSummaryShareField } from '#generated/prisma/client.js';
 
 /**
  * Maximum span of a date-range clinic-summary scope, in INCLUSIVE calendar

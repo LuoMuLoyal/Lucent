@@ -14,7 +14,7 @@
 import type {
   DailyRecordKind,
   HealthEventKind,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 
 /** Emitted when a daily record is created, updated, or soft-deleted. */
 export const DAILY_RECORD_CHANGED = 'daily-record.changed';

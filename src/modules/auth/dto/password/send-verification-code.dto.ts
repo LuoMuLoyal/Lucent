@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsNotEmpty, IsString } from 'class-validator';
-import { IsEmailAddress } from '../../../../common/validators/auth.decorators';
+import { IsEmailAddress } from '../../../../common/validators/auth.decorators.js';
 
 export const VERIFICATION_SCENES = [
   'register',

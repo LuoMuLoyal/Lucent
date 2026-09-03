@@ -4,9 +4,9 @@ import type {
   TodaySummaryRow,
   ReportSummaryRow,
   ReportRangeInput,
-} from '../repositories/summary.repository';
+} from '../repositories/summary.repository.js';
 
-import { HistoricalAiSummaryService } from './historical-ai-summary.service';
+import { HistoricalAiSummaryService } from './historical-ai-summary.service.js';
 
 describe('HistoricalAiSummaryService', () => {
   let service: HistoricalAiSummaryService;

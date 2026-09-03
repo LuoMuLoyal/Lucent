@@ -2,12 +2,12 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../prisma';
-import { INotificationSender } from '../../notifications';
-import { PushDeliveryService } from '../../notifications';
-import { now } from '../../../common';
-import { formatDateOnly } from '../../../common';
-import { resolveLocale } from '../../../common';
+import { PrismaService } from '../../../prisma/index.js';
+import { INotificationSender } from '../../notifications/index.js';
+import { PushDeliveryService } from '../../notifications/index.js';
+import { now } from '../../../common/index.js';
+import { formatDateOnly } from '../../../common/index.js';
+import { resolveLocale } from '../../../common/index.js';
 import {
   DELIVERY_CHANNEL_IN_APP,
   DELIVERY_CHANNEL_LOCAL,
@@ -16,8 +16,8 @@ import {
   DELIVERY_STATUS_FAILED,
   localCapabilityCacheKey,
   type ResolvedLocalCapability,
-} from '../constants/delivery.constants';
-import { DEFAULT_TIMEZONE, formatLocalDate } from './delivery-moment';
+} from '../constants/delivery.constants.js';
+import { DEFAULT_TIMEZONE, formatLocalDate } from './delivery-moment.js';
 
 /** Cron expression for the reminder scheduler — every minute. */
 export const REMINDER_SCHEDULER_CRON = '* * * * *';

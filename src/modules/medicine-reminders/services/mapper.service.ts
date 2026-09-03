@@ -1,19 +1,19 @@
-import { normalizeNullableText } from '../../../common';
-import { formatDateOnly } from '../../../common';
-import { parseDateOnly } from '../../../common';
+import { normalizeNullableText } from '../../../common/index.js';
+import { formatDateOnly } from '../../../common/index.js';
+import { parseDateOnly } from '../../../common/index.js';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { Prisma } from '#generated/prisma/client';
-import type { CreateMedicineReminderDto } from '../dto/create.dto';
+import { Prisma } from '#generated/prisma/client.js';
+import type { CreateMedicineReminderDto } from '../dto/create.dto.js';
 
-import type { UpdateMedicineReminderDto } from '../dto/update.dto';
-import type { UpsertMedicineReminderGroupDto } from '../dto/upsert-group.dto';
+import type { UpdateMedicineReminderDto } from '../dto/update.dto.js';
+import type { UpsertMedicineReminderGroupDto } from '../dto/upsert-group.dto.js';
 import type {
   MedicineReminderRecord,
   OwnedMedicineReminderRecord,
   ReminderDeliveryRecord,
-} from '../types/reminder.types';
+} from '../types/reminder.types.js';
 
 @Injectable()
 export class MedicineRemindersMapperService {

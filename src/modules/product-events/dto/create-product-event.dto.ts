@@ -18,7 +18,7 @@ import {
   ProductEventResult,
   ProductEventSurface,
   UserDevicePlatform,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 
 /**
  * Max events per batch request. Bounded to keep requests small and to prevent

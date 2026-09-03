@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { IsVerificationCode } from '../../../../common/validators/auth.decorators';
+import { IsVerificationCode } from '../../../../common/validators/auth.decorators.js';
 
 export class DeleteAccountDto {
   @ApiPropertyOptional({

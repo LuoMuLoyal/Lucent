@@ -6,7 +6,10 @@
  * not retried, while transient errors (429, 500, 502, 503, timeouts, network)
  * are retried with exponential backoff.
  */
-import { withRetry, type RetryOptions } from '../../helpers/infra/retry.utils';
+import {
+  withRetry,
+  type RetryOptions,
+} from '../../helpers/infra/retry.utils.js';
 
 /**
  * Returns `true` when the error looks transient enough to warrant a retry.

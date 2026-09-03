@@ -1,7 +1,7 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { DailyRecordCandidatesService } from './orchestrator.service';
-import type { DailyRecordCandidatesCopyService } from '../candidates/copy.service';
-import type { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
+import { DailyRecordCandidatesService } from './orchestrator.service.js';
+import type { DailyRecordCandidatesCopyService } from '../candidates/copy.service.js';
+import type { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service.js';
 
 describe('DailyRecordCandidatesService', () => {
   it('returns generated candidates when language model is configured', async () => {

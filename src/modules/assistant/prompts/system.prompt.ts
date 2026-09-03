@@ -1,4 +1,4 @@
-import type { AssistantToolName } from '../tools/shared/tool-types';
+import type { AssistantToolName } from '../tools/shared/tool-types.js';
 
 /**
  * Shared identity + safety preamble for all assistant system prompts.

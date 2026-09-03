@@ -1,23 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { VectorStoreFactory } from '../vector/vector-store.factory';
+import { VectorStoreFactory } from '../vector/vector-store.factory.js';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/assistant.types';
-import { buildReadConfidence, buildReadEnvelope } from '../presenters';
+} from '../../types/assistant.types.js';
+import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
 import {
   buildVectorPage,
   buildVectorQueryHash,
   decodeVectorCursor,
-} from '../vector/vector-cursor';
+} from '../vector/vector-cursor.js';
 import {
   AssistantToolDrugbankEntityResolveService,
   parseSearchPayload,
-} from './entity-resolve.service';
+} from './entity-resolve.service.js';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../shared/tool-constants';
+} from '../shared/tool-constants.js';
 
 const DRUGBANK_EMBEDDINGS_TABLE = 'drugbank_passage_embeddings';
 

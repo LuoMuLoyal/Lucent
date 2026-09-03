@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
-import { LifecycleService } from './lifecycle.service';
+import { LifecycleService } from './lifecycle.service.js';
 
 describe('LifecycleService', () => {
   let loggerLog: vi.MockInstance<any>;

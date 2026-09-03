@@ -14,8 +14,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { DailyRecordKind } from '#generated/prisma/client';
-import { DailyRecordAttachmentInputDto } from './record-attachment.dto';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import { DailyRecordAttachmentInputDto } from './record-attachment.dto.js';
 
 export class CreateDailyRecordDto {
   @ApiProperty({ enum: DailyRecordKind, enumName: 'DailyRecordKind' })

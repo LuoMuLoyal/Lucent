@@ -1,7 +1,7 @@
-import { LifecycleService } from './manager.service';
-import { SuggestionLifecycleState } from '../../types/suggestion.types';
-import type { SuggestionCandidate } from '../../types/candidate.types';
-import { formatDateOnly, now } from '../../../../common';
+import { LifecycleService } from './manager.service.js';
+import { SuggestionLifecycleState } from '../../types/suggestion.types.js';
+import type { SuggestionCandidate } from '../../types/candidate.types.js';
+import { formatDateOnly, now } from '../../../../common/index.js';
 
 function createMockCache() {
   return {

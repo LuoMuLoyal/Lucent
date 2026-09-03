@@ -1,11 +1,11 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { LlmRuntimeService } from '../../../../llm-runtime';
-import type { MetricsService } from '../../../../common/metrics/metrics.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants';
-import { REPORT_RANGE_LAST_30_DAYS } from '../../dto/report-dashboard-query.dto';
-import { ReportsAiSummaryGeneratorService } from './generator.service';
-import type { ReportsAiSummaryContext } from './context.service';
+import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import type { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
+import { REPORT_RANGE_LAST_30_DAYS } from '../../dto/report-dashboard-query.dto.js';
+import { ReportsAiSummaryGeneratorService } from './generator.service.js';
+import type { ReportsAiSummaryContext } from './context.service.js';
 
 function buildMetricsService() {
   return {

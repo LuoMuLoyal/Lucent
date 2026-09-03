@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import { prepareSse, writeSseEvent, endSse } from './sse';
+import { prepareSse, writeSseEvent, endSse } from './sse.js';
 
 describe('sse', () => {
   function createMockResponse(): vi.Mocked<

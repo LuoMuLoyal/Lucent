@@ -4,7 +4,7 @@ import {
   AIMessageChunk,
   type BaseMessage,
 } from '@langchain/core/messages';
-import { extractMessageText } from './message-text.utils';
+import { extractMessageText } from './message-text.utils.js';
 
 export type StreamableModel = {
   stream(input: BaseMessage[]): Promise<AsyncIterable<unknown>>;

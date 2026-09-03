@@ -1,6 +1,9 @@
-import type { PrismaService } from '../../../prisma';
-import type { ResultAsync, DomainFailure } from '../../../common/result';
-import { LegalDocumentsService } from './documents.service';
+import type { PrismaService } from '../../../prisma/index.js';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
+import { LegalDocumentsService } from './documents.service.js';
 
 /** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
 async function collectResult<T>(

@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult, nonDeleted } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { userHealthContextInclude } from '../types/health-context.types';
+import { Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPrismaResult, nonDeleted } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { userHealthContextInclude } from '../types/health-context.types.js';
 
 /**
  * Abstract port for user-health-context data access.

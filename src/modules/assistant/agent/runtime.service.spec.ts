@@ -1,11 +1,11 @@
 import { AIMessageChunk } from '@langchain/core/messages';
 import { InternalServerErrorException } from '@nestjs/common';
 import { MemorySaver } from '@langchain/langgraph';
-import type { LlmRuntimeService } from '../../../llm-runtime';
-import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service';
-import { okAsync } from '../../../common/result';
-import { AssistantRuntimeService } from './runtime.service';
-import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
+import type { LlmRuntimeService } from '../../../llm-runtime/index.js';
+import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { okAsync } from '../../../common/result/index.js';
+import { AssistantRuntimeService } from './runtime.service.js';
+import { buildAssistantSystemPrompt } from '../prompts/system.prompt.js';
 
 function buildMetricsService() {
   return {

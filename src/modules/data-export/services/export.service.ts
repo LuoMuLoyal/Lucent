@@ -1,20 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult } from '../../../common';
+import type { Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPrismaResult } from '../../../common/index.js';
 import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { PasswordReauthService } from '../../auth';
+} from '../../../common/result/index.js';
+import { PasswordReauthService } from '../../auth/index.js';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
-} from '../dto/export-response.dto';
-import { DataExportStorageService } from './storage.service';
-import { DataExportQueueService } from './queue.service';
-import { DataExportProcessorService } from './processor.service';
+} from '../dto/export-response.dto.js';
+import { DataExportStorageService } from './storage.service.js';
+import { DataExportQueueService } from './queue.service.js';
+import { DataExportProcessorService } from './processor.service.js';
 
 const DEFAULT_EXPORT_RANGE = 'last_7_days';
 const MONTHLY_EXPORT_RANGE = 'last_30_days';

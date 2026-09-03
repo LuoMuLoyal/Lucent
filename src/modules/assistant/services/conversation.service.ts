@@ -1,10 +1,10 @@
-import { truncate } from '../../../common';
+import { truncate } from '../../../common/index.js';
 import { Injectable, Logger } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
 import { I18nService } from 'nestjs-i18n';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants';
-import { LlmRuntimeService } from '../../../llm-runtime';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
+import { LlmRuntimeService } from '../../../llm-runtime/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -13,24 +13,24 @@ import {
   unwrapResult,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
 import type {
   AssistantConversationMessage,
   AssistantConversationSnapshot,
   AssistantConversationSummary,
-} from '../types/assistant.types';
-import { now } from '../../../common';
+} from '../types/assistant.types.js';
+import { now } from '../../../common/index.js';
 import {
   MAX_COMPACT_LENGTH,
   RECENT_CONVERSATION_LIMIT,
-} from '../tools/shared/tool-constants';
+} from '../tools/shared/tool-constants.js';
 import {
   AssistantConversationRepositoryPort,
   type ConversationWithMessages,
   type ConversationSummary,
-} from '../repositories/conversation.repository';
-import { AssistantMemoryService } from './memory.service';
+} from '../repositories/conversation.repository.js';
+import { AssistantMemoryService } from './memory.service.js';
 
 /**
  * Best-effort LLM title refinement (F-2): the conversation is created with a

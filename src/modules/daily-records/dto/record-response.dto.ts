@@ -1,8 +1,8 @@
 import {
   DailyRecordListDataDto,
   DailyRecordSummaryDataDto,
-} from './record-data.dto';
-import { DailyRecordItemDto } from './record-item.dto';
+} from './record-data.dto.js';
+import { DailyRecordItemDto } from './record-item.dto.js';
 
 export class DailyRecordListResponseDto extends DailyRecordListDataDto {}
 

@@ -1,6 +1,6 @@
-import { Prisma } from '#generated/prisma/client';
-import { createDomainFailure, fromPromise } from '../../result';
-import type { DomainFailure, ResultAsync } from '../../result';
+import { Prisma } from '#generated/prisma/client.js';
+import { createDomainFailure, fromPromise } from '../../result/index.js';
+import type { DomainFailure, ResultAsync } from '../../result/index.js';
 
 /**
  * Maps a known Prisma Client request error to a domain failure.

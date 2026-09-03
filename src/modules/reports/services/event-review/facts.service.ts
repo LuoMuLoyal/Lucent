@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   EventReviewEventDto,
   EventReviewSectionDto,
-} from '../../dto/event-review-response.dto';
+} from '../../dto/event-review-response.dto.js';
 
 /** Window facts the whatHappened section needs beyond the event identity. */
 export interface ReviewEventFactInput {

@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { roundNumber } from '../../../../common';
-import { commonCharacterCount } from '../../../../common';
-import { ConfigKey } from '../../../../config/env/config-keys.enum';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader';
-import { PrismaService } from '../../../../prisma';
+import { roundNumber } from '../../../../common/index.js';
+import { commonCharacterCount } from '../../../../common/index.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import {
   type MealCompositionMatch,
   type MealResolvedIngredient,
-} from '../../types/meal-analysis.types';
+} from '../../types/meal-analysis.types.js';
 
 interface GroundedIngredient extends MealCompositionMatch {
   nutritionSource: {

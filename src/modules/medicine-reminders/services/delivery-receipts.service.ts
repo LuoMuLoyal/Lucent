@@ -1,30 +1,30 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { now } from '../../../common';
+import { Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { now } from '../../../common/index.js';
 import {
   createDomainFailure,
   fromPromise,
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
-import { fromPrismaResult } from '../../../common';
+} from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
+import { fromPrismaResult } from '../../../common/index.js';
 import {
   DELIVERY_CHANNEL_LOCAL,
   DELIVERY_STATUS_DELIVERED,
   LOCAL_CAPABILITY_CACHE_TTL_MS,
   localCapabilityCacheKey,
   type LocalCapabilityState,
-} from '../constants/delivery.constants';
-import type { ReminderDeliveryReceiptDto } from '../dto/reminder-delivery-receipt.dto';
-import type { ReminderDeliveryItemDto } from '../dto/reminder-delivery-response.dto';
-import { MedicineRemindersMapperService } from './mapper.service';
-import { MedicineRemindersOwnershipService } from './ownership.service';
-import { wallClockToScheduledFor } from './delivery-moment';
+} from '../constants/delivery.constants.js';
+import type { ReminderDeliveryReceiptDto } from '../dto/reminder-delivery-receipt.dto.js';
+import type { ReminderDeliveryItemDto } from '../dto/reminder-delivery-response.dto.js';
+import { MedicineRemindersMapperService } from './mapper.service.js';
+import { MedicineRemindersOwnershipService } from './ownership.service.js';
+import { wallClockToScheduledFor } from './delivery-moment.js';
 
 const deliveryItemSelect = {
   id: true,

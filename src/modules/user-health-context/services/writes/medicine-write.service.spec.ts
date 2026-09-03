@@ -1,12 +1,15 @@
 import { Test } from '@nestjs/testing';
-import { MedicineSource } from '#generated/prisma/client';
+import { MedicineSource } from '#generated/prisma/client.js';
 import { type Mocked } from 'vitest';
-import { okAsync, errAsync } from '../../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository';
-import { UserHealthContextOwnershipService } from '../ownership.service';
-import { UserHealthContextMapperService } from '../mapper.service';
-import { UserHealthContextMedicineWriteService } from './medicine-write.service';
+import { okAsync, errAsync } from '../../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
+import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
+import { UserHealthContextOwnershipService } from '../ownership.service.js';
+import { UserHealthContextMapperService } from '../mapper.service.js';
+import { UserHealthContextMedicineWriteService } from './medicine-write.service.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,

@@ -1,5 +1,5 @@
 import type { I18nService } from 'nestjs-i18n';
-import { ProblemCatalog } from './problem-catalog';
+import { ProblemCatalog } from './problem-catalog.js';
 
 describe('ProblemCatalog', () => {
   it('builds a localized stable Problem Details entry', () => {

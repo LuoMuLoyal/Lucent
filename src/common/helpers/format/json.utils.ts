@@ -3,7 +3,7 @@
  */
 
 import type { Logger } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
+import { Prisma } from '#generated/prisma/client.js';
 
 /**
  * Extracts the outermost JSON object from a string that may contain

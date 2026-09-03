@@ -1,5 +1,5 @@
 import { rgb } from 'pdf-lib';
-import type { ReportPdfKind } from '../constants/report-pdf.constants';
+import type { ReportPdfKind } from '../constants/report-pdf.constants.js';
 
 type PdfColor = ReturnType<typeof rgb>;
 

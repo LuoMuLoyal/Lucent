@@ -4,7 +4,7 @@ import {
   buildLocalizedPromptCopy,
   buildUserPrompt,
   translateScopedCopy,
-} from './localized-copy';
+} from './localized-copy.js';
 
 describe('localized-copy', () => {
   let i18n: vi.Mocked<I18nService>;

@@ -1,10 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from '../auth';
-import { EnvironmentSnapshotQueryDto } from './dto/snapshot-query.dto';
+import { Public } from '../auth/index.js';
+import { EnvironmentSnapshotQueryDto } from './dto/snapshot-query.dto.js';
 
-import { EnvironmentSnapshotResponseDto } from './dto/snapshot.dto';
-import { EnvironmentService } from './services/snapshot.service';
+import { EnvironmentSnapshotResponseDto } from './dto/snapshot.dto.js';
+import { EnvironmentService } from './services/snapshot.service.js';
 
 @ApiTags('Environment')
 @Public()

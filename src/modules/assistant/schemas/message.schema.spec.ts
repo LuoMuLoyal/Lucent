@@ -1,7 +1,7 @@
 import {
   assistantMessageRoleSchema,
   assistantMessageSchema,
-} from './message.schema';
+} from './message.schema.js';
 
 describe('assistantMessageRoleSchema', () => {
   it('accepts system role', () => {

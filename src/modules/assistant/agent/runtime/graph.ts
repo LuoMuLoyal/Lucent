@@ -4,28 +4,31 @@ import { InMemoryCache } from '@langchain/langgraph-checkpoint';
 import type { BaseMessage } from '@langchain/core/messages';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { isRetryableLlmError } from '../../../../common/llm/retry/llm-retry.helper';
-import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants';
-import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants';
-import type { AssistantToolName } from '../../tools/shared/tool-types';
-import type { AssistantToolExecutionResult } from '../../types/assistant.types';
-import { AssistantRuntimeState } from './state';
-import { selectAllowedToolsForContextSources } from './router';
-import { classifyIntent, type AssistantIntent } from './classify';
-import { buildRespondNode, type AssistantRespondCache } from './respond';
-import { createAgentNode, createToolsNode } from './nodes';
-import { buildReadSubGraph } from './subgraphs/read';
-import { buildWriteSubGraph } from './subgraphs/write';
-import { buildKnowledgeSubGraph } from './subgraphs/knowledge';
-import { createWriteReviewNode, createWriteReviewSetupNode } from './review';
+import { isRetryableLlmError } from '../../../../common/llm/retry/llm-retry.helper.js';
+import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
+import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants.js';
+import type { AssistantToolName } from '../../tools/shared/tool-types.js';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import { AssistantRuntimeState } from './state.js';
+import { selectAllowedToolsForContextSources } from './router.js';
+import { classifyIntent, type AssistantIntent } from './classify.js';
+import { buildRespondNode, type AssistantRespondCache } from './respond.js';
+import { createAgentNode, createToolsNode } from './nodes.js';
+import { buildReadSubGraph } from './subgraphs/read.js';
+import { buildWriteSubGraph } from './subgraphs/write.js';
+import { buildKnowledgeSubGraph } from './subgraphs/knowledge.js';
+import { createWriteReviewNode, createWriteReviewSetupNode } from './review.js';
 
-export { AssistantRuntimeState, ASSISTANT_RUNTIME_NODE_NAMES } from './state';
-export { selectAllowedToolsForContextSources } from './router';
-export { classifyIntent, type AssistantIntent } from './classify';
-export { buildRespondNode } from './respond';
-export { buildReadSubGraph } from './subgraphs/read';
-export { buildWriteSubGraph } from './subgraphs/write';
-export { buildKnowledgeSubGraph } from './subgraphs/knowledge';
+export {
+  AssistantRuntimeState,
+  ASSISTANT_RUNTIME_NODE_NAMES,
+} from './state.js';
+export { selectAllowedToolsForContextSources } from './router.js';
+export { classifyIntent, type AssistantIntent } from './classify.js';
+export { buildRespondNode } from './respond.js';
+export { buildReadSubGraph } from './subgraphs/read.js';
+export { buildWriteSubGraph } from './subgraphs/write.js';
+export { buildKnowledgeSubGraph } from './subgraphs/knowledge.js';
 
 /**
  * Process-wide shared node cache. Nodes that opt into `cachePolicy` share this

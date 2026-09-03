@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common';
+import { nonDeleted } from '../../../common/index.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -11,27 +11,27 @@ import {
   UserAllergySeverity,
   UserConditionStatus,
   UserStatus,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 
-import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
-import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
+import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service.js';
 
-import { UserHealthContextConditionWriteService } from './writes/condition-write.service';
+import { UserHealthContextConditionWriteService } from './writes/condition-write.service.js';
 
-import { UserHealthContextMapperService } from './mapper.service';
+import { UserHealthContextMapperService } from './mapper.service.js';
 
-import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service';
+import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service.js';
 
-import { UserHealthContextOwnershipService } from './ownership.service';
+import { UserHealthContextOwnershipService } from './ownership.service.js';
 
-import { UserHealthContextProfileWriteService } from './writes/profile-write.service';
+import { UserHealthContextProfileWriteService } from './writes/profile-write.service.js';
 
-import { UserHealthContextService } from './health-context.service';
+import { UserHealthContextService } from './health-context.service.js';
 
 const mockUserBase = {
   id: 'user-uuid-1',

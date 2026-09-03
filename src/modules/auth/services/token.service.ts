@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
-import { User } from '#generated/prisma/client';
-import { ConfigKey } from '../../../config/env/config-keys.enum';
+import { User } from '#generated/prisma/client.js';
+import { ConfigKey } from '../../../config/env/config-keys.enum.js';
 
-import { now } from '../../../common';
+import { now } from '../../../common/index.js';
 import {
   createDomainFailure,
   DomainFailureException,
@@ -15,24 +15,24 @@ import {
   mapUnknownToInternalFailure,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { PrismaService } from '../../../prisma';
+} from '../../../common/result/index.js';
+import { PrismaService } from '../../../prisma/index.js';
 import type {
   AuthRequestContext,
   TokenPair,
   UserPayload,
-} from '../types/auth-request';
+} from '../types/auth-request.js';
 import {
   AuthSessionRepositoryPort,
   type SessionContextData,
-} from '../repositories/session.repository';
+} from '../repositories/session.repository.js';
 import { AuthBetterAuthAdapter } from '../adapters/better-auth.adapter.js';
 
 export type {
   AuthRequestContext,
   TokenPair,
   UserPayload,
-} from '../types/auth-request';
+} from '../types/auth-request.js';
 
 interface JwtConfigShape {
   accessSecret: string;

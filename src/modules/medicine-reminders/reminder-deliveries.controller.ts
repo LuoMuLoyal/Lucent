@@ -7,19 +7,19 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { UserPayload } from '../auth';
-import { CurrentUser } from '../auth';
-import { ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { LocalCapabilityStateDto } from './dto/local-capability.dto';
-import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto';
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+import { ProblemDetailsDto } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { LocalCapabilityStateDto } from './dto/local-capability.dto.js';
+import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto.js';
 import {
   LocalCapabilityResponseDto,
   ReminderDeliveryListResponseDto,
   ReminderDeliveryReceiptResponseDto,
-} from './dto/reminder-delivery-response.dto';
-import { DeliveryReceiptsService } from './services/delivery-receipts.service';
-import { MedicineRemindersService } from './services/reminders.service';
+} from './dto/reminder-delivery-response.dto.js';
+import { DeliveryReceiptsService } from './services/delivery-receipts.service.js';
+import { MedicineRemindersService } from './services/reminders.service.js';
 
 @ApiTags('Reminder Deliveries')
 @Controller('reminder-deliveries')

@@ -1,17 +1,17 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import type { MedicineDetailDataDto } from '../dto/detail.dto';
+import type { MedicineDetailDataDto } from '../dto/detail.dto.js';
 
-import type { MedicineKnowledgeSource } from '../dto/source.dto';
+import type { MedicineKnowledgeSource } from '../dto/source.dto.js';
 
-import type { MedicineSearchResult } from '../dto/search.dto';
+import type { MedicineSearchResult } from '../dto/search.dto.js';
 import {
   MEDICINES_CACHE_KEY_PREFIX,
   MEDICINES_DETAIL_CACHE_TTL_MS,
   MEDICINES_SEARCH_CACHE_TTL_MS,
   MEDICINES_SAFETY_TIPS_TTL_MS,
-} from './store.constants';
+} from './store.constants.js';
 
 interface SearchCacheKeyInput {
   source: MedicineKnowledgeSource;

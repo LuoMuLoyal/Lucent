@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LlmRuntimeService } from './llm-runtime.service';
+import { LlmRuntimeService } from './llm-runtime.service.js';
 
 /**
  * Pure internal infrastructure module — provides LLM model creation to other

@@ -1,12 +1,16 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
-import { SessionController } from './session.controller';
-import { AuthService } from '../services/auth.service';
-import { AuthTokenService } from '../services/token.service';
-import { AuditLogService } from '../../audit-log';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
-import { createDomainFailure, errAsync, okAsync } from '../../../common/result';
-import type { UserPayload } from '../types/auth-request';
+import { SessionController } from './session.controller.js';
+import { AuthService } from '../services/auth.service.js';
+import { AuthTokenService } from '../services/token.service.js';
+import { AuditLogService } from '../../audit-log/index.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../../common/result/index.js';
+import type { UserPayload } from '../types/auth-request.js';
 
 const mockUser: UserPayload = {
   sub: 'user-1',

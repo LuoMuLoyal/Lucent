@@ -1,14 +1,17 @@
-import { nonDeleted } from '../../../common';
+import { nonDeleted } from '../../../common/index.js';
 import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
-import { Prisma } from '#generated/prisma/client';
-import { okAsync } from '../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
-import { MedicineRemindersOwnershipService } from './ownership.service';
-import { MedicineRemindersMapperService } from './mapper.service';
-import { MedicineRemindersService } from './reminders.service';
+import { Prisma } from '#generated/prisma/client.js';
+import { okAsync } from '../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository.js';
+import { MedicineRemindersOwnershipService } from './ownership.service.js';
+import { MedicineRemindersMapperService } from './mapper.service.js';
+import { MedicineRemindersService } from './reminders.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { REMINDER_CHANGED } from '../../../common/events/domain-events.js';
 

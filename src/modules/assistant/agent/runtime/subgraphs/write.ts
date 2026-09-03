@@ -1,9 +1,9 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { SystemMessage } from '@langchain/core/messages';
-import { MAX_TOOL_LOOPS } from '../../../tools/shared/tool-constants';
-import { AssistantRuntimeState, DEFAULT_VALIDATION_FLAGS } from '../state';
-import { createAgentNode, createToolsNode } from '../nodes';
-import type { AssistantGraphDeps } from '../graph';
+import { MAX_TOOL_LOOPS } from '../../../tools/shared/tool-constants.js';
+import { AssistantRuntimeState, DEFAULT_VALIDATION_FLAGS } from '../state.js';
+import { createAgentNode, createToolsNode } from '../nodes.js';
+import type { AssistantGraphDeps } from '../graph.js';
 
 /**
  * Builds the write-proposal sub-graph.

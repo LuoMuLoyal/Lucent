@@ -1,13 +1,13 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { createHash } from 'node:crypto';
 
 import * as argon2 from 'argon2';
-import { PrismaService } from '../../../prisma';
-import { TestingSupportService } from './fixtures.service';
-import { ARGON2_OPTIONS } from '../../auth';
+import { PrismaService } from '../../../prisma/index.js';
+import { TestingSupportService } from './fixtures.service.js';
+import { ARGON2_OPTIONS } from '../../auth/index.js';
 
 vi.mock('argon2', () => ({
   argon2id: 2,

@@ -1,5 +1,5 @@
-import { nowIsoString } from '../../../common';
-import { mealRecordPayloadSchema } from '../../../common/validators/jsonb-schemas';
+import { nowIsoString } from '../../../common/index.js';
+import { mealRecordPayloadSchema } from '../../../common/validators/jsonb-schemas.js';
 import { isDeepStrictEqual } from 'node:util';
 
 export const MEAL_ANALYSIS_STATUSES = [

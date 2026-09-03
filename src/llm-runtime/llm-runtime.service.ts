@@ -6,8 +6,11 @@ import {
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
-import type { LlmRole, LlmRuntimePort } from '../common/llm/llm-runtime.port';
-import { llmConfig } from '../config/services/llm.config';
+import type {
+  LlmRole,
+  LlmRuntimePort,
+} from '../common/llm/llm-runtime.port.js';
+import { llmConfig } from '../config/services/llm.config.js';
 
 /**
  * Concrete LLM runtime service.

@@ -1,4 +1,4 @@
-import { AssistantContextService } from './context.service';
+import { AssistantContextService } from './context.service.js';
 
 describe('AssistantContextService', () => {
   it('renders read envelopes and proposal summaries into a structured prompt block', () => {

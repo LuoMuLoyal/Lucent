@@ -19,7 +19,7 @@
  * TypeScript type of `$extends(...)` correctly includes the new
  * `nonDeleted` properties.
  */
-import { Prisma, type PrismaClient } from '#generated/prisma/client';
+import { Prisma, type PrismaClient } from '#generated/prisma/client.js';
 
 // ──────────────────────────────────────────────────────────────────────────
 //  Internal helper

@@ -4,8 +4,8 @@ import {
   type BeforeApplicationShutdown,
 } from '@nestjs/common';
 import type { ServerResponse } from 'node:http';
-import { writeSseEvent, type SseConnectionTracker } from './sse';
-import { SseProblemDetailsMapper } from './sse-problem-details';
+import { writeSseEvent, type SseConnectionTracker } from './sse.js';
+import { SseProblemDetailsMapper } from './sse-problem-details.js';
 
 /**
  * Tracks every open SSE connection so a shutdown (SIGTERM →

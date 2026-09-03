@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { DailyRecordKind } from '#generated/prisma/client';
-import { DailyRecordItemDto } from './record-item.dto';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import { DailyRecordItemDto } from './record-item.dto.js';
 
 export class DailyRecordSummaryDto {
   @ApiProperty({ enum: DailyRecordKind, enumName: 'DailyRecordKind' })

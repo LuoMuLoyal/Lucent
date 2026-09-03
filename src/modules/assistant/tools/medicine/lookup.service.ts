@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { AssistantReadResultEnvelope } from '../../types/assistant.types';
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
-import type { MedicineSearchItemDto } from '../../../medicines';
-import { CnMedicinesService } from '../../../medicines';
-import { DrugbankMedicinesService } from '../../../medicines';
-import { buildReadConfidence, buildReadEnvelope } from '../presenters';
-import { parseSearchPayload } from '../drugbank/entity-resolve.service';
+import type { AssistantReadResultEnvelope } from '../../types/assistant.types.js';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
+import type { MedicineSearchItemDto } from '../../../medicines/index.js';
+import { CnMedicinesService } from '../../../medicines/index.js';
+import { DrugbankMedicinesService } from '../../../medicines/index.js';
+import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
+import { parseSearchPayload } from '../drugbank/entity-resolve.service.js';
 
 const DEFAULT_SEARCH_LIMIT = 4;
 const MAX_SEARCH_LIMIT = 8;

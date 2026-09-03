@@ -1,11 +1,14 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { Prisma } from '#generated/prisma/client';
+import { Prisma } from '#generated/prisma/client.js';
 
-import type { ResultAsync, DomainFailure } from '../../../common/result';
-import { NotificationsService } from './notifications.service';
-import { PrismaService } from '../../../prisma';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
+import { NotificationsService } from './notifications.service.js';
+import { PrismaService } from '../../../prisma/index.js';
 
 /** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
 async function collectResult<T>(

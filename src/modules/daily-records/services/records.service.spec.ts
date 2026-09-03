@@ -1,20 +1,20 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import { DailyRecordKind, Prisma } from '#generated/prisma/client';
+import { DailyRecordKind, Prisma } from '#generated/prisma/client.js';
 import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
-import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
-import { HealthEventsOwnershipService } from '../../health-events';
-import { DailyRecordsOwnershipService } from './ownership.service';
-import { DailyRecordsMapperService } from './mapper.service';
-import { DailyRecordsService } from './records.service';
-import { MealAnalysisQueueService } from './meal-analysis/queue.service';
-import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
+} from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
+import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository.js';
+import { HealthEventsOwnershipService } from '../../health-events/index.js';
+import { DailyRecordsOwnershipService } from './ownership.service.js';
+import { DailyRecordsMapperService } from './mapper.service.js';
+import { DailyRecordsService } from './records.service.js';
+import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
+import { MealDishTemplateLearningService } from './meal-dish/template-learning.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const mockUserId = 'user-uuid-1';

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { DailyRecordItemDto } from './record-item.dto';
-import { DailyRecordSummaryDto } from './record-summary.dto';
+import { DailyRecordItemDto } from './record-item.dto.js';
+import { DailyRecordSummaryDto } from './record-summary.dto.js';
 
 export class DailyRecordListDataDto {
   @ApiProperty({ type: () => DailyRecordItemDto, isArray: true })

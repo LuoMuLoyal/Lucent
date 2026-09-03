@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import type { YamlConfig } from '../../config/yaml/yaml-loader';
-import { ObjectStorageRuntime } from './object-storage.runtime';
-import { TencentCosStorageRuntime } from './tencent-cos.runtime';
-import { S3StorageRuntime } from './s3.runtime';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../../config/yaml/yaml-loader.js';
+import { ObjectStorageRuntime } from './object-storage.runtime.js';
+import { TencentCosStorageRuntime } from './tencent-cos.runtime.js';
+import { S3StorageRuntime } from './s3.runtime.js';
 
 /**
  * Provides the shared object-storage runtime to any module that needs

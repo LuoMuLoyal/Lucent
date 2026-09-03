@@ -1,7 +1,7 @@
 import { SystemMessage } from '@langchain/core/messages';
 import { interrupt } from '@langchain/langgraph';
-import type { AssistantToolExecutionResult } from '../../types/assistant.types';
-import type { AssistantPendingReview, AssistantRuntimeState } from './state';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import type { AssistantPendingReview, AssistantRuntimeState } from './state.js';
 
 /** Payload exposed to the suspended thread's caller via getState/interrupt. */
 export interface AssistantReviewRequest {

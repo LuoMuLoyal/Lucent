@@ -1,5 +1,5 @@
-import { RuleVersionRegistry } from './rule-version-registry.service';
-import { MissedDoseRuleService } from './medication/missed-dose.service';
+import { RuleVersionRegistry } from './rule-version-registry.service.js';
+import { MissedDoseRuleService } from './medication/missed-dose.service.js';
 
 describe('RuleVersionRegistry', () => {
   let registry: RuleVersionRegistry;

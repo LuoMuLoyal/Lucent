@@ -1,4 +1,4 @@
-import { SuggestionFeedback } from '../types/suggestion.types';
+import { SuggestionFeedback } from '../types/suggestion.types.js';
 
 /** Duration of "later" feedback suppression (milliseconds). */
 export const FEEDBACK_LATER_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours

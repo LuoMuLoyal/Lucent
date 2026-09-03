@@ -1,4 +1,4 @@
-import { createDomainFailure, isDomainFailure } from './domain-failure';
+import { createDomainFailure, isDomainFailure } from './domain-failure.js';
 
 describe('DomainFailure', () => {
   it('creates a typed recoverable failure without HTTP fields', () => {

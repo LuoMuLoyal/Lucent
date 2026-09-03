@@ -1,17 +1,17 @@
 import type { I18nService } from 'nestjs-i18n';
-import { SuggestionPresentationService } from './presentation.service';
+import { SuggestionPresentationService } from './presentation.service.js';
 import {
   SuggestionCopyService,
   type CopyGenerationResult,
-} from './copy/writer.service';
-import type { SuggestionCandidate } from '../types/candidate.types';
+} from './copy/writer.service.js';
+import type { SuggestionCandidate } from '../types/candidate.types.js';
 import {
   SuggestionType,
   SuggestionConfidence,
   SuggestionLifecycleState,
   SuggestionFeedback,
-} from '../types/suggestion.types';
-import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto';
+} from '../types/suggestion.types.js';
+import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto.js';
 
 const mockCopyResult: CopyGenerationResult = {
   title: 'AI Title',

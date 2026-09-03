@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { MetricsService } from './metrics.service';
+import { MetricsService } from './metrics.service.js';
 
 /**
  * Global module that provides the Prometheus metrics registry and recording

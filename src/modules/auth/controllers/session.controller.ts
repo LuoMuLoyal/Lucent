@@ -21,20 +21,20 @@ import {
   calculateExpiresIn,
   extractAuthRequestContext,
   ProblemDetailsDto,
-} from '../../../common';
-import { unwrapResult } from '../../../common/result';
-import { AuditLogService } from '../../audit-log';
-import { AuthService } from '../services/auth.service';
-import { AuthTokenService } from '../services/token.service';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { Public } from '../decorators/public.decorator';
-import type { UserPayload } from '../types/auth-request';
+} from '../../../common/index.js';
+import { unwrapResult } from '../../../common/result/index.js';
+import { AuditLogService } from '../../audit-log/index.js';
+import { AuthService } from '../services/auth.service.js';
+import { AuthTokenService } from '../services/token.service.js';
+import { CurrentUser } from '../decorators/current-user.decorator.js';
+import { Public } from '../decorators/public.decorator.js';
+import type { UserPayload } from '../types/auth-request.js';
 
-import { LogoutDto } from '../dto/credentials/logout.dto';
-import { RefreshDto } from '../dto/credentials/refresh.dto';
+import { LogoutDto } from '../dto/credentials/logout.dto.js';
+import { RefreshDto } from '../dto/credentials/refresh.dto.js';
 
-import { RefreshResponseDto } from '../dto/shared/auth-responses.dto';
-import { SessionListItemDto } from '../dto/shared/session-list-item.dto';
+import { RefreshResponseDto } from '../dto/shared/auth-responses.dto.js';
+import { SessionListItemDto } from '../dto/shared/session-list-item.dto.js';
 
 @ApiTags('Auth')
 @Controller('auth')

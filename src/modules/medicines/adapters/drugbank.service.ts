@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
-import type { DrugbankDrug } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
+import { Prisma } from '#generated/prisma/client.js';
+import type { DrugbankDrug } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
 import type {
   DrugbankMedicineDetailDto,
   MedicineDetailDataDto,
-} from '../dto/detail.dto';
+} from '../dto/detail.dto.js';
 
 import type {
   MedicineSearchItemDto,
   MedicineSearchResult,
-} from '../dto/search.dto';
+} from '../dto/search.dto.js';
 import {
   composeSubtitle,
   detectMatchedBy,
@@ -20,7 +20,7 @@ import {
   toStringList,
   truncateText,
   uniqueNonEmptyStrings,
-} from '../utils/data-format';
+} from '../utils/data-format.js';
 
 interface MedicineSearchCriteria {
   q: string;

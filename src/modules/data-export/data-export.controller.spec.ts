@@ -1,14 +1,14 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
-import { errAsync, okAsync } from '../../common/result';
-import type { DomainFailure } from '../../common/result';
-import { AuditLogService } from '../audit-log';
-import { DataExportController } from './data-export.controller';
-import { DataExportService } from './services/export.service';
+import { errAsync, okAsync } from '../../common/result/index.js';
+import type { DomainFailure } from '../../common/result/index.js';
+import { AuditLogService } from '../audit-log/index.js';
+import { DataExportController } from './data-export.controller.js';
+import { DataExportService } from './services/export.service.js';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
-} from './dto/export-response.dto';
+} from './dto/export-response.dto.js';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },

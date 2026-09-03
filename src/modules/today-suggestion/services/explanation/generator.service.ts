@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { LlmRuntimeService } from '../../../../llm-runtime';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildExplanationSystemPrompt,
   buildExplanationUserPrompt,
   type ExplanationContext,
   type ExplanationPromptCopy,
-} from '../../prompts/explanation.prompt';
+} from '../../prompts/explanation.prompt.js';
 import {
   explanationSchema,
   type ExplanationStructuredOutput,
-} from '../../schemas/explanation.schema';
+} from '../../schemas/explanation.schema.js';
 
 /**
  * LLM generator for suggestion card explanations.

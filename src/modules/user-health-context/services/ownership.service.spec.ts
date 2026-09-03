@@ -1,8 +1,11 @@
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
-import { UserHealthContextOwnershipService } from './ownership.service';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
+import { UserHealthContextOwnershipService } from './ownership.service.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,

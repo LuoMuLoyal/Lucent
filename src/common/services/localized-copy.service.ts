@@ -5,7 +5,7 @@ import {
   resolveLocale,
   translateScopedCopy,
   type PromptCopy,
-} from '../helpers/format/localized-copy';
+} from '../helpers/format/localized-copy.js';
 
 @Injectable()
 export abstract class LocalizedCopyService<TPromptCopy extends PromptCopy> {

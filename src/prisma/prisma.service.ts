@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Logger as WinstonLogger } from 'winston';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Prisma, PrismaClient } from '#generated/prisma/client';
+import { Prisma, PrismaClient } from '#generated/prisma/client.js';
 import { EnvKey } from '../config/env/env-keys.enum.js';
 import { ConfigKey } from '../config/env/config-keys.enum.js';
 import type { YamlConfig } from '../config/yaml/yaml-loader.js';

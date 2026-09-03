@@ -6,17 +6,17 @@ import {
   createTestApp,
   createTestUser,
   expectData,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 import type {
   E2eApp,
   E2eTestContext,
   TestUser,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 import {
   DailyRecordKind,
   HealthEventOutcome,
   MedicineSource,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 
 const HEALTH_EVENTS_PATH = '/api/v1/user/health-events';
 const DAILY_RECORDS_PATH = '/api/v1/user/daily-records';

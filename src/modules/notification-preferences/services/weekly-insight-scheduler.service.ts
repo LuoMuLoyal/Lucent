@@ -3,12 +3,12 @@ import { I18nService } from 'nestjs-i18n';
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
-} from '../../../common';
-import { PrismaService } from '../../../prisma';
-import { INotificationSender } from '../../notifications';
-import { PushDeliveryService } from '../../notifications';
-import { IReportSummaryReader } from '../../reports';
-import { NotificationPreferencesService } from './notification-preferences.service';
+} from '../../../common/index.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { INotificationSender } from '../../notifications/index.js';
+import { PushDeliveryService } from '../../notifications/index.js';
+import { IReportSummaryReader } from '../../reports/index.js';
+import { NotificationPreferencesService } from './notification-preferences.service.js';
 
 const WEEKLY_INSIGHT_SOURCE = 'ai_weekly_insight';
 const DAY_MS = 86_400_000;

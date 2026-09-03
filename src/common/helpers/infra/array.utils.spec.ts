@@ -1,4 +1,4 @@
-import { chunkArray, isEmptyArray, shuffleArray } from './array.utils';
+import { chunkArray, isEmptyArray, shuffleArray } from './array.utils.js';
 
 describe('array.utils', () => {
   describe('isEmptyArray', () => {

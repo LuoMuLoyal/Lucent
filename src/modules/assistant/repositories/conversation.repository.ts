@@ -14,10 +14,13 @@ import { Injectable } from '@nestjs/common';
 import {
   AssistantConversationStatus,
   type Prisma,
-} from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+} from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPrismaResult } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 const conversationWithMessagesArgs = {
   include: {

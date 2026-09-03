@@ -6,16 +6,16 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { CurrentUser } from '../auth';
-import type { UserPayload } from '../auth';
-import { CreateProductEventBatchDto } from './dto/create-product-event.dto';
-import { FunnelQueryDto } from './dto/funnel-query.dto';
-import { FunnelResponseDto } from './dto/funnel-response.dto';
-import { AdminGuard } from './guards/admin.guard';
-import { ProductEventsService } from './services/events.service';
-import { ProductFunnelService } from './services/funnel.service';
+import { ProblemDetailsDto } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { CreateProductEventBatchDto } from './dto/create-product-event.dto.js';
+import { FunnelQueryDto } from './dto/funnel-query.dto.js';
+import { FunnelResponseDto } from './dto/funnel-response.dto.js';
+import { AdminGuard } from './guards/admin.guard.js';
+import { ProductEventsService } from './services/events.service.js';
+import { ProductFunnelService } from './services/funnel.service.js';
 
 @ApiTags('Product Events')
 @ApiBearerAuth('access-token')

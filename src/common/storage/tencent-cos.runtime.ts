@@ -1,15 +1,15 @@
 import COS from 'cos-nodejs-sdk-v5';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import type { TencentCosConfig } from '../../config/services/tencent-cos.config';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import type { TencentCosConfig } from '../../config/services/tencent-cos.config.js';
 import {
   ObjectStorageRuntime,
   type ObjectStorageConfig,
   type SignedGetUrlInput,
   type SignedPutUrlInput,
   type UploadBufferInput,
-} from './object-storage.runtime';
+} from './object-storage.runtime.js';
 
 /**
  * Tencent Cloud COS (Cloud Object Storage) runtime.

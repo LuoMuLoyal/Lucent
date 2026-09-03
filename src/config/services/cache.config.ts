@@ -5,8 +5,8 @@ import Keyv from 'keyv';
 import { KeyvAdapter } from 'cache-manager';
 import type { CacheManagerStore } from 'cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
-import { EnvKey } from '../env/env-keys.enum';
-import { parseRedisUrl } from '../../common/helpers/infra/redis-url';
+import { EnvKey } from '../env/env-keys.enum.js';
+import { parseRedisUrl } from '../../common/helpers/infra/redis-url.js';
 
 type RedisRuntimeStore = Awaited<ReturnType<typeof redisStore>> & {
   get(key: string): Promise<unknown>;

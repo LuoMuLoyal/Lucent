@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { BullmqQueueFactory } from './queue.factory';
+import { BullmqQueueFactory } from './queue.factory.js';
 
 /**
  * Global module that provides the shared {@link BullmqQueueFactory}.

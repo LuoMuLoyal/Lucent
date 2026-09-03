@@ -1,10 +1,10 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { JwtAuthGuard } from '../auth';
-import { errAsync, okAsync } from '../../common/result';
-import type { DomainFailure } from '../../common/result';
-import { FilesController } from './files.controller';
-import { FilesService } from './services/files.service';
+import { JwtAuthGuard } from '../auth/index.js';
+import { errAsync, okAsync } from '../../common/result/index.js';
+import type { DomainFailure } from '../../common/result/index.js';
+import { FilesController } from './files.controller.js';
+import { FilesService } from './services/files.service.js';
 
 describe('FilesController', () => {
   let controller: FilesController;

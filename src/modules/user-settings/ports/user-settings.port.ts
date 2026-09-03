@@ -1,6 +1,9 @@
-import type { UserSettingsDataDto } from '../dto/response.dto';
-import type { UpdateUserSettingsDto } from '../dto/update.dto';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import type { UserSettingsDataDto } from '../dto/response.dto.js';
+import type { UpdateUserSettingsDto } from '../dto/update.dto.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 /**
  * Port for reading and updating user settings.  Consumed by modules that

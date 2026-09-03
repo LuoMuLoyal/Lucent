@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { LocalCapabilityState } from '../constants/delivery.constants';
+import type { LocalCapabilityState } from '../constants/delivery.constants.js';
 
 export class ReminderDeliveryItemDto {
   @ApiProperty({ description: 'Delivery log id.' })

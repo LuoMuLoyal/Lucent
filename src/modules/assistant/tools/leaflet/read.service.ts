@@ -1,22 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
-import { PrismaService } from '../../../../prisma';
-import { VectorStoreFactory } from '../vector/vector-store.factory';
+import { PrismaService } from '../../../../prisma/index.js';
+import { VectorStoreFactory } from '../vector/vector-store.factory.js';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/assistant.types';
-import { buildReadConfidence, buildReadEnvelope } from '../presenters';
+} from '../../types/assistant.types.js';
+import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
 import {
   buildVectorPage,
   buildVectorQueryHash,
   decodeVectorCursor,
-} from '../vector/vector-cursor';
-import { parseSearchPayload } from '../drugbank/entity-resolve.service';
+} from '../vector/vector-cursor.js';
+import { parseSearchPayload } from '../drugbank/entity-resolve.service.js';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../shared/tool-constants';
+} from '../shared/tool-constants.js';
 
 const VECTOR_FETCH_BUFFER = 4;
 const PRODUCT_RESOLVE_FETCH_COUNT = 20;

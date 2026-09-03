@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateReadResults } from './validate';
+import { validateReadResults } from './validate.js';
 
 describe('validateReadResults', () => {
   it('returns defaults for empty or non-read results', () => {

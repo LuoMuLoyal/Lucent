@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { LlmRuntimeService } from '../../../../llm-runtime';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   GeneratedCopySchema,
   type GeneratedCopy,
-} from '../../schemas/copy.schema';
+} from '../../schemas/copy.schema.js';
 import type {
   CopyGenerationContext,
   CopyPromptCopy,
-} from '../../types/copy-generation.types';
+} from '../../types/copy-generation.types.js';
 import {
   buildCopySystemPrompt,
   buildCopyUserPrompt,
-} from '../../prompts/copy.prompt';
+} from '../../prompts/copy.prompt.js';
 
 /**
  * LLM generator for suggestion card copy.

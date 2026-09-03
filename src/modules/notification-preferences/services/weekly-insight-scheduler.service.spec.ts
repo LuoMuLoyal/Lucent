@@ -1,5 +1,5 @@
-import { okAsync } from '../../../common/result';
-import { WeeklyInsightSchedulerService } from './weekly-insight-scheduler.service';
+import { okAsync } from '../../../common/result/index.js';
+import { WeeklyInsightSchedulerService } from './weekly-insight-scheduler.service.js';
 
 const asiaMondayAtNineUtc = new Date('2026-08-17T01:00:00.000Z');
 const losAngelesMondayAtNineUtc = new Date('2026-08-17T16:00:00.000Z');

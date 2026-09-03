@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
-import { normalizeNullableText } from '../../../../common';
-import { toInputJsonValue } from '../../../../common';
-import { PrismaService } from '../../../../prisma';
-import { ObjectStorageRuntime } from '../../../../common';
+import { DailyRecordKind, type Prisma } from '#generated/prisma/client.js';
+import { normalizeNullableText } from '../../../../common/index.js';
+import { toInputJsonValue } from '../../../../common/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { ObjectStorageRuntime } from '../../../../common/index.js';
 import {
   getMealSourceRevision,
   parseMealRecordPayload,
-} from '../../types/meal-analysis.types';
-import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
-import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
-import { now } from '../../../../common';
+} from '../../types/meal-analysis.types.js';
+import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service.js';
+import { MealAnalysisVisionService } from '../meal-analysis/vision.service.js';
+import { now } from '../../../../common/index.js';
 
 interface MealAnalysisJobData {
   userId: string;

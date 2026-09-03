@@ -1,8 +1,8 @@
-import type { IDailyRecordCandidateGenerator } from '../../types/ports';
-import type { AssistantToolRecordQueryService } from '../records/query.service';
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
-import type { DailyRecordCandidateData } from '../../../daily-records';
-import { AssistantToolProposalService } from './proposal.service';
+import type { IDailyRecordCandidateGenerator } from '../../types/ports.js';
+import type { AssistantToolRecordQueryService } from '../records/query.service.js';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
+import type { DailyRecordCandidateData } from '../../../daily-records/index.js';
+import { AssistantToolProposalService } from './proposal.service.js';
 
 const mockContext: AssistantToolExecutionContext = {
   userId: 'user-1',

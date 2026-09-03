@@ -1,10 +1,10 @@
-import { DomainFailureException } from '../../../common/result/domain-failure.exception';
+import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../dto/report-dashboard-query.dto';
-import { ReportsContextService } from './context.service';
+} from '../dto/report-dashboard-query.dto.js';
+import { ReportsContextService } from './context.service.js';
 
 describe('ReportsContextService', () => {
   const buildMocks = () => ({

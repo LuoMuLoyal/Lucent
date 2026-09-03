@@ -5,10 +5,13 @@
  * decoupling AssistantMemoryService from direct PrismaService usage.
  */
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma';
-import { fromPrismaResult } from '../../../common';
-import { okAsync } from '../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPrismaResult } from '../../../common/index.js';
+import { okAsync } from '../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 export type AssistantMemoryRow = {
   id: string;

@@ -8,22 +8,22 @@ import {
   type DomainFailure,
   type Result,
   type ResultAsync,
-} from '../../../../common/result';
-import { extractErrorInfo } from '../../../../common';
+} from '../../../../common/result/index.js';
+import { extractErrorInfo } from '../../../../common/index.js';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
-import { ConfigKey } from '../../../../config/env/config-keys.enum';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_WEIBO,
   OAUTH_PROVIDER_GOOGLE,
   type OAuthProviderName,
-} from '../../types/oauth.types';
+} from '../../types/oauth.types.js';
 
 interface OAuthStateEntry {
   provider: OAuthProviderName;

@@ -1,6 +1,6 @@
-import { DataExportQueueService } from './queue.service';
-import type { DataExportProcessorService } from './processor.service';
-import type { BullmqQueueFactory } from '../../../common/queue/queue.factory';
+import { DataExportQueueService } from './queue.service.js';
+import type { DataExportProcessorService } from './processor.service.js';
+import type { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
 
 function buildFactory(queueAvailable: boolean): {
   factory: BullmqQueueFactory;

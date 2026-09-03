@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { randomUUID } from 'node:crypto';
 
-import { normalizeEmail, now } from '../../../../common';
+import { normalizeEmail, now } from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -11,30 +11,30 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
-import type { User } from '#generated/prisma/client';
-import { UserStatus } from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma';
-import { UserService } from '../../../user';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter';
-import { INotificationSender } from '../../../notifications';
-import { VerificationCodeService } from './verification-code.service';
-import { RegisterDto } from '../../dto/credentials/register.dto';
-import { LoginDto } from '../../dto/credentials/login.dto';
-import { ChangePasswordDto } from '../../dto/password/change-password.dto';
-import { ChangeEmailDto } from '../../dto/password/change-email.dto';
-import { ResetPasswordDto } from '../../dto/password/reset-password.dto';
-import { SetPasswordDto } from '../../dto/password/set-password.dto';
-import { ForgotPasswordDto } from '../../dto/password/forgot-password.dto';
-import { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto';
-import { VerifyEmailDto } from '../../dto/password/verify-email.dto';
+} from '../../../../common/result/index.js';
+import type { User } from '#generated/prisma/client.js';
+import { UserStatus } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { UserService } from '../../../user/index.js';
+import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { INotificationSender } from '../../../notifications/index.js';
+import { VerificationCodeService } from './verification-code.service.js';
+import { RegisterDto } from '../../dto/credentials/register.dto.js';
+import { LoginDto } from '../../dto/credentials/login.dto.js';
+import { ChangePasswordDto } from '../../dto/password/change-password.dto.js';
+import { ChangeEmailDto } from '../../dto/password/change-email.dto.js';
+import { ResetPasswordDto } from '../../dto/password/reset-password.dto.js';
+import { SetPasswordDto } from '../../dto/password/set-password.dto.js';
+import { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.js';
+import { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
+import { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
 import {
   AuthTokenService,
   type AuthRequestContext,
   type TokenPair,
-} from '../token.service';
-import { AuthRateLimitService } from './rate-limit.service';
-import { PasswordReauthService } from './password-reauth.service';
+} from '../token.service.js';
+import { AuthRateLimitService } from './rate-limit.service.js';
+import { PasswordReauthService } from './password-reauth.service.js';
 
 /**
  * Narrow subset of Better Auth / better-call API errors that we intentionally

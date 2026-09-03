@@ -15,8 +15,8 @@ import {
   describeUpdateRecordSummary,
   describeDeleteRecordSummary,
   describeRecordTargetLabel,
-} from './presenters';
-import { DailyRecordKind } from '#generated/prisma/client';
+} from './presenters.js';
+import { DailyRecordKind } from '#generated/prisma/client.js';
 
 describe('presenters', () => {
   // -----------------------------------------------------------------------

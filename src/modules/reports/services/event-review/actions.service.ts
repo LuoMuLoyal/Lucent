@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { DoseLogStatus, HealthEventOutcome } from '#generated/prisma/client';
-import { formatDateOnly } from '../../../../common';
-import type { EventReviewSectionDto } from '../../dto/event-review-response.dto';
+import { DoseLogStatus, HealthEventOutcome } from '#generated/prisma/client.js';
+import { formatDateOnly } from '../../../../common/index.js';
+import type { EventReviewSectionDto } from '../../dto/event-review-response.dto.js';
 
 /** Check-in rows ordered by date ascending within the event window. */
 export interface ReviewActionCheckIn {

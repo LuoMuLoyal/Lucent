@@ -1,4 +1,4 @@
-import { buildPrismaClientModule } from './prisma-module.service';
+import { buildPrismaClientModule } from './prisma-module.service.js';
 
 vi.mock('node:fs/promises', () => ({
   readdir: vi.fn().mockResolvedValue(['user.prisma', 'assistant.prisma']),

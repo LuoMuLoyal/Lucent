@@ -7,8 +7,12 @@ import {
   createAccessToken,
   bearer,
   uniqueEmail,
-} from '../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
+} from '../helpers/e2e-helpers.js';
+import type {
+  E2eTestContext,
+  E2eApp,
+  TestUser,
+} from '../helpers/e2e-helpers.js';
 
 /**
  * Security tests: input fuzzing.

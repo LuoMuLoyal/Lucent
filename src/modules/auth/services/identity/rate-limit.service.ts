@@ -10,7 +10,7 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 
 const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX = 10;

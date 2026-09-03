@@ -2,9 +2,9 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { EnvKey } from './config/env/env-keys.enum';
-import { PrismaService } from './prisma';
-import { AppService } from './app.service';
+import { EnvKey } from './config/env/env-keys.enum.js';
+import { PrismaService } from './prisma/index.js';
+import { AppService } from './app.service.js';
 
 describe('AppService', () => {
   let service: AppService;

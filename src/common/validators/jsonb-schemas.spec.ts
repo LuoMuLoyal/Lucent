@@ -6,7 +6,7 @@ import {
   suggestionActionSchema,
   assistantUsedToolsSchema,
   safeParseJsonb,
-} from './jsonb-schemas';
+} from './jsonb-schemas.js';
 
 describe('jsonb-schemas', () => {
   describe('safeParseJsonb', () => {

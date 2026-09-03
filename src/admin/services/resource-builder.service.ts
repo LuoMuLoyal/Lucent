@@ -1,12 +1,12 @@
 import type { ResourceOptions, ResourceWithOptions } from 'adminjs';
 
-import { generateAdminResourceConfigs } from './resource-config.service';
+import { generateAdminResourceConfigs } from './resource-config.service.js';
 import type {
   AdminJsPrismaModule,
   AdminResourceConfig,
   PrismaClientModule,
-} from '../types/admin.types';
-import type { PrismaService } from '../../prisma';
+} from '../types/admin.types.js';
+import type { PrismaService } from '../../prisma/index.js';
 
 export function buildResources(
   getModelByName: AdminJsPrismaModule['getModelByName'],

@@ -1,19 +1,19 @@
-import { parseDateOnly, now } from '../../../common';
+import { parseDateOnly, now } from '../../../common/index.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
 
-import { ARGON2_OPTIONS } from '../../auth';
-import { loginFailureCacheKey } from '../../auth';
-import { PrismaService } from '../../../prisma';
-import { UserStatus } from '#generated/prisma/client';
-import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto';
+import { ARGON2_OPTIONS } from '../../auth/index.js';
+import { loginFailureCacheKey } from '../../auth/index.js';
+import { PrismaService } from '../../../prisma/index.js';
+import { UserStatus } from '#generated/prisma/client.js';
+import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto.js';
 import {
   listDefaultBooleanUserSettings,
   userSettingsCacheKey,
-} from '../../user-settings';
+} from '../../user-settings/index.js';
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 

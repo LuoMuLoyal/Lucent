@@ -1,12 +1,15 @@
-import { ProductEventName } from '#generated/prisma/client';
-import type { PrismaService } from '../../../prisma';
-import type { ResultAsync, DomainFailure } from '../../../common/result';
+import { ProductEventName } from '#generated/prisma/client.js';
+import type { PrismaService } from '../../../prisma/index.js';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
 import {
   DEFAULT_FUNNEL_WINDOW_DAYS,
   MIN_FUNNEL_GROUP_SIZE,
   ProductFunnelService,
   isFunnelEventNameAccountedFor,
-} from './funnel.service';
+} from './funnel.service.js';
 
 interface RawRow {
   day: string;

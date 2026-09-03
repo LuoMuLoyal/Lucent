@@ -21,13 +21,16 @@ vi.mock('../../common', async (importOriginal) => {
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
-import { okAsync, errAsync } from '../../common/result';
-import { createDomainFailure } from '../../common/result';
-import { DomainFailureException } from '../../common/result/domain-failure.exception';
-import { AssistantController } from './assistant.controller';
-import { AssistantService } from './services/core.service';
-import { AuditLogService } from '../audit-log';
+import {
+  SseConnectionRegistry,
+  SseProblemDetailsMapper,
+} from '../../common/index.js';
+import { okAsync, errAsync } from '../../common/result/index.js';
+import { createDomainFailure } from '../../common/result/index.js';
+import { DomainFailureException } from '../../common/result/domain-failure.exception.js';
+import { AssistantController } from './assistant.controller.js';
+import { AssistantService } from './services/core.service.js';
+import { AuditLogService } from '../audit-log/index.js';
 
 describe('AssistantController', () => {
   let controller: AssistantController;

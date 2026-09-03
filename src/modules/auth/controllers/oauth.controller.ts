@@ -18,9 +18,12 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { extractAuthRequestContext, ProblemDetailsDto } from '../../../common';
-import { unwrapResult } from '../../../common/result';
-import { AuthService } from '../services/auth.service';
+import {
+  extractAuthRequestContext,
+  ProblemDetailsDto,
+} from '../../../common/index.js';
+import { unwrapResult } from '../../../common/result/index.js';
+import { AuthService } from '../services/auth.service.js';
 
 import {
   OAuthAuthorizeDto,
@@ -33,15 +36,15 @@ import {
   WeiboOAuthAuthorizeDto,
   GoogleOAuthCallbackDto,
   GoogleOAuthAuthorizeDto,
-} from '../dto/shared/oauth.dto';
+} from '../dto/shared/oauth.dto.js';
 
 import {
   LoginResponseDto,
   OAuthAuthorizeResponseDto,
-} from '../dto/shared/auth-responses.dto';
+} from '../dto/shared/auth-responses.dto.js';
 
-import { buildAuthResponse } from './auth-response.helper';
-import { Public } from '../decorators/public.decorator';
+import { buildAuthResponse } from './auth-response.helper.js';
+import { Public } from '../decorators/public.decorator.js';
 
 @ApiTags('Auth')
 @Public()

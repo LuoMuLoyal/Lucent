@@ -2,7 +2,7 @@ import {
   ASSISTANT_TOOL_SOURCE_MAP,
   type AssistantContextSource,
   type AssistantToolName,
-} from '../../tools/shared/tool-types';
+} from '../../tools/shared/tool-types.js';
 import {
   TOOL_KEYWORD_RULES,
   BROAD_RECORD_QUERY_RULES,
@@ -10,7 +10,7 @@ import {
   WRITE_INTENT_RULES,
   EXPLICIT_CN_PRODUCT_RULES,
   CN_LEAFLET_STYLE_RULES,
-} from './tool-keyword-rules';
+} from './tool-keyword-rules.js';
 
 export function selectAllowedToolsForContextSources(
   enabledContextSources: readonly AssistantContextSource[],

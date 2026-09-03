@@ -1,4 +1,4 @@
-import type { Prisma } from '#generated/prisma/client';
+import type { Prisma } from '#generated/prisma/client.js';
 
 export const OAUTH_PROVIDER_WECHAT_WEB = 'wechat_web';
 export const OAUTH_PROVIDER_WECHAT_MOBILE = 'wechat_mobile';

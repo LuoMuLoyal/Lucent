@@ -1,5 +1,5 @@
-import type { Prisma } from '#generated/prisma/client';
-import type { DrugbankDrugInteractionDto } from '../dto/detail.dto';
+import type { Prisma } from '#generated/prisma/client.js';
+import type { DrugbankDrugInteractionDto } from '../dto/detail.dto.js';
 
 const DEFAULT_SUMMARY_LENGTH = 180;
 

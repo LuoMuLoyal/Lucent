@@ -1,10 +1,10 @@
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
-import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants';
-import type { AssistantRuntimeState } from './state';
-import { streamModelResponse } from './model-stream';
-import { extractMessageText } from './message-text.utils';
-import { makeShortHash } from '../../../../common/helpers/infra/hash.utils';
+import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants.js';
+import type { AssistantRuntimeState } from './state.js';
+import { streamModelResponse } from './model-stream.js';
+import { extractMessageText } from './message-text.utils.js';
+import { makeShortHash } from '../../../../common/helpers/infra/hash.utils.js';
 
 /** Runtime shape of the respond graph node. */
 export type RespondNode = (

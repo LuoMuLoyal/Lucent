@@ -1,9 +1,9 @@
-import { EnvKey } from '../env/env-keys.enum';
+import { EnvKey } from '../env/env-keys.enum.js';
 import {
   DEFAULT_COS_MAX_UPLOAD_BYTES,
   DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-} from '../app-defaults.constants';
-import { s3StorageConfig } from './s3-storage.config';
+} from '../app-defaults.constants.js';
+import { s3StorageConfig } from './s3-storage.config.js';
 
 describe('s3StorageConfig', () => {
   const saved: Record<string, string | undefined> = {};

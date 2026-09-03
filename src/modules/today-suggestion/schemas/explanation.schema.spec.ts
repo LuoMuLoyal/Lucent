@@ -1,4 +1,4 @@
-import { explanationSchema } from './explanation.schema';
+import { explanationSchema } from './explanation.schema.js';
 
 describe('explanationSchema', () => {
   function buildValid(overrides: Record<string, unknown> = {}) {

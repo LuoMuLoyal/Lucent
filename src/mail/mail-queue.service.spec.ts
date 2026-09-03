@@ -1,8 +1,8 @@
 import type { ConfigService } from '@nestjs/config';
 
-import { MailQueueService } from './mail-queue.service';
-import type { MailTransportService } from './mail-transport.service';
-import type { BullmqQueueFactory } from '../common/queue/queue.factory';
+import { MailQueueService } from './mail-queue.service.js';
+import type { MailTransportService } from './mail-transport.service.js';
+import type { BullmqQueueFactory } from '../common/queue/queue.factory.js';
 
 function buildFactory(queueAvailable: boolean): BullmqQueueFactory {
   if (!queueAvailable) {

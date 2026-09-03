@@ -50,13 +50,13 @@ vi.mock('cos-nodejs-sdk-v5', () => ({
 
 // Imports must come after vi.mock declarations.
 
-import { ObjectStorageRuntime } from './object-storage.runtime';
-import { TencentCosStorageRuntime } from './tencent-cos.runtime';
-import { S3StorageRuntime } from './s3.runtime';
-import { EnvKey } from '../../config/env/env-keys.enum';
-import { ConfigKey } from '../../config/env/config-keys.enum';
-import type { S3StorageConfig } from '../../config/services/s3-storage.config';
-import type { TencentCosConfig } from '../../config/services/tencent-cos.config';
+import { ObjectStorageRuntime } from './object-storage.runtime.js';
+import { TencentCosStorageRuntime } from './tencent-cos.runtime.js';
+import { S3StorageRuntime } from './s3.runtime.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import type { S3StorageConfig } from '../../config/services/s3-storage.config.js';
+import type { TencentCosConfig } from '../../config/services/tencent-cos.config.js';
 
 // ── Config fixtures ──────────────────────────────────────────────
 

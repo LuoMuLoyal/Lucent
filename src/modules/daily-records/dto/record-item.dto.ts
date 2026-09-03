@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { DailyRecordKind } from '#generated/prisma/client';
-import { DailyRecordAttachmentDto } from './record-attachment.dto';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import { DailyRecordAttachmentDto } from './record-attachment.dto.js';
 
 export class DailyRecordItemDto {
   @ApiProperty({ description: 'Record id.' })

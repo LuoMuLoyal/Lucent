@@ -3,9 +3,9 @@ import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
   now,
-} from '../../../common';
-import { unwrapResult } from '../../../common/result';
-import { EventsService } from './events.service';
+} from '../../../common/index.js';
+import { unwrapResult } from '../../../common/result/index.js';
+import { EventsService } from './events.service.js';
 import {
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
@@ -13,7 +13,7 @@ import {
   type HealthEventPage,
   type HealthEventPageQuery,
   type HealthEventRecord,
-} from '../repositories/event.repository';
+} from '../repositories/event.repository.js';
 
 /**
  * Cross-module ownership + read façade for health-event data (ADR-0009).

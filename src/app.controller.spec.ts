@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyReply } from 'fastify';
-import { AppController } from './app.controller';
-import type { HealthProbeDto } from './app.dto';
-import { AppService } from './app.service';
+import { AppController } from './app.controller.js';
+import type { HealthProbeDto } from './app.dto.js';
+import { AppService } from './app.service.js';
 
 describe('AppController', () => {
   let controller: AppController;

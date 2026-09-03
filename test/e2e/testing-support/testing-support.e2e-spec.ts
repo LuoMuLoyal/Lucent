@@ -4,9 +4,9 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
-import { DailyRecordKind } from '#generated/prisma/client';
+import { AppModule } from '../../../src/app.module.js';
+import { setupApp } from '../../../src/setup-app.js';
+import { DailyRecordKind } from '#generated/prisma/client.js';
 
 const TESTING_PATH = '/api/v1/testing/fullstack-e2e/record-lane/prepare';
 const LOGIN_PATH = '/api/v1/auth/login';

@@ -1,13 +1,13 @@
 import type { I18nService } from 'nestjs-i18n';
-import type { LlmRuntimeService } from '../../../llm-runtime';
+import type { LlmRuntimeService } from '../../../llm-runtime/index.js';
 import type {
   AssistantConversationRepositoryPort,
   ConversationWithMessages,
   ConversationSummary,
-} from '../repositories/conversation.repository';
-import type { AssistantMemoryService } from './memory.service';
-import { okAsync } from '../../../common/result';
-import { AssistantConversationService } from './conversation.service';
+} from '../repositories/conversation.repository.js';
+import type { AssistantMemoryService } from './memory.service.js';
+import { okAsync } from '../../../common/result/index.js';
+import { AssistantConversationService } from './conversation.service.js';
 
 function buildConversation(
   overrides: Partial<ConversationWithMessages> = {},

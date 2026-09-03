@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { normalizeEmail, fromPrismaResult } from '../../../../common';
+import { normalizeEmail, fromPrismaResult } from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -8,13 +8,13 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 import { Injectable } from '@nestjs/common';
 
-import { Prisma, User, UserStatus } from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import type { OAuthProfile } from '../../types/oauth.types';
-import { isBetterAuthTrustedProvider } from '../../adapters/better-auth.adapter';
+import { Prisma, User, UserStatus } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../../prisma/prisma.service.js';
+import type { OAuthProfile } from '../../types/oauth.types.js';
+import { isBetterAuthTrustedProvider } from '../../adapters/better-auth.adapter.js';
 
 @Injectable()
 export class AuthOAuthService {

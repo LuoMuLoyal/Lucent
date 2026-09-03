@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma';
-import { AuditLogService } from './services/audit-log.service';
+import { PrismaModule } from '../../prisma/index.js';
+import { AuditLogService } from './services/audit-log.service.js';
 
 /**
  * Global audit logging module.

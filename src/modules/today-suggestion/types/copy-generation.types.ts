@@ -1,5 +1,8 @@
-import type { SuggestionType, SuggestionConfidence } from './suggestion.types';
-import type { EvidenceItem } from './signal.types';
+import type {
+  SuggestionType,
+  SuggestionConfidence,
+} from './suggestion.types.js';
+import type { EvidenceItem } from './signal.types.js';
 
 /**
  * BullMQ job data — carries complete context for LLM copy generation.

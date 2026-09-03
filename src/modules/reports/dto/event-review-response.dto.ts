@@ -3,12 +3,12 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 import type {
   ObservedMetricCoverage,
   ObservedMetricSource,
   ObservedMetricState,
-} from '../../../common';
+} from '../../../common/index.js';
 
 /**
  * Event Review read model DTOs.

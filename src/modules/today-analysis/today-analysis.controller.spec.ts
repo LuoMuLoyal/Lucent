@@ -1,11 +1,14 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyReply } from 'fastify';
-import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
-import { TodayAnalysisService } from './services/analysis.service';
-import { TodayAnalysisQueueService } from './services/analysis-queue.service';
-import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
-import type { TodayAnalysisDataDto } from './dto/analysis-response.dto';
-import { TodayAnalysisController } from './today-analysis.controller';
+import {
+  SseConnectionRegistry,
+  SseProblemDetailsMapper,
+} from '../../common/index.js';
+import { TodayAnalysisService } from './services/analysis.service.js';
+import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
+import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
+import type { TodayAnalysisDataDto } from './dto/analysis-response.dto.js';
+import { TodayAnalysisController } from './today-analysis.controller.js';
 
 describe('TodayAnalysisController', () => {
   let controller: TodayAnalysisController;

@@ -1,13 +1,13 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
-import { formatDateOnly, parseDateOnly } from '../../../../common';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
-import { PrismaService } from '../../../../prisma';
+import { formatDateOnly, parseDateOnly } from '../../../../common/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import {
   TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
   type TodaySuggestionMaterializationChangedPayload,
-} from '../../../../common/events/domain-events';
+} from '../../../../common/events/domain-events.js';
 import type {
   MarkPendingInput,
   MaterializationReasonCode,
@@ -15,7 +15,7 @@ import type {
   MaterializationStatus,
   MaterializationStatusView,
   MaterializationVersionInput,
-} from '../../types/materialization.types';
+} from '../../types/materialization.types.js';
 
 @Injectable()
 export class MaterializationStore {

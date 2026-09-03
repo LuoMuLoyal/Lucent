@@ -1,4 +1,4 @@
-import { MealDishDecompositionService } from '../meal-dish/decomposition.service';
+import { MealDishDecompositionService } from '../meal-dish/decomposition.service.js';
 
 describe('MealDishDecompositionService', () => {
   it('returns template ingredients without calling the model when a dish template exists', async () => {

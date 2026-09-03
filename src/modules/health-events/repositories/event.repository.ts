@@ -2,8 +2,11 @@ import type {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-} from '#generated/prisma/client';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+} from '#generated/prisma/client.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 
 export interface HealthEventRecord {
   id: string;

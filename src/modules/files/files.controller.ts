@@ -5,12 +5,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../auth';
-import type { UserPayload } from '../auth';
-import { ProblemDetailsDto } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { FilesService } from './services/files.service';
-import { CreateFileUploadDto } from './dto/create-file-upload.dto';
+import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { ProblemDetailsDto } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { FilesService } from './services/files.service.js';
+import { CreateFileUploadDto } from './dto/create-file-upload.dto.js';
 
 @ApiTags('Files')
 @ApiBearerAuth('access-token')

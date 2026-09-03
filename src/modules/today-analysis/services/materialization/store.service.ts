@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
-import { parseDateOnly } from '../../../../common';
-import { PrismaService } from '../../../../prisma';
+import { Prisma } from '#generated/prisma/client.js';
+import { parseDateOnly } from '../../../../common/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import {
   TODAY_ANALYSIS_MAX_GENERATIONS_PER_DATE,
   TODAY_ANALYSIS_CLAIM_TIMEOUT_MS,
@@ -11,7 +11,7 @@ import {
   type MarkTodayAnalysisReadyInput,
   type TodayAnalysisMaterializationRow,
   type TodayAnalysisMaterializationView,
-} from '../../types/materialization.types';
+} from '../../types/materialization.types.js';
 
 export interface TodayAnalysisPendingResult extends TodayAnalysisMaterializationView {
   shouldQueue: boolean;

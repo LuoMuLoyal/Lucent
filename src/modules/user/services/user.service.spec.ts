@@ -1,7 +1,10 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
-import { Prisma } from '#generated/prisma/client';
-import { nonDeleted } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
+import { Prisma } from '#generated/prisma/client.js';
+import { nonDeleted } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
 async function inspectResult<T>(
   result: ResultAsync<T, DomainFailure>,
 ): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
@@ -12,10 +15,10 @@ async function inspectResult<T>(
 }
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { UserStatus } from '#generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client.js';
 
-import { UserService } from './user.service';
-import { PrismaService } from '../../../prisma';
+import { UserService } from './user.service.js';
+import { PrismaService } from '../../../prisma/index.js';
 
 const mockUser = {
   id: 'user-uuid-1',

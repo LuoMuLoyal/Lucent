@@ -1,4 +1,4 @@
-import { makeShortHash } from './hash.utils';
+import { makeShortHash } from './hash.utils.js';
 
 describe('makeShortHash', () => {
   it('returns a 16-char hex string by default', () => {

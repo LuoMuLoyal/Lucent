@@ -1,4 +1,4 @@
-import { safeCompare } from './crypto.utils';
+import { safeCompare } from './crypto.utils.js';
 
 describe('safeCompare', () => {
   it('returns true for identical strings', () => {

@@ -1,5 +1,8 @@
-import { EnvKey } from './env-keys.enum';
-import { NodeEnvironment, validateEnvironment } from './environment.validation';
+import { EnvKey } from './env-keys.enum.js';
+import {
+  NodeEnvironment,
+  validateEnvironment,
+} from './environment.validation.js';
 
 describe('validateEnvironment', () => {
   const localDatabaseUrl =

@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { safeCompare } from '../../../common';
-import { EnvKey } from '../../../config/env/env-keys.enum';
+import { safeCompare } from '../../../common/index.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
 
 /**
  * Guards testing-only endpoints with a shared secret header.

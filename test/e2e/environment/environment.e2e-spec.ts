@@ -1,7 +1,7 @@
 import request from 'supertest';
 
-import { createTestApp, expectData } from '../../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
+import { createTestApp, expectData } from '../../helpers/e2e-helpers.js';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
 
 const ENV_PATH = '/api/v1/environment/snapshot';
 

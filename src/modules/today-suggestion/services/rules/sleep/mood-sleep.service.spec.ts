@@ -1,9 +1,9 @@
-import { MoodSleepRuleService } from './mood-sleep.service';
+import { MoodSleepRuleService } from './mood-sleep.service.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types';
-import { buildContext, buildSignal } from '../test-helpers';
+} from '../../../types/suggestion.types.js';
+import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('MoodSleepRuleService', () => {
   let rule: MoodSleepRuleService;

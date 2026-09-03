@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { AppInfoDataDto } from '../dto/response.dto';
-import { EnvKey } from '../../../config/env/env-keys.enum';
+import type { AppInfoDataDto } from '../dto/response.dto.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
 
 @Injectable()
 export class AppInfoService {

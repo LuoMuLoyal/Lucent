@@ -1,4 +1,4 @@
-import { EnvKey } from '../env/env-keys.enum';
+import { EnvKey } from '../env/env-keys.enum.js';
 import {
   DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS,
   DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS,
@@ -7,8 +7,8 @@ import {
   DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT,
   DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS,
   DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY,
-} from '../app-defaults.constants';
-import { mailConfig } from './mail.config';
+} from '../app-defaults.constants.js';
+import { mailConfig } from './mail.config.js';
 
 describe('mailConfig', () => {
   const saved: Record<string, string | undefined> = {};

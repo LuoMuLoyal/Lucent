@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma';
-import { AdminGuard } from './guards/admin.guard';
-import { ProductEventsController } from './product-events.controller';
-import { ProductEventsService } from './services/events.service';
-import { ProductFunnelService } from './services/funnel.service';
+import { PrismaModule } from '../../prisma/index.js';
+import { AdminGuard } from './guards/admin.guard.js';
+import { ProductEventsController } from './product-events.controller.js';
+import { ProductEventsService } from './services/events.service.js';
+import { ProductFunnelService } from './services/funnel.service.js';
 
 @Module({
   imports: [PrismaModule],

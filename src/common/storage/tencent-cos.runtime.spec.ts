@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
-import type { TencentCosConfig } from '../../config/services/tencent-cos.config';
-import { TencentCosStorageRuntime } from './tencent-cos.runtime';
+import type { TencentCosConfig } from '../../config/services/tencent-cos.config.js';
+import { TencentCosStorageRuntime } from './tencent-cos.runtime.js';
 
 const mockCos = {
   getObjectUrl: vi.fn(),

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
 
-import { shuffleArray, safeParseLlmJson } from '../../../common';
+import { shuffleArray, safeParseLlmJson } from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -10,27 +10,27 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import { PrismaService } from '../../../prisma';
+} from '../../../common/result/index.js';
+import { PrismaService } from '../../../prisma/index.js';
 import {
   DEFAULT_MEDICINE_SOURCE,
   type MedicineKnowledgeSource,
-} from '../dto/source.dto';
+} from '../dto/source.dto.js';
 
-import { MedicineSafetyTipResponseDto } from '../dto/safety-tip-response.dto';
+import { MedicineSafetyTipResponseDto } from '../dto/safety-tip-response.dto.js';
 
-import type { MedicineDetailDataDto } from '../dto/detail.dto';
+import type { MedicineDetailDataDto } from '../dto/detail.dto.js';
 
 import type {
   MedicineDetailQueryDto,
   MedicineSearchQueryDto,
-} from '../dto/query.dto';
+} from '../dto/query.dto.js';
 
-import type { MedicineSearchResult } from '../dto/search.dto';
-import { MedicinesCacheService } from '../cache/store.service';
-import { CnMedicinesService } from '../adapters/cn.service';
-import { DrugbankMedicinesService } from '../adapters/drugbank.service';
-import { LlmRuntimeService } from '../../../llm-runtime';
+import type { MedicineSearchResult } from '../dto/search.dto.js';
+import { MedicinesCacheService } from '../cache/store.service.js';
+import { CnMedicinesService } from '../adapters/cn.service.js';
+import { DrugbankMedicinesService } from '../adapters/drugbank.service.js';
+import { LlmRuntimeService } from '../../../llm-runtime/index.js';
 
 @Injectable()
 export class MedicinesService {

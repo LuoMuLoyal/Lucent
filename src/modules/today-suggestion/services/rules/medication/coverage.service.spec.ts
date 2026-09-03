@@ -1,6 +1,6 @@
-import { CoverageRuleService } from './coverage.service';
-import { SuggestionType } from '../../../types/suggestion.types';
-import { buildContext, buildSignal } from '../test-helpers';
+import { CoverageRuleService } from './coverage.service.js';
+import { SuggestionType } from '../../../types/suggestion.types.js';
+import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('CoverageRuleService', () => {
   let rule: CoverageRuleService;

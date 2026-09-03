@@ -15,37 +15,37 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { formatDateOnly, now } from '../../common';
-import { unwrapResult } from '../../common/result';
-import { CurrentUser } from '../auth';
-import type { UserPayload } from '../auth';
-import { SuggestionService } from './services/suggestion.service';
-import { FeedbackService } from './services/feedback/recorder.service';
-import { ExplanationQueueService } from './services/explanation/queue.service';
+import { formatDateOnly, now } from '../../common/index.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { SuggestionService } from './services/suggestion.service.js';
+import { FeedbackService } from './services/feedback/recorder.service.js';
+import { ExplanationQueueService } from './services/explanation/queue.service.js';
 
-import { ExplanationService } from './services/explanation/explainer.service';
-import { LifecycleService } from './services/lifecycle/manager.service';
+import { ExplanationService } from './services/explanation/explainer.service.js';
+import { LifecycleService } from './services/lifecycle/manager.service.js';
 import {
   SuggestionFeedbackDto,
   SuggestionFeedbackDataDto,
   SuggestionFeedbackResponseDto,
-} from './dto/feedback.dto';
+} from './dto/feedback.dto.js';
 
 import {
   TodaySuggestionsDataDto,
   TodaySuggestionsResponseDto,
-} from './dto/suggestion-history.dto';
+} from './dto/suggestion-history.dto.js';
 
 import {
   SuggestionExplanationDataDto,
   SuggestionExplanationAsyncResponseDto,
   SuggestionExplanationResponseDto,
-} from './dto/explanation.dto';
+} from './dto/explanation.dto.js';
 
 import {
   SuggestionHistoryDataDto,
   SuggestionHistoryResponseDto,
-} from './dto/suggestion-history-query.dto';
+} from './dto/suggestion-history-query.dto.js';
 
 @ApiTags('Today Suggestion')
 @ApiBearerAuth('access-token')

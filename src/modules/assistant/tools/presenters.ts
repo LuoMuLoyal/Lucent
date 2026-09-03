@@ -4,14 +4,14 @@ import type {
   AssistantReadResultEnvelope,
   AssistantUpdateDailyRecordProposalPayload,
   AssistantUpdateUserSettingsProposalPayload,
-} from '../types/assistant.types';
-import type { AssistantToolName } from './shared/tool-types';
-import { DailyRecordKind } from '#generated/prisma/client';
-import { nowIsoString } from '../../../common';
+} from '../types/assistant.types.js';
+import type { AssistantToolName } from './shared/tool-types.js';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import { nowIsoString } from '../../../common/index.js';
 import {
   RANGE_TRUNCATED_MESSAGE,
   MAX_RANGE_DAYS,
-} from './shared/tool-constants';
+} from './shared/tool-constants.js';
 
 export function buildReadEnvelope(input: {
   toolName: AssistantToolName;

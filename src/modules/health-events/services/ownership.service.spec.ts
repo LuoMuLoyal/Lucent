@@ -2,16 +2,16 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-} from '#generated/prisma/client';
+} from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
-} from '../../../common';
-import { okAsync, errAsync } from '../../../common/result';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
-import type { EventsService } from './events.service';
-import type { HealthEventRepositoryPort } from '../repositories/event.repository';
-import { HealthEventsOwnershipService } from './ownership.service';
+} from '../../../common/index.js';
+import { okAsync, errAsync } from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
+import type { EventsService } from './events.service.js';
+import type { HealthEventRepositoryPort } from '../repositories/event.repository.js';
+import { HealthEventsOwnershipService } from './ownership.service.js';
 
 const USER_ID = 'u1';
 const EVENT_ID = 'evt-1';

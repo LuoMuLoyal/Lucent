@@ -7,12 +7,12 @@ import {
   createAccessToken,
   bearer,
   expectData,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 import type {
   E2eTestContext,
   E2eApp,
   TestUser,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 
 const DASHBOARD_PATH = '/api/v1/user/reports/dashboard';
 const SUMMARY_GENERATE_PATH = '/api/v1/user/reports/summary/generate';

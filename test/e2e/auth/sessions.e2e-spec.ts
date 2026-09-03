@@ -9,8 +9,8 @@ import {
   bearer,
   expectData,
   uniqueEmail,
-} from '../../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
 
 const SESSIONS_PATH = '/api/v1/auth/sessions';
 const LOGIN_PATH = '/api/v1/auth/login';

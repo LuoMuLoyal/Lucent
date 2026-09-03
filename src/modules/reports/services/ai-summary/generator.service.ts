@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { LlmRuntimeService } from '../../../../llm-runtime';
-import { MetricsService } from '../../../../common/metrics/metrics.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildReportSummarySystemPrompt,
   buildReportSummaryUserPrompt,
   type ReportSummaryPromptCopy,
-} from '../../prompts/report-summary.prompt';
+} from '../../prompts/report-summary.prompt.js';
 import {
   reportSummarySchema,
   type ReportSummaryStructuredOutput,
-} from '../../schemas/report-summary.schema';
-import type { ReportsAiSummaryContext } from './context.service';
+} from '../../schemas/report-summary.schema.js';
+import type { ReportsAiSummaryContext } from './context.service.js';
 
 @Injectable()
 export class ReportsAiSummaryGeneratorService extends BaseLlmGeneratorService<

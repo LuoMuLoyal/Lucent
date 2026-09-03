@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
-import { formatDateOnlyInTimezone, now } from '../../../../common';
+import { formatDateOnlyInTimezone, now } from '../../../../common/index.js';
 import {
   DAILY_RECORD_CHANGED,
   DOSE_LOG_CHANGED,
@@ -15,11 +15,14 @@ import {
   type HealthEventChangedPayload,
   type ReminderChangedPayload,
   type SettingsChangedPayload,
-} from '../../../../common/events/domain-events';
-import { PrismaService } from '../../../../prisma';
-import { MaterializationStore } from '../materialization/store.service';
-import type { MaterializationReasonCode } from '../../types/materialization.types';
-import { RecomputeQueueService, type RecomputeJobData } from './queue.service';
+} from '../../../../common/events/domain-events.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { MaterializationStore } from '../materialization/store.service.js';
+import type { MaterializationReasonCode } from '../../types/materialization.types.js';
+import {
+  RecomputeQueueService,
+  type RecomputeJobData,
+} from './queue.service.js';
 
 @Injectable()
 export class RecomputeTriggerListener {

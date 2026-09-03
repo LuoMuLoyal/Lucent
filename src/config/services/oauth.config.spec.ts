@@ -1,5 +1,5 @@
-import { EnvKey } from '../env/env-keys.enum';
-import { oauthConfig } from './oauth.config';
+import { EnvKey } from '../env/env-keys.enum.js';
+import { oauthConfig } from './oauth.config.js';
 
 describe('oauthConfig', () => {
   const saved: Record<string, string | undefined> = {};

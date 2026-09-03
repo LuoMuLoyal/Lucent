@@ -1,9 +1,9 @@
-import { ReportsAiSummaryContextService } from './context.service';
+import { ReportsAiSummaryContextService } from './context.service.js';
 import type {
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from '../../dashboard/metrics.types';
-import { REPORT_RANGE_LAST_7_DAYS } from '../../dto/report-dashboard-query.dto';
+} from '../../dashboard/metrics.types.js';
+import { REPORT_RANGE_LAST_7_DAYS } from '../../dto/report-dashboard-query.dto.js';
 
 describe('ReportsAiSummaryContextService', () => {
   const service = new ReportsAiSummaryContextService();

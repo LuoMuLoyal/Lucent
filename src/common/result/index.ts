@@ -8,18 +8,18 @@ export {
   ResultAsync,
 } from 'neverthrow';
 
-export { createDomainFailure, isDomainFailure } from './domain-failure';
-export { DomainFailureException } from './domain-failure.exception';
+export { createDomainFailure, isDomainFailure } from './domain-failure.js';
+export { DomainFailureException } from './domain-failure.exception.js';
 export type {
   CreateDomainFailureInput,
   DomainFailure,
   DomainFailureCode,
   DomainFailureKind,
-} from './domain-failure';
-export { toProblemDetails } from './domain-failure.mapper';
-export type { DomainFailureProblemOptions } from './domain-failure.mapper';
+} from './domain-failure.js';
+export { toProblemDetails } from './domain-failure.mapper.js';
+export type { DomainFailureProblemOptions } from './domain-failure.mapper.js';
 export {
   mapUnknownToDependencyFailure,
   mapUnknownToInternalFailure,
-} from './unknown-error.mapper';
-export { unwrapResult } from './unwrap-result';
+} from './unknown-error.mapper.js';
+export { unwrapResult } from './unwrap-result.js';

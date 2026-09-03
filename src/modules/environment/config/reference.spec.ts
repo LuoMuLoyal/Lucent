@@ -1,4 +1,4 @@
-import { getStaticEnvironmentSnapshot } from './reference';
+import { getStaticEnvironmentSnapshot } from './reference.js';
 
 describe('getStaticEnvironmentSnapshot', () => {
   it('returns default profile when no coordinates provided', () => {

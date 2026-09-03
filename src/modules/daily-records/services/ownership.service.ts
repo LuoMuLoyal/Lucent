@@ -5,11 +5,11 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
+} from '../../../common/result/index.js';
 import { Injectable } from '@nestjs/common';
 
-import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
-import type { OwnedRecordSnapshot } from '../types/record.types';
+import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository.js';
+import type { OwnedRecordSnapshot } from '../types/record.types.js';
 
 export type { OwnedRecordSnapshot };
 

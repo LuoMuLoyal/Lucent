@@ -1,8 +1,8 @@
 import { SystemMessage } from '@langchain/core/messages';
 import type { HumanMessage } from '@langchain/core/messages';
-import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service';
-import type { LlmRuntimeService } from '../../../../llm-runtime';
-import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MealAnalysisVisionService } from '../meal-analysis/vision.service.js';
 
 describe('MealAnalysisVisionService', () => {
   const createService = (invoke: vi.Mock) => {

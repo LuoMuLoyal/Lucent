@@ -5,13 +5,13 @@ import {
   cleanupDatabase,
   expectData,
   uniqueEmail,
-} from '../../helpers/e2e-helpers';
-import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
-import { WechatWebOAuthProvider } from '../../../src/modules/auth';
-import { WechatMobileOAuthProvider } from '../../../src/modules/auth';
-import { QqOAuthProvider } from '../../../src/modules/auth';
-import type { OAuthProfile } from '../../../src/modules/auth';
-import { okAsync } from '../../../src/common/result';
+} from '../../helpers/e2e-helpers.js';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
+import { WechatWebOAuthProvider } from '../../../src/modules/auth/index.js';
+import { WechatMobileOAuthProvider } from '../../../src/modules/auth/index.js';
+import { QqOAuthProvider } from '../../../src/modules/auth/index.js';
+import type { OAuthProfile } from '../../../src/modules/auth/index.js';
+import { okAsync } from '../../../src/common/result/index.js';
 
 // ── Constants ─────────────────────────────────────────────────
 

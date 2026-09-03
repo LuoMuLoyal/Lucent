@@ -3,8 +3,11 @@ import {
   WechatBaseOAuthProvider,
   type WechatAccessTokenSuccess,
   type WechatErrorResponse,
-} from './wechat-base-oauth.provider';
-import type { DomainFailure, ResultAsync } from '../../../../common/result';
+} from './wechat-base-oauth.provider.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
 
 // Create a concrete subclass for testing the abstract base
 class TestWechatProvider extends WechatBaseOAuthProvider {

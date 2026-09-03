@@ -3,7 +3,7 @@ import {
   statusPalette,
   metricLabel,
   statusLabel,
-} from './report-pdf.theme';
+} from './report-pdf.theme.js';
 
 describe('report-pdf theme helpers', () => {
   describe('kindLabel', () => {

@@ -5,29 +5,32 @@ import {
   ProductEventResult,
   ProductEventSurface,
   UserDevicePlatform,
-} from '#generated/prisma/client';
-import type { PrismaService } from '../../../prisma';
+} from '#generated/prisma/client.js';
+import type { PrismaService } from '../../../prisma/index.js';
 // Deep imports into today-suggestion/services/rules/* are intentional:
 // the test verifies that the product-events rule-code allowlist stays in
 // sync with the actual rule registry. These rule services are internal
 // implementation details of the today-suggestion module and should NOT be
 // exported via its barrel — the spec directly instantiates them to read
 // their ruleId, which is the contract under test.
-import { CaffeineSleepRuleService } from '../../today-suggestion/services/rules/sleep/caffeine-sleep.service';
-import { MoodSleepRuleService } from '../../today-suggestion/services/rules/sleep/mood-sleep.service';
-import { SleepShortfallRuleService } from '../../today-suggestion/services/rules/sleep/sleep-shortfall.service';
-import { CoverageRuleService } from '../../today-suggestion/services/rules/medication/coverage.service';
-import { MissedDoseRuleService } from '../../today-suggestion/services/rules/medication/missed-dose.service';
-import { DeterioratingTrendRuleService } from '../../today-suggestion/services/rules/lifestyle/deteriorating-trend.service';
-import { WaterShortfallRuleService } from '../../today-suggestion/services/rules/lifestyle/water-shortfall.service';
-import { SUGGESTION_RULE_CODE_ALLOWLIST } from '../constants/rule-code-allowlist.constants';
-import type { CreateProductEventDto } from '../dto/create-product-event.dto';
-import type { MetricsService } from '../../../common/metrics/metrics.service';
-import type { ResultAsync, DomainFailure } from '../../../common/result';
+import { CaffeineSleepRuleService } from '../../today-suggestion/services/rules/sleep/caffeine-sleep.service.js';
+import { MoodSleepRuleService } from '../../today-suggestion/services/rules/sleep/mood-sleep.service.js';
+import { SleepShortfallRuleService } from '../../today-suggestion/services/rules/sleep/sleep-shortfall.service.js';
+import { CoverageRuleService } from '../../today-suggestion/services/rules/medication/coverage.service.js';
+import { MissedDoseRuleService } from '../../today-suggestion/services/rules/medication/missed-dose.service.js';
+import { DeterioratingTrendRuleService } from '../../today-suggestion/services/rules/lifestyle/deteriorating-trend.service.js';
+import { WaterShortfallRuleService } from '../../today-suggestion/services/rules/lifestyle/water-shortfall.service.js';
+import { SUGGESTION_RULE_CODE_ALLOWLIST } from '../constants/rule-code-allowlist.constants.js';
+import type { CreateProductEventDto } from '../dto/create-product-event.dto.js';
+import type { MetricsService } from '../../../common/metrics/metrics.service.js';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
 import {
   ProductEventsService,
   type ServerProductEventInput,
-} from './events.service';
+} from './events.service.js';
 
 const USER_ID = 'user-1';
 

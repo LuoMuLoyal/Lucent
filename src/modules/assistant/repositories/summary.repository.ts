@@ -4,15 +4,18 @@
  * Decouples HistoricalAiSummaryService from direct PrismaService usage.
  */
 import { Injectable } from '@nestjs/common';
-import { AiSummaryHistoryKind, type Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
+import { AiSummaryHistoryKind, type Prisma } from '#generated/prisma/client.js';
+import { PrismaService } from '../../../prisma/index.js';
 import {
   formatDateOnly,
   fromPrismaResult,
   parseDateOnly,
-} from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import type { AssistantReportRange } from '../types/ports';
+} from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import type { AssistantReportRange } from '../types/ports.js';
 
 export type SummaryBullet = {
   kind: string;

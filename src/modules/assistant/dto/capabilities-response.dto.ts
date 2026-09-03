@@ -5,8 +5,8 @@ import {
   type AssistantContextSource,
   type AssistantToolDisabledReason,
   type AssistantToolName,
-} from '../tools/shared/tool-types';
-import { AssistantContextSettingsDto } from '../../user-settings';
+} from '../tools/shared/tool-types.js';
+import { AssistantContextSettingsDto } from '../../user-settings/index.js';
 
 export class AssistantToolCapabilityDto {
   @ApiProperty({

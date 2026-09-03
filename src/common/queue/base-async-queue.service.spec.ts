@@ -1,11 +1,11 @@
 import type { Cache } from 'cache-manager';
 import type { Job } from 'bullmq';
-import type { BullmqQueueFactory } from './queue.factory';
+import type { BullmqQueueFactory } from './queue.factory.js';
 import {
   BaseAsyncQueueService,
   DEFAULT_RESULT_TTL_MS,
   type AsyncJobResult,
-} from './base-async-queue.service';
+} from './base-async-queue.service.js';
 
 // ── Test doubles ─────────────────────────────────────────────────────
 

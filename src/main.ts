@@ -1,14 +1,14 @@
-import './tracing';
+import './tracing.js';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { AppModule } from './app.module';
-import { setupApp } from './setup-app';
-import { ConfigKey } from './config/env/config-keys.enum';
-import { EnvKey } from './config/env/env-keys.enum';
-import { registerAdminPanel } from './admin/setup';
+import { AppModule } from './app.module.js';
+import { setupApp } from './setup-app.js';
+import { ConfigKey } from './config/env/config-keys.enum.js';
+import { EnvKey } from './config/env/env-keys.enum.js';
+import { registerAdminPanel } from './admin/setup.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(

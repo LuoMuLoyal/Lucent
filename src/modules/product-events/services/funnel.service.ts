@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProductEventName } from '#generated/prisma/client';
-import { now } from '../../../common';
+import { Prisma, ProductEventName } from '#generated/prisma/client.js';
+import { now } from '../../../common/index.js';
 import {
   createDomainFailure,
   err,
@@ -9,18 +9,18 @@ import {
   type DomainFailure,
   type Result,
   type ResultAsync,
-} from '../../../common/result';
-import { fromPromise } from '../../../common/result';
-import { PrismaService } from '../../../prisma';
+} from '../../../common/result/index.js';
+import { fromPromise } from '../../../common/result/index.js';
+import { PrismaService } from '../../../prisma/index.js';
 import {
   MAX_FUNNEL_RANGE_DAYS,
   type FunnelQueryDto,
-} from '../dto/funnel-query.dto';
+} from '../dto/funnel-query.dto.js';
 import type {
   FunnelDailyCountsDto,
   FunnelDataDto,
   FunnelOptionalCountsDto,
-} from '../dto/funnel-response.dto';
+} from '../dto/funnel-response.dto.js';
 
 /**
  * Small-sample threshold: when the window's core-funnel total (sum of the

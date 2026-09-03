@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   REPORT_SUPPORTED_RANGES,
   type ReportRange,
-} from './report-dashboard-query.dto';
+} from './report-dashboard-query.dto.js';
 
 export class ReportCoverageDimensionDto {
   @ApiProperty()

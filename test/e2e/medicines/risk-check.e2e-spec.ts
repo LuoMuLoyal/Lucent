@@ -5,16 +5,16 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
-import { PrismaService } from '../../../src/prisma';
+import { AppModule } from '../../../src/app.module.js';
+import { setupApp } from '../../../src/setup-app.js';
+import { PrismaService } from '../../../src/prisma/index.js';
 import {
   bearer,
   cleanupDatabase,
   createAccessToken,
   createTestUser,
   type TestUser,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 
 const RISK_CHECK_PATH = '/api/v1/medicines/risk-check';
 const AUTH_HEADER = 'Authorization';

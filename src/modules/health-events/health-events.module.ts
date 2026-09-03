@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma';
-import { ProductEventsModule } from '../product-events/product-events.module';
-import { HealthEventsController } from './health-events.controller';
-import { CheckInsService } from './services/check-ins.service';
-import { EventsService } from './services/events.service';
-import { HealthEventsOwnershipService } from './services/ownership.service';
-import { HealthEventRepositoryPort } from './repositories/event.repository';
-import { PrismaEventRepository } from './repositories/prisma-event.repository';
+import { PrismaModule } from '../../prisma/index.js';
+import { ProductEventsModule } from '../product-events/product-events.module.js';
+import { HealthEventsController } from './health-events.controller.js';
+import { CheckInsService } from './services/check-ins.service.js';
+import { EventsService } from './services/events.service.js';
+import { HealthEventsOwnershipService } from './services/ownership.service.js';
+import { HealthEventRepositoryPort } from './repositories/event.repository.js';
+import { PrismaEventRepository } from './repositories/prisma-event.repository.js';
 
 @Module({
   imports: [PrismaModule, ProductEventsModule],

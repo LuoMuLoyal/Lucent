@@ -1,7 +1,7 @@
-import { ReportsComputationService } from './computation.service';
-import type { ObservedMetric } from '../../../common';
-import type { ReportsPresenterService } from './presenter.service';
-import type { ReportDashboardFacts } from './metrics.types';
+import { ReportsComputationService } from './computation.service.js';
+import type { ObservedMetric } from '../../../common/index.js';
+import type { ReportsPresenterService } from './presenter.service.js';
+import type { ReportDashboardFacts } from './metrics.types.js';
 
 describe('ReportsComputationService', () => {
   let service: ReportsComputationService;

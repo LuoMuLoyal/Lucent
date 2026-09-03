@@ -2,20 +2,20 @@ import { extname } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
 
-import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
+import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.js';
 import {
   ObjectStorageRuntime,
   createFlatObjectKey,
   buildPublicUrl,
-} from '../../../common';
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result';
-import type { CreateFileUploadDto } from '../dto/create-file-upload.dto';
+} from '../../../common/result/index.js';
+import type { CreateFileUploadDto } from '../dto/create-file-upload.dto.js';
 
 /** Successful presigned-upload payload returned to the client. */
 export interface CreatePresignedUploadResult {

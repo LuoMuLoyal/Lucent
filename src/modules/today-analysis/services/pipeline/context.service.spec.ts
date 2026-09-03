@@ -1,5 +1,5 @@
-import { TodayAnalysisContextService } from './context.service';
-import { DailyRecordKind } from '#generated/prisma/client';
+import { TodayAnalysisContextService } from './context.service.js';
+import { DailyRecordKind } from '#generated/prisma/client.js';
 
 function createMockCache() {
   return {

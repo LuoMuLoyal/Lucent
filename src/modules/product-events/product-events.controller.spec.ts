@@ -6,19 +6,19 @@ import {
   ProductEventResult,
   ProductEventSurface,
   UserDevicePlatform,
-} from '#generated/prisma/client';
-import { errAsync, okAsync } from '../../common/result';
-import type { DomainFailure } from '../../common/result';
-import type { UserPayload } from '../auth';
+} from '#generated/prisma/client.js';
+import { errAsync, okAsync } from '../../common/result/index.js';
+import type { DomainFailure } from '../../common/result/index.js';
+import type { UserPayload } from '../auth/index.js';
 import {
   MAX_PRODUCT_EVENTS_PER_REQUEST,
   CreateProductEventBatchDto,
   CreateProductEventDto,
-} from './dto/create-product-event.dto';
-import { FunnelQueryDto } from './dto/funnel-query.dto';
-import { ProductEventsController } from './product-events.controller';
-import { ProductEventsService } from './services/events.service';
-import { ProductFunnelService } from './services/funnel.service';
+} from './dto/create-product-event.dto.js';
+import { FunnelQueryDto } from './dto/funnel-query.dto.js';
+import { ProductEventsController } from './product-events.controller.js';
+import { ProductEventsService } from './services/events.service.js';
+import { ProductFunnelService } from './services/funnel.service.js';
 
 const user: UserPayload = {
   sub: 'user-1',

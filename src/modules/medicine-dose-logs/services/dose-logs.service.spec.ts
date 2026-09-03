@@ -1,19 +1,22 @@
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
-import { DoseLogStatus } from '#generated/prisma/client';
+import { DoseLogStatus } from '#generated/prisma/client.js';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
   okAsync,
-} from '../../../common/result';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository';
-import { MedicineDoseLogsService } from './dose-logs.service';
+} from '../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository.js';
+import { MedicineDoseLogsService } from './dose-logs.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HealthEventsOwnershipService } from '../../health-events';
-import type { CreateDoseLogDto } from '../dto/create-dose-log.dto';
-import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto';
+import { HealthEventsOwnershipService } from '../../health-events/index.js';
+import type { CreateDoseLogDto } from '../dto/create-dose-log.dto.js';
+import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto.js';
 
 /** Unwraps a ResultAsync, failing the test when it is an Err. */
 async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {

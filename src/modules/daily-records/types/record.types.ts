@@ -1,6 +1,6 @@
-import { Prisma } from '#generated/prisma/client';
-import type { PrismaService } from '../../../prisma';
-import type { DailyRecordKind } from '#generated/prisma/client';
+import { Prisma } from '#generated/prisma/client.js';
+import type { PrismaService } from '../../../prisma/index.js';
+import type { DailyRecordKind } from '#generated/prisma/client.js';
 
 const _dailyRecordAttachmentSelect = {
   id: true,

@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Queue } from 'bullmq';
-import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import {
   MEAL_ANALYSIS_JOB_NAME,
   MEAL_ANALYSIS_QUEUE_NAME,
-} from '../../constants/meal-analysis.constants';
-import { MealAnalysisWorkerService } from '../meal-analysis/worker.service';
+} from '../../constants/meal-analysis.constants.js';
+import { MealAnalysisWorkerService } from '../meal-analysis/worker.service.js';
 
 interface MealAnalysisJobData {
   userId: string;

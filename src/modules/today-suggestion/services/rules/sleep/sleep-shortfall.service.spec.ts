@@ -1,5 +1,5 @@
-import { SleepShortfallRuleService } from './sleep-shortfall.service';
-import { buildContext, buildSignal } from '../test-helpers';
+import { SleepShortfallRuleService } from './sleep-shortfall.service.js';
+import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('SleepShortfallRuleService', () => {
   let rule: SleepShortfallRuleService;

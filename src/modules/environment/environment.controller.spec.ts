@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { EnvironmentSnapshotDto } from './dto/snapshot.dto';
-import { EnvironmentController } from './environment.controller';
-import { EnvironmentService } from './services/snapshot.service';
+import type { EnvironmentSnapshotDto } from './dto/snapshot.dto.js';
+import { EnvironmentController } from './environment.controller.js';
+import { EnvironmentService } from './services/snapshot.service.js';
 
 describe('EnvironmentController', () => {
   let controller: EnvironmentController;

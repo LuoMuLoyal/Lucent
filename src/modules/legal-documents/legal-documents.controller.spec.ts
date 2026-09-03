@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { errAsync, okAsync } from '../../common/result';
-import type { DomainFailure } from '../../common/result';
-import { LegalDocumentsController } from './legal-documents.controller';
-import { LegalDocumentsService } from './services/documents.service';
+import { errAsync, okAsync } from '../../common/result/index.js';
+import type { DomainFailure } from '../../common/result/index.js';
+import { LegalDocumentsController } from './legal-documents.controller.js';
+import { LegalDocumentsService } from './services/documents.service.js';
 
 describe('LegalDocumentsController', () => {
   let controller: LegalDocumentsController;

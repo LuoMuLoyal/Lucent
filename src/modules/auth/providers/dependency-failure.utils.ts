@@ -1,5 +1,5 @@
-import { createDomainFailure } from '../../../common/result';
-import type { DomainFailure } from '../../../common/result';
+import { createDomainFailure } from '../../../common/result/index.js';
+import type { DomainFailure } from '../../../common/result/index.js';
 
 /**
  * Shared dependency-failure classification for OAuth providers.

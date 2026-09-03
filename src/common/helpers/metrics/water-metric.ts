@@ -1,4 +1,4 @@
-import type { ObservedMetric } from '../../types/observed-metric.types';
+import type { ObservedMetric } from '../../types/observed-metric.types.js';
 
 export interface WaterMetricInput {
   value: unknown;

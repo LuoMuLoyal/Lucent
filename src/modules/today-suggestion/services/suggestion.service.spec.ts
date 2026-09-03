@@ -1,14 +1,14 @@
-import { SuggestionService } from './suggestion.service';
-import type { ArbitrationResult } from './arbitration/arbiter.service';
-import type { CopyGenerationResult } from './copy/writer.service';
-import type { SuggestionCandidate } from '../types/candidate.types';
+import { SuggestionService } from './suggestion.service.js';
+import type { ArbitrationResult } from './arbitration/arbiter.service.js';
+import type { CopyGenerationResult } from './copy/writer.service.js';
+import type { SuggestionCandidate } from '../types/candidate.types.js';
 import {
   SuggestionType,
   SuggestionLifecycleState,
-} from '../types/suggestion.types';
-import type { SuggestionItemDto } from '../dto/suggestion-response.dto';
-import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto';
-import { SuggestionCacheService } from './cache/suggestion-cache.service';
+} from '../types/suggestion.types.js';
+import type { SuggestionItemDto } from '../dto/suggestion-response.dto.js';
+import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto.js';
+import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
 
 const mockCopyResult: CopyGenerationResult = {
   title: 'AI Title',

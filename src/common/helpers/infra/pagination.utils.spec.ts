@@ -3,7 +3,7 @@ import {
   clampPageSize,
   MAX_PAGE_SIZE,
   DEFAULT_PAGE_SIZE,
-} from './pagination.utils';
+} from './pagination.utils.js';
 
 describe('pagination utils', () => {
   describe('clampPage', () => {

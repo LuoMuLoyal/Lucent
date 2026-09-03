@@ -1,8 +1,8 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked.js';
 
-import { AiSummaryHistoryKind } from '#generated/prisma/client';
-import { AssistantSummaryRepository } from './summary.repository';
-import type { PrismaService } from '../../../prisma';
+import { AiSummaryHistoryKind } from '#generated/prisma/client.js';
+import { AssistantSummaryRepository } from './summary.repository.js';
+import type { PrismaService } from '../../../prisma/index.js';
 
 describe('AssistantSummaryRepository', () => {
   let repository: AssistantSummaryRepository;

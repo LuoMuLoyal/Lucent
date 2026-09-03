@@ -4,7 +4,7 @@ import {
   USER_SETTINGS_DEFAULTS,
   ASSISTANT_CONTEXT_DEFAULTS,
   listDefaultBooleanUserSettings,
-} from './settings.constants';
+} from './settings.constants.js';
 
 describe('user-settings constants', () => {
   describe('USER_SETTING_KEYS', () => {

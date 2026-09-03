@@ -1,9 +1,9 @@
-import { EnvKey } from '../env/env-keys.enum';
+import { EnvKey } from '../env/env-keys.enum.js';
 import {
   DEFAULT_JWT_ACCESS_TTL_SECONDS,
   DEFAULT_JWT_REFRESH_TTL_SECONDS,
-} from '../app-defaults.constants';
-import { jwtConfig } from './jwt.config';
+} from '../app-defaults.constants.js';
+import { jwtConfig } from './jwt.config.js';
 
 describe('jwtConfig', () => {
   const saved: Record<string, string | undefined> = {};

@@ -1,5 +1,5 @@
-import { buildUserPrompt } from '../../../common';
-import type { PromptCopy } from '../../../common';
+import { buildUserPrompt } from '../../../common/index.js';
+import type { PromptCopy } from '../../../common/index.js';
 
 export function buildDailyRecordCandidatesSystemPrompt(): string {
   return [

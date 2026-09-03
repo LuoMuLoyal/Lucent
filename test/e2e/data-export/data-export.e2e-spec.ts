@@ -5,12 +5,12 @@ import {
   registerTestUser,
   bearer,
   expectData,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 import type {
   E2eTestContext,
   E2eApp,
   RegisteredTestUser,
-} from '../../helpers/e2e-helpers';
+} from '../../helpers/e2e-helpers.js';
 
 const EXPORT_PATH = '/api/v1/user/data-export-requests';
 const TEST_PASSWORD = 'Test@123456';

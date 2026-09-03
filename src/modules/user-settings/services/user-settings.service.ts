@@ -2,19 +2,22 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaService } from '../../../prisma';
-import { fromPromise, okAsync } from '../../../common/result';
-import { fromPrismaResult } from '../../../common';
-import type { DomainFailure, ResultAsync } from '../../../common/result';
-import type { UpdateUserSettingsDto } from '../dto/update.dto';
+import { PrismaService } from '../../../prisma/index.js';
+import { fromPromise, okAsync } from '../../../common/result/index.js';
+import { fromPrismaResult } from '../../../common/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../common/result/index.js';
+import type { UpdateUserSettingsDto } from '../dto/update.dto.js';
 
-import type { UserSettingsDataDto } from '../dto/response.dto';
+import type { UserSettingsDataDto } from '../dto/response.dto.js';
 import {
   ASSISTANT_CONTEXT_DEFAULTS,
   ASSISTANT_CONTEXT_SETTING_KEYS,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../constants/settings.constants';
+} from '../constants/settings.constants.js';
 import {
   SETTINGS_CHANGED,
   type SettingsChangedPayload,

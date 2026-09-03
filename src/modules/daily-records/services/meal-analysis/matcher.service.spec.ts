@@ -1,5 +1,5 @@
-import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader';
+import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service.js';
+import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
 
 const yamlConfig = loadYamlConfig();
 

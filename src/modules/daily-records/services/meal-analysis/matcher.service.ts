@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../../config/env/config-keys.enum';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader';
-import { normalizeNullableText } from '../../../../common';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { normalizeNullableText } from '../../../../common/index.js';
 import {
   normalizeMealEntityName,
   type MealCompositionMatch,
   type MealRecognizedDish,
   type MealResolvedIngredient,
-} from '../../types/meal-analysis.types';
-import { MealDishDecompositionService } from '../meal-dish/decomposition.service';
-import { MealIngredientGroundingService } from '../meal-ingredient/grounding.service';
+} from '../../types/meal-analysis.types.js';
+import { MealDishDecompositionService } from '../meal-dish/decomposition.service.js';
+import { MealIngredientGroundingService } from '../meal-ingredient/grounding.service.js';
 
 interface RecognizedFoodItem {
   name: string;

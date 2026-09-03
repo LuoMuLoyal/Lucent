@@ -1,4 +1,4 @@
-import type { DomainFailure } from './domain-failure';
+import type { DomainFailure } from './domain-failure.js';
 
 export class DomainFailureException extends Error {
   constructor(readonly failure: DomainFailure) {

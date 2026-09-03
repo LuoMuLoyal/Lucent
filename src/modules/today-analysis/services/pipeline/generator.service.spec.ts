@@ -1,9 +1,9 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { LlmRuntimeService } from '../../../../llm-runtime';
-import type { MetricsService } from '../../../../common/metrics/metrics.service';
-import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service';
-import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants';
-import { TodayAnalysisGeneratorService } from './generator.service';
+import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import type { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
+import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
+import { TodayAnalysisGeneratorService } from './generator.service.js';
 
 function buildMetricsService() {
   return {

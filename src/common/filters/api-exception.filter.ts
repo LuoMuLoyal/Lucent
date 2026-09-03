@@ -9,11 +9,11 @@ import {
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { I18nContext, I18nService } from 'nestjs-i18n';
-import { ProblemCatalog, type ProblemCode } from '../api/problem-catalog';
-import type { ProblemDetails } from '../api/problem-details';
-import { getActiveTraceIds } from '../logger/trace-context.utils';
-import { toProblemDetails } from '../result';
-import { DomainFailureException } from '../result/unwrap-result';
+import { ProblemCatalog, type ProblemCode } from '../api/problem-catalog.js';
+import type { ProblemDetails } from '../api/problem-details.js';
+import { getActiveTraceIds } from '../logger/trace-context.utils.js';
+import { toProblemDetails } from '../result/index.js';
+import { DomainFailureException } from '../result/unwrap-result.js';
 
 interface HttpErrorResponse {
   type?: unknown;

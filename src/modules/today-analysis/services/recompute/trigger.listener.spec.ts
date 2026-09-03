@@ -1,12 +1,12 @@
-import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client';
+import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
 import {
   DAILY_RECORD_CHANGED,
   DOSE_LOG_CHANGED,
   HEALTH_EVENT_CHANGED,
   TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
-} from '../../../../common/events/domain-events';
-import { TodayAnalysisTriggerListener } from './trigger.listener';
-import type { TodayAnalysisContextService } from '../pipeline/context.service';
+} from '../../../../common/events/domain-events.js';
+import { TodayAnalysisTriggerListener } from './trigger.listener.js';
+import type { TodayAnalysisContextService } from '../pipeline/context.service.js';
 
 describe('TodayAnalysisTriggerListener', () => {
   let listener: TodayAnalysisTriggerListener;

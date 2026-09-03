@@ -3,9 +3,9 @@ import type { BaseMessage } from '@langchain/core/messages';
 import type {
   AssistantContextSource,
   AssistantToolName,
-} from '../../tools/shared/tool-types';
-import type { AssistantToolExecutionResult } from '../../types/assistant.types';
-import type { AssistantIntent } from './classify';
+} from '../../tools/shared/tool-types.js';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import type { AssistantIntent } from './classify.js';
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
   'prepare_context',

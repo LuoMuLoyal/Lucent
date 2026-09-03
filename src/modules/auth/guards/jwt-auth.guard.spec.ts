@@ -1,9 +1,9 @@
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { DomainFailureException } from '../../../common/result/unwrap-result';
-import type { DomainFailure } from '../../../common/result';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
+import type { DomainFailure } from '../../../common/result/index.js';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard;

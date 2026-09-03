@@ -1,4 +1,4 @@
-import { I18nModule } from './i18n.module';
+import { I18nModule } from './i18n.module.js';
 
 describe('I18nModule', () => {
   it('is decorated with @Global()', () => {

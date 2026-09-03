@@ -5,13 +5,13 @@ import {
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
-} from '#generated/prisma/client';
-import type { UserClinicSummaryShare } from '#generated/prisma/client';
-import { now } from '../../../../common';
-import { createDomainFailure } from '../../../../common/result';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception';
-import { PrismaService } from '../../../../prisma';
-import { ProductEventsService } from '../../../product-events';
+} from '#generated/prisma/client.js';
+import type { UserClinicSummaryShare } from '#generated/prisma/client.js';
+import { now } from '../../../../common/index.js';
+import { createDomainFailure } from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { ProductEventsService } from '../../../product-events/index.js';
 
 /**
  * Default lifetime of a share link, in days. Intentionally longer than the

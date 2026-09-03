@@ -1,7 +1,7 @@
-export { PrismaModule } from './prisma.module';
-export { PrismaService } from './prisma.service';
+export { PrismaModule } from './prisma.module.js';
+export { PrismaService } from './prisma.service.js';
 export {
   softDeleteExtension,
   applySoftDeleteExtension,
-} from './prisma.extension';
-export type { ExtendedPrismaClient } from './prisma.extension';
+} from './prisma.extension.js';
+export type { ExtendedPrismaClient } from './prisma.extension.js';

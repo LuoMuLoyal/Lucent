@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { HealthEventStatus } from '#generated/prisma/client';
+import { HealthEventStatus } from '#generated/prisma/client.js';
 
 export class EventReviewListQueryDto {
   @ApiPropertyOptional({

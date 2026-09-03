@@ -20,7 +20,7 @@ vi.mock('pg', () => ({
 }));
 
 import type { ConfigService } from '@nestjs/config';
-import { VectorStoreFactory } from './vector-store.factory';
+import { VectorStoreFactory } from './vector-store.factory.js';
 
 describe('VectorStoreFactory', () => {
   function createFactory(

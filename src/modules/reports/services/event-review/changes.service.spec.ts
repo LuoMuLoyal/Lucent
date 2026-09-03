@@ -1,10 +1,13 @@
-import { DailyRecordKind, HealthEventOutcome } from '#generated/prisma/client';
+import {
+  DailyRecordKind,
+  HealthEventOutcome,
+} from '#generated/prisma/client.js';
 import {
   EventReviewChangesService,
   type ReviewChangeCheckIn,
   type ReviewChangeDailyRecord,
   type ReviewChangeFacts,
-} from './changes.service';
+} from './changes.service.js';
 
 const DAY_10 = new Date('2026-08-10T00:00:00.000Z');
 const DAY_11 = new Date('2026-08-11T00:00:00.000Z');

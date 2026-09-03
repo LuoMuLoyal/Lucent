@@ -1,10 +1,13 @@
 import type {
   ObjectStorageConfig,
   ObjectStorageRuntime,
-} from '../../../common';
-import { unwrapResult } from '../../../common/result';
-import type { ResultAsync, DomainFailure } from '../../../common/result';
-import { FilesService } from './files.service';
+} from '../../../common/index.js';
+import { unwrapResult } from '../../../common/result/index.js';
+import type {
+  ResultAsync,
+  DomainFailure,
+} from '../../../common/result/index.js';
+import { FilesService } from './files.service.js';
 
 const mockUuid = '00000000-0000-0000-0000-000000000000';
 vi.mock('node:crypto', () => ({

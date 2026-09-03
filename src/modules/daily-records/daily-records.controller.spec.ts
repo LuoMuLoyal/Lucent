@@ -1,11 +1,11 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { DailyRecordsController } from './daily-records.controller';
-import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service';
-import { DailyRecordImageUploadService } from './services/image-upload.service';
-import { DailyRecordsService } from './services/records.service';
-import type { UserPayload } from '../auth';
-import { okAsync, errAsync } from '../../common/result';
-import type { DomainFailure } from '../../common/result';
+import { DailyRecordsController } from './daily-records.controller.js';
+import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
+import { DailyRecordImageUploadService } from './services/image-upload.service.js';
+import { DailyRecordsService } from './services/records.service.js';
+import type { UserPayload } from '../auth/index.js';
+import { okAsync, errAsync } from '../../common/result/index.js';
+import type { DomainFailure } from '../../common/result/index.js';
 
 describe('DailyRecordsController', () => {
   let controller: DailyRecordsController;

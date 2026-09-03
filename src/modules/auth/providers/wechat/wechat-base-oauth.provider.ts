@@ -1,4 +1,7 @@
-import { extractErrorInfo, toInputJsonValue } from '../../../../common';
+import {
+  extractErrorInfo,
+  toInputJsonValue,
+} from '../../../../common/index.js';
 import {
   errAsync,
   fromPromise,
@@ -6,13 +9,13 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 import type { Logger } from '@nestjs/common';
-import type { Prisma } from '#generated/prisma/client';
+import type { Prisma } from '#generated/prisma/client.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from '../dependency-failure.utils';
+} from '../dependency-failure.utils.js';
 
 export const WECHAT_ACCESS_TOKEN_URL =
   'https://api.weixin.qq.com/sns/oauth2/access_token';

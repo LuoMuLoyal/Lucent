@@ -1,6 +1,6 @@
-import { ConfigKey } from '../env/config-keys.enum';
-import { EnvKey } from '../env/env-keys.enum';
-import { DEFAULT_JPUSH_API_BASE_URL, jpushConfig } from './jpush.config';
+import { ConfigKey } from '../env/config-keys.enum.js';
+import { EnvKey } from '../env/env-keys.enum.js';
+import { DEFAULT_JPUSH_API_BASE_URL, jpushConfig } from './jpush.config.js';
 
 describe('jpushConfig', () => {
   const keys = [

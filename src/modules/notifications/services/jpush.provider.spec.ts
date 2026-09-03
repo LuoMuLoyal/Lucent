@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Logger, ServiceUnavailableException } from '@nestjs/common';
-import type { JpushConfig } from '../../../config/services/jpush.config';
-import { JpushPushProvider } from './jpush.provider';
+import type { JpushConfig } from '../../../config/services/jpush.config.js';
+import { JpushPushProvider } from './jpush.provider.js';
 
 function buildConfig(overrides: Partial<JpushConfig> = {}): JpushConfig {
   return {

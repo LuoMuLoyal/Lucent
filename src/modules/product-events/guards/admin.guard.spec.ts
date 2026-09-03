@@ -1,8 +1,8 @@
 import type { ConfigService } from '@nestjs/config';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
-import type { UserPayload } from '../../auth';
-import { AdminGuard } from './admin.guard';
+import type { UserPayload } from '../../auth/index.js';
+import { AdminGuard } from './admin.guard.js';
 
 const ADMIN_EMAIL = 'admin@lucent.local';
 

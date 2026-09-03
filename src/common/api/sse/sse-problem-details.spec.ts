@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ProblemCatalog } from '../problem-catalog';
-import { SseProblemDetailsMapper } from './sse-problem-details';
-import { createDomainFailure } from '../../result';
-import { DomainFailureException } from '../../result/domain-failure.exception';
+import { ProblemCatalog } from '../problem-catalog.js';
+import { SseProblemDetailsMapper } from './sse-problem-details.js';
+import { createDomainFailure } from '../../result/index.js';
+import { DomainFailureException } from '../../result/domain-failure.exception.js';
 
 describe('SseProblemDetailsMapper', () => {
   function createMapper(): SseProblemDetailsMapper {

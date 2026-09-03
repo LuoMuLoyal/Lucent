@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
-import { ConfigKey } from '../env/config-keys.enum';
-import { EnvKey } from '../env/env-keys.enum';
-import { loadYamlConfig } from '../yaml/yaml-loader';
+import { ConfigKey } from '../env/config-keys.enum.js';
+import { EnvKey } from '../env/env-keys.enum.js';
+import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 /**
  * Parse a human-friendly TTL string (e.g. "15m", "14d", "2h") into seconds.

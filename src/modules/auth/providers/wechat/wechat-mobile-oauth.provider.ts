@@ -3,7 +3,7 @@ import {
   errAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result';
+} from '../../../../common/result/index.js';
 import {
   Injectable,
   Logger,
@@ -11,21 +11,21 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../../config/env/config-keys.enum';
-import type { OAuthConfig } from '../../../../config/services/oauth.config';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { OAuthConfig } from '../../../../config/services/oauth.config.js';
 import {
   WechatBaseOAuthProvider,
   WECHAT_ACCESS_TOKEN_URL,
   WECHAT_USERINFO_URL,
   type WechatAccessTokenSuccess,
   type WechatUserInfoSuccess,
-} from './wechat-base-oauth.provider';
+} from './wechat-base-oauth.provider.js';
 import {
   OAUTH_PROVIDER_WECHAT_MOBILE,
   type OAuthProfile,
-} from '../../types/oauth.types';
-import type { OAuthProvider } from '../oauth-provider.interface';
-import { dependencyBadGateway } from '../dependency-failure.utils';
+} from '../../types/oauth.types.js';
+import type { OAuthProvider } from '../oauth-provider.interface.js';
+import { dependencyBadGateway } from '../dependency-failure.utils.js';
 
 @Injectable()
 export class WechatMobileOAuthProvider

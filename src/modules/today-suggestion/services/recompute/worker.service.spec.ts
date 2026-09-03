@@ -1,5 +1,5 @@
-import { SuggestionRecomputeWorkerService } from './worker.service';
-import type { RecomputeJobData } from './queue.service';
+import { SuggestionRecomputeWorkerService } from './worker.service.js';
+import type { RecomputeJobData } from './queue.service.js';
 
 function job(overrides: Partial<RecomputeJobData> = {}): RecomputeJobData {
   return {
