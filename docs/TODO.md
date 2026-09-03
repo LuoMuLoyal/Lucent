@@ -90,10 +90,21 @@ v2.0.0 水平扩展时需验证多实例限流计数器在 Redis 中的正确性
 `DataRetentionService` 已实现 `@Cron` 清理管道（过期会话/通知/反馈抑制）和软删除账户 30 天后硬删除。
 仍缺：账户删除流程增加匿名化数据导出 → 数据可移植性 JSON 导出（GDPR/PIPL 合规）。
 
-### @nestjs/throttler 与 nest-winston 的 ^12 peer 跟进（2026-09-02，NestJS 12 Phase 1 实查）
+### ESM 遗留 CJS 依赖与互操作跟踪（2026-09-03，NestJS 12 升级第二步）
+
+ESM 化后遗留清单与后续跟进：
+
+- `@prisma/internals`：named `getDMMF` 无法经 cjs-module-lexer 识别（动态重导出），`prisma-module.service.ts`
+  以动态 import + default/具名回退装载。上游发布 ESM 版本后改回裸 named import。
+- 两处 PDF 服务用 `createRequire(import.meta.url).resolve` 解析 `@fontpkg/*` 字体资产路径（ESM 无
+  `require.resolve`），属惯用法保留。
+- `cos-nodejs-sdk-v5`（default import）、`better-auth`（ESM 出口）、adminjs 系与 `@scalar/*`（动态
+  default import）当前互操作正常，无需改动；若上游导出形态变化，按计划口径复核。
+
+### @nestjs/throttler 与 nest-winston 的 ^12 peer 跟进（2026-09-02，NestJS 12 升级第一步）
 
 `@nestjs/throttler@6.5.0`（npm latest）与 `nest-winston@1.10.2` 的 peerDependencies 尚未纳入
-`@nestjs/* ^12`（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；Phase 1 e2e 全量运行时行为已验证正常
+`@nestjs/* ^12`（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；框架升级后 e2e 全量运行时行为已验证正常
 （rate-limiting 套件与日志链路通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
 评估替代方案或 fork peer 声明。
 
