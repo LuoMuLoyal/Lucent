@@ -6200,24 +6200,22 @@
             "name": "lat",
             "required": false,
             "in": "query",
-            "description": "Approximate latitude.",
             "schema": {
+              "type": "number",
               "minimum": -90,
               "maximum": 90,
-              "example": 31.2304,
-              "type": "number"
+              "description": "Approximate latitude."
             }
           },
           {
             "name": "lon",
             "required": false,
             "in": "query",
-            "description": "Approximate longitude.",
             "schema": {
+              "type": "number",
               "minimum": -180,
               "maximum": 180,
-              "example": 121.4737,
-              "type": "number"
+              "description": "Approximate longitude."
             }
           }
         ],

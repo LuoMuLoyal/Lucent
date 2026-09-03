@@ -1,7 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/index.js';
-import { EnvironmentSnapshotQueryDto } from './dto/snapshot-query.dto.js';
+import { environmentSnapshotQuerySchema } from './dto/snapshot-query.dto.js';
+import type { EnvironmentSnapshotQueryDto } from './dto/snapshot-query.dto.js';
 
 import { EnvironmentSnapshotResponseDto } from './dto/snapshot.dto.js';
 import { EnvironmentService } from './services/snapshot.service.js';
@@ -16,24 +17,11 @@ export class EnvironmentController {
   @ApiOperation({
     summary: 'Get static environment snapshot reference data',
   })
-  @ApiQuery({
-    name: 'lat',
-    required: false,
-    type: Number,
-    minimum: -90,
-    maximum: 90,
-    description: 'Approximate latitude.',
-  })
-  @ApiQuery({
-    name: 'lon',
-    required: false,
-    type: Number,
-    minimum: -180,
-    maximum: 180,
-    description: 'Approximate longitude.',
-  })
   @ApiResponse({ status: 200, type: EnvironmentSnapshotResponseDto })
-  getSnapshot(@Query() query: EnvironmentSnapshotQueryDto) {
+  getSnapshot(
+    @Query({ schema: environmentSnapshotQuerySchema })
+    query: EnvironmentSnapshotQueryDto,
+  ) {
     return this.environmentService.getSnapshot(query);
   }
 }

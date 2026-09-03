@@ -6,6 +6,7 @@ import type { ValidationError } from '@nestjs/common';
 import {
   BadRequestException,
   Logger,
+  StandardSchemaValidationPipe,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
@@ -238,6 +239,10 @@ export async function setupApp(
           message: formatValidationErrors(errors),
         }),
     }),
+    // Standard Schema pipe validates params that carry `{ schema }` metadata
+    // (zod-converted endpoints) and is a no-op everywhere else. It runs after
+    // the class-validator pipe so the two can coexist during the migration.
+    new StandardSchemaValidationPipe(),
   );
   app.useGlobalInterceptors(app.get(SlowRequestInterceptor));
   app.useGlobalFilters(app.get(ApiExceptionFilter));

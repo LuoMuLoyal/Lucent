@@ -66,4 +66,21 @@ describe('Environment API (e2e)', () => {
   it('should reject out-of-range longitude', async () => {
     await request(app.getHttpServer()).get(`${ENV_PATH}?lon=200`).expect(400);
   });
+
+  it('should reject a non-numeric lat value', async () => {
+    await request(app.getHttpServer()).get(`${ENV_PATH}?lat=abc`).expect(400);
+  });
+
+  it('should coerce an empty lat to 0 (z.coerce parity with Type(Number))', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`${ENV_PATH}?lat=`)
+      .expect(200);
+    expect(expectData(response.body as SnapshotData).dataSource).toBe('static');
+  });
+
+  it('should reject unknown query keys (strict schema, forbid parity)', async () => {
+    await request(app.getHttpServer())
+      .get(`${ENV_PATH}?lat=31&extra=1`)
+      .expect(400);
+  });
 });
