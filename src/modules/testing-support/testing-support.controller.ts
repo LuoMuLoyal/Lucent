@@ -11,7 +11,8 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import { Public } from '../auth/index.js';
 import { TestingSharedSecretGuard } from './guards/testing-shared-secret.guard.js';
 import { TestingSupportService } from './services/fixtures.service.js';
-import { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto.js';
+import { prepareFullstackRecordLaneSchema } from './dto/prepare-fullstack-record-lane.dto.js';
+import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto.js';
 
 @ApiExcludeController()
 @Public()
@@ -22,7 +23,10 @@ export class TestingSupportController {
 
   @Post('record-lane/prepare')
   @HttpCode(HttpStatus.OK)
-  async prepareFullstackRecordLane(@Body() dto: PrepareFullstackRecordLaneDto) {
+  async prepareFullstackRecordLane(
+    @Body({ schema: prepareFullstackRecordLaneSchema })
+    dto: PrepareFullstackRecordLaneDto,
+  ) {
     return await this.testingSupportService.prepareFullstackRecordLane(dto);
   }
 }

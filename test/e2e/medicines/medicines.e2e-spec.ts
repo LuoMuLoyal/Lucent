@@ -241,6 +241,32 @@ describe('Medicines API (e2e)', () => {
     expect(body['code']).toBe('VALIDATION_FAILED');
   });
 
+  it('should reject unknown query keys (strict schema, forbid parity)', async () => {
+    await request(app.getHttpServer())
+      .get(MEDICINES_PATH)
+      .query({ q: 'ibuprofen', extra: '1' })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get(`${MEDICINES_PATH}/DB01050`)
+      .query({ extra: '1' })
+      .expect(400);
+  });
+
+  it('should reject a non-numeric page value', async () => {
+    await request(app.getHttpServer())
+      .get(MEDICINES_PATH)
+      .query({ page: 'abc' })
+      .expect(400);
+  });
+
+  it('should reject an empty pageSize (coerces to 0, below the min)', async () => {
+    await request(app.getHttpServer())
+      .get(MEDICINES_PATH)
+      .query({ pageSize: '' })
+      .expect(400);
+  });
+
   // ── Safety Tips ──────────────────────────────────────────────
 
   describe('GET /api/v1/medicines/safety-tips', () => {
@@ -423,6 +449,26 @@ describe('Medicines API (e2e)', () => {
         .post(RECOGNIZE_PATH)
         .set(AUTH_HEADER, `Bearer ${token}`)
         .send({ imageUrl: '' })
+        .expect(400);
+    });
+
+    it('should return 400 for a non-URL imageUrl value', async () => {
+      const { token } = await createUserWithToken();
+
+      await request(app.getHttpServer())
+        .post(RECOGNIZE_PATH)
+        .set(AUTH_HEADER, `Bearer ${token}`)
+        .send({ imageUrl: 'not-a-url' })
+        .expect(400);
+    });
+
+    it('should reject unknown body keys (strict schema, forbid parity)', async () => {
+      const { token } = await createUserWithToken();
+
+      await request(app.getHttpServer())
+        .post(RECOGNIZE_PATH)
+        .set(AUTH_HEADER, `Bearer ${token}`)
+        .send({ imageUrl: 'https://example.com/box.jpg', extra: 1 })
         .expect(400);
     });
 

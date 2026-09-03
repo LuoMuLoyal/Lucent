@@ -1,5 +1,5 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional } from 'class-validator';
+import { z } from 'zod';
+import { isoDateOrDatetimeSchema } from '../../../common/validators/iso-datetime.schema.js';
 
 /**
  * Max INCLUSIVE UTC calendar days for one funnel query window
@@ -11,26 +11,40 @@ import { IsDateString, IsOptional } from 'class-validator';
 export const MAX_FUNNEL_RANGE_DAYS = 30;
 
 /**
- * Query params for the admin funnel aggregation endpoint. Both dates are
- * optional together: when neither is given the service falls back to the
- * default window (last `DEFAULT_FUNNEL_WINDOW_DAYS` days ending today, UTC).
+ * ISO 8601 date (YYYY-MM-DD) or datetime with a UTC offset (Z or ±HH:MM) —
+ * the shapes the previous `@IsDateString` (validator loose ISO 8601)
+ * accepted for the tested contract. Datetimes without an offset are rejected
+ * (no instant semantics). Implemented as a refined string so the OpenAPI
+ * conversion stays a plain `string` (a `z.iso.date().or(z.iso.datetime())`
+ * union would break the client generator).
  */
-export class FunnelQueryDto {
-  @ApiPropertyOptional({
-    description:
-      'Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.',
-    example: '2026-07-16',
-  })
-  @IsOptional()
-  @IsDateString()
-  dateFrom?: string;
+const funnelDateSchema = isoDateOrDatetimeSchema();
 
-  @ApiPropertyOptional({
-    description:
-      'Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.',
-    example: '2026-08-14',
+/**
+ * Standard Schema (zod 4) for the admin funnel aggregation query params.
+ *
+ * Replaces the former class-validator DTO:
+ * - `@IsOptional` → `.optional()` (absent keys stay `undefined`);
+ * - `@IsDateString` → `z.iso.date().or(z.iso.datetime(...))` (both params
+ *   stay optional together — when neither is given the service falls back to
+ *   the default window);
+ * - `.strict()` preserves the global `forbidNonWhitelisted` rejection of
+ *   unknown query keys.
+ */
+export const productFunnelQuerySchema = z
+  .object({
+    dateFrom: funnelDateSchema
+      .describe(
+        'Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.',
+      )
+      .optional(),
+    dateTo: funnelDateSchema
+      .describe(
+        'Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.',
+      )
+      .optional(),
   })
-  @IsOptional()
-  @IsDateString()
-  dateTo?: string;
-}
+  .strict();
+
+/** Strongly typed query object of `GET /product-events/funnel`. */
+export type FunnelQueryDto = z.infer<typeof productFunnelQuerySchema>;

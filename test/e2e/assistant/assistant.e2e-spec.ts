@@ -221,6 +221,130 @@ describe('Assistant API (e2e)', () => {
     });
   });
 
+  // ── Rename Conversation ─────────────────────────────────────
+
+  describe('PATCH /conversations/:conversationId', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer())
+        .patch(`${BASE_PATH}/conversations/fake-id`)
+        .send({ title: 'New title' })
+        .expect(401);
+    });
+
+    it('should return 400 VALIDATION_FAILED for an empty title', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`${BASE_PATH}/conversations/fake-id`)
+        .set('Authorization', bearer(accessToken))
+        .send({ title: '' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for a whitespace-only title', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`${BASE_PATH}/conversations/fake-id`)
+        .set('Authorization', bearer(accessToken))
+        .send({ title: '   ' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for unknown body keys (strict schema, forbid parity)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`${BASE_PATH}/conversations/fake-id`)
+        .set('Authorization', bearer(accessToken))
+        .send({ title: 'New title', extra: 'x' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should rename an existing conversation and return the updated resource', async () => {
+      const conversation = await ctx.prisma.assistantConversation.create({
+        data: {
+          userId: user.id,
+          title: 'Old Title',
+          status: AssistantConversationStatus.archived,
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .patch(`${BASE_PATH}/conversations/${conversation.id}`)
+        .set('Authorization', bearer(accessToken))
+        .send({ title: 'New Title' })
+        .expect(200);
+
+      const data = expectData(res.body as { id: string; title: string });
+      expect(data.id).toBe(conversation.id);
+      expect(data.title).toBe('New Title');
+
+      const stored = await ctx.prisma.assistantConversation.findUniqueOrThrow({
+        where: { id: conversation.id },
+      });
+      expect(stored.title).toBe('New Title');
+    });
+  });
+
+  // ── Confirm Proposal ────────────────────────────────────────
+
+  describe('POST /conversations/:conversationId/confirm', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer())
+        .post(`${BASE_PATH}/conversations/fake-id/confirm`)
+        .send({ proposalIds: ['p1'], decision: 'approved' })
+        .expect(401);
+    });
+
+    it('should return 400 VALIDATION_FAILED when required fields are missing', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/conversations/fake-id/confirm`)
+        .set('Authorization', bearer(accessToken))
+        .send({ decision: 'approved' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for an empty proposalIds array', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/conversations/fake-id/confirm`)
+        .set('Authorization', bearer(accessToken))
+        .send({ proposalIds: [], decision: 'approved' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for an invalid decision value', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/conversations/fake-id/confirm`)
+        .set('Authorization', bearer(accessToken))
+        .send({ proposalIds: ['p1'], decision: 'maybe' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for unknown body keys (strict schema, forbid parity)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/conversations/fake-id/confirm`)
+        .set('Authorization', bearer(accessToken))
+        .send({ proposalIds: ['p1'], decision: 'approved', extra: 'x' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+  });
+
   // ── Stream Messages (SSE) ──────────────────────────────────
 
   describe('POST /messages/stream', () => {
@@ -236,6 +360,58 @@ describe('Assistant API (e2e)', () => {
         .post(`${BASE_PATH}/messages/stream`)
         .set('Authorization', bearer(accessToken))
         .send({ messages: [] })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for an invalid nested message role', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/messages/stream`)
+        .set('Authorization', bearer(accessToken))
+        .send({ messages: [{ role: 'system', content: 'Hello' }] })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for unknown keys in a nested message (strict schema, forbid parity)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/messages/stream`)
+        .set('Authorization', bearer(accessToken))
+        .send({ messages: [{ role: 'user', content: 'Hello', extra: 'x' }] })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED for unknown top-level body keys (strict schema, forbid parity)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/messages/stream`)
+        .set('Authorization', bearer(accessToken))
+        .send({
+          messages: [{ role: 'user', content: 'Hello' }],
+          extra: 'x',
+        })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should return 400 VALIDATION_FAILED when the conversation window exceeds 20 messages', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/messages/stream`)
+        .set('Authorization', bearer(accessToken))
+        .send({
+          messages: Array.from({ length: 21 }, (_, index) => ({
+            role: 'user' as const,
+            content: `message-${index}`,
+          })),
+        })
         .expect(400);
 
       const body = res.body as Record<string, unknown>;

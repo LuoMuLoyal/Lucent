@@ -119,6 +119,14 @@ describe('Today Analysis API (e2e)', () => {
       const body = response.body as { status: string };
       expect(typeof body.status).toBe('string');
     });
+
+    it('should reject unknown body keys (strict schema, forbid parity)', async () => {
+      await request(app.getHttpServer())
+        .post(GENERATE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ date: '2026-06-15', extra: 'not-allowed' })
+        .expect(400);
+    });
   });
 
   // ── POST /generate/stream (SSE) ─────────────────────────────

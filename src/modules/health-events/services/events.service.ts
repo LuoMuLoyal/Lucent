@@ -52,10 +52,10 @@ export function toProductEventResult(
 
 export interface CreateHealthEventInput {
   title: string;
-  kind?: HealthEventKind;
-  startedAt?: Date;
-  reasonRecordId?: string | null;
-  currentMedicineIds?: string[];
+  kind?: HealthEventKind | undefined;
+  startedAt?: Date | undefined;
+  reasonRecordId?: string | null | undefined;
+  currentMedicineIds?: string[] | undefined;
 }
 
 export interface EndHealthEventInput {

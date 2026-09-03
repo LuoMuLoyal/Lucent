@@ -11,7 +11,7 @@ import {
   type ResultAsync,
 } from '../../../common/result/index.js';
 import { UserService } from '../../user/index.js';
-import { DeleteAccountDto } from '../dto/shared/delete-account.dto.js';
+import type { DeleteAccountDto } from '../dto/shared/delete-account.dto.js';
 import { PasswordReauthService } from './identity/password-reauth.service.js';
 import { VerificationCodeService } from './identity/verification-code.service.js';
 import { AuthAccountRepositoryPort } from '../repositories/account.repository.js';

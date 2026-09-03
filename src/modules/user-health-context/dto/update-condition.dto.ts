@@ -1,53 +1,40 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-} from 'class-validator';
+import { z } from 'zod';
 import { UserConditionStatus } from '#generated/prisma/client.js';
 
-export class UpdateHealthContextConditionDto {
-  @ApiPropertyOptional({
-    description: 'Condition label.',
-    example: 'Asthma',
+/**
+ * Standard Schema (zod 4) for `PATCH /health-context/conditions/:id` body.
+ *
+ * Replaces the former class-validator DTO: every field is optional; fields
+ * mapped to nullable columns keep `.nullable()` so `null` clears the stored
+ * value (`diagnosedAt`/`note`), while non-nullable columns reject `null`.
+ */
+export const updateHealthContextConditionSchema = z
+  .object({
+    label: z
+      .string()
+      .max(120, 'label must not be longer than 120 characters')
+      .describe('Condition label.')
+      .optional(),
+    status: z
+      .enum(UserConditionStatus)
+      .describe('Condition status.')
+      .optional(),
+    diagnosedAt: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'diagnosedAt must be in YYYY-MM-DD format')
+      .describe('Diagnosis date in YYYY-MM-DD format. Use null to clear.')
+      .nullable()
+      .optional(),
+    note: z
+      .string()
+      .max(1000, 'note must not be longer than 1000 characters')
+      .describe('User note for the condition. Use null to clear.')
+      .nullable()
+      .optional(),
   })
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  label?: string;
+  .strict();
 
-  @ApiPropertyOptional({
-    description: 'Condition status.',
-    enum: UserConditionStatus,
-    enumName: 'UserConditionStatus',
-  })
-  @IsOptional()
-  @IsEnum(UserConditionStatus)
-  status?: UserConditionStatus;
-
-  @ApiPropertyOptional({
-    description: 'Diagnosis date in YYYY-MM-DD format. Use null to clear.',
-    example: '2024-02-01',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'diagnosedAt must be in YYYY-MM-DD format',
-  })
-  diagnosedAt?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'User note for the condition. Use null to clear.',
-    example: 'Triggered during pollen season',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(1000)
-  note?: string | null;
-}
+/** Strongly typed body of `PATCH /health-context/conditions/:id`. */
+export type UpdateHealthContextConditionDto = z.infer<
+  typeof updateHealthContextConditionSchema
+>;

@@ -22,9 +22,11 @@ import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
-import { CreateDailyRecordDto } from './dto/create-record.dto.js';
+import { createDailyRecordSchema } from './dto/create-record.dto.js';
+import type { CreateDailyRecordDto } from './dto/create-record.dto.js';
 
-import { UpdateDailyRecordDto } from './dto/update-record.dto.js';
+import { updateDailyRecordSchema } from './dto/update-record.dto.js';
+import type { UpdateDailyRecordDto } from './dto/update-record.dto.js';
 
 import {
   DailyRecordListResponseDto,
@@ -33,15 +35,18 @@ import {
 } from './dto/record-response.dto.js';
 
 import {
-  CreateDailyRecordImageUploadDto,
+  createDailyRecordImageUploadSchema,
   DailyRecordImageUploadResponseDto,
 } from './dto/candidates/record-image-upload.dto.js';
+import type { CreateDailyRecordImageUploadDto } from './dto/candidates/record-image-upload.dto.js';
 
 import { DailyRecordCandidateResponseDto } from './dto/candidates/record-candidate-response.dto.js';
 
-import { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate-record-candidates.dto.js';
+import { generateDailyRecordCandidatesSchema } from './dto/candidates/generate-record-candidates.dto.js';
+import type { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate-record-candidates.dto.js';
 
-import { QueryDailyRecordDto } from './dto/query-record.dto.js';
+import { queryDailyRecordSchema } from './dto/query-record.dto.js';
+import type { QueryDailyRecordDto } from './dto/query-record.dto.js';
 import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
 import { DailyRecordImageUploadService } from './services/image-upload.service.js';
 import { DailyRecordsService } from './services/records.service.js';
@@ -59,14 +64,11 @@ export class DailyRecordsController {
 
   @Get()
   @ApiOperation({ summary: 'List daily records for a given date' })
-  @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
-  @ApiQuery({ name: 'kind', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'pageSize', required: false })
   @ApiResponse({ status: 200, type: DailyRecordListResponseDto })
   async list(
     @CurrentUser() user: UserPayload,
-    @Query() query: QueryDailyRecordDto,
+    @Query({ schema: queryDailyRecordSchema })
+    query: QueryDailyRecordDto,
   ) {
     const result = await this.dailyRecordsService.list(
       user.sub,
@@ -94,7 +96,8 @@ export class DailyRecordsController {
   @ApiResponse({ status: 201, type: DailyRecordImageUploadResponseDto })
   async createImageUpload(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateDailyRecordImageUploadDto,
+    @Body({ schema: createDailyRecordImageUploadSchema })
+    dto: CreateDailyRecordImageUploadDto,
   ) {
     const result = await this.imageUploadService.createPresignedUpload(
       user.sub,
@@ -111,7 +114,8 @@ export class DailyRecordsController {
   @ApiResponse({ status: 200, type: DailyRecordCandidateResponseDto })
   async generateCandidates(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateDailyRecordCandidatesDto,
+    @Body({ schema: generateDailyRecordCandidatesSchema })
+    dto: GenerateDailyRecordCandidatesDto,
     @I18nLang() language: string,
   ) {
     const result = await this.dailyRecordCandidatesService.generate(
@@ -160,7 +164,8 @@ export class DailyRecordsController {
   })
   async create(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateDailyRecordDto,
+    @Body({ schema: createDailyRecordSchema })
+    dto: CreateDailyRecordDto,
   ) {
     return unwrapResult(this.dailyRecordsService.create(user.sub, dto));
   }
@@ -187,7 +192,8 @@ export class DailyRecordsController {
   async update(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
-    @Body() dto: UpdateDailyRecordDto,
+    @Body({ schema: updateDailyRecordSchema })
+    dto: UpdateDailyRecordDto,
   ) {
     return unwrapResult(this.dailyRecordsService.update(user.sub, id, dto));
   }

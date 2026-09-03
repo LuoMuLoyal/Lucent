@@ -129,6 +129,39 @@ describe('Medicine Risk Check API (e2e)', () => {
     expect(expectData(nextBody).static?.checkType).toBe('static');
   });
 
+  it('rejects a body with unknown keys (strict schema, forbid parity)', async () => {
+    const res = await request(app.getHttpServer())
+      .post(RISK_CHECK_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ type: 'static', extra: true });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects a candidate missing source or id (nested schema)', async () => {
+    const missingId = await request(app.getHttpServer())
+      .post(RISK_CHECK_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ type: 'static', candidate: { source: 'cn' } });
+    expect(missingId.statusCode).toBe(400);
+
+    const missingSource = await request(app.getHttpServer())
+      .post(RISK_CHECK_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ type: 'static', candidate: { id: 'cn-1' } });
+    expect(missingSource.statusCode).toBe(400);
+  });
+
+  it('rejects a candidate with an unknown nested key', async () => {
+    const res = await request(app.getHttpServer())
+      .post(RISK_CHECK_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({
+        type: 'static',
+        candidate: { source: 'cn', id: 'cn-1', extra: 1 },
+      });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('returns a service error for LLM check when the analysis model is not configured', async () => {
     const res = await request(app.getHttpServer())
       .post(RISK_CHECK_PATH)

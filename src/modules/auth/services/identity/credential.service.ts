@@ -19,15 +19,15 @@ import { UserService } from '../../../user/index.js';
 import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
 import { INotificationSender } from '../../../notifications/index.js';
 import { VerificationCodeService } from './verification-code.service.js';
-import { RegisterDto } from '../../dto/credentials/register.dto.js';
-import { LoginDto } from '../../dto/credentials/login.dto.js';
-import { ChangePasswordDto } from '../../dto/password/change-password.dto.js';
-import { ChangeEmailDto } from '../../dto/password/change-email.dto.js';
-import { ResetPasswordDto } from '../../dto/password/reset-password.dto.js';
-import { SetPasswordDto } from '../../dto/password/set-password.dto.js';
-import { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.js';
-import { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
-import { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
+import type { RegisterDto } from '../../dto/credentials/register.dto.js';
+import type { LoginDto } from '../../dto/credentials/login.dto.js';
+import type { ChangePasswordDto } from '../../dto/password/change-password.dto.js';
+import type { ChangeEmailDto } from '../../dto/password/change-email.dto.js';
+import type { ResetPasswordDto } from '../../dto/password/reset-password.dto.js';
+import type { SetPasswordDto } from '../../dto/password/set-password.dto.js';
+import type { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.js';
+import type { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
+import type { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
 import {
   AuthTokenService,
   type AuthRequestContext,

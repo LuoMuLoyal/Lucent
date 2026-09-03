@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { validate } from 'class-validator';
 import {
   createDomainFailure,
   errAsync,
@@ -10,7 +9,8 @@ import type { UserPayload } from '../auth/index.js';
 import { ReminderDeliveriesController } from './reminder-deliveries.controller.js';
 import { MedicineRemindersService } from './services/reminders.service.js';
 import { DeliveryReceiptsService } from './services/delivery-receipts.service.js';
-import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto.js';
+import { reminderDeliveryReceiptSchema } from './dto/reminder-delivery-receipt.dto.js';
+import type { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',
@@ -206,29 +206,33 @@ describe('ReminderDeliveriesController', () => {
 });
 
 describe('ReminderDeliveryReceiptDto validation', () => {
-  it('rejects a full ISO timestamp as scheduledDate (only YYYY-MM-DD passes)', async () => {
-    const invalid = Object.assign(new ReminderDeliveryReceiptDto(), {
+  it('rejects a full ISO timestamp as scheduledDate (only YYYY-MM-DD passes)', () => {
+    const invalid: ReminderDeliveryReceiptDto = {
       reminderId: 'reminder-1',
       scheduledDate: '2026-07-20T08:30:00.000Z',
       scheduledTime: '08:30',
-    });
-    const wrongFormat = Object.assign(new ReminderDeliveryReceiptDto(), {
+    };
+    const wrongFormat: ReminderDeliveryReceiptDto = {
       reminderId: 'reminder-1',
       scheduledDate: '2026/07/20',
       scheduledTime: '08:30',
-    });
+    };
 
-    expect(await validate(invalid)).not.toHaveLength(0);
-    expect(await validate(wrongFormat)).not.toHaveLength(0);
+    expect(reminderDeliveryReceiptSchema.safeParse(invalid).success).toBe(
+      false,
+    );
+    expect(reminderDeliveryReceiptSchema.safeParse(wrongFormat).success).toBe(
+      false,
+    );
   });
 
-  it('accepts a YYYY-MM-DD scheduledDate', async () => {
-    const valid = Object.assign(new ReminderDeliveryReceiptDto(), {
+  it('accepts a YYYY-MM-DD scheduledDate', () => {
+    const valid: ReminderDeliveryReceiptDto = {
       reminderId: 'reminder-1',
       scheduledDate: '2026-07-20',
       scheduledTime: '08:30',
-    });
+    };
 
-    expect(await validate(valid)).toHaveLength(0);
+    expect(reminderDeliveryReceiptSchema.safeParse(valid).success).toBe(true);
   });
 });

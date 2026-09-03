@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiBody,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -21,21 +20,21 @@ import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
-import { CreateCurrentMedicineDto } from './dto/create-current-medicine.dto.js';
-
-import { CreateHealthContextAllergyDto } from './dto/create-allergy.dto.js';
-
-import { CreateHealthContextConditionDto } from './dto/create-condition.dto.js';
-
+import { createHealthContextAllergySchema } from './dto/create-allergy.dto.js';
+import type { CreateHealthContextAllergyDto } from './dto/create-allergy.dto.js';
+import { createHealthContextConditionSchema } from './dto/create-condition.dto.js';
+import type { CreateHealthContextConditionDto } from './dto/create-condition.dto.js';
+import { createCurrentMedicineSchema } from './dto/create-current-medicine.dto.js';
+import type { CreateCurrentMedicineDto } from './dto/create-current-medicine.dto.js';
 import { HealthContextResponseDto } from './dto/response.dto.js';
-
-import { UpdateCurrentMedicineDto } from './dto/update-current-medicine.dto.js';
-
-import { UpdateHealthContextAllergyDto } from './dto/update-allergy.dto.js';
-
-import { UpdateHealthContextConditionDto } from './dto/update-condition.dto.js';
-
-import { UpdateHealthContextProfileDto } from './dto/update-profile.dto.js';
+import { updateHealthContextAllergySchema } from './dto/update-allergy.dto.js';
+import type { UpdateHealthContextAllergyDto } from './dto/update-allergy.dto.js';
+import { updateHealthContextConditionSchema } from './dto/update-condition.dto.js';
+import type { UpdateHealthContextConditionDto } from './dto/update-condition.dto.js';
+import { updateCurrentMedicineSchema } from './dto/update-current-medicine.dto.js';
+import type { UpdateCurrentMedicineDto } from './dto/update-current-medicine.dto.js';
+import { updateHealthContextProfileSchema } from './dto/update-profile.dto.js';
+import type { UpdateHealthContextProfileDto } from './dto/update-profile.dto.js';
 import { UserHealthContextService } from './services/health-context.service.js';
 
 @ApiTags('User Health Context')
@@ -63,7 +62,6 @@ export class UserHealthContextController {
   @ApiOperation({
     summary: 'Update the current user health-context profile',
   })
-  @ApiBody({ type: UpdateHealthContextProfileDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   @ApiResponse({
     status: 404,
@@ -72,7 +70,8 @@ export class UserHealthContextController {
   })
   async updateUserHealthContextProfile(
     @CurrentUser() user: UserPayload,
-    @Body() dto: UpdateHealthContextProfileDto,
+    @Body({ schema: updateHealthContextProfileSchema })
+    dto: UpdateHealthContextProfileDto,
   ) {
     return unwrapResult(
       this.userHealthContextService.updateProfile(user.sub, dto),
@@ -84,7 +83,6 @@ export class UserHealthContextController {
   @Post('allergies')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create an allergy record' })
-  @ApiBody({ type: CreateHealthContextAllergyDto })
   @ApiResponse({ status: 201, type: HealthContextResponseDto })
   @ApiResponse({
     status: 404,
@@ -93,7 +91,8 @@ export class UserHealthContextController {
   })
   async createAllergy(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateHealthContextAllergyDto,
+    @Body({ schema: createHealthContextAllergySchema })
+    dto: CreateHealthContextAllergyDto,
   ) {
     return unwrapResult(
       this.userHealthContextService.createAllergy(user.sub, dto),
@@ -104,7 +103,6 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update an allergy record' })
   @ApiParam({ name: 'id', description: 'Allergy id' })
-  @ApiBody({ type: UpdateHealthContextAllergyDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   @ApiResponse({
     status: 403,
@@ -119,7 +117,8 @@ export class UserHealthContextController {
   async updateAllergy(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateHealthContextAllergyDto,
+    @Body({ schema: updateHealthContextAllergySchema })
+    dto: UpdateHealthContextAllergyDto,
   ) {
     return unwrapResult(
       this.userHealthContextService.updateAllergy(user.sub, id, dto),
@@ -155,7 +154,6 @@ export class UserHealthContextController {
   @Post('conditions')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a condition record' })
-  @ApiBody({ type: CreateHealthContextConditionDto })
   @ApiResponse({ status: 201, type: HealthContextResponseDto })
   @ApiResponse({
     status: 404,
@@ -164,7 +162,8 @@ export class UserHealthContextController {
   })
   async createCondition(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateHealthContextConditionDto,
+    @Body({ schema: createHealthContextConditionSchema })
+    dto: CreateHealthContextConditionDto,
   ) {
     return unwrapResult(
       this.userHealthContextService.createCondition(user.sub, dto),
@@ -175,7 +174,6 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a condition record' })
   @ApiParam({ name: 'id', description: 'Condition id' })
-  @ApiBody({ type: UpdateHealthContextConditionDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   @ApiResponse({
     status: 403,
@@ -190,7 +188,8 @@ export class UserHealthContextController {
   async updateCondition(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateHealthContextConditionDto,
+    @Body({ schema: updateHealthContextConditionSchema })
+    dto: UpdateHealthContextConditionDto,
   ) {
     return unwrapResult(
       this.userHealthContextService.updateCondition(user.sub, id, dto),
@@ -226,7 +225,6 @@ export class UserHealthContextController {
   @Post('current-medicines')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Add a current medicine record' })
-  @ApiBody({ type: CreateCurrentMedicineDto })
   @ApiResponse({ status: 201, type: HealthContextResponseDto })
   @ApiResponse({
     status: 404,
@@ -235,7 +233,8 @@ export class UserHealthContextController {
   })
   async createCurrentMedicine(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateCurrentMedicineDto,
+    @Body({ schema: createCurrentMedicineSchema })
+    dto: CreateCurrentMedicineDto,
   ) {
     return unwrapResult(
       this.userHealthContextService.createCurrentMedicine(user.sub, dto),
@@ -246,7 +245,6 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a current medicine record' })
   @ApiParam({ name: 'id', description: 'Current medicine id' })
-  @ApiBody({ type: UpdateCurrentMedicineDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   @ApiResponse({
     status: 403,
@@ -261,7 +259,8 @@ export class UserHealthContextController {
   async updateCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateCurrentMedicineDto,
+    @Body({ schema: updateCurrentMedicineSchema })
+    dto: UpdateCurrentMedicineDto,
   ) {
     return unwrapResult(
       this.userHealthContextService.updateCurrentMedicine(user.sub, id, dto),

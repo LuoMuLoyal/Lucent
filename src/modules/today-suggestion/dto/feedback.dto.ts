@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn } from 'class-validator';
-import type { SuggestionFeedback } from '../types/suggestion.types.js';
+import { z } from 'zod';
+import { SuggestionFeedback } from '../types/suggestion.types.js';
 
 const FEEDBACK_VALUES = [
   'accepted',
@@ -9,14 +9,31 @@ const FEEDBACK_VALUES = [
   'suppress',
 ] as const;
 
-export class SuggestionFeedbackDto {
-  @ApiProperty({
-    description: 'User feedback for the suggestion',
-    enum: FEEDBACK_VALUES,
+/**
+ * Standard Schema (zod 4) for the JSON body of
+ * `POST /today/suggestions/:id/feedback`.
+ *
+ * Replaces the former class-validator DTO:
+ * - `@IsIn(FEEDBACK_VALUES)` → `z.enum(SuggestionFeedback)` — zod v4 merged
+ *   `nativeEnum` into `z.enum` (native TS enums are accepted directly); the
+ *   enum carries the same values as `FEEDBACK_VALUES` (kept below for the
+ *   response/documentation DTOs);
+ * - the global `forbidNonWhitelisted` behaviour is preserved with `.strict()`
+ *   (unknown body keys are rejected) — the migration default is stripping,
+ *   but this endpoint keeps the historical strict posture.
+ */
+export const suggestionFeedbackSchema = z
+  .object({
+    feedback: z
+      .enum(SuggestionFeedback, {
+        message: 'must be one of accepted, later, not_applicable, suppress',
+      })
+      .describe('User feedback for the suggestion'),
   })
-  @IsIn(FEEDBACK_VALUES)
-  feedback!: SuggestionFeedback;
-}
+  .strict();
+
+/** Strongly typed body of `POST /today/suggestions/:id/feedback`. */
+export type SuggestionFeedbackDto = z.infer<typeof suggestionFeedbackSchema>;
 
 export class SuggestionFeedbackDataDto {
   @ApiProperty()

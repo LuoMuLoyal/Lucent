@@ -1,119 +1,80 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsDateString,
-  IsEnum,
-  IsNotEmpty,
-  IsObject,
-  IsOptional,
-  IsUUID,
-  Matches,
-  IsString,
-  MaxLength,
-  ValidateNested,
-} from 'class-validator';
+import { z } from 'zod';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordAttachmentInputDto } from './record-attachment.dto.js';
+import { dailyRecordAttachmentInputSchema } from './record-attachment.dto.js';
 
-export class UpdateDailyRecordDto {
-  @ApiPropertyOptional({ enum: DailyRecordKind, enumName: 'DailyRecordKind' })
-  @IsOptional()
-  @IsEnum(DailyRecordKind)
-  kind?: DailyRecordKind;
+const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
+  DailyRecordKind,
+  ...DailyRecordKind[],
+];
 
-  @ApiPropertyOptional({
-    description: 'Date in YYYY-MM-DD format.',
-    example: '2026-06-04',
+const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/**
+ * Standard Schema (zod 4) for `PATCH /daily-records/:id` (update body).
+ *
+ * Replaces the former class-validator `UpdateDailyRecordDto`; same mapping
+ * as `createDailyRecordSchema`, plus:
+ * - every mutable field is `.nullish()` when the API contract allows an
+ *   explicit `null` to clear the stored value (`@ApiPropertyOptional
+ *   nullable: true`, `@IsOptional` previously skipped `null`);
+ * - `occurredAt` stays date-only and non-nullable (a record always has a
+ *   date — `null` draft values are skipped by callers, see
+ *   assistant/core.service).
+ */
+export const updateDailyRecordSchema = z
+  .object({
+    kind: z.enum(DAILY_RECORD_KIND_VALUES).optional(),
+    occurredAt: z.iso.date().describe('Date in YYYY-MM-DD format.').optional(),
+    occurredTime: z
+      .string()
+      .regex(TIME_24H_PATTERN)
+      .describe('Time in HH:mm 24-hour format. Use null to clear.')
+      .nullish(),
+    title: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .describe('Short label. Use null to clear.')
+      .nullish(),
+    value: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .describe('Measured value. Use null to clear.')
+      .nullish(),
+    unit: z
+      .string()
+      .trim()
+      .min(1)
+      .max(50)
+      .describe('Unit label. Use null to clear.')
+      .nullish(),
+    note: z
+      .string()
+      .max(1000)
+      .describe('Free-text note. Use null to clear.')
+      .nullish(),
+    payload: z
+      .record(z.string(), z.unknown())
+      .describe(
+        'Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt.',
+      )
+      .nullish(),
+    healthEventId: z
+      .uuid()
+      .describe('Active health event association. Use null to clear.')
+      .nullish(),
+    attachments: z
+      .array(dailyRecordAttachmentInputSchema)
+      .describe(
+        'Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear.',
+      )
+      .optional(),
   })
-  @IsOptional()
-  @IsDateString()
-  occurredAt?: string;
+  .strict();
 
-  @ApiPropertyOptional({
-    description: 'Time in HH:mm 24-hour format. Use null to clear.',
-    example: '09:45',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
-  occurredTime?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Short label. Use null to clear.',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  title?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Measured value. Use null to clear.',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  value?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Unit label. Use null to clear.',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  unit?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Free-text note. Use null to clear.',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(1000)
-  note?: string | null;
-
-  @ApiPropertyOptional({
-    description:
-      'Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt.',
-    nullable: true,
-    type: Object,
-    additionalProperties: true,
-  })
-  @IsOptional()
-  @IsObject()
-  payload?: Record<string, unknown> | null;
-
-  @ApiPropertyOptional({
-    description: 'Active health event association. Use null to clear.',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsUUID()
-  healthEventId?: string | null;
-
-  @ApiPropertyOptional({
-    type: () => DailyRecordAttachmentInputDto,
-    isArray: true,
-    description:
-      'Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear.',
-  })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => DailyRecordAttachmentInputDto)
-  attachments?: DailyRecordAttachmentInputDto[];
-}
+/** Strongly typed update body of `PATCH /daily-records/:id`. */
+export type UpdateDailyRecordDto = z.infer<typeof updateDailyRecordSchema>;

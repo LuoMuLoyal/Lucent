@@ -19,10 +19,8 @@ import {
 import { MetricsService } from '../../../common/metrics/metrics.service.js';
 import { PrismaService } from '../../../prisma/index.js';
 import { isKnownSuggestionRuleCode } from '../constants/rule-code-allowlist.constants.js';
-import {
-  MAX_PRODUCT_EVENT_FUTURE_SKEW_MS,
-  CreateProductEventDto,
-} from '../dto/create-product-event.dto.js';
+import { MAX_PRODUCT_EVENT_FUTURE_SKEW_MS } from '../dto/create-product-event.dto.js';
+import type { CreateProductEventDto } from '../dto/create-product-event.dto.js';
 
 /** Result of a batch write: events received vs rows actually inserted. */
 export interface ProductEventRecordResult {

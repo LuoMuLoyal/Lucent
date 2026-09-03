@@ -1,40 +1,33 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export class CreateDailyRecordImageUploadDto {
-  @ApiProperty({
-    description: 'Image MIME content type.',
-    example: 'image/jpeg',
+/**
+ * Standard Schema (zod 4) for
+ * `POST /daily-records/attachments/images/presign-upload`.
+ *
+ * Replaces the former class-validator `CreateDailyRecordImageUploadDto`
+ * (JSON body, so numbers arrive as numbers — no `z.coerce`):
+ * - `@MaxLength` → `.max(...)`; `@IsInt`/`@Min`/`@Max` →
+ *   `z.number().int().min/max(...)`;
+ * - the global `forbidNonWhitelisted` posture is preserved with `.strict()`.
+ */
+export const createDailyRecordImageUploadSchema = z
+  .object({
+    contentType: z.string().max(100).describe('Image MIME content type.'),
+    sizeBytes: z
+      .number()
+      .int()
+      .min(1)
+      .max(50_000_000)
+      .describe('File size in bytes.'),
+    fileName: z.string().max(255).describe('Original file name.').optional(),
   })
-  @IsString()
-  @MaxLength(100)
-  contentType!: string;
+  .strict();
 
-  @ApiProperty({
-    description: 'File size in bytes.',
-    example: 1_234_567,
-  })
-  @IsInt()
-  @Min(1)
-  @Max(50_000_000)
-  sizeBytes!: number;
-
-  @ApiPropertyOptional({
-    description: 'Original file name.',
-    example: 'breakfast.jpg',
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  fileName?: string;
-}
+/** Strongly typed create body of the presigned image upload endpoint. */
+export type CreateDailyRecordImageUploadDto = z.infer<
+  typeof createDailyRecordImageUploadSchema
+>;
 
 export class DailyRecordImageUploadDto {
   @ApiProperty({ example: 'tencent-cos' })

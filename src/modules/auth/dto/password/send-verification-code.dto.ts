@@ -1,6 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
-import { IsEmailAddress } from '../../../../common/validators/auth.decorators.js';
+import { z } from 'zod';
+import { emailAddressSchema } from '../../../../common/validators/auth.decorators.js';
 
 export const VERIFICATION_SCENES = [
   'register',
@@ -12,18 +11,25 @@ export const VERIFICATION_SCENES = [
 
 export type VerificationScene = (typeof VERIFICATION_SCENES)[number];
 
-export class SendVerificationCodeDto {
-  @ApiProperty({ description: '邮箱地址', example: 'user@example.com' })
-  @IsEmailAddress()
-  email!: string;
-
-  @ApiProperty({
-    description: '验证码场景',
-    enum: VERIFICATION_SCENES,
-    example: 'register',
+/**
+ * Standard Schema (zod) for `POST /auth/send-verification-code` body.
+ *
+ * Migration notes:
+ * - `@IsEmailAddress()` → `emailAddressSchema()`;
+ * - `@IsString` + `@IsNotEmpty({ message: 'scene 不能为空' })` +
+ *   `@IsIn(VERIFICATION_SCENES, { message: 'scene 取值不合法' })` →
+ *   `z.enum(VERIFICATION_SCENES, …)` (enum rejects missing/unknown values).
+ */
+export const sendVerificationCodeSchema = z
+  .object({
+    email: emailAddressSchema().describe('邮箱地址'),
+    scene: z.enum(VERIFICATION_SCENES, {
+      message: 'scene 取值不合法',
+    }),
   })
-  @IsString()
-  @IsNotEmpty({ message: 'scene 不能为空' })
-  @IsIn(VERIFICATION_SCENES, { message: 'scene 取值不合法' })
-  scene!: VerificationScene;
-}
+  .strict();
+
+/** Strongly typed body of `POST /auth/send-verification-code`. */
+export type SendVerificationCodeDto = z.infer<
+  typeof sendVerificationCodeSchema
+>;

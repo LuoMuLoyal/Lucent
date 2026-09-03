@@ -1,30 +1,33 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { z } from 'zod';
 import {
-  IsEmailAddress,
-  IsStrongPassword,
-  IsVerificationCode,
+  emailAddressSchema,
+  strongPasswordSchema,
+  verificationCodeSchema,
 } from '../../../../common/validators/auth.decorators.js';
 
-export class LoginDto {
-  @ApiProperty({ description: '邮箱地址', example: 'user@example.com' })
-  @IsEmailAddress()
-  email!: string;
-
-  @ApiPropertyOptional({
-    description: '密码（与验证码二选一）',
-    example: 'Passw0rd123',
-    minLength: 8,
-    maxLength: 32,
+/**
+ * Standard Schema (zod) for `POST /auth/login` body.
+ *
+ * Migration notes (class-validator → zod):
+ * - `@IsEmailAddress()` → `emailAddressSchema()` (zod email format + not-empty
+ *   messages reused from the original validator);
+ * - `@IsStrongPassword({ optional: true })` → `strongPasswordSchema().optional()`
+ *   (strong password rules live in `common/validators/auth.decorators.ts`);
+ * - `@IsVerificationCode({ optional: true })` → `verificationCodeSchema().optional()`
+ *   (default: exactly `VERIFICATION_CODE_LENGTH` characters when present);
+ * - the global `forbidNonWhitelisted` posture is preserved with `.strict()`.
+ */
+export const loginSchema = z
+  .object({
+    email: emailAddressSchema().describe('邮箱地址'),
+    password: strongPasswordSchema()
+      .describe('密码（与验证码二选一）')
+      .optional(),
+    code: verificationCodeSchema()
+      .describe('邮箱验证码（与密码二选一）')
+      .optional(),
   })
-  @IsStrongPassword({ optional: true })
-  password?: string;
+  .strict();
 
-  @ApiPropertyOptional({
-    description: '邮箱验证码（与密码二选一）',
-    example: '123456',
-    minLength: 6,
-    maxLength: 6,
-  })
-  @IsVerificationCode({ optional: true })
-  code?: string;
-}
+/** Strongly typed body of `POST /auth/login`. */
+export type LoginDto = z.infer<typeof loginSchema>;

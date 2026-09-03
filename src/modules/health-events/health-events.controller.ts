@@ -11,26 +11,32 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
-  ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
+import { z } from 'zod';
 import { HealthEventKind } from '#generated/prisma/client.js';
 import { ProblemDetailsDto, formatDateOnly } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
-import { CreateHealthEventDto } from './dto/create-event.dto.js';
-import { EndHealthEventDto } from './dto/end-event.dto.js';
-import { EventListQueryDto } from './dto/event-list-query.dto.js';
+import { createHealthEventSchema } from './dto/create-event.dto.js';
+import type { CreateHealthEventDto } from './dto/create-event.dto.js';
+import { endHealthEventSchema } from './dto/end-event.dto.js';
+import type { EndHealthEventDto } from './dto/end-event.dto.js';
+import {
+  eventDateSchema,
+  eventListQuerySchema,
+} from './dto/event-list-query.dto.js';
+import type { EventListQueryDto } from './dto/event-list-query.dto.js';
 import {
   HealthEventListResponseDto,
   HealthEventResponseDto,
   HealthEventItemDto,
 } from './dto/event-response.dto.js';
-import { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
+import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.dto.js';
+import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
 import type {
   HealthEventCheckInRecord,
   HealthEventCoverageRecord,
@@ -39,6 +45,9 @@ import type {
 } from './repositories/event.repository.js';
 import { CheckInsService } from './services/check-ins.service.js';
 import { EventsService } from './services/events.service.js';
+
+/** Path id of a health event (format is validated downstream by the DB uuid). */
+const healthEventIdSchema = z.string().min(1).describe('Health event id.');
 
 @ApiTags('Health Events')
 @ApiBearerAuth('access-token')
@@ -64,7 +73,8 @@ export class HealthEventsController {
   })
   async create(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateHealthEventDto,
+    @Body({ schema: createHealthEventSchema })
+    dto: CreateHealthEventDto,
   ) {
     const event = await unwrapResult(this.eventsService.create(user.sub, dto));
     return this.toItem(event);
@@ -72,7 +82,6 @@ export class HealthEventsController {
 
   @Get('active')
   @ApiOperation({ summary: 'Get the current active health event' })
-  @ApiQuery({ name: 'date', required: false, example: '2026-08-09' })
   @ApiResponse({
     status: 200,
     schema: {
@@ -82,7 +91,8 @@ export class HealthEventsController {
   })
   async active(
     @CurrentUser() user: UserPayload,
-    @Query() query: EventListQueryDto = new EventListQueryDto(),
+    @Query({ schema: eventListQuerySchema })
+    query: EventListQueryDto = {},
   ) {
     const event = await this.eventsService.findActiveView(user.sub, query.date);
     return event == null ? null : this.toItem(event);
@@ -90,11 +100,11 @@ export class HealthEventsController {
 
   @Get()
   @ApiOperation({ summary: 'List the user health event history' })
-  @ApiQuery({ name: 'date', required: false, example: '2026-08-09' })
   @ApiResponse({ status: 200, type: HealthEventListResponseDto })
   async list(
     @CurrentUser() user: UserPayload,
-    @Query() query: EventListQueryDto = new EventListQueryDto(),
+    @Query({ schema: eventListQuerySchema })
+    query: EventListQueryDto = {},
   ) {
     const result = await this.eventsService.listViews(user.sub, query.date);
     return {
@@ -105,8 +115,6 @@ export class HealthEventsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get one user health event' })
-  @ApiParam({ name: 'id' })
-  @ApiQuery({ name: 'date', required: false, example: '2026-08-09' })
   @ApiResponse({ status: 200, type: HealthEventResponseDto })
   @ApiResponse({
     status: 403,
@@ -120,8 +128,9 @@ export class HealthEventsController {
   })
   async get(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
-    @Query() query: EventListQueryDto = new EventListQueryDto(),
+    @Param('id', { schema: healthEventIdSchema }) id: string,
+    @Query({ schema: eventListQuerySchema })
+    query: EventListQueryDto = {},
   ) {
     const event = await unwrapResult(
       this.eventsService.findByIdView(user.sub, id, query.date),
@@ -131,8 +140,6 @@ export class HealthEventsController {
 
   @Put(':id/check-ins/:date')
   @ApiOperation({ summary: 'Upsert a user-confirmed daily event check-in' })
-  @ApiParam({ name: 'id' })
-  @ApiParam({ name: 'date', example: '2026-08-09' })
   @ApiResponse({ status: 200, type: HealthEventResponseDto })
   @ApiResponse({
     status: 400,
@@ -156,9 +163,10 @@ export class HealthEventsController {
   })
   async upsertCheckIn(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
-    @Param('date') date: string,
-    @Body() dto: UpsertHealthEventCheckInDto,
+    @Param('id', { schema: healthEventIdSchema }) id: string,
+    @Param('date', { schema: eventDateSchema }) date: string,
+    @Body({ schema: upsertHealthEventCheckInSchema })
+    dto: UpsertHealthEventCheckInDto,
   ) {
     await unwrapResult(
       this.checkInsService.upsertForDate(user.sub, id, date, dto),
@@ -171,7 +179,6 @@ export class HealthEventsController {
 
   @Post(':id/end')
   @ApiOperation({ summary: 'End a health event with an explicit outcome' })
-  @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: HealthEventResponseDto })
   @ApiResponse({
     status: 400,
@@ -190,8 +197,8 @@ export class HealthEventsController {
   })
   async end(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
-    @Body() dto: EndHealthEventDto,
+    @Param('id', { schema: healthEventIdSchema }) id: string,
+    @Body({ schema: endHealthEventSchema }) dto: EndHealthEventDto,
   ) {
     await unwrapResult(this.eventsService.end(user.sub, id, dto));
     const event = await unwrapResult(

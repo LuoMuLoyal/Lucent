@@ -116,9 +116,17 @@ describe('Legal Documents API (e2e)', () => {
     });
 
     it('should reject invalid lang parameter', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .get(`${BASE_PATH}?lang=fr`)
         .expect(400);
+      expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+    });
+
+    it('should reject unknown query keys (strict schema)', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`${BASE_PATH}?lang=en&unknown=1`)
+        .expect(400);
+      expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
     });
   });
 

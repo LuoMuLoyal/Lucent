@@ -189,4 +189,34 @@ describe('Testing Support API (e2e)', () => {
     };
     expect(expectData(resetSettingsBody).aiSummariesEnabled).toBe(true);
   });
+
+  it('should reject a malformed date with VALIDATION_FAILED', async () => {
+    const res = await request(app.getHttpServer())
+      .post(TESTING_PATH)
+      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
+      .send({
+        email: TEST_EMAIL,
+        password: TEST_PASSWORD,
+        date: '2026/06/12',
+        nickname: TEST_NICKNAME,
+      })
+      .expect(400);
+
+    expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+  });
+
+  it('should reject unknown body keys (strict schema)', async () => {
+    const res = await request(app.getHttpServer())
+      .post(TESTING_PATH)
+      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
+      .send({
+        email: TEST_EMAIL,
+        password: TEST_PASSWORD,
+        date: TEST_DATE,
+        extraField: true,
+      })
+      .expect(400);
+
+    expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+  });
 });

@@ -19,12 +19,18 @@ import { AuditLogService } from '../../audit-log/index.js';
 import { AuthService } from '../services/auth.service.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';
 
-import { RegisterDto } from '../dto/credentials/register.dto.js';
-import { LoginDto } from '../dto/credentials/login.dto.js';
-import { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto.js';
-import { VerifyEmailDto } from '../dto/password/verify-email.dto.js';
-import { ForgotPasswordDto } from '../dto/password/forgot-password.dto.js';
-import { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
+import { registerSchema } from '../dto/credentials/register.dto.js';
+import type { RegisterDto } from '../dto/credentials/register.dto.js';
+import { loginSchema } from '../dto/credentials/login.dto.js';
+import type { LoginDto } from '../dto/credentials/login.dto.js';
+import { sendVerificationCodeSchema } from '../dto/password/send-verification-code.dto.js';
+import type { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto.js';
+import { verifyEmailSchema } from '../dto/password/verify-email.dto.js';
+import type { VerifyEmailDto } from '../dto/password/verify-email.dto.js';
+import { forgotPasswordSchema } from '../dto/password/forgot-password.dto.js';
+import type { ForgotPasswordDto } from '../dto/password/forgot-password.dto.js';
+import { resetPasswordSchema } from '../dto/password/reset-password.dto.js';
+import type { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
 
 import {
   ForgotPasswordResponseDto,
@@ -69,7 +75,10 @@ export class LocalController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
-  async register(@Body() dto: RegisterDto, @Req() request: FastifyRequest) {
+  async register(
+    @Body({ schema: registerSchema }) dto: RegisterDto,
+    @Req() request: FastifyRequest,
+  ) {
     const result = await unwrapResult(
       this.authService.register(dto, extractAuthRequestContext(request)),
     );
@@ -110,7 +119,10 @@ export class LocalController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
-  async login(@Body() dto: LoginDto, @Req() request: FastifyRequest) {
+  async login(
+    @Body({ schema: loginSchema }) dto: LoginDto,
+    @Req() request: FastifyRequest,
+  ) {
     const result = await unwrapResult(
       this.authService.login(dto, extractAuthRequestContext(request)),
     );
@@ -130,7 +142,7 @@ export class LocalController {
     type: ProblemDetailsDto,
   })
   async sendVerificationCode(
-    @Body() dto: SendVerificationCodeDto,
+    @Body({ schema: sendVerificationCodeSchema }) dto: SendVerificationCodeDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -164,7 +176,7 @@ export class LocalController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
-  async verifyEmail(@Body() dto: VerifyEmailDto) {
+  async verifyEmail(@Body({ schema: verifyEmailSchema }) dto: VerifyEmailDto) {
     await unwrapResult(this.authService.verifyEmail(dto));
     return { emailVerified: true };
   }
@@ -197,7 +209,7 @@ export class LocalController {
     type: ProblemDetailsDto,
   })
   async forgotPassword(
-    @Body() dto: ForgotPasswordDto,
+    @Body({ schema: forgotPasswordSchema }) dto: ForgotPasswordDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -231,7 +243,9 @@ export class LocalController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
-  async resetPassword(@Body() dto: ResetPasswordDto) {
+  async resetPassword(
+    @Body({ schema: resetPasswordSchema }) dto: ResetPasswordDto,
+  ) {
     await unwrapResult(this.authService.resetPassword(dto));
     return;
   }

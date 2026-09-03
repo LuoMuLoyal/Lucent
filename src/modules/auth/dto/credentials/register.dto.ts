@@ -1,33 +1,37 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { z } from 'zod';
 import {
-  IsEmailAddress,
-  IsStrongPassword,
-  IsVerificationCode,
+  emailAddressSchema,
+  strongPasswordSchema,
+  verificationCodeSchema,
 } from '../../../../common/validators/auth.decorators.js';
 
-export class RegisterDto {
-  @ApiProperty({ description: '邮箱地址', example: 'user@example.com' })
-  @IsEmailAddress()
-  email!: string;
-
-  @ApiProperty({
-    description: '密码（8-32位，需包含大小写字母和数字）',
-    example: 'Passw0rd123',
-    minLength: 8,
-    maxLength: 32,
+/**
+ * Standard Schema (zod) for `POST /auth/register` body.
+ *
+ * Migration notes:
+ * - `@IsEmailAddress()` → `emailAddressSchema()`;
+ * - `@IsStrongPassword()` → `strongPasswordSchema()` (default 密码 prefix);
+ * - `@IsVerificationCode({ exactLength: false })` →
+ *   `verificationCodeSchema({ exactLength: false })` (any non-empty string;
+ *   the exact-length check is disabled for registration);
+ * - nickname: `@IsOptional` `@IsString` `@MinLength(1)` `@MaxLength(20)` →
+ *   `z.string().min(1, …).max(20, …).optional()`.
+ */
+export const registerSchema = z
+  .object({
+    email: emailAddressSchema().describe('邮箱地址'),
+    password: strongPasswordSchema().describe(
+      '密码（8-32位，需包含大小写字母和数字）',
+    ),
+    code: verificationCodeSchema({ exactLength: false }).describe('邮箱验证码'),
+    nickname: z
+      .string()
+      .min(1, '昵称至少 1 个字符')
+      .max(20, '昵称最多 20 个字符')
+      .describe('昵称')
+      .optional(),
   })
-  @IsStrongPassword()
-  password!: string;
+  .strict();
 
-  @ApiProperty({ description: '邮箱验证码', example: '123456' })
-  @IsVerificationCode({ exactLength: false })
-  code!: string;
-
-  @ApiPropertyOptional({ description: '昵称', example: '小明', maxLength: 20 })
-  @IsOptional()
-  @IsString()
-  @MinLength(1, { message: '昵称至少 1 个字符' })
-  @MaxLength(20, { message: '昵称最多 20 个字符' })
-  nickname?: string;
-}
+/** Strongly typed body of `POST /auth/register`. */
+export type RegisterDto = z.infer<typeof registerSchema>;

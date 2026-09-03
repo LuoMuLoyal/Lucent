@@ -27,12 +27,13 @@ import { unwrapResult } from '../../common/result/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 import { NotificationsService } from './services/notifications.service.js';
+import { createNotificationSchema } from './dto/response.dto.js';
 import {
   NotificationListResponseDto,
   NotificationDetailResponseDto,
   UnreadCountResponseDto,
-  CreateNotificationDto,
 } from './dto/response.dto.js';
+import type { CreateNotificationDto } from './dto/response.dto.js';
 
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')
@@ -51,7 +52,7 @@ export class NotificationsController {
   })
   async create(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateNotificationDto,
+    @Body({ schema: createNotificationSchema }) dto: CreateNotificationDto,
   ) {
     return await unwrapResult(this.notificationsService.create(user.sub, dto));
   }

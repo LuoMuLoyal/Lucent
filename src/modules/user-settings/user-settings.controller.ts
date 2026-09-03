@@ -18,7 +18,8 @@ import { CurrentUser } from '../auth/index.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
 import { UserSettingsService } from './services/user-settings.service.js';
-import { UpdateUserSettingsDto } from './dto/update.dto.js';
+import { updateUserSettingsSchema } from './dto/update.dto.js';
+import type { UpdateUserSettingsDto } from './dto/update.dto.js';
 
 import { UserSettingsResponseDto } from './dto/response.dto.js';
 
@@ -51,7 +52,7 @@ export class UserSettingsController {
   })
   async updateSettings(
     @CurrentUser() user: UserPayload,
-    @Body() dto: UpdateUserSettingsDto,
+    @Body({ schema: updateUserSettingsSchema }) dto: UpdateUserSettingsDto,
   ) {
     return await unwrapResult(
       this.settingsService.updateSettings(user.sub, dto),

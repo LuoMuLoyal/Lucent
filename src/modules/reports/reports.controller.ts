@@ -44,9 +44,11 @@ import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 
 import { Public } from '../auth/index.js';
-import { GenerateReportSummaryDto } from './dto/generate-report-summary.dto.js';
+import { generateReportSummarySchema } from './dto/generate-report-summary.dto.js';
+import type { GenerateReportSummaryDto } from './dto/generate-report-summary.dto.js';
 
-import { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto.js';
+import { reportDashboardQuerySchema } from './dto/report-dashboard-query.dto.js';
+import type { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto.js';
 
 import { ReportDashboardResponseDto } from './dto/report-dashboard-response.dto.js';
 
@@ -60,9 +62,17 @@ import {
 } from './dto/clinic-summary-response.dto.js';
 import { ClinicSummaryShareListResponseDto } from './dto/clinic-summary-share-list.dto.js';
 import {
-  ClinicSummaryRequestDto,
+  clinicSummaryRequestSchema,
   CLINIC_SUMMARY_SELECTABLE_FIELDS,
 } from './dto/clinic-summary-request.dto.js';
+import type { ClinicSummaryRequestDto } from './dto/clinic-summary-request.dto.js';
+import { eventReviewListQuerySchema } from './dto/event-review-list-query.dto.js';
+import type { EventReviewListQueryDto } from './dto/event-review-list-query.dto.js';
+import {
+  EventReviewListResponseDto,
+  EventReviewResponseDto,
+  EventReviewDataDto,
+} from './dto/event-review-response.dto.js';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
 
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
@@ -76,12 +86,6 @@ import type { ClinicSummaryOptions } from './services/clinic-summary/summary.ser
 import { ShareService } from './services/clinic-summary/share.service.js';
 import { EventReviewService } from './services/event-review/review.service.js';
 import { ReportsService } from './dashboard/dashboard.service.js';
-import { EventReviewListQueryDto } from './dto/event-review-list-query.dto.js';
-import {
-  EventReviewListResponseDto,
-  EventReviewResponseDto,
-  EventReviewDataDto,
-} from './dto/event-review-response.dto.js';
 
 /** Milliseconds per day — used to materialize the default share range. */
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -188,7 +192,8 @@ export class ReportsController {
   @ApiResponse({ status: 200, type: ReportDashboardResponseDto })
   async getDashboard(
     @CurrentUser() user: UserPayload,
-    @Query() query: ReportDashboardQueryDto,
+    @Query({ schema: reportDashboardQuerySchema })
+    query: ReportDashboardQueryDto,
     @I18nLang() language: string,
   ) {
     return await this.reportsService.getDashboard(user.sub, query, language);
@@ -201,7 +206,8 @@ export class ReportsController {
   @ApiResponse({ status: 200, type: ReportSummaryResponseDto })
   async generateSummary(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateReportSummaryDto,
+    @Body({ schema: generateReportSummarySchema })
+    dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
   ) {
     return await this.reportsAiSummaryService.generate(user.sub, dto, language);
@@ -219,7 +225,8 @@ export class ReportsController {
   })
   async generateSummaryAsync(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateReportSummaryDto,
+    @Body({ schema: generateReportSummarySchema })
+    dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
   ) {
     return await enqueueOrFallback(
@@ -272,7 +279,8 @@ export class ReportsController {
   })
   async generateSummaryStream(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateReportSummaryDto,
+    @Body({ schema: generateReportSummarySchema })
+    dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
@@ -322,7 +330,8 @@ export class ReportsController {
   @ApiResponse({ status: 201, type: ClinicSummaryResponseDto })
   async previewClinicSummary(
     @CurrentUser() user: UserPayload,
-    @Body() dto: ClinicSummaryRequestDto,
+    @Body({ schema: clinicSummaryRequestSchema })
+    dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
   ) {
     return await this.clinicSummaryService.buildClinicSummary(
@@ -340,7 +349,8 @@ export class ReportsController {
   @ApiResponse({ status: 201, type: ClinicSummaryShareResponseDto })
   async shareClinicSummary(
     @CurrentUser() user: UserPayload,
-    @Body() dto: ClinicSummaryRequestDto,
+    @Body({ schema: clinicSummaryRequestSchema })
+    dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
   ) {
     const options = this.toSummaryOptions(dto);
@@ -484,7 +494,8 @@ export class ReportsController {
   })
   async exportClinicSummaryPdfAsync(
     @CurrentUser() user: UserPayload,
-    @Body() dto: ClinicSummaryRequestDto,
+    @Body({ schema: clinicSummaryRequestSchema })
+    dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
   ) {
     const options = this.toSummaryOptions(dto);
@@ -557,7 +568,8 @@ export class ReportsController {
   })
   async downloadClinicSummaryPdf(
     @CurrentUser() user: UserPayload,
-    @Body() dto: ClinicSummaryRequestDto,
+    @Body({ schema: clinicSummaryRequestSchema })
+    dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
     @Res({ passthrough: false }) reply: FastifyReply,
   ): Promise<void> {
@@ -630,7 +642,8 @@ export class ReportsController {
   @ApiResponse({ status: 200, type: EventReviewListResponseDto })
   async listReviews(
     @CurrentUser() user: UserPayload,
-    @Query() query: EventReviewListQueryDto = new EventReviewListQueryDto(),
+    @Query({ schema: eventReviewListQuerySchema })
+    query: EventReviewListQueryDto = {},
   ) {
     return await this.eventReviewService.list(user.sub, query);
   }

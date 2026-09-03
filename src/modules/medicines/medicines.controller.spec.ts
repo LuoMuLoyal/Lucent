@@ -1,11 +1,12 @@
-import { ValidationPipe } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller.js';
 import { MedicinesService } from './services/medicines.service.js';
 import { MedicineRecognitionQueueService } from './services/recognition-queue.service.js';
 import { MedicineRiskCheckService } from './services/risk/risk-check.service.js';
-import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto.js';
+import { runRiskCheckSchema } from './dto/risk/risk-check-request.dto.js';
+import { recognizeMedicineSchema } from './dto/recognize-medicine.dto.js';
+import { medicineSearchQuerySchema } from './dto/query.dto.js';
 import { okAsync, DomainFailureException } from '../../common/result/index.js';
 
 describe('MedicinesController', () => {
@@ -213,22 +214,107 @@ describe('MedicinesController', () => {
       expect(svc.runStaticCheck).toHaveBeenCalledWith('u1', candidate);
     });
 
-    it('POST /risk-check rejects a candidate missing source or id via DTO validation (400)', async () => {
-      // Mirrors the global ValidationPipe options from setup-app.ts
-      const pipe = new ValidationPipe({
-        transform: true,
-        whitelist: true,
-        forbidNonWhitelisted: true,
-      });
-
+    it('POST /risk-check rejects a candidate missing source or id via schema validation (400)', () => {
+      // Replaces the former class-validator ValidationPipe metatype test:
+      // the DTO is now a zod schema, so the boundary behaviour is asserted
+      // against `runRiskCheckSchema` directly.
       for (const candidate of [{ id: 'cn-1' }, { source: 'cn' }]) {
-        await expect(
-          pipe.transform({ type: 'static', candidate } as never, {
-            type: 'body',
-            metatype: RunRiskCheckDto,
-          }),
-        ).rejects.toThrow();
+        const parsed = runRiskCheckSchema.safeParse({
+          type: 'static',
+          candidate,
+        });
+        expect(parsed.success).toBe(false);
       }
+    });
+
+    it('POST /risk-check accepts a full candidate and rejects unknown body keys', () => {
+      expect(
+        runRiskCheckSchema.safeParse({
+          type: 'static',
+          candidate: { source: 'cn', id: 'cn-1' },
+        }).success,
+      ).toBe(true);
+
+      expect(
+        runRiskCheckSchema.safeParse({
+          type: 'static',
+          candidate: { source: 'cn', id: 'cn-1', extra: 1 },
+        }).success,
+      ).toBe(false);
+
+      expect(
+        runRiskCheckSchema.safeParse({ type: 'static', extra: 1 }).success,
+      ).toBe(false);
+    });
+  });
+
+  describe('request DTO schemas (zod)', () => {
+    it('search: coerces numeric query strings and applies page defaults', () => {
+      const parsed = medicineSearchQuerySchema.parse({
+        q: '  ibu  ',
+        page: '2',
+        pageSize: '30',
+      });
+      expect(parsed).toEqual({ q: 'ibu', page: 2, pageSize: 30 });
+
+      expect(medicineSearchQuerySchema.parse({})).toEqual({
+        page: 1,
+        pageSize: 20,
+      });
+    });
+
+    it('search: trims q and drops non-string q values (@Transform parity)', () => {
+      expect(medicineSearchQuerySchema.parse({ q: '  x  ' }).q).toBe('x');
+
+      const dropped = medicineSearchQuerySchema.parse({ q: ['a', 'b'] });
+      expect(dropped.q).toBeUndefined();
+    });
+
+    it('search: rejects malformed paging and unknown keys (strict, forbid parity)', () => {
+      expect(medicineSearchQuerySchema.safeParse({ page: 'abc' }).success).toBe(
+        false,
+      );
+      expect(medicineSearchQuerySchema.safeParse({ page: '' }).success).toBe(
+        false,
+      );
+      expect(medicineSearchQuerySchema.safeParse({ page: 1.5 }).success).toBe(
+        false,
+      );
+      expect(
+        medicineSearchQuerySchema.safeParse({ pageSize: 51 }).success,
+      ).toBe(false);
+      expect(
+        medicineSearchQuerySchema.safeParse({ q: 'a'.repeat(201) }).success,
+      ).toBe(false);
+      expect(
+        medicineSearchQuerySchema.safeParse({ source: 'x', q: 'ibu' }).success,
+      ).toBe(true);
+      expect(
+        medicineSearchQuerySchema.safeParse({ unknown: '1' }).success,
+      ).toBe(false);
+    });
+
+    it('recognize: requires an http(s) imageUrl and rejects unknown keys', () => {
+      expect(
+        recognizeMedicineSchema.safeParse({
+          imageUrl: 'https://example.com/box.jpg',
+        }).success,
+      ).toBe(true);
+      expect(
+        recognizeMedicineSchema.safeParse({
+          imageUrl: 'http://localhost/test-medicine.jpg',
+        }).success,
+      ).toBe(true);
+      expect(
+        recognizeMedicineSchema.safeParse({ imageUrl: 'not-a-url' }).success,
+      ).toBe(false);
+      expect(recognizeMedicineSchema.safeParse({}).success).toBe(false);
+      expect(
+        recognizeMedicineSchema.safeParse({
+          imageUrl: 'https://example.com/box.jpg',
+          extra: 1,
+        }).success,
+      ).toBe(false);
     });
   });
 

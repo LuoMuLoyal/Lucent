@@ -30,8 +30,10 @@ import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { Public } from '../decorators/public.decorator.js';
 import type { UserPayload } from '../types/auth-request.js';
 
-import { LogoutDto } from '../dto/credentials/logout.dto.js';
-import { RefreshDto } from '../dto/credentials/refresh.dto.js';
+import { logoutSchema } from '../dto/credentials/logout.dto.js';
+import type { LogoutDto } from '../dto/credentials/logout.dto.js';
+import { refreshSchema } from '../dto/credentials/refresh.dto.js';
+import type { RefreshDto } from '../dto/credentials/refresh.dto.js';
 
 import { RefreshResponseDto } from '../dto/shared/auth-responses.dto.js';
 import { SessionListItemDto } from '../dto/shared/session-list-item.dto.js';
@@ -62,7 +64,10 @@ export class SessionController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
-  async logout(@CurrentUser() user: UserPayload, @Body() dto: LogoutDto) {
+  async logout(
+    @CurrentUser() user: UserPayload,
+    @Body({ schema: logoutSchema }) dto: LogoutDto,
+  ) {
     await unwrapResult(this.authService.logout(user.sub, dto.refreshToken));
     return;
   }
@@ -150,7 +155,10 @@ export class SessionController {
     description: 'Refresh token invalid, expired or already consumed',
     type: ProblemDetailsDto,
   })
-  async refresh(@Body() dto: RefreshDto, @Req() request: FastifyRequest) {
+  async refresh(
+    @Body({ schema: refreshSchema }) dto: RefreshDto,
+    @Req() request: FastifyRequest,
+  ) {
     const result = await unwrapResult(
       this.authService.refresh(
         dto.refreshToken,

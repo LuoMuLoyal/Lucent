@@ -1,9 +1,21 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { z } from 'zod';
 
-export class LogoutDto {
-  @ApiProperty({ description: '刷新令牌' })
-  @IsString()
-  @IsNotEmpty({ message: 'refreshToken 不能为空' })
-  refreshToken!: string;
-}
+/**
+ * Standard Schema (zod) for `POST /auth/logout` body.
+ *
+ * Migration notes:
+ * - `@IsString` + `@IsNotEmpty({ message: 'refreshToken 不能为空' })` →
+ *   `z.string({ error: 'refreshToken 不能为空' })` (base error covers a
+ *   missing/non-string value) + `.min(1, …)` (covers an empty string).
+ */
+export const logoutSchema = z
+  .object({
+    refreshToken: z
+      .string({ error: 'refreshToken 不能为空' })
+      .min(1, 'refreshToken 不能为空')
+      .describe('刷新令牌'),
+  })
+  .strict();
+
+/** Strongly typed body of `POST /auth/logout`. */
+export type LogoutDto = z.infer<typeof logoutSchema>;

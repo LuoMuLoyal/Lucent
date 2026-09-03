@@ -164,5 +164,16 @@ describe('User Settings API (e2e)', () => {
         .send({ aiSummariesEnabled: 'not-a-boolean' })
         .expect(400);
     });
+
+    it('should reject unknown body keys (strict schema)', async () => {
+      const token = await makeToken();
+      const res = await request(app.getHttpServer())
+        .patch(USER_SETTINGS_PATH)
+        .set('Authorization', bearer(token))
+        .send({ aiSummariesEnabled: false, unknownKey: true })
+        .expect(400);
+
+      expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+    });
   });
 });

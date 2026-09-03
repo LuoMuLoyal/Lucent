@@ -1,22 +1,26 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from 'class-validator';
-import { IsStrongPassword } from '../../../../common/validators/auth.decorators.js';
+import { z } from 'zod';
+import { strongPasswordSchema } from '../../../../common/validators/auth.decorators.js';
 
-export class ResetPasswordDto {
-  @ApiProperty({
-    description: 'Better Auth 密码重置 token',
-    example: 'eyJhbGciOiJIUzI1NiIs...',
+/**
+ * Standard Schema (zod) for `POST /auth/reset-password` body.
+ *
+ * Migration notes:
+ * - `@IsString` + `@IsNotEmpty({ message: 'token 不能为空' })` → string with a
+ *   `token 不能为空` message (base `error` covers missing/non-string values);
+ * - `@IsStrongPassword({ messagePrefix: '新密码' })` →
+ *   `strongPasswordSchema({ messagePrefix: '新密码' })`.
+ */
+export const resetPasswordSchema = z
+  .object({
+    token: z
+      .string({ error: 'token 不能为空' })
+      .min(1, 'token 不能为空')
+      .describe('Better Auth 密码重置 token'),
+    password: strongPasswordSchema({
+      messagePrefix: '新密码',
+    }).describe('新密码（8-32位，需包含大小写字母和数字）'),
   })
-  @IsString({ message: 'token 必须是字符串' })
-  @IsNotEmpty({ message: 'token 不能为空' })
-  token!: string;
+  .strict();
 
-  @ApiProperty({
-    description: '新密码（8-32位，需包含大小写字母和数字）',
-    example: 'NewPassw0rd',
-    minLength: 8,
-    maxLength: 32,
-  })
-  @IsStrongPassword({ messagePrefix: '新密码' })
-  password!: string;
-}
+/** Strongly typed body of `POST /auth/reset-password`. */
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;

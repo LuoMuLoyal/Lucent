@@ -27,16 +27,19 @@ import {
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
-import { CreateDoseLogDto } from './dto/create-dose-log.dto.js';
+import { createDoseLogSchema } from './dto/create-dose-log.dto.js';
+import type { CreateDoseLogDto } from './dto/create-dose-log.dto.js';
 
 import {
   DoseLogListResponseDto,
   DoseLogResponseDto,
 } from './dto/dose-log-response.dto.js';
 
-import { MarkDoseLogDto } from './dto/mark-dose-log.dto.js';
+import { markDoseLogSchema } from './dto/mark-dose-log.dto.js';
+import type { MarkDoseLogDto } from './dto/mark-dose-log.dto.js';
 
-import { UpdateDoseLogDto } from './dto/update-dose-log.dto.js';
+import { updateDoseLogSchema } from './dto/update-dose-log.dto.js';
+import type { UpdateDoseLogDto } from './dto/update-dose-log.dto.js';
 import { MedicineDoseLogsService } from './services/dose-logs.service.js';
 
 @ApiTags('Medicine Dose Logs')
@@ -87,7 +90,7 @@ export class MedicineDoseLogsController {
   })
   async create(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateDoseLogDto,
+    @Body({ schema: createDoseLogSchema }) dto: CreateDoseLogDto,
   ) {
     return await unwrapResult(this.doseLogsService.create(user.sub, dto));
   }
@@ -114,7 +117,10 @@ export class MedicineDoseLogsController {
       'Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)',
     type: ProblemDetailsDto,
   })
-  async mark(@CurrentUser() user: UserPayload, @Body() dto: MarkDoseLogDto) {
+  async mark(
+    @CurrentUser() user: UserPayload,
+    @Body({ schema: markDoseLogSchema }) dto: MarkDoseLogDto,
+  ) {
     return await unwrapResult(this.doseLogsService.mark(user.sub, dto));
   }
 
@@ -130,7 +136,7 @@ export class MedicineDoseLogsController {
   async update(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
-    @Body() dto: UpdateDoseLogDto,
+    @Body({ schema: updateDoseLogSchema }) dto: UpdateDoseLogDto,
   ) {
     return await unwrapResult(this.doseLogsService.update(user.sub, id, dto));
   }

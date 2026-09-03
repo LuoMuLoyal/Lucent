@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiBody,
   ApiOperation,
   ApiQuery,
   ApiResponse,
@@ -11,8 +10,10 @@ import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
-import { LocalCapabilityStateDto } from './dto/local-capability.dto.js';
-import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto.js';
+import { localCapabilityStateSchema } from './dto/local-capability.dto.js';
+import type { LocalCapabilityStateDto } from './dto/local-capability.dto.js';
+import { reminderDeliveryReceiptSchema } from './dto/reminder-delivery-receipt.dto.js';
+import type { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto.js';
 import {
   LocalCapabilityResponseDto,
   ReminderDeliveryListResponseDto,
@@ -65,7 +66,6 @@ export class ReminderDeliveriesController {
   @ApiOperation({
     summary: 'Record a local notification delivery receipt (idempotent)',
   })
-  @ApiBody({ type: ReminderDeliveryReceiptDto })
   @ApiResponse({ status: 201, type: ReminderDeliveryReceiptResponseDto })
   @ApiResponse({
     status: 403,
@@ -79,7 +79,8 @@ export class ReminderDeliveriesController {
   })
   async recordReceipt(
     @CurrentUser() user: UserPayload,
-    @Body() dto: ReminderDeliveryReceiptDto,
+    @Body({ schema: reminderDeliveryReceiptSchema })
+    dto: ReminderDeliveryReceiptDto,
   ) {
     return {
       item: await unwrapResult(
@@ -91,11 +92,11 @@ export class ReminderDeliveriesController {
   @Put('local-capability')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Report client local scheduling capability' })
-  @ApiBody({ type: LocalCapabilityStateDto })
   @ApiResponse({ status: 200, type: LocalCapabilityResponseDto })
   async reportLocalCapability(
     @CurrentUser() user: UserPayload,
-    @Body() dto: LocalCapabilityStateDto,
+    @Body({ schema: localCapabilityStateSchema })
+    dto: LocalCapabilityStateDto,
   ) {
     return await unwrapResult(
       this.receiptsService.reportLocalCapability(user.sub, dto.state),

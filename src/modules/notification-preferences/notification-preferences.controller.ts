@@ -9,7 +9,8 @@ import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
-import { UpdateNotificationPreferencesDto } from './dto/update.dto.js';
+import { updateNotificationPreferencesSchema } from './dto/update.dto.js';
+import type { UpdateNotificationPreferencesDto } from './dto/update.dto.js';
 import { NotificationPreferencesResponseDto } from './dto/response.dto.js';
 import { NotificationPreferencesService } from './services/notification-preferences.service.js';
 
@@ -38,7 +39,8 @@ export class NotificationPreferencesController {
   })
   async patch(
     @CurrentUser() user: UserPayload,
-    @Body() dto: UpdateNotificationPreferencesDto,
+    @Body({ schema: updateNotificationPreferencesSchema })
+    dto: UpdateNotificationPreferencesDto,
   ) {
     return await unwrapResult(this.service.patch(user.sub, dto));
   }

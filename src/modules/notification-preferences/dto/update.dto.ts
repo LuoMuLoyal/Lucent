@@ -1,52 +1,53 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { z } from 'zod';
 
-export class UpdateNotificationPreferencesDto {
-  @ApiPropertyOptional({ description: 'Enable health-rule notifications.' })
-  @IsOptional()
-  @IsBoolean()
-  healthAlertsEnabled?: boolean;
-
-  @ApiPropertyOptional({ description: 'Enable weekly longitudinal insights.' })
-  @IsOptional()
-  @IsBoolean()
-  weeklyInsightEnabled?: boolean;
-
-  @ApiPropertyOptional({ description: 'Enable water shortfall notifications.' })
-  @IsOptional()
-  @IsBoolean()
-  waterRemindersEnabled?: boolean;
-
-  @ApiPropertyOptional({ description: 'Enable local bedtime sleep reminders.' })
-  @IsOptional()
-  @IsBoolean()
-  sleepReminderEnabled?: boolean;
-
-  @ApiPropertyOptional({
-    type: Number,
-    format: 'int32',
-    nullable: true,
-    minimum: 0,
-    maximum: 1439,
-    description: 'Bedtime as minutes after local midnight.',
+/**
+ * Standard Schema (zod 4) for `PATCH /notification-preferences` request body.
+ *
+ * Replaces the former class-validator DTO:
+ * - `@IsOptional` + `@IsBoolean` → `.boolean().optional()`;
+ * - nullable sleep minutes: `@IsOptional` + `@IsInt` + `@Min/@Max` on
+ *   `number | null` → `z.number().int().min().max().nullable().optional()`
+ *   (`null` and `undefined` both accepted, mirroring `@IsOptional` skips);
+ * - the global `forbidNonWhitelisted` behaviour is preserved with `.strict()`.
+ */
+export const updateNotificationPreferencesSchema = z
+  .object({
+    healthAlertsEnabled: z
+      .boolean()
+      .describe('Enable health-rule notifications.')
+      .optional(),
+    weeklyInsightEnabled: z
+      .boolean()
+      .describe('Enable weekly longitudinal insights.')
+      .optional(),
+    waterRemindersEnabled: z
+      .boolean()
+      .describe('Enable water shortfall notifications.')
+      .optional(),
+    sleepReminderEnabled: z
+      .boolean()
+      .describe('Enable local bedtime sleep reminders.')
+      .optional(),
+    sleepBedtimeMinutes: z
+      .number()
+      .int()
+      .min(0)
+      .max(1439)
+      .describe('Bedtime as minutes after local midnight.')
+      .nullable()
+      .optional(),
+    sleepWakeTimeMinutes: z
+      .number()
+      .int()
+      .min(0)
+      .max(1439)
+      .describe('Wake time as minutes after local midnight.')
+      .nullable()
+      .optional(),
   })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(1439)
-  sleepBedtimeMinutes?: number | null;
+  .strict();
 
-  @ApiPropertyOptional({
-    type: Number,
-    format: 'int32',
-    nullable: true,
-    minimum: 0,
-    maximum: 1439,
-    description: 'Wake time as minutes after local midnight.',
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(1439)
-  sleepWakeTimeMinutes?: number | null;
-}
+/** Strongly typed request body of `PATCH /notification-preferences`. */
+export type UpdateNotificationPreferencesDto = z.infer<
+  typeof updateNotificationPreferencesSchema
+>;

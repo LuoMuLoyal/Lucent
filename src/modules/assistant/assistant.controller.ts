@@ -46,14 +46,17 @@ import {
   AssistantConversationResponseDto,
 } from './dto/conversation-response.dto.js';
 
-import { StreamAssistantMessagesDto } from './dto/stream-messages.dto.js';
+import { streamAssistantMessagesSchema } from './dto/stream-messages.dto.js';
+import type { StreamAssistantMessagesDto } from './dto/stream-messages.dto.js';
 
-import { RenameConversationDto } from './dto/rename-conversation.dto.js';
+import { renameConversationSchema } from './dto/rename-conversation.dto.js';
+import type { RenameConversationDto } from './dto/rename-conversation.dto.js';
 
 import {
   AssistantConfirmResultResponseDto,
-  ConfirmAssistantProposalDto,
+  confirmAssistantProposalSchema,
 } from './dto/confirm-proposal.dto.js';
+import type { ConfirmAssistantProposalDto } from './dto/confirm-proposal.dto.js';
 
 @ApiTags('Assistant')
 @ApiBearerAuth('access-token')
@@ -127,7 +130,8 @@ export class AssistantController {
   async confirmProposal(
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
-    @Body() dto: ConfirmAssistantProposalDto,
+    @Body({ schema: confirmAssistantProposalSchema })
+    dto: ConfirmAssistantProposalDto,
   ) {
     return unwrapResult(
       this.assistantService.confirmProposal(user.sub, conversationId, dto),
@@ -142,7 +146,8 @@ export class AssistantController {
   async renameConversation(
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
-    @Body() dto: RenameConversationDto,
+    @Body({ schema: renameConversationSchema })
+    dto: RenameConversationDto,
   ) {
     return unwrapResult(
       this.assistantService.renameConversation(
@@ -209,7 +214,8 @@ export class AssistantController {
   })
   async streamMessages(
     @CurrentUser() user: UserPayload,
-    @Body() dto: StreamAssistantMessagesDto,
+    @Body({ schema: streamAssistantMessagesSchema })
+    dto: StreamAssistantMessagesDto,
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {

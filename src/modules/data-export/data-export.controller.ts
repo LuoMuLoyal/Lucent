@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiBody,
   ApiExtraModels,
   ApiOperation,
   ApiResponse,
@@ -28,8 +27,9 @@ import { AuditLogService } from '../audit-log/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 import { DataExportService } from './services/export.service.js';
+import { createDataExportRequestSchema } from './dto/export-response.dto.js';
+import type { CreateDataExportRequestDto } from './dto/export-response.dto.js';
 import {
-  CreateDataExportRequestDto,
   DataExportRequestDataDto,
   DataExportRequestResponseDto,
 } from './dto/export-response.dto.js';
@@ -47,7 +47,6 @@ export class DataExportController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new data export request' })
-  @ApiBody({ type: CreateDataExportRequestDto })
   @ApiResponse({ status: 201, type: DataExportRequestResponseDto })
   @ApiResponse({
     status: 401,
@@ -72,7 +71,8 @@ export class DataExportController {
   })
   async createRequest(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateDataExportRequestDto,
+    @Body({ schema: createDataExportRequestSchema })
+    dto: CreateDataExportRequestDto,
     @Req() request: FastifyRequest,
     @I18nLang() language: string,
   ) {

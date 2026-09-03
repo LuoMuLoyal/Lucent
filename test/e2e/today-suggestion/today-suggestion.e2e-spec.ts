@@ -132,6 +132,25 @@ describe('Today Suggestion API (e2e)', () => {
 
       expect([400, 404]).toContain(res.status);
     });
+
+    it('should reject an invalid feedback value with VALIDATION_FAILED', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/nonexistent-id/feedback`)
+        .set('Authorization', bearer(accessToken))
+        .send({ feedback: 'not-an-option' })
+        .expect(400);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+
+    it('should reject unknown body keys (strict schema, forbid parity)', async () => {
+      await request(app.getHttpServer())
+        .post(`${BASE_PATH}/nonexistent-id/feedback`)
+        .set('Authorization', bearer(accessToken))
+        .send({ feedback: 'accepted', extra: 'not-allowed' })
+        .expect(400);
+    });
   });
 
   describe('POST /today/suggestions/:id/explain', () => {

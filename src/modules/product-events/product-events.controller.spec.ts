@@ -1,6 +1,5 @@
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { validate } from 'class-validator';
 import {
   ProductEventName,
   ProductEventResult,
@@ -12,10 +11,12 @@ import type { DomainFailure } from '../../common/result/index.js';
 import type { UserPayload } from '../auth/index.js';
 import {
   MAX_PRODUCT_EVENTS_PER_REQUEST,
-  CreateProductEventBatchDto,
-  CreateProductEventDto,
+  createProductEventBatchSchema,
+  createProductEventSchema,
 } from './dto/create-product-event.dto.js';
-import { FunnelQueryDto } from './dto/funnel-query.dto.js';
+import type { CreateProductEventBatchDto } from './dto/create-product-event.dto.js';
+import { productFunnelQuerySchema } from './dto/funnel-query.dto.js';
+import type { FunnelQueryDto } from './dto/funnel-query.dto.js';
 import { ProductEventsController } from './product-events.controller.js';
 import { ProductEventsService } from './services/events.service.js';
 import { ProductFunnelService } from './services/funnel.service.js';
@@ -47,8 +48,13 @@ function validEvent(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** Mirrors the global ValidationPipe options from setup-app.ts. */
-const PIPE_OPTIONS = { whitelist: true, forbidNonWhitelisted: true };
+/** JSON of the zod issues — asserted to contain the offending property name. */
+function issuesJson(result: {
+  success: boolean;
+  error?: { issues?: unknown[] };
+}): string {
+  return result.success ? '' : JSON.stringify(result.error?.issues ?? []);
+}
 
 describe('ProductEventsController', () => {
   let controller: ProductEventsController;
@@ -123,142 +129,132 @@ describe('ProductEventsController', () => {
     );
   });
 
-  describe('CreateProductEventBatchDto validation', () => {
-    it('accepts a valid batch', async () => {
-      const dto = new CreateProductEventBatchDto();
-      dto.events = [Object.assign(new CreateProductEventDto(), validEvent())];
+  describe('createProductEventSchema (one event)', () => {
+    it('accepts a valid event', () => {
+      const result = createProductEventSchema.safeParse(validEvent());
 
-      const errors = await validate(dto, PIPE_OPTIONS);
-
-      expect(errors).toEqual([]);
+      expect(result.success).toBe(true);
     });
 
-    it('rejects a client-supplied userId as a non-whitelisted field', async () => {
-      const eventDto = Object.assign(
-        new CreateProductEventDto(),
+    it('rejects a client-supplied userId as an unknown field', () => {
+      const result = createProductEventSchema.safeParse(
         validEvent({ userId: 'x' }),
       );
 
-      const errors = await validate(eventDto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('userId');
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('userId');
     });
 
-    it('rejects any free-text metadata field', async () => {
-      const eventDto = Object.assign(
-        new CreateProductEventDto(),
+    it('rejects any free-text metadata field', () => {
+      const result = createProductEventSchema.safeParse(
         validEvent({ metadata: { anything: true } }),
       );
 
-      const errors = await validate(eventDto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('metadata');
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('metadata');
     });
 
-    it('rejects an unknown event name value', async () => {
-      const eventDto = Object.assign(
-        new CreateProductEventDto(),
+    it('rejects an unknown event name value', () => {
+      const result = createProductEventSchema.safeParse(
         validEvent({ name: 'x' }),
       );
 
-      const errors = await validate(eventDto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('name');
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('name');
     });
 
-    it('rejects a non-ISO occurredAt', async () => {
-      const eventDto = Object.assign(
-        new CreateProductEventDto(),
+    it('rejects a non-ISO occurredAt', () => {
+      const result = createProductEventSchema.safeParse(
         validEvent({ occurredAt: 'yesterday-ish' }),
       );
 
-      const errors = await validate(eventDto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('occurredAt');
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('occurredAt');
     });
 
-    it('rejects an over-long appVersion', async () => {
-      const eventDto = Object.assign(
-        new CreateProductEventDto(),
+    it('rejects a datetime without a UTC offset', () => {
+      const result = createProductEventSchema.safeParse(
+        validEvent({ occurredAt: '2026-08-14T02:00:00' }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('occurredAt');
+    });
+
+    it('rejects an over-long appVersion', () => {
+      const result = createProductEventSchema.safeParse(
         validEvent({ appVersion: 'x'.repeat(33) }),
       );
 
-      const errors = await validate(eventDto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('appVersion');
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('appVersion');
     });
 
-    it('rejects a missing clientEventId', async () => {
-      const eventDto = Object.assign(
-        new CreateProductEventDto(),
-        validEvent({}),
-      );
-      delete (eventDto as { clientEventId?: string }).clientEventId;
+    it('rejects a missing clientEventId', () => {
+      const event = validEvent();
+      delete (event as { clientEventId?: string }).clientEventId;
 
-      const errors = await validate(eventDto, PIPE_OPTIONS);
+      const result = createProductEventSchema.safeParse(event);
 
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('clientEventId');
-    });
-
-    it('rejects an empty batch', async () => {
-      const dto = new CreateProductEventBatchDto();
-      dto.events = [];
-
-      const errors = await validate(dto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('events');
-    });
-
-    it(`rejects a batch above ${String(MAX_PRODUCT_EVENTS_PER_REQUEST)} events`, async () => {
-      const dto = new CreateProductEventBatchDto();
-      dto.events = Array.from(
-        { length: MAX_PRODUCT_EVENTS_PER_REQUEST + 1 },
-        (_, index) =>
-          Object.assign(
-            new CreateProductEventDto(),
-            validEvent({ clientEventId: `c-${String(index)}` }),
-          ),
-      );
-
-      const errors = await validate(dto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('events');
-    });
-
-    it(`accepts a batch of exactly ${String(MAX_PRODUCT_EVENTS_PER_REQUEST)} events`, async () => {
-      const dto = new CreateProductEventBatchDto();
-      dto.events = Array.from(
-        { length: MAX_PRODUCT_EVENTS_PER_REQUEST },
-        (_, index) =>
-          Object.assign(
-            new CreateProductEventDto(),
-            validEvent({ clientEventId: `c-${String(index)}` }),
-          ),
-      );
-
-      const errors = await validate(dto, PIPE_OPTIONS);
-
-      expect(errors).toEqual([]);
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('clientEventId');
     });
   });
 
-  describe('batch shape', () => {
-    it('treats a batch without an events array as invalid', async () => {
-      const dto = new CreateProductEventBatchDto();
-      dto.events = undefined as never;
+  describe('createProductEventBatchSchema', () => {
+    it('accepts a valid batch', () => {
+      const result = createProductEventBatchSchema.safeParse({
+        events: [validEvent()],
+      });
 
-      const errors = await validate(dto, PIPE_OPTIONS);
+      expect(result.success).toBe(true);
+    });
 
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('events');
+    it('rejects an empty batch', () => {
+      const result = createProductEventBatchSchema.safeParse({ events: [] });
+
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('events');
+    });
+
+    it(`rejects a batch above ${String(MAX_PRODUCT_EVENTS_PER_REQUEST)} events`, () => {
+      const result = createProductEventBatchSchema.safeParse({
+        events: Array.from(
+          { length: MAX_PRODUCT_EVENTS_PER_REQUEST + 1 },
+          (_, index) => validEvent({ clientEventId: `c-${String(index)}` }),
+        ),
+      });
+
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('events');
+    });
+
+    it(`accepts a batch of exactly ${String(MAX_PRODUCT_EVENTS_PER_REQUEST)} events`, () => {
+      const result = createProductEventBatchSchema.safeParse({
+        events: Array.from(
+          { length: MAX_PRODUCT_EVENTS_PER_REQUEST },
+          (_, index) => validEvent({ clientEventId: `c-${String(index)}` }),
+        ),
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('treats a batch without an events array as invalid', () => {
+      const result = createProductEventBatchSchema.safeParse({});
+
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('events');
+    });
+
+    it('rejects an unknown top-level body key', () => {
+      const result = createProductEventBatchSchema.safeParse({
+        events: [validEvent()],
+        userId: 'attacker-id',
+      });
+
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('userId');
     });
   });
 
@@ -311,50 +307,44 @@ describe('ProductEventsController', () => {
     });
   });
 
-  describe('FunnelQueryDto validation', () => {
-    it('accepts date-only params', async () => {
-      const dto = Object.assign(new FunnelQueryDto(), {
+  describe('productFunnelQuerySchema', () => {
+    it('accepts date-only params', () => {
+      const result = productFunnelQuerySchema.safeParse({
         dateFrom: '2026-07-16',
         dateTo: '2026-08-14',
       });
 
-      const errors = await validate(dto, PIPE_OPTIONS);
-
-      expect(errors).toEqual([]);
+      expect(result.success).toBe(true);
     });
 
-    it('accepts full ISO datetimes and an empty query', async () => {
-      const dto = Object.assign(new FunnelQueryDto(), {
-        dateFrom: '2026-07-16T10:00:00.000Z',
-        dateTo: '2026-08-14T10:00:00.000Z',
-      });
-
-      expect(await validate(dto, PIPE_OPTIONS)).toEqual([]);
-      expect(await validate(new FunnelQueryDto(), PIPE_OPTIONS)).toEqual([]);
+    it('accepts full ISO datetimes with a UTC offset and an empty query', () => {
+      expect(
+        productFunnelQuerySchema.safeParse({
+          dateFrom: '2026-07-16T10:00:00.000Z',
+          dateTo: '2026-08-14T10:00:00.000Z',
+        }).success,
+      ).toBe(true);
+      expect(productFunnelQuerySchema.safeParse({}).success).toBe(true);
     });
 
-    it('rejects a non-ISO date string', async () => {
-      const dto = Object.assign(new FunnelQueryDto(), {
+    it('rejects a non-ISO date string', () => {
+      const result = productFunnelQuerySchema.safeParse({
         dateFrom: 'yesterday',
         dateTo: '2026-08-14',
       });
 
-      const errors = await validate(dto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('dateFrom');
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('dateFrom');
     });
 
-    it('rejects non-whitelisted query params', async () => {
-      const dto = Object.assign(new FunnelQueryDto(), {
+    it('rejects non-whitelisted query params', () => {
+      const result = productFunnelQuerySchema.safeParse({
         dateFrom: '2026-08-14',
         userId: 'user-1',
       });
 
-      const errors = await validate(dto, PIPE_OPTIONS);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0]?.property).toBe('userId');
+      expect(result.success).toBe(false);
+      expect(issuesJson(result)).toContain('userId');
     });
   });
 });

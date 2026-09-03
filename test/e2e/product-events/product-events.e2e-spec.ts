@@ -205,11 +205,14 @@ describe('Product Events API (e2e)', () => {
   });
 
   it('rejects a client-supplied userId (whitelist)', async () => {
-    await request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post(PRODUCT_EVENTS_PATH)
       .set('Authorization', bearer(accessToken))
       .send({ events: [validEvent({ userId: 'attacker-id' })] })
       .expect(400);
+
+    const body = response.body as { code?: string };
+    expect(body.code).toBe('VALIDATION_FAILED');
   });
 
   it('rejects free-text metadata (whitelist)', async () => {
@@ -260,11 +263,14 @@ describe('Product Events API (e2e)', () => {
   });
 
   it('rejects an invalid enum value', async () => {
-    await request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post(PRODUCT_EVENTS_PATH)
       .set('Authorization', bearer(accessToken))
       .send({ events: [validEvent({ name: 'not_an_event' })] })
       .expect(400);
+
+    const body = response.body as { code?: string };
+    expect(body.code).toBe('VALIDATION_FAILED');
   });
 
   it('rejects an empty batch', async () => {
@@ -496,6 +502,28 @@ describe('Product Events API (e2e)', () => {
         .query({ dateFrom: '2026-01-01', dateTo: '2026-02-01' })
         .set('Authorization', bearer(adminToken))
         .expect(400);
+    });
+
+    it('rejects a malformed date param with VALIDATION_FAILED', async () => {
+      const response = await request(app.getHttpServer())
+        .get(FUNNEL_PATH)
+        .query({ dateFrom: 'yesterday', dateTo: '2026-08-14' })
+        .set('Authorization', bearer(adminToken))
+        .expect(400);
+
+      const body = response.body as { code?: string };
+      expect(body.code).toBe('VALIDATION_FAILED');
+    });
+
+    it('rejects unknown query keys (strict schema, forbidNonWhitelisted parity)', async () => {
+      const response = await request(app.getHttpServer())
+        .get(FUNNEL_PATH)
+        .query({ dateFrom: '2026-08-14', extra: '1' })
+        .set('Authorization', bearer(adminToken))
+        .expect(400);
+
+      const body = response.body as { code?: string };
+      expect(body.code).toBe('VALIDATION_FAILED');
     });
   });
 });

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { z } from 'zod';
 
 export const DATA_EXPORT_STATUSES = [
   'requested',
@@ -19,39 +19,42 @@ export type DataExportFormat = (typeof DATA_EXPORT_FORMATS)[number];
 export const DATA_EXPORT_RANGES = ['last_7_days', 'last_30_days'] as const;
 export type DataExportRange = (typeof DATA_EXPORT_RANGES)[number];
 
-export class CreateDataExportRequestDto {
-  @ApiPropertyOptional({
-    enum: DATA_EXPORT_KINDS,
-    description: 'Requested export kind.',
+/**
+ * Standard Schema (zod 4) for `POST /data-export-requests` request body.
+ *
+ * Replaces the former class-validator request DTO:
+ * - `@IsOptional` + `@IsIn(...)` → `z.enum(...).optional()`;
+ * - `@IsString` + `@IsNotEmpty` on `password` → `z.string().min(1)` (empty
+ *   string rejected, whitespace-only accepted — same as `IsNotEmpty`);
+ * - the global `forbidNonWhitelisted` behaviour is preserved with `.strict()`.
+ *
+ * The response DTO classes below are pure response shapes and stay untouched.
+ */
+export const createDataExportRequestSchema = z
+  .object({
+    kind: z
+      .enum(DATA_EXPORT_KINDS)
+      .describe('Requested export kind.')
+      .optional(),
+    format: z
+      .enum(DATA_EXPORT_FORMATS)
+      .describe('Requested export format.')
+      .optional(),
+    range: z
+      .enum(DATA_EXPORT_RANGES)
+      .describe('Requested report range.')
+      .optional(),
+    password: z
+      .string()
+      .min(1, '当前密码不能为空')
+      .describe('当前密码（敏感操作再认证用）'),
   })
-  @IsOptional()
-  @IsIn(DATA_EXPORT_KINDS)
-  kind?: DataExportKind;
+  .strict();
 
-  @ApiPropertyOptional({
-    enum: DATA_EXPORT_FORMATS,
-    description: 'Requested export format.',
-  })
-  @IsOptional()
-  @IsIn(DATA_EXPORT_FORMATS)
-  format?: DataExportFormat;
-
-  @ApiPropertyOptional({
-    enum: DATA_EXPORT_RANGES,
-    description: 'Requested report range.',
-  })
-  @IsOptional()
-  @IsIn(DATA_EXPORT_RANGES)
-  range?: DataExportRange;
-
-  @ApiProperty({
-    description: '当前密码（敏感操作再认证用）',
-    example: 'Passw0rd123',
-  })
-  @IsString()
-  @IsNotEmpty({ message: '当前密码不能为空' })
-  password!: string;
-}
+/** Strongly typed request body of `POST /data-export-requests`. */
+export type CreateDataExportRequestDto = z.infer<
+  typeof createDataExportRequestSchema
+>;
 
 export class DataExportRequestDataDto {
   @ApiProperty({ description: 'Unique request identifier.' })

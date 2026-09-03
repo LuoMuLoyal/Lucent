@@ -1,29 +1,31 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { z } from 'zod';
 import {
-  IsEmailAddress,
-  IsVerificationCode,
+  emailAddressSchema,
+  verificationCodeSchema,
 } from '../../../../common/validators/auth.decorators.js';
 
-export class ChangeEmailDto {
-  @ApiProperty({ description: '新邮箱', example: 'newuser@example.com' })
-  @IsEmailAddress({ notEmptyMessage: '新邮箱不能为空' })
-  newEmail!: string;
-
-  @ApiProperty({
-    description: '验证码',
-    example: '123456',
-    minLength: 6,
-    maxLength: 6,
+/**
+ * Standard Schema (zod) for `POST /account/email` body.
+ *
+ * Migration notes:
+ * - `@IsEmailAddress({ notEmptyMessage: '新邮箱不能为空' })` →
+ *   `emailAddressSchema({ notEmptyMessage: '新邮箱不能为空' })`;
+ * - `@IsVerificationCode()` → `verificationCodeSchema()` (exactly
+ *   `VERIFICATION_CODE_LENGTH` characters);
+ * - current password is a plain non-empty string (not a strong password).
+ */
+export const changeEmailSchema = z
+  .object({
+    newEmail: emailAddressSchema({
+      notEmptyMessage: '新邮箱不能为空',
+    }).describe('新邮箱'),
+    code: verificationCodeSchema().describe('验证码'),
+    password: z
+      .string({ error: '当前密码不能为空' })
+      .min(1, '当前密码不能为空')
+      .describe('当前密码（敏感操作再认证用）'),
   })
-  @IsVerificationCode()
-  code!: string;
+  .strict();
 
-  @ApiProperty({
-    description: '当前密码（敏感操作再认证用）',
-    example: 'Passw0rd123',
-  })
-  @IsString()
-  @IsNotEmpty({ message: '当前密码不能为空' })
-  password!: string;
-}
+/** Strongly typed body of `POST /account/email`. */
+export type ChangeEmailDto = z.infer<typeof changeEmailSchema>;

@@ -10,8 +10,10 @@ import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
-import { CreateProductEventBatchDto } from './dto/create-product-event.dto.js';
-import { FunnelQueryDto } from './dto/funnel-query.dto.js';
+import { createProductEventBatchSchema } from './dto/create-product-event.dto.js';
+import type { CreateProductEventBatchDto } from './dto/create-product-event.dto.js';
+import { productFunnelQuerySchema } from './dto/funnel-query.dto.js';
+import type { FunnelQueryDto } from './dto/funnel-query.dto.js';
 import { FunnelResponseDto } from './dto/funnel-response.dto.js';
 import { AdminGuard } from './guards/admin.guard.js';
 import { ProductEventsService } from './services/events.service.js';
@@ -50,7 +52,8 @@ export class ProductEventsController {
   })
   async recordBatch(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateProductEventBatchDto,
+    @Body({ schema: createProductEventBatchSchema })
+    dto: CreateProductEventBatchDto,
   ) {
     return await unwrapResult(
       this.eventsService.recordBatch(user.sub, dto.events),
@@ -82,7 +85,9 @@ export class ProductEventsController {
     type: ProblemDetailsDto,
     description: 'Invalid funnel query window (dates or range).',
   })
-  async getFunnel(@Query() query: FunnelQueryDto) {
+  async getFunnel(
+    @Query({ schema: productFunnelQuerySchema }) query: FunnelQueryDto,
+  ) {
     return await unwrapResult(this.funnelService.getFunnel(query));
   }
 }

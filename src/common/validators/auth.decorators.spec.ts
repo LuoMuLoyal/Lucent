@@ -1,58 +1,13 @@
-import { validate } from 'class-validator';
+import { describe, expect, it } from 'vitest';
 import {
-  IsStrongPassword,
-  IsVerificationCode,
-  IsEmailAddress,
   PASSWORD_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
   PASSWORD_PATTERN,
   VERIFICATION_CODE_LENGTH,
+  strongPasswordSchema,
+  verificationCodeSchema,
+  emailAddressSchema,
 } from './auth.decorators.js';
-
-class PasswordTestDto {
-  @IsStrongPassword()
-  password!: string;
-}
-
-class OptionalPasswordTestDto {
-  @IsStrongPassword({ optional: true })
-  password?: string;
-}
-
-class CustomPrefixPasswordTestDto {
-  @IsStrongPassword({ messagePrefix: '新密码' })
-  password!: string;
-}
-
-class VerificationCodeTestDto {
-  @IsVerificationCode()
-  code!: string;
-}
-
-class OptionalVerificationCodeTestDto {
-  @IsVerificationCode({ optional: true })
-  code?: string;
-}
-
-class NoExactLengthCodeTestDto {
-  @IsVerificationCode({ exactLength: false })
-  code!: string;
-}
-
-class EmailTestDto {
-  @IsEmailAddress()
-  email!: string;
-}
-
-class OptionalEmailTestDto {
-  @IsEmailAddress({ optional: true })
-  email?: string;
-}
-
-async function validateDto(dto: object): Promise<string[]> {
-  const errors = await validate(dto as never);
-  return errors.flatMap((e) => Object.values(e.constraints ?? {}));
-}
 
 describe('auth decorators constants', () => {
   it('exports correct password length limits', () => {
@@ -72,145 +27,126 @@ describe('auth decorators constants', () => {
   });
 });
 
-describe('IsStrongPassword', () => {
-  it('passes for a valid password', async () => {
-    const dto = new PasswordTestDto();
-    dto.password = 'ValidPass123';
-    const errors = await validateDto(dto);
-    expect(errors).toHaveLength(0);
+describe('strongPasswordSchema', () => {
+  it('passes for a valid password', () => {
+    expect(strongPasswordSchema().safeParse('ValidPass123').success).toBe(true);
   });
 
-  it('fails for password shorter than minimum length', async () => {
-    const dto = new PasswordTestDto();
-    dto.password = 'Ab1';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for password shorter than minimum length', () => {
+    expect(strongPasswordSchema().safeParse('Ab1').success).toBe(false);
   });
 
-  it('fails for password exceeding maximum length', async () => {
-    const dto = new PasswordTestDto();
-    dto.password = 'Aa1' + 'x'.repeat(PASSWORD_MAX_LENGTH);
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for password exceeding maximum length', () => {
+    expect(
+      strongPasswordSchema().safeParse(`Aa1${'x'.repeat(PASSWORD_MAX_LENGTH)}`)
+        .success,
+    ).toBe(false);
   });
 
-  it('fails for password without uppercase letter', async () => {
-    const dto = new PasswordTestDto();
-    dto.password = 'validpass123';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for password without uppercase letter', () => {
+    expect(strongPasswordSchema().safeParse('validpass123').success).toBe(
+      false,
+    );
   });
 
-  it('fails for password without lowercase letter', async () => {
-    const dto = new PasswordTestDto();
-    dto.password = 'VALIDPASS123';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for password without lowercase letter', () => {
+    expect(strongPasswordSchema().safeParse('VALIDPASS123').success).toBe(
+      false,
+    );
   });
 
-  it('fails for password without digit', async () => {
-    const dto = new PasswordTestDto();
-    dto.password = 'ValidPassword';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for password without digit', () => {
+    expect(strongPasswordSchema().safeParse('ValidPassword').success).toBe(
+      false,
+    );
   });
 
-  it('fails for empty password', async () => {
-    const dto = new PasswordTestDto();
-    dto.password = '';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for empty password', () => {
+    const result = strongPasswordSchema().safeParse('');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('密码不能为空');
+    }
   });
 
-  it('allows undefined when optional', async () => {
-    const dto = new OptionalPasswordTestDto();
-    const errors = await validateDto(dto);
-    expect(errors).toHaveLength(0);
+  it('allows undefined when wrapped optional', () => {
+    const schema = strongPasswordSchema().optional();
+    expect(schema.safeParse(undefined).success).toBe(true);
   });
 
-  it('uses custom message prefix in error messages', async () => {
-    const dto = new CustomPrefixPasswordTestDto();
-    dto.password = 'short';
-    const errors = await validateDto(dto);
-    expect(errors.some((m) => m.includes('新密码'))).toBe(true);
+  it('uses custom message prefix in error messages', () => {
+    const result = strongPasswordSchema({ messagePrefix: '新密码' }).safeParse(
+      'short',
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('新密码');
+    }
   });
 });
 
-describe('IsVerificationCode', () => {
-  it('passes for a 6-digit code', async () => {
-    const dto = new VerificationCodeTestDto();
-    dto.code = '123456';
-    const errors = await validateDto(dto);
-    expect(errors).toHaveLength(0);
+describe('verificationCodeSchema', () => {
+  it('passes for a 6-char code', () => {
+    expect(verificationCodeSchema().safeParse('123456').success).toBe(true);
   });
 
-  it('fails for code shorter than 6 digits', async () => {
-    const dto = new VerificationCodeTestDto();
-    dto.code = '12345';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for code shorter than 6 chars', () => {
+    expect(verificationCodeSchema().safeParse('12345').success).toBe(false);
   });
 
-  it('fails for code longer than 6 digits', async () => {
-    const dto = new VerificationCodeTestDto();
-    dto.code = '1234567';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for code longer than 6 chars', () => {
+    expect(verificationCodeSchema().safeParse('1234567').success).toBe(false);
   });
 
-  it('fails for empty code', async () => {
-    const dto = new VerificationCodeTestDto();
-    dto.code = '';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for empty code', () => {
+    const result = verificationCodeSchema().safeParse('');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('验证码不能为空');
+    }
   });
 
-  it('allows undefined when optional', async () => {
-    const dto = new OptionalVerificationCodeTestDto();
-    const errors = await validateDto(dto);
-    expect(errors).toHaveLength(0);
+  it('allows undefined when wrapped optional', () => {
+    const schema = verificationCodeSchema().optional();
+    expect(schema.safeParse(undefined).success).toBe(true);
   });
 
-  it('accepts any non-empty string when exactLength is false', async () => {
-    const dto = new NoExactLengthCodeTestDto();
-    dto.code = 'abc';
-    const errors = await validateDto(dto);
-    expect(errors).toHaveLength(0);
+  it('accepts any non-empty string when exactLength is false', () => {
+    const schema = verificationCodeSchema({ exactLength: false });
+    expect(schema.safeParse('abc').success).toBe(true);
   });
 
-  it('rejects empty string when exactLength is false', async () => {
-    const dto = new NoExactLengthCodeTestDto();
-    dto.code = '';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('rejects empty string when exactLength is false', () => {
+    const schema = verificationCodeSchema({ exactLength: false });
+    expect(schema.safeParse('').success).toBe(false);
   });
 });
 
-describe('IsEmailAddress', () => {
-  it('passes for a valid email', async () => {
-    const dto = new EmailTestDto();
-    dto.email = 'user@example.com';
-    const errors = await validateDto(dto);
-    expect(errors).toHaveLength(0);
+describe('emailAddressSchema', () => {
+  it('passes for a valid email', () => {
+    expect(emailAddressSchema().safeParse('user@example.com').success).toBe(
+      true,
+    );
   });
 
-  it('fails for invalid email format', async () => {
-    const dto = new EmailTestDto();
-    dto.email = 'not-an-email';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for invalid email format', () => {
+    const result = emailAddressSchema().safeParse('not-an-email');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('邮箱格式不正确');
+    }
   });
 
-  it('fails for empty email', async () => {
-    const dto = new EmailTestDto();
-    dto.email = '';
-    const errors = await validateDto(dto);
-    expect(errors.length).toBeGreaterThan(0);
+  it('fails for empty email', () => {
+    const result = emailAddressSchema().safeParse('');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('邮箱不能为空');
+    }
   });
 
-  it('allows undefined when optional', async () => {
-    const dto = new OptionalEmailTestDto();
-    const errors = await validateDto(dto);
-    expect(errors).toHaveLength(0);
+  it('allows undefined when wrapped optional', () => {
+    const schema = emailAddressSchema().optional();
+    expect(schema.safeParse(undefined).success).toBe(true);
   });
 });

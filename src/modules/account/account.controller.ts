@@ -11,7 +11,6 @@ import {
   Req,
 } from '@nestjs/common';
 import {
-  ApiBody,
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
@@ -29,23 +28,34 @@ import { AuthService } from '../auth/index.js';
 
 import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
-import { ChangeEmailDto } from '../auth/index.js';
-import { ChangePasswordDto } from '../auth/index.js';
-import { SetPasswordDto } from '../auth/index.js';
-import { DeleteAccountDto } from '../auth/index.js';
-import { OAuthAuthorizeResponseDto } from '../auth/index.js';
 import {
+  changeEmailSchema,
+  changePasswordSchema,
+  deleteAccountSchema,
+  oauthAuthorizeSchema,
+  oauthCallbackSchema,
+  oauthCodeCallbackSchema,
+  setPasswordSchema,
+} from '../auth/index.js';
+import { OAuthAuthorizeResponseDto } from '../auth/index.js';
+import type {
+  ChangeEmailDto,
+  ChangePasswordDto,
+  DeleteAccountDto,
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
+  SetPasswordDto,
 } from '../auth/index.js';
 import { AccountService } from './services/account.service.js';
 import {
   AccountEmailResponseDto,
   AccountResponseDto,
 } from './dto/response.dto.js';
-import { UnlinkIdentityDto } from './dto/unlink-identity.dto.js';
-import { UpdateAccountDto } from './dto/update.dto.js';
+import { unlinkIdentitySchema } from './dto/unlink-identity.dto.js';
+import type { UnlinkIdentityDto } from './dto/unlink-identity.dto.js';
+import { updateAccountSchema } from './dto/update.dto.js';
+import type { UpdateAccountDto } from './dto/update.dto.js';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')
@@ -79,7 +89,7 @@ export class AccountController {
   })
   async updateAccount(
     @CurrentUser() user: UserPayload,
-    @Body() dto: UpdateAccountDto,
+    @Body({ schema: updateAccountSchema }) dto: UpdateAccountDto,
   ) {
     return unwrapResult(this.accountService.updateAccount(user.sub, dto));
   }
@@ -106,7 +116,7 @@ export class AccountController {
   })
   async changePassword(
     @CurrentUser() user: UserPayload,
-    @Body() dto: ChangePasswordDto,
+    @Body({ schema: changePasswordSchema }) dto: ChangePasswordDto,
     @Req() request: FastifyRequest,
   ) {
     await unwrapResult(this.authService.changePassword(user.sub, dto));
@@ -143,7 +153,7 @@ export class AccountController {
   })
   async setPassword(
     @CurrentUser() user: UserPayload,
-    @Body() dto: SetPasswordDto,
+    @Body({ schema: setPasswordSchema }) dto: SetPasswordDto,
     @Req() request: FastifyRequest,
   ) {
     await unwrapResult(this.authService.setPassword(user.sub, dto));
@@ -187,7 +197,7 @@ export class AccountController {
   })
   async changeEmail(
     @CurrentUser() user: UserPayload,
-    @Body() dto: ChangeEmailDto,
+    @Body({ schema: changeEmailSchema }) dto: ChangeEmailDto,
     @Req() request: FastifyRequest,
   ) {
     const updated = await unwrapResult(
@@ -234,7 +244,7 @@ export class AccountController {
   async unlinkIdentity(
     @CurrentUser() user: UserPayload,
     @Param('identityId') identityId: string,
-    @Body() dto: UnlinkIdentityDto,
+    @Body({ schema: unlinkIdentitySchema }) dto: UnlinkIdentityDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -255,7 +265,6 @@ export class AccountController {
   @ApiOperation({
     summary: 'Create WeChat web OAuth authorize URL for linking',
   })
-  @ApiBody({ type: OAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   @ApiResponse({
     status: 400,
@@ -263,7 +272,7 @@ export class AccountController {
     type: ProblemDetailsDto,
   })
   async createWechatWebIdentityLinkAuthorizeUrl(
-    @Body() dto?: OAuthAuthorizeDto,
+    @Body({ schema: oauthAuthorizeSchema }) dto?: OAuthAuthorizeDto,
   ) {
     return unwrapResult(
       this.authService.createWechatWebIdentityLinkAuthorizeUrl(dto),
@@ -309,7 +318,7 @@ export class AccountController {
   })
   async linkWechatWebIdentity(
     @CurrentUser() user: UserPayload,
-    @Body() dto: OAuthCallbackDto,
+    @Body({ schema: oauthCallbackSchema }) dto: OAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     await unwrapResult(this.authService.linkWechatWebIdentity(user.sub, dto));
@@ -362,7 +371,7 @@ export class AccountController {
   })
   async linkWechatMobileIdentity(
     @CurrentUser() user: UserPayload,
-    @Body() dto: OAuthCodeCallbackDto,
+    @Body({ schema: oauthCodeCallbackSchema }) dto: OAuthCodeCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     await unwrapResult(
@@ -406,7 +415,7 @@ export class AccountController {
   })
   async deleteAccount(
     @CurrentUser() user: UserPayload,
-    @Body() dto: DeleteAccountDto,
+    @Body({ schema: deleteAccountSchema }) dto: DeleteAccountDto,
     @Req() request: FastifyRequest,
   ) {
     await unwrapResult(this.authService.deleteAccount(user.sub, dto));

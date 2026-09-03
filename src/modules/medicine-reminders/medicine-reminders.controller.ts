@@ -23,15 +23,18 @@ import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
-import { CreateMedicineReminderDto } from './dto/create.dto.js';
+import { createMedicineReminderSchema } from './dto/create.dto.js';
+import type { CreateMedicineReminderDto } from './dto/create.dto.js';
 
 import {
   MedicineReminderListResponseDto,
   MedicineReminderResponseDto,
 } from './dto/response.dto.js';
 
-import { UpdateMedicineReminderDto } from './dto/update.dto.js';
-import { UpsertMedicineReminderGroupDto } from './dto/upsert-group.dto.js';
+import { updateMedicineReminderSchema } from './dto/update.dto.js';
+import type { UpdateMedicineReminderDto } from './dto/update.dto.js';
+import { upsertMedicineReminderGroupSchema } from './dto/upsert-group.dto.js';
+import type { UpsertMedicineReminderGroupDto } from './dto/upsert-group.dto.js';
 import { MedicineRemindersService } from './services/reminders.service.js';
 
 @ApiTags('Medicine Reminders')
@@ -73,7 +76,8 @@ export class MedicineRemindersController {
   })
   async create(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateMedicineReminderDto,
+    @Body({ schema: createMedicineReminderSchema })
+    dto: CreateMedicineReminderDto,
   ) {
     return await unwrapResult(this.remindersService.create(user.sub, dto));
   }
@@ -100,7 +104,8 @@ export class MedicineRemindersController {
   async update(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
-    @Body() dto: UpdateMedicineReminderDto,
+    @Body({ schema: updateMedicineReminderSchema })
+    dto: UpdateMedicineReminderDto,
   ) {
     return await unwrapResult(this.remindersService.update(user.sub, id, dto));
   }
@@ -141,7 +146,8 @@ export class MedicineRemindersController {
   })
   async upsertGroup(
     @CurrentUser() user: UserPayload,
-    @Body() dto: UpsertMedicineReminderGroupDto,
+    @Body({ schema: upsertMedicineReminderGroupSchema })
+    dto: UpsertMedicineReminderGroupDto,
   ) {
     return await unwrapResult(this.remindersService.upsertGroup(user.sub, dto));
   }

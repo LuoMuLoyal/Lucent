@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { z } from 'zod';
 import { type UserNotificationType } from '#generated/prisma/client.js';
 
 export const USER_NOTIFICATION_TYPES = [
@@ -98,38 +98,37 @@ export class UnreadCountDataDto {
 
 export class UnreadCountResponseDto extends UnreadCountDataDto {}
 
-export class CreateNotificationDto {
-  @ApiProperty({
-    enum: USER_CREATABLE_NOTIFICATION_TYPES,
-    enumName: 'UserNotificationType',
-    description:
-      'Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications.',
+/**
+ * Standard Schema (zod 4) for `POST /notifications` — mirrors the former
+ * class-validator body: `type` restricted to user-creatable types, `action`
+ * nullable, `actionPayload` unconstrained (legacy posture, no type check).
+ * Unknown keys are rejected (`.strict()`, parity with the global
+ * `forbidNonWhitelisted`).
+ */
+export const createNotificationSchema = z
+  .object({
+    type: z
+      .enum(
+        USER_CREATABLE_NOTIFICATION_TYPES as unknown as [
+          UserNotificationType,
+          ...UserNotificationType[],
+        ],
+      )
+      .describe(
+        'Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications.',
+      ),
+    title: z.string().describe('Notification title.'),
+    content: z.string().describe('Notification content body.'),
+    action: z
+      .string()
+      .nullish()
+      .describe('Action route target for the frontend.'),
+    actionPayload: z
+      .unknown()
+      .nullish()
+      .describe('Extra payload for the action.'),
   })
-  @IsIn(USER_CREATABLE_NOTIFICATION_TYPES)
-  type!: UserNotificationType;
+  .strict();
 
-  @ApiProperty({ description: 'Notification title.' })
-  @IsString()
-  title!: string;
-
-  @ApiProperty({ description: 'Notification content body.' })
-  @IsString()
-  content!: string;
-
-  @ApiPropertyOptional({
-    type: String,
-    nullable: true,
-    description: 'Action route target for the frontend.',
-  })
-  @IsOptional()
-  @IsString()
-  action?: string | null;
-
-  @ApiPropertyOptional({
-    type: Object,
-    nullable: true,
-    description: 'Extra payload for the action.',
-  })
-  @IsOptional()
-  actionPayload?: Record<string, unknown> | null;
-}
+/** Strongly typed body of `POST /notifications`. */
+export type CreateNotificationDto = z.infer<typeof createNotificationSchema>;

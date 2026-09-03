@@ -10,7 +10,8 @@ import type { UserPayload } from '../auth/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { FilesService } from './services/files.service.js';
-import { CreateFileUploadDto } from './dto/create-file-upload.dto.js';
+import { createFileUploadSchema } from './dto/create-file-upload.dto.js';
+import type { CreateFileUploadDto } from './dto/create-file-upload.dto.js';
 
 @ApiTags('Files')
 @ApiBearerAuth('access-token')
@@ -42,7 +43,7 @@ export class FilesController {
   })
   async createUpload(
     @CurrentUser() user: UserPayload,
-    @Body() dto: CreateFileUploadDto,
+    @Body({ schema: createFileUploadSchema }) dto: CreateFileUploadDto,
   ) {
     return await unwrapResult(
       this.filesService.createPresignedUpload(user.sub, dto),

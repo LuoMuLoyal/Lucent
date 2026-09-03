@@ -11,7 +11,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import {
+import type {
   AppleOAuthCallbackDto,
   GoogleOAuthAuthorizeDto,
   GoogleOAuthCallbackDto,

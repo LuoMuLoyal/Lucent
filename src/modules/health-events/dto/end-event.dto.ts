@@ -1,13 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
+import { z } from 'zod';
 import { HealthEventOutcome } from '#generated/prisma/client.js';
 
-export class EndHealthEventDto {
-  @ApiProperty({
-    description: 'User-confirmed outcome when ending the event.',
-    enum: HealthEventOutcome,
-    enumName: 'HealthEventOutcome',
+/**
+ * Request schema for `POST /health-events/:id/end`.
+ *
+ * Replaces the former class-validator DTO (`@IsEnum` on a required field);
+ * the global `forbidNonWhitelisted` posture is preserved with `.strict()`.
+ */
+export const endHealthEventSchema = z
+  .object({
+    outcome: z
+      .enum(HealthEventOutcome)
+      .describe('User-confirmed outcome when ending the event.'),
   })
-  @IsEnum(HealthEventOutcome)
-  outcome!: HealthEventOutcome;
-}
+  .strict();
+
+/** Strongly typed end body of `POST /health-events/:id/end`. */
+export type EndHealthEventDto = z.infer<typeof endHealthEventSchema>;

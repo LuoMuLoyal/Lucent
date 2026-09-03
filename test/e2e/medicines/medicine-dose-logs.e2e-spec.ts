@@ -310,4 +310,80 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .get(`${BASE_PATH}?date=2026-06-04`)
       .expect(401);
   });
+
+  it('should reject an invalid status value with VALIDATION_FAILED', async () => {
+    const { token } = await createUserWithToken();
+
+    const res = await request(app.getHttpServer())
+      .post(BASE_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ status: 'forgotten', scheduledFor: '2026-06-04' })
+      .expect(400);
+
+    expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+  });
+
+  it('should reject a malformed scheduledFor date with VALIDATION_FAILED', async () => {
+    const { token } = await createUserWithToken();
+
+    const res = await request(app.getHttpServer())
+      .post(BASE_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ status: 'taken', scheduledFor: '2026/06/04' })
+      .expect(400);
+
+    expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+  });
+
+  it('should reject an empty non-optional string with VALIDATION_FAILED', async () => {
+    const { token } = await createUserWithToken();
+
+    const res = await request(app.getHttpServer())
+      .post(BASE_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({
+        currentMedicineId: '',
+        status: 'taken',
+        scheduledFor: '2026-06-04',
+      })
+      .expect(400);
+
+    expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+  });
+
+  it('should reject unknown body keys (strict schema, forbid parity)', async () => {
+    const { token } = await createUserWithToken();
+
+    const res = await request(app.getHttpServer())
+      .post(BASE_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({
+        status: 'taken',
+        scheduledFor: '2026-06-04',
+        unexpectedKey: 'surprise',
+      })
+      .expect(400);
+
+    expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+  });
+
+  it('should reject an invalid update status with VALIDATION_FAILED', async () => {
+    const { token } = await createUserWithToken();
+
+    const createRes = await request(app.getHttpServer())
+      .post(BASE_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ status: 'planned', scheduledFor: '2026-06-04' })
+      .expect(201);
+
+    const id = expectData(createRes.body as { id: string }).id;
+
+    const res = await request(app.getHttpServer())
+      .patch(`${BASE_PATH}/${id}`)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ status: 'snoozed' })
+      .expect(400);
+
+    expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+  });
 });

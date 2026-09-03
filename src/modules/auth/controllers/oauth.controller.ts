@@ -9,13 +9,7 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import {
-  ApiBody,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
 import {
@@ -26,16 +20,28 @@ import { unwrapResult } from '../../../common/result/index.js';
 import { AuthService } from '../services/auth.service.js';
 
 import {
+  appleOAuthCallbackSchema,
+  googleOAuthAuthorizeSchema,
+  googleOAuthCallbackSchema,
+  oauthAuthorizeSchema,
+  oauthCallbackSchema,
+  oauthCodeCallbackSchema,
+  qqOAuthAuthorizeSchema,
+  qqOAuthCallbackSchema,
+  weiboOAuthAuthorizeSchema,
+  weiboOAuthCallbackSchema,
+} from '../dto/shared/oauth.dto.js';
+import type {
+  AppleOAuthCallbackDto,
+  GoogleOAuthAuthorizeDto,
+  GoogleOAuthCallbackDto,
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
-  AppleOAuthCallbackDto,
-  QqOAuthCallbackDto,
   QqOAuthAuthorizeDto,
-  WeiboOAuthCallbackDto,
+  QqOAuthCallbackDto,
   WeiboOAuthAuthorizeDto,
-  GoogleOAuthCallbackDto,
-  GoogleOAuthAuthorizeDto,
+  WeiboOAuthCallbackDto,
 } from '../dto/shared/oauth.dto.js';
 
 import {
@@ -57,14 +63,15 @@ export class OAuthController {
   @Post('oauth/wechat-web/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create WeChat web OAuth authorize URL' })
-  @ApiBody({ type: OAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
     type: ProblemDetailsDto,
   })
-  async createWechatWebAuthorizeUrl(@Body() dto?: OAuthAuthorizeDto) {
+  async createWechatWebAuthorizeUrl(
+    @Body({ schema: oauthAuthorizeSchema }) dto?: OAuthAuthorizeDto,
+  ) {
     return unwrapResult(this.authService.createWechatWebAuthorizeUrl(dto));
   }
 
@@ -106,7 +113,7 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   async loginWithWechatWeb(
-    @Body() dto: OAuthCallbackDto,
+    @Body({ schema: oauthCallbackSchema }) dto: OAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -122,8 +129,6 @@ export class OAuthController {
 
   @Get('oauth/wechat-web/callback')
   @ApiOperation({ summary: 'WeChat web OAuth browser redirect' })
-  @ApiQuery({ name: 'code', required: true })
-  @ApiQuery({ name: 'state', required: true })
   @ApiResponse({ status: 302, description: 'Redirect to desktop callback URI' })
   @ApiResponse({
     status: 400,
@@ -131,7 +136,7 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   async redirectWechatWebCallback(
-    @Query() dto: OAuthCallbackDto,
+    @Query({ schema: oauthCallbackSchema }) dto: OAuthCallbackDto,
     @Res() reply: FastifyReply,
   ) {
     const redirectUrl = await unwrapResult(
@@ -178,7 +183,7 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   async loginWithWechatMobile(
-    @Body() dto: OAuthCodeCallbackDto,
+    @Body({ schema: oauthCodeCallbackSchema }) dto: OAuthCodeCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -228,7 +233,7 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   async loginWithApple(
-    @Body() dto: AppleOAuthCallbackDto,
+    @Body({ schema: appleOAuthCallbackSchema }) dto: AppleOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -242,14 +247,15 @@ export class OAuthController {
   @Post('oauth/qq/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create QQ OAuth authorize URL' })
-  @ApiBody({ type: QqOAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
     type: ProblemDetailsDto,
   })
-  async createQqAuthorizeUrl(@Body() dto?: QqOAuthAuthorizeDto) {
+  async createQqAuthorizeUrl(
+    @Body({ schema: qqOAuthAuthorizeSchema }) dto?: QqOAuthAuthorizeDto,
+  ) {
     return unwrapResult(this.authService.createQqAuthorizeUrl(dto));
   }
 
@@ -291,7 +297,7 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   async loginWithQq(
-    @Body() dto: QqOAuthCallbackDto,
+    @Body({ schema: qqOAuthCallbackSchema }) dto: QqOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -305,14 +311,15 @@ export class OAuthController {
   @Post('oauth/weibo/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create Weibo OAuth authorize URL' })
-  @ApiBody({ type: WeiboOAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
     type: ProblemDetailsDto,
   })
-  async createWeiboAuthorizeUrl(@Body() dto?: WeiboOAuthAuthorizeDto) {
+  async createWeiboAuthorizeUrl(
+    @Body({ schema: weiboOAuthAuthorizeSchema }) dto?: WeiboOAuthAuthorizeDto,
+  ) {
     return unwrapResult(this.authService.createWeiboAuthorizeUrl(dto));
   }
 
@@ -354,7 +361,7 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   async loginWithWeibo(
-    @Body() dto: WeiboOAuthCallbackDto,
+    @Body({ schema: weiboOAuthCallbackSchema }) dto: WeiboOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
@@ -368,14 +375,15 @@ export class OAuthController {
   @Post('oauth/google/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create Google OAuth authorize URL' })
-  @ApiBody({ type: GoogleOAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   @ApiResponse({
     status: 400,
     description: 'Invalid callback URI',
     type: ProblemDetailsDto,
   })
-  async createGoogleAuthorizeUrl(@Body() dto?: GoogleOAuthAuthorizeDto) {
+  async createGoogleAuthorizeUrl(
+    @Body({ schema: googleOAuthAuthorizeSchema }) dto?: GoogleOAuthAuthorizeDto,
+  ) {
     return unwrapResult(this.authService.createGoogleAuthorizeUrl(dto));
   }
 
@@ -417,7 +425,7 @@ export class OAuthController {
     type: ProblemDetailsDto,
   })
   async loginWithGoogle(
-    @Body() dto: GoogleOAuthCallbackDto,
+    @Body({ schema: googleOAuthCallbackSchema }) dto: GoogleOAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(

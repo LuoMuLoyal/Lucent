@@ -1,33 +1,30 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsInt,
-  IsOptional,
-  IsPositive,
-  IsString,
-  Matches,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { z } from 'zod';
 
-export class CreateFileUploadDto {
-  @ApiProperty({ description: 'MIME type', example: 'image/jpeg' })
-  @IsString()
-  @MinLength(1)
-  @Matches(/^[a-z]+\/[-a-z0-9+.]+$/i)
-  contentType!: string;
-
-  @ApiProperty({ description: 'File size in bytes', example: 204800 })
-  @IsPositive()
-  @IsInt()
-  sizeBytes!: number;
-
-  @ApiPropertyOptional({
-    description: 'Original filename',
-    example: 'photo.jpg',
+/**
+ * Standard Schema (zod 4) for `POST /files/upload` request body.
+ *
+ * Replaces the former class-validator DTO:
+ * - `@IsString` + `@MinLength/@MaxLength/@Matches` → string checks; the body
+ *   is a JSON payload (no `@Type` coercion was present), so numeric fields
+ *   stay `z.number()` — a numeric string is still rejected, as before;
+ * - the global `forbidNonWhitelisted` behaviour is preserved with `.strict()`.
+ */
+export const createFileUploadSchema = z
+  .object({
+    contentType: z
+      .string()
+      .min(1)
+      .regex(/^[a-z]+\/[-a-z0-9+.]+$/i)
+      .describe('MIME type'),
+    sizeBytes: z.number().int().positive().describe('File size in bytes'),
+    fileName: z
+      .string()
+      .max(255)
+      .regex(/^[^\\/]+$/)
+      .describe('Original filename')
+      .optional(),
   })
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  @Matches(/^[^\\/]+$/)
-  fileName?: string;
-}
+  .strict();
+
+/** Strongly typed request body of `POST /files/upload`. */
+export type CreateFileUploadDto = z.infer<typeof createFileUploadSchema>;

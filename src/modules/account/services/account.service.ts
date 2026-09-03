@@ -18,8 +18,8 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { UserService } from '../../user/index.js';
 import { AccountDto } from '../dto/response.dto.js';
-import { UnlinkIdentityDto } from '../dto/unlink-identity.dto.js';
-import { UpdateAccountDto } from '../dto/update.dto.js';
+import type { UnlinkIdentityDto } from '../dto/unlink-identity.dto.js';
+import type { UpdateAccountDto } from '../dto/update.dto.js';
 
 type AccountUser = User & { accounts: Account[] };
 
@@ -50,8 +50,8 @@ export class AccountService {
     return this.getActiveAccountUser(userId)
       .andThen(() =>
         this.userService.update(userId, {
-          ...(dto.nickname !== undefined && { nickname }),
-          ...(dto.avatar !== undefined && { avatar }),
+          ...(nickname !== undefined && { nickname }),
+          ...(avatar !== undefined && { avatar }),
         }),
       )
       .andThen(() => this.getAccount(userId));

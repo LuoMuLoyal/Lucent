@@ -43,7 +43,8 @@ import type { TodayAnalysisMaterializationView } from './types/materialization.t
 import { TodayAnalysisService } from './services/analysis.service.js';
 
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
-import { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto.js';
+import { generateTodayAnalysisSchema } from './dto/generate-today-analysis.dto.js';
+import type { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto.js';
 
 import {
   TodayAnalysisAsyncJobDataDto,
@@ -127,7 +128,8 @@ export class TodayAnalysisController {
   })
   async refresh(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateTodayAnalysisDto,
+    @Body({ schema: generateTodayAnalysisSchema })
+    dto: GenerateTodayAnalysisDto,
     @I18nLang() language: string,
   ) {
     const request = await this.prepareManualRequest(user.sub, dto);
@@ -182,7 +184,8 @@ export class TodayAnalysisController {
   })
   async generate(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateTodayAnalysisDto,
+    @Body({ schema: generateTodayAnalysisSchema })
+    dto: GenerateTodayAnalysisDto,
     @I18nLang() language: string,
   ) {
     const request = await this.prepareManualRequest(user.sub, dto);
@@ -224,7 +227,8 @@ export class TodayAnalysisController {
   })
   async generateAsync(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateTodayAnalysisDto,
+    @Body({ schema: generateTodayAnalysisSchema })
+    dto: GenerateTodayAnalysisDto,
     @I18nLang() language: string,
   ) {
     const request = await this.prepareManualRequest(user.sub, dto);
@@ -340,7 +344,8 @@ export class TodayAnalysisController {
   })
   async generateStream(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateTodayAnalysisDto,
+    @Body({ schema: generateTodayAnalysisSchema })
+    dto: GenerateTodayAnalysisDto,
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {

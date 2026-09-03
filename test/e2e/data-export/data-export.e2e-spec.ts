@@ -46,6 +46,26 @@ describe('Data Export API (e2e)', () => {
         .expect(400);
     });
 
+    it('should reject an invalid kind enum value', async () => {
+      const res = await request(app.getHttpServer())
+        .post(EXPORT_PATH)
+        .set('Authorization', bearer(user.accessToken))
+        .send({ password: TEST_PASSWORD, kind: 'weekly' })
+        .expect(400);
+
+      expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+    });
+
+    it('should reject unknown body keys (strict schema)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(EXPORT_PATH)
+        .set('Authorization', bearer(user.accessToken))
+        .send({ password: TEST_PASSWORD, extraField: 'x' })
+        .expect(400);
+
+      expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+    });
+
     it('should create a data export request with default values', async () => {
       const response = await request(app.getHttpServer())
         .post(EXPORT_PATH)

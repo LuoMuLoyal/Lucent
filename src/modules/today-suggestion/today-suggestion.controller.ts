@@ -25,11 +25,12 @@ import { ExplanationQueueService } from './services/explanation/queue.service.js
 
 import { ExplanationService } from './services/explanation/explainer.service.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
+import { suggestionFeedbackSchema } from './dto/feedback.dto.js';
 import {
-  SuggestionFeedbackDto,
   SuggestionFeedbackDataDto,
   SuggestionFeedbackResponseDto,
 } from './dto/feedback.dto.js';
+import type { SuggestionFeedbackDto } from './dto/feedback.dto.js';
 
 import {
   TodaySuggestionsDataDto,
@@ -104,7 +105,8 @@ export class TodaySuggestionController {
   async submitFeedback(
     @CurrentUser() user: UserPayload,
     @Param('id') suggestionId: string,
-    @Body() dto: SuggestionFeedbackDto,
+    @Body({ schema: suggestionFeedbackSchema })
+    dto: SuggestionFeedbackDto,
   ) {
     const result = await unwrapResult(
       this.feedbackService.recordFeedback(user.sub, suggestionId, dto.feedback),

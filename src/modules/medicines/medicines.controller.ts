@@ -31,6 +31,10 @@ import {
 } from './dto/detail.dto.js';
 
 import {
+  medicineDetailQuerySchema,
+  medicineSearchQuerySchema,
+} from './dto/query.dto.js';
+import type {
   MedicineDetailQueryDto,
   MedicineSearchQueryDto,
 } from './dto/query.dto.js';
@@ -42,9 +46,11 @@ import {
 
 import { MedicineSafetyTipResponseDto } from './dto/safety-tip-response.dto.js';
 
-import { RecognizeMedicineDto } from './dto/recognize-medicine.dto.js';
+import { recognizeMedicineSchema } from './dto/recognize-medicine.dto.js';
+import type { RecognizeMedicineDto } from './dto/recognize-medicine.dto.js';
 import { MedicineRecognitionAsyncResponseDto } from './dto/recognition-response.dto.js';
-import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto.js';
+import { runRiskCheckSchema } from './dto/risk/risk-check-request.dto.js';
+import type { RunRiskCheckDto } from './dto/risk/risk-check-request.dto.js';
 import {
   MedicineRiskCheckRecordDto,
   MedicineRiskCheckRecordsDto,
@@ -124,7 +130,7 @@ export class MedicinesController {
   })
   @ApiResponse({ status: 200, type: MedicineSearchResponseDto })
   async search(
-    @Query() query: MedicineSearchQueryDto,
+    @Query({ schema: medicineSearchQuerySchema }) query: MedicineSearchQueryDto,
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     const result = await unwrapResult(
@@ -155,7 +161,8 @@ export class MedicinesController {
   @ApiResponse({ status: 200, type: MedicineDetailResponseDto })
   async getDetail(
     @Param('id') id: string,
-    @Query() query: MedicineDetailQueryDto,
+    @Query({ schema: medicineDetailQuerySchema })
+    query: MedicineDetailQueryDto,
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     const result = await unwrapResult(
@@ -198,7 +205,7 @@ export class MedicinesController {
   @ApiResponse({ status: 200, type: MedicineRiskCheckRecordResponseDto })
   async runRiskCheck(
     @CurrentUser() user: UserPayload,
-    @Body() dto: RunRiskCheckDto,
+    @Body({ schema: runRiskCheckSchema }) dto: RunRiskCheckDto,
   ) {
     if (dto.candidate != null && dto.type === 'llm') {
       throw new DomainFailureException(
@@ -227,7 +234,7 @@ export class MedicinesController {
   })
   async recognize(
     @CurrentUser() _user: UserPayload,
-    @Body() dto: RecognizeMedicineDto,
+    @Body({ schema: recognizeMedicineSchema }) dto: RecognizeMedicineDto,
   ) {
     return await this.medicinesService.recognizeMedicine(dto.imageUrl);
   }
@@ -243,7 +250,7 @@ export class MedicinesController {
   })
   async recognizeAsync(
     @CurrentUser() user: UserPayload,
-    @Body() dto: RecognizeMedicineDto,
+    @Body({ schema: recognizeMedicineSchema }) dto: RecognizeMedicineDto,
   ) {
     if (this.recognitionQueueService.isConfigured) {
       const jobId = await this.recognitionQueueService.enqueue(

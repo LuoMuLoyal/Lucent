@@ -1,33 +1,52 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsIn, IsOptional, ValidateIf } from 'class-validator';
+import { z } from 'zod';
 import {
-  REPORT_RANGE_CUSTOM,
+  refineReportRangeDates,
   REPORT_SUPPORTED_RANGES,
-  type ReportRange,
 } from './report-dashboard-query.dto.js';
 
-export class GenerateReportSummaryDto {
-  @ApiPropertyOptional({
-    enum: REPORT_SUPPORTED_RANGES,
-    description: 'Supported report summary aggregation range.',
+/**
+ * Report-summary request body fields. Same shape and custom-range rule as
+ * the dashboard query, but shipped over JSON: `range` is optional (the
+ * service falls back to the default `last_7_days` scope) and a `custom`
+ * range requires both ISO `startDate`/`endDate` values.
+ */
+const generateReportSummaryFields = z
+  .object({
+    range: z
+      .enum(REPORT_SUPPORTED_RANGES)
+      .describe('Supported report summary aggregation range.')
+      .optional(),
+    startDate: z
+      .string()
+      .describe(
+        'Required when range is "custom". ISO 8601 date string (YYYY-MM-DD).',
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .describe(
+        'Required when range is "custom". ISO 8601 date string (YYYY-MM-DD).',
+      )
+      .optional(),
   })
-  @IsOptional()
-  @IsIn(REPORT_SUPPORTED_RANGES)
-  range?: ReportRange;
+  .strict()
+  .superRefine(refineReportRangeDates);
 
-  @ApiPropertyOptional({
-    description:
-      'Required when range is "custom". ISO 8601 date string (YYYY-MM-DD).',
-  })
-  @ValidateIf((o: GenerateReportSummaryDto) => o.range === REPORT_RANGE_CUSTOM)
-  @IsDateString()
-  startDate?: string;
+/**
+ * Standard Schema (zod 4) for the `POST /reports/summary/generate*` bodies.
+ *
+ * The former class-validator pipe instantiated the DTO class, so a POST with
+ * no payload arrived as an empty object (empty scope). Nest hands an absent
+ * JSON body to the standard-schema pipe as `undefined`, so the object schema
+ * carries `.default({})` — the empty scope stays valid and the OpenAPI
+ * converter still renders the object shape (a `z.pipe(unknown → {})` wrapper
+ * would make the body schema opaque to the converter).
+ */
+export const generateReportSummarySchema = generateReportSummaryFields.default(
+  {},
+);
 
-  @ApiPropertyOptional({
-    description:
-      'Required when range is "custom". ISO 8601 date string (YYYY-MM-DD).',
-  })
-  @ValidateIf((o: GenerateReportSummaryDto) => o.range === REPORT_RANGE_CUSTOM)
-  @IsDateString()
-  endDate?: string;
-}
+/** Strongly typed body of `POST /reports/summary/generate*`. */
+export type GenerateReportSummaryDto = z.infer<
+  typeof generateReportSummarySchema
+>;

@@ -8,7 +8,8 @@ import {
   LegalDocumentListResponseDto,
 } from './dto/response.dto.js';
 
-import { LegalDocumentQueryDto } from './dto/query.dto.js';
+import { legalDocumentQuerySchema } from './dto/query.dto.js';
+import type { LegalDocumentQueryDto } from './dto/query.dto.js';
 import { LegalDocumentsService } from './services/documents.service.js';
 
 @ApiTags('Legal Documents')
@@ -20,7 +21,9 @@ export class LegalDocumentsController {
   @Get()
   @ApiOperation({ summary: 'List all active legal documents' })
   @ApiResponse({ status: 200, type: LegalDocumentListResponseDto })
-  async findAll(@Query() query: LegalDocumentQueryDto) {
+  async findAll(
+    @Query({ schema: legalDocumentQuerySchema }) query: LegalDocumentQueryDto,
+  ) {
     return await unwrapResult(this.service.findAll(query));
   }
 
@@ -34,7 +37,7 @@ export class LegalDocumentsController {
   })
   async findOne(
     @Param('docType') docType: string,
-    @Query() query: LegalDocumentQueryDto,
+    @Query({ schema: legalDocumentQuerySchema }) query: LegalDocumentQueryDto,
   ) {
     return await unwrapResult(this.service.findOne(docType, query));
   }

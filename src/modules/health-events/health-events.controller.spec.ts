@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { validate } from 'class-validator';
 import {
   HealthEventKind,
   HealthEventOutcome,
@@ -9,10 +8,13 @@ import { okAsync, errAsync } from '../../common/result/index.js';
 import type { DomainFailure } from '../../common/result/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { HealthEventsController } from './health-events.controller.js';
-import { CreateHealthEventDto } from './dto/create-event.dto.js';
-import { EndHealthEventDto } from './dto/end-event.dto.js';
-import { EventListQueryDto } from './dto/event-list-query.dto.js';
-import { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
+import { createHealthEventSchema } from './dto/create-event.dto.js';
+import type { CreateHealthEventDto } from './dto/create-event.dto.js';
+import { endHealthEventSchema } from './dto/end-event.dto.js';
+import type { EndHealthEventDto } from './dto/end-event.dto.js';
+import { eventListQuerySchema } from './dto/event-list-query.dto.js';
+import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.dto.js';
+import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
 import { CheckInsService } from './services/check-ins.service.js';
 import { EventsService } from './services/events.service.js';
 
@@ -345,37 +347,45 @@ describe('HealthEventsController', () => {
 });
 
 describe('Health event HTTP DTO validation', () => {
-  it('requires a non-empty short title and limits its length', async () => {
-    const emptyTitle = Object.assign(new CreateHealthEventDto(), {
-      title: ' ',
-    });
-    const longTitle = Object.assign(new CreateHealthEventDto(), {
-      title: 'x'.repeat(81),
-    });
-
-    expect(await validate(emptyTitle)).not.toHaveLength(0);
-    expect(await validate(longTitle)).not.toHaveLength(0);
+  it('requires a non-empty short title and limits its length', () => {
+    expect(createHealthEventSchema.safeParse({ title: ' ' }).success).toBe(
+      false,
+    );
+    expect(
+      createHealthEventSchema.safeParse({ title: 'x'.repeat(81) }).success,
+    ).toBe(false);
+    expect(
+      createHealthEventSchema.safeParse({ title: 'Headache' }).success,
+    ).toBe(true);
   });
 
-  it('accepts only outcome enum values for end and check-in DTOs', async () => {
-    const endDto = Object.assign(new EndHealthEventDto(), { outcome: 'other' });
-    const checkInDto = Object.assign(new UpsertHealthEventCheckInDto(), {
-      outcome: 'other',
-    });
-
-    expect(await validate(endDto)).not.toHaveLength(0);
-    expect(await validate(checkInDto)).not.toHaveLength(0);
+  it('accepts only outcome enum values for end and check-in DTOs', () => {
+    expect(endHealthEventSchema.safeParse({ outcome: 'other' }).success).toBe(
+      false,
+    );
+    expect(
+      upsertHealthEventCheckInSchema.safeParse({ outcome: 'other' }).success,
+    ).toBe(false);
+    expect(
+      endHealthEventSchema.safeParse({
+        outcome: HealthEventOutcome.improved,
+      }).success,
+    ).toBe(true);
+    expect(
+      upsertHealthEventCheckInSchema.safeParse({
+        outcome: HealthEventOutcome.improved,
+      }).success,
+    ).toBe(true);
   });
 
-  it('accepts only YYYY-MM-DD dates in list query and path DTO validation', async () => {
-    const valid = Object.assign(new EventListQueryDto(), {
-      date: '2026-08-08',
-    });
-    const invalid = Object.assign(new EventListQueryDto(), {
-      date: '2026-08-08T00:00:00.000Z',
-    });
-
-    expect(await validate(valid)).toHaveLength(0);
-    expect(await validate(invalid)).not.toHaveLength(0);
+  it('accepts only YYYY-MM-DD dates in list query and path DTO validation', () => {
+    expect(eventListQuerySchema.safeParse({ date: '2026-08-08' }).success).toBe(
+      true,
+    );
+    expect(
+      eventListQuerySchema.safeParse({
+        date: '2026-08-08T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
   });
 });

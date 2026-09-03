@@ -77,6 +77,21 @@ describe('Files API (e2e)', () => {
       expect(res.status).toBe(400);
     });
 
+    it('should reject unknown body keys (strict schema)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/upload`)
+        .set('Authorization', bearer(accessToken))
+        .send({
+          contentType: 'image/jpeg',
+          sizeBytes: 102400,
+          fileName: 'test.jpg',
+          extraField: 'unknown',
+        })
+        .expect(400);
+
+      expect((res.body as { code?: string }).code).toBe('VALIDATION_FAILED');
+    });
+
     it('should create presigned upload URL or return error when COS not configured', async () => {
       const res = await request(app.getHttpServer())
         .post(`${BASE_PATH}/upload`)
