@@ -288,9 +288,10 @@ export class HealthEventsController {
 
 // 201 主成功响应注记:export-openapi 目前只把注册组件的 200 响应回写为
 // $ref;POST /health-events 的 201 响应体同样按稳定组件名登记,导出脚本
-// 支持 201 回写后自动生效。
+// 支持 201 回写后自动生效。路径与导出的 OpenAPI 路径一致(模块挂在
+// RouterModule `user` 前缀下,路径参数用 `{…}` 花括号形式)。
 registerResponseSchema({
-  path: '/api/v1/health-events',
+  path: '/api/v1/user/health-events',
   method: 'post',
   componentName: 'HealthEventResponseDto',
   schema: healthEventResponseSchema,
@@ -298,7 +299,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/health-events/active',
+  path: '/api/v1/user/health-events/active',
   method: 'get',
   componentName: 'HealthEventNullableResponseDto',
   schema: healthEventNullableResponseSchema,
@@ -306,7 +307,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/health-events',
+  path: '/api/v1/user/health-events',
   method: 'get',
   componentName: 'HealthEventListResponseDto',
   schema: healthEventListResponseSchema,
@@ -314,7 +315,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/health-events/:id',
+  path: '/api/v1/user/health-events/{id}',
   method: 'get',
   componentName: 'HealthEventResponseDto',
   schema: healthEventResponseSchema,
@@ -322,7 +323,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/health-events/:id/check-ins/:date',
+  path: '/api/v1/user/health-events/{id}/check-ins/{date}',
   method: 'put',
   componentName: 'HealthEventResponseDto',
   schema: healthEventResponseSchema,
@@ -330,7 +331,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/health-events/:id/end',
+  path: '/api/v1/user/health-events/{id}/end',
   method: 'post',
   componentName: 'HealthEventResponseDto',
   schema: healthEventResponseSchema,

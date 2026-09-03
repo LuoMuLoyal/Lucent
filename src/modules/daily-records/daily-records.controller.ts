@@ -242,9 +242,10 @@ export class DailyRecordsController {
 
 // 201 主成功响应注记:export-openapi 目前只把注册组件的 200 响应回写为
 // $ref;以下 201 端点(POST create / POST presign-upload)的响应体同样按稳定
-// 组件名登记,导出脚本支持 201 回写后自动生效。
+// 组件名登记,导出脚本支持 201 回写后自动生效。路径与导出的 OpenAPI 路径
+// 一致(模块挂在 RouterModule `user` 前缀下,路径参数用 `{…}` 花括号形式)。
 registerResponseSchema({
-  path: '/api/v1/daily-records',
+  path: '/api/v1/user/daily-records',
   method: 'get',
   componentName: 'DailyRecordListResponseDto',
   schema: dailyRecordListResponseSchema,
@@ -252,7 +253,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/daily-records/summary',
+  path: '/api/v1/user/daily-records/summary',
   method: 'get',
   componentName: 'DailyRecordSummaryResponseDto',
   schema: dailyRecordSummaryResponseSchema,
@@ -260,7 +261,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/daily-records/attachments/images/presign-upload',
+  path: '/api/v1/user/daily-records/attachments/images/presign-upload',
   method: 'post',
   componentName: 'DailyRecordImageUploadResponseDto',
   schema: dailyRecordImageUploadResponseSchema,
@@ -268,7 +269,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/daily-records/candidate-records/generate',
+  path: '/api/v1/user/daily-records/candidate-records/generate',
   method: 'post',
   componentName: 'DailyRecordCandidateResponseDto',
   schema: dailyRecordCandidateResponseSchema,
@@ -276,7 +277,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/daily-records/:id',
+  path: '/api/v1/user/daily-records/{id}',
   method: 'get',
   componentName: 'DailyRecordResponseDto',
   schema: dailyRecordResponseSchema,
@@ -284,7 +285,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/daily-records',
+  path: '/api/v1/user/daily-records',
   method: 'post',
   componentName: 'DailyRecordResponseDto',
   schema: dailyRecordResponseSchema,
@@ -292,7 +293,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/daily-records/:id',
+  path: '/api/v1/user/daily-records/{id}',
   method: 'patch',
   componentName: 'DailyRecordResponseDto',
   schema: dailyRecordResponseSchema,

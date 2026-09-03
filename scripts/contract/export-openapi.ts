@@ -18,6 +18,91 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const REGION_RE =
   /<!--[\s]*@generated openapi:BEGIN prefix=([^\s]+)[\s]*-->[\s\S]*?<!--[\s]*@generated openapi:END[\s]*-->/g;
 
+/**
+ * Rewrite a JSON-Schema (zod `toJSONSchema`) node into an OpenAPI 3.0
+ * compatible schema: drops JSON-Schema-only keys the OpenAPI generator
+ * rejects (`$schema`, `propertyNames`, …) and folds `anyOf` nullable
+ * branches into `nullable: true`.
+ */
+function openApiSchema(node) {
+  if (Array.isArray(node)) return node.map((n) => openApiSchema(n));
+  if (node === null || typeof node !== 'object') return node;
+  if (
+    Array.isArray(node.anyOf) &&
+    node.anyOf.length === 2 &&
+    node.anyOf.some(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (branch: any) => branch != null && branch.type === 'null',
+    )
+  ) {
+    const other = node.anyOf.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (branch: any) => branch != null && branch.type !== 'null',
+    );
+    return openApiSchema({ ...other, nullable: true });
+  }
+  const OPENAPI_SCHEMA_KEYS = new Set([
+    'type',
+    'format',
+    'title',
+    'description',
+    'default',
+    'enum',
+    'items',
+    'properties',
+    'required',
+    'additionalProperties',
+    'nullable',
+    'allOf',
+    'anyOf',
+    'oneOf',
+    '$ref',
+    'pattern',
+    'minLength',
+    'maxLength',
+    'minimum',
+    'maximum',
+    'exclusiveMinimum',
+    'exclusiveMaximum',
+    'minItems',
+    'maxItems',
+    'minProperties',
+    'maxProperties',
+    'uniqueItems',
+    'example',
+    'examples',
+    'readOnly',
+    'writeOnly',
+    'deprecated',
+  ]);
+  const out = {};
+  for (const [key, value] of Object.entries(node)) {
+    if (!OPENAPI_SCHEMA_KEYS.has(key)) continue;
+    if (key === 'properties' && value && typeof value === 'object') {
+      out[key] = Object.fromEntries(
+        Object.entries(value).map(([name, child]) => [
+          name,
+          openApiSchema(child),
+        ]),
+      );
+    } else if (
+      (key === 'items' || key === 'additionalProperties') &&
+      value &&
+      typeof value === 'object'
+    ) {
+      out[key] = openApiSchema(value);
+    } else if (
+      (key === 'allOf' || key === 'anyOf' || key === 'oneOf') &&
+      Array.isArray(value)
+    ) {
+      out[key] = value.map((child) => openApiSchema(child));
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 /** Render one compact line per operation for paths under `prefix`. */
 function renderRegionEntries(document, prefix) {
   const lines = [];
@@ -174,6 +259,9 @@ async function main() {
   // components and point their operations at the `$ref`, since Swagger does
   // not introspect `@SerializeOptions({ schema })`. Component names match the
   // former DTO class names so the Luminous client model names stay stable.
+  // Registration paths must equal the exported operation paths verbatim
+  // (module mounts like the RouterModule `user` prefix included, path params
+  // in `{…}` form); anything else fails the export below.
   const { z } = await import('zod');
   const { responseSchemaRegistrations } = await import(
     pathToFileURL(
@@ -186,15 +274,36 @@ async function main() {
       ),
     ).href
   );
+  const unresolvedRegistrations: Array<{
+    path: string;
+    method: string;
+    componentName: string;
+  }> = [];
   for (const registration of responseSchemaRegistrations) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     const draft: any = document;
     draft.components ??= {};
     draft.components.schemas ??= {};
-    draft.components.schemas[registration.componentName] = z.toJSONSchema(
-      registration.schema,
-    );
+    try {
+      draft.components.schemas[registration.componentName] = openApiSchema(
+        z.toJSONSchema(registration.schema),
+      );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[openapi-export] cannot convert response schema component ${registration.componentName}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
     const operation = draft.paths?.[registration.path]?.[registration.method];
+    if (!operation) {
+      unresolvedRegistrations.push({
+        path: registration.path,
+        method: registration.method,
+        componentName: registration.componentName,
+      });
+      continue;
+    }
     // Wire the primary success response (prefer 200, then 201, then 202).
     const successCode = ['200', '201', '202'].find(
       (code) => operation?.responses?.[code] != null,
@@ -209,6 +318,20 @@ async function main() {
         $ref: `#/components/schemas/${registration.componentName}`,
       };
     }
+  }
+  // A registration that does not resolve to a real operation would silently
+  // drop the success-schema wiring (client then sees `Response<void>`), so
+  // fail the export instead of producing a partial contract.
+  if (unresolvedRegistrations.length > 0) {
+    for (const reg of unresolvedRegistrations) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[openapi-export] response schema ${reg.componentName} registered for ${reg.method.toUpperCase()} ${reg.path} matches no operation in the generated document`,
+      );
+    }
+    throw new Error(
+      `[openapi-export] ${unresolvedRegistrations.length} response schema registration(s) match no operation path`,
+    );
   }
 
   const outputPath = path.resolve(

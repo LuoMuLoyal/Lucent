@@ -13,36 +13,29 @@ import { clinicSummaryShareScopeSchema } from './clinic-summary-response.dto.js'
  */
 
 /** Replaces `ClinicSummaryShareListItemDto`. */
-
-/**
- * Outbound tolerant timestamp: mappers may hand over a `Date` (Fastify would
- * stringify it) while the wire contract is an ISO string — normalize here so
- * the response serializer never rejects raw `Date` values.
- */
-const isoStringOrDate = z
-  .union([z.string(), z.date()])
-  .transform((value) => (value instanceof Date ? value.toISOString() : value));
-
 export const clinicSummaryShareListItemSchema = z.object({
   id: z
     .string()
     .describe(
       'Persisted share record id (used for revocation). Never a token.',
     ),
-  createdAt: isoStringOrDate.describe('Creation time in ISO 8601 format.'),
-  expiresAt: isoStringOrDate.describe('Expiration time in ISO 8601 format.'),
-  revokedAt: isoStringOrDate
+  createdAt: z.string().describe('Creation time in ISO 8601 format.'),
+  expiresAt: z.string().describe('Expiration time in ISO 8601 format.'),
+  revokedAt: z
+    .string()
     .nullable()
     .describe(
       'Revocation time in ISO 8601 format, or null while the share is active.',
     ),
   accessCount: z.number().describe('Number of successful public opens.'),
-  firstAccessedAt: isoStringOrDate
+  firstAccessedAt: z
+    .string()
     .nullable()
     .describe(
       'First access time in ISO 8601 format, or null when never opened.',
     ),
-  lastAccessedAt: isoStringOrDate
+  lastAccessedAt: z
+    .string()
     .nullable()
     .describe(
       'Last access time in ISO 8601 format, or null when never opened.',
