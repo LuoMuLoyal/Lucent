@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
+import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
 import { dailyRecordAttachmentInputSchema } from './record-attachment.dto.js';
 
 const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
@@ -18,7 +19,7 @@ const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
  * - `@IsNotEmpty` text fields → `.trim().min(1)` (whitespace-only is
  *   rejected and surrounding whitespace is normalised, matching what the
  *   mapper's `normalizeNullableText` stored before);
- * - `@IsDateString` (YYYY-MM-DD docs) → `z.iso.date()` (calendar-valid
+ * - `@IsDateString` (YYYY-MM-DD docs) → `dateOnlySchema()` (calendar-valid
  *   date-only strings);
  * - `@Matches` time pattern → `z.string().regex(...)`;
  * - `@IsEnum(DailyRecordKind)` → `z.enum(Object.values(...))`;
@@ -32,11 +33,9 @@ const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export const createDailyRecordSchema = z
   .object({
     kind: z.enum(DAILY_RECORD_KIND_VALUES),
-    occurredAt: z.iso
-      .date()
-      .describe(
-        'Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep).',
-      ),
+    occurredAt: dateOnlySchema().describe(
+      'Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep).',
+    ),
     occurredTime: z
       .string()
       .regex(TIME_24H_PATTERN)

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
 
 /**
  * Calendar date in `YYYY-MM-DD` format (real date, same strictness as the
@@ -6,9 +7,9 @@ import { z } from 'zod';
  * Shared by the optional list/active/detail `date` query parameter and the
  * `PUT /health-events/:id/check-ins/:date` path date.
  */
-export const eventDateSchema = z.iso
-  .date()
-  .describe('Calendar date in YYYY-MM-DD format.');
+export const eventDateSchema = dateOnlySchema().describe(
+  'Calendar date in YYYY-MM-DD format.',
+);
 
 /**
  * Request schema for the optional `date` query of the health-event list,

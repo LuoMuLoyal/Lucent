@@ -8,6 +8,7 @@ import { TodayAnalysisService } from './services/analysis.service.js';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
 import type { TodayAnalysisDataDto } from './dto/analysis-response.dto.js';
+import { generateTodayAnalysisSchema } from './dto/generate-today-analysis.dto.js';
 import { TodayAnalysisController } from './today-analysis.controller.js';
 
 describe('TodayAnalysisController', () => {
@@ -415,6 +416,20 @@ describe('TodayAnalysisController', () => {
     const result = await controller.generateStatus('job-1');
 
     expect(result).toEqual({ status: 'completed', jobId: 'job-1' });
+  });
+});
+
+describe('Today analysis HTTP DTO validation', () => {
+  it('accepts YYYY-MM-DD and rejects ISO datetime strings for the generate date', () => {
+    expect(generateTodayAnalysisSchema.safeParse({}).success).toBe(true);
+    expect(
+      generateTodayAnalysisSchema.safeParse({ date: '2026-09-03' }).success,
+    ).toBe(true);
+    expect(
+      generateTodayAnalysisSchema.safeParse({
+        date: '2026-09-03T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
   });
 });
 

@@ -12,7 +12,10 @@ import { createHealthEventSchema } from './dto/create-event.dto.js';
 import type { CreateHealthEventDto } from './dto/create-event.dto.js';
 import { endHealthEventSchema } from './dto/end-event.dto.js';
 import type { EndHealthEventDto } from './dto/end-event.dto.js';
-import { eventListQuerySchema } from './dto/event-list-query.dto.js';
+import {
+  eventDateSchema,
+  eventListQuerySchema,
+} from './dto/event-list-query.dto.js';
 import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.dto.js';
 import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
 import { CheckInsService } from './services/check-ins.service.js';
@@ -387,5 +390,12 @@ describe('Health event HTTP DTO validation', () => {
         date: '2026-08-08T00:00:00.000Z',
       }).success,
     ).toBe(false);
+  });
+
+  it('eventDateSchema (shared by query date and check-in path date) rejects ISO datetime strings', () => {
+    expect(eventDateSchema.safeParse('2026-08-08').success).toBe(true);
+    expect(eventDateSchema.safeParse('2026-08-08T00:00:00.000Z').success).toBe(
+      false,
+    );
   });
 });

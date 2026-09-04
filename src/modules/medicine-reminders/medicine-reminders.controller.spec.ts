@@ -7,6 +7,9 @@ import {
 import type { UserPayload } from '../auth/index.js';
 import { MedicineRemindersController } from './medicine-reminders.controller.js';
 import { MedicineRemindersService } from './services/reminders.service.js';
+import { createMedicineReminderSchema } from './dto/create.dto.js';
+import { updateMedicineReminderSchema } from './dto/update.dto.js';
+import { upsertMedicineReminderGroupSchema } from './dto/upsert-group.dto.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',
@@ -142,5 +145,83 @@ describe('MedicineRemindersController', () => {
       expect(service.upsertGroup).toHaveBeenCalledWith(mockUser.sub, dto);
       expect(result).toEqual({ items: [] });
     });
+  });
+});
+
+describe('Medicine reminder HTTP DTO validation', () => {
+  it('accepts YYYY-MM-DD and rejects ISO datetime strings for create startDate/endDate', () => {
+    expect(
+      createMedicineReminderSchema.safeParse({
+        currentMedicineId: 'med-1',
+        scheduledHour: 8,
+        scheduledMinute: 0,
+        startDate: '2026-09-03',
+        endDate: '2026-09-10',
+      }).success,
+    ).toBe(true);
+    expect(
+      createMedicineReminderSchema.safeParse({
+        currentMedicineId: 'med-1',
+        scheduledHour: 8,
+        scheduledMinute: 0,
+        startDate: '2026-09-03T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
+    expect(
+      createMedicineReminderSchema.safeParse({
+        currentMedicineId: 'med-1',
+        scheduledHour: 8,
+        scheduledMinute: 0,
+        endDate: '2026-09-10T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('keeps nullish create startDate/endDate clearable', () => {
+    expect(
+      createMedicineReminderSchema.safeParse({
+        scheduledHour: 8,
+        scheduledMinute: 0,
+        startDate: null,
+        endDate: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts YYYY-MM-DD and rejects ISO datetime strings for update startDate/endDate', () => {
+    expect(
+      updateMedicineReminderSchema.safeParse({
+        startDate: '2026-09-03',
+        endDate: '2026-09-10',
+      }).success,
+    ).toBe(true);
+    expect(
+      updateMedicineReminderSchema.safeParse({
+        startDate: '2026-09-03T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
+    expect(
+      updateMedicineReminderSchema.safeParse({
+        endDate: '2026-09-10T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts YYYY-MM-DD and rejects ISO datetime strings for group upsert startDate/endDate', () => {
+    expect(
+      upsertMedicineReminderGroupSchema.safeParse({
+        currentMedicineId: 'med-1',
+        slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+        startDate: '2026-09-03',
+        endDate: '2026-09-10',
+      }).success,
+    ).toBe(true);
+    expect(
+      upsertMedicineReminderGroupSchema.safeParse({
+        currentMedicineId: 'med-1',
+        slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+        startDate: '2026-09-03T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
   });
 });

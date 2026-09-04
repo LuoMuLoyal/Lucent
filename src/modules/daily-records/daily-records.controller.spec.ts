@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { DailyRecordKind } from '#generated/prisma/client.js';
 import { DailyRecordsController } from './daily-records.controller.js';
 import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
 import { DailyRecordImageUploadService } from './services/image-upload.service.js';
@@ -6,6 +7,8 @@ import { DailyRecordsService } from './services/records.service.js';
 import type { UserPayload } from '../auth/index.js';
 import { okAsync, errAsync } from '../../common/result/index.js';
 import type { DomainFailure } from '../../common/result/index.js';
+import { createDailyRecordSchema } from './dto/create-record.dto.js';
+import { generateDailyRecordCandidatesSchema } from './dto/candidates/generate-record-candidates.dto.js';
 
 describe('DailyRecordsController', () => {
   let controller: DailyRecordsController;
@@ -281,5 +284,54 @@ describe('DailyRecordsController', () => {
         failure: { kind: 'authorization', code: 'FORBIDDEN' },
       });
     });
+  });
+});
+
+describe('Daily record HTTP DTO validation', () => {
+  it('accepts YYYY-MM-DD and rejects ISO datetime strings for create occurredAt', () => {
+    expect(
+      createDailyRecordSchema.safeParse({
+        kind: DailyRecordKind.water,
+        occurredAt: '2026-09-03',
+      }).success,
+    ).toBe(true);
+    expect(
+      createDailyRecordSchema.safeParse({
+        kind: DailyRecordKind.water,
+        occurredAt: '2026-09-03T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('keeps occurredTime as a separate HH:mm field', () => {
+    expect(
+      createDailyRecordSchema.safeParse({
+        kind: DailyRecordKind.water,
+        occurredAt: '2026-09-03',
+        occurredTime: '08:30',
+      }).success,
+    ).toBe(true);
+    expect(
+      createDailyRecordSchema.safeParse({
+        kind: DailyRecordKind.water,
+        occurredAt: '2026-09-03',
+        occurredTime: '08:30:00',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts YYYY-MM-DD and rejects ISO datetime strings for candidate generation occurredAt', () => {
+    expect(
+      generateDailyRecordCandidatesSchema.safeParse({
+        text: '记录一杯水',
+        occurredAt: '2026-09-03',
+      }).success,
+    ).toBe(true);
+    expect(
+      generateDailyRecordCandidatesSchema.safeParse({
+        text: '记录一杯水',
+        occurredAt: '2026-09-03T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
   });
 });

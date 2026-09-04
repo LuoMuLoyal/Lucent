@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
 
 /**
  * Standard Schema (zod 4) for one slot inside
@@ -39,7 +40,7 @@ export type UpsertReminderSlotDto = z.infer<typeof upsertReminderSlotSchema>;
  * Replaces the former class-validator DTO:
  * - `@IsOptional` → `.optional()` / `.nullish()` per the declared shape;
  * - `@IsString` + `@IsNotEmpty`/`@MaxLength` → `.min(1)` / `.max(n)`;
- * - `@IsDateString` → `z.iso.date()` (calendar date `YYYY-MM-DD` only);
+ * - `@IsDateString` → `dateOnlySchema()` (calendar date `YYYY-MM-DD` only);
  * - `@ValidateNested` + `@Type(() => UpsertReminderSlotDto)` →
  *   `z.array(upsertReminderSlotSchema)`;
  * - the global `forbidNonWhitelisted` behaviour is preserved with `.strict()`.
@@ -57,12 +58,10 @@ export const upsertMedicineReminderGroupSchema = z
       .max(7)
       .describe('Weekday numbers 0-6, where null means every day.')
       .nullish(),
-    startDate: z.iso
-      .date()
+    startDate: dateOnlySchema()
       .describe('Date in YYYY-MM-DD format when the reminder starts.')
       .nullish(),
-    endDate: z.iso
-      .date()
+    endDate: dateOnlySchema()
       .describe('Date in YYYY-MM-DD format when the reminder ends.')
       .nullish(),
     isActive: z

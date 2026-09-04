@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateOnlySchema } from '../../../../common/validators/iso-datetime.schema.js';
 
 /**
  * Standard Schema (zod 4) for
@@ -6,7 +7,7 @@ import { z } from 'zod';
  *
  * Replaces the former class-validator `GenerateDailyRecordCandidatesDto`:
  * - `@IsString`/`@MinLength`/`@MaxLength` → `z.string().min/max(...)`;
- * - `@IsDateString` (YYYY-MM-DD docs) → `z.iso.date()`;
+ * - `@IsDateString` (YYYY-MM-DD docs) → `dateOnlySchema()`;
  * - the global `forbidNonWhitelisted` posture is preserved with `.strict()`.
  */
 export const generateDailyRecordCandidatesSchema = z
@@ -18,11 +19,9 @@ export const generateDailyRecordCandidatesSchema = z
       .describe(
         'Natural-language note to be parsed into candidate daily records.',
       ),
-    occurredAt: z.iso
-      .date()
-      .describe(
-        'Wake date in YYYY-MM-DD format used as the candidate record date baseline.',
-      ),
+    occurredAt: dateOnlySchema().describe(
+      'Wake date in YYYY-MM-DD format used as the candidate record date baseline.',
+    ),
     timezone: z
       .string()
       .max(100)

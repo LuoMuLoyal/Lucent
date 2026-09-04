@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
 
 /**
  * Standard Schema (zod 4) for the `POST /medicine-reminders` request body.
@@ -8,7 +9,7 @@ import { z } from 'zod';
  * - `@IsOptional` + nullable type → `.nullish()` (null and absent both pass);
  * - `@IsString` + `@IsNotEmpty`/`@MaxLength` → `.min(1)` / `.max(n)`;
  * - `@IsInt` + `@Min`/`@Max` → `z.number().int().min(...).max(...)`;
- * - `@IsDateString` → `z.iso.date()` (calendar date `YYYY-MM-DD` only — the
+ * - `@IsDateString` → `dateOnlySchema()` (calendar date `YYYY-MM-DD` only — the
  *   documented/consumed shape; full datetimes would previously have produced an
  *   invalid Date in the mapper);
  * - `@IsBoolean` → `z.boolean()`;
@@ -41,12 +42,10 @@ export const createMedicineReminderSchema = z
       .max(7)
       .describe('Weekday numbers 0-6, where null means every day.')
       .nullish(),
-    startDate: z.iso
-      .date()
+    startDate: dateOnlySchema()
       .describe('Date in YYYY-MM-DD format when the reminder starts.')
       .nullish(),
-    endDate: z.iso
-      .date()
+    endDate: dateOnlySchema()
       .describe('Date in YYYY-MM-DD format when the reminder ends.')
       .nullish(),
     isActive: z

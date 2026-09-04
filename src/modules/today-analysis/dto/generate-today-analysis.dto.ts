@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
 
 /**
  * Standard Schema (zod 4) for the JSON body of the manual Today-analysis
@@ -7,7 +8,7 @@ import { z } from 'zod';
  *
  * Replaces the former class-validator DTO:
  * - `@IsOptional` → `.optional()` (absent key stays `undefined`);
- * - `@IsDateString` → `z.iso.date()` — the contract date is a calendar day
+ * - `@IsDateString` → `dateOnlySchema()` — the contract date is a calendar day
  *   in YYYY-MM-DD (see the old `example: '2026-06-12'`) and the resolution
  *   layer treats it as a date-only key, so full ISO datetimes that
  *   class-validator's permissive `isISO8601` accepted are now rejected;
@@ -17,8 +18,7 @@ import { z } from 'zod';
  */
 export const generateTodayAnalysisSchema = z
   .object({
-    date: z.iso
-      .date()
+    date: dateOnlySchema()
       .describe(
         'Target date in YYYY-MM-DD format. Defaults to backend current day when omitted.',
       )
