@@ -319,6 +319,44 @@ async function main() {
       };
     }
   }
+  // Promote every inline JSON request body to a per-operation named component
+  // (`<operationId>_request`) and point the operation at the `$ref`. Request
+  // bodies are normally emitted inline by Swagger; the dart-dio generator's
+  // inline-model resolver names identical bodies after the first operation it
+  // encounters, so content-equal bodies shared across operations collapsed
+  // onto one request model (e.g. QQ/weibo/google OAuth callbacks reusing the
+  // wechat-web request, session refresh reusing logout, clinic share reusing
+  // preview). A per-operation component keeps each operation's client request
+  // model and parameter name aligned with its operationId. The wire shape is
+  // unchanged — only the schema location (inline → named `$ref`) differs.
+  let requestComponents = 0;
+  for (const [route, pathItem] of Object.entries(document.paths ?? {})) {
+    for (const method of ['get', 'post', 'patch', 'put', 'delete']) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const op: any = pathItem?.[method];
+      const json = op?.requestBody?.content?.['application/json'];
+      const schema = json?.schema;
+      if (!op?.operationId || !json || !schema || typeof schema !== 'object') {
+        continue;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((schema as any).$ref) continue;
+      const componentName = `${op.operationId}_request`;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+      const draft: any = document;
+      draft.components ??= {};
+      draft.components.schemas ??= {};
+      if (draft.components.schemas[componentName] == null) {
+        draft.components.schemas[componentName] = openApiSchema(schema);
+        requestComponents += 1;
+      }
+      json.schema = { $ref: `#/components/schemas/${componentName}` };
+    }
+  }
+  if (requestComponents > 0) {
+    console.log(`Request-body components promoted: ${requestComponents}`);
+  }
+
   // A registration that does not resolve to a real operation would silently
   // drop the success-schema wiring (client then sees `Response<void>`), so
   // fail the export instead of producing a partial contract.

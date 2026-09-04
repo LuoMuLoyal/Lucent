@@ -153,67 +153,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentMedicineId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked current medicine id."
-                  },
-                  "label": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Reminder label."
-                  },
-                  "scheduledHour": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 23,
-                    "description": "Scheduled local hour, 0-23."
-                  },
-                  "scheduledMinute": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 59,
-                    "description": "Scheduled local minute, 0-59."
-                  },
-                  "daysOfWeek": {
-                    "nullable": true,
-                    "minItems": 1,
-                    "maxItems": 7,
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 6
-                    },
-                    "description": "Weekday numbers 0-6, where null means every day."
-                  },
-                  "startDate": {
-                    "nullable": true,
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format when the reminder starts."
-                  },
-                  "endDate": {
-                    "nullable": true,
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format when the reminder ends."
-                  },
-                  "isActive": {
-                    "type": "boolean",
-                    "description": "Whether this reminder is active."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "User note."
-                  }
-                },
-                "required": ["scheduledHour", "scheduledMinute"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicineRemindersController_create_v1_request"
               }
             }
           }
@@ -277,68 +217,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentMedicineId": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked current medicine id."
-                  },
-                  "label": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Reminder label."
-                  },
-                  "scheduledHour": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 23,
-                    "description": "Scheduled local hour, 0-23."
-                  },
-                  "scheduledMinute": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 59,
-                    "description": "Scheduled local minute, 0-59."
-                  },
-                  "daysOfWeek": {
-                    "nullable": true,
-                    "minItems": 1,
-                    "maxItems": 7,
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 6
-                    },
-                    "description": "Weekday numbers 0-6, where null means every day."
-                  },
-                  "startDate": {
-                    "nullable": true,
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear."
-                  },
-                  "endDate": {
-                    "nullable": true,
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear."
-                  },
-                  "isActive": {
-                    "type": "boolean",
-                    "description": "Whether this reminder is active."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 500,
-                    "description": "User note."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicineRemindersController_update_v1_request"
               }
             }
           }
@@ -448,84 +327,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentMedicineId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked current medicine id."
-                  },
-                  "label": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Reminder label."
-                  },
-                  "daysOfWeek": {
-                    "nullable": true,
-                    "minItems": 1,
-                    "maxItems": 7,
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 6
-                    },
-                    "description": "Weekday numbers 0-6, where null means every day."
-                  },
-                  "startDate": {
-                    "nullable": true,
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format when the reminder starts."
-                  },
-                  "endDate": {
-                    "nullable": true,
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format when the reminder ends."
-                  },
-                  "isActive": {
-                    "type": "boolean",
-                    "description": "Whether this reminder is active."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "User note."
-                  },
-                  "slots": {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Existing reminder id to update. Omit to create a new slot."
-                        },
-                        "scheduledHour": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 23,
-                          "description": "Scheduled local hour, 0-23."
-                        },
-                        "scheduledMinute": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 59,
-                          "description": "Scheduled local minute, 0-59."
-                        }
-                      },
-                      "required": ["scheduledHour", "scheduledMinute"],
-                      "additionalProperties": false
-                    },
-                    "description": "Reminder slots for this medicine. Replaces the whole group."
-                  }
-                },
-                "required": ["currentMedicineId", "slots"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicineRemindersController_upsertGroup_v1_request"
               }
             }
           }
@@ -636,26 +438,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "reminderId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked medicine reminder id."
-                  },
-                  "scheduledDate": {
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "Local scheduled date in YYYY-MM-DD format."
-                  },
-                  "scheduledTime": {
-                    "type": "string",
-                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-                    "description": "Local scheduled time in HH:mm format (24h)."
-                  }
-                },
-                "required": ["reminderId", "scheduledDate", "scheduledTime"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReminderDeliveriesController_recordReceipt_v1_request"
               }
             }
           }
@@ -710,16 +493,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "state": {
-                    "type": "string",
-                    "enum": ["active", "unavailable", "disabled"],
-                    "description": "Local scheduling capability state."
-                  }
-                },
-                "required": ["state"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReminderDeliveriesController_reportLocalCapability_v1_request"
               }
             }
           }
@@ -754,41 +528,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "ai_today_summary",
-                      "ai_weekly_insight",
-                      "ai_proactive_suggestion",
-                      "medicine_missed_dose",
-                      "password_changed",
-                      "report_generated",
-                      "medicine_reminder"
-                    ],
-                    "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications."
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "Notification title."
-                  },
-                  "content": {
-                    "type": "string",
-                    "description": "Notification content body."
-                  },
-                  "action": {
-                    "description": "Action route target for the frontend.",
-                    "nullable": true,
-                    "type": "string"
-                  },
-                  "actionPayload": {
-                    "description": "Extra payload for the action.",
-                    "nullable": true
-                  }
-                },
-                "required": ["type", "title", "content"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/NotificationsController_create_v1_request"
               }
             }
           }
@@ -1147,16 +887,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "feedback": {
-                    "type": "string",
-                    "enum": ["accepted", "later", "not_applicable", "suppress"],
-                    "description": "User feedback for the suggestion"
-                  }
-                },
-                "required": ["feedback"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/TodaySuggestionController_submitFeedback_v1_request"
               }
             }
           }
@@ -1412,40 +1143,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "healthAlertsEnabled": {
-                    "type": "boolean",
-                    "description": "Enable health-rule notifications."
-                  },
-                  "weeklyInsightEnabled": {
-                    "type": "boolean",
-                    "description": "Enable weekly longitudinal insights."
-                  },
-                  "waterRemindersEnabled": {
-                    "type": "boolean",
-                    "description": "Enable water shortfall notifications."
-                  },
-                  "sleepReminderEnabled": {
-                    "type": "boolean",
-                    "description": "Enable local bedtime sleep reminders."
-                  },
-                  "sleepBedtimeMinutes": {
-                    "nullable": true,
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 1439,
-                    "description": "Bedtime as minutes after local midnight."
-                  },
-                  "sleepWakeTimeMinutes": {
-                    "nullable": true,
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 1439,
-                    "description": "Wake time as minutes after local midnight."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/NotificationPreferencesController_patch_v1_request"
               }
             }
           }
@@ -1544,24 +1242,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                  "range": {
-                    "type": "string",
-                    "enum": ["last_7_days", "last_30_days", "custom"],
-                    "description": "Supported report summary aggregation range."
-                  },
-                  "startDate": {
-                    "type": "string",
-                    "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
-                  },
-                  "endDate": {
-                    "type": "string",
-                    "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReportsController_generateSummary_v1_request"
               }
             }
           }
@@ -1596,24 +1277,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                  "range": {
-                    "type": "string",
-                    "enum": ["last_7_days", "last_30_days", "custom"],
-                    "description": "Supported report summary aggregation range."
-                  },
-                  "startDate": {
-                    "type": "string",
-                    "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
-                  },
-                  "endDate": {
-                    "type": "string",
-                    "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReportsController_generateSummaryAsync_v1_request"
               }
             }
           }
@@ -1675,24 +1339,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                  "range": {
-                    "type": "string",
-                    "enum": ["last_7_days", "last_30_days", "custom"],
-                    "description": "Supported report summary aggregation range."
-                  },
-                  "startDate": {
-                    "type": "string",
-                    "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
-                  },
-                  "endDate": {
-                    "type": "string",
-                    "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReportsController_generateSummaryStream_v1_request"
               }
             }
           }
@@ -1727,40 +1374,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
-                  },
-                  "dateFrom": {
-                    "type": "string",
-                    "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "dateTo": {
-                    "type": "string",
-                    "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "selectedFields": {
-                    "minItems": 1,
-                    "maxItems": 6,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "event_overview",
-                        "symptom_changes",
-                        "medication_slots",
-                        "water",
-                        "sleep",
-                        "notes"
-                      ]
-                    },
-                    "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReportsController_previewClinicSummary_v1_request"
               }
             }
           }
@@ -1795,40 +1409,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
-                  },
-                  "dateFrom": {
-                    "type": "string",
-                    "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "dateTo": {
-                    "type": "string",
-                    "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "selectedFields": {
-                    "minItems": 1,
-                    "maxItems": 6,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "event_overview",
-                        "symptom_changes",
-                        "medication_slots",
-                        "water",
-                        "sleep",
-                        "notes"
-                      ]
-                    },
-                    "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReportsController_shareClinicSummary_v1_request"
               }
             }
           }
@@ -1945,40 +1526,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
-                  },
-                  "dateFrom": {
-                    "type": "string",
-                    "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "dateTo": {
-                    "type": "string",
-                    "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "selectedFields": {
-                    "minItems": 1,
-                    "maxItems": 6,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "event_overview",
-                        "symptom_changes",
-                        "medication_slots",
-                        "water",
-                        "sleep",
-                        "notes"
-                      ]
-                    },
-                    "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReportsController_exportClinicSummaryPdfAsync_v1_request"
               }
             }
           }
@@ -2040,40 +1588,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
-                  },
-                  "dateFrom": {
-                    "type": "string",
-                    "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "dateTo": {
-                    "type": "string",
-                    "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
-                  },
-                  "selectedFields": {
-                    "minItems": 1,
-                    "maxItems": 6,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "event_overview",
-                        "symptom_changes",
-                        "medication_slots",
-                        "water",
-                        "sleep",
-                        "notes"
-                      ]
-                    },
-                    "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ReportsController_downloadClinicSummaryPdf_v1_request"
               }
             }
           }
@@ -2363,27 +1878,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "proposalIds": {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Proposal ids awaiting confirmation."
-                  },
-                  "decision": {
-                    "type": "string",
-                    "enum": ["approved", "rejected"]
-                  },
-                  "note": {
-                    "type": "string",
-                    "maxLength": 500
-                  }
-                },
-                "required": ["proposalIds", "decision"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AssistantController_confirmProposal_v1_request"
               }
             }
           }
@@ -2427,17 +1922,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 48,
-                    "description": "New conversation title (1-48 chars). Empty or whitespace-only titles are rejected; clients keep empty names local-only."
-                  }
-                },
-                "required": ["title"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AssistantController_renameConversation_v1_request"
               }
             }
           }
@@ -2554,40 +2039,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "messages": {
-                    "minItems": 1,
-                    "maxItems": 20,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "role": {
-                          "type": "string",
-                          "enum": ["user", "assistant"],
-                          "description": "Client-visible conversation role. system is not accepted."
-                        },
-                        "content": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 8000,
-                          "description": "Plain or Markdown-ready message content."
-                        }
-                      },
-                      "required": ["role", "content"],
-                      "additionalProperties": false
-                    },
-                    "description": "Conversation window ending with the latest user message to answer."
-                  },
-                  "conversationId": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "description": "Optional persisted conversation id used as the LangGraph thread id. When absent the conversation runs statelessly (no checkpoint / no in-graph review)."
-                  }
-                },
-                "required": ["messages"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AssistantController_streamMessages_v1_request"
               }
             }
           }
@@ -2656,34 +2108,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "description": "邮箱地址",
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 32,
-                    "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-                    "description": "密码（8-32位，需包含大小写字母和数字）"
-                  },
-                  "code": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "邮箱验证码"
-                  },
-                  "nickname": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 20,
-                    "description": "昵称"
-                  }
-                },
-                "required": ["email", "password", "code"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/LocalController_register_v1_request"
               }
             }
           }
@@ -2743,29 +2168,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "description": "邮箱地址",
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 32,
-                    "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-                    "description": "密码（与验证码二选一）"
-                  },
-                  "code": {
-                    "type": "string",
-                    "minLength": 6,
-                    "maxLength": 6,
-                    "description": "邮箱验证码（与密码二选一）"
-                  }
-                },
-                "required": ["email"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/LocalController_login_v1_request"
               }
             }
           }
@@ -2835,26 +2238,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "description": "邮箱地址",
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "scene": {
-                    "type": "string",
-                    "enum": [
-                      "register",
-                      "login",
-                      "change-email",
-                      "set-password",
-                      "delete-account"
-                    ]
-                  }
-                },
-                "required": ["email", "scene"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/LocalController_sendVerificationCode_v1_request"
               }
             }
           }
@@ -2894,16 +2278,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "token": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Better Auth 邮件验证 token"
-                  }
-                },
-                "required": ["token"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/LocalController_verifyEmail_v1_request"
               }
             }
           }
@@ -2963,16 +2338,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "description": "邮箱地址",
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": ["email"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/LocalController_forgotPassword_v1_request"
               }
             }
           }
@@ -3042,23 +2408,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "token": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Better Auth 密码重置 token"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 32,
-                    "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-                    "description": "新密码（8-32位，需包含大小写字母和数字）"
-                  }
-                },
-                "required": ["token", "password"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/LocalController_resetPassword_v1_request"
               }
             }
           }
@@ -3111,15 +2461,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "callbackUri": {
-                    "type": "string",
-                    "maxLength": 2048,
-                    "description": "授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。"
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_createWechatWebAuthorizeUrl_v1_request"
               }
             }
           }
@@ -3159,21 +2501,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "OAuth 授权码"
-                  },
-                  "state": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "授权时生成的 state"
-                  }
-                },
-                "required": ["code", "state"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_loginWithWechatWeb_v1_request"
               }
             }
           }
@@ -3305,16 +2633,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "OAuth 授权码"
-                  }
-                },
-                "required": ["code"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_loginWithWechatMobile_v1_request"
               }
             }
           }
@@ -3404,31 +2723,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "identityToken": {
-                    "type": "string",
-                    "maxLength": 4096,
-                    "description": "Apple 登录返回的 identityToken (JWT)"
-                  },
-                  "authorizationCode": {
-                    "type": "string",
-                    "maxLength": 1024,
-                    "description": "Apple 登录返回的 authorizationCode（可选）"
-                  },
-                  "givenName": {
-                    "type": "string",
-                    "maxLength": 256,
-                    "description": "Apple 返回的 givenName（首次登录时返回）"
-                  },
-                  "familyName": {
-                    "type": "string",
-                    "maxLength": 256,
-                    "description": "Apple 返回的 familyName（首次登录时返回）"
-                  }
-                },
-                "required": ["identityToken"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_loginWithApple_v1_request"
               }
             }
           }
@@ -3518,15 +2813,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "callbackUri": {
-                    "type": "string",
-                    "maxLength": 2048,
-                    "description": "QQ 授权完成后的客户端回跳地址"
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_createQqAuthorizeUrl_v1_request"
               }
             }
           }
@@ -3566,21 +2853,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "OAuth 授权码"
-                  },
-                  "state": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "授权时生成的 state"
-                  }
-                },
-                "required": ["code", "state"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_loginWithQq_v1_request"
               }
             }
           }
@@ -3670,15 +2943,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "callbackUri": {
-                    "type": "string",
-                    "maxLength": 2048,
-                    "description": "微博授权完成后的客户端回跳地址"
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_createWeiboAuthorizeUrl_v1_request"
               }
             }
           }
@@ -3718,21 +2983,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "OAuth 授权码"
-                  },
-                  "state": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "授权时生成的 state"
-                  }
-                },
-                "required": ["code", "state"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_loginWithWeibo_v1_request"
               }
             }
           }
@@ -3822,15 +3073,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "callbackUri": {
-                    "type": "string",
-                    "maxLength": 2048,
-                    "description": "Google 授权完成后的客户端回跳地址"
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_createGoogleAuthorizeUrl_v1_request"
               }
             }
           }
@@ -3870,21 +3113,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "OAuth 授权码"
-                  },
-                  "state": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "授权时生成的 state"
-                  }
-                },
-                "required": ["code", "state"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/OAuthController_loginWithGoogle_v1_request"
               }
             }
           }
@@ -3974,16 +3203,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "refreshToken": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "刷新令牌"
-                  }
-                },
-                "required": ["refreshToken"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/SessionController_logout_v1_request"
               }
             }
           }
@@ -4143,16 +3363,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "refreshToken": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "刷新令牌"
-                  }
-                },
-                "required": ["refreshToken"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/SessionController_refresh_v1_request"
               }
             }
           }
@@ -4384,34 +3595,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": ["static", "llm"],
-                    "description": "Type of risk check to run"
-                  },
-                  "candidate": {
-                    "type": "object",
-                    "properties": {
-                      "source": {
-                        "type": "string",
-                        "enum": ["cn", "drugbank"],
-                        "description": "候选药品所在的可信药品库来源"
-                      },
-                      "id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "description": "候选药品在可信药品库中的 id"
-                      }
-                    },
-                    "required": ["source", "id"],
-                    "additionalProperties": false,
-                    "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库"
-                  }
-                },
-                "required": ["type"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicinesController_runRiskCheck_v1_request"
               }
             }
           }
@@ -4446,17 +3630,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "imageUrl": {
-                    "type": "string",
-                    "maxLength": 2048,
-                    "format": "uri",
-                    "description": "Public URL of the medicine box image"
-                  }
-                },
-                "required": ["imageUrl"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicinesController_recognize_v1_request"
               }
             }
           }
@@ -4484,17 +3658,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "imageUrl": {
-                    "type": "string",
-                    "maxLength": 2048,
-                    "format": "uri",
-                    "description": "Public URL of the medicine box image"
-                  }
-                },
-                "required": ["imageUrl"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicinesController_recognizeAsync_v1_request"
               }
             }
           }
@@ -4579,55 +3743,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "aiSummariesEnabled": {
-                    "type": "boolean",
-                    "description": "Allow AI-generated summaries and advice."
-                  },
-                  "dataSharingConsent": {
-                    "type": "boolean",
-                    "description": "Consent to share anonymized data for research."
-                  },
-                  "assistantEnabled": {
-                    "type": "boolean",
-                    "description": "Allow the authenticated user to use the assistant feature."
-                  },
-                  "assistantMemoryEnabled": {
-                    "type": "boolean",
-                    "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
-                  },
-                  "waterTargetCount": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 30,
-                    "description": "Daily water intake target (number of glasses)."
-                  },
-                  "assistantContext": {
-                    "type": "object",
-                    "properties": {
-                      "healthProfile": {
-                        "type": "boolean",
-                        "description": "Allow the assistant to read stored health profile, allergies, and conditions."
-                      },
-                      "dailyRecords": {
-                        "type": "boolean",
-                        "description": "Allow the assistant to read recent daily records."
-                      },
-                      "sleepRecords": {
-                        "type": "boolean",
-                        "description": "Allow the assistant to read sleep records and summaries."
-                      },
-                      "currentMedicines": {
-                        "type": "boolean",
-                        "description": "Allow the assistant to read current medicines and medicine-box data."
-                      }
-                    },
-                    "additionalProperties": false,
-                    "description": "Fine-grained permissions for what the assistant may read."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserSettingsController_updateSettings_v1_request"
               }
             }
           }
@@ -4717,76 +3833,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "locale": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 32,
-                    "description": "Preferred locale. Use null or empty string to clear and follow the client default."
-                  },
-                  "timezone": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 64,
-                    "description": "Preferred timezone. Use null or empty string to clear."
-                  },
-                  "unitSystem": {
-                    "nullable": true,
-                    "type": "string",
-                    "enum": ["metric", "imperial"],
-                    "description": "Preferred unit system. Use null to clear."
-                  },
-                  "birthDate": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "Birth date in YYYY-MM-DD format."
-                  },
-                  "sexAtBirth": {
-                    "nullable": true,
-                    "type": "string",
-                    "enum": ["female", "male", "intersex", "unknown"],
-                    "description": "Sex assigned at birth. Use null to clear."
-                  },
-                  "heightCm": {
-                    "nullable": true,
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 300,
-                    "description": "Height in centimeters. Use null to clear."
-                  },
-                  "bloodType": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 8,
-                    "description": "Blood type. Use null to clear."
-                  },
-                  "weightKg": {
-                    "nullable": true,
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 500,
-                    "description": "Weight in kilograms. Stored in extras JSONB. Use null to clear."
-                  },
-                  "emergencyContactName": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 50,
-                    "description": "Emergency contact name. Stored in extras JSONB. Use null or empty string to clear."
-                  },
-                  "emergencyContactPhone": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 20,
-                    "description": "Emergency contact phone. Stored in extras JSONB. Use null or empty string to clear."
-                  },
-                  "onboardingCompleted": {
-                    "type": "boolean",
-                    "description": "Set true to complete onboarding (sets completedAt when missing). Set false to clear onboarding completion."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserHealthContextController_updateUserHealthContextProfile_v1_request"
               }
             }
           }
@@ -4831,41 +3878,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": ["drug", "food", "environment", "other"],
-                    "description": "Allergy kind."
-                  },
-                  "label": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120,
-                    "description": "User-visible allergy label."
-                  },
-                  "reaction": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "Recorded reaction."
-                  },
-                  "severity": {
-                    "type": "string",
-                    "enum": ["mild", "moderate", "severe", "unknown"],
-                    "description": "Severity level. Defaults to unknown."
-                  },
-                  "note": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "User note for the allergy."
-                  },
-                  "recordedAt": {
-                    "type": "string",
-                    "description": "When this allergy was recorded in ISO 8601 format."
-                  }
-                },
-                "required": ["kind", "label"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserHealthContextController_createAllergy_v1_request"
               }
             }
           }
@@ -4920,47 +3933,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": ["drug", "food", "environment", "other"],
-                    "description": "Allergy kind."
-                  },
-                  "label": {
-                    "type": "string",
-                    "maxLength": 120,
-                    "description": "User-visible allergy label."
-                  },
-                  "reaction": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "Recorded reaction. Use null to clear."
-                  },
-                  "severity": {
-                    "nullable": true,
-                    "type": "string",
-                    "enum": ["mild", "moderate", "severe", "unknown"],
-                    "description": "Severity level."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "User note for the allergy. Use null to clear."
-                  },
-                  "recordedAt": {
-                    "nullable": true,
-                    "type": "string",
-                    "description": "When this allergy was recorded in ISO 8601 format."
-                  },
-                  "isActive": {
-                    "type": "boolean",
-                    "description": "Whether the allergy is currently active."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserHealthContextController_updateAllergy_v1_request"
               }
             }
           }
@@ -5068,33 +4041,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "label": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120,
-                    "description": "Condition label."
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": ["active", "resolved", "suspected"],
-                    "description": "Condition status. Defaults to active."
-                  },
-                  "diagnosedAt": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "Diagnosis date in YYYY-MM-DD format."
-                  },
-                  "note": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "User note for the condition."
-                  }
-                },
-                "required": ["label"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserHealthContextController_createCondition_v1_request"
               }
             }
           }
@@ -5149,32 +4096,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "label": {
-                    "type": "string",
-                    "maxLength": 120,
-                    "description": "Condition label."
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": ["active", "resolved", "suspected"],
-                    "description": "Condition status."
-                  },
-                  "diagnosedAt": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "Diagnosis date in YYYY-MM-DD format. Use null to clear."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "User note for the condition. Use null to clear."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserHealthContextController_updateCondition_v1_request"
               }
             }
           }
@@ -5282,58 +4204,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "source": {
-                    "type": "string",
-                    "enum": ["drugbank", "cn", "manual"],
-                    "description": "Upstream source used to anchor this medicine."
-                  },
-                  "sourceRefId": {
-                    "type": "string",
-                    "description": "Source-specific reference id. Required for drugbank and cn sources."
-                  },
-                  "displayName": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Display name shown to the user."
-                  },
-                  "strengthText": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "description": "Strength text."
-                  },
-                  "doseText": {
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "Dose text."
-                  },
-                  "route": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "description": "Administration route."
-                  },
-                  "startedAt": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "Start date in YYYY-MM-DD format."
-                  },
-                  "endedAt": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "End date in YYYY-MM-DD format."
-                  },
-                  "note": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "User note for the medicine."
-                  }
-                },
-                "required": ["source", "displayName"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserHealthContextController_createCurrentMedicine_v1_request"
               }
             }
           }
@@ -5388,66 +4259,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "source": {
-                    "type": "string",
-                    "enum": ["drugbank", "cn", "manual"],
-                    "description": "Upstream source."
-                  },
-                  "sourceRefId": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 100,
-                    "description": "Source-specific reference id."
-                  },
-                  "displayName": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "description": "Display name shown to the user."
-                  },
-                  "strengthText": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 200,
-                    "description": "Strength text. Use null to clear."
-                  },
-                  "doseText": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "Dose text. Use null to clear."
-                  },
-                  "route": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 100,
-                    "description": "Administration route. Use null to clear."
-                  },
-                  "startedAt": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "Start date in YYYY-MM-DD format. Use null to clear."
-                  },
-                  "endedAt": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                    "description": "End date in YYYY-MM-DD format. Use null to clear."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "User note. Use null to clear."
-                  },
-                  "isCurrent": {
-                    "type": "boolean",
-                    "description": "Whether the medicine is currently active."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/UserHealthContextController_updateCurrentMedicine_v1_request"
               }
             }
           }
@@ -5628,146 +4440,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "water",
-                      "meal",
-                      "vital",
-                      "mood",
-                      "symptom",
-                      "activity",
-                      "note",
-                      "sleep"
-                    ]
-                  },
-                  "occurredAt": {
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep)."
-                  },
-                  "occurredTime": {
-                    "type": "string",
-                    "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
-                    "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only."
-                  },
-                  "title": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Short label."
-                  },
-                  "value": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100,
-                    "description": "Measured value."
-                  },
-                  "unit": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 50,
-                    "description": "Unit label."
-                  },
-                  "note": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "Free-text note."
-                  },
-                  "source": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 50,
-                    "description": "Record source. Defaults to \"manual\". Use \"apple_health\" or \"health_connect\" for auto-synced records."
-                  },
-                  "healthEventId": {
-                    "nullable": true,
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "Optional active health event association."
-                  },
-                  "payload": {
-                    "type": "object",
-                    "additionalProperties": {},
-                    "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. Legacy startAt/endAt remain readable and map to nightSleep. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
-                  },
-                  "attachments": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "enum": ["image"],
-                          "description": "Attachment kind. Defaults to \"image\"."
-                        },
-                        "objectKey": {
-                          "type": "string",
-                          "maxLength": 500,
-                          "description": "Object storage key, stable across signed URL rotations."
-                        },
-                        "bucket": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 200,
-                          "description": "Object storage bucket."
-                        },
-                        "provider": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 50,
-                          "description": "Storage provider (e.g. tencent-cos, s3)."
-                        },
-                        "fileName": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 255,
-                          "description": "Original file name."
-                        },
-                        "contentType": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 100,
-                          "description": "MIME content type."
-                        },
-                        "sizeBytes": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 50000000,
-                          "description": "File size in bytes."
-                        },
-                        "width": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 100000,
-                          "description": "Image width in pixels."
-                        },
-                        "height": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 100000,
-                          "description": "Image height in pixels."
-                        },
-                        "publicUrl": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 2000,
-                          "description": "Optional public or already-signed display URL."
-                        }
-                      },
-                      "required": ["objectKey"],
-                      "additionalProperties": false
-                    },
-                    "description": "Attachment metadata. File upload itself is handled separately."
-                  }
-                },
-                "required": ["kind", "occurredAt"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/DailyRecordsController_create_v1_request"
               }
             }
           }
@@ -5867,27 +4540,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "contentType": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "description": "Image MIME content type."
-                  },
-                  "sizeBytes": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 50000000,
-                    "description": "File size in bytes."
-                  },
-                  "fileName": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "description": "Original file name."
-                  }
-                },
-                "required": ["contentType", "sizeBytes"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/DailyRecordsController_createImageUpload_v1_request"
               }
             }
           }
@@ -5922,26 +4575,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "text": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000,
-                    "description": "Natural-language note to be parsed into candidate daily records."
-                  },
-                  "occurredAt": {
-                    "type": "string",
-                    "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline."
-                  },
-                  "timezone": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted."
-                  }
-                },
-                "required": ["text", "occurredAt"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/DailyRecordsController_generateCandidates_v1_request"
               }
             }
           }
@@ -6037,145 +4671,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "water",
-                      "meal",
-                      "vital",
-                      "mood",
-                      "symptom",
-                      "activity",
-                      "note",
-                      "sleep"
-                    ]
-                  },
-                  "occurredAt": {
-                    "type": "string",
-                    "description": "Date in YYYY-MM-DD format."
-                  },
-                  "occurredTime": {
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
-                    "description": "Time in HH:mm 24-hour format. Use null to clear."
-                  },
-                  "title": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Short label. Use null to clear."
-                  },
-                  "value": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100,
-                    "description": "Measured value. Use null to clear."
-                  },
-                  "unit": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 50,
-                    "description": "Unit label. Use null to clear."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 1000,
-                    "description": "Free-text note. Use null to clear."
-                  },
-                  "payload": {
-                    "nullable": true,
-                    "type": "object",
-                    "additionalProperties": {},
-                    "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt."
-                  },
-                  "healthEventId": {
-                    "nullable": true,
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "Active health event association. Use null to clear."
-                  },
-                  "attachments": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "enum": ["image"],
-                          "description": "Attachment kind. Defaults to \"image\"."
-                        },
-                        "objectKey": {
-                          "type": "string",
-                          "maxLength": 500,
-                          "description": "Object storage key, stable across signed URL rotations."
-                        },
-                        "bucket": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 200,
-                          "description": "Object storage bucket."
-                        },
-                        "provider": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 50,
-                          "description": "Storage provider (e.g. tencent-cos, s3)."
-                        },
-                        "fileName": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 255,
-                          "description": "Original file name."
-                        },
-                        "contentType": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 100,
-                          "description": "MIME content type."
-                        },
-                        "sizeBytes": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 50000000,
-                          "description": "File size in bytes."
-                        },
-                        "width": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 100000,
-                          "description": "Image width in pixels."
-                        },
-                        "height": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 100000,
-                          "description": "Image height in pixels."
-                        },
-                        "publicUrl": {
-                          "nullable": true,
-                          "type": "string",
-                          "maxLength": 2000,
-                          "description": "Optional public or already-signed display URL."
-                        }
-                      },
-                      "required": ["objectKey"],
-                      "additionalProperties": false
-                    },
-                    "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/DailyRecordsController_update_v1_request"
               }
             }
           }
@@ -6285,36 +4781,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": ["symptom", "other"],
-                    "description": "Persisted semantic kind used for check-in routing."
-                  },
-                  "title": {
-                    "type": "string",
-                    "maxLength": 80,
-                    "pattern": "\\S",
-                    "description": "Short user-defined event title."
-                  },
-                  "reasonRecordId": {
-                    "description": "Optional daily-record id that prompted this event.",
-                    "nullable": true,
-                    "type": "string",
-                    "pattern": "\\S"
-                  },
-                  "currentMedicineIds": {
-                    "description": "Optional current-medicine ids to associate with this event.",
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "pattern": "\\S"
-                    }
-                  }
-                },
-                "required": ["title"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/HealthEventsController_create_v1_request"
               }
             }
           }
@@ -6522,16 +4989,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "outcome": {
-                    "type": "string",
-                    "enum": ["improved", "unchanged", "worsened"],
-                    "description": "User-confirmed outcome for the requested calendar date."
-                  }
-                },
-                "required": ["outcome"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/HealthEventsController_upsertCheckIn_v1_request"
               }
             }
           }
@@ -6617,16 +5075,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "outcome": {
-                    "type": "string",
-                    "enum": ["improved", "unchanged", "worsened"],
-                    "description": "User-confirmed outcome when ending the event."
-                  }
-                },
-                "required": ["outcome"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/HealthEventsController_end_v1_request"
               }
             }
           }
@@ -6692,112 +5141,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "events": {
-                    "minItems": 1,
-                    "maxItems": 50,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "enum": [
-                            "health_event_started",
-                            "health_event_ended",
-                            "health_event_outcome_confirmed",
-                            "suggestion_impression",
-                            "suggestion_actioned",
-                            "review_opened",
-                            "visit_summary_previewed",
-                            "visit_summary_exported",
-                            "visit_summary_share_created",
-                            "visit_summary_share_opened",
-                            "visit_summary_share_revoked"
-                          ],
-                          "description": "Fixed product event name — enums only, no free text."
-                        },
-                        "surface": {
-                          "type": "string",
-                          "enum": [
-                            "today",
-                            "record",
-                            "review",
-                            "more",
-                            "notification",
-                            "system"
-                          ],
-                          "description": "In-app surface where the event occurred; 'system' marks server-initiated events."
-                        },
-                        "result": {
-                          "type": "string",
-                          "enum": [
-                            "success",
-                            "failure",
-                            "improved",
-                            "unchanged",
-                            "worsened"
-                          ],
-                          "description": "Health-event lifecycle events report the outcome semantics (improved/unchanged/worsened), all other events report success/failure."
-                        },
-                        "eventStatus": {
-                          "type": "string",
-                          "enum": ["active", "ended"],
-                          "description": "Lifecycle status — only health_event_started (active) / health_event_ended (ended) report it; other events omit it."
-                        },
-                        "suggestionRuleCode": {
-                          "type": "string",
-                          "maxLength": 64,
-                          "description": "Known server-side suggestion rule code (allowlisted, no free strings); unknown codes are rejected with 400."
-                        },
-                        "appVersion": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 32,
-                          "description": "Client app version, e.g. 1.2.0."
-                        },
-                        "platform": {
-                          "type": "string",
-                          "enum": [
-                            "ios",
-                            "android",
-                            "web",
-                            "windows",
-                            "macos",
-                            "linux",
-                            "watchos",
-                            "other"
-                          ],
-                          "description": "Client platform."
-                        },
-                        "occurredAt": {
-                          "type": "string",
-                          "description": "Event time (ISO 8601). Retention scans this field (90 days)."
-                        },
-                        "clientEventId": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 64,
-                          "description": "Client-generated id enabling retry idempotency — unique per user, so retried batches never double-insert."
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "surface",
-                        "result",
-                        "appVersion",
-                        "platform",
-                        "occurredAt",
-                        "clientEventId"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "description": "1..50 events per request."
-                  }
-                },
-                "required": ["events"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ProductEventsController_recordBatch_v1_request"
               }
             }
           }
@@ -6947,52 +5291,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentMedicineId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked current medicine id."
-                  },
-                  "reminderId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked reminder id for slot-aware logs."
-                  },
-                  "healthEventId": {
-                    "nullable": true,
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "Linked active health event id."
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": ["taken", "skipped", "missed", "planned"]
-                  },
-                  "scheduledFor": {
-                    "type": "string",
-                    "description": "Scheduled date YYYY-MM-DD."
-                  },
-                  "scheduledTime": {
-                    "type": "string",
-                    "pattern": "^\\d{2}:\\d{2}$",
-                    "description": "Scheduled slot time in HH:mm."
-                  },
-                  "doseText": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Dose text."
-                  },
-                  "note": {
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "Free-text note."
-                  }
-                },
-                "required": ["status", "scheduledFor"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicineDoseLogsController_create_v1_request"
               }
             }
           }
@@ -7057,54 +5356,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentMedicineId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked current medicine id."
-                  },
-                  "reminderId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Linked reminder id for slot-aware marks."
-                  },
-                  "healthEventId": {
-                    "nullable": true,
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "Linked active health event id."
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": ["taken", "skipped", "missed", "planned"]
-                  },
-                  "scheduledFor": {
-                    "type": "string",
-                    "description": "Scheduled date YYYY-MM-DD."
-                  },
-                  "scheduledTime": {
-                    "type": "string",
-                    "pattern": "^\\d{2}:\\d{2}$",
-                    "description": "Scheduled slot time in HH:mm for slot-aware marks."
-                  },
-                  "doseText": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "description": "Dose text."
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "Free-text note."
-                  }
-                },
-                "required": ["status", "scheduledFor"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicineDoseLogsController_mark_v1_request"
               }
             }
           }
@@ -7178,26 +5430,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": ["taken", "skipped", "missed", "planned"]
-                  },
-                  "doseText": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200
-                  },
-                  "note": {
-                    "nullable": true,
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 500
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/MedicineDoseLogsController_update_v1_request"
               }
             }
           }
@@ -7310,19 +5543,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "nickname": {
-                    "type": "string",
-                    "maxLength": 20,
-                    "description": "Display nickname. Send an empty string to clear it."
-                  },
-                  "avatar": {
-                    "type": "string",
-                    "description": "Avatar URL. Send an empty string to clear it."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_updateAccount_v1_request"
               }
             }
           }
@@ -7365,20 +5586,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "当前密码（有密码的用户使用此方式确认注销）"
-                  },
-                  "code": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "邮箱验证码（OAuth-only 用户使用此方式确认注销）"
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_deleteAccount_v1_request"
               }
             }
           }
@@ -7446,23 +5654,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "当前密码（敏感操作再认证用）"
-                  },
-                  "newPassword": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 32,
-                    "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-                    "description": "新密码（8-32位，需包含大小写字母和数字）"
-                  }
-                },
-                "required": ["password", "newPassword"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_changePassword_v1_request"
               }
             }
           }
@@ -7520,23 +5712,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "发往邮箱的验证码"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 32,
-                    "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-                    "description": "新密码（8-32位，需包含大小写字母和数字）"
-                  }
-                },
-                "required": ["code", "password"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_setPassword_v1_request"
               }
             }
           }
@@ -7594,27 +5770,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "newEmail": {
-                    "description": "新邮箱",
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "code": {
-                    "type": "string",
-                    "minLength": 6,
-                    "maxLength": 6,
-                    "description": "验证码"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "当前密码（敏感操作再认证用）"
-                  }
-                },
-                "required": ["newEmail", "code", "password"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_changeEmail_v1_request"
               }
             }
           }
@@ -7708,16 +5864,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "当前密码(敏感操作再认证用)"
-                  }
-                },
-                "required": ["password"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_unlinkIdentity_v1_request"
               }
             }
           }
@@ -7792,15 +5939,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "callbackUri": {
-                    "type": "string",
-                    "maxLength": 2048,
-                    "description": "授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。"
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_createWechatWebIdentityLinkAuthorizeUrl_v1_request"
               }
             }
           }
@@ -7845,21 +5984,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "OAuth 授权码"
-                  },
-                  "state": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "授权时生成的 state"
-                  }
-                },
-                "required": ["code", "state"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_linkWechatWebIdentity_v1_request"
               }
             }
           }
@@ -7954,16 +6079,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string",
-                    "maxLength": 512,
-                    "description": "OAuth 授权码"
-                  }
-                },
-                "required": ["code"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/AccountController_linkWechatMobileIdentity_v1_request"
               }
             }
           }
@@ -8135,14 +6251,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "date": {
-                    "type": "string",
-                    "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/TodayAnalysisController_refresh_v1_request"
               }
             }
           }
@@ -8177,14 +6286,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "date": {
-                    "type": "string",
-                    "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/TodayAnalysisController_generate_v1_request"
               }
             }
           }
@@ -8226,14 +6328,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "date": {
-                    "type": "string",
-                    "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/TodayAnalysisController_generateAsync_v1_request"
               }
             }
           }
@@ -8333,14 +6428,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "date": {
-                    "type": "string",
-                    "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/components/schemas/TodayAnalysisController_generateStream_v1_request"
               }
             }
           }
@@ -8476,31 +6564,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": ["hospital", "monthly", "print"],
-                    "description": "Requested export kind."
-                  },
-                  "format": {
-                    "type": "string",
-                    "enum": ["pdf"],
-                    "description": "Requested export format."
-                  },
-                  "range": {
-                    "type": "string",
-                    "enum": ["last_7_days", "last_30_days"],
-                    "description": "Requested report range."
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "当前密码（敏感操作再认证用）"
-                  }
-                },
-                "required": ["password"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/DataExportController_createRequest_v1_request"
               }
             }
           }
@@ -8610,30 +6674,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "contentType": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "^[a-z]+\\/[-a-z0-9+.]+$",
-                    "description": "MIME type"
-                  },
-                  "sizeBytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
-                    "maximum": 9007199254740991,
-                    "description": "File size in bytes"
-                  },
-                  "fileName": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "pattern": "^[^\\\\/]+$",
-                    "description": "Original filename"
-                  }
-                },
-                "required": ["contentType", "sizeBytes"],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/FilesController_createUpload_v1_request"
               }
             }
           }
@@ -17422,6 +15463,2184 @@
           }
         },
         "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineRemindersController_create_v1_request": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "User note."
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"],
+        "additionalProperties": false
+      },
+      "MedicineRemindersController_update_v1_request": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "User note."
+          }
+        },
+        "additionalProperties": false
+      },
+      "MedicineRemindersController_upsertGroup_v1_request": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "User note."
+          },
+          "slots": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Existing reminder id to update. Omit to create a new slot."
+                },
+                "scheduledHour": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 23,
+                  "description": "Scheduled local hour, 0-23."
+                },
+                "scheduledMinute": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 59,
+                  "description": "Scheduled local minute, 0-59."
+                }
+              },
+              "required": ["scheduledHour", "scheduledMinute"],
+              "additionalProperties": false
+            },
+            "description": "Reminder slots for this medicine. Replaces the whole group."
+          }
+        },
+        "required": ["currentMedicineId", "slots"],
+        "additionalProperties": false
+      },
+      "ReminderDeliveriesController_recordReceipt_v1_request": {
+        "type": "object",
+        "properties": {
+          "reminderId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked medicine reminder id."
+          },
+          "scheduledDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Local scheduled date in YYYY-MM-DD format."
+          },
+          "scheduledTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "description": "Local scheduled time in HH:mm format (24h)."
+          }
+        },
+        "required": ["reminderId", "scheduledDate", "scheduledTime"],
+        "additionalProperties": false
+      },
+      "ReminderDeliveriesController_reportLocalCapability_v1_request": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["active", "unavailable", "disabled"],
+            "description": "Local scheduling capability state."
+          }
+        },
+        "required": ["state"],
+        "additionalProperties": false
+      },
+      "NotificationsController_create_v1_request": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ai_today_summary",
+              "ai_weekly_insight",
+              "ai_proactive_suggestion",
+              "medicine_missed_dose",
+              "password_changed",
+              "report_generated",
+              "medicine_reminder"
+            ],
+            "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications."
+          },
+          "title": {
+            "type": "string",
+            "description": "Notification title."
+          },
+          "content": {
+            "type": "string",
+            "description": "Notification content body."
+          },
+          "action": {
+            "description": "Action route target for the frontend.",
+            "nullable": true,
+            "type": "string"
+          },
+          "actionPayload": {
+            "description": "Extra payload for the action.",
+            "nullable": true
+          }
+        },
+        "required": ["type", "title", "content"],
+        "additionalProperties": false
+      },
+      "TodaySuggestionController_submitFeedback_v1_request": {
+        "type": "object",
+        "properties": {
+          "feedback": {
+            "type": "string",
+            "enum": ["accepted", "later", "not_applicable", "suppress"],
+            "description": "User feedback for the suggestion"
+          }
+        },
+        "required": ["feedback"],
+        "additionalProperties": false
+      },
+      "NotificationPreferencesController_patch_v1_request": {
+        "type": "object",
+        "properties": {
+          "healthAlertsEnabled": {
+            "type": "boolean",
+            "description": "Enable health-rule notifications."
+          },
+          "weeklyInsightEnabled": {
+            "type": "boolean",
+            "description": "Enable weekly longitudinal insights."
+          },
+          "waterRemindersEnabled": {
+            "type": "boolean",
+            "description": "Enable water shortfall notifications."
+          },
+          "sleepReminderEnabled": {
+            "type": "boolean",
+            "description": "Enable local bedtime sleep reminders."
+          },
+          "sleepBedtimeMinutes": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1439,
+            "description": "Bedtime as minutes after local midnight."
+          },
+          "sleepWakeTimeMinutes": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1439,
+            "description": "Wake time as minutes after local midnight."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportsController_generateSummary_v1_request": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days", "custom"],
+            "description": "Supported report summary aggregation range."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportsController_generateSummaryAsync_v1_request": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days", "custom"],
+            "description": "Supported report summary aggregation range."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportsController_generateSummaryStream_v1_request": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days", "custom"],
+            "description": "Supported report summary aggregation range."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportsController_previewClinicSummary_v1_request": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "selectedFields": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "event_overview",
+                "symptom_changes",
+                "medication_slots",
+                "water",
+                "sleep",
+                "notes"
+              ]
+            },
+            "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportsController_shareClinicSummary_v1_request": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "selectedFields": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "event_overview",
+                "symptom_changes",
+                "medication_slots",
+                "water",
+                "sleep",
+                "notes"
+              ]
+            },
+            "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportsController_exportClinicSummaryPdfAsync_v1_request": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "selectedFields": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "event_overview",
+                "symptom_changes",
+                "medication_slots",
+                "water",
+                "sleep",
+                "notes"
+              ]
+            },
+            "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportsController_downloadClinicSummaryPdf_v1_request": {
+        "default": {},
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
+          },
+          "selectedFields": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "event_overview",
+                "symptom_changes",
+                "medication_slots",
+                "water",
+                "sleep",
+                "notes"
+              ]
+            },
+            "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssistantController_confirmProposal_v1_request": {
+        "type": "object",
+        "properties": {
+          "proposalIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Proposal ids awaiting confirmation."
+          },
+          "decision": {
+            "type": "string",
+            "enum": ["approved", "rejected"]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": ["proposalIds", "decision"],
+        "additionalProperties": false
+      },
+      "AssistantController_renameConversation_v1_request": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 48,
+            "description": "New conversation title (1-48 chars). Empty or whitespace-only titles are rejected; clients keep empty names local-only."
+          }
+        },
+        "required": ["title"],
+        "additionalProperties": false
+      },
+      "AssistantController_streamMessages_v1_request": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": ["user", "assistant"],
+                  "description": "Client-visible conversation role. system is not accepted."
+                },
+                "content": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000,
+                  "description": "Plain or Markdown-ready message content."
+                }
+              },
+              "required": ["role", "content"],
+              "additionalProperties": false
+            },
+            "description": "Conversation window ending with the latest user message to answer."
+          },
+          "conversationId": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Optional persisted conversation id used as the LangGraph thread id. When absent the conversation runs statelessly (no checkpoint / no in-graph review)."
+          }
+        },
+        "required": ["messages"],
+        "additionalProperties": false
+      },
+      "LocalController_register_v1_request": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "密码（8-32位，需包含大小写字母和数字）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "邮箱验证码"
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "昵称"
+          }
+        },
+        "required": ["email", "password", "code"],
+        "additionalProperties": false
+      },
+      "LocalController_login_v1_request": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "密码（与验证码二选一）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "description": "邮箱验证码（与密码二选一）"
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
+      "LocalController_sendVerificationCode_v1_request": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "scene": {
+            "type": "string",
+            "enum": [
+              "register",
+              "login",
+              "change-email",
+              "set-password",
+              "delete-account"
+            ]
+          }
+        },
+        "required": ["email", "scene"],
+        "additionalProperties": false
+      },
+      "LocalController_verifyEmail_v1_request": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Better Auth 邮件验证 token"
+          }
+        },
+        "required": ["token"],
+        "additionalProperties": false
+      },
+      "LocalController_forgotPassword_v1_request": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
+      "LocalController_resetPassword_v1_request": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Better Auth 密码重置 token"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "新密码（8-32位，需包含大小写字母和数字）"
+          }
+        },
+        "required": ["token", "password"],
+        "additionalProperties": false
+      },
+      "OAuthController_createWechatWebAuthorizeUrl_v1_request": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OAuthController_loginWithWechatWeb_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "OAuthController_loginWithWechatMobile_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          }
+        },
+        "required": ["code"],
+        "additionalProperties": false
+      },
+      "OAuthController_loginWithApple_v1_request": {
+        "type": "object",
+        "properties": {
+          "identityToken": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "Apple 登录返回的 identityToken (JWT)"
+          },
+          "authorizationCode": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Apple 登录返回的 authorizationCode（可选）"
+          },
+          "givenName": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Apple 返回的 givenName（首次登录时返回）"
+          },
+          "familyName": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Apple 返回的 familyName（首次登录时返回）"
+          }
+        },
+        "required": ["identityToken"],
+        "additionalProperties": false
+      },
+      "OAuthController_createQqAuthorizeUrl_v1_request": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "QQ 授权完成后的客户端回跳地址"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OAuthController_loginWithQq_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "OAuthController_createWeiboAuthorizeUrl_v1_request": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "微博授权完成后的客户端回跳地址"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OAuthController_loginWithWeibo_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "OAuthController_createGoogleAuthorizeUrl_v1_request": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Google 授权完成后的客户端回跳地址"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OAuthController_loginWithGoogle_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "SessionController_logout_v1_request": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "刷新令牌"
+          }
+        },
+        "required": ["refreshToken"],
+        "additionalProperties": false
+      },
+      "SessionController_refresh_v1_request": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "刷新令牌"
+          }
+        },
+        "required": ["refreshToken"],
+        "additionalProperties": false
+      },
+      "MedicinesController_runRiskCheck_v1_request": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["static", "llm"],
+            "description": "Type of risk check to run"
+          },
+          "candidate": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": ["cn", "drugbank"],
+                "description": "候选药品所在的可信药品库来源"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "候选药品在可信药品库中的 id"
+              }
+            },
+            "required": ["source", "id"],
+            "additionalProperties": false,
+            "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库"
+          }
+        },
+        "required": ["type"],
+        "additionalProperties": false
+      },
+      "MedicinesController_recognize_v1_request": {
+        "type": "object",
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri",
+            "description": "Public URL of the medicine box image"
+          }
+        },
+        "required": ["imageUrl"],
+        "additionalProperties": false
+      },
+      "MedicinesController_recognizeAsync_v1_request": {
+        "type": "object",
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri",
+            "description": "Public URL of the medicine box image"
+          }
+        },
+        "required": ["imageUrl"],
+        "additionalProperties": false
+      },
+      "UserSettingsController_updateSettings_v1_request": {
+        "type": "object",
+        "properties": {
+          "aiSummariesEnabled": {
+            "type": "boolean",
+            "description": "Allow AI-generated summaries and advice."
+          },
+          "dataSharingConsent": {
+            "type": "boolean",
+            "description": "Consent to share anonymized data for research."
+          },
+          "assistantEnabled": {
+            "type": "boolean",
+            "description": "Allow the authenticated user to use the assistant feature."
+          },
+          "assistantMemoryEnabled": {
+            "type": "boolean",
+            "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
+          },
+          "waterTargetCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "description": "Daily water intake target (number of glasses)."
+          },
+          "assistantContext": {
+            "type": "object",
+            "properties": {
+              "healthProfile": {
+                "type": "boolean",
+                "description": "Allow the assistant to read stored health profile, allergies, and conditions."
+              },
+              "dailyRecords": {
+                "type": "boolean",
+                "description": "Allow the assistant to read recent daily records."
+              },
+              "sleepRecords": {
+                "type": "boolean",
+                "description": "Allow the assistant to read sleep records and summaries."
+              },
+              "currentMedicines": {
+                "type": "boolean",
+                "description": "Allow the assistant to read current medicines and medicine-box data."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Fine-grained permissions for what the assistant may read."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserHealthContextController_updateUserHealthContextProfile_v1_request": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 32,
+            "description": "Preferred locale. Use null or empty string to clear and follow the client default."
+          },
+          "timezone": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 64,
+            "description": "Preferred timezone. Use null or empty string to clear."
+          },
+          "unitSystem": {
+            "nullable": true,
+            "type": "string",
+            "enum": ["metric", "imperial"],
+            "description": "Preferred unit system. Use null to clear."
+          },
+          "birthDate": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Birth date in YYYY-MM-DD format."
+          },
+          "sexAtBirth": {
+            "nullable": true,
+            "type": "string",
+            "enum": ["female", "male", "intersex", "unknown"],
+            "description": "Sex assigned at birth. Use null to clear."
+          },
+          "heightCm": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 300,
+            "description": "Height in centimeters. Use null to clear."
+          },
+          "bloodType": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 8,
+            "description": "Blood type. Use null to clear."
+          },
+          "weightKg": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "description": "Weight in kilograms. Stored in extras JSONB. Use null to clear."
+          },
+          "emergencyContactName": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 50,
+            "description": "Emergency contact name. Stored in extras JSONB. Use null or empty string to clear."
+          },
+          "emergencyContactPhone": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 20,
+            "description": "Emergency contact phone. Stored in extras JSONB. Use null or empty string to clear."
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Set true to complete onboarding (sets completedAt when missing). Set false to clear onboarding completion."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserHealthContextController_createAllergy_v1_request": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["drug", "food", "environment", "other"],
+            "description": "Allergy kind."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "User-visible allergy label."
+          },
+          "reaction": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Recorded reaction."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["mild", "moderate", "severe", "unknown"],
+            "description": "Severity level. Defaults to unknown."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "User note for the allergy."
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "When this allergy was recorded in ISO 8601 format."
+          }
+        },
+        "required": ["kind", "label"],
+        "additionalProperties": false
+      },
+      "UserHealthContextController_updateAllergy_v1_request": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["drug", "food", "environment", "other"],
+            "description": "Allergy kind."
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "User-visible allergy label."
+          },
+          "reaction": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Recorded reaction. Use null to clear."
+          },
+          "severity": {
+            "nullable": true,
+            "type": "string",
+            "enum": ["mild", "moderate", "severe", "unknown"],
+            "description": "Severity level."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000,
+            "description": "User note for the allergy. Use null to clear."
+          },
+          "recordedAt": {
+            "nullable": true,
+            "type": "string",
+            "description": "When this allergy was recorded in ISO 8601 format."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the allergy is currently active."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserHealthContextController_createCondition_v1_request": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Condition label."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "resolved", "suspected"],
+            "description": "Condition status. Defaults to active."
+          },
+          "diagnosedAt": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Diagnosis date in YYYY-MM-DD format."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "User note for the condition."
+          }
+        },
+        "required": ["label"],
+        "additionalProperties": false
+      },
+      "UserHealthContextController_updateCondition_v1_request": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Condition label."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "resolved", "suspected"],
+            "description": "Condition status."
+          },
+          "diagnosedAt": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Diagnosis date in YYYY-MM-DD format. Use null to clear."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000,
+            "description": "User note for the condition. Use null to clear."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserHealthContextController_createCurrentMedicine_v1_request": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["drugbank", "cn", "manual"],
+            "description": "Upstream source used to anchor this medicine."
+          },
+          "sourceRefId": {
+            "type": "string",
+            "description": "Source-specific reference id. Required for drugbank and cn sources."
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display name shown to the user."
+          },
+          "strengthText": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Strength text."
+          },
+          "doseText": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Dose text."
+          },
+          "route": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Administration route."
+          },
+          "startedAt": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Start date in YYYY-MM-DD format."
+          },
+          "endedAt": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "End date in YYYY-MM-DD format."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "User note for the medicine."
+          }
+        },
+        "required": ["source", "displayName"],
+        "additionalProperties": false
+      },
+      "UserHealthContextController_updateCurrentMedicine_v1_request": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["drugbank", "cn", "manual"],
+            "description": "Upstream source."
+          },
+          "sourceRefId": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 100,
+            "description": "Source-specific reference id."
+          },
+          "displayName": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Display name shown to the user."
+          },
+          "strengthText": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 200,
+            "description": "Strength text. Use null to clear."
+          },
+          "doseText": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "Dose text. Use null to clear."
+          },
+          "route": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 100,
+            "description": "Administration route. Use null to clear."
+          },
+          "startedAt": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Start date in YYYY-MM-DD format. Use null to clear."
+          },
+          "endedAt": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "End date in YYYY-MM-DD format. Use null to clear."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000,
+            "description": "User note. Use null to clear."
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether the medicine is currently active."
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyRecordsController_create_v1_request": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "water",
+              "meal",
+              "vital",
+              "mood",
+              "symptom",
+              "activity",
+              "note",
+              "sleep"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep)."
+          },
+          "occurredTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+            "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Short label."
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Measured value."
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Unit label."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Free-text note."
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Record source. Defaults to \"manual\". Use \"apple_health\" or \"health_connect\" for auto-synced records."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Optional active health event association."
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. Legacy startAt/endAt remain readable and map to nightSleep. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["image"],
+                  "description": "Attachment kind. Defaults to \"image\"."
+                },
+                "objectKey": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "description": "Object storage key, stable across signed URL rotations."
+                },
+                "bucket": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 200,
+                  "description": "Object storage bucket."
+                },
+                "provider": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 50,
+                  "description": "Storage provider (e.g. tencent-cos, s3)."
+                },
+                "fileName": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 255,
+                  "description": "Original file name."
+                },
+                "contentType": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "MIME content type."
+                },
+                "sizeBytes": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 50000000,
+                  "description": "File size in bytes."
+                },
+                "width": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "description": "Image width in pixels."
+                },
+                "height": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "description": "Image height in pixels."
+                },
+                "publicUrl": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 2000,
+                  "description": "Optional public or already-signed display URL."
+                }
+              },
+              "required": ["objectKey"],
+              "additionalProperties": false
+            },
+            "description": "Attachment metadata. File upload itself is handled separately."
+          }
+        },
+        "required": ["kind", "occurredAt"],
+        "additionalProperties": false
+      },
+      "DailyRecordsController_createImageUpload_v1_request": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Image MIME content type."
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50000000,
+            "description": "File size in bytes."
+          },
+          "fileName": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Original file name."
+          }
+        },
+        "required": ["contentType", "sizeBytes"],
+        "additionalProperties": false
+      },
+      "DailyRecordsController_generateCandidates_v1_request": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Natural-language note to be parsed into candidate daily records."
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline."
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted."
+          }
+        },
+        "required": ["text", "occurredAt"],
+        "additionalProperties": false
+      },
+      "DailyRecordsController_update_v1_request": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "water",
+              "meal",
+              "vital",
+              "mood",
+              "symptom",
+              "activity",
+              "note",
+              "sleep"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format."
+          },
+          "occurredTime": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+            "description": "Time in HH:mm 24-hour format. Use null to clear."
+          },
+          "title": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Short label. Use null to clear."
+          },
+          "value": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Measured value. Use null to clear."
+          },
+          "unit": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Unit label. Use null to clear."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Free-text note. Use null to clear."
+          },
+          "payload": {
+            "nullable": true,
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Active health event association. Use null to clear."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["image"],
+                  "description": "Attachment kind. Defaults to \"image\"."
+                },
+                "objectKey": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "description": "Object storage key, stable across signed URL rotations."
+                },
+                "bucket": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 200,
+                  "description": "Object storage bucket."
+                },
+                "provider": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 50,
+                  "description": "Storage provider (e.g. tencent-cos, s3)."
+                },
+                "fileName": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 255,
+                  "description": "Original file name."
+                },
+                "contentType": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "MIME content type."
+                },
+                "sizeBytes": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 50000000,
+                  "description": "File size in bytes."
+                },
+                "width": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "description": "Image width in pixels."
+                },
+                "height": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000,
+                  "description": "Image height in pixels."
+                },
+                "publicUrl": {
+                  "nullable": true,
+                  "type": "string",
+                  "maxLength": 2000,
+                  "description": "Optional public or already-signed display URL."
+                }
+              },
+              "required": ["objectKey"],
+              "additionalProperties": false
+            },
+            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear."
+          }
+        },
+        "additionalProperties": false
+      },
+      "HealthEventsController_create_v1_request": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["symptom", "other"],
+            "description": "Persisted semantic kind used for check-in routing."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "\\S",
+            "description": "Short user-defined event title."
+          },
+          "reasonRecordId": {
+            "description": "Optional daily-record id that prompted this event.",
+            "nullable": true,
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "currentMedicineIds": {
+            "description": "Optional current-medicine ids to associate with this event.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          }
+        },
+        "required": ["title"],
+        "additionalProperties": false
+      },
+      "HealthEventsController_upsertCheckIn_v1_request": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": ["improved", "unchanged", "worsened"],
+            "description": "User-confirmed outcome for the requested calendar date."
+          }
+        },
+        "required": ["outcome"],
+        "additionalProperties": false
+      },
+      "HealthEventsController_end_v1_request": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": ["improved", "unchanged", "worsened"],
+            "description": "User-confirmed outcome when ending the event."
+          }
+        },
+        "required": ["outcome"],
+        "additionalProperties": false
+      },
+      "ProductEventsController_recordBatch_v1_request": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "enum": [
+                    "health_event_started",
+                    "health_event_ended",
+                    "health_event_outcome_confirmed",
+                    "suggestion_impression",
+                    "suggestion_actioned",
+                    "review_opened",
+                    "visit_summary_previewed",
+                    "visit_summary_exported",
+                    "visit_summary_share_created",
+                    "visit_summary_share_opened",
+                    "visit_summary_share_revoked"
+                  ],
+                  "description": "Fixed product event name — enums only, no free text."
+                },
+                "surface": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "record",
+                    "review",
+                    "more",
+                    "notification",
+                    "system"
+                  ],
+                  "description": "In-app surface where the event occurred; 'system' marks server-initiated events."
+                },
+                "result": {
+                  "type": "string",
+                  "enum": [
+                    "success",
+                    "failure",
+                    "improved",
+                    "unchanged",
+                    "worsened"
+                  ],
+                  "description": "Health-event lifecycle events report the outcome semantics (improved/unchanged/worsened), all other events report success/failure."
+                },
+                "eventStatus": {
+                  "type": "string",
+                  "enum": ["active", "ended"],
+                  "description": "Lifecycle status — only health_event_started (active) / health_event_ended (ended) report it; other events omit it."
+                },
+                "suggestionRuleCode": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "description": "Known server-side suggestion rule code (allowlisted, no free strings); unknown codes are rejected with 400."
+                },
+                "appVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32,
+                  "description": "Client app version, e.g. 1.2.0."
+                },
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "ios",
+                    "android",
+                    "web",
+                    "windows",
+                    "macos",
+                    "linux",
+                    "watchos",
+                    "other"
+                  ],
+                  "description": "Client platform."
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "description": "Event time (ISO 8601). Retention scans this field (90 days)."
+                },
+                "clientEventId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "description": "Client-generated id enabling retry idempotency — unique per user, so retried batches never double-insert."
+                }
+              },
+              "required": [
+                "name",
+                "surface",
+                "result",
+                "appVersion",
+                "platform",
+                "occurredAt",
+                "clientEventId"
+              ],
+              "additionalProperties": false
+            },
+            "description": "1..50 events per request."
+          }
+        },
+        "required": ["events"],
+        "additionalProperties": false
+      },
+      "MedicineDoseLogsController_create_v1_request": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "reminderId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked reminder id for slot-aware logs."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Linked active health event id."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["taken", "skipped", "missed", "planned"]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date YYYY-MM-DD."
+          },
+          "scheduledTime": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "Scheduled slot time in HH:mm."
+          },
+          "doseText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Dose text."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Free-text note."
+          }
+        },
+        "required": ["status", "scheduledFor"],
+        "additionalProperties": false
+      },
+      "MedicineDoseLogsController_mark_v1_request": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "reminderId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked reminder id for slot-aware marks."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Linked active health event id."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["taken", "skipped", "missed", "planned"]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date YYYY-MM-DD."
+          },
+          "scheduledTime": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "Scheduled slot time in HH:mm for slot-aware marks."
+          },
+          "doseText": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Dose text."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "Free-text note."
+          }
+        },
+        "required": ["status", "scheduledFor"],
+        "additionalProperties": false
+      },
+      "MedicineDoseLogsController_update_v1_request": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["taken", "skipped", "missed", "planned"]
+          },
+          "doseText": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "AccountController_updateAccount_v1_request": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Display nickname. Send an empty string to clear it."
+          },
+          "avatar": {
+            "type": "string",
+            "description": "Avatar URL. Send an empty string to clear it."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AccountController_deleteAccount_v1_request": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "当前密码（有密码的用户使用此方式确认注销）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "邮箱验证码（OAuth-only 用户使用此方式确认注销）"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AccountController_changePassword_v1_request": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "当前密码（敏感操作再认证用）"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "新密码（8-32位，需包含大小写字母和数字）"
+          }
+        },
+        "required": ["password", "newPassword"],
+        "additionalProperties": false
+      },
+      "AccountController_setPassword_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "发往邮箱的验证码"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "新密码（8-32位，需包含大小写字母和数字）"
+          }
+        },
+        "required": ["code", "password"],
+        "additionalProperties": false
+      },
+      "AccountController_changeEmail_v1_request": {
+        "type": "object",
+        "properties": {
+          "newEmail": {
+            "description": "新邮箱",
+            "type": "string",
+            "minLength": 1
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "description": "验证码"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "当前密码（敏感操作再认证用）"
+          }
+        },
+        "required": ["newEmail", "code", "password"],
+        "additionalProperties": false
+      },
+      "AccountController_unlinkIdentity_v1_request": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "当前密码(敏感操作再认证用)"
+          }
+        },
+        "required": ["password"],
+        "additionalProperties": false
+      },
+      "AccountController_createWechatWebIdentityLinkAuthorizeUrl_v1_request": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AccountController_linkWechatWebIdentity_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "AccountController_linkWechatMobileIdentity_v1_request": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          }
+        },
+        "required": ["code"],
+        "additionalProperties": false
+      },
+      "TodayAnalysisController_refresh_v1_request": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
+          }
+        },
+        "additionalProperties": false
+      },
+      "TodayAnalysisController_generate_v1_request": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
+          }
+        },
+        "additionalProperties": false
+      },
+      "TodayAnalysisController_generateAsync_v1_request": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
+          }
+        },
+        "additionalProperties": false
+      },
+      "TodayAnalysisController_generateStream_v1_request": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted."
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataExportController_createRequest_v1_request": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["hospital", "monthly", "print"],
+            "description": "Requested export kind."
+          },
+          "format": {
+            "type": "string",
+            "enum": ["pdf"],
+            "description": "Requested export format."
+          },
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days"],
+            "description": "Requested report range."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "当前密码（敏感操作再认证用）"
+          }
+        },
+        "required": ["password"],
+        "additionalProperties": false
+      },
+      "FilesController_createUpload_v1_request": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z]+\\/[-a-z0-9+.]+$",
+            "description": "MIME type"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "File size in bytes"
+          },
+          "fileName": {
+            "type": "string",
+            "maxLength": 255,
+            "pattern": "^[^\\\\/]+$",
+            "description": "Original filename"
+          }
+        },
+        "required": ["contentType", "sizeBytes"],
         "additionalProperties": false
       }
     }
