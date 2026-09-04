@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { yamlConfigFactory } from './config/yaml/yaml-loader.js';
 import { RouterModule } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { ThrottlerConfigService } from './config/services/throttler.config.js';
+import { buildThrottlerOptions } from './config/services/throttler.config.js';
+import { basename, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/index.js';
 import { appConfig } from './config/app.config.js';
@@ -61,6 +63,16 @@ import { SlowRequestInterceptor } from './common/index.js';
  * Root application module. Wires configuration, persistence, common
  * infrastructure, and all feature modules together.
  */
+
+// Bootstrap-stage env gate (ConfigService is not available before DI). The
+// testing-support module mounts only for an explicit test run AND while the
+// process executes from source: a compiled (dist/) image never mounts it, even
+// if NODE_ENV were misconfigured to "test" on a production host. Same
+// src-vs-dist signal i18n.module.ts uses for its dev-only typesOutputPath.
+const runtimeRoot = basename(dirname(fileURLToPath(import.meta.url)));
+const isTestRuntime =
+  process.env['NODE_ENV'] === 'test' && runtimeRoot !== 'dist';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -87,10 +99,15 @@ import { SlowRequestInterceptor } from './common/index.js';
       useClass: CacheConfigService,
     }),
     EventEmitterModule.forRoot(),
-    // Rate limiting: Redis-backed when REDIS_URL is set, in-memory fallback
+    // Rate limiting: Redis-backed when REDIS_URL is set, in-memory fallback.
+    // useFactory + inject resolves ConfigService through DI (ConfigService is
+    // global) instead of re-instantiating a useClass placeholder; `imports`
+    // stays explicit per the throttler ^6.5 typings.
     ThrottlerModule.forRootAsync({
       imports: [],
-      useClass: ThrottlerConfigService,
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) =>
+        buildThrottlerOptions(configService),
     }),
     I18nModule,
     LoggerModule,
@@ -124,7 +141,7 @@ import { SlowRequestInterceptor } from './common/index.js';
     FilesModule,
     NotificationsModule,
     ProductEventsModule,
-    ...(process.env['NODE_ENV'] === 'test' ? [TestingSupportModule] : []),
+    ...(isTestRuntime ? [TestingSupportModule] : []),
     NotificationPreferencesModule,
     RouterModule.register([
       {

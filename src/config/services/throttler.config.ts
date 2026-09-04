@@ -80,40 +80,50 @@ class RedisThrottlerStorage implements IThrottlerStorage {
 }
 
 /**
- * Factory for throttler configuration. When `REDIS_URL` is set, creates a
- * Redis-backed `ThrottlerStorage` for multi-instance deployments. Falls back
- * to default in-memory storage when Redis is not available.
+ * Builds throttler options from `ConfigService`. When `REDIS_URL` is set,
+ * creates a Redis-backed `ThrottlerStorage` for multi-instance deployments;
+ * falls back to default in-memory storage otherwise.
+ *
+ * Module-level so `ThrottlerModule.forRootAsync({ useFactory, inject })` and
+ * the {@link ThrottlerConfigService} (used by direct callers/tests) share the
+ * exact same resolution logic.
  */
+export async function buildThrottlerOptions(
+  configService: ConfigService,
+): Promise<ThrottlerModuleOptions> {
+  const redisUrl = configService.get<string>(EnvKey.REDIS_URL);
+
+  const options: ThrottlerModuleOptions = {
+    throttlers: [{ ttl: 60_000, limit: 100 }],
+  };
+
+  if (
+    redisUrl &&
+    configService.get<string>('OPENAPI_EXPORT_SKIP_REDIS') !== 'true'
+  ) {
+    try {
+      const mod = await import('ioredis');
+      const RedisCtor = mod.default;
+      options.storage = new RedisThrottlerStorage(
+        new (RedisCtor as unknown as new (url: string) => Redis)(redisUrl),
+      );
+    } catch (error) {
+      logger.warn(
+        `Failed to connect Redis for throttler storage — falling back to in-memory storage: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  return options;
+}
+
+const logger = new Logger('ThrottlerConfigService');
+
 @Injectable()
 export class ThrottlerConfigService implements ThrottlerOptionsFactory {
-  private readonly logger = new Logger(ThrottlerConfigService.name);
-
   constructor(private readonly configService: ConfigService) {}
 
-  async createThrottlerOptions(): Promise<ThrottlerModuleOptions> {
-    const redisUrl = this.configService.get<string>(EnvKey.REDIS_URL);
-
-    const options: ThrottlerModuleOptions = {
-      throttlers: [{ ttl: 60_000, limit: 100 }],
-    };
-
-    if (
-      redisUrl &&
-      this.configService.get<string>('OPENAPI_EXPORT_SKIP_REDIS') !== 'true'
-    ) {
-      try {
-        const mod = await import('ioredis');
-        const RedisCtor = mod.default;
-        options.storage = new RedisThrottlerStorage(
-          new (RedisCtor as unknown as new (url: string) => Redis)(redisUrl),
-        );
-      } catch (error) {
-        this.logger.warn(
-          `Failed to connect Redis for throttler storage — falling back to in-memory storage: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
-
-    return options;
+  createThrottlerOptions(): Promise<ThrottlerModuleOptions> {
+    return buildThrottlerOptions(this.configService);
   }
 }
