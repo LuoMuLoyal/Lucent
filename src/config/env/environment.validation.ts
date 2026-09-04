@@ -196,7 +196,6 @@ export const validatedEnvSchema = envSchema.check((ctx) => {
   };
   assertProductionEnvironment(config, report);
   assertTencentCosEnvironment(config, report);
-  assertS3StorageEnvironment(config);
   assertJpushEnvironment(config, report);
   assertAiEnvironment(config, report);
 });
@@ -338,14 +337,6 @@ function assertTencentCosEnvironment(
       `Incomplete Tencent COS environment variables: ${missingKeys.join(', ')}`,
     );
   }
-}
-
-function assertS3StorageEnvironment(_config: EnvironmentVariables): void {
-  // STORAGE_PROVIDER is now in YAML; this check is deferred to the
-  // storage module's useFactory which reads from ConfigKey.Yaml.
-  // Sensitive S3 credentials are still checked here.
-  // This function is kept as a no-op placeholder — the S3 credential
-  // completeness check is handled at module instantiation time.
 }
 
 function assertJpushEnvironment(
