@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { InternalServerErrorException } from '@nestjs/common';
 import { SCHEMA_DIR, SCHEMA_MAIN_FILE } from '../constants/admin.constants.js';
 import type { PrismaClientModule } from '../types/admin.types.js';
 
@@ -30,8 +31,10 @@ async function loadPrismaInternals(): Promise<PrismaInternals> {
   }
   const internals = loaded.default;
   if (internals === undefined) {
-    // eslint-disable-next-line error-handling/no-bare-throw-error -- module-loading invariant (admin panel only), not a request-path failure
-    throw new Error(
+    // HttpException (not a bare Error) so the error goes through the Nest
+    // exception-filter pipeline and keeps a traceId in logs — module-loading
+    // invariant of the admin panel, not a request-path failure.
+    throw new InternalServerErrorException(
       '@prisma/internals interop failed: no default export available',
     );
   }
