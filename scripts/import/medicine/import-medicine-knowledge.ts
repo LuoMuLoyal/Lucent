@@ -516,11 +516,32 @@ Options:
 
 // ─── Redis cache invalidation (medicine-specific) ─────────────
 
+/**
+ * The subset of the ioredis client surface this script relies on through
+ * `store.client`. See the narrow-cast note in `invalidateMedicineCache`.
+ */
+interface RedisStoreClient {
+  del: (key: string) => Promise<unknown>;
+  disconnect: () => void;
+}
+
 async function redisStoreFromUrl(redisUrl) {
   // Dynamic import keeps the lazy-load behavior of the previous require():
   // the Redis store dependency is only loaded when cache invalidation runs.
   const { redisStore } = await import('cache-manager-ioredis-yet');
-  const url = new URL(redisUrl);
+
+  let url: URL;
+  try {
+    url = new URL(redisUrl);
+  } catch (error) {
+    // A malformed REDIS_URL is an operator error — surface it with context
+    // instead of leaking a bare TypeError.
+    throw new Error(
+      `Invalid REDIS_URL for medicine cache invalidation: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 
   return redisStore({
     host: url.hostname,
@@ -576,19 +597,26 @@ async function invalidateMedicineCache() {
 
   const store = await redisStoreFromUrl(redisUrl);
 
+  // redisStore() from cache-manager-ioredis-yet exposes a v5-style `.del` at
+  // runtime, but its bundled types extend cache-manager 7's Store, which no
+  // longer declares `.del` (nor `.client`). Narrow-cast to the documented
+  // ioredis surface so the bypass is explicit; tracked in docs/TODO.md — once
+  // upstream types expose `.del`, drop the cast and call `store.del(key)`.
+  const redisClient = store.client as unknown as RedisStoreClient;
+
   try {
     const keys = await listMedicineCacheKeys(store);
     if (keys.length === 0) {
       return { invalidated: 0 };
     }
 
-    // redisStore() from cache-manager-ioredis-yet exposes a v5-style .del at
-    // runtime, but its bundled types extend cache-manager 7's Store, which no
-    // longer declares it. Go through the underlying ioredis client instead.
-    await Promise.all(keys.map((key) => store.client.del(key)));
+    await Promise.all(keys.map((key) => redisClient.del(key)));
+    console.info(
+      `[cache] invalidated ${String(keys.length)} medicine cache key(s)`,
+    );
     return { invalidated: keys.length };
   } finally {
-    store.client.disconnect();
+    redisClient.disconnect();
   }
 }
 
