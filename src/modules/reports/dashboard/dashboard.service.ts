@@ -34,7 +34,8 @@ export class ReportsService {
       cached = await this.cache.get<ReportDashboardDataDto>(cacheKey);
     } catch (error) {
       this.logger.warn(
-        `Reports dashboard cache get failed (key=${cacheKey}): ${String(error)}`,
+        { err: error, key: cacheKey },
+        'Reports dashboard cache get failed',
       );
       throw error;
     }
@@ -61,7 +62,8 @@ export class ReportsService {
       await this.cache.set(cacheKey, result, ReportsService.CACHE_TTL_MS);
     } catch (error) {
       this.logger.warn(
-        `Reports dashboard cache set failed (key=${cacheKey}): ${String(error)}`,
+        { err: error, key: cacheKey },
+        'Reports dashboard cache set failed',
       );
       throw error;
     }
@@ -93,7 +95,8 @@ export class ReportsService {
           keys = await store.keys();
         } catch (error) {
           this.logger.warn(
-            `Reports dashboard cache key enumeration failed: ${String(error)}`,
+            { err: error, userSegment },
+            'Reports dashboard cache key enumeration failed',
           );
           continue;
         }
@@ -102,7 +105,8 @@ export class ReportsService {
           matching.map((key) =>
             this.cache.del(key).catch((error: unknown) => {
               this.logger.warn(
-                `Reports dashboard cache del failed (key=${key}): ${String(error)}`,
+                { err: error, key },
+                'Reports dashboard cache del failed',
               );
             }),
           ),
@@ -110,7 +114,8 @@ export class ReportsService {
       }
     } catch (error) {
       this.logger.warn(
-        `Reports dashboard cache invalidation failed (userId=${userId}): ${String(error)}`,
+        { err: error, userId },
+        'Reports dashboard cache invalidation failed',
       );
     }
   }
