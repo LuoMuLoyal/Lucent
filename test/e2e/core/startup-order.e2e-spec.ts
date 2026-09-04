@@ -48,6 +48,12 @@ const SCHEDULER_IDS = [
 describe('startup and shutdown ordering (e2e)', () => {
   let moduleRef: TestingModule;
   let redisUrl: string;
+  // The module is compiled once in beforeAll and closed exactly once: the SSE
+  // test below owns the shutdown (it closes the module to observe the
+  // `beforeApplicationShutdown` hook), so afterAll only acts as the cleanup
+  // fallback for filtered/aborted runs — a second close here would re-run the
+  // shutdown hooks and break the assertions.
+  let moduleClosed = false;
 
   beforeAll(async () => {
     redisUrl = process.env[EnvKey.REDIS_URL] ?? 'redis://127.0.0.1:6379';
@@ -100,7 +106,9 @@ describe('startup and shutdown ordering (e2e)', () => {
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    if (!moduleClosed) {
+      await moduleRef.close();
+    }
   });
 
   it('enables Redis-dependent providers from configuration, not hook order', () => {
@@ -142,38 +150,59 @@ describe('startup and shutdown ordering (e2e)', () => {
   });
 
   it('closes tracked SSE connections on shutdown via beforeApplicationShutdown', async () => {
+    // Ensure lifecycle hooks are wired even when this test runs in isolation
+    // (init() is idempotent — NestApplicationContext guards on isInitialized).
+    await moduleRef.init();
+
     const registry = moduleRef.get(SseConnectionRegistry);
+    const { response, write, end } = makeFakeSseResponse();
 
-    const ended: string[] = [];
-    const fakeResponse = new EventEmitter() as unknown as ServerResponse;
-    Object.assign(fakeResponse, {
-      writableEnded: false,
-      destroyed: false,
-      end: () => {
-        ended.push('end');
-        (fakeResponse as unknown as { writableEnded: boolean }).writableEnded =
-          true;
-      },
-      write: () => {
-        ended.push('write');
-        return true;
-      },
-    });
-
-    registry.register(fakeResponse, 'en');
+    registry.register(response, 'en');
     expect(registry.size).toBe(1);
 
+    // Single shutdown: Nest dispatches `beforeApplicationShutdown` to the
+    // registry, which writes the terminal SSE event and ends the stream.
     await moduleRef.close();
+    moduleClosed = true;
 
-    // closeAll ran during shutdown: terminal event written, stream ended,
-    // and the registry emptied.
-    expect(ended).toContain('write');
-    expect(ended).toContain('end');
+    // closeAll ran during shutdown: exactly one terminal event stream (write
+    // of the `event: error` frame plus its data payload), one end, and the
+    // registry emptied by closeAll — not by any later dispose pass.
+    expect(end).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledWith('event: error\n');
+    expect(write.mock.calls.length).toBeGreaterThanOrEqual(1);
     expect(registry.size).toBe(0);
   });
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────
+
+interface FakeSseResponse {
+  response: ServerResponse;
+  emitter: EventEmitter;
+  write: ReturnType<typeof vi.fn>;
+  end: ReturnType<typeof vi.fn>;
+}
+
+/**
+ * Minimal `ServerResponse` stand-in for shutdown assertions. Mirrors the
+ * mock factory in `sse-connection-registry.service.spec.ts`: `write`/`end`
+ * are vi.fn()s so the test can assert how the shutdown path notified the
+ * stream (call counts and frames) instead of poking writableEnded flags.
+ */
+function makeFakeSseResponse(): FakeSseResponse {
+  const emitter = new EventEmitter();
+  const response = emitter as unknown as ServerResponse;
+  const write = vi.fn().mockReturnValue(true);
+  const end = vi.fn().mockReturnValue(response);
+  Object.assign(response, {
+    write,
+    end,
+    writableEnded: false,
+    destroyed: false,
+  });
+  return { response, emitter, write, end };
+}
 
 function parseUrl(url: string): { host: string; port: number } {
   const parsed = new URL(url);
