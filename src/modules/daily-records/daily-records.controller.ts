@@ -247,7 +247,7 @@ export class DailyRecordsController {
 registerResponseSchema({
   path: '/api/v1/user/daily-records',
   method: 'get',
-  componentName: 'DailyRecordListResponseDto',
+  componentName: 'DailyRecordListResponse',
   schema: dailyRecordListResponseSchema,
   description: 'Daily records for the date.',
 });
@@ -255,7 +255,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/daily-records/summary',
   method: 'get',
-  componentName: 'DailyRecordSummaryResponseDto',
+  componentName: 'DailyRecordSummaryResponse',
   schema: dailyRecordSummaryResponseSchema,
   description: 'Daily record counts grouped by kind for the date.',
 });
@@ -263,7 +263,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/daily-records/attachments/images/presign-upload',
   method: 'post',
-  componentName: 'DailyRecordImageUploadResponseDto',
+  componentName: 'DailyRecordImageUploadResponse',
   schema: dailyRecordImageUploadResponseSchema,
   description: 'Presigned upload metadata for direct object storage upload.',
 });
@@ -271,7 +271,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/daily-records/candidate-records/generate',
   method: 'post',
-  componentName: 'DailyRecordCandidateResponseDto',
+  componentName: 'DailyRecordCandidateResponse',
   schema: dailyRecordCandidateResponseSchema,
   description: 'Generated candidate daily records (not saved yet).',
 });
@@ -279,7 +279,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/daily-records/{id}',
   method: 'get',
-  componentName: 'DailyRecordResponseDto',
+  componentName: 'DailyRecordResponse',
   schema: dailyRecordResponseSchema,
   description: 'The daily record.',
 });
@@ -287,7 +287,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/daily-records',
   method: 'post',
-  componentName: 'DailyRecordResponseDto',
+  componentName: 'DailyRecordResponse',
   schema: dailyRecordResponseSchema,
   description: 'The created daily record.',
 });
@@ -295,7 +295,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/daily-records/{id}',
   method: 'patch',
-  componentName: 'DailyRecordResponseDto',
+  componentName: 'DailyRecordResponse',
   schema: dailyRecordResponseSchema,
   description: 'The updated daily record.',
 });
