@@ -73,7 +73,7 @@ export class UserSettingsController {
 registerResponseSchema({
   path: '/api/v1/user/settings',
   method: 'get',
-  componentName: 'UserSettingsResponseDto',
+  componentName: 'UserSettingsResponse',
   schema: userSettingsDataSchema,
   description: 'Authenticated user settings.',
 });
@@ -81,7 +81,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/settings',
   method: 'patch',
-  componentName: 'UserSettingsResponseDto',
+  componentName: 'UserSettingsResponse',
   schema: userSettingsDataSchema,
   description: 'Updated user settings.',
 });

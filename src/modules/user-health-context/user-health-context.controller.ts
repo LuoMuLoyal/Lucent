@@ -352,7 +352,7 @@ export class UserHealthContextController {
 registerResponseSchema({
   path: '/api/v1/user/health-context',
   method: 'get',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The current user health-context aggregate.',
 });
@@ -360,7 +360,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/profile',
   method: 'patch',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -371,7 +371,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/allergies',
   method: 'post',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -379,7 +379,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/conditions',
   method: 'post',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -387,7 +387,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/current-medicines',
   method: 'post',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -395,7 +395,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/allergies/{id}',
   method: 'patch',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -403,7 +403,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/allergies/{id}',
   method: 'delete',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -411,7 +411,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/conditions/{id}',
   method: 'patch',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -419,7 +419,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/conditions/{id}',
   method: 'delete',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -427,7 +427,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/current-medicines/{id}',
   method: 'patch',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
@@ -435,7 +435,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-context/current-medicines/{id}',
   method: 'delete',
-  componentName: 'HealthContextResponseDto',
+  componentName: 'HealthContextResponse',
   schema: healthContextResponseSchema,
   description: 'The updated user health-context aggregate.',
 });
