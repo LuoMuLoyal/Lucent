@@ -191,6 +191,198 @@ function setIfMissing(key: string, value: string) {
   }
 }
 
+interface NamingLookup {
+  methodByKey: Record<string, string>;
+  requestByOpId: Record<string, string>;
+  responseByOld: Record<string, string>;
+}
+
+/**
+ * Load the operationId / component naming lookup generated from the current
+ * OpenAPI contract (see `plans/_naming-lookup.json`, produced by the naming
+ * reform — AIP-190/136 semantic naming). Falls back to `{}` when absent so a
+ * checkout without the plan assets still exports (with the legacy names).
+ */
+function loadNamingLookup(repoRoot: string): NamingLookup {
+  const lookupPath = path.resolve(repoRoot, 'plans', '_naming-lookup.json');
+  if (!fs.existsSync(lookupPath)) {
+    return { methodByKey: {}, requestByOpId: {}, responseByOld: {} };
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    const raw: any = JSON.parse(fs.readFileSync(lookupPath, 'utf-8'));
+    return {
+      methodByKey: raw.methodByKey ?? {},
+      requestByOpId: raw.requestByOpId ?? {},
+      responseByOld: raw.responseByOld ?? {},
+    };
+  } catch {
+    return { methodByKey: {}, requestByOpId: {}, responseByOld: {} };
+  }
+}
+
+/** PascalCase a camelCase identifier: `changeEmail` → `ChangeEmail`. */
+function toPascalCase(name: string): string {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/**
+ * Semantic request component name for a *new* operationId (already camelCase,
+ * e.g. `changeEmail`): `ChangeEmailRequest`. AIP-136 RPC-style.
+ */
+function toRequestComponentName(operationId: string): string {
+  return toPascalCase(operationId) + 'Request';
+}
+
+/**
+ * Strip a trailing `Dto` suffix from a component name so promoted inline
+ * children are semantic even when the parent is a legacy DTO name
+ * (`AccountResponseDto` → `AccountResponse`). ProblemDetails error
+ * contracts keep their suffix (intentional, see response-schema.registry).
+ */
+function toSemanticParentName(parentName: string): string {
+  if (/Dto$/.test(parentName)) return parentName.replace(/Dto$/, '');
+  return parentName;
+}
+
+/**
+ * Promote inline object / array-of-object schema properties into named
+ * components (`<Parent><Field>` PascalCase, e.g. `DailyRecordListItem`,
+ * `AccountLinkedIdentity`) and point the parent at the new `$ref`. This
+ * removes the dart-dio `<Parent>_inner` mechanical names (AIP-190 naming
+ * reform §2.4): a named component maps 1:1 to a generated model class.
+ *
+ * Runs after response injection + request-body promotion so every registered
+ * component already exists. Recurses into freshly promoted children (a
+ * nested object inside a promoted child becomes `<Child><Field>`). Skips
+ * fields already pointing at `$ref`, and skips resource fields that are
+ * scalar enums/strings/numbers. Returns the number of components promoted.
+ */
+function promoteInlineObjects(document: any): number {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const schemas: Record<string, any> = document.components?.schemas ?? {};
+  let promoted = 0;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const promoteSchema = (parentName: string, parentSchema: any): void => {
+    if (!parentSchema || typeof parentSchema !== 'object') return;
+    // oneOf/allOf branches may hold inline objects too
+    for (const branchKey of ['oneOf', 'allOf', 'anyOf']) {
+      const branches = parentSchema[branchKey];
+      if (Array.isArray(branches)) {
+        for (const branch of branches) {
+          if (branch && typeof branch === 'object' && !branch.$ref) {
+            promoteSchema(parentName, branch);
+          }
+        }
+      }
+    }
+    const props = parentSchema.properties;
+    if (!props || typeof props !== 'object') return;
+    for (const [fieldName, fieldSchema] of Object.entries(props)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const field: any = fieldSchema;
+      if (!field || typeof field !== 'object' || field.$ref) continue;
+      // Composition fields (oneOf/anyOf/allOf): recurse into each inline
+      // branch so nested array items / objects inside them are promoted
+      // (dart-dio would otherwise name them <parent>_<field>_one_of_..._inner).
+      // Branches that are pure $ref lists need no promotion.
+      for (const branchKey of ['oneOf', 'anyOf', 'allOf']) {
+        const branches = field[branchKey];
+        if (Array.isArray(branches)) {
+          for (const branch of branches) {
+            if (branch && typeof branch === 'object' && !branch.$ref) {
+              promoteSchema(parentName, branch);
+            }
+          }
+        }
+      }
+      // Determine the actual object schema (unwrap array-of-object)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let targetSchema: any = field;
+      if (field.type === 'array' && field.items && typeof field.items === 'object') {
+        targetSchema = field.items;
+      }
+      if (!targetSchema || typeof targetSchema !== 'object') continue;
+      if (targetSchema.$ref) continue;
+      // Only promote structured objects (with explicit `properties`).
+      // Free-form `additionalProperties` maps (e.g. `Map<String, dynamic>`)
+      // are left inline: promoting them yields an empty named component and the
+      // generator would reject a `$ref` combined with `additionalProperties`.
+      const hasProperties =
+        targetSchema.properties && typeof targetSchema.properties === 'object';
+      const isObjectNode = targetSchema.type === 'object' && hasProperties;
+      if (!isObjectNode) continue;
+      // Name: <SemanticParent><Field PascalCase> (items/data/payload -> parent-word fallback)
+      const fieldPascal = toPascalCase(fieldName);
+      const semanticParent = toSemanticParentName(parentName);
+      const childName = `${semanticParent}${fieldPascal}`;
+      // Guard: avoid clobbering an existing component with a different purpose
+      if (schemas[childName] == null) {
+        schemas[childName] = openApiSchema(targetSchema);
+        promoted += 1;
+      }
+      // Point the field at the new component (preserve array wrapper)
+      if (field.type === 'array') {
+        field.items = { $ref: `#/components/schemas/${childName}` };
+      } else {
+        field.$ref = `#/components/schemas/${childName}`;
+        delete field.type;
+        delete field.properties;
+        delete field.required;
+        delete field.additionalProperties;
+        delete field.description;
+      }
+      // Recurse into the promoted child for nested inline objects
+      promoteSchema(childName, schemas[childName]);
+    }
+  };
+
+  for (const [name, schema] of Object.entries(schemas)) {
+    promoteSchema(name, schema);
+  }
+
+  // Top-level array schemas with inline object items: promote items into
+  // a named component so dart-dio does not generate `<name>_inner`.
+  for (const [name, schema] of Object.entries(schemas)) {
+    if (!schema || typeof schema !== 'object' || schema.type !== 'array') continue;
+    const items = schema.items;
+    if (!items || typeof items !== 'object' || items.$ref) continue;
+    const hasItemsProperties =
+      items.properties && typeof items.properties === 'object';
+    const isObjectItems = items.type === 'object' && hasItemsProperties;
+    if (!isObjectItems) continue;
+    const entryName = toArrayElementName(name);
+    if (schemas[entryName] == null) {
+      schemas[entryName] = openApiSchema(items);
+      promoted += 1;
+    }
+    schema.items = { $ref: '#/components/schemas/' + entryName };
+    promoteSchema(entryName, schemas[entryName]);
+  }
+  return promoted;
+
+}
+
+/**
+ * Element component name for a top-level array schema with inline object
+ * items. Generic structural rule (no per-schema whitelist): strip a trailing
+ * `Dto`/`Response`/`List`/`Data` word, then if the base already ends in
+ * `Item`/`Items` append `Entry` (avoids `SessionListItemItem`), otherwise
+ * append `Item`. New array responses are handled automatically on export.
+ */
+function toArrayElementName(arrayName: string): string {
+  let base = arrayName
+    .replace(/Dto$/, '')
+    .replace(/Response$/, '')
+    .replace(/List$/, '')
+    .replace(/Data$/, '');
+  if (/Item$/.test(base) || /Items$/.test(base)) {
+    return base.replace(/s$/, '') + 'Entry';
+  }
+  return base + 'Item';
+}
+
 async function main() {
   delete process.env.REDIS_URL;
   process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT = 'true';
@@ -237,6 +429,29 @@ async function main() {
   });
   await setupApp(app, app.get(ConfigService));
 
+  const lookup = loadNamingLookup(repoRoot);
+
+  // Semantic operationId: map `<controllerKey>_<methodKey>` through the naming
+  // reform lookup (AIP-190/136). Falls back to the legacy form when unmapped so
+  // a checkout without the lookup assets still exports.
+  const seenOperationIds = new Set<string>();
+  const operationIdFactory = (
+    controllerKey: string,
+    methodKey: string,
+    version?: string,
+  ): string => {
+    const key = controllerKey + '_' + methodKey;
+    const mapped = lookup.methodByKey[key] ?? key;
+    if (seenOperationIds.has(mapped)) {
+      throw new Error(
+        '[openapi-export] duplicate operationId after naming mapping: ' + mapped +
+        ' (from ' + key + '). The naming lookup in plans/_naming-lookup.json is inconsistent.',
+      );
+    }
+    seenOperationIds.add(mapped);
+    return mapped;
+  };
+
   const document = SwaggerModule.createDocument(
     app,
     {
@@ -248,6 +463,7 @@ async function main() {
       },
     },
     {
+      operationIdFactory,
       extraModels: [
         problemDetails.ProblemDetailsDto,
         problemDetails.SseProblemDetailsDto,
@@ -320,7 +536,7 @@ async function main() {
     }
   }
   // Promote every inline JSON request body to a per-operation named component
-  // (`<operationId>_request`) and point the operation at the `$ref`. Request
+  // (`<SemanticOperationId>Request`, e.g. `ChangeEmailRequest`) and point the operation at the `$ref`. Request
   // bodies are normally emitted inline by Swagger; the dart-dio generator's
   // inline-model resolver names identical bodies after the first operation it
   // encounters, so content-equal bodies shared across operations collapsed
@@ -341,7 +557,7 @@ async function main() {
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((schema as any).$ref) continue;
-      const componentName = `${op.operationId}_request`;
+      const componentName = toRequestComponentName(op.operationId);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
       const draft: any = document;
       draft.components ??= {};
@@ -355,6 +571,14 @@ async function main() {
   }
   if (requestComponents > 0) {
     console.log(`Request-body components promoted: ${requestComponents}`);
+  }
+
+  // Promote inline response/request object properties into named components
+  // (<Parent><Field>, AIP-190 §2.4) so the dart-dio client gets semantic
+  // model names instead of <Parent>_inner mechanical ones.
+  const inlinePromoted = promoteInlineObjects(document);
+  if (inlinePromoted > 0) {
+    console.log(`Inline object components promoted: ${inlinePromoted}`);
   }
 
   // A registration that does not resolve to a real operation would silently
