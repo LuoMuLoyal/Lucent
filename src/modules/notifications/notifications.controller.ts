@@ -168,7 +168,7 @@ export class NotificationsController {
 registerResponseSchema({
   path: '/api/v1/user/notifications',
   method: 'get',
-  componentName: 'NotificationListResponseDto',
+  componentName: 'NotificationListResponse',
   schema: notificationListSchema,
   description: 'Paginated notification list.',
 });
@@ -176,7 +176,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/notifications/unread-count',
   method: 'get',
-  componentName: 'UnreadCountResponseDto',
+  componentName: 'UnreadCountResponse',
   schema: unreadCountSchema,
   description: 'Unread notification count.',
 });
@@ -184,7 +184,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/notifications/{id}',
   method: 'get',
-  componentName: 'NotificationDetailResponseDto',
+  componentName: 'NotificationDetailResponse',
   schema: notificationDetailSchema,
   description: 'Notification detail.',
 });
@@ -192,7 +192,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/notifications/{id}/read',
   method: 'patch',
-  componentName: 'NotificationDetailResponseDto',
+  componentName: 'NotificationDetailResponse',
   schema: notificationDetailSchema,
   description: 'Notification marked as read.',
 });
@@ -200,7 +200,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/notifications/{id}/unread',
   method: 'patch',
-  componentName: 'NotificationDetailResponseDto',
+  componentName: 'NotificationDetailResponse',
   schema: notificationDetailSchema,
   description: 'Notification marked as unread.',
 });
@@ -208,7 +208,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/notifications/mark-all-read',
   method: 'patch',
-  componentName: 'UnreadCountResponseDto',
+  componentName: 'UnreadCountResponse',
   schema: unreadCountSchema,
   description: 'Number of notifications marked as read.',
 });

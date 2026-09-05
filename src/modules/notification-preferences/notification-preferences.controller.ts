@@ -58,7 +58,7 @@ export class NotificationPreferencesController {
 registerResponseSchema({
   path: '/api/v1/user/notification-preferences',
   method: 'get',
-  componentName: 'NotificationPreferencesResponseDto',
+  componentName: 'NotificationPreferencesResponse',
   schema: notificationPreferencesSchema,
   description: 'Authenticated user notification preferences.',
 });
@@ -66,7 +66,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/notification-preferences',
   method: 'patch',
-  componentName: 'NotificationPreferencesResponseDto',
+  componentName: 'NotificationPreferencesResponse',
   schema: notificationPreferencesSchema,
   description: 'Updated notification preferences.',
 });
