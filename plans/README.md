@@ -32,6 +32,8 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
+- [`2026-09-05-openapi-schema-naming-reform.md`](2026-09-05-openapi-schema-naming-reform.md)
+  — OpenAPI 组件名/operationId 命名重构:消除 dart-dio 客户端的 Controller/V1/Dto/内联 _inner 机械名,按 AIP-190/136 语义化命名,双仓一次性迁移(不做兼容)
 - [`2026-09-02-agentic-proactive-evolution.md`](2026-09-02-agentic-proactive-evolution.md)
   — Agentic → Proactive → 伴身演进后端任务清单:AI 上下文统一、proposal 服务域化、today/review/reminders 提案工具、BullMQ 事件总线与依从性触发器、跨端会话一致(远期)
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
