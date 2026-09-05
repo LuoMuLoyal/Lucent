@@ -115,12 +115,13 @@ export async function setupApp(
         // e2e suite, so hand the adapter a BadRequestException.
         //
         // The original SyntaxError (with line/column context) is deliberately
-        // not re-thrown; it is carried as the exception `cause` so the global
-        // filter's logging keeps the full diagnostic while the status stays 400.
+        // not re-thrown; its message is included in the detail string so the
+        // global filter's logging and the problem+json response body both
+        // carry the diagnostic — the status stays 400 (client error).
         done(
-          new BadRequestException('Malformed JSON payload', {
-            cause: parseError,
-          }),
+          new BadRequestException(
+            `Malformed JSON payload: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+          ),
         );
       }
     },
