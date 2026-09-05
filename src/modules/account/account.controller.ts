@@ -458,7 +458,7 @@ export class AccountController {
 registerResponseSchema({
   path: '/api/v1/account',
   method: 'get',
-  componentName: 'AccountResponseDto',
+  componentName: 'AccountResponse',
   schema: accountDataSchema,
   description: 'Authenticated account profile.',
 });
@@ -466,7 +466,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/account',
   method: 'patch',
-  componentName: 'AccountResponseDto',
+  componentName: 'AccountResponse',
   schema: accountDataSchema,
   description: 'Updated authenticated account profile.',
 });
@@ -474,7 +474,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/account/email',
   method: 'post',
-  componentName: 'AccountEmailResponseDto',
+  componentName: 'AccountEmailResponse',
   schema: accountEmailDataSchema,
   description: 'Updated account email with verification time.',
 });
@@ -482,7 +482,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/account/identities/{identityId}',
   method: 'delete',
-  componentName: 'AccountResponseDto',
+  componentName: 'AccountResponse',
   schema: accountDataSchema,
   description: 'Account profile with the identity unlinked.',
 });
@@ -490,7 +490,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/account/identities/wechat-web/callback',
   method: 'post',
-  componentName: 'AccountResponseDto',
+  componentName: 'AccountResponse',
   schema: accountDataSchema,
   description: 'Account profile with the linked identity.',
 });
@@ -498,7 +498,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/account/identities/wechat-mobile/callback',
   method: 'post',
-  componentName: 'AccountResponseDto',
+  componentName: 'AccountResponse',
   schema: accountDataSchema,
   description: 'Account profile with the linked identity.',
 });
@@ -506,7 +506,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/account/identities/wechat-web/authorize',
   method: 'post',
-  componentName: 'OAuthAuthorizeResponseDto',
+  componentName: 'OAuthAuthorizeResponse',
   schema: oauthAuthorizeResponseSchema,
   description: 'WeChat web OAuth authorize URL for identity linking.',
 });
