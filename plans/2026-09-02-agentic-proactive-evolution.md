@@ -64,3 +64,4 @@
 - 完成的任务直接从本清单删除,不留 ✅/划线标记。
 - 迭代期用窄命令,收尾跑 `pnpm lint:check && pnpm typecheck && pnpm build && pnpm test && pnpm docs:check`。
 - 依赖关系:P1 依赖 P0-3/P0-4;P2 依赖 P1-1 与事件总线(P2-1);Phase 3 仅在 BFF 启动后推进。
+- **运行时架构决策**:本计划全部基于现有自建 LangGraph runtime(agent/runtime/)。**不引入 Deep Agents**(LangChain 官方 harness)——它与本自建 runtime 同层,引入 = 替换而非增强,且医疗场景需确定性 HITL 门控。仅当 Phase 3 后出现开放域多步长任务需求(跨会话、多工具编排、子代理分派)时重新评估(见 risk-graph-plan §6.6)。
