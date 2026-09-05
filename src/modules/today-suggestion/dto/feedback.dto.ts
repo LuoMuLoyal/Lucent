@@ -35,7 +35,7 @@ export const suggestionFeedbackSchema = z
 /** Strongly typed body of `POST /today/suggestions/:id/feedback`. */
 export type SuggestionFeedbackDto = z.infer<typeof suggestionFeedbackSchema>;
 
-export class SuggestionFeedbackDataDto {
+export class SuggestionFeedbackData {
   @ApiProperty()
   suggestionId!: string;
 
@@ -55,4 +55,4 @@ export class SuggestionFeedbackDataDto {
 }
 
 /** Envelope response for POST /today/suggestions/:id/feedback. */
-export class SuggestionFeedbackResponseDto extends SuggestionFeedbackDataDto {}
+export class SuggestionFeedbackResponse extends SuggestionFeedbackData {}

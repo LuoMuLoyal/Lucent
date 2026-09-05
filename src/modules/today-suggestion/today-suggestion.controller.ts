@@ -29,8 +29,8 @@ import { ExplanationService } from './services/explanation/explainer.service.js'
 import { LifecycleService } from './services/lifecycle/manager.service.js';
 import { suggestionFeedbackSchema } from './dto/feedback.dto.js';
 import {
-  SuggestionFeedbackDataDto,
-  SuggestionFeedbackResponseDto,
+  SuggestionFeedbackData,
+  SuggestionFeedbackResponse,
 } from './dto/feedback.dto.js';
 import type { SuggestionFeedbackDto } from './dto/feedback.dto.js';
 
@@ -102,7 +102,7 @@ export class TodaySuggestionController {
 
   @Post(':id/feedback')
   @ApiOperation({ summary: 'Submit feedback for a suggestion card' })
-  @ApiResponse({ status: 201, type: SuggestionFeedbackResponseDto })
+  @ApiResponse({ status: 201, type: SuggestionFeedbackResponse })
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async submitFeedback(
     @CurrentUser() user: UserPayload,
@@ -114,7 +114,7 @@ export class TodaySuggestionController {
       this.feedbackService.recordFeedback(user.sub, suggestionId, dto.feedback),
     );
 
-    const response: SuggestionFeedbackDataDto = {
+    const response: SuggestionFeedbackData = {
       suggestionId: result.suggestionId,
       feedback: result.feedback,
       appliedEffect: result.appliedEffect,
@@ -296,7 +296,7 @@ export class TodaySuggestionController {
 registerResponseSchema({
   path: '/api/v1/user/today/suggestions',
   method: 'get',
-  componentName: 'TodaySuggestionsResponseDto',
+  componentName: 'TodaySuggestionsResponse',
   schema: todaySuggestionsDataSchema,
   description: 'Today page suggestion cards with materialization state.',
 });
@@ -304,7 +304,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today/suggestions/history',
   method: 'get',
-  componentName: 'SuggestionHistoryResponseDto',
+  componentName: 'SuggestionHistoryResponse',
   schema: suggestionHistoryDataSchema,
   description: 'Suggestion history items with the query window used.',
 });
@@ -315,7 +315,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today/suggestions/{id}/explain',
   method: 'post',
-  componentName: 'SuggestionExplanationResponseDto',
+  componentName: 'SuggestionExplanationResponse',
   schema: suggestionExplanationDataSchema,
   description: 'The AI explanation for the suggestion card.',
 });
@@ -323,7 +323,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today/suggestions/{id}/explain/async',
   method: 'post',
-  componentName: 'SuggestionExplanationAsyncResponseDto',
+  componentName: 'SuggestionExplanationJobResponse',
   schema: suggestionExplanationAsyncResponseSchema,
   description:
     'Returns either a queued jobId or the synchronous explanation resource when the queue is unavailable.',
