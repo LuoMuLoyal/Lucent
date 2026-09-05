@@ -32,10 +32,10 @@ export interface ReviewNextStepInput {
  * dropped at the mapping point, keeping the "reviewed rules only" boundary
  * self-enforcing.
  */
-const REVIEWED_RED_FLAG_RULES: readonly string[] = [
+const REVIEWED_RED_FLAG_RULES: ReadonlySet<string> = new Set([
   'severeAllergy',
   'informationGap',
-];
+]);
 
 /**
  * NextStep section builder with fixed rules only — no LLM.
@@ -50,7 +50,7 @@ const REVIEWED_RED_FLAG_RULES: readonly string[] = [
 export class EventReviewNextStepService {
   build(input: ReviewNextStepInput): EventReviewSectionDto {
     const redFlags = input.redFlags
-      .filter((flag) => REVIEWED_RED_FLAG_RULES.includes(flag.rule))
+      .filter((flag) => REVIEWED_RED_FLAG_RULES.has(flag.rule))
       .map((flag) => ({
         rule: flag.rule,
         medicineName: flag.medicineName,

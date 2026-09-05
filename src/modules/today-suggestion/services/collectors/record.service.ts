@@ -185,7 +185,7 @@ export class RecordCollectorService {
     if (symptomRecords.length > 0) {
       const symptomByDate = this.buildSymptomTrend(symptomRecords);
       const todaySymptom = [...symptomRecords]
-        .reverse()
+        .toReversed()
         .find((r) => r.occurredAt.toISOString().slice(0, 10) === date);
       const symptomObservedValue = this.parseNumericValue(
         todaySymptom?.value ?? null,
@@ -275,7 +275,7 @@ export class RecordCollectorService {
       const moodByDate = this.buildMoodTrend(moodRecords);
       if (moodByDate.length > 0) {
         const todayMood = [...moodRecords]
-          .reverse()
+          .toReversed()
           .find((r) => r.occurredAt.toISOString().slice(0, 10) === date);
         const moodObservedValue = this.parseKnownMoodScore(
           todayMood?.value ?? null,

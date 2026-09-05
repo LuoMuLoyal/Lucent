@@ -216,7 +216,7 @@ export class AssistantToolService {
     results: readonly AssistantToolExecutionResult[],
   ): string | null {
     const detailResult = [...results]
-      .reverse()
+      .toReversed()
       .find((result) => result.name === 'get_cn_medicine_detail');
     const resultEnvelope = detailResult?.data['result'];
     if (resultEnvelope == null || typeof resultEnvelope !== 'object') {

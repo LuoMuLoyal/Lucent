@@ -13,8 +13,10 @@ export class AssistantContextService {
     const lines = ['Server-approved user context tool results:'];
 
     for (const result of results) {
-      lines.push(`- tool: ${result.name}`);
-      lines.push(`  data: ${JSON.stringify(result.data)}`);
+      lines.push(
+        `- tool: ${result.name}`,
+        `  data: ${JSON.stringify(result.data)}`,
+      );
       if ((result.proposedActions?.length ?? 0) > 0) {
         lines.push(
           `  proposedActions: ${JSON.stringify(

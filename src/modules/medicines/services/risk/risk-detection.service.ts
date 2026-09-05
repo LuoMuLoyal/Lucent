@@ -86,8 +86,10 @@ export class RiskDetectionService {
     const findings: MedicineRiskFindingDto[] = [];
 
     for (const medicine of details) {
-      findings.push(...this.allergyFindings(activeAllergies, medicine));
-      findings.push(...this.foodInteractionFindings(medicine));
+      findings.push(
+        ...this.allergyFindings(activeAllergies, medicine),
+        ...this.foodInteractionFindings(medicine),
+      );
     }
 
     for (let i = 0; i < details.length; i++) {

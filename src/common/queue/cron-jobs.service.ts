@@ -126,8 +126,8 @@ export class CronJobsService implements OnModuleInit {
       // Clean up stale scheduler left behind by the 2026-07-29 queue split.
       // `reminder-dispatch` was moved to REMINDER_QUEUE_NAME, but BullMQ
       // repeatable schedulers persist in Redis until explicitly removed.
-      registrations.push(cronQueue.removeJobScheduler(SCHEDULER_REMINDER));
       registrations.push(
+        cronQueue.removeJobScheduler(SCHEDULER_REMINDER),
         cronQueue.upsertJobScheduler(
           SCHEDULER_DATA_RETENTION,
           { pattern: DATA_RETENTION_CRON, tz: 'UTC' },

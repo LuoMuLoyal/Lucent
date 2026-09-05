@@ -453,8 +453,6 @@ export class LifecycleService {
         return 2;
       case SuggestionLifecycleState.DISMISSED:
         return 1;
-      case SuggestionLifecycleState.EXPIRED:
-      case SuggestionLifecycleState.GENERATED:
       default:
         return 0;
     }

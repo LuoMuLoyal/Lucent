@@ -12,6 +12,11 @@ import {
   CN_LEAFLET_STYLE_RULES,
 } from './tool-keyword-rules.js';
 
+const SUMMARY_POINT_TOOL_NAMES: ReadonlySet<AssistantToolName> = new Set([
+  'get_today_summary_by_date',
+  'get_report_summary_by_range',
+]);
+
 export function selectAllowedToolsForContextSources(
   enabledContextSources: readonly AssistantContextSource[],
 ): AssistantToolName[] {
@@ -35,11 +40,11 @@ export function selectRelevantToolsForMessage(
       toolName === 'get_records_by_date' ||
       toolName === 'get_records_by_range',
   );
-  const summaryPointTools = allowedTools.filter(
-    (toolName) =>
-      toolName === 'get_today_summary_by_date' ||
-      toolName === 'get_report_summary_by_range',
-  );
+  const allowedToolsSet = new Set(allowedTools);
+  const summaryPointTools = new Set<AssistantToolName>();
+  for (const toolName of SUMMARY_POINT_TOOL_NAMES) {
+    if (allowedToolsSet.has(toolName)) summaryPointTools.add(toolName);
+  }
   const sleepTools = allowedTools.filter(
     (toolName) => toolName === 'get_sleep_summary_by_range',
   );
@@ -116,14 +121,14 @@ export function selectRelevantToolsForMessage(
     }
 
     if (
-      summaryPointTools.includes('get_today_summary_by_date') &&
+      summaryPointTools.has('get_today_summary_by_date') &&
       /今天总结|当日总结|today summary|today analysis/i.test(userMessage) &&
       /(昨天|前天|\b\d{4}-\d{2}-\d{2}\b|\d{1,2}月\d{1,2}日)/.test(userMessage)
     ) {
       return ['get_today_summary_by_date'];
     }
     if (
-      summaryPointTools.includes('get_report_summary_by_range') &&
+      summaryPointTools.has('get_report_summary_by_range') &&
       /周报|月报|报告总结|报告分析|report summary/i.test(userMessage)
     ) {
       return ['get_report_summary_by_range'];

@@ -79,9 +79,10 @@ export class VerificationCodeService {
     );
   }
 
-  assertClientRateLimit(clientKey?: string): ResultAsync<void, DomainFailure> {
-    const effectiveKey = clientKey || 'unknown';
-    const key = this.clientRateLimitKey(effectiveKey);
+  assertClientRateLimit(
+    clientKey = 'unknown',
+  ): ResultAsync<void, DomainFailure> {
+    const key = this.clientRateLimitKey(clientKey);
 
     // Prefer atomic Redis INCR when available — eliminates the race
     // condition where concurrent requests could all read the same stale

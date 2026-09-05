@@ -5,7 +5,7 @@ import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 function readOptionalEnv(key: EnvKey): string | null {
   const value = process.env[key]?.trim();
-  return value ? value : null;
+  return value || null;
 }
 
 interface LlmRoleConfig {

@@ -260,9 +260,10 @@ export class NotificationsService {
 
   private toDetailDto(row: UserNotificationRow): NotificationDetailDto {
     const item = this.toListItemDto(row);
-    return Object.assign({}, item, {
+    return {
+      ...item,
       readAt: row.readAt?.toISOString() ?? null,
-    });
+    };
   }
 
   private notificationNotFound(): DomainFailure {

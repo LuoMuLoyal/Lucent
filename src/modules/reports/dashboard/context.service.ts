@@ -338,10 +338,13 @@ export class ReportsContextService {
 
   private eachDay(startDate: Date, endDate: Date): Date[] {
     const days: Date[] = [];
-    const cursor = new Date(startDate);
-    while (cursor <= endDate) {
+    const endTime = endDate.getTime();
+    for (
+      let cursor = startDate.getTime();
+      cursor <= endTime;
+      cursor += 86_400_000
+    ) {
       days.push(new Date(cursor));
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
     return days;
   }

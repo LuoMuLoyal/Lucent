@@ -142,7 +142,7 @@ function isCodeKindConsistent(
   kind: DomainFailureKind,
 ): code is DomainFailureCode {
   return (
-    Object.prototype.hasOwnProperty.call(DOMAIN_FAILURE_KIND_BY_CODE, code) &&
+    Object.hasOwn(DOMAIN_FAILURE_KIND_BY_CODE, code) &&
     DOMAIN_FAILURE_KIND_BY_CODE[code as DomainFailureCode] === kind
   );
 }
