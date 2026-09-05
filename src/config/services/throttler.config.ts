@@ -8,6 +8,8 @@ import {
 import type { Redis } from 'ioredis';
 import { EnvKey } from '../env/env-keys.enum.js';
 
+const logger = new Logger('ThrottlerConfigService');
+
 interface ThrottlerStorageRecord {
   totalHits: number;
   timeToExpire: number;
@@ -116,8 +118,6 @@ export async function buildThrottlerOptions(
 
   return options;
 }
-
-const logger = new Logger('ThrottlerConfigService');
 
 @Injectable()
 export class ThrottlerConfigService implements ThrottlerOptionsFactory {
