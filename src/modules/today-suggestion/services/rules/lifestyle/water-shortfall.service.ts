@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import type { ObservedMetric } from '../../../../../common/index.js';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
