@@ -132,9 +132,7 @@ describe('in-graph proposal review (HITL)', () => {
     expect(review).toEqual({
       proposalIds: ['proposal-fresh', 'proposal-stale'],
     });
-    expect(
-      Object.prototype.hasOwnProperty.call(review ?? {}, 'expiresAt'),
-    ).toBe(false);
+    expect(Object.hasOwn(review ?? {}, 'expiresAt')).toBe(false);
   });
 
   it('records rejection without claiming any write', async () => {

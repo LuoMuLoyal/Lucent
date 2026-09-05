@@ -58,7 +58,7 @@ describe('buildToolDefinitions', () => {
   });
 
   it('preserves order of input tool names', () => {
-    const reversed = [...ASSISTANT_TOOL_NAMES].reverse();
+    const reversed = [...ASSISTANT_TOOL_NAMES].toReversed();
     const defs = buildToolDefinitions(reversed);
 
     expect(defs.map((d) => d.function.name)).toEqual(reversed);

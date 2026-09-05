@@ -70,12 +70,14 @@ describe('FeedbackStatsService', () => {
         ruleId: 'rule-a',
       });
     }
-    pairs.push({ feedback: 'later', suggestionId: 'sug-8', ruleId: 'rule-a' });
-    pairs.push({
-      feedback: 'suppress',
-      suggestionId: 'sug-9',
-      ruleId: 'rule-a',
-    });
+    pairs.push(
+      { feedback: 'later', suggestionId: 'sug-8', ruleId: 'rule-a' },
+      {
+        feedback: 'suppress',
+        suggestionId: 'sug-9',
+        ruleId: 'rule-a',
+      },
+    );
     mockFeedbackRulePairs(pairs);
 
     const result = await service.loadStats('user-1', ['rule-a']);
@@ -91,12 +93,14 @@ describe('FeedbackStatsService', () => {
       suggestionId: string;
       ruleId: string;
     }> = [];
-    pairs.push({
-      feedback: 'accepted',
-      suggestionId: 'sug-0',
-      ruleId: 'rule-b',
-    });
-    pairs.push({ feedback: 'later', suggestionId: 'sug-1', ruleId: 'rule-b' });
+    pairs.push(
+      {
+        feedback: 'accepted',
+        suggestionId: 'sug-0',
+        ruleId: 'rule-b',
+      },
+      { feedback: 'later', suggestionId: 'sug-1', ruleId: 'rule-b' },
+    );
     for (let i = 2; i < 10; i++) {
       pairs.push({
         feedback: 'suppress',

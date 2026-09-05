@@ -4,7 +4,7 @@ describe('env file path helpers', () => {
   const originalNodeEnv = process.env['NODE_ENV'];
 
   afterEach(() => {
-    if (typeof originalNodeEnv === 'undefined') {
+    if (originalNodeEnv === undefined) {
       delete process.env['NODE_ENV'];
       return;
     }

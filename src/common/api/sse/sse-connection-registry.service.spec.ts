@@ -1,4 +1,3 @@
-import { EventEmitter } from 'node:events';
 import type { ServerResponse } from 'node:http';
 import { Logger } from '@nestjs/common';
 import { ProblemCatalog } from '../problem-catalog.js';
@@ -7,19 +6,24 @@ import { SseConnectionRegistry } from './sse-connection-registry.service.js';
 
 interface MockSseResponse {
   response: ServerResponse;
-  emitter: EventEmitter;
+  emitter: EventTarget;
   write: ReturnType<typeof vi.fn>;
   end: ReturnType<typeof vi.fn>;
 }
 
 function createMockResponse(): MockSseResponse {
-  const emitter = new EventEmitter();
+  const emitter = new EventTarget();
   const response = emitter as unknown as ServerResponse;
   const write = vi.fn().mockReturnValue(true);
   const end = vi.fn().mockReturnValue(response);
   Object.assign(response, {
     write,
     end,
+    // EventTarget has no `.once`; mirror the ServerResponse API used by
+    // the registry (`response.once('close', ...)`).
+    once: (type: string, listener: () => void) => {
+      emitter.addEventListener(type, listener, { once: true });
+    },
     writableEnded: false,
     destroyed: false,
   });
@@ -74,7 +78,7 @@ describe('SseConnectionRegistry', () => {
       const { response, emitter } = createMockResponse();
 
       registry.register(response);
-      emitter.emit('close');
+      emitter.dispatchEvent(new Event('close'));
 
       expect(registry.size).toBe(0);
     });

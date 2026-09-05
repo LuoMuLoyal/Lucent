@@ -1,5 +1,4 @@
 import { Queue } from 'bullmq';
-import { EventEmitter } from 'node:events';
 import type { ServerResponse } from 'node:http';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
@@ -179,7 +178,7 @@ describe('startup and shutdown ordering (e2e)', () => {
 
 interface FakeSseResponse {
   response: ServerResponse;
-  emitter: EventEmitter;
+  emitter: EventTarget;
   write: ReturnType<typeof vi.fn>;
   end: ReturnType<typeof vi.fn>;
 }
@@ -191,13 +190,18 @@ interface FakeSseResponse {
  * stream (call counts and frames) instead of poking writableEnded flags.
  */
 function makeFakeSseResponse(): FakeSseResponse {
-  const emitter = new EventEmitter();
+  const emitter = new EventTarget();
   const response = emitter as unknown as ServerResponse;
   const write = vi.fn().mockReturnValue(true);
   const end = vi.fn().mockReturnValue(response);
   Object.assign(response, {
     write,
     end,
+    // Mirror ServerResponse's `once` API used by the registry for the
+    // 'close' disconnect hook; EventTarget only has addEventListener.
+    once: (type: string, listener: () => void) => {
+      emitter.addEventListener(type, listener, { once: true });
+    },
     writableEnded: false,
     destroyed: false,
   });
