@@ -261,4 +261,54 @@ describe('ReportsService', () => {
     expect(dashboard.metrics[0]?.status).toBe('good');
     expect(dashboard.patterns[0]?.status).toBe('good');
   });
+
+  it('serves the computed result when the cache set fails (fail-open)', async () => {
+    const contextService = {
+      build: vi.fn().mockResolvedValue({
+        range: REPORT_RANGE_LAST_7_DAYS,
+        startDate: new Date('2026-06-06T00:00:00.000Z'),
+        endDate: new Date('2026-06-12T00:00:00.000Z'),
+        generatedAt: '2026-06-12T08:00:00.000Z',
+        aiSummaryEnabled: true,
+        medicationSeries: [50, 100],
+        waterSeries: [1.5, 0],
+        sleepSeries: [0, 0],
+        mealEstimateSeries: [1, 0],
+        mealEstimateTrackedDays: 1,
+        mealEstimateBreakdown: {
+          confirmedDays: 1,
+          estimatedDays: 0,
+          partialDays: 0,
+          analyzingDays: 0,
+          failedDays: 0,
+        },
+      }),
+    } as unknown as ReportsContextService;
+    const computationService = {
+      compute: vi.fn().mockReturnValue({
+        metrics: [],
+        trends: [],
+        findings: [],
+        patterns: [],
+      }),
+    } as unknown as ReportsComputationService;
+    const cache = {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockRejectedValue(new Error('redis down')),
+    } as never;
+    const service = new ReportsService(
+      contextService,
+      computationService,
+      cache,
+    );
+
+    const dashboard = await service.getDashboard(
+      'u1',
+      { range: REPORT_RANGE_LAST_7_DAYS },
+      'en',
+    );
+
+    expect(dashboard.range).toBe(REPORT_RANGE_LAST_7_DAYS);
+    expect(dashboard.aiSummaryEnabled).toBe(true);
+  });
 });

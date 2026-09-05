@@ -2,6 +2,7 @@ import { formatDateOnly } from '../../../common/index.js';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { getActiveTraceIds } from '../../../common/logger/trace-context.utils.js';
 import type { ReportDashboardDataDto } from '../dto/report-dashboard-response.dto.js';
 
 import type { ReportDashboardQueryDto } from '../dto/report-dashboard-query.dto.js';
@@ -33,8 +34,9 @@ export class ReportsService {
     try {
       cached = await this.cache.get<ReportDashboardDataDto>(cacheKey);
     } catch (error) {
+      const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
-        { err: error, key: cacheKey },
+        { err: error, key: cacheKey, traceId, spanId },
         'Reports dashboard cache get failed',
       );
       throw error;
@@ -61,11 +63,11 @@ export class ReportsService {
     try {
       await this.cache.set(cacheKey, result, ReportsService.CACHE_TTL_MS);
     } catch (error) {
+      const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
-        { err: error, key: cacheKey },
-        'Reports dashboard cache set failed',
+        { err: error, key: cacheKey, traceId, spanId },
+        'Reports dashboard cache set failed — serving computed result directly',
       );
-      throw error;
     }
     this.logger.debug(
       `Cache set: dashboard (userId=${userId}, key=${cacheKey})`,
@@ -94,8 +96,9 @@ export class ReportsService {
         try {
           keys = await store.keys();
         } catch (error) {
+          const { traceId, spanId } = getActiveTraceIds();
           this.logger.warn(
-            { err: error, userSegment },
+            { err: error, userSegment, traceId, spanId },
             'Reports dashboard cache key enumeration failed',
           );
           continue;
@@ -104,8 +107,9 @@ export class ReportsService {
         await Promise.all(
           matching.map((key) =>
             this.cache.del(key).catch((error: unknown) => {
+              const { traceId, spanId } = getActiveTraceIds();
               this.logger.warn(
-                { err: error, key },
+                { err: error, key, traceId, spanId },
                 'Reports dashboard cache del failed',
               );
             }),
@@ -113,8 +117,9 @@ export class ReportsService {
         );
       }
     } catch (error) {
+      const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
-        { err: error, userId },
+        { err: error, userId, traceId, spanId },
         'Reports dashboard cache invalidation failed',
       );
     }
