@@ -722,7 +722,7 @@ export class ReportsController {
 registerResponseSchema({
   path: '/api/v1/user/reports/dashboard',
   method: 'get',
-  componentName: 'ReportDashboardResponseDto',
+  componentName: 'ReportDashboardResponse',
   schema: reportDashboardResponseSchema,
   description: 'Report dashboard with metric/trend/finding/pattern blocks.',
 });
@@ -730,7 +730,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/summary/generate',
   method: 'post',
-  componentName: 'ReportSummaryResponseDto',
+  componentName: 'ReportSummaryResponse',
   schema: reportSummaryResponseSchema,
   description: 'AI report summary resource.',
 });
@@ -738,7 +738,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/summary/generate/async',
   method: 'post',
-  componentName: 'ReportSummaryAsyncResponseDto',
+  componentName: 'ReportSummaryJobResponse',
   schema: reportSummaryAsyncResponseSchema,
   description:
     'Returns either a queued jobId or the synchronous summary resource when the queue is unavailable.',
@@ -747,7 +747,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/clinic-summary/preview',
   method: 'post',
-  componentName: 'ClinicSummaryResponseDto',
+  componentName: 'ClinicSummaryResponse',
   schema: clinicSummaryResponseSchema,
   description: 'The de-identified clinic summary preview.',
 });
@@ -755,7 +755,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/clinic-summary/share',
   method: 'post',
-  componentName: 'ClinicSummaryShareResponseDto',
+  componentName: 'ClinicSummaryShareResponse',
   schema: clinicSummaryShareResponseSchema,
   description: 'The created share record with its one-time token.',
 });
@@ -763,7 +763,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/clinic-summary/shares',
   method: 'get',
-  componentName: 'ClinicSummaryShareListResponseDto',
+  componentName: 'ClinicSummaryShareListResponse',
   schema: clinicSummaryShareListResponseSchema,
   description: 'The caller clinic-summary shares, newest first.',
 });
@@ -771,7 +771,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/clinic-summary/shared/{token}',
   method: 'get',
-  componentName: 'ClinicSummaryResponseDto',
+  componentName: 'ClinicSummaryResponse',
   schema: clinicSummaryResponseSchema,
   description: 'The shared clinic summary.',
 });
@@ -779,7 +779,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/clinic-summary/export/async',
   method: 'post',
-  componentName: 'ClinicSummaryExportAsyncResponseDto',
+  componentName: 'ClinicSummaryExportJobResponse',
   schema: clinicSummaryExportAsyncResponseSchema,
   description:
     'Unscoped requests use the async queue job (jobId for polling); an explicit scope is exported synchronously with the requested scope honored (pdfBase64). When no queue is configured, both paths return the base64 PDF synchronously.',
@@ -791,7 +791,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/reviews/current',
   method: 'get',
-  componentName: 'EventReviewDataDto',
+  componentName: 'EventReviewData',
   schema: eventReviewNullableResponseSchema,
   description:
     'The current event review, or null when the user has no event review.',
@@ -800,7 +800,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/reviews',
   method: 'get',
-  componentName: 'EventReviewListResponseDto',
+  componentName: 'EventReviewListResponse',
   schema: eventReviewListResponseSchema,
   description: 'Paginated event review history.',
 });
@@ -808,7 +808,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reports/reviews/{eventId}',
   method: 'get',
-  componentName: 'EventReviewResponseDto',
+  componentName: 'EventReviewResponse',
   schema: eventReviewResponseSchema,
   description: 'The event review for the requested event.',
 });
