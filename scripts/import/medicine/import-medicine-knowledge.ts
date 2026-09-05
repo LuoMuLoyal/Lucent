@@ -525,7 +525,17 @@ interface RedisStoreClient {
   disconnect: () => void;
 }
 
-async function redisStoreFromUrl(redisUrl) {
+/**
+ * Narrow type for the cache store surface this script relies on.
+ * `cache-manager-ioredis-yet`'s `RedisStore` extends `Store`, which exposes
+ * `.keys()` at runtime but the upstream `Store` interface omits it; the
+ * runtime type is correct, so we accept anything that provides `keys`.
+ */
+interface CacheKeyEnumerator {
+  keys: (pattern: string) => Promise<string[]>;
+}
+
+async function redisStoreFromUrl(redisUrl: string) {
   // Dynamic import keeps the lazy-load behavior of the previous require():
   // the Redis store dependency is only loaded when cache invalidation runs.
   const { redisStore } = await import('cache-manager-ioredis-yet');
@@ -556,7 +566,10 @@ function uniqueStrings(values: string[]): string[] {
   return [...new Set(values)];
 }
 
-function stripNamespacePrefix(key, namespacePrefix) {
+function stripNamespacePrefix(
+  key: string,
+  namespacePrefix: string | null,
+): string {
   if (!namespacePrefix || !key.startsWith(namespacePrefix)) {
     return key;
   }
@@ -564,7 +577,7 @@ function stripNamespacePrefix(key, namespacePrefix) {
 }
 
 async function listMedicineCacheKeys(
-  store,
+  store: CacheKeyEnumerator,
   namespace = 'keyv',
 ): Promise<string[]> {
   const namespacePrefix = namespace ? `${namespace}:` : null;
@@ -574,7 +587,7 @@ async function listMedicineCacheKeys(
         `${MEDICINES_CACHE_KEY_PREFIX}:*`,
       ]
     : [`${MEDICINES_CACHE_KEY_PREFIX}:*`];
-  const matchedKeys = [];
+  const matchedKeys: string[] = [];
 
   for (const pattern of patterns) {
     const keys = await store.keys(pattern);
@@ -605,7 +618,12 @@ async function invalidateMedicineCache() {
   const redisClient = store.client as unknown as RedisStoreClient;
 
   try {
-    const keys = await listMedicineCacheKeys(store);
+    // RedisStore extends Store which omits `.keys` in cache-manager 7's type
+    // declarations, but the ioredis-yet runtime includes it. The cast
+    // narrows to the surface listMedicineCacheKeys actually uses.
+    const keys = await listMedicineCacheKeys(
+      store as unknown as CacheKeyEnumerator,
+    );
     if (keys.length === 0) {
       return { invalidated: 0 };
     }
