@@ -442,6 +442,10 @@ async function main() {
   ): string => {
     const key = controllerKey + '_' + methodKey;
     const mapped = lookup.methodByKey[key] ?? key;
+    if (mapped === key && Object.keys(lookup.methodByKey).length > 0) {
+      // eslint-disable-next-line no-console
+      console.error('[openapi-export] naming lookup MISS for key: ' + key);
+    }
     if (seenOperationIds.has(mapped)) {
       throw new Error(
         '[openapi-export] duplicate operationId after naming mapping: ' + mapped +
