@@ -57,29 +57,30 @@ export function buildMedicineRiskUserPrompt(
   _copy: MedicineRiskLlmPromptCopy,
 ): string {
   const medicines = context.medicines
-    .map(
-      (m) =>
-        `- ${m.name} (source: ${m.source})` +
-        (m.ingredients ? `\n  Ingredients: ${m.ingredients}` : '') +
-        (m.contraindications
-          ? `\n  Contraindications: ${m.contraindications}`
-          : '') +
-        (m.precautions ? `\n  Precautions: ${m.precautions}` : '') +
-        (m.foodInteractions && m.foodInteractions.length > 0
-          ? `\n  Food interactions: ${m.foodInteractions.join('; ')}`
-          : '') +
-        (m.drugInteractions && m.drugInteractions.length > 0
-          ? `\n  Drug interactions: ${m.drugInteractions.map((d) => `${d.target}: ${d.description}`).join('; ')}`
-          : '') +
-        (m.startedAt ? `\n  Started: ${m.startedAt}` : ''),
-    )
+    .map((m) => {
+      const lines = [`- ${m.name} (source: ${m.source})`];
+      if (m.ingredients) lines.push(`\n  Ingredients: ${m.ingredients}`);
+      if (m.contraindications)
+        lines.push(`\n  Contraindications: ${m.contraindications}`);
+      if (m.precautions) lines.push(`\n  Precautions: ${m.precautions}`);
+      if (m.foodInteractions && m.foodInteractions.length > 0)
+        lines.push(`\n  Food interactions: ${m.foodInteractions.join('; ')}`);
+      if (m.drugInteractions && m.drugInteractions.length > 0)
+        lines.push(
+          `\n  Drug interactions: ${m.drugInteractions
+            .map((d) => `${d.target}: ${d.description}`)
+            .join('; ')}`,
+        );
+      if (m.startedAt) lines.push(`\n  Started: ${m.startedAt}`);
+      return lines.join('');
+    })
     .join('\n');
 
   const allergies = context.allergies
-    .map(
-      (a) =>
-        `- ${a.label} (severity: ${a.severity})` +
-        (a.reaction ? ` reaction: ${a.reaction}` : ''),
+    .map((a) =>
+      a.reaction
+        ? `- ${a.label} (severity: ${a.severity}) reaction: ${a.reaction}`
+        : `- ${a.label} (severity: ${a.severity})`,
     )
     .join('\n');
 
@@ -88,15 +89,17 @@ export function buildMedicineRiskUserPrompt(
     .join('\n');
 
   const reminders = context.reminders
-    .map(
-      (r) =>
-        `- ${r.medicineName} at ${String(r.scheduledHour).padStart(2, '0')}:${String(r.scheduledMinute).padStart(2, '0')}` +
-        (r.daysOfWeek && r.daysOfWeek.length > 0
-          ? ` on days: ${r.daysOfWeek.join(',')}`
-          : ' (daily)') +
-        (r.startDate ? ` from ${r.startDate}` : '') +
-        (r.endDate ? ` until ${r.endDate}` : ''),
-    )
+    .map((r) => {
+      const lines = [
+        `- ${r.medicineName} at ${String(r.scheduledHour).padStart(2, '0')}:${String(r.scheduledMinute).padStart(2, '0')}`,
+      ];
+      if (r.daysOfWeek && r.daysOfWeek.length > 0)
+        lines.push(` on days: ${r.daysOfWeek.join(',')}`);
+      else lines.push(' (daily)');
+      if (r.startDate) lines.push(` from ${r.startDate}`);
+      if (r.endDate) lines.push(` until ${r.endDate}`);
+      return lines.join('');
+    })
     .join('\n');
 
   const staticFindings = context.staticFindings

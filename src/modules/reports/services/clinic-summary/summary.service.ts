@@ -674,6 +674,6 @@ export class ClinicSummaryService {
         lang: locale,
       });
     if (name.length <= 1) return name;
-    return name.charAt(0) + '**';
+    return `${name.charAt(0)}**`;
   }
 }

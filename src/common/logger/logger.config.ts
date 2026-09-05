@@ -55,9 +55,9 @@ const otelTraceFormat = winstonFormat((info) => {
 // ── ANSI color constants (used only for trace tag highlighting) ──────────
 
 const C = {
-  reset: '\x1B[0m',
-  green: '\x1B[32m',
-  gray: '\x1B[90m',
+  reset: '\u001B[0m',
+  green: '\u001B[32m',
+  gray: '\u001B[90m',
 } as const;
 
 /**

@@ -170,7 +170,7 @@ export class MealAnalysisVisionService {
 }
 
 function isControlCharacter(char: string): boolean {
-  const code = char.charCodeAt(0);
+  const code = char.codePointAt(0) ?? 0;
   return (
     code <= 0x08 ||
     (code >= 0x0b && code <= 0x0c) ||

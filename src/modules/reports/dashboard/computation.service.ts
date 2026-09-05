@@ -329,7 +329,7 @@ export class ReportsComputationService {
     }
     const delta = Math.round(currentValue - firstValue);
     const sign = delta >= 0 ? '+' : '';
-    return sign + delta.toString() + '%';
+    return `${sign}${String(delta)}%`;
   }
 
   private deltaNumber(

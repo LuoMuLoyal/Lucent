@@ -111,7 +111,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
-          email: 'test\x00admin@example.com',
+          email: 'test\u0000admin@example.com',
           password: 'Test@123456',
         })
         .expect(400);

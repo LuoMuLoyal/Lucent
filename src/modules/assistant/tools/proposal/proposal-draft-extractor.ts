@@ -19,7 +19,7 @@ const NEGATION_SUFFIX_RE =
 function hasAffirmativeMatch(lowered: string, pattern: RegExp): boolean {
   const globalPattern = pattern.flags.includes('g')
     ? pattern
-    : new RegExp(pattern.source, pattern.flags + 'g');
+    : new RegExp(pattern.source, `${pattern.flags}g`);
   for (const match of lowered.matchAll(globalPattern)) {
     const before = lowered.slice(0, match.index);
     if (!NEGATION_SUFFIX_RE.test(before)) {

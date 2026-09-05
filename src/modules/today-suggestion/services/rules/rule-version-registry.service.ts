@@ -114,7 +114,7 @@ export class RuleVersionRegistry {
     }
 
     // Deterministic hash: user is in the "new" bucket if hash < ratio
-    const hash = this.hashUserId(userId + ':' + ruleId);
+    const hash = this.hashUserId(`${userId}:${ruleId}`);
     if (hash < ratio) {
       return versions[versions.length - 1] ?? null;
     }
@@ -149,7 +149,7 @@ export class RuleVersionRegistry {
   private hashUserId(input: string): number {
     let hash = 0x811c9dc5;
     for (let i = 0; i < input.length; i++) {
-      hash ^= input.charCodeAt(i);
+      hash ^= input.codePointAt(i) ?? 0;
       hash = Math.imul(hash, 0x01000193);
     }
     // Convert to unsigned and normalize to [0, 1)

@@ -221,7 +221,7 @@ function clonePlainRecord(raw: unknown): PlainRecord | null {
     return null;
   }
 
-  return JSON.parse(JSON.stringify(record)) as PlainRecord;
+  return structuredClone(record);
 }
 
 function asPlainRecord(raw: unknown): PlainRecord | null {
