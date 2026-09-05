@@ -209,7 +209,7 @@ describe('API Contract Tests (e2e)', () => {
   // ── Public endpoints ────────────────────────────────────────
 
   describe('GET /api/v1/health — contract', () => {
-    it('should match HealthResponseDto shape', async () => {
+    it('should match HealthResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/health')
         .expect(200);
@@ -217,7 +217,7 @@ describe('API Contract Tests (e2e)', () => {
       assertDirectResourceShape(res.body);
       const env = res.body as Record<string, unknown>;
 
-      const schema = resolveRef(spec, '#/components/schemas/HealthResponseDto');
+      const schema = resolveRef(spec, '#/components/schemas/HealthResponse');
       assertRequiredProperties(env, schema, spec);
 
       // Verify nested probe field exists
@@ -228,7 +228,7 @@ describe('API Contract Tests (e2e)', () => {
   });
 
   describe('GET /api/v1/health/live — contract', () => {
-    it('should match HealthResponseDto shape', async () => {
+    it('should match HealthResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/health/live')
         .expect(200);
@@ -239,7 +239,7 @@ describe('API Contract Tests (e2e)', () => {
   });
 
   describe('GET /api/v1/health/ready — contract', () => {
-    it('should match HealthResponseDto shape', async () => {
+    it('should match HealthResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/health/ready')
         .expect(200);
@@ -250,7 +250,7 @@ describe('API Contract Tests (e2e)', () => {
   });
 
   describe('GET /api/v1/medicines/safety-tips — contract', () => {
-    it('should match MedicineSafetyTipResponseDto shape', async () => {
+    it('should match MedicineSafetyTipResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/medicines/safety-tips')
         .expect(200);
@@ -259,14 +259,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/MedicineSafetyTipResponseDto',
+        '#/components/schemas/MedicineSafetyTipResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/legal-documents — contract', () => {
-    it('should match LegalDocumentListResponseDto shape', async () => {
+    it('should match LegalDocumentListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/legal-documents')
         .expect(200);
@@ -275,14 +275,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/LegalDocumentListResponseDto',
+        '#/components/schemas/LegalDocumentListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/public/app-info — contract', () => {
-    it('should match AppInfoResponseDto shape', async () => {
+    it('should match AppInfoResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/public/app-info')
         .expect(200);
@@ -291,7 +291,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/AppInfoResponseDto',
+        '#/components/schemas/AppInfoResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
@@ -300,7 +300,7 @@ describe('API Contract Tests (e2e)', () => {
   // ── Authenticated endpoints ─────────────────────────────────
 
   describe('GET /api/v1/account — contract', () => {
-    it('should match AccountResponseDto shape', async () => {
+    it('should match AccountResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/account')
         .set('Authorization', bearer(accessToken))
@@ -310,7 +310,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/AccountResponseDto',
+        '#/components/schemas/AccountResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
 
@@ -321,7 +321,7 @@ describe('API Contract Tests (e2e)', () => {
   });
 
   describe('GET /api/v1/user/health-context — contract', () => {
-    it('should match HealthContextResponseDto shape', async () => {
+    it('should match HealthContextResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/health-context')
         .set('Authorization', bearer(accessToken))
@@ -331,14 +331,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/HealthContextResponseDto',
+        '#/components/schemas/HealthContextResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/notifications — contract', () => {
-    it('should match NotificationListResponseDto shape', async () => {
+    it('should match NotificationListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/notifications')
         .set('Authorization', bearer(accessToken))
@@ -348,14 +348,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/NotificationListResponseDto',
+        '#/components/schemas/NotificationListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/settings — contract', () => {
-    it('should match UserSettingsResponseDto shape', async () => {
+    it('should match UserSettingsResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/settings')
         .set('Authorization', bearer(accessToken))
@@ -365,14 +365,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/UserSettingsResponseDto',
+        '#/components/schemas/UserSettingsResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/daily-records — contract', () => {
-    it('should match DailyRecordListResponseDto shape', async () => {
+    it('should match DailyRecordListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/daily-records')
         .query({ date: '2026-07-12' })
@@ -383,14 +383,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/DailyRecordListResponseDto',
+        '#/components/schemas/DailyRecordListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/medicine-reminders — contract', () => {
-    it('should match MedicineReminderListResponseDto shape', async () => {
+    it('should match MedicineReminderListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/medicine-reminders')
         .set('Authorization', bearer(accessToken))
@@ -400,14 +400,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/MedicineReminderListResponseDto',
+        '#/components/schemas/MedicineReminderListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/medicine-dose-logs — contract', () => {
-    it('should match DoseLogListResponseDto shape', async () => {
+    it('should match DoseLogListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/medicine-dose-logs')
         .query({ date: '2026-07-12' })
@@ -418,14 +418,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/DoseLogListResponseDto',
+        '#/components/schemas/DoseLogListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/reports/dashboard — contract', () => {
-    it('should match ReportDashboardResponseDto shape', async () => {
+    it('should match ReportDashboardResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/reports/dashboard')
         .set('Authorization', bearer(accessToken))
@@ -435,14 +435,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/ReportDashboardResponseDto',
+        '#/components/schemas/ReportDashboardResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/today/suggestions — contract', () => {
-    it('should match TodaySuggestionsResponseDto shape', async () => {
+    it('should match TodaySuggestionsResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/today/suggestions')
         .set('Authorization', bearer(accessToken))
@@ -452,14 +452,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/TodaySuggestionsResponseDto',
+        '#/components/schemas/TodaySuggestionsResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/assistant/capabilities — contract', () => {
-    it('should match AssistantCapabilitiesResponseDto shape', async () => {
+    it('should match AssistantCapabilitiesResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/assistant/capabilities')
         .set('Authorization', bearer(accessToken))
@@ -469,14 +469,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/AssistantCapabilitiesResponseDto',
+        '#/components/schemas/AssistantCapabilitiesResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/environment/snapshot — contract', () => {
-    it('should match EnvironmentSnapshotResponseDto shape', async () => {
+    it('should match EnvironmentSnapshotResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/environment/snapshot')
         .set('Authorization', bearer(accessToken))
@@ -486,7 +486,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/EnvironmentSnapshotResponseDto',
+        '#/components/schemas/EnvironmentSnapshotResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
@@ -495,7 +495,7 @@ describe('API Contract Tests (e2e)', () => {
   // ── Additional GET endpoint contracts ───────────────────────
 
   describe('GET /api/v1/health/deep — contract', () => {
-    it('should match HealthResponseDto shape', async () => {
+    it('should match HealthResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/health/deep')
         .expect(200);
