@@ -34,7 +34,7 @@ export class EnvironmentController {
 registerResponseSchema({
   path: '/api/v1/environment/snapshot',
   method: 'get',
-  componentName: 'EnvironmentSnapshotResponseDto',
+  componentName: 'EnvironmentSnapshotResponse',
   schema: environmentSnapshotResponseSchema,
   description: 'Static environment snapshot reference data.',
 });

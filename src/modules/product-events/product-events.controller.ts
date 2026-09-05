@@ -104,7 +104,7 @@ export class ProductEventsController {
 registerResponseSchema({
   path: '/api/v1/user/product-events/funnel',
   method: 'get',
-  componentName: 'FunnelResponseDto',
+  componentName: 'FunnelResponse',
   schema: funnelResponseSchema,
   description: 'Aggregated funnel counts for the requested window.',
 });

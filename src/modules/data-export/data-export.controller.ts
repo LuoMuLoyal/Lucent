@@ -113,7 +113,7 @@ export class DataExportController {
 registerResponseSchema({
   path: '/api/v1/user/data-export-requests',
   method: 'post',
-  componentName: 'DataExportRequestResponseDto',
+  componentName: 'DataExportRequestResponse',
   schema: dataExportRequestDataSchema,
   description: 'Data export request created.',
 });
@@ -121,7 +121,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/data-export-requests/latest',
   method: 'get',
-  componentName: 'DataExportRequestDataDto',
+  componentName: 'DataExportRequestData',
   schema: dataExportLatestResponseSchema,
   description: 'Latest data export request, or null when none exists.',
 });

@@ -61,7 +61,7 @@ export class LegalDocumentsController {
 registerResponseSchema({
   path: '/api/v1/legal-documents',
   method: 'get',
-  componentName: 'LegalDocumentListResponseDto',
+  componentName: 'LegalDocumentListResponse',
   schema: legalDocumentListSchema,
   description: 'Active legal documents with list-level update timestamp.',
 });
@@ -69,7 +69,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/legal-documents/{docType}',
   method: 'get',
-  componentName: 'LegalDocumentDetailResponseDto',
+  componentName: 'LegalDocumentDetailResponse',
   schema: legalDocumentDetailSchema,
   description: 'Legal document detail with Markdown content.',
 });

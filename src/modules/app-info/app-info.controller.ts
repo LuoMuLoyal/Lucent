@@ -24,7 +24,7 @@ export class AppInfoController {
 registerResponseSchema({
   path: '/api/v1/public/app-info',
   method: 'get',
-  componentName: 'AppInfoResponseDto',
+  componentName: 'AppInfoResponse',
   schema: appInfoResponseSchema,
   description: 'Application metadata.',
 });
