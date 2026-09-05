@@ -53,7 +53,7 @@ import { renameConversationSchema } from './dto/rename-conversation.dto.js';
 import type { RenameConversationDto } from './dto/rename-conversation.dto.js';
 
 import {
-  AssistantConfirmResultResponseDto,
+  AssistantConfirmResultResponse,
   confirmAssistantProposalSchema,
 } from './dto/confirm-proposal.dto.js';
 import type { ConfirmAssistantProposalDto } from './dto/confirm-proposal.dto.js';
@@ -141,7 +141,7 @@ export class AssistantController {
     summary:
       'Confirm or reject pending assistant write proposals and resume the graph thread',
   })
-  @ApiResponse({ status: 200, type: AssistantConfirmResultResponseDto })
+  @ApiResponse({ status: 200, type: AssistantConfirmResultResponse })
   async confirmProposal(
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
@@ -372,7 +372,7 @@ export class AssistantController {
 registerResponseSchema({
   path: '/api/v1/user/assistant/capabilities',
   method: 'get',
-  componentName: 'AssistantCapabilitiesResponseDto',
+  componentName: 'AssistantCapabilitiesResponse',
   schema: assistantCapabilitiesDataSchema,
   description: 'Assistant capabilities payload.',
 });
@@ -382,7 +382,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/assistant/conversations',
   method: 'get',
-  componentName: 'AssistantConversationSummaryDto',
+  componentName: 'AssistantConversationSummary',
   schema: assistantConversationListResponseSchema,
   description: 'List of recent assistant conversation summaries.',
 });
@@ -393,7 +393,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/assistant/latest',
   method: 'get',
-  componentName: 'AssistantConversationDataDto',
+  componentName: 'AssistantConversationData',
   schema: assistantConversationDataSchema.nullable(),
   description:
     'Latest persisted assistant conversation, or null when none exists.',
@@ -402,7 +402,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/assistant/conversations/{conversationId}/open',
   method: 'post',
-  componentName: 'AssistantConversationResponseDto',
+  componentName: 'AssistantConversationResponse',
   schema: assistantConversationDataSchema,
   description: 'The activated conversation with its full message history.',
 });
@@ -410,7 +410,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/assistant/conversations/{conversationId}',
   method: 'patch',
-  componentName: 'AssistantConversationResponseDto',
+  componentName: 'AssistantConversationResponse',
   schema: assistantConversationDataSchema,
   description: 'The renamed conversation with its full message history.',
 });
@@ -418,7 +418,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/assistant/conversations/{conversationId}',
   method: 'delete',
-  componentName: 'AssistantConversationResponseDto',
+  componentName: 'AssistantConversationResponse',
   schema: assistantConversationDataSchema,
   description:
     'The conversation after soft deletion (status archived/deleted).',
@@ -427,7 +427,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/assistant/memory',
   method: 'delete',
-  componentName: 'AssistantClearMemoryResponseDto',
+  componentName: 'AssistantClearMemoryResponse',
   schema: assistantClearMemoryDataSchema,
   description: 'Number of persisted assistant memory rows deleted.',
 });
@@ -435,7 +435,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/assistant/latest/clear',
   method: 'post',
-  componentName: 'AssistantClearResultResponseDto',
+  componentName: 'AssistantClearResultResponse',
   schema: assistantClearResultDataSchema,
   description:
     'Whether the latest conversation was cleared and the archived conversation id.',

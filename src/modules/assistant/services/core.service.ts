@@ -25,7 +25,7 @@ import type {
 
 import type { StreamAssistantMessagesDto } from '../dto/stream-messages.dto.js';
 import type {
-  AssistantConfirmResultDto,
+  AssistantConfirmResult,
   ConfirmAssistantProposalDto,
 } from '../dto/confirm-proposal.dto.js';
 import type { AssistantRuntimeCapabilities } from '../types/assistant.types.js';
@@ -163,7 +163,7 @@ export class AssistantService {
     userId: string,
     conversationId: string,
     dto: ConfirmAssistantProposalDto,
-  ): ResultAsync<AssistantConfirmResultDto, DomainFailure> {
+  ): ResultAsync<AssistantConfirmResult, DomainFailure> {
     return fromPromise(
       this.doConfirmProposal(userId, conversationId, dto),
       (error) => this.toDomainFailure(error),
@@ -174,7 +174,7 @@ export class AssistantService {
     userId: string,
     conversationId: string,
     dto: ConfirmAssistantProposalDto,
-  ): Promise<AssistantConfirmResultDto> {
+  ): Promise<AssistantConfirmResult> {
     const conversation =
       await this.assistantConversationService.getConversation(
         userId,

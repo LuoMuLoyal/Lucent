@@ -30,7 +30,7 @@ export type ConfirmAssistantProposalDto = z.infer<
   typeof confirmAssistantProposalSchema
 >;
 
-export class AssistantConfirmResultDto {
+export class AssistantConfirmResult {
   @ApiProperty({
     description: 'Conversation (LangGraph thread) id the proposals belong to.',
   })
@@ -50,4 +50,4 @@ export class AssistantConfirmResultDto {
   finalContent!: string | null;
 }
 
-export class AssistantConfirmResultResponseDto extends AssistantConfirmResultDto {}
+export class AssistantConfirmResultResponse extends AssistantConfirmResult {}
