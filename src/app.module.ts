@@ -6,8 +6,6 @@ import { yamlConfigFactory } from './config/yaml/yaml-loader.js';
 import { RouterModule } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { buildThrottlerOptions } from './config/services/throttler.config.js';
-import { basename, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/index.js';
 import { appConfig } from './config/app.config.js';
@@ -18,6 +16,7 @@ import { tencentCosConfig } from './config/services/tencent-cos.config.js';
 import { s3StorageConfig } from './config/services/s3-storage.config.js';
 import { jpushConfig } from './config/services/jpush.config.js';
 import { getEnvFilePaths } from './config/env/env-file-paths.js';
+import { isRunningFromSource } from './config/env/runtime-signal.js';
 import { validatedEnvSchema } from './config/env/environment.validation.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { MailModule } from './mail/mail.module.js';
@@ -66,12 +65,12 @@ import { SlowRequestInterceptor } from './common/index.js';
 
 // Bootstrap-stage env gate (ConfigService is not available before DI). The
 // testing-support module mounts only for an explicit test run AND while the
-// process executes from source: a compiled (dist/) image never mounts it, even
+// process executes from source: a compiled image never mounts it, even
 // if NODE_ENV were misconfigured to "test" on a production host. Same
-// src-vs-dist signal i18n.module.ts uses for its dev-only typesOutputPath.
-const runtimeRoot = basename(dirname(fileURLToPath(import.meta.url)));
+// src-vs-dist signal i18n.module.ts uses for its dev-only typesOutputPath
+// (see `config/env/runtime-signal.ts`).
 const isTestRuntime =
-  process.env['NODE_ENV'] === 'test' && runtimeRoot !== 'dist';
+  process.env['NODE_ENV'] === 'test' && isRunningFromSource();
 
 @Module({
   imports: [

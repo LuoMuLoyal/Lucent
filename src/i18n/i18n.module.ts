@@ -6,6 +6,7 @@ import {
   I18nModule as NestI18nModule,
   AcceptLanguageResolver,
 } from 'nestjs-i18n';
+import { isRunningFromSource } from '../config/env/runtime-signal.js';
 
 // ESM equivalent of `__dirname` (translation JSON lives next to this module).
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -19,9 +20,7 @@ const i18nOptions: I18nOptions = {
   resolvers: [AcceptLanguageResolver],
 };
 
-const runtimeRoot = path.basename(path.dirname(thisDir));
-
-if (process.env['NODE_ENV'] === 'development' && runtimeRoot !== 'dist') {
+if (process.env['NODE_ENV'] === 'development' && isRunningFromSource()) {
   i18nOptions.typesOutputPath = path.join(
     thisDir,
     '..',
