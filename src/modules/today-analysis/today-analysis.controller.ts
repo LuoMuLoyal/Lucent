@@ -110,12 +110,12 @@ export class TodayAnalysisController {
       'Fresh analysis, current read state, or the queued/synchronous refresh outcome.',
     schema: {
       oneOf: [
-        { $ref: '#/components/schemas/TodayAnalysisDataDto' },
-        { $ref: '#/components/schemas/TodayAnalysisReadDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisData' },
+        { $ref: '#/components/schemas/TodayAnalysisReadData' },
         {
-          $ref: '#/components/schemas/TodayAnalysisRefreshPendingDataDto',
+          $ref: '#/components/schemas/TodayAnalysisRefreshPendingData',
         },
-        { $ref: '#/components/schemas/TodayAnalysisRefreshReadyDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisRefreshReadyData' },
       ],
     },
   })
@@ -175,8 +175,8 @@ export class TodayAnalysisController {
       'The freshly generated analysis, or the current read state when a generation is already in flight.',
     schema: {
       oneOf: [
-        { $ref: '#/components/schemas/TodayAnalysisDataDto' },
-        { $ref: '#/components/schemas/TodayAnalysisReadDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisData' },
+        { $ref: '#/components/schemas/TodayAnalysisReadData' },
       ],
     },
   })
@@ -221,9 +221,9 @@ export class TodayAnalysisController {
       'Job enqueued. Returns jobId, or the synchronous result/status when the queue is unavailable.',
     schema: {
       oneOf: [
-        { $ref: '#/components/schemas/TodayAnalysisAsyncJobDataDto' },
-        { $ref: '#/components/schemas/TodayAnalysisAsyncResultDataDto' },
-        { $ref: '#/components/schemas/TodayAnalysisAsyncStatusDataDto' },
+        { $ref: '#/components/schemas/TodayAnalysisAsyncJobData' },
+        { $ref: '#/components/schemas/TodayAnalysisAsyncResultData' },
+        { $ref: '#/components/schemas/TodayAnalysisAsyncStatusData' },
       ],
     },
   })
@@ -342,7 +342,7 @@ export class TodayAnalysisController {
         schema: {
           type: 'string',
           description:
-            'Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisDataDto; event=error data=TodayAnalysisStreamErrorDto; event=done data={}.',
+            'Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisData; event=error data=TodayAnalysisStreamErrorDto; event=done data={}.',
         },
       },
     },
@@ -465,7 +465,7 @@ export class TodayAnalysisController {
 registerResponseSchema({
   path: '/api/v1/user/today-analysis',
   method: 'get',
-  componentName: 'TodayAnalysisReadResponseDto',
+  componentName: 'TodayAnalysisReadResponse',
   schema: todayAnalysisReadDataSchema,
   description: 'The latest persisted analysis with its read state.',
 });
@@ -476,7 +476,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/recommendations',
   method: 'get',
-  componentName: 'TodayRecommendationResponseDto',
+  componentName: 'TodayRecommendationResponse',
   schema: todayRecommendationsResponseSchema,
   description: 'Cold-start onboarding guide cards.',
 });
@@ -487,7 +487,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisDataDto',
+  componentName: 'TodayAnalysisData',
   schema: todayAnalysisDataSchema,
   description: 'A freshly generated Today AI analysis resource.',
 });
@@ -495,7 +495,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisReadDataDto',
+  componentName: 'TodayAnalysisReadData',
   schema: todayAnalysisReadDataSchema,
   description: 'The persisted analysis read state.',
 });
@@ -503,7 +503,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisRefreshPendingDataDto',
+  componentName: 'TodayAnalysisRefreshPendingData',
   schema: todayAnalysisRefreshPendingDataSchema,
   description: 'The enqueued refresh outcome.',
 });
@@ -511,7 +511,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisRefreshReadyDataDto',
+  componentName: 'TodayAnalysisRefreshReadyData',
   schema: todayAnalysisRefreshReadyDataSchema,
   description: 'The synchronous refresh outcome.',
 });
@@ -519,7 +519,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/generate/async',
   method: 'post',
-  componentName: 'TodayAnalysisAsyncJobDataDto',
+  componentName: 'TodayAnalysisAsyncJobData',
   schema: todayAnalysisAsyncJobDataSchema,
   description: 'The enqueued async generation job.',
 });
@@ -527,7 +527,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/generate/async',
   method: 'post',
-  componentName: 'TodayAnalysisAsyncResultDataDto',
+  componentName: 'TodayAnalysisAsyncResultData',
   schema: todayAnalysisAsyncResultDataSchema,
   description: 'The synchronous async-endpoint result.',
 });
@@ -535,7 +535,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/today-analysis/generate/async',
   method: 'post',
-  componentName: 'TodayAnalysisAsyncStatusDataDto',
+  componentName: 'TodayAnalysisAsyncStatusData',
   schema: todayAnalysisAsyncStatusDataSchema,
   description: 'The async job status payload.',
 });

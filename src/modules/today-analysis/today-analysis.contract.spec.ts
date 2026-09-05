@@ -33,23 +33,23 @@ describe('TodayAnalysisController OpenAPI contract', () => {
 
     expect(responsesFor('refresh')?.['201']?.type).toBeUndefined();
     expect(oneOfRefs(responsesFor('refresh')?.['201']?.schema)).toEqual([
-      '#/components/schemas/TodayAnalysisDataDto',
-      '#/components/schemas/TodayAnalysisReadDataDto',
-      '#/components/schemas/TodayAnalysisRefreshPendingDataDto',
-      '#/components/schemas/TodayAnalysisRefreshReadyDataDto',
+      '#/components/schemas/TodayAnalysisData',
+      '#/components/schemas/TodayAnalysisReadData',
+      '#/components/schemas/TodayAnalysisRefreshPendingData',
+      '#/components/schemas/TodayAnalysisRefreshReadyData',
     ]);
 
     expect(responsesFor('generate')?.['200']?.type).toBeUndefined();
     expect(oneOfRefs(responsesFor('generate')?.['200']?.schema)).toEqual([
-      '#/components/schemas/TodayAnalysisDataDto',
-      '#/components/schemas/TodayAnalysisReadDataDto',
+      '#/components/schemas/TodayAnalysisData',
+      '#/components/schemas/TodayAnalysisReadData',
     ]);
 
     expect(responsesFor('generateAsync')?.['202']?.type).toBeUndefined();
     expect(oneOfRefs(responsesFor('generateAsync')?.['202']?.schema)).toEqual([
-      '#/components/schemas/TodayAnalysisAsyncJobDataDto',
-      '#/components/schemas/TodayAnalysisAsyncResultDataDto',
-      '#/components/schemas/TodayAnalysisAsyncStatusDataDto',
+      '#/components/schemas/TodayAnalysisAsyncJobData',
+      '#/components/schemas/TodayAnalysisAsyncResultData',
+      '#/components/schemas/TodayAnalysisAsyncStatusData',
     ]);
   });
 });
