@@ -166,7 +166,7 @@ export class MedicineRemindersController {
 registerResponseSchema({
   path: '/api/v1/user/medicine-reminders',
   method: 'get',
-  componentName: 'MedicineReminderListResponseDto',
+  componentName: 'MedicineReminderListResponse',
   schema: medicineReminderListResponseSchema,
   description: 'Medicine reminder schedules.',
 });
@@ -174,7 +174,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/medicine-reminders',
   method: 'post',
-  componentName: 'MedicineReminderResponseDto',
+  componentName: 'MedicineReminderResponse',
   schema: medicineReminderResponseSchema,
   description: 'The created medicine reminder.',
 });
@@ -182,7 +182,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/medicine-reminders/{id}',
   method: 'patch',
-  componentName: 'MedicineReminderResponseDto',
+  componentName: 'MedicineReminderResponse',
   schema: medicineReminderResponseSchema,
   description: 'The updated medicine reminder.',
 });
@@ -190,7 +190,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/medicine-reminders/group',
   method: 'put',
-  componentName: 'MedicineReminderListResponseDto',
+  componentName: 'MedicineReminderListResponse',
   schema: medicineReminderListResponseSchema,
   description: 'The upserted reminder group.',
 });

@@ -298,7 +298,7 @@ export class MedicinesController {
 registerResponseSchema({
   path: '/api/v1/medicines/safety-tips',
   method: 'get',
-  componentName: 'MedicineSafetyTipResponseDto',
+  componentName: 'MedicineSafetyTipResponse',
   schema: medicineSafetyTipsResponseSchema,
   description: 'Random medication safety tips.',
 });
@@ -306,7 +306,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/medicines',
   method: 'get',
-  componentName: 'MedicineSearchResponseDto',
+  componentName: 'MedicineSearchResponse',
   schema: medicineSearchResponseSchema,
   description: 'Search results from the selected knowledge source.',
 });
@@ -314,7 +314,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/medicines/{id}',
   method: 'get',
-  componentName: 'MedicineDetailResponseDto',
+  componentName: 'MedicineDetailResponse',
   schema: medicineDetailResponseSchema,
   description: 'Medicine detail from the selected knowledge source.',
 });
@@ -322,7 +322,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/medicines/risk-check',
   method: 'get',
-  componentName: 'MedicineRiskCheckRecordsResponseDto',
+  componentName: 'MedicineRiskCheckRecordsResponse',
   schema: medicineRiskCheckRecordsResponseSchema,
   description: 'Latest static and LLM medicine risk check records.',
 });
@@ -330,7 +330,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/medicines/risk-check',
   method: 'post',
-  componentName: 'MedicineRiskCheckRecordResponseDto',
+  componentName: 'MedicineRiskCheckRecordResponse',
   schema: medicineRiskCheckRecordResponseSchema,
   description: 'The created medicine risk check record.',
 });
@@ -338,7 +338,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/medicines/recognize/async',
   method: 'post',
-  componentName: 'MedicineRecognitionAsyncResponseDto',
+  componentName: 'MedicineRecognitionJob',
   schema: medicineRecognitionAsyncResponseSchema,
   description:
     'Returns either a queued jobId or the synchronous recognition resource when the queue is unavailable.',

@@ -172,7 +172,7 @@ export class MedicineDoseLogsController {
 registerResponseSchema({
   path: '/api/v1/user/medicine-dose-logs',
   method: 'get',
-  componentName: 'DoseLogListResponseDto',
+  componentName: 'DoseLogListResponse',
   schema: doseLogListResponseSchema,
   description: 'Dose logs for the requested date.',
 });
@@ -180,7 +180,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/medicine-dose-logs',
   method: 'post',
-  componentName: 'DoseLogResponseDto',
+  componentName: 'DoseLogResponse',
   schema: doseLogResponseSchema,
   description: 'The created dose log.',
 });
@@ -188,7 +188,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/medicine-dose-logs/mark',
   method: 'post',
-  componentName: 'DoseLogResponseDto',
+  componentName: 'DoseLogResponse',
   schema: doseLogResponseSchema,
   description: 'The created or updated dose log for the slot.',
 });
@@ -196,7 +196,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/medicine-dose-logs/{id}',
   method: 'patch',
-  componentName: 'DoseLogResponseDto',
+  componentName: 'DoseLogResponse',
   schema: doseLogResponseSchema,
   description: 'The updated dose log.',
 });

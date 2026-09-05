@@ -128,7 +128,7 @@ export class ReminderDeliveriesController {
 registerResponseSchema({
   path: '/api/v1/user/reminder-deliveries',
   method: 'get',
-  componentName: 'ReminderDeliveryListResponseDto',
+  componentName: 'ReminderDeliveryListResponse',
   schema: reminderDeliveryListResponseSchema,
   description: 'Reminder delivery audit rows.',
 });
@@ -136,7 +136,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reminder-deliveries/receipts',
   method: 'post',
-  componentName: 'ReminderDeliveryReceiptResponseDto',
+  componentName: 'ReminderDeliveryReceiptResponse',
   schema: reminderDeliveryReceiptResponseSchema,
   description: 'The recorded delivery row.',
 });
@@ -144,7 +144,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reminder-deliveries/local-capability',
   method: 'put',
-  componentName: 'LocalCapabilityResponseDto',
+  componentName: 'LocalCapabilityResponse',
   schema: localCapabilityResponseSchema,
   description: 'The persisted local scheduling capability state.',
 });
