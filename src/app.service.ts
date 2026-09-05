@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   type HealthComponentStatus,
   type HealthOverallStatus,
-  type HealthProbeDto,
+  type HealthProbe,
   type HealthProbeType,
 } from './app.dto.js';
 import { EnvKey } from './config/env/env-keys.enum.js';
@@ -14,7 +14,7 @@ import { PrismaService } from './prisma/index.js';
 import { nowIsoString } from './common/index.js';
 import { extractErrorInfo } from './common/index.js';
 
-type HealthComponent = HealthProbeDto['components'][number];
+type HealthComponent = HealthProbe['components'][number];
 
 /** TTL (ms) for the health-check cache probe key. */
 const PROBE_TTL_MS = 5_000;
@@ -32,15 +32,15 @@ export class AppService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  async getHealth(): Promise<HealthProbeDto> {
+  async getHealth(): Promise<HealthProbe> {
     return this.getReadyHealth();
   }
 
-  getLiveHealth(): HealthProbeDto {
+  getLiveHealth(): HealthProbe {
     return this.buildProbe('live', []);
   }
 
-  async getReadyHealth(): Promise<HealthProbeDto> {
+  async getReadyHealth(): Promise<HealthProbe> {
     const components = await Promise.all([
       this.probeDatabase(false),
       this.probeCache(false),
@@ -49,7 +49,7 @@ export class AppService {
     return this.buildProbe('ready', components);
   }
 
-  async getDeepHealth(): Promise<HealthProbeDto> {
+  async getDeepHealth(): Promise<HealthProbe> {
     const components = await Promise.all([
       this.probeDatabase(true),
       this.probeCache(true),
@@ -58,14 +58,14 @@ export class AppService {
     return this.buildProbe('deep', components);
   }
 
-  isHealthy(probe: HealthProbeDto): boolean {
+  isHealthy(probe: HealthProbe): boolean {
     return probe.status === 'ok';
   }
 
   private buildProbe(
     probe: HealthProbeType,
     components: HealthComponent[],
-  ): HealthProbeDto {
+  ): HealthProbe {
     const summary = this.summarize(components);
 
     return {
@@ -87,7 +87,7 @@ export class AppService {
     return hasCriticalFailure ? 'error' : 'ok';
   }
 
-  private summarize(components: HealthComponent[]): HealthProbeDto['summary'] {
+  private summarize(components: HealthComponent[]): HealthProbe['summary'] {
     const passed = components.filter(
       (component) => component.status === 'up',
     ).length;
@@ -100,7 +100,7 @@ export class AppService {
     };
   }
 
-  private getAppInfo(): HealthProbeDto['app'] {
+  private getAppInfo(): HealthProbe['app'] {
     const memoryUsage = process.memoryUsage();
 
     return {

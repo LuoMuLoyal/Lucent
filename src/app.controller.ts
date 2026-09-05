@@ -2,7 +2,7 @@ import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { Public } from './modules/auth/index.js';
-import { HealthResponseDto } from './app.dto.js';
+import { HealthResponse } from './app.dto.js';
 import { AppService } from './app.service.js';
 
 @ApiTags('Health')
@@ -16,8 +16,8 @@ export class AppController {
 
   @Get()
   @ApiOperation({ summary: 'Readiness probe alias used by existing scripts' })
-  @ApiResponse({ status: 200, type: HealthResponseDto })
-  @ApiResponse({ status: 503, type: HealthResponseDto })
+  @ApiResponse({ status: 200, type: HealthResponse })
+  @ApiResponse({ status: 503, type: HealthResponse })
   async getHealth(@Res({ passthrough: true }) reply: FastifyReply) {
     const probe = await this.appService.getHealth();
     reply.status(
@@ -30,7 +30,7 @@ export class AppController {
 
   @Get('live')
   @ApiOperation({ summary: 'Liveness probe for process health' })
-  @ApiResponse({ status: 200, type: HealthResponseDto })
+  @ApiResponse({ status: 200, type: HealthResponse })
   getLiveHealth() {
     return this.appService.getLiveHealth();
   }
@@ -39,8 +39,8 @@ export class AppController {
   @ApiOperation({
     summary: 'Readiness probe for critical runtime dependencies',
   })
-  @ApiResponse({ status: 200, type: HealthResponseDto })
-  @ApiResponse({ status: 503, type: HealthResponseDto })
+  @ApiResponse({ status: 200, type: HealthResponse })
+  @ApiResponse({ status: 503, type: HealthResponse })
   async getReadyHealth(@Res({ passthrough: true }) reply: FastifyReply) {
     const probe = await this.appService.getReadyHealth();
     reply.status(
@@ -55,8 +55,8 @@ export class AppController {
   @ApiOperation({
     summary: 'Detailed health probe with per-component diagnostics',
   })
-  @ApiResponse({ status: 200, type: HealthResponseDto })
-  @ApiResponse({ status: 503, type: HealthResponseDto })
+  @ApiResponse({ status: 200, type: HealthResponse })
+  @ApiResponse({ status: 503, type: HealthResponse })
   async getDeepHealth(@Res({ passthrough: true }) reply: FastifyReply) {
     const probe = await this.appService.getDeepHealth();
     reply.status(

@@ -9,7 +9,7 @@ export type HealthOverallStatus = (typeof HEALTH_OVERALL_STATUSES)[number];
 export const HEALTH_COMPONENT_STATUSES = ['up', 'down'] as const;
 export type HealthComponentStatus = (typeof HEALTH_COMPONENT_STATUSES)[number];
 
-export class HealthAppInfoDto {
+export class HealthAppInfo {
   @ApiProperty({ example: 'lucent' })
   name!: string;
 
@@ -29,7 +29,7 @@ export class HealthAppInfoDto {
   memoryHeapUsedBytes!: number;
 }
 
-export class HealthSummaryDto {
+export class HealthSummary {
   @ApiProperty({ example: 2 })
   total!: number;
 
@@ -40,7 +40,7 @@ export class HealthSummaryDto {
   failed!: number;
 }
 
-export class HealthComponentDto {
+export class HealthComponent {
   @ApiProperty({ example: 'database' })
   name!: string;
 
@@ -73,7 +73,7 @@ export class HealthComponentDto {
   details!: Record<string, unknown> | null;
 }
 
-export class HealthProbeDto {
+export class HealthProbe {
   @ApiProperty({
     enum: HEALTH_PROBE_TYPES,
     enumName: 'HealthProbeType',
@@ -93,14 +93,14 @@ export class HealthProbeDto {
   })
   checkedAt!: string;
 
-  @ApiProperty({ type: () => HealthAppInfoDto })
-  app!: HealthAppInfoDto;
+  @ApiProperty({ type: () => HealthAppInfo })
+  app!: HealthAppInfo;
 
-  @ApiProperty({ type: () => HealthSummaryDto })
-  summary!: HealthSummaryDto;
+  @ApiProperty({ type: () => HealthSummary })
+  summary!: HealthSummary;
 
-  @ApiProperty({ type: () => HealthComponentDto, isArray: true })
-  components!: HealthComponentDto[];
+  @ApiProperty({ type: () => HealthComponent, isArray: true })
+  components!: HealthComponent[];
 }
 
-export class HealthResponseDto extends HealthProbeDto {}
+export class HealthResponse extends HealthProbe {}

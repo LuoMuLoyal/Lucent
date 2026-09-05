@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyReply } from 'fastify';
 import { AppController } from './app.controller.js';
-import type { HealthProbeDto } from './app.dto.js';
+import type { HealthProbe } from './app.dto.js';
 import { AppService } from './app.service.js';
 
 describe('AppController', () => {
@@ -109,7 +109,7 @@ describe('AppController', () => {
   });
 });
 
-function makeProbe(overrides: Partial<HealthProbeDto> = {}): HealthProbeDto {
+function makeProbe(overrides: Partial<HealthProbe> = {}): HealthProbe {
   return {
     probe: 'ready',
     status: 'ok',

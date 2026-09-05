@@ -293,7 +293,7 @@ export class HealthEventsController {
 registerResponseSchema({
   path: '/api/v1/user/health-events',
   method: 'post',
-  componentName: 'HealthEventResponseDto',
+  componentName: 'HealthEventResponse',
   schema: healthEventResponseSchema,
   description: 'The created health event.',
 });
@@ -301,7 +301,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-events/active',
   method: 'get',
-  componentName: 'HealthEventNullableResponseDto',
+  componentName: 'HealthEventNullableResponse',
   schema: healthEventNullableResponseSchema,
   description: 'The active health event, or null when none is active.',
 });
@@ -309,7 +309,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-events',
   method: 'get',
-  componentName: 'HealthEventListResponseDto',
+  componentName: 'HealthEventListResponse',
   schema: healthEventListResponseSchema,
   description: 'The user health event history page.',
 });
@@ -317,7 +317,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-events/{id}',
   method: 'get',
-  componentName: 'HealthEventResponseDto',
+  componentName: 'HealthEventResponse',
   schema: healthEventResponseSchema,
   description: 'The health event.',
 });
@@ -325,7 +325,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-events/{id}/check-ins/{date}',
   method: 'put',
-  componentName: 'HealthEventResponseDto',
+  componentName: 'HealthEventResponse',
   schema: healthEventResponseSchema,
   description: 'The updated health event.',
 });
@@ -333,7 +333,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/health-events/{id}/end',
   method: 'post',
-  componentName: 'HealthEventResponseDto',
+  componentName: 'HealthEventResponse',
   schema: healthEventResponseSchema,
   description: 'The ended health event.',
 });
