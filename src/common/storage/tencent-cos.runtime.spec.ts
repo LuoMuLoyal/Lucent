@@ -9,6 +9,9 @@ const mockCos = {
 
 vi.mock('cos-nodejs-sdk-v5', () => ({
   __esModule: true,
+  // Constructor mock: COS is instantiated with `new` — Vitest 4
+  // requires a function (not arrow) implementation for constructibility.
+  // oxlint-disable-next-line prefer-arrow-callback
   default: vi.fn(function () {
     return mockCos;
   }),

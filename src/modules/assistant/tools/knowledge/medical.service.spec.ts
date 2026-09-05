@@ -9,6 +9,9 @@ const mockVectorStore = {
 };
 
 vi.mock('@langchain/community/vectorstores/pgvector', () => ({
+  // Constructor mock: PGVectorStore is instantiated with `new` — Vitest 4
+  // requires a function (not arrow) implementation for constructibility.
+  // oxlint-disable-next-line prefer-arrow-callback
   PGVectorStore: vi.fn().mockImplementation(function () {
     return mockVectorStore;
   }),

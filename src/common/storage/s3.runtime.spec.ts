@@ -16,15 +16,21 @@ vi.mock('@aws-sdk/client-s3', () => {
 
   return {
     S3Client: MockS3Client,
+    // Constructor mocks: command classes are instantiated with `new` —
+    // Vitest 4 requires function (not arrow) implementations.
+    // oxlint-disable-next-line prefer-arrow-callback
     PutObjectCommand: vi.fn(function (input: unknown) {
       return input;
     }),
+    // oxlint-disable-next-line prefer-arrow-callback
     GetObjectCommand: vi.fn(function (input: unknown) {
       return input;
     }),
+    // oxlint-disable-next-line prefer-arrow-callback
     HeadBucketCommand: vi.fn(function (input: unknown) {
       return input;
     }),
+    // oxlint-disable-next-line prefer-arrow-callback
     CreateBucketCommand: vi.fn(function (input: unknown) {
       return input;
     }),
