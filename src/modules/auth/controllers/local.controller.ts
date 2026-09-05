@@ -279,7 +279,7 @@ export class LocalController {
 registerResponseSchema({
   path: '/api/v1/auth/register',
   method: 'post',
-  componentName: 'RegisterResponseDto',
+  componentName: 'RegisterResponse',
   schema: authRegisterResponseSchema,
   description: 'Registered user with token pair.',
 });
@@ -287,7 +287,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/login',
   method: 'post',
-  componentName: 'LoginResponseDto',
+  componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
 });
@@ -295,7 +295,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/send-verification-code',
   method: 'post',
-  componentName: 'SendVerificationCodeResponseDto',
+  componentName: 'SendVerificationCodeResponse',
   schema: sendVerificationCodeResponseSchema,
   description: 'Cooldown seconds until the next code can be requested.',
 });
@@ -303,7 +303,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/verify-email',
   method: 'post',
-  componentName: 'VerifyEmailResponseDto',
+  componentName: 'VerifyEmailResponse',
   schema: verifyEmailResponseSchema,
   description: 'Whether the email is now verified.',
 });
@@ -311,7 +311,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/forgot-password',
   method: 'post',
-  componentName: 'ForgotPasswordResponseDto',
+  componentName: 'ForgotPasswordResponse',
   schema: forgotPasswordResponseSchema,
   description: 'Cooldown seconds until the next reset code can be requested.',
 });

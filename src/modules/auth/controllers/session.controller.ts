@@ -195,7 +195,7 @@ export class SessionController {
 registerResponseSchema({
   path: '/api/v1/auth/sessions',
   method: 'get',
-  componentName: 'SessionListItemDto',
+  componentName: 'SessionListItem',
   schema: sessionListSchema,
   description: 'The active sessions of the current user.',
 });
@@ -203,7 +203,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/refresh',
   method: 'post',
-  componentName: 'RefreshResponseDto',
+  componentName: 'RefreshResponse',
   schema: refreshResponseSchema,
   description: 'New token pair for the current session.',
 });

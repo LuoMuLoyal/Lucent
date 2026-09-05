@@ -480,7 +480,7 @@ export class OAuthController {
 registerResponseSchema({
   path: '/api/v1/auth/oauth/wechat-web/authorize',
   method: 'post',
-  componentName: 'OAuthAuthorizeResponseDto',
+  componentName: 'OAuthAuthorizeResponse',
   schema: oauthAuthorizeResponseSchema,
   description: 'OAuth authorize URL with state and expiry.',
 });
@@ -488,7 +488,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/wechat-web/callback',
   method: 'post',
-  componentName: 'LoginResponseDto',
+  componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
 });
@@ -496,7 +496,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/wechat-mobile/callback',
   method: 'post',
-  componentName: 'LoginResponseDto',
+  componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
 });
@@ -504,7 +504,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/apple/callback',
   method: 'post',
-  componentName: 'LoginResponseDto',
+  componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
 });
@@ -512,7 +512,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/qq/authorize',
   method: 'post',
-  componentName: 'OAuthAuthorizeResponseDto',
+  componentName: 'OAuthAuthorizeResponse',
   schema: oauthAuthorizeResponseSchema,
   description: 'OAuth authorize URL with state and expiry.',
 });
@@ -520,7 +520,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/qq/callback',
   method: 'post',
-  componentName: 'LoginResponseDto',
+  componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
 });
@@ -528,7 +528,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/weibo/authorize',
   method: 'post',
-  componentName: 'OAuthAuthorizeResponseDto',
+  componentName: 'OAuthAuthorizeResponse',
   schema: oauthAuthorizeResponseSchema,
   description: 'OAuth authorize URL with state and expiry.',
 });
@@ -536,7 +536,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/weibo/callback',
   method: 'post',
-  componentName: 'LoginResponseDto',
+  componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
 });
@@ -544,7 +544,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/google/authorize',
   method: 'post',
-  componentName: 'OAuthAuthorizeResponseDto',
+  componentName: 'OAuthAuthorizeResponse',
   schema: oauthAuthorizeResponseSchema,
   description: 'OAuth authorize URL with state and expiry.',
 });
@@ -552,7 +552,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/auth/oauth/google/callback',
   method: 'post',
-  componentName: 'LoginResponseDto',
+  componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
 });
