@@ -258,6 +258,18 @@ describe('AssistantConversationRepository', () => {
       });
       expect(prisma.assistantMessage.createMany).toHaveBeenCalled();
       expect(prisma.assistantMessage.create).toHaveBeenCalled();
+
+      // 用户消息必须带显式 createdAt，且严格早于 assistant 消息时间戳，
+      // 保证按 createdAt 升序读取时 user 始终排在 assistant 之前。
+      const createManyCall = prisma.assistantMessage.createMany.mock
+        .calls[0]?.[0] as { data: Array<{ createdAt: Date }> };
+      const assistantTimestamp = new Date('2026-07-10T12:00:00.000Z');
+      for (const message of createManyCall.data) {
+        expect(message.createdAt).toBeInstanceOf(Date);
+        expect(message.createdAt.getTime()).toBeLessThan(
+          assistantTimestamp.getTime(),
+        );
+      }
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'conv-1', userId: 'user-1' },

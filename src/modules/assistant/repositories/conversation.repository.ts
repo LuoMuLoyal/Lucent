@@ -320,12 +320,21 @@ export class AssistantConversationRepository implements AssistantConversationRep
       async (tx) => {
         if (input.messagesToAppend.length > 0) {
           await tx.assistantMessage.createMany({
-            data: input.messagesToAppend.map((message) => ({
+            data: input.messagesToAppend.map((message, index) => ({
               conversationId: input.conversationId,
               userId: input.userId,
               role: message.role,
               content: message.content,
               usedTools: [],
+              // 用户消息显式分配 createdAt：逐条落在 assistant 消息之前
+              // （第 i 条 = assistant - (N - i) ms，N 为本批条数），避免
+              // 与 assistant 消息共享数据库默认 now() 的同一毫秒，导致
+              // 按 createdAt 升序读取时 user/assistant 相对顺序不稳定
+              // （历史会话里回复出现在提问之上）。
+              createdAt: new Date(
+                input.assistantTimestamp.getTime() -
+                  (input.messagesToAppend.length - index) * 1,
+              ),
             })),
           });
         }
