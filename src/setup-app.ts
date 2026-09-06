@@ -256,6 +256,12 @@ export async function setupApp(
       `${ConfigKey.App}.corsOrigin`,
       false,
     ),
+    // @fastify/cors defaults to "GET,HEAD,POST" (CORS-safelisted), but the
+    // API uses PATCH, PUT and DELETE which require an explicit preflight
+    // allow.  Omitting them causes the browser to block the actual request
+    // after a successful preflight — the classic "DELETE returns 204 in
+    // OPTIONS but never arrives" symptom.
+    methods: 'GET,HEAD,POST,PATCH,PUT,DELETE,OPTIONS',
   });
 
   // ── Scalar API Reference ───────────────────────────────────────
