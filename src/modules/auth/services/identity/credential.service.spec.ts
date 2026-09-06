@@ -134,15 +134,12 @@ describe('CredentialAuthService', () => {
 
   let signUpEmailMock: vi.Mock;
   let signInEmailMock: vi.Mock;
-  let requestPasswordResetMock: vi.Mock;
-  let resetPasswordMock: vi.Mock;
   let verifyEmailMock: vi.Mock;
   let verifyPasswordForUserMock: vi.Mock;
   let revokeBetterAuthSessionsMock: vi.Mock;
   let accountFindFirstMock: vi.Mock;
   let accountUpdateMock: vi.Mock;
   let accountCreateMock: vi.Mock;
-  let verificationFindFirstMock: vi.Mock;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -203,8 +200,6 @@ describe('CredentialAuthService', () => {
               api: {
                 signUpEmail: vi.fn(),
                 signInEmail: vi.fn(),
-                requestPasswordReset: vi.fn(),
-                resetPassword: vi.fn(),
                 verifyEmail: vi.fn(),
               },
             },
@@ -212,9 +207,6 @@ describe('CredentialAuthService', () => {
             verifyPassword: vi.fn(),
             verifyPasswordForUser: vi.fn(),
             revokeBetterAuthSessions: vi.fn(),
-            getEmailCallbackUrl: vi
-              .fn()
-              .mockReturnValue('luminous://auth/callback'),
             credentialProviderId: 'credential',
             credentialIssuer: 'local:credential',
           },
@@ -275,10 +267,6 @@ describe('CredentialAuthService', () => {
       .signUpEmail as unknown as vi.Mock;
     signInEmailMock = betterAuthAdapter.auth.api
       .signInEmail as unknown as vi.Mock;
-    requestPasswordResetMock = betterAuthAdapter.auth.api
-      .requestPasswordReset as unknown as vi.Mock;
-    resetPasswordMock = betterAuthAdapter.auth.api
-      .resetPassword as unknown as vi.Mock;
     verifyEmailMock = betterAuthAdapter.auth.api
       .verifyEmail as unknown as vi.Mock;
     verifyPasswordForUserMock =
@@ -288,8 +276,6 @@ describe('CredentialAuthService', () => {
     accountFindFirstMock = prisma.account.findFirst as unknown as vi.Mock;
     accountUpdateMock = prisma.account.update as unknown as vi.Mock;
     accountCreateMock = prisma.account.create as unknown as vi.Mock;
-    verificationFindFirstMock = prisma.verification
-      .findFirst as unknown as vi.Mock;
 
     signUpEmailMock.mockResolvedValue({
       token: null,
@@ -299,13 +285,6 @@ describe('CredentialAuthService', () => {
       redirect: false,
       token: 'better-auth-session-token',
       user: mockBetterAuthUser,
-    });
-    requestPasswordResetMock.mockResolvedValue({
-      status: true,
-      message: 'If this email exists in our system, check your email',
-    });
-    resetPasswordMock.mockResolvedValue({
-      status: true,
     });
     verifyEmailMock.mockResolvedValue({
       status: true,
@@ -318,14 +297,6 @@ describe('CredentialAuthService', () => {
     accountFindFirstMock.mockResolvedValue(mockCredentialAccount);
     accountUpdateMock.mockResolvedValue(mockCredentialAccount);
     accountCreateMock.mockResolvedValue(mockCredentialAccount);
-    verificationFindFirstMock.mockResolvedValue({
-      id: 'v-1',
-      identifier: 'reset-password:token',
-      value: 'user-1',
-      expiresAt: new Date(Date.now() + 3_600_000),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
   });
 
   afterEach(() => {
@@ -1198,28 +1169,18 @@ describe('CredentialAuthService', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('forgotPassword', () => {
-    beforeEach(() => {
-      verificationCodeService.assertClientRateLimit.mockReturnValue(
-        okAsync(undefined),
-      );
-    });
-
-    it('should request a Better Auth password reset email', async () => {
+    it('should send a verification code with the forgot-password scene', async () => {
       const outcome = await collectResult(
         service.forgotPassword({
           email: 'test@example.com',
         }),
       );
 
-      expect(
-        verificationCodeService.assertClientRateLimit,
-      ).toHaveBeenCalledWith(undefined);
-      expect(requestPasswordResetMock).toHaveBeenCalledWith({
-        body: {
-          email: 'test@example.com',
-          redirectTo: 'luminous://auth/callback',
-        },
-      });
+      expect(verificationCodeService.send).toHaveBeenCalledWith(
+        'test@example.com',
+        'forgot-password',
+        undefined,
+      );
       expect(outcome).toEqual({
         ok: true,
         value: { message: 'auth.forgot_password_hint' },
@@ -1227,10 +1188,7 @@ describe('CredentialAuthService', () => {
     });
 
     it('should return success even when user does not exist (anti-enumeration)', async () => {
-      requestPasswordResetMock.mockResolvedValue({
-        status: true,
-        message: 'If this email exists in our system, check your email',
-      });
+      userService.findByEmail.mockResolvedValue(null);
 
       const outcome = await collectResult(
         service.forgotPassword({
@@ -1244,8 +1202,8 @@ describe('CredentialAuthService', () => {
       });
     });
 
-    it('should propagate client rate-limit failures', async () => {
-      verificationCodeService.assertClientRateLimit.mockReturnValue(
+    it('should propagate verification-code send failures', async () => {
+      verificationCodeService.send.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'rate_limited',
@@ -1268,7 +1226,6 @@ describe('CredentialAuthService', () => {
           code: 'AUTH_VERIFICATION_CODE_RATE_LIMITED',
         }),
       });
-      expect(requestPasswordResetMock).not.toHaveBeenCalled();
     });
   });
 
@@ -1277,30 +1234,50 @@ describe('CredentialAuthService', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('resetPassword', () => {
-    it('should reset password and revoke all sessions', async () => {
+    beforeEach(() => {
+      // The reset flow resolves the user by email first; the suite default is
+      // `findByEmail → null`, so restore the found user for the happy path.
+      userService.findByEmail.mockResolvedValue(mockUser);
+    });
+
+    it('should verify the code, update the password and revoke all sessions', async () => {
       const outcome = await collectResult(
         service.resetPassword({
-          token: 'token',
+          email: 'test@example.com',
+          code: '123456',
           password: 'NewSecure@Pass1',
         }),
       );
 
-      expect(verificationFindFirstMock).toHaveBeenCalledWith({
-        where: { identifier: 'reset-password:token' },
+      expect(verificationCodeService.verify).toHaveBeenCalledWith(
+        'test@example.com',
+        '123456',
+        'forgot-password',
+      );
+      expect(accountFindFirstMock).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          providerId: 'credential',
+        },
       });
-      expect(resetPasswordMock).toHaveBeenCalledWith({
-        body: { token: 'token', newPassword: 'NewSecure@Pass1' },
+      expect(betterAuthAdapter.hashPassword).toHaveBeenCalledWith(
+        'NewSecure@Pass1',
+      );
+      expect(accountUpdateMock).toHaveBeenCalledWith({
+        where: { id: 'account-1' },
+        data: { password: '$argon2id$new-hash' },
       });
       expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-1');
       expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
-    it('should reject when reset token is not found', async () => {
-      verificationFindFirstMock.mockResolvedValue(null);
+    it('should reject with AUTH_VERIFICATION_CODE_EXPIRED when the user is not found (anti-enumeration)', async () => {
+      userService.findByEmail.mockResolvedValue(null);
 
       const outcome = await collectResult(
         service.resetPassword({
-          token: 'unknown-token',
+          email: 'unknown@example.com',
+          code: '123456',
           password: 'NewSecure@Pass1',
         }),
       );
@@ -1311,18 +1288,44 @@ describe('CredentialAuthService', () => {
           code: 'AUTH_VERIFICATION_CODE_EXPIRED',
         }),
       });
-      expect(resetPasswordMock).not.toHaveBeenCalled();
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
+    });
+
+    it('should reject when the verification code does not verify', async () => {
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.resetPassword({
+          email: 'test@example.com',
+          code: 'wrong',
+          password: 'NewSecure@Pass1',
+        }),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+        }),
+      });
+      expect(accountUpdateMock).not.toHaveBeenCalled();
       expect(authTokenService.revokeAll).not.toHaveBeenCalled();
     });
 
-    it('should map Better Auth INVALID_TOKEN to AUTH_VERIFICATION_CODE_EXPIRED', async () => {
-      resetPasswordMock.mockRejectedValue(
-        createBetterAuthAPIError('INVALID_TOKEN'),
-      );
+    it('should reject with AUTH_PASSWORD_NOT_SET when the account has no credential', async () => {
+      accountFindFirstMock.mockResolvedValue(null);
 
       const outcome = await collectResult(
         service.resetPassword({
-          token: 'expired-token',
+          email: 'test@example.com',
+          code: '123456',
           password: 'NewSecure@Pass1',
         }),
       );
@@ -1330,18 +1333,21 @@ describe('CredentialAuthService', () => {
       expect(outcome).toEqual({
         ok: false,
         error: expect.objectContaining({
-          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          code: 'AUTH_PASSWORD_NOT_SET',
         }),
       });
+      expect(accountUpdateMock).not.toHaveBeenCalled();
+      expect(authTokenService.revokeAll).not.toHaveBeenCalled();
     });
 
-    it('maps infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
+    it('should map infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
       const error = new Error('db connection lost');
-      verificationFindFirstMock.mockRejectedValue(error);
+      userService.findByEmail.mockRejectedValue(error);
 
       const outcome = await collectResult(
         service.resetPassword({
-          token: 'token',
+          email: 'test@example.com',
+          code: '123456',
           password: 'NewSecure@Pass1',
         }),
       );

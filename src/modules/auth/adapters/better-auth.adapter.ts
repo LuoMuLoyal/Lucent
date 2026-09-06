@@ -19,8 +19,6 @@ import {
   type ResultAsync,
 } from '../../../common/result/index.js';
 
-const DEFAULT_EMAIL_CALLBACK_URL = 'luminous://auth/callback';
-
 export const CREDENTIAL_PROVIDER_ID = 'credential';
 export const LOCAL_CREDENTIAL_ISSUER = 'local:credential';
 
@@ -100,12 +98,9 @@ export class AuthBetterAuthAdapter {
         autoSignIn: false,
         minPasswordLength: 8,
         maxPasswordLength: 32,
-        sendResetPassword: async (data) => {
-          await this.mailService.sendPasswordResetLink(
-            data.user.email,
-            data.url,
-          );
-        },
+        // No sendResetPassword callback: Lucent's password reset uses the
+        // product-level verification code (VerificationCodeService,
+        // 'forgot-password' scene) instead of a Better Auth email link.
         password: {
           hash: async (password: string) =>
             argon2.hash(password, ARGON2_OPTIONS),
@@ -309,18 +304,6 @@ export class AuthBetterAuthAdapter {
           error,
           'Failed to load credential account',
         ),
-    );
-  }
-
-  /**
-   * Deep-link / web callback URL that Better Auth emails should redirect to
-   * after the user interacts with a verification or reset link.  Defaults
-   * to the Luminous mobile deep-link scheme.
-   */
-  getEmailCallbackUrl(): string {
-    return (
-      this.config.get<string>(EnvKey.BETTER_AUTH_EMAIL_CALLBACK_URL)?.trim() ||
-      DEFAULT_EMAIL_CALLBACK_URL
     );
   }
 

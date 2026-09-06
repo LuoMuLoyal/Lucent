@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
+import { I18nService } from 'nestjs-i18n';
 import { LocalController } from './local.controller.js';
 import { AuthService } from '../services/auth.service.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';
@@ -63,6 +64,12 @@ describe('LocalController', () => {
           provide: AuditLogService,
           useValue: {
             logFireAndForget: vi.fn(),
+          },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -258,17 +265,18 @@ describe('LocalController', () => {
   });
 
   describe('POST /auth/reset-password', () => {
-    it('returns no content on success', async () => {
+    it('returns a confirmation message on success', async () => {
       authService.resetPassword.mockReturnValue(okAsync(undefined));
 
-      await expect(
-        controller.resetPassword({
-          token: 'valid-reset-token',
-          password: 'NewPassword123!',
-        }),
-      ).resolves.toBeUndefined();
+      const result = await controller.resetPassword({
+        email: 'test@example.com',
+        code: '123456',
+        password: 'NewPassword123!',
+      });
 
       expect(authService.resetPassword).toHaveBeenCalled();
+      expect(result).toHaveProperty('message', 'auth.reset_password_success');
+      expect(result).toHaveProperty('cooldown', 60);
     });
   });
 });

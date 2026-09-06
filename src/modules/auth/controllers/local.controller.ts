@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
+import { I18nService } from 'nestjs-i18n';
 
 import {
   extractAuthRequestContext,
@@ -38,6 +39,7 @@ import {
   forgotPasswordResponseSchema,
   loginResponseSchema,
   registerResponseSchema as authRegisterResponseSchema,
+  resetPasswordResponseSchema,
   sendVerificationCodeResponseSchema,
   verifyEmailResponseSchema,
 } from '../dto/shared/auth-responses.dto.js';
@@ -53,6 +55,7 @@ export class LocalController {
     private readonly authService: AuthService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly auditLogService: AuditLogService,
+    private readonly i18n: I18nService,
   ) {}
 
   // ── POST /api/v1/auth/register ──────────────────────────────
@@ -247,12 +250,16 @@ export class LocalController {
   // ── POST /api/v1/auth/reset-password ────────────────────────
 
   @Post('reset-password')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password' })
-  @ApiResponse({ status: 204, description: 'Password reset.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset. Returns a confirmation message.',
+  })
   @ApiResponse({
     status: 400,
-    description: 'Reset token is invalid, expired, or the password is invalid',
+    description:
+      'Verification code is invalid/expired, or the password is invalid',
     type: ProblemDetailsDto,
   })
   @ApiResponse({
@@ -265,11 +272,15 @@ export class LocalController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
+  @SerializeOptions({ schema: resetPasswordResponseSchema })
   async resetPassword(
     @Body({ schema: resetPasswordSchema }) dto: ResetPasswordDto,
   ) {
     await unwrapResult(this.authService.resetPassword(dto));
-    return;
+    return {
+      cooldown: this.verificationCodeService.getCooldownSec(),
+      message: this.i18n.t('auth.reset_password_success'),
+    };
   }
 }
 
@@ -314,4 +325,12 @@ registerResponseSchema({
   componentName: 'ForgotPasswordResponse',
   schema: forgotPasswordResponseSchema,
   description: 'Cooldown seconds until the next reset code can be requested.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/reset-password',
+  method: 'post',
+  componentName: 'ResetPasswordResponse',
+  schema: resetPasswordResponseSchema,
+  description: 'Password reset confirmation.',
 });

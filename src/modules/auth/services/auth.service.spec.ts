@@ -590,11 +590,13 @@ describe('AuthService', () => {
       );
 
       await service.resetPassword({
-        token: 'reset-token',
+        email: 'a@b.c',
+        code: '123456',
         password: 'NewPassword123!',
       });
       expect(credentialAuthService.resetPassword).toHaveBeenCalledWith({
-        token: 'reset-token',
+        email: 'a@b.c',
+        code: '123456',
         password: 'NewPassword123!',
       });
     });

@@ -315,7 +315,7 @@ export class CredentialAuthService {
     ).map(() => undefined);
   }
 
-  // ── Password Reset ───────────────────────────────────────────
+  // ── Password Reset (verification-code mode) ──────────────────
 
   forgotPassword(
     dto: ForgotPasswordDto,
@@ -323,35 +323,25 @@ export class CredentialAuthService {
   ): ResultAsync<{ message: string }, DomainFailure> {
     const email = normalizeEmail(dto.email);
 
+    // Same product-level verification-code flow as register / set-password.
+    // Anti-enumeration: the code is always reported as sent regardless of
+    // whether the email is registered, so probing cannot distinguish a
+    // registered from an unregistered address.
     return this.verificationCodeService
-      .assertClientRateLimit(clientKey)
-      .andThen(() =>
-        this.fromBetterAuth(
-          this.betterAuthAdapter.auth.api.requestPasswordReset({
-            body: {
-              email,
-              redirectTo: this.betterAuthAdapter.getEmailCallbackUrl(),
-            },
-          }),
-        ),
-      )
+      .send(email, 'forgot-password', clientKey)
       .map(() => ({ message: this.i18n.t('auth.forgot_password_hint') }));
   }
 
   resetPassword(dto: ResetPasswordDto): ResultAsync<void, DomainFailure> {
-    const identifier = `reset-password:${dto.token}`;
+    const email = normalizeEmail(dto.email);
 
-    // Pre-check: Better Auth's resetPassword consumes the token and does not
-    // return the user id, but Lucent must revoke all JWT sessions after a
-    // successful reset. Resolving userId before the token is consumed is
-    // therefore a necessary business guard.
-    // The find-then-consume flow is intentionally non-atomic because the token
-    // is single-use; a concurrent consume is acceptable and surfaces as
-    // AUTH_VERIFICATION_CODE_EXPIRED.
-    return this.lift(
-      this.prisma.verification.findFirst({ where: { identifier } }),
-    ).andThen((verification) => {
-      if (!verification) {
+    // Resolve the user from the email before consuming the one-time code so
+    // Lucent can revoke all JWT sessions after a successful reset. The code
+    // is single-use: a concurrent consume surfaces as AUTH_VERIFICATION_CODE_EXPIRED.
+    return this.lift(this.userService.findByEmail(email)).andThen((user) => {
+      if (!user) {
+        // Anti-enumeration: same generic failure as a wrong/expired code —
+        // never reveal whether the email is registered.
         return errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -360,15 +350,43 @@ export class CredentialAuthService {
         );
       }
 
-      const userId = verification.value;
+      const userId = user.id;
 
-      return this.fromBetterAuth(
-        this.betterAuthAdapter.auth.api.resetPassword({
-          body: { token: dto.token, newPassword: dto.password },
-        }),
-      )
-        .andThen(() => this.authTokenService.revokeAll(userId))
-        .map(() => undefined);
+      return this.verificationCodeService
+        .verify(email, dto.code, 'forgot-password')
+        .andThen(() =>
+          this.lift(
+            this.prisma.account.findFirst({
+              where: {
+                userId,
+                providerId: this.betterAuthAdapter.credentialProviderId,
+              },
+            }),
+          ),
+        )
+        .andThen((account) => {
+          if (!account) {
+            // OAuth-only account without a local credential — nothing to reset.
+            return errAsync(
+              createDomainFailure({
+                kind: 'authentication',
+                code: 'AUTH_PASSWORD_NOT_SET',
+              }),
+            );
+          }
+
+          return this.lift(this.betterAuthAdapter.hashPassword(dto.password))
+            .andThen((hashedPassword) =>
+              this.lift(
+                this.prisma.account.update({
+                  where: { id: account.id },
+                  data: { password: hashedPassword },
+                }),
+              ),
+            )
+            .andThen(() => this.authTokenService.revokeAll(userId))
+            .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
+        });
     });
   }
 

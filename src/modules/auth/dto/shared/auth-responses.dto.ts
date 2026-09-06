@@ -94,3 +94,15 @@ export const forgotPasswordResponseSchema = cooldownMessageSchema;
 export type ForgotPasswordResponseDto = z.infer<
   typeof forgotPasswordResponseSchema
 >;
+
+/**
+ * Response schema of the reset-password endpoint — wire-identical to
+ * {@link cooldownMessageSchema}. Returns a confirmation message (the cooldown
+ * field is kept for wire consistency with the forgot-password endpoint).
+ */
+export const resetPasswordResponseSchema = cooldownMessageSchema;
+
+/** Strongly typed reset-password response body. */
+export type ResetPasswordResponseDto = z.infer<
+  typeof resetPasswordResponseSchema
+>;
