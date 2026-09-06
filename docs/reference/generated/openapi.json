@@ -2414,11 +2414,18 @@
           }
         },
         "responses": {
-          "204": {
-            "description": "Password reset."
+          "200": {
+            "description": "Password reset. Returns a confirmation message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordResponse"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Reset token is invalid, expired, or the password is invalid",
+            "description": "Verification code is invalid/expired, or the password is invalid",
             "content": {
               "application/json": {
                 "schema": {
@@ -7202,6 +7209,21 @@
         "required": ["cooldown", "message"],
         "additionalProperties": false
       },
+      "ResetPasswordResponse": {
+        "type": "object",
+        "properties": {
+          "cooldown": {
+            "type": "number",
+            "description": "冷却时间（秒）"
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息"
+          }
+        },
+        "required": ["cooldown", "message"],
+        "additionalProperties": false
+      },
       "OAuthAuthorizeResponse": {
         "type": "object",
         "properties": {
@@ -10323,7 +10345,8 @@
               "login",
               "change-email",
               "set-password",
-              "delete-account"
+              "delete-account",
+              "forgot-password"
             ]
           }
         },
@@ -10357,10 +10380,16 @@
       "ResetPasswordRequest": {
         "type": "object",
         "properties": {
-          "token": {
+          "email": {
+            "description": "邮箱地址",
             "type": "string",
-            "minLength": 1,
-            "description": "Better Auth 密码重置 token"
+            "minLength": 1
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "description": "邮箱验证码（6 位）"
           },
           "password": {
             "type": "string",
@@ -10370,7 +10399,7 @@
             "description": "新密码（8-32位，需包含大小写字母和数字）"
           }
         },
-        "required": ["token", "password"],
+        "required": ["email", "code", "password"],
         "additionalProperties": false
       },
       "CreateWechatWebAuthorizeUrlRequest": {
