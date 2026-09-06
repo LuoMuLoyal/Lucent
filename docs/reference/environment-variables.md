@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-31
+updated: 2026-09-06
 ---
 
 # Environment Variables
@@ -366,3 +366,21 @@ SCALAR_API_REFERENCE_VERSION
   read-only filesystem deployments where `package.json` may not be available
   at runtime, so the `immutable` cache header still busts when `@scalar/api-reference`
   is upgraded.
+
+Build / export flags (internal):
+
+```text
+OPENAPI_EXPORT_SKIP_DB_CONNECT
+OPENAPI_EXPORT_SKIP_REDIS
+```
+
+- `OPENAPI_EXPORT_SKIP_DB_CONNECT` — set to `true` by `scripts/contract/export-openapi.ts`
+  during the OpenAPI export process so the Prisma/Postgres connection is skipped (only the
+  static schema + zod types are needed). Runtime consumer: `src/prisma/prisma.service.ts`
+  (`$connect` skipped when `true`).
+- `OPENAPI_EXPORT_SKIP_REDIS` — set to `true` by the same export script so Redis-backed
+  throttle storage, cache, and BullMQ connections are skipped during contract generation.
+  Runtime consumers: `throttler.config.ts`, `cache.config.ts`, `queue.factory.ts`,
+  `redis.service.ts`. Both variables are `z.enum(['true', 'false']).optional()` in the
+  env validation schema (they may be absent at runtime outside the export process).
+  Typed as `EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT` / `EnvKey.OPENAPI_EXPORT_SKIP_REDIS`.

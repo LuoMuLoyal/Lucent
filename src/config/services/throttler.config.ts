@@ -101,7 +101,7 @@ export async function buildThrottlerOptions(
 
   if (
     redisUrl &&
-    configService.get<string>('OPENAPI_EXPORT_SKIP_REDIS') !== 'true'
+    configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_REDIS) !== 'true'
   ) {
     try {
       const mod = await import('ioredis');

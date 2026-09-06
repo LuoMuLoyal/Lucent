@@ -71,7 +71,8 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   ) {
     const url = this.configService.get<string>(EnvKey.REDIS_URL);
     const skipRedis =
-      this.configService.get<string>('OPENAPI_EXPORT_SKIP_REDIS') === 'true';
+      this.configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_REDIS) ===
+      'true';
     this.redisUrl = skipRedis
       ? null
       : url && url.trim().length > 0

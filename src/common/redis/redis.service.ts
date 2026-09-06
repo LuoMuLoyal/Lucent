@@ -45,7 +45,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     const url = this.configService.get<string>(EnvKey.REDIS_URL);
     const skipRedis =
-      this.configService.get<string>('OPENAPI_EXPORT_SKIP_REDIS') === 'true';
+      this.configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_REDIS) ===
+      'true';
     this.redisUrl = skipRedis
       ? null
       : url != null && url.trim().length > 0
