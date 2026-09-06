@@ -299,12 +299,17 @@ export class CredentialAuthService {
   sendVerificationCode(
     dto: SendVerificationCodeDto,
     clientKey?: string,
+    locale?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
     // This code is a product-level anti-abuse verification code stored in
     // cache; it is unrelated to Better Auth's Verification table tokens.
     return this.verificationCodeService
-      .send(normalizeEmail(dto.email), dto.scene, clientKey)
-      .map(() => ({ message: this.i18n.t('auth.verification_code_sent') }));
+      .send(normalizeEmail(dto.email), dto.scene, clientKey, locale)
+      .map(() => ({
+        message: locale
+          ? this.i18n.t('auth.verification_code_sent', { lang: locale })
+          : this.i18n.t('auth.verification_code_sent'),
+      }));
   }
 
   verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
@@ -320,6 +325,7 @@ export class CredentialAuthService {
   forgotPassword(
     dto: ForgotPasswordDto,
     clientKey?: string,
+    locale?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
     const email = normalizeEmail(dto.email);
 
@@ -328,8 +334,12 @@ export class CredentialAuthService {
     // whether the email is registered, so probing cannot distinguish a
     // registered from an unregistered address.
     return this.verificationCodeService
-      .send(email, 'forgot-password', clientKey)
-      .map(() => ({ message: this.i18n.t('auth.forgot_password_hint') }));
+      .send(email, 'forgot-password', clientKey, locale)
+      .map(() => ({
+        message: locale
+          ? this.i18n.t('auth.forgot_password_hint', { lang: locale })
+          : this.i18n.t('auth.forgot_password_hint'),
+      }));
   }
 
   resetPassword(dto: ResetPasswordDto): ResultAsync<void, DomainFailure> {

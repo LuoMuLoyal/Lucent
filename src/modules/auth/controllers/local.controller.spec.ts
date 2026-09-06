@@ -212,6 +212,24 @@ describe('LocalController', () => {
       expect(result).toHaveProperty('message', 'Code sent');
     });
 
+    it('passes the request locale through to the service', async () => {
+      authService.sendVerificationCode.mockReturnValue(
+        okAsync({ message: 'Code sent' } as never),
+      );
+
+      await controller.sendVerificationCode(
+        { email: 'test@example.com', scene: 'register' } as never,
+        mockRequest,
+        'zh-CN',
+      );
+
+      expect(authService.sendVerificationCode).toHaveBeenCalledWith(
+        { email: 'test@example.com', scene: 'register' },
+        '127.0.0.1',
+        'zh-CN',
+      );
+    });
+
     it('folds cooldown failures into DomainFailureException', async () => {
       authService.sendVerificationCode.mockReturnValue(
         errAsync(

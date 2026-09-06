@@ -576,6 +576,7 @@ describe('AuthService', () => {
       expect(credentialAuthService.sendVerificationCode).toHaveBeenCalledWith(
         { email: 'a@b.c' },
         'key',
+        undefined,
       );
 
       await service.verifyEmail({ token: 'valid-token' });
@@ -587,6 +588,7 @@ describe('AuthService', () => {
       expect(credentialAuthService.forgotPassword).toHaveBeenCalledWith(
         { email: 'a@b.c' },
         'key',
+        undefined,
       );
 
       await service.resetPassword({

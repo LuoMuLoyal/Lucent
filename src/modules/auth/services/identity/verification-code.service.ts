@@ -73,9 +73,10 @@ export class VerificationCodeService {
     email: string,
     scene: VerificationScene,
     clientKey?: string,
+    locale?: string,
   ): ResultAsync<void, DomainFailure> {
     return this.assertClientRateLimit(clientKey).andThen(() =>
-      this.issueCodeAndSend(email, scene),
+      this.issueCodeAndSend(email, scene, locale),
     );
   }
 
@@ -188,6 +189,7 @@ export class VerificationCodeService {
   private issueCodeAndSend(
     email: string,
     scene: VerificationScene,
+    locale?: string,
   ): ResultAsync<void, DomainFailure> {
     const cooldownKey = this.cooldownKey(scene, email);
 
@@ -218,7 +220,7 @@ export class VerificationCodeService {
           this.lift(this.cacheSet(cooldownKey, '1', this.cooldownTtlMs)),
         )
         .andThen(() =>
-          this.lift(this.mailService.sendVerificationCode(email, code)),
+          this.lift(this.mailService.sendVerificationCode(email, code, locale)),
         )
         .map(() => {
           this.logger.log(

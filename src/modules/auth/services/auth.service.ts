@@ -90,8 +90,13 @@ export class AuthService {
   sendVerificationCode(
     dto: SendVerificationCodeDto,
     clientKey?: string,
+    locale?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
-    return this.credentialAuthService.sendVerificationCode(dto, clientKey);
+    return this.credentialAuthService.sendVerificationCode(
+      dto,
+      clientKey,
+      locale,
+    );
   }
 
   verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
@@ -101,8 +106,9 @@ export class AuthService {
   forgotPassword(
     dto: ForgotPasswordDto,
     clientKey?: string,
+    locale?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
-    return this.credentialAuthService.forgotPassword(dto, clientKey);
+    return this.credentialAuthService.forgotPassword(dto, clientKey, locale);
   }
 
   resetPassword(dto: ResetPasswordDto): ResultAsync<void, DomainFailure> {

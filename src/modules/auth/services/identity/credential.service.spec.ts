@@ -967,6 +967,7 @@ describe('CredentialAuthService', () => {
         'test@example.com',
         'register',
         undefined,
+        undefined,
       );
       expect(outcome).toEqual({
         ok: true,
@@ -986,6 +987,24 @@ describe('CredentialAuthService', () => {
         'test@example.com',
         'login',
         'client-key-123',
+        undefined,
+      );
+    });
+
+    it('should pass the locale through when provided', async () => {
+      await collectResult(
+        service.sendVerificationCode(
+          { email: 'test@example.com', scene: 'register' },
+          'client-key-123',
+          'zh-CN',
+        ),
+      );
+
+      expect(verificationCodeService.send).toHaveBeenCalledWith(
+        'test@example.com',
+        'register',
+        'client-key-123',
+        'zh-CN',
       );
     });
 
@@ -1180,6 +1199,28 @@ describe('CredentialAuthService', () => {
         'test@example.com',
         'forgot-password',
         undefined,
+        undefined,
+      );
+      expect(outcome).toEqual({
+        ok: true,
+        value: { message: 'auth.forgot_password_hint' },
+      });
+    });
+
+    it('should pass the locale through when provided', async () => {
+      const outcome = await collectResult(
+        service.forgotPassword(
+          { email: 'test@example.com' },
+          'client-key-123',
+          'zh-CN',
+        ),
+      );
+
+      expect(verificationCodeService.send).toHaveBeenCalledWith(
+        'test@example.com',
+        'forgot-password',
+        'client-key-123',
+        'zh-CN',
       );
       expect(outcome).toEqual({
         ok: true,

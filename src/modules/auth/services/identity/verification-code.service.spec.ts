@@ -114,6 +114,7 @@ describe('VerificationCodeService', () => {
       expect(mailService.sendVerificationCode).toHaveBeenCalledWith(
         'test@example.com',
         expect.stringMatching(/^\d{6}$/),
+        undefined,
       );
     });
 

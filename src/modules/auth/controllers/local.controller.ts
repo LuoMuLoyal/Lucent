@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
-import { I18nService } from 'nestjs-i18n';
+import { I18nLang, I18nService } from 'nestjs-i18n';
 
 import {
   extractAuthRequestContext,
@@ -161,9 +161,14 @@ export class LocalController {
   async sendVerificationCode(
     @Body({ schema: sendVerificationCodeSchema }) dto: SendVerificationCodeDto,
     @Req() request: FastifyRequest,
+    @I18nLang() locale?: string,
   ) {
     const result = await unwrapResult(
-      this.authService.sendVerificationCode(dto, getRequestClientIp(request)),
+      this.authService.sendVerificationCode(
+        dto,
+        getRequestClientIp(request),
+        locale,
+      ),
     );
 
     return {
@@ -236,9 +241,14 @@ export class LocalController {
   async forgotPassword(
     @Body({ schema: forgotPasswordSchema }) dto: ForgotPasswordDto,
     @Req() request: FastifyRequest,
+    @I18nLang() locale?: string,
   ) {
     const result = await unwrapResult(
-      this.authService.forgotPassword(dto, getRequestClientIp(request)),
+      this.authService.forgotPassword(
+        dto,
+        getRequestClientIp(request),
+        locale,
+      ),
     );
 
     return {
