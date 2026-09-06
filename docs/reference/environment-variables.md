@@ -99,7 +99,6 @@ local values.
 ```text
 BETTER_AUTH_SECRET
 BETTER_AUTH_URL
-BETTER_AUTH_EMAIL_CALLBACK_URL
 ```
 
 - `BETTER_AUTH_SECRET` — signing secret for Better Auth sessions and tokens. Must be at least 32
@@ -107,13 +106,9 @@ BETTER_AUTH_EMAIL_CALLBACK_URL
   into the runtime (Task 2 onwards); startup validation fails if missing.
 - `BETTER_AUTH_URL` — public base URL used by Better Auth to build callback and verification links.
   Defaults to `http://localhost:3000` when unset.
-- `BETTER_AUTH_EMAIL_CALLBACK_URL` — final redirect target used in password-reset and email-verification
-  links sent by Better Auth. Optional; defaults to `luminous://auth/callback` for mobile deep-links.
-  Web deployments can override it with `https://<host>/auth/callback`.
 
-These variables are introduced by the Better Auth migration. During Task 1 they are only used by the
-isolated spike script; Task 2 wires them into the NestJS runtime via `AuthBetterAuthAdapter`; Task 3
-adds the email-verification and password-reset callbacks.
+These variables are introduced by the Better Auth migration. Password reset uses the product-level
+verification code instead of Better Auth email links, so no email-callback URL is required.
 
 ## Optional Integrations
 
