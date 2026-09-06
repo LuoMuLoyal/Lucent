@@ -32,11 +32,14 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
-  — OpenAPI 组件名/operationId 命名重构:消除 dart-dio 客户端的 Controller/V1/Dto/内联 _inner 机械名,按 AIP-190/136 语义化命名,双仓一次性迁移(不做兼容)
+— OpenAPI 组件名/operationId 命名重构:消除 dart-dio 客户端的 Controller/V1/Dto/内联 \_inner 机械名,按 AIP-190/136 语义化命名,双仓一次性迁移(不做兼容)
+
+- [`2026-09-06-rag-hybrid-search-upgrade.md`](2026-09-06-rag-hybrid-search-upgrade.md)
+  — 三源 RAG 混合检索升级:PG18 FTS + RRF 融合(向量+关键词),零新运行时;中文分词决策;不顶替 LightRAG/GrapRAG,保留 F-15 合规分层
 - [`2026-09-02-agentic-proactive-evolution.md`](2026-09-02-agentic-proactive-evolution.md)
   — Agentic → Proactive → 伴身演进后端任务清单:AI 上下文统一、proposal 服务域化、today/review/reminders 提案工具、BullMQ 事件总线与依从性触发器、跨端会话一致(远期)
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
-  — 药品风险检查图数据结构引入:Phase 1 关系化 JSONB(PG18),Phase 2 SQL/PGQ 图查询(PG19 GA 后)
+  — 药品风险检查图数据结构引入:Phase 1 关系化 JSONB(PG18),Phase 2 SQL/CTE 图查询,Phase 3 LightRAG 开放检索,Phase 4 OAG(Semantica 替代路线见 §6.9)
 - [`2026-08-24-coolify-deployment-restructure-plan.md`](2026-08-24-coolify-deployment-restructure-plan.md)
   — 部署重构:deploy.ts + Compose + Nginx → Coolify + Traefik(**待通过**)
 - [`2026-08-22-medium-to-large-migration-inventory.md`](2026-08-22-medium-to-large-migration-inventory.md)

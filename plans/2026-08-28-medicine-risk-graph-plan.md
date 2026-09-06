@@ -3,6 +3,7 @@
 Created: 2026-08-28
 Revised: 2026-09-05（技术选型变更：PG19 SQL/PGQ → PolarDB PG17 + AGE/openCypher；评审修订：AGE 定位为 LightRAG 图存储后端而非风险图查询、删除相互作用传递推理、用户数据隔离、AGE 版本钉 1.7、边表血缘、PolarDB 迁移独立任务线）
 Revised: 2026-09-06（PolarDB Ontology 引擎实测评测：自托管镜像不包含 Ontology/AGE/pgvector，仅含 pase 向量扩展；确认 OAG 全链路在自托管环境需自建；新增 Phase 4：OAG 本体增强生成）
+Revised: 2026-09-06（Semantica 替代路线：OAG 六步中本体建模/知识存储/推理引擎可收敛为 semantica sidecar（Python, MIT），保留 Skill 声明式加载与 Action 执行在 Lucent 侧；方案取舍见 §6.9）
 
 ## 一、背景与动机
 
@@ -532,6 +533,67 @@ Agent 收到用户问题时：理解意图 → 选择 Skill 能力 → 执行查
 - 单元测试：本体定义校验（JSON Schema）、Skill 解析、推理查询构造；
 - 集成测试：`ontology_types` 注册 → 数据同步 → 推理查询（过敏链路、成分蕴含、相互作用一跳）→ Skill 调用链路；
 
+### 6.9 Semantica 替代路线（2026-09-06 评审新增）
+
+**结论：Phase 4 不再自建本体建模/知识存储/推理引擎（§6.3/6.4），改用开源语义层 [Semantica](https://github.com/semantica-agi/semantica)（MIT）作为 Python sidecar；Skill 声明式加载（步骤⑤）与 Action 执行（步骤⑥）仍保留在 Lucent 侧。**
+
+背景：Semantica 定位 "The Open-Source Palantir for AI Agents"，是 Palantir OAG 六步链路的开源实现。其能力面直接覆盖本计划原先计划自建的三道环节：
+
+- **本体建模与治理**：`OntologyEngine` / `OntologyGenerator`（5 阶段管线）+ `LLMOntologyGenerator`（LLM 辅助生成）+ SHACL 校验 + `OntologyQualityGate`（确定性质量门禁，可进 CI）+ OWL/RDF 导出——对应 §6.3 步骤①，且自带校验与版本能力。
+- **知识存储**：ContextGraph / Knowledge Graph + 多范式图存储（RDF：Oxigraph/Jena；LPG：Neo4j/**Apache AGE**/FalkorDB）+ 向量存储（含 **PgVector**）——对应 §6.4 步骤③，兼容 PG18 + pgvector 基线，AGE 仍为可选项。
+- **确定性推理**：Forward chaining / Rete / Datalog / SPARQL，可解释路径、不依赖 LLM——对应 §6.4 步骤④，比自研递归 CTE 能力更强，且免去深跳退化风险。
+- **数据集成**：`semantica.ingest` 的 `DBIngestor` 可直接连 PG 拉取 Phase 1 边表建 KG（原生支持），无需自写 ETL 映射层（对应步骤②）。
+
+**六步链路逐条对照（什么能省、什么省不了）：**
+
+| OAG 步骤   | 规划自建方案（§6.2）                     | Semantica 能否替代                                                                                                                                          |
+| ---------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ① 本体建模 | LLM 辅助 + 人工审核、`ontology_types` 表 | ✅ **可省**，用 `LLMOntologyGenerator` + SHACL + 质量门禁                                                                                                   |
+| ② 数据集成 | ETL 映射本体实例、复用 Phase 1 边表      | ⚠️ **半省**：`ingest` 能拉数据，但"映射到现成 PG 边表"这层粘合仍需少量自写；Phase 1 边表仍是数据底座                                                        |
+| ③ 知识存储 | 关系表 + JSONB + pgvector                | ✅ **可省**：RDF 三元组 / AGE / 向量全有，PG18 兼容                                                                                                         |
+| ④ 推理引擎 | 递归 CTE（可选 AGE）                     | ✅ **可省**：Rete/Datalog/SPARQL 直接用                                                                                                                     |
+| ⑤ LLM 集成 | Skill 声明式定义 + 意图转查询            | ⚠️ **需保留**：Agent 是自建 LangGraph runtime（§6.6 已论证不引 Deep Agents），Semantica 的 LangChain/MCP 集成只作工具出口，Lucent 侧仍需 Skill 声明式加载器 |
+| ⑥ 行动执行 | Action 校验 + 高危审批 + 审计            | ❌ **必须保留**：Semantica 的 Decision Intelligence 只记录决策/审计，不替你执行动作                                                                         |
+
+**落地形态（semantica sidecar 复用 LightRAG sidecar 模式）：**
+
+```
+Lucent (NestJS)
+  ├── 现有 LangGraph runtime + HITL 审批  ← 步骤⑤⑥ 不动
+  ├── Skill 声明式定义 (skill-registry.ts) ← 仍要，但直接调 Semantica REST/MCP
+  └── semantica sidecar (Python)          ← 步骤①②③④ 全在这里
+        ├── ingest 拉 PG 边表 → KG
+        ├── LLMOntologyGenerator 出候选本体 + SHACL 校验 + 人工确认
+        └── reasoning 暴露推理工具 (REST/MCP) 给 Agent
+```
+
+与 Phase 3 的 LightRAG sidecar 同一部署模式（Compose 编排、HTTP 接入、Python 运行时），无需新增技术路线分歧。
+
+**与 LightRAG 的关系（GraphRAG 与 OAG 不冲突，但双图有成本）：**
+
+- **范式互补**：GraphRAG 答"什么相关"（开放语料召回、概率性、不可作结论依据）；OAG 答"为什么/是否成立"（本体约束、确定性推理、可追溯、可作结论依据）。冲突时确定性结果优先（沿用 §6.1 分工）。
+- **数据共享原则**：**源层共享、物化隔离**——Phase 1 边表 + 归一化语料是唯一真相源，LightRAG 与 Semantica 各自消费、各自建自己的图（`lightrag_graph_*` 表 vs RDF/AGE 存储），互不覆盖。
+- **避免重复抽取**：同一批说明书文档不要同时喂给两者做 LLM 抽取。职责分流：LightRAG 抽开放语料（说明书/DrugBank 段落），Semantica 只吃结构化边表（`DBIngestor` 直连 PG）。
+- **本阶段不同时上双图**：结论层由 Phase 1/2 关系表 + SQL/CTE 兜底时，Semantica 不进主线；仅当确定需要监管级可审计结论（本体治理 + PROV-O）时，才启用 Semantica 并评估 LightRAG 是否冗余（其召回能力被 Semantica 图遍历 + 语义检索覆盖）。
+
+**选型判据（一句话）**：
+
+> 要"开放问答"→ Phase 3 LightRAG 即可，Phase 4 延后；要"监管级可审计的结论"→ 启用 semantica sidecar 替代 §6.3/6.4 自建，并删掉 LightRAG 或仅保留开放语料问答；两者结合的正确姿势是源层共享、物化隔离，不是双图并行。
+
+**新增/变更文件（相对 §6.3/6.4 自建案）：**
+
+- 新增 `deploy/semantica/`（sidecar 部署，Compose 片段）
+- 新增 `src/modules/medicines/services/ontology/semantica-client.ts`（REST/MCP 封装，替代 `ontology-modeling.service.ts` / `ontology-reasoning.service.ts` 的自研实现）
+- 保留 `src/modules/medicines/services/ontology/skill-registry.ts`（Skill 声明式定义，调 Semantica 工具）
+- 保留 `src/modules/medicines/services/ontology/action-executor.ts`（Action 执行，不迁移）
+- `prisma/models/medicine-ontology.prisma` 仅保留 Action/审批所需元数据，本体定义改由 Semantica 管理
+
+**风险增量：**
+
+- Semantica 是 2026 年初才火的较新开源项目，成熟度与社区可持续性需评估（对照规划 §9 风险表新增条目）。
+- Python sidecar 依赖与 LightRAG 同类，按既有 sidecar 模式处理，不算新增技术路线分歧。
+- 存储后端需二选一（RDF 或 AGE）才能喂进 Rete/Datalog/SPARQL 推理；纯"关系表 + JSONB"存储不满足 Semantica 推理要求。
+
 ## 七、依赖关系
 
 ```
@@ -596,25 +658,28 @@ Phase 1 (关系化，PG18)                       Phase 2 (风险图查询，PG18
 20. **Phase 4.5**：行动执行——Action 框架（参数校验 + 高危审批 + Webhook + 审计）
 21. **Phase 4.6**：更新测试 + 文档；性能基准（对比纯 SQL vs 可选 AGE）
 22. **（可选）AGE 引入**：若产品确认需要任意起点多跳遍历 / 路径查找 → 按 §2.3 条件引入 AGE 1.7（PG18 官方配方），Phase 4 推理引擎切 B 形态；LightRAG 图存储迁移 `PGTableGraphStorage → PGGraphStorage`（若同时需要）
+23. **（替代路线）Phase 4-S**：若确定启用 Semantica（§6.9 判据）→ 部署 `semantica` sidecar → `DBIngestor` 拉 Phase 1 边表建 KG → `LLMOntologyGenerator` 出候选本体 + SHACL 校验 + 人工确认 → 推理工具经 REST/MCP 暴露给 Skill/Agent；**替代 §6.3/6.4 自建与 16-21 的自研实现**，Skill/Action 不变
 
 ## 九、风险与缓解
 
-| 风险                                  | 影响                                    | 缓解                                                                                               |
-| ------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **ETL 数据不一致**                    | JSONB 和关系表数据不同步                | ETL 脚本做幂等 + 全量重建；DrugBank 导入时触发增量同步；边表挂在 DrugSourceImport 完成钩子         |
-| **成分归一化准确率下降**              | 从硬编码迁移到 DB 后，匹配规则变化      | Phase 1.4 保留硬编码作为 fallback；DB 查询 miss 时回退                                             |
-| **Prisma `$queryRaw` 类型安全**       | 原生 SQL 返回类型不安全                 | 定义 TypeScript interface + Zod schema 验证返回                                                    |
-| **用户数据进入共享知识**              | 隐私泄漏（多租户红线）                  | 边表/本体实例只含全局知识映射；用户过敏/药箱只留关系表，查询参数化 JOIN；LightRAG 语料不含个人记录 |
-| **"相互作用传递"假阳性**              | 误导性风险结论（医疗事故级）            | 4.1/4.4 明确禁止该推理；LLM 上下文只注入成分蕴含 + 过敏/禁忌链路                                   |
-| **图查询性能未达预期**                | 大图上可能不如预期                      | 风险图查询走关系表 + CTE（单用户子图，毫秒级）；必要时加索引/物化视图                              |
-| **PGTableGraphStorage 性能/功能不足** | LightRAG 图检索质量或吞吐受限           | 官方默认后端，功能等价 AGE；若确需 Cypher 自定义分析再按 §4.5 引入 AGE（可迁移）                   |
-| **LightRAG 索引成本爆炸**             | 全量 135 万 QA 建图超预算               | 首期子集跑通链路；按增量索引管线扩量；医疗 QA 受限接入；LLM token 消耗基准化                       |
-| **LightRAG 引入额外 Python 运行时**   | 部署复杂度上升                          | 官方 Docker/GHCR 镜像 + Compose 编排；embedding 复用现有模型配置                                   |
-| **LightRAG 与现有 RAG 行为漂移**      | 检索结果改变影响 verifiability          | 服务端分层标注逻辑不动；回归测试保输出一致                                                         |
-| **OAG 本体建模质量不足**              | LLM 生成的候选本体不准，推理结果误导    | 人工审核门禁；版本管理 + 回滚；LLM 候选仅作草稿，Object/Link/Action 以审核为准                     |
-| **OAG 推理性能（多跳）**              | 递归 CTE 在深跳/大图上退化              | 单用户子图毫秒级；必要时加物化视图/索引；仍不足再按 §2.3 引入 AGE 图遍历（6.4 B）                  |
-| **OAG 行动执行风险（医疗决策）**      | LLM 触发错误动作（推荐错药/通知错医生） | 高危动作强制人工审批；前置条件校验；全量审计；Action 白名单 + 参数 Schema 校验                     |
-| **OAG 与 RAG 结果冲突**               | 两条检索路径给不同答案                  | 明确分工（RAG 管开放语料、OAG 管本体推理）；冲突时以 OAG 确定性结果优先 + 双标可追溯               |
+| 风险                                  | 影响                                               | 缓解                                                                                               |
+| ------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **ETL 数据不一致**                    | JSONB 和关系表数据不同步                           | ETL 脚本做幂等 + 全量重建；DrugBank 导入时触发增量同步；边表挂在 DrugSourceImport 完成钩子         |
+| **成分归一化准确率下降**              | 从硬编码迁移到 DB 后，匹配规则变化                 | Phase 1.4 保留硬编码作为 fallback；DB 查询 miss 时回退                                             |
+| **Prisma `$queryRaw` 类型安全**       | 原生 SQL 返回类型不安全                            | 定义 TypeScript interface + Zod schema 验证返回                                                    |
+| **用户数据进入共享知识**              | 隐私泄漏（多租户红线）                             | 边表/本体实例只含全局知识映射；用户过敏/药箱只留关系表，查询参数化 JOIN；LightRAG 语料不含个人记录 |
+| **"相互作用传递"假阳性**              | 误导性风险结论（医疗事故级）                       | 4.1/4.4 明确禁止该推理；LLM 上下文只注入成分蕴含 + 过敏/禁忌链路                                   |
+| **图查询性能未达预期**                | 大图上可能不如预期                                 | 风险图查询走关系表 + CTE（单用户子图，毫秒级）；必要时加索引/物化视图                              |
+| **PGTableGraphStorage 性能/功能不足** | LightRAG 图检索质量或吞吐受限                      | 官方默认后端，功能等价 AGE；若确需 Cypher 自定义分析再按 §4.5 引入 AGE（可迁移）                   |
+| **LightRAG 索引成本爆炸**             | 全量 135 万 QA 建图超预算                          | 首期子集跑通链路；按增量索引管线扩量；医疗 QA 受限接入；LLM token 消耗基准化                       |
+| **LightRAG 引入额外 Python 运行时**   | 部署复杂度上升                                     | 官方 Docker/GHCR 镜像 + Compose 编排；embedding 复用现有模型配置                                   |
+| **LightRAG 与现有 RAG 行为漂移**      | 检索结果改变影响 verifiability                     | 服务端分层标注逻辑不动；回归测试保输出一致                                                         |
+| **OAG 本体建模质量不足**              | LLM 生成的候选本体不准，推理结果误导               | 人工审核门禁；版本管理 + 回滚；LLM 候选仅作草稿，Object/Link/Action 以审核为准                     |
+| **OAG 推理性能（多跳）**              | 递归 CTE 在深跳/大图上退化                         | 单用户子图毫秒级；必要时加物化视图/索引；仍不足再按 §2.3 引入 AGE 图遍历（6.4 B）                  |
+| **OAG 行动执行风险（医疗决策）**      | LLM 触发错误动作（推荐错药/通知错医生）            | 高危动作强制人工审批；前置条件校验；全量审计；Action 白名单 + 参数 Schema 校验                     |
+| **OAG 与 RAG 结果冲突**               | 两条检索路径给不同答案                             | 明确分工（RAG 管开放语料、OAG 管本体推理）；冲突时以 OAG 确定性结果优先 + 双标可追溯               |
+| **Semantica 项目成熟度**              | 较新开源，社区与维护可持续性存疑                   | 锁定版本；Skill/Action 留在 Lucent 侧（可剥离）；Phase 4 自建路线仍为可回退的 plan B               |
+| **Semantica 推理存储后端二选一**      | 纯关系表/JSONB 不满足 Rete/Datalog/SPARQL 推理要求 | 选 RDF（Oxigraph 嵌入式热启动）或 AGE（与 LightRAG 共享）；源层仍为 Phase 1 关系表，物化隔离       |
 
 ## 十、涉及的文件
 
@@ -629,6 +694,8 @@ Phase 1 (关系化，PG18)                       Phase 2 (风险图查询，PG18
 | `src/modules/assistant/lightrag/lightrag-client.ts`                     | LightRAG REST 客户端（Phase 3）                                                                    |
 | `src/modules/assistant/lightrag/lightrag-client.spec.ts`                | LightRAG 客户端测试                                                                                |
 | `deploy/lightrag/`                                                      | LightRAG sidecar 部署（Dockerfile / compose 片段）                                                 |
+| `deploy/semantica/`                                                     | Semantica sidecar 部署（Phase 4-S 替代路线，见 §6.9）                                              |
+| `src/modules/medicines/services/ontology/semantica-client.ts`           | Semantica REST/MCP 封装（替代 `ontology-modeling.service.ts` / `ontology-reasoning.service.ts`）   |
 | `prisma/models/medicine-ontology.prisma`                                | 本体元数据：`ontology_types`（Object/Link/Action 定义 + 版本）、`ontology_instances`（JSONB 属性） |
 | `src/modules/medicines/services/ontology/ontology-modeling.service.ts`  | OAG 步骤①：LLM 辅助本体建模 + 人工审核（Phase 4.1）                                                |
 | `src/modules/medicines/services/ontology/ontology-reasoning.service.ts` | OAG 步骤④：推理引擎（递归 CTE，可选 AGE 图遍历）（Phase 4.3）                                      |
