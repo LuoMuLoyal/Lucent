@@ -22,6 +22,7 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 - [reference/deployment.md](reference/deployment.md) — 生产部署模型参考(单机 Compose、单 slot、备份链路)
 - [reference/data-retention.md](reference/data-retention.md) — 数据保留、清理管道与账户删除级联
 - [reference/assistant-safety.md](reference/assistant-safety.md) — 跨模块 AI 医疗红线与安全策略
+- [reference/logging-conventions.md](reference/logging-conventions.md) — 结构化日志字段名约定（`error` / `key` / `userId` / `traceId` / `spanId` 等）
 - [explanation/architecture.md](explanation/architecture.md) — 跨模块心智模型与设计权衡(细节以 ADR 与代码为准)
 - [howto/add-new-module.md](howto/add-new-module.md) — 新增 NestJS 模块
 - [howto/deploy.md](howto/deploy.md) — 生产部署快速路径

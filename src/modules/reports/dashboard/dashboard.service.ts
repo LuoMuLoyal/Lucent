@@ -36,7 +36,7 @@ export class ReportsService {
     } catch (error) {
       const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
-        { err: error, key: cacheKey, traceId, spanId },
+        { error, key: cacheKey, traceId, spanId },
         'Reports dashboard cache get failed',
       );
       throw error;
@@ -65,7 +65,7 @@ export class ReportsService {
     } catch (error) {
       const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
-        { err: error, key: cacheKey, traceId, spanId },
+        { error, key: cacheKey, traceId, spanId },
         'Reports dashboard cache set failed — serving computed result directly',
       );
     }
@@ -98,7 +98,7 @@ export class ReportsService {
         } catch (error) {
           const { traceId, spanId } = getActiveTraceIds();
           this.logger.warn(
-            { err: error, userSegment, traceId, spanId },
+            { error, userSegment, traceId, spanId },
             'Reports dashboard cache key enumeration failed',
           );
           continue;
@@ -109,7 +109,7 @@ export class ReportsService {
             this.cache.del(key).catch((error: unknown) => {
               const { traceId, spanId } = getActiveTraceIds();
               this.logger.warn(
-                { err: error, key, traceId, spanId },
+                { error, key, traceId, spanId },
                 'Reports dashboard cache del failed',
               );
             }),
@@ -119,7 +119,7 @@ export class ReportsService {
     } catch (error) {
       const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
-        { err: error, userId, traceId, spanId },
+        { error, userId, traceId, spanId },
         'Reports dashboard cache invalidation failed',
       );
     }

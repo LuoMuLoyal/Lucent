@@ -73,6 +73,7 @@ rules:
     docs_any_of:
       - docs/explanation/architecture.md
       - src/common/README.md
+      - docs/reference/logging-conventions.md
 
   # ──────────────────────────────────────────────
   # 认证与安全(auth、account)
