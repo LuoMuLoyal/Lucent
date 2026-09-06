@@ -35,7 +35,7 @@ async function loadPrismaInternals(): Promise<PrismaInternals> {
     // exception-filter pipeline and keeps a traceId in logs — module-loading
     // invariant of the admin panel, not a request-path failure.
     throw new InternalServerErrorException(
-      '@prisma/internals interop failed: no default export available',
+      'Admin Prisma init failed (module-load): @prisma/internals interop failed — no default export available',
     );
   }
   return internals;
