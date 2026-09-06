@@ -8,7 +8,7 @@ import {
 import type { Redis } from 'ioredis';
 import { EnvKey } from '../env/env-keys.enum.js';
 
-const logger = new Logger('ThrottlerConfigService');
+const logger = new Logger('ThrottlerConfig');
 
 interface ThrottlerStorageRecord {
   totalHits: number;
