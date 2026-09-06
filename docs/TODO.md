@@ -9,7 +9,7 @@ updated: 2026-09-04
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-04
+Last updated: 2026-09-06
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -18,6 +18,17 @@ random docs.
 
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
+
+## 2026-09-06 OAuth 登入门槛调整（微博全链路移除待办）
+
+前端已把微博登录 UI 入口隐藏（`Luminous`），后端微博 OAuth 全链路移除作为待办：
+删除 `src/modules/auth/providers/weibo-oauth.provider.ts`（及其 spec）、
+`oauth.controller.ts` 中 `/api/v1/auth/oauth/weibo/*` 端点与
+`registerResponseSchema` 条目、`oauth.dto.ts` 的 `weiboOAuthAuthorizeSchema` /
+`weiboOAuthCallbackSchema` 及相关类型、`oauth.config.ts` 的 `weibo` 项、
+`EnvKey.WEIBO_*` 环境变量（同步 `docs/reference/environment-variables.md`）、
+`state.service.ts` 的 weibo 回跳路径、`oauth.types.ts` 的 `OAUTH_PROVIDER_WEIBO`、
+`auth.service.ts` / `facade.service.ts` 的 weibo 方法与相关测试；移除后重新导出 OpenAPI。
 
 ### B5：风险检查候选预检的错误可观测性（P3，2026-08-16 F-9 审查 P2）
 
