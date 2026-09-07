@@ -3,12 +3,14 @@ import { DoseLogStatus } from '#generated/prisma/client.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 import type { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
 import { MedicationCollectorService } from './medication.service.js';
+import { MedicationTimeResolverService } from './medication-time-resolver.service.js';
 import { TriggerType } from '../../types/suggestion.types.js';
 
 describe('MedicationCollectorService', () => {
   let service: MedicationCollectorService;
   let prisma: DeepMocked<PrismaService>;
   let doseLogReader: DeepMocked<MedicineDoseLogReaderPort>;
+  let timeResolver: MedicationTimeResolverService;
 
   beforeEach(() => {
     prisma = {
@@ -23,7 +25,12 @@ describe('MedicationCollectorService', () => {
     doseLogReader = {
       listFactsInRange: vi.fn(),
     } as unknown as DeepMocked<MedicineDoseLogReaderPort>;
-    service = new MedicationCollectorService(prisma, doseLogReader);
+    timeResolver = new MedicationTimeResolverService();
+    service = new MedicationCollectorService(
+      prisma,
+      doseLogReader,
+      timeResolver,
+    );
   });
 
   afterEach(() => {
