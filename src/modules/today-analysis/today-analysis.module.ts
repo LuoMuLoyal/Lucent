@@ -8,6 +8,7 @@ import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminder
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PrismaModule } from '../../prisma/index.js';
 import { TodayAnalysisContextService } from './services/pipeline/context.service.js';
+import { TriggerEvaluatorService } from './services/pipeline/trigger-evaluator.service.js';
 
 import { TodayAnalysisCopyService } from './services/pipeline/copy.service.js';
 
@@ -37,6 +38,7 @@ import { TodayAnalysisController } from './today-analysis.controller.js';
   providers: [
     TodayAnalysisCopyService,
     TodayAnalysisContextService,
+    TriggerEvaluatorService,
     TodayAnalysisGeneratorService,
     TodayAnalysisService,
     TodayAnalysisQueueService,

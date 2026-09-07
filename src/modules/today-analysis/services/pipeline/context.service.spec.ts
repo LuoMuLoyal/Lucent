@@ -1,4 +1,5 @@
 import { TodayAnalysisContextService } from './context.service.js';
+import { TriggerEvaluatorService } from './trigger-evaluator.service.js';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 
 function createMockCache() {
@@ -6,6 +7,14 @@ function createMockCache() {
     get: vi.fn().mockResolvedValue(undefined),
     set: vi.fn().mockResolvedValue(undefined),
   } as never;
+}
+
+function createMockTriggerEvaluator(dailyRecordReader?: unknown) {
+  return new TriggerEvaluatorService(
+    (dailyRecordReader ?? {
+      listFactsInRange: vi.fn().mockResolvedValue([]),
+    }) as never,
+  );
 }
 
 describe('TodayAnalysisContextService', () => {
@@ -59,6 +68,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -101,6 +111,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -141,6 +152,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -182,6 +194,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -223,6 +236,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -267,6 +281,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -286,6 +301,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -305,6 +321,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -322,6 +339,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -359,6 +377,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -389,6 +408,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -406,6 +426,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -438,6 +459,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -488,6 +510,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -519,6 +542,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -555,6 +579,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -589,6 +614,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -616,6 +642,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -644,6 +671,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -679,6 +707,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -699,6 +728,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -748,6 +778,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -773,6 +804,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -806,6 +838,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -842,6 +875,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -877,6 +911,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -912,6 +947,7 @@ describe('TodayAnalysisContextService', () => {
       doseLogReader as never,
       reminderReader as never,
       createMockCache(),
+      createMockTriggerEvaluator(dailyRecordReader),
     );
 
     const context = await service.build('u1', '2026-07-01');
@@ -937,6 +973,7 @@ describe('TodayAnalysisContextService', () => {
         doseLogReader as never,
         reminderReader as never,
         createMockCache(),
+        createMockTriggerEvaluator(dailyRecordReader),
       );
 
       const result = await service.shouldTriggerForDimension(
@@ -975,6 +1012,7 @@ describe('TodayAnalysisContextService', () => {
         doseLogReader as never,
         reminderReader as never,
         createMockCache(),
+        createMockTriggerEvaluator(dailyRecordReader),
       );
 
       const result = await service.shouldTriggerForDimension(
@@ -1013,6 +1051,7 @@ describe('TodayAnalysisContextService', () => {
         doseLogReader as never,
         reminderReader as never,
         createMockCache(),
+        createMockTriggerEvaluator(dailyRecordReader),
       );
 
       const result = await service.shouldTriggerForDimension(
@@ -1051,6 +1090,7 @@ describe('TodayAnalysisContextService', () => {
         doseLogReader as never,
         reminderReader as never,
         createMockCache(),
+        createMockTriggerEvaluator(dailyRecordReader),
       );
 
       const result = await service.shouldTriggerForDimension(
@@ -1106,6 +1146,7 @@ describe('TodayAnalysisContextService', () => {
         doseLogReader as never,
         reminderReader as never,
         createMockCache(),
+        createMockTriggerEvaluator(dailyRecordReader),
       );
 
       const result = await service.shouldTriggerForDimension(
