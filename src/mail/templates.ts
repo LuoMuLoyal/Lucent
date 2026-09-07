@@ -99,37 +99,6 @@ function emailShell(innerContent: string, locale: EmailLocale): string {
 </html>`;
 }
 
-// ── Shared call-to-action button ───────────────────────────────────────
-
-/**
- * Renders a centered primary button pointing to the given URL.
- */
-function ctaButton(label: string, url: string): string {
-  return `
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
-                <tr>
-                  <td align="center">
-                    <a href="${escapeHtml(url)}" style="display:inline-block;padding:14px 32px;background-color:${BRAND_PRIMARY};color:${BRAND_WHITE};text-decoration:none;border-radius:10px;font-size:15px;font-weight:600;">
-                      ${label}
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:0 0 24px 0;color:${BRAND_TEXT_MUTED};font-size:12px;line-height:1.6;word-break:break-all;text-align:center;">
-                ${escapeHtml(url)}
-              </p>`;
-}
-
-/** Basic HTML attribute escaping for URLs and plain text. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 // ── Verification code email ────────────────────────────────────────────
 
 /** Locale-aware subject line for the verification code email. */
@@ -217,81 +186,6 @@ export function renderVerificationCodeEmail(
                     <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
                       &bull; ${verificationExpiryNote(lang, ttlMinutes)}<br>
                       &bull; ${verificationShareNote(lang)}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin:0;color:${BRAND_TEXT_MUTED};font-size:13px;line-height:1.6;">
-                ${verificationIgnoreNote(lang)}
-              </p>`;
-
-  return emailShell(inner, lang);
-}
-
-// ── Verification link email ──────────────────────────────────────────
-
-/** Locale-aware subject line for the verification link email. */
-export function verificationLinkSubject(locale?: string): string {
-  const resolved = resolveLocale(locale);
-  return resolved === 'zh-CN'
-    ? `${BRAND_NAME} - 验证您的邮箱`
-    : `${BRAND_NAME} - Verify Your Email`;
-}
-
-/** Locale-aware greeting line for the verification link email. */
-function linkGreeting(locale: EmailLocale): string {
-  return locale === 'zh-CN'
-    ? '您好！请验证您的邮箱地址以完成账户设置。'
-    : 'Hello! Please verify your email address to complete your account setup.';
-}
-
-/** Locale-aware link button label for the verification link email. */
-function linkCtaLabel(locale: EmailLocale): string {
-  return locale === 'zh-CN' ? '验证邮箱' : 'Verify Email';
-}
-
-/** Locale-aware expiry hint for the verification link email. */
-function linkExpiryNote(locale: EmailLocale, ttlMinutes: number): string {
-  return locale === 'zh-CN'
-    ? `链接 ${String(ttlMinutes)} 分钟内有效`
-    : `The link expires in ${String(ttlMinutes)} minutes`;
-}
-
-/** Locale-aware "do not share" hint for the verification link email. */
-function linkShareNote(locale: EmailLocale): string {
-  return locale === 'zh-CN'
-    ? '请勿将此链接分享给他人'
-    : 'Do not share this link with anyone';
-}
-
-/**
- * Renders an email containing a one-time link to verify the email address,
- * in a single language chosen from the request locale (default: en).
- *
- * @param url - The verification link (contains the token)
- * @param ttlMinutes - Link validity in minutes (default: 60)
- * @param locale - Request locale (default: en)
- */
-export function renderVerificationLinkEmail(
-  url: string,
-  ttlMinutes = 60,
-  locale?: string,
-): string {
-  const lang = resolveLocale(locale);
-  const inner = `
-              <p style="margin:0 0 24px 0;color:${BRAND_TEXT};font-size:16px;line-height:1.7;">
-                ${linkGreeting(lang)}
-              </p>
-
-              ${ctaButton(linkCtaLabel(lang), url)}
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-                <tr>
-                  <td style="background-color:#FEFCE8;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;">
-                    <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
-                      &bull; ${linkExpiryNote(lang, ttlMinutes)}<br>
-                      &bull; ${linkShareNote(lang)}
                     </p>
                   </td>
                 </tr>

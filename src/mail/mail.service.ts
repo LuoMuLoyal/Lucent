@@ -2,9 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MailQueueService } from './mail-queue.service.js';
 import {
   renderVerificationCodeEmail,
-  renderVerificationLinkEmail,
   verificationCodeSubject,
-  verificationLinkSubject,
 } from './templates.js';
 
 /**
@@ -38,19 +36,5 @@ export class MailService {
   ): Promise<void> {
     const html = renderVerificationCodeEmail(code, 5, locale);
     await this.send(email, verificationCodeSubject(locale), html);
-  }
-
-  /**
-   * Sends a one-time email-verification link (Better Auth token lifecycle).
-   *
-   * @param locale - Request locale (e.g. `zh-CN` / `en`); defaults to `en`.
-   */
-  async sendVerificationLink(
-    email: string,
-    url: string,
-    locale?: string,
-  ): Promise<void> {
-    const html = renderVerificationLinkEmail(url, 60, locale);
-    await this.send(email, verificationLinkSubject(locale), html);
   }
 }

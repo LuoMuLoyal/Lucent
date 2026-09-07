@@ -8,7 +8,6 @@ import type { Prisma } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvKey } from '../../../config/env/env-keys.enum.js';
 import { ARGON2_OPTIONS } from '../config/argon2-options.js';
-import { MailService } from '../../../mail/mail.service.js';
 import {
   createDomainFailure,
   errAsync,
@@ -62,7 +61,6 @@ export class AuthBetterAuthAdapter {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly mailService: MailService,
   ) {
     const secret = this.config.get<string>(EnvKey.BETTER_AUTH_SECRET);
     if (!secret) {
@@ -110,12 +108,6 @@ export class AuthBetterAuthAdapter {
       },
       emailVerification: {
         sendOnSignUp: false,
-        sendVerificationEmail: async (data) => {
-          await this.mailService.sendVerificationLink(
-            data.user.email,
-            data.url,
-          );
-        },
       },
       socialProviders: this.buildSocialProviders(),
       account: {
