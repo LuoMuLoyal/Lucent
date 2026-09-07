@@ -7,20 +7,27 @@ import {
   AcceptLanguageResolver,
 } from 'nestjs-i18n';
 import { isRunningFromSource } from '../config/env/runtime-signal.js';
+import { EnvKey } from '../config/env/env-keys.enum.js';
 
 // ESM equivalent of `__dirname` (translation JSON lives next to this module).
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
+// Bootstrap-stage env read: `forRoot()` options are built before DI, so
+// ConfigService is unavailable here. `EnvKey.NODE_ENV` keeps the read on the
+// same typed key as `app.config.ts` instead of a raw string literal.
 const i18nOptions: I18nOptions = {
   fallbackLanguage: 'en',
   loaderOptions: {
     path: path.join(thisDir),
-    watch: process.env['NODE_ENV'] !== 'production',
+    watch: process.env[EnvKey.NODE_ENV] !== 'production',
   },
   resolvers: [AcceptLanguageResolver],
 };
 
-if (process.env['NODE_ENV'] === 'development' && isRunningFromSource()) {
+if (
+  process.env[EnvKey.NODE_ENV] === 'development' &&
+  isRunningFromSource()
+) {
   i18nOptions.typesOutputPath = path.join(
     thisDir,
     '..',

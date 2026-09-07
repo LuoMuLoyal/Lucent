@@ -17,6 +17,7 @@ import { s3StorageConfig } from './config/services/s3-storage.config.js';
 import { jpushConfig } from './config/services/jpush.config.js';
 import { getEnvFilePaths } from './config/env/env-file-paths.js';
 import { isRunningFromSource } from './config/env/runtime-signal.js';
+import { EnvKey } from './config/env/env-keys.enum.js';
 import { validatedEnvSchema } from './config/env/environment.validation.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { MailModule } from './mail/mail.module.js';
@@ -68,9 +69,10 @@ import { SlowRequestInterceptor } from './common/index.js';
 // process executes from source: a compiled image never mounts it, even
 // if NODE_ENV were misconfigured to "test" on a production host. Same
 // src-vs-dist signal i18n.module.ts uses for its dev-only typesOutputPath
-// (see `config/env/runtime-signal.ts`).
+// (see `config/env/runtime-signal.ts`). `EnvKey.NODE_ENV` keeps the read on
+// the same typed key as `app.config.ts` instead of a raw string literal.
 const isTestRuntime =
-  process.env['NODE_ENV'] === 'test' && isRunningFromSource();
+  process.env[EnvKey.NODE_ENV] === 'test' && isRunningFromSource();
 
 @Module({
   imports: [
