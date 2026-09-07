@@ -25,6 +25,8 @@ import { MealAnalysisWorkerService } from './services/meal-analysis/worker.servi
 import { MealDishDecompositionService } from './services/meal-dish/decomposition.service.js';
 import { MealIngredientGroundingService } from './services/meal-ingredient/grounding.service.js';
 import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service.js';
+import { DailyRecordsValidatorService } from './services/records-validator.service.js';
+import { MealPayloadWriterService } from './services/meal-payload-writer.service.js';
 
 @Module({
   imports: [
@@ -52,6 +54,8 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
     DailyRecordsOwnershipService,
     DailyRecordsService,
     DailyRecordsMapperService,
+    DailyRecordsValidatorService,
+    MealPayloadWriterService,
     MealAnalysisQueueService,
     MealAnalysisMatcherService,
     MealDishDecompositionService,

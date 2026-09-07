@@ -15,6 +15,8 @@ import { DailyRecordsMapperService } from './mapper.service.js';
 import { DailyRecordsService } from './records.service.js';
 import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
 import { MealDishTemplateLearningService } from './meal-dish/template-learning.service.js';
+import { DailyRecordsValidatorService } from './records-validator.service.js';
+import { MealPayloadWriterService } from './meal-payload-writer.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const mockUserId = 'user-uuid-1';
@@ -69,6 +71,8 @@ describe('DailyRecordsService', () => {
     ensureActiveOwnedByUser: vi.Mock;
   };
   let eventEmitter: { emitAsync: vi.Mock };
+  let mealPayloadWriterService: MealPayloadWriterService;
+  let validatorService: DailyRecordsValidatorService;
 
   beforeEach(async () => {
     mealAnalysisQueueService = {
@@ -86,6 +90,11 @@ describe('DailyRecordsService', () => {
     eventEmitter = {
       emitAsync: vi.fn().mockResolvedValue(undefined),
     };
+
+    mealPayloadWriterService = new MealPayloadWriterService(
+      mealAnalysisQueueService as unknown as MealAnalysisQueueService,
+    );
+    validatorService = new DailyRecordsValidatorService();
 
     txMock = {
       userDailyRecord: {
@@ -121,6 +130,14 @@ describe('DailyRecordsService', () => {
         DailyRecordsService,
         DailyRecordsOwnershipService,
         DailyRecordsMapperService,
+        {
+          provide: DailyRecordsValidatorService,
+          useValue: validatorService,
+        },
+        {
+          provide: MealPayloadWriterService,
+          useValue: mealPayloadWriterService,
+        },
         {
           provide: HealthEventsOwnershipService,
           useValue: healthEventsOwnershipService,

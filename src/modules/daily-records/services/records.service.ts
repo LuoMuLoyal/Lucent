@@ -30,19 +30,16 @@ import {
 } from '../types/record.types.js';
 import {
   buildConfirmedMealPayload,
-  buildMealPayloadFromClientInput,
   getMealSourceRevision,
   hasMealDishInputChanges,
   isMealAnalysisConfirmRequest,
   markMealAnalysisQueued,
-  parseMealRecordPayload,
-  type MealAnalysisCoverage,
-  type MealAnalysisStatus,
 } from '../types/meal-analysis.types.js';
-import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
 import { MealDishTemplateLearningService } from './meal-dish/template-learning.service.js';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository.js';
 import { HealthEventsOwnershipService } from '../../health-events/index.js';
+import { DailyRecordsValidatorService } from './records-validator.service.js';
+import { MealPayloadWriterService } from './meal-payload-writer.service.js';
 import {
   DAILY_RECORD_CHANGED,
   type DailyRecordChangedPayload,
@@ -57,7 +54,8 @@ export class DailyRecordsService {
     private readonly ownershipService: DailyRecordsOwnershipService,
     private readonly healthEventsOwnershipService: HealthEventsOwnershipService,
     private readonly mapperService: DailyRecordsMapperService,
-    private readonly mealAnalysisQueueService: MealAnalysisQueueService,
+    private readonly mealPayloadWriterService: MealPayloadWriterService,
+    private readonly validatorService: DailyRecordsValidatorService,
     private readonly mealDishTemplateLearningService: MealDishTemplateLearningService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -91,7 +89,10 @@ export class DailyRecordsService {
     ReturnType<DailyRecordsMapperService['toItem']>,
     DomainFailure
   > {
-    const payloadFailure = this.validateCreatePayload(dto.kind, dto.payload);
+    const payloadFailure = this.validatorService.validateCreatePayload(
+      dto.kind,
+      dto.payload,
+    );
     if (payloadFailure != null) {
       return errAsync(payloadFailure);
     }
@@ -118,7 +119,10 @@ export class DailyRecordsService {
     const createAttachments = dto.attachments;
     const initialMealPayload =
       dto.kind === DailyRecordKind.meal
-        ? this.prepareMealPayloadForWrite(dto.payload, createAttachments)
+        ? this.mealPayloadWriterService.prepareMealPayloadForWrite(
+            dto.payload,
+            createAttachments,
+          )
         : null;
 
     const baseData = {
@@ -136,7 +140,7 @@ export class DailyRecordsService {
 
     const payloadField =
       dto.kind === DailyRecordKind.meal
-        ? this.buildMealCreateFields(initialMealPayload)
+        ? this.mealPayloadWriterService.toCreateFields(initialMealPayload)
         : dto.payload === undefined
           ? {}
           : { payload: toInputJsonValue(dto.payload) };
@@ -171,7 +175,10 @@ export class DailyRecordsService {
             queuedRevision = getMealSourceRevision(queuedPayload);
             await tx.userDailyRecord.update({
               where: { id: record.id },
-              data: this.withMealHotFields({}, queuedPayload),
+              data: this.mealPayloadWriterService.withMealHotFields(
+                {},
+                queuedPayload,
+              ),
             });
           }
           const txItem = await this.getItemFromTx(tx, userId, record.id);
@@ -181,7 +188,7 @@ export class DailyRecordsService {
           throw error;
         },
       ).map(async ({ item, queuedRevision }) => {
-        await this.enqueueMealAnalysisIfNeeded(
+        await this.mealPayloadWriterService.enqueueAnalysisIfNeeded(
           userId,
           item,
           queuedRevision ?? undefined,
@@ -205,7 +212,10 @@ export class DailyRecordsService {
         const item = this.mapperService.toItem(record, {
           includeMealPayload: true,
         });
-        await this.enqueueMealAnalysisIfNeeded(userId, item);
+        await this.mealPayloadWriterService.enqueueAnalysisIfNeeded(
+          userId,
+          item,
+        );
         await this.invalidateSuggestionCache(
           userId,
           dto.occurredAt,
@@ -261,7 +271,10 @@ export class DailyRecordsService {
             ? this.requireActiveHealthEvent(userId, dto.healthEventId)
             : okAsync(undefined);
         return healthEventStep.andThen(() => {
-          const sleepFailure = this.ensureValidSleepFinalState(dto, existing);
+          const sleepFailure = this.validatorService.ensureValidSleepFinalState(
+            dto,
+            existing,
+          );
           if (sleepFailure != null) {
             return errAsync(sleepFailure);
           }
@@ -277,7 +290,7 @@ export class DailyRecordsService {
           let nextPayload =
             (dto.payload !== undefined || updateAttachments !== undefined) &&
             isMealTarget
-              ? this.prepareMealPayloadForWrite(
+              ? this.mealPayloadWriterService.prepareMealPayloadForWrite(
                   dto.payload !== undefined ? dto.payload : existing.payload,
                   updateAttachments,
                   existing.payload,
@@ -297,18 +310,8 @@ export class DailyRecordsService {
             updateAttachments === undefined &&
             nextPayload != null
           ) {
-            const currentAnalysis = nextPayload['mealAnalysis'] as
-              | Record<string, unknown>
-              | undefined;
-            const imageObjectKey =
-              typeof currentAnalysis?.['imageObjectKey'] === 'string'
-                ? currentAnalysis['imageObjectKey']
-                : null;
-            if (imageObjectKey != null) {
-              nextPayload = markMealAnalysisQueued(nextPayload, {
-                imageObjectKey,
-              });
-            }
+            nextPayload =
+              this.mealPayloadWriterService.requeueOnDishChange(nextPayload);
           }
 
           if (updateAttachments !== undefined) {
@@ -326,7 +329,7 @@ export class DailyRecordsService {
           return this.repository
             .update(
               id,
-              this.withMealHotFields(
+              this.mealPayloadWriterService.withMealHotFields(
                 this.mapperService.toRecordUpdateData(dto, existing),
                 nextPayload,
               ),
@@ -337,7 +340,7 @@ export class DailyRecordsService {
               });
               if (confirmRequested) {
                 await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
-                  parseMealRecordPayload(item.payload).mealAnalysis,
+                  this.mealPayloadWriterService.parseAnalysis(item),
                 );
                 await this.invalidateSuggestionCacheForUpdate(
                   userId,
@@ -347,7 +350,10 @@ export class DailyRecordsService {
                 );
                 return item;
               }
-              await this.enqueueMealAnalysisIfNeeded(userId, item);
+              await this.mealPayloadWriterService.enqueueAnalysisIfNeeded(
+                userId,
+                item,
+              );
               await this.invalidateSuggestionCacheForUpdate(
                 userId,
                 id,
@@ -381,7 +387,7 @@ export class DailyRecordsService {
         await fromPrismaResult(
           tx.userDailyRecord.update({
             where: { id },
-            data: this.withMealHotFields(
+            data: this.mealPayloadWriterService.withMealHotFields(
               this.mapperService.toRecordUpdateData(dto, existing),
               nextPayload,
             ),
@@ -417,7 +423,7 @@ export class DailyRecordsService {
         if (confirmRequested) {
           return fromPromise(
             this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
-              parseMealRecordPayload(item.payload).mealAnalysis,
+              this.mealPayloadWriterService.parseAnalysis(item),
             ),
             (error) => {
               throw error;
@@ -427,7 +433,7 @@ export class DailyRecordsService {
         return okAsync(item);
       })
       .map(async (item) => {
-        await this.enqueueMealAnalysisIfNeeded(
+        await this.mealPayloadWriterService.enqueueAnalysisIfNeeded(
           userId,
           item,
           nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
@@ -572,129 +578,6 @@ export class DailyRecordsService {
     }
   }
 
-  private validateCreatePayload(
-    kind: string,
-    payload: Record<string, unknown> | undefined,
-  ): DomainFailure | null {
-    return (
-      this.validateSleepPayload(kind, payload) ??
-      this.validateVitalPayload(kind, payload) ??
-      this.validateActivityPayload(kind, payload)
-    );
-  }
-
-  private validateSleepPayload(
-    kind: string,
-    payload: Record<string, unknown> | null | undefined,
-  ): DomainFailure | null {
-    if (kind !== DailyRecordKind.sleep) {
-      return null;
-    }
-    if (payload == null) {
-      return this.validationFailed();
-    }
-
-    // Quick-entry sleep flow creates temporary start/wake event records first,
-    // then merges them into a final sleep record with durationMinutes. Allow
-    // those temporary event records to skip the duration validation.
-    const sleepEvent = payload['sleepEvent'];
-    if (sleepEvent === 'start' || sleepEvent === 'wake') {
-      return null;
-    }
-
-    if (
-      payload['sleepType'] !== undefined &&
-      payload['sleepType'] !== 'nightSleep' &&
-      payload['sleepType'] !== 'nap'
-    ) {
-      return this.validationFailed();
-    }
-    if (
-      payload['quality'] !== undefined &&
-      typeof payload['quality'] !== 'string'
-    ) {
-      return this.validationFailed();
-    }
-
-    const startedAt = payload['startedAt'] ?? payload['startAt'];
-    const endedAt = payload['endedAt'] ?? payload['endAt'];
-    if ((startedAt == null) !== (endedAt == null)) {
-      return this.validationFailed();
-    }
-    if (startedAt != null && endedAt != null) {
-      if (typeof startedAt !== 'string' || typeof endedAt !== 'string') {
-        return this.validationFailed();
-      }
-      const started = new Date(startedAt);
-      const ended = new Date(endedAt);
-      if (
-        Number.isNaN(started.getTime()) ||
-        Number.isNaN(ended.getTime()) ||
-        ended.getTime() <= started.getTime()
-      ) {
-        return this.validationFailed();
-      }
-    }
-
-    if (
-      typeof payload['durationMinutes'] !== 'number' ||
-      !Number.isFinite(payload['durationMinutes'])
-    ) {
-      return this.validationFailed();
-    }
-    if (payload['durationMinutes'] <= 0) {
-      return this.validationFailed();
-    }
-    return null;
-  }
-
-  private validateVitalPayload(
-    kind: string,
-    payload: Record<string, unknown> | undefined,
-  ): DomainFailure | null {
-    if (kind !== DailyRecordKind.vital) return null;
-    if (payload == null) return null;
-    if (typeof payload['vitalType'] !== 'string') {
-      return this.validationFailed();
-    }
-    if (typeof payload['value'] !== 'number') {
-      return this.validationFailed();
-    }
-    return null;
-  }
-
-  private validateActivityPayload(
-    kind: string,
-    payload: Record<string, unknown> | undefined,
-  ): DomainFailure | null {
-    if (kind !== DailyRecordKind.activity) return null;
-    if (payload == null) return null;
-    if (typeof payload['activityType'] !== 'string') {
-      return this.validationFailed();
-    }
-    if (typeof payload['value'] !== 'number') {
-      return this.validationFailed();
-    }
-    return null;
-  }
-
-  private ensureValidSleepFinalState(
-    dto: UpdateDailyRecordDto,
-    existing: { kind: DailyRecordKind; payload: unknown },
-  ): DomainFailure | null {
-    const finalKind = dto.kind !== undefined ? dto.kind : existing.kind;
-    if (finalKind !== DailyRecordKind.sleep) {
-      return null;
-    }
-
-    const rawPayload =
-      dto.payload !== undefined ? dto.payload : existing.payload;
-    return this.validateSleepPayload(
-      finalKind,
-      rawPayload as Record<string, unknown> | null,
-    );
-  }
-
   private async getItemFromTx(
     tx: Prisma.TransactionClient,
     userId: string,
@@ -712,136 +595,10 @@ export class DailyRecordsService {
     return this.mapperService.toItem(record, { includeMealPayload: true });
   }
 
-  private prepareMealPayloadForWrite(
-    payload: unknown,
-    attachments: { objectKey: string }[] | undefined,
-    existingPayload?: unknown,
-  ) {
-    const sanitized = buildMealPayloadFromClientInput(
-      payload,
-      existingPayload ?? null,
-    );
-    if (attachments == null || attachments.length !== 1) {
-      return sanitized;
-    }
-    const attachment = attachments[0];
-    if (attachment == null) {
-      return sanitized;
-    }
-
-    return markMealAnalysisQueued(sanitized, {
-      imageObjectKey: attachment.objectKey,
-    });
-  }
-
-  private withMealHotFields(
-    data: Prisma.UserDailyRecordUpdateInput,
-    mealPayload: Record<string, unknown> | null,
-  ): Prisma.UserDailyRecordUpdateInput {
-    if (mealPayload == null) {
-      return data;
-    }
-
-    return {
-      ...data,
-      payload: toInputJsonValue(mealPayload),
-      ...this.extractMealAnalysisHotFields(mealPayload),
-    };
-  }
-
-  private async enqueueMealAnalysisIfNeeded(
-    userId: string,
-    item: {
-      id: string;
-      kind: DailyRecordKind;
-      attachments: Array<{ objectKey: string }>;
-      payload?: Record<string, unknown> | null;
-    },
-    sourceRevisionOverride?: number,
-  ) {
-    if (item.kind !== DailyRecordKind.meal || item.attachments.length !== 1) {
-      return;
-    }
-
-    if (sourceRevisionOverride != null) {
-      await this.mealAnalysisQueueService.enqueue({
-        userId,
-        recordId: item.id,
-        sourceRevision: sourceRevisionOverride,
-      });
-      return;
-    }
-
-    const analysis = item.payload?.['mealAnalysis'] as
-      | Record<string, unknown>
-      | undefined;
-    if (analysis?.['analysisStatus'] !== 'analyzing') {
-      return;
-    }
-
-    await this.mealAnalysisQueueService.enqueue({
-      userId,
-      recordId: item.id,
-      sourceRevision: getMealSourceRevision(item.payload),
-    });
-  }
-
-  private buildMealCreateFields(
-    mealPayload: Record<string, unknown> | null,
-  ): Record<string, unknown> {
-    if (mealPayload == null) {
-      return {};
-    }
-
-    const hotFields = this.extractMealAnalysisHotFields(mealPayload);
-    return {
-      payload: mealPayload,
-      mealAnalysisStatus: hotFields.mealAnalysisStatus,
-      mealAnalysisCoverage: hotFields.mealAnalysisCoverage,
-      mealSourceRevision: hotFields.mealSourceRevision,
-    };
-  }
-
-  private extractMealAnalysisHotFields(mealPayload: Record<string, unknown>): {
-    mealAnalysisStatus: MealAnalysisStatus | null;
-    mealAnalysisCoverage: MealAnalysisCoverage | null;
-    mealAnalysisUpdatedAt: Date | null;
-    mealAnalysisFailureReason: string | null;
-    mealSourceRevision: number;
-  } {
-    const analysis = mealPayload['mealAnalysis'] as
-      | Record<string, unknown>
-      | undefined;
-    return {
-      mealAnalysisStatus:
-        (analysis?.['analysisStatus'] as
-          | MealAnalysisStatus
-          | null
-          | undefined) ?? null,
-      mealAnalysisCoverage:
-        (analysis?.['coverage'] as MealAnalysisCoverage | null | undefined) ??
-        null,
-      mealAnalysisUpdatedAt:
-        typeof analysis?.['analyzedAt'] === 'string'
-          ? new Date(analysis['analyzedAt'])
-          : null,
-      mealAnalysisFailureReason:
-        (analysis?.['failureReason'] as string | null | undefined) ?? null,
-      mealSourceRevision: getMealSourceRevision(mealPayload),
-    };
-  }
-
   private notFound(): DomainFailure {
     return createDomainFailure({
       kind: 'not_found',
       code: 'RESOURCE_NOT_FOUND',
-    });
-  }
-
-  private validationFailed(): DomainFailure {
-    return createDomainFailure({
-      kind: 'validation',
-      code: 'VALIDATION_FAILED',
     });
   }
 }
