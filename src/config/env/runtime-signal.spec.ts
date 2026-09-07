@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { isRunningFromSource } from './runtime-signal.js';
+import {
+  isRunningFromSource,
+  BUILD_OUTPUT_NAMES,
+} from './runtime-signal.js';
 
 describe('isRunningFromSource', () => {
   it('returns true for the source-layout test module itself', () => {
@@ -29,5 +32,13 @@ describe('isRunningFromSource', () => {
       // covered by the source test's contract instead.
       expect(true).toBe(true);
     }
+  });
+
+  it('tracks known build output names (extend this list when outputPath changes)', () => {
+    // The src-vs-dist heuristic relies on BUILD_OUTPUT_NAMES.  When a future
+    // `compilerOptions.outputPath` (or bundler output) introduces a new
+    // directory name (e.g. "out"), extend the set AND update this assertion
+    // so the heuristic never silently misses a compiled layout.
+    expect([...BUILD_OUTPUT_NAMES].sort()).toEqual(['build', 'dist', 'lib']);
   });
 });

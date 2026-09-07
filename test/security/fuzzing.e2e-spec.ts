@@ -321,4 +321,24 @@ describe('Security: Input Fuzzing (e2e)', () => {
       void res;
     });
   });
+
+  // ── CORS preflight ────────────────────────────────────────────
+
+  describe('CORS preflight', () => {
+    it('allows DELETE in Access-Control-Allow-Methods (repair regression guard)', async () => {
+      // Regression guard: @fastify/cors defaults to "GET,HEAD,POST" (the
+      // CORS-safelisted methods), which silently swallows DELETE/PATCH/PUT
+      // after a successful preflight.  This test locks in the explicit
+      // methods override in setup-app.ts and prevents a future regression.
+      const res = await request(app.getHttpServer())
+        .options('/api/v1/user/daily-records/123')
+        .set('Origin', 'https://web.example.com')
+        .set('Access-Control-Request-Method', 'DELETE')
+        .expect(204);
+
+      expect(
+        res.headers['access-control-allow-methods'] as string | undefined,
+      ).toContain('DELETE');
+    });
+  });
 });

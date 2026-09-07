@@ -18,7 +18,7 @@ import { dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Directory names that `nest build` / bundlers commonly emit into. */
-const BUILD_OUTPUT_NAMES = new Set(['dist', 'build', 'lib']);
+export const BUILD_OUTPUT_NAMES = new Set(['dist', 'build', 'lib']);
 
 export function isRunningFromSource(): boolean {
   const moduleDir = dirname(fileURLToPath(import.meta.url));
