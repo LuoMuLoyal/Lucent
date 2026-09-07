@@ -13,6 +13,8 @@ import type {
   AssistantProposedAction,
 } from '../types/assistant.types.js';
 import { AssistantService } from './core.service.js';
+import { AssistantProposalConfirmService } from './proposal-confirm.service.js';
+import { AssistantStreamOrchestratorService } from './stream-orchestrator.service.js';
 
 const mockFoundation: AssistantRuntimeCapabilities = {
   phase: 'foundation',
@@ -112,14 +114,27 @@ describe('AssistantService', () => {
       deleteAllForUser: vi.fn().mockReturnValue(okAsync(3)),
     } as unknown as vi.Mocked<AssistantMemoryService>;
 
+    const proposalConfirmService = new AssistantProposalConfirmService(
+      runtime as unknown as AssistantRuntimeService,
+      userSettings as unknown as UserSettingsService,
+      dailyRecords as unknown as DailyRecordsService,
+    );
+
+    const streamOrchestratorService = new AssistantStreamOrchestratorService(
+      runtime as unknown as AssistantRuntimeService,
+      userSettings as unknown as UserSettingsService,
+      policy as unknown as AssistantPolicyService,
+      toolExecutor as unknown as AssistantToolService,
+      conversation as unknown as AssistantConversationService,
+    );
+
     service = new AssistantService(
-      runtime,
-      userSettings,
-      policy,
-      toolExecutor,
-      conversation,
-      dailyRecords,
-      memory,
+      userSettings as unknown as UserSettingsService,
+      policy as unknown as AssistantPolicyService,
+      conversation as unknown as AssistantConversationService,
+      memory as unknown as AssistantMemoryService,
+      proposalConfirmService,
+      streamOrchestratorService,
     );
   });
 
@@ -861,9 +876,14 @@ describe('AssistantService', () => {
       } as never);
       runtime.streamPreGeneratedContent.mockResolvedValue(mockStreamResult);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+      // The logger now lives on the stream orchestrator service
       const logger = (
-        service as unknown as { logger: { warn: (...args: unknown[]) => void } }
-      ).logger;
+        service as unknown as {
+          streamOrchestratorService: {
+            logger: { warn: (...args: unknown[]) => void };
+          };
+        }
+      ).streamOrchestratorService.logger;
       const warnSpy = vi.spyOn(logger, 'warn');
 
       const result = (
