@@ -296,5 +296,46 @@ describe('LocalController', () => {
       expect(result).toHaveProperty('message', 'auth.reset_password_success');
       expect(result).toHaveProperty('cooldown', 60);
     });
+
+    it('lets non-DomainFailure infrastructure failures escape to the global filter', async () => {
+      authService.resetPassword.mockImplementation(() =>
+        fromPromise(
+          Promise.reject(new Error('db connection lost')),
+          (error) => {
+            throw error;
+          },
+        ),
+      );
+
+      await expect(
+        controller.resetPassword({
+          email: 'test@example.com',
+          code: '123456',
+          password: 'NewPassword123!',
+        }),
+      ).rejects.toThrow('db connection lost');
+    });
+
+    it('folds verification-code failures into DomainFailureException', async () => {
+      authService.resetPassword.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          }),
+        ),
+      );
+
+      await expect(
+        controller.resetPassword({
+          email: 'test@example.com',
+          code: '123456',
+          password: 'NewPassword123!',
+        }),
+      ).rejects.toMatchObject({
+        name: 'DomainFailureException',
+        failure: { code: 'AUTH_VERIFICATION_CODE_EXPIRED' },
+      });
+    });
   });
 });

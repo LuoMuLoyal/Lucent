@@ -198,7 +198,12 @@ export class CredentialAuthService {
             ),
           )
           .andThen(() => this.authTokenService.revokeAll(userId))
-          .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
+          .andThen(() => {
+            // Fire-and-forget: the notification is best-effort and must never
+            // fail the password change after the DB write already committed.
+            void this._notifyPasswordChanged(userId);
+            return okAsync(undefined);
+          });
       });
   }
 
@@ -255,7 +260,10 @@ export class CredentialAuthService {
             ),
           )
           .andThen(() => this.authTokenService.revokeAll(userId))
-          .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
+          .andThen(() => {
+            void this._notifyPasswordChanged(userId);
+            return okAsync(undefined);
+          });
       });
     });
   }
@@ -395,7 +403,10 @@ export class CredentialAuthService {
               ),
             )
             .andThen(() => this.authTokenService.revokeAll(userId))
-            .andThen(() => this.lift(this._notifyPasswordChanged(userId)));
+            .andThen(() => {
+              void this._notifyPasswordChanged(userId);
+              return okAsync(undefined);
+            });
         });
     });
   }
@@ -578,6 +589,12 @@ export class CredentialAuthService {
     });
   }
 
+  /**
+   * Best-effort notification that a password was changed.  Errors are logged
+   * and swallowed — callers must not await or propagate failures.  Invoked
+   * via `void this._notifyPasswordChanged(userId)` (fire-and-forget) after
+   * the DB write and session revocation have already succeeded.
+   */
   private async _notifyPasswordChanged(userId: string): Promise<void> {
     try {
       const result = await this.notificationsService.create(userId, {
@@ -607,9 +624,9 @@ export class CredentialAuthService {
 
   /**
    * Lifts non-Prisma IO (Better Auth calls, Argon2 callbacks, token service,
-   * user lookups, notification best-effort) into `ResultAsync`. Unknown
-   * exceptions are mapped to `DEPENDENCY_UNAVAILABLE` so they stay inside the
-   * Result channel instead of becoming unhandled rejections.
+   * user lookups) into `ResultAsync`. Unknown exceptions are mapped to
+   * `DEPENDENCY_UNAVAILABLE` so they stay inside the Result channel instead
+   * of becoming unhandled rejections.
    */
   private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
     return fromPromise(promise, (error) =>
