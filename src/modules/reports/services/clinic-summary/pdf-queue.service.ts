@@ -3,7 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
-import { ClinicSummaryService } from './summary.service.js';
+import { ClinicSummaryPdfService } from './pdf.service.js';
 
 interface PdfExportJobData {
   userId: string;
@@ -26,32 +26,36 @@ const JOB_NAME = 'export';
  * stored in the cache so the client can poll `getStatus()`.
  *
  * When Redis is not available, `isConfigured` is false and callers should
- * fall back to the synchronous `ClinicSummaryService.exportPdf()` method.
+ * fall back to the synchronous `ClinicSummaryPdfService.exportPdf()` method.
  */
 @Injectable()
 export class ClinicSummaryPdfQueueService extends BaseAsyncQueueService<
   PdfExportJobData,
   PdfExportResult
 > {
-  private readonly clinicSummaryService: ClinicSummaryService;
+  private readonly clinicSummaryPdfService: ClinicSummaryPdfService;
 
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    @Inject(ClinicSummaryService) clinicSummaryService: ClinicSummaryService,
+    @Inject(ClinicSummaryPdfService)
+    clinicSummaryPdfService: ClinicSummaryPdfService,
   ) {
     super(QUEUE_NAME, factory, cache, 1, async (job) =>
       this.processJob(
         job,
         async (data) => ({
           pdfBase64: (
-            await this.clinicSummaryService.exportPdf(data.userId, data.locale)
+            await this.clinicSummaryPdfService.exportPdf(
+              data.userId,
+              data.locale,
+            )
           ).toString('base64'),
         }),
         'Clinic summary PDF export job failed',
       ),
     );
-    this.clinicSummaryService = clinicSummaryService;
+    this.clinicSummaryPdfService = clinicSummaryPdfService;
   }
 
   async enqueue(userId: string, locale: string): Promise<string | null> {

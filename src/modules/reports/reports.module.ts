@@ -37,6 +37,8 @@ import { EventReviewChangesService } from './services/event-review/changes.servi
 import { EventReviewActionsService } from './services/event-review/actions.service.js';
 import { EventReviewNextStepService } from './services/event-review/next-step.service.js';
 import { ReportsController } from './reports.controller.js';
+import { ClinicSummaryController } from './clinic-summary.controller.js';
+import { EventReviewController } from './event-review.controller.js';
 import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
 
 @Module({
@@ -51,7 +53,11 @@ import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
     UserSettingsModule,
     ProductEventsModule,
   ],
-  controllers: [ReportsController],
+  controllers: [
+    ReportsController,
+    ClinicSummaryController,
+    EventReviewController,
+  ],
   providers: [
     ReportsAiSummaryContextService,
     ReportsLlmSummaryCopyService,

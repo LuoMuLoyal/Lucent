@@ -5,7 +5,10 @@ describe('ClinicSummaryPdfService', () => {
   let service: ClinicSummaryPdfService;
 
   beforeEach(() => {
-    service = new ClinicSummaryPdfService();
+    service = new ClinicSummaryPdfService({
+      buildClinicSummary: vi.fn(),
+      getSharedSummary: vi.fn(),
+    } as never);
   });
 
   const makeSummary = (

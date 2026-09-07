@@ -11,7 +11,7 @@ import {
   ClinicSummaryService,
   sharedSummaryCacheKey,
 } from './summary.service.js';
-import type { ClinicSummaryPdfService } from './pdf.service.js';
+import { ClinicSummaryPdfService } from './pdf.service.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 import type { ProductEventsService } from '../../../product-events/index.js';
 import {
@@ -27,10 +27,10 @@ import type {
 /**
  * TDD red-lock surface (Workstream 2, VS2-VS4 will make these real).
  *
- * Today `buildClinicSummary` / `exportPdf` / `createShareLink` accept no
- * scope or field-selection options, so the failing tests below call through
- * this widened cast. Implementing tasks own the actual signatures; these
- * casts stay local to this spec.
+ * Today `buildClinicSummary` / `createShareLink` accept no scope or
+ * field-selection options, so the failing tests below call through this
+ * widened cast. Implementing tasks own the actual signatures; these casts
+ * stay local to this spec. PDF export lives on `ClinicSummaryPdfService`.
  */
 interface ClinicSummaryOptions {
   range?: string;
@@ -46,11 +46,6 @@ interface SummaryServiceSurface {
     locale?: string,
     options?: ClinicSummaryOptions,
   ): Promise<ClinicSummaryDto>;
-  exportPdf(
-    userId: string,
-    locale?: string,
-    options?: ClinicSummaryOptions,
-  ): Promise<Buffer>;
   createShareLink(
     userId: string,
     locale?: string,
@@ -204,7 +199,6 @@ describe('ClinicSummaryService', () => {
     service = new ClinicSummaryService(
       prisma,
       cacheManager as never,
-      pdfService,
       configService,
       i18nMock,
       productEvents as unknown as ProductEventsService,
@@ -959,79 +953,6 @@ describe('ClinicSummaryService', () => {
     });
   });
 
-  describe('exportPdf', () => {
-    it('builds summary and generates PDF', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
-
-      const result = await service.exportPdf('user-1', 'zh-CN');
-
-      expect(pdfService.buildPdf).toHaveBeenCalledWith(
-        expect.objectContaining({ profile: expect.any(Object) }),
-        'zh-CN',
-      );
-      expect(result).toEqual(Buffer.from('pdf-bytes'));
-    });
-
-    // ── Workstream 2 red lock (fix owned by VS3) ──────────────────────────
-
-    it('passes only the selected fields to the PDF builder', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
-
-      await (service as unknown as SummaryServiceSurface).exportPdf(
-        'user-1',
-        'zh-CN',
-        {
-          selectedFields: ['profile', 'allergies'],
-        },
-      );
-
-      expect(pdfService.buildPdf).toHaveBeenCalledWith(
-        expect.objectContaining({ conditions: undefined }),
-        'zh-CN',
-      );
-    });
-  });
-
-  describe('exportSharedPdf', () => {
-    it('returns null when shared summary not found', async () => {
-      cacheManager.get.mockResolvedValue(null);
-
-      const result = await service.exportSharedPdf('missing', 'zh-CN');
-
-      expect(result).toBeNull();
-      expect(pdfService.buildPdf).not.toHaveBeenCalled();
-    });
-
-    it('generates PDF from cached shared summary', async () => {
-      const cached = {
-        generatedAt: '2026-07-10',
-        dataRange: 'last_30_days',
-        profile: {
-          nickname: 'Test',
-          age: 25,
-          sexAtBirth: 'male',
-          bloodType: 'A',
-        },
-        allergies: [],
-        conditions: [],
-        currentMedicines: [],
-        disclaimer: 'test',
-      };
-      cacheManager.get.mockResolvedValue(cached);
-      // Legacy pre-persistence share: no store record, cache is the source.
-      (
-        prisma as unknown as {
-          userClinicSummaryShare: { findFirst: vi.Mock };
-        }
-      ).userClinicSummaryShare = { findFirst: vi.fn().mockResolvedValue(null) };
-
-      const result = await service.exportSharedPdf('valid-token', 'en');
-
-      expect(pdfService.buildPdf).toHaveBeenCalledWith(cached, 'en');
-      expect(result).toEqual(Buffer.from('pdf-bytes'));
-    });
-  });
-
   describe('de-identification (maskName)', () => {
     it('masks multi-character names to first char + **', async () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
@@ -1069,6 +990,7 @@ describe('ClinicSummaryService', () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
       const surface = service as unknown as SummaryServiceSurface;
+      const pdfExportService = new ClinicSummaryPdfService(service);
       const options = {
         range: 'last_7_days',
         selectedFields: ['profile', 'conditions'],
@@ -1079,7 +1001,7 @@ describe('ClinicSummaryService', () => {
         'zh-CN',
         options,
       );
-      await surface.exportPdf('user-1', 'zh-CN', options);
+      await pdfExportService.exportPdf('user-1', 'zh-CN', options);
       await surface.createShareLink('user-1', 'zh-CN', options);
 
       const previewKeys = sectionKeys(

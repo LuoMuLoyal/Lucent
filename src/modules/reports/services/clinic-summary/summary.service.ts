@@ -33,7 +33,6 @@ import type {
   EventReviewDataDto,
 } from '../../dto/event-review-response.dto.js';
 import { EventReviewService } from '../event-review/review.service.js';
-import { ClinicSummaryPdfService } from './pdf.service.js';
 import { ProductEventsService } from '../../../product-events/index.js';
 import type { DailyRecordFact } from '../../../daily-records/index.js';
 import {
@@ -120,7 +119,6 @@ export class ClinicSummaryService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    private readonly pdfService: ClinicSummaryPdfService,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
     private readonly productEvents: ProductEventsService,
@@ -294,21 +292,6 @@ export class ClinicSummaryService {
       result: ProductEventResult.success,
     });
     return cached;
-  }
-
-  async exportPdf(
-    userId: string,
-    locale: string,
-    options: ClinicSummaryOptions = {},
-  ): Promise<Buffer> {
-    const summary = await this.buildClinicSummary(userId, locale, options);
-    return this.pdfService.buildPdf(summary, locale);
-  }
-
-  async exportSharedPdf(token: string, locale: string): Promise<Buffer | null> {
-    const summary = await this.getSharedSummary(token);
-    if (!summary) return null;
-    return this.pdfService.buildPdf(summary, locale);
   }
 
   // ── Scope resolution ──────────────────────────────────────

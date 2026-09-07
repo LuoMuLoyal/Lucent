@@ -1,0 +1,61 @@
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  SerializeOptions,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
+
+import type { UserPayload } from '../auth/index.js';
+import { CurrentUser } from '../auth/index.js';
+
+import { eventReviewListQuerySchema } from './dto/event-review-list-query.dto.js';
+import type { EventReviewListQueryDto } from './dto/event-review-list-query.dto.js';
+import {
+  eventReviewListResponseSchema,
+  eventReviewNullableResponseSchema,
+  eventReviewResponseSchema,
+} from './dto/event-review-response.dto.js';
+import { EventReviewService } from './services/event-review/review.service.js';
+
+@ApiTags('Reports')
+@ApiBearerAuth('access-token')
+@Controller('reports')
+export class EventReviewController {
+  constructor(private readonly eventReviewService: EventReviewService) {}
+
+  @Get('reviews/current')
+  @ApiOperation({ summary: 'Build the current event review' })
+  @SerializeOptions({ schema: eventReviewNullableResponseSchema })
+  async getCurrentReview(@CurrentUser() user: UserPayload) {
+    return await this.eventReviewService.buildCurrent(user.sub);
+  }
+
+  @Get('reviews')
+  @ApiOperation({ summary: 'Event review history' })
+  @SerializeOptions({ schema: eventReviewListResponseSchema })
+  async listReviews(
+    @CurrentUser() user: UserPayload,
+    @Query({ schema: eventReviewListQuerySchema })
+    query: EventReviewListQueryDto,
+  ) {
+    return await this.eventReviewService.list(user.sub, query);
+  }
+
+  @Get('reviews/:eventId')
+  @ApiOperation({ summary: 'Rebuild and persist the event review' })
+  @ApiParam({ name: 'eventId' })
+  @SerializeOptions({ schema: eventReviewResponseSchema })
+  async getEventReview(
+    @CurrentUser() user: UserPayload,
+    @Param('eventId') eventId: string,
+  ) {
+    return await this.eventReviewService.buildForEvent(user.sub, eventId);
+  }
+}

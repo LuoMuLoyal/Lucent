@@ -1,7 +1,7 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { ClinicSummaryPdfQueueService } from './pdf-queue.service.js';
-import type { ClinicSummaryService } from './summary.service.js';
+import type { ClinicSummaryPdfService } from './pdf.service.js';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;
@@ -36,9 +36,9 @@ function buildFactory(available: boolean): {
 }
 
 const mockCache = { get: vi.fn(), set: vi.fn() } as unknown as Cache;
-const mockClinicSummaryService = {
+const mockClinicSummaryPdfService = {
   exportPdf: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-} as unknown as ClinicSummaryService;
+} as unknown as ClinicSummaryPdfService;
 
 describe('ClinicSummaryPdfQueueService', () => {
   it('is not configured when Redis is unavailable', () => {
@@ -46,7 +46,7 @@ describe('ClinicSummaryPdfQueueService', () => {
     const svc = new ClinicSummaryPdfQueueService(
       factory,
       mockCache,
-      mockClinicSummaryService,
+      mockClinicSummaryPdfService,
     );
     expect(svc.isConfigured).toBe(false);
   });
@@ -56,7 +56,7 @@ describe('ClinicSummaryPdfQueueService', () => {
     const svc = new ClinicSummaryPdfQueueService(
       factory,
       mockCache,
-      mockClinicSummaryService,
+      mockClinicSummaryPdfService,
     );
     expect(svc.isConfigured).toBe(true);
   });
@@ -66,7 +66,7 @@ describe('ClinicSummaryPdfQueueService', () => {
     const svc = new ClinicSummaryPdfQueueService(
       factory,
       mockCache,
-      mockClinicSummaryService,
+      mockClinicSummaryPdfService,
     );
     const result = await svc.enqueue('u1', 'zh-CN');
     expect(result).toBeNull();
@@ -77,7 +77,7 @@ describe('ClinicSummaryPdfQueueService', () => {
     const svc = new ClinicSummaryPdfQueueService(
       factory,
       mockCache,
-      mockClinicSummaryService,
+      mockClinicSummaryPdfService,
     );
     const result = await svc.enqueue('u1', 'zh-CN');
     expect(result).toBe('job-1');

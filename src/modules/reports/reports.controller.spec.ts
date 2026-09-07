@@ -32,9 +32,12 @@ import {
   sharedSummaryCacheKey,
 } from './services/clinic-summary/summary.service.js';
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
+import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
 import { ShareService } from './services/clinic-summary/share.service.js';
 import { EventReviewService } from './services/event-review/review.service.js';
 import { ReportsController } from './reports.controller.js';
+import { ClinicSummaryController } from './clinic-summary.controller.js';
+import { EventReviewController } from './event-review.controller.js';
 import { ReportsService } from './dashboard/dashboard.service.js';
 
 /** TTL mirror of ReportsController.SHARED_VIEW_TTL_MS (7 days). */
@@ -46,9 +49,12 @@ const ALL_SHARE_FIELDS = [
 ] as ClinicSummaryShareField[];
 describe('ReportsController', () => {
   let controller: ReportsController;
+  let clinicSummaryController: ClinicSummaryController;
+  let eventReviewController: EventReviewController;
   let service: vi.Mocked<ReportsService>;
   let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
   let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
+  let clinicSummaryPdfService: vi.Mocked<ClinicSummaryPdfService>;
   let shareService: vi.Mocked<ShareService>;
   let pdfQueueService: {
     isConfigured: boolean;
@@ -61,7 +67,11 @@ describe('ReportsController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [ReportsController],
+      controllers: [
+        ReportsController,
+        ClinicSummaryController,
+        EventReviewController,
+      ],
       providers: [
         {
           provide: ReportsService,
@@ -81,8 +91,14 @@ describe('ReportsController', () => {
           useValue: {
             buildClinicSummary: vi.fn(),
             getSharedSummary: vi.fn(),
+          },
+        },
+        {
+          provide: ClinicSummaryPdfService,
+          useValue: {
             exportPdf: vi.fn(),
             exportSharedPdf: vi.fn(),
+            buildPdf: vi.fn(),
           },
         },
         {
@@ -163,9 +179,12 @@ describe('ReportsController', () => {
     }).compile();
 
     controller = module.get(ReportsController);
+    clinicSummaryController = module.get(ClinicSummaryController);
+    eventReviewController = module.get(EventReviewController);
     service = module.get(ReportsService);
     aiSummaryService = module.get(ReportsAiSummaryService);
     clinicSummaryService = module.get(ClinicSummaryService);
+    clinicSummaryPdfService = module.get(ClinicSummaryPdfService);
     shareService = module.get(ShareService);
     pdfQueueService = module.get(ClinicSummaryPdfQueueService);
     cacheManager = module.get(CACHE_MANAGER);
@@ -314,7 +333,7 @@ describe('ReportsController', () => {
     const summary = makeClinicSummary();
     clinicSummaryService.buildClinicSummary.mockResolvedValue(summary);
 
-    const result = await controller.previewClinicSummary(
+    const result = await clinicSummaryController.previewClinicSummary(
       {
         sub: 'u1',
         email: 'a@b.c',
@@ -337,7 +356,7 @@ describe('ReportsController', () => {
       makeClinicSummary(),
     );
 
-    await controller.previewClinicSummary(
+    await clinicSummaryController.previewClinicSummary(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       {
         eventId: 'evt-1',
@@ -373,7 +392,7 @@ describe('ReportsController', () => {
       selectedFields: ['event_overview'],
     });
 
-    const result = await controller.shareClinicSummary(
+    const result = await clinicSummaryController.shareClinicSummary(
       {
         sub: 'u1',
         email: 'a@b.c',
@@ -425,7 +444,7 @@ describe('ReportsController', () => {
       selectedFields: ['event_overview'],
     });
 
-    await controller.shareClinicSummary(
+    await clinicSummaryController.shareClinicSummary(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       {
         eventId: 'evt-1',
@@ -461,7 +480,7 @@ describe('ReportsController', () => {
       selectedFields: ALL_SHARE_FIELDS,
     });
 
-    const result = await controller.shareClinicSummary(
+    const result = await clinicSummaryController.shareClinicSummary(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { dateFrom: '2026-08-01', dateTo: '2026-08-07' },
       'zh-CN',
@@ -504,7 +523,7 @@ describe('ReportsController', () => {
       selectedFields: ALL_SHARE_FIELDS,
     });
 
-    await controller.shareClinicSummary(
+    await clinicSummaryController.shareClinicSummary(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       {},
       'zh-CN',
@@ -544,7 +563,7 @@ describe('ReportsController', () => {
     cacheManager.set.mockRejectedValue(new Error('cache down'));
 
     await expect(
-      controller.shareClinicSummary(
+      clinicSummaryController.shareClinicSummary(
         { sub: 'u1', email: 'a@b.c', status: 'active' },
         { eventId: 'evt-1' },
         'zh-CN',
@@ -573,7 +592,7 @@ describe('ReportsController', () => {
       },
     ]);
 
-    const result = await controller.listClinicSummaryShares({
+    const result = await clinicSummaryController.listClinicSummaryShares({
       sub: 'u1',
       email: 'a@b.c',
       status: 'active',
@@ -603,12 +622,12 @@ describe('ReportsController', () => {
   it('scopes the list query to the caller so foreign shares never leak', async () => {
     shareService.listSharesForUser.mockResolvedValue([]);
 
-    await controller.listClinicSummaryShares({
+    await clinicSummaryController.listClinicSummaryShares({
       sub: 'u1',
       email: 'a@b.c',
       status: 'active',
     });
-    await controller.listClinicSummaryShares({
+    await clinicSummaryController.listClinicSummaryShares({
       sub: 'u2',
       email: 'b@c.d',
       status: 'active',
@@ -624,7 +643,7 @@ describe('ReportsController', () => {
     const summary = makeClinicSummary();
     clinicSummaryService.getSharedSummary.mockResolvedValue(summary);
 
-    const result = await controller.getSharedClinicSummary(
+    const result = await clinicSummaryController.getSharedClinicSummary(
       'valid-token',
       'zh-CN',
     );
@@ -639,7 +658,7 @@ describe('ReportsController', () => {
     clinicSummaryService.getSharedSummary.mockResolvedValue(null);
 
     await expect(
-      controller.getSharedClinicSummary('expired-token', 'zh-CN'),
+      clinicSummaryController.getSharedClinicSummary('expired-token', 'zh-CN'),
     ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
   });
 
@@ -647,21 +666,25 @@ describe('ReportsController', () => {
 
   it('sends PDF buffer for authenticated user', async () => {
     const pdfBuffer = Buffer.from('%PDF-1.4 mock');
-    clinicSummaryService.exportPdf.mockResolvedValue(pdfBuffer);
+    clinicSummaryPdfService.exportPdf.mockResolvedValue(pdfBuffer);
 
     const reply = makeMockReply([]);
 
-    await controller.downloadClinicSummaryPdf(
+    await clinicSummaryController.downloadClinicSummaryPdf(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { eventId: 'evt-1', selectedFields: ['profile'] },
       'zh-CN',
       reply,
     );
 
-    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN', {
-      eventId: 'evt-1',
-      selectedFields: ['profile'],
-    });
+    expect(clinicSummaryPdfService.exportPdf).toHaveBeenCalledWith(
+      'u1',
+      'zh-CN',
+      {
+        eventId: 'evt-1',
+        selectedFields: ['profile'],
+      },
+    );
     expect(reply.send).toHaveBeenCalledWith(pdfBuffer);
   });
 
@@ -669,25 +692,29 @@ describe('ReportsController', () => {
 
   it('exports a scoped request synchronously so the queue never drops the scope', async () => {
     const pdfBuffer = Buffer.from('%PDF-1.4 mock');
-    clinicSummaryService.exportPdf.mockResolvedValue(pdfBuffer);
+    clinicSummaryPdfService.exportPdf.mockResolvedValue(pdfBuffer);
 
-    const result = await controller.exportClinicSummaryPdfAsync(
+    const result = await clinicSummaryController.exportClinicSummaryPdfAsync(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { eventId: 'evt-1' },
       'zh-CN',
     );
 
-    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN', {
-      eventId: 'evt-1',
-    });
+    expect(clinicSummaryPdfService.exportPdf).toHaveBeenCalledWith(
+      'u1',
+      'zh-CN',
+      {
+        eventId: 'evt-1',
+      },
+    );
     expect(result).toEqual({ pdfBase64: pdfBuffer.toString('base64') });
   });
 
   it('routes an unscoped export through the async queue path', async () => {
     const pdfBuffer = Buffer.from('%PDF-1.4 mock');
-    clinicSummaryService.exportPdf.mockResolvedValue(pdfBuffer);
+    clinicSummaryPdfService.exportPdf.mockResolvedValue(pdfBuffer);
 
-    const result = await controller.exportClinicSummaryPdfAsync(
+    const result = await clinicSummaryController.exportClinicSummaryPdfAsync(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       {},
       'zh-CN',
@@ -697,7 +724,10 @@ describe('ReportsController', () => {
     // default-scope fallback produces the PDF; the request must NOT take the
     // scoped sync branch (no options forwarded).
     expect(pdfQueueService.enqueue).not.toHaveBeenCalled();
-    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN');
+    expect(clinicSummaryPdfService.exportPdf).toHaveBeenCalledWith(
+      'u1',
+      'zh-CN',
+    );
     expect(result).toEqual({ pdfBase64: pdfBuffer.toString('base64') });
   });
 
@@ -707,7 +737,7 @@ describe('ReportsController', () => {
     shareService.revokeShare.mockResolvedValue(true);
 
     await expect(
-      controller.revokeClinicSummaryShare(
+      clinicSummaryController.revokeClinicSummaryShare(
         { sub: 'u1', email: 'a@b.c', status: 'active' },
         'share-1',
         'zh-CN',
@@ -721,7 +751,7 @@ describe('ReportsController', () => {
     shareService.revokeShare.mockResolvedValue(false);
 
     await expect(
-      controller.revokeClinicSummaryShare(
+      clinicSummaryController.revokeClinicSummaryShare(
         { sub: 'u1', email: 'a@b.c', status: 'active' },
         'foreign-share',
         'zh-CN',
@@ -733,17 +763,17 @@ describe('ReportsController', () => {
 
   it('sends PDF buffer for valid shared token', async () => {
     const pdfBuffer = Buffer.from('%PDF-1.4 mock');
-    clinicSummaryService.exportSharedPdf.mockResolvedValue(pdfBuffer);
+    clinicSummaryPdfService.exportSharedPdf.mockResolvedValue(pdfBuffer);
 
     const reply = makeMockReply([]);
 
-    await controller.downloadSharedClinicSummaryPdf(
+    await clinicSummaryController.downloadSharedClinicSummaryPdf(
       'valid-token',
       'zh-CN',
       reply,
     );
 
-    expect(clinicSummaryService.exportSharedPdf).toHaveBeenCalledWith(
+    expect(clinicSummaryPdfService.exportSharedPdf).toHaveBeenCalledWith(
       'valid-token',
       'zh-CN',
     );
@@ -751,12 +781,12 @@ describe('ReportsController', () => {
   });
 
   it('throws HttpException 404 when the shared PDF token is expired or revoked', async () => {
-    clinicSummaryService.exportSharedPdf.mockResolvedValue(null);
+    clinicSummaryPdfService.exportSharedPdf.mockResolvedValue(null);
 
     const reply = makeMockReply([]);
 
     await expect(
-      controller.downloadSharedClinicSummaryPdf(
+      clinicSummaryController.downloadSharedClinicSummaryPdf(
         'expired-token',
         'zh-CN',
         reply,
@@ -771,7 +801,7 @@ describe('ReportsController', () => {
     eventReviewService.buildCurrent.mockResolvedValue(review);
 
     expect(
-      await controller.getCurrentReview({
+      await eventReviewController.getCurrentReview({
         sub: 'u1',
         email: 'a@b.c',
         status: 'active',
@@ -784,7 +814,7 @@ describe('ReportsController', () => {
     eventReviewService.buildCurrent.mockResolvedValue(null);
 
     expect(
-      await controller.getCurrentReview({
+      await eventReviewController.getCurrentReview({
         sub: 'u1',
         email: 'a@b.c',
         status: 'active',
@@ -808,7 +838,7 @@ describe('ReportsController', () => {
     };
 
     expect(
-      await controller.listReviews(
+      await eventReviewController.listReviews(
         { sub: 'u1', email: 'a@b.c', status: 'active' },
         query,
       ),
@@ -823,7 +853,7 @@ describe('ReportsController', () => {
     eventReviewService.buildForEvent.mockResolvedValue(review);
 
     expect(
-      await controller.getEventReview(
+      await eventReviewController.getEventReview(
         { sub: 'u1', email: 'a@b.c', status: 'active' },
         'evt-1',
       ),

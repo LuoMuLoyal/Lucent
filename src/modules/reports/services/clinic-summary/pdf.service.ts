@@ -28,6 +28,10 @@ import {
   drawPageChrome,
   wrapText,
 } from '../../../data-export/index.js';
+import type {
+  ClinicSummaryOptions,
+  ClinicSummaryService,
+} from './summary.service.js';
 
 // `require.resolve` is unavailable in ESM — createRequire keeps the ability to
 // resolve a package asset path inside node_modules.
@@ -41,6 +45,37 @@ const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
 
 @Injectable()
 export class ClinicSummaryPdfService {
+  constructor(private readonly summaryService: ClinicSummaryService) {}
+
+  /**
+   * Export the caller's clinic summary as PDF. The summary view is built by
+   * `ClinicSummaryService` (shared with preview/share paths so the export
+   * never drifts from what the owner sees); this service renders it.
+   */
+  async exportPdf(
+    userId: string,
+    locale: string,
+    options: ClinicSummaryOptions = {},
+  ): Promise<Buffer> {
+    const summary = await this.summaryService.buildClinicSummary(
+      userId,
+      locale,
+      options,
+    );
+    return this.buildPdf(summary, locale);
+  }
+
+  /**
+   * Export a shared clinic summary as PDF. Returns null when the share token
+   * is missing, expired or revoked (mirrors `getSharedSummary`'s public-read
+   * gate).
+   */
+  async exportSharedPdf(token: string, locale: string): Promise<Buffer | null> {
+    const summary = await this.summaryService.getSharedSummary(token);
+    if (!summary) return null;
+    return this.buildPdf(summary, locale);
+  }
+
   async buildPdf(summary: ClinicSummaryDto, locale: string): Promise<Buffer> {
     const isZh = locale.toLowerCase().startsWith('zh');
 
