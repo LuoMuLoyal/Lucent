@@ -1,5 +1,6 @@
 import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
 import { AssistantToolMedicineLookupService } from './lookup.service.js';
+import { AssistantDrugbankLookupService } from './drugbank-lookup.service.js';
 
 describe('AssistantToolMedicineLookupService', () => {
   function buildContext(message: string): AssistantToolExecutionContext {
@@ -21,10 +22,13 @@ describe('AssistantToolMedicineLookupService', () => {
       search: vi.fn(),
       getDetail: vi.fn(),
     };
+    const drugbankLookupService = new AssistantDrugbankLookupService(
+      drugbankMedicinesService as never,
+    );
 
     const service = new AssistantToolMedicineLookupService(
       cnMedicinesService as never,
-      drugbankMedicinesService as never,
+      drugbankLookupService,
     );
 
     return {

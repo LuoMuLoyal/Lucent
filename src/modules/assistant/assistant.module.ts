@@ -11,6 +11,7 @@ import { MedicinesModule } from '../medicines/medicines.module.js';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
 import { UserSettingsModule } from '../user-settings/user-settings.module.js';
 import { AssistantRuntimeService } from './agent/runtime.service.js';
+import { AssistantStreamService } from './agent/stream.service.js';
 import { AssistantCheckpointerService } from './agent/checkpointer.service.js';
 import { AssistantConversationService } from './services/conversation.service.js';
 import { AssistantMemoryService } from './services/memory.service.js';
@@ -18,6 +19,8 @@ import { AssistantController } from './assistant.controller.js';
 import { AssistantPolicyService } from './services/policy.service.js';
 import { HistoricalAiSummaryService } from './services/historical-ai-summary.service.js';
 import { AssistantService } from './services/core.service.js';
+import { AssistantProposalConfirmService } from './services/proposal-confirm.service.js';
+import { AssistantStreamOrchestratorService } from './services/stream-orchestrator.service.js';
 import {
   DAILY_RECORD_CANDIDATE_GENERATOR,
   DAILY_RECORD_READER,
@@ -47,8 +50,11 @@ import { AssistantToolLeafletReadService } from './tools/leaflet/read.service.js
 import { AssistantToolMedicalKnowledgeService } from './tools/knowledge/medical.service.js';
 
 import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service.js';
+import { AssistantDrugbankLookupService } from './tools/medicine/drugbank-lookup.service.js';
 
 import { AssistantToolProposalService } from './tools/proposal/proposal.service.js';
+import { AssistantDailyRecordProposalService } from './tools/proposal/daily-record-proposal.service.js';
+import { AssistantSettingsProposalService } from './tools/proposal/settings-proposal.service.js';
 
 import { AssistantToolReadService } from './tools/read/read.service.js';
 
@@ -72,6 +78,7 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
   controllers: [AssistantController],
   providers: [
     AssistantRuntimeService,
+    AssistantStreamService,
     AssistantCheckpointerService,
     VectorStoreFactory,
     {
@@ -93,13 +100,18 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
     AssistantContextService,
     AssistantToolRecordQueryService,
     AssistantToolProposalService,
+    AssistantDailyRecordProposalService,
+    AssistantSettingsProposalService,
     AssistantToolService,
     AssistantToolReadService,
     AssistantToolLeafletReadService,
     AssistantToolMedicalKnowledgeService,
     AssistantToolMedicineLookupService,
+    AssistantDrugbankLookupService,
     AssistantToolDrugbankEntityResolveService,
     AssistantToolDrugbankSearchService,
+    AssistantProposalConfirmService,
+    AssistantStreamOrchestratorService,
     AssistantService,
     {
       provide: MEDICINE_REMINDER_READER,

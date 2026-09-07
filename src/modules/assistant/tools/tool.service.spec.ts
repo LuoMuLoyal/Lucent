@@ -6,6 +6,8 @@ import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-res
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service.js';
 import type { AssistantToolMedicineLookupService } from './medicine/lookup.service.js';
 import { AssistantToolProposalService } from './proposal/proposal.service.js';
+import { AssistantDailyRecordProposalService } from './proposal/daily-record-proposal.service.js';
+import { AssistantSettingsProposalService } from './proposal/settings-proposal.service.js';
 import { AssistantToolReadService } from './read/read.service.js';
 import { AssistantToolRecordQueryService } from './records/query.service.js';
 import { AssistantToolService } from './tool.service.js';
@@ -67,9 +69,14 @@ describe('AssistantToolService', () => {
       userSettingsService as never,
       recordQueryService,
     );
-    const proposalService = new AssistantToolProposalService(
+    const dailyRecordProposalService = new AssistantDailyRecordProposalService(
       dailyRecordCandidatesService as never,
       recordQueryService,
+    );
+    const settingsProposalService = new AssistantSettingsProposalService();
+    const proposalService = new AssistantToolProposalService(
+      dailyRecordProposalService,
+      settingsProposalService,
     );
     const leafletReadService = new AssistantToolLeafletReadService(
       {
@@ -183,11 +190,13 @@ describe('AssistantToolService', () => {
         aiSummaryHistoryService,
         cache,
         dailyRecordCandidatesService,
+        dailyRecordProposalService,
         dailyRecordsService,
         medicineRemindersService,
         medicineLookupService,
         metricsService,
         recordQueryService,
+        settingsProposalService,
         userHealthContextService,
         userSettingsService,
       },

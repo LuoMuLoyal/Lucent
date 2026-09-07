@@ -3,9 +3,9 @@ import type { AssistantReadResultEnvelope } from '../../types/assistant.types.js
 import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
 import type { MedicineSearchItemDto } from '../../../medicines/index.js';
 import { CnMedicinesService } from '../../../medicines/index.js';
-import { DrugbankMedicinesService } from '../../../medicines/index.js';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
 import { parseSearchPayload } from '../drugbank/entity-resolve.service.js';
+import { AssistantDrugbankLookupService } from './drugbank-lookup.service.js';
 
 const DEFAULT_SEARCH_LIMIT = 4;
 const MAX_SEARCH_LIMIT = 8;
@@ -17,7 +17,7 @@ export class AssistantToolMedicineLookupService {
 
   constructor(
     private readonly cnMedicinesService: CnMedicinesService,
-    private readonly drugbankMedicinesService: DrugbankMedicinesService,
+    private readonly drugbankLookup: AssistantDrugbankLookupService,
   ) {}
 
   async searchCnMedicineProducts(
@@ -191,94 +191,7 @@ export class AssistantToolMedicineLookupService {
   async getDrugbankDetail(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseLookupPayload(context.userMessage, this.logger);
-    const directId = payload.drugbankId;
-    const query = payload.query.trim();
-
-    if (directId) {
-      return this.buildDrugbankDetailById(directId, query);
-    }
-
-    if (!query) {
-      return buildReadEnvelope({
-        toolName: 'get_drugbank_detail',
-        query: { query, matchedSource: 'drugbank' },
-        result: { drug: null, candidates: [] },
-        coverage: {
-          status: 'empty',
-          reason: 'No DrugBank query was provided.',
-        },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        confidence: { level: 'low', reason: 'Empty query.' },
-        ambiguities: [],
-        tables: ['drugbank_drugs'],
-      });
-    }
-
-    const search = await this.drugbankMedicinesService.search({
-      q: query,
-      page: 1,
-      pageSize: DETAIL_RESOLVE_LIMIT,
-    });
-
-    if (search.items.length === 0) {
-      return buildReadEnvelope({
-        toolName: 'get_drugbank_detail',
-        query: { query, matchedSource: 'drugbank' },
-        result: { drug: null, candidates: [] },
-        coverage: {
-          status: 'empty',
-          reason: `No DrugBank entity matched "${query}".`,
-        },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        confidence: { level: 'low', reason: 'No matching DrugBank entity.' },
-        ambiguities: [],
-        tables: ['drugbank_drugs'],
-      });
-    }
-
-    if (search.items.length > 1) {
-      return buildReadEnvelope({
-        toolName: 'get_drugbank_detail',
-        query: {
-          query,
-          matchedSource: 'drugbank',
-          candidateCount: search.items.length,
-        },
-        result: {
-          drug: null,
-          candidates: toCandidates(search.items),
-        },
-        coverage: {
-          status: 'partial',
-          reason: `Multiple DrugBank entities matched "${query}".`,
-        },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        confidence: {
-          level: 'low',
-          reason:
-            'Multiple DrugBank entities matched the query, so one detail record could not be chosen safely.',
-        },
-        ambiguities: extractCandidateNames(search.items),
-        tables: ['drugbank_drugs'],
-      });
-    }
-
-    const drug = search.items[0];
-    if (drug == null) {
-      return buildReadEnvelope({
-        toolName: 'get_drugbank_detail',
-        query: { query, matchedSource: 'drugbank' },
-        result: { drug: null, candidates: [] },
-        coverage: { status: 'empty', reason: 'No DrugBank entity resolved.' },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        confidence: { level: 'low', reason: 'No DrugBank entity resolved.' },
-        ambiguities: [],
-        tables: ['drugbank_drugs'],
-      });
-    }
-
-    return this.buildDrugbankDetailById(drug.id, query);
+    return this.drugbankLookup.getDrugbankDetail(context);
   }
 
   private async buildCnDetailById(
@@ -325,51 +238,6 @@ export class AssistantToolMedicineLookupService {
       tables: ['cn_medicine_products'],
     });
   }
-
-  private async buildDrugbankDetailById(
-    drugbankId: string,
-    query: string,
-  ): Promise<AssistantReadResultEnvelope> {
-    const detail = await this.drugbankMedicinesService.getDetail(drugbankId);
-
-    if (!detail) {
-      return buildReadEnvelope({
-        toolName: 'get_drugbank_detail',
-        query: { query, matchedSource: 'drugbank', drugbankId },
-        result: { drug: null, candidates: [] },
-        coverage: {
-          status: 'empty',
-          reason: `No DrugBank detail was found for "${drugbankId}".`,
-        },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        confidence: {
-          level: 'low',
-          reason: 'Resolved DrugBank id has no detail row.',
-        },
-        ambiguities: [],
-        tables: ['drugbank_drugs'],
-      });
-    }
-
-    return buildReadEnvelope({
-      toolName: 'get_drugbank_detail',
-      query: {
-        query,
-        matchedSource: 'drugbank',
-        drugbankId,
-      },
-      result: { drug: detail, candidates: [] },
-      coverage: { status: 'complete', reason: null },
-      timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-      confidence: buildReadConfidence({
-        ambiguities: [],
-        preferredReason:
-          'Loaded one structured DrugBank detail record from Lucent tables.',
-      }),
-      ambiguities: [],
-      tables: ['drugbank_drugs'],
-    });
-  }
 }
 
 function normalizeLimit(limit: number | undefined): number {
@@ -377,7 +245,7 @@ function normalizeLimit(limit: number | undefined): number {
   return Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.trunc(limit)));
 }
 
-function parseLookupPayload(
+export function parseLookupPayload(
   raw: string,
   logger: Logger,
 ): {
