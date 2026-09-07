@@ -5,6 +5,7 @@ import type { LlmRuntimeService } from '../../../llm-runtime/index.js';
 import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { okAsync } from '../../../common/result/index.js';
 import { AssistantRuntimeService } from './runtime.service.js';
+import { AssistantStreamService } from './stream.service.js';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt.js';
 
 function buildMetricsService() {
@@ -59,6 +60,18 @@ function buildLeafletService(hasChunks = false) {
   };
 }
 
+function buildStreamService(
+  llmRuntimeService: unknown,
+  metricsService: unknown,
+) {
+  const circuitBreaker = new LlmCircuitBreakerService();
+  return new AssistantStreamService(
+    llmRuntimeService as never,
+    metricsService as never,
+    circuitBreaker,
+  );
+}
+
 describe('AssistantRuntimeService', () => {
   it('describes the phase-1 backend foundation', async () => {
     const llmRuntimeService = {
@@ -78,6 +91,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
 
     expect(service.hasChatModel()).toBe(true);
@@ -179,6 +193,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
     const onChunk = vi.fn();
 
@@ -220,6 +235,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
     const onChunk = vi.fn();
 
@@ -278,6 +294,7 @@ describe('AssistantRuntimeService', () => {
       cacheService as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
 
     const result = await service.runConversation(
@@ -326,6 +343,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
     const chunks: string[] = [];
     let conversationResolved = false;
@@ -372,6 +390,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
 
     await expect(
@@ -408,6 +427,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
 
     await expect(
@@ -450,6 +470,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
     const onChunk = vi.fn();
 
@@ -480,6 +501,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       buildCheckpointerService() as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
 
     const foundation = await service.describeFoundation();
@@ -533,6 +555,7 @@ describe('AssistantRuntimeService', () => {
       buildCacheService() as never,
       { getSaver: () => saver } as never,
       buildConversationRepository() as never,
+      buildStreamService(llmRuntimeService, buildMetricsService()),
     );
     const executeTools = vi.fn().mockResolvedValue([
       {
@@ -602,6 +625,7 @@ describe('AssistantRuntimeService', () => {
         buildCacheService() as never,
         { getSaver: () => saver } as never,
         buildConversationRepository() as never,
+        buildStreamService(llmRuntimeService, buildMetricsService()),
       );
 
       // A plain chat turn never suspends; the state has no pending review.
@@ -714,6 +738,7 @@ describe('AssistantRuntimeService', () => {
         buildCacheService() as never,
         { getSaver: () => saver } as never,
         repository as never,
+        buildStreamService(llmRuntimeService, buildMetricsService()),
       );
       return { service, repository, mockModel };
     }

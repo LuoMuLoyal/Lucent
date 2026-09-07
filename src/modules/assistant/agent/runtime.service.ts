@@ -17,15 +17,10 @@ import {
   type ResultAsync,
 } from '../../../common/result/index.js';
 import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
-import {
-  AIMessage,
-  AIMessageChunk,
-  HumanMessage,
-  SystemMessage,
-  type BaseMessage,
-} from '@langchain/core/messages';
+import { AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { LlmRuntimeService } from '../../../llm-runtime/index.js';
 import { MetricsService } from '../../../common/metrics/metrics.service.js';
+import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service.js';
 import type { AssistantRuntimeCapabilities } from '../types/assistant.types.js';
 import type {
   AssistantMessageResult,
@@ -58,17 +53,13 @@ import type { AssistantPendingReview } from './runtime/state.js';
 import { AssistantCheckpointerService } from './checkpointer.service.js';
 import { extractMessageText } from './runtime/message-text.utils.js';
 import { AssistantConversationRepositoryPort } from '../repositories/conversation.repository.js';
+import { AssistantStreamService } from './stream.service.js';
 
 import {
   buildAssistantRuntimeGraph,
   type ToolExecutorFn,
 } from './runtime/graph.js';
 import type { AssistantRespondCache } from './runtime/respond.js';
-import {
-  withLlmRetry,
-  isRetryableLlmError,
-} from '../../../common/llm/retry/llm-retry.helper.js';
-import { LlmCircuitBreakerService } from '../../../common/llm/safety/llm-circuit-breaker.service.js';
 
 const CHAT_MODEL_OPTIONS = {
   timeout: AI_MODEL_TIMEOUT_MS,
@@ -106,6 +97,7 @@ export class AssistantRuntimeService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly checkpointerService: AssistantCheckpointerService,
     private readonly conversationRepository: AssistantConversationRepositoryPort,
+    private readonly streamService: AssistantStreamService,
   ) {}
 
   hasChatModel(): boolean {
@@ -320,85 +312,7 @@ export class AssistantRuntimeService {
     },
     onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
   ): Promise<AssistantMessageResult> {
-    const model = this.llmRuntimeService.createChatModel(
-      'chat',
-      CHAT_MODEL_OPTIONS,
-    );
-    const messages = this.buildMessages(
-      input.messages,
-      input.allowedTools,
-      input.toolResults,
-    );
-    const start = performance.now();
-    const modelName = this.llmRuntimeService.getModelName('chat') ?? 'unknown';
-    let stream;
-    this.circuitBreaker.acquire();
-    try {
-      stream = await withLlmRetry(() => model.stream(messages), {
-        onRetry: (error, attempt) => {
-          if (isRetryableLlmError(error)) {
-            this.logger.warn(
-              `Assistant stream retry #${String(attempt)}: ${(error as Error).message}`,
-            );
-          }
-        },
-      });
-    } catch (error) {
-      this.circuitBreaker.recordFailure();
-      this.metricsService.recordLlmCall(
-        'chat',
-        modelName,
-        'error',
-        (performance.now() - start) / 1000,
-      );
-      throw error;
-    }
-
-    let content = '';
-
-    try {
-      for await (const chunk of stream) {
-        if (!(chunk instanceof AIMessageChunk)) {
-          continue;
-        }
-
-        const delta = this.readChunkText(chunk);
-        if (delta.length === 0) {
-          continue;
-        }
-
-        content += delta;
-        await onChunk({ content: delta });
-      }
-
-      const finalContent = content.trim();
-      if (finalContent.length === 0) {
-        throw new Error(
-          'Assistant stream ended without any assistant content.',
-        );
-      }
-
-      this.circuitBreaker.recordSuccess();
-      this.metricsService.recordLlmCall(
-        'chat',
-        modelName,
-        'success',
-        (performance.now() - start) / 1000,
-      );
-      return {
-        content: finalContent,
-        usedToolNames: input.toolResults.map((result) => result.name),
-      };
-    } catch (error) {
-      this.circuitBreaker.recordFailure();
-      this.metricsService.recordLlmCall(
-        'chat',
-        modelName,
-        'error',
-        (performance.now() - start) / 1000,
-      );
-      throw error;
-    }
+    return this.streamService.generateStream(input, onChunk);
   }
 
   /**
@@ -411,17 +325,11 @@ export class AssistantRuntimeService {
     toolResults: readonly AssistantToolExecutionResult[],
     onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
   ): Promise<AssistantMessageResult> {
-    const words = content.split(/(\s+)/);
-    for (const word of words) {
-      if (word.length > 0) {
-        await onChunk({ content: word });
-      }
-    }
-
-    return {
+    return this.streamService.streamPreGeneratedContent(
       content,
-      usedToolNames: toolResults.map((result) => result.name),
-    };
+      toolResults,
+      onChunk,
+    );
   }
 
   async describeFoundation(): Promise<AssistantRuntimeCapabilities> {
@@ -700,42 +608,5 @@ export class AssistantRuntimeService {
     );
 
     return { finalContent };
-  }
-
-  private buildMessages(
-    messages: AssistantConversationMessage[],
-    allowedTools: readonly AssistantToolName[],
-    _toolResults: readonly AssistantToolExecutionResult[],
-  ) {
-    return [
-      new SystemMessage(buildAssistantSystemPrompt(allowedTools)),
-      ...messages.map((message) =>
-        message.role === 'user'
-          ? new HumanMessage(message.content)
-          : new AIMessage(message.content),
-      ),
-    ];
-  }
-
-  private readChunkText(chunk: AIMessageChunk): string {
-    if (typeof chunk.content === 'string') {
-      return chunk.content;
-    }
-
-    if (!Array.isArray(chunk.content)) {
-      return '';
-    }
-
-    return chunk.content
-      .map((part) => {
-        if (typeof part === 'string') {
-          return part;
-        }
-        if ('text' in part && typeof part.text === 'string') {
-          return part.text;
-        }
-        return '';
-      })
-      .join('');
   }
 }
