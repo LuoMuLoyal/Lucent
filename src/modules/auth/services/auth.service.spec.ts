@@ -18,6 +18,7 @@ import { AuthTokenService } from './token.service.js';
 import { AuthOAuthStateService } from './oauth/state.service.js';
 import { AuthOAuthService } from './oauth/oauth.service.js';
 import { CredentialAuthService } from './identity/credential.service.js';
+import { PasswordManagementService } from './identity/password-management.service.js';
 import { AuthAccountService } from './account.service.js';
 import { AuthOAuthFacadeService } from './oauth/facade.service.js';
 import { AuthNotificationService } from './notification.service.js';
@@ -94,6 +95,7 @@ describe('AuthService', () => {
   let authAccountService: vi.Mocked<AuthAccountService>;
   let authOAuthFacadeService: vi.Mocked<AuthOAuthFacadeService>;
   let credentialAuthService: vi.Mocked<CredentialAuthService>;
+  let passwordManagementService: vi.Mocked<PasswordManagementService>;
   let module: TestingModule;
 
   beforeEach(async () => {
@@ -252,6 +254,11 @@ describe('AuthService', () => {
             login: vi
               .fn()
               .mockReturnValue(okAsync({ user: mockUser, ...mockTokenPair })),
+          },
+        },
+        {
+          provide: PasswordManagementService,
+          useValue: {
             changePassword: vi.fn().mockReturnValue(okAsync(undefined)),
             setPassword: vi.fn().mockReturnValue(okAsync(undefined)),
             changeEmail: vi.fn().mockReturnValue(okAsync(mockUser)),
@@ -331,6 +338,7 @@ describe('AuthService', () => {
     authAccountService = module.get(AuthAccountService);
     authOAuthFacadeService = module.get(AuthOAuthFacadeService);
     credentialAuthService = module.get(CredentialAuthService);
+    passwordManagementService = module.get(PasswordManagementService);
   });
 
   afterEach(() => {
@@ -551,21 +559,21 @@ describe('AuthService', () => {
         newPassword: 'b',
       } as never;
       await service.changePassword('u1', changePassword);
-      expect(credentialAuthService.changePassword).toHaveBeenCalledWith(
+      expect(passwordManagementService.changePassword).toHaveBeenCalledWith(
         'u1',
         changePassword,
       );
 
       const setPassword = { newPassword: 'b' } as never;
       await service.setPassword('u1', setPassword);
-      expect(credentialAuthService.setPassword).toHaveBeenCalledWith(
+      expect(passwordManagementService.setPassword).toHaveBeenCalledWith(
         'u1',
         setPassword,
       );
 
       const changeEmail = { email: 'new@b.c' } as never;
       await service.changeEmail('u1', changeEmail);
-      expect(credentialAuthService.changeEmail).toHaveBeenCalledWith(
+      expect(passwordManagementService.changeEmail).toHaveBeenCalledWith(
         'u1',
         changeEmail,
       );
@@ -573,19 +581,17 @@ describe('AuthService', () => {
 
     it('should delegate verification and reset flows', async () => {
       await service.sendVerificationCode({ email: 'a@b.c' } as never, 'key');
-      expect(credentialAuthService.sendVerificationCode).toHaveBeenCalledWith(
-        { email: 'a@b.c' },
-        'key',
-        undefined,
-      );
+      expect(
+        passwordManagementService.sendVerificationCode,
+      ).toHaveBeenCalledWith({ email: 'a@b.c' }, 'key', undefined);
 
       await service.verifyEmail({ token: 'valid-token' });
-      expect(credentialAuthService.verifyEmail).toHaveBeenCalledWith({
+      expect(passwordManagementService.verifyEmail).toHaveBeenCalledWith({
         token: 'valid-token',
       });
 
       await service.forgotPassword({ email: 'a@b.c' } as never, 'key');
-      expect(credentialAuthService.forgotPassword).toHaveBeenCalledWith(
+      expect(passwordManagementService.forgotPassword).toHaveBeenCalledWith(
         { email: 'a@b.c' },
         'key',
         undefined,
@@ -596,7 +602,7 @@ describe('AuthService', () => {
         code: '123456',
         password: 'NewPassword123!',
       });
-      expect(credentialAuthService.resetPassword).toHaveBeenCalledWith({
+      expect(passwordManagementService.resetPassword).toHaveBeenCalledWith({
         email: 'a@b.c',
         code: '123456',
         password: 'NewPassword123!',

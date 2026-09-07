@@ -24,6 +24,7 @@ import { AuthTokenService } from './services/token.service.js';
 import { AuthOAuthStateService } from './services/oauth/state.service.js';
 import { AuthOAuthService } from './services/oauth/oauth.service.js';
 import { CredentialAuthService } from './services/identity/credential.service.js';
+import { PasswordManagementService } from './services/identity/password-management.service.js';
 import { AuthAccountService } from './services/account.service.js';
 import { AuthOAuthFacadeService } from './services/oauth/facade.service.js';
 import { AuthNotificationService } from './services/notification.service.js';
@@ -67,6 +68,7 @@ import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
     AuthOAuthStateService,
     AuthOAuthService,
     CredentialAuthService,
+    PasswordManagementService,
     JwtAccessStrategy,
     VerificationCodeService,
     WechatMobileOAuthProvider,

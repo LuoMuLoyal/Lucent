@@ -33,6 +33,7 @@ import { AuthAccountService } from './account.service.js';
 import { AuthOAuthFacadeService } from './oauth/facade.service.js';
 import { AuthTokenService } from './token.service.js';
 import { CredentialAuthService } from './identity/credential.service.js';
+import { PasswordManagementService } from './identity/password-management.service.js';
 
 export type { AuthRequestContext, UserPayload } from '../types/auth-request.js';
 
@@ -46,6 +47,7 @@ export class AuthService {
   constructor(
     private readonly authTokenService: AuthTokenService,
     private readonly credentialAuthService: CredentialAuthService,
+    private readonly passwordManagementService: PasswordManagementService,
     private readonly authAccountService: AuthAccountService,
     private readonly authOAuthFacadeService: AuthOAuthFacadeService,
   ) {}
@@ -70,21 +72,21 @@ export class AuthService {
     userId: string,
     dto: ChangePasswordDto,
   ): ResultAsync<void, DomainFailure> {
-    return this.credentialAuthService.changePassword(userId, dto);
+    return this.passwordManagementService.changePassword(userId, dto);
   }
 
   setPassword(
     userId: string,
     dto: SetPasswordDto,
   ): ResultAsync<void, DomainFailure> {
-    return this.credentialAuthService.setPassword(userId, dto);
+    return this.passwordManagementService.setPassword(userId, dto);
   }
 
   changeEmail(
     userId: string,
     dto: ChangeEmailDto,
   ): ResultAsync<User, DomainFailure> {
-    return this.credentialAuthService.changeEmail(userId, dto);
+    return this.passwordManagementService.changeEmail(userId, dto);
   }
 
   sendVerificationCode(
@@ -92,7 +94,7 @@ export class AuthService {
     clientKey?: string,
     locale?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
-    return this.credentialAuthService.sendVerificationCode(
+    return this.passwordManagementService.sendVerificationCode(
       dto,
       clientKey,
       locale,
@@ -100,7 +102,7 @@ export class AuthService {
   }
 
   verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
-    return this.credentialAuthService.verifyEmail(dto);
+    return this.passwordManagementService.verifyEmail(dto);
   }
 
   forgotPassword(
@@ -108,11 +110,15 @@ export class AuthService {
     clientKey?: string,
     locale?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
-    return this.credentialAuthService.forgotPassword(dto, clientKey, locale);
+    return this.passwordManagementService.forgotPassword(
+      dto,
+      clientKey,
+      locale,
+    );
   }
 
   resetPassword(dto: ResetPasswordDto): ResultAsync<void, DomainFailure> {
-    return this.credentialAuthService.resetPassword(dto);
+    return this.passwordManagementService.resetPassword(dto);
   }
 
   // ── Token Management ─────────────────────────────────────────
