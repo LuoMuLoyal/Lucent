@@ -3,7 +3,7 @@ import type { AssistantReadResultEnvelope } from '../../types/assistant.types.js
 import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
 import { DrugbankMedicinesService } from '../../../medicines/index.js';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
-import { parseLookupPayload } from './lookup.service.js';
+import { parseLookupPayload } from './lookup-payload.js';
 
 const DETAIL_RESOLVE_LIMIT = 5;
 
