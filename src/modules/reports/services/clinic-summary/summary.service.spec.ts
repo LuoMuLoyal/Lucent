@@ -58,7 +58,6 @@ interface SummaryServiceSurface {
 function withEventReview(
   prisma: DeepMocked<PrismaService>,
   cache: { get: vi.Mock; set: vi.Mock },
-  pdf: vi.Mocked<ClinicSummaryPdfService>,
   config: vi.Mocked<ConfigService>,
   eventReview: { buildCurrent: vi.Mock; buildForEvent?: vi.Mock },
 ): ClinicSummaryService {
@@ -68,15 +67,7 @@ function withEventReview(
   const Ctor = ClinicSummaryService as unknown as new (
     ...args: unknown[]
   ) => ClinicSummaryService;
-  return new Ctor(
-    prisma,
-    cache,
-    pdf,
-    config,
-    i18nMock,
-    productEvents,
-    eventReview,
-  );
+  return new Ctor(prisma, cache, config, i18nMock, productEvents, eventReview);
 }
 
 /** Minimal event-review read model the summary findings/coverage must reuse. */
@@ -312,7 +303,6 @@ describe('ClinicSummaryService', () => {
       const serviceWithReview = withEventReview(
         prisma,
         cacheManager,
-        pdfService,
         configService,
         eventReview,
       );
@@ -334,7 +324,6 @@ describe('ClinicSummaryService', () => {
       const serviceWithReview = withEventReview(
         prisma,
         cacheManager,
-        pdfService,
         configService,
         eventReview,
       );
@@ -383,7 +372,6 @@ describe('ClinicSummaryService', () => {
       const serviceWithReview = withEventReview(
         prisma,
         cacheManager,
-        pdfService,
         configService,
         eventReview,
       );
@@ -496,7 +484,6 @@ describe('ClinicSummaryService', () => {
       const serviceWithReview = withEventReview(
         prisma,
         cacheManager,
-        pdfService,
         configService,
         eventReview,
       );
@@ -990,7 +977,11 @@ describe('ClinicSummaryService', () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
       const surface = service as unknown as SummaryServiceSurface;
-      const pdfExportService = new ClinicSummaryPdfService(service);
+      // Use the real ClinicSummaryPdfService (wired to the summary service)
+      // so exportPdf → buildPdf records the view model passed in; route
+      // buildPdf through the mock so the PDF input is captured, not rendered.
+      const realPdfService = new ClinicSummaryPdfService(service);
+      realPdfService.buildPdf = pdfService.buildPdf;
       const options = {
         range: 'last_7_days',
         selectedFields: ['profile', 'conditions'],
@@ -1001,7 +992,7 @@ describe('ClinicSummaryService', () => {
         'zh-CN',
         options,
       );
-      await pdfExportService.exportPdf('user-1', 'zh-CN', options);
+      await realPdfService.exportPdf('user-1', 'zh-CN', options);
       await surface.createShareLink('user-1', 'zh-CN', options);
 
       const previewKeys = sectionKeys(

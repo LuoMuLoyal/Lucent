@@ -34,6 +34,8 @@ YYYY-MM-DD-short-task-name.md
 
 — OpenAPI 组件名/operationId 命名重构:消除 dart-dio 客户端的 Controller/V1/Dto/内联 \_inner 机械名,按 AIP-190/136 语义化命名,双仓一次性迁移(不做兼容)
 
+- [`2026-09-07-large-file-domain-split-plan.md`](2026-09-07-large-file-domain-split-plan.md)
+  — 超大文件按领域拆分:assistant/reports/today-analysis/today-suggestion/daily-records/auth 六模块 14 个 >450 行文件按业务子域拆分为更小文件;文件名=职责,不机械截断,不拆已内聚文件
 - [`2026-09-06-rag-hybrid-search-upgrade.md`](2026-09-06-rag-hybrid-search-upgrade.md)
   — 三源 RAG 混合检索升级:PG18 FTS + RRF 融合(向量+关键词),零新运行时;中文分词决策;不顶替 LightRAG/GrapRAG,保留 F-15 合规分层
 - [`2026-09-02-agentic-proactive-evolution.md`](2026-09-02-agentic-proactive-evolution.md)
