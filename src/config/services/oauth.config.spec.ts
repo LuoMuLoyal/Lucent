@@ -13,6 +13,9 @@ describe('oauthConfig', () => {
     EnvKey.QQ_APP_ID,
     EnvKey.QQ_APP_SECRET,
     EnvKey.QQ_REDIRECT_URI,
+    EnvKey.WEIBO_APP_ID,
+    EnvKey.WEIBO_APP_SECRET,
+    EnvKey.WEIBO_REDIRECT_URI,
   ];
 
   beforeEach(() => {
@@ -105,5 +108,29 @@ describe('oauthConfig', () => {
       appSecret: 'qq-secret',
       redirectUri: 'https://example.com/qq/callback',
     });
+  });
+
+  it('normalizes the not-configured sentinel to an empty string', () => {
+    process.env[EnvKey.WECHAT_WEB_APP_ID] = 'not-configured';
+    process.env[EnvKey.WECHAT_WEB_APP_SECRET] = 'not-configured';
+    process.env[EnvKey.WEIBO_APP_ID] = 'not-configured';
+    process.env[EnvKey.WEIBO_APP_SECRET] = 'not-configured';
+
+    const config = callFactory();
+
+    expect(config.wechatWeb.appId).toBe('');
+    expect(config.wechatWeb.appSecret).toBe('');
+    expect(config.weibo.appId).toBe('');
+    expect(config.weibo.appSecret).toBe('');
+  });
+
+  it('normalizes the sentinel case-insensitively and trims whitespace', () => {
+    process.env[EnvKey.WECHAT_MOBILE_APP_ID] = '  NOT-CONFIGURED  ';
+    process.env[EnvKey.WECHAT_MOBILE_APP_SECRET] = 'not-configured';
+
+    const config = callFactory();
+
+    expect(config.wechatMobile.appId).toBe('');
+    expect(config.wechatMobile.appSecret).toBe('');
   });
 });
