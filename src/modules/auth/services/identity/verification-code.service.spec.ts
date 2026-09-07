@@ -411,4 +411,79 @@ describe('VerificationCodeService', () => {
       expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
   });
+
+  describe('constructor sanity checks', () => {
+    async function createServiceWithOverrides(
+      overrides: Record<string, number>,
+    ) {
+      const defaultYaml = loadYamlConfig();
+      const patchedYaml = {
+        ...defaultYaml,
+        verification: {
+          ...defaultYaml.verification,
+          ...overrides,
+        },
+      };
+
+      const service = (
+        await Test.createTestingModule({
+          providers: [
+            VerificationCodeService,
+            {
+              provide: CACHE_MANAGER,
+              useValue: {
+                get: vi.fn(),
+                set: vi.fn(),
+                del: vi.fn(),
+              },
+            },
+            {
+              provide: MailService,
+              useValue: { sendVerificationCode: vi.fn() },
+            },
+            {
+              provide: ConfigService,
+              useValue: {
+                get: vi.fn((_key: string, fallback?: unknown) => fallback),
+                getOrThrow: vi.fn((key: string) => {
+                  if (key === 'yaml') return patchedYaml;
+                  throw new Error(`Missing config: ${key}`);
+                }),
+              },
+            },
+            {
+              provide: RedisService,
+              useValue: { isAvailable: false, atomicIncrement: vi.fn() },
+            },
+          ],
+        }).compile()
+      ).get<VerificationCodeService>(VerificationCodeService);
+
+      return service;
+    }
+
+    it('rejects when codeTtlMs is zero', async () => {
+      await expect(
+        createServiceWithOverrides({ codeTtlMs: 0 }),
+      ).rejects.toThrow('codeTtlMs must be positive');
+    });
+
+    it('rejects when cooldownMs is negative', async () => {
+      await expect(
+        createServiceWithOverrides({ cooldownMs: -1 }),
+      ).rejects.toThrow('cooldownMs must be positive');
+    });
+
+    it('rejects when cooldownMs exceeds codeTtlMs', async () => {
+      await expect(
+        createServiceWithOverrides({ codeTtlMs: 30_000, cooldownMs: 60_000 }),
+      ).rejects.toThrow('cooldownMs');
+    });
+
+    it('rejects when rateLimitMax is zero', async () => {
+      await expect(
+        createServiceWithOverrides({ rateLimitMax: 0 }),
+      ).rejects.toThrow('rateLimitMax must be positive');
+    });
+  });
 });

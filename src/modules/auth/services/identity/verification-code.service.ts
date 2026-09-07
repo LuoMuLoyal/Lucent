@@ -53,6 +53,36 @@ export class VerificationCodeService {
     this.rateLimitWindowMs = yaml.verification.rateLimitWindowMs;
     this.rateLimitMaxRequests = yaml.verification.rateLimitMax;
     this.codeLength = yaml.verification.codeLength;
+
+    this.assertVerificationConfig();
+  }
+
+  /**
+   * Fail-fast sanity checks for the verification YAML block. A misconfigured
+   * YAML (e.g. cooldown > code TTL, or zero/negative TTLs) silently breaks
+   * rate-limiting and code expiry, so the service refuses to start instead of
+   * running in a broken state.
+   */
+  private assertVerificationConfig(): void {
+    const fail = (message: string): never => {
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- DI init: config validation is exempt
+      throw new Error(message);
+    };
+
+    if (this.codeTtlMs <= 0) {
+      fail(`verification.codeTtlMs must be positive (got ${String(this.codeTtlMs)})`);
+    }
+    if (this.cooldownTtlMs <= 0) {
+      fail(`verification.cooldownMs must be positive (got ${String(this.cooldownTtlMs)})`);
+    }
+    if (this.cooldownTtlMs > this.codeTtlMs) {
+      fail(
+        `verification.cooldownMs (${String(this.cooldownTtlMs)}) must not exceed codeTtlMs (${String(this.codeTtlMs)})`,
+      );
+    }
+    if (this.rateLimitMaxRequests <= 0) {
+      fail(`verification.rateLimitMax must be positive (got ${String(this.rateLimitMaxRequests)})`);
+    }
   }
 
   /** Cooldown period in seconds (exposed for API response). */
