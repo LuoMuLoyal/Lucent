@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-06
+updated: 2026-09-07
 ---
 
 # Logging Conventions
@@ -36,6 +36,15 @@ ELK）按字段名过滤时出现「同名含义不同、同义不同名」的�
    真正的异常路径（会进入 Sentry 等异常通道）。
 5. **结构化与模板并用**：有上下文的失败用结构化 `(message, meta)`；纯字符串调试信息
    用模板字符串即可。
+
+## 示例（结构化 vs 模板）
+
+| 推荐写法                                                                 | 禁止写法                                                       | 原因                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------- | -------------------------------------------- |
+| `this.logger.warn({ error, key, traceId, spanId }, 'msg')`              | `this.logger.warn('msg: ' + error)`                            | 结构化 meta 便于按字段过滤聚合               |
+| `this.logger.error({ error, userId, event: 'x' }, 'msg')`               | `this.logger.error(\`msg: \${error.message}\`)`               | error 对象入结构化可保留 stack/cause 元信息  |
+| `this.logger.debug('Simple status: ' + status)`                          | `this.logger.debug({ status }, 'Simple status')`               | 纯状态字符串无需结构化，模板更简洁           |
+| `this.logger.log(\`Cache hit (key=\${key})\`)`                           | `this.logger.log({ key }, 'Cache hit')`                        | 调试级日志性能要求低，模板更直观             |
 
 ## 相关
 

@@ -55,6 +55,10 @@ meal:
   lowCarbohydrateThresholdG: 20
   highFatThresholdG: 20
 
+# All scenes (register, login, set-password, forgot-password, change-email,
+# delete-account) share these limits.  The forgot-password scene migrated from
+# Better Auth's internal rate limiter (09-06) to the same VerificationCodeService
+# path, so it now uses identical window/max/cooldown as register/login.
 verification:
   codeTtlMs: 300000
   cooldownMs: 60000
