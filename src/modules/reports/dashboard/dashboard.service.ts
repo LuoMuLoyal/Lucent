@@ -37,9 +37,12 @@ export class ReportsService {
       const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
         { error, key: cacheKey, traceId, spanId },
-        'Reports dashboard cache get failed',
+        'Reports dashboard cache get failed — falling back to recompute',
       );
-      throw error;
+      // Fail-open like `cache set` below: the cache is an accelerator, the
+      // DB is the source of truth. A read failure must not turn a healthy
+      // request into a 5xx — recompute from the DB instead.
+      cached = undefined;
     }
     if (cached != null) {
       return cached;
