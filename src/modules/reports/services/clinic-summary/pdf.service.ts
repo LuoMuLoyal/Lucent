@@ -28,10 +28,8 @@ import {
   drawPageChrome,
   wrapText,
 } from '../../../data-export/index.js';
-import type {
-  ClinicSummaryOptions,
-  ClinicSummaryService,
-} from './summary.service.js';
+import type { ClinicSummaryOptions } from './summary.service.js';
+import { ClinicSummaryService } from './summary.service.js';
 
 // `require.resolve` is unavailable in ESM — createRequire keeps the ability to
 // resolve a package asset path inside node_modules.
