@@ -127,6 +127,8 @@ jobs:
       JWT_REFRESH_SECRET: ci_refresh_secret_min_32_charschars
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 14d
+      BETTER_AUTH_SECRET: ci_better_auth_secret_min_32_chars_pad
+      BETTER_AUTH_URL: http://127.0.0.1:3000
       MAIL_DRIVER: log
       MAIL_FROM: noreply@example.com
       ADMIN_EMAIL: admin@example.com
