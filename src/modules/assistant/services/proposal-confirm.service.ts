@@ -1,3 +1,4 @@
+import { now } from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -126,9 +127,11 @@ export class AssistantProposalConfirmService {
         );
       }
 
-      const now = Date.now();
+      const nowTime = now().getTime();
       if (
-        toWrite.some((proposal) => new Date(proposal.expiresAt).getTime() < now)
+        toWrite.some(
+          (proposal) => new Date(proposal.expiresAt).getTime() < nowTime,
+        )
       ) {
         return errAsync(
           this.validation(
