@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 
 import { normalizeEmail, now } from '../../../../common/index.js';
 import {
-  createDomainFailure,
   errAsync,
   fromPromise,
   mapUnknownToDependencyFailure,
@@ -21,30 +20,12 @@ import {
   type AuthRequestContext,
   type TokenPair,
 } from '../token.service.js';
+import {
+  credentialsInvalidFailure,
+  fromBetterAuth,
+} from './better-auth-error.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
 import { VerificationCodeService } from './verification-code.service.js';
-
-/**
- * Narrow subset of Better Auth / better-call API errors that we intentionally
- * map to Lucent DomainFailures.  Anything else is re-thrown so it surfaces
- * with its real dependency/internal semantics.
- */
-interface BetterAuthAPIError {
-  statusCode: number;
-  body?: {
-    code?: string;
-    message?: string;
-  };
-}
-
-function isBetterAuthAPIError(error: unknown): error is BetterAuthAPIError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'statusCode' in error &&
-    typeof error.statusCode === 'number'
-  );
-}
 
 /**
  * Handles email/password credential flows: registration and login.
@@ -84,10 +65,11 @@ export class CredentialAuthService {
     return this.verificationCodeService
       .verify(email, dto.code, 'register')
       .andThen(() =>
-        this.fromBetterAuth(
+        fromBetterAuth(
           this.betterAuthAdapter.auth.api.signUpEmail({
             body: { email, password: dto.password, name },
           }),
+          'Better Auth call failed',
         ),
       )
       .andThen((result) => this.lift(this.userService.findById(result.user.id)))
@@ -96,7 +78,7 @@ export class CredentialAuthService {
           // Better Auth returned a synthetic user because the email already
           // exists.  Deliberately the same code as other credential failures —
           // never reveal that the email is registered.
-          return errAsync(this.credentialsInvalidFailure());
+          return errAsync(credentialsInvalidFailure());
         }
         return this.userService
           .update(user.id, {
@@ -147,101 +129,6 @@ export class CredentialAuthService {
   // ── Helpers ──────────────────────────────────────────────────
 
   /**
-   * Wraps a Better Auth `auth.api.*` promise into a `ResultAsync` and maps
-   * every Better Auth API error to a Lucent `DomainFailure`.  Non-Better Auth
-   * exceptions (e.g. DB/network) are mapped to `DEPENDENCY_UNAVAILABLE` so they
-   * are surfaced through the Result instead of becoming unhandled rejections.
-   */
-  private fromBetterAuth<T>(
-    promise: Promise<T>,
-  ): ResultAsync<T, DomainFailure> {
-    return fromPromise(promise, (error) => {
-      if (isBetterAuthAPIError(error)) {
-        return this.mapBetterAuthError(error);
-      }
-      return mapUnknownToDependencyFailure(error, 'Better Auth call failed');
-    });
-  }
-
-  /**
-   * Maps Better Auth API error codes to Lucent Problem Details codes.
-   * Authentication failures are folded into the generic anti-enumeration code.
-   *
-   * Every Better Auth API error is mapped to a business DomainFailure:
-   * known codes above are handled explicitly, unknown 4xx responses become
-   * `AUTH_WRONG_PASSWORD` for anti-enumeration, and unknown 5xx responses become
-   * `DEPENDENCY_UNAVAILABLE`. Non-Better-Auth exceptions (DB/network/etc.) are
-   * mapped to `DEPENDENCY_UNAVAILABLE` by `fromBetterAuth` so they stay inside
-   * the Result channel.
-   */
-  private mapBetterAuthError(error: BetterAuthAPIError): DomainFailure {
-    const code = error.body?.code;
-    switch (code) {
-      // Anti-enumeration bucket: never reveal whether the account exists,
-      // whether it has a password, or whether the email is registered.
-      case 'USER_ALREADY_EXISTS':
-      case 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL':
-      case 'INVALID_EMAIL_OR_PASSWORD':
-      case 'USER_NOT_FOUND':
-      case 'INVALID_PASSWORD':
-      case 'INVALID_EMAIL':
-      case 'USER_EMAIL_NOT_FOUND':
-      case 'ACCOUNT_NOT_FOUND':
-      case 'CREDENTIAL_ACCOUNT_NOT_FOUND':
-      case 'EMAIL_NOT_VERIFIED':
-        return this.credentialsInvalidFailure();
-      case 'USER_ALREADY_HAS_PASSWORD':
-      case 'PASSWORD_ALREADY_SET':
-        return createDomainFailure({
-          kind: 'conflict',
-          code: 'RESOURCE_CONFLICT',
-        });
-      case 'EMAIL_CAN_NOT_BE_UPDATED':
-      case 'CHANGE_EMAIL_DISABLED':
-        return createDomainFailure({
-          kind: 'validation',
-          code: 'VALIDATION_FAILED',
-        });
-      case 'INVALID_TOKEN':
-      case 'TOKEN_EXPIRED':
-        return createDomainFailure({
-          kind: 'authentication',
-          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
-        });
-      case 'PASSWORD_TOO_SHORT':
-      case 'PASSWORD_TOO_LONG':
-      case 'VALIDATION_ERROR':
-      case 'MISSING_FIELD':
-        return createDomainFailure({
-          kind: 'validation',
-          code: 'VALIDATION_FAILED',
-        });
-      // Configuration/disabled errors: the method is unavailable, not an
-      // internal crash.  Map to a non-500 dependency failure.
-      case 'EMAIL_PASSWORD_SIGN_UP_DISABLED':
-      case 'EMAIL_PASSWORD_DISABLED':
-      case 'RESET_PASSWORD_DISABLED':
-      case 'VERIFICATION_EMAIL_NOT_ENABLED':
-        return createDomainFailure({
-          kind: 'dependency',
-          code: 'AUTH_METHOD_DISABLED',
-        });
-      default:
-        // Any other Better Auth API error is treated as an auth-specific
-        // failure rather than leaking as a raw 500.  Better Auth 5xx responses
-        // are considered dependency failures; everything else is folded into
-        // the anti-enumeration bucket.
-        if (error.statusCode >= 500) {
-          return createDomainFailure({
-            kind: 'dependency',
-            code: 'DEPENDENCY_UNAVAILABLE',
-          });
-        }
-        return this.credentialsInvalidFailure();
-    }
-  }
-
-  /**
    * Validates the provided password (or verification code) for a login
    * attempt. Every failure path returns the same generic
    * `AUTH_WRONG_PASSWORD` code so the response never reveals whether the
@@ -275,7 +162,7 @@ export class CredentialAuthService {
       return this.betterAuthAdapter
         .verifyPasswordForUser(user.id, dto.password as string)
         .andThen((valid) =>
-          valid ? okAsync(user) : errAsync(this.credentialsInvalidFailure()),
+          valid ? okAsync(user) : errAsync(credentialsInvalidFailure()),
         )
         .orElse((error) => {
           if (error.kind === 'internal' || error.kind === 'dependency') {
@@ -298,14 +185,7 @@ export class CredentialAuthService {
   private recordLoginFailure(email: string): ResultAsync<never, DomainFailure> {
     return this.authRateLimitService
       .recordLoginFailure(email)
-      .andThen(() => errAsync(this.credentialsInvalidFailure()));
-  }
-
-  private credentialsInvalidFailure(): DomainFailure {
-    return createDomainFailure({
-      kind: 'authentication',
-      code: 'AUTH_WRONG_PASSWORD',
-    });
+      .andThen(() => errAsync(credentialsInvalidFailure()));
   }
 
   /**

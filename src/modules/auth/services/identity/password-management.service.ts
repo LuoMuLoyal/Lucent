@@ -26,29 +26,8 @@ import type { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.j
 import type { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
 import type { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
 import { AuthTokenService } from '../token.service.js';
+import { fromBetterAuth } from './better-auth-error.js';
 import { PasswordReauthService } from './password-reauth.service.js';
-
-/**
- * Narrow subset of Better Auth / better-call API errors that we intentionally
- * map to Lucent DomainFailures.  Anything else is re-thrown so it surfaces
- * with its real dependency/internal semantics.
- */
-interface BetterAuthAPIError {
-  statusCode: number;
-  body?: {
-    code?: string;
-    message?: string;
-  };
-}
-
-function isBetterAuthAPIError(error: unknown): error is BetterAuthAPIError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'statusCode' in error &&
-    typeof error.statusCode === 'number'
-  );
-}
 
 /**
  * Handles password management flows: password changes, email changes,
@@ -236,10 +215,11 @@ export class PasswordManagementService {
   }
 
   verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
-    return this.fromBetterAuth(
+    return fromBetterAuth(
       this.betterAuthAdapter.auth.api.verifyEmail({
         query: { token: dto.token },
       }),
+      'Better Auth call failed',
     ).map(() => undefined);
   }
 
@@ -327,92 +307,6 @@ export class PasswordManagementService {
   }
 
   // ── Helpers ──────────────────────────────────────────────────
-
-  /**
-   * Wraps a Better Auth `auth.api.*` promise into a `ResultAsync` and maps
-   * every Better Auth API error to a Lucent `DomainFailure`.  Non-Better Auth
-   * exceptions (e.g. DB/network) are mapped to `DEPENDENCY_UNAVAILABLE` so they
-   * are surfaced through the Result instead of becoming unhandled rejections.
-   */
-  private fromBetterAuth<T>(
-    promise: Promise<T>,
-  ): ResultAsync<T, DomainFailure> {
-    return fromPromise(promise, (error) => {
-      if (isBetterAuthAPIError(error)) {
-        return this.mapBetterAuthError(error);
-      }
-      return mapUnknownToDependencyFailure(error, 'Better Auth call failed');
-    });
-  }
-
-  /**
-   * Maps Better Auth API error codes to Lucent Problem Details codes.
-   */
-  private mapBetterAuthError(error: BetterAuthAPIError): DomainFailure {
-    const code = error.body?.code;
-    switch (code) {
-      case 'USER_ALREADY_EXISTS':
-      case 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL':
-      case 'INVALID_EMAIL_OR_PASSWORD':
-      case 'USER_NOT_FOUND':
-      case 'INVALID_PASSWORD':
-      case 'INVALID_EMAIL':
-      case 'USER_EMAIL_NOT_FOUND':
-      case 'ACCOUNT_NOT_FOUND':
-      case 'CREDENTIAL_ACCOUNT_NOT_FOUND':
-      case 'EMAIL_NOT_VERIFIED':
-        return this.credentialsInvalidFailure();
-      case 'USER_ALREADY_HAS_PASSWORD':
-      case 'PASSWORD_ALREADY_SET':
-        return createDomainFailure({
-          kind: 'conflict',
-          code: 'RESOURCE_CONFLICT',
-        });
-      case 'EMAIL_CAN_NOT_BE_UPDATED':
-      case 'CHANGE_EMAIL_DISABLED':
-        return createDomainFailure({
-          kind: 'validation',
-          code: 'VALIDATION_FAILED',
-        });
-      case 'INVALID_TOKEN':
-      case 'TOKEN_EXPIRED':
-        return createDomainFailure({
-          kind: 'authentication',
-          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
-        });
-      case 'PASSWORD_TOO_SHORT':
-      case 'PASSWORD_TOO_LONG':
-      case 'VALIDATION_ERROR':
-      case 'MISSING_FIELD':
-        return createDomainFailure({
-          kind: 'validation',
-          code: 'VALIDATION_FAILED',
-        });
-      case 'EMAIL_PASSWORD_SIGN_UP_DISABLED':
-      case 'EMAIL_PASSWORD_DISABLED':
-      case 'RESET_PASSWORD_DISABLED':
-      case 'VERIFICATION_EMAIL_NOT_ENABLED':
-        return createDomainFailure({
-          kind: 'dependency',
-          code: 'AUTH_METHOD_DISABLED',
-        });
-      default:
-        if (error.statusCode >= 500) {
-          return createDomainFailure({
-            kind: 'dependency',
-            code: 'DEPENDENCY_UNAVAILABLE',
-          });
-        }
-        return this.credentialsInvalidFailure();
-    }
-  }
-
-  private credentialsInvalidFailure(): DomainFailure {
-    return createDomainFailure({
-      kind: 'authentication',
-      code: 'AUTH_WRONG_PASSWORD',
-    });
-  }
 
   private getActiveUser(userId: string): ResultAsync<User, DomainFailure> {
     return this.lift(this.userService.findById(userId)).andThen((user) => {
