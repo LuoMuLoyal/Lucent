@@ -16,11 +16,7 @@ import {
 export class MailService {
   constructor(private readonly mailQueueService: MailQueueService) {}
 
-  async send(
-    to: string,
-    subject: string,
-    html: string,
-  ): Promise<void> {
+  async send(to: string, subject: string, html: string): Promise<void> {
     await this.mailQueueService.enqueue({ to, subject, html });
   }
 

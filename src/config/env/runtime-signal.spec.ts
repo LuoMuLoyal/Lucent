@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isRunningFromSource,
-  BUILD_OUTPUT_NAMES,
-} from './runtime-signal.js';
+import { isRunningFromSource, BUILD_OUTPUT_NAMES } from './runtime-signal.js';
 
 describe('isRunningFromSource', () => {
   it('returns true for the source-layout test module itself', () => {

@@ -289,10 +289,7 @@ describe('API Contract Tests (e2e)', () => {
 
       assertDirectResourceShape(res.body);
 
-      const schema = resolveRef(
-        spec,
-        '#/components/schemas/AppInfoResponse',
-      );
+      const schema = resolveRef(spec, '#/components/schemas/AppInfoResponse');
       assertRequiredProperties(res.body, schema, spec);
     });
   });
@@ -308,10 +305,7 @@ describe('API Contract Tests (e2e)', () => {
 
       assertDirectResourceShape(res.body);
 
-      const schema = resolveRef(
-        spec,
-        '#/components/schemas/AccountResponse',
-      );
+      const schema = resolveRef(spec, '#/components/schemas/AccountResponse');
       assertRequiredProperties(res.body, schema, spec);
 
       // Spot-check key fields

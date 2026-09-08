@@ -300,7 +300,11 @@ function promoteInlineObjects(document: any): number {
       // Determine the actual object schema (unwrap array-of-object)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let targetSchema: any = field;
-      if (field.type === 'array' && field.items && typeof field.items === 'object') {
+      if (
+        field.type === 'array' &&
+        field.items &&
+        typeof field.items === 'object'
+      ) {
         targetSchema = field.items;
       }
       if (!targetSchema || typeof targetSchema !== 'object') continue;
@@ -345,7 +349,8 @@ function promoteInlineObjects(document: any): number {
   // Top-level array schemas with inline object items: promote items into
   // a named component so dart-dio does not generate `<name>_inner`.
   for (const [name, schema] of Object.entries(schemas)) {
-    if (!schema || typeof schema !== 'object' || schema.type !== 'array') continue;
+    if (!schema || typeof schema !== 'object' || schema.type !== 'array')
+      continue;
     const items = schema.items;
     if (!items || typeof items !== 'object' || items.$ref) continue;
     const hasItemsProperties =
@@ -361,7 +366,6 @@ function promoteInlineObjects(document: any): number {
     promoteSchema(entryName, schemas[entryName]);
   }
   return promoted;
-
 }
 
 /**
@@ -448,8 +452,11 @@ async function main() {
     }
     if (seenOperationIds.has(mapped)) {
       throw new Error(
-        '[openapi-export] duplicate operationId after naming mapping: ' + mapped +
-        ' (from ' + key + '). The naming lookup in plans/_naming-lookup.json is inconsistent.',
+        '[openapi-export] duplicate operationId after naming mapping: ' +
+          mapped +
+          ' (from ' +
+          key +
+          '). The naming lookup in plans/_naming-lookup.json is inconsistent.',
       );
     }
     seenOperationIds.add(mapped);

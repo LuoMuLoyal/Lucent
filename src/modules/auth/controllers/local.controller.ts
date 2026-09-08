@@ -244,11 +244,7 @@ export class LocalController {
     @I18nLang() locale?: string,
   ) {
     const result = await unwrapResult(
-      this.authService.forgotPassword(
-        dto,
-        getRequestClientIp(request),
-        locale,
-      ),
+      this.authService.forgotPassword(dto, getRequestClientIp(request), locale),
     );
 
     return {

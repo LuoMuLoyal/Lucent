@@ -24,10 +24,7 @@ const i18nOptions: I18nOptions = {
   resolvers: [AcceptLanguageResolver],
 };
 
-if (
-  process.env[EnvKey.NODE_ENV] === 'development' &&
-  isRunningFromSource()
-) {
+if (process.env[EnvKey.NODE_ENV] === 'development' && isRunningFromSource()) {
   i18nOptions.typesOutputPath = path.join(
     thisDir,
     '..',

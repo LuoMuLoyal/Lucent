@@ -88,7 +88,11 @@ describe('MailService', () => {
   });
 
   it('should render the Chinese verification code email when locale is zh-CN', () => {
-    const html = renderVerificationCodeEmail(TEST_VERIFICATION_CODE, 5, 'zh-CN');
+    const html = renderVerificationCodeEmail(
+      TEST_VERIFICATION_CODE,
+      5,
+      'zh-CN',
+    );
 
     // Contains the verification code
     expect(html).toContain(TEST_VERIFICATION_CODE);

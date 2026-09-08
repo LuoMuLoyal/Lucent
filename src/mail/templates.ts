@@ -41,8 +41,7 @@ function resolveLocale(locale: string | undefined): EmailLocale {
  * Uses table-based layout for Outlook compatibility. All styles are inline.
  */
 function emailShell(innerContent: string, locale: EmailLocale): string {
-  const tagline =
-    locale === 'zh-CN' ? BRAND_TAGLINE_ZH : BRAND_TAGLINE_EN;
+  const tagline = locale === 'zh-CN' ? BRAND_TAGLINE_ZH : BRAND_TAGLINE_EN;
   const footerNote =
     locale === 'zh-CN'
       ? '这是一封自动发送的邮件，请勿直接回复。'
@@ -122,7 +121,10 @@ function verificationCodeLabel(locale: EmailLocale): string {
 }
 
 /** Locale-aware expiry hint for the verification code email. */
-function verificationExpiryNote(locale: EmailLocale, ttlMinutes: number): string {
+function verificationExpiryNote(
+  locale: EmailLocale,
+  ttlMinutes: number,
+): string {
   return locale === 'zh-CN'
     ? `验证码 ${String(ttlMinutes)} 分钟内有效`
     : `The code expires in ${String(ttlMinutes)} minutes`;

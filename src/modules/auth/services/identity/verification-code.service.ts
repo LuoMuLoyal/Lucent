@@ -70,10 +70,14 @@ export class VerificationCodeService {
     };
 
     if (this.codeTtlMs <= 0) {
-      fail(`verification.codeTtlMs must be positive (got ${String(this.codeTtlMs)})`);
+      fail(
+        `verification.codeTtlMs must be positive (got ${String(this.codeTtlMs)})`,
+      );
     }
     if (this.cooldownTtlMs <= 0) {
-      fail(`verification.cooldownMs must be positive (got ${String(this.cooldownTtlMs)})`);
+      fail(
+        `verification.cooldownMs must be positive (got ${String(this.cooldownTtlMs)})`,
+      );
     }
     if (this.cooldownTtlMs > this.codeTtlMs) {
       fail(
@@ -81,7 +85,9 @@ export class VerificationCodeService {
       );
     }
     if (this.rateLimitMaxRequests <= 0) {
-      fail(`verification.rateLimitMax must be positive (got ${String(this.rateLimitMaxRequests)})`);
+      fail(
+        `verification.rateLimitMax must be positive (got ${String(this.rateLimitMaxRequests)})`,
+      );
     }
   }
 
