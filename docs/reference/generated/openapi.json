@@ -1310,7 +1310,7 @@
           {
             "name": "jobId",
             "required": true,
-            "in": "query",
+            "in": "path",
             "schema": {
               "type": "string"
             }

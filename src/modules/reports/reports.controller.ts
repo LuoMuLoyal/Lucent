@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Logger,
+  Param,
   Post,
   Query,
   Res,
@@ -12,6 +13,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -135,9 +137,10 @@ export class ReportsController {
   @SkipThrottle()
   @Get('summary/generate/status/:jobId')
   @ApiOperation({ summary: 'Poll AI report summary generation status' })
+  @ApiParam({ name: 'jobId' })
   async generateSummaryStatus(
     @CurrentUser() user: UserPayload,
-    @Query('jobId') jobId: string,
+    @Param('jobId') jobId: string,
   ) {
     const status = await this.reportSummaryQueueService.getStatus(
       jobId,
