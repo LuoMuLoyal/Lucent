@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client.js';
 import { toInputJsonValue } from '../../../common/index.js';
 import {
-  buildConfirmedMealPayload,
   buildMealPayloadFromClientInput,
   getMealSourceRevision,
   markMealAnalysisQueued,
@@ -26,7 +25,7 @@ export class MealPayloadWriterService {
     private readonly mealAnalysisQueueService: MealAnalysisQueueService,
   ) {}
 
-  prepareMealPayloadForWrite(
+  public prepareMealPayloadForWrite(
     payload: unknown,
     attachments: { objectKey: string }[] | undefined,
     existingPayload?: unknown,
@@ -48,17 +47,8 @@ export class MealPayloadWriterService {
     });
   }
 
-  /** Marks a pending-but-confirmed meal payload as confirmed (HITL). */
-  confirm(
-    finalPayload: Record<string, unknown> | null,
-  ): Record<string, unknown> | null {
-    return finalPayload != null
-      ? buildConfirmedMealPayload(finalPayload)
-      : null;
-  }
-
   /** Marks a dish-edited payload as needing re-analysis when an image exists. */
-  requeueOnDishChange(
+  public requeueOnDishChange(
     finalPayload: Record<string, unknown>,
   ): Record<string, unknown> {
     const currentAnalysis = finalPayload['mealAnalysis'] as
@@ -74,7 +64,7 @@ export class MealPayloadWriterService {
     return finalPayload;
   }
 
-  withMealHotFields(
+  public withMealHotFields(
     data: Prisma.UserDailyRecordUpdateInput,
     mealPayload: Record<string, unknown> | null,
   ): Prisma.UserDailyRecordUpdateInput {
@@ -106,13 +96,13 @@ export class MealPayloadWriterService {
   }
 
   /** Expands a prepared meal payload into full create-data (payload + hot columns). */
-  toCreateFields(
+  public toCreateFields(
     mealPayload: Record<string, unknown> | null,
   ): Record<string, unknown> {
     return this.buildMealCreateFields(mealPayload);
   }
 
-  public extractMealAnalysisHotFields(mealPayload: Record<string, unknown>): {
+  private extractMealAnalysisHotFields(mealPayload: Record<string, unknown>): {
     mealAnalysisStatus: MealAnalysisStatus | null;
     mealAnalysisCoverage: MealAnalysisCoverage | null;
     mealAnalysisUpdatedAt: Date | null;
@@ -141,7 +131,7 @@ export class MealPayloadWriterService {
     };
   }
 
-  async enqueueAnalysisIfNeeded(
+  public async enqueueAnalysisIfNeeded(
     userId: string,
     item: {
       id: string;
@@ -179,7 +169,7 @@ export class MealPayloadWriterService {
   }
 
   /** Parses the stored payload's mealAnalysis for the dish-learning step. */
-  parseAnalysis(item: { payload?: Record<string, unknown> | null }) {
+  public parseAnalysis(item: { payload?: Record<string, unknown> | null }) {
     return parseMealRecordPayload(item.payload).mealAnalysis;
   }
 }
