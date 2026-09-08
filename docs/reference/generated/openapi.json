@@ -1283,12 +1283,12 @@
           }
         },
         "responses": {
-          "202": {
-            "description": "Returns either a queued jobId or the synchronous summary resource when the queue is unavailable.",
+          "201": {
+            "description": "When a queue is configured, accepted with a `jobId` for polling; otherwise the summary is generated synchronously and returned.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReportSummaryJobResponse"
+                  "$ref": "#/components/schemas/ReportSummaryAsyncResponseData"
                 }
               }
             }
@@ -1299,7 +1299,7 @@
             "access-token": []
           }
         ],
-        "summary": "Enqueue async AI summary generation for report",
+        "summary": "Enqueue AI report summary generation (async)",
         "tags": ["Reports"]
       }
     },
@@ -1310,7 +1310,7 @@
           {
             "name": "jobId",
             "required": true,
-            "in": "path",
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -1318,7 +1318,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Job status (pending, completed, or failed)"
+            "description": ""
           }
         },
         "security": [
@@ -1326,12 +1326,13 @@
             "access-token": []
           }
         ],
-        "summary": "Poll async report AI summary generation status",
+        "summary": "Poll AI report summary generation status",
         "tags": ["Reports"]
       }
     },
     "/api/v1/user/reports/summary/generate/stream": {
       "post": {
+        "description": "Progress events (`progress`), LLM partials (`chunk`), a final `result` when ready, and an `error` event on failure.",
         "operationId": "generateSummaryStream",
         "parameters": [],
         "requestBody": {
@@ -1346,11 +1347,11 @@
         },
         "responses": {
           "200": {
-            "description": "Server-Sent Events stream. Each event has an \"event\" field (chunk | result | error | done) and a JSON \"data\" field.",
+            "description": "SSE stream of summary events.",
             "content": {
-              "text/event-stream": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ReportSummaryStreamResponse"
                 }
               }
             }
@@ -1361,7 +1362,7 @@
             "access-token": []
           }
         ],
-        "summary": "Stream authenticated user AI summary generation for report",
+        "summary": "Stream AI report summary generation events (SSE)",
         "tags": ["Reports"]
       }
     },
@@ -1381,14 +1382,7 @@
         },
         "responses": {
           "201": {
-            "description": "The de-identified clinic summary preview.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClinicSummaryResponse"
-                }
-              }
-            }
+            "description": "The de-identified clinic summary preview."
           }
         },
         "security": [
@@ -1416,14 +1410,7 @@
         },
         "responses": {
           "201": {
-            "description": "The created share record with its one-time token.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClinicSummaryShareResponse"
-                }
-              }
-            }
+            "description": "The created share record with its one-time token."
           }
         },
         "security": [
@@ -1441,14 +1428,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The caller clinic-summary shares, newest first.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClinicSummaryShareListResponse"
-                }
-              }
-            }
+            "description": "The caller clinic-summary shares, newest first."
           }
         },
         "security": [
@@ -1475,14 +1455,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The shared clinic summary.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClinicSummaryResponse"
-                }
-              }
-            }
+            "description": "The shared clinic summary."
           }
         },
         "security": [],
@@ -1533,14 +1506,7 @@
         },
         "responses": {
           "201": {
-            "description": "Unscoped requests use the async queue job (jobId for polling); an explicit scope is exported synchronously with the requested scope honored (pdfBase64) because the queue job only carries the default scope. When no queue is configured, both paths return the base64 PDF synchronously.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClinicSummaryExportJobResponse"
-                }
-              }
-            }
+            "description": "Unscoped requests use the async queue job (jobId for polling); an explicit scope is exported synchronously with the requested scope honored (pdfBase64) because the queue job only carries the default scope. When no queue is configured, both paths return the base64 PDF synchronously."
           }
         },
         "security": [
@@ -1642,14 +1608,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The current event review, or null when the user has no event review.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EventReviewData"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "security": [
@@ -1657,7 +1616,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get the current event review for the authenticated user",
+        "summary": "Build the current event review",
         "tags": ["Reports"]
       }
     },
@@ -1698,14 +1657,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Paginated event review history.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EventReviewListResponse"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "security": [
@@ -1713,7 +1665,7 @@
             "access-token": []
           }
         ],
-        "summary": "List the user event review history",
+        "summary": "Event review history",
         "tags": ["Reports"]
       }
     },
@@ -1732,14 +1684,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The event review for the requested event.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EventReviewResponse"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "security": [
@@ -1747,7 +1692,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get one user event review by event id",
+        "summary": "Rebuild and persist the event review",
         "tags": ["Reports"]
       }
     },
@@ -8664,7 +8609,7 @@
         ],
         "additionalProperties": false
       },
-      "ReportSummaryJobResponse": {
+      "ReportSummaryAsyncResponseData": {
         "type": "object",
         "properties": {
           "jobId": {
@@ -8672,269 +8617,55 @@
             "type": "string"
           },
           "result": {
-            "$ref": "#/components/schemas/ReportSummaryJobResponseResult"
+            "$ref": "#/components/schemas/ReportSummaryAsyncResponseDataResult"
           }
         },
         "additionalProperties": false
       },
-      "ClinicSummaryResponse": {
+      "ReportSummaryStreamResponse": {
         "type": "object",
         "properties": {
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days", "custom"]
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
           "generatedAt": {
-            "type": "string",
-            "description": "Generated timestamp"
+            "type": "string"
           },
-          "scopeLabel": {
-            "type": "string",
-            "description": "Scope label: last_7_days | last_30_days | custom for date-range scopes, or the event title for an event scope."
-          },
-          "start": {
-            "type": "string",
-            "description": "Real window start (ISO 8601)."
-          },
-          "end": {
-            "type": "string",
-            "description": "Real window end (ISO 8601)."
-          },
-          "selectedFields": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Effective included sections after field selection (profile/allergies/conditions/currentMedicines)."
+          "summary": {
+            "type": "string"
           },
           "coverage": {
-            "$ref": "#/components/schemas/ClinicSummaryResponseCoverage"
+            "$ref": "#/components/schemas/ReportSummaryStreamResponseCoverage"
           },
-          "dataRange": {
-            "type": "string",
-            "description": "Legacy range label (last_7_days | last_30_days | custom | event); kept as a compatibility alias of scopeLabel."
+          "observedPattern": {
+            "nullable": true,
+            "$ref": "#/components/schemas/ReportSummaryStreamResponseObservedPattern"
           },
-          "profile": {
-            "$ref": "#/components/schemas/ClinicSummaryResponseProfile"
-          },
-          "allergies": {
-            "description": "Active allergies. Optional: omitted when the section is deselected.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClinicSummaryResponseAllergies"
-            }
-          },
-          "conditions": {
-            "description": "Active conditions. Optional: omitted when the section is deselected.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClinicSummaryResponseConditions"
-            }
-          },
-          "currentMedicines": {
-            "description": "Current medicines. Optional: omitted when the section is deselected.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClinicSummaryResponseCurrentMedicines"
-            }
-          },
-          "findings": {
-            "description": "Structured facts and change codes reused from the event review (e.g. health_event, observed_changes, no_completed_actions, active_check_in). `insufficient_coverage` is the fixed 资料不足 statement — no generic AI conclusions are ever added. Controlled by the `event_overview` field toggle (R-2): omitted when the field is deselected.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "waterEntries": {
-            "description": "Daily water intake facts (only records with a parsable ml value). Controlled by the `water` field toggle (R-2): omitted when the field is deselected.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClinicSummaryResponseWaterEntries"
-            }
-          },
-          "sleepEntries": {
-            "description": "Daily sleep duration facts (only records with a positive duration). Controlled by the `sleep` field toggle (R-2): omitted when the field is deselected.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClinicSummaryResponseSleepEntries"
-            }
-          },
-          "noteEntries": {
-            "description": "Free-text note records (date, kind, original text). Controlled by the `notes` field toggle (R-2): omitted when the field is deselected. Defaults to off — the user must explicitly opt in.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClinicSummaryResponseNoteEntries"
-            }
+          "lowRiskAction": {
+            "nullable": true,
+            "$ref": "#/components/schemas/ReportSummaryStreamResponseLowRiskAction"
           },
           "disclaimer": {
-            "type": "string",
-            "description": "Disclaimer text"
+            "type": "string"
           }
         },
         "required": [
+          "range",
+          "startDate",
+          "endDate",
           "generatedAt",
-          "scopeLabel",
-          "start",
-          "end",
-          "selectedFields",
+          "summary",
           "coverage",
-          "dataRange",
+          "observedPattern",
+          "lowRiskAction",
           "disclaimer"
-        ],
-        "additionalProperties": false
-      },
-      "ClinicSummaryShareResponse": {
-        "type": "object",
-        "properties": {
-          "shareId": {
-            "description": "Persisted share record id (used for revocation). Always present on the create response; optional only because the legacy `createShareLink` service method (cache-only shares) does not emit it.",
-            "type": "string"
-          },
-          "token": {
-            "description": "Plaintext token — returned exactly once at creation, never persisted or logged",
-            "type": "string"
-          },
-          "shareUrl": {
-            "type": "string",
-            "description": "Shareable URL"
-          },
-          "expiresAt": {
-            "type": "string",
-            "description": "Expiration time (ISO 8601)"
-          },
-          "scope": {
-            "$ref": "#/components/schemas/ClinicSummaryShareResponseScope"
-          },
-          "selectedFields": {
-            "description": "Share fields the link may expose",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": ["shareUrl", "expiresAt"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryShareListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClinicSummaryShareListResponseItems"
-            },
-            "description": "The caller shares, newest first (createdAt desc); revoked shares stay listed."
-          }
-        },
-        "required": ["items"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryExportJobResponse": {
-        "type": "object",
-        "properties": {
-          "jobId": {
-            "description": "Queued PDF export job identifier.",
-            "type": "string"
-          },
-          "pdfBase64": {
-            "description": "Base64 PDF when the export is processed inline.",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "EventReviewData": {
-        "type": "object",
-        "properties": {
-          "event": {
-            "$ref": "#/components/schemas/EventReviewDataEvent"
-          },
-          "sections": {
-            "$ref": "#/components/schemas/EventReviewDataSections"
-          },
-          "coverage": {
-            "$ref": "#/components/schemas/EventReviewDataCoverage"
-          },
-          "sourceTimestamps": {
-            "$ref": "#/components/schemas/EventReviewDataSourceTimestamps"
-          },
-          "availableActions": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["check_in", "end_event", "clinic_summary", "export"]
-            },
-            "description": "Actions the user can take from this review, mapped by the client."
-          },
-          "generatedAt": {
-            "type": "string",
-            "description": "Review assembly time in ISO 8601 format."
-          }
-        },
-        "required": [
-          "event",
-          "sections",
-          "coverage",
-          "sourceTimestamps",
-          "availableActions",
-          "generatedAt"
-        ],
-        "additionalProperties": false,
-        "nullable": true
-      },
-      "EventReviewListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventReviewListResponseItems"
-            }
-          },
-          "total": {
-            "type": "number",
-            "description": "Total matching events for the filter."
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["items", "total", "nextCursor"],
-        "additionalProperties": false
-      },
-      "EventReviewResponse": {
-        "type": "object",
-        "properties": {
-          "event": {
-            "$ref": "#/components/schemas/EventReviewResponseEvent"
-          },
-          "sections": {
-            "$ref": "#/components/schemas/EventReviewResponseSections"
-          },
-          "coverage": {
-            "$ref": "#/components/schemas/EventReviewResponseCoverage"
-          },
-          "sourceTimestamps": {
-            "$ref": "#/components/schemas/EventReviewResponseSourceTimestamps"
-          },
-          "availableActions": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["check_in", "end_event", "clinic_summary", "export"]
-            },
-            "description": "Actions the user can take from this review, mapped by the client."
-          },
-          "generatedAt": {
-            "type": "string",
-            "description": "Review assembly time in ISO 8601 format."
-          }
-        },
-        "required": [
-          "event",
-          "sections",
-          "coverage",
-          "sourceTimestamps",
-          "availableActions",
-          "generatedAt"
         ],
         "additionalProperties": false
       },
@@ -14464,7 +14195,7 @@
         "additionalProperties": false,
         "nullable": true
       },
-      "ReportSummaryJobResponseResult": {
+      "ReportSummaryAsyncResponseDataResult": {
         "description": "Inline report summary resource when queue processing is unavailable.",
         "type": "object",
         "properties": {
@@ -14485,15 +14216,15 @@
             "type": "string"
           },
           "coverage": {
-            "$ref": "#/components/schemas/ReportSummaryJobResponseResultCoverage"
+            "$ref": "#/components/schemas/ReportSummaryAsyncResponseDataResultCoverage"
           },
           "observedPattern": {
             "nullable": true,
-            "$ref": "#/components/schemas/ReportSummaryJobResponseResultObservedPattern"
+            "$ref": "#/components/schemas/ReportSummaryAsyncResponseDataResultObservedPattern"
           },
           "lowRiskAction": {
             "nullable": true,
-            "$ref": "#/components/schemas/ReportSummaryJobResponseResultLowRiskAction"
+            "$ref": "#/components/schemas/ReportSummaryAsyncResponseDataResultLowRiskAction"
           },
           "disclaimer": {
             "type": "string"
@@ -14512,23 +14243,23 @@
         ],
         "additionalProperties": false
       },
-      "ReportSummaryJobResponseResultCoverage": {
+      "ReportSummaryAsyncResponseDataResultCoverage": {
         "type": "object",
         "properties": {
           "medication": {
-            "$ref": "#/components/schemas/ReportSummaryJobResponseResultCoverageMedication"
+            "$ref": "#/components/schemas/ReportSummaryAsyncResponseDataResultCoverageMedication"
           },
           "water": {
-            "$ref": "#/components/schemas/ReportSummaryJobResponseResultCoverageWater"
+            "$ref": "#/components/schemas/ReportSummaryAsyncResponseDataResultCoverageWater"
           },
           "sleep": {
-            "$ref": "#/components/schemas/ReportSummaryJobResponseResultCoverageSleep"
+            "$ref": "#/components/schemas/ReportSummaryAsyncResponseDataResultCoverageSleep"
           }
         },
         "required": ["medication", "water", "sleep"],
         "additionalProperties": false
       },
-      "ReportSummaryJobResponseResultCoverageMedication": {
+      "ReportSummaryAsyncResponseDataResultCoverageMedication": {
         "type": "object",
         "properties": {
           "trackedDays": {
@@ -14541,7 +14272,7 @@
         "required": ["trackedDays", "totalDays"],
         "additionalProperties": false
       },
-      "ReportSummaryJobResponseResultCoverageWater": {
+      "ReportSummaryAsyncResponseDataResultCoverageWater": {
         "type": "object",
         "properties": {
           "trackedDays": {
@@ -14554,7 +14285,7 @@
         "required": ["trackedDays", "totalDays"],
         "additionalProperties": false
       },
-      "ReportSummaryJobResponseResultCoverageSleep": {
+      "ReportSummaryAsyncResponseDataResultCoverageSleep": {
         "type": "object",
         "properties": {
           "trackedDays": {
@@ -14567,7 +14298,7 @@
         "required": ["trackedDays", "totalDays"],
         "additionalProperties": false
       },
-      "ReportSummaryJobResponseResultObservedPattern": {
+      "ReportSummaryAsyncResponseDataResultObservedPattern": {
         "type": "object",
         "properties": {
           "kind": {
@@ -14585,7 +14316,7 @@
         "additionalProperties": false,
         "nullable": true
       },
-      "ReportSummaryJobResponseResultLowRiskAction": {
+      "ReportSummaryAsyncResponseDataResultLowRiskAction": {
         "type": "object",
         "properties": {
           "label": {
@@ -14599,1370 +14330,92 @@
         "additionalProperties": false,
         "nullable": true
       },
-      "ClinicSummaryResponseCoverage": {
+      "ReportSummaryStreamResponseCoverage": {
         "type": "object",
         "properties": {
-          "checkIns": {
-            "$ref": "#/components/schemas/ClinicSummaryResponseCoverageCheckIns"
+          "medication": {
+            "$ref": "#/components/schemas/ReportSummaryStreamResponseCoverageMedication"
           },
           "water": {
-            "$ref": "#/components/schemas/ClinicSummaryResponseCoverageWater"
-          },
-          "dose": {
-            "$ref": "#/components/schemas/ClinicSummaryResponseCoverageDose"
+            "$ref": "#/components/schemas/ReportSummaryStreamResponseCoverageWater"
           },
           "sleep": {
-            "$ref": "#/components/schemas/ClinicSummaryResponseCoverageSleep"
+            "$ref": "#/components/schemas/ReportSummaryStreamResponseCoverageSleep"
           }
         },
-        "required": ["checkIns", "dose"],
+        "required": ["medication", "water", "sleep"],
         "additionalProperties": false
       },
-      "ClinicSummaryResponseCoverageCheckIns": {
+      "ReportSummaryStreamResponseCoverageMedication": {
         "type": "object",
         "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
+          "trackedDays": {
+            "type": "number"
           },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "'none' when the source has no observations; 'partial' when observations exist but sufficiency is not assessed."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "nullable": true
-          },
-          "windowEnd": {
-            "type": "string",
-            "nullable": true
+          "totalDays": {
+            "type": "number"
           }
         },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
+        "required": ["trackedDays", "totalDays"],
         "additionalProperties": false
       },
-      "ClinicSummaryResponseCoverageWater": {
-        "description": "Water coverage. Optional: omitted when the `water` field is deselected via selectedFields.",
+      "ReportSummaryStreamResponseCoverageWater": {
         "type": "object",
         "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
+          "trackedDays": {
+            "type": "number"
           },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "'none' when the source has no observations; 'partial' when observations exist but sufficiency is not assessed."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "nullable": true
-          },
-          "windowEnd": {
-            "type": "string",
-            "nullable": true
+          "totalDays": {
+            "type": "number"
           }
         },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
+        "required": ["trackedDays", "totalDays"],
         "additionalProperties": false
       },
-      "ClinicSummaryResponseCoverageDose": {
+      "ReportSummaryStreamResponseCoverageSleep": {
         "type": "object",
         "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
+          "trackedDays": {
+            "type": "number"
           },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "'none' when the source has no observations; 'partial' when observations exist but sufficiency is not assessed."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "nullable": true
-          },
-          "windowEnd": {
-            "type": "string",
-            "nullable": true
+          "totalDays": {
+            "type": "number"
           }
         },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
+        "required": ["trackedDays", "totalDays"],
         "additionalProperties": false
       },
-      "ClinicSummaryResponseCoverageSleep": {
-        "description": "Sleep coverage. Optional: omitted when the `sleep` field is deselected via selectedFields.",
+      "ReportSummaryStreamResponseObservedPattern": {
         "type": "object",
         "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "'none' when the source has no observations; 'partial' when observations exist but sufficiency is not assessed."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "nullable": true
-          },
-          "windowEnd": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
-        "additionalProperties": false
-      },
-      "ClinicSummaryResponseProfile": {
-        "description": "De-identified profile. Optional: omitted when the section is deselected via selectedFields.",
-        "type": "object",
-        "properties": {
-          "nickname": {
-            "type": "string",
-            "description": "Masked display name (e.g. 张**)"
-          },
-          "age": {
-            "type": "number",
-            "nullable": true
-          },
-          "sexAtBirth": {
-            "type": "string",
-            "nullable": true
-          },
-          "bloodType": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["nickname", "sexAtBirth"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryResponseAllergies": {
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string",
-            "description": "Allergy label (e.g. 青霉素)"
-          },
-          "reaction": {
-            "type": "string",
-            "nullable": true
-          },
-          "severity": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["label", "reaction", "severity"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryResponseConditions": {
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string",
-            "description": "Condition label (e.g. 高血压)"
-          },
-          "status": {
-            "type": "string",
-            "nullable": true
-          },
-          "diagnosedYear": {
-            "type": "number",
-            "nullable": true
-          }
-        },
-        "required": ["label", "status"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryResponseCurrentMedicines": {
-        "type": "object",
-        "properties": {
-          "displayName": {
-            "type": "string",
-            "description": "Generic medicine name"
-          },
-          "doseText": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["displayName"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryResponseWaterEntries": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "description": "Calendar date in YYYY-MM-DD format."
-          },
-          "ml": {
-            "type": "number",
-            "description": "Water intake in milliliters."
-          }
-        },
-        "required": ["date", "ml"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryResponseSleepEntries": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "description": "Calendar date in YYYY-MM-DD format."
-          },
-          "minutes": {
-            "type": "number",
-            "description": "Sleep duration in minutes."
-          }
-        },
-        "required": ["date", "minutes"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryResponseNoteEntries": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "description": "Calendar date in YYYY-MM-DD format."
-          },
           "kind": {
             "type": "string",
-            "description": "Daily record kind (water/meal/vital/mood/symptom/activity/note/sleep)."
+            "enum": ["medication", "hydration", "sleep"]
           },
           "text": {
-            "type": "string",
-            "description": "Original note text."
-          }
-        },
-        "required": ["date", "kind", "text"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryShareResponseScope": {
-        "type": "object",
-        "properties": {
-          "eventId": {
-            "type": "string",
-            "nullable": true
-          },
-          "dateFrom": {
-            "type": "string",
-            "nullable": true
-          },
-          "dateTo": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["eventId", "dateFrom", "dateTo"],
-        "additionalProperties": false
-      },
-      "ClinicSummaryShareListResponseItems": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Persisted share record id (used for revocation). Never a token."
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Creation time in ISO 8601 format."
-          },
-          "expiresAt": {
-            "type": "string",
-            "description": "Expiration time in ISO 8601 format."
-          },
-          "revokedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "accessCount": {
-            "type": "number",
-            "description": "Number of successful public opens."
-          },
-          "firstAccessedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "lastAccessedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "scope": {
-            "$ref": "#/components/schemas/ClinicSummaryShareListResponseItemsScope"
-          },
-          "selectedFields": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Share fields the link may expose."
-          }
-        },
-        "required": [
-          "id",
-          "createdAt",
-          "expiresAt",
-          "revokedAt",
-          "accessCount",
-          "firstAccessedAt",
-          "lastAccessedAt",
-          "scope",
-          "selectedFields"
-        ],
-        "additionalProperties": false
-      },
-      "ClinicSummaryShareListResponseItemsScope": {
-        "type": "object",
-        "properties": {
-          "eventId": {
-            "type": "string",
-            "nullable": true
-          },
-          "dateFrom": {
-            "type": "string",
-            "nullable": true
-          },
-          "dateTo": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["eventId", "dateFrom", "dateTo"],
-        "additionalProperties": false
-      },
-      "EventReviewDataEvent": {
-        "type": "object",
-        "properties": {
-          "id": {
             "type": "string"
           },
-          "kind": {
-            "type": "string",
-            "enum": ["symptom", "other"]
-          },
-          "title": {
+          "source": {
             "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["active", "ended"]
-          },
-          "startedAt": {
-            "type": "string",
-            "description": "Start time in ISO 8601 format."
-          },
-          "endedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "outcome": {
-            "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
-          },
-          "currentMedicineIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         },
-        "required": [
-          "id",
-          "kind",
-          "title",
-          "status",
-          "startedAt",
-          "endedAt",
-          "outcome",
-          "currentMedicineIds"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewDataSections": {
-        "type": "object",
-        "properties": {
-          "whatHappened": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsWhatHappened"
-          },
-          "keyChanges": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsKeyChanges"
-          },
-          "completedActions": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsCompletedActions"
-          },
-          "nextStep": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsNextStep"
-          }
-        },
-        "required": [
-          "whatHappened",
-          "keyChanges",
-          "completedActions",
-          "nextStep"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsWhatHappened": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsWhatHappenedFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsWhatHappenedFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsKeyChanges": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsKeyChangesFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsKeyChangesFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsCompletedActions": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsCompletedActionsFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsCompletedActionsFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsNextStep": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewDataSectionsNextStepFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewDataSectionsNextStepFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewDataCoverage": {
-        "type": "object",
-        "properties": {
-          "checkIns": {
-            "$ref": "#/components/schemas/EventReviewDataCoverageCheckIns"
-          },
-          "dailyRecords": {
-            "$ref": "#/components/schemas/EventReviewDataCoverageDailyRecords"
-          },
-          "doseLogs": {
-            "$ref": "#/components/schemas/EventReviewDataCoverageDoseLogs"
-          }
-        },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
-        "additionalProperties": false
-      },
-      "EventReviewDataCoverageCheckIns": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "'none' when no check-ins exist; 'partial' when check-ins exist but sufficiency is not yet assessed by the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of user-confirmed check-ins."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "firstCheckInDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "lastCheckInDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "todayCheckIn": {
-            "nullable": true,
-            "$ref": "#/components/schemas/EventReviewDataCoverageCheckInsTodayCheckIn"
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "firstCheckInDate",
-          "lastCheckInDate",
-          "todayCheckIn",
-          "windowStart",
-          "windowEnd"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewDataCoverageCheckInsTodayCheckIn": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "description": "Calendar date in YYYY-MM-DD format."
-          },
-          "outcome": {
-            "type": "string",
-            "enum": ["improved", "unchanged", "worsened"]
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Last update time in ISO 8601 format."
-          }
-        },
-        "required": ["date", "outcome", "updatedAt"],
+        "required": ["kind", "text", "source"],
         "additionalProperties": false,
         "nullable": true
       },
-      "EventReviewDataCoverageDailyRecords": {
+      "ReportSummaryStreamResponseLowRiskAction": {
         "type": "object",
         "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "The skeleton emits 'none' or 'partial'; sufficiency assessment lands with the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the event window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewDataCoverageDoseLogs": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "The skeleton emits 'none' or 'partial'; sufficiency assessment lands with the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the event window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewDataSourceTimestamps": {
-        "type": "object",
-        "properties": {
-          "checkIns": {
-            "type": "string",
-            "nullable": true
-          },
-          "dailyRecords": {
-            "type": "string",
-            "nullable": true
-          },
-          "doseLogs": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
-        "additionalProperties": false
-      },
-      "EventReviewListResponseItems": {
-        "type": "object",
-        "properties": {
-          "id": {
+          "label": {
             "type": "string"
           },
-          "kind": {
-            "type": "string",
-            "enum": ["symptom", "other"]
-          },
-          "title": {
+          "text": {
             "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["active", "ended"]
-          },
-          "startedAt": {
-            "type": "string",
-            "description": "Start time in ISO 8601 format."
-          },
-          "endedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "outcome": {
-            "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
-          },
-          "currentMedicineIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         },
-        "required": [
-          "id",
-          "kind",
-          "title",
-          "status",
-          "startedAt",
-          "endedAt",
-          "outcome",
-          "currentMedicineIds"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewResponseEvent": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": ["symptom", "other"]
-          },
-          "title": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["active", "ended"]
-          },
-          "startedAt": {
-            "type": "string",
-            "description": "Start time in ISO 8601 format."
-          },
-          "endedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "outcome": {
-            "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
-          },
-          "currentMedicineIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "title",
-          "status",
-          "startedAt",
-          "endedAt",
-          "outcome",
-          "currentMedicineIds"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSections": {
-        "type": "object",
-        "properties": {
-          "whatHappened": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsWhatHappened"
-          },
-          "keyChanges": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsKeyChanges"
-          },
-          "completedActions": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsCompletedActions"
-          },
-          "nextStep": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsNextStep"
-          }
-        },
-        "required": [
-          "whatHappened",
-          "keyChanges",
-          "completedActions",
-          "nextStep"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsWhatHappened": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsWhatHappenedFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsWhatHappenedFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsKeyChanges": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsKeyChangesFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsKeyChangesFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsCompletedActions": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsCompletedActionsFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsCompletedActionsFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsNextStep": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["available", "unknown"]
-          },
-          "reasonCode": {
-            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable).",
-            "type": "string",
-            "enum": [
-              "no_observations",
-              "no_completed_actions",
-              "insufficient_coverage"
-            ]
-          },
-          "facts": {
-            "$ref": "#/components/schemas/EventReviewResponseSectionsNextStepFacts"
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSectionsNextStepFacts": {
-        "description": "Basic facts when state is available.",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Structured fact code; localized by the client."
-          },
-          "arguments": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured fact arguments for the client localizer."
-          }
-        },
-        "required": ["code", "arguments"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseCoverage": {
-        "type": "object",
-        "properties": {
-          "checkIns": {
-            "$ref": "#/components/schemas/EventReviewResponseCoverageCheckIns"
-          },
-          "dailyRecords": {
-            "$ref": "#/components/schemas/EventReviewResponseCoverageDailyRecords"
-          },
-          "doseLogs": {
-            "$ref": "#/components/schemas/EventReviewResponseCoverageDoseLogs"
-          }
-        },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
-        "additionalProperties": false
-      },
-      "EventReviewResponseCoverageCheckIns": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "'none' when no check-ins exist; 'partial' when check-ins exist but sufficiency is not yet assessed by the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of user-confirmed check-ins."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "firstCheckInDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "lastCheckInDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "todayCheckIn": {
-            "nullable": true,
-            "$ref": "#/components/schemas/EventReviewResponseCoverageCheckInsTodayCheckIn"
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "firstCheckInDate",
-          "lastCheckInDate",
-          "todayCheckIn",
-          "windowStart",
-          "windowEnd"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewResponseCoverageCheckInsTodayCheckIn": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "description": "Calendar date in YYYY-MM-DD format."
-          },
-          "outcome": {
-            "type": "string",
-            "enum": ["improved", "unchanged", "worsened"]
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Last update time in ISO 8601 format."
-          }
-        },
-        "required": ["date", "outcome", "updatedAt"],
+        "required": ["label", "text"],
         "additionalProperties": false,
         "nullable": true
-      },
-      "EventReviewResponseCoverageDailyRecords": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "The skeleton emits 'none' or 'partial'; sufficiency assessment lands with the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the event window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewResponseCoverageDoseLogs": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["observed", "unknown"]
-          },
-          "coverage": {
-            "type": "string",
-            "enum": ["sufficient", "partial", "none"],
-            "description": "The skeleton emits 'none' or 'partial'; sufficiency assessment lands with the section services."
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
-            }
-          },
-          "observedCount": {
-            "type": "number",
-            "description": "Number of observations in the event window."
-          },
-          "expectedCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "windowStart": {
-            "type": "string",
-            "description": "Event window start in ISO 8601 format."
-          },
-          "windowEnd": {
-            "type": "string",
-            "description": "Event window end in ISO 8601 format."
-          }
-        },
-        "required": [
-          "state",
-          "coverage",
-          "sources",
-          "observedCount",
-          "expectedCount",
-          "windowStart",
-          "windowEnd"
-        ],
-        "additionalProperties": false
-      },
-      "EventReviewResponseSourceTimestamps": {
-        "type": "object",
-        "properties": {
-          "checkIns": {
-            "type": "string",
-            "nullable": true
-          },
-          "dailyRecords": {
-            "type": "string",
-            "nullable": true
-          },
-          "doseLogs": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
-        "additionalProperties": false
       },
       "TodaySuggestionsResponsePrimary": {
         "description": "Primary suggestion card (highest priority)",
