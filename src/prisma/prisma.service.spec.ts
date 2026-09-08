@@ -17,10 +17,12 @@ function makeConfigService(
     ...overrides,
   };
   return {
-    get: vi.fn((key: string) => values[key] ?? process.env[key]),
+    get: vi.fn((key: string) =>
+      Object.hasOwn(values, key) ? values[key] : process.env[key],
+    ),
     getOrThrow: vi.fn((key: string) => {
       if (key === (ConfigKey.Yaml as string)) return yamlConfig;
-      const val = values[key] ?? process.env[key];
+      const val = Object.hasOwn(values, key) ? values[key] : process.env[key];
       if (val === undefined) throw new Error(`Missing config: ${key}`);
       return val;
     }),
