@@ -69,7 +69,7 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-05-27
 - [0004](0004-deployment-model.md)
   - Title: GitHub Actions + Tencent TCR Deployment Model
-  - Status: accepted (amended 2026-07-17: blue-green → single-slot downtime deploy)
+  - Status: accepted (amended 2026-07-17: blue-green → single-slot downtime deploy); operational model superseded by 0017
   - Date: 2026-06-14
 - [0005](0005-meal-analysis-write-time-pipeline.md)
   - Title: Write-Time Meal Analysis With Imported Food Composition Data
@@ -119,3 +119,7 @@ What becomes easier or harder as a result of this decision?
   - Title: Observability Stack Migration — VictoriaMetrics + VictoriaLogs + VictoriaTraces
   - Status: accepted
   - Date: 2026-08-24
+- [0017](0017-coolify-deployment.md)
+  - Title: Coolify 部署模型(仓库 compose + Docker Hub 镜像)
+  - Status: accepted
+  - Date: 2026-09-08

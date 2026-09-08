@@ -40,8 +40,6 @@ YYYY-MM-DD-short-task-name.md
   — Agentic → Proactive → 伴身演进后端任务清单:AI 上下文统一、proposal 服务域化、today/review/reminders 提案工具、BullMQ 事件总线与依从性触发器、跨端会话一致(远期)
 - [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
   — 药品风险检查图数据结构引入:Phase 1 关系化 JSONB(PG18),Phase 2 SQL/CTE 图查询,Phase 3 LightRAG 开放检索,Phase 4 OAG(Semantica 替代路线见 §6.9)
-- [`2026-08-24-coolify-deployment-restructure-plan.md`](2026-08-24-coolify-deployment-restructure-plan.md)
-  — 部署重构:deploy.ts + Compose + Nginx → Coolify + Traefik(**待通过**)
 - [`2026-08-22-medium-to-large-migration-inventory.md`](2026-08-22-medium-to-large-migration-inventory.md)
   — 中小型到中大型过渡迁移盘点:配置、Worker/队列、Outbox、Prisma 边界、跨仓合同、数据库发布与可观测性
 - [`2026-08-14-saas-modules-and-node-monorepo.md`](2026-08-14-saas-modules-and-node-monorepo.md)

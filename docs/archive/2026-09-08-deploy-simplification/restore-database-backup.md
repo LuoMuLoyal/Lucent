@@ -1,11 +1,15 @@
 ---
-status: active
+status: archived
 owner: backend
 quadrant: howto
 updated: 2026-08-31
 ---
 
-# How-To: 数据库备份恢复演练
+# How-To: 数据库备份恢复演练(已归档)
+
+> 2026-09-08 归档:部署简化后 `backup.sh` / `deploy.ts` 已退役,当前不做自动
+> 备份。本文保留原恢复演练流程作历史参考;重新启用备份后按 Coolify
+> postgres 组件或新的运维脚本改写。
 
 备份只有在能恢复时才有价值。本文给出从 `pg_dump` 备份恢复数据库的完整流程，用于：
 

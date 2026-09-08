@@ -183,11 +183,9 @@ If the OpenAI-compatible base URL targets DeepSeek, Lucent now disables
 DeepSeek `thinking` mode automatically for these streaming tool-use flows so
 `tool_choice` requests can complete normally.
 
-Production compose also includes an Nginx reverse proxy:
-
-- `80` redirects to `443`
-- `443` proxies to `app:3000`
-- TLS certificates and Nginx config are mounted from the server-local runtime directory
+Production deployment uses a repo-owned compose (`deploy/compose.yml`) registered as a
+Coolify Docker Compose Service. Coolify's built-in Traefik terminates TLS and routes
+the API domain to `app:3000`; no Nginx is involved. See the deployment docs below.
 
 Local database layout:
 
@@ -218,13 +216,11 @@ Local database layout:
 pnpm check
 ```
 
-Use narrower commands while iterating, then run `pnpm check` before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files. Repo helper scripts under `scripts/` and deploy CLIs under `deploy/` use their own lighter TS projects; validate them with `pnpm typecheck:tools`.
+Use narrower commands while iterating, then run `pnpm check` before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files. Repo helper scripts under `scripts/` use their own lighter TS project; validate them with `pnpm typecheck:tools`.
 
-For production smoke testing after CD or manual server updates:
-
-```bash
-LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
-```
+Deployment is driven by Coolify + GitHub Actions CD (build & push the Docker image);
+see [docs/reference/deployment.md](docs/reference/deployment.md) and
+[docs/howto/deploy.md](docs/howto/deploy.md).
 
 ## Source Layout
 
@@ -239,7 +235,8 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
 - `scripts/contract/` for contract export helpers
 - `scripts/import/medicine/` for medicine data import helpers and Python parsers
   - `scripts/import/food/` for food composition import helpers and Python parsers
-- `deploy/` contains production deployment assets: compose file, remote deploy CLI, and Nginx config.
+- `deploy/` contains production deployment assets: the compose stack definition
+  (`compose.yml`) plus VictoriaMetrics scrape config and Grafana provisioning/dashboards.
 - `test/e2e/` groups e2e specs by feature instead of keeping every suite flat at `test/`.
 - AI-oriented modules now use a clearer inner split when the capability is larger than plain DTO/controller code:
   - `prompts/`
@@ -249,22 +246,19 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
 
 ## Deployment Model
 
-- GitHub Actions owns validation:
-  - `lint`
-  - `typecheck`
-  - `build`
-  - unit tests
-  - e2e tests
-- GitHub Actions also owns CD:
-  - build the Lucent Docker image
-  - push the image to Tencent TCR
-  - upload the app deploy directory to the server over SSH
-  - run one server-side deploy script remotely
-- The server does not keep a git checkout.
-- The server keeps a single directory at `/opt/lucent/` containing compose assets,
-  `.env`, certs, data volumes, and logs — see
-  [docs/reference/deployment.md](docs/reference/deployment.md) for the full layout
-- The app itself is always deployed from the pushed image, not built on the server
+- GitHub Actions owns validation (`lucent-ci`): lint, typecheck, build, unit tests, e2e tests.
+- GitHub Actions also owns image build & push (`lucent-staging` on main / `lucent-production`
+  manual): build the Lucent Dockerfile and push to the publisher's own registry
+  (`REGISTRY_IMAGE` GitHub secret, e.g. `docker.io/<your-user>/lucent`), tagged
+  `<short-sha>` and `latest`. No server-side build, no SSH deploy scripts, no hardcoded
+  image address in the repo.
+- `deploy/compose.yml` is the single source of truth for the production stack (app, postgres,
+  redis, victoriametrics, grafana, victorialogs, node-exporter). It is registered in Coolify as
+  a Docker Compose Service; Coolify runs it and its Traefik terminates TLS for the API domain.
+- Releases: update the `LUCENT_IMAGE` full image reference in the Coolify service, run the
+  one-shot Prisma migration, then Pull Latest Images & Restart. See
+  [docs/reference/deployment.md](docs/reference/deployment.md) for details.
+- Alerting and automated DB backups are currently not configured (metrics stack retained).
 
 ## Docs
 

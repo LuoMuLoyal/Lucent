@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-06
+updated: 2026-09-08
 ---
 
 # Environment Variables
@@ -40,7 +40,7 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 ## 常用脚本
 
 - `pnpm check` — 一键校验:lint、format、typecheck、build、单测、e2e
-- `pnpm typecheck` / `typecheck:tools` — 全量 TS 检查(`src/`、spec、`test/`;`scripts/` 与 `deploy/` 助手)
+- `pnpm typecheck` / `typecheck:tools` — 全量 TS 检查(`src/`、spec、`test/`;`scripts/` 助手)
 - `pnpm start:dev` / `start:test:dev` / `start:prod` — development / test / production 运行时
 - `pnpm test` / `test:ci` / `test:e2e` — 单测、eslint-plugins 测试与 e2e(CI 变体串行执行)
 - `pnpm test:runtime:start` / `test:runtime:stop` — 全栈 lane 的 test 运行时启动/停止
@@ -48,7 +48,7 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 - `pnpm dev:stack:down` / `dev:stack:reset` — 停止 / 重建本地 Docker dev 栈
 - `pnpm db:reset:dev` / `db:reset:test` — 重置对应数据库(`prisma migrate reset --force`)
 - `pnpm import:medicine:all` — 药品知识库默认导入序列(数据源细节见模块 README 与导入脚本)
-- `pnpm deploy:smoke` — 部署后冒烟检查;`pnpm deploy:server` — 服务器端部署脚本
+- 部署与镜像发布见 [deployment.md](deployment.md) 与 [../howto/deploy.md](../howto/deploy.md)(Coolify + 仓库 compose,无 deploy 脚本)
 - 非 development 目标的 Prisma 命令须显式指定 NODE_ENV,例如
   `NODE_ENV=test pnpm exec prisma migrate deploy`
 
@@ -69,22 +69,20 @@ METRICS_USER
 METRICS_PASSWORD
 ```
 
+生产(Coolify compose)下 `DATABASE_URL` / `REDIS_URL` 由 `deploy/compose.yml`
+按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
+
 `METRICS_USER` and `METRICS_PASSWORD` protect the `/metrics` Prometheus endpoint
 with HTTP Basic Auth. Both must be set together; if either is missing, `/metrics`
-is served without authentication (not recommended for production). Prometheus
-scrape config must include matching `basic_auth` credentials.
+is served without authentication (not recommended for production). VictoriaMetrics
+scrape config (`deploy/victoriametrics/vmscraper.yml`)用 `%{METRICS_USER}` /
+`%{METRICS_PASSWORD}` 占位符从容器环境变量注入同名凭据。
 
-GitHub Actions production deploy also requires repository/environment secrets outside
-`.env.production`:
+GitHub Actions CD 只负责构建并推送镜像到 Docker Hub(仓库级 secrets):
 
 ```text
-TCR_USERNAME
-TCR_PASSWORD
-DEPLOY_HOST
-DEPLOY_PORT
-DEPLOY_USER
-DEPLOY_SSH_KEY
-DEPLOY_SSH_KNOWN_HOSTS
+DOCKERHUB_USERNAME
+DOCKERHUB_TOKEN
 ```
 
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
@@ -168,8 +166,8 @@ the pair must always be set together. `JPUSH_APNS_PRODUCTION` accepts `true` or
 The Master Secret is sensitive and must not be committed.
 
 **0.1.0 发布门槛**：生产环境必须配齐 `JPUSH_APP_KEY` / `JPUSH_MASTER_SECRET`（经
-`/opt/lucent/.env` 注入）并完成真机验证。缺失时服务静默禁用推送并在启动日志 `warn`，
-`deploy.ts` 预检输出高亮 WARNING（不阻塞部署）；门槛本身见 [[deployment]] 最低上线检查。
+Coolify/生产环境变量注入）并完成真机验证。缺失时服务静默禁用推送并在启动日志
+`warn`;最低上线检查见 [deployment.md](deployment.md)。
 
 Daily-record image uploads through object storage (Tencent COS or S3):
 
@@ -317,7 +315,7 @@ VICTORIALOGS_URL
   Decision 3 for the trace backend strategy.
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
   Winston batches log entries as newline-delimited JSON and POSTs them directly
-  to this URL (no Vector sidecar needed). The `compose.yml` injects
+  to this URL (no Vector sidecar needed). The `deploy/compose.yml` injects
   `http://victorialogs:9428/insert/jsonline` automatically. Unset = only
   Console (stdout) transport is used. See ADR-0016 for the log backend strategy.
 
@@ -332,9 +330,9 @@ TRUST_PROXY
   The `/api/v1/testing/*` endpoints are protected by both `JwtAuthGuard` and
   `TestingSharedSecretGuard`; the client must send the shared secret via the
   `x-testing-shared-secret` header. Only registered when `NODE_ENV=test`.
-- `TRUST_PROXY` — when set to `true`, Express trusts `X-Forwarded-*` headers
-  from the reverse proxy (Nginx). Required in production behind Nginx for
-  correct client IP extraction and protocol detection.
+- `TRUST_PROXY` — when set to `true`, Fastify trusts `X-Forwarded-*` headers
+  from the reverse proxy. Required in production behind the Coolify Traefik
+  proxy for correct client IP extraction and protocol detection.
 
 Client-facing configuration (optional):
 
