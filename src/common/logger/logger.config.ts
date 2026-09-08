@@ -185,7 +185,7 @@ const prodJsonFormat = winstonFormat.combine(
  * durationMs; `error` level for 5xx, `info` otherwise) and skips
  * high-frequency probes (`/api/v1/health*`, `/metrics`).
  * Complementary signals remain:
- *   - Nginx access_log (IP / UA / bytes / referer)
+ *   - Reverse proxy access log (Coolify Traefik; IP / UA / bytes / referer)
  *   - ApiExceptionFilter (4xx/5xx with error stack)
  *   - SlowRequestInterceptor (configurable threshold + handler name)
  *   - Prometheus histogram + counter (aggregated latency / Grafana)
