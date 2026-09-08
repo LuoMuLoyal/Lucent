@@ -7,6 +7,21 @@ import { parseMealRecordPayload } from '../../../daily-records/index.js';
 type TriggerDimension = 'water' | 'meal' | 'sleep' | 'mood';
 
 /**
+ * Signal gate for event-driven Today Analysis recompute.
+ *
+ * A dimension triggers analysis when either (a) it accumulated at least
+ * {@link MIN_RECENT_RECORDS_FOR_TRIGGER} records in the last
+ * {@link RECENT_WINDOW_DAYS} days, or (b) today's aggregated value deviates
+ * from the prior baseline by at least {@link BASELINE_SHIFT_THRESHOLD}.
+ * The reader fetches a wider {@link FETCH_WINDOW_DAYS} window so the baseline
+ * (everything before the recent window) has enough history to be stable.
+ */
+const RECENT_WINDOW_DAYS = 7;
+const FETCH_WINDOW_DAYS = 14;
+const MIN_RECENT_RECORDS_FOR_TRIGGER = 3;
+const BASELINE_SHIFT_THRESHOLD = 0.5;
+
+/**
  * Evaluates whether a daily-record change for a given dimension should trigger
  * Today Analysis recompute.
  *
@@ -22,8 +37,9 @@ export class TriggerEvaluatorService {
    * Dimension-level gate for event-driven Today Analysis recompute.
    *
    * A daily-record change for water/meal/sleep/mood only triggers analysis when
-   * either the dimension has accumulated enough signal in the last 7 days, or
-   * today's value represents a sharp shift versus the prior 7-day baseline.
+   * either the dimension has accumulated enough signal in the last
+   * {@link RECENT_WINDOW_DAYS} days, or today's value represents a sharp shift
+   * versus the prior baseline.
    */
   async shouldTriggerForDimension(
     userId: string,
@@ -32,7 +48,7 @@ export class TriggerEvaluatorService {
   ): Promise<boolean> {
     const day = parseDateOnly(date);
     const start = new Date(day);
-    start.setUTCDate(start.getUTCDate() - 13);
+    start.setUTCDate(start.getUTCDate() - (FETCH_WINDOW_DAYS - 1));
     const records = await this.dailyRecordReader.listFactsInRange(
       userId,
       start,
@@ -41,13 +57,13 @@ export class TriggerEvaluatorService {
     );
 
     const last7Days = new Date(day);
-    last7Days.setUTCDate(last7Days.getUTCDate() - 6);
+    last7Days.setUTCDate(last7Days.getUTCDate() - (RECENT_WINDOW_DAYS - 1));
 
     const recentRecords = records.filter((r) => r.occurredAt >= last7Days);
     const priorRecords = records.filter((r) => r.occurredAt < last7Days);
 
     const coverage = recentRecords.length;
-    if (coverage >= 3) {
+    if (coverage >= MIN_RECENT_RECORDS_FOR_TRIGGER) {
       return true;
     }
 
@@ -63,7 +79,7 @@ export class TriggerEvaluatorService {
     }
 
     const change = Math.abs(todayValue - priorBaseline) / priorBaseline;
-    return change >= 0.5;
+    return change >= BASELINE_SHIFT_THRESHOLD;
   }
 
   aggregateDimensionValue(
