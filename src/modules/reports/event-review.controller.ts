@@ -14,6 +14,7 @@ import {
 
 import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 
 import { eventReviewListQuerySchema } from './dto/event-review-list-query.dto.js';
 import type { EventReviewListQueryDto } from './dto/event-review-list-query.dto.js';
@@ -59,3 +60,28 @@ export class EventReviewController {
     return await this.eventReviewService.buildForEvent(user.sub, eventId);
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/reviews/current',
+  method: 'get',
+  componentName: 'EventReviewData',
+  schema: eventReviewNullableResponseSchema,
+  description:
+    'The current event review, or null when the user has no event review.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/reviews',
+  method: 'get',
+  componentName: 'EventReviewListResponse',
+  schema: eventReviewListResponseSchema,
+  description: 'Paginated event review history.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/reviews/{eventId}',
+  method: 'get',
+  componentName: 'EventReviewResponse',
+  schema: eventReviewResponseSchema,
+  description: 'The event review for the requested event.',
+});

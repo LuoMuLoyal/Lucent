@@ -30,6 +30,7 @@ import { I18nLang, I18nService } from 'nestjs-i18n';
 
 import { ConfigKey } from '../../config/env/config-keys.enum.js';
 import { enqueueOrFallback } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import type { UserPayload } from '../auth/index.js';
 import { CurrentUser, Public } from '../auth/index.js';
 
@@ -485,3 +486,44 @@ export class ClinicSummaryController {
     reply.send(pdf);
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/preview',
+  method: 'post',
+  componentName: 'ClinicSummaryResponse',
+  schema: clinicSummaryResponseSchema,
+  description: 'The de-identified clinic summary preview.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/share',
+  method: 'post',
+  componentName: 'ClinicSummaryShareResponse',
+  schema: clinicSummaryShareResponseSchema,
+  description: 'The created share record with its one-time token.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/shares',
+  method: 'get',
+  componentName: 'ClinicSummaryShareListResponse',
+  schema: clinicSummaryShareListResponseSchema,
+  description: 'The caller clinic-summary shares, newest first.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/shared/{token}',
+  method: 'get',
+  componentName: 'ClinicSummaryResponse',
+  schema: clinicSummaryResponseSchema,
+  description: 'The shared clinic summary.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/reports/clinic-summary/export/async',
+  method: 'post',
+  componentName: 'ClinicSummaryExportJobResponse',
+  schema: clinicSummaryExportAsyncResponseSchema,
+  description:
+    'Unscoped requests use the async queue job (jobId for polling); an explicit scope is exported synchronously with the requested scope honored (pdfBase64). When no queue is configured, both paths return the base64 PDF synchronously.',
+});
