@@ -1,15 +1,15 @@
-# VictoriaMetrics scrape 配置模板
-# 注意：本文件是【模板】。VictoriaMetrics 原生不支持配置内环境变量插值，
-# 由宿主机 deploy/render-configs.sh 把 ${METRICS_USER}/${METRICS_PASSWORD}
-# 渲染为 victoriametrics/.rendered/vmscraper.yml 后挂载使用。
-# 直接给 VictoriaMetrics 使用本文件会把 ${...} 当字面量，basic_auth 会静默失效。
+# VictoriaMetrics scrape 配置(静态,仓库内直接挂载使用)
+# Basic Auth 凭据通过 %{ENV_VAR} 占位符注入:VictoriaMetrics 在启动时从
+# victoriametrics 容器环境变量(METRICS_USER / METRICS_PASSWORD,由 compose
+# 从 ${METRICS_USER}/${METRICS_PASSWORD} 传入)展开 %{...},无需渲染脚本。
+# 与 app 端 METRICS_USER/METRICS_PASSWORD 一致;两侧未配置时 /metrics 匿名可用。
 
 scrape_configs:
   - job_name: 'lucent'
     metrics_path: /metrics
     basic_auth:
-      username: ${METRICS_USER}
-      password: ${METRICS_PASSWORD}
+      username: '%{METRICS_USER}'
+      password: '%{METRICS_PASSWORD}'
     static_configs:
       - targets: ['app:3000']
         labels:

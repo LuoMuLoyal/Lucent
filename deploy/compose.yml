@@ -1,23 +1,35 @@
 # Lucent Production / Staging Compose
-# Compose v2 automatically reads .env from the project directory (/opt/lucent/).
-# All paths are relative to /opt/lucent/.
+# ---------------------------------------------------------------------------
+# 本文件是仓库内唯一的生产/预发编排(事实源),在 Coolify 中被注册为
+# Docker Compose Service,由 Coolify 在目标服务器上执行 `docker compose up`。
+#
+# 职责边界:
+#   - 反向代理 / TLS / 域名路由 由 Coolify 自带 Traefik 接管(不再有 nginx、
+#     check-cert.sh / certs 目录)。
+#   - 应用镜像由 CI 构建并推送到发布者自有的镜像仓库(仓库代码不写死具体
+#     镜像地址),镜像完整引用经环境变量 LUCENT_IMAGE 选择(见下方 image 行
+#     与 docs/reference/deployment.md)。
+#   - 环境变量在 Coolify 面板维护(或本地 /opt/lucent/.env,见
+#     docs/reference/deployment.md 与 .env.production.example)。compose 的
+#     ${VAR} 插值与 app 的 env_file 都来自同一份变量源。
+#   - 告警(vmalert/alertmanager/告警规则)与备份脚本已退役,当前不做配置。
+#
+# 端口映射说明:grafana / victoriametrics / victorialogs 直接发布宿主机端口,
+# 公网访问由云厂商安全组收口(不再使用 SSH 隧道);app:3000 仅内网暴露,
+# 公网入口只有 Coolify Traefik 路由的域名。
 
 services:
   postgres:
     image: pgvector/pgvector:pg18
-    container_name: lucent-postgres
     restart: unless-stopped
-    # 慢查询日志：超过 500ms 的语句写入容器日志（docker logs lucent-postgres）。
-    # 保留 postgres 官方镜像 entrypoint（docker-entrypoint.sh）兼容写法。
+    # 慢查询日志:超过 500ms 的语句写入容器日志(docker logs lucent-postgres)。
     command: ['postgres', '-c', 'log_min_duration_statement=500']
     environment:
       POSTGRES_USER: lucent
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: lucent
     volumes:
-      - ./data/postgresql:/var/lib/postgresql
-    networks:
-      - backend
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U lucent']
       interval: 5s
@@ -28,24 +40,13 @@ services:
       options:
         max-size: '50m'
         max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 256M
 
   redis:
     image: redis:8-alpine
-    container_name: lucent-redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --appendonly yes
     volumes:
-      - ./data/redis:/data
-    networks:
-      - backend
+      - redis-data:/data
     healthcheck:
       test:
         ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
@@ -57,21 +58,13 @@ services:
       options:
         max-size: '50m'
         max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 64M
 
-  # ── Single app slot ──────────────────────────────────────────
-  # deploy.ts stops this service, migrates the DB, then starts it with the
-  # new image on every release (15–45s planned downtime, no blue-green).
+  # ── App(单 slot,由 Coolify/Traefik 提供公网入口)──────────────
+  # 发版 = 更新 LUCENT_IMAGE(完整镜像引用,含新短 sha)后执行 migrate + 重启,
+  # 详见 docs/howto/deploy.md。日志只写 stdout(Coolify 收集)+ VictoriaLogs,
+  # 不再挂载日志卷。
   app:
-    image: ${LUCENT_IMAGE}
-    container_name: lucent-app
+    image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required — full image ref, e.g. your-dockerhub-user/lucent:1a2b3c4d}
     restart: unless-stopped
     env_file:
       - .env
@@ -81,24 +74,23 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: '3000'
+      TRUST_PROXY: 'true'
       METRICS_USER: ${METRICS_USER}
       METRICS_PASSWORD: ${METRICS_PASSWORD}
-      # JPush 推送密钥：经 /opt/lucent/.env 注入（不入库，见 docs/reference/environment-variables.md）。
-      # 缺失时服务静默禁用推送并在启动日志 warn；0.1.0 发布门槛要求已配齐并经真机验证。
+      # JPush 推送密钥经环境变量注入(缺失时服务静默禁用推送并启动 warn)。
       JPUSH_APP_KEY: ${JPUSH_APP_KEY:-}
       JPUSH_MASTER_SECRET: ${JPUSH_MASTER_SECRET:-}
       JPUSH_APNS_PRODUCTION: ${JPUSH_APNS_PRODUCTION:-false}
-      TRUST_PROXY: 'true'
       VICTORIALOGS_URL: http://victorialogs:9428/insert/jsonline
     expose:
       - '3000'
-    volumes:
-      - ./logs/app:/app/logs
-    networks:
-      - backend
-      - observability
-    # SIGTERM 后给应用 60s 排空：SSE 注册表会先推终止事件再关闭连接，
-    # BullMQ worker 等进行中任务收尾（见 src/common/api/sse-connection-registry.service.ts）。
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # SIGTERM 后给应用 60s 排空:SSE 注册表会先推终止事件再关闭连接,
+    # BullMQ worker 等进行中任务收尾(见 src/common/api/sse-connection-registry.service.ts)。
     stop_grace_period: 60s
     stop_signal: SIGTERM
     healthcheck:
@@ -116,260 +108,98 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 256M
 
-  nginx:
-    image: nginx:1.29.1-alpine
-    container_name: lucent-nginx
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./logs/nginx:/var/log/nginx
-    networks:
-      - backend
-    depends_on:
-      app:
-        condition: service_started
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget -q -O - http://127.0.0.1/nginx-health >/dev/null 2>&1 || exit 1',
-        ]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
-
-  # ── VictoriaMetrics（单机时序数据库，替代 Prometheus） ──────────
-  # 抓取 Lucent app /metrics（localhost 不走公网），绑定 127.0.0.1:8428。
-  # VMUI 通过 SSH 隧道访问（ssh -L 8428:127.0.0.1:8428 <server>），
-  # 日常监控使用 Grafana（datasource URL 指向 VM）。
-  # prom-client 和 /metrics 端点不变，VM 兼容 Prometheus exposition format。
+  # ── VictoriaMetrics(单机时序库,供 Grafana 查询) ──────────────
+  # 抓取 lucent app /metrics 与 node-exporter;Basic Auth 凭据经环境变量
+  # %{METRICS_USER}/%{METRICS_PASSWORD} 占位符注入(无需渲染脚本)。
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.128.0
-    container_name: lucent-victoriametrics
     restart: unless-stopped
     ports:
-      # 仅本机回环：配合 SSH 隧道访问（ssh -L 8428:127.0.0.1:8428 <server>）
-      - '127.0.0.1:8428:8428'
+      # VMUI / 查询接口,公网访问由云安全组收口
+      - '8428:8428'
     volumes:
-      # 渲染产物由宿主机 ./render-configs.sh 生成（含 METRICS_* 密钥，不入库）。
-      # 首次启动或修改 .env 后先执行 ./render-configs.sh，再重启本服务。
-      - ./victoriametrics/.rendered/vmscraper.yml:/etc/vmscraper.yml:ro
-      - ./data/victoriametrics:/storage
+      - ./victoriametrics/vmscraper.yml:/etc/vmscraper.yml:ro
+      - victoriametrics-data:/storage
+    environment:
+      METRICS_USER: ${METRICS_USER}
+      METRICS_PASSWORD: ${METRICS_PASSWORD}
     command:
       - '-storageDataPath=/storage'
       - '-retentionPeriod=30d'
       - '-httpListenAddr=0.0.0.0:8428'
-      # Prometheus 兼容：reproducePrometheusSchema=true 使指标名和标签与 Prometheus 一致
+      # Prometheus 兼容:reproducePrometheusSchema=true 使指标名和标签与 Prometheus 一致
       - '-reproducePrometheusSchema=true'
-    networks:
-      - observability
-      - backend
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-
-  # ── vmalert（告警规则评估 + 告警通知） ────────────────────────
-  # vmalert 评估 ./victoriametrics/rules/*.yml 中的告警规则（语法兼容 Prometheus）。
-  # 规则触发后推送到 Alertmanager（profile=alerting）或仅记录日志。
-  vmalert:
-    image: victoriametrics/vmalert:v1.128.0
-    container_name: lucent-vmalert
-    restart: unless-stopped
-    volumes:
-      - ./victoriametrics/rules:/etc/vmalert/rules:ro
-    command:
-      - '-rule=/etc/vmalert/rules/*.yml'
-      - '-datasource.url=http://victoriametrics:8428'
-      - '-notifier.url=http://alertmanager:9093'
-      - '-remoteWrite.url=http://victoriametrics:8428/api/v1/write'
-    networks:
-      - observability
     depends_on:
-      - victoriametrics
+      app:
+        condition: service_started
     logging:
       driver: json-file
       options:
         max-size: '50m'
         max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
 
   grafana:
     image: grafana/grafana:12.1.0
-    container_name: lucent-grafana
     restart: unless-stopped
     ports:
-      # 仅本机回环：配合 SSH 隧道访问（ssh -L 3001:127.0.0.1:3001 <server>）
-      - '127.0.0.1:3001:3000'
+      # Grafana UI,公网访问由云安全组收口
+      - '3001:3000'
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: 'false'
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/opt/grafana/dashboards:ro
-      - ./data/grafana:/var/lib/grafana
-    networks:
-      - observability
+      - grafana-data:/var/lib/grafana
     logging:
       driver: json-file
       options:
         max-size: '50m'
         max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
 
-  # ── Alertmanager（企业微信应用消息告警） ────────────────────────
-  # vmalert 规则触发后推送到 Alertmanager。默认不启动（profile=alerting）。
-  # 启用步骤：
-  #   1. .env 配好 WECOM_CORP_ID / WECOM_CORP_SECRET / WECOM_AGENT_ID / WECOM_TO_USER
-  #   2. ./render-configs.sh（WECOM_* 配齐时才会生成 .rendered/alertmanager.yml）
-  #   3. docker compose --profile alerting up -d
-  alertmanager:
-    image: prom/alertmanager:v0.28.1
-    container_name: lucent-alertmanager
-    restart: unless-stopped
-    profiles: ['alerting']
-    volumes:
-      # 渲染产物由宿主机 ./render-configs.sh 生成（含 WECOM_* 密钥，不入库）。
-      # 未渲染时本服务挂载不到有效配置会启动失败——先跑 render-configs.sh。
-      - ./alertmanager/.rendered/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ./data/alertmanager:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.listen-address=0.0.0.0:9093'
-    networks:
-      - observability
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
-
-  # node-exporter 走 bridge 网络，network 指标只反映容器 netns（已知取舍，
-  # 不换 host 网络是为了不把 9100 端口暴露到宿主机网卡）；CPU/内存/磁盘/
-  # textfile 指标均来自挂载的宿主机 /proc、/sys、/，不受影响。
-  node-exporter:
-    image: prom/node-exporter:v1.9.1
-    container_name: lucent-node-exporter
-    restart: unless-stopped
-    command:
-      - '--path.rootfs=/host'
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.textfile.directory=/textfile'
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/host:ro,rslave
-      - ./data/node-exporter-textfile:/textfile:ro
-    networks:
-      - observability
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
-
-  # ── VictoriaLogs（单机全文索引日志数据库） ──────────────────
-  # 接收 Winston stdout JSON 日志，全文索引支持按 trace_id 检索整条链路日志。
-  # 绑定 127.0.0.1:9428，Web UI 通过 SSH 隧道访问。
+  # ── VictoriaLogs(日志库,app 的 VICTORIALOGS_URL 直推) ────────
+  # Web UI 通过发布端口访问(安全组收口);应用日志同时进 stdout 由容器收集。
   victorialogs:
     image: victoriametrics/victoria-logs:v1.15.0
-    container_name: lucent-victorialogs
     restart: unless-stopped
     ports:
-      # 仅本机回环：配合 SSH 隧道访问（ssh -L 9428:127.0.0.1:9428 <server>）
-      - '127.0.0.1:9428:9428'
+      - '9428:9428'
     volumes:
-      - ./data/victorialogs:/storage
+      - victorialogs-data:/storage
     command:
       - '-storageDataPath=/storage'
       - '-retentionPeriod=30d'
       - '-httpListenAddr=0.0.0.0:9428'
-    networks:
-      - observability
     logging:
       driver: json-file
       options:
         max-size: '10m'
         max-file: '3'
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
 
-networks:
-  backend:
-    driver: bridge
-  observability:
-    driver: bridge
+  # node-exporter 走 bridge 网络,network 指标只反映容器 netns(已知取舍,
+  # 不换 host 网络是为了不把 9100 端口暴露到宿主机网卡);CPU/内存/磁盘
+  # 指标均来自挂载的宿主机 /proc、/sys、/,不受影响。
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+volumes:
+  postgres-data:
+  redis-data:
+  victoriametrics-data:
+  grafana-data:
+  victorialogs-data:
