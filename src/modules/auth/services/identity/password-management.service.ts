@@ -323,10 +323,16 @@ export class PasswordManagementService {
   }
 
   /**
-   * Best-effort notification that a password was changed.  Errors are logged
-   * and swallowed — callers must not await or propagate failures.  Invoked
-   * via `void this._notifyPasswordChanged(userId)` (fire-and-forget) after
-   * the DB write and session revocation have already succeeded.
+   * Best-effort notification that a password was changed.
+   *
+   * The notification has no delivery SLA: failures are logged only — the
+   * password change itself already succeeded, so a failed notification is
+   * **not** retried and does **not** raise an alert. Callers must not await
+   * or propagate failures. Invoked via
+   * `void this._notifyPasswordChanged(userId)` (fire-and-forget) after the
+   * DB write and session revocation have already succeeded. If a delivery
+   * SLA is ever required, layer an Outbox pattern on `INotificationSender`
+   * instead of changing this contract.
    */
   private async _notifyPasswordChanged(userId: string): Promise<void> {
     try {
