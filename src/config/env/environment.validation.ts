@@ -241,7 +241,32 @@ const envSchema = z.object({
     .default(600),
 
   // ── Storage provider selection ──────────────────────────────────
-  [EnvKey.STORAGE_PROVIDER]: z.enum(['s3', 'tencent-cos']).default('s3'),
+  [EnvKey.STORAGE_PROVIDER]: z
+    .enum(['s3', 'tencent-cos', 'ali-oss'])
+    .default('s3'),
+
+  // ── Aliyun OSS dedicated SDK (secrets in .env; defaults inline) ──
+  [EnvKey.ALIYUN_OSS_ACCESS_KEY_ID]: optionalString,
+  [EnvKey.ALIYUN_OSS_ACCESS_KEY_SECRET]: optionalString,
+  [EnvKey.ALIYUN_OSS_BUCKET]: z.string().default(''),
+  [EnvKey.ALIYUN_OSS_REGION]: z.string().default('oss-cn-hangzhou'),
+  [EnvKey.ALIYUN_OSS_ENDPOINT]: z.string().default(''),
+  [EnvKey.ALIYUN_OSS_PUBLIC_BASE_URL]: httpUrl,
+  [EnvKey.ALIYUN_OSS_UPLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(600),
+  [EnvKey.ALIYUN_OSS_MAX_UPLOAD_BYTES]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(10485760),
+  [EnvKey.ALIYUN_OSS_DOWNLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(600),
 
   // ── S3 storage (secrets in .env; endpoint/region/expiry defaults) ──
   [EnvKey.STORAGE_S3_ENDPOINT]: z.string().default(''),
