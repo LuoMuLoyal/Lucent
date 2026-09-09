@@ -1,14 +1,23 @@
 import type { PrismaService } from '../../../../prisma/index.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import { MealIngredientGroundingService } from '../meal-ingredient/grounding.service.js';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
 
-const yamlConfig = loadYamlConfig();
-
+/**
+ * Mirrors the zod validation backfill: returns the env var if set, otherwise
+ * falls back to the zod default (same value as `environment.validation.ts`).
+ */
 function createMockConfigService() {
   return {
-    getOrThrow: vi.fn((key: string) => {
-      if (key === 'yaml') return yamlConfig;
-      throw new Error(`Missing config: ${key}`);
+    get: vi.fn((key: string) => {
+      const envVal = process.env[key];
+      if (envVal !== undefined) return envVal;
+      // Zod defaults from environment.validation.ts
+      const defaults: Record<string, string> = {
+        [EnvKey.FUZZY_ACCEPT_SCORE]: '0.7',
+        [EnvKey.FUZZY_MIN_LEAD]: '0.1',
+        [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]: '1',
+      };
+      return defaults[key];
     }),
   } as never;
 }

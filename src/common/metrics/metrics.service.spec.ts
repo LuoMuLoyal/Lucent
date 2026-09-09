@@ -1,10 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { MetricsService } from './metrics.service.js';
-import { ConfigKey } from '../../config/env/config-keys.enum.js';
-import { loadYamlConfig } from '../../config/yaml/yaml-loader.js';
-
-const yamlConfig = loadYamlConfig();
+import { EnvKey } from '../../config/env/env-keys.enum.js';
 
 describe('MetricsService', () => {
   let service: MetricsService;
@@ -14,21 +11,11 @@ describe('MetricsService', () => {
     nodeEnv: string,
     metricsEnabled?: string,
   ): MetricsService {
-    const customYaml = {
-      ...yamlConfig,
-      metrics: {
-        ...yamlConfig.metrics,
-        enabled: metricsEnabled !== 'false',
-      },
-    };
     const mockConfig = {
-      get: vi.fn((key: string) => {
-        if (key === 'NODE_ENV') return nodeEnv;
-        return undefined;
-      }),
-      getOrThrow: vi.fn((key: string) => {
-        if (key === (ConfigKey.Yaml as string)) return customYaml;
-        throw new Error(`Missing config: ${key}`);
+      get: vi.fn((key: string, fallback?: unknown) => {
+        if (key === (EnvKey.NODE_ENV as string)) return nodeEnv;
+        if (key === (EnvKey.METRICS_ENABLED as string)) return metricsEnabled;
+        return fallback;
       }),
     } as unknown as vi.Mocked<ConfigService>;
 
@@ -39,16 +26,9 @@ describe('MetricsService', () => {
 
   beforeEach(async () => {
     configService = {
-      get: vi.fn((key: string) => {
-        if (key === 'NODE_ENV') return 'development';
-        return undefined;
-      }),
-      getOrThrow: vi.fn((key: string) => {
-        if (key === (ConfigKey.Yaml as string)) {
-          // Override test.yaml's metrics.enabled=false for these tests
-          return { ...yamlConfig, metrics: { enabled: true } };
-        }
-        throw new Error(`Missing config: ${key}`);
+      get: vi.fn((key: string, fallback?: unknown) => {
+        if (key === (EnvKey.NODE_ENV as string)) return 'development';
+        return fallback;
       }),
     } as unknown as vi.Mocked<ConfigService>;
 

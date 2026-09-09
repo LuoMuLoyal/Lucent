@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { roundNumber } from '../../../../common/index.js';
 import { commonCharacterCount } from '../../../../common/index.js';
-import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import {
   type MealCompositionMatch,
@@ -47,10 +46,15 @@ export class MealIngredientGroundingService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
-    this.fuzzyAcceptScore = yaml.fuzzy.acceptScore;
-    this.fuzzyMinLead = yaml.fuzzy.minLead;
-    this.fuzzyQueryPrefixLength = yaml.fuzzy.queryPrefixLength;
+    this.fuzzyAcceptScore = Number(
+      this.configService.get<string>(EnvKey.FUZZY_ACCEPT_SCORE),
+    );
+    this.fuzzyMinLead = Number(
+      this.configService.get<string>(EnvKey.FUZZY_MIN_LEAD),
+    );
+    this.fuzzyQueryPrefixLength = Number(
+      this.configService.get<string>(EnvKey.FUZZY_QUERY_PREFIX_LENGTH),
+    );
   }
 
   async groundIngredients(

@@ -13,8 +13,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import { MailService } from '../../../../mail/mail.service.js';
 import type { VerificationScene } from '../../dto/password/send-verification-code.dto.js';
 
@@ -47,21 +46,30 @@ export class VerificationCodeService {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {
-    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
-    this.codeTtlMs = yaml.verification.codeTtlMs;
-    this.cooldownTtlMs = yaml.verification.cooldownMs;
-    this.rateLimitWindowMs = yaml.verification.rateLimitWindowMs;
-    this.rateLimitMaxRequests = yaml.verification.rateLimitMax;
-    this.codeLength = yaml.verification.codeLength;
+    this.codeTtlMs = Number(
+      this.configService.get<string>(EnvKey.VERIFICATION_CODE_TTL_MS),
+    );
+    this.cooldownTtlMs = Number(
+      this.configService.get<string>(EnvKey.VERIFICATION_COOLDOWN_MS),
+    );
+    this.rateLimitWindowMs = Number(
+      this.configService.get<string>(EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS),
+    );
+    this.rateLimitMaxRequests = Number(
+      this.configService.get<string>(EnvKey.VERIFICATION_RATE_LIMIT_MAX),
+    );
+    this.codeLength = Number(
+      this.configService.get<string>(EnvKey.VERIFICATION_CODE_LENGTH),
+    );
 
     this.assertVerificationConfig();
   }
 
   /**
-   * Fail-fast sanity checks for the verification YAML block. A misconfigured
-   * YAML (e.g. cooldown > code TTL, or zero/negative TTLs) silently breaks
-   * rate-limiting and code expiry, so the service refuses to start instead of
-   * running in a broken state.
+   * Fail-fast sanity checks for the verification config. A misconfigured
+   * env value (e.g. cooldown > code TTL, or zero/negative TTLs) silently
+   * breaks rate-limiting and code expiry, so the service refuses to start
+   * instead of running in a broken state.
    */
   private assertVerificationConfig(): void {
     const fail = (message: string): never => {

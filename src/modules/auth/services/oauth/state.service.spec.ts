@@ -9,7 +9,7 @@ import {
 } from './state.service.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/app-defaults.constants.js';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import type {
   DomainFailure,
   ResultAsync,
@@ -43,14 +43,15 @@ describe('AuthOAuthStateService', () => {
   let cache: vi.Mocked<Cache>;
 
   beforeEach(async () => {
+    Reflect.deleteProperty(process.env, EnvKey.OAUTH_STATE_TTL_MS);
+
     const mockConfigService = {
       get: vi.fn((key: string, fallback?: unknown) => {
         if (key === 'app.corsOrigin') return false;
+        if (key === (EnvKey.OAUTH_STATE_TTL_MS as string))
+          // Mirrors the zod validation backfill: unset → default.
+          return process.env[EnvKey.OAUTH_STATE_TTL_MS] ?? '600000';
         return fallback;
-      }),
-      getOrThrow: vi.fn((key: string) => {
-        if (key === 'yaml') return loadYamlConfig();
-        throw new Error(`Missing config: ${key}`);
       }),
     };
 

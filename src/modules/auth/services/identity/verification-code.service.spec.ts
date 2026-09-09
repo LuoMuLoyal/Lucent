@@ -13,7 +13,7 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import {
   DEFAULT_VERIFICATION_CODE_TTL_MS,
   DEFAULT_VERIFICATION_COOLDOWN_MS,
@@ -62,10 +62,22 @@ describe('VerificationCodeService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn((_key: string, fallback?: unknown) => fallback),
-            getOrThrow: vi.fn((key: string) => {
-              if (key === 'yaml') return loadYamlConfig();
-              throw new Error(`Missing config: ${key}`);
+            get: vi.fn((key: string, fallback?: unknown) => {
+              if (key === (EnvKey.VERIFICATION_CODE_TTL_MS as string))
+                // Mirrors the zod validation backfill: unset → default.
+                return process.env[EnvKey.VERIFICATION_CODE_TTL_MS] ?? '300000';
+              if (key === (EnvKey.VERIFICATION_COOLDOWN_MS as string))
+                return process.env[EnvKey.VERIFICATION_COOLDOWN_MS] ?? '60000';
+              if (key === (EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS as string))
+                return (
+                  process.env[EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS] ??
+                  '600000'
+                );
+              if (key === (EnvKey.VERIFICATION_RATE_LIMIT_MAX as string))
+                return process.env[EnvKey.VERIFICATION_RATE_LIMIT_MAX] ?? '20';
+              if (key === (EnvKey.VERIFICATION_CODE_LENGTH as string))
+                return process.env[EnvKey.VERIFICATION_CODE_LENGTH] ?? '6';
+              return fallback;
             }),
           },
         },
@@ -83,6 +95,15 @@ describe('VerificationCodeService', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    for (const envKey of [
+      EnvKey.VERIFICATION_CODE_TTL_MS,
+      EnvKey.VERIFICATION_COOLDOWN_MS,
+      EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS,
+      EnvKey.VERIFICATION_RATE_LIMIT_MAX,
+      EnvKey.VERIFICATION_CODE_LENGTH,
+    ]) {
+      Reflect.deleteProperty(process.env, envKey);
+    }
   });
 
   describe('send', () => {
@@ -413,17 +434,24 @@ describe('VerificationCodeService', () => {
   });
 
   describe('constructor sanity checks', () => {
+    const YAML_KEY_TO_ENV_KEY: Record<string, EnvKey> = {
+      codeTtlMs: EnvKey.VERIFICATION_CODE_TTL_MS,
+      cooldownMs: EnvKey.VERIFICATION_COOLDOWN_MS,
+      rateLimitWindowMs: EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS,
+      rateLimitMax: EnvKey.VERIFICATION_RATE_LIMIT_MAX,
+      codeLength: EnvKey.VERIFICATION_CODE_LENGTH,
+    };
+
     async function createServiceWithOverrides(
       overrides: Record<string, number>,
     ) {
-      const defaultYaml = loadYamlConfig();
-      const patchedYaml = {
-        ...defaultYaml,
-        verification: {
-          ...defaultYaml.verification,
-          ...overrides,
-        },
-      };
+      // Map YAML-style keys to env vars
+      for (const [yamlKey, value] of Object.entries(overrides)) {
+        const envKey = YAML_KEY_TO_ENV_KEY[yamlKey];
+        if (envKey) {
+          process.env[envKey] = String(value);
+        }
+      }
 
       const service = (
         await Test.createTestingModule({
@@ -444,10 +472,8 @@ describe('VerificationCodeService', () => {
             {
               provide: ConfigService,
               useValue: {
-                get: vi.fn((_key: string, fallback?: unknown) => fallback),
-                getOrThrow: vi.fn((key: string) => {
-                  if (key === 'yaml') return patchedYaml;
-                  throw new Error(`Missing config: ${key}`);
+                get: vi.fn((key: string, fallback?: unknown) => {
+                  return process.env[key] ?? fallback;
                 }),
               },
             },

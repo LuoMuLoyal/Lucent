@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
 import { ObjectStorageRuntime } from './object-storage.runtime.js';
 import { TencentCosStorageRuntime } from './tencent-cos.runtime.js';
 import { S3StorageRuntime } from './s3.runtime.js';
@@ -14,16 +13,15 @@ import { S3StorageRuntime } from './s3.runtime.js';
  * `ObjectStorageRuntime` abstract token based on the
  * `STORAGE_PROVIDER` environment variable:
  *
- * - `tencent-cos` (default) → `TencentCosStorageRuntime`
- * - `s3`                    → `S3StorageRuntime`
+ * - `s3` (default)     → `S3StorageRuntime`
+ * - `tencent-cos`      → `TencentCosStorageRuntime`
  */
 @Module({
   providers: [
     {
       provide: ObjectStorageRuntime,
       useFactory: (configService: ConfigService): ObjectStorageRuntime => {
-        const yaml = configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
-        const provider = yaml.storage.provider;
+        const provider = configService.get<string>(EnvKey.STORAGE_PROVIDER);
         if (provider === 's3') {
           return new S3StorageRuntime(configService);
         }

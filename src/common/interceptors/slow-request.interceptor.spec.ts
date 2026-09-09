@@ -7,8 +7,7 @@ import { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import { of } from 'rxjs';
 import { SlowRequestInterceptor } from './slow-request.interceptor.js';
-import { ConfigKey } from '../../config/env/config-keys.enum.js';
-import { loadYamlConfig } from '../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
 
 describe('SlowRequestInterceptor', () => {
   let interceptor: SlowRequestInterceptor;
@@ -34,14 +33,11 @@ describe('SlowRequestInterceptor', () => {
   }
 
   function createInterceptor(thresholdMs: number): SlowRequestInterceptor {
-    const yamlConfig = {
-      ...loadYamlConfig(),
-      log: { ...loadYamlConfig().log, slowRequestThresholdMs: thresholdMs },
-    };
     const mockConfigService = {
-      getOrThrow: vi.fn((key: string) => {
-        if (key === (ConfigKey.Yaml as string)) return yamlConfig;
-        throw new Error(`Missing config: ${key}`);
+      get: vi.fn((key: string) => {
+        if (key === (EnvKey.SLOW_REQUEST_THRESHOLD_MS as string))
+          return String(thresholdMs);
+        return undefined;
       }),
     } as unknown as ConfigService;
     const reflector = new Reflector();

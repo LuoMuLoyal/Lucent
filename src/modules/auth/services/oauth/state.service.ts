@@ -15,8 +15,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
-import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   OAUTH_PROVIDER_QQ,
@@ -44,8 +43,9 @@ export class AuthOAuthStateService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly configService: ConfigService,
   ) {
-    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
-    this.stateTtlMs = yaml.oauth.stateTtlMs;
+    this.stateTtlMs = Number(
+      this.configService.get<string>(EnvKey.OAUTH_STATE_TTL_MS),
+    );
   }
 
   createState(
@@ -237,7 +237,7 @@ export class AuthOAuthStateService {
 
   private isTrustedOrigin(origin: string): boolean {
     const corsOrigin = this.configService.get<boolean | string[]>(
-      `${ConfigKey.App}.corsOrigin`,
+      'app.corsOrigin',
       false,
     );
     return Array.isArray(corsOrigin) && corsOrigin.includes(origin);

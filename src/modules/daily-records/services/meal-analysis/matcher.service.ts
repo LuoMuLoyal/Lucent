@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import { normalizeNullableText } from '../../../../common/index.js';
 import {
   normalizeMealEntityName,
@@ -54,13 +53,22 @@ export class MealAnalysisMatcherService {
     private readonly mealIngredientGroundingService: MealIngredientGroundingService,
     configService: ConfigService,
   ) {
-    const yaml = configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
     this.thresholds = {
-      defaultPortionGrams: yaml.meal.defaultPortionGrams,
-      smallPortionGrams: yaml.meal.smallPortionGrams,
-      highProteinThresholdG: yaml.meal.highProteinThresholdG,
-      lowCarbohydrateThresholdG: yaml.meal.lowCarbohydrateThresholdG,
-      highFatThresholdG: yaml.meal.highFatThresholdG,
+      defaultPortionGrams: Number(
+        configService.get<string>(EnvKey.MEAL_DEFAULT_PORTION_GRAMS),
+      ),
+      smallPortionGrams: Number(
+        configService.get<string>(EnvKey.MEAL_SMALL_PORTION_GRAMS),
+      ),
+      highProteinThresholdG: Number(
+        configService.get<string>(EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G),
+      ),
+      lowCarbohydrateThresholdG: Number(
+        configService.get<string>(EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G),
+      ),
+      highFatThresholdG: Number(
+        configService.get<string>(EnvKey.MEAL_HIGH_FAT_THRESHOLD_G),
+      ),
     };
   }
 

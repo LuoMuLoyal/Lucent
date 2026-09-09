@@ -7,8 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
 import { Observable, tap } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import type { FastifyRequest } from 'fastify';
@@ -31,8 +30,9 @@ export class SlowRequestInterceptor implements NestInterceptor {
     private readonly configService: ConfigService,
     private readonly reflector: Reflector,
   ) {
-    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
-    this.threshold = yaml.log.slowRequestThresholdMs;
+    this.threshold = Number(
+      this.configService.get<string>(EnvKey.SLOW_REQUEST_THRESHOLD_MS),
+    );
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {

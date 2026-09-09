@@ -10,8 +10,6 @@ import type { Logger as WinstonLogger } from 'winston';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '#generated/prisma/client.js';
 import { EnvKey } from '../config/env/env-keys.enum.js';
-import { ConfigKey } from '../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../config/yaml/yaml-loader.js';
 import { getActiveTraceId } from '../common/logger/trace-context.utils.js';
 import {
   applySoftDeleteExtension,
@@ -71,8 +69,9 @@ export class PrismaService
 
     this._winstonLogger = winstonLogger;
     this._configService = configService;
-    const yaml = configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
-    this._slowQueryThresholdMs = yaml.log.slowQueryThresholdMs;
+    this._slowQueryThresholdMs = Number(
+      configService.get<string>(EnvKey.SLOW_QUERY_THRESHOLD_MS),
+    );
 
     // ── Slow-query logging ──────────────────────────────────────────────
     // Every query emits a `QueryEvent` with `duration` (ms).  Only queries

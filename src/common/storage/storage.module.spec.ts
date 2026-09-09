@@ -96,14 +96,15 @@ const s3StorageConfig: S3StorageConfig = {
 
 /**
  * Builds a fake ConfigService whose `get` returns the given provider
- * string for `STORAGE_PROVIDER`, and whose `getOrThrow` returns the
+ * string for `STORAGE_PROVIDER`, falling back to the validated default
+ * `'s3'` when unset (mirrors the zod validation backfill in
+ * `environment.validation.ts`), and whose `getOrThrow` returns the
  * matching config object for the known ConfigKey.
  */
-function buildConfigService(provider: string | undefined): ConfigService {
+function buildConfigService(): ConfigService {
   return {
-    get: vi.fn().mockImplementation((key: string) => {
-      if (key === (EnvKey.STORAGE_PROVIDER as string)) return provider;
-      return undefined;
+    get: vi.fn().mockImplementation(() => {
+      return process.env[EnvKey.STORAGE_PROVIDER] ?? 's3';
     }),
     getOrThrow: vi.fn().mockImplementation((key: string) => {
       if (key === (ConfigKey.TencentCos as string)) return tencentCosConfig;
@@ -128,17 +129,22 @@ function buildConfigService(provider: string | undefined): ConfigService {
 async function buildStorageModule(
   provider: string | undefined,
 ): Promise<TestingModule> {
+  if (provider === undefined) {
+    Reflect.deleteProperty(process.env, EnvKey.STORAGE_PROVIDER);
+  } else {
+    process.env[EnvKey.STORAGE_PROVIDER] = provider;
+  }
   return Test.createTestingModule({
     providers: [
       {
         provide: ConfigService,
-        useValue: buildConfigService(provider),
+        useValue: buildConfigService(),
       },
       {
         provide: ObjectStorageRuntime,
         useFactory: (configService: ConfigService): ObjectStorageRuntime => {
           const resolved =
-            configService.get<string>(EnvKey.STORAGE_PROVIDER) ?? 'tencent-cos';
+            configService.get<string>(EnvKey.STORAGE_PROVIDER) ?? 's3';
           if (resolved === 's3') {
             return new S3StorageRuntime(configService);
           }
@@ -163,14 +169,15 @@ async function buildStorageModule(
 describe('StorageModule', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    Reflect.deleteProperty(process.env, EnvKey.STORAGE_PROVIDER);
   });
 
-  it('binds TencentCosStorageRuntime to ObjectStorageRuntime when STORAGE_PROVIDER is not set', async () => {
+  it('binds S3StorageRuntime to ObjectStorageRuntime when STORAGE_PROVIDER is not set', async () => {
     const module = await buildStorageModule(undefined);
     const runtime = module.get(ObjectStorageRuntime);
 
-    expect(runtime).toBeInstanceOf(TencentCosStorageRuntime);
-    expect(runtime.provider).toBe('tencent-cos');
+    expect(runtime).toBeInstanceOf(S3StorageRuntime);
+    expect(runtime.provider).toBe('s3');
   });
 
   it('binds TencentCosStorageRuntime when STORAGE_PROVIDER is tencent-cos', async () => {

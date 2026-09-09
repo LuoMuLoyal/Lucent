@@ -1,13 +1,26 @@
 import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service.js';
-import { loadYamlConfig } from '../../../../config/yaml/yaml-loader.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 
-const yamlConfig = loadYamlConfig();
-
-function createMockConfigService() {
+/**
+ * Mirrors the zod validation backfill: returns the override or env var if
+ * set, otherwise falls back to the zod default (same value as
+ * `environment.validation.ts`).
+ */
+function createMockConfigService(overrides?: Partial<Record<string, string>>) {
   return {
-    getOrThrow: vi.fn((key: string) => {
-      if (key === 'yaml') return yamlConfig;
-      throw new Error(`Missing config: ${key}`);
+    get: vi.fn((key: string) => {
+      if (overrides?.[key] !== undefined) return overrides[key];
+      const envVal = process.env[key];
+      if (envVal !== undefined) return envVal;
+      // Zod defaults from environment.validation.ts
+      const defaults: Record<string, string> = {
+        [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: '100',
+        [EnvKey.MEAL_SMALL_PORTION_GRAMS]: '30',
+        [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]: '20',
+        [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]: '20',
+        [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]: '20',
+      };
+      return defaults[key];
     }),
   };
 }
@@ -365,25 +378,20 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     // Use low thresholds so commentary conditions are triggered
-    const customYaml = {
-      ...yamlConfig,
-      meal: {
-        ...yamlConfig.meal,
-        highProteinThresholdG: 30,
-        highFatThresholdG: 15,
-        lowCarbohydrateThresholdG: 60,
-      },
-    };
-    const configService = {
-      getOrThrow: vi.fn((key: string) => {
-        if (key === 'yaml') return customYaml;
-        throw new Error(`Missing config: ${key}`);
+    const customConfigService = {
+      get: vi.fn((key: string) => {
+        if (key === (EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G as string))
+          return '30';
+        if (key === (EnvKey.MEAL_HIGH_FAT_THRESHOLD_G as string)) return '15';
+        if (key === (EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G as string))
+          return '60';
+        return process.env[key];
       }),
     };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
-      configService as never,
+      customConfigService as never,
     );
 
     const result = await service.matchAndEstimate([]);

@@ -1,7 +1,5 @@
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/env/config-keys.enum.js';
-import type { YamlConfig } from '../../config/yaml/yaml-loader.js';
 import {
   collectDefaultMetrics,
   Counter,
@@ -69,10 +67,11 @@ export class MetricsService implements OnApplicationBootstrap {
   constructor(private readonly configService: ConfigService) {
     this.registry = new Registry();
 
-    const yaml = this.configService.getOrThrow<YamlConfig>(ConfigKey.Yaml);
     const nodeEnv =
       this.configService.get<string>(EnvKey.NODE_ENV) ?? 'development';
-    this.enabled = yaml.metrics.enabled && nodeEnv !== 'test';
+    this.enabled =
+      this.configService.get<string>(EnvKey.METRICS_ENABLED) !== 'false' &&
+      nodeEnv !== 'test';
 
     // HTTP metrics
     this.httpRequestDuration = new Histogram({
