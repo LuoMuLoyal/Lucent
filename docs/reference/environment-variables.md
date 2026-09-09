@@ -2,26 +2,26 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-08
+updated: 2026-09-09
 ---
 
 # Environment Variables
 
-本文件是环境变量完整参考(唯一事实源);本地环境与运行时基线也在此文件——YAML 配置加载、
-本地 dev 基线、Docker dev 栈与常用脚本见下文对应章节。
+本文件是环境变量完整参考(唯一事实源);本地环境与运行时基线也在此文件。
+所有运行时配置统一通过环境变量管理,敏感值在 `.env.*` 文件中,非敏感值附带默认值。
 
-## 配置文件与加载顺序
+## 配置加载方式
 
 Env 文件仅本地使用、不入库(`.env.development|production|test` 及对应 `.local` 覆盖);
 模板为 `.env.development.example` / `.env.test.example` / `.env.production.example`。
 加载优先级从高到低:`.env.<NODE_ENV>.local` → `.env.<NODE_ENV>`,没有根 `.env` 回退;
 运行时、Prisma CLI 与药品导入脚本共用同一解析顺序(`src/config/env/env-file-paths.ts`)。
 
-非敏感配置来自 `config/` 下嵌套 YAML,优先级从低到高:
-`config/default.yaml` → `config/<env>.yaml` → `config/<env>.local.yaml`(gitignored)。
-合并由 `src/config/yaml/yaml-loader.ts` 深合并并以 Zod schema 校验,注册为
-`configService.getOrThrow<YamlConfig>(ConfigKey.Yaml)`;敏感值(API key、数据库 URL、secret)
-仍留在 `.env.*` 并经 `configService.get(EnvKey.*)` 读取,业务代码禁止直接读 `process.env`。
+**全部配置均从环境变量读取**,非敏感默认值统一定义在 zod 校验层
+(`src/config/env/environment.validation.ts` 的 `.default()`);敏感值
+(API key、数据库 URL、secret)经 `.env.*` 注入。
+业务代码统一通过 `configService.get(EnvKey.X)` 读取(启动早期引导代码除外),
+未设置的键自动使用 zod 校验层定义的默认值,无需额外配置文件。
 
 ## 本地开发基线
 
@@ -71,6 +71,9 @@ METRICS_PASSWORD
 
 生产(Coolify compose)下 `DATABASE_URL` / `REDIS_URL` 由 `deploy/compose.yml`
 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
+
+非敏感运行时参数(host/port/日志级别/阈值/各业务开关)均通过环境变量配置,未设置时使用
+代码内默认值(见下文各节);全部可覆盖项见 `.env.production.example` 注释。
 
 `METRICS_USER` and `METRICS_PASSWORD` protect the `/metrics` Prometheus endpoint
 with HTTP Basic Auth. Both must be set together; if either is missing, `/metrics`
@@ -204,7 +207,7 @@ STORAGE_S3_MAX_UPLOAD_BYTES
 STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS
 ```
 
-`STORAGE_PROVIDER` defaults to `tencent-cos`; when set to `s3`, all of `STORAGE_S3_ENDPOINT`,
+`STORAGE_PROVIDER` defaults to `s3`; when set to `s3`, all of `STORAGE_S3_ENDPOINT`,
 `STORAGE_S3_ACCESS_KEY`, `STORAGE_S3_SECRET_KEY`, and `STORAGE_S3_BUCKET` must be set together.
 `STORAGE_S3_CLIENT_ENDPOINT` defaults to `STORAGE_S3_ENDPOINT` when empty.
 `STORAGE_S3_EXTERNAL_ENDPOINT` is optional; when absent, requests for external-audience URLs
