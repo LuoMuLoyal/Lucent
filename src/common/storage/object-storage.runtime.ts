@@ -5,6 +5,7 @@
  * Concrete implementations:
  * - `TencentCosStorageRuntime` (production / test)
  * - `S3StorageRuntime`          (development with SeaweedFS)
+ * - `AliyunOssStorageRuntime`   (Alibaba Cloud OSS dedicated SDK)
  *
  * The `StorageModule` binds exactly one implementation to this abstract
  * token based on the `STORAGE_PROVIDER` environment variable.
@@ -14,7 +15,7 @@
 export type SignedUrlAudience = 'client' | 'external';
 
 /** Provider identifier returned in API responses. */
-export type StorageProvider = 'tencent-cos' | 's3';
+export type StorageProvider = 'tencent-cos' | 's3' | 'ali-oss';
 
 /**
  * Provider-agnostic configuration surface consumed by feature modules.
