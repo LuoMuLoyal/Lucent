@@ -17,6 +17,9 @@ export default tseslint.config(
       'commitlint.config.ts',
       'deploy/**/*.ts',
       'scripts/**/*.ts',
+      // 根级 vitest 配置文件不在 tsconfig.typecheck.json include 内,
+      // typed-linting 的 parserOptions.project 解析失败;由 oxlint 覆盖
+      'vitest*.config.ts',
       // k6 性能测试脚本运行在 k6 运行时中，不适用 Node.js / TS 类型检查
       'test/performance/**/*.ts',
     ],
