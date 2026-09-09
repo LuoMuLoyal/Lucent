@@ -135,6 +135,12 @@ jobs:
       ADMIN_PASSWORD: ci_admin_password
       ADMIN_COOKIE_SECRET: ci_admin_cookie_secret_32chars_plus
       LOG_LEVEL: error
+      # E2E tests set x-forwarded-for to simulate distinct clients (see
+      # uniqueClientIp in test/e2e/auth/auth.e2e-spec.ts); without trustProxy the
+      # verification-code client rate limit buckets every request under the same
+      # 127.0.0.1 key and the suites exhaust the limit (429). .env.test.example
+      # ships TRUST_PROXY=true for the same reason.
+      TRUST_PROXY: 'true'
     services:
       postgres:
         image: pgvector/pgvector:pg18
