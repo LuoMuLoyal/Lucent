@@ -34,7 +34,7 @@ export const dailyRecordAttachmentInputSchema = z
     provider: z
       .string()
       .max(50)
-      .describe('Storage provider (e.g. tencent-cos, s3).')
+      .describe('Storage provider (e.g. tencent-cos, s3, ali-oss).')
       .nullish(),
     fileName: z.string().max(255).describe('Original file name.').nullish(),
     contentType: z.string().max(100).describe('MIME content type.').nullish(),

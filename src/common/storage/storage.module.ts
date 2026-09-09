@@ -4,6 +4,7 @@ import { EnvKey } from '../../config/env/env-keys.enum.js';
 import { ObjectStorageRuntime } from './object-storage.runtime.js';
 import { TencentCosStorageRuntime } from './tencent-cos.runtime.js';
 import { S3StorageRuntime } from './s3.runtime.js';
+import { AliyunOssStorageRuntime } from './aliyun-oss.runtime.js';
 
 /**
  * Provides the shared object-storage runtime to any module that needs
@@ -15,6 +16,7 @@ import { S3StorageRuntime } from './s3.runtime.js';
  *
  * - `s3` (default)     → `S3StorageRuntime`
  * - `tencent-cos`      → `TencentCosStorageRuntime`
+ * - `ali-oss`          → `AliyunOssStorageRuntime`
  */
 @Module({
   providers: [
@@ -24,6 +26,9 @@ import { S3StorageRuntime } from './s3.runtime.js';
         const provider = configService.get<string>(EnvKey.STORAGE_PROVIDER);
         if (provider === 's3') {
           return new S3StorageRuntime(configService);
+        }
+        if (provider === 'ali-oss') {
+          return new AliyunOssStorageRuntime(configService);
         }
         return new TencentCosStorageRuntime(configService);
       },

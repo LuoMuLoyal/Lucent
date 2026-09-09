@@ -57,15 +57,35 @@ vi.mock('cos-nodejs-sdk-v5', () => ({
   }),
 }));
 
+// ── Mock ali-oss (needed because AliyunOssStorageRuntime
+//    constructor creates an OSS instance) ────────────────────────
+
+vi.mock('ali-oss', () => {
+  // Constructor mock: OSS is instantiated with `new` — Vitest 4
+  // requires a function (not arrow) implementation for constructibility.
+  return {
+    __esModule: true,
+    // oxlint-disable-next-line prefer-arrow-callback
+    default: vi.fn(function () {
+      return {
+        asyncSignatureUrl: vi.fn(),
+        put: vi.fn(),
+      };
+    }),
+  };
+});
+
 // Imports must come after vi.mock declarations.
 
 import { ObjectStorageRuntime } from './object-storage.runtime.js';
 import { TencentCosStorageRuntime } from './tencent-cos.runtime.js';
 import { S3StorageRuntime } from './s3.runtime.js';
+import { AliyunOssStorageRuntime } from './aliyun-oss.runtime.js';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
 import { ConfigKey } from '../../config/env/config-keys.enum.js';
 import type { S3StorageConfig } from '../../config/services/s3-storage.config.js';
 import type { TencentCosConfig } from '../../config/services/tencent-cos.config.js';
+import type { AliyunOssConfig } from '../../config/services/aliyun-oss.config.js';
 
 // ── Config fixtures ──────────────────────────────────────────────
 
@@ -94,6 +114,18 @@ const s3StorageConfig: S3StorageConfig = {
   downloadExpiresSeconds: 600,
 };
 
+const aliyunOssConfig: AliyunOssConfig = {
+  accessKeyId: 'test-oss-access-key-id',
+  accessKeySecret: 'test-oss-access-key-secret',
+  bucket: 'test-oss-bucket',
+  region: 'oss-cn-hangzhou',
+  endpoint: '',
+  publicBaseUrl: '',
+  uploadExpiresSeconds: 600,
+  maxUploadBytes: 10_485_760,
+  downloadExpiresSeconds: 600,
+};
+
 /**
  * Builds a fake ConfigService whose `get` returns the given provider
  * string for `STORAGE_PROVIDER`, falling back to the validated default
@@ -109,6 +141,7 @@ function buildConfigService(): ConfigService {
     getOrThrow: vi.fn().mockImplementation((key: string) => {
       if (key === (ConfigKey.TencentCos as string)) return tencentCosConfig;
       if (key === (ConfigKey.S3Storage as string)) return s3StorageConfig;
+      if (key === (ConfigKey.AliyunOss as string)) return aliyunOssConfig;
       throw new Error(`Unexpected config key: ${key}`);
     }),
   } as unknown as ConfigService;
@@ -151,11 +184,14 @@ async function buildStorageModule(
           if (resolved === 'tencent-cos') {
             return new TencentCosStorageRuntime(configService);
           }
+          if (resolved === 'ali-oss') {
+            return new AliyunOssStorageRuntime(configService);
+          }
           throw new ServiceUnavailableException({
             code: 'DEPENDENCY_UNAVAILABLE',
             message:
               `STORAGE_PROVIDER "${resolved}" is not supported. ` +
-              'Use "tencent-cos" or "s3".',
+              'Use "tencent-cos", "s3", or "ali-oss".',
           });
         },
         inject: [ConfigService],
@@ -186,6 +222,14 @@ describe('StorageModule', () => {
 
     expect(runtime).toBeInstanceOf(TencentCosStorageRuntime);
     expect(runtime.provider).toBe('tencent-cos');
+  });
+
+  it('binds AliyunOssStorageRuntime when STORAGE_PROVIDER is ali-oss', async () => {
+    const module = await buildStorageModule('ali-oss');
+    const runtime = module.get(ObjectStorageRuntime);
+
+    expect(runtime).toBeInstanceOf(AliyunOssStorageRuntime);
+    expect(runtime.provider).toBe('ali-oss');
   });
 
   it('binds S3StorageRuntime when STORAGE_PROVIDER is s3', async () => {

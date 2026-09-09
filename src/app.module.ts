@@ -13,6 +13,7 @@ import { jwtConfig } from './config/services/jwt.config.js';
 import { oauthConfig } from './config/services/oauth.config.js';
 import { tencentCosConfig } from './config/services/tencent-cos.config.js';
 import { s3StorageConfig } from './config/services/s3-storage.config.js';
+import { aliyunOssConfig } from './config/services/aliyun-oss.config.js';
 import { jpushConfig } from './config/services/jpush.config.js';
 import { getEnvFilePaths } from './config/env/env-file-paths.js';
 import { isRunningFromSource } from './config/env/runtime-signal.js';
@@ -85,6 +86,7 @@ const isTestRuntime =
         oauthConfig,
         tencentCosConfig,
         s3StorageConfig,
+        aliyunOssConfig,
         jpushConfig,
       ],
       // NestJS 12 Standard Schema option — the zod schema (including the
