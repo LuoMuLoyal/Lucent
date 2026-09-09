@@ -1,7 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from '../env/config-keys.enum.js';
 import { EnvKey } from '../env/env-keys.enum.js';
-import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 export type MailDriver = 'log' | 'smtp';
 
@@ -24,45 +23,27 @@ export interface MailConfig {
 }
 
 export const mailConfig = registerAs(ConfigKey.Mail, (): MailConfig => {
-  const yaml = loadYamlConfig();
-  const mail = yaml.mail;
-
   return {
-    driver: (process.env[EnvKey.MAIL_DRIVER] ?? mail.driver) as MailDriver,
-    host: process.env[EnvKey.MAIL_HOST] ?? mail.host,
-    port: Number(process.env[EnvKey.MAIL_PORT] ?? mail.port),
-    // Sensitive — from .env
+    driver: process.env[EnvKey.MAIL_DRIVER] as MailDriver,
+    host: process.env[EnvKey.MAIL_HOST] ?? '',
+    port: Number(process.env[EnvKey.MAIL_PORT]),
     user: process.env[EnvKey.MAIL_USER] ?? '',
     pass: process.env[EnvKey.MAIL_PASS] ?? '',
-    from: process.env[EnvKey.MAIL_FROM] ?? mail.from,
+    from: process.env[EnvKey.MAIL_FROM] ?? '',
     queue: {
-      maxAttempts: Number(
-        process.env[EnvKey.MAIL_QUEUE_MAX_ATTEMPTS] ?? mail.queue.maxAttempts,
-      ),
-      backoffDelayMs: Number(
-        process.env[EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS] ??
-          mail.queue.backoffDelayMs,
-      ),
+      maxAttempts: Number(process.env[EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]),
+      backoffDelayMs: Number(process.env[EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]),
       workerConcurrency: Number(
-        process.env[EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY] ??
-          mail.queue.workerConcurrency,
+        process.env[EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY],
       ),
       completeAgeSeconds: Number(
-        process.env[EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS] ??
-          mail.queue.completeAgeSeconds,
+        process.env[EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS],
       ),
-      failAgeSeconds: Number(
-        process.env[EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS] ??
-          mail.queue.failAgeSeconds,
-      ),
+      failAgeSeconds: Number(process.env[EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]),
       completeMaxCount: Number(
-        process.env[EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT] ??
-          mail.queue.completeMaxCount,
+        process.env[EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT],
       ),
-      failMaxCount: Number(
-        process.env[EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT] ??
-          mail.queue.failMaxCount,
-      ),
+      failMaxCount: Number(process.env[EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]),
     },
   };
 });

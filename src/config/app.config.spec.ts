@@ -40,19 +40,17 @@ describe('appConfig', () => {
     };
   }
 
-  it('defaults to development with 0.0.0.0 host when NODE_ENV is absent', () => {
+  it('defaults to development env and 0.0.0.0 host when NODE_ENV/HOST absent', () => {
     const config = callFactory();
 
     expect(config.env).toBe('development');
     expect(config.host).toBe('0.0.0.0');
-    expect(config.port).toBe(3000);
-    // development.yaml overrides corsOrigin to localhost origins
-    expect(config.corsOrigin).toEqual([
-      'http://localhost:3000',
-      'http://localhost:8080',
-    ]);
     expect(config.trustProxy).toBe(false);
-    expect(config.publicBaseUrl).toBe('http://localhost:3000');
+    expect(config.corsOrigin).toBe(false);
+    // port/publicBaseUrl defaults now live in zod layer; factory passes
+    // through raw env values (NaN / '') when unset.
+    expect(config.port).toBeNaN();
+    expect(config.publicBaseUrl).toBe('');
   });
 
   it('uses 127.0.0.1 as default host in production', () => {

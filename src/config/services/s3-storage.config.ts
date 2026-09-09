@@ -1,7 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from '../env/config-keys.enum.js';
 import { EnvKey } from '../env/env-keys.enum.js';
-import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 export interface S3StorageConfig {
   endpoint: string;
@@ -20,35 +19,27 @@ export interface S3StorageConfig {
 export const s3StorageConfig = registerAs(
   ConfigKey.S3Storage,
   (): S3StorageConfig => {
-    const yaml = loadYamlConfig();
-    const s3 = yaml.storage.s3;
-
     return {
-      endpoint: (process.env[EnvKey.STORAGE_S3_ENDPOINT] ?? s3.endpoint).trim(),
+      endpoint: (process.env[EnvKey.STORAGE_S3_ENDPOINT] ?? '').trim(),
       clientEndpoint: (
-        process.env[EnvKey.STORAGE_S3_CLIENT_ENDPOINT] ?? s3.clientEndpoint
+        process.env[EnvKey.STORAGE_S3_CLIENT_ENDPOINT] ?? ''
       ).trim(),
       externalEndpoint: (
-        process.env[EnvKey.STORAGE_S3_EXTERNAL_ENDPOINT] ?? s3.externalEndpoint
+        process.env[EnvKey.STORAGE_S3_EXTERNAL_ENDPOINT] ?? ''
       ).trim(),
       publicBaseUrl: (
-        process.env[EnvKey.STORAGE_S3_PUBLIC_BASE_URL] ?? s3.publicBaseUrl
+        process.env[EnvKey.STORAGE_S3_PUBLIC_BASE_URL] ?? ''
       ).trim(),
-      // Sensitive — from .env
       accessKey: (process.env[EnvKey.STORAGE_S3_ACCESS_KEY] ?? '').trim(),
       secretKey: (process.env[EnvKey.STORAGE_S3_SECRET_KEY] ?? '').trim(),
-      bucket: (process.env[EnvKey.STORAGE_S3_BUCKET] ?? s3.bucket).trim(),
-      region: (process.env[EnvKey.STORAGE_S3_REGION] ?? s3.region).trim(),
+      bucket: (process.env[EnvKey.STORAGE_S3_BUCKET] ?? '').trim(),
+      region: (process.env[EnvKey.STORAGE_S3_REGION] ?? '').trim(),
       uploadExpiresSeconds: Number(
-        process.env[EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS] ??
-          s3.uploadExpiresSeconds,
+        process.env[EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS],
       ),
-      maxUploadBytes: Number(
-        process.env[EnvKey.STORAGE_S3_MAX_UPLOAD_BYTES] ?? s3.maxUploadBytes,
-      ),
+      maxUploadBytes: Number(process.env[EnvKey.STORAGE_S3_MAX_UPLOAD_BYTES]),
       downloadExpiresSeconds: Number(
-        process.env[EnvKey.STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS] ??
-          s3.downloadExpiresSeconds,
+        process.env[EnvKey.STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS],
       ),
     };
   },

@@ -105,7 +105,9 @@ describe('llmConfig', () => {
       apiKey: null,
       baseUrl: null,
       model: null,
-      dimension: 1536,
+      // dimension default (1536) now lives in the zod layer; the factory
+      // passes the raw env value through, so it is absent when unset.
+      dimension: undefined,
     });
     expect(config.safety.forbiddenPatterns).toEqual([]);
   });
@@ -156,20 +158,20 @@ describe('llmConfig', () => {
     expect(config.embedding.dimension).toBe(768);
   });
 
-  it('uses YAML default dimension when env var is absent', () => {
+  it('leaves dimension undefined when env var is absent (default lives in zod layer)', () => {
     process.env[EnvKey.AI_EMBEDDING_API_KEY] = 'sk-embed';
 
     const config = callFactory();
 
-    expect(config.embedding.dimension).toBe(1536);
+    expect(config.embedding.dimension).toBeUndefined();
   });
 
-  it('falls back to YAML default when env var is not a valid number', () => {
+  it('falls back to undefined when env var is not a valid number', () => {
     process.env[EnvKey.AI_EMBEDDING_DIMENSION] = 'not-a-number';
 
     const config = callFactory();
 
-    expect(config.embedding.dimension).toBe(1536);
+    expect(config.embedding.dimension).toBeUndefined();
   });
 
   it('parses forbidden patterns split by comma', () => {

@@ -1,8 +1,4 @@
 import { EnvKey } from '../env/env-keys.enum.js';
-import {
-  DEFAULT_COS_MAX_UPLOAD_BYTES,
-  DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-} from '../app-defaults.constants.js';
 import { tencentCosConfig } from './tencent-cos.config.js';
 
 describe('tencentCosConfig', () => {
@@ -45,19 +41,10 @@ describe('tencentCosConfig', () => {
     expect(config.secretId).toBe('');
     expect(config.secretKey).toBe('');
     expect(config.bucket).toBe('');
-    expect(config.region).toBe('ap-guangzhou');
     expect(config.publicBaseUrl).toBe('');
-  });
-
-  it('uses default expiry and upload size when env vars are absent', () => {
-    const config = callFactory();
-
-    expect(config.uploadExpiresSeconds).toBe(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS);
-    expect(config.maxUploadBytes).toBe(DEFAULT_COS_MAX_UPLOAD_BYTES);
-    // downloadExpiresSeconds falls back to DEFAULT_COS_UPLOAD_EXPIRY_SECONDS
-    expect(config.downloadExpiresSeconds).toBe(
-      DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-    );
+    // Non-sensitive defaults (region, expiries, max bytes) now live in the
+    // zod validation layer (`environment.validation.ts`); the factory passes
+    // raw env values through without fallback.
   });
 
   it('reads COS credentials and bucket info from env vars', () => {
@@ -86,17 +73,5 @@ describe('tencentCosConfig', () => {
     expect(config.uploadExpiresSeconds).toBe(120);
     expect(config.maxUploadBytes).toBe(5_242_880);
     expect(config.downloadExpiresSeconds).toBe(300);
-  });
-
-  it('uses upload expiry default for download when only upload env is set', () => {
-    process.env[EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS] = '180';
-
-    const config = callFactory();
-
-    expect(config.uploadExpiresSeconds).toBe(180);
-    // download still uses the constant default (not the env upload value)
-    expect(config.downloadExpiresSeconds).toBe(
-      DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-    );
   });
 });

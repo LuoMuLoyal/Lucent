@@ -1,7 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from '../env/config-keys.enum.js';
 import { EnvKey } from '../env/env-keys.enum.js';
-import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 /**
  * Parse a human-friendly TTL string (e.g. "15m", "14d", "2h") into seconds.
@@ -32,17 +31,12 @@ function parseTtl(raw: string | undefined, defaultSeconds: number): number {
 }
 
 export const jwtConfig = registerAs(ConfigKey.Jwt, () => {
-  const yaml = loadYamlConfig();
-
   return {
     accessSecret: process.env[EnvKey.JWT_ACCESS_SECRET] as string,
     refreshSecret: process.env[EnvKey.JWT_REFRESH_SECRET] as string,
-    accessTtl: parseTtl(process.env[EnvKey.JWT_ACCESS_TTL], yaml.jwt.accessTtl),
-    refreshTtl: parseTtl(
-      process.env[EnvKey.JWT_REFRESH_TTL],
-      yaml.jwt.refreshTtl,
-    ),
-    issuer: process.env[EnvKey.JWT_ISSUER] ?? 'lucent-api',
-    audience: process.env[EnvKey.JWT_AUDIENCE] ?? 'luminous-app',
+    accessTtl: parseTtl(process.env[EnvKey.JWT_ACCESS_TTL], 7200),
+    refreshTtl: parseTtl(process.env[EnvKey.JWT_REFRESH_TTL], 2592000),
+    issuer: process.env[EnvKey.JWT_ISSUER] ?? '',
+    audience: process.env[EnvKey.JWT_AUDIENCE] ?? '',
   };
 });

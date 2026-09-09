@@ -1,13 +1,4 @@
 import { EnvKey } from '../env/env-keys.enum.js';
-import {
-  DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS,
-  DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS,
-  DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT,
-  DEFAULT_MAIL_QUEUE_FAIL_AGE_SECONDS,
-  DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT,
-  DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS,
-  DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY,
-} from '../app-defaults.constants.js';
 import { mailConfig } from './mail.config.js';
 
 describe('mailConfig', () => {
@@ -49,18 +40,7 @@ describe('mailConfig', () => {
     return mailConfig()!;
   }
 
-  it('uses log driver and empty SMTP fields when env vars are absent', () => {
-    const config = callFactory();
-
-    expect(config.driver).toBe('log');
-    expect(config.host).toBe('smtp.example.com');
-    expect(config.port).toBe(587);
-    expect(config.user).toBe('');
-    expect(config.pass).toBe('');
-    expect(config.from).toBe('noreply@example.com');
-  });
-
-  it('reads SMTP connection fields from env vars', () => {
+  it('passes through env vars directly when set', () => {
     process.env[EnvKey.MAIL_DRIVER] = 'smtp';
     process.env[EnvKey.MAIL_HOST] = 'smtp.example.com';
     process.env[EnvKey.MAIL_PORT] = '465';
@@ -78,26 +58,17 @@ describe('mailConfig', () => {
     expect(config.from).toBe('no-reply@example.com');
   });
 
-  it('uses default queue settings when env vars are absent', () => {
+  it('returns undefined/NaN for non-sensitive fields when env vars are absent (defaults live in zod layer)', () => {
     const config = callFactory();
 
-    expect(config.queue.maxAttempts).toBe(DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS);
-    expect(config.queue.backoffDelayMs).toBe(
-      DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS,
-    );
-    expect(config.queue.workerConcurrency).toBe(
-      DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY,
-    );
-    expect(config.queue.completeAgeSeconds).toBe(
-      DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS,
-    );
-    expect(config.queue.failAgeSeconds).toBe(
-      DEFAULT_MAIL_QUEUE_FAIL_AGE_SECONDS,
-    );
-    expect(config.queue.completeMaxCount).toBe(
-      DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT,
-    );
-    expect(config.queue.failMaxCount).toBe(DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT);
+    // Without zod backfill, process.env has no value for these keys;
+    // the factory passes them through as-is.
+    expect(config.driver).toBeUndefined();
+    expect(config.host).toBe('');
+    expect(config.port).toBeNaN();
+    expect(config.user).toBe('');
+    expect(config.pass).toBe('');
+    expect(config.from).toBe('');
   });
 
   it('parses custom queue settings from env vars', () => {

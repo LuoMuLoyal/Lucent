@@ -1,7 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from '../env/config-keys.enum.js';
 import { EnvKey } from '../env/env-keys.enum.js';
-import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 function readOptionalEnv(key: EnvKey): string | null {
   const value = process.env[key]?.trim();
@@ -34,7 +33,6 @@ function buildRoleConfig(keys: {
   baseUrl: EnvKey;
   model: EnvKey;
   dimension?: EnvKey;
-  yamlDefaultDimension?: number;
 }): LlmRoleConfig {
   const config: LlmRoleConfig = {
     apiKey: readOptionalEnv(keys.apiKey),
@@ -45,8 +43,6 @@ function buildRoleConfig(keys: {
     const envVal = readOptionalNumericEnv(keys.dimension);
     if (envVal !== undefined) {
       config.dimension = envVal;
-    } else if (keys.yamlDefaultDimension !== undefined) {
-      config.dimension = keys.yamlDefaultDimension;
     }
   }
   return config;
@@ -60,8 +56,6 @@ function readOptionalNumericEnv(key: EnvKey): number | undefined {
 }
 
 export const llmConfig = registerAs(ConfigKey.Llm, (): LlmConfig => {
-  const yaml = loadYamlConfig();
-
   return {
     provider: readOptionalEnv(EnvKey.AI_PROVIDER),
     analysis: buildRoleConfig({
@@ -94,7 +88,6 @@ export const llmConfig = registerAs(ConfigKey.Llm, (): LlmConfig => {
       baseUrl: EnvKey.AI_EMBEDDING_BASE_URL,
       model: EnvKey.AI_EMBEDDING_MODEL,
       dimension: EnvKey.AI_EMBEDDING_DIMENSION,
-      yamlDefaultDimension: yaml.ai.embeddingDimension,
     }),
     safety: {
       forbiddenPatterns: readForbiddenPatterns(),

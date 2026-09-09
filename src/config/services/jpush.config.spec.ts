@@ -1,6 +1,6 @@
 import { ConfigKey } from '../env/config-keys.enum.js';
 import { EnvKey } from '../env/env-keys.enum.js';
-import { DEFAULT_JPUSH_API_BASE_URL, jpushConfig } from './jpush.config.js';
+import { jpushConfig } from './jpush.config.js';
 
 describe('jpushConfig', () => {
   const keys = [
@@ -32,12 +32,12 @@ describe('jpushConfig', () => {
     expect(jpushConfig.KEY).toContain(ConfigKey.Jpush);
   });
 
-  it('defaults to disabled credentials and the JPush API endpoint', () => {
+  it('defaults to disabled credentials and empty apiBaseUrl (defaults live in zod layer)', () => {
     expect(jpushConfig()).toEqual({
       appKey: '',
       masterSecret: '',
       apnsProduction: false,
-      apiBaseUrl: DEFAULT_JPUSH_API_BASE_URL,
+      apiBaseUrl: '',
     });
   });
 

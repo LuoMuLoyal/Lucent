@@ -52,8 +52,9 @@ describe('jwtConfig', () => {
 
     expect(config.accessTtl).toBe(DEFAULT_JWT_ACCESS_TTL_SECONDS);
     expect(config.refreshTtl).toBe(DEFAULT_JWT_REFRESH_TTL_SECONDS);
-    expect(config.issuer).toBe('lucent-api');
-    expect(config.audience).toBe('luminous-app');
+    // issuer/audience defaults now live in zod layer; factory passes through ''
+    expect(config.issuer).toBe('');
+    expect(config.audience).toBe('');
   });
 
   it('parses human-friendly TTL strings (s/m/h/d)', () => {

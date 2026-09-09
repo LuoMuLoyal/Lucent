@@ -1,8 +1,4 @@
 import { EnvKey } from '../env/env-keys.enum.js';
-import {
-  DEFAULT_COS_MAX_UPLOAD_BYTES,
-  DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-} from '../app-defaults.constants.js';
 import { s3StorageConfig } from './s3-storage.config.js';
 
 describe('s3StorageConfig', () => {
@@ -42,7 +38,7 @@ describe('s3StorageConfig', () => {
     return s3StorageConfig()!;
   }
 
-  it('returns empty strings for all fields when env vars are absent', () => {
+  it('returns empty strings for all fields when only optional endpoints are absent', () => {
     const config = callFactory();
 
     expect(config.endpoint).toBe('');
@@ -52,22 +48,9 @@ describe('s3StorageConfig', () => {
     expect(config.accessKey).toBe('');
     expect(config.secretKey).toBe('');
     expect(config.bucket).toBe('');
-  });
-
-  it('defaults region to us-east-1 when not set', () => {
-    const config = callFactory();
-
-    expect(config.region).toBe('us-east-1');
-  });
-
-  it('uses default expiry and upload size when env vars are absent', () => {
-    const config = callFactory();
-
-    expect(config.uploadExpiresSeconds).toBe(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS);
-    expect(config.maxUploadBytes).toBe(DEFAULT_COS_MAX_UPLOAD_BYTES);
-    expect(config.downloadExpiresSeconds).toBe(
-      DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
-    );
+    // Non-sensitive defaults now live in the zod validation layer
+    // (`environment.validation.ts`); the factory itself passes through
+    // raw env values without fallback.
   });
 
   it('reads S3 credentials and endpoints from env vars', () => {

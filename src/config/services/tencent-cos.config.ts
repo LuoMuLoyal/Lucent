@@ -1,7 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from '../env/config-keys.enum.js';
 import { EnvKey } from '../env/env-keys.enum.js';
-import { loadYamlConfig } from '../yaml/yaml-loader.js';
 
 export interface TencentCosConfig {
   secretId: string;
@@ -17,9 +16,6 @@ export interface TencentCosConfig {
 export const tencentCosConfig = registerAs(
   ConfigKey.TencentCos,
   (): TencentCosConfig => {
-    const yaml = loadYamlConfig();
-    const cos = yaml.storage.tencentCos;
-
     return {
       // Sensitive — from .env
       secretId: (process.env[EnvKey.TENCENT_COS_SECRET_ID] ?? '').trim(),
@@ -28,18 +24,13 @@ export const tencentCosConfig = registerAs(
       publicBaseUrl: (
         process.env[EnvKey.TENCENT_COS_PUBLIC_BASE_URL] ?? ''
       ).trim(),
-      // Non-sensitive — from YAML, overridable by env vars
-      region: (process.env[EnvKey.TENCENT_COS_REGION] ?? cos.region).trim(),
+      region: (process.env[EnvKey.TENCENT_COS_REGION] ?? '').trim(),
       uploadExpiresSeconds: Number(
-        process.env[EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS] ??
-          cos.uploadExpiresSeconds,
+        process.env[EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS],
       ),
-      maxUploadBytes: Number(
-        process.env[EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES] ?? cos.maxUploadBytes,
-      ),
+      maxUploadBytes: Number(process.env[EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]),
       downloadExpiresSeconds: Number(
-        process.env[EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS] ??
-          cos.downloadExpiresSeconds,
+        process.env[EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS],
       ),
     };
   },
