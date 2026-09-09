@@ -771,17 +771,20 @@ describe('Reports API (e2e)', () => {
     });
 
     it('should accept an unscoped (default-scope) export request', async () => {
-      // The queue is not configured in the test runtime, so this returns the
-      // synchronous fallback PDF — proving the default-scope branch is
-      // reachable instead of being rejected by the request DTO.
+      // With Redis configured the request is enqueued and returns `{ jobId }`;
+      // without Redis (or when enqueue fails) it falls back to the synchronous
+      // PDF and returns `{ pdfBase64 }`. Both are valid contract responses —
+      // the async path is exercised when the queue is available.
       const response = await request(app.getHttpServer())
         .post(CLINIC_EXPORT_ASYNC_PATH)
         .set('Authorization', bearer(accessToken))
         .expect(201);
 
-      const body = response.body as { pdfBase64?: string };
+      const body = response.body as { pdfBase64?: string; jobId?: string };
       const data = expectData(body);
-      expect(typeof data.pdfBase64).toBe('string');
+      expect(
+        typeof data.pdfBase64 === 'string' || typeof data.jobId === 'string',
+      ).toBe(true);
     });
 
     it('should export a scoped request synchronously with the scope honored', async () => {
