@@ -2,7 +2,6 @@ import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
 import {
   CONTENT_WIDTH,
@@ -18,6 +17,7 @@ import {
   drawPageDecorations,
   drawPageChrome,
   wrapText,
+  CJK_FONT_PATH,
 } from '../../../data-export/index.js';
 import type { ClinicSummaryOptions } from './summary.service.js';
 import { ClinicSummaryService } from './summary.service.js';
@@ -33,13 +33,6 @@ import {
   drawSleepSection,
   drawNotesSection,
 } from './record-drawers.js';
-
-// `require.resolve` is unavailable in ESM — createRequire keeps the ability to
-// resolve a package asset path inside node_modules.
-const nodeRequire = createRequire(import.meta.url);
-const FONT_PATH = nodeRequire.resolve(
-  '@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf',
-);
 
 @Injectable()
 export class ClinicSummaryPdfService {
@@ -79,7 +72,7 @@ export class ClinicSummaryPdfService {
 
     const pdf = await PDFDocument.create({ updateMetadata: false });
     pdf.registerFontkit(fontkit);
-    const fontBytes = await readFile(FONT_PATH);
+    const fontBytes = await readFile(CJK_FONT_PATH);
     const cjkFont = await pdf.embedFont(fontBytes, { subset: false });
 
     const title = isZh ? 'Lumos 就诊摘要' : 'Lumos Clinic Summary';
