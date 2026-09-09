@@ -671,6 +671,99 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
+  // ── Report endpoints (controller split regression guard) ────
+
+  describe('POST /api/v1/user/reports/clinic-summary/preview — contract', () => {
+    it('should match ClinicSummaryResponse shape', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/user/reports/clinic-summary/preview')
+        .set('Authorization', bearer(accessToken))
+        .send({})
+        .expect(201);
+
+      assertDirectResourceShape(res.body);
+
+      const schema = resolveRef(
+        spec,
+        '#/components/schemas/ClinicSummaryResponse',
+      );
+      assertRequiredProperties(res.body, schema, spec);
+
+      // Spot-check the shared summary envelope keys.
+      const body = res.body as Record<string, unknown>;
+      expect(body).toHaveProperty('generatedAt');
+      expect(body).toHaveProperty('coverage');
+      expect(body).toHaveProperty('disclaimer');
+    });
+  });
+
+  describe('GET /api/v1/user/reports/clinic-summary/shares — contract', () => {
+    it('should match ClinicSummaryShareListResponse shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/reports/clinic-summary/shares')
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertDirectResourceShape(res.body);
+
+      const schema = resolveRef(
+        spec,
+        '#/components/schemas/ClinicSummaryShareListResponse',
+      );
+      assertRequiredProperties(res.body, schema, spec);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['items']).toBeDefined();
+      expect(Array.isArray(body['items'])).toBe(true);
+    });
+  });
+
+  describe('GET /api/v1/user/reports/reviews/current — contract', () => {
+    it('should match EventReviewData shape (or null for a user without a review)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/reports/reviews/current')
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      // The schema is `eventReviewDataSchema.nullable()` — null is a valid
+      // success payload when the user has no review.
+      expect(res.body === null || typeof res.body === 'object').toBe(true);
+
+      if (res.body !== null) {
+        const schema = resolveRef(spec, '#/components/schemas/EventReviewData');
+        assertRequiredProperties(res.body, schema, spec);
+
+        const body = res.body as Record<string, unknown>;
+        expect(body).toHaveProperty('event');
+        expect(body).toHaveProperty('sections');
+        expect(body).toHaveProperty('coverage');
+        expect(body).toHaveProperty('availableActions');
+      }
+    });
+  });
+
+  describe('GET /api/v1/user/reports/reviews — contract', () => {
+    it('should match EventReviewListResponse shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/reports/reviews')
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertDirectResourceShape(res.body);
+
+      const schema = resolveRef(
+        spec,
+        '#/components/schemas/EventReviewListResponse',
+      );
+      assertRequiredProperties(res.body, schema, spec);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['items']).toBeDefined();
+      expect(body['total']).toBeDefined();
+      expect(body['nextCursor']).toBeDefined();
+    });
+  });
+
   // ── Problem Details error contract ─────────────────────────
 
   describe('Error responses — contract', () => {
