@@ -190,6 +190,27 @@ only after at least one of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, or
 `TENCENT_COS_BUCKET` is set; from that point, all of `TENCENT_COS_SECRET_ID`,
 `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set together.
 
+Aliyun OSS dedicated SDK (provider: `ali-oss`) — set `STORAGE_PROVIDER=ali-oss` to use:
+
+```text
+STORAGE_PROVIDER=ali-oss
+ALIYUN_OSS_ACCESS_KEY_ID
+ALIYUN_OSS_ACCESS_KEY_SECRET
+ALIYUN_OSS_BUCKET
+ALIYUN_OSS_REGION
+ALIYUN_OSS_ENDPOINT            # optional; defaults to the region's standard endpoint
+ALIYUN_OSS_PUBLIC_BASE_URL
+ALIYUN_OSS_UPLOAD_EXPIRES_SECONDS
+ALIYUN_OSS_MAX_UPLOAD_BYTES
+ALIYUN_OSS_DOWNLOAD_EXPIRES_SECONDS
+```
+
+`ALIYUN_OSS_REGION` defaults to `oss-cn-hangzhou`; `ALIYUN_OSS_ENDPOINT` is optional and, when
+set, overrides the region-derived endpoint (use for custom domains / VPC). OSS is treated as
+truly configured only after `ALIYUN_OSS_ACCESS_KEY_ID`, `ALIYUN_OSS_ACCESS_KEY_SECRET`, and
+`ALIYUN_OSS_BUCKET` are all set. Like COS, OSS signed URLs are not audience-specific: the
+external audience (e.g. meal-analysis vision model) receives the same URL as the client.
+
 S3-compatible object storage (dev: SeaweedFS) — set `STORAGE_PROVIDER=s3` to use:
 
 ```text
