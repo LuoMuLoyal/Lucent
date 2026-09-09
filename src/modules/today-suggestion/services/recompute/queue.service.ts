@@ -19,7 +19,9 @@ export interface RecomputeJobData {
 }
 
 export function buildRecomputeJobId(userId: string, localDate: string): string {
-  return `${RECOMPUTE_QUEUE_NAME}:${userId}:${localDate}`;
+  // BullMQ rejects custom job IDs containing ':' (Job.validateOptions), so use
+  // '-' as the segment separator.
+  return `${RECOMPUTE_QUEUE_NAME}-${userId}-${localDate}`;
 }
 
 @Injectable()

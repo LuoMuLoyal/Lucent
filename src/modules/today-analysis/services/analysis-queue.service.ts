@@ -28,7 +28,9 @@ export function buildTodayAnalysisJobId(
   date: string,
   sourceVersion: number,
 ): string {
-  return `${TODAY_ANALYSIS_QUEUE_NAME}:${userId}:${date}:${String(sourceVersion)}`;
+  // BullMQ rejects custom job IDs containing ':' (Job.validateOptions), so use
+  // '-' as the segment separator.
+  return `${TODAY_ANALYSIS_QUEUE_NAME}-${userId}-${date}-${String(sourceVersion)}`;
 }
 
 /**

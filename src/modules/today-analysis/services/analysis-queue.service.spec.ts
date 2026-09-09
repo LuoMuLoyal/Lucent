@@ -121,7 +121,7 @@ describe('TodayAnalysisQueueService', () => {
         triggerKey: 'dose-log:d1',
       },
       expect.objectContaining({
-        jobId: 'today-analysis:u1:2026-07-14:7',
+        jobId: 'today-analysis-u1-2026-07-14-7',
       }),
     );
   });
@@ -144,7 +144,7 @@ describe('TodayAnalysisQueueService', () => {
         sourceVersion: 7,
       }),
       expect.objectContaining({
-        jobId: 'today-analysis:u1:2026-08-02:7',
+        jobId: 'today-analysis-u1-2026-08-02-7',
       }),
     );
   });
