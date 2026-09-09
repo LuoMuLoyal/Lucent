@@ -39,14 +39,46 @@ updated: 2026-09-09
    卷已挂载;生产 grafana 的 provisioning/dashboards 从 compose 相对路径挂载。
 6. 点击 **Deploy**,确认 postgres/redis 先健康、app 再启动。
 
-## 二、日常发布(staging / production 相同)
+### 配置 staging 自动部署(Coolify webhook)
 
-镜像由 GitHub Actions 推送到发布者自有镜像仓库(仓库名经 GitHub secret
-`REGISTRY_IMAGE` 注入,值如 `docker.io/<你的用户名>/lucent`),不需要任何
-SSH 部署脚本:
+staging 在 Coolify 侧须同时注册为 **Application** 资源(用于 webhook
+触发自动部署),Application 的部署来源指向你构建好的 Docker Hub 镜像:
 
-1. 合并 main;`lucent-staging` 自动构建推送;生产手动触发
-   `lucent-production`(`workflow_dispatch`)。
+1. 在 staging 项目下新建 **Resource → Public Repository** 或 **Dockerfile**
+   类型的 Application,设置:
+   - **Docker Registry Image**: 填 `REGISTRY_IMAGE` 的值(如 `docker.io/<你的用户名>/lucent`),
+     拉取 `latest` tag 进行部署。
+   - **Base Directory**: `/`(或 Dockerfile 所在子目录)。
+   - **Pre-deployment command**: `node_modules/.bin/prisma migrate deploy`
+     (容器名填 app 容器名,如 `app`;见 [migration 讨论](../reference/deployment.md))。
+   - **Port**: `3000`。
+   - **域名**: 与 Docker Compose Service 的 staging app 域名一致(或用同一个
+     域名;两者指向同一个 container,选一个入口即可)。
+2. 进入该 Application → **Settings → Webhooks**,复制 **Deploy Webhook URL**:
+   ```
+   https://<coolify-domain>/api/v1/deploy?uuid=<app-uuid>&force=false
+   ```
+3. 在 GitHub 仓库 **Settings → Secrets and variables → Actions** 添加:
+   - `COOLIFY_STAGING_WEBHOOK`: 粘贴上一步的完整 URL(含 `uuid` 与 `force` 参数)。
+
+完成后,`lucent-staging` workflow 在 CI 通过并推送镜像后,会自动 `curl -fsS -X POST`
+触发该 webhook,无需手动到面板操作。
+
+## 二、日常发布
+
+### staging(自动)
+
+1. 合并 main → `lucent-ci` 校验 → `lucent-staging` 自动构建并推送镜像(
+   `<sha8>` + `latest`),然后自动调用 Coolify webhook 触发 staging 部署。
+2. 有 schema 变更时,确认 staging 的 Pre-deployment command 已配置
+   `node_modules/.bin/prisma migrate deploy`;webhook 触发的部署会在切
+   新容器前自动执行迁移。
+3. 验证:`curl https://<staging-domain>/api/v1/health/deep`。
+
+### production(手动)
+
+1. 手动触发 `lucent-production`(`workflow_dispatch`,main 分支)
+   构建并推送镜像(仅 `<sha8>`。
 2. 在 Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的完整引用。
 3. **Pull Latest Images & Restart**(拉新镜像并重建)。
 4. 有 schema 变更时,先执行一次迁移:

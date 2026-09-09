@@ -93,21 +93,27 @@ GitHub (CI/CD)                              Coolify 控制面
     `DEPLOY_*` 已废弃);
   - `REGISTRY_IMAGE` — 发布镜像仓库引用,如 `docker.io/<你的用户名>/lucent`
     或 `<你的用户名>/lucent`(公开仓库,被管服务器拉取无需凭据;值存于
-    GitHub secret,不进代码)。
+    GitHub secret,不进代码);
+  - `COOLIFY_STAGING_WEBHOOK` — staging 部署 webhook 完整 URL
+    (Application 资源,格式 `https://<coolify>/api/v1/deploy?uuid=<app-uuid>&force=false`,
+    在 Coolify 面板 Application → Settings → Webhooks 复制;值存于 GitHub secret,
+    不进代码)。缺失时 staging workflow 会跳过自动部署并打 warning,不阻断。
 
 ## 镜像 tag 策略
 
-- CD 对 `${{ secrets.REGISTRY_IMAGE }}` 推两个 tag:`<git sha 前 8 位>`
-  (不可变,回滚锚点)与 `latest`。
+- **staging** 对 `${{ secrets.REGISTRY_IMAGE }}` 推两个 tag:`<git sha 前 8 位>`
+  (不可变)与 `latest`(供 staging 试验/快速拉新)。
+- **production** 只推 `<git sha 前 8 位>`,**不推 `latest`** —— 避免两个环境
+  互相覆盖 `latest` 造成竞态;`latest` 专供 staging 语义,不用于生产。
 - compose 的 `LUCENT_IMAGE` 填完整引用 `<你的用户名>/lucent:<短 sha>`;
   **生产发布固定短 sha**(Coolify 面板里维护),回滚 = 把 `LUCENT_IMAGE`
   改回旧短 sha 的完整引用再重启,天然可回退。
-- `latest` 仅供 staging 试验/快速拉新,不用于生产语义。
 
 ## 发布与迁移
 
-1. 合并 main → `lucent-ci` 校验;`lucent-staging` 构建并推送镜像(staging 面板
-   手动 pull 生效,也可接 Coolify 部署 webhook 自动化)。
+1. 合并 main → `lucent-ci` 校验;`lucent-staging` 构建并推送镜像后
+   **自动调用 Coolify 部署 webhook** 触发 staging 部署(webhook URL 存于
+   GitHub secret `COOLIFY_STAGING_WEBHOOK`,见 `docs/howto/deploy.md` 配置)。
 2. 生产:手动触发 `lucent-production`(`workflow_dispatch`,main)构建推送。
 3. 更新环境:把服务的 `LUCENT_IMAGE` 改为含新短 sha 的完整引用 → Coolify 面板
    **Pull Latest Images & Restart**(或对 compose 资源执行重启)。

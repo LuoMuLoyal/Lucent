@@ -2,14 +2,6 @@ name: lucent-production
 
 on:
   workflow_dispatch:
-    inputs:
-      action:
-        description: 'Build & push production image'
-        required: true
-        default: 'deploy'
-        type: choice
-        options:
-          - deploy
 
 concurrency:
   group: lucent-production-image
@@ -25,9 +17,7 @@ jobs:
     name: Build & push production image
     runs-on: ubuntu-latest
     environment: production
-    if: |
-      github.event_name == 'workflow_dispatch' &&
-      github.ref_name == 'main'
+    if: github.ref_name == 'main'
     permissions:
       contents: read
     steps:
@@ -60,6 +50,8 @@ jobs:
           set -euo pipefail
           echo "image_tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
 
+      # 生产只推不可变的 <sha8> 作为回滚锚点;latest 专供 staging 试验,
+      # 生产不推 latest,避免两个环境互相覆盖 latest 造成竞态。
       - name: Build and push Lucent image
         uses: docker/build-push-action@v6
         with:
@@ -73,4 +65,3 @@ jobs:
           cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY_IMAGE }}:${{ steps.image.outputs.image_tag }}
-            ${{ env.REGISTRY_IMAGE }}:latest

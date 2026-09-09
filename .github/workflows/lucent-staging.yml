@@ -83,3 +83,22 @@ jobs:
           tags: |
             ${{ env.REGISTRY_IMAGE }}:${{ steps.image.outputs.image_tag }}
             ${{ env.REGISTRY_IMAGE }}:latest
+
+      # CI 通过后自动部署 staging:调 Coolify 部署 webhook(Application 资源)。
+      # webhook URL 完整存放在 GitHub secret `COOLIFY_STAGING_WEBHOOK`,格式:
+      #   https://<coolify>/api/v1/deploy?uuid=<app-uuid>&force=false
+      # force=false 时 Coolify 会跳过与当前运行镜像相同的部署;
+      # 需要强制重建时把 secret 里的 force 改成 true。
+      # 注意:webhook 是 Application 专属,Coolify 侧须把 staging 注册为
+      # Application(Dockerfile build pack),而非 Docker Compose Service。
+      - name: Trigger Coolify staging deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$COOLIFY_STAGING_WEBHOOK" ]; then
+            echo "::warning::COOLIFY_STAGING_WEBHOOK secret not configured — skipped automatic deployment to Coolify staging."
+            exit 0
+          fi
+          curl -fsS -X POST "$COOLIFY_STAGING_WEBHOOK"
+        env:
+          COOLIFY_STAGING_WEBHOOK: ${{ secrets.COOLIFY_STAGING_WEBHOOK }}
