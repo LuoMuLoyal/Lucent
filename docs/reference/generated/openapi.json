@@ -17834,7 +17834,7 @@
             "nullable": true,
             "type": "string",
             "maxLength": 50,
-            "description": "Storage provider (e.g. tencent-cos, s3)."
+            "description": "Storage provider (e.g. tencent-cos, s3, ali-oss)."
           },
           "fileName": {
             "nullable": true,
@@ -17902,7 +17902,7 @@
             "nullable": true,
             "type": "string",
             "maxLength": 50,
-            "description": "Storage provider (e.g. tencent-cos, s3)."
+            "description": "Storage provider (e.g. tencent-cos, s3, ali-oss)."
           },
           "fileName": {
             "nullable": true,
