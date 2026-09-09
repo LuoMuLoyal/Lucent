@@ -21,7 +21,6 @@ COPY prisma.config.ts ./prisma.config.ts
 COPY tsconfig.json tsconfig.build.json .swcrc nest-cli.json ./
 COPY scripts ./scripts
 COPY src ./src
-COPY config ./config
 # 生成 Prisma Client（输出到 generated/prisma，由 schema.prisma output 字段决定）
 # 使用 pnpm prisma:generate 而非直接 prisma generate：prisma 7 的 prisma-client
 # provider 只生成 .ts 文件，prisma:generate 脚本会额外运行 fix-generated-prisma-internal.ts
