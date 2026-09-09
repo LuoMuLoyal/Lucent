@@ -50,12 +50,18 @@ const httpUrl = z
 
 // ── Schema ──────────────────────────────────────────────────────────
 //
-// Only sensitive values, start selectors, and values that must be in
-// process.env are validated here. Non-sensitive runtime configuration
-// is validated by the YAML loader's Zod schema (yaml-loader.ts).
+// This schema is the single source of truth for every environment key:
+// type coercion (z.coerce), validation, and — for non-sensitive keys —
+// the runtime default via `.default()`. Sensitive values stay in
+// `process.env` / `.env.*` and are validated without defaults.
 //
-// Keys that have been migrated to YAML but might still appear in .env
-// during the compatibility period are allowed as optional strings —
+// `ConfigModule.forRoot({ validationSchema: validatedEnvSchema })` runs
+// this schema at startup; @nestjs/config writes the validated result
+// (including applied defaults) back into `process.env`, so config
+// services and business consumers read defaults through
+// `configService.get(EnvKey.X)` with no inline fallback needed.
+//
+// Keys that might still appear in .env are allowed as optional strings —
 // they are ignored by the application and will be removed in Phase 3.
 
 const envSchema = z.object({
@@ -74,15 +80,40 @@ const envSchema = z.object({
   [EnvKey.OTEL_EXPORTER_OTLP_ENDPOINT]: optionalEmptyUri,
   [EnvKey.VICTORIALOGS_URL]: optionalEmptyUri,
 
+  // ── App (non-sensitive, defaults below) ─────────────────────────
+  [EnvKey.HOST]: z.string().default('0.0.0.0'),
+  [EnvKey.PORT]: z.coerce.number().int().min(1).default(3000),
+  [EnvKey.CORS_ORIGIN]: z.string().default(''),
+  [EnvKey.PUBLIC_BASE_URL]: z.string().default('http://localhost:3000'),
+
+  // ── Logging / observability (non-sensitive, defaults below) ────
+  [EnvKey.LOG_LEVEL]: z
+    .enum(['error', 'warn', 'info', 'debug', 'verbose'])
+    .default('debug'),
+  [EnvKey.LOG_FORMAT]: z.enum(['pretty', 'json']).default('pretty'),
+  [EnvKey.SLOW_REQUEST_THRESHOLD_MS]: z.coerce
+    .number()
+    .int()
+    .min(10)
+    .default(2000),
+  [EnvKey.SLOW_QUERY_THRESHOLD_MS]: z.coerce
+    .number()
+    .int()
+    .min(10)
+    .default(500),
+  [EnvKey.METRICS_ENABLED]: z.enum(['true', 'false']).default('true'),
+
   // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,
   [EnvKey.REDIS_URL]: redisUrl,
 
-  // ── JWT secrets (sensitive, in .env) ─────────────────────────────
+  // ── JWT (secrets in .env; TTLs non-sensitive with defaults) ─────
   [EnvKey.JWT_ACCESS_SECRET]: z.string().min(32),
   [EnvKey.JWT_REFRESH_SECRET]: z.string().min(32),
-  [EnvKey.JWT_ISSUER]: optionalString,
-  [EnvKey.JWT_AUDIENCE]: optionalString,
+  [EnvKey.JWT_ACCESS_TTL]: z.string().default('7200'),
+  [EnvKey.JWT_REFRESH_TTL]: z.string().default('2592000'),
+  [EnvKey.JWT_ISSUER]: z.string().default('lucent-api'),
+  [EnvKey.JWT_AUDIENCE]: z.string().default('luminous-app'),
 
   // ── Better Auth (sensitive, in .env) ─────────────────────────────
   [EnvKey.BETTER_AUTH_SECRET]: z.string().min(32),
@@ -93,7 +124,7 @@ const envSchema = z.object({
   [EnvKey.ADMIN_PASSWORD]: z.string().min(8),
   [EnvKey.ADMIN_COOKIE_SECRET]: z.string().min(32),
 
-  // ── AI provider (secrets in .env, non-sensitive in YAML) ─────────
+  // ── AI provider (secrets in .env; base URL/model also via env) ────
   [EnvKey.AI_PROVIDER]: z.enum(['openai-compatible', '']).optional(),
   [EnvKey.AI_ANALYSIS_API_KEY]: optionalString,
   [EnvKey.AI_ANALYSIS_BASE_URL]: optionalUri,
@@ -113,11 +144,58 @@ const envSchema = z.object({
   [EnvKey.AI_EMBEDDING_API_KEY]: optionalString,
   [EnvKey.AI_EMBEDDING_BASE_URL]: optionalUri,
   [EnvKey.AI_EMBEDDING_MODEL]: optionalString,
+  [EnvKey.AI_EMBEDDING_DIMENSION]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(4096)
+    .default(1536),
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]: optionalString,
 
-  // ── Mail credentials (sensitive, in .env) ───────────────────────
+  // ── Mail (driver/host/port/from non-sensitive; user/pass sensitive) ──
+  [EnvKey.MAIL_DRIVER]: z.enum(['log', 'smtp']).default('log'),
+  [EnvKey.MAIL_HOST]: z.string().default('smtp.example.com'),
+  [EnvKey.MAIL_PORT]: z.coerce.number().int().min(1).default(587),
+  [EnvKey.MAIL_FROM]: z.string().default('noreply@example.com'),
   [EnvKey.MAIL_USER]: optionalString,
   [EnvKey.MAIL_PASS]: optionalString,
+  [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .default(3),
+  [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]: z.coerce
+    .number()
+    .int()
+    .min(100)
+    .default(5000),
+  [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(3),
+  [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(86400),
+  [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(604800),
+  [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1000),
+  [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(5000),
 
   // ── OAuth provider credentials (sensitive, in .env) ─────────────
   [EnvKey.WECHAT_WEB_APP_ID]: optionalString,
@@ -140,19 +218,61 @@ const envSchema = z.object({
   [EnvKey.GOOGLE_CLIENT_SECRET]: optionalString,
   [EnvKey.GOOGLE_REDIRECT_URI]: optionalUri,
 
-  // ── Tencent COS credentials (sensitive, in .env) ────────────────
+  // ── Tencent COS (secrets in .env; region/expiry non-sensitive defaults) ──
   [EnvKey.TENCENT_COS_SECRET_ID]: optionalString,
   [EnvKey.TENCENT_COS_SECRET_KEY]: optionalString,
   [EnvKey.TENCENT_COS_BUCKET]: optionalString,
   [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]: httpUrl,
+  [EnvKey.TENCENT_COS_REGION]: z.string().default('ap-guangzhou'),
+  [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(600),
+  [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(10485760),
+  [EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(600),
 
-  // ── S3 storage credentials (sensitive, in .env) ─────────────────
+  // ── Storage provider selection ──────────────────────────────────
+  [EnvKey.STORAGE_PROVIDER]: z.enum(['s3', 'tencent-cos']).default('s3'),
+
+  // ── S3 storage (secrets in .env; endpoint/region/expiry defaults) ──
+  [EnvKey.STORAGE_S3_ENDPOINT]: z.string().default(''),
+  [EnvKey.STORAGE_S3_CLIENT_ENDPOINT]: z.string().default(''),
+  [EnvKey.STORAGE_S3_EXTERNAL_ENDPOINT]: z.string().default(''),
+  [EnvKey.STORAGE_S3_PUBLIC_BASE_URL]: z.string().default(''),
   [EnvKey.STORAGE_S3_ACCESS_KEY]: optionalString,
   [EnvKey.STORAGE_S3_SECRET_KEY]: optionalString,
+  [EnvKey.STORAGE_S3_BUCKET]: z.string().default(''),
+  [EnvKey.STORAGE_S3_REGION]: z.string().default('us-east-1'),
+  [EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(600),
+  [EnvKey.STORAGE_S3_MAX_UPLOAD_BYTES]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(10485760),
+  [EnvKey.STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(600),
 
-  // ── JPush credentials (sensitive, in .env) ──────────────────────
+  // ── JPush (secrets in .env; apns/apiBaseUrl non-sensitive defaults) ──
   [EnvKey.JPUSH_APP_KEY]: optionalString,
   [EnvKey.JPUSH_MASTER_SECRET]: optionalString,
+  [EnvKey.JPUSH_APNS_PRODUCTION]: z.enum(['true', 'false']).default('false'),
+  [EnvKey.JPUSH_API_BASE_URL]: z.string().default('https://api.jpush.cn'),
 
   // ── Metrics auth (sensitive, in .env) ────────────────────────────
   [EnvKey.METRICS_USER]: optionalString,
@@ -161,11 +281,84 @@ const envSchema = z.object({
   // ── Testing (sensitive, in .env) ────────────────────────────────
   [EnvKey.TESTING_SHARED_SECRET]: optionalString,
 
-  // ── Client operations (in .env, will migrate to YAML in Phase 2) ─
+  // ── Client operations (in .env) ─────────────────────────────────
   [EnvKey.SUPPORT_EMAIL]: z.email().optional(),
   [EnvKey.MIN_CLIENT_VERSION]: optionalString,
   [EnvKey.LATEST_VERSION]: optionalString,
   [EnvKey.DOWNLOAD_URL]: optionalString,
+
+  // ── Meal analysis thresholds (non-sensitive, defaults) ──────────
+  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(10000)
+    .default(100),
+  [EnvKey.MEAL_SMALL_PORTION_GRAMS]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(10000)
+    .default(30),
+  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(500)
+    .default(20),
+  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(500)
+    .default(20),
+  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(500)
+    .default(20),
+
+  // ── Fuzzy matching (non-sensitive, defaults) ────────────────────
+  [EnvKey.FUZZY_ACCEPT_SCORE]: z.coerce.number().min(0).max(1).default(0.7),
+  [EnvKey.FUZZY_MIN_LEAD]: z.coerce.number().min(0).max(1).default(0.1),
+  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .default(1),
+
+  // ── Verification codes (non-sensitive, defaults) ────────────────
+  [EnvKey.VERIFICATION_CODE_TTL_MS]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(300000),
+  [EnvKey.VERIFICATION_COOLDOWN_MS]: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .default(60000),
+  [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(600000),
+  [EnvKey.VERIFICATION_RATE_LIMIT_MAX]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(20),
+  [EnvKey.VERIFICATION_CODE_LENGTH]: z.coerce
+    .number()
+    .int()
+    .min(4)
+    .max(10)
+    .default(6),
+
+  // ── OAuth state TTL (non-sensitive, default) ────────────────────
+  [EnvKey.OAUTH_STATE_TTL_MS]: z.coerce.number().int().min(1).default(600000),
 });
 
 /** Strongly typed shape of validated environment variables. */
@@ -257,8 +450,8 @@ const AI_ROLE_GROUPS = [
  * Validates a raw environment object against the project schema.
  *
  * Only validates sensitive values and start selectors that remain in
- * `process.env`. Non-sensitive runtime configuration is validated by
- * the YAML loader.
+ * `process.env`. Non-sensitive runtime configuration is read directly
+ * from `process.env` by the config services with hardcoded defaults.
  *
  * Thin wrapper around {@link validatedEnvSchema} that keeps the
  * historical `Environment validation failed: ...` error format for
@@ -299,7 +492,7 @@ function assertProductionEnvironment(
     EnvKey.ADMIN_EMAIL,
     EnvKey.ADMIN_PASSWORD,
     EnvKey.ADMIN_COOKIE_SECRET,
-  ].filter((key) => !config[key as keyof EnvironmentVariables]);
+  ].filter((key) => !config[key]);
 
   if (missingKeys.length > 0) {
     report(
