@@ -211,7 +211,7 @@ truly configured only after `ALIYUN_OSS_ACCESS_KEY_ID`, `ALIYUN_OSS_ACCESS_KEY_S
 `ALIYUN_OSS_BUCKET` are all set. Like COS, OSS signed URLs are not audience-specific: the
 external audience (e.g. meal-analysis vision model) receives the same URL as the client.
 
-S3-compatible object storage (dev: SeaweedFS) — set `STORAGE_PROVIDER=s3` to use:
+S3-compatible object storage (dev: SeaweedFS / staging: 七牛云 Kodo S3 兼容) — set `STORAGE_PROVIDER=s3` to use:
 
 ```text
 STORAGE_PROVIDER=s3
@@ -233,6 +233,11 @@ STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS
 `STORAGE_S3_CLIENT_ENDPOINT` defaults to `STORAGE_S3_ENDPOINT` when empty.
 `STORAGE_S3_EXTERNAL_ENDPOINT` is optional; when absent, requests for external-audience URLs
 (e.g. meal-analysis vision model) will fail with a clear configuration error.
+
+七牛云 Kodo 走 S3 兼容接口时，endpoint 格式为 `https://s3.<region>.qiniucs.com`（如
+`cn-east-1` → `https://s3.cn-east-1.qiniucs.com`），`region` 字段对应七牛区域 ID
+（`cn-east-1` / `cn-north-1` 等）。七牛原生 SDK 不支持 presigned PUT URL（其上传模型
+是 uploadToken + 表单 POST），但 S3 兼容层支持 presigned PUT，与现有客户端直传契约兼容。
 
 Mail:
 
