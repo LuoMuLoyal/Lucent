@@ -113,7 +113,7 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-08-17
 - [0015](0015-config-yaml-coexistence.md)
   - Title: .env → .env + YAML Configuration Coexistence
-  - Status: accepted
+  - Status: superseded by 0018
   - Date: 2026-08-24
 - [0016](0016-observability-victoria-migration.md)
   - Title: Observability Stack Migration — VictoriaMetrics + VictoriaLogs + VictoriaTraces
@@ -123,3 +123,7 @@ What becomes easier or harder as a result of this decision?
   - Title: Coolify 部署模型(仓库 compose + Docker Hub 镜像)
   - Status: accepted
   - Date: 2026-09-08
+- [0018](0018-config-env-only.md)
+  - Title: 配置文件回退纯环境变量(YAML 层退役)
+  - Status: accepted
+  - Date: 2026-09-09

@@ -44,10 +44,8 @@ WORKDIR /app
 RUN addgroup -S lucent && adduser -S lucent -G lucent
 # 生产依赖（已 prune）
 COPY --from=builder /app/node_modules ./node_modules
-# 编译产物（含 dist/i18n/ 翻译文件 + dist/config/ YAML 配置）
+# 编译产物（含 dist/i18n/ 翻译文件）
 COPY --from=builder /app/dist ./dist
-# YAML 配置文件（生产镜像运行时需要）
-COPY config ./config
 # Prisma 生成的客户端（schema.prisma output = ../generated/prisma，即仓库根 generated/）
 # package.json imports 字段 "#generated/*": "./generated/*" 依赖此路径
 COPY --from=builder /app/generated/prisma ./generated/prisma

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { yamlConfigFactory } from './config/yaml/yaml-loader.js';
 import { RouterModule } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { buildThrottlerOptions } from './config/services/throttler.config.js';
@@ -80,7 +79,6 @@ const isTestRuntime =
       isGlobal: true,
       envFilePath: getEnvFilePaths(),
       load: [
-        yamlConfigFactory,
         appConfig,
         llmConfig,
         jwtConfig,

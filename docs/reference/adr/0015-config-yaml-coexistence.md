@@ -1,8 +1,11 @@
 # ADR-0015: .env → .env + YAML Configuration Coexistence
 
-- **Status**: accepted
+- **Status**: superseded by [0018](0018-config-env-only.md)
 - **Date**: 2026-08-24
 - **Deciders**: LuoMuLoyal
+
+> **2026-09-09 注**:该决策已被 [0018](0018-config-env-only.md) 取代,YAML 配置层整体退役,
+> 全部配置回退环境变量。
 
 ## Context
 

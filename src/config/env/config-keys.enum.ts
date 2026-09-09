@@ -27,7 +27,4 @@ export enum ConfigKey {
 
   /** JPush notification configuration */
   Jpush = 'jpush',
-
-  /** YAML non-sensitive runtime configuration (from config/*.yaml) */
-  Yaml = 'yaml',
 }

@@ -133,7 +133,6 @@ export default tseslint.config(
       'src/common/helpers/infra/retry.utils.ts',
       'src/common/queue/queue.factory.ts',
       'src/config/env/environment.validation.ts',
-      'src/config/yaml/yaml-loader.ts',
       'src/mail/mail-transport.service.ts',
       'src/modules/assistant/agent/runtime.service.ts',
       'src/modules/assistant/agent/runtime/model-stream.ts',

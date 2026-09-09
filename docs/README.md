@@ -18,7 +18,7 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 ## 存活文档
 
 - [reference/glossary.md](reference/glossary.md) — 术语单一来源
-- [reference/environment-variables.md](reference/environment-variables.md) — 环境变量完整参考;本地环境、YAML 配置与运行时基线也在此文件
+- [reference/environment-variables.md](reference/environment-variables.md) — 环境变量完整参考;本地环境与运行时基线也在此文件
 - [reference/deployment.md](reference/deployment.md) — 生产部署模型参考(Coolify + 仓库 compose + Docker Hub 镜像,指标栈保留、告警/备份未启用)
 - [reference/data-retention.md](reference/data-retention.md) — 数据保留、清理管道与账户删除级联
 - [reference/assistant-safety.md](reference/assistant-safety.md) — 跨模块 AI 医疗红线与安全策略
