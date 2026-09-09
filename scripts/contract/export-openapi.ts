@@ -439,11 +439,13 @@ async function main() {
   // reform lookup (AIP-190/136). Falls back to the legacy form when unmapped so
   // a checkout without the lookup assets still exports.
   const seenOperationIds = new Set<string>();
+  const seenControllerKeys = new Set<string>();
   const operationIdFactory = (
     controllerKey: string,
     methodKey: string,
     version?: string,
   ): string => {
+    seenControllerKeys.add(controllerKey);
     const key = controllerKey + '_' + methodKey;
     const mapped = lookup.methodByKey[key] ?? key;
     if (mapped === key && Object.keys(lookup.methodByKey).length > 0) {
@@ -452,11 +454,7 @@ async function main() {
     }
     if (seenOperationIds.has(mapped)) {
       throw new Error(
-        '[openapi-export] duplicate operationId after naming mapping: ' +
-          mapped +
-          ' (from ' +
-          key +
-          '). The naming lookup in plans/_naming-lookup.json is inconsistent.',
+        `[openapi-export] duplicate operationId after naming mapping: '${mapped}' (from '${key}'). The naming lookup in plans/_naming-lookup.json is inconsistent.`,
       );
     }
     seenOperationIds.add(mapped);
@@ -481,6 +479,25 @@ async function main() {
       ],
     },
   );
+
+  // Naming lookup prefix guard: every key prefix in plans/_naming-lookup.json
+  // must correspond to a controller that Swagger actually introspected.
+  // Stale prefixes (leftover after a controller rename/split) silently fall
+  // back to the legacy `Controller_method` shape — this guard surfaces them.
+  if (Object.keys(lookup.methodByKey).length > 0) {
+    const lookupPrefixes = new Set(
+      Object.keys(lookup.methodByKey).map((k) => k.split('_')[0]!),
+    );
+    const stalePrefixes = [...lookupPrefixes].filter(
+      (p) => !seenControllerKeys.has(p),
+    );
+    for (const prefix of stalePrefixes) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[openapi-export] naming lookup prefix '${prefix}' does not match any registered controller — plans/_naming-lookup.json may be stale`,
+      );
+    }
+  }
 
   // Inject registered response schemas (Standard Schema / zod) as named
   // components and point their operations at the `$ref`, since Swagger does
