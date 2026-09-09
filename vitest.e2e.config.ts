@@ -32,7 +32,7 @@ export default defineConfig({
     pool: 'forks',
     singleFork: true,
     // Fastify 插件注册比 Express 慢，需要更长的超时
-    hookTimeout: 30_000,
+    hookTimeout: 60_000,
     testTimeout: 15_000,
     // E2E 不收集覆盖率
     coverage: { enabled: false },
