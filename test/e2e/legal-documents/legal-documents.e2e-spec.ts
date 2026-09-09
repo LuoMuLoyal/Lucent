@@ -1,9 +1,19 @@
 import request from 'supertest';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 import { createTestApp, expectData } from '../../helpers/e2e-helpers.js';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
 
 const BASE_PATH = '/api/v1/legal-documents';
+
+// Cache keys mirror LegalDocumentsService prefix + resolved language
+// (LegalDocumentsService.resolveLang produces only 'zh' or 'en'). Earlier e2e
+// suites (e.g. contract) may have populated the 1-hour list/detail cache with
+// the migration-seeded documents, so this suite must invalidate it before
+// asserting on its own inserted rows.
+const CACHE_KEY_PREFIX = 'legal-documents:';
+const CACHE_LANGS = ['zh', 'en'];
 
 interface ListItem {
   docType: string;
@@ -57,6 +67,17 @@ describe('Legal Documents API (e2e)', () => {
   beforeAll(async () => {
     ctx = await createTestApp();
     app = ctx.app;
+
+    // Invalidate cached list/detail entries from earlier suites, otherwise a
+    // 1-hour cache hit returns the migration-seeded rows instead of the rows
+    // this suite inserts below.
+    const cache = app.get<Cache>(CACHE_MANAGER);
+    for (const lang of CACHE_LANGS) {
+      await cache.del(`${CACHE_KEY_PREFIX}list:${lang}`);
+      await cache.del(`${CACHE_KEY_PREFIX}detail:terms:${lang}`);
+      await cache.del(`${CACHE_KEY_PREFIX}detail:privacy:${lang}`);
+      await cache.del(`${CACHE_KEY_PREFIX}detail:disclaimer:${lang}`);
+    }
 
     // Clean up any existing legal documents and insert test data
     await ctx.prisma.legalDocument.deleteMany({});
