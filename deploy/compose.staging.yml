@@ -1,0 +1,141 @@
+# Lucent Staging Compose
+# ---------------------------------------------------------------------------
+# 精简版生产编排:保留应用 + 数据库 + 轻量指标/日志栈。
+# 去掉了 grafana(无看板需求)和 node-exporter(无主机指标需求)。
+# VictoriaMetrics 保留供直接 VMUI 查询;VictoriaLogs 保留接收 app 日志。
+#
+# 用法与 compose.yml 一致:粘贴到 Coolify Docker Compose Empty,
+# 环境变量在面板填写。
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    command: ['postgres', '-c', 'log_min_duration_statement=500']
+    environment:
+      POSTGRES_USER: lucent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: lucent
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U lucent']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+  app:
+    image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required — full image ref, e.g. your-dockerhub-user/lucent:1a2b3c4d}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://lucent:${POSTGRES_PASSWORD}@postgres:5432/lucent?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '3000'
+      TRUST_PROXY: 'true'
+      METRICS_USER: ${METRICS_USER}
+      METRICS_PASSWORD: ${METRICS_PASSWORD}
+      JPUSH_APP_KEY: ${JPUSH_APP_KEY:-}
+      JPUSH_MASTER_SECRET: ${JPUSH_MASTER_SECRET:-}
+      JPUSH_APNS_PRODUCTION: ${JPUSH_APNS_PRODUCTION:-false}
+      VICTORIALOGS_URL: http://victorialogs:9428/insert/jsonline
+    expose:
+      - '3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    stop_grace_period: 60s
+    stop_signal: SIGTERM
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O - http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # ── VictoriaMetrics(仅保留 VMUI 查询,不配 Grafana) ──────────
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.128.0
+    restart: unless-stopped
+    ports:
+      - '8428:8428'
+    volumes:
+      - ./victoriametrics/vmscraper.staging.yml:/etc/vmscraper.yml:ro
+      - victoriametrics-data:/storage
+    environment:
+      METRICS_USER: ${METRICS_USER}
+      METRICS_PASSWORD: ${METRICS_PASSWORD}
+    command:
+      - '-storageDataPath=/storage'
+      - '-retentionPeriod=15d'
+      - '-httpListenAddr=0.0.0.0:8428'
+      - '-reproducePrometheusSchema=true'
+    depends_on:
+      app:
+        condition: service_started
+    logging:
+      driver: json-file
+      options:
+        max-size: '20m'
+        max-file: '3'
+
+  # ── VictoriaLogs ─────────────────────────────────────────────
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.15.0
+    restart: unless-stopped
+    ports:
+      - '9428:9428'
+    volumes:
+      - victorialogs-data:/storage
+    command:
+      - '-storageDataPath=/storage'
+      - '-retentionPeriod=15d'
+      - '-httpListenAddr=0.0.0.0:9428'
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  postgres-data:
+  redis-data:
+  victoriametrics-data:
+  victorialogs-data:

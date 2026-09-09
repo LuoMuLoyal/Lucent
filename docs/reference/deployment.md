@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-08
+updated: 2026-09-09
 ---
 
 # Lucent Deployment
 
-> 本文档描述当前部署模型(2026-09-08 起):仓库保留一份生产 compose,
+> 本文档描述当前部署模型(2026-09-08 起):仓库保留生产与 staging 两份 compose,
 > 在 Coolify 中注册为 Docker Compose Service 运行;应用镜像由 GitHub Actions
 > 构建并推送到 Docker Hub,Coolify 拉取;反代与 TLS 由 Coolify 自带 Traefik 接管。
 > 决策见 ADR-0017;旧模型(ADR-0004:GitHub Actions + TCR + `deploy.ts` 单 slot
@@ -20,7 +20,7 @@ GitHub (CI/CD)                              Coolify 控制面
 ┌──────────────────────┐                    ┌───────────────────────────────┐
 │ lucent-ci            │  push 镜像到       │ Coolify UI                   │
 │  lint/test/build     │  发布者自己的      │  Docker Compose Service 资源  │
-│ lucent-staging /     │  registry          │  (粘贴 deploy/compose.yml)    │
+│ lucent-staging /     │  registry          │  (粘贴 deploy/compose*.yml)   │
 │ lucent-production    ├───────────────────▶│                               │
 │  build Dockerfile    │                    │  Traefik(自动装)              │
 │  → registry          │                    │   ├── 域名 → app:3000 + TLS   │
@@ -34,8 +34,9 @@ GitHub (CI/CD)                              Coolify 控制面
                                             └───────────────────────────────┘
 ```
 
-- **编排单一事实源**:`deploy/compose.yml`(app + postgres + redis +
-  victoriametrics + grafana + victorialogs + node-exporter)。
+- **编排单一事实源**:`deploy/compose.yml`(生产,app + postgres + redis +
+  victoriametrics + grafana + victorialogs + node-exporter)与
+  `deploy/compose.staging.yml`(staging,去掉 grafana 和 node-exporter)。
 - **反向代理 / TLS**:Coolify 在每台被管服务器自动安装 Traefik;域名、HTTPS
   证书在 Coolify 面板配置,不再有 Nginx、`certs/`、`check-cert.sh`。
 - **镜像**:CI/CD 构建并推送发布者自有镜像仓库,具体仓库名由 GitHub secret
@@ -45,15 +46,28 @@ GitHub (CI/CD)                              Coolify 控制面
 
 ## 组件与端口
 
-| 服务              | 镜像                        | 端口        | 说明                                                             |
-| ----------------- | --------------------------- | ----------- | ---------------------------------------------------------------- |
-| `app`             | `${LUCENT_IMAGE}`(完整引用) | 仅内网 3000 | 公网入口 = Coolify 域名路由;健康检查 `/api/v1/health`            |
-| `postgres`        | `pgvector/pgvector:pg18`    | 无          | 卷 `postgres-data`                                               |
-| `redis`           | `redis:8-alpine`            | 无          | 卷 `redis-data`;requirepass                                      |
-| `victoriametrics` | `victoria-metrics:v1.128.0` | `8428:8428` | 抓取 app `/metrics` + node-exporter;卷 `victoriametrics-data`    |
-| `grafana`         | `grafana:12.1.0`            | `3001:3000` | provisioning/dashboards 来自 `deploy/grafana/`;卷 `grafana-data` |
-| `victorialogs`    | `victoria-logs:v1.15.0`     | `9428:9428` | 接收 Winston JSON 日志;卷 `victorialogs-data`                    |
-| `node-exporter`   | `node-exporter:v1.9.1`      | 无          | 宿主机 CPU/内存/磁盘指标                                         |
+下表为生产 `deploy/compose.yml` 的完整组件;staging `deploy/compose.staging.yml`
+在此基础上**去掉 grafana 与 node-exporter**,其余相同。
+
+| 服务              | 镜像                        | 端口        | 说明                                                                    |
+| ----------------- | --------------------------- | ----------- | ----------------------------------------------------------------------- |
+| `app`             | `${LUCENT_IMAGE}`(完整引用) | 仅内网 3000 | 公网入口 = Coolify 域名路由;健康检查 `/api/v1/health`                   |
+| `postgres`        | `pgvector/pgvector:pg18`    | 无          | 卷 `postgres-data`                                                      |
+| `redis`           | `redis:8-alpine`            | 无          | 卷 `redis-data`;requirepass                                             |
+| `victoriametrics` | `victoria-metrics:v1.128.0` | `8428:8428` | 抓取 app `/metrics`(+ node-exporter,仅生产);卷 `victoriametrics-data`   |
+| `grafana`         | `grafana:12.1.0`            | `3001:3000` | 仅生产;provisioning/dashboards 来自 `deploy/grafana/`;卷 `grafana-data` |
+| `victorialogs`    | `victoria-logs:v1.15.0`     | `9428:9428` | 接收 Winston JSON 日志;卷 `victorialogs-data`                           |
+| `node-exporter`   | `node-exporter:v1.9.1`      | 无          | 仅生产;宿主机 CPU/内存/磁盘指标                                         |
+
+### Staging 精简编排
+
+- 文件:`deploy/compose.staging.yml`,粘贴进 Coolify **Docker Compose Empty**
+  (staging 环境项目)即可;结构同生产,但去掉 grafana、node-exporter。
+- 抓取配置用 `deploy/victoriametrics/vmscraper.staging.yml`(只含 app job,
+  无 node job);VictoriaMetrics 保留,VMUI 直接查指标;VictoriaLogs 保留,
+  日志照常按 `trace_id` 检索。
+- 环境变量与生产相同(含 `LUCENT_IMAGE`);无需 `GRAFANA_ADMIN_PASSWORD`。
+- staging 镜像 tag 可用 `latest` 或短 sha(见「镜像 tag 策略」)。
 
 端口映射(8428/9428/3001)直接发布宿主机,**公网访问由云厂商安全组收口**,
 不再使用 SSH 隧道。`/metrics` 端点 Basic Auth 由 `METRICS_USER` /
@@ -135,7 +149,8 @@ GitHub (CI/CD)                              Coolify 控制面
 - 域名打不开:检查 Coolify 面板的 domain 配置与 Traefik 证书状态
   (证书续期由 Coolify/Traefik 自动管理,无需手工脚本)。
 - 指标为空:Grafana 数据源指向 `victoriametrics:8428`;VictoriaMetrics
-  日志查看 scrape 报错(auth 不匹配时检查两侧 `METRICS_*` 是否一致)。
+  日志查看 scrape 报错(auth 不匹配时检查两侧 `METRICS_*` 是否一致);
+  staging 无 Grafana,直接用 VMUI(`http://<host>:8428`)。
 
 ## 服务器前置要求
 

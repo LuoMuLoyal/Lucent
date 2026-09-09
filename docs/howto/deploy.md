@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: howto
-updated: 2026-09-08
+updated: 2026-09-09
 ---
 
 # How-To: Coolify 部署快速路径
@@ -10,25 +10,33 @@ updated: 2026-09-08
 部署模型与组件说明见 [reference/deployment.md](../reference/deployment.md)。
 本文只给操作步骤。前置:Coolify 已添加目标服务器(自动装好 Traefik)。
 
+## 〇、环境与编排对应关系
+
+| 环境       | 粘贴哪个 compose             | 说明                               |
+| ---------- | ---------------------------- | ---------------------------------- |
+| staging    | `deploy/compose.staging.yml` | 精简栈:无 grafana / node-exporter  |
+| production | `deploy/compose.yml`         | 完整栈(含 grafana / node-exporter) |
+
 ## 一、首次接入(Coolify 面板)
 
 1. **Projects → 新建项目**,按环境分目录(如 `staging` / `production`)。
-2. 新建 **Service → Docker Compose Empty**,把仓库 `deploy/compose.yml`
-   的内容粘贴为 Source Compose;组件会被解析出来(`lucent-app`、postgres、
-   redis、victoriametrics、grafana、victorialogs、node-exporter)。
+2. 新建 **Service → Docker Compose Empty**,按上表把对应 compose
+   的内容粘贴为 Source Compose;组件会被解析出来(staging:`lucent-app`、
+   postgres、redis、victoriametrics、victorialogs;production 另有 grafana、
+   node-exporter)。
 3. **环境变量**:
    - Service 级填写 compose 插值所需:`POSTGRES_PASSWORD`、`REDIS_PASSWORD`、
      `LUCENT_IMAGE`(app 完整镜像引用,如 `<你的 Docker Hub 用户名>/lucent:1a2b3c4d`
      ——把 `<你的 Docker Hub 用户名>` 换成自己的)、`METRICS_USER`、
-     `METRICS_PASSWORD`、`GRAFANA_ADMIN_PASSWORD`。
+     `METRICS_PASSWORD`;生产另有 `GRAFANA_ADMIN_PASSWORD`。
    - app 组件的完整运行时变量(见
      [environment-variables.md](../reference/environment-variables.md),模板
      `.env.production.example`)也填入(→ 生成服务目录 `.env`,即 compose
      `env_file` 的来源)。
-4. **域名与 TLS**(app 组件):设置域名 `api.你的域名.com`,Coolify/Traefik
+4. **域名与 TLS**(app 组件):设置域名(如 `staging-api.你的域名.com`),Coolify/Traefik
    自动申请证书并强制 HTTPS。健康检查:`GET /api/v1/health/ready`,端口 `3000`。
 5. **持久化存储**:compose 用命名卷(`postgres-data` 等),Coolify 面板确认
-   卷已挂载;grafana 的 provisioning/dashboards 从 compose 相对路径挂载。
+   卷已挂载;生产 grafana 的 provisioning/dashboards 从 compose 相对路径挂载。
 6. 点击 **Deploy**,确认 postgres/redis 先健康、app 再启动。
 
 ## 二、日常发布(staging / production 相同)
@@ -58,8 +66,8 @@ SSH 部署脚本:
 
 ## 四、访问指标栈(端口已发布,安全组收口)
 
-- Grafana:`http://<host>:3001`(admin 密码 = `GRAFANA_ADMIN_PASSWORD`)
-- VictoriaMetrics VMUI:`http://<host>:8428`
+- Grafana(仅生产):`http://<host>:3001`(admin 密码 = `GRAFANA_ADMIN_PASSWORD`)
+- VictoriaMetrics VMUI:`http://<host>:8428`(staging 看指标用这个)
 - VictoriaLogs UI:`http://<host>:9428`,LogsQL 按 `trace_id:xxx` 检索
 
 公网可达性由云厂商安全组控制;`/metrics` 与这些端口不要配到 Coolify 域名下。
