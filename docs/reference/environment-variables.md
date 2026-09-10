@@ -48,7 +48,9 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 - `pnpm dev:stack:down` / `dev:stack:reset` — 停止 / 重建本地 Docker dev 栈
 - `pnpm db:reset:dev` / `db:reset:test` — 重置对应数据库(`prisma migrate reset --force`)
 - `pnpm import:medicine:all` — 药品知识库默认导入序列(数据源细节见模块 README 与导入脚本)
-- 部署与镜像发布见 [deployment.md](deployment.md) 与 [../howto/deploy.md](../howto/deploy.md)(Coolify + 仓库 compose,无 deploy 脚本)
+- 部署见 [deployment.md](deployment.md) 与 [../howto/deploy.md](../howto/deploy.md):
+  production 走 Coolify + 仓库 compose + 镜像;staging 走宿主原生 PM2 + 自建 Traefik
+  (推送即部署,无发布脚本)
 - 非 development 目标的 Prisma 命令须显式指定 NODE_ENV,例如
   `NODE_ENV=test pnpm exec prisma migrate deploy`
 
@@ -72,6 +74,13 @@ METRICS_PASSWORD
 生产(Coolify compose)下 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml`
 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
 
+**staging(原生 PM2)**下这两个值写在服务器上仓库根 `.env.production` 里,指向回环
+(`127.0.0.1`)——容器端口只绑 `127.0.0.1`。同一份文件也被
+`docker compose -f compose.staging.yaml --env-file .env.production` 读取做插值,
+所以 `DATABASE_URL` / `REDIS_URL` 里内嵌的密码必须与 `POSTGRES_PASSWORD` /
+`REDIS_PASSWORD` 一致(改密码要改两处);`TRUST_PROXY=true` 与
+`VICTORIALOGS_URL=http://127.0.0.1:9428/insert/jsonline` 也是 staging 必填项。
+
 非敏感运行时参数(host/port/日志级别/阈值/各业务开关)均通过环境变量配置,未设置时使用
 代码内默认值(见下文各节);全部可覆盖项见 `.env.production.example` 注释。
 
@@ -81,12 +90,16 @@ is served without authentication (not recommended for production). VictoriaMetri
 scrape config (`monitoring/victoriametrics/vmscraper.yml`)用 `%{METRICS_USER}` /
 `%{METRICS_PASSWORD}` 占位符从容器环境变量注入同名凭据。
 
-GitHub Actions CD 只负责构建并推送镜像到 Docker Hub(仓库级 secrets):
+GitHub Actions CD 只为 production 构建并推送镜像到 Docker Hub(仓库级 secrets):
 
 ```text
 DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
 ```
+
+staging 不再使用镜像:它的发布 secrets 是 `STAGING_SSH_HOST` / `STAGING_SSH_USER` /
+`STAGING_SSH_KEY`(可选 `STAGING_SSH_PORT`、`STAGING_SSH_KNOWN_HOSTS`),变量
+`STAGING_API_HOST` 用于发布后的公共健康检查(见 environment `staging`)。
 
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
 traffic. If you do expose browser clients from another origin, set it explicitly.
@@ -344,9 +357,10 @@ VICTORIALOGS_URL
   Decision 3 for the trace backend strategy.
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
   Winston batches log entries as newline-delimited JSON and POSTs them directly
-  to this URL (no Vector sidecar needed). The `compose.yaml` injects
-  `http://victorialogs:9428/insert/jsonline` automatically. Unset = only
-  Console (stdout) transport is used. See ADR-0016 for the log backend strategy.
+  to this URL (no Vector sidecar needed). Production `compose.yaml` injects
+  `http://victorialogs:9428/insert/jsonline`; staging(原生 PM2)在
+  `.env.production` 里写 `http://127.0.0.1:9428/insert/jsonline`(容器端口发布到回环)。
+  Unset = only Console (stdout) transport is used. See ADR-0016 for the log backend strategy.
 
 Security:
 
@@ -361,7 +375,8 @@ TRUST_PROXY
   `x-testing-shared-secret` header. Only registered when `NODE_ENV=test`.
 - `TRUST_PROXY` — when set to `true`, Fastify trusts `X-Forwarded-*` headers
   from the reverse proxy. Required in production behind the Coolify Traefik
-  proxy for correct client IP extraction and protocol detection.
+  proxy, and in staging behind the self-hosted Traefik container, for correct
+  client IP extraction and protocol detection (rate limiting buckets per client).
 
 Client-facing configuration (optional):
 

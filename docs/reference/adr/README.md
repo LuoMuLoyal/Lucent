@@ -121,7 +121,7 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-08-24
 - [0017](0017-coolify-deployment.md)
   - Title: Coolify 部署模型(仓库 compose + Docker Hub 镜像)
-  - Status: accepted
+  - Status: accepted (amended 2026-09-10: staging 改为原生 PM2 + 自建 Traefik + 推送即部署)
   - Date: 2026-09-08
 - [0018](0018-config-env-only.md)
   - Title: 配置文件回退纯环境变量(YAML 层退役)

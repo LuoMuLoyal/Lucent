@@ -19,13 +19,13 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 
 - [reference/glossary.md](reference/glossary.md) — 术语单一来源
 - [reference/environment-variables.md](reference/environment-variables.md) — 环境变量完整参考;本地环境与运行时基线也在此文件
-- [reference/deployment.md](reference/deployment.md) — 生产部署模型参考(Coolify + 仓库 compose + Docker Hub 镜像,指标栈保留、告警/备份未启用)
+- [reference/deployment.md](reference/deployment.md) — 部署模型参考(production:Coolify + 仓库 compose + Docker Hub 镜像;staging:宿主原生 PM2 + 自建 Traefik + 推送即部署)
 - [reference/data-retention.md](reference/data-retention.md) — 数据保留、清理管道与账户删除级联
 - [reference/assistant-safety.md](reference/assistant-safety.md) — 跨模块 AI 医疗红线与安全策略
 - [reference/logging-conventions.md](reference/logging-conventions.md) — 结构化日志字段名约定（`error` / `key` / `userId` / `traceId` / `spanId` 等）
 - [explanation/architecture.md](explanation/architecture.md) — 跨模块心智模型与设计权衡(细节以 ADR 与代码为准)
 - [howto/add-new-module.md](howto/add-new-module.md) — 新增 NestJS 模块
-- [howto/deploy.md](howto/deploy.md) — Coolify 部署快速路径(注册 compose Service、发版、回滚)
+- [howto/deploy.md](howto/deploy.md) — 部署操作步骤(staging 首次接入 / 日常发布 / 改哪些值;production Coolify 路径)
 - [howto/run-medicine-import.md](howto/run-medicine-import.md) — 药品数据导入
 - [howto/sync-openapi-client.md](howto/sync-openapi-client.md) — 导出 OpenAPI 并再生 Flutter 客户端
 

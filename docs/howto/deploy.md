@@ -2,104 +2,187 @@
 status: active
 owner: backend
 quadrant: howto
-updated: 2026-09-09
+updated: 2026-09-10
 ---
 
-# How-To: Coolify 部署快速路径
+# How-To: 部署 Lucent
 
-部署模型与组件说明见 [reference/deployment.md](../reference/deployment.md)。
-本文只给操作步骤。前置:Coolify 已添加目标服务器(自动装好 Traefik)。
+部署模型与组件说明见 [reference/deployment.md](../reference/deployment.md),本文只给操作步骤。
 
-## 〇、环境与编排对应关系
+| 环境       | 形态                                           | 编排                                        |
+| ---------- | ---------------------------------------------- | ------------------------------------------- |
+| staging    | 宿主原生 Node + PM2 + 自建 Traefik(推送即部署) | 根 `compose.staging.yaml`(只含基础设施容器) |
+| production | Coolify Docker Compose Service + 镜像          | 根 `compose.yaml`                           |
 
-| 环境       | 粘贴哪个 compose          | 说明                               |
-| ---------- | ------------------------- | ---------------------------------- |
-| staging    | `compose.staging.yaml`    | 精简栈:无 grafana / node-exporter  |
-| production | `compose.yaml`            | 完整栈(含 grafana / node-exporter) |
+## 一、Staging 首次接入(服务器上人工执行)
 
-## 一、首次接入(Coolify 面板)
+前置:DNS 已把 `api` / `metrics` / `logs` / `traefik` 四个域名指向本机,80/443 放行。
 
-1. **Projects → 新建项目**,按环境分目录(如 `staging` / `production`)。
-2. 新建 **Service → Docker Compose Empty**,按上表把对应 compose
-   的内容粘贴为 Source Compose;组件会被解析出来(staging:`lucent-app`、
-   postgres、redis、victoriametrics、victorialogs;production 另有 grafana、
-   node-exporter)。
-3. **环境变量**:
-   - Service 级填写 compose 插值所需:`POSTGRES_PASSWORD`、`REDIS_PASSWORD`、
-     `LUCENT_IMAGE`(app 完整镜像引用,如 `<你的 Docker Hub 用户名>/lucent:1a2b3c4d`
-     ——把 `<你的 Docker Hub 用户名>` 换成自己的)、`METRICS_USER`、
-     `METRICS_PASSWORD`;生产另有 `GRAFANA_ADMIN_PASSWORD`。
-   - app 组件的完整运行时变量(见
-     [environment-variables.md](../reference/environment-variables.md),模板
-     `.env.production.example`)也填入(→ 生成服务目录 `.env`,即 compose
-     `env_file` 的来源)。
-4. **域名与 TLS**(app 组件):设置域名(如 `staging-api.你的域名.com`),Coolify/Traefik
-   自动申请证书并强制 HTTPS。健康检查:`GET /api/v1/health/ready`,端口 `3000`。
-5. **持久化存储**:compose 用命名卷(`postgres-data` 等),Coolify 面板确认
-   卷已挂载;生产 grafana 的 provisioning/dashboards 从 compose 相对路径挂载。
-6. 点击 **Deploy**,确认 postgres/redis 先健康、app 再启动。
+1. **安装 pnpm**(Node 24 已就位):
 
-### 配置 staging 自动部署(Coolify webhook)
-
-staging 在 Coolify 侧须同时注册为 **Application** 资源(用于 webhook
-触发自动部署),Application 的部署来源指向你构建好的 Docker Hub 镜像:
-
-1. 在 staging 项目下新建 **Resource → Public Repository** 或 **Dockerfile**
-   类型的 Application,设置:
-   - **Docker Registry Image**: 填 `REGISTRY_IMAGE` 的值(如 `docker.io/<你的用户名>/lucent`),
-     拉取 `latest` tag 进行部署。
-   - **Base Directory**: `/`(或 Dockerfile 所在子目录)。
-   - **Port**: `3000`。
-   - **域名**: 与 Docker Compose Service 的 staging app 域名一致(或用同一个
-     域名;两者指向同一个 container,选一个入口即可)。
-2. 进入该 Application → **Settings → Webhooks**,复制 **Deploy Webhook URL**:
+   ```bash
+   corepack enable && corepack prepare pnpm@12.0.0 --activate
+   # 若 corepack 不可用:npm i -g pnpm@12.0.0
    ```
-   https://<coolify-domain>/api/v1/deploy?uuid=<app-uuid>&force=false
+
+2. **安装 PM2 并开启开机自启**(root):
+
+   ```bash
+   npm i -g pm2
+   pm2 startup systemd -u root --hp /root
    ```
-3. 在 GitHub 仓库 **Settings → Secrets and variables → Actions** 添加:
-   - `COOLIFY_STAGING_WEBHOOK`: 粘贴上一步的完整 URL(含 `uuid` 与 `force` 参数)。
 
-完成后,`lucent-staging` workflow 在 CI 通过并推送镜像后,会自动 `curl -fsS -X POST`
-触发该 webhook,无需手动到面板操作。
+3. **克隆仓库到代码目录**:
 
-## 二、日常发布
+   ```bash
+   git clone <repo-url> /opt/lucent && cd /opt/lucent
+   ```
 
-### staging(自动)
+4. **写应用运行时环境变量**(从模板复制后填值,清单见 §三):
 
-1. 合并 main → `lucent-ci` 校验 → `lucent-staging` 自动构建并推送镜像(
-   `<sha8>` + `latest`),然后自动调用 Coolify webhook 触发 staging 部署。
-2. 容器启动时 `entrypoint.sh` 会自动执行 `prisma migrate deploy`;迁移失败
-   则容器启动中止(不会带坏 schema 上线)。无需手动执行迁移命令。
-3. 验证:`curl https://<staging-domain>/api/v1/health/deep`。
+   ```bash
+   cp .env.production.example .env.production
+   vim .env.production
+   ```
 
-### production(手动)
+5. **生成 Traefik 运行配置**(仓库只跟踪 `.example` 模板,真实文件不入库):
 
-1. 手动触发 `lucent-production`(`workflow_dispatch`,main 分支)
-   构建并推送镜像(仅 `<sha8>`。
-2. 在 Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的完整引用。
-3. **Pull Latest Images & Restart**(拉新镜像并重建)。
-4. 容器启动时 `entrypoint.sh` 会自动执行 `prisma migrate deploy`,无需
-   手动执行迁移命令。
-5. 验证:`curl https://<domain>/api/v1/health/deep`。
+   ```bash
+   cp deploy/traefik/traefik.static.yml.example deploy/traefik/traefik.static.yml
+   cp deploy/traefik/traefik.dynamic.yml.example deploy/traefik/traefik.dynamic.yml
+   # 面板密码哈希:
+   openssl passwd -apr1
+   vim deploy/traefik/traefik.static.yml    # ACME 邮箱
+   vim deploy/traefik/traefik.dynamic.yml   # 4 个域名 + basicAuth.users 哈希
+   ```
 
-> 说明:发布 = 更新 `LUCENT_IMAGE` → pull & restart;
-> 迁移自动执行,失败则容器不启动;破坏性迁移走 expand-contract。
+6. **启动基础设施容器**:
 
-## 三、回滚
+   ```bash
+   docker compose -f compose.staging.yaml --env-file .env.production up -d
+   docker compose -f compose.staging.yaml --env-file .env.production ps   # 等 postgres/redis healthy
+   ```
 
-把 `LUCENT_IMAGE` 改回上一可用完整引用(旧短 sha),再次
-**Pull Latest Images & Restart**。`latest` 不做回滚锚点。
+7. **首次发布**——执行 §二 的手动发布命令串(此时 PM2 里还没有 `lucent` 进程,
+   `pm2 stop lucent || true` 会静默跳过,`pm2 startOrReload` 首次启动)。
 
-## 四、访问指标栈(端口已发布,安全组收口)
+8. **验证**:`curl https://api.<域名>/api/v1/health/deep`(200 且证书有效);
+   最后 `pm2 save` 固化进程列表,重启用 `pm2 resurrect` 自恢复。
 
-- Grafana(仅生产):`http://<host>:3001`(admin 密码 = `GRAFANA_ADMIN_PASSWORD`)
-- VictoriaMetrics VMUI:`http://<host>:8428`(staging 看指标用这个)
-- VictoriaLogs UI:`http://<host>:9428`,LogsQL 按 `trace_id:xxx` 检索
+## 二、Staging 日常发布
 
-公网可达性由云厂商安全组控制;`/metrics` 与这些端口不要配到 Coolify 域名下。
+### 自动(push main)
 
-## 五、注意
+推送到 `main` 即触发 `.github/workflows/lucent-staging.yml`,**不等 CI 结果、无人工批准**。
+工作流 SSH 到服务器串行执行下面这串命令,再做一次公共健康检查。
+
+### 手动(与工作流同一串命令)
+
+```bash
+ssh root@<staging-host>
+cd /opt/lucent
+
+test -f .env.production                     # 缺这个文件就别往下走
+pm2 stop lucent || true                     # 首次发布时进程还不存在
+git fetch --prune origin
+git reset --hard origin/main                # 硬同步:服务器不保留任何 tracked 改动
+pnpm install --frozen-lockfile
+pnpm prisma:generate && pnpm build
+NODE_ENV=production pnpm exec prisma migrate deploy
+pm2 startOrReload deploy/ecosystem.config.cjs --update-env
+pm2 save
+
+# 健康门禁(30 × 2s)
+for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/v1/health/ready && break; sleep 2; done
+```
+
+- 停机窗口 = 上述全程(含 `pnpm install` + `pnpm build`,通常 1–3 分钟)。
+- 失败就停在当前状态:`pm2 logs lucent --lines 100` 看现场;修完再推一次或手动重跑。
+- **回滚不做**(fix-forward):需要回旧版本时 `git checkout <旧 sha>` 后重跑上面同一串命令;
+  数据库迁移不回退,破坏性变更继续 expand-contract。
+
+### 基础设施变更
+
+改 `compose.staging.yaml` 或 `monitoring/victoriametrics/vmscraper.staging.yml` 后:
+
+```bash
+cd /opt/lucent
+git fetch --prune origin && git reset --hard origin/main
+docker compose -f compose.staging.yaml --env-file .env.production up -d
+```
+
+## 三、Staging「改哪些值」清单
+
+| 文件                                   | 键 / 值                                | 说明                                                                                                                  |
+| -------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `.env.production`(根,gitignored)       | `DATABASE_URL`                         | `postgresql://lucent:<POSTGRES_PASSWORD>@127.0.0.1:5432/lucent?schema=public`                                         |
+|                                        | `REDIS_URL`                            | `redis://:<REDIS_PASSWORD>@127.0.0.1:6379`                                                                            |
+|                                        | `VICTORIALOGS_URL`                     | `http://127.0.0.1:9428/insert/jsonline`                                                                               |
+|                                        | `TRUST_PROXY`                          | `true`(经 Traefik 后限流取真实 IP)                                                                                    |
+|                                        | `PUBLIC_BASE_URL`                      | `https://api.<域名>`                                                                                                  |
+|                                        | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与上面两个 URL 内嵌的密码一致**                                                                  |
+|                                        | `METRICS_USER` / `METRICS_PASSWORD`    | 应用的 `/metrics` Basic Auth + VictoriaMetrics 抓取凭据                                                               |
+|                                        | 其余密钥                               | JWT / Better Auth / ADMIN / 邮件 / AI / 对象存储,见 [environment-variables.md](../reference/environment-variables.md) |
+| `deploy/traefik/*.yml`(服务器本地)     | `acme.email`                           | ACME 注册邮箱,必填                                                                                                    |
+|                                        | 4 条 `rule` 的域名                     | `api.` / `metrics.` / `logs.` / `traefik.`                                                                            |
+|                                        | `basicAuth.users`                      | 三个面板共用;`openssl passwd -apr1` 或 `htpasswd -nbB` 生成 `用户:哈希`                                               |
+| `deploy/ecosystem.config.cjs`          | `cwd`                                  | 默认 `/opt/lucent`,换目录时改这里与工作流里的 `APP_DIR`                                                               |
+| `.github/workflows/lucent-staging.yml` | `APP_DIR`                              | 服务器代码目录,须与 `ecosystem.config.cjs` 的 `cwd` 一致                                                              |
+
+改完 traefik 配置要重启才生效(单文件 bind-mount 的 fsnotify 不可靠):
+
+```bash
+docker compose -f compose.staging.yaml --env-file .env.production restart traefik
+```
+
+## 四、Staging 面板与指标
+
+| 面板                 | 域名             | 看什么                                                                             |
+| -------------------- | ---------------- | ---------------------------------------------------------------------------------- |
+| Traefik dashboard    | `traefik.<域名>` | 反代自身的路由 / 服务 / 中间件 / 证书与 ACME 状态(排「域名没路由、502、证书没签」) |
+| VictoriaMetrics VMUI | `metrics.<域名>` | 时序指标查询(QPS、延迟、错误率、内存、队列深度)                                    |
+| VictoriaLogs UI      | `logs.<域名>`    | LogsQL 检索;按 `trace_id:xxx` 串一次请求                                           |
+
+三个面板都要 BasicAuth(`panel-auth`,`401` 未认证)。容器端口只绑 `127.0.0.1`,
+如需在本机直连可开隧道:`ssh -L 8428:127.0.0.1:8428 root@<staging-host>`。
+
+## 五、Production(Coolify)
+
+前置:Coolify 已添加目标服务器(自动装好 Traefik)。
+
+### 首次接入
+
+1. **Projects → 新建项目**,新建 **Service → Docker Compose Empty**,把根
+   `compose.yaml` 的内容粘贴为 Source Compose。
+2. **环境变量**:Service 级填 `POSTGRES_PASSWORD`、`REDIS_PASSWORD`、
+   `LUCENT_IMAGE`(app 完整镜像引用,如 `<你的 Docker Hub 用户名>/lucent:1a2b3c4d`)、
+   `METRICS_USER`、`METRICS_PASSWORD`、`GRAFANA_ADMIN_PASSWORD`;app 组件的完整运行时
+   变量(见 [environment-variables.md](../reference/environment-variables.md))填为服务
+   目录的 `.env`(compose `env_file` 的来源)。
+3. **域名与 TLS**(app 组件):设置域名,Coolify/Traefik 自动申请证书并强制 HTTPS;
+   健康检查 `GET /api/v1/health/ready`,端口 `3000`。
+4. 点击 **Deploy**,确认 postgres/redis 先健康、app 再启动。
+
+### 日常发布
+
+1. 手动触发 `lucent-production`(`workflow_dispatch`,main)构建并推送镜像(仅短 sha)。
+2. Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的完整引用。
+3. **Pull Latest Images & Restart**;容器启动时 `entrypoint.sh` 自动执行
+   `prisma migrate deploy`,失败则容器不启动。
+4. 验证:`curl https://<domain>/api/v1/health/deep`。
+
+### 回滚
+
+把 `LUCENT_IMAGE` 改回上一可用完整引用(旧短 sha),再次 **Pull Latest Images & Restart**。
+
+### 指标栈
+
+Grafana `http://<host>:3001`、VMUI `http://<host>:8428`、VictoriaLogs `http://<host>:9428`;
+公网可达性由云厂商安全组控制,不要配到 Coolify 域名下。
+
+## 六、注意
 
 - **备份未启用**:当前无自动备份,勿在未验证恢复路径的情况下做破坏性操作。
-- **告警未配置**:存活依赖 Coolify 健康检查与重启;指标可在 Grafana 人工查看。
-- 现场构建(Dockerfile 在服务器构建)是反模式,已弃用;一律 CI 构建推镜像。
+- **告警未配置**:存活依赖 Coolify 健康检查(staging 依赖 PM2 自动重启与发布健康门禁)。
+- **未经 CI 校验即上线 staging**:推送即部署的必然结果,失败靠下一条提交修复。
+- production 现场构建(Dockerfile 在服务器构建)是反模式,已弃用;一律 CI 构建推镜像。

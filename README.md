@@ -218,8 +218,10 @@ pnpm check
 
 Use narrower commands while iterating, then run `pnpm check` before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files. Repo helper scripts under `scripts/` use their own lighter TS project; validate them with `pnpm typecheck:tools`.
 
-Deployment is driven by Coolify + GitHub Actions CD (build & push the Docker image);
-see [docs/reference/deployment.md](docs/reference/deployment.md) and
+Two deployment models run in parallel: production on Coolify + GitHub Actions CD
+(build & push the Docker image), staging on the host as a native Node process
+(PM2 + self-hosted Traefik, deployed over SSH on every push to `main`). See
+[docs/reference/deployment.md](docs/reference/deployment.md) and
 [docs/howto/deploy.md](docs/howto/deploy.md).
 
 ## Source Layout
@@ -235,9 +237,11 @@ see [docs/reference/deployment.md](docs/reference/deployment.md) and
 - `scripts/contract/` for contract export helpers
 - `scripts/import/medicine/` for medicine data import helpers and Python parsers
   - `scripts/import/food/` for food composition import helpers and Python parsers
-- `compose.yaml` / `compose.staging.yaml` at the repo root hold the production / staging
-  stack definitions; `monitoring/` contains VictoriaMetrics scrape config and Grafana
-  provisioning/dashboards.
+- `compose.yaml` (production: app + postgres/redis + monitoring stack, run by Coolify)
+  and `compose.staging.yaml` (staging: infrastructure containers only — the app runs as a
+  host PM2 process) at the repo root hold the stack definitions; `deploy/` holds the
+  staging PM2 process config and the Traefik configuration templates; `monitoring/`
+  contains VictoriaMetrics scrape config and Grafana provisioning/dashboards.
 - `entrypoint.sh` at the repo root is the container startup entrypoint (copied into the
   image): it runs `prisma migrate deploy` before starting the app, so migrations are
   applied automatically on container start and a failed migration aborts startup.
@@ -251,19 +255,26 @@ see [docs/reference/deployment.md](docs/reference/deployment.md) and
 ## Deployment Model
 
 - GitHub Actions owns validation (`lucent-ci`): lint, typecheck, build, unit tests, e2e tests.
-- GitHub Actions also owns image build & push (`lucent-staging` on main / `lucent-production`
-  manual): build the Lucent Dockerfile and push to the publisher's own registry
-  (`REGISTRY_IMAGE` GitHub secret, e.g. `docker.io/<your-user>/lucent`), tagged
-  `<short-sha>` and `latest`. No server-side build, no SSH deploy scripts, no hardcoded
-  image address in the repo.
-- `compose.yaml` / `compose.staging.yaml` at the repo root are the single source of
-  truth for the production / staging stacks (app, postgres, redis, victoriametrics,
-  grafana, victorialogs, node-exporter). They are registered in Coolify as
-  Docker Compose Services; Coolify runs them and its Traefik terminates TLS for the API domain.
-- Releases: update the `LUCENT_IMAGE` full image reference in the Coolify service, run the
-  one-shot Prisma migration, then Pull Latest Images & Restart. See
-  [docs/reference/deployment.md](docs/reference/deployment.md) for details.
+- **production** — image build & push (`lucent-production`, manual `workflow_dispatch`):
+  build the Lucent Dockerfile and push to the publisher's own registry (`REGISTRY_IMAGE`
+  GitHub secret, e.g. `docker.io/<your-user>/lucent`), tagged `<short-sha>`. No server-side
+  build, no SSH deploy scripts, no hardcoded image address in the repo. `compose.yaml`
+  (app, postgres, redis, victoriametrics, grafana, victorialogs, node-exporter) is the single
+  source of truth and is registered in Coolify as a Docker Compose Service; Coolify runs it and
+  its Traefik terminates TLS for the API domain. Releases: update the `LUCENT_IMAGE` full image
+  reference in the Coolify service, then Pull Latest Images & Restart (the container entrypoint
+  runs `prisma migrate deploy` on start).
+- **staging** — push to `main` deploys immediately (`lucent-staging` does not wait for
+  `lucent-ci`): the workflow SSHes to the staging host and runs the command sequence
+  documented in [docs/howto/deploy.md](docs/howto/deploy.md) — `pm2 stop`, hard-sync to
+  `origin/main`, `pnpm install`, `prisma:generate` + `build`, `prisma migrate deploy`,
+  `pm2 startOrReload`, then a local health gate. The app is a native PM2 process at
+  `/opt/lucent`; `compose.staging.yaml` only runs postgres, redis, victoriametrics,
+  victorialogs and a self-hosted Traefik (the only public entry: 80/443, ACME TLS,
+  BasicAuth-protected panels). Manual deploy is the same command sequence; rollback is
+  fix-forward (check out the old sha and re-run).
 - Alerting and automated DB backups are currently not configured (metrics stack retained).
+- See [docs/reference/deployment.md](docs/reference/deployment.md) for the full model.
 
 ## Docs
 

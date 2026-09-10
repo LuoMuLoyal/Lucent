@@ -1,6 +1,7 @@
 # ADR-0017: Coolify 部署模型(仓库 compose + Docker Hub 镜像)
 
-- **Status**: accepted
+- **Status**: accepted (amended 2026-09-10: staging 迁出 Coolify,改为宿主原生
+  PM2 + 自建 Traefik + 推送即部署;下文 Coolify 模型继续适用于 production)
 - **Date**: 2026-09-08
 - **Deciders**: LuoMuLoyal
 
@@ -60,3 +61,53 @@ ADR-0004 定义了 GitHub Actions + 腾讯 TCR + SSH `deploy.ts` 的单机 Compo
   抓取在 Docker 内网完成。公网暴露 `/metrics` 由 Traefik/安全组约束。
 - 部署文档、环境变量文档、GitHub secrets(TCR/SSH → Docker Hub)同步更新;
   数据库备份能力空缺需在上生产前补齐(Coolify 备份或运维 pg_dump)。
+
+---
+
+## Amendment 2026-09-10: staging 迁出 Coolify(原生 PM2 + 自建 Traefik + 推送即部署)
+
+### Context
+
+上述模型对 staging 过重:Coolify 控制面、部署 webhook、Docker Hub 镜像、Coolify 自带
+Traefik 四层耦合,只为跑一个单实例 staging;staging 既不需要镜像化回滚锚点,也不需要
+平台面板。服务器侧已卸载 Coolify(80/443 空闲),且无需要保留的数据。
+
+### Decision
+
+staging 改为「宿主原生进程 + 自管容器基础设施」,production 保持本文前述 Coolify 模型:
+
+1. **应用原生运行**:Node 24 + PM2(`deploy/ecosystem.config.cjs`,`root` 用户,
+   代码目录 `/opt/lucent`),不再为 staging 构建镜像。
+2. **基础设施自管**:根 `compose.staging.yaml` 只跑 postgres / redis / victoriametrics /
+   victorialogs / traefik,端口全部绑 `127.0.0.1`,公网只经 Traefik(80/443)进出。
+3. **反代 / TLS 自管**:Traefik 容器 + file provider,配置在 `deploy/traefik/`
+   —— 仓库只跟踪 `.example` 模板,真实文件(gitignored)在服务器上维护,避免发布时
+   `git reset --hard` 覆盖运行配置;API 域名直通宿主 `3000`,三个面板
+   (VictoriaMetrics VMUI / VictoriaLogs UI / Traefik dashboard)经路由 + BasicAuth 暴露。
+4. **推送即部署**:`lucent-staging` 由 `push`(main)直接触发(不等 `lucent-ci` 结果),
+   SSH 到服务器执行 `pm2 stop → git reset --hard origin/main → pnpm install →
+prisma:generate + build → prisma migrate deploy → pm2 startOrReload → 健康门禁`;
+   手动发布就是同一串命令。
+5. **不做回滚**:fix-forward,必要时手动 `git checkout <旧 sha>` 重跑同一串命令;
+   schema 不回退,破坏性变更继续 expand-contract。
+6. **编排与配置留根目录**:compose 与 `.env.production` 都在仓库根(服务器即完整 clone),
+   `.env.production` 单文件同时供 app 与 compose 插值读取。
+
+### Options Considered
+
+| Option                                            | Pros                                               | Cons                                                                 |
+| ------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------- |
+| 维持 Coolify(staging 也用 compose Service)        | 与 production 同构、面板可视                       | 为单实例 staging 背整套控制面;webhook + 镜像 + 自带 Traefik 四层耦合 |
+| staging 用 Coolify Application + post-deploy 钩子 | 面板一键部署                                       | 编排 / 迁移 / 域名散落 UI,仓库失去单一事实源                         |
+| 宿主原生 PM2 + 自管 Traefik(**采纳**)             | 组件最少、链路最短、CI 与手动同源;staging 无需镜像 | 与 production 模型分叉;停机发布(停机窗口含构建);无回滚锚点           |
+
+### Consequences
+
+- **模型分叉**:同一份代码两条发布路径,文档必须分别说明
+  (`docs/reference/deployment.md`、`docs/howto/deploy.md`)。
+- **secrets 换血**:`COOLIFY_STAGING_WEBHOOK` 退役;新增 `STAGING_SSH_*` secrets 与
+  `STAGING_API_HOST` variable;`DOCKERHUB_*` / `REGISTRY_IMAGE` 只服务 production。
+- **镜像 tag 策略收窄**:staging 不再推 `latest`,该约定作废;production 只推短 sha 不变。
+- **未经 CI 校验即上线**:推送即部署的必然结果,staging 的失败靠下一条提交修复。
+- **暴露面变化**:staging 的域名 / TLS / 端口暴露从「Coolify 托管 + 云安全组收口」
+  变为「Traefik 自管 + 容器端口只绑回环」。
