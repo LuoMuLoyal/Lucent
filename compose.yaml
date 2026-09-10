@@ -128,6 +128,9 @@ services:
       - '-storageDataPath=/storage'
       - '-retentionPeriod=30d'
       - '-httpListenAddr=0.0.0.0:8428'
+      # 抓取配置:不传这个参数时 VictoriaMetrics 不会加载 /etc/vmscraper.yml
+      # (卷挂了文件也没用),app 与 node-exporter 的指标会一直是空的。
+      - '-promscrape.config=/etc/vmscraper.yml'
       # Prometheus 兼容:reproducePrometheusSchema=true 使指标名和标签与 Prometheus 一致
       - '-reproducePrometheusSchema=true'
     depends_on:
