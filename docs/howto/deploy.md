@@ -18,8 +18,7 @@ updated: 2026-09-10
 
 前置:DNS 已把 `api` / `metrics` / `logs` / `traefik` 四个域名指向本机,80/443 放行。
 
-> 建议顺手开内存 overcommit,消除 redis 启动时的告警(`Background save may fail under
-low memory condition`):`sysctl vm.overcommit_memory=1`,并写进 `/etc/sysctl.conf` 持久化。
+> 建议顺手开内存 overcommit,消除 redis 启动时的告警(`Background save may fail under low memory condition`):`sysctl vm.overcommit_memory=1`,并写进 `/etc/sysctl.conf` 持久化。
 
 1. **安装 pnpm**(Node 24 已就位):
 
@@ -68,7 +67,18 @@ low memory condition`):`sysctl vm.overcommit_memory=1`,并写进 `/etc/sysctl.co
 
 7. **首次发布**——执行 §二 的手动发布命令串(此时 PM2 里还没有 `lucent` 进程,
    `pm2 stop lucent || true` 会静默跳过,`pm2 startOrReload` 首次启动)。
-8. **验证**:`curl https://api.<域名>/api/v1/health/deep`(200 且证书有效);
+8. **验证**(分层来,别用 IP 测 HTTPS——那只会拿到 Traefik 的默认自签证书):
+
+   ```bash
+   curl -fsS http://127.0.0.1:3000/api/v1/health/deep            # ① 直连应用
+   curl -k -sS -o /dev/null -w '%{http_code}\n' \
+     -H 'Host: api.<域名>' https://127.0.0.1/api/v1/health/deep  # ② 验路由(200/503 即通)
+   curl -fsS --resolve api.<域名>:443:127.0.0.1 \
+     https://api.<域名>/api/v1/health/deep                       # ③ 验证书(通=已签发)
+   ```
+
+   ② 返回 404 说明 Host 没匹配上路由(多半域名还是占位符);③ 报 self-signed 说明证书未签发,
+   去查 `docker logs lucent-staging-traefik-1 | grep -i acme`。
    最后 `pm2 save` 固化进程列表,重启用 `pm2 resurrect` 自恢复。
 
 ## 二、Staging 日常发布

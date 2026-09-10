@@ -118,6 +118,14 @@ BasicAuth 都由 Traefik 终止,不再依赖云安全组收口。
   `.env.production` 里 `DATABASE_URL` 的密码与 `POSTGRES_PASSWORD` 一致。
 - 证书没签发:确认 DNS 已指向该机、80 可达(或 CDN 放行 `/.well-known/acme-challenge/`),
   再看 traefik 容器日志的 ACME 报错。
+- **用 IP 测 HTTPS 报 self-signed 属正常**:Traefik 在没有匹配 SNI/Host 的证书时回落到内置
+  自签证书(`TRAEFIK DEFAULT CERT`),而路由规则是 `Host(\`api.<域名>\`)`,`https://127.0.0.1/`
+  既拿不到真证书也匹配不到路由(只会得到 Traefik 的 404)。分层验证:
+  ① 直连应用 `curl -fsS http://127.0.0.1:3000/api/v1/health/deep`;
+  ② 验路由(不校验证书)`curl -k -sS -o /dev/null -w '%{http_code}\n' -H 'Host: api.<域名>'
+https://127.0.0.1/api/v1/health/deep`(200/503 = 路由通了,404 = Host 未匹配);
+  ③ 验证书 `curl -fsS --resolve api.<域名>:443:127.0.0.1 https://api.<域名>/api/v1/health/deep`
+  (不通再查 ACME:域名是否已填真实值、DNS 是否指向该机、安全组是否放行 80)。
 - 指标为空:确认 victoriametrics 容器带 `-promscrape.config=/etc/vmscraper.yml`,
   且 `METRICS_*` 两侧一致。
 
