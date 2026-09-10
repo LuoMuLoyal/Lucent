@@ -65,8 +65,13 @@ jobs:
           APP_DIR=/opt/lucent
           cd "$APP_DIR"
 
-          # 环境文件缺失时先退出,不要白停一次服
+          # 环境文件缺失/缺 DATABASE_URL 时先退出,不要白停一次服。
+          # postinstall 会跑 prisma:generate,而 prisma.config.ts 要求 DATABASE_URL 存在:
+          # 它按 NODE_ENV 找 .env.<env>(未设 NODE_ENV 时找 .env.development),服务器是全新
+          # clone、只有 .env.production,所以安装前必须把 DATABASE_URL 带进环境。
           test -f .env.production || { echo "[deploy] missing $APP_DIR/.env.production" >&2; exit 1; }
+          grep -q '^DATABASE_URL=' .env.production || { echo "[deploy] .env.production 缺少 DATABASE_URL" >&2; exit 1; }
+          export DATABASE_URL="$(sed -n 's/^DATABASE_URL=//p' .env.production | head -n1)"
 
           echo "[deploy] stopping lucent"
           pm2 stop lucent || true
@@ -80,7 +85,7 @@ jobs:
           pnpm install --frozen-lockfile
 
           echo "[deploy] generating prisma client + building"
-          pnpm prisma:generate
+          NODE_ENV=production pnpm prisma:generate
           pnpm build
 
           echo "[deploy] applying database migrations"

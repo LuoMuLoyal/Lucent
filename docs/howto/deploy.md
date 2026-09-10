@@ -9,10 +9,10 @@ updated: 2026-09-10
 
 部署模型与组件说明见 [reference/deployment.md](../reference/deployment.md),本文只给操作步骤。
 
-| 环境       | 形态                                           | 编排                                        |
-| ---------- | ---------------------------------------------- | ------------------------------------------- |
-| staging    | 宿主原生 Node + PM2 + 自建 Traefik(推送即部署) | 根 `compose.staging.yaml`(只含基础设施容器) |
-| production | Coolify Docker Compose Service + 镜像          | 根 `compose.yaml`                           |
+| 环境       | 形态                                           | 编排                                       |
+| ---------- | ---------------------------------------------- | ------------------------------------------ |
+| staging    | 宿主原生 Node + PM2 + 自建 Traefik(推送即部署) | 根`compose.staging.yaml`(只含基础设施容器) |
+| production | Coolify Docker Compose Service + 镜像          | 根`compose.yaml`                           |
 
 ## 一、Staging 首次接入(服务器上人工执行)
 
@@ -65,7 +65,6 @@ updated: 2026-09-10
 
 7. **首次发布**——执行 §二 的手动发布命令串(此时 PM2 里还没有 `lucent` 进程,
    `pm2 stop lucent || true` 会静默跳过,`pm2 startOrReload` 首次启动)。
-
 8. **验证**:`curl https://api.<域名>/api/v1/health/deep`(200 且证书有效);
    最后 `pm2 save` 固化进程列表,重启用 `pm2 resurrect` 自恢复。
 
@@ -82,12 +81,19 @@ updated: 2026-09-10
 ssh root@<staging-host>
 cd /opt/lucent
 
-test -f .env.production                     # 缺这个文件就别往下走
+# 环境文件缺失/缺 DATABASE_URL 时别往下走:postinstall 会跑 prisma:generate,
+# 而 prisma.config.ts 要求 DATABASE_URL 存在 —— 它按 NODE_ENV 找 .env.<env>
+# (未设 NODE_ENV 时找 .env.development,服务器上只有 .env.production)。
+test -f .env.production
+grep -q '^DATABASE_URL=' .env.production
+export DATABASE_URL="$(sed -n 's/^DATABASE_URL=//p' .env.production | head -n1)"
+
 pm2 stop lucent || true                     # 首次发布时进程还不存在
 git fetch --prune origin
 git reset --hard origin/main                # 硬同步:服务器不保留任何 tracked 改动
 pnpm install --frozen-lockfile
-pnpm prisma:generate && pnpm build
+NODE_ENV=production pnpm prisma:generate
+pnpm build
 NODE_ENV=production pnpm exec prisma migrate deploy
 pm2 startOrReload deploy/ecosystem.config.cjs --update-env
 pm2 save
@@ -96,6 +102,10 @@ pm2 save
 for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/v1/health/ready && break; sleep 2; done
 ```
 
+- `NODE_ENV=production` 与安装前的 `DATABASE_URL` 都不能省:Prisma 与 Nest 都按
+  `NODE_ENV` 决定读哪个 `.env.*`;漏掉就会报
+  `Failed to load config file ... DATABASE_URL environment variable is required but not set`
+  ——看着像配置损坏,实际是环境文件选错(去读了服务器上不存在的 `.env.development`)。
 - 停机窗口 = 上述全程(含 `pnpm install` + `pnpm build`,通常 1–3 分钟)。
 - 失败就停在当前状态:`pm2 logs lucent --lines 100` 看现场;修完再推一次或手动重跑。
 - **回滚不做**(fix-forward):需要回旧版本时 `git checkout <旧 sha>` 后重跑上面同一串命令;
@@ -113,21 +123,21 @@ docker compose -f compose.staging.yaml --env-file .env.production up -d
 
 ## 三、Staging「改哪些值」清单
 
-| 文件                                   | 键 / 值                                | 说明                                                                                                                  |
-| -------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `.env.production`(根,gitignored)       | `DATABASE_URL`                         | `postgresql://lucent:<POSTGRES_PASSWORD>@127.0.0.1:5432/lucent?schema=public`                                         |
-|                                        | `REDIS_URL`                            | `redis://:<REDIS_PASSWORD>@127.0.0.1:6379`                                                                            |
-|                                        | `VICTORIALOGS_URL`                     | `http://127.0.0.1:9428/insert/jsonline`                                                                               |
-|                                        | `TRUST_PROXY`                          | `true`(经 Traefik 后限流取真实 IP)                                                                                    |
-|                                        | `PUBLIC_BASE_URL`                      | `https://api.<域名>`                                                                                                  |
-|                                        | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与上面两个 URL 内嵌的密码一致**                                                                  |
-|                                        | `METRICS_USER` / `METRICS_PASSWORD`    | 应用的 `/metrics` Basic Auth + VictoriaMetrics 抓取凭据                                                               |
-|                                        | 其余密钥                               | JWT / Better Auth / ADMIN / 邮件 / AI / 对象存储,见 [environment-variables.md](../reference/environment-variables.md) |
-| `deploy/traefik/*.yml`(服务器本地)     | `acme.email`                           | ACME 注册邮箱,必填                                                                                                    |
-|                                        | 4 条 `rule` 的域名                     | `api.` / `metrics.` / `logs.` / `traefik.`                                                                            |
-|                                        | `basicAuth.users`                      | 三个面板共用;`openssl passwd -apr1` 或 `htpasswd -nbB` 生成 `用户:哈希`                                               |
-| `deploy/ecosystem.config.cjs`          | `cwd`                                  | 默认 `/opt/lucent`,换目录时改这里与工作流里的 `APP_DIR`                                                               |
-| `.github/workflows/lucent-staging.yml` | `APP_DIR`                              | 服务器代码目录,须与 `ecosystem.config.cjs` 的 `cwd` 一致                                                              |
+| 文件                                   | 键 / 值                                | 说明                                                                                                                 |
+| -------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `.env.production`(根,gitignored)       | `DATABASE_URL`                         | `postgresql://lucent:<POSTGRES_PASSWORD>@127.0.0.1:5432/lucent?schema=public`                                        |
+|                                        | `REDIS_URL`                            | `redis://:<REDIS_PASSWORD>@127.0.0.1:6379`                                                                           |
+|                                        | `VICTORIALOGS_URL`                     | `http://127.0.0.1:9428/insert/jsonline`                                                                              |
+|                                        | `TRUST_PROXY`                          | `true`(经 Traefik 后限流取真实 IP)                                                                                   |
+|                                        | `PUBLIC_BASE_URL`                      | `https://api.<域名>`                                                                                                 |
+|                                        | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与上面两个 URL 内嵌的密码一致**                                                                 |
+|                                        | `METRICS_USER` / `METRICS_PASSWORD`    | 应用的`/metrics` Basic Auth + VictoriaMetrics 抓取凭据                                                               |
+|                                        | 其余密钥                               | JWT / Better Auth / ADMIN / 邮件 / AI / 对象存储,见[environment-variables.md](../reference/environment-variables.md) |
+| `deploy/traefik/*.yml`(服务器本地)     | `acme.email`                           | ACME 注册邮箱,必填                                                                                                   |
+|                                        | 4 条`rule` 的域名                      | `api.` / `metrics.` / `logs.` / `traefik.`                                                                           |
+|                                        | `basicAuth.users`                      | 三个面板共用;`openssl passwd -apr1` 或 `htpasswd -nbB` 生成 `用户:哈希`                                              |
+| `deploy/ecosystem.config.cjs`          | `cwd`                                  | 默认`/opt/lucent`,换目录时改这里与工作流里的 `APP_DIR`                                                               |
+| `.github/workflows/lucent-staging.yml` | `APP_DIR`                              | 服务器代码目录,须与`ecosystem.config.cjs` 的 `cwd` 一致                                                              |
 
 改完 traefik 配置要重启才生效(单文件 bind-mount 的 fsnotify 不可靠):
 
@@ -141,7 +151,7 @@ docker compose -f compose.staging.yaml --env-file .env.production restart traefi
 | -------------------- | ---------------- | ---------------------------------------------------------------------------------- |
 | Traefik dashboard    | `traefik.<域名>` | 反代自身的路由 / 服务 / 中间件 / 证书与 ACME 状态(排「域名没路由、502、证书没签」) |
 | VictoriaMetrics VMUI | `metrics.<域名>` | 时序指标查询(QPS、延迟、错误率、内存、队列深度)                                    |
-| VictoriaLogs UI      | `logs.<域名>`    | LogsQL 检索;按 `trace_id:xxx` 串一次请求                                           |
+| VictoriaLogs UI      | `logs.<域名>`    | LogsQL 检索;按`trace_id:xxx` 串一次请求                                            |
 
 三个面板都要 BasicAuth(`panel-auth`,`401` 未认证)。容器端口只绑 `127.0.0.1`,
 如需在本机直连可开隧道:`ssh -L 8428:127.0.0.1:8428 root@<staging-host>`。

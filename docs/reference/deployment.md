@@ -79,11 +79,15 @@ BasicAuth 都由 Traefik 终止,不再依赖云安全组收口。
 ### 发布
 
 1. 推送到 `main` → `lucent-staging` **立即**部署(不等 `lucent-ci` 结果、无人工批准)。
-2. 远端串行执行:`pm2 stop lucent` → `git fetch --prune origin && git reset --hard origin/main`
-   → `pnpm install --frozen-lockfile` → `pnpm prisma:generate && pnpm build`
+2. 远端串行执行:校验 `.env.production` 存在且含 `DATABASE_URL`,并把它导出到安装环境
+   (postinstall 会跑 `prisma:generate`,而 `prisma.config.ts` 要求该变量存在)
+   → `pm2 stop lucent` → `git fetch --prune origin && git reset --hard origin/main`
+   → `pnpm install --frozen-lockfile` → `NODE_ENV=production pnpm prisma:generate` + `pnpm build`
    → `NODE_ENV=production pnpm exec prisma migrate deploy`
    → `pm2 startOrReload deploy/ecosystem.config.cjs --update-env` → `pm2 save`
    → 本机健康门禁(`/api/v1/health/ready`)→ 工作流再做一次公共健康检查(`/api/v1/health/deep`)。
+   全程带 `NODE_ENV=production`:Prisma 与 Nest 都按它选择 `.env.*` 文件,漏掉会去读
+   服务器上不存在的 `.env.development`,报 `DATABASE_URL environment variable is required`。
 3. 停机窗口 = 上述第 2 步全程(含构建,通常 1–3 分钟);SSE 连接会先收到终止事件再关闭。
 4. 手动发布/重发:SSH 登录后敲同一串命令(原文见
    [howto/deploy.md](../howto/deploy.md))。
