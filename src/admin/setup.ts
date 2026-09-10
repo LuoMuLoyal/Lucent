@@ -1,6 +1,8 @@
+import { Logger } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { ConfigService } from '@nestjs/config';
 
+import { EnvKey } from '../config/env/env-keys.enum.js';
 import { PrismaService } from '../prisma/index.js';
 import { ADMIN_ROOT_PATH } from './constants/admin.constants.js';
 import { buildPrismaClientModule } from './services/prisma-module.service.js';
@@ -30,6 +32,16 @@ export async function registerAdminPanel(
   app: NestFastifyApplication,
   configService: ConfigService,
 ): Promise<void> {
+  // ADMIN_ENABLED=false 时整体跳过:这里之前是启动内存的主要来源之一——
+  // 动态加载 adminjs / @adminjs/fastify / @sergiyiva/adminjs-prisma,再自省
+  // Prisma DMMF 并为每个模型构建 resource。只有在需要面板的运行时才付这份开销。
+  if (configService.get<string>(EnvKey.ADMIN_ENABLED) === 'false') {
+    new Logger('AdminPanel').log(
+      'AdminJS panel disabled (ADMIN_ENABLED=false); skipping registration.',
+    );
+    return;
+  }
+
   const [adminJsModule, adminFastifyModule, adminPrismaModule] =
     await Promise.all([
       dynamicImport<AdminJsModule>('adminjs'),

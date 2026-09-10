@@ -123,6 +123,10 @@ const envSchema = z.object({
   [EnvKey.ADMIN_EMAIL]: z.email(),
   [EnvKey.ADMIN_PASSWORD]: z.string().min(8),
   [EnvKey.ADMIN_COOKIE_SECRET]: z.string().min(32),
+  // 面板开关:仅字面量 'false' 关闭,默认开启(保持既有行为)。关闭后启动时不加载
+  // adminjs / @adminjs/fastify / @sergiyiva/adminjs-prisma,也不做 Prisma DMMF
+  // 自省与 resource 构建——内存受限的 staging 用得上。ADMIN_* 凭据仍为必填。
+  [EnvKey.ADMIN_ENABLED]: z.enum(['true', 'false']).optional(),
 
   // ── AI provider (secrets in .env; base URL/model also via env) ────
   [EnvKey.AI_PROVIDER]: z.enum(['openai-compatible', '']).optional(),

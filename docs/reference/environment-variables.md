@@ -74,6 +74,14 @@ METRICS_PASSWORD
 生产(Coolify compose)下 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml`
 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
 
+`ADMIN_ENABLED`(`'true'` / `'false'`,默认开启)控制 AdminJS 面板是否注册:
+设为 `'false'` 时启动阶段完全跳过面板——不加载 `adminjs` / `@adminjs/fastify` /
+`@sergiyiva/adminjs-prisma`,也不做 Prisma DMMF 自省与 resource 构建,可省下一块
+启动内存(内存受限的 staging 用得上:`.env.production` 里写 `ADMIN_ENABLED=false`)。
+只认字面量 `'false'`,其它值/未设置都保持开启;关闭面板**不影响** `ADMIN_EMAIL` /
+`ADMIN_PASSWORD` / `ADMIN_COOKIE_SECRET` 的必填性(它们同时被 AdminJS 登录与
+`AdminGuard` 的管理员断言复用)。
+
 **staging(原生 PM2)**下这两个值写在服务器上仓库根 `.env.production` 里,指向回环
 (`127.0.0.1`)——容器端口只绑 `127.0.0.1`。同一份文件也被
 `docker compose -f compose.staging.yaml --env-file .env.production` 读取做插值,
