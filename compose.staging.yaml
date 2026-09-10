@@ -51,6 +51,10 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
+    # REDIS_PASSWORD 必须同时进容器环境:healthcheck 里的 redis-cli 靠它认证
+    # (只写在 command 的 --requirepass 里,容器内环境变量是空的 → 健康检查永远失败)。
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --appendonly yes
     ports:
       - '127.0.0.1:6379:6379'
@@ -88,9 +92,8 @@ services:
       - '-storageDataPath=/storage'
       - '-retentionPeriod=15d'
       - '-httpListenAddr=0.0.0.0:8428'
+      # 不传这个参数就不会加载抓取配置(卷挂了也没用),指标会一直是空的。
       - '-promscrape.config=/etc/vmscraper.yml'
-      # Prometheus 兼容:指标名与标签与 Prometheus 一致
-      - '-reproducePrometheusSchema=true'
     logging:
       driver: json-file
       options:

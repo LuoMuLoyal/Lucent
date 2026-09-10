@@ -18,6 +18,9 @@ updated: 2026-09-10
 
 前置:DNS 已把 `api` / `metrics` / `logs` / `traefik` 四个域名指向本机,80/443 放行。
 
+> 建议顺手开内存 overcommit,消除 redis 启动时的告警(`Background save may fail under
+low memory condition`):`sysctl vm.overcommit_memory=1`,并写进 `/etc/sysctl.conf` 持久化。
+
 1. **安装 pnpm**(Node 24 已就位):
 
    ```bash
