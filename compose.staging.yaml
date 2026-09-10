@@ -1,21 +1,40 @@
-# Lucent Staging Compose
+# Lucent Staging 基础设施编排(不含 app)
 # ---------------------------------------------------------------------------
-# 精简版生产编排:保留应用 + 数据库 + 轻量指标/日志栈。
-# 去掉了 grafana(无看板需求)和 node-exporter(无主机指标需求)。
-# VictoriaMetrics 保留供直接 VMUI 查询;VictoriaLogs 保留接收 app 日志。
+# staging 的 Lucent 应用以原生 Node + PM2 跑在宿主机上(root 用户,
+# 代码目录 /opt/lucent,见 deploy/ecosystem.config.cjs),本文件只负责它依赖的
+# 容器:postgres / redis / victoriametrics / victorialogs / traefik。
 #
-# 用法与 compose.yaml 一致:粘贴到 Coolify Docker Compose Empty,
-# 环境变量在面板填写。
+# 用法(在仓库根目录,服务器上即 /opt/lucent):
+#   docker compose -f compose.staging.yaml --env-file .env.production up -d
+#   docker compose -f compose.staging.yaml --env-file .env.production ps
+#   docker compose -f compose.staging.yaml --env-file .env.production restart traefik
+#   (最后一条:改完 deploy/traefik/ 下的配置后需要重启,热加载不保证生效)
+#
+# 要点:
+#   - 插值变量(POSTGRES_PASSWORD / REDIS_PASSWORD / METRICS_USER / METRICS_PASSWORD)
+#     来自 --env-file .env.production —— 与应用运行时配置文件同一个,避免密码两处维护;
+#     注意 DATABASE_URL / REDIS_URL 里内嵌的密码必须与这两个变量一致。
+#   - 容器端口全部只绑 127.0.0.1:应用经回环访问 postgres/redis/日志库,
+#     公网只经 traefik(80/443)进出,不需要云安全组再收口。
+#   - traefik 的域名 / 邮箱 / 面板密码**不走环境变量**:直接改
+#     deploy/traefik/*.yml(由仓库里的 .example 模板复制而来,见 docs/howto/deploy.md)。
+#   - app 不在本编排里:它是宿主 PM2 进程,发版见 .github/workflows/lucent-staging.yml。
+
+name: lucent-staging
 
 services:
   postgres:
     image: pgvector/pgvector:pg18
     restart: unless-stopped
+    # 慢查询日志:超过 500ms 的语句写入容器日志
     command: ['postgres', '-c', 'log_min_duration_statement=500']
     environment:
       POSTGRES_USER: lucent
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: lucent
+    ports:
+      # 只绑回环:宿主 PM2 进程经 127.0.0.1 访问
+      - '127.0.0.1:5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
@@ -32,9 +51,9 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --appendonly yes
+    ports:
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis-data:/data
     healthcheck:
@@ -49,81 +68,41 @@ services:
         max-size: '50m'
         max-file: '5'
 
-  app:
-    image: ${LUCENT_IMAGE}
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://lucent:${POSTGRES_PASSWORD}@postgres:5432/lucent?schema=public
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: '3000'
-      TRUST_PROXY: 'true'
-      METRICS_USER: ${METRICS_USER}
-      METRICS_PASSWORD: ${METRICS_PASSWORD}
-      JPUSH_APP_KEY: ${JPUSH_APP_KEY:-}
-      JPUSH_MASTER_SECRET: ${JPUSH_MASTER_SECRET:-}
-      JPUSH_APNS_PRODUCTION: ${JPUSH_APNS_PRODUCTION:-false}
-      VICTORIALOGS_URL: http://victorialogs:9428/insert/jsonline
-    expose:
-      - '3000'
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    stop_grace_period: 60s
-    stop_signal: SIGTERM
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget -q -O - http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: '10m'
-        max-file: '3'
-
-  # ── VictoriaMetrics(仅保留 VMUI 查询,不配 Grafana) ──────────
+  # ── VictoriaMetrics(抓取宿主 app 的 /metrics,面板经 Traefik + BasicAuth)──
+  # 抓取配置 monitoring/victoriametrics/vmscraper.staging.yml 的目标是
+  # host.docker.internal:3000 —— 靠下方 extra_hosts 解析到宿主。
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.128.0
     restart: unless-stopped
     ports:
-      - '8428:8428'
+      - '127.0.0.1:8428:8428'
     volumes:
       - ./monitoring/victoriametrics/vmscraper.staging.yml:/etc/vmscraper.yml:ro
       - victoriametrics-data:/storage
     environment:
       METRICS_USER: ${METRICS_USER}
       METRICS_PASSWORD: ${METRICS_PASSWORD}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     command:
       - '-storageDataPath=/storage'
       - '-retentionPeriod=15d'
       - '-httpListenAddr=0.0.0.0:8428'
+      - '-promscrape.config=/etc/vmscraper.yml'
+      # Prometheus 兼容:指标名与标签与 Prometheus 一致
       - '-reproducePrometheusSchema=true'
-    depends_on:
-      app:
-        condition: service_started
     logging:
       driver: json-file
       options:
         max-size: '20m'
         max-file: '3'
 
-  # ── VictoriaLogs ─────────────────────────────────────────────
+  # ── VictoriaLogs(app 经 VICTORIALOGS_URL 直推 JSON 行日志)─────────
   victorialogs:
     image: victoriametrics/victoria-logs:v1.51.1
     restart: unless-stopped
     ports:
-      - '9428:9428'
+      - '127.0.0.1:9428:9428'
     volumes:
       - victorialogs-data:/storage
     command:
@@ -136,8 +115,34 @@ services:
         max-size: '10m'
         max-file: '3'
 
+  # ── Traefik(唯一公网入口:TLS 终止 + 域名路由 + 面板 BasicAuth)────
+  # 静态配置与动态配置都是服务器本地的 gitignored 文件(仓库只留 .example 模板);
+  # 需要改域名/邮箱/面板密码时改那两个文件,然后 restart 本容器。
+  # 首次 `up -d` 之前必须先复制出这两个文件:挂载点不存在时 Docker 会把它建成目录,
+  # traefik 读目录当配置会直接启动失败。
+  traefik:
+    image: traefik:v3.6
+    restart: unless-stopped
+    command: ['--configFile=/etc/traefik/traefik.yml']
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/traefik/traefik.static.yml:/etc/traefik/traefik.yml:ro
+      - ./deploy/traefik/traefik.dynamic.yml:/etc/traefik/dynamic/routes.yml:ro
+      - letsencrypt:/letsencrypt
+    extra_hosts:
+      # 让 lucent-api 路由能访问宿主的 PM2 进程(不加必然 502)
+      - 'host.docker.internal:host-gateway'
+    logging:
+      driver: json-file
+      options:
+        max-size: '20m'
+        max-file: '3'
+
 volumes:
   postgres-data:
   redis-data:
   victoriametrics-data:
   victorialogs-data:
+  letsencrypt:
