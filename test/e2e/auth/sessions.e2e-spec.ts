@@ -390,20 +390,19 @@ describe('Session Management API (e2e)', () => {
       });
       await expectBetterAuthSessionCount(ctx.prisma, user.id, 1);
 
-      const token = randomUUID();
-      await ctx.prisma.verification.create({
-        data: {
-          id: randomUUID(),
-          identifier: `reset-password:${token}`,
-          value: user.id,
-          expiresAt: new Date(Date.now() + 3600000),
-        },
-      });
+      // Seed a forgot-password verification code in cache (same hash format as
+      // the verification service) and consume it via the reset-password endpoint.
+      const code = '123456';
+      const hash = createHash('sha256')
+        .update(`forgot-password:${user.email}:${code}`)
+        .digest('hex');
+      const cache = app.get<Cache>(CACHE_MANAGER);
+      await cache.set(`vcode:forgot-password:${user.email}`, hash, 5 * 60 * 1000);
 
       await request(app.getHttpServer())
         .post(RESET_PASSWORD_PATH)
-        .send({ token, password: 'ResetPass@123456' })
-        .expect(204);
+        .send({ email: user.email, code, password: 'ResetPass@123456' })
+        .expect(200);
 
       await expectBetterAuthSessionCount(ctx.prisma, user.id, 0);
     });

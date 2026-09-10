@@ -75,6 +75,7 @@ const AUTH_SCENE = {
   register: 'register',
   login: 'login',
   changeEmail: 'change-email',
+  forgotPassword: 'forgot-password',
 } as const;
 
 type AuthScene = (typeof AUTH_SCENE)[keyof typeof AUTH_SCENE];
@@ -559,26 +560,18 @@ describe('Auth API (e2e)', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('POST /api/v1/auth/reset-password', () => {
-    it('should reset password with valid Better Auth reset token', async () => {
-      const { email, user } = await registerUser();
+    it('should reset password with valid verification code', async () => {
+      const { email } = await registerUser();
 
       await forgotPasswordRequest(email);
 
-      const verification = await ctx.prisma.verification.findFirst({
-        where: {
-          identifier: { startsWith: 'reset-password:' },
-          value: user.id,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      expect(verification).not.toBeNull();
-
-      const token = verification!.identifier.replace('reset-password:', '');
+      // Seed the verification code in cache (same as register flow)
+      const code = await issueVerificationCode(AUTH_SCENE.forgotPassword, email);
       const newPassword = RESET_PASSWORD;
       await request(app.getHttpServer())
         .post(AUTH_PATH.resetPassword)
-        .send({ token, password: newPassword })
-        .expect(204);
+        .send({ email, code, password: newPassword })
+        .expect(200);
 
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
