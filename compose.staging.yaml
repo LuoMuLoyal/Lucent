@@ -76,7 +76,7 @@ services:
   # 抓取配置 monitoring/victoriametrics/vmscraper.staging.yml 的目标是
   # host.docker.internal:3000 —— 靠下方 extra_hosts 解析到宿主。
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.128.0
+    image: victoriametrics/victoria-metrics:v1.151.0
     restart: unless-stopped
     ports:
       - '127.0.0.1:8428:8428'

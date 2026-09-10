@@ -52,7 +52,7 @@ push main ──► lucent-staging(.github/workflows/lucent-staging.yml)
 | app             | 宿主 PM2(`deploy/ecosystem.config.cjs`) | 宿主 `0.0.0.0:3000`        | `cwd=/opt/lucent`,日志 `logs/pm2-*.log`;健康检查 `/api/v1/health/ready` |
 | postgres        | 容器 `pgvector/pgvector:pg18`           | `127.0.0.1:5432`           | 卷 `postgres-data`                                                      |
 | redis           | 容器 `redis:8-alpine`                   | `127.0.0.1:6379`           | requirepass + appendonly;卷 `redis-data`                                |
-| victoriametrics | 容器 `victoria-metrics:v1.128.0`        | `127.0.0.1:8428`           | 抓宿主 `host.docker.internal:3000/metrics`;保留 15d                     |
+| victoriametrics | 容器 `victoria-metrics:v1.151.0`        | `127.0.0.1:8428`           | 抓宿主 `host.docker.internal:3000/metrics`;保留 15d                     |
 | victorialogs    | 容器 `victoria-logs:v1.51.1`            | `127.0.0.1:9428`           | 接收 Winston JSON 日志;保留 15d                                         |
 | traefik         | 容器 `traefik:v3.6`                     | `80` / `443`(唯一公网入口) | 证书存卷 `letsencrypt`;配置见下                                         |
 
@@ -161,7 +161,7 @@ GitHub (CI/CD)                              Coolify 控制面
 | `app`             | `${LUCENT_IMAGE}`(完整引用) | 仅内网 3000 | 公网入口 = Coolify 域名路由;健康检查 `/api/v1/health`                |
 | `postgres`        | `pgvector/pgvector:pg18`    | 无          | 卷 `postgres-data`                                                   |
 | `redis`           | `redis:8-alpine`            | 无          | 卷 `redis-data`;requirepass                                          |
-| `victoriametrics` | `victoria-metrics:v1.128.0` | `8428:8428` | 抓 app `/metrics` 与 node-exporter;卷 `victoriametrics-data`         |
+| `victoriametrics` | `victoria-metrics:v1.151.0` | `8428:8428` | 抓 app `/metrics` 与 node-exporter;卷 `victoriametrics-data`         |
 | `grafana`         | `grafana:12.1.0`            | `3001:3000` | provisioning/dashboards 来自 `monitoring/grafana/`;卷 `grafana-data` |
 | `victorialogs`    | `victoria-logs:v1.15.0`     | `9428:9428` | 接收 Winston JSON 日志;卷 `victorialogs-data`                        |
 | `node-exporter`   | `node-exporter:v1.9.1`      | 无          | 宿主机 CPU/内存/磁盘指标                                             |

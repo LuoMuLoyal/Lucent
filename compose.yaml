@@ -118,7 +118,7 @@ services:
   # 抓取 lucent app /metrics 与 node-exporter;Basic Auth 凭据经环境变量
   # %{METRICS_USER}/%{METRICS_PASSWORD} 占位符注入(无需渲染脚本)。
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.128.0
+    image: victoriametrics/victoria-metrics:v1.151.0
     restart: unless-stopped
     ports:
       # VMUI / 查询接口,公网访问由云安全组收口
