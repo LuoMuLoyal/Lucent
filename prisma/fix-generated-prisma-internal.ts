@@ -42,7 +42,7 @@ async function transpileDir(dir: string): Promise<void> {
 }
 
 async function main() {
-  const prismaDir = path.resolve(thisDir, '../../generated/prisma');
+  const prismaDir = path.resolve(thisDir, '../generated/prisma');
 
   // Transpile root-level .ts files (client.ts, enums.ts, models.ts, etc.)
   await transpileDir(prismaDir);

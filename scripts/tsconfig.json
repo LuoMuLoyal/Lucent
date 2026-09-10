@@ -16,6 +16,6 @@
     "noPropertyAccessFromIndexSignature": false,
     "allowImportingTsExtensions": true
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../prisma/fix-generated-prisma-internal.ts"],
   "exclude": ["../node_modules", "../dist"]
 }

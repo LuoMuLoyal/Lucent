@@ -19,12 +19,12 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 COPY tsconfig.json tsconfig.build.json .swcrc nest-cli.json ./
-COPY scripts ./scripts
 COPY src ./src
 # 生成 Prisma Client（输出到 generated/prisma，由 schema.prisma output 字段决定）
 # 使用 pnpm prisma:generate 而非直接 prisma generate：prisma 7 的 prisma-client
-# provider 只生成 .ts 文件，prisma:generate 脚本会额外运行 fix-generated-prisma-internal.ts
-# 将 .ts 编译为 .js（运行时 dist/ 中的 require() 需要 .js 文件）
+# provider 只生成 .ts 文件，prisma:generate 脚本会额外运行
+# prisma/fix-generated-prisma-internal.ts（已随 prisma/ COPY 进镜像）
+# 将 .ts 编译为 .js（运行时 dist/ 中的 import() 需要 .js 文件）
 # prisma.config.ts requires DATABASE_URL to load; the build stage doesn't
 # connect to a database, but prisma generate needs it for config validation.
 ENV DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?schema=public
