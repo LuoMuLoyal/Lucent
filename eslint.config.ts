@@ -15,7 +15,6 @@ export default tseslint.config(
       'eslint.arch.config.ts',
       'eslint-plugins/**/*.ts',
       'commitlint.config.ts',
-      'deploy/**/*.ts',
       'scripts/**/*.ts',
       // 根级 vitest 配置文件不在 tsconfig.typecheck.json include 内,
       // typed-linting 的 parserOptions.project 解析失败;由 oxlint 覆盖

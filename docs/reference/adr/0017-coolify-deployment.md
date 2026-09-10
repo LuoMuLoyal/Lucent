@@ -20,7 +20,7 @@ ADR-0004 定义了 GitHub Actions + 腾讯 TCR + SSH `deploy.ts` 的单机 Compo
 
 采用 **仓库保留一份生产 compose + Coolify 注册为 Docker Compose Service** 的模型:
 
-1. **编排事实源留在仓库**:`deploy/compose.yml` 定义完整栈 —— `postgres`、
+1. **编排事实源留在仓库**:`compose.yaml` 定义完整栈 —— `postgres`、
    `redis`、`app`、`victoriametrics`、`grafana`、`victorialogs`、`node-exporter`。
    Nginx、vmalert、alertmanager、`deploy.ts`/`smoke.ts`/`backup.sh`/
    `check-cert.sh`/`render-configs.sh` 与告警规则全部退役。

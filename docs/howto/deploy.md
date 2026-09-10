@@ -12,10 +12,10 @@ updated: 2026-09-09
 
 ## 〇、环境与编排对应关系
 
-| 环境       | 粘贴哪个 compose             | 说明                               |
-| ---------- | ---------------------------- | ---------------------------------- |
-| staging    | `deploy/compose.staging.yml` | 精简栈:无 grafana / node-exporter  |
-| production | `deploy/compose.yml`         | 完整栈(含 grafana / node-exporter) |
+| 环境       | 粘贴哪个 compose          | 说明                               |
+| ---------- | ------------------------- | ---------------------------------- |
+| staging    | `compose.staging.yaml`    | 精简栈:无 grafana / node-exporter  |
+| production | `compose.yaml`            | 完整栈(含 grafana / node-exporter) |
 
 ## 一、首次接入(Coolify 面板)
 

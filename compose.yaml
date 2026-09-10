@@ -119,7 +119,7 @@ services:
       # VMUI / 查询接口,公网访问由云安全组收口
       - '8428:8428'
     volumes:
-      - ./victoriametrics/vmscraper.yml:/etc/vmscraper.yml:ro
+      - ./monitoring/victoriametrics/vmscraper.yml:/etc/vmscraper.yml:ro
       - victoriametrics-data:/storage
     environment:
       METRICS_USER: ${METRICS_USER}
@@ -149,8 +149,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: 'false'
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/opt/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/opt/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     logging:
       driver: json-file

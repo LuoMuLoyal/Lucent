@@ -5,7 +5,7 @@
 // target file exists.
 //
 // Additionally validates path-like tokens (`docs/**`, `src/**`, `plans/**`,
-// `scripts/**`, `test/**`, `deploy/**`, `prisma/**` with a file extension)
+// `scripts/**`, `test/**`, `prisma/**`, `monitoring/**` with a file extension)
 // appearing in the docs surface, module READMEs, plans, and root entry docs,
 // so renamed/moved files can never leave stale references behind.
 //
@@ -196,7 +196,7 @@ function checkFile(file: string, repoRoot: string): BrokenLink[] {
 // stays at zero false positives — a missed reference is acceptable, a wrong
 // one is not.
 const PATH_TOKEN_RE =
-  /(?:^|[\s(`"'\[>])((?:docs|src|plans|scripts|test|deploy|prisma)\/[a-z0-9][a-zA-Z0-9_.\-/]*\.[a-z0-9]{1,6})(?=[\s)`"'\],.;:!?]|$)/g;
+  /(?:^|[\s(`"'\[>])((?:docs|src|plans|scripts|test|prisma|monitoring)\/[a-z0-9][a-zA-Z0-9_.\-/]*\.[a-z0-9]{1,6})(?=[\s)`"'\],.;:!?]|$)/g;
 
 function isPlaceholderPath(token: string): boolean {
   return /[*<>{}]/.test(token) || /[A-Z]/.test(token);
@@ -280,7 +280,7 @@ Usage: node scripts/docs/links.ts [options]
 
 Scans docs/**/*.md and verifies markdown relative links resolve to existing
 files. Also validates path-like tokens
-(docs|src|plans|scripts|test|deploy|prisma/**) across the docs surface,
+(docs|src|plans|scripts|test|prisma|monitoring/**) across the docs surface,
 module READMEs, plans, and root entry docs.
 
 Options:

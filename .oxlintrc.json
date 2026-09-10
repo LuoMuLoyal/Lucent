@@ -167,7 +167,6 @@
     "eslint.config.ts",
     "eslint-plugins/**/*.ts",
     "commitlint.config.ts",
-    "deploy/**/*.ts",
     "scripts/**/*.ts",
     "test/performance/**/*.ts",
     "generated/**",

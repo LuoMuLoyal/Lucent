@@ -31,7 +31,7 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 - 健康探针:`GET /api/v1/health`(readiness 别名,关键依赖不可用返回 503)、
   `/api/v1/health/live`(纯进程存活)、`/api/v1/health/ready`、`/api/v1/health/deep`(诊断)
 - 启动顺序:`pnpm dev:stack` → `pnpm db:migrate` → `pnpm start:dev`
-- `pnpm dev:stack`(`docker-compose.dev.yml`)以 `pgvector/pgvector:pg18` 启动
+- `pnpm dev:stack`(`compose.dev.yaml`)以 `pgvector/pgvector:pg18` 启动
   postgres-dev / postgres-test——Assistant RAG 的向量索引与查询依赖
   `CREATE EXTENSION vector`;同时启动 SeaweedFS(dev-only S3 兼容存储,S3 API 端口 8333、
   Filer 端口 8888,`STORAGE_PROVIDER=s3` 启用)与 Jaeger UI(OTLP 4318)。若本地卷由旧版
@@ -69,7 +69,7 @@ METRICS_USER
 METRICS_PASSWORD
 ```
 
-生产(Coolify compose)下 `DATABASE_URL` / `REDIS_URL` 由 `deploy/compose.yml`
+生产(Coolify compose)下 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml`
 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
 
 非敏感运行时参数(host/port/日志级别/阈值/各业务开关)均通过环境变量配置,未设置时使用
@@ -78,7 +78,7 @@ METRICS_PASSWORD
 `METRICS_USER` and `METRICS_PASSWORD` protect the `/metrics` Prometheus endpoint
 with HTTP Basic Auth. Both must be set together; if either is missing, `/metrics`
 is served without authentication (not recommended for production). VictoriaMetrics
-scrape config (`deploy/victoriametrics/vmscraper.yml`)用 `%{METRICS_USER}` /
+scrape config (`monitoring/victoriametrics/vmscraper.yml`)用 `%{METRICS_USER}` /
 `%{METRICS_PASSWORD}` 占位符从容器环境变量注入同名凭据。
 
 GitHub Actions CD 只负责构建并推送镜像到 Docker Hub(仓库级 secrets):
@@ -340,11 +340,11 @@ VICTORIALOGS_URL
   used when `OTEL_ENABLED=true`. In production, no trace backend is deployed —
   the OTel SDK still starts so that `trace_id` is injected into logs, but OTLP
   export failures are silently dropped. In development, the endpoint points to
-  the Jaeger all-in-one container (`docker-compose.dev.yml`). See ADR-0016
+  the Jaeger all-in-one container (`compose.dev.yaml`). See ADR-0016
   Decision 3 for the trace backend strategy.
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
   Winston batches log entries as newline-delimited JSON and POSTs them directly
-  to this URL (no Vector sidecar needed). The `deploy/compose.yml` injects
+  to this URL (no Vector sidecar needed). The `compose.yaml` injects
   `http://victorialogs:9428/insert/jsonline` automatically. Unset = only
   Console (stdout) transport is used. See ADR-0016 for the log backend strategy.
 

@@ -1,7 +1,7 @@
 # VictoriaMetrics scrape 配置(Staging,无 node-exporter,只抓 app)
-# Basic Auth 凭据通过 %{ENV_VAR} 占位符注入,与 compose.staging.yml
+# Basic Auth 凭据通过 %{ENV_VAR} 占位符注入,与 compose.staging.yaml
 # 的 METRICS_USER / METRICS_PASSWORD 一致。
-# 注意:与 compose.yml 使用的 vmscraper.yml(含 node 抓取 job)分文件维护;
+# 注意:与 compose.yaml 使用的 vmscraper.yml(含 node 抓取 job)分文件维护;
 # 修改 app 抓取配置时两处同步。
 
 scrape_configs:

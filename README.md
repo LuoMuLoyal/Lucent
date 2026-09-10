@@ -183,7 +183,7 @@ If the OpenAI-compatible base URL targets DeepSeek, Lucent now disables
 DeepSeek `thinking` mode automatically for these streaming tool-use flows so
 `tool_choice` requests can complete normally.
 
-Production deployment uses a repo-owned compose (`deploy/compose.yml`) registered as a
+Production deployment uses a repo-owned compose (`compose.yaml`) registered as a
 Coolify Docker Compose Service. Coolify's built-in Traefik terminates TLS and routes
 the API domain to `app:3000`; no Nginx is involved. See the deployment docs below.
 
@@ -235,8 +235,9 @@ see [docs/reference/deployment.md](docs/reference/deployment.md) and
 - `scripts/contract/` for contract export helpers
 - `scripts/import/medicine/` for medicine data import helpers and Python parsers
   - `scripts/import/food/` for food composition import helpers and Python parsers
-- `deploy/` contains production deployment assets: the compose stack definition
-  (`compose.yml`) plus VictoriaMetrics scrape config and Grafana provisioning/dashboards.
+- `compose.yaml` / `compose.staging.yaml` at the repo root hold the production / staging
+  stack definitions; `monitoring/` contains VictoriaMetrics scrape config and Grafana
+  provisioning/dashboards.
 - `test/e2e/` groups e2e specs by feature instead of keeping every suite flat at `test/`.
 - AI-oriented modules now use a clearer inner split when the capability is larger than plain DTO/controller code:
   - `prompts/`
@@ -252,9 +253,10 @@ see [docs/reference/deployment.md](docs/reference/deployment.md) and
   (`REGISTRY_IMAGE` GitHub secret, e.g. `docker.io/<your-user>/lucent`), tagged
   `<short-sha>` and `latest`. No server-side build, no SSH deploy scripts, no hardcoded
   image address in the repo.
-- `deploy/compose.yml` is the single source of truth for the production stack (app, postgres,
-  redis, victoriametrics, grafana, victorialogs, node-exporter). It is registered in Coolify as
-  a Docker Compose Service; Coolify runs it and its Traefik terminates TLS for the API domain.
+- `compose.yaml` / `compose.staging.yaml` at the repo root are the single source of
+  truth for the production / staging stacks (app, postgres, redis, victoriametrics,
+  grafana, victorialogs, node-exporter). They are registered in Coolify as
+  Docker Compose Services; Coolify runs them and its Traefik terminates TLS for the API domain.
 - Releases: update the `LUCENT_IMAGE` full image reference in the Coolify service, run the
   one-shot Prisma migration, then Pull Latest Images & Restart. See
   [docs/reference/deployment.md](docs/reference/deployment.md) for details.

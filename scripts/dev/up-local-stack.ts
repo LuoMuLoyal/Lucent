@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 // ESM equivalent of __dirname (scripts/ is a "type": "module" package).
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(thisDir, '..', '..');
-const COMPOSE_FILE = path.join(REPO_ROOT, 'docker-compose.dev.yml');
+const COMPOSE_FILE = path.join(REPO_ROOT, 'compose.dev.yaml');
 
 function main() {
   const args = process.argv.slice(2);

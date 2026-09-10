@@ -4,7 +4,7 @@
 # 去掉了 grafana(无看板需求)和 node-exporter(无主机指标需求)。
 # VictoriaMetrics 保留供直接 VMUI 查询;VictoriaLogs 保留接收 app 日志。
 #
-# 用法与 compose.yml 一致:粘贴到 Coolify Docker Compose Empty,
+# 用法与 compose.yaml 一致:粘贴到 Coolify Docker Compose Empty,
 # 环境变量在面板填写。
 
 services:
@@ -99,7 +99,7 @@ services:
     ports:
       - '8428:8428'
     volumes:
-      - ./victoriametrics/vmscraper.staging.yml:/etc/vmscraper.yml:ro
+      - ./monitoring/victoriametrics/vmscraper.staging.yml:/etc/vmscraper.yml:ro
       - victoriametrics-data:/storage
     environment:
       METRICS_USER: ${METRICS_USER}
