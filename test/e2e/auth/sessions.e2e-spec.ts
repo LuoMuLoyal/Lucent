@@ -397,7 +397,11 @@ describe('Session Management API (e2e)', () => {
         .update(`forgot-password:${user.email}:${code}`)
         .digest('hex');
       const cache = app.get<Cache>(CACHE_MANAGER);
-      await cache.set(`vcode:forgot-password:${user.email}`, hash, 5 * 60 * 1000);
+      await cache.set(
+        `vcode:forgot-password:${user.email}`,
+        hash,
+        5 * 60 * 1000,
+      );
 
       await request(app.getHttpServer())
         .post(RESET_PASSWORD_PATH)

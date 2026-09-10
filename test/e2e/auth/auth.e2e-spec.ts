@@ -566,7 +566,10 @@ describe('Auth API (e2e)', () => {
       await forgotPasswordRequest(email);
 
       // Seed the verification code in cache (same as register flow)
-      const code = await issueVerificationCode(AUTH_SCENE.forgotPassword, email);
+      const code = await issueVerificationCode(
+        AUTH_SCENE.forgotPassword,
+        email,
+      );
       const newPassword = RESET_PASSWORD;
       await request(app.getHttpServer())
         .post(AUTH_PATH.resetPassword)
