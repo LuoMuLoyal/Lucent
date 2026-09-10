@@ -53,7 +53,7 @@ jobs:
       # 生产只推不可变的 <sha8> 作为回滚锚点;latest 专供 staging 试验,
       # 生产不推 latest,避免两个环境互相覆盖 latest 造成竞态。
       - name: Build and push Lucent image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
