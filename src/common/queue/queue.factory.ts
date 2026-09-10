@@ -184,7 +184,10 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     await Promise.all(
       this.managed.map(async (m) => {
         clearInterval(m.metricsInterval);
-        await m.worker.close();
+        // 强制关闭 worker:不等待当前 job 完成/重试,否则一个卡在 backoff
+        // 重试循环的 job 会无限阻塞优雅停机(app.close 挂起,CI 里 reports
+        // 套件 afterAll 实测卡 120s+)。停机语义 = 尽快释放连接。
+        await m.worker.close(true);
         await m.queue.close();
       }),
     );

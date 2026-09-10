@@ -32,9 +32,9 @@ export default defineConfig({
     pool: 'forks',
     singleFork: true,
     // Fastify 插件注册比 Express 慢,需要更长的超时。
-    // CI runner 上 e2e 套件(尤其 reports 的 BullMQ 队列关闭)可达分钟级,
-    // 60s 在慢速 runner 上会误报 afterAll 超时,放宽到 120s。
-    hookTimeout: 120_000,
+    // reports 套件 afterAll 卡死(worker.close 等重试 job)已由
+    // queue.factory 强制关闭修复;60s 兜底对慢速 runner 仍偏紧,留 90s。
+    hookTimeout: 90_000,
     testTimeout: 15_000,
     // E2E 不收集覆盖率
     coverage: { enabled: false },
