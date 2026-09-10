@@ -55,10 +55,12 @@ COPY prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/config/env/env-file-paths.ts ./src/config/env/env-file-paths.ts
 # package.json（Winston 等需要读取 version）
 COPY package.json ./
-# 运行时只写 stdout(Coolify/容器收集)+ VictoriaLogs(见 deploy/compose.yml),
+# 启动入口:先 prisma migrate deploy 再启动应用(见脚本头注释)
+COPY entrypoint.sh ./entrypoint.sh
+# 运行时只写 stdout(Coolify/容器收集)+ VictoriaLogs(见 compose.yaml),
 # 不再需要容器内日志目录。
-RUN chown -R lucent:lucent /app
+RUN chown -R lucent:lucent /app && chmod +x entrypoint.sh
 USER lucent
 EXPOSE 3000
 ENTRYPOINT ["tini", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["/app/entrypoint.sh"]

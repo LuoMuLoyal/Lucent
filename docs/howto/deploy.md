@@ -49,8 +49,6 @@ staging 在 Coolify 侧须同时注册为 **Application** 资源(用于 webhook
    - **Docker Registry Image**: 填 `REGISTRY_IMAGE` 的值(如 `docker.io/<你的用户名>/lucent`),
      拉取 `latest` tag 进行部署。
    - **Base Directory**: `/`(或 Dockerfile 所在子目录)。
-   - **Pre-deployment command**: `node_modules/.bin/prisma migrate deploy`
-     (容器名填 app 容器名,如 `app`;见 [migration 讨论](../reference/deployment.md))。
    - **Port**: `3000`。
    - **域名**: 与 Docker Compose Service 的 staging app 域名一致(或用同一个
      域名;两者指向同一个 container,选一个入口即可)。
@@ -70,9 +68,8 @@ staging 在 Coolify 侧须同时注册为 **Application** 资源(用于 webhook
 
 1. 合并 main → `lucent-ci` 校验 → `lucent-staging` 自动构建并推送镜像(
    `<sha8>` + `latest`),然后自动调用 Coolify webhook 触发 staging 部署。
-2. 有 schema 变更时,确认 staging 的 Pre-deployment command 已配置
-   `node_modules/.bin/prisma migrate deploy`;webhook 触发的部署会在切
-   新容器前自动执行迁移。
+2. 容器启动时 `entrypoint.sh` 会自动执行 `prisma migrate deploy`;迁移失败
+   则容器启动中止(不会带坏 schema 上线)。无需手动执行迁移命令。
 3. 验证:`curl https://<staging-domain>/api/v1/health/deep`。
 
 ### production(手动)
@@ -81,15 +78,12 @@ staging 在 Coolify 侧须同时注册为 **Application** 资源(用于 webhook
    构建并推送镜像(仅 `<sha8>`。
 2. 在 Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的完整引用。
 3. **Pull Latest Images & Restart**(拉新镜像并重建)。
-4. 有 schema 变更时,先执行一次迁移:
-   ```bash
-   # Coolify 终端(或服务器 docker exec)在 lucent-app 容器内执行
-   node_modules/.bin/prisma migrate deploy
-   ```
+4. 容器启动时 `entrypoint.sh` 会自动执行 `prisma migrate deploy`,无需
+   手动执行迁移命令。
 5. 验证:`curl https://<domain>/api/v1/health/deep`。
 
-> 说明:发布 = 更新 `LUCENT_IMAGE` → pull & restart;schema 不回退,
-> 破坏性迁移走 expand-contract。
+> 说明:发布 = 更新 `LUCENT_IMAGE` → pull & restart;
+> 迁移自动执行,失败则容器不启动;破坏性迁移走 expand-contract。
 
 ## 三、回滚
 

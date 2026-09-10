@@ -238,6 +238,9 @@ see [docs/reference/deployment.md](docs/reference/deployment.md) and
 - `compose.yaml` / `compose.staging.yaml` at the repo root hold the production / staging
   stack definitions; `monitoring/` contains VictoriaMetrics scrape config and Grafana
   provisioning/dashboards.
+- `entrypoint.sh` at the repo root is the container startup entrypoint (copied into the
+  image): it runs `prisma migrate deploy` before starting the app, so migrations are
+  applied automatically on container start and a failed migration aborts startup.
 - `test/e2e/` groups e2e specs by feature instead of keeping every suite flat at `test/`.
 - AI-oriented modules now use a clearer inner split when the capability is larger than plain DTO/controller code:
   - `prompts/`
