@@ -47,7 +47,7 @@ jobs:
         run: pnpm prisma:generate
 
       - name: Cache SWC
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .swc
           key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
@@ -100,7 +100,7 @@ jobs:
         run: pnpm prisma:generate
 
       - name: Cache SWC
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .swc
           key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
@@ -190,7 +190,7 @@ jobs:
         run: pnpm exec prisma migrate deploy
 
       - name: Cache SWC
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .swc
           key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
