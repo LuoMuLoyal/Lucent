@@ -1,0 +1,53 @@
+# Traefik 静态配置(staging)—— 模板,勿在仓库里改这份就跑
+# ---------------------------------------------------------------------------
+# 服务器上的真实文件由本模板复制而来(仓库只跟踪 .example,避免发布时的
+# `git reset --hard origin/main` 覆盖运行配置):
+#
+#   cp deploy/traefik/traefik.static.yml.example deploy/traefik/traefik.static.yml
+#
+# 需要改的值:
+#   1. certificatesResolvers.letsencrypt.acme.email —— 填你的邮箱(Let's Encrypt
+#      注册账号与证书到期提醒的唯一联系点,必填;留占位符会导致签发失败)
+#   2. log.level —— 排障时可临时改 DEBUG,平时保持 INFO(改完要重启 traefik)
+#
+# 改完执行:docker compose -f compose.staging.yaml --env-file .env.production restart traefik
+# (单文件 bind-mount 的 fsnotify 通知在 Docker 下不可靠,不要指望热加载)
+# ---------------------------------------------------------------------------
+api:
+  dashboard: true
+  # false = 不在容器内 8080 上裸奔;面板经 traefik.<域名> 路由 + BasicAuth 访问
+  insecure: false
+
+entryPoints:
+  web:
+    address: ':80'
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ':443'
+
+providers:
+  file:
+    # 与 compose.staging.yaml 里动态配置的挂载点保持一致
+    filename: /etc/traefik/dynamic/routes.yml
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      # ← 改成你的邮箱
+      email: <你的邮箱>
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        # HTTP-01 挑战走 80 端口;DNS 必须已指向本机且 80 公网可达
+        entryPoint: web
+
+log:
+  level: INFO
+
+# 访问日志输出到容器 stdout(docker logs lucent-staging-traefik-1)
+accessLog: {}

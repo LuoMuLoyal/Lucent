@@ -1,0 +1,99 @@
+# Traefik 动态配置(staging)—— 路由 / 服务 / 中间件(模板,勿在仓库里改这份就跑)
+# ---------------------------------------------------------------------------
+# 服务器上的真实文件由本模板复制而来:
+#
+#   cp deploy/traefik/traefik.dynamic.yml.example deploy/traefik/traefik.dynamic.yml
+#
+# 需要改的值:
+#   1. 4 条路由的 Host(`...`) —— 换成你自己的域名(api / metrics / logs / traefik)
+#   2. panel-auth 的 basicAuth.users —— 生成哈希后替换:
+#        openssl passwd -apr1            # 交互式输入密码,输出 $apr1$...
+#        # 或: docker run --rm httpd:alpine htpasswd -nbB 用户名 密码
+#      格式为 `用户名:哈希`,可写多行(每行一个账号),三个面板共用同一个 panel-auth
+#
+# 注意:
+#   - lucent-api 这条路由**不要**挂 compress / buffering 中间件:assistant 的 SSE 流
+#     会被缓冲,表现为「打字机效果卡住」。
+#   - 改完执行:docker compose -f compose.staging.yaml --env-file .env.production restart traefik
+# ---------------------------------------------------------------------------
+http:
+  routers:
+    # ── 应用入口(Lucent 原生 PM2 进程跑在宿主机 3000)────────────
+    lucent-api:
+      rule: 'Host(`api.<你的域名>`)'
+      entryPoints:
+        - websecure
+      service: lucent-api
+      middlewares:
+        - security-headers
+      tls:
+        certResolver: letsencrypt
+
+    # ── 面板:VictoriaMetrics VMUI(时序指标查询)───────────────
+    victoriametrics:
+      rule: 'Host(`metrics.<你的域名>`)'
+      entryPoints:
+        - websecure
+      service: victoriametrics
+      middlewares:
+        - panel-auth
+      tls:
+        certResolver: letsencrypt
+
+    # ── 面板:VictoriaLogs UI(LogsQL 按 trace_id 查日志)────────
+    victorialogs:
+      rule: 'Host(`logs.<你的域名>`)'
+      entryPoints:
+        - websecure
+      service: victorialogs
+      middlewares:
+        - panel-auth
+      tls:
+        certResolver: letsencrypt
+
+    # ── 面板:Traefik dashboard(反代自身的路由/服务/中间件/证书状态)──
+    traefik-dashboard:
+      rule: 'Host(`traefik.<你的域名>`)'
+      entryPoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - panel-auth
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    lucent-api:
+      loadBalancer:
+        servers:
+          # 宿主机的 PM2 进程;容器侧靠 compose 的 extra_hosts(host-gateway)解析
+          - url: 'http://host.docker.internal:3000'
+        responseForwarding:
+          # SSE 分片及时下发(不挂 compress/buffering,原因见文件头)
+          flushInterval: 100ms
+
+    victoriametrics:
+      loadBalancer:
+        servers:
+          - url: 'http://victoriametrics:8428'
+
+    victorialogs:
+      loadBalancer:
+        servers:
+          - url: 'http://victorialogs:9428'
+
+  middlewares:
+    # 三个面板共用的 BasicAuth:未认证一律 401
+    panel-auth:
+      basicAuth:
+        users:
+          - 'admin:$apr1$REPLACE_WITH_HTPASSWD_HASH'
+
+    # 应用侧安全头(只挂 lucent-api)
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: strict-origin-when-cross-origin

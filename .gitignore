@@ -81,6 +81,10 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /scripts/deploy/dist
 .codebase-memory/
 
+# Traefik 运行配置:服务器上由 deploy/traefik/*.yml.example 复制而来(含域名、
+# 邮箱、面板密码哈希),不入库——否则发布时的 `git reset --hard origin/main` 会覆盖它
+/deploy/traefik/*.yml
+
 # Generated docs
 /docs/reference/generated/compodoc
 
