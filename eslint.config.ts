@@ -16,6 +16,10 @@ export default tseslint.config(
       'eslint-plugins/**/*.ts',
       'commitlint.config.ts',
       'scripts/**/*.ts',
+      // deploy/ 下是 PM2 / Traefik 的运行配置(cjs + yml),不在
+      // tsconfig.typecheck.json 的 include 内;若不忽略,编辑器与直接调用
+      // eslint 会因 parserOptions.project 报 "does not include this file"。
+      'deploy/**',
       // 根级 vitest 配置文件不在 tsconfig.typecheck.json include 内,
       // typed-linting 的 parserOptions.project 解析失败;由 oxlint 覆盖
       'vitest*.config.ts',
