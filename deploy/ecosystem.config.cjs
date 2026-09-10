@@ -21,7 +21,7 @@ module.exports = {
       cwd: '/opt/lucent',
       instances: 1,
       exec_mode: 'fork',
-      node_args: '--max-old-space-size=1024',
+      node_args: '--max-old-space-size=2048',
       env: {
         NODE_ENV: 'production',
         HOST: '0.0.0.0',
@@ -32,7 +32,7 @@ module.exports = {
       kill_timeout: 60000,
       listen_timeout: 15000,
       // 自动重启
-      max_memory_restart: '1G',
+      max_memory_restart: '2G',
       restart_delay: 3000,
       // 日志(仓库 .gitignore 已忽略 /logs)
       log_date_format: 'YYYY-MM-DD HH:mm:ss.SSS',
