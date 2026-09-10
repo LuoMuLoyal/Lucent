@@ -34,6 +34,8 @@ YYYY-MM-DD-short-task-name.md
 
 — OpenAPI 组件名/operationId 命名重构:消除 dart-dio 客户端的 Controller/V1/Dto/内联 \_inner 机械名,按 AIP-190/136 语义化命名,双仓一次性迁移(不做兼容)
 
+- [`2026-09-10-staging-native-pm2-traefik.md`](2026-09-10-staging-native-pm2-traefik.md)
+  — staging 部署迁移:Coolify → 原生 PM2 + 自建 Traefik + 推送即部署;infra 容器化、app 走宿主 PM2、发布命令内联在 workflow
 - [`2026-09-06-rag-hybrid-search-upgrade.md`](2026-09-06-rag-hybrid-search-upgrade.md)
   — 三源 RAG 混合检索升级:PG18 FTS + RRF 融合(向量+关键词),零新运行时;中文分词决策;不顶替 LightRAG/GrapRAG,保留 F-15 合规分层
 - [`2026-09-02-agentic-proactive-evolution.md`](2026-09-02-agentic-proactive-evolution.md)
