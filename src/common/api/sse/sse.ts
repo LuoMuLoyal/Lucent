@@ -20,16 +20,36 @@ export interface SseConnectionTracker {
 }
 
 /**
+ * Headers already registered on the framework reply (e.g. CORS) that must
+ * survive the raw SSE head write. Shape matches Fastify's `reply.getHeaders()`
+ * and Node's `OutgoingHttpHeaders`.
+ */
+export type SseInheritedHeaders = Record<
+  string,
+  number | string | readonly string[] | undefined
+>;
+
+/**
  * Prepares a raw Node.js response for Server-Sent Events.
  * When a tracker is given, the connection is registered so the server can
  * notify and close it gracefully on shutdown.
+ *
+ * Writing the head directly on the raw response bypasses the framework reply
+ * pipeline, which is the only place where headers added through
+ * `reply.header()` are applied. Callers must therefore forward
+ * `reply.getHeaders()` as [inheritedHeaders]; otherwise plugin-registered
+ * headers (notably `@fastify/cors`, plus `vary: Origin`) never reach the wire
+ * and browsers abort the stream as a CORS failure. SSE protocol headers win
+ * when a key collides.
  */
 export function prepareSse(
   response: ServerResponse,
   tracker?: SseConnectionTracker,
   language = 'en',
+  inheritedHeaders?: SseInheritedHeaders,
 ): void {
   response.writeHead(200, {
+    ...inheritedHeaders,
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',

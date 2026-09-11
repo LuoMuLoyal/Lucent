@@ -25,6 +25,39 @@ describe('sse', () => {
         'X-Accel-Buffering': 'no',
       });
     });
+
+    it('carries over reply headers registered by plugins (CORS)', () => {
+      const res = createMockResponse();
+      prepareSse(res as unknown as ServerResponse, undefined, 'en', {
+        'Access-Control-Allow-Origin': 'http://localhost:9100',
+        'Access-Control-Allow-Credentials': 'true',
+        vary: 'Origin',
+      });
+      expect(res.writeHead).toHaveBeenCalledWith(200, {
+        'Access-Control-Allow-Origin': 'http://localhost:9100',
+        'Access-Control-Allow-Credentials': 'true',
+        vary: 'Origin',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+    });
+
+    it('keeps SSE protocol headers when a carried-over key collides', () => {
+      const res = createMockResponse();
+      prepareSse(res as unknown as ServerResponse, undefined, 'en', {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+      });
+      expect(res.writeHead).toHaveBeenCalledWith(
+        200,
+        expect.objectContaining({
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+        }),
+      );
+    });
   });
 
   describe('writeSseEvent', () => {

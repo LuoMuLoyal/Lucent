@@ -354,7 +354,7 @@ export class TodayAnalysisController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry, language);
+    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
 
     try {
       const onSummary = ({ summary }: { summary: string }) => {

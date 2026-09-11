@@ -238,7 +238,9 @@ describe('TodayAnalysisController', () => {
     );
 
     const events: Array<{ event: string; data: unknown }> = [];
-    const reply = makeMockReply(events);
+    const reply = makeMockReply(events, {
+      'access-control-allow-origin': 'http://localhost:9100',
+    });
 
     await controller.generateStream(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
@@ -251,6 +253,16 @@ describe('TodayAnalysisController', () => {
     expect(eventTypes).toContain('summary');
     expect(eventTypes).toContain('result');
     expect(eventTypes).toContain('done');
+
+    // Plugin-registered headers (CORS) must reach the raw SSE head write,
+    // otherwise a browser client aborts the stream.
+    expect(vi.mocked(reply.raw.writeHead)).toHaveBeenCalledWith(
+      200,
+      expect.objectContaining({
+        'access-control-allow-origin': 'http://localhost:9100',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+      }),
+    );
 
     const summaryEvent = events.find((e) => e.event === 'summary')!;
     expect(summaryEvent.data).toEqual({ summary: 'partial text' });
@@ -437,6 +449,7 @@ describe('Today analysis HTTP DTO validation', () => {
 
 function makeMockReply(
   events: Array<{ event: string; data: unknown }>,
+  headers: Record<string, string> = {},
 ): FastifyReply {
   let buffer = '';
   const raw = {
@@ -459,7 +472,9 @@ function makeMockReply(
     }),
     end: vi.fn(),
   };
-  return { raw } as unknown as FastifyReply;
+  // `getHeaders()` carries the reply headers Fastify has not applied yet
+  // (e.g. CORS) into the raw SSE head write.
+  return { raw, getHeaders: () => headers } as unknown as FastifyReply;
 }
 
 function makeAnalysis(

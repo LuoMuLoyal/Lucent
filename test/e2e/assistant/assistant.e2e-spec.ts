@@ -439,5 +439,23 @@ describe('Assistant API (e2e)', () => {
         text.includes('"code":"DEPENDENCY_UNAVAILABLE"');
       expect(codeMatched).toBe(true);
     });
+
+    it('should forward CORS headers onto the SSE response for cross-origin callers', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/messages/stream`)
+        .set('Authorization', bearer(accessToken))
+        .set('Origin', 'http://localhost:9100')
+        .send({ messages: [{ role: 'user', content: 'Hello' }] })
+        .expect(200);
+
+      // The raw SSE head write bypasses Fastify's reply pipeline, which is
+      // where @fastify/cors stores its headers; without forwarding
+      // `reply.getHeaders()` the browser aborts the stream (Dio sees an
+      // opaque connection error) while the server keeps writing chunks.
+      expect(res.headers['access-control-allow-origin']).toBe(
+        'http://localhost:9100',
+      );
+      expect(res.headers['content-type']).toContain('text/event-stream');
+    });
   });
 });

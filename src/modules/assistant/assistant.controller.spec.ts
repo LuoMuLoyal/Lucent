@@ -32,6 +32,18 @@ import { AssistantController } from './assistant.controller.js';
 import { AssistantService } from './services/core.service.js';
 import { AuditLogService } from '../audit-log/index.js';
 
+/**
+ * Minimal Fastify reply double for the SSE endpoints. `getHeaders()` mirrors
+ * the headers Fastify has registered but not yet applied (e.g. `@fastify/cors`)
+ * — the raw SSE head write must carry them over explicitly.
+ */
+function createMockReply(headers: Record<string, string> = {}): FastifyReply {
+  return {
+    raw: {},
+    getHeaders: () => headers,
+  } as unknown as FastifyReply;
+}
+
 describe('AssistantController', () => {
   let controller: AssistantController;
   let service: vi.Mocked<AssistantService>;
@@ -192,7 +204,7 @@ describe('AssistantController', () => {
   });
 
   it('streams chunk, result, and done SSE events', async () => {
-    const response = { raw: {} } as unknown as FastifyReply;
+    const response = createMockReply();
 
     service.streamMessages.mockImplementation(
       (_userId, _dto, _language, onChunk) => {
@@ -264,7 +276,12 @@ describe('AssistantController', () => {
       response,
     );
 
-    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry, 'en-US');
+    expect(prepareSse).toHaveBeenCalledWith(
+      response.raw,
+      sseRegistry,
+      'en-US',
+      {},
+    );
     expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
       event: 'chunk',
       data: { content: 'Hello' },
@@ -645,7 +662,7 @@ describe('AssistantController', () => {
   });
 
   it('streams an error SSE event when service throws', async () => {
-    const response = { raw: {} } as unknown as FastifyReply;
+    const response = createMockReply();
     service.streamMessages.mockRejectedValue(
       new ForbiddenException({
         code: 'FORBIDDEN',
@@ -677,7 +694,11 @@ describe('AssistantController', () => {
   });
 
   it('streams chunk, result, and done SSE events for regeneration', async () => {
-    const response = { raw: {} } as unknown as FastifyReply;
+    // Reply carries a plugin-registered CORS header; the raw SSE head write
+    // must forward it or the browser blocks the stream.
+    const response = createMockReply({
+      'access-control-allow-origin': 'http://localhost:9100',
+    });
     service.regenerateConversation.mockImplementation(
       (_userId, _conversationId, onChunk) => {
         void Promise.resolve(onChunk({ content: '新的' }));
@@ -703,7 +724,14 @@ describe('AssistantController', () => {
       'conversation-1',
       expect.any(Function),
     );
-    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry, 'en-US');
+    expect(prepareSse).toHaveBeenCalledWith(
+      response.raw,
+      sseRegistry,
+      'en-US',
+      {
+        'access-control-allow-origin': 'http://localhost:9100',
+      },
+    );
     expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
       event: 'chunk',
       data: { content: '新的' },
@@ -726,7 +754,7 @@ describe('AssistantController', () => {
   });
 
   it('streams an error SSE event when regeneration fails', async () => {
-    const response = { raw: {} } as unknown as FastifyReply;
+    const response = createMockReply();
     service.regenerateConversation.mockRejectedValue(
       new ForbiddenException({
         code: 'FORBIDDEN',

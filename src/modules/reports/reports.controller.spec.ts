@@ -953,6 +953,9 @@ function makeMockReply(
   const reply = {
     raw,
     send: vi.fn(),
+    // Headers Fastify registered but has not applied yet (e.g. CORS); the raw
+    // SSE head write forwards them explicitly.
+    getHeaders: () => ({}),
   };
   return reply as unknown as FastifyReply;
 }
