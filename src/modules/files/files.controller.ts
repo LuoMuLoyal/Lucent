@@ -1,4 +1,11 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  SerializeOptions,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -8,9 +15,13 @@ import {
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { ProblemDetailsDto } from '../../common/index.js';
+import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { FilesService } from './services/files.service.js';
-import { createFileUploadSchema } from './dto/create-file-upload.dto.js';
+import {
+  createFileUploadResponseSchema,
+  createFileUploadSchema,
+} from './dto/create-file-upload.dto.js';
 import type { CreateFileUploadDto } from './dto/create-file-upload.dto.js';
 
 @ApiTags('Files')
@@ -41,6 +52,7 @@ export class FilesController {
     type: ProblemDetailsDto,
     description: 'Object storage backend timed out.',
   })
+  @SerializeOptions({ schema: createFileUploadResponseSchema })
   async createUpload(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createFileUploadSchema }) dto: CreateFileUploadDto,
@@ -50,3 +62,11 @@ export class FilesController {
     );
   }
 }
+
+registerResponseSchema({
+  path: '/api/v1/user/files/upload',
+  method: 'post',
+  componentName: 'CreateFileUploadResponse',
+  schema: createFileUploadResponseSchema,
+  description: 'Presigned upload URL for the requested file.',
+});

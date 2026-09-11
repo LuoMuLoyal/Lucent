@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/index.js';
 import { errAsync, okAsync } from '../../common/result/index.js';
 import type { DomainFailure } from '../../common/result/index.js';
 import { FilesController } from './files.controller.js';
+import { createFileUploadResponseSchema } from './dto/create-file-upload.dto.js';
 import { FilesService } from './services/files.service.js';
 
 describe('FilesController', () => {
@@ -47,6 +48,25 @@ describe('FilesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  // The response schema is what the OpenAPI components (and therefore every
+  // generated client) are built from — a payload the schema cannot parse
+  // silently reaches clients as an untyped/empty body.
+  it('declares a response schema that parses the emitted payload', () => {
+    const parsed = createFileUploadResponseSchema.safeParse(mockResult);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data).toEqual(mockResult);
+  });
+
+  it('accepts a null publicUrl (no public base URL configured)', () => {
+    const parsed = createFileUploadResponseSchema.safeParse({
+      ...mockResult,
+      publicUrl: null,
+    });
+
+    expect(parsed.success).toBe(true);
   });
 
   it('should call filesService.createPresignedUpload and return the resource', async () => {

@@ -26,6 +26,10 @@ common 存储基础设施面向客户端的薄封装。
 
 - `services/files.service.ts` — `FilesService`:校验客户端上传参数并生成
   presigned 上传结果;签名失败归为 DEPENDENCY_UNAVAILABLE,而非 500。
+- `dto/create-file-upload.dto.ts` — 请求 schema 与**响应 schema**
+  (`createFileUploadResponseSchema`)。响应 schema 必须由 controller 底部的
+  `registerResponseSchema` 注册进 OpenAPI,生成客户端才拿得到类型化响应体;漏注册时
+  200 无 `content`,客户端方法退化为空 body(本模块曾长期如此,scan 侧因此手写 Dio 解析 map)。
 
 ## 测试承接
 

@@ -6689,7 +6689,14 @@
         },
         "responses": {
           "200": {
-            "description": "Presigned upload URL for the requested file."
+            "description": "Presigned upload URL for the requested file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateFileUploadResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Unsupported content type or file size above the limit.",
@@ -9479,6 +9486,57 @@
         ],
         "additionalProperties": false,
         "nullable": true
+      },
+      "CreateFileUploadResponse": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "bucket": {
+            "type": "string"
+          },
+          "objectKey": {
+            "type": "string"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "description": "Signed PUT URL for direct object storage upload."
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Headers that must be sent with the PUT upload."
+          },
+          "publicUrl": {
+            "type": "string",
+            "description": "Optional public/CDN URL when a public base URL is configured.",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Signed URL expiry timestamp (ISO 8601)."
+          },
+          "maxSizeBytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maximum accepted upload size in bytes."
+          }
+        },
+        "required": [
+          "provider",
+          "bucket",
+          "objectKey",
+          "uploadUrl",
+          "headers",
+          "publicUrl",
+          "expiresAt",
+          "maxSizeBytes"
+        ],
+        "additionalProperties": false
       },
       "TodayAnalysisReadResponse": {
         "type": "object",

@@ -28,3 +28,39 @@ export const createFileUploadSchema = z
 
 /** Strongly typed request body of `POST /files/upload`. */
 export type CreateFileUploadDto = z.infer<typeof createFileUploadSchema>;
+
+/**
+ * Standard Schema (zod 4) for the presigned upload response
+ * (`POST /files/upload`, 200).
+ *
+ * Mirrors `dailyRecordImageUploadSchema`: the service always emits every key,
+ * and `publicUrl` is `null` when no public base URL is configured for the
+ * active storage provider. Without this registration the OpenAPI 200 carried
+ * no content schema and the generated clients returned an empty body, which
+ * forced callers to parse the raw JSON by hand.
+ */
+export const createFileUploadResponseSchema = z.object({
+  provider: z.string(),
+  bucket: z.string(),
+  objectKey: z.string(),
+  uploadUrl: z
+    .string()
+    .describe('Signed PUT URL for direct object storage upload.'),
+  headers: z
+    .record(z.string(), z.string())
+    .describe('Headers that must be sent with the PUT upload.'),
+  publicUrl: z
+    .string()
+    .describe('Optional public/CDN URL when a public base URL is configured.')
+    .nullable(),
+  expiresAt: z.string().describe('Signed URL expiry timestamp (ISO 8601).'),
+  maxSizeBytes: z
+    .number()
+    .int()
+    .describe('Maximum accepted upload size in bytes.'),
+});
+
+/** Strongly typed response body of `POST /files/upload`. */
+export type CreateFileUploadResponseDto = z.infer<
+  typeof createFileUploadResponseSchema
+>;
