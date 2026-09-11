@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-04
+updated: 2026-09-11
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-06
+Last updated: 2026-09-11
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -18,6 +18,25 @@ random docs.
 
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
+
+## 2026-09-11 文件上传链路遗留（上传链路收敛时发现）
+
+### 对象存储缺少删除/生命周期能力（P3）
+
+`POST /api/v1/user/files/upload` 只签发预签名上传凭证，`/user/files` 下没有删除端点：用户上传
+头像/附件后放弃保存、或替换旧头像，对象会永久留在 bucket 里。方案：增加对象删除能力（或将
+`{prefix}/{userId}/…` 前缀 + 时间的生命周期回收策略交给存储后端），并在 Luminous 的
+「替换/移除」路径调用。验收：替换头像后旧对象可被回收，且用户无法借删除端点触达他人对象
+（沿用各资源端点「跨用户访问 → 404」的 e2e 约定）。对侧登记见 Luminous `docs/TODO.md`。
+
+### `/medicines/recognize` 响应 schema 缺失（P3）
+
+`files/upload` 的响应 schema 已在同日补齐（见当日迁移日志），但
+`POST /api/v1/user/medicines/recognize` 同样只有 description、没有 `content`，生成客户端的响应体
+被丢掉——Luminous 的 scan 只能手写 Dio + `coerceToStringMap` 解析 `name` / `approvalNumber`，
+协议违规退化为 `Left(unknown)`。方案：按 daily-records / files 的既有写法补
+`registerResponseSchema` + `@SerializeOptions`，重新导出 OpenAPI。验收：Luminous 该调用点可改用
+类型化客户端并删掉手写解析（对侧登记见 Luminous `docs/TODO.md`）。
 
 ## 2026-09-06 OAuth 登入门槛调整（微博全链路移除待办）
 
