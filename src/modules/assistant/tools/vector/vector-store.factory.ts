@@ -15,7 +15,7 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
+import { PGVectorStore } from '@langchain/pgvector';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 

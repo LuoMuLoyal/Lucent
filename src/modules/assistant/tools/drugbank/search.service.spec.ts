@@ -13,7 +13,7 @@ const mockVectorStore = {
   ensureTableInDatabase: mockEnsureTable,
 };
 
-vi.mock('@langchain/community/vectorstores/pgvector', () => ({
+vi.mock('@langchain/pgvector', () => ({
   // Constructor mock: PGVectorStore is instantiated with `new` — Vitest 4
   // requires a function (not arrow) implementation for constructibility.
   // oxlint-disable-next-line prefer-arrow-callback

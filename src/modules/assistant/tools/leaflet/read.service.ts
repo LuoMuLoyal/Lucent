@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
+import type { PGVectorStore } from '@langchain/pgvector';
 import { PrismaService } from '../../../../prisma/index.js';
 import { VectorStoreFactory } from '../vector/vector-store.factory.js';
 import type {

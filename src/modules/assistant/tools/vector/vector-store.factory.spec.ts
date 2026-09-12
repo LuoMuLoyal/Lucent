@@ -7,7 +7,7 @@ const { mockEnsureTable, MockPGVectorStore } = vi.hoisted(() => {
   return { mockEnsureTable, MockPGVectorStore };
 });
 
-vi.mock('@langchain/community/vectorstores/pgvector', () => ({
+vi.mock('@langchain/pgvector', () => ({
   PGVectorStore: MockPGVectorStore,
 }));
 
