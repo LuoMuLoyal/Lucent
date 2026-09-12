@@ -143,6 +143,9 @@ importers:
       '@fontpkg/source-han-sans-sc-vf':
         specifier: ^2.5.3
         version: 2.5.3
+      '@keyv/redis':
+        specifier: ^5.1.6
+        version: 5.1.6(@opentelemetry/api@1.9.1)(keyv@5.6.0)
       '@langchain/core':
         specifier: 1.1.48
         version: 1.1.48(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.221.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(openai@6.42.0(ws@8.21.1)(zod@4.4.3))(ws@8.21.1)
@@ -257,9 +260,6 @@ importers:
       cache-manager:
         specifier: ^7.2.8
         version: 7.2.8
-      cache-manager-ioredis-yet:
-        specifier: ^2.1.2
-        version: 2.1.2(supports-color@5.5.0)
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
@@ -2012,6 +2012,12 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
+  '@keyv/redis@5.1.6':
+    resolution: {integrity: sha512-eKvW6pspvVaU5dxigaIDZr635/Uw6urTXL3gNbY9WTR8d3QigZQT+r8gxYSEOsw4+1cCBsC4s7T2ptR0WC9LfQ==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      keyv: ^5.6.0
+
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
@@ -3318,6 +3324,18 @@ packages:
       react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
+        optional: true
+
+  '@redis/client@5.12.1':
+    resolution: {integrity: sha512-7aPGWeqA3uFm43o19umzdl16CEjK/JQGtSXVPevplTaOU3VJA/rseBC1QvYUz9lLDIMBimc4SW/zrW4S89BaCA==}
+    engines: {node: '>= 18.19.0'}
+    peerDependencies:
+      '@node-rs/xxhash': ^1.1.0
+      '@opentelemetry/api': '>=1 <2'
+    peerDependenciesMeta:
+      '@node-rs/xxhash':
+        optional: true
+      '@opentelemetry/api':
         optional: true
 
   '@redux-devtools/extension@3.3.0':
@@ -5239,11 +5257,6 @@ packages:
       magicast:
         optional: true
 
-  cache-manager-ioredis-yet@2.1.2:
-    resolution: {integrity: sha512-p/5D+ADvJaZjAs12fR5l0ZJ+rK2EqbCryFdrzsMj3K+lGwNoCjB33N6V397otgreB+iwK+lssBshpkJDodiyMQ==}
-    engines: {node: '>= 18'}
-    deprecated: With cache-manager v6 we now are using Keyv
-
   cache-manager@7.2.8:
     resolution: {integrity: sha512-0HDaDLBBY/maa/LmUVAr70XUOwsiQD+jyzCBjmUErYZUKdMS9dT59PqW59PpVqfGM7ve6H0J6307JTpkCYefHQ==}
 
@@ -5406,6 +5419,10 @@ packages:
 
   cluster-key-slot@1.1.1:
     resolution: {integrity: sha512-rwHwUfXL40Chm1r08yrhU3qpUvdVlgkKNeyeGPOxnW8/SyVDvgRaed/Uz54AqWNaTCAThlj6QAs3TZcKI0xDEw==}
+    engines: {node: '>=0.10.0'}
+
+  cluster-key-slot@1.1.2:
+    resolution: {integrity: sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==}
     engines: {node: '>=0.10.0'}
 
   code-block-writer@13.0.3:
@@ -7309,9 +7326,6 @@ packages:
   make-plural@7.5.0:
     resolution: {integrity: sha512-0booA+aVYyVFoR67JBHdfVk0U08HmrBH2FrtmBqBa+NldlqXv/G2Z9VQuQq6Wgp2jDWdybEWGfBkk1cq5264WA==}
 
-  map-or-similar@1.5.0:
-    resolution: {integrity: sha512-0aF7ZmVon1igznGI4VS30yugpduQW3y3GkcgGJOp7d8x8QrizhigUxjI/m2UojsXXto+jLAH3KSz+xOJTiORjg==}
-
   markdown-it@14.2.0:
     resolution: {integrity: sha512-1TGiQiJVRQ3NPmZH6sx5Cfnmg6GQm9jvC1ch4TK511NjSJvjzKLzn5pPfZRNZkRPZP0HqCioSndqH8v2nRaWVQ==}
     hasBin: true
@@ -7381,9 +7395,6 @@ packages:
 
   memoize-one@6.0.0:
     resolution: {integrity: sha512-rkpe71W0N0c0Xz6QD0eJETuWAJGnJ9afsl1srmwPrI+yBCkge5EycXXbYRyvL29zZVUWQCY7InPRCv3GDXuZNw==}
-
-  memoizerific@1.11.3:
-    resolution: {integrity: sha512-/EuHYwAPdLtXwAwSZkh/Gutery6pD2KYd44oQLhAvQp/50mpyduZh8Q7PYHXTCJ+wuXxt7oij2LXyIJOOYFPog==}
 
   meow@13.2.0:
     resolution: {integrity: sha512-pxQJQzB6djGPXh08dacEloMFopsOqGVRKFPYvPOt9XDZ1HasbgDZA74CJGreSU4G3Ak7EFJGoiH2auq+yXISgA==}
@@ -9039,9 +9050,6 @@ packages:
 
   tdigest@0.1.2:
     resolution: {integrity: sha512-+G0LLgjjo9BZX2MfdvPfH+MKLCrxlXSYec5DaPYP1fe6Iyhf0/fSmJ0bFiZ1F8BT6cGXl2LpltQptzjXKWEkKA==}
-
-  telejson@7.2.0:
-    resolution: {integrity: sha512-1QTEcJkJEhc8OnStBx/ILRu5J2p0GjvWsBx56bmZRqnrkdBMUe+nX92jxV+p3dB4CP6PZCdJMQJwCggkNBMzkQ==}
 
   terser-webpack-plugin@5.6.0:
     resolution: {integrity: sha512-Eum+5ajkaOhf5KbM26osvv21kLD7BaGqQ1UA4Ami4arYwylmGUQTgHFpHDdmJod1q4QXa66p0to/FBKID+J1vA==}
@@ -11866,6 +11874,16 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
+  '@keyv/redis@5.1.6(@opentelemetry/api@1.9.1)(keyv@5.6.0)':
+    dependencies:
+      '@redis/client': 5.12.1(@opentelemetry/api@1.9.1)
+      cluster-key-slot: 1.1.2
+      hookified: 1.15.1
+      keyv: 5.6.0
+    transitivePeerDependencies:
+      - '@node-rs/xxhash'
+      - '@opentelemetry/api'
+
   '@keyv/serialize@1.1.1': {}
 
   '@kurkle/color@0.3.4': {}
@@ -13310,6 +13328,12 @@ snapshots:
       react: 19.2.6
     optionalDependencies:
       '@types/react': 19.2.18
+
+  '@redis/client@5.12.1(@opentelemetry/api@1.9.1)':
+    dependencies:
+      cluster-key-slot: 1.1.2
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
 
   '@redux-devtools/extension@3.3.0(redux@4.2.1)':
     dependencies:
@@ -15656,14 +15680,6 @@ snapshots:
     optionalDependencies:
       magicast: 0.5.3
 
-  cache-manager-ioredis-yet@2.1.2(supports-color@5.5.0):
-    dependencies:
-      cache-manager: 7.2.8
-      ioredis: 5.11.0(supports-color@5.5.0)
-      telejson: 7.2.0
-    transitivePeerDependencies:
-      - supports-color
-
   cache-manager@7.2.8:
     dependencies:
       '@cacheable/utils': 2.4.1
@@ -15843,6 +15859,8 @@ snapshots:
   clsx@2.1.1: {}
 
   cluster-key-slot@1.1.1: {}
+
+  cluster-key-slot@1.1.2: {}
 
   code-block-writer@13.0.3: {}
 
@@ -17829,8 +17847,6 @@ snapshots:
 
   make-plural@7.5.0: {}
 
-  map-or-similar@1.5.0: {}
-
   markdown-it@14.2.0:
     dependencies:
       argparse: 2.0.1
@@ -17973,10 +17989,6 @@ snapshots:
     optional: true
 
   memoize-one@6.0.0: {}
-
-  memoizerific@1.11.3:
-    dependencies:
-      map-or-similar: 1.5.0
 
   meow@13.2.0: {}
 
@@ -19842,10 +19854,6 @@ snapshots:
   tdigest@0.1.2:
     dependencies:
       bintrees: 1.0.2
-
-  telejson@7.2.0:
-    dependencies:
-      memoizerific: 1.11.3
 
   terser-webpack-plugin@5.6.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(lightningcss@1.33.0)(postcss@8.5.25)(uglify-js@3.19.3)(webpack@5.106.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(lightningcss@1.33.0)(postcss@8.5.25)(uglify-js@3.19.3)):
     dependencies:
