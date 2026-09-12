@@ -52,3 +52,6 @@ ADR 位于 [reference/adr/](reference/adr/README.md),只增不改,新决策写�
 `archive/` 只进不出:被裁决淘汰的文档经 `git mv` 进入,信息不丢、可追溯,不参与链接完整性与
 新鲜度校验。历史审计与一次性分析也落在这里,例如
 [2026-08-31-doc-governance-audit.md](archive/2026-08-31-doc-governance-audit.md)。
+
+迁移日志按当月归入 `archive/<YYYY-MM>/`,文件名保持 `YYYY-MM-DD.md` 不变
+(已归档:`archive/2026-05/`、`archive/2026-06/`、`archive/2026-07/`、`archive/2026-08/`)。

@@ -21,6 +21,7 @@
   - 单日文件只保留一个 `# ` H1；章节用 `##`（不加日期前缀）。
   - 引用计划文件时注明「实施完毕文件已删」，否则 `--verify` 报孤儿引用。
   - 条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数）。
+  - 归档：`git mv` 到 `docs/archive/<YYYY-MM>/`（当月一个文件夹，文件名不变）。
 - **生成物**：`docs/reference/generated/openapi.json` 与 `docs/reference/generated/compodoc/`
   由 `pnpm export:openapi` / `pnpm docs:compodoc` 产出，**禁止手改**。
 - **ADR**（`docs/reference/adr/NNNN-title.md`）只增不改：新决策→新文件。

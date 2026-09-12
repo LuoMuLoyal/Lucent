@@ -33,6 +33,7 @@ import {
   renderReport,
   MIGRATION_LOG_DIR,
   MIGRATION_LOG_DIR_LEGACY,
+  MIGRATION_LOG_PATH_RE,
   STALE_DOC_THRESHOLD_DAYS,
   withoutFrozenDocs,
 } from './coverage.ts';
@@ -84,20 +85,23 @@ function getChangedFiles(cwd: string): string[] {
  * Migration-log append-only guard: a working-tree diff against HEAD that
  * deletes more than 5 lines from a single log file is reported as a problem
  * (formerly the pre-commit blocking check, now folded into --verify).
+ *
+ * The diff runs over the whole tree with rename detection (`-M`) rather than
+ * with a pathspec limited to the ledger dirs: a pathspec makes git report an
+ * archival `git mv` out of the ledger as a plain deletion of every line, i.e.
+ * a false overwrite. Rename entries are resolved to their destination, so a
+ * move that also shrinks a log file is still caught.
  */
 function collectLogOverwriteProblems(repoRoot: string): string[] {
   try {
-    const out = run(
-      `git diff HEAD --numstat -- ${MIGRATION_LOG_DIR} ${MIGRATION_LOG_DIR_LEGACY}`,
-      repoRoot,
-    );
+    const out = run('git diff HEAD --numstat -M', repoRoot);
     const problems: string[] = [];
     for (const line of out.split('\n')) {
       const m = line.trim().match(/^(\d+)\t(\d+)\t(.+)$/);
       if (!m) continue;
       const deleted = Number(m[2]);
-      const file = m[3].replace(/\\/g, '/');
-      if (deleted > 5) {
+      const file = resolveNumstatDestination(m[3].replace(/\\/g, '/'));
+      if (deleted > 5 && MIGRATION_LOG_PATH_RE.test(file)) {
         problems.push(
           `${file}: migration-log append-only violation — ${deleted} deleted lines (>5) in one diff`,
         );
@@ -108,6 +112,18 @@ function collectLogOverwriteProblems(repoRoot: string): string[] {
     // Outside a git repo or no diff available — nothing to guard here.
     return [];
   }
+}
+
+/**
+ * Resolve a `--numstat` path to the post-change (new) path. Renames print as
+ * `old => new`, brace-collapsed when the paths share a prefix
+ * (`docs/{logs => archive}/x.md`); every other path passes through.
+ */
+function resolveNumstatDestination(numstatPath: string): string {
+  const collapsed = /\{(.*?) => (.*?)\}/.exec(numstatPath);
+  if (collapsed) return numstatPath.replace(collapsed[0], collapsed[2]);
+  const arrow = numstatPath.indexOf(' => ');
+  return arrow === -1 ? numstatPath : numstatPath.slice(arrow + 4);
 }
 
 // --- Verify helpers ----------------------------------------------------
