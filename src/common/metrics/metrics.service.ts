@@ -6,7 +6,7 @@ import {
   Gauge,
   Histogram,
   Registry,
-} from 'prom-client';
+} from '@prometheus-io/client';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
 
 /**
@@ -29,40 +29,42 @@ export class MetricsService implements OnApplicationBootstrap {
 
   // ── HTTP metrics ──────────────────────────────────────────────────────────
 
-  private readonly httpRequestDuration: Histogram;
-  private readonly httpRequestsTotal: Counter;
+  private readonly httpRequestDuration: Histogram<
+    'method' | 'route' | 'status'
+  >;
+  private readonly httpRequestsTotal: Counter<'method' | 'route' | 'status'>;
 
   // ── BullMQ metrics ────────────────────────────────────────────────────────
 
-  private readonly bullmqJobsTotal: Counter;
-  private readonly bullmqActiveJobs: Gauge;
-  private readonly bullmqWaitingJobs: Gauge;
+  private readonly bullmqJobsTotal: Counter<'queue' | 'status'>;
+  private readonly bullmqActiveJobs: Gauge<'queue'>;
+  private readonly bullmqWaitingJobs: Gauge<'queue'>;
 
   // ── LLM metrics ───────────────────────────────────────────────────────────
 
-  private readonly llmCallDuration: Histogram;
-  private readonly llmTokensUsed: Counter;
+  private readonly llmCallDuration: Histogram<'role' | 'model' | 'status'>;
+  private readonly llmTokensUsed: Counter<'role' | 'model' | 'type'>;
 
   // ── Cache metrics ─────────────────────────────────────────────────────────
 
-  private readonly assistantCacheAccesses: Counter;
+  private readonly assistantCacheAccesses: Counter<'kind' | 'hit'>;
 
   // ── Proactive suggestion metrics ─────────────────────────────────────────
 
   private readonly suggestionRecomputeEnqueues: Counter;
   private readonly suggestionRecomputeDedupes: Counter;
-  private readonly suggestionRecomputeDuration: Histogram;
+  private readonly suggestionRecomputeDuration: Histogram<'status'>;
   private readonly suggestionMaterializationReady: Counter;
   private readonly suggestionMaterializationFailed: Counter;
   private readonly suggestionStaleAge: Histogram;
 
   // ── Product event metrics ───────────────────────────────────────────────
 
-  private readonly productEventEmissionFailures: Counter;
+  private readonly productEventEmissionFailures: Counter<'event'>;
 
   // ── Audit log metrics ──────────────────────────────────────────────────
 
-  private readonly auditLogWriteFailures: Counter;
+  private readonly auditLogWriteFailures: Counter<'action'>;
 
   constructor(private readonly configService: ConfigService) {
     this.registry = new Registry();
@@ -74,63 +76,63 @@ export class MetricsService implements OnApplicationBootstrap {
       nodeEnv !== 'test';
 
     // HTTP metrics
-    this.httpRequestDuration = new Histogram({
+    this.httpRequestDuration = new Histogram<'method' | 'route' | 'status'>({
       name: 'http_request_duration_seconds',
       help: 'HTTP request duration in seconds',
-      labelNames: ['method', 'route', 'status'] as const,
+      labelNames: ['method', 'route', 'status'],
       buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
       registers: [this.registry],
     });
 
-    this.httpRequestsTotal = new Counter({
+    this.httpRequestsTotal = new Counter<'method' | 'route' | 'status'>({
       name: 'http_requests_total',
       help: 'Total number of HTTP requests',
-      labelNames: ['method', 'route', 'status'] as const,
+      labelNames: ['method', 'route', 'status'],
       registers: [this.registry],
     });
 
     // BullMQ metrics
-    this.bullmqJobsTotal = new Counter({
+    this.bullmqJobsTotal = new Counter<'queue' | 'status'>({
       name: 'bullmq_jobs_total',
       help: 'Total BullMQ jobs by final status',
-      labelNames: ['queue', 'status'] as const,
+      labelNames: ['queue', 'status'],
       registers: [this.registry],
     });
 
-    this.bullmqActiveJobs = new Gauge({
+    this.bullmqActiveJobs = new Gauge<'queue'>({
       name: 'bullmq_active_jobs',
       help: 'Number of active BullMQ jobs',
-      labelNames: ['queue'] as const,
+      labelNames: ['queue'],
       registers: [this.registry],
     });
 
-    this.bullmqWaitingJobs = new Gauge({
+    this.bullmqWaitingJobs = new Gauge<'queue'>({
       name: 'bullmq_waiting_jobs',
       help: 'Number of waiting BullMQ jobs',
-      labelNames: ['queue'] as const,
+      labelNames: ['queue'],
       registers: [this.registry],
     });
 
     // LLM metrics
-    this.llmCallDuration = new Histogram({
+    this.llmCallDuration = new Histogram<'role' | 'model' | 'status'>({
       name: 'llm_call_duration_seconds',
       help: 'LLM API call duration in seconds',
-      labelNames: ['role', 'model', 'status'] as const,
+      labelNames: ['role', 'model', 'status'],
       buckets: [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 30, 60, 120],
       registers: [this.registry],
     });
 
-    this.llmTokensUsed = new Counter({
+    this.llmTokensUsed = new Counter<'role' | 'model' | 'type'>({
       name: 'llm_tokens_used_total',
       help: 'Total LLM tokens used',
-      labelNames: ['role', 'model', 'type'] as const,
+      labelNames: ['role', 'model', 'type'],
       registers: [this.registry],
     });
 
-    this.assistantCacheAccesses = new Counter({
+    this.assistantCacheAccesses = new Counter<'kind' | 'hit'>({
       name: 'assistant_cache_accesses_total',
       help: 'Assistant cache accesses by layer and hit/miss',
-      labelNames: ['kind', 'hit'] as const,
+      labelNames: ['kind', 'hit'],
       registers: [this.registry],
     });
 
@@ -148,10 +150,10 @@ export class MetricsService implements OnApplicationBootstrap {
       registers: [this.registry],
     });
 
-    this.suggestionRecomputeDuration = new Histogram({
+    this.suggestionRecomputeDuration = new Histogram<'status'>({
       name: 'today_suggestion_recompute_duration_seconds',
       help: 'Proactive suggestion recompute duration in seconds',
-      labelNames: ['status'] as const,
+      labelNames: ['status'],
       buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],
       registers: [this.registry],
     });
@@ -177,19 +179,19 @@ export class MetricsService implements OnApplicationBootstrap {
 
     // Labeled only by the fixed event name (11 values) — no userId, date or
     // health content in labels, so cardinality stays bounded.
-    this.productEventEmissionFailures = new Counter({
+    this.productEventEmissionFailures = new Counter<'event'>({
       name: 'product_event_emission_failure_total',
       help: 'Total server-side product event emission failures by event name',
-      labelNames: ['event'] as const,
+      labelNames: ['event'],
       registers: [this.registry],
     });
 
     // Labeled only by the fixed audit action string — no userId, resource id
     // or metadata in labels, so cardinality stays bounded.
-    this.auditLogWriteFailures = new Counter({
+    this.auditLogWriteFailures = new Counter<'action'>({
       name: 'audit_log_write_failure_total',
       help: 'Total audit log write failures by action',
-      labelNames: ['action'] as const,
+      labelNames: ['action'],
       registers: [this.registry],
     });
   }
