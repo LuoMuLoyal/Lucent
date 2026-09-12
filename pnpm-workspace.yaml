@@ -12,6 +12,9 @@ allowBuilds:
   unrs-resolver: false
   vue-demi: false
 
+minimumReleaseAgeExclude:
+  - nodemailer@10.0.8
+
 overrides:
   stack-trace: 0.0.10
   find-my-way: 9.6.0

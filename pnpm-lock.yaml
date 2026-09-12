@@ -294,8 +294,8 @@ importers:
         specifier: 8.2.0
         version: 8.2.0
       nodemailer:
-        specifier: ^8.0.9
-        version: 8.0.9
+        specifier: ^10.0.8
+        version: 10.0.8
       otplib:
         specifier: ^13.4.1
         version: 13.4.1
@@ -8217,9 +8217,9 @@ packages:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
 
-  nodemailer@8.0.9:
-    resolution: {integrity: sha512-5ofa7BUN8+C+Hckh5V2GjeeOGRQBx0CJQA6KxrvuZfC8iU4/q7sLn8XrtEEhJkjV6HdyIiQs7Bba6bTao8JhkA==}
-    engines: {node: '>=6.0.0'}
+  nodemailer@10.0.8:
+    resolution: {integrity: sha512-uCZ0AtFDI46sHwJ6mhwNuIoA/KiTC0ZCzX7g01941+H9VMIXEiZjtgjQkzoBRTeQba0cIrKfwk31q99PfcIMRw==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -19169,7 +19169,7 @@ snapshots:
 
   node-releases@2.0.51: {}
 
-  nodemailer@8.0.9: {}
+  nodemailer@10.0.8: {}
 
   normalize-path@3.0.0: {}
 
