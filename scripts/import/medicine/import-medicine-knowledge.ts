@@ -23,9 +23,8 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 export {
   invalidateMedicineCache,
   listMedicineCacheKeys,
-  redisStoreFromUrl,
+  redisAdapterFromUrl,
   stableUuid,
-  stripNamespacePrefix,
 };
 
 const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
@@ -517,89 +516,53 @@ Options:
 // ─── Redis cache invalidation (medicine-specific) ─────────────
 
 /**
- * The subset of the ioredis client surface this script relies on through
- * `store.client`. See the narrow-cast note in `invalidateMedicineCache`.
+ * The subset of the node-redis client surface this script relies on.
+ * `@keyv/redis`'s `KeyvRedis` exposes the underlying client through `.client`,
+ * typed as a standalone/cluster/sentinel union; the pattern scan only needs
+ * `keys`, so it is narrowed to that surface in `invalidateMedicineCache`.
  */
-interface RedisStoreClient {
-  del: (key: string) => Promise<unknown>;
-  disconnect: () => void;
-}
-
-/**
- * Narrow type for the cache store surface this script relies on.
- * `cache-manager-ioredis-yet`'s `RedisStore` extends `Store`, which exposes
- * `.keys()` at runtime but the upstream `Store` interface omits it; the
- * runtime type is correct, so we accept anything that provides `keys`.
- */
-interface CacheKeyEnumerator {
+interface RedisKeyScanner {
   keys: (pattern: string) => Promise<string[]>;
 }
 
-async function redisStoreFromUrl(redisUrl: string) {
-  // Dynamic import keeps the lazy-load behavior of the previous require():
-  // the Redis store dependency is only loaded when cache invalidation runs.
-  const { redisStore } = await import('cache-manager-ioredis-yet');
+/**
+ * Builds the `KeyvRedis` adapter used for cache invalidation.
+ *
+ * Keys are written by the app through `createKeyv()` (`useKeyPrefix: false`,
+ * no namespace), so Redis holds the bare cache-manager key names
+ * (`medicines:...`). The previous `cache-manager-ioredis-yet` store added a
+ * `keyv:` namespace that no longer exists.
+ */
+async function redisAdapterFromUrl(redisUrl: string) {
+  // Dynamic import keeps the Redis dependency off the hot path: it is loaded
+  // only when cache invalidation runs.
+  const { default: KeyvRedis } = await import('@keyv/redis');
 
-  let url: URL;
-  try {
-    url = new URL(redisUrl);
-  } catch (error) {
-    // A malformed REDIS_URL is an operator error — surface it with context
-    // instead of leaking a bare TypeError.
+  if (!URL.canParse(redisUrl)) {
+    // Operator error — surface it with context instead of leaking node-redis's
+    // own parse failure. The URL is not echoed back: it can carry a password.
     throw new Error(
-      `Invalid REDIS_URL for medicine cache invalidation: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      'Invalid REDIS_URL for medicine cache invalidation (expected redis:// or rediss://).',
     );
   }
 
-  return redisStore({
-    host: url.hostname,
-    port: Number(url.port) || 6379,
-    password: url.password || undefined,
-    db: url.pathname ? Number(url.pathname.slice(1)) || 0 : 0,
-    tls: url.protocol === 'rediss:' ? {} : undefined,
-  });
+  return new KeyvRedis(redisUrl);
 }
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values)];
 }
 
-function stripNamespacePrefix(
-  key: string,
-  namespacePrefix: string | null,
-): string {
-  if (!namespacePrefix || !key.startsWith(namespacePrefix)) {
-    return key;
-  }
-  return key.slice(namespacePrefix.length);
-}
-
 async function listMedicineCacheKeys(
-  store: CacheKeyEnumerator,
-  namespace = 'keyv',
+  client: RedisKeyScanner,
 ): Promise<string[]> {
-  const namespacePrefix = namespace ? `${namespace}:` : null;
-  const patterns = namespacePrefix
-    ? [
-        `${namespacePrefix}${MEDICINES_CACHE_KEY_PREFIX}:*`,
-        `${MEDICINES_CACHE_KEY_PREFIX}:*`,
-      ]
-    : [`${MEDICINES_CACHE_KEY_PREFIX}:*`];
-  const matchedKeys: string[] = [];
+  const pattern = `${MEDICINES_CACHE_KEY_PREFIX}:*`;
+  const keys = await client.keys(pattern);
 
-  for (const pattern of patterns) {
-    const keys = await store.keys(pattern);
-    for (const key of keys) {
-      const normalizedKey = stripNamespacePrefix(key, namespacePrefix);
-      if (normalizedKey.startsWith(`${MEDICINES_CACHE_KEY_PREFIX}:`)) {
-        matchedKeys.push(normalizedKey);
-      }
-    }
-  }
-
-  return uniqueStrings(matchedKeys);
+  // Defensive filter: a pattern scan is a prefix match, not an exact one.
+  return uniqueStrings(
+    keys.filter((key) => key.startsWith(`${MEDICINES_CACHE_KEY_PREFIX}:`)),
+  );
 }
 
 async function invalidateMedicineCache() {
@@ -608,33 +571,23 @@ async function invalidateMedicineCache() {
     return { invalidated: 0, skipped: 'REDIS_URL is not configured' };
   }
 
-  const store = await redisStoreFromUrl(redisUrl);
-
-  // redisStore() from cache-manager-ioredis-yet exposes a v5-style `.del` at
-  // runtime, but its bundled types extend cache-manager 7's Store, which no
-  // longer declares `.del` (nor `.client`). Narrow-cast to the documented
-  // ioredis surface so the bypass is explicit; tracked in docs/TODO.md — once
-  // upstream types expose `.del`, drop the cast and call `store.del(key)`.
-  const redisClient = store.client as unknown as RedisStoreClient;
+  const adapter = await redisAdapterFromUrl(redisUrl);
 
   try {
-    // RedisStore extends Store which omits `.keys` in cache-manager 7's type
-    // declarations, but the ioredis-yet runtime includes it. The cast
-    // narrows to the surface listMedicineCacheKeys actually uses.
-    const keys = await listMedicineCacheKeys(
-      store as unknown as CacheKeyEnumerator,
-    );
+    // `getClient()` connects (and fails loudly) before the scan runs.
+    const client = (await adapter.getClient()) as unknown as RedisKeyScanner;
+    const keys = await listMedicineCacheKeys(client);
     if (keys.length === 0) {
       return { invalidated: 0 };
     }
 
-    await Promise.all(keys.map((key) => redisClient.del(key)));
+    await adapter.deleteMany(keys);
     console.info(
       `[cache] invalidated ${String(keys.length)} medicine cache key(s)`,
     );
     return { invalidated: keys.length };
   } finally {
-    redisClient.disconnect();
+    await adapter.disconnect();
   }
 }
 

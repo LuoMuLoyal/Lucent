@@ -132,4 +132,33 @@ describe('MedicinesCacheAdminService', () => {
       'medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20',
     );
   });
+
+  it('scans a @keyv/redis store through its node-redis client', async () => {
+    const scan = vi
+      .fn()
+      .mockResolvedValue([
+        'medicines:detail:drugbank:DB01050',
+        'auth:verification:test@example.com',
+      ]);
+    cache.stores = [
+      { store: { client: { keys: scan } } },
+    ] as unknown as typeof cache.stores;
+    cache.del.mockResolvedValue(true);
+
+    await expect(service.invalidateAll()).resolves.toBe(1);
+    expect(scan).toHaveBeenCalledWith('medicines:*');
+    expect(cache.del).toHaveBeenCalledWith('medicines:detail:drugbank:DB01050');
+  });
+
+  it('warns and skips a store exposing neither keys() nor a Redis client', async () => {
+    cache.stores = [{ store: {} }] as unknown as typeof cache.stores;
+    const logger = (service as unknown as { logger: { warn: vi.Mock } }).logger;
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    await expect(service.invalidateAll()).resolves.toBe(0);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('neither keys() nor a Redis client'),
+    );
+  });
 });

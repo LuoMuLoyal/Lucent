@@ -166,8 +166,7 @@ async function createEmbeddingStore(tableName) {
   }
 
   const { OpenAIEmbeddings } = await import('@langchain/openai');
-  const { PGVectorStore } =
-    await import('@langchain/community/vectorstores/pgvector');
+  const { PGVectorStore } = await import('@langchain/pgvector');
   const { Pool } = await import('pg');
 
   const connectionString = process.env.DATABASE_URL;

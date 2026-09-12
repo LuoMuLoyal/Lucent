@@ -1,86 +1,61 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  listMedicineCacheKeys,
-  stripNamespacePrefix,
-} from './import-medicine-knowledge.ts';
-
-describe('stripNamespacePrefix', () => {
-  it('removes the expected prefix only once', () => {
-    expect(
-      stripNamespacePrefix('keyv:medicines:detail:drugbank:DB01050', 'keyv:'),
-    ).toBe('medicines:detail:drugbank:DB01050');
-    expect(
-      stripNamespacePrefix('medicines:detail:drugbank:DB01050', 'keyv:'),
-    ).toBe('medicines:detail:drugbank:DB01050');
-  });
-});
+import { listMedicineCacheKeys } from './import-medicine-knowledge.ts';
 
 describe('listMedicineCacheKeys', () => {
-  it('finds namespaced medicines keys and normalizes them', async () => {
+  it('scans the medicines prefix and returns the matching keys', async () => {
     const patterns: string[] = [];
-    const store = {
+    const client = {
       keys: async (pattern: string) => {
         patterns.push(pattern);
-        if (pattern === 'keyv:medicines:*') {
-          return [
-            'keyv:medicines:search:drugbank:ibuprofen:1:20',
-            'keyv:medicines:detail:drugbank:DB01050',
-            'keyv:auth:verification:test@example.com',
-          ];
-        }
-
-        if (pattern === 'medicines:*') {
-          return [];
-        }
-
-        return [];
+        return [
+          'medicines:search:drugbank:ibuprofen:1:20',
+          'medicines:detail:drugbank:DB01050',
+        ];
       },
     };
 
-    const keys = await listMedicineCacheKeys(store);
-
-    expect(patterns).toEqual(['keyv:medicines:*', 'medicines:*']);
-    expect(keys).toEqual([
+    await expect(listMedicineCacheKeys(client)).resolves.toEqual([
       'medicines:search:drugbank:ibuprofen:1:20',
       'medicines:detail:drugbank:DB01050',
     ]);
+    expect(patterns).toEqual(['medicines:*']);
   });
 
-  it('deduplicates normalized keys across prefixed and raw scans', async () => {
-    const store = {
-      keys: async (pattern: string) => {
-        if (pattern === 'keyv:medicines:*') {
-          return ['keyv:medicines:detail:cn:cn_ibuprofen_capsule'];
-        }
-
-        if (pattern === 'medicines:*') {
-          return ['medicines:detail:cn:cn_ibuprofen_capsule'];
-        }
-
-        return [];
-      },
+  it('drops anything the scan returned outside the medicines prefix', async () => {
+    const client = {
+      keys: async () => [
+        'medicines:detail:cn:cn_ibuprofen_capsule',
+        'auth:verification:test@example.com',
+      ],
     };
 
-    const keys = await listMedicineCacheKeys(store);
-
-    expect(keys).toEqual(['medicines:detail:cn:cn_ibuprofen_capsule']);
+    await expect(listMedicineCacheKeys(client)).resolves.toEqual([
+      'medicines:detail:cn:cn_ibuprofen_capsule',
+    ]);
   });
 
-  it('supports stores without a namespace prefix', async () => {
-    const store = {
-      keys: async (pattern: string) => {
-        if (pattern === 'medicines:*') {
-          return ['medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20'];
-        }
-
-        return [];
-      },
+  it('deduplicates repeated keys', async () => {
+    const client = {
+      keys: async () => [
+        'medicines:detail:cn:cn_ibuprofen_capsule',
+        'medicines:detail:cn:cn_ibuprofen_capsule',
+      ],
     };
 
-    const keys = await listMedicineCacheKeys(store, undefined);
+    await expect(listMedicineCacheKeys(client)).resolves.toEqual([
+      'medicines:detail:cn:cn_ibuprofen_capsule',
+    ]);
+  });
 
-    expect(keys).toEqual([
+  it('handles the URL-encoded search key shape', async () => {
+    const client = {
+      keys: async () => [
+        'medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20',
+      ],
+    };
+
+    await expect(listMedicineCacheKeys(client)).resolves.toEqual([
       'medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20',
     ]);
   });

@@ -132,10 +132,6 @@ ESM 化后遗留清单与后续跟进：
 
 - `@prisma/internals`：named `getDMMF` 无法经 cjs-module-lexer 识别（动态重导出），`prisma-module.service.ts`
   以动态 import + default/具名回退装载。上游发布 ESM 版本后改回裸 named import。
-- `cache-manager-ioredis-yet`（medicine import 脚本）：`redisStore()` 运行期暴露 v5 风格 `.del`，
-  但其捆绑类型 extends cache-manager 7 Store 未声明 `.del`/`.client`；`import-medicine-knowledge.ts`
-  以窄类型 cast 经 ioredis 客户端直连（含 `finally` 里的 disconnect）。上游类型补 `.del` 后改回
-  `store.del(key)` 并删除 cast。
 - 两处 PDF 服务用 `createRequire(import.meta.url).resolve` 解析 `@fontpkg/*` 字体资产路径（ESM 无
   `require.resolve`），属惯用法保留。
 - `cos-nodejs-sdk-v5`（default import）、`better-auth`（ESM 出口）、adminjs 系与 `@scalar/*`（动态
