@@ -66,8 +66,10 @@ services:
     image: chrislusf/seaweedfs:4.41
     container_name: lucent-seaweedfs
     restart: unless-stopped
+    # The image entrypoint (/entrypoint.sh) already dispatches the first
+    # argument as a weed subcommand — do NOT prefix it with `weed`.
     command: >
-      weed server
+      server
       -dir=/data
       -s3
       -master.port=9333
