@@ -218,7 +218,6 @@ describe('Reports API (e2e)', () => {
           nickname: string;
           age: number | null;
           sexAtBirth: string | null;
-          bloodType: string | null;
         };
         allergies: unknown[];
         conditions: unknown[];

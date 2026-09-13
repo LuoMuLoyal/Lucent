@@ -62,7 +62,6 @@ describe('ClinicSummaryPdfService', () => {
       nickname: '张**',
       age: 25,
       sexAtBirth: 'male',
-      bloodType: 'A',
     },
     allergies: [
       { label: '青霉素', reaction: '皮疹', severity: 'moderate' },
@@ -126,7 +125,6 @@ describe('ClinicSummaryPdfService', () => {
             nickname: '匿名用户',
             age: null,
             sexAtBirth: null,
-            bloodType: null,
           },
         }),
         'en',

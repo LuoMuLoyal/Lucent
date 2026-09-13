@@ -134,7 +134,7 @@ export class ClinicSummaryService {
       where: { id: userId, deletedAt: null },
       include: {
         profile: {
-          select: { birthDate: true, sexAtBirth: true, bloodType: true },
+          select: { birthDate: true, sexAtBirth: true },
         },
         allergies: {
           where: { isActive: true },
@@ -636,7 +636,6 @@ export class ClinicSummaryService {
       profile: {
         birthDate: Date | null;
         sexAtBirth: string | null;
-        bloodType: string | null;
       } | null;
     },
     locale: string,
@@ -647,7 +646,6 @@ export class ClinicSummaryService {
       nickname: this.maskName(user.nickname, locale),
       age: p?.birthDate ? calculateAge(p.birthDate) : null,
       sexAtBirth: p?.sexAtBirth ?? null,
-      bloodType: p?.bloodType ?? null,
     };
   }
 

@@ -78,7 +78,6 @@ export function drawProfileTable(
           : 'N/A',
     ],
     [isZh ? '性别' : 'Sex', p.sexAtBirth ?? (isZh ? '未提供' : 'N/A')],
-    [isZh ? '血型' : 'Blood type', p.bloodType ?? (isZh ? '未提供' : 'N/A')],
   ];
   drawKeyValueTable(context, rows, font);
 }

@@ -917,7 +917,6 @@ function makeClinicSummary(): ClinicSummaryDto {
       nickname: '匿**',
       age: 30,
       sexAtBirth: 'male',
-      bloodType: 'A',
     },
     allergies: [],
     conditions: [],

@@ -201,7 +201,6 @@ describe('ClinicSummaryService', () => {
     profile: {
       birthDate: new Date('2000-01-15'),
       sexAtBirth: 'male',
-      bloodType: 'A',
     },
     allergies: [
       { label: '青霉素', reaction: '皮疹', severity: 'moderate' },
@@ -226,7 +225,6 @@ describe('ClinicSummaryService', () => {
       expect(result.profile!.nickname).toBe('张**');
       expect(result.profile!.age).toBeGreaterThan(0);
       expect(result.profile!.sexAtBirth).toBe('male');
-      expect(result.profile!.bloodType).toBe('A');
       expect(result.allergies!).toHaveLength(2);
       expect(result.allergies![0]!.label).toBe('青霉素');
       expect(result.conditions!).toHaveLength(1);
@@ -246,7 +244,6 @@ describe('ClinicSummaryService', () => {
 
       expect(result.profile!.age).toBeNull();
       expect(result.profile!.sexAtBirth).toBeNull();
-      expect(result.profile!.bloodType).toBeNull();
     });
 
     it('handles null nickname', async () => {
@@ -581,7 +578,6 @@ describe('ClinicSummaryService', () => {
         nickname: '张**',
         age: 30,
         sexAtBirth: 'male',
-        bloodType: 'A',
       },
       allergies: [{ label: '青霉素', reaction: null, severity: null }],
       conditions: [{ label: '高血压', status: 'active', diagnosedYear: 2020 }],

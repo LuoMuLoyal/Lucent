@@ -84,7 +84,6 @@ export const clinicSummaryProfileSchema = z.object({
     .optional()
     .describe('Age in years (derived from birthDate, never raw date)'),
   sexAtBirth: z.string().nullable().describe('Sex at birth'),
-  bloodType: z.string().nullable().optional().describe('Blood type'),
 });
 
 /** Strongly typed de-identified profile block of the clinic summary. */
