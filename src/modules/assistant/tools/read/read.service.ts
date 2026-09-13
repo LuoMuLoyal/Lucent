@@ -351,7 +351,8 @@ export class AssistantToolReadService {
           'birthDate',
           'age',
           'heightCm',
-          'bloodType',
+          'activityLevel',
+          'dietaryPreferences',
           'allergies',
         ],
       },
@@ -362,7 +363,8 @@ export class AssistantToolReadService {
           birthDate: health?.profile.birthDate ?? null,
           age: health?.summary.age ?? null,
           heightCm: health?.profile.heightCm ?? null,
-          bloodType: health?.profile.bloodType ?? null,
+          activityLevel: health?.profile.activityLevel ?? null,
+          dietaryPreferences: health?.profile.dietaryPreferences ?? null,
           allergies: (health?.allergies ?? [])
             .filter((item) => item.isActive)
             .map((item) => item.label),

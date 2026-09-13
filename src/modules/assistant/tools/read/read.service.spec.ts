@@ -261,7 +261,8 @@ describe('AssistantToolReadService', () => {
             sexAtBirth: 'male',
             birthDate: '1990-01-01',
             heightCm: 175,
-            bloodType: 'A',
+            activityLevel: 'moderatelyActive',
+            dietaryPreferences: ['vegetarian'],
           },
           summary: { age: 36 },
           allergies: [
