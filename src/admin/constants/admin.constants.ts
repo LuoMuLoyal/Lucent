@@ -58,13 +58,19 @@ export const coreResourceOverrides: Record<
   },
   UserProfile: {
     navigation: 'Users',
-    listProperties: ['userId', 'sexAtBirth', 'heightCm', 'bloodType', 'locale'],
+    listProperties: [
+      'userId',
+      'sexAtBirth',
+      'heightCm',
+      'activityLevel',
+      'locale',
+    ],
     showProperties: [
       'userId',
       'birthDate',
       'sexAtBirth',
       'heightCm',
-      'bloodType',
+      'activityLevel',
       'locale',
       'timezone',
       'unitSystem',
@@ -73,7 +79,7 @@ export const coreResourceOverrides: Record<
       'createdAt',
       'updatedAt',
     ],
-    filterProperties: ['userId', 'sexAtBirth', 'bloodType', 'locale'],
+    filterProperties: ['userId', 'sexAtBirth', 'activityLevel', 'locale'],
     titleProperty: 'userId',
   },
   DrugbankDrug: {
