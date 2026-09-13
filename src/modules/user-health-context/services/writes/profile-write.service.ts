@@ -88,10 +88,9 @@ export class UserHealthContextProfileWriteService {
       createData.heightCm = dto.heightCm;
     }
 
-    if (dto.bloodType !== undefined) {
-      const blood = normalizeNullableText(dto.bloodType);
-      updateData.bloodType = blood;
-      createData.bloodType = blood;
+    if (dto.activityLevel !== undefined) {
+      updateData.activityLevel = dto.activityLevel;
+      createData.activityLevel = dto.activityLevel;
     }
 
     if (dto.onboardingCompleted !== undefined) {
@@ -109,12 +108,8 @@ export class UserHealthContextProfileWriteService {
       }
     }
 
-    // Merge weightKg / emergencyContact into extras JSONB
-    if (
-      dto.weightKg !== undefined ||
-      dto.emergencyContactName !== undefined ||
-      dto.emergencyContactPhone !== undefined
-    ) {
+    // Merge weightKg / dietaryPreferences into extras JSONB
+    if (dto.weightKg !== undefined || dto.dietaryPreferences !== undefined) {
       const existing = await this.repository.findProfileByUserId(userId, {
         extras: true,
       });
@@ -131,21 +126,11 @@ export class UserHealthContextProfileWriteService {
         }
       }
 
-      if (dto.emergencyContactName !== undefined) {
-        const name = normalizeNullableText(dto.emergencyContactName);
-        if (name === null) {
-          delete currentExtras['emergencyContactName'];
+      if (dto.dietaryPreferences !== undefined) {
+        if (dto.dietaryPreferences === null) {
+          delete currentExtras['dietaryPreferences'];
         } else {
-          currentExtras['emergencyContactName'] = name;
-        }
-      }
-
-      if (dto.emergencyContactPhone !== undefined) {
-        const phone = normalizeNullableText(dto.emergencyContactPhone);
-        if (phone === null) {
-          delete currentExtras['emergencyContactPhone'];
-        } else {
-          currentExtras['emergencyContactPhone'] = phone;
+          currentExtras['dietaryPreferences'] = dto.dietaryPreferences;
         }
       }
 

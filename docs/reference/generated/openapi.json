@@ -10795,11 +10795,37 @@
             "maximum": 300,
             "description": "Height in centimeters. Use null to clear."
           },
-          "bloodType": {
+          "activityLevel": {
             "nullable": true,
             "type": "string",
-            "maxLength": 8,
-            "description": "Blood type. Use null to clear."
+            "enum": [
+              "sedentary",
+              "lightlyActive",
+              "moderatelyActive",
+              "veryActive",
+              "extremelyActive"
+            ],
+            "description": "Self-reported activity level. Use null to clear."
+          },
+          "dietaryPreferences": {
+            "nullable": true,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "vegetarian",
+                "vegan",
+                "lowCarb",
+                "lowSalt",
+                "lowFat",
+                "highProtein",
+                "keto",
+                "halal",
+                "other"
+              ]
+            },
+            "description": "Dietary preferences. Stored in extras JSONB. Use null to clear."
           },
           "weightKg": {
             "nullable": true,
@@ -10807,18 +10833,6 @@
             "minimum": 1,
             "maximum": 500,
             "description": "Weight in kilograms. Stored in extras JSONB. Use null to clear."
-          },
-          "emergencyContactName": {
-            "nullable": true,
-            "type": "string",
-            "maxLength": 50,
-            "description": "Emergency contact name. Stored in extras JSONB. Use null or empty string to clear."
-          },
-          "emergencyContactPhone": {
-            "nullable": true,
-            "type": "string",
-            "maxLength": 20,
-            "description": "Emergency contact phone. Stored in extras JSONB. Use null or empty string to clear."
           },
           "onboardingCompleted": {
             "type": "boolean",
@@ -13825,8 +13839,22 @@
             "type": "number",
             "nullable": true
           },
-          "bloodType": {
+          "activityLevel": {
             "type": "string",
+            "enum": [
+              "sedentary",
+              "lightlyActive",
+              "moderatelyActive",
+              "veryActive",
+              "extremelyActive"
+            ],
+            "nullable": true
+          },
+          "dietaryPreferences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "nullable": true
           },
           "locale": {
@@ -13846,10 +13874,6 @@
             "type": "string",
             "nullable": true
           },
-          "emergencyContact": {
-            "nullable": true,
-            "$ref": "#/components/schemas/HealthContextResponseProfileEmergencyContact"
-          },
           "extras": {
             "description": "Sparse profile extensions stored in jsonb."
           }
@@ -13859,31 +13883,13 @@
           "sexAtBirth",
           "heightCm",
           "weightKg",
-          "bloodType",
           "locale",
           "timezone",
           "unitSystem",
           "onboardingCompletedAt",
-          "emergencyContact",
           "extras"
         ],
         "additionalProperties": false
-      },
-      "HealthContextResponseProfileEmergencyContact": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "phone": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["name", "phone"],
-        "additionalProperties": false,
-        "nullable": true
       },
       "HealthContextResponseAllergies": {
         "type": "object",
@@ -15014,10 +15020,6 @@
             "nullable": true
           },
           "sexAtBirth": {
-            "type": "string",
-            "nullable": true
-          },
-          "bloodType": {
             "type": "string",
             "nullable": true
           }

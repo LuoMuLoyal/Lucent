@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { type Mocked } from 'vitest';
 import {
+  ActivityLevel,
   MedicineSource,
   SexAtBirth,
   UnitSystem,
@@ -163,12 +164,12 @@ describe('UserHealthContextService', () => {
       sexAtBirth: null,
       heightCm: null,
       weightKg: null,
-      bloodType: null,
+      activityLevel: null,
+      dietaryPreferences: null,
       locale: null,
       timezone: null,
       unitSystem: null,
       onboardingCompletedAt: null,
-      emergencyContact: null,
       extras: null,
     });
     expect(result.summary).toEqual({
@@ -199,7 +200,7 @@ describe('UserHealthContextService', () => {
         birthDate: new Date('1998-03-15T00:00:00.000Z'),
         sexAtBirth: SexAtBirth.female,
         heightCm: 168,
-        bloodType: 'O+',
+        activityLevel: ActivityLevel.moderatelyActive,
         locale: 'en-US',
         timezone: 'Asia/Shanghai',
         unitSystem: UnitSystem.metric,
@@ -276,12 +277,12 @@ describe('UserHealthContextService', () => {
       sexAtBirth: SexAtBirth.female,
       heightCm: 168,
       weightKg: null,
-      bloodType: 'O+',
+      activityLevel: ActivityLevel.moderatelyActive,
+      dietaryPreferences: null,
       locale: 'en-US',
       timezone: 'Asia/Shanghai',
       unitSystem: UnitSystem.metric,
       onboardingCompletedAt: '2026-05-01T08:00:00.000Z',
-      emergencyContact: null,
       extras: { preferredReminderHour: 9 },
     });
     expect(result.allergies).toHaveLength(1);
@@ -351,7 +352,7 @@ describe('UserHealthContextService', () => {
         birthDate: new Date('1998-03-15T00:00:00.000Z'),
         sexAtBirth: SexAtBirth.female,
         heightCm: 168,
-        bloodType: 'O+',
+        activityLevel: ActivityLevel.moderatelyActive,
         locale: 'zh-CN',
         timezone: 'Asia/Shanghai',
         unitSystem: UnitSystem.metric,
@@ -377,7 +378,7 @@ describe('UserHealthContextService', () => {
         birthDate: '1998-03-15',
         sexAtBirth: SexAtBirth.female,
         heightCm: 168,
-        bloodType: ' O+ ',
+        activityLevel: ActivityLevel.moderatelyActive,
         onboardingCompleted: true,
       }),
     );
@@ -392,7 +393,7 @@ describe('UserHealthContextService', () => {
         birthDate: new Date('1998-03-15T00:00:00.000Z'),
         sexAtBirth: SexAtBirth.female,
         heightCm: 168,
-        bloodType: 'O+',
+        activityLevel: ActivityLevel.moderatelyActive,
         onboardingCompletedAt: expect.any(Date),
       }),
       expect.objectContaining({
@@ -402,7 +403,7 @@ describe('UserHealthContextService', () => {
         birthDate: new Date('1998-03-15T00:00:00.000Z'),
         sexAtBirth: SexAtBirth.female,
         heightCm: 168,
-        bloodType: 'O+',
+        activityLevel: ActivityLevel.moderatelyActive,
         onboardingCompletedAt: expect.any(Date),
       }),
     );
@@ -410,7 +411,7 @@ describe('UserHealthContextService', () => {
     expect(result.profile.birthDate).toBe('1998-03-15');
     expect(result.profile.sexAtBirth).toBe(SexAtBirth.female);
     expect(result.profile.heightCm).toBe(168);
-    expect(result.profile.bloodType).toBe('O+');
+    expect(result.profile.activityLevel).toBe(ActivityLevel.moderatelyActive);
     expect(result.summary.onboardingCompleted).toBe(true);
   });
 
@@ -425,7 +426,7 @@ describe('UserHealthContextService', () => {
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         locale: null,
         timezone: null,
         unitSystem: null,
@@ -444,7 +445,7 @@ describe('UserHealthContextService', () => {
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         unitSystem: null,
       }),
     );
@@ -455,14 +456,14 @@ describe('UserHealthContextService', () => {
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         unitSystem: null,
       }),
       expect.objectContaining({
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         unitSystem: null,
       }),
     );
@@ -481,7 +482,7 @@ describe('UserHealthContextService', () => {
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         locale: null,
         timezone: null,
         unitSystem: null,
@@ -525,7 +526,7 @@ describe('UserHealthContextService', () => {
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         locale: null,
         timezone: null,
         unitSystem: null,
@@ -567,7 +568,7 @@ describe('UserHealthContextService', () => {
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         locale: null,
         timezone: null,
         unitSystem: null,
@@ -607,7 +608,7 @@ describe('UserHealthContextService', () => {
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
-        bloodType: null,
+        activityLevel: null,
         locale: null,
         timezone: null,
         unitSystem: null,

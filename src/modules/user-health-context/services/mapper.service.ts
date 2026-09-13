@@ -18,17 +18,6 @@ export class UserHealthContextMapperService {
     const rawExtras =
       (user.profile?.extras as Record<string, unknown> | null) ?? {};
 
-    const emergencyContactName =
-      typeof rawExtras['emergencyContactName'] === 'string'
-        ? rawExtras['emergencyContactName']
-        : null;
-    const emergencyContactPhone =
-      typeof rawExtras['emergencyContactPhone'] === 'string'
-        ? rawExtras['emergencyContactPhone']
-        : null;
-    const hasEmergencyContact =
-      emergencyContactName !== null || emergencyContactPhone !== null;
-
     const profile = {
       birthDate: formatDateOnly(user.profile?.birthDate ?? null),
       sexAtBirth: user.profile?.sexAtBirth ?? null,
@@ -37,19 +26,18 @@ export class UserHealthContextMapperService {
         typeof rawExtras['weightKg'] === 'number'
           ? rawExtras['weightKg']
           : null,
-      bloodType: user.profile?.bloodType ?? null,
+      activityLevel: user.profile?.activityLevel ?? null,
+      dietaryPreferences: Array.isArray(rawExtras['dietaryPreferences'])
+        ? rawExtras['dietaryPreferences'].filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : null,
       locale: user.profile?.locale ?? null,
       timezone: user.profile?.timezone ?? null,
       unitSystem: user.profile?.unitSystem ?? null,
       onboardingCompletedAt: formatDateTime(
         user.profile?.onboardingCompletedAt ?? null,
       ),
-      emergencyContact: hasEmergencyContact
-        ? {
-            name: emergencyContactName,
-            phone: emergencyContactPhone,
-          }
-        : null,
       extras: user.profile?.extras ?? null,
     };
 

@@ -19,6 +19,14 @@ enum UnitSystem {
   imperial
 }
 
+enum ActivityLevel {
+  sedentary
+  lightlyActive
+  moderatelyActive
+  veryActive
+  extremelyActive
+}
+
 enum UserSessionDeviceType {
   mobile
   tablet
@@ -93,10 +101,10 @@ model UserProfile {
   birthDate             DateTime?       @map("birth_date") @db.Date
   sexAtBirth            SexAtBirth?     @map("sex_at_birth")
   heightCm              Int?            @map("height_cm")
-  bloodType             String?         @map("blood_type")
   locale                String?
   timezone              String?
   unitSystem            UnitSystem?     @map("unit_system")
+  activityLevel         ActivityLevel?  @map("activity_level")
   onboardingCompletedAt DateTime?       @map("onboarding_completed_at") @db.Timestamptz(3)
   extras                Json?           @db.JsonB
   createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)

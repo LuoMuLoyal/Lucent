@@ -14,8 +14,9 @@ CRUD，不含通知偏好（notification-preferences）与设置开关（user-se
 - `GET /api/v1/user/health-context` — 返回聚合资源：`summary`
   （age、onboardingCompleted、各类计数、missingCoreProfileFields）、
   `profile`、`allergies`、`conditions`、`currentMedicines`。
-- `PATCH profile` — 更新档案（locale/timezone/unitSystem/birthDate/
-  sexAtBirth/heightCm/bloodType/onboardingCompleted/extras 扩展字段）。
+- `PATCH profile` — 更新档案（locale/timezone/unitSystem/activityLevel/birthDate/
+  sexAtBirth/heightCm/dietaryPreferences/onboardingCompleted/extras 扩展字段；
+  bloodType 与紧急联系人已随 2026-09-13 契约收敛移除）。
 - `POST/PATCH/DELETE allergies|conditions|current-medicines`（:id）—
   三类记录的增改与软删（deactivate/resolve）；跨用户归属返回 403，
   不存在返回 404。每个写端点都返回更新后的完整聚合资源。
@@ -24,11 +25,10 @@ CRUD，不含通知偏好（notification-preferences）与设置开关（user-se
 
 `UserProfile.extras` JSONB 存稀疏扩展，映射到 DTO 顶层属性：
 
-| 字段           | extras key              | DTO 位置                         | 约束                    |
-| -------------- | ----------------------- | -------------------------------- | ----------------------- |
-| 体重 kg        | `weightKg`              | `profile.weightKg`               | 1–500 整数；`null` 清除 |
-| 紧急联系人姓名 | `emergencyContactName`  | `profile.emergencyContact.name`  | ≤50 字符；null/空清除   |
-| 紧急联系人电话 | `emergencyContactPhone` | `profile.emergencyContact.phone` | ≤20 字符；null/空清除   |
+| 字段     | extras key           | DTO 位置                     | 约束                                                             |
+| -------- | -------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| 体重 kg  | `weightKg`           | `profile.weightKg`           | 1–500 整数；`null` 清除                                          |
+| 饮食偏好 | `dietaryPreferences` | `profile.dietaryPreferences` | 白名单枚举数组 ≤5 项（`DIETARY_PREFERENCE_VALUES`）；`null` 清除 |
 
 - 写路径：`ProfileWriteService` **深合并** —— 先读现有 extras，只 set/delete
   指定 key 后整体写回，不碰无关 extras key（全部清空时写 `DbNull`）。

@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { SexAtBirth, UnitSystem } from '#generated/prisma/client.js';
+import {
+  ActivityLevel,
+  SexAtBirth,
+  UnitSystem,
+} from '#generated/prisma/client.js';
+import { DIETARY_PREFERENCE_VALUES } from '../types/health-context.types.js';
 
 /**
  * Standard Schema (zod 4) for `PATCH /health-context/profile` body.
@@ -54,10 +59,18 @@ export const updateHealthContextProfileSchema = z
       .describe('Height in centimeters. Use null to clear.')
       .nullable()
       .optional(),
-    bloodType: z
-      .string()
-      .max(8, 'bloodType must not be longer than 8 characters')
-      .describe('Blood type. Use null to clear.')
+    activityLevel: z
+      .enum(ActivityLevel)
+      .describe('Self-reported activity level. Use null to clear.')
+      .nullable()
+      .optional(),
+    dietaryPreferences: z
+      .enum(DIETARY_PREFERENCE_VALUES)
+      .array()
+      .max(5, 'dietaryPreferences must not contain more than 5 items')
+      .describe(
+        'Dietary preferences. Stored in extras JSONB. Use null to clear.',
+      )
       .nullable()
       .optional(),
     weightKg: z
@@ -67,22 +80,6 @@ export const updateHealthContextProfileSchema = z
       .max(500, 'weightKg must not be greater than 500')
       .describe(
         'Weight in kilograms. Stored in extras JSONB. Use null to clear.',
-      )
-      .nullable()
-      .optional(),
-    emergencyContactName: z
-      .string()
-      .max(50, 'emergencyContactName must not be longer than 50 characters')
-      .describe(
-        'Emergency contact name. Stored in extras JSONB. Use null or empty string to clear.',
-      )
-      .nullable()
-      .optional(),
-    emergencyContactPhone: z
-      .string()
-      .max(20, 'emergencyContactPhone must not be longer than 20 characters')
-      .describe(
-        'Emergency contact phone. Stored in extras JSONB. Use null or empty string to clear.',
       )
       .nullable()
       .optional(),

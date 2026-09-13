@@ -18,7 +18,7 @@ describe('UserHealthContextMapperService', () => {
         birthDate: new Date('1995-06-15'),
         sexAtBirth: 'female' as any,
         heightCm: 165,
-        bloodType: 'A',
+        activityLevel: 'moderatelyActive' as any,
         locale: 'zh-CN',
         timezone: 'Asia/Shanghai',
         unitSystem: 'metric' as any,

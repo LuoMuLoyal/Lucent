@@ -43,7 +43,6 @@ describe('ProfileCollectorService', () => {
       birthDate: new Date('1990-01-01'),
       sexAtBirth: 'male',
       heightCm: 175,
-      bloodType: 'A',
     });
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -64,7 +63,6 @@ describe('ProfileCollectorService', () => {
       birthDate: new Date('1990-01-01'),
       sexAtBirth: null,
       heightCm: null,
-      bloodType: null,
     });
 
     const signals = await service.collect('user-1', '2026-07-09');

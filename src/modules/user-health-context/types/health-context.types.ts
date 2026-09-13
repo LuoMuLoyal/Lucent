@@ -7,6 +7,21 @@ export const CORE_PROFILE_FIELDS = [
   'unitSystem',
 ] as const;
 
+/** Dietary preference whitelist stored in extras JSONB (array, ≤5 items). */
+export const DIETARY_PREFERENCE_VALUES = [
+  'vegetarian',
+  'vegan',
+  'lowCarb',
+  'lowSalt',
+  'lowFat',
+  'highProtein',
+  'keto',
+  'halal',
+  'other',
+] as const;
+
+export type DietaryPreference = (typeof DIETARY_PREFERENCE_VALUES)[number];
+
 export const userHealthContextInclude = {
   profile: true,
   allergies: {

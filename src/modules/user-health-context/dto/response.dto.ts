@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  ActivityLevel,
   MedicineSource,
   SexAtBirth,
   UnitSystem,
@@ -38,16 +39,6 @@ const userHealthSummarySchema = z.object({
 });
 
 /**
- * Standard Schema (zod 4) for the emergency-contact block of the health
- * profile. Replaces the former module-private `EmergencyContactDto` response
- * class.
- */
-const emergencyContactSchema = z.object({
-  name: z.string().nullable().describe('Emergency contact name.'),
-  phone: z.string().nullable().describe('Emergency contact phone.'),
-});
-
-/**
  * Standard Schema (zod 4) for the profile block of the health-context
  * aggregate. Replaces the former module-private `UserHealthProfileDto`
  * response class.
@@ -60,7 +51,20 @@ const userHealthProfileSchema = z.object({
     .number()
     .nullable()
     .describe('Weight in kilograms. Extracted from extras JSONB.'),
-  bloodType: z.string().nullable().describe('Blood type.'),
+  activityLevel: z
+    .enum(ActivityLevel)
+    .nullable()
+    .optional()
+    .describe(
+      'Self-reported activity level. Absent/null on older payloads and caches.',
+    ),
+  dietaryPreferences: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .describe(
+      'Dietary preferences extracted from extras JSONB. Absent/null on older payloads and caches.',
+    ),
   locale: z.string().nullable().describe('Preferred locale.'),
   timezone: z.string().nullable().describe('Preferred timezone.'),
   unitSystem: z.enum(UnitSystem).nullable().describe('Preferred unit system.'),
@@ -68,9 +72,6 @@ const userHealthProfileSchema = z.object({
     .string()
     .nullable()
     .describe('When the onboarding flow was completed.'),
-  emergencyContact: emergencyContactSchema
-    .nullable()
-    .describe('Emergency contact extracted from extras JSONB.'),
   extras: z.unknown().describe('Sparse profile extensions stored in jsonb.'),
 });
 

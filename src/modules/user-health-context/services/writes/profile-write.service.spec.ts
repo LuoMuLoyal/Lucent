@@ -188,14 +188,13 @@ describe('UserHealthContextProfileWriteService', () => {
       );
     });
 
-    it('should merge emergency contact into extras', async () => {
+    it('should merge dietaryPreferences into extras', async () => {
       repository.findProfileByUserId.mockResolvedValueOnce({ extras: null });
 
       await expect(
         collectResult(
           service.upsertProfile('user-1', {
-            emergencyContactName: '张三',
-            emergencyContactPhone: '13800138000',
+            dietaryPreferences: ['vegetarian', 'lowSalt'],
           }),
         ),
       ).resolves.toMatchObject({ ok: true });
@@ -203,16 +202,32 @@ describe('UserHealthContextProfileWriteService', () => {
       expect(repository.upsertProfile).toHaveBeenCalledWith(
         { userId: 'user-1' },
         expect.objectContaining({
-          extras: {
-            emergencyContactName: '张三',
-            emergencyContactPhone: '13800138000',
-          },
+          extras: { dietaryPreferences: ['vegetarian', 'lowSalt'] },
         }),
         expect.objectContaining({
-          extras: {
-            emergencyContactName: '张三',
-            emergencyContactPhone: '13800138000',
-          },
+          extras: { dietaryPreferences: ['vegetarian', 'lowSalt'] },
+        }),
+      );
+    });
+
+    it('should clear dietaryPreferences from extras when null', async () => {
+      repository.findProfileByUserId.mockResolvedValueOnce({
+        extras: { dietaryPreferences: ['vegan'], other: 'keep' },
+      });
+
+      await expect(
+        collectResult(
+          service.upsertProfile('user-1', { dietaryPreferences: null }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
+
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        expect.objectContaining({
+          extras: { other: 'keep' },
+        }),
+        expect.objectContaining({
+          extras: { other: 'keep' },
         }),
       );
     });

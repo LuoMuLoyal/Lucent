@@ -28,7 +28,6 @@ export class ProfileCollectorService {
           birthDate: true,
           sexAtBirth: true,
           heightCm: true,
-          bloodType: true,
         },
       }),
     ]);
