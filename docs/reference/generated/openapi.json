@@ -7742,7 +7742,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
             "nullable": true
           },
           "mealAnalysisStatus": {
@@ -11158,7 +11158,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
+            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string } — symptom is a catalog code and severity is the only structured severity source (title/value are display text). For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
           },
           "attachments": {
             "type": "array",
@@ -12511,7 +12511,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
             "nullable": true
           },
           "mealAnalysisStatus": {
@@ -12759,7 +12759,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
             "nullable": true
           },
           "mealAnalysisStatus": {

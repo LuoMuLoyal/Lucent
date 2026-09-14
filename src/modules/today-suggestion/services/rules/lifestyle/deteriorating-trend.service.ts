@@ -11,6 +11,7 @@ import {
   SuggestionConfidence,
 } from '../../../types/suggestion.types.js';
 import { BaselineDimension } from '../../../types/baseline.types.js';
+import { symptomSeverityScore } from '../../../constants/symptom-severity.constants.js';
 import {
   TREND_MIN_CONSECUTIVE_DAYS,
   TREND_MIN_RECORDS,
@@ -19,9 +20,12 @@ import {
 
 interface SymptomEntry {
   date: string;
+  /** 症状目录码（payload `symptom`）；无码记录不参与判定。 */
+  symptom: string | null;
+  /** 严重度码（payload `severity`）；`unknown` 表示判断不了，按无观测处理。 */
+  severity: string | null;
   title: string;
   value: string | null;
-  note: string | null;
 }
 
 /**
@@ -33,9 +37,9 @@ interface SymptomEntry {
  * the last 7 days — at least 2 consecutive days of increasing
  * severity and at least 3 total records.
  *
- * Severity is inferred from the `value` field if it contains
- * a numeric severity (e.g. "3/5", "7/10") or from the title/note
- * containing keywords like "加重", "恶化", "worse".
+ * 严重度只认结构化码（payload `severity`），按 payload `symptom` 分组；
+ * 不再从 `value` / `note` 的文本里猜数字或关键词——那条启发式对客户端实际写入的
+ * 本地化文案（"轻度" / "Mild"）从不命中，导致规则长期恒不触发。
  */
 @Injectable()
 export class DeterioratingTrendRuleService implements SuggestionRule {
@@ -69,30 +73,32 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
       return null;
     }
 
-    // Group by symptom title and check for deterioration
-    const byTitle = new Map<string, SymptomEntry[]>();
+    // Group by symptom catalog code — 换语言只改 title，码不变，因此不会把同一
+    // 症状拆成两组。
+    const bySymptom = new Map<string, SymptomEntry[]>();
     for (const entry of byDate) {
-      const title = entry.title.trim();
-      if (title.length === 0) continue;
-      const existing = byTitle.get(title) ?? [];
+      const code = entry.symptom;
+      if (code == null || code.length === 0) continue;
+      const existing = bySymptom.get(code) ?? [];
       existing.push(entry);
-      byTitle.set(title, existing);
+      bySymptom.set(code, existing);
     }
 
-    for (const [title, entries] of byTitle) {
+    for (const [code, entries] of bySymptom) {
       if (entries.length < TREND_MIN_CONSECUTIVE_DAYS) continue;
 
       // Sort by date ascending
       entries.sort((a, b) => a.date.localeCompare(b.date));
 
       // Check if severity is increasing
-      const severities = entries.map((e) => this.extractSeverity(e));
+      const severities = entries.map((e) => symptomSeverityScore(e.severity));
       const isDeteriorating = this.checkDeterioration(severities);
 
       if (!isDeteriorating) continue;
 
-      const latestEntry = entries[entries.length - 1]!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-      const latestValue = latestEntry.value ?? '--';
+      const latestEntry = entries[entries.length - 1];
+      const latestValue = latestEntry?.value ?? '--';
+      const symptomTitle = latestEntry?.title.trim() ?? '';
       const daysCount = entries.length;
 
       return {
@@ -134,7 +140,7 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
         copyGeneration: {
           templateKey: 'symptom.deteriorating.trend',
           params: {
-            symptomTitle: title,
+            symptomTitle: symptomTitle.length === 0 ? code : symptomTitle,
             daysCount,
             latestValue,
             totalRecords,
@@ -148,70 +154,23 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
   }
 
   /**
-   * Extracts a numeric severity from a symptom entry.
-   * Supports patterns like "3/5", "7/10", "severity: 4".
-   * Returns 0 if no numeric severity is found.
+   * 判断严重度序列是否在恶化。
+   *
+   * `null`（`unknown` 或没有码）在 `map` 阶段已经被过滤掉，不再参与比较，
+   * 也不会回落成最小严重度：把"说不清"当成"很轻"会让趋势判断失真。
    */
-  private extractSeverity(entry: SymptomEntry): number {
-    // Try value field first
-    if (entry.value != null) {
-      const num = this.parseSeverity(entry.value);
-      if (num != null) return num;
-    }
-
-    // Try note field
-    if (entry.note != null) {
-      const num = this.parseSeverity(entry.note);
-      if (num != null) return num;
-
-      // Check for keyword-based severity
-      const lower = entry.note.toLowerCase();
-      if (
-        lower.includes('加重') ||
-        lower.includes('恶化') ||
-        lower.includes('worse')
-      ) {
-        return 5;
-      }
-      if (lower.includes('严重') || lower.includes('severe')) {
-        return 4;
-      }
-      if (lower.includes('中等') || lower.includes('moderate')) {
-        return 3;
-      }
-      if (lower.includes('轻微') || lower.includes('mild')) {
-        return 2;
-      }
-    }
-
-    return 1; // default minimal severity
-  }
-
-  private parseSeverity(text: string): number | null {
-    // Match "N/M" pattern
-    const fractionMatch = text.match(/(\d+)\s*\/\s*(\d+)/);
-    if (fractionMatch) {
-      return parseInt(fractionMatch[1]!, 10); // eslint-disable-line @typescript-eslint/no-non-null-assertion
-    }
-    // Match standalone number
-    const numMatch = text.match(/(\d+)/);
-    if (numMatch) {
-      return parseInt(numMatch[1]!, 10); // eslint-disable-line @typescript-eslint/no-non-null-assertion
-    }
-    return null;
-  }
-
-  private checkDeterioration(severities: number[]): boolean {
-    if (severities.length < 2) return false;
+  private checkDeterioration(severities: Array<number | null>): boolean {
+    const known = severities.filter((value): value is number => value != null);
+    if (known.length < 2) return false;
     let increasingCount = 0;
-    for (let i = 1; i < severities.length; i++) {
-      const current = severities[i];
-      const previous = severities[i - 1];
+    for (let i = 1; i < known.length; i++) {
+      const current = known[i];
+      const previous = known[i - 1];
       if (current != null && previous != null && current > previous) {
         increasingCount++;
       }
     }
     // At least half the transitions should be increasing
-    return increasingCount >= Math.ceil((severities.length - 1) / 2);
+    return increasingCount >= Math.ceil((known.length - 1) / 2);
   }
 }

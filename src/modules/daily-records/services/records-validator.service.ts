@@ -6,6 +6,9 @@ import {
 } from '../../../common/result/index.js';
 import type { UpdateDailyRecordDto } from '../dto/update-record.dto.js';
 
+/** 症状严重度码词汇（与客户端 `SymptomSeverity` 及 health_context 的过敏严重度一致）。 */
+const SYMPTOM_SEVERITIES = new Set(['mild', 'moderate', 'severe', 'unknown']);
+
 /**
  * Stateless payload validation for daily-record create/update.
  *
@@ -20,6 +23,7 @@ export class DailyRecordsValidatorService {
   ): DomainFailure | null {
     return (
       this.validateSleepPayload(kind, payload) ??
+      this.validateSymptomPayload(kind, payload) ??
       this.validateVitalPayload(kind, payload) ??
       this.validateActivityPayload(kind, payload)
     );
@@ -94,6 +98,40 @@ export class DailyRecordsValidatorService {
       return this.validationFailed();
     }
     if (payload['durationMinutes'] <= 0) {
+      return this.validationFailed();
+    }
+    return null;
+  }
+
+  /**
+   * 症状 payload 是可选的（NLP 候选等可能只给 title），给定时校验形状。
+   *
+   * `symptom` 是目录码、`severity` 是严重度码；目录成员资格由症状目录端点定义，
+   * 这里只保证类型与取值词汇，不重复目录清单。
+   */
+  private validateSymptomPayload(
+    kind: string,
+    payload: Record<string, unknown> | undefined,
+  ): DomainFailure | null {
+    if (kind !== DailyRecordKind.symptom) return null;
+    if (payload == null) return null;
+
+    const symptom = payload['symptom'];
+    if (
+      symptom !== undefined &&
+      (typeof symptom !== 'string' || symptom.trim().length === 0)
+    ) {
+      return this.validationFailed();
+    }
+    const severity = payload['severity'];
+    if (
+      severity !== undefined &&
+      (typeof severity !== 'string' || !SYMPTOM_SEVERITIES.has(severity))
+    ) {
+      return this.validationFailed();
+    }
+    const customLabel = payload['customLabel'];
+    if (customLabel !== undefined && typeof customLabel !== 'string') {
       return this.validationFailed();
     }
     return null;

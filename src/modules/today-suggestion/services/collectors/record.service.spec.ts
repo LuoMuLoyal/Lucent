@@ -488,7 +488,8 @@ describe('RecordCollectorService', () => {
             id: 'sym1',
             kind: DailyRecordKind.symptom,
             title: 'Headache',
-            value: 'mild',
+            value: 'Moderate',
+            payload: { symptom: 'headache', severity: 'moderate' },
           }),
         ])
         // multiDayRecords
@@ -497,7 +498,8 @@ describe('RecordCollectorService', () => {
             id: 'sym1',
             kind: DailyRecordKind.symptom,
             title: 'Headache',
-            value: 'mild',
+            value: 'Moderate',
+            payload: { symptom: 'headache', severity: 'moderate' },
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
           }),
         ]);
@@ -510,6 +512,49 @@ describe('RecordCollectorService', () => {
       expect(symptom!.payload).toMatchObject({
         totalRecords: 1,
         uniqueDates: 1,
+        // 严重度只认 payload 码：moderate → 2。
+        observedValue: 2,
+        coverage: { sufficient: true },
+      });
+      expect(symptom!.payload['byDate']).toEqual([
+        expect.objectContaining({
+          symptom: 'headache',
+          severity: 'moderate',
+          title: 'Headache',
+        }),
+      ]);
+    });
+
+    it('treats an unknown symptom severity as no observation', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'sym2',
+            kind: DailyRecordKind.symptom,
+            title: '头痛',
+            value: '无法判断',
+            payload: { symptom: 'headache', severity: 'unknown' },
+          }),
+        ])
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'sym2',
+            kind: DailyRecordKind.symptom,
+            title: '头痛',
+            value: '无法判断',
+            payload: { symptom: 'headache', severity: 'unknown' },
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const symptom = signals.find((s) => s.kind === 'symptom_trend');
+      expect(symptom).toBeDefined();
+      expect(symptom!.payload).not.toHaveProperty('observedValue');
+      expect(symptom!.payload).toMatchObject({
+        coverage: { sufficient: false },
       });
     });
   });

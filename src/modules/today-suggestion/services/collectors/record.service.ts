@@ -15,6 +15,7 @@ import type { SuggestionSignal } from '../../types/signal.types.js';
 import { TriggerType } from '../../types/suggestion.types.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants.js';
+import { symptomSeverityScore } from '../../constants/symptom-severity.constants.js';
 import { SleepTrendBuilderService } from './sleep-trend-builder.service.js';
 
 /**
@@ -175,8 +176,8 @@ export class RecordCollectorService {
       const todaySymptom = [...symptomRecords]
         .toReversed()
         .find((r) => r.occurredAt.toISOString().slice(0, 10) === date);
-      const symptomObservedValue = this.parseNumericValue(
-        todaySymptom?.value ?? null,
+      const symptomObservedValue = symptomSeverityScore(
+        (todaySymptom?.payload as Record<string, unknown> | null)?.['severity'],
       );
       signals.push({
         signalId: `rec_symptom_trend_${date}`,
@@ -307,16 +308,27 @@ export class RecordCollectorService {
 
   private buildSymptomTrend(records: DailyRecordFact[]): Array<{
     date: string;
+    symptom: string | null;
+    severity: string | null;
     title: string;
     value: string | null;
-    note: string | null;
   }> {
-    return records.map((r) => ({
-      date: r.occurredAt.toISOString().slice(0, 10),
-      title: r.title ?? '',
-      value: r.value,
-      note: r.note,
-    }));
+    return records.map((r) => {
+      const payload = r.payload as Record<string, unknown> | null;
+      return {
+        date: r.occurredAt.toISOString().slice(0, 10),
+        symptom: this.readString(payload?.['symptom']),
+        severity: this.readString(payload?.['severity']),
+        title: r.title ?? '',
+        value: r.value,
+      };
+    });
+  }
+
+  private readString(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
   }
 
   /** Returns the current time-of-day bucket for rule context. */
@@ -435,11 +447,5 @@ export class RecordCollectorService {
       return 1;
 
     return null;
-  }
-
-  private parseNumericValue(value: string | null): number | null {
-    if (value == null || value.trim() === '') return null;
-    const numberValue = Number(value);
-    return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
   }
 }

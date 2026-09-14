@@ -1816,6 +1816,169 @@ describe('DailyRecordsService', () => {
     });
   });
 
+  describe('symptom records', () => {
+    it('should accept a symptom payload with catalog code and severity', async () => {
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'sym1',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'symptom',
+          occurredAt: new Date('2026-09-14'),
+          occurredTime: '09:45',
+          title: '头痛',
+          value: '中度',
+          unit: null,
+          note: null,
+          payload: { symptom: 'headache', severity: 'moderate' },
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      const result = await unwrapOk(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.symptom,
+          occurredAt: '2026-09-14',
+          title: '头痛',
+          value: '中度',
+          payload: { symptom: 'headache', severity: 'moderate' },
+        }),
+      );
+
+      expect(result.kind).toBe('symptom');
+    });
+
+    it('should accept the unknown severity code', async () => {
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'sym2',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'symptom',
+          occurredAt: new Date('2026-09-14'),
+          occurredTime: '09:45',
+          title: '头痛',
+          value: '无法判断',
+          unit: null,
+          note: null,
+          payload: { symptom: 'headache', severity: 'unknown' },
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      await expect(
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.symptom,
+            occurredAt: '2026-09-14',
+            payload: { symptom: 'headache', severity: 'unknown' },
+          }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
+    });
+
+    it('should still allow a symptom record without payload (NLP candidates)', async () => {
+      repository.create.mockReturnValue(
+        okAsync({
+          id: 'sym3',
+          userId: mockUserId,
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'symptom',
+          occurredAt: new Date('2026-09-14'),
+          occurredTime: '09:45',
+          title: '今天头疼',
+          value: null,
+          unit: null,
+          note: null,
+          payload: null,
+          source: 'manual',
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      await expect(
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.symptom,
+            occurredAt: '2026-09-14',
+            title: '今天头疼',
+          }),
+        ),
+      ).resolves.toMatchObject({ ok: true });
+    });
+
+    it('should reject an unknown severity code', async () => {
+      await expect(
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.symptom,
+            occurredAt: '2026-09-14',
+            payload: { symptom: 'headache', severity: 'awful' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
+    });
+
+    it('should reject an empty symptom code', async () => {
+      await expect(
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.symptom,
+            occurredAt: '2026-09-14',
+            payload: { symptom: '   ' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
+    });
+
+    it('should reject a non-string custom label', async () => {
+      await expect(
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.symptom,
+            occurredAt: '2026-09-14',
+            payload: { symptom: 'other', customLabel: 42 },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
+    });
+  });
+
   describe('activity records', () => {
     it('should create an activity record with valid payload', async () => {
       const activityPayload = {
