@@ -7742,7 +7742,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
             "nullable": true
           },
           "mealAnalysisStatus": {
@@ -11158,7 +11158,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. Legacy startAt/endAt remain readable and map to nightSleep. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
+            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
           },
           "attachments": {
             "type": "array",
@@ -11273,7 +11273,7 @@
             "nullable": true,
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt."
+            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt."
           },
           "healthEventId": {
             "nullable": true,
@@ -12511,7 +12511,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
             "nullable": true
           },
           "mealAnalysisStatus": {
@@ -12759,7 +12759,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
             "nullable": true
           },
           "mealAnalysisStatus": {

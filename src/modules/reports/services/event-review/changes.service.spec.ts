@@ -204,7 +204,7 @@ describe('EventReviewChangesService', () => {
           kind: DailyRecordKind.sleep,
           value: null,
           unit: null,
-          payload: { sleepEvent: 'start' },
+          payload: {},
         },
       ],
     };

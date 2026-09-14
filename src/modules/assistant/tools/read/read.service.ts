@@ -501,11 +501,13 @@ export class AssistantToolReadService {
           durationMinutes,
           quality,
           startAt:
-            typeof payload?.['startAt'] === 'string'
-              ? payload['startAt']
+            typeof payload?.['startedAt'] === 'string'
+              ? payload['startedAt']
               : null,
           endAt:
-            typeof payload?.['endAt'] === 'string' ? payload['endAt'] : null,
+            typeof payload?.['endedAt'] === 'string'
+              ? payload['endedAt']
+              : null,
         };
       }),
     );

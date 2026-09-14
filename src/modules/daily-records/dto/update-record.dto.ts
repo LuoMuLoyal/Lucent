@@ -63,7 +63,7 @@ export const updateDailyRecordSchema = z
     payload: z
       .record(z.string(), z.unknown())
       .describe(
-        'Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt.',
+        'Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt.',
       )
       .nullish(),
     healthEventId: z

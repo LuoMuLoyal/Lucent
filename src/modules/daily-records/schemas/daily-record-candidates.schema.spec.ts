@@ -18,11 +18,11 @@ describe('sleepPayloadSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepts optional startAt, endAt, and quality', () => {
+  it('accepts optional startedAt, endedAt, and quality', () => {
     const result = sleepPayloadSchema.safeParse(
       buildValid({
-        startAt: '2026-07-09T22:00:00.000Z',
-        endAt: '2026-07-10T06:00:00.000Z',
+        startedAt: '2026-07-09T22:00:00.000Z',
+        endedAt: '2026-07-10T06:00:00.000Z',
         quality: 'good',
       }),
     );

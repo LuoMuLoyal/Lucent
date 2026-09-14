@@ -122,10 +122,8 @@ export class SleepTrendBuilderService {
     if (payload == null) return null;
 
     const sleepType = payload['sleepType'] === 'nap' ? 'nap' : 'nightSleep';
-    const startedAt = this.stringOrNull(
-      payload['startedAt'] ?? payload['startAt'],
-    );
-    const endedAt = this.stringOrNull(payload['endedAt'] ?? payload['endAt']);
+    const startedAt = this.stringOrNull(payload['startedAt']);
+    const endedAt = this.stringOrNull(payload['endedAt']);
     const startMs = this.parseTimestamp(startedAt);
     const endMs = this.parseTimestamp(endedAt);
     const durationValue = payload['durationMinutes'];

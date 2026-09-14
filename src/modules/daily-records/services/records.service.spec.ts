@@ -1499,8 +1499,8 @@ describe('DailyRecordsService', () => {
     it('should create a sleep record with valid payload (wake-date convention)', async () => {
       const sleepPayload = {
         durationMinutes: 450,
-        startAt: '2026-06-12T23:00:00.000Z',
-        endAt: '2026-06-13T06:30:00.000Z',
+        startedAt: '2026-06-12T23:00:00.000Z',
+        endedAt: '2026-06-13T06:30:00.000Z',
         quality: 'good',
       };
       repository.create.mockReturnValue(
@@ -1557,6 +1557,24 @@ describe('DailyRecordsService', () => {
             kind: DailyRecordKind.sleep,
             occurredAt: '2026-06-13',
             payload: { quality: 'good' },
+          }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      });
+    });
+
+    it('should reject a sleep event record that has no durationMinutes', async () => {
+      await expect(
+        collectResult(
+          service.create(mockUserId, {
+            kind: DailyRecordKind.sleep,
+            occurredAt: '2026-06-13',
+            payload: {
+              sleepEvent: 'start',
+              eventAt: '2026-06-13T23:00:00.000Z',
+            },
           }),
         ),
       ).resolves.toMatchObject({
@@ -1622,110 +1640,6 @@ describe('DailyRecordsService', () => {
         ok: false,
         error: { kind: 'validation', code: 'VALIDATION_FAILED' },
       });
-    });
-
-    it('should allow temporary sleep start event record without durationMinutes', async () => {
-      repository.create.mockReturnValue(
-        okAsync({
-          id: 'rs-start',
-          userId: mockUserId,
-          healthEventId: null,
-          deletedAt: null,
-          kind: 'sleep',
-          occurredAt: new Date('2026-06-13'),
-          occurredTime: '07:10',
-          title: null,
-          value: null,
-          unit: null,
-          note: null,
-          payload: { sleepEvent: 'start', eventAt: '2026-06-13T23:00:00.000Z' },
-          source: 'manual',
-          mealAnalysisStatus: null,
-          mealAnalysisCoverage: null,
-          mealAnalysisUpdatedAt: null,
-          mealAnalysisFailureReason: null,
-          mealSourceRevision: 0,
-          attachments: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-      );
-
-      const result = await unwrapOk(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.sleep,
-          occurredAt: '2026-06-13',
-          payload: {
-            sleepEvent: 'start',
-            eventAt: '2026-06-13T23:00:00.000Z',
-          },
-        }),
-      );
-
-      expect(result.kind).toBe('sleep');
-      expect(repository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          payload: {
-            sleepEvent: 'start',
-            eventAt: '2026-06-13T23:00:00.000Z',
-          },
-        }),
-      );
-    });
-
-    it('should allow temporary sleep wake event record without durationMinutes', async () => {
-      repository.create.mockReturnValue(
-        okAsync({
-          id: 'rs-wake',
-          userId: mockUserId,
-          healthEventId: null,
-          deletedAt: null,
-          kind: 'sleep',
-          occurredAt: new Date('2026-06-13'),
-          occurredTime: '07:10',
-          title: null,
-          value: null,
-          unit: null,
-          note: null,
-          payload: {
-            sleepEvent: 'wake',
-            eventAt: '2026-06-13T06:30:00.000Z',
-            startedRecordId: 'rs-start',
-          },
-          source: 'manual',
-          mealAnalysisStatus: null,
-          mealAnalysisCoverage: null,
-          mealAnalysisUpdatedAt: null,
-          mealAnalysisFailureReason: null,
-          mealSourceRevision: 0,
-          attachments: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-      );
-
-      const result = await unwrapOk(
-        service.create(mockUserId, {
-          kind: DailyRecordKind.sleep,
-          occurredAt: '2026-06-13',
-          payload: {
-            sleepEvent: 'wake',
-            eventAt: '2026-06-13T06:30:00.000Z',
-            startedRecordId: 'rs-start',
-          },
-        }),
-      );
-
-      expect(result.kind).toBe('sleep');
-      expect(repository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          payload: {
-            sleepEvent: 'wake',
-            eventAt: '2026-06-13T06:30:00.000Z',
-            startedRecordId: 'rs-start',
-          },
-        }),
-      );
     });
 
     it('should reject a sleep record with zero durationMinutes', async () => {

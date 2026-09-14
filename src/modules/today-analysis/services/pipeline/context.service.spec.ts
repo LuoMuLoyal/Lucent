@@ -564,8 +564,8 @@ describe('TodayAnalysisContextService', () => {
           payload: {
             durationMinutes: 480,
             quality: 'good',
-            startAt: '2026-06-30T23:00:00.000Z',
-            endAt: '2026-07-01T07:00:00.000Z',
+            startedAt: '2026-06-30T23:00:00.000Z',
+            endedAt: '2026-07-01T07:00:00.000Z',
             deepMinutes: 120,
             lightMinutes: 240,
             remMinutes: 120,

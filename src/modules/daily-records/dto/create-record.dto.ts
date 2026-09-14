@@ -75,7 +75,7 @@ export const createDailyRecordSchema = z
     payload: z
       .record(z.string(), z.unknown())
       .describe(
-        'Structured payload for kind-specific data. For sleep: { sleepType?: "nightSleep"|"nap", startedAt?: string, endedAt?: string, durationMinutes, quality? }. Legacy startAt/endAt remain readable and map to nightSleep. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: "heartRate"|"bloodPressure"|"bloodOxygen"|"bloodGlucose"|"bodyTemperature"|"weight"|"respiratoryRate", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: "steps"|"flightsClimbed"|"distance"|"exerciseTime", value: number, unit: string }. Vital and activity payloads are optional for manual entry.',
+        'Structured payload for kind-specific data. For sleep: { sleepType?: "nightSleep"|"nap", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: "heartRate"|"bloodPressure"|"bloodOxygen"|"bloodGlucose"|"bodyTemperature"|"weight"|"respiratoryRate", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: "steps"|"flightsClimbed"|"distance"|"exerciseTime", value: number, unit: string }. Vital and activity payloads are optional for manual entry.',
       )
       .optional(),
     attachments: z

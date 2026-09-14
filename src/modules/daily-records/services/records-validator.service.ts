@@ -53,14 +53,6 @@ export class DailyRecordsValidatorService {
       return this.validationFailed();
     }
 
-    // Quick-entry sleep flow creates temporary start/wake event records first,
-    // then merges them into a final sleep record with durationMinutes. Allow
-    // those temporary event records to skip the duration validation.
-    const sleepEvent = payload['sleepEvent'];
-    if (sleepEvent === 'start' || sleepEvent === 'wake') {
-      return null;
-    }
-
     if (
       payload['sleepType'] !== undefined &&
       payload['sleepType'] !== 'nightSleep' &&
@@ -75,8 +67,8 @@ export class DailyRecordsValidatorService {
       return this.validationFailed();
     }
 
-    const startedAt = payload['startedAt'] ?? payload['startAt'];
-    const endedAt = payload['endedAt'] ?? payload['endAt'];
+    const startedAt = payload['startedAt'];
+    const endedAt = payload['endedAt'];
     if ((startedAt == null) !== (endedAt == null)) {
       return this.validationFailed();
     }

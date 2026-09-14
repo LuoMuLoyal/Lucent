@@ -339,9 +339,9 @@ export class TodayAnalysisContextService {
     const quality =
       typeof payload['quality'] === 'string' ? payload['quality'] : null;
     const startAt =
-      typeof payload['startAt'] === 'string' ? payload['startAt'] : null;
+      typeof payload['startedAt'] === 'string' ? payload['startedAt'] : null;
     const endAt =
-      typeof payload['endAt'] === 'string' ? payload['endAt'] : null;
+      typeof payload['endedAt'] === 'string' ? payload['endedAt'] : null;
     const deepMinutes =
       typeof payload['deepMinutes'] === 'number'
         ? payload['deepMinutes']

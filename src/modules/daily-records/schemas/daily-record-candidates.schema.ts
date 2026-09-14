@@ -17,8 +17,8 @@ export const sleepPayloadSchema = z
       .int()
       .positive()
       .max(24 * 60),
-    startAt: z.iso.datetime().optional(),
-    endAt: z.iso.datetime().optional(),
+    startedAt: z.iso.datetime().optional(),
+    endedAt: z.iso.datetime().optional(),
     quality: z.string().trim().min(1).max(40).optional(),
   })
   .strict();
