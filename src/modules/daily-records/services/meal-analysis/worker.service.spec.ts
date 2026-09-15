@@ -1,4 +1,9 @@
 import { Logger } from '@nestjs/common';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../../../common/result/index.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 import type { ObjectStorageRuntime } from '../../../../common/index.js';
 import type { MealAnalysisVisionService } from './vision.service.js';
@@ -73,8 +78,7 @@ function buildStorage(url = 'https://cdn.example.com/signed.jpg') {
   };
 }
 
-const analyzedOutcome = {
-  ok: true,
+const analyzedOutcome = okAsync({
   model: 'vision-model',
   draft: {
     calorieRange: { min: 520, max: 780 },
@@ -90,7 +94,17 @@ const analyzedOutcome = {
     ],
     facets: { fried: 'high' },
   },
-};
+});
+
+/** 依赖失败（超时/不可达/输出不可用）都走同一条 Result 边界。 */
+function dependencyFailureOutcome(
+  code:
+    | 'DEPENDENCY_TIMEOUT'
+    | 'DEPENDENCY_UNAVAILABLE'
+    | 'DEPENDENCY_BAD_GATEWAY',
+) {
+  return errAsync(createDomainFailure({ kind: 'dependency', code }));
+}
 
 describe('MealAnalysisWorkerService', () => {
   beforeEach(() => {
@@ -220,10 +234,9 @@ describe('MealAnalysisWorkerService', () => {
 
   it('persists the model failure reason instead of leaving the record analyzing', async () => {
     const { prisma, userDailyRecord } = buildPrisma(buildRecord());
-    const { service: vision } = buildVision({
-      ok: false,
-      reason: 'model_timeout',
-    });
+    const { service: vision } = buildVision(
+      dependencyFailureOutcome('DEPENDENCY_TIMEOUT'),
+    );
     const { service: storage } = buildStorage();
     const worker = new MealAnalysisWorkerService(prisma, vision, storage);
 
@@ -234,6 +247,25 @@ describe('MealAnalysisWorkerService', () => {
         data: expect.objectContaining({
           mealAnalysisStatus: 'analysis_failed',
           mealAnalysisFailureReason: 'model_timeout',
+        }),
+      }),
+    );
+  });
+
+  it('maps an unusable model output to invalid_output', async () => {
+    const { prisma, userDailyRecord } = buildPrisma(buildRecord());
+    const { service: vision } = buildVision(
+      dependencyFailureOutcome('DEPENDENCY_BAD_GATEWAY'),
+    );
+    const { service: storage } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
+
+    await worker.process({ userId: 'u1', recordId: 'r1', sourceRevision: 1 });
+
+    expect(userDailyRecord.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          mealAnalysisFailureReason: 'invalid_output',
         }),
       }),
     );

@@ -4,6 +4,7 @@ import { toInputJsonValue } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { ObjectStorageRuntime } from '../../../../common/index.js';
 import { now, resolveLocale } from '../../../../common/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
 import {
   parseMealRecordPayload,
   toMealAnalysisHotFields,
@@ -113,14 +114,15 @@ export class MealAnalysisWorkerService {
     });
     const analyzedAt = now().toISOString();
 
-    if (!outcome.ok) {
+    if (outcome.isErr()) {
+      const reason = mealFailureReasonFor(outcome.error);
       this.logger.warn(
-        `Meal analysis failed for record ${record.id}: ${outcome.reason}`,
+        `Meal analysis failed for record ${record.id}: ${reason} (${outcome.error.code})`,
       );
       await this.writeAnalysis(
         record.id,
         job,
-        buildFailedMealAnalysis(outcome.reason, {
+        buildFailedMealAnalysis(reason, {
           sourceRevision: job.sourceRevision,
           model: null,
           locale,
@@ -133,9 +135,9 @@ export class MealAnalysisWorkerService {
     await this.writeAnalysis(
       record.id,
       job,
-      normalizeMealAnalysis(outcome.draft, {
+      normalizeMealAnalysis(outcome.value.draft, {
         sourceRevision: job.sourceRevision,
-        model: outcome.model,
+        model: outcome.value.model,
         locale,
         analyzedAt,
       }),
@@ -201,4 +203,22 @@ function resolveMealLocale(raw: string | null | undefined): string {
   return raw != null && raw.trim().length > 0
     ? resolveLocale(raw)
     : MEAL_ANALYSIS_DEFAULT_LOCALE;
+}
+
+/**
+ * 依赖失败码 → 落库失败原因码（客户端按后者做 l10n）。
+ *
+ * 落库词汇比传输词汇窄：客户端只需要「是超时、还是模型不可用、还是输出不可用」。
+ */
+function mealFailureReasonFor(
+  failure: DomainFailure,
+): MealAnalysisFailureReason {
+  switch (failure.code) {
+    case 'DEPENDENCY_TIMEOUT':
+      return 'model_timeout';
+    case 'DEPENDENCY_BAD_GATEWAY':
+      return 'invalid_output';
+    default:
+      return 'model_failed';
+  }
 }

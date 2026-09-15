@@ -100,8 +100,7 @@ describe('MealAnalysisVisionService', () => {
       locale: 'zh-CN',
     });
 
-    expect(outcome).toEqual({
-      ok: true,
+    expect(outcome._unsafeUnwrap()).toEqual({
       model: 'vision-model',
       draft: {
         calorieRange: { min: 520, max: 780 },
@@ -123,22 +122,26 @@ describe('MealAnalysisVisionService', () => {
     });
   });
 
-  it('fails with invalid_output when the model output violates the contract', async () => {
+  it('fails with a bad-gateway dependency failure when the output violates the contract', async () => {
     const invoke = vi.fn().mockResolvedValue({
       ...modelOutput,
       items: [{ rank: 1, kind: 'greasy', headline: 'x', detail: 'y' }],
     });
     const { service } = buildService({ invoke });
 
-    await expect(
-      service.analyze({
-        imageUrl: 'https://cdn.example.com/m.jpg',
-        locale: 'zh-CN',
-      }),
-    ).resolves.toEqual({ ok: false, reason: 'invalid_output' });
+    const outcome = await service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
+    });
+
+    expect(outcome.isErr()).toBe(true);
+    expect(outcome._unsafeUnwrapErr()).toMatchObject({
+      kind: 'dependency',
+      code: 'DEPENDENCY_BAD_GATEWAY',
+    });
   });
 
-  it('fails with invalid_output when nothing usable survives', async () => {
+  it('fails with a bad-gateway dependency failure when nothing usable survives', async () => {
     const invoke = vi.fn().mockResolvedValue({
       calorieRange: null,
       dishes: [],
@@ -147,12 +150,12 @@ describe('MealAnalysisVisionService', () => {
     });
     const { service } = buildService({ invoke });
 
-    await expect(
-      service.analyze({
-        imageUrl: 'https://cdn.example.com/m.jpg',
-        locale: 'zh-CN',
-      }),
-    ).resolves.toEqual({ ok: false, reason: 'invalid_output' });
+    const outcome = await service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
+    });
+
+    expect(outcome._unsafeUnwrapErr().code).toBe('DEPENDENCY_BAD_GATEWAY');
   });
 
   it('fails when nothing usable survives the safety filter', async () => {
@@ -163,25 +166,24 @@ describe('MealAnalysisVisionService', () => {
     });
     const { service, isSafeText } = buildService({ invoke, safe: false });
 
-    await expect(
-      service.analyze({
-        imageUrl: 'https://cdn.example.com/m.jpg',
-        locale: 'zh-CN',
-      }),
-    ).resolves.toEqual({ ok: false, reason: 'invalid_output' });
+    const outcome = await service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
+    });
+
+    expect(outcome._unsafeUnwrapErr().code).toBe('DEPENDENCY_BAD_GATEWAY');
     expect(isSafeText).toHaveBeenCalled();
   });
 
   it('keeps the calorie interval when only the text is unsafe', async () => {
     const { service } = buildService({ safe: false });
 
-    await expect(
-      service.analyze({
-        imageUrl: 'https://cdn.example.com/m.jpg',
-        locale: 'zh-CN',
-      }),
-    ).resolves.toEqual({
-      ok: true,
+    const outcome = await service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
+    });
+
+    expect(outcome._unsafeUnwrap()).toEqual({
       model: 'vision-model',
       draft: {
         calorieRange: { min: 520, max: 780 },
@@ -192,27 +194,31 @@ describe('MealAnalysisVisionService', () => {
     });
   });
 
-  it('classifies timeouts separately from other model failures', async () => {
+  it('separates timeouts (504) from other dependency failures (503)', async () => {
     const timeout = new Error('Request timed out.');
     timeout.name = 'TimeoutError';
     const timedOut = buildService({
       invoke: vi.fn().mockRejectedValue(timeout),
     });
-    await expect(
-      timedOut.service.analyze({
-        imageUrl: 'https://cdn.example.com/m.jpg',
-        locale: 'zh-CN',
-      }),
-    ).resolves.toEqual({ ok: false, reason: 'model_timeout' });
+    const timedOutOutcome = await timedOut.service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
+    });
+    expect(timedOutOutcome._unsafeUnwrapErr()).toMatchObject({
+      kind: 'dependency',
+      code: 'DEPENDENCY_TIMEOUT',
+    });
 
     const broken = buildService({
       invoke: vi.fn().mockRejectedValue(new Error('upstream 500')),
     });
-    await expect(
-      broken.service.analyze({
-        imageUrl: 'https://cdn.example.com/m.jpg',
-        locale: 'zh-CN',
-      }),
-    ).resolves.toEqual({ ok: false, reason: 'model_failed' });
+    const brokenOutcome = await broken.service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
+    });
+    expect(brokenOutcome._unsafeUnwrapErr()).toMatchObject({
+      kind: 'dependency',
+      code: 'DEPENDENCY_UNAVAILABLE',
+    });
   });
 });

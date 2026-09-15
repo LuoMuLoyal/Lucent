@@ -1,6 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import {
+  createDomainFailure,
+  err,
+  fromPromise,
+  mapUnknownToDependencyFailure,
+  ok,
+  type DomainFailure,
+  type Result,
+  type ResultAsync,
+} from '../../../../common/result/index.js';
 import { normalizeNullableText } from '../../../../common/index.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import { MEAL_ANALYSIS_VISION_TIMEOUT_MS } from '../../constants/meal-analysis.constants.js';
@@ -8,7 +18,6 @@ import {
   mealAnalysisModelOutputSchema,
   toMealAnalysisDraft,
   type MealAnalysisDraft,
-  type MealAnalysisFailureReason,
 } from '../../schemas/meal-analysis.schema.js';
 import {
   buildMealAnalysisSystemPrompt,
@@ -21,14 +30,22 @@ export interface MealAnalysisVisionInput {
   locale: string;
 }
 
-/**
- * 视觉分析结果。失败是**返回值**而不是异常：调用方（worker）需要把原因码
- * 落到记录上，异常会在队列里变成重试与永久 `analyzing`（v1 的缺陷）。
- */
-export type MealAnalysisVisionOutcome =
-  | { ok: true; draft: MealAnalysisDraft; model: string | null }
-  | { ok: false; reason: MealAnalysisFailureReason };
+export interface MealAnalysisVisionSuccess {
+  draft: MealAnalysisDraft;
+  model: string | null;
+}
 
+/**
+ * 视觉分析：一次多模态调用直出区间、菜名、排序结论与机器维度。
+ *
+ * 失败走项目统一的 Result 边界（ADR-0012 第 3 节），错误类型是 `DomainFailure`：
+ * 调用方（worker）把它翻成落库的失败原因码，而不是让异常穿过队列——v1 的
+ * 「坏 JSON 降级成空结果」与「抛错后记录永久 analyzing」都出在这里。
+ *
+ * 依赖失败码的对应：模型超时 → `DEPENDENCY_TIMEOUT`；模型报错/不可达 →
+ * `DEPENDENCY_UNAVAILABLE`；输出不合契约或被安全过滤清空 →
+ * `DEPENDENCY_BAD_GATEWAY`。
+ */
 @Injectable()
 export class MealAnalysisVisionService {
   private readonly logger = new Logger(MealAnalysisVisionService.name);
@@ -42,80 +59,86 @@ export class MealAnalysisVisionService {
     return this.llmRuntimeService.hasRoleConfig('vision');
   }
 
-  /** 一次多模态调用直出区间、菜名、排序结论与机器维度。 */
-  async analyze(
+  analyze(
     input: MealAnalysisVisionInput,
-  ): Promise<MealAnalysisVisionOutcome> {
+  ): ResultAsync<MealAnalysisVisionSuccess, DomainFailure> {
+    return fromPromise(this.invokeStructuredModel(input), (error) =>
+      classifyVisionFailure(error),
+    ).andThen((raw) => this.toSuccess(raw));
+  }
+
+  private async invokeStructuredModel(
+    input: MealAnalysisVisionInput,
+  ): Promise<unknown> {
     const languageLabel = input.locale === 'zh-CN' ? '中文' : 'English';
+    const model = this.llmRuntimeService.createChatModel('vision', {
+      temperature: 0.1,
+      maxRetries: 0,
+      timeout: MEAL_ANALYSIS_VISION_TIMEOUT_MS,
+    });
+    const structured = model.withStructuredOutput(
+      mealAnalysisModelOutputSchema,
+      {
+        name: 'emit_meal_analysis',
+        method: 'functionCalling',
+        strict: true,
+      },
+    );
 
-    try {
-      const model = this.llmRuntimeService.createChatModel('vision', {
-        temperature: 0.1,
-        maxRetries: 0,
-        timeout: MEAL_ANALYSIS_VISION_TIMEOUT_MS,
-      });
-      const structured = model.withStructuredOutput(
-        mealAnalysisModelOutputSchema,
-        {
-          name: 'emit_meal_analysis',
-          method: 'functionCalling',
-          strict: true,
-        },
-      );
+    return structured.invoke([
+      new SystemMessage(buildMealAnalysisSystemPrompt(languageLabel)),
+      new HumanMessage({
+        content: [
+          {
+            type: 'text',
+            text: buildMealAnalysisUserPrompt(languageLabel),
+          },
+          {
+            type: 'image_url',
+            image_url: { url: input.imageUrl },
+          },
+        ],
+      }),
+    ]);
+  }
 
-      const raw: unknown = await structured.invoke([
-        new SystemMessage(buildMealAnalysisSystemPrompt(languageLabel)),
-        new HumanMessage({
-          content: [
-            {
-              type: 'text',
-              text: buildMealAnalysisUserPrompt(languageLabel),
-            },
-            {
-              type: 'image_url',
-              image_url: { url: input.imageUrl },
-            },
-          ],
-        }),
-      ]);
-
-      // 结构化输出已经按 schema 解析过；这里再校验一次，兼容不支持
-      // function calling、直接回文本的 OpenAI 兼容端点。
-      const parsed = mealAnalysisModelOutputSchema.safeParse(raw);
-      if (!parsed.success) {
-        this.logger.warn(
-          'Meal analysis model output did not match the contract schema',
-        );
-        return { ok: false, reason: 'invalid_output' };
-      }
-
-      const draft = this.sanitizeDraft(toMealAnalysisDraft(parsed.data));
-      if (draft == null) {
-        this.logger.warn(
-          'Meal analysis output was empty or fully rejected by the safety filter',
-        );
-        return { ok: false, reason: 'invalid_output' };
-      }
-
-      return {
-        ok: true,
-        draft,
-        model: this.llmRuntimeService.getModelName('vision'),
-      };
-    } catch (error) {
-      const reason = classifyVisionError(error);
+  private toSuccess(
+    raw: unknown,
+  ): Result<MealAnalysisVisionSuccess, DomainFailure> {
+    // 结构化输出已经按 schema 解析过；这里再校验一次，兼容不支持
+    // function calling、直接回文本的 OpenAI 兼容端点。
+    const parsed = mealAnalysisModelOutputSchema.safeParse(raw);
+    if (!parsed.success) {
       this.logger.warn(
-        `Meal analysis model call failed (${reason}): ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        'Meal analysis model output did not match the contract schema',
       );
-      return { ok: false, reason };
+      return err(
+        unusableOutputFailure(
+          'model output did not match the contract schema',
+          parsed.error,
+        ),
+      );
     }
+
+    const draft = this.sanitizeDraft(toMealAnalysisDraft(parsed.data));
+    if (draft == null) {
+      this.logger.warn(
+        'Meal analysis output was empty or fully rejected by the safety filter',
+      );
+      return err(
+        unusableOutputFailure('model output was unusable after sanitizing'),
+      );
+    }
+
+    return ok({
+      draft,
+      model: this.llmRuntimeService.getModelName('vision'),
+    });
   }
 
   /**
    * 清理模型输出：去掉标记与控制字符，丢掉不安全的文案，并在结果完全无用
-   * （没有结论、没有菜名、没有区间）时返回 `null` 让上层落 `invalid_output`。
+   * （没有结论、没有菜名、没有区间）时返回 `null` 让上层落不可用输出。
    */
   private sanitizeDraft(draft: MealAnalysisDraft): MealAnalysisDraft | null {
     const items: Array<{
@@ -191,27 +214,47 @@ export class MealAnalysisVisionService {
   }
 }
 
-function classifyVisionError(error: unknown): MealAnalysisFailureReason {
+/** 输出不可用（不合契约 / 被安全过滤清空）：上游给了我们不能用的东西。 */
+function unusableOutputFailure(detail: string, cause?: unknown): DomainFailure {
+  return createDomainFailure({
+    kind: 'dependency',
+    code: 'DEPENDENCY_BAD_GATEWAY',
+    detail,
+    ...(cause === undefined ? {} : { cause }),
+  });
+}
+
+function classifyVisionFailure(error: unknown): DomainFailure {
+  if (isTimeoutError(error)) {
+    return createDomainFailure({
+      kind: 'dependency',
+      code: 'DEPENDENCY_TIMEOUT',
+      detail: 'meal analysis model call timed out',
+      cause: error,
+    });
+  }
+
+  return mapUnknownToDependencyFailure(
+    error,
+    'meal analysis model call failed',
+  );
+}
+
+function isTimeoutError(error: unknown): boolean {
   if (!(error instanceof Error)) {
-    return 'model_failed';
+    return false;
   }
 
   const name = error.name.toLowerCase();
   const message = error.message.toLowerCase();
-  if (
+  return (
     name.includes('timeout') ||
     name.includes('abort') ||
     message.includes('timeout') ||
     message.includes('timed out') ||
     message.includes('aborted') ||
     message.includes('etimedout')
-  ) {
-    return 'model_timeout';
-  }
-  if (name.includes('zod') || message.includes('failed to parse')) {
-    return 'invalid_output';
-  }
-  return 'model_failed';
+  );
 }
 
 function isControlCharacter(char: string): boolean {
