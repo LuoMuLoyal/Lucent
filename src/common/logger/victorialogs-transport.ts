@@ -54,7 +54,26 @@ export class VictoriaLogsTransport extends TransportStream {
 
   override log(info: object, callback: () => void): void {
     // Serialise to a single-line JSON string (no trailing newline).
-    const line = JSON.stringify(info);
+    // VictoriaLogs requires a `_msg` field as the message body — without it
+    // every entry is stored under the placeholder
+    // `_msg: "missing _msg field; see ..."` and collapsed into a single empty
+    // `_stream` (https://docs.victoriametrics.com/victorialogs/keyconcepts/#message-field).
+    // Copy (not rename) so the `message` field stays for non-VictoriaLogs
+    // consumers of the same JSON lines.
+    const entry = info as Record<string, unknown>;
+    if (entry['_msg'] === undefined) {
+      entry['_msg'] =
+        typeof entry['message'] === 'string' ? entry['message'] : '';
+    }
+    // Map the Winston timestamp onto `_time` so VictoriaLogs indexes entries
+    // by when they were emitted, not when the batch arrived.
+    if (
+      entry['_time'] === undefined &&
+      typeof entry['timestamp'] === 'string'
+    ) {
+      entry['_time'] = entry['timestamp'];
+    }
+    const line = JSON.stringify(entry);
     this.buffer.push(line);
 
     if (this.buffer.length >= this.maxBatch) {

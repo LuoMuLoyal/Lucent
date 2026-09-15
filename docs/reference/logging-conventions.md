@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-07
+updated: 2026-09-15
 ---
 
 # Logging Conventions
@@ -39,14 +39,18 @@ ELK）按字段名过滤时出现「同名含义不同、同义不同名」的�
 
 ## 示例（结构化 vs 模板）
 
-| 推荐写法                                                                 | 禁止写法                                                       | 原因                                         |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------- | -------------------------------------------- |
-| `this.logger.warn({ error, key, traceId, spanId }, 'msg')`              | `this.logger.warn('msg: ' + error)`                            | 结构化 meta 便于按字段过滤聚合               |
-| `this.logger.error({ error, userId, event: 'x' }, 'msg')`               | `this.logger.error(\`msg: \${error.message}\`)`               | error 对象入结构化可保留 stack/cause 元信息  |
-| `this.logger.debug('Simple status: ' + status)`                          | `this.logger.debug({ status }, 'Simple status')`               | 纯状态字符串无需结构化，模板更简洁           |
-| `this.logger.log(\`Cache hit (key=\${key})\`)`                           | `this.logger.log({ key }, 'Cache hit')`                        | 调试级日志性能要求低，模板更直观             |
+| 推荐写法                                                   | 禁止写法                                         | 原因                                        |
+| ---------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------- |
+| `this.logger.warn({ error, key, traceId, spanId }, 'msg')` | `this.logger.warn('msg: ' + error)`              | 结构化 meta 便于按字段过滤聚合              |
+| `this.logger.error({ error, userId, event: 'x' }, 'msg')`  | `this.logger.error(\`msg: \${error.message}\`)`  | error 对象入结构化可保留 stack/cause 元信息 |
+| `this.logger.debug('Simple status: ' + status)`            | `this.logger.debug({ status }, 'Simple status')` | 纯状态字符串无需结构化，模板更简洁          |
+| `this.logger.log(\`Cache hit (key=\${key})\`)`             | `this.logger.log({ key }, 'Cache hit')`          | 调试级日志性能要求低，模板更直观            |
 
 ## 相关
 
 - 日志框架选型与理由：[adr/0007-logging-pino-to-winston.md](adr/0007-logging-pino-to-winston.md)
 - Winston transport 与格式配置：`src/common/logger/logger.config.ts`
+- **VictoriaLogs 字段映射**（`victorialogs-transport.ts`，对业务代码透明）：入站前自动把
+  `message` 复制为 `_msg`（VictoriaLogs 的消息主体字段，缺失时整条日志会被降级成
+  `_msg: "missing _msg field"` 占位文本）、`timestamp` 映射为 `_time`（否则按接收时间索引）。
+  业务代码照常写 `message`/`timestamp`，不要在 meta 里手工传 `_msg` / `_time`。
