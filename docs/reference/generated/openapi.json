@@ -4539,6 +4539,24 @@
         "tags": ["Daily Records"]
       }
     },
+    "/api/v1/user/daily-records/symptom-catalog": {
+      "get": {
+        "operationId": "DailyRecordsController_symptomCatalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Static symptom catalog: stable codes in display order, labels localized via Accept-Language."
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List the symptom catalog (codes + labels)",
+        "tags": ["Daily Records"]
+      }
+    },
     "/api/v1/user/daily-records/attachments/images/presign-upload": {
       "post": {
         "operationId": "createImageUpload",

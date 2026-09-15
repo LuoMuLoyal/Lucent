@@ -53,6 +53,8 @@ import { DailyRecordCandidatesService } from './services/candidates/orchestrator
 import { DailyRecordImageUploadService } from './services/image-upload.service.js';
 import { DailyRecordsService } from './services/records.service.js';
 import { I18nLang } from 'nestjs-i18n';
+import { symptomCatalogResponseSchema } from './dto/symptom-catalog.dto.js';
+import { SymptomCatalogService } from './services/symptom-catalog.service.js';
 
 @ApiTags('Daily Records')
 @ApiBearerAuth('access-token')
@@ -62,6 +64,7 @@ export class DailyRecordsController {
     private readonly dailyRecordsService: DailyRecordsService,
     private readonly dailyRecordCandidatesService: DailyRecordCandidatesService,
     private readonly imageUploadService: DailyRecordImageUploadService,
+    private readonly symptomCatalogService: SymptomCatalogService,
   ) {}
 
   @Get()
@@ -97,6 +100,18 @@ export class DailyRecordsController {
   async summary(@CurrentUser() user: UserPayload, @Query('date') date: string) {
     const result = await this.dailyRecordsService.summary(user.sub, date);
     return result;
+  }
+
+  @Get('symptom-catalog')
+  @ApiOperation({ summary: 'List the symptom catalog (codes + labels)' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Static symptom catalog: stable codes in display order, labels localized via Accept-Language.',
+  })
+  @SerializeOptions({ schema: symptomCatalogResponseSchema })
+  symptomCatalog() {
+    return this.symptomCatalogService.list();
   }
 
   @Post('attachments/images/presign-upload')

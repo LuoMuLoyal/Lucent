@@ -26,6 +26,7 @@ import { MealDishDecompositionService } from './services/meal-dish/decomposition
 import { MealIngredientGroundingService } from './services/meal-ingredient/grounding.service.js';
 import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service.js';
 import { DailyRecordsValidatorService } from './services/records-validator.service.js';
+import { SymptomCatalogService } from './services/symptom-catalog.service.js';
 import { MealPayloadWriterService } from './services/meal-payload-writer.service.js';
 
 @Module({
@@ -55,6 +56,7 @@ import { MealPayloadWriterService } from './services/meal-payload-writer.service
     DailyRecordsService,
     DailyRecordsMapperService,
     DailyRecordsValidatorService,
+    SymptomCatalogService,
     MealPayloadWriterService,
     MealAnalysisQueueService,
     MealAnalysisMatcherService,

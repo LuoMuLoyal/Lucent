@@ -4,6 +4,7 @@ import { DailyRecordsController } from './daily-records.controller.js';
 import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
 import { DailyRecordImageUploadService } from './services/image-upload.service.js';
 import { DailyRecordsService } from './services/records.service.js';
+import { SymptomCatalogService } from './services/symptom-catalog.service.js';
 import type { UserPayload } from '../auth/index.js';
 import { okAsync, errAsync } from '../../common/result/index.js';
 import type { DomainFailure } from '../../common/result/index.js';
@@ -15,6 +16,7 @@ describe('DailyRecordsController', () => {
   let dailyRecordsService: vi.Mocked<DailyRecordsService>;
   let candidatesService: vi.Mocked<DailyRecordCandidatesService>;
   let imageUploadService: vi.Mocked<DailyRecordImageUploadService>;
+  let symptomCatalogService: vi.Mocked<SymptomCatalogService>;
 
   const mockUser: UserPayload = {
     sub: 'user-1',
@@ -51,6 +53,10 @@ describe('DailyRecordsController', () => {
       createPresignedUpload: vi.fn(),
     } as unknown as vi.Mocked<DailyRecordImageUploadService>;
 
+    symptomCatalogService = {
+      list: vi.fn().mockReturnValue({ items: [] }),
+    } as unknown as vi.Mocked<SymptomCatalogService>;
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DailyRecordsController],
       providers: [
@@ -60,6 +66,7 @@ describe('DailyRecordsController', () => {
           provide: DailyRecordImageUploadService,
           useValue: imageUploadService,
         },
+        { provide: SymptomCatalogService, useValue: symptomCatalogService },
       ],
     }).compile();
 

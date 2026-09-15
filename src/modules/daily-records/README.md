@@ -14,7 +14,7 @@ owner: backend
 ## 边界
 
 - 管:日报 CRUD 与 `daily-record.changed` 事件、候选生成、餐食分析队列与
-  菜品模板学习、记录图片直传凭证。
+  菜品模板学习、记录图片直传凭证、症状目录(静态参考数据)。
 - 不管:健康事件数据(经 `HealthEventsOwnershipService` 只读,health-events
   模块);对象存储与 LLM 基础设施(common);建议/分析的下游逻辑。
 
@@ -32,6 +32,9 @@ owner: backend
 - `services/mapper.service.ts` — DTO ↔ Prisma/领域模型映射。
 - `services/ownership.service.ts` — 记录归属校验(ADR-0009 façade)。
 - `services/image-upload.service.ts` — 记录图片直传 presigned URL。
+- `services/symptom-catalog.service.ts` — 症状目录(`GET daily-records/symptom-catalog`):
+  码与顺序来自 `constants/symptom-catalog.constants.ts`,文案按 `Accept-Language`
+  取 `symptom-catalog` i18n 命名空间。客户端保留同码兜底副本。
 - `services/candidates/` — 候选编排(orchestrator)、LLM 生成(generator)、
   多语言文案(copy)。
 - `services/meal-analysis/` — 餐食分析:BullMQ 队列(queue)、视觉识别
