@@ -62,8 +62,6 @@
     "db:reset:dev": "cross-env NODE_ENV=development pnpm exec prisma migrate reset --force",
     "db:reset:test": "cross-env NODE_ENV=test pnpm exec prisma migrate reset --force",
     "import:medicine:all": "node scripts/import/medicine/import-medicine-datasets.ts",
-    "import:food:categories": "node scripts/import/food/import-food-composition.ts categories",
-    "import:food:items": "node scripts/import/food/import-food-composition.ts items",
     "openapi:export": "cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
     "export:openapi": "pnpm prisma:generate && pnpm build && pnpm openapi:export",
     "docs:compodoc": "compodoc -c compodoc.json",

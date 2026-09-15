@@ -26,12 +26,11 @@ pnpm run | grep import:
 
 常用导入脚本：
 
-| 数据源          | 命令                           | 说明                            |
-| --------------- | ------------------------------ | ------------------------------- |
-| 中国药品/说明书 | `pnpm import:cn-products`      | 产品 + 说明书 + 产品-说明书关联 |
-| DrugBank        | `pnpm import:drugbank`         | 药品 + 外部链接 + 靶点          |
-| 医疗问答        | `pnpm import:medical-qa`       | 安全标签过滤后的问答语料        |
-| 食物成分        | `pnpm import:food-composition` | 食物成分表 + 混合菜品模板       |
+| 数据源          | 命令                      | 说明                            |
+| --------------- | ------------------------- | ------------------------------- |
+| 中国药品/说明书 | `pnpm import:cn-products` | 产品 + 说明书 + 产品-说明书关联 |
+| DrugBank        | `pnpm import:drugbank`    | 药品 + 外部链接 + 靶点          |
+| 医疗问答        | `pnpm import:medical-qa`  | 安全标签过滤后的问答语料        |
 
 ## 导入后重建 RAG 索引
 
@@ -55,8 +54,7 @@ pnpm prisma:studio  # 打开 Prisma Studio 浏览数据
 psql -h 127.0.0.1 -p 15432 -U postgres -d lucent -c \
   "SELECT 'cn_products' AS t, count(*) FROM cn_medicine_products
    UNION ALL SELECT 'drugbank', count(*) FROM drugbank_drugs
-   UNION ALL SELECT 'medical_qa', count(*) FROM medical_qa_corpus
-   UNION ALL SELECT 'food_comp', count(*) FROM food_composition_items;"
+   UNION ALL SELECT 'medical_qa', count(*) FROM medical_qa_corpus;"
 ```
 
 ## 注意事项

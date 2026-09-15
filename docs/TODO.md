@@ -165,11 +165,3 @@ ESM 化后遗留清单与后续跟进：
 v12 升级与自研 observability 栈(metrics/logger/tracing)完成,未采用 `@nestjs/observe`;
 当官方模块覆盖自研 OTel 注入点(BullMQ worker span、HTTP/LLM span、queue 深度 gauges)或
 staging 基线对照暴露缺口时复议。
-
-## 2026-09-15 餐食分析 v2 之后的孤儿数据模型（P3）
-
-餐食分析改由一次多模态调用直出后，`food_composition_items`、`meal_dish_templates`、
-`meal_dish_template_ingredients` 三张表与 `scripts/import/food/import-food-composition.ts`
-（`pnpm import:food:*`）已无任何消费方。裁决：删除三张表与导入脚本、`prisma/models/food-composition.prisma`、
-对应 package scripts 与数据文件说明；若将来要做「成分级明细」，按「模型直出 + 明确标注为估算」重做，
-而不是回到成分表。验收：`rg` 全仓无引用后迁移删除三张表，导入脚本与依赖的数据文件一并下线。
