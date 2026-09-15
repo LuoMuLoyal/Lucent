@@ -48,7 +48,8 @@ locale-aware copy service 产出,禁止在生成/策略/服务代码硬编码任
 QA 语料仅限 Assistant 对话使用。
 
 相关 ADR:[ADR-0002](../reference/adr/0002-ai-pipeline-architecture.md)、
-[ADR-0005](../reference/adr/0005-meal-analysis-write-time-pipeline.md)
+[ADR-0005](../reference/adr/0005-meal-analysis-write-time-pipeline.md)、
+[ADR-0020](../reference/adr/0020-meal-analysis-multimodal-direct-output.md)(餐食分析 v2 取代 0005 的具体链路与读侧约定)
 
 ## 领域事件模式
 

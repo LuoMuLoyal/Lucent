@@ -127,3 +127,11 @@ What becomes easier or harder as a result of this decision?
   - Title: 配置文件回退纯环境变量(YAML 层退役)
   - Status: accepted
   - Date: 2026-09-09
+- [0019](0019-aliyun-oss-integration.md)
+  - Title: 集成阿里云 OSS 专用 SDK(ali-oss provider)
+  - Status: accepted
+  - Date: 2026-09-09
+- [0020](0020-meal-analysis-multimodal-direct-output.md)
+  - Title: 餐食分析改为一次多模态直出（区间 + 排序结论 + facets）
+  - Status: accepted（retires ADR-0005 的成分表接地、人工确认与 coverage 读侧约定）
+  - Date: 2026-09-15
