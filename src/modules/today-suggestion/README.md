@@ -31,8 +31,15 @@ owner: backend
 
 - `services/suggestion.service.ts` — 编排入口(含 recompute)。
 - `services/pipeline.service.ts` / `presentation.service.ts` — 管线编排与 DTO 呈现。
-- `services/collectors/` — 4 个信号采集器(用药/日报/档案/健康事件)。
-- `services/rules/` — 规则注册表与 8 条规则(medication/lifestyle/sleep/health)。
+- `services/collectors/` — 4 个信号采集器(用药/日报/档案/健康事件)。日报采集器
+  产出的饮食信号 `diet_facets` 只读餐食分析的 `facets` 与投影列(见
+  [daily-records README](../daily-records/README.md))：**不从 title/note 文本猜语义**。
+- `services/rules/` — 规则注册表与 8 条规则(medication/lifestyle/sleep/health)，
+  其中 `diet_imbalance`(lifestyle)消费 `diet_facets`：同一饮食维度在窗口内至少
+  两天值得留意才给候选，`high` 侧看 fried/sugar/sodium/fat/portion/carb，
+  `low` 侧看 vegetable/fruit/protein。规则码白名单 `SUGGESTION_RULE_CODE_ALLOWLIST`
+  与客户端镜像由 `src/modules/product-events/services/events.service.spec.ts`
+  的 drift-guard 锁在一起。
 - `services/arbitration/` — 打分(scoring)、抑制(suppression)、仲裁(arbiter)。
 - `services/lifecycle/` — 生命周期管理(manager)与基线判定(baseline)。
 - `services/materialization/`、`services/recompute/` — 物化存储与重算三件套

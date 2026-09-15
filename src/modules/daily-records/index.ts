@@ -11,6 +11,10 @@ export {
   MEAL_ANALYSIS_REAP_JOB_NAME,
 } from './constants/meal-analysis.constants.js';
 export type { MealAnalysisStatus } from './schemas/meal-analysis.schema.js';
+export type {
+  MealAnalysisFacetLevel,
+  MealAnalysisItemKind,
+} from './schemas/meal-analysis.schema.js';
 export { parseMealRecordPayload } from './types/meal-analysis.types.js';
 export type { CreateDailyRecordDto } from './dto/create-record.dto.js';
 export type { UpdateDailyRecordDto } from './dto/update-record.dto.js';

@@ -7,16 +7,40 @@ import {
   toObservedWaterMetric,
   WATER_TARGET_ML_PER_COUNT,
 } from '../../../../common/index.js';
-import { DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordReaderPort } from '../../../daily-records/index.js';
+import {
+  DailyRecordKind,
+  MealAnalysisStatus,
+} from '#generated/prisma/client.js';
+import {
+  DailyRecordReaderPort,
+  parseMealRecordPayload,
+} from '../../../daily-records/index.js';
 
-import type { DailyRecordFact } from '../../../daily-records/index.js';
+import type {
+  DailyRecordFact,
+  MealAnalysisFacetLevel,
+  MealAnalysisItemKind,
+} from '../../../daily-records/index.js';
 import type { SuggestionSignal } from '../../types/signal.types.js';
 import { TriggerType } from '../../types/suggestion.types.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants.js';
 import { symptomSeverityScore } from '../../constants/symptom-severity.constants.js';
 import { SleepTrendBuilderService } from './sleep-trend-builder.service.js';
+
+/**
+ * 合并同一天同一维度的档位：取离 `ok` 最远的一档；`low` 与 `high` 并列时取 `high`。
+ * 只影响「这一天该维度算不算值得留意」，不参与任何数值计算。
+ */
+function mergeFacetLevel(
+  current: MealAnalysisFacetLevel | undefined,
+  next: MealAnalysisFacetLevel,
+): MealAnalysisFacetLevel {
+  if (current == null || current === next) return next;
+  if (current === 'ok') return next;
+  if (next === 'ok') return current;
+  return 'high';
+}
 
 /**
  * Collects daily-record signals: water count, sleep data,
@@ -198,45 +222,33 @@ export class RecordCollectorService {
       });
     }
 
-    // Caffeine trend signal (for caffeine-sleep correlation rule)
-    const caffeineRecords = multiDayRecords.filter(
+    // Diet facets signal (for the diet-imbalance rule).
+    //
+    // 机器语义只来自餐食分析的 `facets`（投影列判 `analyzed`，payload 只取 facets）：
+    // 以前这里靠 title/note 里的「咖啡/茶/energy」关键词猜咖啡因摄入，与已删除的症状
+    // 严重度启发式同病——换语言、换说法、模型改名都会让信号凭空消失或误报。
+    const analyzedMealFacts = multiDayRecords.filter(
       (r) =>
         r.kind === DailyRecordKind.meal &&
-        ((r.title != null && r.title !== '') ||
-          (r.note != null && r.note !== '')),
+        r.mealAnalysisStatus === MealAnalysisStatus.analyzed,
     );
-    if (caffeineRecords.length > 0) {
-      const caffeineByDate = this.buildCaffeineTrend(caffeineRecords);
-      if (caffeineByDate.length > 0) {
-        const todayCaffeine = caffeineByDate.find(
-          (entry) => entry.date === date,
-        )?.count;
-        const mentionedRecordCount = caffeineByDate.reduce(
-          (sum, entry) => sum + entry.count,
-          0,
-        );
-        const mentionedDayCount = caffeineByDate.length;
-        signals.push({
-          signalId: `rec_caffeine_trend_${date}`,
-          source: 'record',
-          kind: 'caffeine_trend',
-          recordedAt: day,
-          userId,
-          triggerType: TriggerType.TIMER,
-          payload: {
-            dailyIntakes: caffeineByDate,
-            consecutiveDays: caffeineByDate.length,
-            mentionedRecordCount,
-            mentionedDayCount,
-            ...(todayCaffeine != null && todayCaffeine > 0
-              ? { observedValue: todayCaffeine }
-              : {}),
-            coverage: {
-              sufficient: todayCaffeine != null && todayCaffeine > 0,
-            },
-          },
-        });
-      }
+    if (analyzedMealFacts.length > 0) {
+      const dailyFacets = this.buildDailyFacets(analyzedMealFacts);
+      signals.push({
+        signalId: `rec_diet_facets_${date}`,
+        source: 'record',
+        kind: 'diet_facets',
+        recordedAt: day,
+        userId,
+        triggerType: TriggerType.TIMER,
+        payload: {
+          dailyFacets,
+          daysWithAnalyzedMeals: dailyFacets.length,
+          analyzedMealCount: analyzedMealFacts.length,
+          windowDays: TREND_LOOKBACK_DAYS,
+          coverage: { sufficient: dailyFacets.length > 0 },
+        },
+      });
     }
 
     // Record density signal (for coverage rule)
@@ -343,39 +355,46 @@ export class RecordCollectorService {
   }
 
   /**
-   * Builds a per-date summary of caffeine intake from meal records.
-   * Infers caffeine from title/note containing coffee, tea, energy drink keywords.
-   * Returns estimated intake count per date.
+   * Builds per-date facet levels from analyzed meal records.
+   *
+   * 同一天有多餐时合并同一维度的档位：取离 `ok` 最远的一档，`low` 与 `high` 并列时取
+   * `high`——宁可提示「这天有一餐偏油炸」，也不因为平均而把值得留意的一餐抹平。
+   * 只读餐食分析里已经收敛过的封闭词表，不做任何文本判断。
    */
-  private buildCaffeineTrend(records: DailyRecordFact[]): Array<{
+  private buildDailyFacets(records: DailyRecordFact[]): Array<{
     date: string;
-    count: number;
+    analyzedMeals: number;
+    facets: Partial<Record<MealAnalysisItemKind, MealAnalysisFacetLevel>>;
   }> {
-    const byDate = new Map<string, number>();
+    const byDate = new Map<
+      string,
+      {
+        analyzedMeals: number;
+        facets: Partial<Record<MealAnalysisItemKind, MealAnalysisFacetLevel>>;
+      }
+    >();
+
     for (const record of records) {
-      const title = record.title?.toLowerCase() ?? '';
-      const note = record.note?.toLowerCase() ?? '';
-      const isCaffeine =
-        title.includes('coffee') ||
-        title.includes('咖啡') ||
-        title.includes('tea') ||
-        title.includes('茶') ||
-        title.includes('energy') ||
-        title.includes('能量饮料') ||
-        note.includes('coffee') ||
-        note.includes('咖啡') ||
-        note.includes('tea') ||
-        note.includes('茶') ||
-        note.includes('energy') ||
-        note.includes('能量饮料');
-      if (!isCaffeine) continue;
+      const facets = parseMealRecordPayload(record.payload).mealAnalysis
+        ?.facets;
+      if (facets == null) continue;
+
       const dateKey = record.occurredAt.toISOString().slice(0, 10);
-      byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + 1);
+      const entry = byDate.get(dateKey) ?? { analyzedMeals: 0, facets: {} };
+      entry.analyzedMeals += 1;
+      for (const [kind, level] of Object.entries(facets)) {
+        const current = entry.facets[kind as MealAnalysisItemKind];
+        entry.facets[kind as MealAnalysisItemKind] = mergeFacetLevel(
+          current,
+          level,
+        );
+      }
+      byDate.set(dateKey, entry);
     }
-    return Array.from(byDate.entries()).map(([date, count]) => ({
-      date,
-      count,
-    }));
+
+    return Array.from(byDate.entries())
+      .map(([date, entry]) => ({ date, ...entry }))
+      .sort((left, right) => left.date.localeCompare(right.date));
   }
 
   /**

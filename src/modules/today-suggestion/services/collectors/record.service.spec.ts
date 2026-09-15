@@ -48,6 +48,29 @@ describe('RecordCollectorService', () => {
     });
   }
 
+  /**
+   * Minimal but契约完整 的 `payload.mealAnalysis` 信封：读路径走 zod 校验，
+   * 少一个必填字段整份 payload 都会被当成「没有分析」。
+   */
+  function mealPayload(facets: Record<string, string>) {
+    return {
+      mealAnalysis: {
+        version: 2,
+        analysisStatus: 'analyzed',
+        analyzedAt: '2026-07-09T04:00:00.000Z',
+        sourceRevision: 1,
+        model: 'vision-model',
+        promptVersion: 'meal-analysis.v2',
+        locale: 'zh-CN',
+        failureReason: null,
+        calorieRange: { min: 500, max: 700, unit: 'kcal', bucket: 'medium' },
+        dishes: [],
+        items: [],
+        facets,
+      },
+    };
+  }
+
   describe('collect', () => {
     it('emits a water_count signal with remaining count', async () => {
       (dailyRecordReader.listFactsInRange as vi.Mock)
@@ -332,76 +355,122 @@ describe('RecordCollectorService', () => {
       });
     });
 
-    it('emits a caffeine_trend signal for meal records with coffee keywords', async () => {
-      (dailyRecordReader.listFactsInRange as vi.Mock)
-        // todayRecords
-        .mockResolvedValueOnce([
-          makeRecord({
-            id: 'c1',
-            kind: DailyRecordKind.meal,
-            title: 'Coffee',
-          }),
-        ])
-        // multiDayRecords
-        .mockResolvedValueOnce([
-          makeRecord({
-            id: 'c1',
-            kind: DailyRecordKind.meal,
-            title: 'Coffee',
-            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
-          }),
-          makeRecord({
-            id: 'c2',
-            kind: DailyRecordKind.meal,
-            title: '咖啡',
-            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
-          }),
-        ]);
-      mockSettings(8);
-
-      const signals = await service.collect('user-1', '2026-07-09');
-
-      const caffeine = signals.find((s) => s.kind === 'caffeine_trend');
-      expect(caffeine).toBeDefined();
-      expect(caffeine!.payload).toMatchObject({
-        consecutiveDays: 2,
-        mentionedRecordCount: 2,
-        mentionedDayCount: 2,
-      });
-    });
-
-    it('counts meal records that mention caffeine in the note even when title is empty', async () => {
+    it('emits a diet_facets signal from analyzed meal facets', async () => {
       (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([])
         // multiDayRecords
         .mockResolvedValueOnce([
           makeRecord({
-            id: 'c1',
+            id: 'm1',
             kind: DailyRecordKind.meal,
-            title: null,
-            note: 'drank coffee',
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ fried: 'high', vegetable: 'ok' }),
           }),
           makeRecord({
-            id: 'c2',
+            id: 'm2',
             kind: DailyRecordKind.meal,
-            title: '',
-            note: 'energy drink',
             occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ vegetable: 'low', protein: 'ok' }),
           }),
         ]);
       mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
-      const caffeine = signals.find((s) => s.kind === 'caffeine_trend');
-      expect(caffeine).toBeDefined();
-      expect(caffeine!.payload).toMatchObject({
-        consecutiveDays: 2,
-        mentionedRecordCount: 2,
-        mentionedDayCount: 2,
+      const diet = signals.find((s) => s.kind === 'diet_facets');
+      expect(diet).toBeDefined();
+      expect(diet!.payload).toMatchObject({
+        daysWithAnalyzedMeals: 2,
+        analyzedMealCount: 2,
+        windowDays: TREND_LOOKBACK_DAYS,
       });
+      expect(diet!.payload['dailyFacets']).toEqual([
+        {
+          date: '2026-07-08',
+          analyzedMeals: 1,
+          facets: { vegetable: 'low', protein: 'ok' },
+        },
+        {
+          date: '2026-07-09',
+          analyzedMeals: 1,
+          facets: { fried: 'high', vegetable: 'ok' },
+        },
+      ]);
+    });
+
+    it('keeps the most watch-worthy level when one day has several meals', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ fried: 'low', sugar: 'ok' }),
+          }),
+          makeRecord({
+            id: 'm2',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ fried: 'high', sugar: 'high' }),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const diet = signals.find((s) => s.kind === 'diet_facets');
+      expect(diet!.payload['dailyFacets']).toEqual([
+        {
+          date: '2026-07-09',
+          analyzedMeals: 2,
+          facets: { fried: 'high', sugar: 'high' },
+        },
+      ]);
+    });
+
+    it('ignores meal text and unanalyzed meals when building diet facets', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.meal,
+            title: '咖啡',
+            note: 'drank coffee',
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+          makeRecord({
+            id: 'm2',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzing',
+            payload: mealPayload({ fried: 'high' }),
+          }),
+          makeRecord({
+            id: 'm3',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-07T00:00:00.000Z'),
+            mealAnalysisStatus: 'analysis_failed',
+            payload: mealPayload({ fried: 'high' }),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      // 只有 analyzed 的餐食进信号：文案里写着咖啡不再产生任何信号，
+      // 仍在分析 / 分析失败的餐食同样不进。
+      expect(signals.find((s) => s.kind === 'diet_facets')).toBeUndefined();
     });
 
     it('emits a mood_trend signal for mood records', async () => {

@@ -36,7 +36,7 @@ export interface SuggestionCandidate {
   notificationEligible: boolean;
   /** Signal IDs that composed this candidate, if any. */
   composedFrom?: string[];
-  /** Sub-type for rendering variety (e.g. 'water', 'sleep', 'caffeine'). */
+  /** Sub-type for rendering variety (e.g. 'water', 'sleep', 'diet'). */
   subtype?: string;
   /** Metadata for AI copy generation. Rules should provide this. */
   copyGeneration: CopyGenerationMetadata;

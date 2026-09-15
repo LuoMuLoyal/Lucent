@@ -66,7 +66,7 @@ For water.behind.target, treat only observedMl, targetMl, completionRate, and co
 - water.behind.target: Water intake below target
 - sleep.shortfall: Sleep duration insufficient
 - mood.sleep.correlation: Low mood + poor sleep correlation
-- caffeine.sleep.correlation: Caffeine + declining sleep correlation
+- diet.imbalance: Repeated watch-level meal facets (facetKind names the dimension)
 - symptom.deteriorating.trend: Worsening symptom trend`;
 }
 

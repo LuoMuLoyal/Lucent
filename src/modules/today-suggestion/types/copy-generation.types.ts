@@ -26,7 +26,7 @@ export interface CopyJobData {
   confidence: SuggestionConfidence;
   /** Rule ID — gives the LLM context about the suggestion source. */
   ruleId: string;
-  /** Subtype (e.g. 'water', 'sleep', 'caffeine') — helps LLM understand the scenario. */
+  /** Subtype (e.g. 'water', 'sleep', 'diet') — helps LLM understand the scenario. */
   subtype?: string;
   /** Evidence items — the LLM's reason should reference specific data from here. */
   evidence: EvidenceItem[];

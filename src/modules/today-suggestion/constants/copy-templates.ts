@@ -77,18 +77,10 @@ export const COPY_TEMPLATES: Record<string, CopyTemplate> = {
     ],
     actionKeys: ['record_mood'],
   },
-  'caffeine.sleep.correlation': {
-    description: 'Caffeine intake correlated with declining sleep',
-    requiredParams: [
-      'caffeineDays',
-      'totalCaffeine',
-      'decline',
-      'hours',
-      'mins',
-      'latestDuration',
-      'overlappingDays',
-    ],
-    optionalParams: ['mentionedRecordCount', 'mentionedDayCount'],
+  'diet.imbalance': {
+    description:
+      'Repeated watch-level meal facets (e.g. fried/sugar/sodium high, vegetable low)',
+    requiredParams: ['facetKind', 'facetDays', 'analyzedMeals', 'windowDays'],
     actionKeys: ['record_meal'],
   },
 

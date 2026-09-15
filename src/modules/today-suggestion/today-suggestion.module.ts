@@ -36,7 +36,7 @@ import { FeedbackService } from './services/feedback/recorder.service.js';
 import { BaselineService } from './services/lifecycle/baseline.service.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
 import { EscalationService } from './services/notification/escalation.service.js';
-import { CaffeineSleepRuleService } from './services/rules/sleep/caffeine-sleep.service.js';
+import { DietImbalanceRuleService } from './services/rules/lifestyle/diet-imbalance.service.js';
 import { CoverageRuleService } from './services/rules/medication/coverage.service.js';
 import { EventCheckInTrendRuleService } from './services/rules/health/event-check-in-trend.service.js';
 import { DeterioratingTrendRuleService } from './services/rules/lifestyle/deteriorating-trend.service.js';
@@ -87,7 +87,7 @@ import type { SuggestionRule } from './types/rule.types.js';
     WaterShortfallRuleService,
     SleepShortfallRuleService,
     DeterioratingTrendRuleService,
-    CaffeineSleepRuleService,
+    DietImbalanceRuleService,
     MoodSleepRuleService,
     CoverageRuleService,
     EventCheckInTrendRuleService,
@@ -139,7 +139,7 @@ export class TodaySuggestionModule implements OnModuleInit {
     private readonly waterShortfallRule: WaterShortfallRuleService,
     private readonly sleepShortfallRule: SleepShortfallRuleService,
     private readonly deterioratingTrendRule: DeterioratingTrendRuleService,
-    private readonly caffeineSleepRule: CaffeineSleepRuleService,
+    private readonly dietImbalanceRule: DietImbalanceRuleService,
     private readonly moodSleepRule: MoodSleepRuleService,
     private readonly coverageRule: CoverageRuleService,
     private readonly eventCheckInTrendRule: EventCheckInTrendRuleService,
@@ -151,7 +151,7 @@ export class TodaySuggestionModule implements OnModuleInit {
       this.waterShortfallRule,
       this.sleepShortfallRule,
       this.deterioratingTrendRule,
-      this.caffeineSleepRule,
+      this.dietImbalanceRule,
       this.moodSleepRule,
       this.coverageRule,
       this.eventCheckInTrendRule,

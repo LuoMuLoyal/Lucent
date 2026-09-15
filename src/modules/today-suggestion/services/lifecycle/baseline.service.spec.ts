@@ -179,7 +179,7 @@ describe('BaselineService', () => {
       ]);
       await service.recordObservation(
         'user-1',
-        BaselineDimension.CAFFEINE_INTAKE,
+        BaselineDimension.MEDICATION_ADHERENCE,
         2,
         '2026-07-09',
       );
@@ -188,12 +188,12 @@ describe('BaselineService', () => {
         where: {
           userId_dimension: {
             userId: 'user-1',
-            dimension: BaselineDimension.CAFFEINE_INTAKE,
+            dimension: BaselineDimension.MEDICATION_ADHERENCE,
           },
         },
         create: {
           userId: 'user-1',
-          dimension: BaselineDimension.CAFFEINE_INTAKE,
+          dimension: BaselineDimension.MEDICATION_ADHERENCE,
           daysCollected: 3,
           baselineValue: 2,
           establishedAt: expect.any(Date),
@@ -425,7 +425,7 @@ describe('BaselineService', () => {
 
       await service.recordObservation(
         'user-1',
-        BaselineDimension.CAFFEINE_INTAKE,
+        BaselineDimension.MEDICATION_ADHERENCE,
         2,
         '2026-07-09',
       );
@@ -434,12 +434,12 @@ describe('BaselineService', () => {
         where: {
           userId_dimension: {
             userId: 'user-1',
-            dimension: BaselineDimension.CAFFEINE_INTAKE,
+            dimension: BaselineDimension.MEDICATION_ADHERENCE,
           },
         },
         create: {
           userId: 'user-1',
-          dimension: BaselineDimension.CAFFEINE_INTAKE,
+          dimension: BaselineDimension.MEDICATION_ADHERENCE,
           daysCollected: 1,
           baselineValue: null,
           establishedAt: null,

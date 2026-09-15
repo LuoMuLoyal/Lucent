@@ -109,19 +109,18 @@ export const COPY_FALLBACK: Record<string, Record<string, FallbackCopy>> = {
       actionLabel: 'Log mood',
     },
   },
-  'caffeine.sleep.correlation': {
+  'diet.imbalance': {
     'zh-CN': {
-      title: '咖啡因可能影响睡眠',
-      reason: '近期咖啡因摄入与睡眠时长下降存在关联。',
-      boundary: '咖啡因与睡眠的关系因人而异，如有持续睡眠问题请咨询医生。',
+      title: '饮食结构值得留意',
+      reason: '最近几天的餐食分析里重复出现同一个需要留意的维度。',
+      boundary: '饮食建议因人而异，如有慢性病或特殊饮食需求请咨询医生。',
       actionLabel: '记录饮食',
     },
     'en-US': {
-      title: 'Caffeine may affect sleep',
-      reason:
-        'Recent caffeine intake correlates with decreased sleep duration.',
+      title: 'Diet balance worth a look',
+      reason: 'Recent meal analyses repeat the same dimension worth watching.',
       boundary:
-        'Caffeine-sleep relationships vary. Consult a doctor for ongoing issues.',
+        'Diet advice varies by person. Consult a doctor for chronic conditions or special diets.',
       actionLabel: 'Log meal',
     },
   },

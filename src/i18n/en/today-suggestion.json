@@ -10,9 +10,8 @@
     "avg_mood_score": "Average mood score",
     "latest_sleep_duration": "Latest sleep duration",
     "mood_record_days": "Mood record days",
-    "caffeine_record_days": "Caffeine record days",
-    "caffeine_total_count": "Total caffeine count",
-    "caffeine_mentioned_records": "Meal records mentioning coffee/tea in the last N days",
+    "diet_watch_days": "Days showing this diet dimension",
+    "diet_analyzed_meals": "Analyzed meals",
     "mood_parsed_records": "Parsed mood records (unknown excluded)",
     "sleep_decline": "Sleep decline",
     "latest_severity": "Latest severity",
@@ -24,7 +23,7 @@
   "evidence_value": {
     "unconfirmed": "Unconfirmed",
     "worsening": "Worsening",
-    "caffeine_mentioned_records_value": "{{count}} records / {{days}} days",
+    "diet_watch_days_value": "{{days}} of the last {{windowDays}} days",
     "mood_parsed_records_value": "{{count}} parsed (unknown excluded)"
   },
   "action": {

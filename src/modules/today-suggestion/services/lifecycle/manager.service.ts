@@ -228,7 +228,7 @@ export class LifecycleService {
       water: 'droplets',
       sleep: 'moon',
       symptom: 'activity',
-      caffeine: 'coffee',
+      diet: 'utensils',
       profile: 'user',
       empty_today: 'clipboard',
     };

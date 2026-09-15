@@ -13,7 +13,7 @@ import type { PrismaService } from '../../../prisma/index.js';
 // implementation details of the today-suggestion module and should NOT be
 // exported via its barrel — the spec directly instantiates them to read
 // their ruleId, which is the contract under test.
-import { CaffeineSleepRuleService } from '../../today-suggestion/services/rules/sleep/caffeine-sleep.service.js';
+import { DietImbalanceRuleService } from '../../today-suggestion/services/rules/lifestyle/diet-imbalance.service.js';
 import { MoodSleepRuleService } from '../../today-suggestion/services/rules/sleep/mood-sleep.service.js';
 import { SleepShortfallRuleService } from '../../today-suggestion/services/rules/sleep/sleep-shortfall.service.js';
 import { CoverageRuleService } from '../../today-suggestion/services/rules/medication/coverage.service.js';
@@ -270,7 +270,7 @@ describe('ProductEventsService', () => {
     const registeredRuleIds = [
       new WaterShortfallRuleService().ruleId,
       new SleepShortfallRuleService().ruleId,
-      new CaffeineSleepRuleService().ruleId,
+      new DietImbalanceRuleService().ruleId,
       new MoodSleepRuleService().ruleId,
       new MissedDoseRuleService().ruleId,
       new CoverageRuleService().ruleId,

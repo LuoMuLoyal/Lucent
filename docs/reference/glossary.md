@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-31
+updated: 2026-09-15
 ---
 
 # Glossary
@@ -18,7 +18,10 @@ updated: 2026-08-31
 - **OpenAPI** — 后端 API 合同，导出为 `docs/reference/generated/openapi.json`。
 - **AI Pipeline** — Lucent AI 管道分层：Context / Copy / Generator / Policy / Persistence。参见
   [[explanation/architecture]]。
-- **Meal Analysis** — 餐食图片异步写入时分析管道。
+- **Meal Analysis** — 餐食图片异步写入时分析管道。v2 起为一次多模态调用直出
+  「热量区间 + 按重要性排序的结论 + 封闭词表 facets」，人工确认与成分表接地已删除；
+  列表/聚合/助手读投影列（`meal_headline` / `meal_calorie_*`），详情与需要明细的
+  消费方才回读 `payload.mealAnalysis`。
 - **Clinic Summary** — 后端脱敏的医生分享摘要，含 Redis 24h 分享链接与 PDF。
 - **Data Export** — 报告/摘要 PDF 导出请求，支持 BullMQ 异步与内联 fallback。
 - **AdminJS** — `/admin` 管理面板，基于 Prisma schema 自动生成资源。

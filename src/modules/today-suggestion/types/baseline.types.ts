@@ -2,7 +2,6 @@
 export enum BaselineDimension {
   WATER_INTAKE = 'water_intake',
   SLEEP_DURATION = 'sleep_duration',
-  CAFFEINE_INTAKE = 'caffeine_intake',
   SYMPTOM_SEVERITY = 'symptom_severity',
   MEDICATION_ADHERENCE = 'medication_adherence',
   MOOD = 'mood',

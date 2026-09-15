@@ -40,14 +40,14 @@ export const SLEEP_SHORTFALL_MIN_DAYS = 2;
 /** Base priority score for a coverage-explanation candidate. */
 export const COVERAGE_BASE_SCORE = 200;
 
-/** Base priority score for a caffeine-sleep correlation candidate. */
-export const CAFFEINE_SLEEP_BASE_SCORE = 600;
+/** Base priority score for a diet-imbalance candidate. */
+export const DIET_IMBALANCE_BASE_SCORE = 500;
 
-/** Minimum consecutive days of caffeine records for correlation. */
-export const CAFFEINE_SLEEP_MIN_DAYS = 2;
-
-/** Minimum sleep duration decline (minutes) to consider for correlation. */
-export const CAFFEINE_SLEEP_DECLINE_MINUTES = 30;
+/**
+ * 同一个饮食维度至少要出现在多少天，才构成「结构性问题」而不是偶发一餐。
+ * 与水分/睡眠的 MIN_DAYS 同为 2：单日一次不做行为建议。
+ */
+export const DIET_IMBALANCE_MIN_DAYS = 2;
 
 /** Base priority score for a mood-sleep correlation candidate. */
 export const MOOD_SLEEP_BASE_SCORE = 550;

@@ -232,8 +232,6 @@ export class BaselineService {
           return BaselineDimension.WATER_INTAKE;
         case 'sleep_record':
           return BaselineDimension.SLEEP_DURATION;
-        case 'caffeine_trend':
-          return BaselineDimension.CAFFEINE_INTAKE;
         case 'symptom_trend':
           return BaselineDimension.SYMPTOM_SEVERITY;
         case 'mood_trend':
