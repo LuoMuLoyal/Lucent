@@ -188,15 +188,29 @@ docker compose -f compose.staging.yaml --env-file .env.production restart traefi
 
 ### 日常发布
 
+**常规(拉取 CI 镜像)**
+
 1. 手动触发 `lucent-production`(`workflow_dispatch`,main)构建并推送镜像(仅短 sha)。
 2. Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的完整引用。
 3. **Pull Latest Images & Restart**;容器启动时 `entrypoint.sh` 自动执行
    `prisma migrate deploy`,失败则容器不启动。
 4. 验证:`curl https://<domain>/api/v1/health/deep`。
 
+**替代(部署服务器就地构建)**
+
+镜像仓库不可用时用 compose 的 `build` 段让 Coolify 在服务器上构建:保持
+`LUCENT_IMAGE` 指向目标完整引用,触发部署即构建(手动等价命令):
+
+```bash
+docker compose up -d --build app     # 不带 --build 时复用已有镜像,不会重新构建
+```
+
+构建在部署服务器上进行,耗时与资源占用都记在它头上;`Dockerfile` 不变时可复用层缓存。
+
 ### 回滚
 
-把 `LUCENT_IMAGE` 改回上一可用完整引用(旧短 sha),再次 **Pull Latest Images & Restart**。
+把 `LUCENT_IMAGE` 改回上一可用完整引用(旧短 sha),再次 **Pull Latest Images & Restart**;
+该引用在本地已存在时(就地构建过的镜像)无需拉取。
 
 ### 指标栈
 
@@ -208,4 +222,5 @@ Grafana `http://<host>:3001`、VMUI `http://<host>:8428`、VictoriaLogs `http://
 - **备份未启用**:当前无自动备份,勿在未验证恢复路径的情况下做破坏性操作。
 - **告警未配置**:存活依赖 Coolify 健康检查(staging 依赖 PM2 自动重启与发布健康门禁)。
 - **未经 CI 校验即上线 staging**:推送即部署的必然结果,失败靠下一条提交修复。
-- production 现场构建(Dockerfile 在服务器构建)是反模式,已弃用;一律 CI 构建推镜像。
+- production 就地构建(compose `build` 段)是镜像仓库不可用时的替代路径:构建
+  未经 CI 的 lint/test 门禁,且吃部署服务器资源;常规发布仍走 CI 推镜像。

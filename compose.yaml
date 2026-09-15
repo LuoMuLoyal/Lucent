@@ -6,9 +6,12 @@
 # 职责边界:
 #   - 反向代理 / TLS / 域名路由 由 Coolify 自带 Traefik 接管(不再有 nginx、
 #     check-cert.sh / certs 目录)。
-#   - 应用镜像由 CI 构建并推送到发布者自有的镜像仓库(仓库代码不写死具体
-#     镜像地址),镜像完整引用经环境变量 LUCENT_IMAGE 选择(见下方 image 行
-#     与 docs/reference/deployment.md)。
+#   - 应用镜像两条来源并存:
+#       ① app 带 build 段 —— Coolify 直接在部署服务器上用仓库根 Dockerfile 构建;
+#          构建产物打上 LUCENT_IMAGE 的完整引用(仓库代码不写死具体镜像地址)。
+#       ② CI(lucent-production)构建并推送到发布者自有镜像仓库后,把
+#          LUCENT_IMAGE 指到已推送的短 sha 引用即可拉取,不重新构建
+#          (见 docs/reference/deployment.md)。
 #   - 环境变量在 Coolify 面板维护(或本地 /opt/lucent/.env,见
 #     docs/reference/deployment.md 与 .env.production.example)。compose 的
 #     ${VAR} 插值与 app 的 env_file 都来自同一份变量源。
@@ -65,10 +68,17 @@ services:
         max-file: '5'
 
   # ── App(单 slot,由 Coolify/Traefik 提供公网入口)──────────────
-  # 发版 = 更新 LUCENT_IMAGE(完整镜像引用,含新短 sha)后执行 migrate + 重启,
+  # 两种发布方式:
+  #   - 服务器构建:`docker compose up -d --build app`(Coolify 也走这条),
+  #     用仓库根 Dockerfile 就地构建,构建产物即 LUCENT_IMAGE 引用。
+  #   - 拉取 CI 镜像:先 `docker compose pull app`,再 up;LUCENT_IMAGE 指向
+  #     CI 推送的短 sha 引用时不会触发构建。
   # 详见 docs/howto/deploy.md。日志只写 stdout(Coolify 收集)+ VictoriaLogs,
   # 不再挂载日志卷。
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required — full image ref, e.g. your-dockerhub-user/lucent:1a2b3c4d}
     restart: unless-stopped
     env_file:

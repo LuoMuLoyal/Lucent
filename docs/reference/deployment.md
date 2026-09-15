@@ -156,23 +156,25 @@ GitHub (CI/CD)                              Coolify 控制面
   victoriametrics + grafana + victorialogs + node-exporter)。
 - **反向代理 / TLS**:Coolify 在被管服务器自动安装 Traefik;域名、HTTPS 证书在
   Coolify 面板配置,不再有 Nginx、`certs/`、`check-cert.sh`。
-- **镜像**:CI/CD 构建并推送发布者自有镜像仓库,仓库名由 GitHub secret
-  `REGISTRY_IMAGE` 注入(**公开仓库代码不写死用户名/镜像地址**);
+- **镜像**:`compose.yaml` 的 app 服务带 `build` 段(context = 仓库根,Dockerfile =
+  根 `Dockerfile`),Coolify 可直接在部署服务器上构建;也可由 CI/CD 构建并推送发布者
+  自有镜像仓库,仓库名由 GitHub secret `REGISTRY_IMAGE` 注入(**公开仓库代码不写死
+  用户名/镜像地址**),此时把 `LUCENT_IMAGE` 指到已推送的引用即拉取而不重新构建。
   镜像 tag 见下文。
 - **日志**:应用只写 stdout(容器/Coolify 收集)+ VictoriaLogs
   (`VICTORIALOGS_URL` 由 compose 注入),不写文件系统。
 
 ### 组件与端口
 
-| 服务              | 镜像                        | 端口        | 说明                                                                 |
-| ----------------- | --------------------------- | ----------- | -------------------------------------------------------------------- |
-| `app`             | `${LUCENT_IMAGE}`(完整引用) | 仅内网 3000 | 公网入口 = Coolify 域名路由;健康检查 `/api/v1/health`                |
-| `postgres`        | `pgvector/pgvector:pg18`    | 无          | 卷 `postgres-data`                                                   |
-| `redis`           | `redis:8-alpine`            | 无          | 卷 `redis-data`;requirepass                                          |
-| `victoriametrics` | `victoria-metrics:v1.151.0` | `8428:8428` | 抓 app `/metrics` 与 node-exporter;卷 `victoriametrics-data`         |
-| `grafana`         | `grafana:12.1.0`            | `3001:3000` | provisioning/dashboards 来自 `monitoring/grafana/`;卷 `grafana-data` |
-| `victorialogs`    | `victoria-logs:v1.15.0`     | `9428:9428` | 接收 Winston JSON 日志;卷 `victorialogs-data`                        |
-| `node-exporter`   | `node-exporter:v1.9.1`      | 无          | 宿主机 CPU/内存/磁盘指标                                             |
+| 服务              | 镜像                                           | 端口        | 说明                                                                 |
+| ----------------- | ---------------------------------------------- | ----------- | -------------------------------------------------------------------- |
+| `app`             | `${LUCENT_IMAGE}`(服务器构建,或 CI 已推送引用) | 仅内网 3000 | 公网入口 = Coolify 域名路由;健康检查 `/api/v1/health`                |
+| `postgres`        | `pgvector/pgvector:pg18`                       | 无          | 卷 `postgres-data`                                                   |
+| `redis`           | `redis:8-alpine`                               | 无          | 卷 `redis-data`;requirepass                                          |
+| `victoriametrics` | `victoria-metrics:v1.151.0`                    | `8428:8428` | 抓 app `/metrics` 与 node-exporter;卷 `victoriametrics-data`         |
+| `grafana`         | `grafana:12.1.0`                               | `3001:3000` | provisioning/dashboards 来自 `monitoring/grafana/`;卷 `grafana-data` |
+| `victorialogs`    | `victoria-logs:v1.15.0`                        | `9428:9428` | 接收 Winston JSON 日志;卷 `victorialogs-data`                        |
+| `node-exporter`   | `node-exporter:v1.9.1`                         | 无          | 宿主机 CPU/内存/磁盘指标                                             |
 
 端口映射(8428/9428/3001)直接发布宿主机,**公网访问由云厂商安全组收口**。
 `/metrics` 端点 Basic Auth 由 `METRICS_USER` / `METRICS_PASSWORD` 控制。
@@ -202,14 +204,21 @@ GitHub (CI/CD)                              Coolify 控制面
 
 ### 发布与迁移
 
-1. 手动触发 `lucent-production`(`workflow_dispatch`,main)构建推送镜像。
-2. 在 Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的完整引用。
-3. **Pull Latest Images & Restart**;容器启动时 `entrypoint.sh` 自动执行
-   `prisma migrate deploy`,失败则容器不启动(不会带坏 schema 上线)。
-4. 验证:`curl https://<domain>/api/v1/health/deep`。
+两条路径按是否已有镜像区分:
 
-发布窗口:单 slot 停机(容器重建期间 ~15–45s),SSE 连接会收到终止事件后关闭,
-建议低峰发布。
+1. **拉取 CI 已推送镜像**(常规):手动触发 `lucent-production`(`workflow_dispatch`,
+   main)构建推送镜像 → 在 Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的
+   完整引用 → **Pull Latest Images & Restart**。
+2. **服务器就地构建**(镜像仓库不可用时的替代路径):`LUCENT_IMAGE` 指向目标引用,
+   Coolify 的 Docker Compose 构建走 compose 的 `build` 段;手动等价命令是
+   `docker compose up -d --build app`(不带 `--build` 时已有镜像直接复用)。
+   构建发生在部署服务器上,吃它的 CPU/内存/磁盘。
+
+两条路径下容器启动时 `entrypoint.sh` 都自动执行 `prisma migrate deploy`,失败则容器
+不启动(不会带坏 schema 上线);验证:`curl https://<domain>/api/v1/health/deep`。
+
+发布窗口:单 slot 停机(容器重建期间 ~15–45s,就地构建含构建耗时会明显更长),
+SSE 连接会收到终止事件后关闭,建议低峰发布。
 
 ## 监控与告警(现状)
 
