@@ -15,10 +15,7 @@ import {
   DailyRecordKind,
   Prisma,
 } from '#generated/prisma/client.js';
-import {
-  buildMealPayloadFromClientInput,
-  getMealListSummary,
-} from '../types/meal-analysis.types.js';
+import { buildMealPayloadFromClientInput } from '../types/meal-analysis.types.js';
 
 interface DailyRecordItemOptions {
   includeMealPayload?: boolean;
@@ -97,11 +94,6 @@ export class DailyRecordsMapperService {
   }
 
   toItem(record: DailyRecordShape, options?: DailyRecordItemOptions) {
-    const mealSummary =
-      record.kind === DailyRecordKind.meal
-        ? getMealListSummary(record.payload)
-        : null;
-
     return {
       id: record.id,
       kind: record.kind,
@@ -119,13 +111,15 @@ export class DailyRecordsMapperService {
             ? (record.payload as Record<string, unknown> | null)
             : null
           : (record.payload as Record<string, unknown> | null),
-      mealAnalysisStatus: mealSummary?.mealAnalysisStatus ?? null,
-      // v2 删除了 coverage 概念；列与字段在投影切片里移除。
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: mealSummary?.mealAnalysisUpdatedAt ?? null,
-      mealAnalysisFailureReason: mealSummary?.mealAnalysisFailureReason ?? null,
-      mealShortDescription: mealSummary?.mealShortDescription ?? null,
-      mealTopFoods: mealSummary?.mealTopFoods ?? [],
+      // 餐食分析走热列投影：列表/时间线不必解析 payload JSONB，详情读 payload。
+      mealAnalysisStatus: record.mealAnalysisStatus,
+      mealAnalysisUpdatedAt:
+        record.mealAnalysisUpdatedAt?.toISOString() ?? null,
+      mealAnalysisFailureReason: record.mealAnalysisFailureReason,
+      mealHeadline: record.mealHeadline,
+      mealCalorieMin: record.mealCalorieMin,
+      mealCalorieMax: record.mealCalorieMax,
+      mealCalorieBucket: record.mealCalorieBucket,
       attachments: record.attachments.map((attachment) => ({
         id: attachment.id,
         kind: attachment.kind,

@@ -1,6 +1,5 @@
 import {
   buildMealPayloadFromClientInput,
-  getMealListSummary,
   getMealSourceRevision,
   markMealAnalysisQueued,
   parseMealRecordPayload,
@@ -132,53 +131,47 @@ describe('meal record payload', () => {
     });
   });
 
-  describe('getMealListSummary', () => {
-    it('projects the headline, dishes and failure reason', () => {
-      const summary = getMealListSummary(analyzedPayload);
-
-      expect(summary).toEqual({
-        mealAnalysisStatus: 'analyzed',
-        mealAnalysisUpdatedAt: '2026-09-15T12:31:04.000Z',
-        mealAnalysisFailureReason: null,
-        mealShortDescription: '油炸偏多',
-        mealTopFoods: ['红烧肉', '青菜'],
-      });
-    });
-
-    it('projects an empty summary without an analysis', () => {
-      expect(getMealListSummary(null)).toEqual({
-        mealAnalysisStatus: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealShortDescription: null,
-        mealTopFoods: [],
-      });
-    });
-  });
-
   describe('toMealAnalysisHotFields', () => {
-    it('derives the hot columns from the analysis', () => {
+    it('projects the analysis into the list/aggregate columns', () => {
       const fields = toMealAnalysisHotFields(
         parseMealRecordPayload(analyzedPayload).mealAnalysis ?? null,
       );
 
       expect(fields).toEqual({
         mealAnalysisStatus: 'analyzed',
-        mealAnalysisCoverage: null,
         mealAnalysisUpdatedAt: new Date('2026-09-15T12:31:04.000Z'),
         mealAnalysisFailureReason: null,
+        mealHeadline: '油炸偏多',
+        mealCalorieMin: 520,
+        mealCalorieMax: 780,
+        mealCalorieBucket: 'medium',
         mealSourceRevision: 3,
       });
     });
 
-    it('zeroes the fields when there is no analysis', () => {
+    it('leaves the columns empty when there is no analysis', () => {
       expect(toMealAnalysisHotFields(null)).toEqual({
         mealAnalysisStatus: null,
-        mealAnalysisCoverage: null,
         mealAnalysisUpdatedAt: null,
         mealAnalysisFailureReason: null,
+        mealHeadline: null,
+        mealCalorieMin: null,
+        mealCalorieMax: null,
+        mealCalorieBucket: null,
         mealSourceRevision: 0,
       });
+    });
+
+    it('keeps the headline while the interval is unknown', () => {
+      const analysis = parseMealRecordPayload({
+        mealAnalysis: { ...analyzedPayload.mealAnalysis, calorieRange: null },
+      }).mealAnalysis;
+
+      const fields = toMealAnalysisHotFields(analysis ?? null);
+
+      expect(fields.mealHeadline).toBe('油炸偏多');
+      expect(fields.mealCalorieMin).toBeNull();
+      expect(fields.mealCalorieBucket).toBeNull();
     });
   });
 });

@@ -7,11 +7,8 @@ import {
   markMealAnalysisQueued,
   parseMealRecordPayload,
   toMealAnalysisHotFields,
+  type MealAnalysisHotFields,
 } from '../types/meal-analysis.types.js';
-import type {
-  MealAnalysisFailureReason,
-  MealAnalysisStatus,
-} from '../schemas/meal-analysis.schema.js';
 import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
 
 /**
@@ -71,19 +68,13 @@ export class MealPayloadWriterService {
     const hotFields = this.extractMealAnalysisHotFields(mealPayload);
     return {
       payload: mealPayload,
-      mealAnalysisStatus: hotFields.mealAnalysisStatus,
-      mealAnalysisCoverage: hotFields.mealAnalysisCoverage,
-      mealSourceRevision: hotFields.mealSourceRevision,
+      ...hotFields,
     };
   }
 
-  private extractMealAnalysisHotFields(mealPayload: Record<string, unknown>): {
-    mealAnalysisStatus: MealAnalysisStatus | null;
-    mealAnalysisCoverage: null;
-    mealAnalysisUpdatedAt: Date | null;
-    mealAnalysisFailureReason: MealAnalysisFailureReason | null;
-    mealSourceRevision: number;
-  } {
+  private extractMealAnalysisHotFields(
+    mealPayload: Record<string, unknown>,
+  ): MealAnalysisHotFields {
     return toMealAnalysisHotFields(
       parseMealRecordPayload(mealPayload).mealAnalysis ?? null,
     );

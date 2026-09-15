@@ -36,6 +36,11 @@ owner: backend
 - 客户端唯一可编辑字段是菜名列表(`payload.mealAnalysis.dishes`,
   `source: 'user'`);其余字段服务端独占。改菜名不重算结论与区间。重试 =
   重新提交同一张图(PATCH 带一张 attachment,`revision` 递增后重新入队)。
+- **读路径分两层**:列表/聚合只读投影列(`meal_analysis_status` /
+  `meal_headline` / `meal_calorie_min|max|bucket` /
+  `meal_analysis_failure_reason`,写入时由 `toMealAnalysisHotFields` 统一投影),
+  不解析 payload JSONB;详情接口才返回完整 `payload.mealAnalysis`
+  (`items` 全量 + `dishes`)。
 
 ## 依赖方向
 

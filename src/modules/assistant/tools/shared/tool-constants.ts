@@ -109,8 +109,10 @@ export type ToolRecordItem = {
   mealAnalysisStatus?: string | null;
   mealAnalysisUpdatedAt?: string | null;
   mealAnalysisFailureReason?: string | null;
-  mealShortDescription?: string | null;
-  mealTopFoods?: string[];
+  mealHeadline?: string | null;
+  mealCalorieMin?: number | null;
+  mealCalorieMax?: number | null;
+  mealCalorieBucket?: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 };

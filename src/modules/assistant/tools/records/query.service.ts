@@ -55,8 +55,10 @@ export class AssistantToolRecordQueryService {
         mealAnalysisStatus: item.mealAnalysisStatus ?? null,
         mealAnalysisUpdatedAt: item.mealAnalysisUpdatedAt ?? null,
         mealAnalysisFailureReason: item.mealAnalysisFailureReason ?? null,
-        mealShortDescription: item.mealShortDescription ?? null,
-        mealTopFoods: item.mealTopFoods,
+        mealHeadline: item.mealHeadline ?? null,
+        mealCalorieMin: item.mealCalorieMin ?? null,
+        mealCalorieMax: item.mealCalorieMax ?? null,
+        mealCalorieBucket: item.mealCalorieBucket ?? null,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
       }));

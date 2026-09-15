@@ -3,6 +3,7 @@ import {
   mealAnalysisHeadline,
   mealAnalysisPayloadSchema,
   normalizeMealAnalysisDishes,
+  type MealAnalysisCalorieBucket,
   type MealAnalysisFailureReason,
   type MealAnalysisPayload,
   type MealAnalysisStatus,
@@ -17,41 +18,41 @@ import {
  *
  * `mealAnalysis` 的其余字段一律服务端所有：客户端提交里出现的 `items` /
  * `calorieRange` / `analysisStatus` / `sourceRevision` 全部被忽略。
+ *
+ * 列表/聚合消费的是热列投影（见 [MealAnalysisHotFields]），详情消费 `payload`。
  */
 
 export interface MealRecordPayload {
   mealAnalysis?: MealAnalysisPayload | null;
 }
 
-export interface MealListSummary {
-  mealAnalysisStatus: MealAnalysisStatus | null;
-  mealAnalysisUpdatedAt: string | null;
-  mealAnalysisFailureReason: MealAnalysisFailureReason | null;
-  /** 列表条目那一行：最重要的结论（P0-2 投影为 `mealHeadline`）。 */
-  mealShortDescription: string | null;
-  /** 菜名（列表条目不用；助手摘要与编辑页用）。 */
-  mealTopFoods: string[];
-}
-
-/** 写入 `UserDailyRecord` 的分析热列（列表/报告只读这些列，不解析 payload）。 */
+/** 写入 `UserDailyRecord` 的分析热列；读路径（列表、报告、助手）只认这些列。 */
 export interface MealAnalysisHotFields {
   mealAnalysisStatus: MealAnalysisStatus | null;
-  mealAnalysisCoverage: null;
   mealAnalysisUpdatedAt: Date | null;
   mealAnalysisFailureReason: MealAnalysisFailureReason | null;
+  /** 最重要的一条结论，列表条目那一行。 */
+  mealHeadline: string | null;
+  mealCalorieMin: number | null;
+  mealCalorieMax: number | null;
+  mealCalorieBucket: MealAnalysisCalorieBucket | null;
   mealSourceRevision: number;
 }
 
 export function toMealAnalysisHotFields(
   analysis: MealAnalysisPayload | null,
 ): MealAnalysisHotFields {
+  const range = analysis?.calorieRange ?? null;
+
   return {
     mealAnalysisStatus: analysis?.analysisStatus ?? null,
-    // coverage 概念已删除，列随投影切片一并移除。
-    mealAnalysisCoverage: null,
     mealAnalysisUpdatedAt:
       analysis?.analyzedAt != null ? new Date(analysis.analyzedAt) : null,
     mealAnalysisFailureReason: analysis?.failureReason ?? null,
+    mealHeadline: mealAnalysisHeadline(analysis),
+    mealCalorieMin: range?.min ?? null,
+    mealCalorieMax: range?.max ?? null,
+    mealCalorieBucket: range?.bucket ?? null,
     mealSourceRevision: analysis?.sourceRevision ?? 0,
   };
 }
@@ -120,18 +121,6 @@ export function markMealAnalysisQueued(rawPayload: unknown): PlainRecord {
 
 export function getMealSourceRevision(rawPayload: unknown): number {
   return parseMealRecordPayload(rawPayload).mealAnalysis?.sourceRevision ?? 0;
-}
-
-export function getMealListSummary(rawPayload: unknown): MealListSummary {
-  const analysis = parseMealRecordPayload(rawPayload).mealAnalysis ?? null;
-
-  return {
-    mealAnalysisStatus: analysis?.analysisStatus ?? null,
-    mealAnalysisUpdatedAt: analysis?.analyzedAt ?? null,
-    mealAnalysisFailureReason: analysis?.failureReason ?? null,
-    mealShortDescription: mealAnalysisHeadline(analysis),
-    mealTopFoods: (analysis?.dishes ?? []).map((dish) => dish.name).slice(0, 3),
-  };
 }
 
 function asPlainRecord(raw: unknown): PlainRecord | null {

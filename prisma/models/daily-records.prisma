@@ -22,10 +22,11 @@ enum MealAnalysisStatus {
   analysis_failed
 }
 
-enum MealAnalysisCoverage {
-  none
-  partial
-  complete
+/** 热量档位：由区间中位值推导（低/中/高），供列表配色与聚合。 */
+enum MealCalorieBucket {
+  low
+  medium
+  high
 }
 
 model UserDailyRecord {
@@ -40,10 +41,14 @@ model UserDailyRecord {
   note                      String?
   payload                   Json?                       @db.JsonB
   source                    String?                     @default("manual")
+  // 分析投影列：列表/聚合直接读列，详情才解析 payload JSONB。
   mealAnalysisStatus        MealAnalysisStatus?         @map("meal_analysis_status")
-  mealAnalysisCoverage      MealAnalysisCoverage?       @map("meal_analysis_coverage")
   mealAnalysisUpdatedAt     DateTime?                   @map("meal_analysis_updated_at") @db.Timestamptz(3)
   mealAnalysisFailureReason String?                     @map("meal_analysis_failure_reason")
+  mealHeadline              String?                     @map("meal_headline")
+  mealCalorieMin            Int?                        @map("meal_calorie_min")
+  mealCalorieMax            Int?                        @map("meal_calorie_max")
+  mealCalorieBucket         MealCalorieBucket?          @map("meal_calorie_bucket")
   mealSourceRevision        Int                         @default(0) @map("meal_source_revision")
   deletedAt                 DateTime?                   @map("deleted_at") @db.Timestamptz(3)
   healthEventId             String?                     @map("health_event_id")

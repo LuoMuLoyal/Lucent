@@ -111,6 +111,904 @@
         "tags": ["Health"]
       }
     },
+    "/api/v1/user/daily-records": {
+      "get": {
+        "operationId": "listDailyRecords",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Date in YYYY-MM-DD format."
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "water",
+                "meal",
+                "vital",
+                "mood",
+                "symptom",
+                "activity",
+                "note",
+                "sleep"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991,
+              "description": "Page number (1-based)."
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Page size (1-100)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily records for the date.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List daily records for a given date",
+        "tags": ["Daily Records"]
+      },
+      "post": {
+        "operationId": "createDailyRecord",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDailyRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created daily record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid record payload, or linked health event is not active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Linked health event is owned by another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Linked health event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a daily record",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/summary": {
+      "get": {
+        "operationId": "summary",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-06-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily record counts grouped by kind for the date.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get daily record summary (counts by kind)",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/symptom-catalog": {
+      "get": {
+        "operationId": "getSymptomCatalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Static symptom catalog: stable codes in display order, labels localized via Accept-Language.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SymptomCatalogResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List the symptom catalog (codes + labels)",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/attachments/images/presign-upload": {
+      "post": {
+        "operationId": "createImageUpload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateImageUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Presigned upload metadata for direct object storage upload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordImageUploadResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a signed URL for daily record image upload",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/candidate-records/generate": {
+      "post": {
+        "operationId": "generateCandidates",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateCandidatesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated candidate daily records (not saved yet).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordCandidateResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Generate AI candidate daily records from a natural-language note",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/{id}": {
+      "get": {
+        "operationId": "getDailyRecord",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The daily record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Daily record is owned by another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Daily record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get a daily record by id",
+        "tags": ["Daily Records"]
+      },
+      "patch": {
+        "operationId": "updateDailyRecord",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDailyRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated daily record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid record payload, or linked health event is not active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Daily record or linked health event is owned by another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Daily record or linked health event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a daily record",
+        "tags": ["Daily Records"]
+      },
+      "delete": {
+        "operationId": "deleteDailyRecord",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Daily record deleted."
+          },
+          "403": {
+            "description": "Daily record is owned by another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Daily record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a daily record",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/health-events": {
+      "post": {
+        "operationId": "createHealthEvent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHealthEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created health event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Related medicine or reason record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An active health event already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Start a user-confirmed health event",
+        "tags": ["Health Events"]
+      },
+      "get": {
+        "operationId": "listHealthEvents",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Calendar date in YYYY-MM-DD format."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user health event history page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List the user health event history",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/active": {
+      "get": {
+        "operationId": "active",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Calendar date in YYYY-MM-DD format."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The active health event, or null when none is active.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventNullableResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get the current active health event",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/{id}": {
+      "get": {
+        "operationId": "getHealthEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Health event id."
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Calendar date in YYYY-MM-DD format."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The health event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Health event is owned by another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Health event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get one user health event",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/{id}/check-ins/{date}": {
+      "put": {
+        "operationId": "upsertCheckIn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Health event id."
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "description": "Calendar date in YYYY-MM-DD format."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertCheckInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated health event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid outcome or date, or event is not active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Health event is owned by another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Health event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate check-in for the same event and date (race)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upsert a user-confirmed daily event check-in",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/{id}/end": {
+      "post": {
+        "operationId": "end",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Health event id."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The ended health event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid outcome or event already ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Health event is owned by another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Health event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "End a health event with an explicit outcome",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/product-events": {
+      "post": {
+        "description": "Write-only ingestion for product measurement. userId always comes from the session — a client-supplied userId is rejected by the whitelist. Raw events are retained 90 days, then deleted.",
+        "operationId": "recordBatch",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Events accepted; `recorded` may be lower than `received` when duplicate clientEventIds were skipped."
+          },
+          "400": {
+            "description": "Unknown suggestion rule code or occurredAt more than 24 hours in the future.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Record a batch of privacy-minimal product events",
+        "tags": ["Product Events"]
+      }
+    },
+    "/api/v1/user/product-events/funnel": {
+      "get": {
+        "description": "Internal admin surface (JWT email must match ADMIN_EMAIL; regular users get 403). Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
+        "operationId": "getFunnel",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated funnel counts for the requested window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid funnel query window (dates or range).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token."
+          },
+          "403": {
+            "description": "Authenticated but not the internal admin (ADMIN_EMAIL)."
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Admin-only daily product funnel aggregation",
+        "tags": ["Product Events"]
+      }
+    },
     "/api/v1/user/medicine-reminders": {
       "get": {
         "operationId": "listMedicineReminders",
@@ -4366,904 +5264,6 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/daily-records": {
-      "get": {
-        "operationId": "listDailyRecords",
-        "parameters": [
-          {
-            "name": "date",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "description": "Date in YYYY-MM-DD format."
-            }
-          },
-          {
-            "name": "kind",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "water",
-                "meal",
-                "vital",
-                "mood",
-                "symptom",
-                "activity",
-                "note",
-                "sleep"
-              ]
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991,
-              "description": "Page number (1-based)."
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "description": "Page size (1-100)."
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Daily records for the date.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordListResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List daily records for a given date",
-        "tags": ["Daily Records"]
-      },
-      "post": {
-        "operationId": "createDailyRecord",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDailyRecordRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The created daily record.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid record payload, or linked health event is not active",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Linked health event is owned by another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Linked health event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a daily record",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/summary": {
-      "get": {
-        "operationId": "summary",
-        "parameters": [
-          {
-            "name": "date",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "example": "2026-06-04",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Daily record counts grouped by kind for the date.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordSummaryResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get daily record summary (counts by kind)",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/symptom-catalog": {
-      "get": {
-        "operationId": "getSymptomCatalog",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Static symptom catalog: stable codes in display order, labels localized via Accept-Language.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SymptomCatalogResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List the symptom catalog (codes + labels)",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/attachments/images/presign-upload": {
-      "post": {
-        "operationId": "createImageUpload",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateImageUploadRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Presigned upload metadata for direct object storage upload.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordImageUploadResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a signed URL for daily record image upload",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/candidate-records/generate": {
-      "post": {
-        "operationId": "generateCandidates",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateCandidatesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Generated candidate daily records (not saved yet).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordCandidateResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Generate AI candidate daily records from a natural-language note",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/{id}": {
-      "get": {
-        "operationId": "getDailyRecord",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The daily record.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Daily record is owned by another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Daily record not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get a daily record by id",
-        "tags": ["Daily Records"]
-      },
-      "patch": {
-        "operationId": "updateDailyRecord",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDailyRecordRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The updated daily record.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid record payload, or linked health event is not active",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Daily record or linked health event is owned by another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Daily record or linked health event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update a daily record",
-        "tags": ["Daily Records"]
-      },
-      "delete": {
-        "operationId": "deleteDailyRecord",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Daily record deleted."
-          },
-          "403": {
-            "description": "Daily record is owned by another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Daily record not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Soft-delete a daily record",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/health-events": {
-      "post": {
-        "operationId": "createHealthEvent",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateHealthEventRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The created health event.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthEventResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Related medicine or reason record not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "An active health event already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Start a user-confirmed health event",
-        "tags": ["Health Events"]
-      },
-      "get": {
-        "operationId": "listHealthEvents",
-        "parameters": [
-          {
-            "name": "date",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "description": "Calendar date in YYYY-MM-DD format."
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The user health event history page.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthEventListResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List the user health event history",
-        "tags": ["Health Events"]
-      }
-    },
-    "/api/v1/user/health-events/active": {
-      "get": {
-        "operationId": "active",
-        "parameters": [
-          {
-            "name": "date",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "description": "Calendar date in YYYY-MM-DD format."
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The active health event, or null when none is active.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthEventNullableResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get the current active health event",
-        "tags": ["Health Events"]
-      }
-    },
-    "/api/v1/user/health-events/{id}": {
-      "get": {
-        "operationId": "getHealthEvent",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Health event id."
-            }
-          },
-          {
-            "name": "date",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "description": "Calendar date in YYYY-MM-DD format."
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The health event.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthEventResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Health event is owned by another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Health event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get one user health event",
-        "tags": ["Health Events"]
-      }
-    },
-    "/api/v1/user/health-events/{id}/check-ins/{date}": {
-      "put": {
-        "operationId": "upsertCheckIn",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Health event id."
-            }
-          },
-          {
-            "name": "date",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "description": "Calendar date in YYYY-MM-DD format."
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertCheckInRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The updated health event.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthEventResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid outcome or date, or event is not active",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Health event is owned by another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Health event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Duplicate check-in for the same event and date (race)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Upsert a user-confirmed daily event check-in",
-        "tags": ["Health Events"]
-      }
-    },
-    "/api/v1/user/health-events/{id}/end": {
-      "post": {
-        "operationId": "end",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Health event id."
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EndRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The ended health event.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthEventResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid outcome or event already ended",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Health event is owned by another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Health event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "End a health event with an explicit outcome",
-        "tags": ["Health Events"]
-      }
-    },
-    "/api/v1/user/product-events": {
-      "post": {
-        "description": "Write-only ingestion for product measurement. userId always comes from the session — a client-supplied userId is rejected by the whitelist. Raw events are retained 90 days, then deleted.",
-        "operationId": "recordBatch",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecordBatchRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Events accepted; `recorded` may be lower than `received` when duplicate clientEventIds were skipped."
-          },
-          "400": {
-            "description": "Unknown suggestion rule code or occurredAt more than 24 hours in the future.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Record a batch of privacy-minimal product events",
-        "tags": ["Product Events"]
-      }
-    },
-    "/api/v1/user/product-events/funnel": {
-      "get": {
-        "description": "Internal admin surface (JWT email must match ADMIN_EMAIL; regular users get 403). Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
-        "operationId": "getFunnel",
-        "parameters": [
-          {
-            "name": "dateFrom",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "description": "Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
-            }
-          },
-          {
-            "name": "dateTo",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "description": "Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Aggregated funnel counts for the requested window.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FunnelResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid funnel query window (dates or range).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid access token."
-          },
-          "403": {
-            "description": "Authenticated but not the internal admin (ADMIN_EMAIL)."
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Admin-only daily product funnel aggregation",
-        "tags": ["Product Events"]
-      }
-    },
     "/api/v1/user/medicine-dose-logs": {
       "get": {
         "operationId": "listDoseLogs",
@@ -7306,127 +7306,6 @@
         "required": ["accessToken", "refreshToken", "expiresIn"],
         "additionalProperties": false
       },
-      "MedicineReminderListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineReminderListResponseItems"
-            },
-            "description": "Medicine reminders."
-          }
-        },
-        "required": ["items"],
-        "additionalProperties": false
-      },
-      "MedicineReminderResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Reminder id."
-          },
-          "currentMedicineId": {
-            "type": "string",
-            "nullable": true
-          },
-          "label": {
-            "type": "string",
-            "nullable": true
-          },
-          "scheduledHour": {
-            "type": "number",
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "number",
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            },
-            "nullable": true
-          },
-          "startDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "endDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "currentMedicineId",
-          "label",
-          "scheduledHour",
-          "scheduledMinute",
-          "daysOfWeek",
-          "startDate",
-          "endDate",
-          "isActive",
-          "note",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
-      },
-      "ReminderDeliveryListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReminderDeliveryListResponseItems"
-            },
-            "description": "Delivery audit rows."
-          }
-        },
-        "required": ["items"],
-        "additionalProperties": false
-      },
-      "ReminderDeliveryReceiptResponse": {
-        "type": "object",
-        "properties": {
-          "item": {
-            "$ref": "#/components/schemas/ReminderDeliveryReceiptResponseItem"
-          }
-        },
-        "required": ["item"],
-        "additionalProperties": false
-      },
-      "LocalCapabilityResponse": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["active", "unavailable", "disabled"],
-            "description": "Persisted local scheduling capability state."
-          }
-        },
-        "required": ["state"],
-        "additionalProperties": false
-      },
       "FunnelResponse": {
         "type": "object",
         "properties": {
@@ -7780,17 +7659,12 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }.",
             "nullable": true
           },
           "mealAnalysisStatus": {
             "type": "string",
-            "description": "Meal analysis status for meal records.",
-            "nullable": true
-          },
-          "mealAnalysisCoverage": {
-            "type": "string",
-            "description": "Meal analysis coverage for meal records.",
+            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\".",
             "nullable": true
           },
           "mealAnalysisUpdatedAt": {
@@ -7800,20 +7674,29 @@
           },
           "mealAnalysisFailureReason": {
             "type": "string",
-            "description": "Display-safe meal analysis failure reason.",
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).",
             "nullable": true
           },
-          "mealShortDescription": {
+          "mealHeadline": {
             "type": "string",
-            "description": "Short meal description for list reads.",
+            "description": "Most important meal finding, for the list row.",
             "nullable": true
           },
-          "mealTopFoods": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Top recognized foods for list reads."
+          "mealCalorieMin": {
+            "type": "number",
+            "description": "Estimated energy interval lower bound (kcal).",
+            "nullable": true
+          },
+          "mealCalorieMax": {
+            "type": "number",
+            "description": "Estimated energy interval upper bound (kcal).",
+            "nullable": true
+          },
+          "mealCalorieBucket": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Coarse energy bucket derived from the interval.",
+            "nullable": true
           },
           "attachments": {
             "type": "array",
@@ -7843,15 +7726,137 @@
           "source",
           "payload",
           "mealAnalysisStatus",
-          "mealAnalysisCoverage",
           "mealAnalysisUpdatedAt",
           "mealAnalysisFailureReason",
-          "mealShortDescription",
-          "mealTopFoods",
+          "mealHeadline",
+          "mealCalorieMin",
+          "mealCalorieMax",
+          "mealCalorieBucket",
           "attachments",
           "createdAt",
           "updatedAt"
         ],
+        "additionalProperties": false
+      },
+      "MedicineReminderListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineReminderListResponseItems"
+            },
+            "description": "Medicine reminders."
+          }
+        },
+        "required": ["items"],
+        "additionalProperties": false
+      },
+      "MedicineReminderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Reminder id."
+          },
+          "currentMedicineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "currentMedicineId",
+          "label",
+          "scheduledHour",
+          "scheduledMinute",
+          "daysOfWeek",
+          "startDate",
+          "endDate",
+          "isActive",
+          "note",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ReminderDeliveryListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReminderDeliveryListResponseItems"
+            },
+            "description": "Delivery audit rows."
+          }
+        },
+        "required": ["items"],
+        "additionalProperties": false
+      },
+      "ReminderDeliveryReceiptResponse": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/ReminderDeliveryReceiptResponseItem"
+          }
+        },
+        "required": ["item"],
+        "additionalProperties": false
+      },
+      "LocalCapabilityResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["active", "unavailable", "disabled"],
+            "description": "Persisted local scheduling capability state."
+          }
+        },
+        "required": ["state"],
         "additionalProperties": false
       },
       "DoseLogListResponse": {
@@ -9853,6 +9858,276 @@
         "required": ["status"],
         "additionalProperties": false
       },
+      "CreateDailyRecordRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "water",
+              "meal",
+              "vital",
+              "mood",
+              "symptom",
+              "activity",
+              "note",
+              "sleep"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep)."
+          },
+          "occurredTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+            "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Short label."
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Measured value."
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Unit label."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Free-text note."
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Record source. Defaults to \"manual\". Use \"apple_health\" or \"health_connect\" for auto-synced records."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Optional active health event association."
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string } — symptom is a catalog code and severity is the only structured severity source (title/value are display text). For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. For meal: the analysis is server-owned — the only accepted field is the dish list { mealAnalysis: { dishes: [{ name: string }] } }. Vital and activity payloads are optional for manual entry."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateDailyRecordRequestAttachments"
+            },
+            "description": "Attachment metadata. File upload itself is handled separately."
+          }
+        },
+        "required": ["kind", "occurredAt"],
+        "additionalProperties": false
+      },
+      "CreateImageUploadRequest": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Image MIME content type."
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50000000,
+            "description": "File size in bytes."
+          },
+          "fileName": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Original file name."
+          }
+        },
+        "required": ["contentType", "sizeBytes"],
+        "additionalProperties": false
+      },
+      "GenerateCandidatesRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Natural-language note to be parsed into candidate daily records."
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline."
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted."
+          }
+        },
+        "required": ["text", "occurredAt"],
+        "additionalProperties": false
+      },
+      "UpdateDailyRecordRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "water",
+              "meal",
+              "vital",
+              "mood",
+              "symptom",
+              "activity",
+              "note",
+              "sleep"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format."
+          },
+          "occurredTime": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+            "description": "Time in HH:mm 24-hour format. Use null to clear."
+          },
+          "title": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Short label. Use null to clear."
+          },
+          "value": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Measured value. Use null to clear."
+          },
+          "unit": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Unit label. Use null to clear."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Free-text note. Use null to clear."
+          },
+          "payload": {
+            "nullable": true,
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt. Meal accepts only the dish list { mealAnalysis: { dishes: [{ name: string }] } }: the analysis itself is server-owned, and sending attachments with exactly one image re-runs the analysis."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Active health event association. Use null to clear."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateDailyRecordRequestAttachments"
+            },
+            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateHealthEventRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["symptom", "other"],
+            "description": "Persisted semantic kind used for check-in routing."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "\\S",
+            "description": "Short user-defined event title."
+          },
+          "reasonRecordId": {
+            "description": "Optional daily-record id that prompted this event.",
+            "nullable": true,
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "currentMedicineIds": {
+            "description": "Optional current-medicine ids to associate with this event.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          }
+        },
+        "required": ["title"],
+        "additionalProperties": false
+      },
+      "UpsertCheckInRequest": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": ["improved", "unchanged", "worsened"],
+            "description": "User-confirmed outcome for the requested calendar date."
+          }
+        },
+        "required": ["outcome"],
+        "additionalProperties": false
+      },
+      "EndRequest": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": ["improved", "unchanged", "worsened"],
+            "description": "User-confirmed outcome when ending the event."
+          }
+        },
+        "required": ["outcome"],
+        "additionalProperties": false
+      },
+      "RecordBatchRequest": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordBatchRequestEvents"
+            },
+            "description": "1..50 events per request."
+          }
+        },
+        "required": ["events"],
+        "additionalProperties": false
+      },
       "CreateMedicineReminderRequest": {
         "type": "object",
         "properties": {
@@ -11132,276 +11407,6 @@
         },
         "additionalProperties": false
       },
-      "CreateDailyRecordRequest": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "water",
-              "meal",
-              "vital",
-              "mood",
-              "symptom",
-              "activity",
-              "note",
-              "sleep"
-            ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep)."
-          },
-          "occurredTime": {
-            "type": "string",
-            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
-            "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only."
-          },
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Short label."
-          },
-          "value": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Measured value."
-          },
-          "unit": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "description": "Unit label."
-          },
-          "note": {
-            "type": "string",
-            "maxLength": 1000,
-            "description": "Free-text note."
-          },
-          "source": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "description": "Record source. Defaults to \"manual\". Use \"apple_health\" or \"health_connect\" for auto-synced records."
-          },
-          "healthEventId": {
-            "nullable": true,
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "Optional active health event association."
-          },
-          "payload": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string } — symptom is a catalog code and severity is the only structured severity source (title/value are display text). For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
-          },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateDailyRecordRequestAttachments"
-            },
-            "description": "Attachment metadata. File upload itself is handled separately."
-          }
-        },
-        "required": ["kind", "occurredAt"],
-        "additionalProperties": false
-      },
-      "CreateImageUploadRequest": {
-        "type": "object",
-        "properties": {
-          "contentType": {
-            "type": "string",
-            "maxLength": 100,
-            "description": "Image MIME content type."
-          },
-          "sizeBytes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 50000000,
-            "description": "File size in bytes."
-          },
-          "fileName": {
-            "type": "string",
-            "maxLength": 255,
-            "description": "Original file name."
-          }
-        },
-        "required": ["contentType", "sizeBytes"],
-        "additionalProperties": false
-      },
-      "GenerateCandidatesRequest": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000,
-            "description": "Natural-language note to be parsed into candidate daily records."
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline."
-          },
-          "timezone": {
-            "type": "string",
-            "maxLength": 100,
-            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted."
-          }
-        },
-        "required": ["text", "occurredAt"],
-        "additionalProperties": false
-      },
-      "UpdateDailyRecordRequest": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "water",
-              "meal",
-              "vital",
-              "mood",
-              "symptom",
-              "activity",
-              "note",
-              "sleep"
-            ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format."
-          },
-          "occurredTime": {
-            "nullable": true,
-            "type": "string",
-            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
-            "description": "Time in HH:mm 24-hour format. Use null to clear."
-          },
-          "title": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Short label. Use null to clear."
-          },
-          "value": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Measured value. Use null to clear."
-          },
-          "unit": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "description": "Unit label. Use null to clear."
-          },
-          "note": {
-            "nullable": true,
-            "type": "string",
-            "maxLength": 1000,
-            "description": "Free-text note. Use null to clear."
-          },
-          "payload": {
-            "nullable": true,
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt."
-          },
-          "healthEventId": {
-            "nullable": true,
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "Active health event association. Use null to clear."
-          },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UpdateDailyRecordRequestAttachments"
-            },
-            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear."
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateHealthEventRequest": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": ["symptom", "other"],
-            "description": "Persisted semantic kind used for check-in routing."
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 80,
-            "pattern": "\\S",
-            "description": "Short user-defined event title."
-          },
-          "reasonRecordId": {
-            "description": "Optional daily-record id that prompted this event.",
-            "nullable": true,
-            "type": "string",
-            "pattern": "\\S"
-          },
-          "currentMedicineIds": {
-            "description": "Optional current-medicine ids to associate with this event.",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "pattern": "\\S"
-            }
-          }
-        },
-        "required": ["title"],
-        "additionalProperties": false
-      },
-      "UpsertCheckInRequest": {
-        "type": "object",
-        "properties": {
-          "outcome": {
-            "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "description": "User-confirmed outcome for the requested calendar date."
-          }
-        },
-        "required": ["outcome"],
-        "additionalProperties": false
-      },
-      "EndRequest": {
-        "type": "object",
-        "properties": {
-          "outcome": {
-            "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "description": "User-confirmed outcome when ending the event."
-          }
-        },
-        "required": ["outcome"],
-        "additionalProperties": false
-      },
-      "RecordBatchRequest": {
-        "type": "object",
-        "properties": {
-          "events": {
-            "minItems": 1,
-            "maxItems": 50,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RecordBatchRequestEvents"
-            },
-            "description": "1..50 events per request."
-          }
-        },
-        "required": ["events"],
-        "additionalProperties": false
-      },
       "CreateDoseLogRequest": {
         "type": "object",
         "properties": {
@@ -11941,184 +11946,6 @@
         "required": ["accessToken", "refreshToken", "expiresIn"],
         "additionalProperties": false
       },
-      "MedicineReminderListResponseItems": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Reminder id."
-          },
-          "currentMedicineId": {
-            "type": "string",
-            "nullable": true
-          },
-          "label": {
-            "type": "string",
-            "nullable": true
-          },
-          "scheduledHour": {
-            "type": "number",
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "number",
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            },
-            "nullable": true
-          },
-          "startDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "endDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "currentMedicineId",
-          "label",
-          "scheduledHour",
-          "scheduledMinute",
-          "daysOfWeek",
-          "startDate",
-          "endDate",
-          "isActive",
-          "note",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
-      },
-      "ReminderDeliveryListResponseItems": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Delivery log id."
-          },
-          "reminderId": {
-            "type": "string",
-            "nullable": true
-          },
-          "deviceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "channel": {
-            "type": "string",
-            "description": "Delivery channel."
-          },
-          "status": {
-            "type": "string",
-            "description": "Delivery status."
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled delivery time (ISO 8601)."
-          },
-          "deliveredAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "reminderId",
-          "deviceId",
-          "channel",
-          "status",
-          "scheduledFor",
-          "deliveredAt",
-          "errorMessage",
-          "createdAt"
-        ],
-        "additionalProperties": false
-      },
-      "ReminderDeliveryReceiptResponseItem": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Delivery log id."
-          },
-          "reminderId": {
-            "type": "string",
-            "nullable": true
-          },
-          "deviceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "channel": {
-            "type": "string",
-            "description": "Delivery channel."
-          },
-          "status": {
-            "type": "string",
-            "description": "Delivery status."
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled delivery time (ISO 8601)."
-          },
-          "deliveredAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "reminderId",
-          "deviceId",
-          "channel",
-          "status",
-          "scheduledFor",
-          "deliveredAt",
-          "errorMessage",
-          "createdAt"
-        ],
-        "additionalProperties": false,
-        "description": "The recorded delivery row."
-      },
       "FunnelResponseDaily": {
         "type": "object",
         "properties": {
@@ -12549,17 +12376,12 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }.",
             "nullable": true
           },
           "mealAnalysisStatus": {
             "type": "string",
-            "description": "Meal analysis status for meal records.",
-            "nullable": true
-          },
-          "mealAnalysisCoverage": {
-            "type": "string",
-            "description": "Meal analysis coverage for meal records.",
+            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\".",
             "nullable": true
           },
           "mealAnalysisUpdatedAt": {
@@ -12569,20 +12391,29 @@
           },
           "mealAnalysisFailureReason": {
             "type": "string",
-            "description": "Display-safe meal analysis failure reason.",
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).",
             "nullable": true
           },
-          "mealShortDescription": {
+          "mealHeadline": {
             "type": "string",
-            "description": "Short meal description for list reads.",
+            "description": "Most important meal finding, for the list row.",
             "nullable": true
           },
-          "mealTopFoods": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Top recognized foods for list reads."
+          "mealCalorieMin": {
+            "type": "number",
+            "description": "Estimated energy interval lower bound (kcal).",
+            "nullable": true
+          },
+          "mealCalorieMax": {
+            "type": "number",
+            "description": "Estimated energy interval upper bound (kcal).",
+            "nullable": true
+          },
+          "mealCalorieBucket": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Coarse energy bucket derived from the interval.",
+            "nullable": true
           },
           "attachments": {
             "type": "array",
@@ -12612,11 +12443,12 @@
           "source",
           "payload",
           "mealAnalysisStatus",
-          "mealAnalysisCoverage",
           "mealAnalysisUpdatedAt",
           "mealAnalysisFailureReason",
-          "mealShortDescription",
-          "mealTopFoods",
+          "mealHeadline",
+          "mealCalorieMin",
+          "mealCalorieMax",
+          "mealCalorieBucket",
           "attachments",
           "createdAt",
           "updatedAt"
@@ -12797,17 +12629,12 @@
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }.",
             "nullable": true
           },
           "mealAnalysisStatus": {
             "type": "string",
-            "description": "Meal analysis status for meal records.",
-            "nullable": true
-          },
-          "mealAnalysisCoverage": {
-            "type": "string",
-            "description": "Meal analysis coverage for meal records.",
+            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\".",
             "nullable": true
           },
           "mealAnalysisUpdatedAt": {
@@ -12817,20 +12644,29 @@
           },
           "mealAnalysisFailureReason": {
             "type": "string",
-            "description": "Display-safe meal analysis failure reason.",
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).",
             "nullable": true
           },
-          "mealShortDescription": {
+          "mealHeadline": {
             "type": "string",
-            "description": "Short meal description for list reads.",
+            "description": "Most important meal finding, for the list row.",
             "nullable": true
           },
-          "mealTopFoods": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Top recognized foods for list reads."
+          "mealCalorieMin": {
+            "type": "number",
+            "description": "Estimated energy interval lower bound (kcal).",
+            "nullable": true
+          },
+          "mealCalorieMax": {
+            "type": "number",
+            "description": "Estimated energy interval upper bound (kcal).",
+            "nullable": true
+          },
+          "mealCalorieBucket": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Coarse energy bucket derived from the interval.",
+            "nullable": true
           },
           "attachments": {
             "type": "array",
@@ -12860,11 +12696,12 @@
           "source",
           "payload",
           "mealAnalysisStatus",
-          "mealAnalysisCoverage",
           "mealAnalysisUpdatedAt",
           "mealAnalysisFailureReason",
-          "mealShortDescription",
-          "mealTopFoods",
+          "mealHeadline",
+          "mealCalorieMin",
+          "mealCalorieMax",
+          "mealCalorieBucket",
           "attachments",
           "createdAt",
           "updatedAt"
@@ -13113,6 +12950,184 @@
           "createdAt"
         ],
         "additionalProperties": false
+      },
+      "MedicineReminderListResponseItems": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Reminder id."
+          },
+          "currentMedicineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "currentMedicineId",
+          "label",
+          "scheduledHour",
+          "scheduledMinute",
+          "daysOfWeek",
+          "startDate",
+          "endDate",
+          "isActive",
+          "note",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ReminderDeliveryListResponseItems": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Delivery log id."
+          },
+          "reminderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel."
+          },
+          "status": {
+            "type": "string",
+            "description": "Delivery status."
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled delivery time (ISO 8601)."
+          },
+          "deliveredAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "reminderId",
+          "deviceId",
+          "channel",
+          "status",
+          "scheduledFor",
+          "deliveredAt",
+          "errorMessage",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "ReminderDeliveryReceiptResponseItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Delivery log id."
+          },
+          "reminderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel."
+          },
+          "status": {
+            "type": "string",
+            "description": "Delivery status."
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled delivery time (ISO 8601)."
+          },
+          "deliveredAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "reminderId",
+          "deviceId",
+          "channel",
+          "status",
+          "scheduledFor",
+          "deliveredAt",
+          "errorMessage",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "description": "The recorded delivery row."
       },
       "DoseLogListResponseItems": {
         "type": "object",
@@ -17841,89 +17856,6 @@
         ],
         "additionalProperties": false
       },
-      "UpsertGroupRequestSlots": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Existing reminder id to update. Omit to create a new slot."
-          },
-          "scheduledHour": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 23,
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 59,
-            "description": "Scheduled local minute, 0-59."
-          }
-        },
-        "required": ["scheduledHour", "scheduledMinute"],
-        "additionalProperties": false
-      },
-      "StreamMessagesRequestMessages": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": ["user", "assistant"],
-            "description": "Client-visible conversation role. system is not accepted."
-          },
-          "content": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 8000,
-            "description": "Plain or Markdown-ready message content."
-          }
-        },
-        "required": ["role", "content"],
-        "additionalProperties": false
-      },
-      "RunRiskCheckRequestCandidate": {
-        "type": "object",
-        "properties": {
-          "source": {
-            "type": "string",
-            "enum": ["cn", "drugbank"],
-            "description": "候选药品所在的可信药品库来源"
-          },
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "候选药品在可信药品库中的 id"
-          }
-        },
-        "required": ["source", "id"],
-        "additionalProperties": false,
-        "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库"
-      },
-      "UpdateSettingsRequestAssistantContext": {
-        "type": "object",
-        "properties": {
-          "healthProfile": {
-            "type": "boolean",
-            "description": "Allow the assistant to read stored health profile, allergies, and conditions."
-          },
-          "dailyRecords": {
-            "type": "boolean",
-            "description": "Allow the assistant to read recent daily records."
-          },
-          "sleepRecords": {
-            "type": "boolean",
-            "description": "Allow the assistant to read sleep records and summaries."
-          },
-          "currentMedicines": {
-            "type": "boolean",
-            "description": "Allow the assistant to read current medicines and medicine-box data."
-          }
-        },
-        "additionalProperties": false,
-        "description": "Fine-grained permissions for what the assistant may read."
-      },
       "CreateDailyRecordRequestAttachments": {
         "type": "object",
         "properties": {
@@ -18148,6 +18080,89 @@
           "clientEventId"
         ],
         "additionalProperties": false
+      },
+      "UpsertGroupRequestSlots": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Existing reminder id to update. Omit to create a new slot."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"],
+        "additionalProperties": false
+      },
+      "StreamMessagesRequestMessages": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant"],
+            "description": "Client-visible conversation role. system is not accepted."
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000,
+            "description": "Plain or Markdown-ready message content."
+          }
+        },
+        "required": ["role", "content"],
+        "additionalProperties": false
+      },
+      "RunRiskCheckRequestCandidate": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["cn", "drugbank"],
+            "description": "候选药品所在的可信药品库来源"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "候选药品在可信药品库中的 id"
+          }
+        },
+        "required": ["source", "id"],
+        "additionalProperties": false,
+        "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库"
+      },
+      "UpdateSettingsRequestAssistantContext": {
+        "type": "object",
+        "properties": {
+          "healthProfile": {
+            "type": "boolean",
+            "description": "Allow the assistant to read stored health profile, allergies, and conditions."
+          },
+          "dailyRecords": {
+            "type": "boolean",
+            "description": "Allow the assistant to read recent daily records."
+          },
+          "sleepRecords": {
+            "type": "boolean",
+            "description": "Allow the assistant to read sleep records and summaries."
+          },
+          "currentMedicines": {
+            "type": "boolean",
+            "description": "Allow the assistant to read current medicines and medicine-box data."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Fine-grained permissions for what the assistant may read."
       },
       "SessionListItemEntry": {
         "type": "object",

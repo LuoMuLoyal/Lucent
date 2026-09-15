@@ -8,9 +8,13 @@ import { dailyRecordAttachmentSchema } from './record-attachment.dto.js';
  * `GET/POST/PATCH /daily-records` responses.
  *
  * Replaces the former `@ApiProperty` response class `DailyRecordItemDto`. The
- * mapper always emits every key (nullable columns become an explicit `null`;
- * `mealTopFoods`/`attachments` default to empty arrays), so fields are
- * required and `.nullable()` marks null-capable columns only.
+ * mapper always emits every key (nullable columns become an explicit `null`),
+ * so fields are required and `.nullable()` marks null-capable columns only.
+ *
+ * 餐食记录:分析结论**不进 item 的 payload**(列表读为 null),而是投影字段
+ * `mealAnalysisStatus` / `mealHeadline` / `mealCalorieMin|Max|Bucket` /
+ * `mealAnalysisFailureReason`;详情接口才返回完整 `payload.mealAnalysis`
+ * (`items` 全量 + `dishes`)。
  */
 export const dailyRecordItemSchema = z.object({
   id: z.string().describe('Record id.'),
@@ -29,16 +33,14 @@ export const dailyRecordItemSchema = z.object({
   payload: z
     .record(z.string(), z.unknown())
     .describe(
-      'Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: "mild"|"moderate"|"severe"|"unknown", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.',
+      'Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: "mild"|"moderate"|"severe"|"unknown", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }.',
     )
     .nullable(),
   mealAnalysisStatus: z
     .string()
-    .describe('Meal analysis status for meal records.')
-    .nullable(),
-  mealAnalysisCoverage: z
-    .string()
-    .describe('Meal analysis coverage for meal records.')
+    .describe(
+      'Meal analysis status: "analyzing", "analyzed", or "analysis_failed".',
+    )
     .nullable(),
   mealAnalysisUpdatedAt: z
     .string()
@@ -46,15 +48,26 @@ export const dailyRecordItemSchema = z.object({
     .nullable(),
   mealAnalysisFailureReason: z
     .string()
-    .describe('Display-safe meal analysis failure reason.')
+    .describe(
+      'Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).',
+    )
     .nullable(),
-  mealShortDescription: z
+  mealHeadline: z
     .string()
-    .describe('Short meal description for list reads.')
+    .describe('Most important meal finding, for the list row.')
     .nullable(),
-  mealTopFoods: z
-    .array(z.string())
-    .describe('Top recognized foods for list reads.'),
+  mealCalorieMin: z
+    .number()
+    .describe('Estimated energy interval lower bound (kcal).')
+    .nullable(),
+  mealCalorieMax: z
+    .number()
+    .describe('Estimated energy interval upper bound (kcal).')
+    .nullable(),
+  mealCalorieBucket: z
+    .enum(['low', 'medium', 'high'])
+    .describe('Coarse energy bucket derived from the interval.')
+    .nullable(),
   attachments: z.array(dailyRecordAttachmentSchema),
   createdAt: z.string().describe('Created at (ISO 8601).'),
   updatedAt: z.string().describe('Updated at (ISO 8601).'),

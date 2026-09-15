@@ -63,7 +63,7 @@ export const updateDailyRecordSchema = z
     payload: z
       .record(z.string(), z.unknown())
       .describe(
-        'Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt.',
+        'Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt. Meal accepts only the dish list { mealAnalysis: { dishes: [{ name: string }] } }: the analysis itself is server-owned, and sending attachments with exactly one image re-runs the analysis.',
       )
       .nullish(),
     healthEventId: z

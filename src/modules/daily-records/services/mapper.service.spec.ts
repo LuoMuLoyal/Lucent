@@ -117,7 +117,7 @@ describe('DailyRecordsMapperService', () => {
       expect(item.occurredTime).toBe('14:30');
     });
 
-    it('keeps full meal payload for detail reads when requested', () => {
+    it('keeps the full meal payload for detail reads and projects the hot columns', () => {
       const payload = {
         mealAnalysis: {
           version: 2,
@@ -154,6 +154,13 @@ describe('DailyRecordsMapperService', () => {
           note: null,
           source: null,
           payload,
+          mealAnalysisStatus: 'analyzed',
+          mealAnalysisUpdatedAt: new Date('2026-07-01T12:30:00.000Z'),
+          mealAnalysisFailureReason: null,
+          mealHeadline: '油炸偏多',
+          mealCalorieMin: 520,
+          mealCalorieMax: 780,
+          mealCalorieBucket: 'medium',
           attachments: [],
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -162,8 +169,9 @@ describe('DailyRecordsMapperService', () => {
       );
 
       expect(item.payload).toEqual(payload);
-      expect(item.mealShortDescription).toBe('油炸偏多');
-      expect(item.mealTopFoods).toEqual(['红烧肉']);
+      expect(item.mealHeadline).toBe('油炸偏多');
+      expect(item.mealCalorieBucket).toBe('medium');
+      expect(item.mealAnalysisUpdatedAt).toBe('2026-07-01T12:30:00.000Z');
     });
   });
 
