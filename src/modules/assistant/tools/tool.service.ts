@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import type {
+  AssistantToolCall,
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
 } from '../types/assistant.types.js';
@@ -78,28 +79,31 @@ export class AssistantToolService {
    */
   async executeMany(
     context: AssistantToolExecutionContext,
-    toolNames: readonly AssistantToolName[],
+    toolCalls: readonly AssistantToolCall[],
   ): Promise<AssistantToolExecutionResult[]> {
     const results: Array<AssistantToolExecutionResult | undefined> = new Array<
       AssistantToolExecutionResult | undefined
-    >(toolNames.length);
+    >(toolCalls.length);
 
-    const readEntries = toolNames
-      .map((name, index) => ({ name, index }))
-      .filter(({ name }) => READ_TOOL_NAMES.has(name));
-    const proposeEntries = toolNames
-      .map((name, index) => ({ name, index }))
-      .filter(({ name }) => !READ_TOOL_NAMES.has(name));
+    const readEntries = toolCalls
+      .map((call, index) => ({ call, index }))
+      .filter(({ call }) => READ_TOOL_NAMES.has(call.name));
+    const proposeEntries = toolCalls
+      .map((call, index) => ({ call, index }))
+      .filter(({ call }) => !READ_TOOL_NAMES.has(call.name));
 
     // Read tools (except leaflet) run concurrently.
     const parallelReads = readEntries.filter(
-      ({ name }) => name !== 'search_medicine_leaflets',
+      ({ call }) => call.name !== 'search_medicine_leaflets',
     );
     if (parallelReads.length > 0) {
       const executed = await Promise.all(
-        parallelReads.map(async ({ name, index }) => ({
+        parallelReads.map(async ({ call, index }) => ({
           index,
-          result: await this.executeWithTimeout(context, name),
+          result: await this.executeWithTimeout(
+            this.withToolArgs(context, call),
+            call.name,
+          ),
         })),
       );
       for (const { index, result } of executed) {
@@ -110,14 +114,14 @@ export class AssistantToolService {
     // Leaflet runs after the parallel batch so its product-id context can see
     // the finished `get_cn_medicine_detail` result.
     const leafletEntry = readEntries.find(
-      ({ name }) => name === 'search_medicine_leaflets',
+      ({ call }) => call.name === 'search_medicine_leaflets',
     );
     if (leafletEntry != null) {
       const filled = results.filter(
         (result): result is AssistantToolExecutionResult => result != null,
       );
       const leafletContext = this.buildToolContext(
-        context,
+        this.withToolArgs(context, leafletEntry.call),
         'search_medicine_leaflets',
         filled,
       );
@@ -128,11 +132,26 @@ export class AssistantToolService {
     }
 
     // Proposal tools stay serial.
-    for (const { name, index } of proposeEntries) {
-      results[index] = await this.executeWithTimeout(context, name);
+    for (const { call, index } of proposeEntries) {
+      results[index] = await this.executeWithTimeout(
+        this.withToolArgs(context, call),
+        call.name,
+      );
     }
 
     return results as AssistantToolExecutionResult[];
+  }
+
+  /**
+   * Binds the arguments the model produced for this tool call to the execution
+   * context, so argument-driven tools (e.g. the meal digest window) read them
+   * instead of parsing `userMessage` text.
+   */
+  private withToolArgs(
+    context: AssistantToolExecutionContext,
+    call: AssistantToolCall,
+  ): AssistantToolExecutionContext {
+    return { ...context, toolArgs: call.args };
   }
 
   /**
@@ -367,6 +386,11 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.readService.getSleepSummaryByRange(context),
+        };
+      case 'get_meal_analysis_digest':
+        return {
+          name: toolName,
+          data: await this.readService.getMealAnalysisDigest(context),
         };
       case 'search_cn_medicine_products':
         return {

@@ -31,6 +31,7 @@ describe('selectAllowedToolsForContextSources', () => {
       'daily_records',
     ]);
     expect(tools).toContain('get_today_records');
+    expect(tools).toContain('get_meal_analysis_digest');
     expect(tools).toContain('propose_create_daily_record');
   });
 
@@ -66,6 +67,7 @@ describe('selectRelevantToolsForMessage', () => {
     'get_user_settings',
     'get_current_medicines',
     'get_sleep_summary_by_range',
+    'get_meal_analysis_digest',
     'search_cn_medicine_products',
     'get_cn_medicine_detail',
     'search_medicine_leaflets',
@@ -135,6 +137,17 @@ describe('selectRelevantToolsForMessage', () => {
     expect(
       selectRelevantToolsForMessage('我吃的药有哪些', [...allReadTools]),
     ).toEqual(expect.arrayContaining(['get_current_medicines']));
+  });
+
+  it('matches meal and diet queries', () => {
+    expect(
+      selectRelevantToolsForMessage('我这周饮食怎么样', [...allReadTools]),
+    ).toEqual(expect.arrayContaining(['get_meal_analysis_digest']));
+    expect(
+      selectRelevantToolsForMessage('How many calories did I eat lately?', [
+        ...allReadTools,
+      ]),
+    ).toEqual(expect.arrayContaining(['get_meal_analysis_digest']));
   });
 
   // ── CN product explicit routing ───────────────────────────────

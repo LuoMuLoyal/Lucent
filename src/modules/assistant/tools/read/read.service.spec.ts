@@ -59,6 +59,7 @@ describe('AssistantToolReadService', () => {
       listToolRecords: vi.fn(),
       resolveSingleDate: vi.fn(),
       findTargetDailyRecordForMutation: vi.fn(),
+      buildMealAnalysisDigest: vi.fn(),
     } as unknown as vi.Mocked<AssistantToolRecordQueryService>;
 
     service = new AssistantToolReadService(
@@ -393,6 +394,104 @@ describe('AssistantToolReadService', () => {
       });
 
       expect(result.coverage.status).toBe('empty');
+    });
+  });
+
+  describe('getMealAnalysisDigest', () => {
+    const digest = {
+      startDate: '2026-07-04',
+      endDate: '2026-07-10',
+      windowDays: 7,
+      limit: 20,
+      requestedDays: null,
+      requestedLimit: null,
+      daysCapped: false,
+      limitCapped: false,
+      analyzedMealCount: 1,
+      meals: [
+        {
+          date: '2026-07-09',
+          occurredTime: '12:30',
+          title: '午饭',
+          headline: '油炸偏多',
+          calorieRange: {
+            min: 520,
+            max: 780,
+            unit: 'kcal' as const,
+            bucket: 'medium',
+          },
+          items: [
+            {
+              rank: 1,
+              kind: 'fried',
+              polarity: 'watch',
+              headline: '油炸偏多',
+              detail: '午饭油炸食品摄入偏多',
+            },
+          ],
+          dishes: ['红烧肉'],
+        },
+      ],
+    };
+
+    it('passes the model-supplied window through and reports the resolved range', async () => {
+      recordQuery.buildMealAnalysisDigest.mockResolvedValue(digest);
+
+      const result = await service.getMealAnalysisDigest({
+        ...mockContext,
+        toolArgs: { days: 7, limit: 20 },
+      });
+
+      expect(recordQuery.buildMealAnalysisDigest).toHaveBeenCalledWith(
+        'user-1',
+        { days: 7, limit: 20 },
+      );
+      expect(result.source.tool).toBe('get_meal_analysis_digest');
+      expect(result.coverage).toEqual({ status: 'complete', reason: null });
+      expect(result.ambiguities).toEqual([]);
+      expect(result.timeRange).toMatchObject({
+        startDate: '2026-07-04',
+        endDate: '2026-07-10',
+      });
+      expect(result.result).toMatchObject({
+        total: 1,
+        analyzedMealCount: 1,
+      });
+    });
+
+    it('reports server caps as ambiguities without failing the read', async () => {
+      recordQuery.buildMealAnalysisDigest.mockResolvedValue({
+        ...digest,
+        windowDays: 15,
+        requestedDays: 30,
+        daysCapped: true,
+        limit: 20,
+        requestedLimit: 99,
+        limitCapped: true,
+        analyzedMealCount: 40,
+      });
+
+      const result = await service.getMealAnalysisDigest({
+        ...mockContext,
+        toolArgs: { days: 30, limit: 99 },
+      });
+
+      expect(result.coverage.status).toBe('partial');
+      expect(result.ambiguities).toHaveLength(2);
+      expect(result.confidence.level).toBe('medium');
+    });
+
+    it('returns empty coverage when no meal has a finished analysis', async () => {
+      recordQuery.buildMealAnalysisDigest.mockResolvedValue({
+        ...digest,
+        analyzedMealCount: 0,
+        meals: [],
+      });
+
+      const result = await service.getMealAnalysisDigest(mockContext);
+
+      expect(result.coverage.status).toBe('empty');
+      expect(result.result).toHaveProperty('total', 0);
     });
   });
 });

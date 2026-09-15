@@ -121,9 +121,9 @@ export class AssistantStreamOrchestratorService {
         buildMemoryBlock: (id) =>
           this.assistantConversationService.buildMemoryBlock(id),
       },
-      async (toolNames) => {
-        const executable = toolNames.filter((name) =>
-          policy.executableToolNames.includes(name),
+      async (toolCalls) => {
+        const executable = toolCalls.filter((call) =>
+          policy.executableToolNames.includes(call.name),
         );
         return this.assistantToolExecutor.executeMany(toolContext, executable);
       },

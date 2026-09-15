@@ -1,5 +1,9 @@
 import { buildToolDefinitions } from './tool-definitions.js';
 import { ASSISTANT_TOOL_NAMES } from './tool-types.js';
+import {
+  MAX_MEAL_DIGEST_DAYS,
+  MAX_MEAL_DIGEST_LIMIT,
+} from './tool-constants.js';
 
 describe('buildToolDefinitions', () => {
   it('returns empty array for empty tool names', () => {
@@ -52,6 +56,44 @@ describe('buildToolDefinitions', () => {
     const defs = buildToolDefinitions(['get_user_settings']);
 
     expect(defs[0]!.function.parameters).toEqual({
+      type: 'object',
+      properties: {},
+    });
+  });
+
+  it('declares the model-chosen window for the meal digest tool', () => {
+    const [def] = buildToolDefinitions(['get_meal_analysis_digest']);
+
+    const parameters = def!.function.parameters as {
+      type: string;
+      properties: Record<string, { type: string; maximum: number }>;
+      additionalProperties: boolean;
+    };
+
+    expect(parameters.type).toBe('object');
+    expect(parameters.additionalProperties).toBe(false);
+    expect(Object.keys(parameters.properties)).toEqual(['days', 'limit']);
+    expect(parameters.properties['days']).toMatchObject({
+      type: 'integer',
+      maximum: MAX_MEAL_DIGEST_DAYS,
+    });
+    expect(parameters.properties['limit']).toMatchObject({
+      type: 'integer',
+      maximum: MAX_MEAL_DIGEST_LIMIT,
+    });
+  });
+
+  it('keeps argument-driven and no-argument tools in one definition list', () => {
+    const defs = buildToolDefinitions([
+      'get_meal_analysis_digest',
+      'get_today_records',
+    ]);
+
+    expect(defs[0]!.function.parameters).not.toEqual({
+      type: 'object',
+      properties: {},
+    });
+    expect(defs[1]!.function.parameters).toEqual({
       type: 'object',
       properties: {},
     });

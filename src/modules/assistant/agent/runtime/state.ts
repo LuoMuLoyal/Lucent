@@ -5,6 +5,7 @@ import type {
   AssistantToolName,
 } from '../../tools/shared/tool-types.js';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import type { AssistantToolCall } from '../../types/assistant.types.js';
 import type { AssistantIntent } from './classify.js';
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
@@ -118,8 +119,11 @@ export const AssistantRuntimeState = Annotation.Root({
   }),
 
   // ── Tool-loop state ────────────────────────────────────────────────────
-  /** Tools selected by the LLM in the most recent agent call. */
-  pendingToolCalls: Annotation<AssistantToolName[]>({
+  /**
+   * Tool calls selected by the LLM in the most recent agent call, including
+   * the arguments it produced (consumed by the tools node / execution layer).
+   */
+  pendingToolCalls: Annotation<AssistantToolCall[]>({
     reducer: (_left, right) => right,
     default: () => [],
   }),

@@ -3,6 +3,7 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type { AssistantToolName } from '../../tools/shared/tool-types.js';
 import { buildToolDefinitions } from '../../tools/shared/tool-definitions.js';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import type { AssistantToolCall } from '../../types/assistant.types.js';
 import type { AssistantRuntimeState } from './state.js';
 import { streamModelResponse } from './model-stream.js';
 import { extractMessageText } from './message-text.utils.js';
@@ -53,12 +54,15 @@ export function createAgentNode(deps: {
     // chunks are received), so no instanceof guard is needed here.
     const toolCalls = response.tool_calls;
     if (toolCalls != null && toolCalls.length > 0) {
-      const toolNames = toolCalls.map((tc) => tc.name as AssistantToolName);
+      const calls: AssistantToolCall[] = toolCalls.map((toolCall) => ({
+        name: toolCall.name as AssistantToolName,
+        args: toolCall.args,
+      }));
       return {
         messages: [response],
-        pendingToolCalls: toolNames,
+        pendingToolCalls: calls,
         finalContent: null,
-        selectedTools: toolNames,
+        selectedTools: calls.map((call) => call.name),
       };
     }
 
@@ -82,12 +86,12 @@ export function createAgentNode(deps: {
  */
 export function createToolsNode(deps: {
   executeTools: (
-    toolNames: readonly AssistantToolName[],
+    toolCalls: readonly AssistantToolCall[],
   ) => Promise<AssistantToolExecutionResult[]>;
 }): RuntimeNode {
   return async (state) => {
-    const toolNames = state.pendingToolCalls;
-    const results = await deps.executeTools(toolNames);
+    const toolCalls = state.pendingToolCalls;
+    const results = await deps.executeTools(toolCalls);
 
     const toolMessages = results.map(
       (result, index) =>

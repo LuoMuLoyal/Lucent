@@ -8,6 +8,12 @@
  * userMessage), so most tools take no parameters.
  */
 import type { AssistantToolName } from './tool-types.js';
+import {
+  DEFAULT_MEAL_DIGEST_DAYS,
+  DEFAULT_MEAL_DIGEST_LIMIT,
+  MAX_MEAL_DIGEST_DAYS,
+  MAX_MEAL_DIGEST_LIMIT,
+} from './tool-constants.js';
 
 interface ToolDefinition {
   type: 'function';
@@ -22,6 +28,41 @@ const noParams = {
   type: 'object',
   properties: {},
 } as const;
+
+/**
+ * Tool schemas for the rare tools that take real arguments.
+ *
+ * Most tools derive everything they need from the conversation context, so they
+ * advertise an empty parameter object. `get_meal_analysis_digest` is the first
+ * tool whose window is a genuine model decision (`days` / `limit`): the model
+ * translates "看看最近两周的饮食" into numbers instead of the server guessing at
+ * `userMessage` text. The declared maxima are the same values the server
+ * enforces, so the model cannot ask for a window the server will silently cut.
+ */
+const MEAL_DIGEST_PARAMETERS = {
+  type: 'object',
+  properties: {
+    days: {
+      type: 'integer',
+      minimum: 1,
+      maximum: MAX_MEAL_DIGEST_DAYS,
+      description: `Lookback window in days, today included (1-${String(MAX_MEAL_DIGEST_DAYS)}). Defaults to ${String(DEFAULT_MEAL_DIGEST_DAYS)}.`,
+    },
+    limit: {
+      type: 'integer',
+      minimum: 1,
+      maximum: MAX_MEAL_DIGEST_LIMIT,
+      description: `Maximum number of analyzed meals to return, newest first (1-${String(MAX_MEAL_DIGEST_LIMIT)}). Defaults to ${String(DEFAULT_MEAL_DIGEST_LIMIT)}.`,
+    },
+  },
+  additionalProperties: false,
+} as const;
+
+const TOOL_PARAMETERS: Partial<
+  Record<AssistantToolName, Record<string, unknown>>
+> = {
+  get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
+};
 
 const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
   get_today_records:
@@ -44,6 +85,8 @@ const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
     "Retrieve the user's current medicines and active dose reminders.",
   get_sleep_summary_by_range:
     "Retrieve the user's sleep summaries for a date range.",
+  get_meal_analysis_digest:
+    "Retrieve the user's already-computed meal analyses (energy interval + ranked findings per meal) for a lookback window. Use this instead of re-reading meal photos or re-deriving nutrition; pass `days` and `limit` to size the window.",
   search_cn_medicine_products:
     'Search Chinese medicine products by approval number, manufacturer, or product name.',
   get_cn_medicine_detail:
@@ -82,7 +125,7 @@ export function buildToolDefinitions(
     function: {
       name,
       description: TOOL_DESCRIPTIONS[name],
-      parameters: noParams,
+      parameters: TOOL_PARAMETERS[name] ?? noParams,
     },
   }));
 }

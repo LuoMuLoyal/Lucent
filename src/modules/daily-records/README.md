@@ -40,7 +40,9 @@ owner: backend
   `meal_headline` / `meal_calorie_min|max|bucket` /
   `meal_analysis_failure_reason`,写入时由 `toMealAnalysisHotFields` 统一投影),
   不解析 payload JSONB;详情接口才返回完整 `payload.mealAnalysis`
-  (`items` 全量 + `dishes`)。
+  (`items` 全量 + `dishes`)。跨模块范围读同样拿得到这些列:`DailyRecordFact`
+  携带全部投影字段(assistant 餐食 digest 靠它一条查询判 `analyzed` 并取
+  headline/区间,只为 `items`/`dishes` 回读 payload)。
 
 ## 依赖方向
 

@@ -7,7 +7,12 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { Prisma, type DailyRecordKind } from '#generated/prisma/client.js';
+import {
+  Prisma,
+  type DailyRecordKind,
+  type MealAnalysisStatus,
+  type MealCalorieBucket,
+} from '#generated/prisma/client.js';
 import { PrismaService } from '../../../prisma/index.js';
 import { fromPrismaResult, nonDeleted } from '../../../common/index.js';
 import type {
@@ -44,6 +49,11 @@ export interface PaginatedResult<T> {
  * record fields only — no Prisma query DSL. Canonical order is
  * `occurredAt asc, createdAt asc`; consumers needing another order
  * re-sort in memory.
+ *
+ * 餐食投影列（`mealAnalysisStatus` / `mealHeadline` / `mealCalorie*` / 失败原因）
+ * 一并暴露：跨模块消费者想知道「这条餐食分析成没成、结论是什么、区间多少」时读列即可，
+ * 不必为每一行解析 `payload` JSONB。只有需要 `items` / `dishes` 明细时才读 `payload`
+ * （它与列同源，写入路径见 `toMealAnalysisHotFields`）。非餐食记录这些字段恒为 null。
  */
 export interface DailyRecordFact {
   id: string;
@@ -55,6 +65,13 @@ export interface DailyRecordFact {
   unit: string | null;
   note: string | null;
   payload: Prisma.JsonValue;
+  mealAnalysisStatus: MealAnalysisStatus | null;
+  mealAnalysisUpdatedAt: Date | null;
+  mealAnalysisFailureReason: string | null;
+  mealHeadline: string | null;
+  mealCalorieMin: number | null;
+  mealCalorieMax: number | null;
+  mealCalorieBucket: MealCalorieBucket | null;
   createdAt: Date;
 }
 
@@ -75,6 +92,13 @@ const dailyRecordFactSelect = {
   unit: true,
   note: true,
   payload: true,
+  mealAnalysisStatus: true,
+  mealAnalysisUpdatedAt: true,
+  mealAnalysisFailureReason: true,
+  mealHeadline: true,
+  mealCalorieMin: true,
+  mealCalorieMax: true,
+  mealCalorieBucket: true,
   createdAt: true,
 } satisfies Prisma.UserDailyRecordSelect;
 

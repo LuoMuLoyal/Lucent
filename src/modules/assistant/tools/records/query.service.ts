@@ -1,23 +1,69 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '#generated/prisma/client.js';
+import {
+  DailyRecordReaderPort,
+  parseMealRecordPayload,
+} from '../../../daily-records/index.js';
+import { formatDateOnly, parseDateOnly } from '../../../../common/index.js';
 import type { IDailyRecordReader } from '../../types/ports.js';
 import { DAILY_RECORD_READER } from '../../types/ports.js';
 import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
-import { resolveSingleDate } from '../shared/date-resolver.js';
+import {
+  offsetDateString,
+  resolveSingleDate,
+  todayDateString,
+} from '../shared/date-resolver.js';
 import type {
+  ToolMealAnalysisDigest,
+  ToolMealAnalysisDigestEntry,
   ToolMutationHints,
   ToolMutationRankedRecord,
   ToolMutationTargetMatch,
   ToolRecordItem,
   ToolSingleDateResolution,
 } from '../shared/tool-constants.js';
-import { MUTATION_MATCH_WEIGHTS } from '../shared/tool-constants.js';
+import {
+  DEFAULT_MEAL_DIGEST_DAYS,
+  DEFAULT_MEAL_DIGEST_LIMIT,
+  MAX_MEAL_DIGEST_DAYS,
+  MAX_MEAL_DIGEST_LIMIT,
+  MUTATION_MATCH_WEIGHTS,
+} from '../shared/tool-constants.js';
+
+/**
+ * Reads one positive-integer tool argument, clamped to `[1, max]`.
+ *
+ * The declared JSON schema already constrains the model, but a schema is not a
+ * guarantee (older endpoints, malformed function calls), so the server clamps
+ * again and reports whether it had to.
+ */
+function clampPositiveInt(
+  raw: unknown,
+  fallback: number,
+  max: number,
+): { value: number; requested: number | null; capped: boolean } {
+  const parsed =
+    typeof raw === 'number'
+      ? raw
+      : typeof raw === 'string' && raw.trim() !== ''
+        ? Number(raw)
+        : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return { value: fallback, requested: null, capped: false };
+  }
+  const requested = Math.floor(parsed);
+  if (requested > max) {
+    return { value: max, requested, capped: true };
+  }
+  return { value: requested, requested, capped: false };
+}
 
 @Injectable()
 export class AssistantToolRecordQueryService {
   constructor(
     @Inject(DAILY_RECORD_READER)
     private readonly dailyRecordsService: IDailyRecordReader,
+    private readonly dailyRecordReaderPort: DailyRecordReaderPort,
   ) {}
 
   async listToolRecords(
@@ -62,6 +108,104 @@ export class AssistantToolRecordQueryService {
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
       }));
+  }
+
+  /**
+   * Builds the meal-analysis digest: already-computed analyses for the window
+   * the model asked for, newest meal first.
+   *
+   * 为什么读投影列而不是逐条解析 payload：`analyzed` 判定、一行结论（`mealHeadline`）
+   * 与热量区间都在 `UserDailyRecord` 的投影列上，跨 15 天的窗口只需一条范围查询；
+   * 没有分析结果的餐食（`analyzing` / `analysis_failed`）直接被列过滤掉，其 payload
+   * 从不解析。只有进入结果的 ≤`limit` 条餐食才回读 payload 取 `items` / `dishes` 明细。
+   *
+   * 这也是「不再重复识图」的落点：助手拿到的是一等公民的结构化区间与排序结论，
+   * 而不是让它自己看图或从文案里猜。
+   */
+  async buildMealAnalysisDigest(
+    userId: string,
+    args: Record<string, unknown> | undefined,
+  ): Promise<ToolMealAnalysisDigest> {
+    const days = clampPositiveInt(
+      args?.['days'],
+      DEFAULT_MEAL_DIGEST_DAYS,
+      MAX_MEAL_DIGEST_DAYS,
+    );
+    const limit = clampPositiveInt(
+      args?.['limit'],
+      DEFAULT_MEAL_DIGEST_LIMIT,
+      MAX_MEAL_DIGEST_LIMIT,
+    );
+
+    const endDate = todayDateString();
+    const startDate = offsetDateString(-(days.value - 1));
+    const facts = await this.dailyRecordReaderPort.listFactsInRange(
+      userId,
+      parseDateOnly(startDate),
+      parseDateOnly(endDate),
+      [DailyRecordKind.meal],
+    );
+
+    const analyzed = facts
+      .filter((fact) => fact.mealAnalysisStatus === 'analyzed')
+      .sort(
+        (left, right) =>
+          right.occurredAt.getTime() - left.occurredAt.getTime() ||
+          (right.occurredTime ?? '').localeCompare(left.occurredTime ?? '') ||
+          right.createdAt.getTime() - left.createdAt.getTime(),
+      );
+
+    return {
+      startDate,
+      endDate,
+      windowDays: days.value,
+      limit: limit.value,
+      requestedDays: days.requested,
+      requestedLimit: limit.requested,
+      daysCapped: days.capped,
+      limitCapped: analyzed.length > limit.value,
+      analyzedMealCount: analyzed.length,
+      meals: analyzed
+        .slice(0, limit.value)
+        .map((fact) => this.toMealDigestEntry(fact)),
+    };
+  }
+
+  private toMealDigestEntry(fact: {
+    occurredAt: Date;
+    occurredTime: string | null;
+    title: string | null;
+    payload: unknown;
+    mealHeadline: string | null;
+    mealCalorieMin: number | null;
+    mealCalorieMax: number | null;
+    mealCalorieBucket: string | null;
+  }): ToolMealAnalysisDigestEntry {
+    const analysis = parseMealRecordPayload(fact.payload).mealAnalysis ?? null;
+
+    return {
+      date: formatDateOnly(fact.occurredAt),
+      occurredTime: fact.occurredTime,
+      title: fact.title,
+      headline: fact.mealHeadline,
+      calorieRange:
+        fact.mealCalorieMin != null && fact.mealCalorieMax != null
+          ? {
+              min: fact.mealCalorieMin,
+              max: fact.mealCalorieMax,
+              unit: 'kcal',
+              bucket: fact.mealCalorieBucket,
+            }
+          : null,
+      items: (analysis?.items ?? []).map((item) => ({
+        rank: item.rank,
+        kind: item.kind,
+        polarity: item.polarity,
+        headline: item.headline,
+        detail: item.detail,
+      })),
+      dishes: (analysis?.dishes ?? []).map((dish) => dish.name),
+    };
   }
 
   async findTargetDailyRecordForMutation(

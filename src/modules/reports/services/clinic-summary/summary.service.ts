@@ -481,6 +481,13 @@ export class ClinicSummaryService {
         unit: true,
         note: true,
         payload: true,
+        mealAnalysisStatus: true,
+        mealAnalysisUpdatedAt: true,
+        mealAnalysisFailureReason: true,
+        mealHeadline: true,
+        mealCalorieMin: true,
+        mealCalorieMax: true,
+        mealCalorieBucket: true,
         createdAt: true,
       },
     });

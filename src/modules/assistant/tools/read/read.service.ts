@@ -12,6 +12,8 @@ import type {
 import {
   DEFAULT_HISTORY_LIMIT,
   MAX_RANGE_DAYS,
+  MEAL_DIGEST_DAYS_CAP_MESSAGE,
+  MEAL_DIGEST_LIMIT_CAP_MESSAGE,
 } from '../shared/tool-constants.js';
 import {
   enumerateDates,
@@ -575,6 +577,79 @@ export class AssistantToolReadService {
             : 'Resolved a bounded date range for sleep summary lookup, but no sleep data was stored there.',
       }),
       ambiguities: range.ambiguities,
+      tables: ['daily_record'],
+    });
+  }
+
+  /**
+   * Meal-analysis digest: the assistant's read side for already-computed meal
+   * analyses (energy interval + ranked findings), so it never has to re-read a
+   * photo or re-derive nutrition.
+   *
+   * 窗口由模型通过工具参数给出（`days` / `limit`），服务端只负责封顶并把「截断过」
+   * 写进 ambiguities/coverage，让模型知道自己拿到的是哪一段。
+   */
+  async getMealAnalysisDigest(
+    context: AssistantToolExecutionContext,
+  ): Promise<AssistantReadResultEnvelope> {
+    const digest = await this.recordQueryService.buildMealAnalysisDigest(
+      context.userId,
+      context.toolArgs,
+    );
+    const ambiguities: string[] = [];
+    if (digest.daysCapped) {
+      ambiguities.push(
+        MEAL_DIGEST_DAYS_CAP_MESSAGE(
+          digest.requestedDays ?? digest.windowDays,
+          digest.windowDays,
+        ),
+      );
+    }
+    if (digest.limitCapped) {
+      ambiguities.push(
+        MEAL_DIGEST_LIMIT_CAP_MESSAGE(
+          digest.requestedLimit ?? digest.limit,
+          digest.limit,
+        ),
+      );
+    }
+
+    const hasMeals = digest.meals.length > 0;
+    return buildReadEnvelope({
+      toolName: 'get_meal_analysis_digest',
+      query: {
+        days: digest.windowDays,
+        limit: digest.limit,
+        requestedDays: digest.requestedDays,
+        requestedLimit: digest.requestedLimit,
+        analyzedMealCount: digest.analyzedMealCount,
+      },
+      result: {
+        meals: digest.meals,
+        total: digest.meals.length,
+        analyzedMealCount: digest.analyzedMealCount,
+      },
+      coverage: !hasMeals
+        ? {
+            status: 'empty',
+            reason:
+              'No analyzed meals were found in the selected window. Meals still analyzing or failed are excluded.',
+          }
+        : ambiguities.length > 0
+          ? { status: 'partial', reason: ambiguities.join(' ') }
+          : { status: 'complete', reason: null },
+      timeRange: {
+        timezone: 'UTC',
+        startDate: digest.startDate,
+        endDate: digest.endDate,
+      },
+      confidence: buildReadConfidence({
+        ambiguities,
+        preferredReason: hasMeals
+          ? 'Read persisted meal analyses from the meal projection columns and their stored payload details.'
+          : 'Read persisted meal analyses for the window, but none of its meals had a finished analysis.',
+      }),
+      ambiguities,
       tables: ['daily_record'],
     });
   }

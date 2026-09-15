@@ -1,5 +1,9 @@
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import type { AssistantToolExecutionContext } from '../types/assistant.types.js';
+import type {
+  AssistantToolCall,
+  AssistantToolExecutionContext,
+} from '../types/assistant.types.js';
+import type { AssistantToolName } from './shared/tool-types.js';
 import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants.js';
 import { AssistantToolLeafletReadService } from './leaflet/read.service.js';
 import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-resolve.service.js';
@@ -35,6 +39,10 @@ describe('AssistantToolService', () => {
     };
   }
 
+  function toolCalls(...names: AssistantToolName[]): AssistantToolCall[] {
+    return names.map((name) => ({ name, args: {} }));
+  }
+
   function buildExecutor() {
     const aiSummaryHistoryService = {
       getLatestTodaySummaryByDate: vi.fn(),
@@ -54,12 +62,16 @@ describe('AssistantToolService', () => {
     const dailyRecordsService = {
       list: vi.fn(),
     };
+    const dailyRecordReaderPort = {
+      listFactsInRange: vi.fn().mockResolvedValue([]),
+    };
     const dailyRecordCandidatesService = {
       generate: vi.fn(),
     };
 
     const recordQueryService = new AssistantToolRecordQueryService(
       dailyRecordsService as never,
+      dailyRecordReaderPort as never,
     );
     const readService = new AssistantToolReadService(
       {} as never,
@@ -191,6 +203,7 @@ describe('AssistantToolService', () => {
         cache,
         dailyRecordCandidatesService,
         dailyRecordProposalService,
+        dailyRecordReaderPort,
         dailyRecordsService,
         medicineRemindersService,
         medicineLookupService,
@@ -207,15 +220,18 @@ describe('AssistantToolService', () => {
     const { service, deps } = buildExecutor();
 
     await expect(
-      service.executeMany(buildContext(), [
-        'search_cn_medicine_products',
-        'get_cn_medicine_detail',
-        'get_drugbank_detail',
-        'search_medicine_leaflets',
-        'search_medical_qa_corpus',
-        'resolve_drugbank_entity',
-        'search_drugbank_passages',
-      ]),
+      service.executeMany(
+        buildContext(),
+        toolCalls(
+          'search_cn_medicine_products',
+          'get_cn_medicine_detail',
+          'get_drugbank_detail',
+          'search_medicine_leaflets',
+          'search_medical_qa_corpus',
+          'resolve_drugbank_entity',
+          'search_drugbank_passages',
+        ),
+      ),
     ).resolves.toHaveLength(7);
 
     expect(
@@ -223,6 +239,66 @@ describe('AssistantToolService', () => {
     ).toHaveBeenCalled();
     expect(deps.medicineLookupService.getCnMedicineDetail).toHaveBeenCalled();
     expect(deps.medicineLookupService.getDrugbankDetail).toHaveBeenCalled();
+  });
+
+  it('forwards the model-supplied window into the meal digest read', async () => {
+    const { service, deps } = buildExecutor();
+    deps.dailyRecordReaderPort.listFactsInRange.mockResolvedValue([
+      {
+        id: 'meal-1',
+        kind: DailyRecordKind.meal,
+        occurredAt: new Date('2026-06-18T00:00:00.000Z'),
+        occurredTime: '12:30',
+        title: '午饭',
+        value: null,
+        unit: null,
+        note: null,
+        payload: null,
+        mealAnalysisStatus: 'analyzed',
+        mealAnalysisUpdatedAt: new Date('2026-06-18T04:40:00.000Z'),
+        mealAnalysisFailureReason: null,
+        mealHeadline: '油炸偏多',
+        mealCalorieMin: 520,
+        mealCalorieMax: 780,
+        mealCalorieBucket: 'medium',
+        createdAt: new Date('2026-06-18T04:00:00.000Z'),
+      },
+    ]);
+
+    const results = await service.executeMany(buildContext(), [
+      { name: 'get_meal_analysis_digest', args: { days: 14, limit: 5 } },
+    ]);
+
+    // The model's `days` argument — not the user message text — drives the window.
+    expect(deps.dailyRecordReaderPort.listFactsInRange).toHaveBeenCalledWith(
+      'user-1',
+      new Date(Date.UTC(2026, 5, 6)),
+      new Date(Date.UTC(2026, 5, 19)),
+      ['meal'],
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0]?.name).toBe('get_meal_analysis_digest');
+    expect(results[0]?.data).toMatchObject({
+      query: { days: 14, limit: 5, requestedDays: 14, requestedLimit: 5 },
+      coverage: { status: 'complete', reason: null },
+      result: {
+        total: 1,
+        meals: [
+          {
+            date: '2026-06-18',
+            occurredTime: '12:30',
+            title: '午饭',
+            headline: '油炸偏多',
+            calorieRange: {
+              min: 520,
+              max: 780,
+              unit: 'kcal',
+              bucket: 'medium',
+            },
+          },
+        ],
+      },
+    });
   });
 
   it('serves repeated knowledge queries from the tool cache', async () => {
@@ -240,7 +316,7 @@ describe('AssistantToolService', () => {
 
     const result = await service.executeMany(
       buildContext({ userMessage: '查一下阿司匹林的厂家' }),
-      ['search_cn_medicine_products'],
+      toolCalls('search_cn_medicine_products'),
     );
 
     expect(result).toEqual([cachedResult]);
@@ -306,7 +382,7 @@ describe('AssistantToolService', () => {
         locale: 'zh-CN',
         userMessage: '阿司匹林肠溶片的禁忌和不良反应是什么',
       }),
-      ['get_cn_medicine_detail', 'search_medicine_leaflets'],
+      toolCalls('get_cn_medicine_detail', 'search_medicine_leaflets'),
     );
 
     expect(leafletSpy).toHaveBeenCalledWith(
@@ -334,9 +410,10 @@ describe('AssistantToolService', () => {
       confidenceNote: 'Based on stored summary.',
     });
 
-    const results = await service.executeMany(buildContext(), [
-      'get_today_summary_by_date',
-    ]);
+    const results = await service.executeMany(
+      buildContext(),
+      toolCalls('get_today_summary_by_date'),
+    );
 
     expect(
       deps.aiSummaryHistoryService.getLatestTodaySummaryByDate,
@@ -426,7 +503,7 @@ describe('AssistantToolService', () => {
         userMessage: '把今天那条 300ml 饮水记录备注改成 课后补水',
         enabledContextSources: ['daily_records'],
       }),
-      ['propose_update_daily_record'],
+      toolCalls('propose_update_daily_record'),
     );
 
     expect(deps.dailyRecordsService.list).toHaveBeenCalledWith(
@@ -499,7 +576,7 @@ describe('AssistantToolService', () => {
         userMessage: '把今天那条饮水记录改一下',
         enabledContextSources: ['daily_records'],
       }),
-      ['propose_update_daily_record'],
+      toolCalls('propose_update_daily_record'),
     );
 
     expect(results[0]?.proposedActions).toBeUndefined();
@@ -541,7 +618,7 @@ describe('AssistantToolService', () => {
         userMessage: 'I drank 300ml water today',
         enabledContextSources: ['daily_records'],
       }),
-      ['propose_create_daily_record'],
+      toolCalls('propose_create_daily_record'),
     );
 
     expect(deps.dailyRecordCandidatesService.generate).toHaveBeenCalledWith(
@@ -586,9 +663,10 @@ describe('AssistantToolService', () => {
       }),
     );
 
-    const pending = service.executeMany(buildContext(), [
-      'get_today_summary_by_date',
-    ]);
+    const pending = service.executeMany(
+      buildContext(),
+      toolCalls('get_today_summary_by_date'),
+    );
 
     await vi.advanceTimersByTimeAsync(TOOL_EXECUTION_TIMEOUT_MS);
     const results = await pending;
@@ -618,9 +696,10 @@ describe('AssistantToolService', () => {
     ).logger;
     const warnSpy = vi.spyOn(logger, 'warn');
 
-    const pending = service.executeMany(buildContext(), [
-      'get_today_summary_by_date',
-    ]);
+    const pending = service.executeMany(
+      buildContext(),
+      toolCalls('get_today_summary_by_date'),
+    );
     await vi.advanceTimersByTimeAsync(TOOL_EXECUTION_TIMEOUT_MS);
     await pending;
     rejectLate(new Error('late tool failure'));
@@ -651,7 +730,7 @@ describe('AssistantToolService', () => {
 
     const results = await service.executeMany(
       buildContext({ userMessage: '查一下阿司匹林的厂家' }),
-      ['search_cn_medicine_products'],
+      toolCalls('search_cn_medicine_products'),
     );
 
     expect(results).toHaveLength(1);
@@ -672,7 +751,7 @@ describe('AssistantToolService', () => {
 
     const results = await service.executeMany(
       buildContext({ userMessage: '查一下阿司匹林的厂家' }),
-      ['search_cn_medicine_products'],
+      toolCalls('search_cn_medicine_products'),
     );
 
     expect(results).toHaveLength(1);
@@ -700,10 +779,10 @@ describe('AssistantToolService', () => {
     );
     deps.dailyRecordsService.list.mockResolvedValue({ items: [] });
 
-    const pending = service.executeMany(buildContext(), [
-      'get_today_summary_by_date',
-      'get_today_records',
-    ]);
+    const pending = service.executeMany(
+      buildContext(),
+      toolCalls('get_today_summary_by_date', 'get_today_records'),
+    );
 
     // Both read tools must already be running while the summary tool is still
     // blocked on its gate — evidence of parallel start, not serial execution.
@@ -735,7 +814,7 @@ describe('AssistantToolService', () => {
 
     const pending = service.executeMany(
       buildContext({ userMessage: '把今天那条记录改一下' }),
-      ['propose_update_daily_record', 'propose_delete_daily_record'],
+      toolCalls('propose_update_daily_record', 'propose_delete_daily_record'),
     );
 
     // The first proposal tool is blocked on the gate; the second must NOT have

@@ -8,7 +8,10 @@ import { isRetryableLlmError } from '../../../../common/llm/retry/llm-retry.help
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants.js';
 import type { AssistantToolName } from '../../tools/shared/tool-types.js';
-import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
+import type {
+  AssistantToolCall,
+  AssistantToolExecutionResult,
+} from '../../types/assistant.types.js';
 import { AssistantRuntimeState } from './state.js';
 import { selectAllowedToolsForContextSources } from './router.js';
 import { classifyIntent, type AssistantIntent } from './classify.js';
@@ -42,7 +45,7 @@ const NODE_CACHE_TTL_SECONDS = 3600;
 
 /** Callback type for executing tools inside the graph. */
 export type ToolExecutorFn = (
-  toolNames: readonly AssistantToolName[],
+  toolCalls: readonly AssistantToolCall[],
 ) => Promise<AssistantToolExecutionResult[]>;
 
 /** Callback type for creating the LLM model. */

@@ -44,12 +44,23 @@ query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查�
 检索，miss 不回退关键词猜测）、`knowledge`（医学问答语料：assistant-only，
 开放语料统一 `verifiability: 'open_corpus'` 低可信标注，每页上限
 `MEDICAL_QA_MAX_LIMIT = 5`，前端线性服药流程不得消费）、`records`
-（档案/在服药品）、`proposal`（`propose_create/update/delete_daily_record`、
-`propose_update_user_settings`，只产出带 `expiresAt` 的提案，绝不直接写 DB）。
+（档案/在服药品 + **餐食分析 digest `get_meal_analysis_digest`**）、`proposal`
+（`propose_create/update/delete_daily_record`、`propose_update_user_settings`，
+只产出带 `expiresAt` 的提案，绝不直接写 DB）。
 检索源强制分离：中文说明书、DrugBank passage、医学问答各用独立向量表与
 工具，互不合并；DrugBank passage 检索必须先 `resolve_drugbank_entity` 圈定
 实体范围。AI 分层（assistant=Agent，其余默认 bounded-linear、复用
 `common/llm`、copy 本地化）详见 `docs/explanation/architecture.md`。
+
+### 工具参数（模型定窗）
+
+工具调用参数经 `AssistantToolCall` 从 `agent` 节点一路带到执行层
+（`AssistantToolExecutionContext.toolArgs`），**不再**从 `userMessage` 文本猜
+参数。`get_meal_analysis_digest` 是当前唯一带参数的工具：`days` / `limit`
+由模型给出，服务端封顶最近 `15` 天、最多 `20` 餐（封顶写进 envelope 的
+`ambiguities` + `coverage: partial`）；它读餐食投影列判定 `analyzed` 并取
+headline/区间，只为返回的 ≤`limit` 条回读 `payload.mealAnalysis` 取
+`items` / `dishes`，从而**不再重复识图**。无参数工具的参数 schema 仍是空对象。
 
 ## Persistence & Memory
 
@@ -63,7 +74,8 @@ query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查�
 Imports：Auth、LlmCommon、LlmRuntime、Medicines、UserSettings、
 UserHealthContext、DailyRecords、MedicineReminders。Port DI（ADR-0009）：
 `MEDICINE_REMINDER_READER`、`DAILY_RECORD_READER`、
-`DAILY_RECORD_CANDIDATE_GENERATOR`。Barrel 仅导出
+`DAILY_RECORD_CANDIDATE_GENERATOR`，以及类令牌 `DailyRecordReaderPort`
+（餐食 digest 的范围读）。Barrel 仅导出
 `HistoricalAiSummaryService`（reports 消费）。
 
 ## Tests

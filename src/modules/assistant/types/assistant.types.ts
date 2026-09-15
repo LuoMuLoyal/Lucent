@@ -218,10 +218,24 @@ export interface AssistantToolExecutionResult {
   timeout?: boolean;
 }
 
+/**
+ * One tool the model asked to call, with the arguments it produced.
+ *
+ * 参数必须原样带到执行层：工具的参数（例如餐食 digest 的 `days` / `limit`）由模型
+ * 通过 function calling 给出，不能再从 `userMessage` 文本里猜——本链路的既有教训是
+ * 「文本启发式猜语义」既不可靠又无法审计。多数工具没有参数，此时 `args` 为空对象。
+ */
+export interface AssistantToolCall {
+  name: AssistantToolName;
+  args: Record<string, unknown>;
+}
+
 export interface AssistantToolExecutionContext {
   userId: string;
   locale: 'zh-CN' | 'en';
   userMessage: string;
   enabledContextSources: readonly AssistantContextSource[];
   memoryEnabled: boolean;
+  /** Arguments of the tool call currently being executed (empty when the tool takes none). */
+  toolArgs?: Record<string, unknown>;
 }

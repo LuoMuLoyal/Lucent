@@ -270,7 +270,9 @@ describe('AssistantFoundationGraph', () => {
     );
     // The LLM only requested the proposal tool; the auxiliary read is bound
     // for context but not executed.
-    expect(executeTools).toHaveBeenCalledWith(['propose_create_daily_record']);
+    expect(executeTools).toHaveBeenCalledWith([
+      { name: 'propose_create_daily_record', args: {} },
+    ]);
     expect(result.finalContent).toBe('好的，这是一份待确认的饮水记录草稿。');
     expect(result.validationFlags.missingProposedActions).toBe(false);
     expect(result.stopReason).toBe('answered');
@@ -387,7 +389,9 @@ describe('AssistantFoundationGraph', () => {
     expect(result.intent).toBe('mixed');
     // The full agent runs (not a sub-graph): tool loop executes normally.
     expect(executeTools).toHaveBeenCalledTimes(1);
-    expect(executeTools).toHaveBeenCalledWith(['get_records_by_range']);
+    expect(executeTools).toHaveBeenCalledWith([
+      { name: 'get_records_by_range', args: {} },
+    ]);
     expect(result.finalContent).toBe('以下是记录与药品说明书的汇总。');
     expect(result.stopReason).toBe('answered');
   });
@@ -598,7 +602,9 @@ describe('AssistantFoundationGraph', () => {
     });
 
     expect(executeTools).toHaveBeenCalledTimes(1);
-    expect(executeTools).toHaveBeenCalledWith(['get_user_profile']);
+    expect(executeTools).toHaveBeenCalledWith([
+      { name: 'get_user_profile', args: {} },
+    ]);
     expect(result.toolResults).toHaveLength(1);
     expect(result.finalContent).toBe('根据您的健康档案...');
     expect(result.loopCount).toBe(1);

@@ -14229,6 +14229,7 @@
               "get_user_settings",
               "get_current_medicines",
               "get_sleep_summary_by_range",
+              "get_meal_analysis_digest",
               "search_cn_medicine_products",
               "get_cn_medicine_detail",
               "search_medicine_leaflets",

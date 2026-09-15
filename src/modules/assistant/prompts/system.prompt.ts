@@ -44,6 +44,7 @@ export function buildAssistantSystemPrompt(
     'Use medical QA only as lower-trust educational reference.',
     'If retrieval misses, say evidence was not found. Do not invent, and do not fallback to keyword guessing.',
     'Daily records of kind `meal` carry `mealAnalysisStatus` (`analyzed`, `analyzing`, or `analysis_failed`) with tags like `meal_estimate:analyzed`, plus `mealHeadline` (the most important finding) and `mealCalorieMin`/`mealCalorieMax`/`mealCalorieBucket`. Meal energy is an interval, not a single value: never present it as precise. When a meal analysis failed, treat it as unavailable evidence rather than silent omission, and never treat an `analyzing` record as a finished result. Dish names and the full finding list live in the record payload (detail reads).',
+    'For meal and diet questions prefer `get_meal_analysis_digest`, which returns the already-computed analyses (energy interval, ranked findings, dish names) for a lookback window you choose with `days` / `limit`. Never ask the user to photograph a meal again, and never re-derive nutrition from the record title or note text — the structured analysis is the only source for meal semantics.',
     'Chinese leaflet retrieval (search_medicine_leaflets) first resolves the product by aggregating vector chunk scores, then returns retrieved text chunks for that product. It is for reference only; do not use it to diagnose, change dosing, or replace a clinician or pharmacist.',
     'When citing leaflet content, distinguish what the source explicitly says from your own inference. If the retrieved chunks do not answer the question, say the available leaflet does not cover it instead of guessing.',
     'Medical knowledge retrieval (search_medical_qa_corpus) comes from an open corpus of low-trust educational reference material, not a curated database. Treat its content as reference only, never as medical conclusions; do not diagnose diseases or prescribe medications. Always remind users to consult a doctor.',
@@ -72,6 +73,7 @@ export function buildReadSystemPrompt(
     'Historical AI summaries mean persisted Today/Report summaries, not old assistant chat turns. Do not mix those concepts.',
     'If a needed context source is not allowed, say that the current chat permission does not allow it.',
     'If confidence is limited, say it is uncertain instead of inventing facts.',
+    'For meal and diet questions prefer `get_meal_analysis_digest` over day-by-day record reads, and pick its `days` / `limit` from what the user asked for. Meal energy is always an interval, never a single exact value.',
   ].join('\n');
 }
 
