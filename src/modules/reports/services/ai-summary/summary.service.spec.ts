@@ -52,9 +52,7 @@ describe('ReportsAiSummaryService', () => {
     mealEstimateSeries: [1, 1, 0, 1, 0, 0, 1],
     mealEstimateTrackedDays: 4,
     mealEstimateBreakdown: {
-      confirmedDays: 2,
-      estimatedDays: 2,
-      partialDays: 1,
+      analyzedDays: 4,
       analyzingDays: 0,
       failedDays: 0,
     },
@@ -144,9 +142,7 @@ describe('ReportsAiSummaryService', () => {
       mealEstimate: baseFacts.mealEstimateSeries,
     },
     mealEstimateBreakdown: {
-      confirmedDays: 2,
-      estimatedDays: 2,
-      partialDays: 1,
+      analyzedDays: 4,
       analyzingDays: 0,
       failedDays: 0,
     },
@@ -279,9 +275,7 @@ describe('ReportsAiSummaryService', () => {
         mealEstimateSeries: Array<number>(30).fill(1),
         mealEstimateTrackedDays: 30,
         mealEstimateBreakdown: {
-          confirmedDays: 30,
-          estimatedDays: 0,
-          partialDays: 0,
+          analyzedDays: 30,
           analyzingDays: 0,
           failedDays: 0,
         },
@@ -302,9 +296,7 @@ describe('ReportsAiSummaryService', () => {
           mealEstimate: Array<number>(30).fill(1),
         },
         mealEstimateBreakdown: {
-          confirmedDays: 30,
-          estimatedDays: 0,
-          partialDays: 0,
+          analyzedDays: 30,
           analyzingDays: 0,
           failedDays: 0,
         },

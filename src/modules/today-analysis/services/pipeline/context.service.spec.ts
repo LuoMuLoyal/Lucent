@@ -17,6 +17,33 @@ function createMockTriggerEvaluator(dailyRecordReader?: unknown) {
   );
 }
 
+/** v2 分析结果的最小合法形状。 */
+function mealAnalysisFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    version: 2,
+    analysisStatus: 'analyzed',
+    analyzedAt: '2026-07-01T04:30:00.000Z',
+    sourceRevision: 2,
+    model: 'vision-model',
+    promptVersion: 'meal-analysis.v2',
+    locale: 'zh-CN',
+    failureReason: null,
+    calorieRange: { min: 520, max: 780, unit: 'kcal', bucket: 'medium' },
+    dishes: [{ name: '米饭', source: 'model' }],
+    items: [
+      {
+        rank: 1,
+        kind: 'vegetable',
+        polarity: 'good',
+        headline: '蔬菜丰富',
+        detail: '蔬菜种类比较丰富',
+      },
+    ],
+    facets: { vegetable: 'high' },
+    ...overrides,
+  };
+}
+
 describe('TodayAnalysisContextService', () => {
   const buildMocks = (records: unknown[]) => ({
     prisma: {
@@ -41,7 +68,7 @@ describe('TodayAnalysisContextService', () => {
     },
   });
 
-  it('includes unconfirmed meal analysis facts in recent records conservatively', async () => {
+  it('projects analyzed meal facts as dishes, interval and the top findings', async () => {
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks([
         {
@@ -52,12 +79,21 @@ describe('TodayAnalysisContextService', () => {
           unit: null,
           note: null,
           payload: {
-            mealAnalysis: {
-              analysisStatus: 'unconfirmed',
-              coverage: 'partial',
-              mealDescription: '一份米饭配西兰花和鸡胸肉',
-              foodItems: [{ name: '米饭' }, { name: '鸡胸肉' }],
-            },
+            mealAnalysis: mealAnalysisFixture({
+              dishes: [
+                { name: '米饭', source: 'model' },
+                { name: '鸡胸肉', source: 'model' },
+              ],
+              items: [
+                {
+                  rank: 1,
+                  kind: 'protein',
+                  polarity: 'good',
+                  headline: '蛋白充足',
+                  detail: '这一餐的蛋白质摄入充足',
+                },
+              ],
+            }),
           },
           createdAt: new Date('2026-07-01T04:30:00.000Z'),
         },
@@ -77,10 +113,10 @@ describe('TodayAnalysisContextService', () => {
     expect(context.recentRecords).toEqual([
       {
         kind: 'meal',
-        title: '饮食估算中（部分匹配）：一份米饭配西兰花和鸡胸肉',
+        title: '饮食分析',
         value: null,
         unit: null,
-        note: '部分估算 · 识别食物：米饭、鸡胸肉',
+        note: '识别菜品：米饭、鸡胸肉 · 热量区间：520–780 kcal · 蛋白充足：这一餐的蛋白质摄入充足',
         createdAt: '2026-07-01T04:30:00.000Z',
       },
     ]);
@@ -97,10 +133,14 @@ describe('TodayAnalysisContextService', () => {
           unit: null,
           note: null,
           payload: {
-            mealAnalysis: {
+            mealAnalysis: mealAnalysisFixture({
               analysisStatus: 'analyzing',
-              coverage: 'none',
-            },
+              analyzedAt: null,
+              calorieRange: null,
+              dishes: [],
+              items: [],
+              facets: {},
+            }),
           },
           createdAt: new Date('2026-07-01T10:30:00.000Z'),
         },
@@ -137,11 +177,15 @@ describe('TodayAnalysisContextService', () => {
           unit: null,
           note: null,
           payload: {
-            mealAnalysis: {
+            mealAnalysis: mealAnalysisFixture({
               analysisStatus: 'analysis_failed',
-              coverage: 'none',
-              failureReason: 'Attachment not readable',
-            },
+              analyzedAt: null,
+              failureReason: 'model_timeout',
+              calorieRange: null,
+              dishes: [],
+              items: [],
+              facets: {},
+            }),
           },
           createdAt: new Date('2026-07-01T10:30:00.000Z'),
         },
@@ -167,7 +211,7 @@ describe('TodayAnalysisContextService', () => {
     });
   });
 
-  it('labels confirmed meals with partial coverage as partial estimates', async () => {
+  it('keeps the interval even when no dish name was recognized', async () => {
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks([
         {
@@ -178,12 +222,18 @@ describe('TodayAnalysisContextService', () => {
           unit: null,
           note: null,
           payload: {
-            mealAnalysis: {
-              analysisStatus: 'confirmed',
-              coverage: 'partial',
-              mealDescription: '一份牛肉面',
-              foodItems: [{ name: '牛肉' }, { name: '面条' }],
-            },
+            mealAnalysis: mealAnalysisFixture({
+              dishes: [],
+              items: [
+                {
+                  rank: 1,
+                  kind: 'balance',
+                  polarity: 'neutral',
+                  headline: '荤素搭配',
+                  detail: '荤素搭配比较均衡',
+                },
+              ],
+            }),
           },
           createdAt: new Date('2026-07-01T04:00:00.000Z'),
         },
@@ -201,21 +251,21 @@ describe('TodayAnalysisContextService', () => {
 
     expect(context.recentRecords[0]).toEqual({
       kind: 'meal',
-      title: '饮食已确认（部分匹配）：一份牛肉面',
+      title: '饮食分析',
       value: null,
       unit: null,
-      note: '部分估算 · 识别食物：牛肉、面条',
+      note: '热量区间：520–780 kcal · 荤素搭配：荤素搭配比较均衡',
       createdAt: '2026-07-01T04:00:00.000Z',
     });
   });
 
-  it('surfaces complete confirmed meals without partial labels', async () => {
+  it('falls back to a plain record when the meal payload does not match the contract', async () => {
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks([
         {
           kind: 'meal',
           occurredTime: '12:00',
-          title: null,
+          title: '午饭',
           value: null,
           unit: null,
           note: null,
@@ -224,7 +274,6 @@ describe('TodayAnalysisContextService', () => {
               analysisStatus: 'confirmed',
               coverage: 'complete',
               mealDescription: '一份米饭配青菜',
-              foodItems: [{ name: '米饭' }, { name: '青菜' }],
             },
           },
           createdAt: new Date('2026-07-01T04:00:00.000Z'),
@@ -243,50 +292,12 @@ describe('TodayAnalysisContextService', () => {
 
     expect(context.recentRecords[0]).toEqual({
       kind: 'meal',
-      title: '饮食已确认：一份米饭配青菜',
+      title: '午饭',
       value: null,
       unit: null,
-      note: '识别食物：米饭、青菜',
+      note: null,
       createdAt: '2026-07-01T04:00:00.000Z',
     });
-  });
-
-  it('uses recognizedDishes when foodItems is not available', async () => {
-    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
-      buildMocks([
-        {
-          kind: 'meal',
-          occurredTime: '12:00',
-          title: null,
-          value: null,
-          unit: null,
-          note: null,
-          payload: {
-            mealAnalysis: {
-              analysisStatus: 'unconfirmed',
-              coverage: 'complete',
-              mealDescription: '一份面条',
-              recognizedDishes: [
-                { rawName: '牛肉面' },
-                { normalizedDishName: '面条' },
-              ],
-            },
-          },
-          createdAt: new Date('2026-07-01T04:00:00.000Z'),
-        },
-      ]);
-    const service = new TodayAnalysisContextService(
-      prisma as never,
-      dailyRecordReader as never,
-      doseLogReader as never,
-      reminderReader as never,
-      createMockCache(),
-      createMockTriggerEvaluator(dailyRecordReader),
-    );
-
-    const context = await service.build('u1', '2026-07-01');
-
-    expect(context.recentRecords[0]?.note).toContain('牛肉面');
   });
 
   it('returns water target from user settings when configured', async () => {

@@ -18,8 +18,7 @@ enum DailyRecordAttachmentKind {
 
 enum MealAnalysisStatus {
   analyzing
-  unconfirmed
-  confirmed
+  analyzed
   analysis_failed
 }
 

@@ -120,7 +120,8 @@ export class DailyRecordsMapperService {
             : null
           : (record.payload as Record<string, unknown> | null),
       mealAnalysisStatus: mealSummary?.mealAnalysisStatus ?? null,
-      mealAnalysisCoverage: mealSummary?.mealAnalysisCoverage ?? null,
+      // v2 删除了 coverage 概念；列与字段在投影切片里移除。
+      mealAnalysisCoverage: null,
       mealAnalysisUpdatedAt: mealSummary?.mealAnalysisUpdatedAt ?? null,
       mealAnalysisFailureReason: mealSummary?.mealAnalysisFailureReason ?? null,
       mealShortDescription: mealSummary?.mealShortDescription ?? null,

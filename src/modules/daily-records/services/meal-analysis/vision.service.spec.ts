@@ -1,193 +1,218 @@
-import { SystemMessage } from '@langchain/core/messages';
-import type { HumanMessage } from '@langchain/core/messages';
-import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import { Logger } from '@nestjs/common';
+import type { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
-import { MealAnalysisVisionService } from '../meal-analysis/vision.service.js';
+import { MEAL_ANALYSIS_VISION_TIMEOUT_MS } from '../../constants/meal-analysis.constants.js';
+import { MealAnalysisVisionService } from './vision.service.js';
+
+const modelOutput = {
+  calorieRange: { min: 520, max: 780 },
+  dishes: ['红烧肉', '青菜'],
+  items: [
+    {
+      rank: 1,
+      kind: 'fried',
+      polarity: 'watch',
+      headline: '油炸偏多',
+      detail: '午饭油炸食品摄入偏多，建议晚饭多摄入蔬菜',
+    },
+  ],
+  facets: [{ kind: 'fried', level: 'high' }],
+};
+
+function buildService(options?: {
+  invoke?: ReturnType<typeof vi.fn>;
+  modelName?: string | null;
+  safe?: boolean;
+  configured?: boolean;
+}) {
+  const invoke = options?.invoke ?? vi.fn().mockResolvedValue(modelOutput);
+  const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
+  const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
+  const isSafeText = vi.fn().mockReturnValue(options?.safe ?? true);
+
+  const llmRuntimeService = {
+    hasRoleConfig: vi.fn().mockReturnValue(options?.configured ?? true),
+    createChatModel,
+    getModelName: vi.fn().mockReturnValue(options?.modelName ?? 'vision-model'),
+  } as unknown as LlmRuntimeService;
+  const safetyPolicyService = {
+    isSafeText,
+  } as unknown as LlmSafetyPolicyService;
+
+  return {
+    service: new MealAnalysisVisionService(
+      llmRuntimeService,
+      safetyPolicyService,
+    ),
+    invoke,
+    withStructuredOutput,
+    createChatModel,
+    isSafeText,
+  };
+}
 
 describe('MealAnalysisVisionService', () => {
-  const createService = (invoke: vi.Mock) => {
-    const createChatModel = vi.fn().mockReturnValue({ invoke });
-    const safetyPolicyService = new LlmSafetyPolicyService({
-      safety: { forbiddenPatterns: [] },
-    } as never);
-    const service = new MealAnalysisVisionService(
-      {
-        hasRoleConfig: vi.fn().mockReturnValue(true),
-        createChatModel,
-      } as unknown as LlmRuntimeService,
-      safetyPolicyService,
-    );
-    return { service, createChatModel, invoke };
-  };
+  beforeEach(() => {
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+  });
 
-  it('invokes the vision role with image input and parses structured JSON', async () => {
-    const invoke = vi.fn().mockResolvedValue({
-      content:
-        '```json\n{"mealDescription":"一份鸡胸肉沙拉","foodItems":[{"name":"鸡胸肉","confidence":0.91,"portionText":"约100克"},{"name":"生菜","confidence":0.83,"portionText":"1份"}]}\n```',
+  it('reports configuration from the vision role', () => {
+    expect(buildService({ configured: true }).service.isConfigured()).toBe(
+      true,
+    );
+    expect(buildService({ configured: false }).service.isConfigured()).toBe(
+      false,
+    );
+  });
+
+  it('runs one structured multimodal call with a timeout', async () => {
+    const { service, createChatModel, withStructuredOutput, invoke } =
+      buildService();
+
+    await service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
     });
-    const { service, createChatModel } = createService(invoke);
-
-    const result = await service.recognizeFromImageUrl(
-      'https://cos.example.com/meal.jpg',
-    );
 
     expect(createChatModel).toHaveBeenCalledWith('vision', {
       temperature: 0.1,
       maxRetries: 0,
+      timeout: MEAL_ANALYSIS_VISION_TIMEOUT_MS,
     });
-    expect(invoke).toHaveBeenCalledWith([
-      expect.any(SystemMessage),
-      expect.objectContaining({
-        content: expect.arrayContaining([
-          expect.objectContaining({
-            type: 'text',
-          }),
-          {
-            type: 'image_url',
-            image_url: {
-              url: 'https://cos.example.com/meal.jpg',
-            },
-          },
-        ]),
-      } as HumanMessage),
-    ]);
-    expect(result).toEqual({
-      mealDescription: '一份鸡胸肉沙拉',
-      foodItems: [
-        {
-          name: '鸡胸肉',
-          confidence: 0.91,
-          portionText: '约100克',
-        },
-        {
-          name: '生菜',
-          confidence: 0.83,
-          portionText: '1份',
-        },
-      ],
-    });
-  });
-
-  it('falls back to an empty recognition result when the model response is not parseable JSON', async () => {
-    const invoke = vi.fn().mockResolvedValue({
-      content: '我看起来像是一顿饭，但我没按要求输出 JSON',
-    });
-    const { service } = createService(invoke);
-
-    const result = await service.recognizeFromImageUrl(
-      'https://cos.example.com/meal.jpg',
+    expect(withStructuredOutput).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ method: 'functionCalling', strict: true }),
     );
 
-    expect(result).toEqual({
-      mealDescription: null,
-      foodItems: [],
-    });
+    const messages = invoke.mock.calls[0]?.[0] as Array<{ content: unknown }>;
+    expect(messages).toHaveLength(2);
+    expect(JSON.stringify(messages[0]?.content)).toContain('中文');
+    expect(JSON.stringify(messages[1]?.content)).toContain(
+      'https://cdn.example.com/m.jpg',
+    );
   });
 
-  it('truncates vision output to safe length limits', async () => {
-    const longDescription = '米饭'.repeat(200);
-    const longName = '面条'.repeat(100);
-    const invoke = vi.fn().mockResolvedValue({
-      content: JSON.stringify({
-        mealDescription: longDescription,
-        foodItems: [
+  it('returns the draft with the machine facets converted to a record', async () => {
+    const { service } = buildService();
+
+    const outcome = await service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'zh-CN',
+    });
+
+    expect(outcome).toEqual({
+      ok: true,
+      model: 'vision-model',
+      draft: {
+        calorieRange: { min: 520, max: 780 },
+        dishes: [
+          { name: '红烧肉', source: 'model' },
+          { name: '青菜', source: 'model' },
+        ],
+        items: [
           {
-            name: longName,
-            confidence: 0.9,
-            portionText: '一小碗'.repeat(50),
+            rank: 1,
+            kind: 'fried',
+            polarity: 'watch',
+            headline: '油炸偏多',
+            detail: '午饭油炸食品摄入偏多，建议晚饭多摄入蔬菜',
           },
         ],
-      }),
+        facets: { fried: 'high' },
+      },
     });
-    const { service } = createService(invoke);
-
-    const result = await service.recognizeFromImageUrl(
-      'https://cos.example.com/meal.jpg',
-    );
-
-    expect(result.mealDescription?.length).toBeLessThanOrEqual(200);
-    expect(result.foodItems[0]?.name.length).toBeLessThanOrEqual(100);
-    expect(result.foodItems[0]?.portionText?.length ?? 0).toBeLessThanOrEqual(
-      100,
-    );
   });
 
-  it('strips HTML tags and control characters from vision output', async () => {
+  it('fails with invalid_output when the model output violates the contract', async () => {
     const invoke = vi.fn().mockResolvedValue({
-      content: JSON.stringify({
-        mealDescription: '<script>alert("xss")</script>一份米饭',
-        foodItems: [
-          {
-            name: '鸡\u0000肉',
-            confidence: 0.8,
-            portionText: '<b>一份</b>',
-          },
-        ],
-      }),
+      ...modelOutput,
+      items: [{ rank: 1, kind: 'greasy', headline: 'x', detail: 'y' }],
     });
-    const { service } = createService(invoke);
+    const { service } = buildService({ invoke });
 
-    const result = await service.recognizeFromImageUrl(
-      'https://cos.example.com/meal.jpg',
-    );
-
-    expect(result.mealDescription).toBe('一份米饭');
-    expect(result.foodItems[0]?.name).toBe('鸡肉');
-    expect(result.foodItems[0]?.portionText).toBe('一份');
+    await expect(
+      service.analyze({
+        imageUrl: 'https://cdn.example.com/m.jpg',
+        locale: 'zh-CN',
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'invalid_output' });
   });
 
-  it('rejects unsafe food items and meal descriptions based on the safety policy', async () => {
+  it('fails with invalid_output when nothing usable survives', async () => {
     const invoke = vi.fn().mockResolvedValue({
-      content: JSON.stringify({
-        mealDescription: '建议确诊后服用处方药的午餐',
-        foodItems: [
-          { name: '米饭', confidence: 0.9 },
-          { name: '治疗方案配菜', confidence: 0.7 },
-        ],
+      calorieRange: null,
+      dishes: [],
+      items: [],
+      facets: [],
+    });
+    const { service } = buildService({ invoke });
+
+    await expect(
+      service.analyze({
+        imageUrl: 'https://cdn.example.com/m.jpg',
+        locale: 'zh-CN',
       }),
-    });
-    const createChatModel = vi.fn().mockReturnValue({ invoke });
-    const safetyPolicyService = new LlmSafetyPolicyService({
-      safety: { forbiddenPatterns: [] },
-    } as never);
-    vi.spyOn(safetyPolicyService, 'isSafeText').mockImplementation((text) => {
-      const unsafe = /确诊|处方|治疗方案/;
-      return !unsafe.test(text);
-    });
-    const service = new MealAnalysisVisionService(
-      {
-        hasRoleConfig: vi.fn().mockReturnValue(true),
-        createChatModel,
-      } as unknown as LlmRuntimeService,
-      safetyPolicyService,
-    );
-
-    const result = await service.recognizeFromImageUrl(
-      'https://cos.example.com/meal.jpg',
-    );
-
-    expect(result.mealDescription).toBeNull();
-    expect(result.foodItems).toEqual([
-      { name: '米饭', confidence: 0.9, portionText: null },
-    ]);
+    ).resolves.toEqual({ ok: false, reason: 'invalid_output' });
   });
 
-  it('returns an empty result when every vision output item is sanitized away', async () => {
+  it('fails when nothing usable survives the safety filter', async () => {
     const invoke = vi.fn().mockResolvedValue({
-      content: JSON.stringify({
-        mealDescription: '<script>',
-        foodItems: [{ name: '<b></b>', confidence: 0.9 }],
+      ...modelOutput,
+      calorieRange: null,
+      facets: [],
+    });
+    const { service, isSafeText } = buildService({ invoke, safe: false });
+
+    await expect(
+      service.analyze({
+        imageUrl: 'https://cdn.example.com/m.jpg',
+        locale: 'zh-CN',
       }),
-    });
-    const { service } = createService(invoke);
+    ).resolves.toEqual({ ok: false, reason: 'invalid_output' });
+    expect(isSafeText).toHaveBeenCalled();
+  });
 
-    const result = await service.recognizeFromImageUrl(
-      'https://cos.example.com/meal.jpg',
-    );
+  it('keeps the calorie interval when only the text is unsafe', async () => {
+    const { service } = buildService({ safe: false });
 
-    expect(result).toEqual({
-      mealDescription: null,
-      foodItems: [],
+    await expect(
+      service.analyze({
+        imageUrl: 'https://cdn.example.com/m.jpg',
+        locale: 'zh-CN',
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      model: 'vision-model',
+      draft: {
+        calorieRange: { min: 520, max: 780 },
+        dishes: [],
+        items: [],
+        facets: { fried: 'high' },
+      },
     });
+  });
+
+  it('classifies timeouts separately from other model failures', async () => {
+    const timeout = new Error('Request timed out.');
+    timeout.name = 'TimeoutError';
+    const timedOut = buildService({
+      invoke: vi.fn().mockRejectedValue(timeout),
+    });
+    await expect(
+      timedOut.service.analyze({
+        imageUrl: 'https://cdn.example.com/m.jpg',
+        locale: 'zh-CN',
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'model_timeout' });
+
+    const broken = buildService({
+      invoke: vi.fn().mockRejectedValue(new Error('upstream 500')),
+    });
+    await expect(
+      broken.service.analyze({
+        imageUrl: 'https://cdn.example.com/m.jpg',
+        locale: 'zh-CN',
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'model_failed' });
   });
 });

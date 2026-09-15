@@ -1,7 +1,7 @@
 import { AssistantToolRecordQueryService } from './query.service.js';
 
 describe('AssistantToolRecordQueryService', () => {
-  it('surfaces meal estimate status and keeps payload available for assistant reasoning', async () => {
+  it('surfaces meal analysis status and keeps payload available for assistant reasoning', async () => {
     const dailyRecordsService = {
       list: vi.fn().mockResolvedValue({
         items: [
@@ -15,19 +15,40 @@ describe('AssistantToolRecordQueryService', () => {
             note: null,
             payload: {
               mealAnalysis: {
-                analysisStatus: 'unconfirmed',
-                coverage: 'partial',
-                mealDescription: '一份米饭配鸡胸肉',
+                version: 2,
+                analysisStatus: 'analyzed',
+                analyzedAt: '2026-07-01T04:45:00.000Z',
+                sourceRevision: 2,
+                model: 'vision-model',
+                promptVersion: 'meal-analysis.v2',
+                locale: 'zh-CN',
+                failureReason: null,
+                calorieRange: {
+                  min: 520,
+                  max: 780,
+                  unit: 'kcal',
+                  bucket: 'medium',
+                },
+                dishes: [{ name: '米饭', source: 'model' }],
+                items: [
+                  {
+                    rank: 1,
+                    kind: 'protein',
+                    polarity: 'good',
+                    headline: '蛋白充足',
+                    detail: '这一餐的蛋白质摄入充足',
+                  },
+                ],
+                facets: { protein: 'ok' },
               },
             },
             createdAt: '2026-07-01T04:30:00.000Z',
             updatedAt: '2026-07-01T04:45:00.000Z',
-            mealAnalysisStatus: 'unconfirmed',
-            mealAnalysisCoverage: 'partial',
+            mealAnalysisStatus: 'analyzed',
             mealAnalysisUpdatedAt: '2026-07-01T04:45:00.000Z',
             mealAnalysisFailureReason: null,
-            mealShortDescription: '一份米饭配鸡胸肉',
-            mealTopFoods: ['米饭', '鸡胸肉'],
+            mealShortDescription: '蛋白充足',
+            mealTopFoods: ['米饭'],
           },
         ],
       }),
@@ -45,13 +66,12 @@ describe('AssistantToolRecordQueryService', () => {
         id: 'meal-1',
         kind: 'meal',
         payload: {
-          mealAnalysis: {
-            analysisStatus: 'unconfirmed',
-            coverage: 'partial',
-            mealDescription: '一份米饭配鸡胸肉',
-          },
+          mealAnalysis: expect.objectContaining({
+            analysisStatus: 'analyzed',
+            locale: 'zh-CN',
+          }),
         },
-        tags: ['meal_estimate:unconfirmed', 'meal_coverage:partial'],
+        tags: ['meal_estimate:analyzed'],
       }),
     ]);
   });

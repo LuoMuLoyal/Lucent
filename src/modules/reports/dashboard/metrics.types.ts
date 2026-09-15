@@ -38,9 +38,7 @@ export interface ReportDashboardFacts {
   mealEstimateSeries: number[];
   mealEstimateTrackedDays: number;
   mealEstimateBreakdown: {
-    confirmedDays: number;
-    estimatedDays: number;
-    partialDays: number;
+    analyzedDays: number;
     analyzingDays: number;
     failedDays: number;
   };

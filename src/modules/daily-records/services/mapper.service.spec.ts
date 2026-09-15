@@ -23,39 +23,40 @@ describe('DailyRecordsMapperService', () => {
       expect(result.occurredAt).toBeInstanceOf(Date);
     });
 
-    it('replaces only mealInput and keeps server-owned mealAnalysis', () => {
+    it('applies client dish edits and keeps the server-owned analysis', () => {
+      const analysis = {
+        version: 2,
+        analysisStatus: 'analyzed',
+        analyzedAt: '2026-07-01T12:30:00.000Z',
+        sourceRevision: 3,
+        model: 'vision-model',
+        promptVersion: 'meal-analysis.v2',
+        locale: 'zh-CN',
+        failureReason: null,
+        calorieRange: null,
+        dishes: [{ name: '红烧肉', source: 'model' }],
+        items: [],
+        facets: {},
+      };
       const result = service.toRecordUpdateData(
         {
           payload: {
-            mealInput: {
-              manualSummary: 'updated by user',
-            },
             mealAnalysis: {
               analysisStatus: 'analysis_failed',
+              dishes: [{ name: '西兰花' }],
             },
           },
         },
         {
           kind: 'meal' as DailyRecordKind,
-          payload: {
-            mealInput: {
-              manualSummary: 'old text',
-            },
-            mealAnalysis: {
-              analysisStatus: 'confirmed',
-              mealDescription: 'trusted result',
-            },
-          },
+          payload: { mealAnalysis: analysis },
         },
       );
 
       expect(result.payload).toEqual({
-        mealInput: {
-          manualSummary: 'updated by user',
-        },
         mealAnalysis: {
-          analysisStatus: 'confirmed',
-          mealDescription: 'trusted result',
+          ...analysis,
+          dishes: [{ name: '西兰花', source: 'user' }],
         },
       });
     });
@@ -118,8 +119,28 @@ describe('DailyRecordsMapperService', () => {
 
     it('keeps full meal payload for detail reads when requested', () => {
       const payload = {
-        mealInput: { manualSummary: 'rice' },
-        mealAnalysis: { analysisStatus: 'confirmed' },
+        mealAnalysis: {
+          version: 2,
+          analysisStatus: 'analyzed',
+          analyzedAt: '2026-07-01T12:30:00.000Z',
+          sourceRevision: 3,
+          model: 'vision-model',
+          promptVersion: 'meal-analysis.v2',
+          locale: 'zh-CN',
+          failureReason: null,
+          calorieRange: { min: 520, max: 780, unit: 'kcal', bucket: 'medium' },
+          dishes: [{ name: '红烧肉', source: 'user' }],
+          items: [
+            {
+              rank: 1,
+              kind: 'fried',
+              polarity: 'watch',
+              headline: '油炸偏多',
+              detail: '午饭油炸食品摄入偏多',
+            },
+          ],
+          facets: { fried: 'high' },
+        },
       };
       const item = service.toItem(
         {
@@ -141,6 +162,8 @@ describe('DailyRecordsMapperService', () => {
       );
 
       expect(item.payload).toEqual(payload);
+      expect(item.mealShortDescription).toBe('油炸偏多');
+      expect(item.mealTopFoods).toEqual(['红烧肉']);
     });
   });
 

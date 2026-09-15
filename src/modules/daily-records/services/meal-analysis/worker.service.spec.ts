@@ -1,494 +1,290 @@
+import { Logger } from '@nestjs/common';
 import type { PrismaService } from '../../../../prisma/index.js';
 import type { ObjectStorageRuntime } from '../../../../common/index.js';
-import type { MealAnalysisMatcherService } from '../meal-analysis/matcher.service.js';
-import type { MealAnalysisVisionService } from '../meal-analysis/vision.service.js';
-import { MealAnalysisWorkerService } from '../meal-analysis/worker.service.js';
+import type { MealAnalysisVisionService } from './vision.service.js';
+import { MealAnalysisWorkerService } from './worker.service.js';
+
+interface RecordFixtureOptions {
+  recordId?: string;
+  revision?: number;
+  status?: string;
+  attachments?: Array<{ objectKey: string }>;
+  locale?: string | null;
+}
+
+function buildRecord(options: RecordFixtureOptions = {}) {
+  const revision = options.revision ?? 1;
+  return {
+    id: options.recordId ?? 'r1',
+    userId: 'u1',
+    kind: 'meal',
+    mealSourceRevision: revision,
+    deletedAt: null,
+    payload: {
+      mealAnalysis: {
+        version: 2,
+        analysisStatus: options.status ?? 'analyzing',
+        analyzedAt: null,
+        sourceRevision: revision,
+        model: null,
+        promptVersion: 'meal-analysis.v2',
+        locale: null,
+        failureReason: null,
+        calorieRange: null,
+        dishes: [],
+        items: [],
+        facets: {},
+      },
+    },
+    attachments: options.attachments ?? [
+      { objectKey: 'daily-records/u1/m.jpg' },
+    ],
+    user: { profile: { locale: options.locale ?? 'zh-CN' } },
+  };
+}
+
+function buildPrisma(record: unknown, updateCount = 1) {
+  const userDailyRecord = {
+    findFirst: vi.fn().mockResolvedValue(record),
+    updateMany: vi.fn().mockResolvedValue({ count: updateCount }),
+  };
+  return {
+    prisma: { userDailyRecord } as unknown as PrismaService,
+    userDailyRecord,
+  };
+}
+
+function buildVision(outcome: unknown, configured = true) {
+  const analyze = vi.fn().mockResolvedValue(outcome);
+  return {
+    service: {
+      isConfigured: vi.fn().mockReturnValue(configured),
+      analyze,
+    } as unknown as MealAnalysisVisionService,
+    analyze,
+  };
+}
+
+function buildStorage(url = 'https://cdn.example.com/signed.jpg') {
+  const createSignedGetUrl = vi.fn().mockResolvedValue(url);
+  return {
+    service: { createSignedGetUrl } as unknown as ObjectStorageRuntime,
+    createSignedGetUrl,
+  };
+}
+
+const analyzedOutcome = {
+  ok: true,
+  model: 'vision-model',
+  draft: {
+    calorieRange: { min: 520, max: 780 },
+    dishes: [{ name: '红烧肉', source: 'model' }],
+    items: [
+      {
+        rank: 1,
+        kind: 'fried',
+        polarity: 'watch',
+        headline: '油炸偏多',
+        detail: '午饭油炸食品摄入偏多',
+      },
+    ],
+    facets: { fried: 'high' },
+  },
+};
 
 describe('MealAnalysisWorkerService', () => {
-  it('marks stale jobs as no-op when source revision no longer matches', async () => {
-    const prisma = buildPrisma({
-      record: {
-        id: 'r1',
-        userId: 'u1',
-        kind: 'meal',
-        mealSourceRevision: 3,
-        deletedAt: null,
-        payload: {
-          mealAnalysis: {
-            sourceRevision: 3,
-            analysisStatus: 'analyzing',
-            imageObjectKey: 'daily-records/u1/meal.jpg',
-          },
-        },
-        attachments: [
-          {
-            objectKey: 'daily-records/u1/meal.jpg',
-          },
-        ],
-      },
-    });
-    const service = new MealAnalysisWorkerService(
-      prisma as never,
-      buildVisionService({ configured: true }) as never,
-      buildUploadRuntime() as never,
-      buildMatcherService() as never,
-    );
-
-    await service.process({
-      userId: 'u1',
-      recordId: 'r1',
-      sourceRevision: 2,
-    });
-
-    expect(prisma.userDailyRecord.update).not.toHaveBeenCalled();
+  beforeEach(() => {
+    vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
   });
 
-  it('marks the record as analysis_failed when exactly one image is not available', async () => {
-    const prisma = buildPrisma({
-      record: {
+  it('skips a job whose revision no longer matches the record', async () => {
+    const { prisma, userDailyRecord } = buildPrisma(
+      buildRecord({ revision: 3 }),
+    );
+    const { service: vision } = buildVision(analyzedOutcome);
+    const { service: storage } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
+
+    await worker.process({ userId: 'u1', recordId: 'r1', sourceRevision: 2 });
+
+    expect(userDailyRecord.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('skips a job when the record is no longer analyzing', async () => {
+    const { prisma, userDailyRecord } = buildPrisma(
+      buildRecord({ status: 'analyzed' }),
+    );
+    const { service: vision } = buildVision(analyzedOutcome);
+    const { service: storage } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
+
+    await worker.process({ userId: 'u1', recordId: 'r1', sourceRevision: 1 });
+
+    expect(userDailyRecord.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fails the record when it does not carry exactly one image', async () => {
+    const { prisma, userDailyRecord } = buildPrisma(
+      buildRecord({ recordId: 'r2', attachments: [] }),
+    );
+    const { service: vision, analyze } = buildVision(analyzedOutcome);
+    const { service: storage } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
+
+    await worker.process({ userId: 'u1', recordId: 'r2', sourceRevision: 1 });
+
+    expect(analyze).not.toHaveBeenCalled();
+    expect(userDailyRecord.updateMany).toHaveBeenCalledWith({
+      where: {
         id: 'r2',
         userId: 'u1',
-        kind: 'meal',
-        mealSourceRevision: 1,
         deletedAt: null,
-        payload: {
-          mealAnalysis: {
-            sourceRevision: 1,
-            analysisStatus: 'analyzing',
-            imageObjectKey: 'daily-records/u1/meal-2.jpg',
-          },
-        },
-        attachments: [],
+        mealSourceRevision: 1,
       },
-    });
-    const service = new MealAnalysisWorkerService(
-      prisma as never,
-      buildVisionService({ configured: true }) as never,
-      buildUploadRuntime() as never,
-      buildMatcherService() as never,
-    );
-
-    await service.process({
-      userId: 'u1',
-      recordId: 'r2',
-      sourceRevision: 1,
-    });
-
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'r2' },
       data: expect.objectContaining({
         mealAnalysisStatus: 'analysis_failed',
-        mealAnalysisFailureReason:
-          'Meal analysis requires exactly one image attachment.',
+        mealAnalysisFailureReason: 'image_count_invalid',
+        payload: expect.objectContaining({
+          mealAnalysis: expect.objectContaining({
+            analysisStatus: 'analysis_failed',
+            failureReason: 'image_count_invalid',
+          }),
+        }),
       }),
     });
   });
 
-  it('marks the record as analysis_failed when the vision model is not configured', async () => {
-    const prisma = buildPrisma({
-      record: {
-        id: 'r3',
-        userId: 'u1',
-        kind: 'meal',
-        mealSourceRevision: 1,
-        deletedAt: null,
-        payload: {
-          mealAnalysis: {
-            sourceRevision: 1,
-            analysisStatus: 'analyzing',
-            imageObjectKey: 'daily-records/u1/meal-3.jpg',
-          },
-        },
-        attachments: [
-          {
-            objectKey: 'daily-records/u1/meal-3.jpg',
-            createdAt: new Date('2026-07-01T00:00:00.000Z'),
-          },
-        ],
-      },
-    });
-    const service = new MealAnalysisWorkerService(
-      prisma as never,
-      buildVisionService({ configured: false }) as never,
-      buildUploadRuntime() as never,
-      buildMatcherService() as never,
+  it('fails the record when the vision model is not configured', async () => {
+    const { prisma, userDailyRecord } = buildPrisma(
+      buildRecord({ recordId: 'r3' }),
     );
+    const { service: vision, analyze } = buildVision(analyzedOutcome, false);
+    const { service: storage } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
 
-    await service.process({
-      userId: 'u1',
-      recordId: 'r3',
-      sourceRevision: 1,
-    });
+    await worker.process({ userId: 'u1', recordId: 'r3', sourceRevision: 1 });
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'r3' },
-      data: expect.objectContaining({
-        mealAnalysisStatus: 'analysis_failed',
-        mealAnalysisFailureReason:
-          'Meal analysis vision model is not configured.',
-      }),
-    });
-  });
-
-  it('writes an unconfirmed meal analysis result after successful vision recognition', async () => {
-    const prisma = buildPrisma({
-      record: {
-        id: 'r4',
-        userId: 'u1',
-        kind: 'meal',
-        mealSourceRevision: 2,
-        deletedAt: null,
-        payload: {
-          mealInput: {
-            note: '午饭',
-          },
-          mealAnalysis: {
-            sourceRevision: 2,
-            analysisStatus: 'analyzing',
-            coverage: 'none',
-            imageObjectKey: 'daily-records/u1/meal-4.jpg',
-          },
-        },
-        attachments: [
-          {
-            objectKey: 'daily-records/u1/meal-4.jpg',
-            createdAt: new Date('2026-07-01T00:00:00.000Z'),
-          },
-        ],
-      },
-    });
-    const vision = buildVisionService({
-      configured: true,
-      result: {
-        mealDescription: '一份米饭配西兰花和鸡胸肉',
-        foodItems: [
-          {
-            name: '米饭',
-            confidence: 0.93,
-            portionText: '1碗',
-          },
-          {
-            name: '鸡胸肉',
-            confidence: 0.89,
-            portionText: '约100克',
-          },
-        ],
-      },
-    });
-    const uploadRuntime = buildUploadRuntime();
-    const matcher = buildMatcherService({
-      result: {
-        coverage: 'partial',
-        foodItems: [
-          {
-            name: '米饭',
-            confidence: 0.93,
-            portionText: '1碗',
-            matchedFoodId: 'food-rice',
-            matchedFoodName: '米饭',
-            estimatedGrams: 100,
-          },
-          {
-            name: '鸡胸肉',
-            confidence: 0.89,
-            portionText: '约100克',
-            matchedFoodId: 'food-chicken',
-            matchedFoodName: '鸡胸肉',
-            estimatedGrams: 100,
-          },
-        ],
-        nutritionEstimate: {
-          energyKcal: 249,
-          proteinG: 22,
-          fatG: 5.3,
-          carbohydrateG: 25.9,
-          fiberG: 0.3,
-          sodiumMg: 48,
-          matchedItemCount: 2,
-          totalItemCount: 2,
-          unmatchedItemCount: 0,
-        },
-        mealCommentary: '这一餐蛋白质较充足，但蔬菜信息仍不完整。',
-        matchDiagnostics: {
-          matchedItemCount: 2,
-          unmatchedNames: [],
-        },
-        recognizedDishes: [
-          {
-            dishKey: 'dish-1',
-            rawName: '米饭',
-            normalizedDishName: '米饭',
-            confidence: 0.93,
-            portionText: '1碗',
-            source: 'vision',
-          },
-          {
-            dishKey: 'dish-2',
-            rawName: '鸡胸肉',
-            normalizedDishName: '鸡胸肉',
-            confidence: 0.89,
-            portionText: '约100克',
-            source: 'vision',
-          },
-        ],
-        resolvedIngredients: [
-          {
-            dishKey: 'dish-1',
-            ingredientName: '米饭',
-            normalizedIngredientName: '米饭',
-            defaultRatio: 1,
-            decompositionSource: 'model',
-            confidence: 0.93,
-          },
-          {
-            dishKey: 'dish-2',
-            ingredientName: '鸡胸肉',
-            normalizedIngredientName: '鸡胸肉',
-            defaultRatio: 1,
-            decompositionSource: 'model',
-            confidence: 0.89,
-          },
-        ],
-        compositionMatches: [
-          {
-            dishKey: 'dish-1',
-            ingredientName: '米饭',
-            matchedFoodId: 'food-rice',
-            matchedFoodName: '米饭',
-            matchMethod: 'exact',
-            matchScore: 1,
-          },
-          {
-            dishKey: 'dish-2',
-            ingredientName: '鸡胸肉',
-            matchedFoodId: 'food-chicken',
-            matchedFoodName: '鸡胸肉',
-            matchMethod: 'exact',
-            matchScore: 1,
-          },
-        ],
-      },
-    });
-    const service = new MealAnalysisWorkerService(
-      prisma as never,
-      vision as never,
-      uploadRuntime as never,
-      matcher as never,
-    );
-
-    await service.process({
-      userId: 'u1',
-      recordId: 'r4',
-      sourceRevision: 2,
-    });
-
-    expect(uploadRuntime.createSignedGetUrl).toHaveBeenCalledWith({
-      objectKey: 'daily-records/u1/meal-4.jpg',
-      audience: 'external',
-    });
-    expect(vision.recognizeFromImageUrl).toHaveBeenCalledWith(
-      'https://cos.example.com/signed-meal-4.jpg',
-    );
-    expect(matcher.matchAndEstimate).toHaveBeenCalledWith([
-      {
-        name: '米饭',
-        confidence: 0.93,
-        portionText: '1碗',
-      },
-      {
-        name: '鸡胸肉',
-        confidence: 0.89,
-        portionText: '约100克',
-      },
-    ]);
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'r4' },
-      data: expect.objectContaining({
-        mealAnalysisStatus: 'unconfirmed',
-        mealAnalysisCoverage: 'partial',
-        mealAnalysisFailureReason: null,
-        mealAnalysisUpdatedAt: expect.any(Date),
-      }),
-    });
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith(
+    expect(analyze).not.toHaveBeenCalled();
+    expect(userDailyRecord.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          payload: expect.objectContaining({
-            mealInput: {
-              note: '午饭',
-            },
-            mealAnalysis: expect.objectContaining({
-              analysisStatus: 'unconfirmed',
-              coverage: 'partial',
-              mealDescription: '一份米饭配西兰花和鸡胸肉',
-              foodItems: [
-                {
-                  name: '米饭',
-                  confidence: 0.93,
-                  portionText: '1碗',
-                  matchedFoodId: 'food-rice',
-                  matchedFoodName: '米饭',
-                  estimatedGrams: 100,
-                },
-                {
-                  name: '鸡胸肉',
-                  confidence: 0.89,
-                  portionText: '约100克',
-                  matchedFoodId: 'food-chicken',
-                  matchedFoodName: '鸡胸肉',
-                  estimatedGrams: 100,
-                },
-              ],
-              recognizedDishes: [
-                {
-                  dishKey: 'dish-1',
-                  rawName: '米饭',
-                  normalizedDishName: '米饭',
-                  confidence: 0.93,
-                  portionText: '1碗',
-                  source: 'vision',
-                },
-                {
-                  dishKey: 'dish-2',
-                  rawName: '鸡胸肉',
-                  normalizedDishName: '鸡胸肉',
-                  confidence: 0.89,
-                  portionText: '约100克',
-                  source: 'vision',
-                },
-              ],
-              resolvedIngredients: [
-                {
-                  dishKey: 'dish-1',
-                  ingredientName: '米饭',
-                  normalizedIngredientName: '米饭',
-                  defaultRatio: 1,
-                  decompositionSource: 'model',
-                  confidence: 0.93,
-                },
-                {
-                  dishKey: 'dish-2',
-                  ingredientName: '鸡胸肉',
-                  normalizedIngredientName: '鸡胸肉',
-                  defaultRatio: 1,
-                  decompositionSource: 'model',
-                  confidence: 0.89,
-                },
-              ],
-              compositionMatches: [
-                {
-                  dishKey: 'dish-1',
-                  ingredientName: '米饭',
-                  matchedFoodId: 'food-rice',
-                  matchedFoodName: '米饭',
-                  matchMethod: 'exact',
-                  matchScore: 1,
-                },
-                {
-                  dishKey: 'dish-2',
-                  ingredientName: '鸡胸肉',
-                  matchedFoodId: 'food-chicken',
-                  matchedFoodName: '鸡胸肉',
-                  matchMethod: 'exact',
-                  matchScore: 1,
-                },
-              ],
-              nutritionEstimate: {
-                energyKcal: 249,
-                proteinG: 22,
-                fatG: 5.3,
-                carbohydrateG: 25.9,
-                fiberG: 0.3,
-                sodiumMg: 48,
-                matchedItemCount: 2,
-                totalItemCount: 2,
-                unmatchedItemCount: 0,
-              },
-              mealCommentary: '这一餐蛋白质较充足，但蔬菜信息仍不完整。',
-              matchDiagnostics: {
-                matchedItemCount: 2,
-                unmatchedNames: [],
-              },
-              failureReason: null,
-              imageObjectKey: 'daily-records/u1/meal-4.jpg',
-              sourceRevision: 2,
-              analyzedAt: expect.any(String),
-            }),
-          }),
+          mealAnalysisStatus: 'analysis_failed',
+          mealAnalysisFailureReason: 'vision_unavailable',
         }),
       }),
     );
   });
+
+  it('writes the normalized analysis and the revision-guarded hot columns', async () => {
+    const { prisma, userDailyRecord } = buildPrisma(buildRecord());
+    const { service: vision, analyze } = buildVision(analyzedOutcome);
+    const { service: storage, createSignedGetUrl } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
+
+    await worker.process({ userId: 'u1', recordId: 'r1', sourceRevision: 1 });
+
+    expect(createSignedGetUrl).toHaveBeenCalledWith({
+      objectKey: 'daily-records/u1/m.jpg',
+      audience: 'external',
+    });
+    expect(analyze).toHaveBeenCalledWith({
+      imageUrl: 'https://cdn.example.com/signed.jpg',
+      locale: 'zh-CN',
+    });
+    expect(userDailyRecord.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'r1',
+        userId: 'u1',
+        deletedAt: null,
+        mealSourceRevision: 1,
+      },
+      data: expect.objectContaining({
+        mealAnalysisStatus: 'analyzed',
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 1,
+        mealAnalysisUpdatedAt: expect.any(Date),
+        payload: expect.objectContaining({
+          mealAnalysis: expect.objectContaining({
+            analysisStatus: 'analyzed',
+            model: 'vision-model',
+            locale: 'zh-CN',
+            calorieRange: expect.objectContaining({ bucket: 'medium' }),
+            items: [expect.objectContaining({ headline: '油炸偏多' })],
+          }),
+        }),
+      }),
+    });
+  });
+
+  it('persists the model failure reason instead of leaving the record analyzing', async () => {
+    const { prisma, userDailyRecord } = buildPrisma(buildRecord());
+    const { service: vision } = buildVision({
+      ok: false,
+      reason: 'model_timeout',
+    });
+    const { service: storage } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
+
+    await worker.process({ userId: 'u1', recordId: 'r1', sourceRevision: 1 });
+
+    expect(userDailyRecord.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          mealAnalysisStatus: 'analysis_failed',
+          mealAnalysisFailureReason: 'model_timeout',
+        }),
+      }),
+    );
+  });
+
+  it('discards the result when the user re-analyzed while the model was running', async () => {
+    const { prisma } = buildPrisma(buildRecord(), 0);
+    const { service: vision } = buildVision(analyzedOutcome);
+    const { service: storage } = buildStorage();
+    const worker = new MealAnalysisWorkerService(prisma, vision, storage);
+
+    await worker.process({ userId: 'u1', recordId: 'r1', sourceRevision: 1 });
+
+    expect(vi.mocked(Logger.prototype.log)).toHaveBeenCalledWith(
+      expect.stringContaining('Discarded stale meal analysis'),
+    );
+  });
+
+  it('passes the profile locale to the prompt and falls back to zh-CN', async () => {
+    const english = buildPrisma(buildRecord({ locale: 'en-US' }));
+    const englishVision = buildVision(analyzedOutcome);
+    const englishWorker = new MealAnalysisWorkerService(
+      english.prisma,
+      englishVision.service,
+      buildStorage().service,
+    );
+
+    await englishWorker.process({
+      userId: 'u1',
+      recordId: 'r1',
+      sourceRevision: 1,
+    });
+    expect(englishVision.analyze).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'en' }),
+    );
+
+    const unknown = buildPrisma(buildRecord({ locale: null }));
+    const unknownVision = buildVision(analyzedOutcome);
+    const unknownWorker = new MealAnalysisWorkerService(
+      unknown.prisma,
+      unknownVision.service,
+      buildStorage().service,
+    );
+
+    await unknownWorker.process({
+      userId: 'u1',
+      recordId: 'r1',
+      sourceRevision: 1,
+    });
+    expect(unknownVision.analyze).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'zh-CN' }),
+    );
+  });
 });
-
-function buildPrisma(options: {
-  record: Record<string, unknown> | null;
-}): vi.Mocked<Pick<PrismaService, 'userDailyRecord'>> {
-  return {
-    userDailyRecord: {
-      findFirst: vi.fn().mockResolvedValue(options.record),
-      update: vi.fn().mockResolvedValue(options.record),
-    },
-  } as unknown as vi.Mocked<Pick<PrismaService, 'userDailyRecord'>>;
-}
-
-function buildVisionService(options: {
-  configured: boolean;
-  result?: {
-    mealDescription: string | null;
-    foodItems: Array<{
-      name: string;
-      confidence: number | null;
-      portionText: string | null;
-    }>;
-  };
-}): Pick<MealAnalysisVisionService, 'isConfigured' | 'recognizeFromImageUrl'> {
-  return {
-    isConfigured: vi.fn().mockReturnValue(options.configured),
-    recognizeFromImageUrl: vi.fn().mockResolvedValue(
-      options.result ?? {
-        mealDescription: null,
-        foodItems: [],
-      },
-    ),
-  };
-}
-
-function buildUploadRuntime(): Pick<
-  ObjectStorageRuntime,
-  'createSignedGetUrl'
-> {
-  return {
-    createSignedGetUrl: vi
-      .fn()
-      .mockResolvedValue('https://cos.example.com/signed-meal-4.jpg'),
-  };
-}
-
-function buildMatcherService(options?: {
-  result?: {
-    coverage: 'none' | 'partial' | 'complete';
-    foodItems: Array<Record<string, unknown>>;
-    nutritionEstimate: Record<string, unknown> | null;
-    mealCommentary: string | null;
-    matchDiagnostics: Record<string, unknown> | null;
-    recognizedDishes?: Array<Record<string, unknown>>;
-    resolvedIngredients?: Array<Record<string, unknown>>;
-    compositionMatches?: Array<Record<string, unknown>>;
-  };
-}): Pick<MealAnalysisMatcherService, 'matchAndEstimate'> {
-  return {
-    matchAndEstimate: vi.fn().mockResolvedValue(
-      options?.result ?? {
-        coverage: 'none',
-        foodItems: [],
-        nutritionEstimate: null,
-        mealCommentary: null,
-        matchDiagnostics: null,
-        recognizedDishes: [],
-        resolvedIngredients: [],
-        compositionMatches: [],
-      },
-    ),
-  };
-}

@@ -64,9 +64,7 @@ const baseContext: ReportsAiSummaryContext = {
     mealEstimate: Array<number>(30).fill(1),
   },
   mealEstimateBreakdown: {
-    confirmedDays: 30,
-    estimatedDays: 0,
-    partialDays: 0,
+    analyzedDays: 30,
     analyzingDays: 0,
     failedDays: 0,
   },

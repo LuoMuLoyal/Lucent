@@ -24,11 +24,10 @@ export function buildReportSummarySystemPrompt(): string {
     '4. coverage must mirror the trackedDays / totalDays from the facts.',
     '5. Do not generate generalized prose or narrative.',
     '6. Return only structured output that matches the required schema.',
-    '7. Meal estimate data is split into confirmed, estimated, partial, analyzing,',
-    '   and failed days. Prefer confirmed meal analysis when making observations.',
-    '   If you include unconfirmed or partial meal estimates, explicitly label',
-    '   them as "estimated" or "incomplete". Ignore analyzing days and exclude',
-    '   failed days from any nutrition conclusion.',
+    '7. Meal analysis data is split into analyzed, analyzing, and failed days.',
+    '   Base nutrition observations on analyzed days only. Ignore analyzing days',
+    '   and exclude failed days from any nutrition conclusion. Meal energy is an',
+    '   interval, never a single value: quote it as a range and never as precise.',
   ].join(' ');
 }
 

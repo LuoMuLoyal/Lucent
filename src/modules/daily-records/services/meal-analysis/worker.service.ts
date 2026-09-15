@@ -1,16 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, type Prisma } from '#generated/prisma/client.js';
-import { normalizeNullableText } from '../../../../common/index.js';
 import { toInputJsonValue } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { ObjectStorageRuntime } from '../../../../common/index.js';
+import { now, resolveLocale } from '../../../../common/index.js';
 import {
-  getMealSourceRevision,
   parseMealRecordPayload,
+  toMealAnalysisHotFields,
 } from '../../types/meal-analysis.types.js';
-import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service.js';
-import { MealAnalysisVisionService } from '../meal-analysis/vision.service.js';
-import { now } from '../../../../common/index.js';
+import {
+  buildFailedMealAnalysis,
+  normalizeMealAnalysis,
+  type MealAnalysisFailureReason,
+  type MealAnalysisPayload,
+} from '../../schemas/meal-analysis.schema.js';
+import { MEAL_ANALYSIS_DEFAULT_LOCALE } from '../../constants/meal-analysis.constants.js';
+import { MealAnalysisVisionService } from './vision.service.js';
 
 interface MealAnalysisJobData {
   userId: string;
@@ -18,6 +23,16 @@ interface MealAnalysisJobData {
   sourceRevision: number;
 }
 
+/**
+ * 餐食分析 worker：一次多模态调用 → 落库。
+ *
+ * 两条不变量：
+ * - **失败必须落库**：模型报错/超时/输出不可用一律写 `analysis_failed` +
+ *   原因码，绝不留下永久 `analyzing`（v1 的「坏 JSON = 空结果」缺陷）。
+ * - **写回前复检 revision**：`updateMany` 的 `where` 带上
+ *   `mealSourceRevision`，分析期间用户再编辑（重新入队会让 revision 递增）
+ *   时，本次的旧结果自动丢弃。
+ */
 @Injectable()
 export class MealAnalysisWorkerService {
   private readonly logger = new Logger(MealAnalysisWorkerService.name);
@@ -26,7 +41,6 @@ export class MealAnalysisWorkerService {
     private readonly prisma: PrismaService,
     private readonly mealAnalysisVisionService: MealAnalysisVisionService,
     private readonly storageRuntime: ObjectStorageRuntime,
-    private readonly mealAnalysisMatcherService: MealAnalysisMatcherService,
   ) {}
 
   async process(job: MealAnalysisJobData): Promise<void> {
@@ -45,6 +59,9 @@ export class MealAnalysisWorkerService {
         attachments: {
           orderBy: { createdAt: 'asc' },
         },
+        user: {
+          select: { profile: { select: { locale: true } } },
+        },
       },
     });
     if (record == null) {
@@ -57,123 +74,131 @@ export class MealAnalysisWorkerService {
       return;
     }
 
-    const mealPayload = parseMealRecordPayload(record.payload);
-    if (getMealSourceRevision(record.payload) !== job.sourceRevision) {
+    const existing =
+      parseMealRecordPayload(record.payload).mealAnalysis ?? null;
+    if (existing?.analysisStatus !== 'analyzing') {
       return;
     }
 
-    if (record.attachments.length !== 1) {
-      await this.prisma.userDailyRecord.update({
-        where: { id: record.id },
-        data: this.buildFailureUpdate(
-          mealPayload,
-          'Meal analysis requires exactly one image attachment.',
-        ),
-      });
+    const locale = resolveMealLocale(record.user.profile?.locale);
+    const attachment = record.attachments[0];
+    if (record.attachments.length !== 1 || attachment == null) {
+      await this.fail(record.id, job, locale, 'image_count_invalid');
       return;
     }
 
     if (!this.mealAnalysisVisionService.isConfigured()) {
-      await this.prisma.userDailyRecord.update({
-        where: { id: record.id },
-        data: this.buildFailureUpdate(
-          mealPayload,
-          'Meal analysis vision model is not configured.',
-        ),
-      });
+      await this.fail(record.id, job, locale, 'vision_unavailable');
       return;
     }
 
-    const attachment = record.attachments[0];
-    if (attachment == null) {
-      await this.prisma.userDailyRecord.update({
-        where: { id: record.id },
-        data: this.buildFailureUpdate(
-          mealPayload,
-          'Meal analysis requires exactly one image attachment.',
-        ),
+    let signedImageUrl: string;
+    try {
+      signedImageUrl = await this.storageRuntime.createSignedGetUrl({
+        objectKey: attachment.objectKey,
+        audience: 'external',
       });
-      return;
-    }
-
-    const signedImageUrl = await this.storageRuntime.createSignedGetUrl({
-      objectKey: attachment.objectKey,
-      audience: 'external',
-    });
-    const recognition =
-      await this.mealAnalysisVisionService.recognizeFromImageUrl(
-        signedImageUrl,
+    } catch (error) {
+      this.logger.error(
+        `Failed to sign meal image for record ${record.id}`,
+        error instanceof Error ? error.stack : undefined,
       );
-    const matched = await this.mealAnalysisMatcherService.matchAndEstimate(
-      recognition.foodItems,
-    );
-    const analyzedAt = now();
-    const mealDescription = normalizeNullableText(recognition.mealDescription);
-    const foodItems = matched.foodItems;
-    const coverage = matched.coverage;
+      await this.fail(record.id, job, locale, 'vision_unavailable');
+      return;
+    }
 
-    await this.prisma.userDailyRecord.update({
-      where: { id: record.id },
-      data: {
-        payload: toInputJsonValue({
-          ...(mealPayload.mealInput != null
-            ? { mealInput: mealPayload.mealInput }
-            : {}),
-          mealAnalysis: {
-            ...(mealPayload.mealAnalysis ?? {}),
-            analysisStatus: 'unconfirmed',
-            coverage,
-            mealDescription,
-            foodItems,
-            recognizedDishes: matched.recognizedDishes,
-            resolvedIngredients: matched.resolvedIngredients,
-            compositionMatches: matched.compositionMatches,
-            nutritionEstimate: matched.nutritionEstimate,
-            mealCommentary: matched.mealCommentary,
-            matchDiagnostics: matched.matchDiagnostics,
-            failureReason: null,
-            analyzedAt: analyzedAt.toISOString(),
-            imageObjectKey:
-              mealPayload.mealAnalysis?.imageObjectKey ?? attachment.objectKey,
-            sourceRevision: job.sourceRevision,
-          },
-          ...(mealPayload.mealAnalysisLastConfirmed != null
-            ? {
-                mealAnalysisLastConfirmed:
-                  mealPayload.mealAnalysisLastConfirmed,
-              }
-            : {}),
-        }),
-        mealAnalysisStatus: 'unconfirmed',
-        mealAnalysisCoverage: coverage,
-        mealAnalysisUpdatedAt: analyzedAt,
-        mealAnalysisFailureReason: null,
-      },
+    const outcome = await this.mealAnalysisVisionService.analyze({
+      imageUrl: signedImageUrl,
+      locale,
     });
+    const analyzedAt = now().toISOString();
+
+    if (!outcome.ok) {
+      this.logger.warn(
+        `Meal analysis failed for record ${record.id}: ${outcome.reason}`,
+      );
+      await this.writeAnalysis(
+        record.id,
+        job,
+        buildFailedMealAnalysis(outcome.reason, {
+          sourceRevision: job.sourceRevision,
+          model: null,
+          locale,
+          analyzedAt,
+        }),
+      );
+      return;
+    }
+
+    await this.writeAnalysis(
+      record.id,
+      job,
+      normalizeMealAnalysis(outcome.draft, {
+        sourceRevision: job.sourceRevision,
+        model: outcome.model,
+        locale,
+        analyzedAt,
+      }),
+    );
   }
 
-  private buildFailureUpdate(
-    mealPayload: ReturnType<typeof parseMealRecordPayload>,
-    failureReason: string,
-  ): Prisma.UserDailyRecordUpdateInput {
-    return {
-      payload: toInputJsonValue({
-        ...(mealPayload.mealInput != null
-          ? { mealInput: mealPayload.mealInput }
-          : {}),
-        mealAnalysis: {
-          ...(mealPayload.mealAnalysis ?? {}),
-          analysisStatus: 'analysis_failed',
-          failureReason,
-        },
-        ...(mealPayload.mealAnalysisLastConfirmed != null
-          ? { mealAnalysisLastConfirmed: mealPayload.mealAnalysisLastConfirmed }
-          : {}),
+  private async fail(
+    recordId: string,
+    job: MealAnalysisJobData,
+    locale: string,
+    reason: MealAnalysisFailureReason,
+  ): Promise<void> {
+    this.logger.warn(
+      `Meal analysis rejected for record ${recordId}: ${reason}`,
+    );
+    await this.writeAnalysis(
+      recordId,
+      job,
+      buildFailedMealAnalysis(reason, {
+        sourceRevision: job.sourceRevision,
+        model: null,
+        locale,
+        analyzedAt: now().toISOString(),
       }),
-      mealAnalysisStatus: 'analysis_failed',
-      mealAnalysisCoverage: null,
-      mealAnalysisUpdatedAt: now(),
-      mealAnalysisFailureReason: failureReason,
-    };
+    );
   }
+
+  /**
+   * 条件写：只有记录的 revision 仍是本次作业的 revision 时才落库。
+   * 返回是否写入（`false` = 用户在分析期间又编辑过，本次结果作废）。
+   */
+  private async writeAnalysis(
+    recordId: string,
+    job: MealAnalysisJobData,
+    analysis: MealAnalysisPayload,
+  ): Promise<boolean> {
+    const data: Prisma.UserDailyRecordUpdateManyMutationInput = {
+      payload: toInputJsonValue({ mealAnalysis: analysis }),
+      ...toMealAnalysisHotFields(analysis),
+    };
+    const { count } = await this.prisma.userDailyRecord.updateMany({
+      where: {
+        id: recordId,
+        userId: job.userId,
+        deletedAt: null,
+        mealSourceRevision: job.sourceRevision,
+      },
+      data,
+    });
+
+    if (count === 0) {
+      this.logger.log(
+        `Discarded stale meal analysis for record ${recordId} (revision ${String(job.sourceRevision)})`,
+      );
+      return false;
+    }
+    return true;
+  }
+}
+
+/** 用户未设置语言时按产品主语言兜底。 */
+function resolveMealLocale(raw: string | null | undefined): string {
+  return raw != null && raw.trim().length > 0
+    ? resolveLocale(raw)
+    : MEAL_ANALYSIS_DEFAULT_LOCALE;
 }

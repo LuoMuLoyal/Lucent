@@ -580,7 +580,8 @@ describe('API Contract Tests (e2e)', () => {
         .send({
           occurredAt: '2026-07-12',
           kind: 'meal',
-          payload: { mealType: 'breakfast', items: [] },
+          // 餐食分析结果由服务端产出（客户端只能改菜名），这里只验证资源形状。
+          payload: { mealAnalysis: { dishes: [{ name: 'breakfast' }] } },
         })
         .expect(201);
 

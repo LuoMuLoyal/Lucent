@@ -2,6 +2,11 @@ import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { BullmqQueueFactory } from './queue.factory.js';
 import {
+  MealAnalysisSweeperService,
+  MEAL_ANALYSIS_REAP_CRON,
+  MEAL_ANALYSIS_REAP_JOB_NAME,
+} from '../../modules/daily-records/index.js';
+import {
   DataRetentionService,
   DATA_RETENTION_CRON,
 } from '../../modules/data-retention/index.js';
@@ -26,6 +31,7 @@ const SCHEDULER_DATA_RETENTION = 'data-retention-cleanup';
 const SCHEDULER_LIFECYCLE = 'lifecycle-refresh';
 const SCHEDULER_REMINDER = 'reminder-dispatch';
 const SCHEDULER_WEEKLY_INSIGHT = 'weekly-insight';
+const SCHEDULER_MEAL_ANALYSIS_REAP = 'meal-analysis-reap';
 
 /** Job names — the worker processor dispatches on these. */
 const JOB_DATA_RETENTION = 'data-retention-cleanup';
@@ -58,6 +64,7 @@ export class CronJobsService implements OnModuleInit {
     private readonly lifecycleService: LifecycleService,
     private readonly reminderSchedulerService: ReminderSchedulerService,
     private readonly weeklyInsightSchedulerService: WeeklyInsightSchedulerService,
+    private readonly mealAnalysisSweeperService: MealAnalysisSweeperService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -80,6 +87,9 @@ export class CronJobsService implements OnModuleInit {
             return;
           case JOB_WEEKLY_INSIGHT:
             await this.weeklyInsightSchedulerService.runTick();
+            return;
+          case MEAL_ANALYSIS_REAP_JOB_NAME:
+            await this.mealAnalysisSweeperService.reapStaleAnalyses();
             return;
           default:
             this.logger.warn(`Unknown cron job name: ${job.name}`);
@@ -142,6 +152,11 @@ export class CronJobsService implements OnModuleInit {
           SCHEDULER_WEEKLY_INSIGHT,
           { pattern: '* * * * *', tz: 'UTC' },
           { name: JOB_WEEKLY_INSIGHT, data: {} },
+        ),
+        cronQueue.upsertJobScheduler(
+          SCHEDULER_MEAL_ANALYSIS_REAP,
+          { pattern: MEAL_ANALYSIS_REAP_CRON, tz: 'UTC' },
+          { name: MEAL_ANALYSIS_REAP_JOB_NAME, data: {} },
         ),
       );
     }

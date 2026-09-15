@@ -3,11 +3,7 @@ import {
   normalizeNullableText,
 } from '../../../common/index.js';
 import { parseDateOnly, now, formatDateOnly } from '../../../common/index.js';
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   createDomainFailure,
@@ -28,14 +24,7 @@ import {
   dailyRecordWithAttachments,
   type OwnedRecordSnapshot,
 } from '../types/record.types.js';
-import {
-  buildConfirmedMealPayload,
-  getMealSourceRevision,
-  hasMealDishInputChanges,
-  isMealAnalysisConfirmRequest,
-  markMealAnalysisQueued,
-} from '../types/meal-analysis.types.js';
-import { MealDishTemplateLearningService } from './meal-dish/template-learning.service.js';
+import { getMealSourceRevision } from '../types/meal-analysis.types.js';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository.js';
 import { HealthEventsOwnershipService } from '../../health-events/index.js';
 import { DailyRecordsValidatorService } from './records-validator.service.js';
@@ -56,7 +45,6 @@ export class DailyRecordsService {
     private readonly mapperService: DailyRecordsMapperService,
     private readonly mealPayloadWriterService: MealPayloadWriterService,
     private readonly validatorService: DailyRecordsValidatorService,
-    private readonly mealDishTemplateLearningService: MealDishTemplateLearningService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -159,27 +147,13 @@ export class DailyRecordsService {
               createAttachments,
             ),
           });
+          // `prepareMealPayloadForWrite` 已经写入 `analyzing` 占位与递增后的
+          // revision，这里只把它读出来交给入队。
           if (
             dto.kind === DailyRecordKind.meal &&
             createAttachments.length === 1
           ) {
-            const attachment = createAttachments[0];
-            if (attachment == null) {
-              throw new InternalServerErrorException(
-                'Expected one meal attachment after length check.',
-              );
-            }
-            const queuedPayload = markMealAnalysisQueued(record.payload, {
-              imageObjectKey: attachment.objectKey,
-            });
-            queuedRevision = getMealSourceRevision(queuedPayload);
-            await tx.userDailyRecord.update({
-              where: { id: record.id },
-              data: this.mealPayloadWriterService.withMealHotFields(
-                {},
-                queuedPayload,
-              ),
-            });
+            queuedRevision = getMealSourceRevision(record.payload);
           }
           const txItem = await this.getItemFromTx(tx, userId, record.id);
           return { item: txItem, queuedRevision };
@@ -281,13 +255,11 @@ export class DailyRecordsService {
 
           const isMealTarget =
             (dto.kind ?? existing.kind) === DailyRecordKind.meal;
-          const confirmRequested =
-            isMealTarget && dto.payload !== undefined
-              ? isMealAnalysisConfirmRequest(dto.payload)
-              : false;
 
           const updateAttachments = dto.attachments;
-          let nextPayload =
+          // 客户端只能改 `dishes`（服务端忽略其它 mealAnalysis 字段）。带恰好
+          // 一张图提交 = 新建分析或「重新分析」（revision 递增后重新入队）。
+          const nextPayload =
             (dto.payload !== undefined || updateAttachments !== undefined) &&
             isMealTarget
               ? this.mealPayloadWriterService.prepareMealPayloadForWrite(
@@ -297,23 +269,6 @@ export class DailyRecordsService {
                 )
               : null;
 
-          const dishInputChanged =
-            isMealTarget && dto.payload !== undefined
-              ? hasMealDishInputChanges(nextPayload, existing.payload)
-              : false;
-
-          if (isMealTarget && confirmRequested) {
-            nextPayload = buildConfirmedMealPayload(nextPayload);
-          } else if (
-            isMealTarget &&
-            dishInputChanged &&
-            updateAttachments === undefined &&
-            nextPayload != null
-          ) {
-            nextPayload =
-              this.mealPayloadWriterService.requeueOnDishChange(nextPayload);
-          }
-
           if (updateAttachments !== undefined) {
             return this.updateWithAttachments(
               userId,
@@ -322,7 +277,6 @@ export class DailyRecordsService {
               dto,
               updateAttachments,
               nextPayload,
-              confirmRequested,
             );
           }
 
@@ -338,18 +292,6 @@ export class DailyRecordsService {
               const item = this.mapperService.toItem(record, {
                 includeMealPayload: true,
               });
-              if (confirmRequested) {
-                await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
-                  this.mealPayloadWriterService.parseAnalysis(item),
-                );
-                await this.invalidateSuggestionCacheForUpdate(
-                  userId,
-                  id,
-                  existing,
-                  dto,
-                );
-                return item;
-              }
               await this.mealPayloadWriterService.enqueueAnalysisIfNeeded(
                 userId,
                 item,
@@ -373,7 +315,6 @@ export class DailyRecordsService {
     dto: UpdateDailyRecordDto,
     updateAttachments: NonNullable<UpdateDailyRecordDto['attachments']>,
     nextPayload: Record<string, unknown> | null,
-    confirmRequested: boolean,
   ): ResultAsync<
     ReturnType<DailyRecordsMapperService['toItem']>,
     DomainFailure
@@ -418,34 +359,15 @@ export class DailyRecordsService {
         }
         throw error;
       },
-    )
-      .andThen((item) => {
-        if (confirmRequested) {
-          return fromPromise(
-            this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
-              this.mealPayloadWriterService.parseAnalysis(item),
-            ),
-            (error) => {
-              throw error;
-            },
-          ).map(() => item);
-        }
-        return okAsync(item);
-      })
-      .map(async (item) => {
-        await this.mealPayloadWriterService.enqueueAnalysisIfNeeded(
-          userId,
-          item,
-          nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
-        );
-        await this.invalidateSuggestionCacheForUpdate(
-          userId,
-          id,
-          existing,
-          dto,
-        );
-        return item;
-      });
+    ).map(async (item) => {
+      await this.mealPayloadWriterService.enqueueAnalysisIfNeeded(
+        userId,
+        item,
+        nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
+      );
+      await this.invalidateSuggestionCacheForUpdate(userId, id, existing, dto);
+      return item;
+    });
   }
 
   delete(userId: string, id: string): ResultAsync<void, DomainFailure> {

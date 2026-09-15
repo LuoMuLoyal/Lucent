@@ -59,9 +59,7 @@ describe('ReportsLlmSummaryCopyService', () => {
       mealEstimate: [0, 0, 0, 0, 0, 0, 0],
     },
     mealEstimateBreakdown: {
-      confirmedDays: 0,
-      estimatedDays: 0,
-      partialDays: 0,
+      analyzedDays: 0,
       analyzingDays: 0,
       failedDays: 0,
     },

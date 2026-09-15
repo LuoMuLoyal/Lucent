@@ -410,59 +410,27 @@ export class TodayAnalysisContextService {
       };
     }
 
-    if (status !== 'unconfirmed' && status !== 'confirmed') {
+    if (status !== 'analyzed' || analysis == null) {
       return null;
     }
 
-    if (analysis == null) {
-      return null;
-    }
-
-    const description = this.trimNullableText(analysis.mealDescription ?? null);
-    const foodNames = Array.isArray(analysis.recognizedDishes)
-      ? analysis.recognizedDishes
-          .map((item) => {
-            const candidate =
-              typeof item.rawName === 'string'
-                ? item.rawName
-                : typeof item.normalizedDishName === 'string'
-                  ? item.normalizedDishName
-                  : null;
-            return candidate?.trim() ?? null;
-          })
-          .filter((value): value is string => value != null && value.length > 0)
-          .slice(0, 3)
-      : Array.isArray(analysis.foodItems)
-        ? analysis.foodItems
-            .map((item) => {
-              if (typeof item !== 'object') {
-                return null;
-              }
-              const candidate = item['name'];
-              return typeof candidate === 'string' ? candidate.trim() : null;
-            })
-            .filter(
-              (value): value is string => value != null && value.length > 0,
-            )
-            .slice(0, 3)
-        : [];
-
-    const isPartial = analysis.coverage === 'partial';
-    const estimateLabel =
-      status === 'confirmed'
-        ? isPartial
-          ? '饮食已确认（部分匹配）'
-          : '饮食已确认'
-        : isPartial
-          ? '饮食估算中（部分匹配）'
-          : '饮食估算中';
+    const dishNames = analysis.dishes
+      .map((dish) => dish.name)
+      .filter((name) => name.length > 0)
+      .slice(0, 3);
 
     const noteParts: string[] = [];
-    if (isPartial) {
-      noteParts.push('部分估算');
+    if (dishNames.length > 0) {
+      noteParts.push(`识别菜品：${dishNames.join('、')}`);
     }
-    if (foodNames.length > 0) {
-      noteParts.push(`识别食物：${foodNames.join('、')}`);
+    if (analysis.calorieRange != null) {
+      noteParts.push(
+        `热量区间：${String(analysis.calorieRange.min)}–${String(analysis.calorieRange.max)} kcal`,
+      );
+    }
+    // 只把最重要的两段结论给 LLM：全文由详情页与助手摘要承载。
+    for (const item of analysis.items.slice(0, 2)) {
+      noteParts.push(`${item.headline}：${item.detail}`);
     }
     const note =
       noteParts.length > 0
@@ -471,10 +439,7 @@ export class TodayAnalysisContextService {
 
     return {
       kind: record.kind,
-      title:
-        description == null
-          ? this.trimNullableText(record.title)
-          : `${estimateLabel}：${description}`,
+      title: '饮食分析',
       value: this.trimNullableText(record.value),
       unit: this.trimNullableText(record.unit),
       note,

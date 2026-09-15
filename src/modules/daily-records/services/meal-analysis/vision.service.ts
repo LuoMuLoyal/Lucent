@@ -1,23 +1,33 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
-import { safeParseLlmJson } from '../../../../common/index.js';
-
 import { normalizeNullableText } from '../../../../common/index.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { MEAL_ANALYSIS_VISION_TIMEOUT_MS } from '../../constants/meal-analysis.constants.js';
+import {
+  mealAnalysisModelOutputSchema,
+  toMealAnalysisDraft,
+  type MealAnalysisDraft,
+  type MealAnalysisFailureReason,
+} from '../../schemas/meal-analysis.schema.js';
+import {
+  buildMealAnalysisSystemPrompt,
+  buildMealAnalysisUserPrompt,
+} from '../../prompts/meal-analysis.prompt.js';
 
-const MEAL_DESCRIPTION_MAX_LENGTH = 200;
-const FOOD_NAME_MAX_LENGTH = 100;
-const PORTION_TEXT_MAX_LENGTH = 100;
-
-export interface MealVisionRecognitionResult {
-  mealDescription: string | null;
-  foodItems: Array<{
-    name: string;
-    confidence: number | null;
-    portionText: string | null;
-  }>;
+export interface MealAnalysisVisionInput {
+  imageUrl: string;
+  /** 分析时用户的语言（`zh-CN` / `en`）：文案按它生成并随分析一起落库。 */
+  locale: string;
 }
+
+/**
+ * 视觉分析结果。失败是**返回值**而不是异常：调用方（worker）需要把原因码
+ * 落到记录上，异常会在队列里变成重试与永久 `analyzing`（v1 的缺陷）。
+ */
+export type MealAnalysisVisionOutcome =
+  | { ok: true; draft: MealAnalysisDraft; model: string | null }
+  | { ok: false; reason: MealAnalysisFailureReason };
 
 @Injectable()
 export class MealAnalysisVisionService {
@@ -32,121 +42,139 @@ export class MealAnalysisVisionService {
     return this.llmRuntimeService.hasRoleConfig('vision');
   }
 
-  recognizeFromImageUrl(
-    imageUrl: string,
-  ): Promise<MealVisionRecognitionResult> {
-    return this.invokeVisionModel(imageUrl);
-  }
+  /** 一次多模态调用直出区间、菜名、排序结论与机器维度。 */
+  async analyze(
+    input: MealAnalysisVisionInput,
+  ): Promise<MealAnalysisVisionOutcome> {
+    const languageLabel = input.locale === 'zh-CN' ? '中文' : 'English';
 
-  private async invokeVisionModel(
-    imageUrl: string,
-  ): Promise<MealVisionRecognitionResult> {
-    const model = this.llmRuntimeService.createChatModel('vision', {
-      temperature: 0.1,
-      maxRetries: 0,
-    });
+    try {
+      const model = this.llmRuntimeService.createChatModel('vision', {
+        temperature: 0.1,
+        maxRetries: 0,
+        timeout: MEAL_ANALYSIS_VISION_TIMEOUT_MS,
+      });
+      const structured = model.withStructuredOutput(
+        mealAnalysisModelOutputSchema,
+        {
+          name: 'emit_meal_analysis',
+          method: 'functionCalling',
+          strict: true,
+        },
+      );
 
-    const response = await model.invoke([
-      new SystemMessage(buildMealVisionSystemPrompt()),
-      new HumanMessage({
-        content: [
-          {
-            type: 'text',
-            text: buildMealVisionUserPrompt(),
-          },
-          {
-            type: 'image_url',
-            image_url: { url: imageUrl },
-          },
-        ],
-      }),
-    ]);
+      const raw: unknown = await structured.invoke([
+        new SystemMessage(buildMealAnalysisSystemPrompt(languageLabel)),
+        new HumanMessage({
+          content: [
+            {
+              type: 'text',
+              text: buildMealAnalysisUserPrompt(languageLabel),
+            },
+            {
+              type: 'image_url',
+              image_url: { url: input.imageUrl },
+            },
+          ],
+        }),
+      ]);
 
-    const text =
-      typeof response.content === 'string'
-        ? response.content
-        : JSON.stringify(response.content);
-    const parsed = parseRecognitionResponse(text, this.logger);
-    if (parsed == null) {
-      this.logger.warn('Meal vision response was not parseable JSON');
-      return emptyRecognitionResult();
-    }
-
-    return this.sanitizeRecognitionResult(parsed);
-  }
-
-  private sanitizeRecognitionResult(
-    raw: MealVisionRecognitionResult,
-  ): MealVisionRecognitionResult {
-    const mealDescription = this.sanitizeNullableText(
-      raw.mealDescription,
-      MEAL_DESCRIPTION_MAX_LENGTH,
-      true,
-    );
-
-    const foodItems = raw.foodItems
-      .map((item) => {
-        const name = this.sanitizeText(item.name, FOOD_NAME_MAX_LENGTH);
-        if (name == null) {
-          return null;
-        }
-
-        if (!this.safetyPolicyService.isSafeText(name)) {
-          this.logger.warn('Meal vision food name rejected by safety filter');
-          return null;
-        }
-
-        const portionText = this.sanitizeNullableText(
-          item.portionText,
-          PORTION_TEXT_MAX_LENGTH,
-          false,
+      // 结构化输出已经按 schema 解析过；这里再校验一次，兼容不支持
+      // function calling、直接回文本的 OpenAI 兼容端点。
+      const parsed = mealAnalysisModelOutputSchema.safeParse(raw);
+      if (!parsed.success) {
+        this.logger.warn(
+          'Meal analysis model output did not match the contract schema',
         );
+        return { ok: false, reason: 'invalid_output' };
+      }
 
-        return {
-          name,
-          confidence: item.confidence,
-          portionText,
-        };
-      })
-      .filter(
-        (
-          item,
-        ): item is {
-          name: string;
-          confidence: number | null;
-          portionText: string | null;
-        } => item != null,
-      );
+      const draft = this.sanitizeDraft(toMealAnalysisDraft(parsed.data));
+      if (draft == null) {
+        this.logger.warn(
+          'Meal analysis output was empty or fully rejected by the safety filter',
+        );
+        return { ok: false, reason: 'invalid_output' };
+      }
 
-    if (mealDescription == null && foodItems.length === 0) {
+      return {
+        ok: true,
+        draft,
+        model: this.llmRuntimeService.getModelName('vision'),
+      };
+    } catch (error) {
+      const reason = classifyVisionError(error);
       this.logger.warn(
-        'Meal vision result was sanitized to empty; returning empty recognition result',
+        `Meal analysis model call failed (${reason}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
-      return emptyRecognitionResult();
+      return { ok: false, reason };
     }
-
-    return { mealDescription, foodItems };
   }
 
-  private sanitizeNullableText(
-    raw: string | null,
-    maxLength: number,
-    dropIfUnsafe: boolean,
-  ): string | null {
-    const sanitized = this.sanitizeText(raw, maxLength);
-    if (sanitized == null) {
+  /**
+   * 清理模型输出：去掉标记与控制字符，丢掉不安全的文案，并在结果完全无用
+   * （没有结论、没有菜名、没有区间）时返回 `null` 让上层落 `invalid_output`。
+   */
+  private sanitizeDraft(draft: MealAnalysisDraft): MealAnalysisDraft | null {
+    const items: Array<{
+      rank: unknown;
+      kind: unknown;
+      polarity: unknown;
+      headline: string;
+      detail: string;
+    }> = [];
+    for (const item of draft.items ?? []) {
+      const headline = this.sanitizeText(item.headline);
+      const detail = this.sanitizeText(item.detail);
+      if (headline == null || detail == null) {
+        continue;
+      }
+      if (
+        !this.safetyPolicyService.isSafeText(headline) ||
+        !this.safetyPolicyService.isSafeText(detail)
+      ) {
+        this.logger.warn('Meal analysis item rejected by safety filter');
+        continue;
+      }
+      items.push({
+        rank: item.rank,
+        kind: item.kind,
+        polarity: item.polarity,
+        headline,
+        detail,
+      });
+    }
+
+    const dishes: Array<{ name: string; source: unknown }> = [];
+    for (const dish of draft.dishes ?? []) {
+      const name = this.sanitizeText(dish.name);
+      if (name == null || !this.safetyPolicyService.isSafeText(name)) {
+        this.logger.warn('Meal dish name rejected by safety filter');
+        continue;
+      }
+      dishes.push({ name, source: dish.source });
+    }
+
+    if (
+      items.length === 0 &&
+      dishes.length === 0 &&
+      draft.calorieRange == null
+    ) {
       return null;
     }
 
-    if (dropIfUnsafe && !this.safetyPolicyService.isSafeText(sanitized)) {
-      return null;
-    }
-
-    return sanitized;
+    return {
+      calorieRange: draft.calorieRange ?? null,
+      dishes,
+      items,
+      facets: draft.facets ?? {},
+    };
   }
 
-  private sanitizeText(raw: string | null, maxLength: number): string | null {
-    if (raw == null) {
+  private sanitizeText(raw: unknown): string | null {
+    if (typeof raw !== 'string') {
       return null;
     }
 
@@ -158,15 +186,32 @@ export class MealAnalysisVisionService {
       .split('')
       .filter((char) => !isControlCharacter(char))
       .join('');
-    const normalized = normalizeNullableText(withoutMarkup);
-    if (normalized == null) {
-      return null;
-    }
 
-    return normalized.length > maxLength
-      ? normalized.slice(0, maxLength)
-      : normalized;
+    return normalizeNullableText(withoutMarkup);
   }
+}
+
+function classifyVisionError(error: unknown): MealAnalysisFailureReason {
+  if (!(error instanceof Error)) {
+    return 'model_failed';
+  }
+
+  const name = error.name.toLowerCase();
+  const message = error.message.toLowerCase();
+  if (
+    name.includes('timeout') ||
+    name.includes('abort') ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('aborted') ||
+    message.includes('etimedout')
+  ) {
+    return 'model_timeout';
+  }
+  if (name.includes('zod') || message.includes('failed to parse')) {
+    return 'invalid_output';
+  }
+  return 'model_failed';
 }
 
 function isControlCharacter(char: string): boolean {
@@ -177,92 +222,4 @@ function isControlCharacter(char: string): boolean {
     (code >= 0x0e && code <= 0x1f) ||
     code === 0x7f
   );
-}
-
-function buildMealVisionSystemPrompt(): string {
-  return [
-    'You are a conservative meal-recognition assistant.',
-    'Recognize only visible foods and drinks in the provided meal photo.',
-    'Return JSON only.',
-    'Do not provide medical advice.',
-    'Do not invent hidden ingredients.',
-    'Use short normalized Chinese food names when possible.',
-  ].join(' ');
-}
-
-function buildMealVisionUserPrompt(): string {
-  return [
-    'Please identify the visible meal.',
-    'Return exactly one JSON object with this shape:',
-    '{"mealDescription": string|null, "foodItems": [{"name": string, "confidence": number|null, "portionText": string|null}]}',
-    'If uncertain, keep the item but lower confidence.',
-    'If nothing reliable is visible, return {"mealDescription": null, "foodItems": []}.',
-  ].join(' ');
-}
-
-function parseRecognitionResponse(
-  rawText: string,
-  logger: Logger,
-): MealVisionRecognitionResult | null {
-  const parsed = safeParseLlmJson(rawText, {
-    logger,
-    context: 'meal vision recognition',
-  }) as {
-    mealDescription?: unknown;
-    foodItems?: unknown;
-  } | null;
-
-  if (parsed == null) {
-    return null;
-  }
-
-  const mealDescription =
-    typeof parsed.mealDescription === 'string'
-      ? normalizeNullableText(parsed.mealDescription)
-      : null;
-
-  const foodItems = Array.isArray(parsed.foodItems)
-    ? parsed.foodItems
-        .map((item) => {
-          if (item == null || typeof item !== 'object') {
-            return null;
-          }
-
-          const candidate = item as Record<string, unknown>;
-          const name = normalizeNullableText(candidate['name']);
-          if (name == null) {
-            return null;
-          }
-
-          return {
-            name,
-            confidence:
-              typeof candidate['confidence'] === 'number'
-                ? candidate['confidence']
-                : null,
-            portionText: normalizeNullableText(candidate['portionText']),
-          };
-        })
-        .filter(
-          (
-            item,
-          ): item is {
-            name: string;
-            confidence: number | null;
-            portionText: string | null;
-          } => item != null,
-        )
-    : [];
-
-  return {
-    mealDescription,
-    foodItems,
-  };
-}
-
-function emptyRecognitionResult(): MealVisionRecognitionResult {
-  return {
-    mealDescription: null,
-    foodItems: [],
-  };
 }

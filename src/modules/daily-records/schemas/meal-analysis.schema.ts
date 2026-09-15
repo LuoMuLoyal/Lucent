@@ -145,8 +145,64 @@ export interface MealAnalysisEnvelope {
   promptVersion?: string;
 }
 
+/**
+ * 多模态模型必须按这个形状作答（结构化输出的 JSON Schema）。
+ *
+ * 为什么 `facets` 是数组而不是对象：strict function calling 要求
+ * `additionalProperties: false` 且所有键必填，封闭键集的记录类型表达不了
+ * 「只给部分维度」；数组形式对模型更明确，落库前转成记录。
+ * 为什么 `dishes` 只有名字：菜名只是给人看的标签，营养数据不由它推导。
+ */
+export const mealAnalysisModelOutputSchema = z.object({
+  calorieRange: z
+    .object({
+      min: z.number().describe('Estimated lower bound in kcal.'),
+      max: z.number().describe('Estimated upper bound in kcal.'),
+    })
+    .nullable()
+    .describe('Whole-meal energy estimate. Null when the photo is unusable.'),
+  dishes: z.array(z.string()).describe('Visible dish/drink names.'),
+  items: z
+    .array(
+      z.object({
+        rank: z.number().describe('1 = most important finding.'),
+        kind: itemKindSchema,
+        polarity: itemPolaritySchema,
+        headline: z.string().describe('At most 18 characters.'),
+        detail: z.string().describe('One sentence, at most 60 characters.'),
+      }),
+    )
+    .describe('Findings ordered by importance.'),
+  facets: z
+    .array(z.object({ kind: itemKindSchema, level: facetLevelSchema }))
+    .describe('Machine-readable dimension levels for rules and aggregates.'),
+});
+
+export type MealAnalysisModelOutput = z.infer<
+  typeof mealAnalysisModelOutputSchema
+>;
+
+/** 模型输出 → 规范化草稿：菜名补 `source: model`，`facets` 数组转记录。 */
+export function toMealAnalysisDraft(
+  output: MealAnalysisModelOutput,
+): MealAnalysisDraft {
+  return {
+    calorieRange: output.calorieRange,
+    dishes: output.dishes.map((name) => ({ name, source: 'model' })),
+    items: output.items,
+    facets: Object.fromEntries(
+      output.facets.map((facet) => [facet.kind, facet.level]),
+    ),
+  };
+}
+
 function trimmed(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/** 截断到上限：模型超长时保留信息，而不是整条丢弃。 */
+function truncated(value: string, maxLength: number): string {
+  return value.length > maxLength ? value.slice(0, maxLength).trim() : value;
 }
 
 /** 推导热量档位：不信任模型给的 bucket。 */
@@ -162,12 +218,13 @@ export function calorieBucketFor(
   return 'high';
 }
 
-/** 纠正区间：非有限值丢弃、`min<=max`、clamp 到上限、取整。非法时返回 null。 */
+/** 纠正区间：非数值丢弃、`min<=max`、clamp 到上限、取整。非法时返回 null。 */
 export function normalizeCalorieRange(
   range: MealAnalysisDraft['calorieRange'],
 ): MealAnalysisCalorieRange | null {
-  const rawMin = Number(range?.min);
-  const rawMax = Number(range?.max);
+  const rawMin = range?.min;
+  const rawMax = range?.max;
+  if (typeof rawMin !== 'number' || typeof rawMax !== 'number') return null;
   if (!Number.isFinite(rawMin) || !Number.isFinite(rawMax)) return null;
 
   const clamp = (value: number) =>
@@ -197,8 +254,8 @@ export function normalizeMealAnalysisItems(
         polarity: itemPolaritySchema.safeParse(draft.polarity).success
           ? (draft.polarity as MealAnalysisPolarity)
           : ('neutral' as const),
-        headline,
-        detail,
+        headline: truncated(headline, MEAL_ANALYSIS_HEADLINE_MAX_LENGTH),
+        detail: truncated(detail, MEAL_ANALYSIS_DETAIL_MAX_LENGTH),
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null)
@@ -221,8 +278,8 @@ export function normalizeMealAnalysisDishes(
   const seen = new Set<string>();
   const dishes: MealAnalysisDish[] = [];
   for (const draft of drafts ?? []) {
-    const name = trimmed(draft.name);
-    if (name.length === 0 || name.length > MEAL_ANALYSIS_DISH_MAX_LENGTH) {
+    const name = truncated(trimmed(draft.name), MEAL_ANALYSIS_DISH_MAX_LENGTH);
+    if (name.length === 0) {
       continue;
     }
     const key = name.toLowerCase();

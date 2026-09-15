@@ -6,18 +6,21 @@ import {
   getMealSourceRevision,
   markMealAnalysisQueued,
   parseMealRecordPayload,
-  type MealAnalysisCoverage,
-  type MealAnalysisStatus,
+  toMealAnalysisHotFields,
 } from '../types/meal-analysis.types.js';
+import type {
+  MealAnalysisFailureReason,
+  MealAnalysisStatus,
+} from '../schemas/meal-analysis.schema.js';
 import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
 
 /**
- * Meal-payload write path: sanitizes client meal input, folds the one-image
- * analysis queue marker (plus hot columns) into the stored payload, and
- * decides whether a meal analysis job should be enqueued after a write.
+ * Meal-payload write path: sanitizes the client-editable dish list, folds the
+ * one-image analysis queue marker (plus hot columns) into the stored payload,
+ * and decides whether a meal analysis job should be enqueued after a write.
  *
- * Extracted from `DailyRecordsService` so the record CRUD service stays
- * focused on orchestration and the meal-analysis contract lives in one file.
+ * 状态由服务端独占：客户端的提交只能改 `dishes`，`analysisStatus` 永远由
+ * 入队（analyzing）与 worker（analyzed / analysis_failed）写。
  */
 @Injectable()
 export class MealPayloadWriterService {
@@ -29,39 +32,17 @@ export class MealPayloadWriterService {
     payload: unknown,
     attachments: { objectKey: string }[] | undefined,
     existingPayload?: unknown,
-  ) {
+  ): Record<string, unknown> | null {
     const sanitized = buildMealPayloadFromClientInput(
       payload,
       existingPayload ?? null,
     );
+    // 恰好一张图才会分析（0 张是纯手写记录，多张无法分析）。
     if (attachments == null || attachments.length !== 1) {
       return sanitized;
     }
-    const attachment = attachments[0];
-    if (attachment == null) {
-      return sanitized;
-    }
 
-    return markMealAnalysisQueued(sanitized, {
-      imageObjectKey: attachment.objectKey,
-    });
-  }
-
-  /** Marks a dish-edited payload as needing re-analysis when an image exists. */
-  public requeueOnDishChange(
-    finalPayload: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const currentAnalysis = finalPayload['mealAnalysis'] as
-      | Record<string, unknown>
-      | undefined;
-    const imageObjectKey =
-      typeof currentAnalysis?.['imageObjectKey'] === 'string'
-        ? currentAnalysis['imageObjectKey']
-        : null;
-    if (imageObjectKey != null) {
-      return markMealAnalysisQueued(finalPayload, { imageObjectKey });
-    }
-    return finalPayload;
+    return markMealAnalysisQueued(sanitized);
   }
 
   public withMealHotFields(
@@ -79,7 +60,8 @@ export class MealPayloadWriterService {
     };
   }
 
-  private buildMealCreateFields(
+  /** Expands a prepared meal payload into full create-data (payload + hot columns). */
+  public toCreateFields(
     mealPayload: Record<string, unknown> | null,
   ): Record<string, unknown> {
     if (mealPayload == null) {
@@ -95,42 +77,24 @@ export class MealPayloadWriterService {
     };
   }
 
-  /** Expands a prepared meal payload into full create-data (payload + hot columns). */
-  public toCreateFields(
-    mealPayload: Record<string, unknown> | null,
-  ): Record<string, unknown> {
-    return this.buildMealCreateFields(mealPayload);
-  }
-
   private extractMealAnalysisHotFields(mealPayload: Record<string, unknown>): {
     mealAnalysisStatus: MealAnalysisStatus | null;
-    mealAnalysisCoverage: MealAnalysisCoverage | null;
+    mealAnalysisCoverage: null;
     mealAnalysisUpdatedAt: Date | null;
-    mealAnalysisFailureReason: string | null;
+    mealAnalysisFailureReason: MealAnalysisFailureReason | null;
     mealSourceRevision: number;
   } {
-    const analysis = mealPayload['mealAnalysis'] as
-      | Record<string, unknown>
-      | undefined;
-    return {
-      mealAnalysisStatus:
-        (analysis?.['analysisStatus'] as
-          | MealAnalysisStatus
-          | null
-          | undefined) ?? null,
-      mealAnalysisCoverage:
-        (analysis?.['coverage'] as MealAnalysisCoverage | null | undefined) ??
-        null,
-      mealAnalysisUpdatedAt:
-        typeof analysis?.['analyzedAt'] === 'string'
-          ? new Date(analysis['analyzedAt'])
-          : null,
-      mealAnalysisFailureReason:
-        (analysis?.['failureReason'] as string | null | undefined) ?? null,
-      mealSourceRevision: getMealSourceRevision(mealPayload),
-    };
+    return toMealAnalysisHotFields(
+      parseMealRecordPayload(mealPayload).mealAnalysis ?? null,
+    );
   }
 
+  /**
+   * 复检 payload 里是否仍是待分析状态并仍是同一 revision，是则入队。
+   *
+   * `sourceRevisionOverride` 用于「写完再过一遍」的路径（新建/替换图片），
+   * 那里 payload 已经在事务里写过，不能靠 status 判断。
+   */
   public async enqueueAnalysisIfNeeded(
     userId: string,
     item: {
@@ -166,10 +130,5 @@ export class MealPayloadWriterService {
       recordId: item.id,
       sourceRevision: getMealSourceRevision(item.payload),
     });
-  }
-
-  /** Parses the stored payload's mealAnalysis for the dish-learning step. */
-  public parseAnalysis(item: { payload?: Record<string, unknown> | null }) {
-    return parseMealRecordPayload(item.payload).mealAnalysis;
   }
 }

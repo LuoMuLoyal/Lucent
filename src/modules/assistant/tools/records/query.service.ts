@@ -53,7 +53,6 @@ export class AssistantToolRecordQueryService {
         tags: this.buildTags(item),
         payload: item.payload ?? null,
         mealAnalysisStatus: item.mealAnalysisStatus ?? null,
-        mealAnalysisCoverage: item.mealAnalysisCoverage ?? null,
         mealAnalysisUpdatedAt: item.mealAnalysisUpdatedAt ?? null,
         mealAnalysisFailureReason: item.mealAnalysisFailureReason ?? null,
         mealShortDescription: item.mealShortDescription ?? null,
@@ -324,7 +323,6 @@ export class AssistantToolRecordQueryService {
   private buildTags(item: {
     kind: DailyRecordKind;
     mealAnalysisStatus?: string | null;
-    mealAnalysisCoverage?: string | null;
   }): string[] {
     if (item.kind !== DailyRecordKind.meal) {
       return [];
@@ -333,9 +331,6 @@ export class AssistantToolRecordQueryService {
     const tags: string[] = [];
     if (item.mealAnalysisStatus != null) {
       tags.push(`meal_estimate:${item.mealAnalysisStatus}`);
-    }
-    if (item.mealAnalysisCoverage != null) {
-      tags.push(`meal_coverage:${item.mealAnalysisCoverage}`);
     }
     return tags;
   }

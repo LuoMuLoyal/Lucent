@@ -258,23 +258,20 @@ export class ReportsContextService {
   ): {
     series: number[];
     breakdown: {
-      confirmedDays: number;
-      estimatedDays: number;
-      partialDays: number;
+      analyzedDays: number;
       analyzingDays: number;
       failedDays: number;
     };
   } {
     const statusByDay = new Map<string, Set<MealAnalysisStatus>>();
-    const partialByDay = new Set<string>();
 
     for (const record of dailyRecords) {
       if (record.kind !== DailyRecordKind.meal) {
         continue;
       }
 
-      const payload = parseMealRecordPayload(record.payload);
-      const status = payload.mealAnalysis?.analysisStatus;
+      const status = parseMealRecordPayload(record.payload).mealAnalysis
+        ?.analysisStatus;
       if (status == null) {
         continue;
       }
@@ -283,16 +280,10 @@ export class ReportsContextService {
       const dayStatuses = statusByDay.get(day) ?? new Set<MealAnalysisStatus>();
       dayStatuses.add(status);
       statusByDay.set(day, dayStatuses);
-
-      if (payload.mealAnalysis?.coverage === 'partial') {
-        partialByDay.add(day);
-      }
     }
 
     const series: number[] = [];
-    let confirmedDays = 0;
-    let estimatedDays = 0;
-    let partialDays = 0;
+    let analyzedDays = 0;
     let analyzingDays = 0;
     let failedDays = 0;
 
@@ -300,36 +291,23 @@ export class ReportsContextService {
       const day = this.toDateString(date);
       const statuses = statusByDay.get(day) ?? new Set<MealAnalysisStatus>();
 
-      if (statuses.has('confirmed') || statuses.has('unconfirmed')) {
+      if (statuses.has('analyzed')) {
         series.push(1);
+        analyzedDays += 1;
       } else {
         series.push(0);
-      }
-
-      if (statuses.has('confirmed')) {
-        confirmedDays += 1;
-      } else if (statuses.has('unconfirmed')) {
-        estimatedDays += 1;
-      } else if (statuses.has('analyzing')) {
-        analyzingDays += 1;
-      } else if (statuses.has('analysis_failed')) {
-        failedDays += 1;
-      }
-
-      if (
-        partialByDay.has(day) &&
-        (statuses.has('confirmed') || statuses.has('unconfirmed'))
-      ) {
-        partialDays += 1;
+        if (statuses.has('analyzing')) {
+          analyzingDays += 1;
+        } else if (statuses.has('analysis_failed')) {
+          failedDays += 1;
+        }
       }
     }
 
     return {
       series,
       breakdown: {
-        confirmedDays,
-        estimatedDays,
-        partialDays,
+        analyzedDays,
         analyzingDays,
         failedDays,
       },

@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { BullmqQueueFactory } from './queue.factory.js';
+import type { MealAnalysisSweeperService } from '../../modules/daily-records/index.js';
 import type { DataRetentionService } from '../../modules/data-retention/index.js';
 import type { LifecycleService } from '../../modules/today-suggestion/index.js';
 import type { ReminderSchedulerService } from '../../modules/medicine-reminders/index.js';
@@ -86,6 +87,9 @@ function buildServices() {
     weeklyInsightSchedulerService: {
       runTick: vi.fn().mockResolvedValue(undefined),
     } as unknown as WeeklyInsightSchedulerService,
+    mealAnalysisSweeperService: {
+      reapStaleAnalyses: vi.fn().mockResolvedValue(0),
+    } as unknown as MealAnalysisSweeperService,
   };
 }
 
@@ -96,6 +100,7 @@ describe('CronJobsService', () => {
   let lifecycleService: LifecycleService;
   let reminderSchedulerService: ReminderSchedulerService;
   let weeklyInsightSchedulerService: WeeklyInsightSchedulerService;
+  let mealAnalysisSweeperService: MealAnalysisSweeperService;
   let service: CronJobsService;
 
   beforeEach(() => {
@@ -114,6 +119,7 @@ describe('CronJobsService', () => {
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
+      mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
@@ -121,6 +127,7 @@ describe('CronJobsService', () => {
         lifecycleService,
         reminderSchedulerService,
         weeklyInsightSchedulerService,
+        mealAnalysisSweeperService,
       );
 
       await service.onModuleInit();
@@ -139,6 +146,7 @@ describe('CronJobsService', () => {
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
+      mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
@@ -146,6 +154,7 @@ describe('CronJobsService', () => {
         lifecycleService,
         reminderSchedulerService,
         weeklyInsightSchedulerService,
+        mealAnalysisSweeperService,
       );
 
       await service.onModuleInit();
@@ -194,6 +203,15 @@ describe('CronJobsService', () => {
       );
     });
 
+    it('registers the meal-analysis reap scheduler on the shared cron queue', () => {
+      const cronQ = captured.find((c) => c.name === CRON_QUEUE_NAME);
+      expect(cronQ?.upsertJobScheduler).toHaveBeenCalledWith(
+        'meal-analysis-reap',
+        { pattern: '*/5 * * * *', tz: 'UTC' },
+        expect.objectContaining({ name: 'reap-stale-meal-analyses' }),
+      );
+    });
+
     it('registers reminder scheduler on reminder queue', () => {
       const reminderQ = captured.find((c) => c.name === REMINDER_QUEUE_NAME);
       expect(reminderQ?.upsertJobScheduler).toHaveBeenCalledWith(
@@ -237,6 +255,7 @@ describe('CronJobsService', () => {
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
+      mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
@@ -244,6 +263,7 @@ describe('CronJobsService', () => {
         lifecycleService,
         reminderSchedulerService,
         weeklyInsightSchedulerService,
+        mealAnalysisSweeperService,
       );
 
       await service.onModuleInit();
@@ -300,6 +320,17 @@ describe('CronJobsService', () => {
       });
       expect(weeklyInsightSchedulerService.runTick).toHaveBeenCalledOnce();
     });
+
+    it('dispatches the meal-analysis reap job to MealAnalysisSweeperService', async () => {
+      await cronProcessor({
+        id: '6',
+        name: 'reap-stale-meal-analyses',
+        data: {},
+      });
+      expect(
+        mealAnalysisSweeperService.reapStaleAnalyses,
+      ).toHaveBeenCalledOnce();
+    });
   });
 
   describe('reminder queue processor', () => {
@@ -314,6 +345,7 @@ describe('CronJobsService', () => {
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
+      mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
@@ -321,6 +353,7 @@ describe('CronJobsService', () => {
         lifecycleService,
         reminderSchedulerService,
         weeklyInsightSchedulerService,
+        mealAnalysisSweeperService,
       );
 
       await service.onModuleInit();
@@ -370,6 +403,7 @@ describe('CronJobsService', () => {
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
+      mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
@@ -377,6 +411,7 @@ describe('CronJobsService', () => {
         lifecycleService,
         reminderSchedulerService,
         weeklyInsightSchedulerService,
+        mealAnalysisSweeperService,
       );
 
       await service.onModuleInit();

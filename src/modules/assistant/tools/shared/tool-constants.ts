@@ -107,7 +107,6 @@ export type ToolRecordItem = {
   tags: string[];
   payload: Record<string, unknown> | null;
   mealAnalysisStatus?: string | null;
-  mealAnalysisCoverage?: string | null;
   mealAnalysisUpdatedAt?: string | null;
   mealAnalysisFailureReason?: string | null;
   mealShortDescription?: string | null;

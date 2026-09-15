@@ -14,12 +14,65 @@ import { DailyRecordsOwnershipService } from './ownership.service.js';
 import { DailyRecordsMapperService } from './mapper.service.js';
 import { DailyRecordsService } from './records.service.js';
 import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
-import { MealDishTemplateLearningService } from './meal-dish/template-learning.service.js';
 import { DailyRecordsValidatorService } from './records-validator.service.js';
 import { MealPayloadWriterService } from './meal-payload-writer.service.js';
+import type { DailyRecordShape } from '../types/record.types.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const mockUserId = 'user-uuid-1';
+
+/** v2 分析结果的最小合法形状（服务端所有字段）。 */
+function mealAnalysisFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    version: 2,
+    analysisStatus: 'analyzed',
+    analyzedAt: '2026-07-01T12:30:00.000Z',
+    sourceRevision: 2,
+    model: 'vision-model',
+    promptVersion: 'meal-analysis.v2',
+    locale: 'zh-CN',
+    failureReason: null,
+    calorieRange: { min: 520, max: 780, unit: 'kcal', bucket: 'medium' },
+    dishes: [{ name: '红烧肉', source: 'model' }],
+    items: [
+      {
+        rank: 1,
+        kind: 'fried',
+        polarity: 'watch',
+        headline: '油炸偏多',
+        detail: '午饭油炸食品摄入偏多',
+      },
+    ],
+    facets: { fried: 'high' },
+    ...overrides,
+  };
+}
+
+function mealRecordFixture(id: string): DailyRecordShape {
+  return {
+    id,
+    userId: mockUserId,
+    healthEventId: null,
+    deletedAt: null,
+    kind: DailyRecordKind.meal,
+    occurredAt: new Date('2026-07-01'),
+    occurredTime: '12:20',
+    title: 'Lunch',
+    value: null,
+    unit: null,
+    note: null,
+    payload: { mealAnalysis: mealAnalysisFixture() },
+    source: 'manual',
+    mealAnalysisStatus: 'analyzed',
+    mealAnalysisCoverage: null,
+    mealAnalysisUpdatedAt: null,
+    mealAnalysisFailureReason: null,
+    mealSourceRevision: 2,
+    attachments: [],
+    createdAt: new Date('2026-07-01T12:20:00.000Z'),
+    updatedAt: new Date('2026-07-01T12:20:00.000Z'),
+  };
+}
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
   const error = Object.create(
@@ -64,9 +117,6 @@ describe('DailyRecordsService', () => {
     };
   }>;
   let mealAnalysisQueueService: { enqueue: vi.Mock };
-  let mealDishTemplateLearningService: {
-    learnFromConfirmedAnalysis: vi.Mock;
-  };
   let healthEventsOwnershipService: {
     ensureActiveOwnedByUser: vi.Mock;
   };
@@ -77,9 +127,6 @@ describe('DailyRecordsService', () => {
   beforeEach(async () => {
     mealAnalysisQueueService = {
       enqueue: vi.fn().mockResolvedValue(undefined),
-    };
-    mealDishTemplateLearningService = {
-      learnFromConfirmedAnalysis: vi.fn().mockResolvedValue(undefined),
     };
     healthEventsOwnershipService = {
       ensureActiveOwnedByUser: vi.fn().mockResolvedValue({
@@ -145,10 +192,6 @@ describe('DailyRecordsService', () => {
         {
           provide: MealAnalysisQueueService,
           useValue: mealAnalysisQueueService,
-        },
-        {
-          provide: MealDishTemplateLearningService,
-          useValue: mealDishTemplateLearningService,
         },
         {
           provide: DailyRecordRepositoryPort,
@@ -222,25 +265,13 @@ describe('DailyRecordsService', () => {
           value: null,
           unit: null,
           note: null,
-          payload: {
-            mealInput: {
-              manualSummary: 'rice and egg',
-            },
-            mealAnalysis: {
-              analysisStatus: 'confirmed',
-              mealDescription:
-                'A bowl of rice with scrambled eggs and green vegetables.',
-              nutritionEstimate: {
-                energyKcal: 620,
-              },
-            },
-          },
+          payload: { mealAnalysis: mealAnalysisFixture() },
           source: 'manual',
-          mealAnalysisStatus: 'confirmed',
+          mealAnalysisStatus: 'analyzed',
           mealAnalysisCoverage: null,
           mealAnalysisUpdatedAt: null,
           mealAnalysisFailureReason: null,
-          mealSourceRevision: 0,
+          mealSourceRevision: 2,
           attachments: [],
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -252,6 +283,8 @@ describe('DailyRecordsService', () => {
     const result = await service.list(mockUserId, '2026-07-01');
 
     expect(result.items[0]?.payload).toBeNull();
+    expect(result.items[0]?.mealShortDescription).toBe('油炸偏多');
+    expect(result.items[0]?.mealTopFoods).toEqual(['红烧肉']);
   });
 
   it('should create a record', async () => {
@@ -556,142 +589,52 @@ describe('DailyRecordsService', () => {
     });
   });
 
-  it('should preserve server-owned mealAnalysis when updating meal payload', async () => {
+  it('should apply client dish edits and keep the server-owned meal analysis', async () => {
     repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
       kind: 'meal',
-      payload: {
-        mealInput: {
-          manualSummary: 'old summary',
-        },
-        mealAnalysis: {
-          analysisStatus: 'confirmed',
-          mealDescription: 'trusted analysis',
-        },
-      },
+      payload: { mealAnalysis: mealAnalysisFixture() },
     });
-    repository.update.mockReturnValue(
-      okAsync({
-        id: 'meal-2',
-
-        userId: mockUserId,
-
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'meal',
-        occurredAt: new Date('2026-07-01'),
-        occurredTime: '18:20',
-        title: 'Dinner',
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealInput: {
-            manualSummary: 'new summary',
-          },
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            mealDescription: 'trusted analysis',
-          },
-        },
-        source: 'manual',
-        mealAnalysisStatus: 'confirmed',
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    );
+    repository.update.mockReturnValue(okAsync(mealRecordFixture('meal-2')));
 
     await unwrapOk(
       service.update(mockUserId, 'meal-2', {
-        payload: {
-          mealInput: {
-            manualSummary: 'new summary',
-          },
-          mealAnalysis: {
-            analysisStatus: 'analysis_failed',
-            mealDescription: 'client overwrite attempt',
-          },
-        },
+        payload: { mealAnalysis: { dishes: [{ name: '西兰花' }] } },
       }),
     );
 
     expect(repository.update).toHaveBeenCalledWith(
       'meal-2',
       expect.objectContaining({
-        mealAnalysisStatus: 'confirmed',
+        mealAnalysisStatus: 'analyzed',
         payload: {
-          mealInput: {
-            manualSummary: 'new summary',
-          },
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            mealDescription: 'trusted analysis',
-          },
+          mealAnalysis: expect.objectContaining({
+            analysisStatus: 'analyzed',
+            sourceRevision: 2,
+            calorieRange: expect.objectContaining({ bucket: 'medium' }),
+            dishes: [{ name: '西兰花', source: 'user' }],
+            items: [expect.objectContaining({ headline: '油炸偏多' })],
+          }),
         },
       }),
     );
+    expect(mealAnalysisQueueService.enqueue).not.toHaveBeenCalled();
   });
 
-  it('should keep client meal dish edits in mealInput and preserve server-owned analysis branches', async () => {
+  it('should ignore a client attempt to set the meal analysis status', async () => {
     repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
       kind: 'meal',
-      payload: {
-        mealInput: {
-          recognizedDishes: [{ rawName: '旧菜名' }],
-        },
-        mealAnalysis: {
-          analysisStatus: 'confirmed',
-          recognizedDishes: [{ rawName: '服务端可信菜名' }],
-        },
-      },
+      payload: { mealAnalysis: mealAnalysisFixture() },
     });
-    repository.update.mockReturnValue(
-      okAsync({
-        id: 'meal-3',
-
-        userId: mockUserId,
-
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'meal',
-        occurredAt: new Date('2026-07-01'),
-        occurredTime: '18:20',
-        title: 'Dinner',
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealInput: {
-            recognizedDishes: [{ rawName: '用户改过的菜名' }],
-          },
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            recognizedDishes: [{ rawName: '服务端可信菜名' }],
-          },
-        },
-        source: 'manual',
-        mealAnalysisStatus: 'confirmed',
-        mealAnalysisCoverage: null,
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    );
+    repository.update.mockReturnValue(okAsync(mealRecordFixture('meal-3')));
 
     await unwrapOk(
       service.update(mockUserId, 'meal-3', {
         payload: {
-          mealInput: {
-            recognizedDishes: [{ rawName: '用户改过的菜名' }],
+          mealAnalysis: {
+            analysisStatus: 'analysis_failed',
+            dishes: [{ name: '红烧肉' }, { name: '青菜' }],
           },
         },
       }),
@@ -700,196 +643,18 @@ describe('DailyRecordsService', () => {
     expect(repository.update).toHaveBeenCalledWith(
       'meal-3',
       expect.objectContaining({
-        mealAnalysisStatus: 'confirmed',
+        mealAnalysisStatus: 'analyzed',
         payload: {
-          mealInput: {
-            recognizedDishes: [{ rawName: '用户改过的菜名' }],
-          },
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            recognizedDishes: [{ rawName: '服务端可信菜名' }],
-          },
-        },
-      }),
-    );
-  });
-
-  it('should mark the current meal analysis confirmed and learn a template from grounded ingredients', async () => {
-    repository.findOwnershipData.mockResolvedValue({
-      userId: mockUserId,
-      kind: 'meal',
-      payload: {
-        mealAnalysis: {
-          analysisStatus: 'unconfirmed',
-          coverage: 'partial',
-          recognizedDishes: [
-            {
-              dishKey: 'dish-1',
-              rawName: '西红柿炒鸡蛋',
-              normalizedDishName: '西红柿炒鸡蛋',
-              confidence: 0.94,
-              portionText: '一份',
-              source: 'vision',
-            },
-          ],
-          resolvedIngredients: [
-            {
-              dishKey: 'dish-1',
-              ingredientName: '西红柿',
-              normalizedIngredientName: '西红柿',
-              defaultRatio: 0.6,
-              decompositionSource: 'model',
-              confidence: 0.93,
-            },
-            {
-              dishKey: 'dish-1',
-              ingredientName: '鸡蛋',
-              normalizedIngredientName: '鸡蛋',
-              defaultRatio: 0.4,
-              decompositionSource: 'model',
-              confidence: 0.92,
-            },
-          ],
-          compositionMatches: [
-            {
-              dishKey: 'dish-1',
-              ingredientName: '西红柿',
-              matchedFoodId: 'food-tomato',
-              matchedFoodName: '西红柿',
-              matchMethod: 'exact',
-              matchScore: 1,
-            },
-            {
-              dishKey: 'dish-1',
-              ingredientName: '鸡蛋',
-              matchedFoodId: 'food-egg',
-              matchedFoodName: '鸡蛋',
-              matchMethod: 'exact',
-              matchScore: 1,
-            },
-          ],
-        },
-      },
-    });
-    repository.update.mockReturnValue(
-      okAsync({
-        id: 'meal-4',
-
-        userId: mockUserId,
-
-        healthEventId: null,
-        deletedAt: null,
-        kind: 'meal',
-        occurredAt: new Date('2026-07-01'),
-        occurredTime: '12:20',
-        title: 'Lunch',
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            coverage: 'partial',
-            recognizedDishes: [
-              {
-                dishKey: 'dish-1',
-                rawName: '西红柿炒鸡蛋',
-                normalizedDishName: '西红柿炒鸡蛋',
-                confidence: 0.94,
-                portionText: '一份',
-                source: 'vision',
-              },
-            ],
-            resolvedIngredients: [
-              {
-                dishKey: 'dish-1',
-                ingredientName: '西红柿',
-                normalizedIngredientName: '西红柿',
-                defaultRatio: 0.6,
-                decompositionSource: 'model',
-                confidence: 0.93,
-              },
-              {
-                dishKey: 'dish-1',
-                ingredientName: '鸡蛋',
-                normalizedIngredientName: '鸡蛋',
-                defaultRatio: 0.4,
-                decompositionSource: 'model',
-                confidence: 0.92,
-              },
-            ],
-            compositionMatches: [
-              {
-                dishKey: 'dish-1',
-                ingredientName: '西红柿',
-                matchedFoodId: 'food-tomato',
-                matchedFoodName: '西红柿',
-                matchMethod: 'exact',
-                matchScore: 1,
-              },
-              {
-                dishKey: 'dish-1',
-                ingredientName: '鸡蛋',
-                matchedFoodId: 'food-egg',
-                matchedFoodName: '鸡蛋',
-                matchMethod: 'exact',
-                matchScore: 1,
-              },
-            ],
-            confirmedAt: '2026-07-01T12:30:00.000Z',
-          },
-          mealAnalysisLastConfirmed: {
-            analysisStatus: 'confirmed',
-          },
-        },
-        source: 'manual',
-        mealAnalysisStatus: 'confirmed',
-        mealAnalysisCoverage: 'partial',
-        mealAnalysisUpdatedAt: null,
-        mealAnalysisFailureReason: null,
-        mealSourceRevision: 0,
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    );
-
-    await unwrapOk(
-      service.update(mockUserId, 'meal-4', {
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-          },
-        },
-      }),
-    );
-
-    expect(repository.update).toHaveBeenCalledWith(
-      'meal-4',
-      expect.objectContaining({
-        mealAnalysisStatus: 'confirmed',
-        payload: expect.objectContaining({
           mealAnalysis: expect.objectContaining({
-            analysisStatus: 'confirmed',
-            confirmedAt: expect.any(String),
+            analysisStatus: 'analyzed',
+            dishes: [
+              { name: '红烧肉', source: 'user' },
+              { name: '青菜', source: 'user' },
+            ],
           }),
-          mealAnalysisLastConfirmed: expect.objectContaining({
-            analysisStatus: 'confirmed',
-          }),
-        }),
+        },
       }),
     );
-    expect(
-      mealDishTemplateLearningService.learnFromConfirmedAnalysis,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        analysisStatus: 'confirmed',
-        recognizedDishes: expect.any(Array),
-        resolvedIngredients: expect.any(Array),
-        compositionMatches: expect.any(Array),
-      }),
-    );
-    expect(mealAnalysisQueueService.enqueue).not.toHaveBeenCalled();
   });
 
   it('should clear nullable fields when sending null', async () => {
@@ -937,25 +702,29 @@ describe('DailyRecordsService', () => {
   });
 
   it('should create a record with image attachment metadata', async () => {
-    txMock.userDailyRecord.create.mockResolvedValue({
-      id: 'r1',
+    // 模拟 Prisma：create 返回写进去的 payload（含入队占位与 revision）。
+    txMock.userDailyRecord.create.mockImplementation(
+      (args: { data: Record<string, unknown> }) =>
+        Promise.resolve({
+          id: 'r1',
 
-      userId: mockUserId,
+          userId: mockUserId,
 
-      healthEventId: null,
-      deletedAt: null,
-      kind: 'meal',
-      occurredAt: new Date('2026-06-04'),
-      occurredTime: '08:30',
-      title: 'Breakfast',
-      value: null,
-      unit: null,
-      note: null,
-      source: 'manual',
-      payload: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+          healthEventId: null,
+          deletedAt: null,
+          kind: 'meal',
+          occurredAt: new Date('2026-06-04'),
+          occurredTime: '08:30',
+          title: 'Breakfast',
+          value: null,
+          unit: null,
+          note: null,
+          source: 'manual',
+          payload: args.data['payload'] ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+    );
     txMock.userDailyRecordAttachment.createMany.mockResolvedValue({ count: 1 });
     txMock.userDailyRecord.findFirst.mockResolvedValue({
       id: 'r1',

@@ -30,9 +30,7 @@ describe('ReportsComputationService', () => {
     mealEstimateSeries: [0, 0, 0, 0, 0, 0, 0],
     mealEstimateTrackedDays: 0,
     mealEstimateBreakdown: {
-      confirmedDays: 0,
-      estimatedDays: 0,
-      partialDays: 0,
+      analyzedDays: 0,
       analyzingDays: 0,
       failedDays: 0,
     },

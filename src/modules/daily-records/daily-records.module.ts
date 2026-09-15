@@ -19,12 +19,9 @@ import { DailyRecordsController } from './daily-records.controller.js';
 import { DailyRecordsMapperService } from './services/mapper.service.js';
 import { DailyRecordsService } from './services/records.service.js';
 import { MealAnalysisQueueService } from './services/meal-analysis/queue.service.js';
-import { MealAnalysisMatcherService } from './services/meal-analysis/matcher.service.js';
 import { MealAnalysisVisionService } from './services/meal-analysis/vision.service.js';
 import { MealAnalysisWorkerService } from './services/meal-analysis/worker.service.js';
-import { MealDishDecompositionService } from './services/meal-dish/decomposition.service.js';
-import { MealIngredientGroundingService } from './services/meal-ingredient/grounding.service.js';
-import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service.js';
+import { MealAnalysisSweeperService } from './services/meal-analysis/sweeper.service.js';
 import { DailyRecordsValidatorService } from './services/records-validator.service.js';
 import { SymptomCatalogService } from './services/symptom-catalog.service.js';
 import { MealPayloadWriterService } from './services/meal-payload-writer.service.js';
@@ -59,18 +56,16 @@ import { MealPayloadWriterService } from './services/meal-payload-writer.service
     SymptomCatalogService,
     MealPayloadWriterService,
     MealAnalysisQueueService,
-    MealAnalysisMatcherService,
-    MealDishDecompositionService,
-    MealIngredientGroundingService,
-    MealDishTemplateLearningService,
     MealAnalysisVisionService,
     MealAnalysisWorkerService,
+    MealAnalysisSweeperService,
     DailyRecordImageUploadService,
   ],
   exports: [
     DailyRecordsService,
     DailyRecordCandidatesService,
     DailyRecordReaderPort,
+    MealAnalysisSweeperService,
   ],
 })
 export class DailyRecordsModule {}

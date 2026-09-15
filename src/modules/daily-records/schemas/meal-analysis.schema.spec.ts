@@ -1,4 +1,6 @@
 import {
+  MEAL_ANALYSIS_DISH_MAX_LENGTH,
+  MEAL_ANALYSIS_HEADLINE_MAX_LENGTH,
   MEAL_ANALYSIS_MAX_ITEMS,
   MEAL_ANALYSIS_PROMPT_VERSION,
   MEAL_ANALYSIS_VERSION,
@@ -6,12 +8,14 @@ import {
   buildFailedMealAnalysis,
   calorieBucketFor,
   mealAnalysisHeadline,
+  mealAnalysisModelOutputSchema,
   mealAnalysisPayloadSchema,
   normalizeCalorieRange,
   normalizeMealAnalysis,
   normalizeMealAnalysisDishes,
   normalizeMealAnalysisFacets,
   normalizeMealAnalysisItems,
+  toMealAnalysisDraft,
 } from './meal-analysis.schema.js';
 
 const envelope = {
@@ -195,6 +199,88 @@ describe('meal analysis v2 contract', () => {
           sodium: 'very-high',
         }),
       ).toEqual({ fried: 'high', carb: 'low' });
+    });
+
+    it('truncates over-long text instead of dropping the record', () => {
+      const items = normalizeMealAnalysisItems([
+        {
+          rank: 1,
+          kind: 'fried',
+          polarity: 'watch',
+          headline: '油炸'.repeat(MEAL_ANALYSIS_HEADLINE_MAX_LENGTH),
+          detail: '细节'.repeat(100),
+        },
+      ]);
+
+      expect(items[0]?.headline).toHaveLength(
+        MEAL_ANALYSIS_HEADLINE_MAX_LENGTH,
+      );
+      expect(
+        normalizeMealAnalysisDishes([{ name: '菜'.repeat(80) }])[0]?.name,
+      ).toHaveLength(MEAL_ANALYSIS_DISH_MAX_LENGTH);
+    });
+  });
+
+  describe('model output contract', () => {
+    it('converts the structured output into a draft (facets array → record)', () => {
+      const output = mealAnalysisModelOutputSchema.parse({
+        calorieRange: { min: 520, max: 780 },
+        dishes: ['红烧肉', '青菜'],
+        items: [
+          {
+            rank: 1,
+            kind: 'fried',
+            polarity: 'watch',
+            headline: '油炸偏多',
+            detail: '午饭油炸食品摄入偏多',
+          },
+        ],
+        facets: [
+          { kind: 'fried', level: 'high' },
+          { kind: 'vegetable', level: 'high' },
+        ],
+      });
+
+      const draft = toMealAnalysisDraft(output);
+
+      expect(draft.facets).toEqual({ fried: 'high', vegetable: 'high' });
+      expect(draft.dishes).toEqual([
+        { name: '红烧肉', source: 'model' },
+        { name: '青菜', source: 'model' },
+      ]);
+      expect(normalizeMealAnalysis(draft, envelope).items[0]?.headline).toBe(
+        '油炸偏多',
+      );
+    });
+
+    it('rejects an output that violates the closed vocabularies', () => {
+      const base = {
+        calorieRange: null,
+        dishes: [],
+        items: [],
+        facets: [],
+      };
+
+      expect(
+        mealAnalysisModelOutputSchema.safeParse({
+          ...base,
+          items: [
+            {
+              rank: 1,
+              kind: 'greasy',
+              polarity: 'watch',
+              headline: 'x',
+              detail: 'y',
+            },
+          ],
+        }).success,
+      ).toBe(false);
+      expect(
+        mealAnalysisModelOutputSchema.safeParse({
+          ...base,
+          facets: [{ kind: 'fried', level: 'very_high' }],
+        }).success,
+      ).toBe(false);
     });
   });
 

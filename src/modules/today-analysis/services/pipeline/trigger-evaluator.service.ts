@@ -155,8 +155,7 @@ export class TriggerEvaluatorService {
 
 function isAnalyzedMeal(record: DailyRecordFact): boolean {
   const payload = parseMealRecordPayload(record.payload);
-  const status = payload.mealAnalysis?.analysisStatus;
-  return status === 'confirmed' || status === 'unconfirmed';
+  return payload.mealAnalysis?.analysisStatus === 'analyzed';
 }
 
 function parseMoodScore(

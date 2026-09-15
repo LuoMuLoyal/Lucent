@@ -20,9 +20,7 @@ describe('ReportsAiSummaryContextService', () => {
     mealEstimateSeries: [1, 1, 0, 1, 0, 0, 1],
     mealEstimateTrackedDays: 4,
     mealEstimateBreakdown: {
-      confirmedDays: 2,
-      estimatedDays: 1,
-      partialDays: 1,
+      analyzedDays: 3,
       analyzingDays: 0,
       failedDays: 1,
     },
@@ -67,9 +65,7 @@ describe('ReportsAiSummaryContextService', () => {
     const context = service.build(baseFacts, baseComputed);
 
     expect(context.mealEstimateBreakdown).toEqual({
-      confirmedDays: 2,
-      estimatedDays: 1,
-      partialDays: 1,
+      analyzedDays: 3,
       analyzingDays: 0,
       failedDays: 1,
     });

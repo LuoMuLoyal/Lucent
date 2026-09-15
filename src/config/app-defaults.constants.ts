@@ -40,32 +40,6 @@ export const DEFAULT_JWT_ACCESS_TTL_SECONDS = 2 * 3600;
 /** Default refresh-token TTL in seconds (30 days). */
 export const DEFAULT_JWT_REFRESH_TTL_SECONDS = 30 * 86400;
 
-// ── Meal analysis ─────────────────────────────────────────────────────────────
-
-/** Default portion size in grams when portion text is unspecified. */
-export const DEFAULT_MEAL_PORTION_GRAMS = 100;
-
-/** Minimum fuzzy-match score to accept a candidate (0–1). */
-export const DEFAULT_FUZZY_ACCEPT_SCORE = 0.7;
-
-/** Minimum score lead between top-1 and top-2 fuzzy candidates. */
-export const DEFAULT_FUZZY_MIN_LEAD = 0.1;
-
-/** Prefix length used to narrow fuzzy candidate queries. */
-export const DEFAULT_FUZZY_QUERY_PREFIX_LENGTH = 1;
-
-/** Small portion size in grams (e.g. "少量"). */
-export const DEFAULT_MEAL_SMALL_PORTION_GRAMS = 30;
-
-/** Threshold (g) above which a meal is considered high-protein. */
-export const DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G = 20;
-
-/** Threshold (g) below which a meal is considered low-carbohydrate. */
-export const DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G = 20;
-
-/** Threshold (g) above which a meal is considered high-fat. */
-export const DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G = 20;
-
 // ── Verification code ──────────────────────────────────────────────────────────
 
 /** Default verification-code TTL in milliseconds (5 minutes). */

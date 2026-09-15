@@ -6,6 +6,25 @@ import {
 } from '../dto/report-dashboard-query.dto.js';
 import { ReportsContextService } from './context.service.js';
 
+/** v2 分析结果的最小合法形状；status 决定这一天的口径。 */
+function mealAnalysisFixture(analysisStatus: string) {
+  return {
+    version: 2,
+    analysisStatus,
+    analyzedAt:
+      analysisStatus === 'analyzing' ? null : '2026-06-01T04:00:00.000Z',
+    sourceRevision: 1,
+    model: analysisStatus === 'analyzing' ? null : 'vision-model',
+    promptVersion: 'meal-analysis.v2',
+    locale: 'zh-CN',
+    failureReason: analysisStatus === 'analysis_failed' ? 'model_failed' : null,
+    calorieRange: null,
+    dishes: [],
+    items: [],
+    facets: {},
+  };
+}
+
 describe('ReportsContextService', () => {
   const buildMocks = () => ({
     userSettingsService: {
@@ -149,7 +168,7 @@ describe('ReportsContextService', () => {
     ).rejects.toBeInstanceOf(DomainFailureException);
   });
 
-  it('counts meal estimate days only from confirmed and unconfirmed meal analyses', async () => {
+  it('counts meal analysis days only from analyzed meal analyses', async () => {
     const { userSettingsService, dailyRecordReader, doseLogReader } =
       buildMocks();
     dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
@@ -159,10 +178,7 @@ describe('ReportsContextService', () => {
         value: null,
         unit: null,
         payload: {
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            coverage: 'complete',
-          },
+          mealAnalysis: mealAnalysisFixture('analyzed'),
         },
       },
       {
@@ -171,10 +187,7 @@ describe('ReportsContextService', () => {
         value: null,
         unit: null,
         payload: {
-          mealAnalysis: {
-            analysisStatus: 'unconfirmed',
-            coverage: 'partial',
-          },
+          mealAnalysis: mealAnalysisFixture('analyzed'),
         },
       },
       {
@@ -183,10 +196,7 @@ describe('ReportsContextService', () => {
         value: null,
         unit: null,
         payload: {
-          mealAnalysis: {
-            analysisStatus: 'analysis_failed',
-            coverage: 'none',
-          },
+          mealAnalysis: mealAnalysisFixture('analysis_failed'),
         },
       },
       {
@@ -212,9 +222,7 @@ describe('ReportsContextService', () => {
     expect(context.mealEstimateSeries).toEqual([1, 1, 0, 0, 0, 0, 0]);
     expect(context.mealEstimateTrackedDays).toBe(2);
     expect(context.mealEstimateBreakdown).toEqual({
-      confirmedDays: 1,
-      estimatedDays: 1,
-      partialDays: 1,
+      analyzedDays: 2,
       analyzingDays: 0,
       failedDays: 1,
     });
@@ -230,10 +238,7 @@ describe('ReportsContextService', () => {
         value: null,
         unit: null,
         payload: {
-          mealAnalysis: {
-            analysisStatus: 'analyzing',
-            coverage: 'none',
-          },
+          mealAnalysis: mealAnalysisFixture('analyzing'),
         },
       },
       {
@@ -242,10 +247,7 @@ describe('ReportsContextService', () => {
         value: null,
         unit: null,
         payload: {
-          mealAnalysis: {
-            analysisStatus: 'unconfirmed',
-            coverage: 'complete',
-          },
+          mealAnalysis: mealAnalysisFixture('analyzed'),
         },
       },
       {
@@ -254,10 +256,7 @@ describe('ReportsContextService', () => {
         value: null,
         unit: null,
         payload: {
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            coverage: 'partial',
-          },
+          mealAnalysis: mealAnalysisFixture('analyzed'),
         },
       },
     ]);
@@ -274,9 +273,7 @@ describe('ReportsContextService', () => {
     });
 
     expect(context.mealEstimateBreakdown).toEqual({
-      confirmedDays: 1,
-      estimatedDays: 1,
-      partialDays: 1,
+      analyzedDays: 2,
       analyzingDays: 1,
       failedDays: 0,
     });
