@@ -38,6 +38,7 @@
     "SessionController_refresh": "refreshSession",
     "DailyRecordsController_list": "listDailyRecords",
     "DailyRecordsController_summary": "summary",
+    "DailyRecordsController_symptomCatalog": "getSymptomCatalog",
     "DailyRecordsController_createImageUpload": "createImageUpload",
     "DailyRecordsController_generateCandidates": "generateCandidates",
     "DailyRecordsController_get": "getDailyRecord",

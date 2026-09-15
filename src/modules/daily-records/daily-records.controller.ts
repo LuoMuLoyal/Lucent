@@ -54,6 +54,7 @@ import { DailyRecordImageUploadService } from './services/image-upload.service.j
 import { DailyRecordsService } from './services/records.service.js';
 import { I18nLang } from 'nestjs-i18n';
 import { symptomCatalogResponseSchema } from './dto/symptom-catalog.dto.js';
+import type { SymptomCatalogResponseDto } from './dto/symptom-catalog.dto.js';
 import { SymptomCatalogService } from './services/symptom-catalog.service.js';
 
 @ApiTags('Daily Records')
@@ -110,7 +111,7 @@ export class DailyRecordsController {
       'Static symptom catalog: stable codes in display order, labels localized via Accept-Language.',
   })
   @SerializeOptions({ schema: symptomCatalogResponseSchema })
-  symptomCatalog() {
+  symptomCatalog(): SymptomCatalogResponseDto {
     return this.symptomCatalogService.list();
   }
 
@@ -273,6 +274,15 @@ registerResponseSchema({
   componentName: 'DailyRecordSummaryResponse',
   schema: dailyRecordSummaryResponseSchema,
   description: 'Daily record counts grouped by kind for the date.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/user/daily-records/symptom-catalog',
+  method: 'get',
+  componentName: 'SymptomCatalogResponse',
+  schema: symptomCatalogResponseSchema,
+  description:
+    'Static symptom catalog: stable codes in display order, labels localized via Accept-Language.',
 });
 
 registerResponseSchema({

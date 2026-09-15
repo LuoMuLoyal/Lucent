@@ -4541,11 +4541,18 @@
     },
     "/api/v1/user/daily-records/symptom-catalog": {
       "get": {
-        "operationId": "DailyRecordsController_symptomCatalog",
+        "operationId": "getSymptomCatalog",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Static symptom catalog: stable codes in display order, labels localized via Accept-Language."
+            "description": "Static symptom catalog: stable codes in display order, labels localized via Accept-Language.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SymptomCatalogResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7620,6 +7627,19 @@
           }
         },
         "required": ["summaries"],
+        "additionalProperties": false
+      },
+      "SymptomCatalogResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SymptomCatalogResponseItems"
+            }
+          }
+        },
+        "required": ["items"],
         "additionalProperties": false
       },
       "DailyRecordImageUploadResponse": {
@@ -12933,6 +12953,21 @@
           "publicUrl",
           "createdAt"
         ],
+        "additionalProperties": false
+      },
+      "SymptomCatalogResponseItems": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable symptom code; the value stored in payload `symptom`."
+          },
+          "label": {
+            "type": "string",
+            "description": "Localized display label."
+          }
+        },
+        "required": ["code", "label"],
         "additionalProperties": false
       },
       "DailyRecordCandidateResponseItems": {
