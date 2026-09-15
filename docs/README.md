@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: index
-updated: 2026-09-08
+updated: 2026-09-15
 ---
 
 # Lucent Docs

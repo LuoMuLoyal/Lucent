@@ -2,9 +2,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-export const BYPASS_ENV = 'SKIP_DOC_CHECK';
-export const DOC_MAP_PATH = 'docs/doc-map.yaml';
-export const MIGRATION_LOG_MAX_DELETIONS = 5;
 export const REPO_TIMEZONE = 'Asia/Shanghai';
 export const STALE_DOC_THRESHOLD_DAYS = 90;
 
@@ -136,24 +133,9 @@ export function withoutFrozenDocs(
   return paths.filter((path) => !isFrozenDoc(contentByPath[path]));
 }
 
-export interface DocCoverageRule {
-  name: string;
-  codePatterns: string[];
-  requiredDocs: string[]; // docs_required — ALL must be touched
-  anyOfDocs: string[]; // docs_any_of — AT LEAST ONE must be touched
-  infoDocs: string[]; // docs_info — informational only
-}
-
-export interface DocCoverageMatch {
-  ruleName: string;
-  touchedCodeFiles: string[];
-  missingRequired: string[];
-  missingAnyOf: string[];
-  missingInfo: string[];
-}
-
 // --- Glob matching ------------------------------------------------------
 // `*` matches a single path segment; `**` matches multiple segments.
+// Used by the front-matter / active-doc pattern lists below.
 export function globToRegExp(pattern: string): RegExp {
   const buffer: string[] = ['^'];
   for (let i = 0; i < pattern.length; i++) {
@@ -182,190 +164,7 @@ export function matchesPattern(filePath: string, pattern: string): boolean {
   return globToRegExp(pattern).test(normalized);
 }
 
-// --- YAML parsing (extended schema) ------------------------------------
-export function parseDocMapYaml(source: string): DocCoverageRule[] {
-  const rules: DocCoverageRule[] = [];
-  let currentName: string | null = null;
-  let currentCode: string[] | null = null;
-  let currentRequired: string[] | null = null;
-  let currentAnyOf: string[] | null = null;
-  let currentInfo: string[] | null = null;
-  let currentSection:
-    | 'code'
-    | 'docs_required'
-    | 'docs_any_of'
-    | 'docs_info'
-    | null = null;
-  let inRules = false;
-
-  function commitRule(): void {
-    if (currentName !== null) {
-      rules.push({
-        name: currentName,
-        codePatterns: currentCode ?? [],
-        requiredDocs: currentRequired ?? [],
-        anyOfDocs: currentAnyOf ?? [],
-        infoDocs: currentInfo ?? [],
-      });
-    }
-  }
-
-  for (const rawLine of source.split(/\r?\n/)) {
-    const line = rawLine.trimEnd();
-    const trimmed = line.trim();
-    if (trimmed === '' || trimmed.startsWith('#')) continue;
-    if (trimmed === 'rules:') {
-      inRules = true;
-      continue;
-    }
-    if (!inRules) continue;
-    if (trimmed.startsWith('- name:')) {
-      commitRule();
-      currentName = trimmed.substring('- name:'.length).trim();
-      currentCode = [];
-      currentRequired = [];
-      currentAnyOf = [];
-      currentInfo = [];
-      currentSection = null;
-      continue;
-    }
-    if (trimmed === 'code:') {
-      currentSection = 'code';
-      continue;
-    }
-    if (trimmed === 'docs_required:') {
-      currentSection = 'docs_required';
-      continue;
-    }
-    if (trimmed === 'docs_any_of:') {
-      currentSection = 'docs_any_of';
-      continue;
-    }
-    if (trimmed === 'docs_info:') {
-      currentSection = 'docs_info';
-      continue;
-    }
-    if (trimmed.startsWith('- ')) {
-      const value = trimmed.substring(2).trim();
-      if (currentSection === 'code') currentCode?.push(value);
-      else if (currentSection === 'docs_required') currentRequired?.push(value);
-      else if (currentSection === 'docs_any_of') currentAnyOf?.push(value);
-      else if (currentSection === 'docs_info') currentInfo?.push(value);
-      else
-        throw new Error(`Unexpected list item outside a rule section: ${line}`);
-      continue;
-    }
-    throw new Error(`Unsupported doc-map.yaml line: ${line}`);
-  }
-  commitRule();
-  return rules;
-}
-
-export function loadDocMap(repoRoot: string): DocCoverageRule[] {
-  const configPath = resolve(repoRoot, DOC_MAP_PATH);
-  if (!existsSync(configPath)) {
-    throw new Error(`Doc coverage config not found: ${configPath}`);
-  }
-  return parseDocMapYaml(readFileSync(configPath, 'utf-8'));
-}
-
-// --- Report building (3-tier) ------------------------------------------
-export interface Report {
-  matchedRules: DocCoverageMatch[];
-  hasWarnings: boolean;
-  hasInfos: boolean;
-}
-
-export function buildReport(
-  rules: DocCoverageRule[],
-  changedFiles: string[],
-  documentedFiles: string[],
-): Report {
-  const normalizedChanged = changedFiles.map((f) => f.replace(/\\/g, '/'));
-  const normalizedDocs = documentedFiles.map((f) => f.replace(/\\/g, '/'));
-  const matches: DocCoverageMatch[] = [];
-
-  for (const rule of rules) {
-    const touchedCodeFiles = normalizedChanged.filter((file) =>
-      rule.codePatterns.some((pattern) => matchesPattern(file, pattern)),
-    );
-    if (touchedCodeFiles.length === 0) continue;
-
-    const missingRequired = rule.requiredDocs.filter(
-      (docPattern) =>
-        !normalizedDocs.some((docFile) => matchesPattern(docFile, docPattern)),
-    );
-    const missingAnyOf =
-      rule.anyOfDocs.length > 0 &&
-      !rule.anyOfDocs.some((docPattern) =>
-        normalizedDocs.some((docFile) => matchesPattern(docFile, docPattern)),
-      )
-        ? rule.anyOfDocs
-        : [];
-    const missingInfo = rule.infoDocs.filter(
-      (docPattern) =>
-        !normalizedDocs.some((docFile) => matchesPattern(docFile, docPattern)),
-    );
-
-    matches.push({
-      ruleName: rule.name,
-      touchedCodeFiles,
-      missingRequired,
-      missingAnyOf,
-      missingInfo,
-    });
-  }
-
-  return {
-    matchedRules: matches,
-    hasWarnings: matches.some(
-      (m) => m.missingRequired.length > 0 || m.missingAnyOf.length > 0,
-    ),
-    hasInfos: matches.some((m) => m.missingInfo.length > 0),
-  };
-}
-
-export function renderReport(report: Report): string {
-  if (report.matchedRules.length === 0) {
-    return 'Documentation coverage: no mapped code changes detected.';
-  }
-  if (!report.hasWarnings && !report.hasInfos) {
-    return 'Documentation coverage: all mapped doc targets were updated.';
-  }
-  const buffer: string[] = [];
-  for (const match of report.matchedRules) {
-    if (
-      match.missingRequired.length === 0 &&
-      match.missingAnyOf.length === 0 &&
-      match.missingInfo.length === 0
-    ) {
-      continue;
-    }
-    buffer.push(`- Rule: ${match.ruleName}`);
-    buffer.push(`  Code changes: ${match.touchedCodeFiles.join(', ')}`);
-    if (match.missingRequired.length > 0) {
-      buffer.push(
-        `  Required docs not updated: ${match.missingRequired.join(', ')}`,
-      );
-    }
-    if (match.missingAnyOf.length > 0) {
-      buffer.push(`  Update at least one of: ${match.missingAnyOf.join(', ')}`);
-    }
-    if (match.missingInfo.length > 0) {
-      buffer.push(
-        `  Suggested docs (optional): ${match.missingInfo.join(', ')}`,
-      );
-    }
-  }
-  if (report.hasWarnings) {
-    buffer.push('This is warning-only and does not block the workflow.');
-  } else {
-    buffer.push('No required docs missing — suggestions only.');
-  }
-  return buffer.join('\n');
-}
-
-// --- Timezone-aware date helpers ----------------------------------------
+// --- YAML front-matter -------------------------------------------------
 export function getTodayDate(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: REPO_TIMEZONE,
@@ -380,30 +179,6 @@ export function getTodayDate(): string {
 
 export function getTodayLogPath(): string {
   return `${MIGRATION_LOG_DIR}/${getTodayDate()}.md`;
-}
-
-// --- Migration log overwrite detection ---------------------------------
-export function checkMigrationLogOverwrite(run: (cmd: string) => string): void {
-  const stagedModified = run('git diff --cached --name-only --diff-filter=M')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const migrationLogPattern = MIGRATION_LOG_PATH_RE;
-  const logFiles = stagedModified.filter((f) =>
-    migrationLogPattern.test(f.replace(/\\/g, '/')),
-  );
-  for (const file of logFiles) {
-    const diff = run(`git diff --cached -- ${file}`);
-    const deletionCount = diff
-      .split('\n')
-      .filter((line) => line.startsWith('-') && !line.startsWith('---')).length;
-    if (deletionCount > MIGRATION_LOG_MAX_DELETIONS) {
-      console.error(
-        `\nMigration Log Overwrite Detected:\n${file}\nhas ${deletionCount} deleted lines in staged diff (max ${MIGRATION_LOG_MAX_DELETIONS}).\nMigration logs must be appended to, not overwritten.\nTo bypass: SKIP_DOC_CHECK=1 git commit ...\n`,
-      );
-      process.exit(1);
-    }
-  }
 }
 
 // --- Verify mode --------------------------------------------------------
@@ -426,47 +201,6 @@ export function hasMultipleH1(content: string): boolean {
   return h1Count > 1;
 }
 
-/** Literal (non-glob) doc paths referenced by rules that do not exist. */
-export function findDocMapOrphans(
-  rules: DocCoverageRule[],
-  availableFiles: string[],
-): string[] {
-  const orphans: string[] = [];
-  for (const rule of rules) {
-    for (const p of [
-      ...rule.requiredDocs,
-      ...rule.anyOfDocs,
-      ...rule.infoDocs,
-    ]) {
-      if (p.includes('*')) continue;
-      if (!availableFiles.includes(p))
-        orphans.push(`${rule.name}: "${p}" does not exist`);
-    }
-  }
-  return orphans;
-}
-
-/** Glob doc patterns referenced by rules that match no existing file. */
-export function findDocMapGlobOrphans(
-  rules: DocCoverageRule[],
-  availableFiles: string[],
-): string[] {
-  const orphans: string[] = [];
-  for (const rule of rules) {
-    for (const p of [
-      ...rule.requiredDocs,
-      ...rule.anyOfDocs,
-      ...rule.infoDocs,
-    ]) {
-      if (!p.includes('*')) continue;
-      if (!availableFiles.some((f) => matchesPattern(f, p))) {
-        orphans.push(`${rule.name}: glob "${p}" matches no existing file`);
-      }
-    }
-  }
-  return orphans;
-}
-
 /** Active docs whose last git modification is older than thresholdDays. */
 export function getStaleDocs(
   activeDocs: string[],
@@ -484,80 +218,35 @@ export function getStaleDocs(
   });
 }
 
-/** Docs with a standing reader channel (AGENTS Read First / README nav / subdir READMEs). */
-export const EXEMPT_UNREFERENCED_PATTERNS: string[] = [
-  'docs/reference/adr/**',
-  'docs/reference/generated/**',
-  'docs/howto/**',
-  'docs/reference/deployment.md',
-  'docs/reference/environment-variables.md',
-];
-
 /**
- * Module dirs under `src/modules/*` intentionally exempt from doc-map coverage.
- * Keep this list minimal — prefer adding a doc-map rule over an exemption.
- * Document the reason next to each entry.
+ * Module dirs under `src/modules/*` intentionally exempt from documentation
+ * governance coverage checks. Keep this list minimal — document the reason
+ * next to each entry.
  */
 export const EXEMPT_MODULE_PATTERNS: string[] = [];
 
 /**
- * Module dirs under `src/modules/*` not matched by any rule's `code` glob.
- * New modules must ship with a doc-map rule so their changes are governed.
- * `exemptions` is injectable so the branch is testable; defaults to the
- * documented exemption list.
+ * Module dirs under `src/modules/*` without a code-adjacent `README.md`.
+ * New modules must ship with a `src/modules/<m>/README.md` so their changes
+ * are governed. `readmeExists` is injectable so the branch is testable;
+ * `exemptions` skips documented exceptions.
  */
 export function findUncoveredModuleDirs(
-  rules: DocCoverageRule[],
   moduleDirs: string[],
+  readmeExists: (dir: string) => boolean,
   exemptions: string[] = EXEMPT_MODULE_PATTERNS,
 ): string[] {
-  return moduleDirs.filter((dir) => {
-    if (exemptions.includes(dir)) return false;
-    // Every NestJS module has a `<name>.module.ts` at its root (repo convention);
-    // probe with that file so both glob and literal code patterns can match.
-    const probe = `src/modules/${dir}/${dir}.module.ts`;
-    return !rules.some((rule) =>
-      rule.codePatterns.some((pattern) => matchesPattern(probe, pattern)),
-    );
-  });
-}
-
-/** Active docs (except READMEs and standing-channel docs) not referenced by any doc-map rule. */
-export function findUnreferencedActiveDocs(
-  rules: DocCoverageRule[],
-  activeDocs: string[],
-): string[] {
-  const referenced = new Set<string>();
-  for (const rule of rules) {
-    for (const p of [
-      ...rule.requiredDocs,
-      ...rule.anyOfDocs,
-      ...rule.infoDocs,
-    ]) {
-      for (const doc of activeDocs) {
-        if (matchesPattern(doc, p)) referenced.add(doc);
-      }
-    }
-  }
-  return activeDocs.filter(
-    (doc) =>
-      !referenced.has(doc) &&
-      !doc.endsWith('/README.md') &&
-      !EXEMPT_UNREFERENCED_PATTERNS.some((p) => matchesPattern(doc, p)),
+  return moduleDirs.filter(
+    (dir) => !exemptions.includes(dir) && !readmeExists(dir),
   );
 }
 
 export function collectVerifyProblems(
   repoRoot: string,
-  rules: DocCoverageRule[],
-  availableFiles: string[],
   logFiles: string[],
   todayLogPath: string,
 ): string[] {
-  const problems: string[] = [
-    ...findDocMapOrphans(rules, availableFiles),
-    ...findDocMapGlobOrphans(rules, availableFiles),
-  ];
+  const problems: string[] = [];
   for (const log of logFiles) {
     const full = resolve(repoRoot, log);
     if (!existsSync(full)) continue;

@@ -1,18 +1,18 @@
-// Documentation coverage check for Lucent (CLI entry).
+// Documentation structure check for Lucent (CLI entry).
 //
-// Reads `docs/doc-map.yaml` and maps changed code files to the documentation
-// that the coverage mapping suggests. Pure logic lives in ./coverage
-// (testable).
+// The code→docs coverage mapping (doc-map.yaml, report mode) was retired on
+// 2026-09-15 after its two-week observation window (docs/TODO.md G1): the
+// structural guarantees below cover its value, and per-area doc duties live
+// in each `src/modules/<m>/README.md` plus the AGENTS.md doc rules.
 //
-// Modes (Phase 4 退役:覆盖映射不再是门禁):
-// - Report (default / --report): print the per-rule coverage report, never
-//   blocks. Retired pre-commit gate kept as a two-week observation report.
-// - Verify (--verify): check doc-map references, migration-log plan/spec
-//   references, single-H1 structure, front-matter metadata (missing / stale
-//   `updated` / `status: stale`), stale active docs, unreferenced docs,
-//   module-dir coverage, and the migration-log append-only guard (a staged
-//   log-file diff deleting more than 5 lines is a problem). `status: frozen`
-//   docs are exempt from the freshness checks. exit(1) on problems.
+// Modes:
+// - Report (default / --report): doc freshness advisory, never blocks.
+// - Verify (--verify): check migration-log plan/spec references, single-H1
+//   structure, front-matter metadata (missing / stale `updated` /
+//   `status: stale`), stale active docs, module README coverage, and the
+//   migration-log append-only guard (a staged log-file diff deleting more
+//   than 5 lines is a problem). `status: frozen` docs are exempt from the
+//   freshness checks. exit(1) on problems.
 
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -22,15 +22,11 @@ import {
   findDocsMissingFrontMatter,
   findStaleStatusDocs,
   findUncoveredModuleDirs,
-  findUnreferencedActiveDocs,
   getStaleByFrontMatter,
   getStaleDocs,
   getTodayDate,
   getTodayLogPath,
   isActiveDoc,
-  loadDocMap,
-  buildReport,
-  renderReport,
   MIGRATION_LOG_DIR,
   MIGRATION_LOG_DIR_LEGACY,
   MIGRATION_LOG_PATH_RE,
@@ -67,18 +63,6 @@ function resolveRepoRoot(verify: boolean): string {
     );
     return process.cwd();
   }
-}
-
-function getChangedFiles(cwd: string): string[] {
-  const changed = run('git diff --name-only --diff-filter=ACMR', cwd)
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const untracked = run('git ls-files --others --exclude-standard', cwd)
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  return [...new Set([...changed, ...untracked])];
 }
 
 /**
@@ -147,34 +131,6 @@ function collectAvailableDocs(repoRoot: string): string[] {
   );
 }
 
-/**
- * Docs surface outside `docs/`: module READMEs (code-adjacent module intent)
- * and the plans ledger. Used so doc-map rules may reference them without the
- * orphan check falsely reporting them as missing.
- */
-function collectRepoSurfaceDocs(repoRoot: string): string[] {
-  const out: string[] = [];
-  const pushRelative = (full: string) =>
-    out.push(full.slice(repoRoot.length + 1).replace(/\\/g, '/'));
-  const plansDir = resolve(repoRoot, 'plans');
-  if (existsSync(plansDir)) {
-    for (const f of readdirSync(plansDir)) {
-      if (f.endsWith('.md')) pushRelative(join(plansDir, f));
-    }
-  }
-  const modulesDir = resolve(repoRoot, 'src', 'modules');
-  if (existsSync(modulesDir)) {
-    for (const entry of readdirSync(modulesDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const readme = join(modulesDir, entry.name, 'README.md');
-      if (existsSync(readme)) pushRelative(readme);
-    }
-  }
-  const commonReadme = resolve(repoRoot, 'src', 'common', 'README.md');
-  if (existsSync(commonReadme)) pushRelative(commonReadme);
-  return out;
-}
-
 /** Collect migration-log entries from both the new and the legacy dir. */
 function collectLogFiles(repoRoot: string): string[] {
   const files: string[] = [];
@@ -207,7 +163,6 @@ function getLastModifiedMap(
 }
 
 function runVerify(repoRoot: string): void {
-  const rules = loadDocMap(repoRoot);
   const availableDocs = collectAvailableDocs(repoRoot);
   const logFiles = collectLogFiles(repoRoot);
   // Authoring-time semantics apply to today's log wherever it lives
@@ -217,13 +172,7 @@ function runVerify(repoRoot: string): void {
   const todayLogPath = logFiles.includes(canonicalToday)
     ? canonicalToday
     : legacyToday;
-  const problems = collectVerifyProblems(
-    repoRoot,
-    rules,
-    [...availableDocs, ...collectRepoSurfaceDocs(repoRoot)],
-    logFiles,
-    todayLogPath,
-  );
+  const problems = collectVerifyProblems(repoRoot, logFiles, todayLogPath);
 
   const activeDocs = availableDocs.filter(isActiveDoc);
   const contentByPath: Record<string, string> = {};
@@ -255,23 +204,19 @@ function runVerify(repoRoot: string): void {
         `${p}: stale (>${STALE_DOC_THRESHOLD_DAYS}d without update — review or archive)`,
     ),
   );
-  problems.push(
-    ...findUnreferencedActiveDocs(rules, activeDocs).map(
-      (p) => `${p}: unreferenced by doc-map — consider archiving`,
-    ),
-  );
-  // Every directory under src/modules/* must be matched by at least one
-  // doc-map rule's `code` glob (or a documented exemption) so new modules
-  // cannot land without documentation governance.
+  // Every directory under src/modules/* must ship a code-adjacent README
+  // (or a documented exemption) so new modules cannot land undocumented.
   const modulesDir = resolve(repoRoot, 'src', 'modules');
   if (existsSync(modulesDir)) {
     const moduleDirs = readdirSync(modulesDir, { withFileTypes: true })
       .filter((e) => e.isDirectory())
       .map((e) => e.name);
     problems.push(
-      ...findUncoveredModuleDirs(rules, moduleDirs).map(
+      ...findUncoveredModuleDirs(moduleDirs, (dir) =>
+        existsSync(resolve(modulesDir, dir, 'README.md')),
+      ).map(
         (dir) =>
-          `${dir}: module dir not covered by any doc-map rule — add a rule or a documented exemption`,
+          `${dir}: module dir has no src/modules/${dir}/README.md — add one or a documented exemption`,
       ),
     );
   }
@@ -285,7 +230,7 @@ function runVerify(repoRoot: string): void {
     process.exit(1);
   }
   console.log(
-    'Doc verification passed (doc-map references, H1 structure, front-matter, freshness, readership, module coverage).',
+    'Doc verification passed (H1 structure, front-matter, freshness, module README coverage).',
   );
 }
 
@@ -311,15 +256,14 @@ const USAGE = `
 Usage: node scripts/docs/verify.ts [options]
 
 Options:
-  --report            Print the doc-map coverage report for the working tree
-                      (never blocks; retired pre-commit gate kept as a
-                      two-week observation report). Default without flags.
-  --warning-only      Retired alias of --report.
-  --verify            Verify doc-map + migration-log references, H1 structure,
-                      front-matter metadata, stale active docs, doc readership,
-                      module-dir coverage, and the migration-log append-only
-                      guard. Docs marked 'status: frozen' are exempt from the
-                      freshness checks; exit(1) on problems.
+  --report            Print the doc freshness advisory (never blocks).
+                      Default without flags.
+  --warning-only      Alias of --report.
+  --verify            Verify migration-log plan/spec references, H1 structure,
+                      front-matter metadata, stale active docs, module README
+                      coverage, and the migration-log append-only guard. Docs
+                      marked 'status: frozen' are exempt from the freshness
+                      checks; exit(1) on problems.
   --help              Show this help text.
 `;
 
@@ -339,19 +283,8 @@ function main(): void {
     return;
   }
 
-  const rules = loadDocMap(repoRoot);
-  const changedFiles = getChangedFiles(repoRoot);
-  if (changedFiles.length === 0) {
-    console.log('Documentation coverage: no changed files detected.');
-    return;
-  }
-  const documentedFiles = changedFiles.filter((f) =>
-    f.replace(/\\/g, '/').startsWith('docs/'),
-  );
-  const report = buildReport(rules, changedFiles, documentedFiles);
-  console.log(renderReport(report));
   console.log(
-    '[doc-check] Coverage mapping is retired (Phase 4): report only, never blocks.',
+    'Documentation coverage mapping is retired (2026-09-15); doc duties live in module READMEs and AGENTS.md.',
   );
 }
 

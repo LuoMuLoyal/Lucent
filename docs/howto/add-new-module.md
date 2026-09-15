@@ -71,6 +71,6 @@ pnpm export:openapi      # 确认新端点出现在 OpenAPI 中
 
 - 追加今日 `docs/logs/migration-log/YYYY-MM-DD.md` 条目
 - API 合同由 `docs/reference/generated/openapi.json` 承接；模块专属契约意图写进该模块的
-  `src/modules/<module>/README.md`（结构固化），不再另建合同文件
+  `src/modules/<module>/README.md`（结构固化，`docs:verify` 会检查模块 README 覆盖），
+  不再另建合同文件
 - 如有重大架构决策，在 `docs/reference/adr/` 下创建 ADR
-- 更新 `docs/doc-map.yaml` 添加代码→文档映射规则

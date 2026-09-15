@@ -59,12 +59,6 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
 
 ## 文档治理观察期(2026-08-31,来源:doc-governance-overhaul 计划,文件已删)
 
-### G1:doc-map 覆盖映射机制整体退役(--report 两周观察后)
-
-`pnpm docs:check --report` 现仅打印覆盖映射报告不阻断。两周观察期内无阻断痛点即删除
-buildReport/renderReport 报告路径、`docs/doc-map.yaml` 与 `docs:check` 脚本条目
-(verify.ts 保留 `--verify` 结构检查);若期间发现仍需映射,回退本项并重新评估。
-
 ### G2:arch:check 观察期规则转级(warn → error,一周评估)
 
 基线(2026-08-31):依赖图 R1=7(product-events spec 深引 today-suggestion)、R2=0、

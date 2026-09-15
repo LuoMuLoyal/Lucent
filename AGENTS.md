@@ -30,13 +30,13 @@
 - **Front-matter**：`docs/reference/*.md` 与 `docs/howto/*.md` 必须带
   （`status: active|frozen|stale` / `owner: backend` / `quadrant: reference|howto|explanation` /
   `updated: YYYY-MM-DD`）；`explanation/` 无门禁（新鲜度仍由 git 时间兜底）。
-  `--verify` 通报缺失块、>90 天未更新、`status: stale` 未归档、无读者活跃文档；
+  `--verify` 通报缺失块、>90 天未更新、`status: stale` 未归档、模块缺 README；
   `status: frozen` 豁免新鲜度检查。归档 = `git mv` 到 `docs/archive/` + `status: archived`。
-- **工具**：`pnpm docs:check`（变更→文档映射**报告**，旧 pre-commit 门禁已退役，仅观察两周）、
-  `pnpm docs:verify`（结构与新鲜度门禁 + append-only 守卫）、
+- **工具**：`pnpm docs:verify`（结构与新鲜度门禁 + append-only 守卫）、
   `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/README 与根入口文档中
   的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。
-  文档变更不再被 pre-commit 阻断；推送前 `pre-push` 仅汇总
+  旧 `docs:check` 覆盖映射已于 2026-09-15 观察期满整体退役；
+  推送前 `pre-push` 仅汇总
   `lint:check + arch:check + docs:verify + docs:links`（build、test:ci 有意下沉到 CI）。
 
 ## Architecture Checks (arch:check)
