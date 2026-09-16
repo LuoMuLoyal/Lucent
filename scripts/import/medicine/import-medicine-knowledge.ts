@@ -706,6 +706,108 @@ async function executeTargetBatch(client, spec, importRunId, records) {
   }
 }
 
+// ─── XML target/action enrichment ─────────────────────────────
+
+/**
+ * Applies `<targets>`/`<enzymes>`/`<carriers>`/`<transporters>` data from the
+ * DrugBank XML onto `drugbank_drug_targets`.
+ *
+ * The CSV exports carry no `Actions` column at all, so every relation row
+ * imported from `all.csv` has empty `actions` / `known_action` and a
+ * placeholder `relation_kind`. The XML has the real values, but identifies
+ * targets with a disjoint `BE...` id space, so matching is by target **name**
+ * (case-insensitive, trimmed) against `drugbank_targets`.
+ *
+ * Relations with no CSV counterpart are inserted, which is what makes
+ * enzyme/carrier/transporter relations appear for the first time.
+ */
+async function applyXmlTargetActions(client, pending) {
+  // Resolve every plain-string name once.
+  const nameResult = await client.query(
+    `SELECT "id", lower(btrim("name")) AS name FROM "drugbank_targets" WHERE "source_dataset" = 'all'`,
+  );
+  const targetIdByName = new Map(
+    nameResult.rows.map((row) => [row.name, row.id]),
+  );
+
+  let applied = 0;
+  let unresolved = 0;
+  const rows = [];
+
+  for (const entry of pending) {
+    for (const target of entry.targets) {
+      const name = typeof target['name'] === 'string' ? target['name'] : null;
+      if (name === null) {
+        continue;
+      }
+
+      const targetId = targetIdByName.get(name.toLowerCase().trim());
+      if (!targetId) {
+        unresolved += 1;
+        continue;
+      }
+
+      const relationKind =
+        typeof target['relation_kind'] === 'string'
+          ? target['relation_kind']
+          : 'target';
+
+      rows.push({
+        id: stableUuid(
+          'drugbank_drug_target_xml',
+          entry.drugbankId,
+          targetId,
+          relationKind,
+        ),
+        drugbank_id: entry.drugbankId,
+        target_id: targetId,
+        relation_kind: relationKind,
+        actions:
+          Array.isArray(target['actions']) && target['actions'].length > 0
+            ? target['actions']
+            : null,
+        known_action:
+          typeof target['known_action'] === 'string'
+            ? target['known_action']
+            : null,
+      });
+    }
+  }
+
+  if (rows.length === 0) {
+    return { applied, unresolved };
+  }
+
+  const chunkSize = 1000;
+  for (let index = 0; index < rows.length; index += chunkSize) {
+    const chunk = rows.slice(index, index + chunkSize);
+    await executeUpsert(
+      client,
+      {
+        tableName: 'drugbank_drug_targets',
+        columns: [
+          'id',
+          'drugbank_id',
+          'target_id',
+          'relation_kind',
+          'actions',
+          'known_action',
+        ],
+        conflictColumns: ['drugbank_id', 'target_id', 'relation_kind'],
+        updateColumns: ['actions', 'known_action'],
+      },
+      chunk,
+    );
+    applied += chunk.length;
+  }
+
+  console.info(
+    `[xml-targets] applied ${String(applied)} relation(s), ${String(unresolved)} unresolved name(s)`,
+  );
+
+  return { applied, unresolved };
+}
+
 // ─── Main import flow ─────────────────────────────────────────
 
 async function runImport(command, cliOptions) {
@@ -749,6 +851,7 @@ async function runImport(command, cliOptions) {
     importedRowCount: 0,
     rejectedRowCount: 0,
     rejectionSummary: null,
+    xmlTargetRelations: null,
     note: `Imported with NODE_ENV=${nodeEnv}`,
   };
   const batchSize = parsePositiveIntegerOption(
@@ -761,6 +864,15 @@ async function runImport(command, cliOptions) {
       cliOptions.limit !== undefined
         ? parsePositiveIntegerOption(cliOptions.limit, '--limit')
         : undefined;
+
+    // Collected during the stream and applied after the drug upsert, because
+    // the XML target entries can only be matched once `drugbank_targets` rows
+    // exist. Buffered in memory: bounded by the number of drugs that declare
+    // targets (~1/4 of the corpus, a few hundred KB of strings).
+    const pendingXmlTargets: {
+      drugbankId: string;
+      targets: Record<string, unknown>[];
+    }[] = [];
 
     const flushBatch = async (batch) => {
       if (batch.length === 0) {
@@ -776,10 +888,19 @@ async function runImport(command, cliOptions) {
         );
         summary.importedRowCount += upsertedTargetCount;
       } else {
-        const normalizedBatch = batch.map((record) => ({
-          ...record,
-          import_run_id: importRunId,
-        }));
+        // `xml_targets` is a side-channel produced by the XML parser, not a
+        // column on `drugbank_drugs`. Strip it before the upsert and apply it
+        // afterwards to enrich `drugbank_drug_targets`.
+        const normalizedBatch = batch.map((record) => {
+          const { xml_targets: xmlTargets, ...rest } = record;
+          if (Array.isArray(xmlTargets) && xmlTargets.length > 0) {
+            pendingXmlTargets.push({
+              drugbankId: record.drugbank_id,
+              targets: xmlTargets,
+            });
+          }
+          return { ...rest, import_run_id: importRunId };
+        });
         summary.importedRowCount += await executeUpsert(
           client,
           config,
@@ -801,6 +922,13 @@ async function runImport(command, cliOptions) {
       stats.rejectionSamples.length > 0
         ? { sample: stats.rejectionSamples }
         : null;
+
+    if (pendingXmlTargets.length > 0) {
+      summary.xmlTargetRelations = await applyXmlTargetActions(
+        client,
+        pendingXmlTargets,
+      );
+    }
   } catch (error) {
     summary.status = 'failed';
     summary.rejectionSummary = { sample: [] };

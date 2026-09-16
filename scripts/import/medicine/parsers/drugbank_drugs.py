@@ -5,7 +5,14 @@ import datetime as dt
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from common import build_search_text, emit_error, emit_record, normalize_list, normalize_text
+from common import (
+    build_search_text,
+    clean_narrative_text,
+    emit_error,
+    emit_record,
+    normalize_list,
+    normalize_text,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,6 +40,69 @@ def first_child(parent: ET.Element, name: str) -> ET.Element | None:
 def child_text(parent: ET.Element, name: str) -> str | None:
     child = first_child(parent, name)
     return normalize_text(child.text if child is not None else None)
+
+
+def narrative_text(parent: ET.Element, name: str) -> str | None:
+    """Like `child_text`, but decodes entities and strips inline markup.
+
+    Used for prose fields only. Identifier/URL/date fields keep `child_text` so
+    their content is never rewritten.
+    """
+    child = first_child(parent, name)
+    return clean_narrative_text(child.text if child is not None else None)
+
+
+def parse_xml_targets(
+    drug: ET.Element,
+) -> list[dict[str, Any]]:
+    """Extract `<targets>` / `<enzymes>` / `<carriers>` / `<transporters>`.
+
+    These carry the pharmacology the CSV exports lack entirely: each entry has
+    a `BE...` target id, the target name, organism, and the `<actions>` list
+    (inhibitor / agonist / antagonist / substrate, ...).
+
+    The XML target id space (`BE0000451`) is disjoint from the numeric ids used
+    by `all.csv`, so entries are keyed by target `name` + `organism` for the
+    importer to resolve against `drugbank_targets`.
+    """
+    relations: list[dict[str, Any]] = []
+
+    for group_name in ("targets", "enzymes", "carriers", "transporters"):
+        group = first_child(drug, group_name)
+        if group is None:
+            continue
+
+        # Container elements are named after the singular (`<target>`,
+        # `<enzyme>`, ...), not the plural.
+        item_name = group_name[:-1]
+
+        for item in child_elements(group, item_name):
+            name = child_text(item, "name")
+            if name is None:
+                continue
+
+            actions_parent = first_child(item, "actions")
+            actions: list[str] = []
+            if actions_parent is not None:
+                actions = normalize_list(
+                    [
+                        action.text
+                        for action in child_elements(actions_parent, "action")
+                    ]
+                )
+
+            relations.append(
+                {
+                    "source_target_id": child_text(item, "id"),
+                    "name": name,
+                    "organism": child_text(item, "organism"),
+                    "actions": actions,
+                    "relation_kind": item_name,
+                    "known_action": child_text(item, "known-action"),
+                }
+            )
+
+    return relations
 
 
 def descendant_texts(parent: ET.Element | None, child_name: str) -> list[str]:
@@ -191,22 +261,22 @@ def build_record(drug: ET.Element) -> dict[str, Any] | None:
         "source_created_at": parse_iso_datetime(drug.attrib.get("created")),
         "source_updated_at": parse_iso_datetime(drug.attrib.get("updated")),
         "name": name,
-        "description": child_text(drug, "description"),
+        "description": narrative_text(drug, "description"),
         "cas_number": child_text(drug, "cas-number"),
         "unii": child_text(drug, "unii"),
         "state": child_text(drug, "state"),
         "groups": groups or None,
-        "indication": child_text(drug, "indication"),
-        "pharmacodynamics": child_text(drug, "pharmacodynamics"),
-        "mechanism_of_action": child_text(drug, "mechanism-of-action"),
-        "toxicity": child_text(drug, "toxicity"),
-        "metabolism": child_text(drug, "metabolism"),
-        "absorption": child_text(drug, "absorption"),
-        "half_life": child_text(drug, "half-life"),
-        "protein_binding": child_text(drug, "protein-binding"),
-        "route_of_elimination": child_text(drug, "route-of-elimination"),
-        "volume_of_distribution": child_text(drug, "volume-of-distribution"),
-        "clearance": child_text(drug, "clearance"),
+        "indication": narrative_text(drug, "indication"),
+        "pharmacodynamics": narrative_text(drug, "pharmacodynamics"),
+        "mechanism_of_action": narrative_text(drug, "mechanism-of-action"),
+        "toxicity": narrative_text(drug, "toxicity"),
+        "metabolism": narrative_text(drug, "metabolism"),
+        "absorption": narrative_text(drug, "absorption"),
+        "half_life": narrative_text(drug, "half-life"),
+        "protein_binding": narrative_text(drug, "protein-binding"),
+        "route_of_elimination": narrative_text(drug, "route-of-elimination"),
+        "volume_of_distribution": narrative_text(drug, "volume-of-distribution"),
+        "clearance": narrative_text(drug, "clearance"),
         "classification": element_to_data(first_child(drug, "classification")),
         "synonyms": synonyms or None,
         "products": element_to_data(first_child(drug, "products")),
@@ -224,6 +294,7 @@ def build_record(drug: ET.Element) -> dict[str, Any] | None:
         or None,
         "external_links": parse_external_links(first_child(drug, "external-links"))
         or None,
+        "xml_targets": parse_xml_targets(drug) or None,
         "search_text": build_search_text(
             [name, primary_id, child_text(drug, "cas-number"), child_text(drug, "unii")]
             + secondary_ids
