@@ -7674,7 +7674,7 @@
           },
           "mealAnalysisFailureReason": {
             "type": "string",
-            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).",
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output).",
             "nullable": true
           },
           "mealHeadline": {
@@ -12391,7 +12391,7 @@
           },
           "mealAnalysisFailureReason": {
             "type": "string",
-            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).",
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output).",
             "nullable": true
           },
           "mealHeadline": {
@@ -12644,7 +12644,7 @@
           },
           "mealAnalysisFailureReason": {
             "type": "string",
-            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).",
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output).",
             "nullable": true
           },
           "mealHeadline": {

@@ -19,8 +19,11 @@ import {
  *
  * 单次模型调用有时间上限，正常作业不可能长时间停在 `analyzing`：停留说明作业
  * 已经丢失（进程崩溃、队列丢单、Redis 数据被清）。这里把它们落成
- * `analysis_failed(model_timeout)`，用户的详情页才会出现「重新分析」入口——
+ * `analysis_failed(job_lost)`，用户的详情页才会出现「重新分析」入口——
  * 否则记录会永远停在「分析中」且没有任何补救手段（v1 的缺陷）。
+ *
+ * 刻意**不**复用 `model_timeout`：本服务判定的是「作业没跑完就没了」，不是「模型调用超时」，
+ * 混成一个码会让真正的模型超时告警被基础设施故障淹没（归因见失败码定义处）。
  */
 @Injectable()
 export class MealAnalysisSweeperService {
@@ -49,7 +52,7 @@ export class MealAnalysisSweeperService {
         continue;
       }
 
-      const failed = buildFailedMealAnalysis('model_timeout', {
+      const failed = buildFailedMealAnalysis('job_lost', {
         sourceRevision: analysis.sourceRevision,
         model: null,
         locale: analysis.locale ?? MEAL_ANALYSIS_DEFAULT_LOCALE,
@@ -74,7 +77,7 @@ export class MealAnalysisSweeperService {
 
     if (reaped > 0) {
       this.logger.warn(
-        `Reaped ${String(reaped)} stale meal analyses as model_timeout`,
+        `Reaped ${String(reaped)} stale meal analyses as job_lost`,
       );
     }
     return reaped;

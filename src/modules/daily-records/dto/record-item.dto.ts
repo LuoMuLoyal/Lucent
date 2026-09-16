@@ -49,7 +49,7 @@ export const dailyRecordItemSchema = z.object({
   mealAnalysisFailureReason: z
     .string()
     .describe(
-      'Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, invalid_output).',
+      'Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output).',
     )
     .nullable(),
   mealHeadline: z

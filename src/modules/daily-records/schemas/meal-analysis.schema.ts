@@ -25,12 +25,20 @@ export const MEAL_ANALYSIS_STATUSES = [
   'analysis_failed',
 ] as const;
 
-/** 稳定失败原因码（落库给客户端做 l10n，不再把英文原串直接抛给用户）。 */
+/**
+ * 稳定失败原因码（落库给客户端做 l10n，不再把英文原串直接抛给用户）。
+ *
+ * `job_lost` 与 `model_timeout` 的区别是**责任方**：前者是作业没能跑完就被丢了
+ * （进程崩溃、队列丢单、Redis 数据被清，由过期回收器判定），后者是模型调用自己超时。
+ * 两者对用户的补救动作一样（重试），但故障归因完全不同：混成一个码会让「模型超时」
+ * 的告警淹没有真实基础设施故障的时段。
+ */
 export const MEAL_ANALYSIS_FAILURE_REASONS = [
   'image_count_invalid',
   'vision_unavailable',
   'model_failed',
   'model_timeout',
+  'job_lost',
   'invalid_output',
 ] as const;
 

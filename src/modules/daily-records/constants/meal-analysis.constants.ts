@@ -9,7 +9,7 @@ export const MEAL_ANALYSIS_REAP_CRON = '*/5 * * * *';
 
 /**
  * 超过这个时长仍是 `analyzing` 的记录视为作业已丢失（进程崩溃/队列丢单），
- * 落 `analysis_failed(model_timeout)` 让用户能重试。
+ * 落 `analysis_failed(job_lost)` 让用户能重试。
  *
  * 远大于单次模型调用的 timeout：正常作业只可能因崩溃而超过它。
  */

@@ -38,7 +38,7 @@ describe('MealAnalysisSweeperService', () => {
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
   });
 
-  it('marks long-running analyzing records as model_timeout failures', async () => {
+  it('marks long-running analyzing records as job_lost failures', async () => {
     const { prisma, userDailyRecord } = buildPrisma([
       { id: 'r1', userId: 'u1', payload: analyzingPayload(4) },
       // 已经不是 analyzing 的记录不再处理（并发分析刚写完结果）。
@@ -76,12 +76,12 @@ describe('MealAnalysisSweeperService', () => {
       },
       data: expect.objectContaining({
         mealAnalysisStatus: 'analysis_failed',
-        mealAnalysisFailureReason: 'model_timeout',
+        mealAnalysisFailureReason: 'job_lost',
         mealSourceRevision: 4,
         payload: expect.objectContaining({
           mealAnalysis: expect.objectContaining({
             analysisStatus: 'analysis_failed',
-            failureReason: 'model_timeout',
+            failureReason: 'job_lost',
             sourceRevision: 4,
           }),
         }),
