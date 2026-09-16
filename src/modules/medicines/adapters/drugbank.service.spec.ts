@@ -178,6 +178,7 @@ describe('DrugbankMedicinesService', () => {
         makeRow({
           targetRelations: [
             {
+              targetId: 'target-1',
               relationKind: 'target',
               actions: ['inhibitor'],
               knownAction: 'yes',
@@ -209,6 +210,100 @@ describe('DrugbankMedicinesService', () => {
           knownAction: 'yes',
           relationKind: 'target',
         },
+      ]);
+    });
+
+    it('drops the CSV duplicate when the XML described the same pair', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          targetRelations: [
+            {
+              targetId: 'target-1',
+              relationKind: 'all',
+              actions: null,
+              knownAction: null,
+              target: { name: 'Cyclooxygenase-1', geneName: 'PTGS1' },
+            },
+            {
+              targetId: 'target-1',
+              relationKind: 'target',
+              actions: ['inhibitor'],
+              knownAction: 'yes',
+              target: { name: 'Cyclooxygenase-1', geneName: 'PTGS1' },
+            },
+          ],
+        }),
+      );
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as { targets: { relationKind: string }[] };
+
+      // Only the XML row survives: the CSV row had no actions and no
+      // relationship typing.
+      expect(detail.targets).toHaveLength(1);
+      expect(detail.targets[0]!.relationKind).toBe('target');
+    });
+
+    it('keeps a CSV-only target the XML never mentioned', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          targetRelations: [
+            {
+              targetId: 'target-csv-only',
+              relationKind: 'all',
+              actions: null,
+              knownAction: null,
+              target: { name: 'Serum albumin', geneName: 'ALB' },
+            },
+            {
+              targetId: 'target-1',
+              relationKind: 'target',
+              actions: ['inhibitor'],
+              knownAction: 'yes',
+              target: { name: 'Cyclooxygenase-1', geneName: 'PTGS1' },
+            },
+          ],
+        }),
+      );
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as { targets: { name: string }[] };
+
+      expect(detail.targets.map((target) => target.name)).toEqual([
+        'Serum albumin',
+        'Cyclooxygenase-1',
+      ]);
+    });
+
+    it('keeps one entry per relationship kind for the same target', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          targetRelations: [
+            {
+              targetId: 'target-1',
+              relationKind: 'target',
+              actions: ['inhibitor'],
+              knownAction: 'yes',
+              target: { name: 'Cyclooxygenase-1', geneName: 'PTGS1' },
+            },
+            {
+              targetId: 'target-1',
+              relationKind: 'enzyme',
+              actions: ['substrate'],
+              knownAction: 'yes',
+              target: { name: 'Cyclooxygenase-1', geneName: 'PTGS1' },
+            },
+          ],
+        }),
+      );
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as { targets: { relationKind: string }[] };
+
+      // Each edge carries its own actions, so neither may be collapsed away.
+      expect(detail.targets.map((target) => target.relationKind)).toEqual([
+        'target',
+        'enzyme',
       ]);
     });
 

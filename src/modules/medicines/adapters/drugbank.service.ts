@@ -35,6 +35,18 @@ type DrugbankDrugTargetWithTarget = DrugbankDrugTarget & {
   target: DrugbankTarget;
 };
 
+/**
+ * `drugbank_drug_targets.relation_kind` doubles as provenance: the CSV import
+ * writes its dataset name (`all`, `pharmacologically_active`), while the XML
+ * import writes the real relationship type (`target`, `enzyme`, `carrier`,
+ * `transporter`).
+ */
+const CSV_RELATION_KINDS = new Set(['all', 'pharmacologically_active']);
+
+function isCsvRelation(relationKind: string | null): boolean {
+  return relationKind !== null && CSV_RELATION_KINDS.has(relationKind);
+}
+
 interface MedicineSearchCriteria {
   q: string;
   page: number;
@@ -193,9 +205,14 @@ export class DrugbankMedicinesService {
   /**
    * Flattens the `drugbank_drug_targets` join rows into a single target list.
    *
-   * The same target can appear once per `relation_kind` (target, enzyme,
-   * carrier, transporter); each edge keeps its own `actions`/`knownAction`
-   * so no relationship detail is lost.
+   * The same target can legitimately appear once per `relation_kind` (target,
+   * enzyme, carrier, transporter) — those are kept as separate entries because
+   * each edge carries its own `actions`.
+   *
+   * Rows tagged `all` come from the CSV export, which has no `Actions` column
+   * and no relationship typing. Where the XML has already described the same
+   * drug→target pair, the CSV row is a strictly poorer duplicate and is
+   * dropped; CSV rows describing pairs the XML does not mention are kept.
    */
   private toTargets(
     relations: DrugbankDrugTargetWithTarget[],
@@ -204,17 +221,29 @@ export class DrugbankMedicinesService {
       return null;
     }
 
-    const targets = relations.map((relation) => ({
-      name: relation.target.name,
-      geneName: relation.target.geneName,
-      uniprotId: relation.target.uniprotId,
-      uniprotTitle: relation.target.uniprotTitle,
-      species: relation.target.species,
-      pdbIds: toStringListOrNull(relation.target.pdbIds),
-      actions: toStringListOrNull(relation.actions),
-      knownAction: relation.knownAction,
-      relationKind: relation.relationKind,
-    }));
+    const xmlCoveredTargetIds = new Set(
+      relations
+        .filter((relation) => !isCsvRelation(relation.relationKind))
+        .map((relation) => relation.targetId),
+    );
+
+    const targets = relations
+      .filter(
+        (relation) =>
+          !isCsvRelation(relation.relationKind) ||
+          !xmlCoveredTargetIds.has(relation.targetId),
+      )
+      .map((relation) => ({
+        name: relation.target.name,
+        geneName: relation.target.geneName,
+        uniprotId: relation.target.uniprotId,
+        uniprotTitle: relation.target.uniprotTitle,
+        species: relation.target.species,
+        pdbIds: toStringListOrNull(relation.target.pdbIds),
+        actions: toStringListOrNull(relation.actions),
+        knownAction: relation.knownAction,
+        relationKind: relation.relationKind,
+      }));
 
     return targets.length > 0 ? targets : null;
   }
