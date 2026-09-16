@@ -599,18 +599,12 @@ export class AssistantToolReadService {
     const ambiguities: string[] = [];
     if (digest.daysCapped) {
       ambiguities.push(
-        MEAL_DIGEST_DAYS_CAP_MESSAGE(
-          digest.requestedDays ?? digest.windowDays,
-          digest.windowDays,
-        ),
+        MEAL_DIGEST_DAYS_CAP_MESSAGE(digest.requestedDays, digest.windowDays),
       );
     }
     if (digest.limitCapped) {
       ambiguities.push(
-        MEAL_DIGEST_LIMIT_CAP_MESSAGE(
-          digest.requestedLimit ?? digest.limit,
-          digest.limit,
-        ),
+        MEAL_DIGEST_LIMIT_CAP_MESSAGE(digest.requestedLimit, digest.limit),
       );
     }
 

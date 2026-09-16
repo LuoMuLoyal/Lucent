@@ -100,17 +100,37 @@ export const DEFAULT_RANGE_FALLBACK_MESSAGE = (defaultRangeDays: number) =>
 export const RANGE_TRUNCATED_MESSAGE = (maxRangeDays: number) =>
   `Requested range exceeded ${String(maxRangeDays)} days and was truncated.`;
 
+/**
+ * 餐食 digest 窗口被服务端封顶时的说明。
+ *
+ * `requestedDays` 为 null 只在「模型没传 `days`」时出现，而那种情况不会封顶
+ * （`clampPositiveInt` 未传值时按 fallback 走、`capped` 为 false）——所以这里保留
+ * 一句话兜底，措辞与 [MEAL_DIGEST_LIMIT_CAP_MESSAGE] 同构，避免将来封顶条件变化时
+ * 又渲染出「请求了 30 天，上限 30 天」这种自相矛盾的句子。
+ */
 export const MEAL_DIGEST_DAYS_CAP_MESSAGE = (
-  requestedDays: number,
+  requestedDays: number | null,
   maxDays: number,
 ) =>
-  `Requested ${String(requestedDays)} days of meal analysis, but the digest is capped at ${String(maxDays)} days.`;
+  requestedDays === null
+    ? `The meal-analysis window was capped at ${String(maxDays)} days.`
+    : `Requested ${String(requestedDays)} days of meal analysis, but the digest is capped at ${String(maxDays)} days.`;
 
+/**
+ * 餐食 digest 只返回最新 `maxLimit` 条时的说明。
+ *
+ * `requestedLimit` 为 null 表示模型**没有传** `limit`（或传了不可用的值），只是窗口内的
+ * 已分析餐食比服务端上限多——此时不能说成「你请求了 N 条」，否则模型会读到
+ * 「Requested 20 meals, but the digest returns at most 20 analyzed meals」这种自相矛盾的
+ * 句子（两个数字相同，且它根本没请求过）。两条分支因此给不同措辞。
+ */
 export const MEAL_DIGEST_LIMIT_CAP_MESSAGE = (
-  requestedLimit: number,
+  requestedLimit: number | null,
   maxLimit: number,
 ) =>
-  `Requested ${String(requestedLimit)} meals, but the digest returns at most ${String(maxLimit)} analyzed meals.`;
+  requestedLimit === null
+    ? `More analyzed meals were found than the digest returns per call; only the newest ${String(maxLimit)} are included.`
+    : `Requested ${String(requestedLimit)} meals, but the digest returns at most ${String(maxLimit)} analyzed meals.`;
 
 // ---------------------------------------------------------------------------
 // Shared domain types

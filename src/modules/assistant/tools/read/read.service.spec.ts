@@ -481,6 +481,48 @@ describe('AssistantToolReadService', () => {
       expect(result.confidence.level).toBe('medium');
     });
 
+    it('does not claim a requested limit the model never passed', async () => {
+      // limitCapped 只是「窗口内已分析餐食多于单次返回上限」，与模型是否传了
+      // limit 无关。此前这里回落成 digest.limit，于是未传 limit 时会渲染出
+      // 「Requested 20 meals, but the digest returns at most 20 …」这种自相矛盾的句子。
+      recordQuery.buildMealAnalysisDigest.mockResolvedValue({
+        ...digest,
+        limit: 20,
+        requestedLimit: null,
+        limitCapped: true,
+        analyzedMealCount: 40,
+      });
+
+      const result = await service.getMealAnalysisDigest({
+        ...mockContext,
+        toolArgs: {},
+      });
+
+      expect(result.ambiguities).toHaveLength(1);
+      const [message] = result.ambiguities;
+      expect(message).not.toContain('Requested');
+      expect(message).toContain('20');
+    });
+
+    it('still names the requested limit when the model did pass one', async () => {
+      recordQuery.buildMealAnalysisDigest.mockResolvedValue({
+        ...digest,
+        limit: 20,
+        requestedLimit: 99,
+        limitCapped: true,
+        analyzedMealCount: 40,
+      });
+
+      const result = await service.getMealAnalysisDigest({
+        ...mockContext,
+        toolArgs: { limit: 99 },
+      });
+
+      expect(result.ambiguities).toHaveLength(1);
+      expect(result.ambiguities[0]).toContain('Requested 99');
+      expect(result.ambiguities[0]).toContain('20');
+    });
+
     it('returns empty coverage when no meal has a finished analysis', async () => {
       recordQuery.buildMealAnalysisDigest.mockResolvedValue({
         ...digest,
