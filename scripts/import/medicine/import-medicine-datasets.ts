@@ -25,6 +25,7 @@ const VALID_COMMANDS = new Set([
   'drugbank-target-proteins',
   'drugbank-target-genes',
   'drugbank-drug-sequences',
+  'drugbank-structures',
 ]);
 
 const VALID_NODE_ENVS = new Set(['development', 'test', 'production']);
@@ -72,6 +73,7 @@ function main() {
           'drugbank-target-proteins',
           'drugbank-target-genes',
           'drugbank-drug-sequences',
+          'drugbank-structures',
           'cn-leaflets',
           'cn-products',
           'cn-product-leaflet-links',
