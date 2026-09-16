@@ -93,6 +93,10 @@ describe('Medicines API (e2e)', () => {
     await prisma.medicineSafetyTip.deleteMany();
     await prisma.drugbankDrugTarget.deleteMany();
     await prisma.drugbankExternalLink.deleteMany();
+    // Target sequences hang off UniProt ids rather than a foreign key, so
+    // nothing cascades them away — they must be cleared explicitly.
+    await prisma.drugbankTargetSequence.deleteMany();
+    await prisma.drugbankDrugSequence.deleteMany();
     await prisma.drugbankTarget.deleteMany();
     await prisma.drugbankDrug.deleteMany();
     await prisma.cnMedicineProduct.deleteMany();
@@ -103,6 +107,10 @@ describe('Medicines API (e2e)', () => {
     await prisma.medicineSafetyTip.deleteMany();
     await prisma.drugbankDrugTarget.deleteMany();
     await prisma.drugbankExternalLink.deleteMany();
+    // Target sequences hang off UniProt ids rather than a foreign key, so
+    // nothing cascades them away — they must be cleared explicitly.
+    await prisma.drugbankTargetSequence.deleteMany();
+    await prisma.drugbankDrugSequence.deleteMany();
     await prisma.drugbankTarget.deleteMany();
     await prisma.drugbankDrug.deleteMany();
     await prisma.cnMedicineProduct.deleteMany();
@@ -114,6 +122,10 @@ describe('Medicines API (e2e)', () => {
     await prisma.medicineSafetyTip.deleteMany();
     await prisma.drugbankDrugTarget.deleteMany();
     await prisma.drugbankExternalLink.deleteMany();
+    // Target sequences hang off UniProt ids rather than a foreign key, so
+    // nothing cascades them away — they must be cleared explicitly.
+    await prisma.drugbankTargetSequence.deleteMany();
+    await prisma.drugbankDrugSequence.deleteMany();
     await prisma.drugbankTarget.deleteMany();
     await prisma.drugbankDrug.deleteMany();
     await prisma.cnMedicineProduct.deleteMany();
@@ -228,6 +240,182 @@ describe('Medicines API (e2e)', () => {
       kind: 'drugbank',
       indication: 'Used for pain, fever, and inflammation.',
       mechanismOfAction: 'Inhibits prostaglandin synthesis.',
+    });
+  });
+
+  describe('GET /api/v1/medicines/:id/sequences', () => {
+    it('returns the drug chains and its targets sequences', async () => {
+      await prisma.drugbankDrug.create({
+        data: {
+          drugbankId: 'DB00002',
+          name: 'Cetuximab',
+          groups: ['approved', 'biotech'],
+        },
+      });
+      await prisma.drugbankDrugSequence.createMany({
+        data: [
+          {
+            drugbankId: 'DB00002',
+            description: 'heavy chain',
+            sequence: 'QVQLKQSGPGLVQPSQSLSIT',
+            length: 21,
+          },
+          {
+            drugbankId: 'DB00002',
+            description: 'light chain',
+            sequence: 'DILLTQSPVILSVSPGERVSF',
+            length: 21,
+          },
+        ],
+      });
+
+      const target = await prisma.drugbankTarget.create({
+        data: {
+          sourceDataset: 'all',
+          sourceTargetId: 'seq-target-1',
+          name: 'Epidermal growth factor receptor',
+          uniprotId: 'P00533',
+        },
+      });
+      await prisma.drugbankDrugTarget.create({
+        data: {
+          drugbankId: 'DB00002',
+          targetId: target.id,
+          relationKind: 'target',
+        },
+      });
+      await prisma.drugbankTargetSequence.createMany({
+        data: [
+          {
+            sourceDataset: 'protein_fasta',
+            uniprotId: 'P00533',
+            targetName: 'Epidermal growth factor receptor',
+            sequence: 'MRPSGTAGAALLALLAALCPASR',
+            length: 23,
+          },
+          {
+            sourceDataset: 'gene_fasta',
+            uniprotId: 'P00533',
+            targetName: 'Epidermal growth factor receptor',
+            sequence: 'ATGCGACCCTCCGGGACGGCC',
+            length: 21,
+          },
+        ],
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`${MEDICINES_PATH}/DB00002/sequences`)
+        .expect(200);
+
+      const data = expectData(response.body);
+
+      expect(data).toMatchObject({ id: 'DB00002', source: 'drugbank' });
+      expect(data.drug).toHaveLength(2);
+      expect(data.drug).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            description: 'heavy chain',
+            length: 21,
+          }),
+        ]),
+      );
+      // Both the protein and the coding-gene sequence come back, tagged with
+      // which dataset they came from.
+      expect(
+        (data.targets as { dataset: string }[])
+          .map((row) => row.dataset)
+          .sort(),
+      ).toEqual(['gene_fasta', 'protein_fasta']);
+    });
+
+    it('reports sequence counts on the detail resource', async () => {
+      await prisma.drugbankDrug.create({
+        data: {
+          drugbankId: 'DB00002',
+          name: 'Cetuximab',
+          groups: ['approved'],
+        },
+      });
+      await prisma.drugbankDrugSequence.create({
+        data: {
+          drugbankId: 'DB00002',
+          description: 'heavy chain',
+          sequence: 'QVQLKQSGPGLVQPSQSLSIT',
+          length: 21,
+        },
+      });
+      const target = await prisma.drugbankTarget.create({
+        data: {
+          sourceDataset: 'all',
+          sourceTargetId: 'seq-target-2',
+          name: 'Epidermal growth factor receptor',
+          uniprotId: 'P00533',
+        },
+      });
+      await prisma.drugbankDrugTarget.create({
+        data: {
+          drugbankId: 'DB00002',
+          targetId: target.id,
+          relationKind: 'target',
+        },
+      });
+      await prisma.drugbankTargetSequence.create({
+        data: {
+          sourceDataset: 'protein_fasta',
+          uniprotId: 'P00533',
+          targetName: 'Epidermal growth factor receptor',
+          sequence: 'MRPSGTAGAALLALLAALCPASR',
+          length: 23,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`${MEDICINES_PATH}/DB00002`)
+        .expect(200);
+
+      const data = expectData(response.body).detail as {
+        sequenceSummary: {
+          drugChainCount: number;
+          targetSequenceCount: number;
+        } | null;
+      };
+
+      expect(data.sequenceSummary).toEqual({
+        drugChainCount: 1,
+        targetSequenceCount: 1,
+      });
+    });
+
+    it('returns empty arrays for a medicine without sequences', async () => {
+      await prisma.drugbankDrug.create({
+        data: {
+          drugbankId: 'DB01050',
+          name: 'Ibuprofen',
+          groups: ['approved'],
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`${MEDICINES_PATH}/DB01050/sequences`)
+        .expect(200);
+
+      const data = expectData(response.body);
+
+      expect(data.drug).toEqual([]);
+      expect(data.targets).toEqual([]);
+    });
+
+    it('returns 404 for an unknown medicine id', async () => {
+      await request(app.getHttpServer())
+        .get(`${MEDICINES_PATH}/DB99999/sequences`)
+        .expect(404);
+    });
+
+    it('rejects unknown query keys (strict schema, forbid parity)', async () => {
+      await request(app.getHttpServer())
+        .get(`${MEDICINES_PATH}/DB01050/sequences`)
+        .query({ limit: '10' })
+        .expect(400);
     });
   });
 

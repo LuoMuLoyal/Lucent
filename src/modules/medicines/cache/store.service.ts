@@ -2,6 +2,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import type { MedicineDetailDataDto } from '../dto/detail.dto.js';
+import type { MedicineSequenceDataDto } from '../dto/sequence.dto.js';
 
 import type { MedicineKnowledgeSource } from '../dto/source.dto.js';
 
@@ -48,6 +49,20 @@ export class MedicinesCacheService {
   async getOrSetSafetyTips<T>(load: () => Promise<T>): Promise<T> {
     const key = `${MEDICINES_CACHE_KEY_PREFIX}:safety-tips:all`;
     return this.getOrSet(key, MEDICINES_SAFETY_TIPS_TTL_MS, false, load);
+  }
+
+  /**
+   * Sequences reuse the detail TTL: they are imported and invalidated together
+   * with the rest of the DrugBank knowledge base.
+   */
+  async getOrSetSequences(
+    source: MedicineKnowledgeSource,
+    id: string,
+    bypass: boolean,
+    load: () => Promise<MedicineSequenceDataDto | null>,
+  ): Promise<MedicineSequenceDataDto | null> {
+    const key = `${this.buildDetailKey(source, id)}:sequences`;
+    return this.getOrSet(key, MEDICINES_DETAIL_CACHE_TTL_MS, bypass, load);
   }
 
   private async getOrSet<T>(

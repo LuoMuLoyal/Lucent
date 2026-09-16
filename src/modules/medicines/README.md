@@ -22,7 +22,12 @@ owner: backend
 - `GET /api/v1/medicines` — 搜索，返回公共卡片形：`id/source/name/subtitle/
 summary/tags/imageUrl/matchedBy` + `pagination`。
 - `GET /api/v1/medicines/:id` — 详情为判别联合：`kind: 'drugbank'` 与
-  `kind: 'cnProduct'` 各保留原生字段；缺源字段不造空列。
+  `kind: 'cnProduct'` 各保留原生字段；缺源字段不造空列。drugbank 分支另带
+  `sequenceSummary`（仅有计数，无序列正文）。
+- `GET /api/v1/medicines/:id/sequences` — 序列正文：药物自身各链 + 其靶点的蛋白/编码基因
+  序列。**刻意与详情分离**——单药实测可达 96 KB（Imatinib 28 个靶点 × 2 个数据集），
+  不该随每次详情请求下发；客户端只在用户展开序列区时才调。源无序列时返回空数组而非 404
+  （CN 源没有序列列，但药品本身是存在的）。
 - `POST risk-check`（static/LLM 用药风险检查；`candidate` 预检仅支持
   static：解析来源详情即时静态检查，不落库不写 records 缓存，不产生最新
   记录；已在药箱的候选不重复加入）/ `GET risk-check`（最近记录，30 分钟缓存）。
@@ -35,15 +40,17 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 `cn_medicine_products`、`cn_medicine_leaflets`、
 `cn_medicine_product_leaflet_links`、`medicine_leaflet_chunks`（说明书 RAG）、
 `drugbank_drugs`、`drugbank_external_links`、`drugbank_targets`、
-`drugbank_drug_targets`、`drugbank_passage_chunks`（DrugBank RAG）、
+`drugbank_drug_targets`、`drugbank_target_sequences`（靶点蛋白/编码基因序列）、
+`drugbank_drug_sequences`（生物药各链序列）、`drugbank_passage_chunks`（DrugBank RAG）、
 `medical_qa_chunks`（assistant-only 语料，属 assistant 模块检索）、
 `drug_source_imports`（导入元数据：来源/版本/哈希/行数/拒绝样本）。
 
 ## 导入策略（契约要点）
 
 - 入口 `pnpm import:medicine:all`：drugbank-drugs → links → targets-all →
-  targets-active → cn-leaflets → cn-products → cn-product-leaflet-links
-  （顺序源于外键依赖）；批量按目标表冲突键去重后 upsert，幂等。
+  targets-active → target-proteins → target-genes → drug-sequences → cn-leaflets →
+  cn-products → cn-product-leaflet-links（顺序源于外键依赖：药序列对 `drugbank_drugs`
+  有外键，故排在药物之后）；批量按目标表冲突键去重后 upsert，幂等。
 - CN 源 = `ChineseDrugData_Master_V2.xlsx`（4.0.0 锁定）；构建细节见
   `DrugDataBase/ChineseDrugData_Master_V2/build_master_v2.py`。
 - CN 唯一性：优先 `(approval_number, package_spec, manufacturer)`，
@@ -53,6 +60,11 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 - DrugBank 映射：`drugbank_id` 主键、`secondary_drugbank_ids`、科学叙事字段
   清单化进 RAG chunks（仅 description/indication/MoA/pd/toxicity 等核准字段）；
   原始大文件不入 Git。
+- 序列唯一键：靶点序列按 `(source_dataset, uniprot_id)`——`protein.fasta` 与
+  `gene.fasta` 表头格式相同，只靠 `source_dataset` 区分氨基酸与核苷酸；药序列按
+  `(drugbank_id, description)`——一药多链（实测最多 11 条），链描述原样存原文，
+  不强拆 name/chain。靶点序列**不建外键**（`drugbank_targets.uniprot_id` 可空且非唯一），
+  消费方按 `uniprot_id` 关联。
 - 中文产品 ↔ DrugBank 实体映射不建表：跨源问题由 assistant 源分离工具链完成。
 
 ## Dependencies

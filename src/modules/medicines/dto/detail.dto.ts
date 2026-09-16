@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { sequenceSummarySchema } from './sequence.dto.js';
 import { MEDICINE_KNOWLEDGE_SOURCES } from './source.dto.js';
 
 /**
@@ -117,6 +118,11 @@ export const drugbankMedicineDetailSchema = z.object({
     .array()
     .nullable()
     .describe('Outbound reference links from the source.'),
+  sequenceSummary: sequenceSummarySchema
+    .nullable()
+    .describe(
+      'Counts of available sequences; the sequences themselves are fetched from the sequence endpoint.',
+    ),
 });
 
 export const cnMedicineDetailSchema = z.object({

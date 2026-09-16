@@ -16,6 +16,10 @@ import type {
   MedicineSearchItemDto,
   MedicineSearchResult,
 } from '../dto/search.dto.js';
+import type {
+  MedicineSequenceDataDto,
+  SequenceSummaryDto,
+} from '../dto/sequence.dto.js';
 import {
   composeSubtitle,
   detectMatchedBy,
@@ -94,6 +98,11 @@ export class DrugbankMedicinesService {
       return null;
     }
 
+    const sequenceSummary = await this.countSequences(
+      row.drugbankId,
+      row.targetRelations,
+    );
+
     const detail: DrugbankMedicineDetailDto = {
       kind: 'drugbank',
       drugType: row.drugType,
@@ -121,6 +130,7 @@ export class DrugbankMedicinesService {
         row.externalIdentifiers,
       ),
       externalLinks: toDrugbankExternalLinks(row.externalLinks),
+      sequenceSummary,
     };
 
     return {
@@ -130,6 +140,96 @@ export class DrugbankMedicinesService {
       subtitle: this.toSubtitle(row),
       detail,
     };
+  }
+
+  /**
+   * Loads every sequence reachable from one drug: the drug's own chains plus
+   * the protein and coding-gene sequences of its targets.
+   *
+   * Deliberately a separate call from `getDetail` — a well-studied drug carries
+   * tens of thousands of characters here (Imatinib's 28 targets average ~1130 aa
+   * of protein each), which has no business riding along with every page load.
+   */
+  async getSequences(id: string): Promise<MedicineSequenceDataDto | null> {
+    const row = await this.prisma.drugbankDrug.findUnique({
+      where: { drugbankId: id },
+      select: {
+        drugbankId: true,
+        targetRelations: {
+          select: { target: { select: { uniprotId: true } } },
+        },
+      },
+    });
+
+    if (!row) {
+      return null;
+    }
+
+    const uniprotIds = uniqueNonEmptyStrings(
+      row.targetRelations.map((relation) => relation.target.uniprotId ?? ''),
+      Number.MAX_SAFE_INTEGER,
+    );
+
+    const [drugRows, targetRows] = await Promise.all([
+      this.prisma.drugbankDrugSequence.findMany({
+        where: { drugbankId: id },
+        orderBy: { description: 'asc' },
+      }),
+      uniprotIds.length === 0
+        ? Promise.resolve([])
+        : this.prisma.drugbankTargetSequence.findMany({
+            where: { uniprotId: { in: uniprotIds } },
+            orderBy: [{ uniprotId: 'asc' }, { sourceDataset: 'asc' }],
+          }),
+    ]);
+
+    return {
+      id: row.drugbankId,
+      source: 'drugbank',
+      drug: drugRows.map((sequence) => ({
+        description: sequence.description,
+        length: sequence.length,
+        sequence: sequence.sequence,
+      })),
+      targets: targetRows.map((sequence) => ({
+        uniprotId: sequence.uniprotId,
+        targetName: sequence.targetName,
+        dataset: sequence.sourceDataset,
+        length: sequence.length,
+        sequence: sequence.sequence,
+      })),
+    };
+  }
+
+  /**
+   * Counts available sequences without loading any sequence text.
+   *
+   * The target count needs the ids first, so it costs one extra query; that is
+   * still far cheaper than pulling the sequences just to label a section.
+   */
+  private async countSequences(
+    drugbankId: string,
+    targetRelations: DrugbankDrugTargetWithTarget[],
+  ): Promise<SequenceSummaryDto | null> {
+    const uniprotIds = uniqueNonEmptyStrings(
+      targetRelations.map((relation) => relation.target.uniprotId ?? ''),
+      Number.MAX_SAFE_INTEGER,
+    );
+
+    const [drugChainCount, targetSequenceCount] = await Promise.all([
+      this.prisma.drugbankDrugSequence.count({ where: { drugbankId } }),
+      uniprotIds.length === 0
+        ? Promise.resolve(0)
+        : this.prisma.drugbankTargetSequence.count({
+            where: { uniprotId: { in: uniprotIds } },
+          }),
+    ]);
+
+    if (drugChainCount === 0 && targetSequenceCount === 0) {
+      return null;
+    }
+
+    return { drugChainCount, targetSequenceCount };
   }
 
   /**

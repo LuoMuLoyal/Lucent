@@ -40,6 +40,8 @@ import {
   medicineSearchResponseSchema,
 } from './dto/response.dto.js';
 
+import { medicineSequenceDataSchema } from './dto/sequence.dto.js';
+
 import {
   medicineSafetyTipResponseSchema,
   medicineSafetyTipsResponseSchema,
@@ -171,6 +173,39 @@ export class MedicinesController {
       ),
     );
     return result;
+  }
+
+  @Public()
+  @Get(':id/sequences')
+  @ApiOperation({
+    summary: 'Get medicine sequences (drug chains and target sequences)',
+  })
+  @ApiHeader({
+    name: MEDICINES_BYPASS_CACHE_HEADER,
+    required: false,
+    description:
+      'Set to true/1/no-cache to bypass medicines read cache for this request only.',
+  })
+  @ApiParam({ name: 'id', description: 'Medicine id in the selected source' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Sequences of the drug itself and of its targets. Empty arrays when the source has none.',
+  })
+  @SerializeOptions({ schema: medicineSequenceDataSchema })
+  async getSequences(
+    @Param('id') id: string,
+    @Query({ schema: medicineDetailQuerySchema })
+    query: MedicineDetailQueryDto,
+    @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
+  ) {
+    return unwrapResult(
+      this.medicinesService.getSequences(
+        id,
+        query,
+        this.shouldBypassCache(bypassCacheHeader),
+      ),
+    );
   }
 
   private shouldBypassCache(value: string | undefined): boolean {
@@ -317,6 +352,15 @@ registerResponseSchema({
   componentName: 'MedicineDetailResponse',
   schema: medicineDetailResponseSchema,
   description: 'Medicine detail from the selected knowledge source.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/{id}/sequences',
+  method: 'get',
+  componentName: 'MedicineSequenceResponse',
+  schema: medicineSequenceDataSchema,
+  description:
+    'Sequences of the drug itself and of its targets. Empty arrays when the source has none.',
 });
 
 registerResponseSchema({

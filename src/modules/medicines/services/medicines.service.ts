@@ -20,6 +20,7 @@ import {
 import type { MedicineSafetyTipResponseDto } from '../dto/safety-tip-response.dto.js';
 
 import type { MedicineDetailDataDto } from '../dto/detail.dto.js';
+import type { MedicineSequenceDataDto } from '../dto/sequence.dto.js';
 
 import type {
   MedicineDetailQueryDto,
@@ -176,6 +177,57 @@ export class MedicinesService {
           );
         }
         return okAsync(detail);
+      });
+    });
+  }
+
+  /**
+   * Sequences for one medicine.
+   *
+   * Only DrugBank carries sequences: the CN product source is a leaflet
+   * database with no sequence columns, so it answers with an empty set rather
+   * than a 404 — the medicine itself does exist.
+   */
+  getSequences(
+    id: string,
+    query: MedicineDetailQueryDto,
+    bypassCache: boolean,
+  ): ResultAsync<MedicineSequenceDataDto, DomainFailure> {
+    return this.resolveSource(query.source).andThen((source) => {
+      const normalizedId = id.trim();
+
+      return fromPromise(
+        this.medicinesCacheService.getOrSetSequences(
+          source,
+          normalizedId,
+          bypassCache,
+          () =>
+            source === 'drugbank'
+              ? this.drugbankMedicinesService.getSequences(normalizedId)
+              : Promise.resolve({
+                  id: normalizedId,
+                  source: 'cn' as const,
+                  drug: [],
+                  targets: [],
+                }),
+        ),
+        (error) =>
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+            cause: error instanceof Error ? error : undefined,
+          }),
+      ).andThen((sequences) => {
+        if (!sequences) {
+          return errAsync(
+            createDomainFailure({
+              kind: 'not_found',
+              code: 'RESOURCE_NOT_FOUND',
+              detail: this.i18n.t('medicine.not_found'),
+            }),
+          );
+        }
+        return okAsync(sequences);
       });
     });
   }

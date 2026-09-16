@@ -22,6 +22,7 @@ describe('MedicinesController', () => {
           useValue: {
             searchWithCache: vi.fn(),
             getDetailWithCache: vi.fn(),
+            getSequences: vi.fn(),
             getRandomSafetyTips: vi.fn(),
             recognizeMedicine: vi.fn(),
           },
@@ -136,6 +137,41 @@ describe('MedicinesController', () => {
         { source: 'drugbank', q: 'test', page: 1, pageSize: 20 },
         true,
       );
+    });
+  });
+
+  describe('getSequences', () => {
+    it('returns the sequence resource from the service', async () => {
+      const sequences = {
+        id: 'DB00002',
+        source: 'drugbank' as const,
+        drug: [{ description: 'heavy chain', length: 449, sequence: 'QVQLK' }],
+        targets: [],
+      };
+      service.getSequences.mockReturnValue(okAsync(sequences));
+
+      const result = await controller.getSequences(
+        'DB00002',
+        { source: 'drugbank' },
+        undefined,
+      );
+
+      expect(result).toEqual(sequences);
+      expect(service.getSequences).toHaveBeenCalledWith(
+        'DB00002',
+        { source: 'drugbank' },
+        false,
+      );
+    });
+
+    it('honours the cache-bypass header', async () => {
+      service.getSequences.mockReturnValue(
+        okAsync({ id: 'DB00002', source: 'drugbank', drug: [], targets: [] }),
+      );
+
+      await controller.getSequences('DB00002', {}, 'no-cache');
+
+      expect(service.getSequences).toHaveBeenCalledWith('DB00002', {}, true);
     });
   });
 

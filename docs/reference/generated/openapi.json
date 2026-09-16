@@ -4469,6 +4469,59 @@
         "tags": ["Medicines"]
       }
     },
+    "/api/v1/medicines/{id}/sequences": {
+      "get": {
+        "operationId": "MedicinesController_getSequences",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Medicine id in the selected source",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Knowledge source selector."
+            }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sequences of the drug itself and of its targets. Empty arrays when the source has none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSequenceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get medicine sequences (drug chains and target sequences)",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/medicines/risk-check": {
       "get": {
         "operationId": "getRiskCheck",
@@ -8116,6 +8169,10 @@
                       "$ref": "#/components/schemas/MedicineDetailResponseExternalLinks"
                     },
                     "nullable": true
+                  },
+                  "sequenceSummary": {
+                    "nullable": true,
+                    "$ref": "#/components/schemas/MedicineDetailResponseSequenceSummary"
                   }
                 },
                 "required": [
@@ -8142,7 +8199,8 @@
                   "drugInteractions",
                   "targets",
                   "externalIdentifiers",
-                  "externalLinks"
+                  "externalLinks",
+                  "sequenceSummary"
                 ],
                 "additionalProperties": false
               },
@@ -8262,6 +8320,36 @@
           }
         },
         "required": ["id", "source", "name", "subtitle", "detail"],
+        "additionalProperties": false
+      },
+      "MedicineSequenceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Medicine id in the selected source."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["drugbank", "cn"],
+            "description": "Knowledge source."
+          },
+          "drug": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSequenceResponseDrug"
+            },
+            "description": "Sequences of the drug itself (biologics have one per chain)."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSequenceResponseTargets"
+            },
+            "description": "Sequences of the drug targets, protein and coding gene."
+          }
+        },
+        "required": ["id", "source", "drug", "targets"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponse": {
@@ -13395,6 +13483,82 @@
           }
         },
         "required": ["resource", "url"],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseSequenceSummary": {
+        "type": "object",
+        "properties": {
+          "drugChainCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of sequences belonging to the drug itself."
+          },
+          "targetSequenceCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of target sequences reachable from this drug."
+          }
+        },
+        "required": ["drugChainCount", "targetSequenceCount"],
+        "additionalProperties": false,
+        "nullable": true
+      },
+      "MedicineSequenceResponseDrug": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Chain description exactly as the source header spells it, e.g. \"heavy chain\"."
+          },
+          "length": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Residue count."
+          },
+          "sequence": {
+            "type": "string",
+            "description": "Amino-acid sequence."
+          }
+        },
+        "required": ["description", "length", "sequence"],
+        "additionalProperties": false
+      },
+      "MedicineSequenceResponseTargets": {
+        "type": "object",
+        "properties": {
+          "uniprotId": {
+            "type": "string",
+            "description": "UniProt identifier of the target."
+          },
+          "targetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataset": {
+            "type": "string",
+            "description": "Which sequence this is: protein_fasta or gene_fasta."
+          },
+          "length": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Residue (protein) or base (gene) count."
+          },
+          "sequence": {
+            "type": "string",
+            "description": "Sequence content."
+          }
+        },
+        "required": [
+          "uniprotId",
+          "targetName",
+          "dataset",
+          "length",
+          "sequence"
+        ],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseStatic": {

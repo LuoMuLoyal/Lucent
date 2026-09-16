@@ -14,6 +14,14 @@ describe('DrugbankMedicinesService', () => {
         count: vi.fn(),
         findUnique: vi.fn(),
       },
+      drugbankDrugSequence: {
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
+      },
+      drugbankTargetSequence: {
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
+      },
     } as unknown as DeepMocked<PrismaService>;
 
     service = new DrugbankMedicinesService(prisma);
@@ -345,6 +353,148 @@ describe('DrugbankMedicinesService', () => {
       expect(detail.externalLinks).toEqual([
         { resource: 'Drugs.com', url: 'https://www.drugs.com/aspirin.html' },
       ]);
+    });
+
+    it('reports sequence counts without loading any sequence text', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          targetRelations: [
+            {
+              targetId: 'target-1',
+              relationKind: 'target',
+              actions: null,
+              knownAction: null,
+              target: { name: 'COX-1', uniprotId: 'P23219' },
+            },
+          ],
+        }),
+      );
+      prisma.drugbankDrugSequence.count.mockResolvedValue(2);
+      prisma.drugbankTargetSequence.count.mockResolvedValue(2);
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as {
+        sequenceSummary: {
+          drugChainCount: number;
+          targetSequenceCount: number;
+        };
+      };
+
+      expect(detail.sequenceSummary).toEqual({
+        drugChainCount: 2,
+        targetSequenceCount: 2,
+      });
+      // The summary must not drag the sequences themselves along.
+      expect(prisma.drugbankDrugSequence.findMany).not.toHaveBeenCalled();
+      expect(prisma.drugbankTargetSequence.findMany).not.toHaveBeenCalled();
+    });
+
+    it('omits the sequence summary when the drug has none', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(makeRow());
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as { sequenceSummary: unknown };
+
+      expect(detail.sequenceSummary).toBeNull();
+    });
+  });
+
+  describe('getSequences', () => {
+    it('returns null for an unknown drug', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(null);
+
+      await expect(service.getSequences('DB99999')).resolves.toBeNull();
+    });
+
+    it('returns the drug chains and its targets sequences', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          drugbankId: 'DB00002',
+          targetRelations: [
+            {
+              targetId: 'target-1',
+              target: { uniprotId: 'P00519' },
+            },
+          ],
+        }),
+      );
+      prisma.drugbankDrugSequence.findMany.mockResolvedValue([
+        { description: 'heavy chain', length: 449, sequence: 'QVQLK' },
+        { description: 'light chain', length: 214, sequence: 'DILLT' },
+      ]);
+      prisma.drugbankTargetSequence.findMany.mockResolvedValue([
+        {
+          uniprotId: 'P00519',
+          targetName: 'ABL1',
+          sourceDataset: 'protein_fasta',
+          length: 1130,
+          sequence: 'MLEIC',
+        },
+        {
+          uniprotId: 'P00519',
+          targetName: 'ABL1',
+          sourceDataset: 'gene_fasta',
+          length: 3393,
+          sequence: 'ATGCT',
+        },
+      ]);
+
+      const result = await service.getSequences('DB00002');
+
+      expect(result?.source).toBe('drugbank');
+      expect(result?.drug).toEqual([
+        { description: 'heavy chain', length: 449, sequence: 'QVQLK' },
+        { description: 'light chain', length: 214, sequence: 'DILLT' },
+      ]);
+      expect(result?.targets).toEqual([
+        {
+          uniprotId: 'P00519',
+          targetName: 'ABL1',
+          dataset: 'protein_fasta',
+          length: 1130,
+          sequence: 'MLEIC',
+        },
+        {
+          uniprotId: 'P00519',
+          targetName: 'ABL1',
+          dataset: 'gene_fasta',
+          length: 3393,
+          sequence: 'ATGCT',
+        },
+      ]);
+    });
+
+    it('deduplicates UniProt ids shared by several targets', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          targetRelations: [
+            { targetId: 't1', target: { uniprotId: 'P00519' } },
+            // Same protein reached through a different relationship kind.
+            { targetId: 't2', target: { uniprotId: 'P00519' } },
+            { targetId: 't3', target: { uniprotId: null } },
+          ],
+        }),
+      );
+
+      await service.getSequences('DB00945');
+
+      expect(prisma.drugbankTargetSequence.findMany).toHaveBeenCalledWith({
+        where: { uniprotId: { in: ['P00519'] } },
+        orderBy: [{ uniprotId: 'asc' }, { sourceDataset: 'asc' }],
+      });
+    });
+
+    it('skips the target query when no target has a UniProt id', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          targetRelations: [{ targetId: 't1', target: { uniprotId: null } }],
+        }),
+      );
+
+      const result = await service.getSequences('DB00945');
+
+      expect(prisma.drugbankTargetSequence.findMany).not.toHaveBeenCalled();
+      expect(result?.targets).toEqual([]);
     });
   });
 });
