@@ -58,8 +58,8 @@ export interface TodayAnalysisContext {
     status: 'ok' | 'insufficient_data';
     durationMinutes: number | null;
     quality: string | null;
-    startAt: string | null;
-    endAt: string | null;
+    startedAt: string | null;
+    endedAt: string | null;
     deepMinutes: number | null;
     lightMinutes: number | null;
     remMinutes: number | null;
@@ -302,8 +302,8 @@ export class TodayAnalysisContextService {
     status: 'ok' | 'insufficient_data';
     durationMinutes: number | null;
     quality: string | null;
-    startAt: string | null;
-    endAt: string | null;
+    startedAt: string | null;
+    endedAt: string | null;
     deepMinutes: number | null;
     lightMinutes: number | null;
     remMinutes: number | null;
@@ -312,8 +312,8 @@ export class TodayAnalysisContextService {
       status: 'insufficient_data' as const,
       durationMinutes: null,
       quality: null,
-      startAt: null,
-      endAt: null,
+      startedAt: null,
+      endedAt: null,
       deepMinutes: null,
       lightMinutes: null,
       remMinutes: null,
@@ -338,9 +338,9 @@ export class TodayAnalysisContextService {
         : null;
     const quality =
       typeof payload['quality'] === 'string' ? payload['quality'] : null;
-    const startAt =
+    const startedAt =
       typeof payload['startedAt'] === 'string' ? payload['startedAt'] : null;
-    const endAt =
+    const endedAt =
       typeof payload['endedAt'] === 'string' ? payload['endedAt'] : null;
     const deepMinutes =
       typeof payload['deepMinutes'] === 'number'
@@ -360,8 +360,8 @@ export class TodayAnalysisContextService {
           : 'insufficient_data',
       durationMinutes,
       quality,
-      startAt,
-      endAt,
+      startedAt,
+      endedAt,
       deepMinutes,
       lightMinutes,
       remMinutes,
