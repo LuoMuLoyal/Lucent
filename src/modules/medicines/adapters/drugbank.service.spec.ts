@@ -57,6 +57,7 @@ describe('DrugbankMedicinesService', () => {
       targetRelations: [],
       externalIdentifiers: null,
       externalLinks: null,
+      structure: null,
       ...overrides,
     };
   }
@@ -177,6 +178,7 @@ describe('DrugbankMedicinesService', () => {
             include: { target: true },
             orderBy: { createdAt: 'asc' },
           },
+          structure: true,
         },
       });
     });
@@ -396,6 +398,96 @@ describe('DrugbankMedicinesService', () => {
       const detail = result?.detail as { sequenceSummary: unknown };
 
       expect(detail.sequenceSummary).toBeNull();
+    });
+
+    it('maps computed structure descriptors to wire names', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          structure: {
+            smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+            inchiKey: 'BSYNRYMUTXBXSQ-UHFFFAOYSA-N',
+            inchiIdentifier: 'InChI=1S/C9H8O4/...',
+            formula: 'C9H8O4',
+            jchemIupac: '2-(acetyloxy)benzoic acid',
+            molecularWeight: 180.16,
+            exactMass: 180.042,
+            jchemLogp: 1.31,
+            jchemPolarSurfaceArea: 63.6,
+            jchemAveragePolarizability: 17.9,
+            jchemRefractivity: 45.2,
+            alogpsLogp: 1.19,
+            alogpsLogs: -1.72,
+            alogpsSolubility: '3.44e+00 g/l',
+            jchemPka: 3.5,
+            jchemPkaStrongestAcidic: 3.5,
+            jchemPkaStrongestBasic: null,
+            jchemFormalCharge: 0,
+            jchemPhysiologicalCharge: -1,
+            jchemNeutralCharge: 0,
+            jchemAverageNeutralMicrospeciesCharge: -0.999,
+            jchemAtomCount: 13,
+            jchemNumberOfRings: 1,
+            jchemRotatableBondCount: 2,
+            jchemAcceptorCount: 4,
+            jchemDonorCount: 1,
+            jchemRuleOfFive: 1,
+            jchemVeberRule: 1,
+            jchemGhoseFilter: 0,
+            jchemMddrLikeRule: 0,
+            jchemBioavailability: 0,
+            salts: ['Acetylsalicylic acid'],
+          },
+        }),
+      );
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as {
+        structure: Record<string, unknown>;
+      };
+
+      expect(detail.structure).toEqual({
+        smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+        inchiKey: 'BSYNRYMUTXBXSQ-UHFFFAOYSA-N',
+        inchiIdentifier: 'InChI=1S/C9H8O4/...',
+        formula: 'C9H8O4',
+        iupacName: '2-(acetyloxy)benzoic acid',
+        molecularWeight: 180.16,
+        exactMass: 180.042,
+        logP: 1.31,
+        polarSurfaceArea: 63.6,
+        polarizability: 17.9,
+        refractivity: 45.2,
+        alogpsLogP: 1.19,
+        alogpsLogS: -1.72,
+        alogpsSolubility: '3.44e+00 g/l',
+        pka: 3.5,
+        pkaStrongestAcidic: 3.5,
+        pkaStrongestBasic: null,
+        formalCharge: 0,
+        physiologicalCharge: -1,
+        neutralCharge: 0,
+        averageNeutralMicrospeciesCharge: -0.999,
+        atomCount: 13,
+        ringCount: 1,
+        rotatableBondCount: 2,
+        acceptorCount: 4,
+        donorCount: 1,
+        ruleOfFive: 1,
+        veberRule: 1,
+        ghoseFilter: 0,
+        mddrLikeRule: 0,
+        bioavailability: 0,
+        salts: ['Acetylsalicylic acid'],
+      });
+    });
+
+    it('returns null structure when the drug has none', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(makeRow());
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as { structure: unknown };
+
+      expect(detail.structure).toBeNull();
     });
   });
 

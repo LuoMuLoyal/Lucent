@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { sequenceSummarySchema } from './sequence.dto.js';
+import { medicineStructureSchema } from './structure.dto.js';
 import { MEDICINE_KNOWLEDGE_SOURCES } from './source.dto.js';
 
 /**
@@ -123,6 +124,9 @@ export const drugbankMedicineDetailSchema = z.object({
     .describe(
       'Counts of available sequences; the sequences themselves are fetched from the sequence endpoint.',
     ),
+  structure: medicineStructureSchema
+    .nullable()
+    .describe('Computed structure descriptors, when the source has any.'),
 });
 
 export const cnMedicineDetailSchema = z.object({

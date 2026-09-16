@@ -97,6 +97,7 @@ describe('Medicines API (e2e)', () => {
     // nothing cascades them away — they must be cleared explicitly.
     await prisma.drugbankTargetSequence.deleteMany();
     await prisma.drugbankDrugSequence.deleteMany();
+    await prisma.drugbankStructure.deleteMany();
     await prisma.drugbankTarget.deleteMany();
     await prisma.drugbankDrug.deleteMany();
     await prisma.cnMedicineProduct.deleteMany();
@@ -111,6 +112,7 @@ describe('Medicines API (e2e)', () => {
     // nothing cascades them away — they must be cleared explicitly.
     await prisma.drugbankTargetSequence.deleteMany();
     await prisma.drugbankDrugSequence.deleteMany();
+    await prisma.drugbankStructure.deleteMany();
     await prisma.drugbankTarget.deleteMany();
     await prisma.drugbankDrug.deleteMany();
     await prisma.cnMedicineProduct.deleteMany();
@@ -126,6 +128,7 @@ describe('Medicines API (e2e)', () => {
     // nothing cascades them away — they must be cleared explicitly.
     await prisma.drugbankTargetSequence.deleteMany();
     await prisma.drugbankDrugSequence.deleteMany();
+    await prisma.drugbankStructure.deleteMany();
     await prisma.drugbankTarget.deleteMany();
     await prisma.drugbankDrug.deleteMany();
     await prisma.cnMedicineProduct.deleteMany();
@@ -417,6 +420,66 @@ describe('Medicines API (e2e)', () => {
         .query({ limit: '10' })
         .expect(400);
     });
+  });
+
+  it('should include computed structure descriptors when present', async () => {
+    await prisma.drugbankDrug.create({
+      data: {
+        drugbankId: 'DB00945',
+        name: 'Aspirin',
+        groups: ['approved'],
+      },
+    });
+    await prisma.drugbankStructure.create({
+      data: {
+        drugbankId: 'DB00945',
+        smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+        inchiKey: 'BSYNRYMUTXBXSQ-UHFFFAOYSA-N',
+        formula: 'C9H8O4',
+        molecularWeight: 180.16,
+        jchemLogp: 1.31,
+        jchemDonorCount: 1,
+        jchemAcceptorCount: 4,
+        jchemRuleOfFive: 1,
+        salts: ['Acetylsalicylic acid'],
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .get(`${MEDICINES_PATH}/DB00945`)
+      .expect(200);
+
+    const detail = expectData(response.body).detail as {
+      structure: Record<string, unknown> | null;
+    };
+
+    expect(detail.structure).toMatchObject({
+      smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+      inchiKey: 'BSYNRYMUTXBXSQ-UHFFFAOYSA-N',
+      formula: 'C9H8O4',
+      molecularWeight: 180.16,
+      logP: 1.31,
+      donorCount: 1,
+      acceptorCount: 4,
+      ruleOfFive: 1,
+      salts: ['Acetylsalicylic acid'],
+    });
+    // The upstream-broken column must never appear on the wire.
+    expect(detail.structure).not.toHaveProperty('traditionalIupacName');
+  });
+
+  it('should return a null structure when the drug has none', async () => {
+    await prisma.drugbankDrug.create({
+      data: { drugbankId: 'DB01050', name: 'Ibuprofen', groups: ['approved'] },
+    });
+
+    const response = await request(app.getHttpServer())
+      .get(`${MEDICINES_PATH}/DB01050`)
+      .expect(200);
+
+    const detail = expectData(response.body).detail as { structure: unknown };
+
+    expect(detail.structure).toBeNull();
   });
 
   it('should reject invalid source values with a business bad-request code', async () => {

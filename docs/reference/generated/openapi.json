@@ -8173,6 +8173,10 @@
                   "sequenceSummary": {
                     "nullable": true,
                     "$ref": "#/components/schemas/MedicineDetailResponseSequenceSummary"
+                  },
+                  "structure": {
+                    "nullable": true,
+                    "$ref": "#/components/schemas/MedicineDetailResponseStructure"
                   }
                 },
                 "required": [
@@ -8200,7 +8204,8 @@
                   "targets",
                   "externalIdentifiers",
                   "externalLinks",
-                  "sequenceSummary"
+                  "sequenceSummary",
+                  "structure"
                 ],
                 "additionalProperties": false
               },
@@ -13502,6 +13507,204 @@
           }
         },
         "required": ["drugChainCount", "targetSequenceCount"],
+        "additionalProperties": false,
+        "nullable": true
+      },
+      "MedicineDetailResponseStructure": {
+        "type": "object",
+        "properties": {
+          "smiles": {
+            "type": "string",
+            "nullable": true
+          },
+          "inchiKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "inchiIdentifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "formula": {
+            "type": "string",
+            "nullable": true
+          },
+          "iupacName": {
+            "type": "string",
+            "nullable": true
+          },
+          "molecularWeight": {
+            "type": "number",
+            "nullable": true
+          },
+          "exactMass": {
+            "type": "number",
+            "nullable": true
+          },
+          "logP": {
+            "type": "number",
+            "nullable": true
+          },
+          "polarSurfaceArea": {
+            "type": "number",
+            "nullable": true
+          },
+          "polarizability": {
+            "type": "number",
+            "nullable": true
+          },
+          "refractivity": {
+            "type": "number",
+            "nullable": true
+          },
+          "alogpsLogP": {
+            "type": "number",
+            "nullable": true
+          },
+          "alogpsLogS": {
+            "type": "number",
+            "nullable": true
+          },
+          "alogpsSolubility": {
+            "type": "string",
+            "nullable": true
+          },
+          "pka": {
+            "type": "number",
+            "nullable": true
+          },
+          "pkaStrongestAcidic": {
+            "type": "number",
+            "nullable": true
+          },
+          "pkaStrongestBasic": {
+            "type": "number",
+            "nullable": true
+          },
+          "formalCharge": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "physiologicalCharge": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "neutralCharge": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "averageNeutralMicrospeciesCharge": {
+            "type": "number",
+            "nullable": true
+          },
+          "atomCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "ringCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "rotatableBondCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "acceptorCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "donorCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "ruleOfFive": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "veberRule": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "ghoseFilter": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "mddrLikeRule": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "bioavailability": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "salts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "required": [
+          "smiles",
+          "inchiKey",
+          "inchiIdentifier",
+          "formula",
+          "iupacName",
+          "molecularWeight",
+          "exactMass",
+          "logP",
+          "polarSurfaceArea",
+          "polarizability",
+          "refractivity",
+          "alogpsLogP",
+          "alogpsLogS",
+          "alogpsSolubility",
+          "pka",
+          "pkaStrongestAcidic",
+          "pkaStrongestBasic",
+          "formalCharge",
+          "physiologicalCharge",
+          "neutralCharge",
+          "averageNeutralMicrospeciesCharge",
+          "atomCount",
+          "ringCount",
+          "rotatableBondCount",
+          "acceptorCount",
+          "donorCount",
+          "ruleOfFive",
+          "veberRule",
+          "ghoseFilter",
+          "mddrLikeRule",
+          "bioavailability",
+          "salts"
+        ],
         "additionalProperties": false,
         "nullable": true
       },

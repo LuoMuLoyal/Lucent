@@ -23,7 +23,7 @@ owner: backend
 summary/tags/imageUrl/matchedBy` + `pagination`。
 - `GET /api/v1/medicines/:id` — 详情为判别联合：`kind: 'drugbank'` 与
   `kind: 'cnProduct'` 各保留原生字段；缺源字段不造空列。drugbank 分支另带
-  `sequenceSummary`（仅有计数，无序列正文）。
+  `sequenceSummary`（仅有计数，无序列正文）与 `structure`（计算结构描述符，标量、随详情下发）。
 - `GET /api/v1/medicines/:id/sequences` — 序列正文：药物自身各链 + 其靶点的蛋白/编码基因
   序列。**刻意与详情分离**——单药实测可达 96 KB（Imatinib 28 个靶点 × 2 个数据集），
   不该随每次详情请求下发；客户端只在用户展开序列区时才调。源无序列时返回空数组而非 404
@@ -41,7 +41,8 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 `cn_medicine_product_leaflet_links`、`medicine_leaflet_chunks`（说明书 RAG）、
 `drugbank_drugs`、`drugbank_external_links`、`drugbank_targets`、
 `drugbank_drug_targets`、`drugbank_target_sequences`（靶点蛋白/编码基因序列）、
-`drugbank_drug_sequences`（生物药各链序列）、`drugbank_passage_chunks`（DrugBank RAG）、
+`drugbank_drug_sequences`（生物药各链序列）、`drugbank_structures`（计算结构描述符，
+一药一行）、`drugbank_passage_chunks`（DrugBank RAG）、
 `medical_qa_chunks`（assistant-only 语料，属 assistant 模块检索）、
 `drug_source_imports`（导入元数据：来源/版本/哈希/行数/拒绝样本）。
 
@@ -65,6 +66,12 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   `(drugbank_id, description)`——一药多链（实测最多 11 条），链描述原样存原文，
   不强拆 name/chain。靶点序列**不建外键**（`drugbank_targets.uniprot_id` 可空且非唯一），
   消费方按 `uniprot_id` 关联。
+- 结构描述符：`drugbank_id` 即主键（实测 14622 条 SDF 记录对 14622 个不同药物 id，
+  无重复，不需要合并策略）。只落 XML 未提供的字段；`SALTS` 现有表没有故收下，
+  而 `SYNONYMS`/`PRODUCTS`/`DRUG_GROUPS`/`SECONDARY_ACCESSION_NUMBERS` 与 XML 一致
+  故不重复导入。**`JCHEM_TRADITIONAL_IUPAC` 刻意不收**：该字段上游系统性张冠李戴
+  （阿司匹林读成地塞米松磷酸盐、二甲双胍与布洛芬都读成 biotin），而同记录内其余
+  字段均正确。源里两个 pKa 单元格是字面量 `NaN`，解析时按非有限值剔除。
 - 中文产品 ↔ DrugBank 实体映射不建表：跨源问题由 assistant 源分离工具链完成。
 
 ## Dependencies

@@ -243,6 +243,7 @@ describe('MedicinesService', () => {
         externalIdentifiers: null,
         externalLinks: null,
         sequenceSummary: null,
+        structure: null,
       },
     };
     drugbankMedicinesService.getDetail.mockResolvedValue(expectedDetail);

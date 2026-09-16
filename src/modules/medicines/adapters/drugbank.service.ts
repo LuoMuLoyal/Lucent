@@ -3,6 +3,7 @@ import { Prisma } from '#generated/prisma/client.js';
 import type {
   DrugbankDrug,
   DrugbankDrugTarget,
+  DrugbankStructure,
   DrugbankTarget,
 } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../prisma/index.js';
@@ -20,6 +21,7 @@ import type {
   MedicineSequenceDataDto,
   SequenceSummaryDto,
 } from '../dto/sequence.dto.js';
+import type { MedicineStructureDto } from '../dto/structure.dto.js';
 import {
   composeSubtitle,
   detectMatchedBy,
@@ -91,6 +93,7 @@ export class DrugbankMedicinesService {
           include: { target: true },
           orderBy: { createdAt: 'asc' },
         },
+        structure: true,
       },
     });
 
@@ -131,6 +134,7 @@ export class DrugbankMedicinesService {
       ),
       externalLinks: toDrugbankExternalLinks(row.externalLinks),
       sequenceSummary,
+      structure: this.toStructure(row.structure),
     };
 
     return {
@@ -198,6 +202,56 @@ export class DrugbankMedicinesService {
         length: sequence.length,
         sequence: sequence.sequence,
       })),
+    };
+  }
+
+  /**
+   * Maps the computed-structure row onto the wire block.
+   *
+   * Returns null when the drug has no structure row at all, so the client can
+   * tell "no descriptors" apart from "descriptors that happen to be blank".
+   */
+  private toStructure(
+    structure: DrugbankStructure | null,
+  ): MedicineStructureDto | null {
+    if (!structure) {
+      return null;
+    }
+
+    return {
+      smiles: structure.smiles,
+      inchiKey: structure.inchiKey,
+      inchiIdentifier: structure.inchiIdentifier,
+      formula: structure.formula,
+      iupacName: structure.jchemIupac,
+      molecularWeight: structure.molecularWeight,
+      exactMass: structure.exactMass,
+      logP: structure.jchemLogp,
+      polarSurfaceArea: structure.jchemPolarSurfaceArea,
+      polarizability: structure.jchemAveragePolarizability,
+      refractivity: structure.jchemRefractivity,
+      alogpsLogP: structure.alogpsLogp,
+      alogpsLogS: structure.alogpsLogs,
+      alogpsSolubility: structure.alogpsSolubility,
+      pka: structure.jchemPka,
+      pkaStrongestAcidic: structure.jchemPkaStrongestAcidic,
+      pkaStrongestBasic: structure.jchemPkaStrongestBasic,
+      formalCharge: structure.jchemFormalCharge,
+      physiologicalCharge: structure.jchemPhysiologicalCharge,
+      neutralCharge: structure.jchemNeutralCharge,
+      averageNeutralMicrospeciesCharge:
+        structure.jchemAverageNeutralMicrospeciesCharge,
+      atomCount: structure.jchemAtomCount,
+      ringCount: structure.jchemNumberOfRings,
+      rotatableBondCount: structure.jchemRotatableBondCount,
+      acceptorCount: structure.jchemAcceptorCount,
+      donorCount: structure.jchemDonorCount,
+      ruleOfFive: structure.jchemRuleOfFive,
+      veberRule: structure.jchemVeberRule,
+      ghoseFilter: structure.jchemGhoseFilter,
+      mddrLikeRule: structure.jchemMddrLikeRule,
+      bioavailability: structure.jchemBioavailability,
+      salts: toStringListOrNull(structure.salts),
     };
   }
 
