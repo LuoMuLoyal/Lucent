@@ -52,6 +52,49 @@ const otelTraceFormat = winstonFormat((info) => {
   return info;
 });
 
+/**
+ * Normalizes how an `Error` reaches the log entry.
+ *
+ * `Logger.error(new Error('boom'))` is the idiomatic NestJS call, but
+ * nest-winston forwards the Error as metadata: Winston then stringifies it to
+ * `error: {}` (own enumerable props of an Error are empty) and puts the stack
+ * in a **one-element array**. Two consequences, both fixed here:
+ *
+ * - the stack was invisible in the dev console, whose printf reads
+ *   `info['stack']` as a string and found an array instead;
+ * - JSON consumers (VictoriaLogs, Loki) received `stack` as an array, which
+ *   does not match the string shape they index on.
+ *
+ * Runs before the format/transport split so both sinks see the same shape.
+ * An already-string `stack` (or `trace`) is left untouched, as is a caller's
+ * explicit `error` metadata field.
+ */
+const errorNormalizeFormat = winstonFormat((info) => {
+  const stack = info['stack'];
+  if (Array.isArray(stack)) {
+    const joined = stack.filter((part) => typeof part === 'string').join('\n');
+    if (joined) {
+      info['stack'] = joined;
+    } else {
+      delete info['stack'];
+    }
+  }
+
+  // `error: {}` carries no information once serialized; the message is already
+  // in `message` and the frames in `stack`. Drop it rather than ship a field
+  // that looks like data but reads as empty.
+  const errorField = info['error'];
+  if (
+    errorField !== null &&
+    typeof errorField === 'object' &&
+    Object.keys(errorField).length === 0
+  ) {
+    delete info['error'];
+  }
+
+  return info;
+});
+
 // ── ANSI color constants (used only for trace tag highlighting) ──────────
 
 const C = {
@@ -108,6 +151,7 @@ function formatMeta(info: Record<string, unknown>): string | undefined {
  * - `printf()`     — full layout control with metadata + stack.
  */
 const devConsoleFormat = winstonFormat.combine(
+  errorNormalizeFormat(),
   otelTraceFormat(),
   winstonFormat.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
   winstonFormat.colorize(),
@@ -156,6 +200,7 @@ const devConsoleFormat = winstonFormat.combine(
  * log-aggregation tools (ELK / Loki / CloudWatch).
  */
 const prodJsonFormat = winstonFormat.combine(
+  errorNormalizeFormat(),
   otelTraceFormat(),
   winstonFormat.timestamp(),
   winstonFormat.json(),

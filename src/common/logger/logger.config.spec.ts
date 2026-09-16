@@ -320,4 +320,86 @@ describe('otel trace format', () => {
     const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
     expect(entry['trace_id']).toBe('explicit-trace');
   });
+
+  // ── Error-shaped entries ──────────────────────────────────────────────
+  //
+  // nest-winston 把 `logger.error(new Error(...))` 的 Error 当元数据转发，
+  // Winston 于是产出 `stack: [...]`（数组）与 `error: {}`（Error 的自有可枚举
+  // 属性为空）。JSON 消费者拿到数组形态的 stack，开发格式的 printf 又会因为
+  // 「stack 不是 string」而整段丢掉堆栈。
+
+  describe('Error entries', () => {
+    it('flattens an array stack into a single string', async () => {
+      const capture = createTestLogger();
+
+      const written = capture.waitForLine(1);
+      capture.logger.error('boom', {
+        stack: ['Error: boom\n    at one', '    at two'],
+      });
+      await written;
+
+      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+      expect(typeof entry['stack']).toBe('string');
+      expect(entry['stack']).toBe('Error: boom\n    at one\n    at two');
+    });
+
+    it('drops an empty error metadata object', async () => {
+      const capture = createTestLogger();
+
+      const written = capture.waitForLine(1);
+      capture.logger.error('boom', { error: {} });
+      await written;
+
+      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+      // 序列化后不含任何信息的字段不该留在日志里冒充数据。
+      expect(entry).not.toHaveProperty('error');
+      expect(entry['message']).toBe('boom');
+    });
+
+    it('keeps an error metadata object that actually carries data', async () => {
+      const capture = createTestLogger();
+
+      const written = capture.waitForLine(1);
+      capture.logger.error('boom', { error: { code: 'INTERNAL_ERROR' } });
+      await written;
+
+      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+      expect(entry['error']).toEqual({ code: 'INTERNAL_ERROR' });
+    });
+
+    it('leaves an already-string stack untouched', async () => {
+      const capture = createTestLogger();
+
+      const written = capture.waitForLine(1);
+      capture.logger.error('boom', { stack: 'Error: boom\n    at one' });
+      await written;
+
+      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+      expect(entry['stack']).toBe('Error: boom\n    at one');
+    });
+
+    it('prints the stack in the dev console format', async () => {
+      const capture = createCapturingLogger('development');
+
+      const written = capture.waitForLine(1);
+      capture.logger.error('boom', {
+        stack: ['Error: boom\n    at one'],
+      });
+      await written;
+
+      // 开发格式的 printf 只认 string 形态的 stack；这里锁住修复后的可见行为。
+      expect(capture.lines[0]).toContain('at one');
+    });
+
+    it('drops a stack array that holds no usable frames', async () => {
+      const capture = createTestLogger();
+
+      const written = capture.waitForLine(1);
+      capture.logger.error('boom', { stack: [] });
+      await written;
+
+      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+      expect(entry).not.toHaveProperty('stack');
+    });
+  });
 });
