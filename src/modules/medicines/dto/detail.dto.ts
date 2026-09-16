@@ -24,6 +24,53 @@ export const drugbankDrugInteractionSchema = z.object({
   description: z.string().describe('Interaction description.'),
 });
 
+/**
+ * External identifier entry, e.g.
+ * `{ resource: 'PubChem Compound', identifier: '5291' }`.
+ *
+ * `resource` stays a free-form string: the source uses a long tail of labels
+ * (`KEGG Drug`, `Drugs Product Database (DPD)`, `Therapeutic Targets
+ * Database`, ...) that is not a closed vocabulary.
+ */
+export const drugbankExternalIdentifierSchema = z.object({
+  resource: z.string().describe('Source resource label.'),
+  identifier: z.string().describe('Identifier within that resource.'),
+});
+
+/** External link entry, e.g. `{ resource: 'Drugs.com', url: 'https://...' }`. */
+export const drugbankExternalLinkSchema = z.object({
+  resource: z.string().describe('Source resource label.'),
+  url: z.string().describe('Outbound URL for that resource.'),
+});
+
+/**
+ * One DrugBank target (protein/gene) the drug acts on. Relationship detail
+ * (`actions`, `knownAction`, `relationKind`) comes from the drug→target edge.
+ */
+export const drugbankTargetSchema = z.object({
+  name: z.string().describe('Target display name.'),
+  geneName: z.string().nullable().describe('Target gene symbol.'),
+  uniprotId: z.string().nullable().describe('UniProt identifier.'),
+  uniprotTitle: z.string().nullable().describe('UniProt title.'),
+  species: z.string().nullable().describe('Target species.'),
+  pdbIds: z
+    .array(z.string())
+    .nullable()
+    .describe('Known PDB structure identifiers.'),
+  actions: z
+    .array(z.string())
+    .nullable()
+    .describe('Action labels (e.g. inhibitor, agonist).'),
+  knownAction: z
+    .string()
+    .nullable()
+    .describe('Whether the action is characterised (yes/no).'),
+  relationKind: z
+    .string()
+    .nullable()
+    .describe('Relationship kind (target, enzyme, carrier, transporter).'),
+});
+
 export const drugbankMedicineDetailSchema = z.object({
   kind: z.literal('drugbank'),
   drugType: z.string().nullable().describe('Drug type (e.g. small molecule).'),
@@ -58,14 +105,18 @@ export const drugbankMedicineDetailSchema = z.object({
     .array()
     .nullable()
     .describe('DrugBank interaction entries used for interaction checking.'),
-  externalIdentifiers: z
-    .unknown()
+  targets: drugbankTargetSchema
+    .array()
     .nullable()
-    .describe('Raw source external identifier payload.'),
-  externalLinks: z
-    .unknown()
+    .describe('Proteins/genes this drug acts on, with action labels.'),
+  externalIdentifiers: drugbankExternalIdentifierSchema
+    .array()
     .nullable()
-    .describe('Raw source external link payload.'),
+    .describe('External cross-reference identifiers from the source.'),
+  externalLinks: drugbankExternalLinkSchema
+    .array()
+    .nullable()
+    .describe('Outbound reference links from the source.'),
 });
 
 export const cnMedicineDetailSchema = z.object({
@@ -112,6 +163,19 @@ export type MedicineDetailDataDto = z.infer<typeof medicineDetailDataSchema>;
 /** DrugBank interaction entry embedded in a drugbank detail variant. */
 export type DrugbankDrugInteractionDto = z.infer<
   typeof drugbankDrugInteractionSchema
+>;
+
+/** DrugBank target entry embedded in a drugbank detail variant. */
+export type DrugbankTargetDto = z.infer<typeof drugbankTargetSchema>;
+
+/** DrugBank external identifier entry embedded in a drugbank detail variant. */
+export type DrugbankExternalIdentifierDto = z.infer<
+  typeof drugbankExternalIdentifierSchema
+>;
+
+/** DrugBank external link entry embedded in a drugbank detail variant. */
+export type DrugbankExternalLinkDto = z.infer<
+  typeof drugbankExternalLinkSchema
 >;
 
 /** DrugBank knowledge-source detail variant. */

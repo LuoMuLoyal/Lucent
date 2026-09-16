@@ -8096,10 +8096,25 @@
                     },
                     "nullable": true
                   },
+                  "targets": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedicineDetailResponseTargets"
+                    },
+                    "nullable": true
+                  },
                   "externalIdentifiers": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedicineDetailResponseExternalIdentifiers"
+                    },
                     "nullable": true
                   },
                   "externalLinks": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedicineDetailResponseExternalLinks"
+                    },
                     "nullable": true
                   }
                 },
@@ -8125,6 +8140,7 @@
                   "synonyms",
                   "foodInteractions",
                   "drugInteractions",
+                  "targets",
                   "externalIdentifiers",
                   "externalLinks"
                 ],
@@ -13290,6 +13306,95 @@
           }
         },
         "required": ["drugbankId", "description"],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseTargets": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Target display name."
+          },
+          "geneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "uniprotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "uniprotTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "species": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdbIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "knownAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "relationKind": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "geneName",
+          "uniprotId",
+          "uniprotTitle",
+          "species",
+          "pdbIds",
+          "actions",
+          "knownAction",
+          "relationKind"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseExternalIdentifiers": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "description": "Source resource label."
+          },
+          "identifier": {
+            "type": "string",
+            "description": "Identifier within that resource."
+          }
+        },
+        "required": ["resource", "identifier"],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseExternalLinks": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "description": "Source resource label."
+          },
+          "url": {
+            "type": "string",
+            "description": "Outbound URL for that resource."
+          }
+        },
+        "required": ["resource", "url"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseStatic": {

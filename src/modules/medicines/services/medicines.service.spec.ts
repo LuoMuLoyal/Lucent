@@ -239,6 +239,7 @@ describe('MedicinesService', () => {
         synonyms: [],
         foodInteractions: [],
         drugInteractions: null,
+        targets: null,
         externalIdentifiers: null,
         externalLinks: null,
       },

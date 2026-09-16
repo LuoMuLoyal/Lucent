@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client.js';
-import type { DrugbankDrug } from '#generated/prisma/client.js';
+import type {
+  DrugbankDrug,
+  DrugbankDrugTarget,
+  DrugbankTarget,
+} from '#generated/prisma/client.js';
 import { PrismaService } from '../../../prisma/index.js';
 import type {
   DrugbankMedicineDetailDto,
+  DrugbankTargetDto,
   MedicineDetailDataDto,
 } from '../dto/detail.dto.js';
 
@@ -16,11 +21,19 @@ import {
   detectMatchedBy,
   firstNonEmpty,
   toDrugbankDrugInteractions,
+  toDrugbankExternalIdentifiers,
+  toDrugbankExternalLinks,
   toPagination,
   toStringList,
+  toStringListOrNull,
   truncateText,
   uniqueNonEmptyStrings,
 } from '../utils/data-format.js';
+
+/** A drug→target edge with its target row eagerly loaded. */
+type DrugbankDrugTargetWithTarget = DrugbankDrugTarget & {
+  target: DrugbankTarget;
+};
 
 interface MedicineSearchCriteria {
   q: string;
@@ -57,6 +70,12 @@ export class DrugbankMedicinesService {
   async getDetail(id: string): Promise<MedicineDetailDataDto | null> {
     const row = await this.prisma.drugbankDrug.findUnique({
       where: { drugbankId: id },
+      include: {
+        targetRelations: {
+          include: { target: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
 
     if (!row) {
@@ -85,8 +104,11 @@ export class DrugbankMedicinesService {
       synonyms: toStringList(row.synonyms),
       foodInteractions: toStringList(row.foodInteractions),
       drugInteractions: toDrugbankDrugInteractions(row.drugInteractions),
-      externalIdentifiers: row.externalIdentifiers,
-      externalLinks: row.externalLinks,
+      targets: this.toTargets(row.targetRelations),
+      externalIdentifiers: toDrugbankExternalIdentifiers(
+        row.externalIdentifiers,
+      ),
+      externalLinks: toDrugbankExternalLinks(row.externalLinks),
     };
 
     return {
@@ -166,5 +188,34 @@ export class DrugbankMedicinesService {
       ...toStringList(row.groups).slice(0, 2),
       row.drugType,
     );
+  }
+
+  /**
+   * Flattens the `drugbank_drug_targets` join rows into a single target list.
+   *
+   * The same target can appear once per `relation_kind` (target, enzyme,
+   * carrier, transporter); each edge keeps its own `actions`/`knownAction`
+   * so no relationship detail is lost.
+   */
+  private toTargets(
+    relations: DrugbankDrugTargetWithTarget[],
+  ): DrugbankTargetDto[] | null {
+    if (relations.length === 0) {
+      return null;
+    }
+
+    const targets = relations.map((relation) => ({
+      name: relation.target.name,
+      geneName: relation.target.geneName,
+      uniprotId: relation.target.uniprotId,
+      uniprotTitle: relation.target.uniprotTitle,
+      species: relation.target.species,
+      pdbIds: toStringListOrNull(relation.target.pdbIds),
+      actions: toStringListOrNull(relation.actions),
+      knownAction: relation.knownAction,
+      relationKind: relation.relationKind,
+    }));
+
+    return targets.length > 0 ? targets : null;
   }
 }

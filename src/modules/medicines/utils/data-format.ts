@@ -1,7 +1,23 @@
 import type { Prisma } from '#generated/prisma/client.js';
-import type { DrugbankDrugInteractionDto } from '../dto/detail.dto.js';
+import type {
+  DrugbankDrugInteractionDto,
+  DrugbankExternalIdentifierDto,
+  DrugbankExternalLinkDto,
+} from '../dto/detail.dto.js';
 
 const DEFAULT_SUMMARY_LENGTH = 180;
+
+/**
+ * Like `toStringList`, but returns `null` instead of `[]` when the source is
+ * empty. The detail contract distinguishes "absent" from "empty list" for
+ * optional arrays.
+ */
+export function toStringListOrNull(
+  value: Prisma.JsonValue | null | undefined,
+): string[] | null {
+  const list = toStringList(value);
+  return list.length > 0 ? list : null;
+}
 
 export function toStringList(
   value: Prisma.JsonValue | null | undefined,
@@ -136,4 +152,60 @@ export function toDrugbankDrugInteractions(
   }
 
   return interactions.length > 0 ? interactions : null;
+}
+
+/**
+ * Maps the raw `external_identifiers` JSON column to the wire shape.
+ *
+ * The source stores `[{ resource, identifier }]`; entries missing either half
+ * are dropped rather than surfacing a half-populated row.
+ */
+export function toDrugbankExternalIdentifiers(
+  value: Prisma.JsonValue | null | undefined,
+): DrugbankExternalIdentifierDto[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const identifiers: DrugbankExternalIdentifierDto[] = [];
+  for (const item of value) {
+    if (
+      item &&
+      typeof item === 'object' &&
+      !Array.isArray(item) &&
+      typeof item['resource'] === 'string' &&
+      typeof item['identifier'] === 'string'
+    ) {
+      identifiers.push({
+        resource: item['resource'],
+        identifier: item['identifier'],
+      });
+    }
+  }
+
+  return identifiers.length > 0 ? identifiers : null;
+}
+
+/** Maps the raw `external_links` JSON column to the wire shape. */
+export function toDrugbankExternalLinks(
+  value: Prisma.JsonValue | null | undefined,
+): DrugbankExternalLinkDto[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const links: DrugbankExternalLinkDto[] = [];
+  for (const item of value) {
+    if (
+      item &&
+      typeof item === 'object' &&
+      !Array.isArray(item) &&
+      typeof item['resource'] === 'string' &&
+      typeof item['url'] === 'string'
+    ) {
+      links.push({ resource: item['resource'], url: item['url'] });
+    }
+  }
+
+  return links.length > 0 ? links : null;
 }

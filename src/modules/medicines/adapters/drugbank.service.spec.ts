@@ -46,6 +46,7 @@ describe('DrugbankMedicinesService', () => {
       synonyms: ['Acetylsalicylic acid'],
       foodInteractions: null,
       drugInteractions: null,
+      targetRelations: [],
       externalIdentifiers: null,
       externalLinks: null,
       ...overrides,
@@ -156,14 +157,99 @@ describe('DrugbankMedicinesService', () => {
       expect(detail['synonyms']).toEqual([]);
     });
 
-    it('queries by drugbankId', async () => {
+    it('queries by drugbankId and eagerly loads target relations', async () => {
       prisma.drugbankDrug.findUnique.mockResolvedValue(makeRow());
 
       await service.getDetail('DB00945');
 
       expect(prisma.drugbankDrug.findUnique).toHaveBeenCalledWith({
         where: { drugbankId: 'DB00945' },
+        include: {
+          targetRelations: {
+            include: { target: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
       });
+    });
+
+    it('maps drug→target edges into the target list', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          targetRelations: [
+            {
+              relationKind: 'target',
+              actions: ['inhibitor'],
+              knownAction: 'yes',
+              target: {
+                name: 'Prostaglandin G/H synthase 1',
+                geneName: 'PTGS1',
+                uniprotId: 'P23219',
+                uniprotTitle: 'PGH1_HUMAN',
+                species: 'Humans',
+                pdbIds: ['1CQE', '1EQG'],
+              },
+            },
+          ],
+        }),
+      );
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as { targets: unknown[] };
+
+      expect(detail.targets).toEqual([
+        {
+          name: 'Prostaglandin G/H synthase 1',
+          geneName: 'PTGS1',
+          uniprotId: 'P23219',
+          uniprotTitle: 'PGH1_HUMAN',
+          species: 'Humans',
+          pdbIds: ['1CQE', '1EQG'],
+          actions: ['inhibitor'],
+          knownAction: 'yes',
+          relationKind: 'target',
+        },
+      ]);
+    });
+
+    it('returns null targets when there are no edges', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(makeRow());
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as { targets: unknown };
+
+      expect(detail.targets).toBeNull();
+    });
+
+    it('maps typed external identifiers and links', async () => {
+      prisma.drugbankDrug.findUnique.mockResolvedValue(
+        makeRow({
+          externalIdentifiers: [
+            { resource: 'PubChem Compound', identifier: '2244' },
+            { resource: 'broken' },
+          ],
+          externalLinks: [
+            {
+              resource: 'Drugs.com',
+              url: 'https://www.drugs.com/aspirin.html',
+            },
+          ],
+        }),
+      );
+
+      const result = await service.getDetail('DB00945');
+      const detail = result?.detail as {
+        externalIdentifiers: unknown;
+        externalLinks: unknown;
+      };
+
+      // The half-populated entry is dropped rather than surfacing a blank row.
+      expect(detail.externalIdentifiers).toEqual([
+        { resource: 'PubChem Compound', identifier: '2244' },
+      ]);
+      expect(detail.externalLinks).toEqual([
+        { resource: 'Drugs.com', url: 'https://www.drugs.com/aspirin.html' },
+      ]);
     });
   });
 });
