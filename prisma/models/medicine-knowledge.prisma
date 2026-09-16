@@ -23,6 +23,8 @@ model DrugSourceImport {
   drugbankDrugs         DrugbankDrug[]
   drugbankLinks         DrugbankExternalLink[]
   drugbankTargets       DrugbankTarget[]
+  drugbankTargetSeqs    DrugbankTargetSequence[]
+  drugbankDrugSeqs      DrugbankDrugSequence[]
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
@@ -236,6 +238,7 @@ model DrugbankDrug {
   externalLinkRows     DrugbankExternalLink[]
   targetRelations      DrugbankDrugTarget[]
   passageChunks        DrugbankPassageChunk[]
+  sequences            DrugbankDrugSequence[]
 
   @@index([name])
   @@index([casNumber])
@@ -339,4 +342,57 @@ model DrugbankDrugTarget {
   @@unique([drugbankId, targetId, relationKind])
   @@index([targetId])
   @@map("drugbank_drug_targets")
+}
+
+/// Target protein / gene sequence, from `protein.fasta` / `gene.fasta`.
+///
+/// The two source files use an identical header format
+/// (`>drugbank_target|<uniprotId> <name> (<DBxxxxx>; ...)`), so `sourceDataset`
+/// is what separates them: `protein_fasta` holds amino-acid sequences and
+/// `gene_fasta` the coding nucleotide sequence of the same target (~3x longer).
+///
+/// No relation to `DrugbankTarget`: that table's `uniprotId` is nullable and
+/// non-unique, so it cannot back a foreign key. Consumers join on `uniprotId`.
+model DrugbankTargetSequence {
+  id            String            @id @default(uuid())
+  importRunId   String?           @map("import_run_id")
+  sourceDataset String            @map("source_dataset")
+  uniprotId     String            @map("uniprot_id")
+  targetName    String?           @map("target_name")
+  /// DrugBank ids listed in the FASTA header for this target; the FASTA is the
+  /// only place this mapping appears, so it is kept rather than discarded.
+  drugbankIds   Json?             @map("drugbank_ids") @db.JsonB
+  sequence      String
+  length        Int
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun     DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+  @@unique([sourceDataset, uniprotId])
+  @@index([uniprotId])
+  @@map("drugbank_target_sequences")
+}
+
+/// Biotech drug sequence, from `drug sequences.fasta`.
+///
+/// One drug may own several rows (172 of 335 drugs do; the largest has 11),
+/// which is why the chain has to be part of the key. The header's trailing
+/// description is stored verbatim instead of being split into name/chain
+/// columns: the real vocabulary is open-ended (`sequence`, `heavy chain`,
+/// `SUBUNIT_1`, `(FSH)`, ...), so any split would silently mangle values.
+model DrugbankDrugSequence {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  description String
+  sequence    String
+  length      Int
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, description])
+  @@index([drugbankId])
+  @@map("drugbank_drug_sequences")
 }
