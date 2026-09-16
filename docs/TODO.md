@@ -155,6 +155,13 @@ ESM 化后遗留清单与后续跟进：
 
 - 添加 synthetic uptime monitoring
 
+### 药物结构式 2D 可视化（2026-09-16，DrugBank 结构描述符落地后）
+
+`drugbank_structures` 已入库并随详情下发（SMILES / InChI / 分子式 / 分子量 / pKa /
+类药性规则等），前端以文本 + 复制呈现。**2D 结构式图形渲染刻意未做**：Flutter 生态无成熟
+的 SMILES 出图包，且 `structures.sdf` 实测为纯 2D（z 恒为 0），没有构象数据可消费。
+若将来要出图，需先引入/自研 SMILES 布局渲染，并评估移动端渲染成本。
+
 ### 响应侧 Standard Schema 序列化的未竟事项（2026-09-03，NestJS 12 计划收尾）
 
 响应侧 zod + `StandardSchemaSerializerInterceptor` 已全量落地并闸门绿，以下边角留待后续：

@@ -72,6 +72,8 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   故不重复导入。**`JCHEM_TRADITIONAL_IUPAC` 刻意不收**：该字段上游系统性张冠李戴
   （阿司匹林读成地塞米松磷酸盐、二甲双胍与布洛芬都读成 biotin），而同记录内其余
   字段均正确。源里两个 pKa 单元格是字面量 `NaN`，解析时按非有限值剔除。
+  不收 molblock 坐标：该文件实测为纯 2D（z 恒为 0），没有可消费的构象数据；
+  2D 结构式出图见 `docs/TODO.md`。
 - 中文产品 ↔ DrugBank 实体映射不建表：跨源问题由 assistant 源分离工具链完成。
 
 ## Dependencies
