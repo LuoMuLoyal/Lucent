@@ -43,10 +43,13 @@ const LOW_WATCH_KINDS: ReadonlySet<MealAnalysisItemKind> = new Set([
 ]);
 
 /**
- * 并列时的优先级：先挑最能落地的行为（油炸/糖/钠/份量），再挑「吃得太少」的维度。
- * 只影响哪个维度占据文案主位，不影响是否触发。
+ * 并列时（出现天数相同）的挑选顺序：先挑最能落地的行为（油炸/糖/钠/份量），
+ * 再挑「吃得太少」的维度。只影响哪个维度占据文案主位，不影响是否触发。
+ *
+ * 顺序即优先级：靠前的先被选中。**不参与**「是否触发」的判断——触发只看出现天数，
+ * 见 `match` 里的 `days >= DIET_IMBALANCE_MIN_DAYS` 过滤。
  */
-const WATCH_KIND_PRIORITY: readonly MealAnalysisItemKind[] = [
+const WATCH_KIND_TIE_BREAK_ORDER: readonly MealAnalysisItemKind[] = [
   'fried',
   'sugar',
   'sodium',
@@ -119,7 +122,7 @@ export class DietImbalanceRuleService implements SuggestionRule {
       .sort(
         ([leftKind, leftDays], [rightKind, rightDays]) =>
           rightDays - leftDays ||
-          this.priorityOf(leftKind) - this.priorityOf(rightKind),
+          this.tieBreakRankOf(leftKind) - this.tieBreakRankOf(rightKind),
       );
     const top = ranked[0];
     if (top == null) {
@@ -182,8 +185,14 @@ export class DietImbalanceRuleService implements SuggestionRule {
     return kinds;
   }
 
-  private priorityOf(kind: MealAnalysisItemKind): number {
-    const index = WATCH_KIND_PRIORITY.indexOf(kind);
-    return index === -1 ? WATCH_KIND_PRIORITY.length : index;
+  /**
+   * 该维度在并列顺序里的名次（越小越先被选中）。
+   *
+   * 不在表里的维度排到最后：`watchKindsIn` 只产出表内维度，这里兜底是为了让
+   * 将来新增维度忘记录入顺序时**排后面**，而不是静默排到最前。
+   */
+  private tieBreakRankOf(kind: MealAnalysisItemKind): number {
+    const index = WATCH_KIND_TIE_BREAK_ORDER.indexOf(kind);
+    return index === -1 ? WATCH_KIND_TIE_BREAK_ORDER.length : index;
   }
 }
