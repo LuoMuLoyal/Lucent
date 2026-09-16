@@ -22,6 +22,9 @@ const VALID_COMMANDS = new Set([
   'drugbank-links',
   'drugbank-targets-all',
   'drugbank-targets-active',
+  'drugbank-target-proteins',
+  'drugbank-target-genes',
+  'drugbank-drug-sequences',
 ]);
 
 const VALID_NODE_ENVS = new Set(['development', 'test', 'production']);
@@ -64,6 +67,11 @@ function main() {
           'drugbank-links',
           'drugbank-targets-all',
           'drugbank-targets-active',
+          // Sequences last: drug sequences hold a foreign key onto
+          // `drugbank_drugs`, so the drugs must exist first.
+          'drugbank-target-proteins',
+          'drugbank-target-genes',
+          'drugbank-drug-sequences',
           'cn-leaflets',
           'cn-products',
           'cn-product-leaflet-links',

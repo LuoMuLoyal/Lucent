@@ -489,6 +489,80 @@ const COMMANDS = {
       'species',
     ],
   },
+  // Target protein / gene sequences. Both files share one header format, so
+  // the dataset name is what separates amino-acid from nucleotide content
+  // under the table's (source_dataset, uniprot_id) key.
+  'drugbank-target-proteins': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_target_sequences.py'),
+    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'protein.fasta'),
+    sourceKey: 'drugbank_target_sequences_protein_fasta',
+    sourceName: 'drugbank_target_protein_fasta',
+    sourceDataset: 'protein_fasta',
+    tableName: 'drugbank_target_sequences',
+    columns: [
+      'id',
+      'import_run_id',
+      'source_dataset',
+      'uniprot_id',
+      'target_name',
+      'drugbank_ids',
+      'sequence',
+      'length',
+    ],
+    conflictColumns: ['source_dataset', 'uniprot_id'],
+    updateColumns: [
+      'import_run_id',
+      'target_name',
+      'drugbank_ids',
+      'sequence',
+      'length',
+    ],
+  },
+  'drugbank-target-genes': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_target_sequences.py'),
+    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'gene.fasta'),
+    sourceKey: 'drugbank_target_sequences_gene_fasta',
+    sourceName: 'drugbank_target_gene_fasta',
+    sourceDataset: 'gene_fasta',
+    tableName: 'drugbank_target_sequences',
+    columns: [
+      'id',
+      'import_run_id',
+      'source_dataset',
+      'uniprot_id',
+      'target_name',
+      'drugbank_ids',
+      'sequence',
+      'length',
+    ],
+    conflictColumns: ['source_dataset', 'uniprot_id'],
+    updateColumns: [
+      'import_run_id',
+      'target_name',
+      'drugbank_ids',
+      'sequence',
+      'length',
+    ],
+  },
+  // Biotech drug sequences. No `sourceDataset`: the file is the only source and
+  // one drug legitimately owns several rows, distinguished by `description`.
+  'drugbank-drug-sequences': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_drug_sequences.py'),
+    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'drug sequences.fasta'),
+    sourceKey: 'drugbank_drug_sequences_fasta',
+    sourceName: 'drugbank_drug_sequences_fasta',
+    tableName: 'drugbank_drug_sequences',
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'description',
+      'sequence',
+      'length',
+    ],
+    conflictColumns: ['drugbank_id', 'description'],
+    updateColumns: ['import_run_id', 'sequence', 'length'],
+  },
 };
 
 function printUsage() {
@@ -503,6 +577,9 @@ Commands:
   drugbank-links
   drugbank-targets-all
   drugbank-targets-active
+  drugbank-target-proteins
+  drugbank-target-genes
+  drugbank-drug-sequences
 
 Options:
   --source <path>       Override the default source file path.
