@@ -36,12 +36,19 @@ import { AuditLogService } from '../audit-log/index.js';
  * Minimal Fastify reply double for the SSE endpoints. `getHeaders()` mirrors
  * the headers Fastify has registered but not yet applied (e.g. `@fastify/cors`)
  * — the raw SSE head write must carry them over explicitly.
+ *
+ * `writeHead` 是断言点：这些头一旦没写到裸 socket，浏览器客户端会直接断开流，
+ * 而单元测试里的 mock reply 不经过 Fastify 插件链，正是能抓到这个的少数位置之一。
  */
-function createMockReply(headers: Record<string, string> = {}): FastifyReply {
+function createMockReply(
+  headers: Record<string, string> = {},
+): FastifyReply & { raw: { writeHead: ReturnType<typeof vi.fn> } } {
   return {
-    raw: {},
+    raw: { writeHead: vi.fn(), write: vi.fn(), end: vi.fn() },
     getHeaders: () => headers,
-  } as unknown as FastifyReply;
+  } as unknown as FastifyReply & {
+    raw: { writeHead: ReturnType<typeof vi.fn> };
+  };
 }
 
 describe('AssistantController', () => {
@@ -204,7 +211,11 @@ describe('AssistantController', () => {
   });
 
   it('streams chunk, result, and done SSE events', async () => {
-    const response = createMockReply();
+    // 带上真实头：`prepareSse` 必须收到 `getHeaders()` 的产物，否则插件注册的
+    // CORS 头到不了裸 socket，浏览器会直接断开流。
+    const response = createMockReply({
+      'access-control-allow-origin': 'http://localhost:9100',
+    });
 
     service.streamMessages.mockImplementation(
       (_userId, _dto, _language, onChunk) => {
@@ -280,7 +291,9 @@ describe('AssistantController', () => {
       response.raw,
       sseRegistry,
       'en-US',
-      {},
+      {
+        'access-control-allow-origin': 'http://localhost:9100',
+      },
     );
     expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
       event: 'chunk',

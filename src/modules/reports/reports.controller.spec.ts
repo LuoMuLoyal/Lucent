@@ -276,7 +276,11 @@ describe('ReportsController', () => {
     );
 
     const events: Array<{ event: string; data: unknown }> = [];
-    const reply = makeMockReply(events);
+    // 带上真实头：裸 socket 的 `writeHead` 必须收到插件注册的头（CORS 等），
+    // 否则浏览器客户端会直接断开流。
+    const reply = makeMockReply(events, {
+      'access-control-allow-origin': 'http://localhost:9100',
+    });
 
     await controller.generateSummaryStream(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
@@ -289,6 +293,14 @@ describe('ReportsController', () => {
     expect(eventTypes).toContain('summary');
     expect(eventTypes).toContain('result');
     expect(eventTypes).toContain('done');
+
+    expect(vi.mocked(reply.raw.writeHead)).toHaveBeenCalledWith(
+      200,
+      expect.objectContaining({
+        'access-control-allow-origin': 'http://localhost:9100',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+      }),
+    );
 
     const summaryEvent = events.find((e) => e.event === 'summary')!;
     expect(summaryEvent.data).toEqual({ summary: 'partial text' });
@@ -927,6 +939,7 @@ function makeClinicSummary(): ClinicSummaryDto {
 
 function makeMockReply(
   events: Array<{ event: string; data: unknown }>,
+  headers: Record<string, string> = {},
 ): FastifyReply {
   let buffer = '';
   const raw = {
@@ -954,7 +967,7 @@ function makeMockReply(
     send: vi.fn(),
     // Headers Fastify registered but has not applied yet (e.g. CORS); the raw
     // SSE head write forwards them explicitly.
-    getHeaders: () => ({}),
+    getHeaders: () => headers,
   };
   return reply as unknown as FastifyReply;
 }
