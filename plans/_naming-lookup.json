@@ -73,6 +73,7 @@
     "MedicinesController_getSafetyTips": "getSafetyTips",
     "MedicinesController_search": "search",
     "MedicinesController_getDetail": "getDetail",
+    "MedicinesController_getSequences": "getSequences",
     "MedicinesController_getRiskCheck": "getRiskCheck",
     "MedicinesController_runRiskCheck": "runRiskCheck",
     "MedicinesController_recognize": "recognize",

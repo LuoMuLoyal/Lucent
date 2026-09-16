@@ -4471,7 +4471,7 @@
     },
     "/api/v1/medicines/{id}/sequences": {
       "get": {
-        "operationId": "MedicinesController_getSequences",
+        "operationId": "getSequences",
         "parameters": [
           {
             "name": "id",
