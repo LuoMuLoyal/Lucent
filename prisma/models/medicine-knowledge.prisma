@@ -25,6 +25,7 @@ model DrugSourceImport {
   drugbankTargets       DrugbankTarget[]
   drugbankTargetSeqs    DrugbankTargetSequence[]
   drugbankDrugSeqs      DrugbankDrugSequence[]
+  drugbankStructures    DrugbankStructure[]
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
@@ -239,6 +240,7 @@ model DrugbankDrug {
   targetRelations      DrugbankDrugTarget[]
   passageChunks        DrugbankPassageChunk[]
   sequences            DrugbankDrugSequence[]
+  structure            DrugbankStructure?
 
   @@index([name])
   @@index([casNumber])
@@ -395,4 +397,68 @@ model DrugbankDrugSequence {
   @@unique([drugbankId, description])
   @@index([drugbankId])
   @@map("drugbank_drug_sequences")
+}
+
+/// Computed structure descriptors, from `structures.sdf`.
+///
+/// One row per drug: the file holds 14,622 records with 14,622 distinct
+/// `DRUGBANK_ID`s, so `drugbank_id` is the natural primary key — no merge
+/// strategy is needed.
+///
+/// Only the fields the XML import does not already supply are kept. The SDF
+/// also carries `SYNONYMS` / `PRODUCTS` / `DRUG_GROUPS` /
+/// `SECONDARY_ACCESSION_NUMBERS`, but those match what `DrugbankDrug` already
+/// holds from the XML, so importing them again would just create a second,
+/// competing copy.
+///
+/// `JCHEM_TRADITIONAL_IUPAC` is deliberately absent: it is systematically
+/// wrong upstream (aspirin reads as a dexamethasone salt, metformin and
+/// ibuprofen both read as biotin) while every neighbouring field in the same
+/// record is correct. Storing a field that reliably names the wrong compound
+/// is worse than not storing it.
+///
+/// The molblock itself (atoms/bonds coordinates) is not stored: the file is
+/// 2D only, so there is no conformer data to consume.
+model DrugbankStructure {
+  drugbankId                             String            @id @map("drugbank_id")
+  importRunId                            String?           @map("import_run_id")
+  smiles                                 String?
+  inchiIdentifier                        String?           @map("inchi_identifier")
+  inchiKey                               String?           @map("inchi_key")
+  formula                                String?
+  molecularWeight                        Float?            @map("molecular_weight")
+  exactMass                              Float?            @map("exact_mass")
+  jchemIupac                             String?           @map("jchem_iupac")
+  alogpsSolubility                       String?           @map("alogps_solubility")
+  salts                                  Json?             @db.JsonB
+  jchemAtomCount                         Int?              @map("jchem_atom_count")
+  jchemFormalCharge                      Int?              @map("jchem_formal_charge")
+  jchemGhoseFilter                       Int?              @map("jchem_ghose_filter")
+  jchemRuleOfFive                        Int?              @map("jchem_rule_of_five")
+  jchemAcceptorCount                     Int?              @map("jchem_acceptor_count")
+  jchemDonorCount                        Int?              @map("jchem_donor_count")
+  jchemBioavailability                   Int?              @map("jchem_bioavailability")
+  jchemMddrLikeRule                      Int?              @map("jchem_mddr_like_rule")
+  jchemNumberOfRings                     Int?              @map("jchem_number_of_rings")
+  jchemRotatableBondCount                Int?              @map("jchem_rotatable_bond_count")
+  jchemVeberRule                         Int?              @map("jchem_veber_rule")
+  jchemPhysiologicalCharge               Int?              @map("jchem_physiological_charge")
+  jchemNeutralCharge                     Int?              @map("jchem_neutral_charge")
+  jchemAveragePolarizability             Float?            @map("jchem_average_polarizability")
+  jchemPolarSurfaceArea                  Float?            @map("jchem_polar_surface_area")
+  jchemRefractivity                      Float?            @map("jchem_refractivity")
+  jchemLogp                              Float?            @map("jchem_logp")
+  jchemPka                               Float?            @map("jchem_pka")
+  jchemPkaStrongestAcidic                Float?            @map("jchem_pka_strongest_acidic")
+  jchemPkaStrongestBasic                 Float?            @map("jchem_pka_strongest_basic")
+  jchemAverageNeutralMicrospeciesCharge  Float?            @map("jchem_average_neutral_microspecies_charge")
+  alogpsLogp                             Float?            @map("alogps_logp")
+  alogpsLogs                             Float?            @map("alogps_logs")
+  createdAt                              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                              DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun                              DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug                                   DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@index([inchiKey])
+  @@map("drugbank_structures")
 }
