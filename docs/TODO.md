@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-15
+updated: 2026-09-16
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-15
+Last updated: 2026-09-16
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -80,6 +80,17 @@ environment 为简化实现(静态数据,关联 B2);`GET /environment/advice` �
 周报 push 通知通道未实现。
 
 ## 后续可做
+
+### B7：餐食分析 v1 历史记录的展示回填（P3，2026-09-15 五日审查 P3）
+
+餐食分析 v2 重构后，迁移前已分析的餐食记录在客户端不再显示分析结果：v1→v2 新增的热列
+（状态/标题/热量/revision）在旧行上全是默认值，读路径按「没有分析」处理；`version: 2` 的
+schema 校验又会让 v1 的 `mealAnalysis` 被判为形状不匹配并置 null（`types/meal-analysis.types.ts`
+头注释记了完整表现与「不做回填」的理由）。当前不打算回填——v1 的自由形状 `mealInput` 与人工确认
+快照，和 v2 的一次多模态直出模型没有可靠映射，猜出来的结论比「没有结论」更糟。
+
+验收：若产品要求旧记录可见，方案是**重新分析**（用户对该记录点一次「重新分析」即得 v2 数据）
+而非数据迁移；需要时把这条口径写进对用户可见的说明。
 
 ### F1：ReportTrendDto.values 的 legacyValues 迁移窗口（P3，2026-08-30 审查 W-1-legacy）
 

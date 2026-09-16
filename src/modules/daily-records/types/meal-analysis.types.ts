@@ -20,6 +20,14 @@ import {
  * `calorieRange` / `analysisStatus` / `sourceRevision` 全部被忽略。
  *
  * 列表/聚合消费的是热列投影（见 [MealAnalysisHotFields]），详情消费 `payload`。
+ *
+ * **历史数据的表现（有意为之，非缺陷）**：v1 记录的热列都是 v1→v2 迁移时新增的，
+ * 因此全部为默认值（状态/标题/热量为 null，revision 为 0），读路径按「没有分析」
+ * 处理；`mealAnalysisPayloadSchema` 又要求 `version: 2`，v1 的 `mealAnalysis` 会被
+ * [parseMealRecordPayload] 判为形状不匹配并置 null。结果是**迁移前已分析的餐食记录
+ * 不再显示分析结果**，用户对该记录重新发起一次分析即可得到 v2 数据。
+ * 不在这里做 v1→v2 回填：v1 的字段（自由形状 `mealInput`、人工确认快照）与 v2 的
+ * 一次多模态直出模型没有可靠映射，猜出来的分析结论比「没有结论」更糟。
  */
 
 export interface MealRecordPayload {
