@@ -36,6 +36,10 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
   `CREATE EXTENSION vector`;同时启动 SeaweedFS(dev-only S3 兼容存储,S3 API 端口 8333、
   Filer 端口 8888,`STORAGE_PROVIDER=s3` 启用)与 Jaeger UI(OTLP 4318)。若本地卷由旧版
   纯 Postgres 镜像创建,重建 dev/test 卷即可补齐扩展二进制
+- LightRAG sidecar 默认**不在** dev 栈里(拖慢启动且需要模型 key),它在
+  `compose.dev.yaml` 的 `lightrag` profile 内:
+  `docker compose -f compose.dev.yaml --profile lightrag up -d lightrag`
+  起在 `127.0.0.1:9621`;变量见下方 LightRAG 小节
 
 ## 常用脚本
 

@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-10
+updated: 2026-09-17
 ---
 
 # Lucent Deployment
@@ -55,6 +55,7 @@ push main ──► lucent-staging(.github/workflows/lucent-staging.yml)
 | victoriametrics | 容器 `victoria-metrics:v1.151.0`        | `127.0.0.1:8428`           | 抓宿主 `host.docker.internal:3000/metrics`;保留 15d                     |
 | victorialogs    | 容器 `victoria-logs:v1.51.1`            | `127.0.0.1:9428`           | 接收 Winston JSON 日志;保留 15d                                         |
 | traefik         | 容器 `traefik:v3.6`                     | `80` / `443`(唯一公网入口) | 证书存卷 `letsencrypt`;配置见下                                         |
+| lightrag        | 容器 `ghcr.io/hkuds/lightrag:latest`    | `127.0.0.1:9621`           | 中文散文检索 sidecar;独立 `deploy/lightrag/.env`;卷 `lightrag-data`     |
 
 容器端口一律只绑回环:应用经回环访问数据库与日志库,公网只经 Traefik,TLS 与面板
 BasicAuth 都由 Traefik 终止,不再依赖云安全组收口。
@@ -175,9 +176,32 @@ GitHub (CI/CD)                              Coolify 控制面
 | `grafana`         | `grafana:12.1.0`                               | `3001:3000` | provisioning/dashboards 来自 `monitoring/grafana/`;卷 `grafana-data` |
 | `victorialogs`    | `victoria-logs:v1.15.0`                        | `9428:9428` | 接收 Winston JSON 日志;卷 `victorialogs-data`                        |
 | `node-exporter`   | `node-exporter:v1.9.1`                         | 无          | 宿主机 CPU/内存/磁盘指标                                             |
+| `lightrag`        | `ghcr.io/hkuds/lightrag:latest`                | 无          | 中文散文检索 sidecar;只 expose 9621 给 app;卷 `lightrag-data`        |
 
 端口映射(8428/9428/3001)直接发布宿主机,**公网访问由云厂商安全组收口**。
 `/metrics` 端点 Basic Auth 由 `METRICS_USER` / `METRICS_PASSWORD` 控制。
+
+#### LightRAG sidecar(中文散文检索)
+
+- **配置独立**:`lightrag` 服务的 `env_file` 是 `deploy/lightrag/.env`,**不共用**
+  app 的 `.env`。那是独立进程,不该读到 `JWT_*` / `DATABASE_URL` / 微信密钥。
+  部署平台需给该服务单独注入一份(清单见 `deploy/lightrag/.env.example`)。
+- **Lucent 侧只需两项**:`LIGHTRAG_ENABLED=true` 与 `LIGHTRAG_API_KEY`(须与
+  sidecar env 的同名项一致,是鉴权握手)。`LIGHTRAG_BASE_URL` 走默认的
+  `http://lightrag:9621`(同 compose 网络)。
+- **存储**:四件套(PGKVStorage / PGVectorStorage / PGTableGraphStorage /
+  PGDocStatusStorage)落在同一 postgres 服务的独立 database `lightrag`,不进
+  Prisma 迁移域;卷 `lightrag-data` 存 working dir。容量与连接池需随语料增长评估
+  (`MAX_PARALLEL_INSERT=2`)。
+- **升级纪律**:sidecar 并发协议在 v1.5.7 起有变更且无版本标记,**升级前必须排空
+  pipeline 并停掉所有 writer 再启新版本**;漏一个旧 writer 即损坏数据。
+  `stop_grace_period: 60s` 就是为排空留的。
+- **回滚**:停 `lightrag` 服务并把 app 的 `LIGHTRAG_ENABLED` 置 `false` 即可 ——
+  工具会返回"未配置"信封而不是报错,assistant 其余能力不受影响。
+
+staging 侧同机以容器运行(`compose.staging.yaml`),端口发布到
+`127.0.0.1:9621`(app 是宿主 PM2 进程),`.env.production` 里写
+`LIGHTRAG_BASE_URL=http://127.0.0.1:9621`。
 
 ### 环境变量
 

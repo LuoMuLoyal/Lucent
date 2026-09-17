@@ -40,8 +40,9 @@ owner: backend
 
 `read`（日报记录查询 + today/report/sleep 摘要读取，范围上限 14 天，统一 envelope：
 query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查询，
-单一安全候选才返回详情，歧义返回 candidates）、`leaflet`（中文说明书向量
-检索，miss 不回退关键词猜测）、`knowledge`（医学问答语料：assistant-only，
+单一安全候选才返回详情，歧义返回 candidates）、`retrieval`（**中文散文检索**，见下节；
+含 `LightragClientService` 与 `search_cn_medicine_knowledge`）、`leaflet`（中文说明书
+向量检索，miss 不回退关键词猜测）、`knowledge`（医学问答语料：assistant-only，
 开放语料统一 `verifiability: 'open_corpus'` 低可信标注，每页上限
 `MEDICAL_QA_MAX_LIMIT = 5`，前端线性服药流程不得消费）、`records`
 （档案/在服药品 + **餐食分析 digest `get_meal_analysis_digest`**）、`proposal`
@@ -51,6 +52,29 @@ query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查�
 工具，互不合并；DrugBank passage 检索必须先 `resolve_drugbank_entity` 圈定
 实体范围。AI 分层（assistant=Agent，其余默认 bounded-linear、复用
 `common/llm`、copy 本地化）详见 `docs/explanation/architecture.md`。
+
+### 中文散文检索（LightRAG，`tools/retrieval/`）
+
+中文散文知识（说明书字段级语义检索 + 医学问答）的**导入与查询都交给 LightRAG
+sidecar**，Lucent 只做参数校验与 envelope 归一：
+
+- `LightragClientService` —— 纯 HTTP 客户端（`POST /query`，工作区经
+  `LIGHTRAG-WORKSPACE` 头）。固定带 `only_need_context=true` +
+  `include_chunk_content=true`，**绝不让 sidecar 生成答案**（否则是双重生成且绕开
+  安全层）。失败（超时/4xx/5xx/不可达）返回判别式结果而非抛异常。
+- `AssistantToolKnowledgeRetrievalService` —— `search_cn_medicine_knowledge`
+  （参数 `query` / `source` / `mode` / `limit`）。它是**唯一**知道哪些参数组合
+  合法的地方：`source` 由模型给出但 **workspace 由服务端映射**；`qa` 与评测前的
+  `leaflet` 只接受 `naive`；`bypass` 与未知 mode 直接拒绝；`verifiability` 按
+  `source` 服务端写入（`qa` = `open_corpus`，`leaflet` = `citable`）。
+- **服务不可用 ≠ 没有证据**：超时/5xx 写成
+  `coverage.reason: '... retrieval is unavailable: ...'`，绝不静默降级成空结果。
+- 命中带 `leafletId` / `sourceField` 溯源；解析不出的命中标
+  `coverage: partial`，不猜 id。
+
+sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）见
+`docs/reference/environment-variables.md` 的 LightRAG 小节与
+`docs/reference/deployment.md`。
 
 ### 工具参数（模型定窗）
 
@@ -82,5 +106,8 @@ UserHealthContext、DailyRecords、MedicineReminders。Port DI（ADR-0009）：
 
 `assistant.controller.spec.ts`、`services/core.service.spec.ts`、
 `agent/runtime/*.spec.ts`（classify/graph/nodes/respond/review/router/
-validate/model-stream 等 + `subgraphs/*.spec.ts`）、`tools/**/*.spec.ts`、
+validate/model-stream 等 + `subgraphs/*.spec.ts`）、`tools/**/*.spec.ts`
+（含 `retrieval/lightrag-client.service.spec.ts` 与
+`retrieval/knowledge.service.spec.ts`：成功/超时/4xx/5xx/未配置/qa 选 mix 被拒/
+leaflet 评测前选 mix 被拒/空结果/溯源缺失标 partial）、
 `repositories/conversation.repository.spec.ts`、`services/policy.service.spec.ts`。
