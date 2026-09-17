@@ -32,15 +32,19 @@ const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
 const IMPORT_RUNS_TABLE = 'drug_source_imports';
 
 const COMMANDS = {
-  'cn-products': {
-    parser: path.join(thisDir, 'parsers', 'cn_products.py'),
+  // ─── V3 (deduplicated) Chinese drug data ─────────────────────
+  // Reads from DrugDataBase/DrugEntityDedup/ Parquet files.
+  // sourceKey = cn_products_v3 etc. keeps import runs separate from V2.
+  // V2 commands kept below for backwards compatibility.
+  'cn-v3-products': {
+    parser: path.join(thisDir, 'parsers', 'cn_v3_products.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
-      'ChineseDrugData_Master_V2',
-      'ChineseDrugData_Master_V2.xlsx',
+      'DrugEntityDedup',
+      'products_dedup.parquet',
     ),
-    sourceKey: 'cn_products',
-    sourceName: 'chinese_drug_data_master_v2',
+    sourceKey: 'cn_v3_products',
+    sourceName: 'drug_entity_dedup_v3',
     tableName: 'cn_medicine_products',
     columns: [
       'id',
@@ -58,39 +62,11 @@ const COMMANDS = {
       'subcategory',
       'source_url',
       'brand_name',
-      'ingredients',
-      'properties',
-      'indications',
-      'dosage',
-      'adverse_reactions',
-      'contraindications',
-      'precautions',
-      'pediatric_use',
-      'geriatric_use',
-      'pregnancy_lactation',
-      'pharmacology_toxicology',
-      'drug_interactions',
-      'pharmacokinetics',
       'overdose',
-      'storage',
-      'validity_period',
       'barcode',
       'national_drug_code',
-      'image_url_cleaned',
-      'manufacturer_normalized',
+      'manufacturer_clean',
       'approval_codes',
-      'best_match_type',
-      'best_match_score',
-      'top_candidate_ids',
-      'top_candidate_scores',
-      'candidate_count',
-      'match_quality_overall',
-      'match_quality_approval',
-      'match_quality_name',
-      'match_quality_maker',
-      'match_quality_leaflet',
-      'match_quality_penalty',
-      'match_quality_notes',
       'search_text',
       'extras',
     ],
@@ -110,75 +86,41 @@ const COMMANDS = {
       'subcategory',
       'source_url',
       'brand_name',
-      'ingredients',
-      'properties',
-      'indications',
-      'dosage',
-      'adverse_reactions',
-      'contraindications',
-      'precautions',
-      'pediatric_use',
-      'geriatric_use',
-      'pregnancy_lactation',
-      'pharmacology_toxicology',
-      'drug_interactions',
-      'pharmacokinetics',
       'overdose',
-      'storage',
-      'validity_period',
       'barcode',
       'national_drug_code',
-      'image_url_cleaned',
-      'manufacturer_normalized',
+      'manufacturer_clean',
       'approval_codes',
-      'best_match_type',
-      'best_match_score',
-      'top_candidate_ids',
-      'top_candidate_scores',
-      'candidate_count',
-      'match_quality_overall',
-      'match_quality_approval',
-      'match_quality_name',
-      'match_quality_maker',
-      'match_quality_leaflet',
-      'match_quality_penalty',
-      'match_quality_notes',
       'search_text',
       'extras',
     ],
   },
-  'cn-leaflets': {
-    parser: path.join(thisDir, 'parsers', 'cn_leaflets.py'),
+  'cn-v3-leaflets': {
+    parser: path.join(thisDir, 'parsers', 'cn_v3_leaflets.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
-      'ChineseDrugData_Master_V2',
-      'ChineseDrugData_Master_V2.xlsx',
+      'DrugEntityDedup',
+      'leaflets_dedup.parquet',
     ),
-    sourceKey: 'cn_leaflets',
-    sourceName: 'chinese_drug_data_master_v2_leaflets',
+    sourceKey: 'cn_v3_leaflets',
+    sourceName: 'drug_entity_dedup_v3_leaflets',
     tableName: 'cn_medicine_leaflets',
     columns: [
       'id',
       'import_run_id',
       'instruction_id',
-      'source_file',
       'source_row',
-      'title',
-      'title_url',
-      'number_raw',
-      'summary',
+      'source_url',
       'generic_name',
       'brand_name',
-      'pinyin',
-      'approval_raw',
+      'approval_text',
       'approval_codes',
-      'approval_conflict',
-      'drug_category',
+      'category',
       'manufacturer',
-      'manufacturer_normalized',
-      'drug_nature',
+      'manufacturer_clean',
+      'regulatory_class',
       'related_diseases',
-      'properties',
+      'appearance',
       'ingredients',
       'indications',
       'package_spec',
@@ -194,31 +136,23 @@ const COMMANDS = {
       'pharmacokinetics',
       'storage',
       'validity_period',
-      'merge_notes',
-      'dropped_reason',
     ],
     conflictColumns: ['id'],
     updateColumns: [
       'import_run_id',
       'instruction_id',
-      'source_file',
       'source_row',
-      'title',
-      'title_url',
-      'number_raw',
-      'summary',
+      'source_url',
       'generic_name',
       'brand_name',
-      'pinyin',
-      'approval_raw',
+      'approval_text',
       'approval_codes',
-      'approval_conflict',
-      'drug_category',
+      'category',
       'manufacturer',
-      'manufacturer_normalized',
-      'drug_nature',
+      'manufacturer_clean',
+      'regulatory_class',
       'related_diseases',
-      'properties',
+      'appearance',
       'ingredients',
       'indications',
       'package_spec',
@@ -234,27 +168,25 @@ const COMMANDS = {
       'pharmacokinetics',
       'storage',
       'validity_period',
-      'merge_notes',
-      'dropped_reason',
     ],
   },
-  'cn-product-leaflet-links': {
-    parser: path.join(thisDir, 'parsers', 'cn_product_leaflet_links.py'),
+  'cn-v3-product-leaflet-links': {
+    parser: path.join(thisDir, 'parsers', 'cn_v3_links.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
-      'ChineseDrugData_Master_V2',
-      'ChineseDrugData_Master_V2.xlsx',
+      'DrugEntityDedup',
+      'product_leaflet_links.parquet',
     ),
-    sourceKey: 'cn_product_leaflet_links',
-    sourceName: 'chinese_drug_data_master_v2_product_leaflet_links',
+    sourceKey: 'cn_v3_product_leaflet_links',
+    sourceName: 'drug_entity_dedup_v3_links',
     tableName: 'cn_medicine_product_leaflet_links',
     columns: [
       'id',
       'import_run_id',
       'product_id',
       'leaflet_id',
-      'approval_code',
       'match_type',
+      'match_key',
       'match_score',
       'is_best_match',
     ],
@@ -263,12 +195,15 @@ const COMMANDS = {
       'import_run_id',
       'product_id',
       'leaflet_id',
-      'approval_code',
       'match_type',
+      'match_key',
       'match_score',
       'is_best_match',
     ],
   },
+  // ─── V2 (legacy) commands REMOVED ─────────────────────────────
+  // V2 xlsx columns no longer exist in the DB schema (20260917120000 migration).
+  // V3 cn-v3-* commands are the sole CN import path.
   'drugbank-drugs': {
     parser: path.join(thisDir, 'parsers', 'drugbank_drugs.py'),
     defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'full database.xml'),
@@ -651,9 +586,9 @@ function printUsage() {
   node scripts/import/medicine/import-medicine-knowledge.ts <command> [options]
 
 Commands:
-  cn-products
-  cn-leaflets
-  cn-product-leaflet-links
+  cn-v3-products
+  cn-v3-leaflets
+  cn-v3-product-leaflet-links
   drugbank-drugs
   drugbank-links
   drugbank-targets-all
@@ -881,16 +816,38 @@ async function executeTargetBatch(client, spec, importRunId, records) {
  * enzyme/carrier/transporter relations appear for the first time.
  */
 async function applyXmlTargetActions(client, pending) {
-  // Resolve every plain-string name once.
-  const nameResult = await client.query(
-    `SELECT "id", lower(btrim("name")) AS name FROM "drugbank_targets" WHERE "source_dataset" = 'all'`,
+  // Resolve every target once, by name *and* organism.
+  //
+  // A name-only map is not enough: `drugbank_targets` holds 306 names more than
+  // once with different species (bacterial strains share protein names, e.g.
+  // "2-c-methyl-d-erythritol 2,4-cyclodiphosphate synthase" exists for
+  // Shigella, Thermus, Shewanella, E. coli and Mycobacterium). Last-one-wins
+  // would silently attach the XML actions to an arbitrary one of them, and the
+  // detail page would then show the wrong species and PDB entries for a target
+  // whose name happens to look right.
+  const targetResult = await client.query(
+    `SELECT "id",
+            lower(btrim("name")) AS name,
+            lower(btrim(coalesce("species", ''))) AS species
+       FROM "drugbank_targets"
+      WHERE "source_dataset" = 'all'`,
   );
-  const targetIdByName = new Map(
-    nameResult.rows.map((row) => [row.name, row.id]),
-  );
+
+  const targetIdByKey = new Map();
+  const idsByName = new Map();
+  for (const row of targetResult.rows) {
+    targetIdByKey.set(`${row.name}\u0000${row.species}`, row.id);
+    const existing = idsByName.get(row.name);
+    if (existing) {
+      existing.push(row.id);
+    } else {
+      idsByName.set(row.name, [row.id]);
+    }
+  }
 
   let applied = 0;
   let unresolved = 0;
+  let ambiguous = 0;
   const rows = [];
 
   for (const entry of pending) {
@@ -900,10 +857,31 @@ async function applyXmlTargetActions(client, pending) {
         continue;
       }
 
-      const targetId = targetIdByName.get(name.toLowerCase().trim());
+      const key = name.toLowerCase().trim();
+      const organism =
+        typeof target['organism'] === 'string'
+          ? target['organism'].trim().toLowerCase()
+          : '';
+
+      let targetId = targetIdByKey.get(`${key}\u0000${organism}`);
+
       if (!targetId) {
-        unresolved += 1;
-        continue;
+        const candidates = idsByName.get(key);
+        if (!candidates) {
+          unresolved += 1;
+          continue;
+        }
+
+        // Name matched, but not together with this organism. Only accept it
+        // when the name is unambiguous; otherwise the organism was the sole
+        // thing that could tell the rows apart and guessing would attribute
+        // the action to the wrong species.
+        if (candidates.length > 1) {
+          ambiguous += 1;
+          continue;
+        }
+
+        targetId = candidates[0];
       }
 
       const relationKind =
@@ -961,10 +939,10 @@ async function applyXmlTargetActions(client, pending) {
   }
 
   console.info(
-    `[xml-targets] applied ${String(applied)} relation(s), ${String(unresolved)} unresolved name(s)`,
+    `[xml-targets] applied ${String(applied)} relation(s), ${String(unresolved)} unresolved name(s), ${String(ambiguous)} ambiguous (name matched several species)`,
   );
 
-  return { applied, unresolved };
+  return { applied, unresolved, ambiguous };
 }
 
 // ─── Main import flow ─────────────────────────────────────────

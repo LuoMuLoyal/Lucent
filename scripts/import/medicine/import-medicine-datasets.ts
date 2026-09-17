@@ -15,9 +15,9 @@ const IMPORT_SCRIPT = path.join(
 
 const VALID_COMMANDS = new Set([
   'all',
-  'cn-products',
-  'cn-leaflets',
-  'cn-product-leaflet-links',
+  'cn-v3-products',
+  'cn-v3-leaflets',
+  'cn-v3-product-leaflet-links',
   'drugbank-drugs',
   'drugbank-links',
   'drugbank-targets-all',
@@ -74,9 +74,11 @@ function main() {
           'drugbank-target-genes',
           'drugbank-drug-sequences',
           'drugbank-structures',
-          'cn-leaflets',
-          'cn-products',
-          'cn-product-leaflet-links',
+          // V3 (deduplicated) is the default Chinese source. V2 commands
+          // remain available for backwards compatibility.
+          'cn-v3-leaflets',
+          'cn-v3-products',
+          'cn-v3-product-leaflet-links',
         ]
       : [command];
 
