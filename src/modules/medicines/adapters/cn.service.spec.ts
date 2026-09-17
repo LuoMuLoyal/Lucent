@@ -1,5 +1,6 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked.js';
 
+import type { CnMedicineDetailDto } from '../dto/detail.dto.js';
 import { CnMedicinesService } from './cn.service.js';
 import type { PrismaService } from '../../../prisma/index.js';
 
@@ -34,19 +35,42 @@ describe('CnMedicinesService', () => {
       nationalDrugCode: 'H12345678',
       searchText: '阿司匹林 拜耳',
       imageUrl: 'https://example.com/img.jpg',
+      sourceUrl: 'https://example.com/source',
+      ...overrides,
+    };
+  }
+
+  function makeLeaflet(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'leaf-1',
+      instructionId: 'YAOZS-000001',
+      sourceRow: 2,
+      sourceUrl: 'https://example.com/leaflet',
+      genericName: '阿司匹林',
+      brandName: 'Bayprus',
+      approvalText: '国药准字H12345678',
+      approvalCodes: ['H12345678'],
+      category: '化学药品',
+      manufacturer: 'Bayer',
+      manufacturerClean: 'Bayer',
+      regulatoryClass: '处方药',
+      relatedDiseases: null,
+      appearance: '白色片剂',
       ingredients: '阿司匹林',
-      properties: '白色片剂',
       indications: '用于镇痛',
-      dosage: '口服',
+      packageSpec: '100片/瓶',
       adverseReactions: '胃肠道不适',
+      dosage: '口服',
       contraindications: '对本品过敏者禁用',
       precautions: '孕妇慎用',
+      pregnancyLactation: null,
+      pediatricUse: null,
+      geriatricUse: null,
+      drugInteractions: null,
       pharmacologyToxicology: null,
       pharmacokinetics: null,
-      overdose: null,
       storage: '密封保存',
       validityPeriod: '36个月',
-      sourceUrl: 'https://example.com/source',
       ...overrides,
     };
   }
@@ -113,7 +137,11 @@ describe('CnMedicinesService', () => {
     });
 
     it('returns detail with cn source', async () => {
-      prisma.cnMedicineProduct.findUnique.mockResolvedValue(makeRow());
+      const row = {
+        ...makeRow(),
+        leafletLinks: [{ leaflet: makeLeaflet() }],
+      };
+      prisma.cnMedicineProduct.findUnique.mockResolvedValue(row);
 
       const result = await service.getDetail('med-1');
 
@@ -122,6 +150,12 @@ describe('CnMedicinesService', () => {
       expect(result!.source).toBe('cn');
       expect(result!.name).toBe('阿司匹林');
       expect(result!.detail.kind).toBe('cnProduct');
+      // body text comes from the linked leaflet, not the product row
+      const detail = result!.detail as CnMedicineDetailDto;
+      expect(detail.ingredients).toBe('阿司匹林');
+      expect(detail.properties).toBe('白色片剂');
+      expect(detail.indications).toBe('用于镇痛');
+      expect(detail.storage).toBe('密封保存');
     });
   });
 });

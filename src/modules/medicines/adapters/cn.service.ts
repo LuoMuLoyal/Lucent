@@ -55,11 +55,21 @@ export class CnMedicinesService {
   async getDetail(id: string): Promise<MedicineDetailDataDto | null> {
     const row = await this.prisma.cnMedicineProduct.findUnique({
       where: { id },
+      include: {
+        leafletLinks: {
+          include: { leaflet: true },
+          take: 1,
+        },
+      },
     });
 
     if (!row) {
       return null;
     }
+
+    // V3: the product table is a catalogue only — body text lives in the
+    // leaflet reached via the 1:1 link.
+    const leaflet = row.leafletLinks[0]?.leaflet ?? null;
 
     const detail: CnMedicineDetailDto = {
       kind: 'cnProduct',
@@ -67,18 +77,18 @@ export class CnMedicinesService {
       manufacturer: row.manufacturer,
       packageSpec: row.packageSpec,
       brandName: row.brandName,
-      ingredients: row.ingredients,
-      properties: row.properties,
-      indications: row.indications,
-      dosage: row.dosage,
-      adverseReactions: row.adverseReactions,
-      contraindications: row.contraindications,
-      precautions: row.precautions,
-      pharmacologyToxicology: row.pharmacologyToxicology,
-      pharmacokinetics: row.pharmacokinetics,
+      ingredients: leaflet?.ingredients ?? null,
+      properties: leaflet?.appearance ?? null,
+      indications: leaflet?.indications ?? null,
+      dosage: leaflet?.dosage ?? null,
+      adverseReactions: leaflet?.adverseReactions ?? null,
+      contraindications: leaflet?.contraindications ?? null,
+      precautions: leaflet?.precautions ?? null,
+      pharmacologyToxicology: leaflet?.pharmacologyToxicology ?? null,
+      pharmacokinetics: leaflet?.pharmacokinetics ?? null,
       overdose: row.overdose,
-      storage: row.storage,
-      validityPeriod: row.validityPeriod,
+      storage: leaflet?.storage ?? null,
+      validityPeriod: leaflet?.validityPeriod ?? null,
       barcode: row.barcode,
       nationalDrugCode: row.nationalDrugCode,
       sourceUrl: row.sourceUrl,
@@ -120,7 +130,11 @@ export class CnMedicinesService {
       source: 'cn',
       name: row.name,
       subtitle: this.toSubtitle(row),
-      summary: truncateText(firstNonEmpty(row.indications, row.properties)),
+      // V3: body text lives in the leaflet (reached via link), not on the
+      // product row. The search card summary uses catalogue fields only.
+      summary: truncateText(
+        firstNonEmpty(row.mainCategory, row.subcategory, row.drugType),
+      ),
       tags: uniqueNonEmptyStrings(
         [row.drugType, row.mainCategory, row.subcategory],
         4,
