@@ -85,6 +85,10 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # 邮箱、面板密码哈希),不入库——否则发布时的 `git reset --hard origin/main` 会覆盖它
 /deploy/traefik/*.yml
 
+# LightRAG sidecar 运行配置:由 deploy/lightrag/.env.example 复制而来(含模型 key、
+# 嵌入凭据、Postgres 口令),不入库;生产由部署平台按同一份清单注入
+/deploy/lightrag/.env
+
 # Generated docs
 /docs/reference/generated/compodoc
 

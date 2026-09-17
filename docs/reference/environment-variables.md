@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-09
+updated: 2026-09-17
 ---
 
 # Environment Variables
@@ -324,6 +324,44 @@ Recommended role split:
 - `AI_CHAT_MODEL`: 轻聊天页的主对话模型
 - `AI_CHAT_COMPRESSION_MODEL`: 长对话摘要、压缩历史上下文的低成本模型
 - `AI_EMBEDDING_MODEL`: RAG 检索向量化、知识库分片索引和查询向量生成
+
+LightRAG sidecar — 中文散文检索(说明书字段级语义检索 + 医学问答):
+
+```text
+LIGHTRAG_ENABLED            # 默认 false；关闭时检索工具返回"未配置"信封，不抛错
+LIGHTRAG_BASE_URL           # 默认 http://lightrag:9621
+LIGHTRAG_API_KEY            # 启用时必填（sidecar 调用密钥）
+LIGHTRAG_TIMEOUT_MS         # 默认 8000；工具级 20s（TOOL_EXECUTION_TIMEOUT_MS）兜底
+LIGHTRAG_WORKSPACE_LEAFLET  # 默认 leaflet
+LIGHTRAG_WORKSPACE_QA       # 默认 qa
+```
+
+`LIGHTRAG_ENABLED=true` 时启动校验要求 `LIGHTRAG_API_KEY` 非空；关闭状态下残留的
+base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独立**：LightRAG 侧用自己的
+变量名与自己的凭据，即使指向同一家厂商也是两套配置、两个 key、各自轮换、各自限流。
+
+**sidecar 自身的配置不在这里。** LightRAG 进程（Python 容器）读它自己那份独立 env
+文件：模板位于 `deploy/lightrag/`（`env.example`，入库并作为 LightRAG 全部变量的
+唯一清单），使用时同目录复制去掉 `.example` 后缀；其中包含存储四件套
+（`LIGHTRAG_KV_STORAGE` / `LIGHTRAG_VECTOR_STORAGE` / `LIGHTRAG_GRAPH_STORAGE` /
+`LIGHTRAG_DOC_STATUS_STORAGE`）、独立 `POSTGRES_*` 与按角色分离的模型变量
+（`LLM_BINDING_*` / `EXTRACT_LLM_*` / `KEYWORD_LLM_*` / `QUERY_LLM_*` / `EMBEDDING_*` /
+`RERANK_*`）。单独一份文件的理由是**凭据暴露面**：共用 Lucent 的 `.env` 会让那个 Python
+容器读到 `JWT_*` / `DATABASE_URL` / 微信密钥，而这一点靠变量覆盖解决不了。
+
+两处唯一共享的值是 `LIGHTRAG_API_KEY` —— Lucent 侧的调用密钥与 sidecar env 里的同名项
+**必须一致**（鉴权握手，不是模型配置复用）。
+
+启用步骤（复制模板 → 填模型 key → 起 profile，见模板头注释）：
+
+```bash
+cp deploy/lightrag/.env.example deploy/lightrag/.env   # 填入模型 key 与 LIGHTRAG_API_KEY
+docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
+# 然后在 .env.development 里设 LIGHTRAG_ENABLED=true 与同名 LIGHTRAG_API_KEY
+```
+
+`LIGHTRAG_BASE_URL` 在 dev 走 `http://127.0.0.1:9621`（compose profile 发布到回环），
+在 production 走默认的容器名地址（同 compose 网络）。
 
 Observability:
 
