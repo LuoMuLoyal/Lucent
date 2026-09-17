@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-16
+updated: 2026-09-17
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-16
+Last updated: 2026-09-17
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -18,6 +18,26 @@ random docs.
 
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
+
+## 2026-09-17 LightRAG 中文散文检索（P1 已落地，后续阶段待做）
+
+基础设施（配置、sidecar 编排、retrieval 客户端、`search_cn_medicine_knowledge` 工具
+与单测）已完成；以下为计划后续阶段，**顺序不可反**——评测通过前不得删除旧散文检索工具。
+
+- **P2 评测**：建 20–50 条分层中文问题（说明书 / 问答）+ 期望证据 id 的评测集；
+  灌 leaflet workspace，跑 `naive` 基线，记录命中率与溯源完整率。
+  **未评测前 `leaflet` 的 `mode` 只接受 `naive`**（服务端已强制）。
+- **删除旧散文检索工具（P3，需 P2 通过）**：`search_medicine_leaflets`、
+  `search_medical_qa_corpus` 及其服务、`VectorStoreFactory`、
+  `AdminToolsController` 三个端点、`rebuild-leaflet-index.ts --embed` 能力与
+  `import-medical-qa.ts` 嵌入阶段；capabilities 增 `retrieval_unavailable`
+  disabledReason（**改响应 schema → 需 `pnpm export:openapi` 并在 Luminous 侧用
+  其 contract bootstrap 脚本重新生成客户端，双仓同步**）。
+- **P4 灌 qa workspace**：医学问答语料进 LightRAG（`qa` 永远不建图）。
+- **P5 生产核对**：生产库轻量验证 sidecar 可达与 workspace 命中。
+- **P0 评测集**：分层中文问题集尚未建立。
+- **待定**：工具名 `search_cn_medicine_knowledge` 如需改名，在 P2 前定；
+  说明书是否建图由 P2 评测数据决定（当前默认不建图）。
 
 ## 2026-09-11 文件上传链路遗留（上传链路收敛时发现）
 
