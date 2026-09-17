@@ -14,6 +14,13 @@ import {
   MAX_MEAL_DIGEST_DAYS,
   MAX_MEAL_DIGEST_LIMIT,
 } from './tool-constants.js';
+import {
+  LIGHTRAG_DEFAULT_LIMIT,
+  LIGHTRAG_DEFAULT_MODE,
+  LIGHTRAG_MAX_LIMIT,
+  LIGHTRAG_QUERY_MODES,
+  LIGHTRAG_SOURCES,
+} from '../retrieval/lightrag.types.js';
 
 interface ToolDefinition {
   type: 'function';
@@ -58,10 +65,41 @@ const MEAL_DIGEST_PARAMETERS = {
   additionalProperties: false,
 } as const;
 
+const CN_MEDICINE_KNOWLEDGE_PARAMETERS = {
+  type: 'object',
+  properties: {
+    query: {
+      type: 'string',
+      description:
+        'The natural-language question to search for, in Chinese when the user asked in Chinese.',
+    },
+    source: {
+      type: 'string',
+      enum: [...LIGHTRAG_SOURCES],
+      description:
+        'Which evidence library to search. "leaflet" = Chinese medicine package inserts (dosage, contraindications, adverse reactions, interactions). "qa" = an open medical Q&A corpus (disease knowledge, pathology, prevention; low-trust educational reference). Choose exactly one; the two libraries are never mixed in a single call.',
+    },
+    mode: {
+      type: 'string',
+      enum: [...LIGHTRAG_QUERY_MODES],
+      description: `Retrieval mode. Defaults to "${LIGHTRAG_DEFAULT_MODE}". Only "naive" is accepted today — the knowledge graph that "local"/"global"/"hybrid"/"mix" require is not built, and "bypass" is rejected.`,
+    },
+    limit: {
+      type: 'integer',
+      minimum: 1,
+      maximum: LIGHTRAG_MAX_LIMIT,
+      description: `Maximum number of evidence chunks to return (1-${String(LIGHTRAG_MAX_LIMIT)}). Defaults to ${String(LIGHTRAG_DEFAULT_LIMIT)}.`,
+    },
+  },
+  required: ['query', 'source'],
+  additionalProperties: false,
+} as const;
+
 const TOOL_PARAMETERS: Partial<
   Record<AssistantToolName, Record<string, unknown>>
 > = {
   get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
+  search_cn_medicine_knowledge: CN_MEDICINE_KNOWLEDGE_PARAMETERS,
 };
 
 const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
@@ -91,6 +129,8 @@ const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
     'Search Chinese medicine products by approval number, manufacturer, or product name.',
   get_cn_medicine_detail:
     'Get detailed information about a specific Chinese medicine product.',
+  search_cn_medicine_knowledge:
+    'Search Chinese prose medicine knowledge (package-insert fields such as dosage/contraindications/adverse reactions, or an open medical Q&A corpus) by meaning. Pick exactly one source per call; never mix them.',
   search_medicine_leaflets:
     'Search medicine leaflets (package inserts) for usage, dosage, contraindications, and side effects.',
   search_medical_qa_corpus:

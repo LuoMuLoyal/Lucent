@@ -49,6 +49,10 @@ import { AssistantToolLeafletReadService } from './tools/leaflet/read.service.js
 
 import { AssistantToolMedicalKnowledgeService } from './tools/knowledge/medical.service.js';
 
+import { LightragClientService } from './tools/retrieval/lightrag-client.service.js';
+
+import { AssistantToolKnowledgeRetrievalService } from './tools/retrieval/knowledge.service.js';
+
 import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service.js';
 import { AssistantDrugbankLookupService } from './tools/medicine/drugbank-lookup.service.js';
 
@@ -106,6 +110,8 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
     AssistantToolReadService,
     AssistantToolLeafletReadService,
     AssistantToolMedicalKnowledgeService,
+    LightragClientService,
+    AssistantToolKnowledgeRetrievalService,
     AssistantToolMedicineLookupService,
     AssistantDrugbankLookupService,
     AssistantToolDrugbankEntityResolveService,

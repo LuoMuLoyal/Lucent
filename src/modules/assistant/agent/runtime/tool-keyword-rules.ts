@@ -173,6 +173,40 @@ export const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /indication/i,
     /package spec/i,
   ],
+  /**
+   * 中文散文检索（LightRAG）：既覆盖说明书字段级问题，也覆盖医学问答式问题
+   * ——两者在下游由 `source` 参数分流，路由阶段只需要认出"这是在问中文散文知识"。
+   * 厂商/批准文号这类**结构化**问题刻意不在这里（它们归
+   * `search_cn_medicine_products` 的 SQL 键查）。
+   */
+  search_cn_medicine_knowledge: [
+    /说明书/,
+    /用法用量/,
+    /副作用/,
+    /不良反应/,
+    /禁忌/,
+    /注意事项/,
+    /药物相互作用/,
+    /适应症/,
+    /能治什么/,
+    /有什么用/,
+    /leaflet/i,
+    /contraindication/i,
+    /side effect/i,
+    /drug interaction/i,
+    /医学知识/,
+    /疾病知识/,
+    /病因/,
+    /病理/,
+    /药理学/,
+    /生理学/,
+    /临床症状/,
+    /如何预防/,
+    /发病机制/,
+    /流行病学/,
+    /medical knowledge/i,
+    /disease.*knowledge/i,
+  ],
   search_medicine_leaflets: [
     /说明书/,
     /成分/,

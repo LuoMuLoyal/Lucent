@@ -138,6 +138,7 @@ describe('AssistantFoundationGraph', () => {
       'get_sleep_summary_by_range',
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
+      'search_cn_medicine_knowledge',
       'search_medicine_leaflets',
       'search_medical_qa_corpus',
       'resolve_drugbank_entity',

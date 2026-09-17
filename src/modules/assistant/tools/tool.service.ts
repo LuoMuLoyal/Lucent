@@ -10,6 +10,7 @@ import type { AssistantToolName } from './shared/tool-types.js';
 import { ASSISTANT_READ_TOOL_NAMES } from './shared/tool-types.js';
 import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants.js';
 import { AssistantToolLeafletReadService } from './leaflet/read.service.js';
+import { AssistantToolKnowledgeRetrievalService } from './retrieval/knowledge.service.js';
 import {
   AssistantToolDrugbankEntityResolveService,
   parseSearchPayload,
@@ -30,6 +31,7 @@ import { makeShortHash } from '../../../common/helpers/infra/hash.utils.js';
 const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
   'search_cn_medicine_products',
   'get_cn_medicine_detail',
+  'search_cn_medicine_knowledge',
   'search_medicine_leaflets',
   'search_medical_qa_corpus',
   'resolve_drugbank_entity',
@@ -54,6 +56,7 @@ export class AssistantToolService {
   constructor(
     private readonly readService: AssistantToolReadService,
     private readonly leafletReadService: AssistantToolLeafletReadService,
+    private readonly knowledgeRetrievalService: AssistantToolKnowledgeRetrievalService,
     private readonly medicalKnowledgeService: AssistantToolMedicalKnowledgeService,
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
@@ -403,6 +406,13 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.medicineLookupService.getCnMedicineDetail(context),
+        };
+      case 'search_cn_medicine_knowledge':
+        return {
+          name: toolName,
+          data: await this.knowledgeRetrievalService.searchCnMedicineKnowledge(
+            context,
+          ),
         };
       case 'search_medicine_leaflets':
         return {

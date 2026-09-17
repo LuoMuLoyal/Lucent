@@ -184,9 +184,28 @@ describe('AssistantToolService', () => {
     const metricsService = {
       recordCacheAccess: vi.fn(),
     };
+    const knowledgeRetrievalService = {
+      searchCnMedicineKnowledge: vi.fn().mockResolvedValue({
+        query: {},
+        result: { chunks: [], source: 'leaflet', mode: 'naive' },
+        coverage: {
+          status: 'empty',
+          reason: 'LightRAG retrieval is not configured.',
+        },
+        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+        source: {
+          tool: 'search_cn_medicine_knowledge',
+          generatedAt: new Date().toISOString(),
+          tables: [],
+        },
+        confidence: { level: 'low', reason: 'Empty query.' },
+        ambiguities: [],
+      }),
+    };
     const service = new AssistantToolService(
       readService,
       leafletReadService,
+      knowledgeRetrievalService as never,
       medicalKnowledgeService,
       drugbankEntityResolveService,
       drugbankSearchService,
@@ -207,6 +226,7 @@ describe('AssistantToolService', () => {
         dailyRecordsService,
         medicineRemindersService,
         medicineLookupService,
+        knowledgeRetrievalService,
         metricsService,
         recordQueryService,
         settingsProposalService,
