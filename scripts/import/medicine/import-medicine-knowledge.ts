@@ -35,7 +35,8 @@ const COMMANDS = {
   // ─── V3 (deduplicated) Chinese drug data ─────────────────────
   // Reads from DrugDataBase/DrugEntityDedup/ Parquet files.
   // sourceKey = cn_products_v3 etc. keeps import runs separate from V2.
-  // V2 commands kept below for backwards compatibility.
+  // V3 cn-v3-* commands are the sole CN import path; V2 xlsx commands were
+  // removed with the schema alignment (20260917120000 migration).
   'cn-v3-products': {
     parser: path.join(thisDir, 'parsers', 'cn_v3_products.py'),
     defaultSourcePath: path.join(

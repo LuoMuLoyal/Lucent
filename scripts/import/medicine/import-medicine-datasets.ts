@@ -74,8 +74,8 @@ function main() {
           'drugbank-target-genes',
           'drugbank-drug-sequences',
           'drugbank-structures',
-          // V3 (deduplicated) is the default Chinese source. V2 commands
-          // remain available for backwards compatibility.
+          // V3 (deduplicated) is the default Chinese source. V3 cn-v3-*
+          // commands are the sole CN import path; V2 commands were removed.
           'cn-v3-leaflets',
           'cn-v3-products',
           'cn-v3-product-leaflet-links',

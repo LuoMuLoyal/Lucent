@@ -33,8 +33,41 @@ def normalize_text(value: Any) -> str | None:
 # / URL fields keep going through `normalize_text` so their content is never
 # rewritten.
 
-# Database reference markers such as `[label,L6616]` / `[L41539]`.
-_REFERENCE_MARKER = re.compile(r"\[[A-Za-z_]*\s*,?\s*[A-Z]?\d{3,}\]")
+# Database reference codes: `L6616`, `A31973`, `APRD01028`, `EXPT02967`, and the
+# occasional short form `A15` / `F61` — hence two digits, not three.
+# The leading letters are required on purpose — a bare run of digits would make
+# `[100 mg]` or `[P450 enzymes]` look like a marker and eat real prose.
+_CODE = r"[A-Z]{1,5}\d{2,}"
+# Reference markers, as they actually appear in the corpus:
+#   `[L6616]`                          single code
+#   `[label,L6616]`                    label + code
+#   `[L45859,A4393]`                   several codes
+#   `[FDA label, A31973, A31976]`      label + several codes
+# The first pattern only covered the first two. Everything else fell through to
+# `_INLINE_LINK`, which unwrapped the brackets and left the codes sitting in the
+# prose as if they were words (`...cell death.A264349, L51254`) — 3,567 fields
+# across the corpus.
+_REFERENCE_MARKER = re.compile(
+    r"\[\s*(?:[A-Za-z][A-Za-z ]{0,24}[,\s]+)?"
+    + _CODE
+    + r"(?:\s*,\s*"
+    + _CODE
+    + r")*\s*\]"
+)
+# A few records drop the closing bracket entirely
+# (`...cell death.[A19175. >99.5% bound to plasma proteins`). Matched by shape
+# rather than by position, then rejected when a `]` turns up just after — that
+# is what keeps a bracket introducing real prose (`[P450 enzymes] metabolise`)
+# from being treated as a broken marker.
+_UNTERMINATED_MARKER = re.compile(
+    r"\[\s*(?:[A-Za-z][A-Za-z ]{0,24}[,\s]+)?"
+    + _CODE
+    + r"(?:\s*,\s*"
+    + _CODE
+    + r")*(?=[\s.,;:]|$)"
+)
+# How far ahead to look for the closing bracket that marks a span as real prose.
+_UNTERMINATED_LOOKAHEAD = 40
 # Standalone bracketed cross-references to other DrugBank entities, e.g.
 # "[vitamin K]" / "[aspirin]" — the brackets are markup, the words are content.
 _INLINE_LINK = re.compile(r"\[([^\[\]]{1,80})\]")
@@ -53,6 +86,16 @@ _HSPACE = re.compile(r"[ \t\u00a0\u200b]+")
 _BLANKLINES = re.compile(r"\n{3,}")
 
 
+def _drop_unterminated_marker(match: re.Match[str]) -> str:
+    """Removes a marker-shaped span only when no closing bracket follows.
+
+    A `]` a few characters later means the bracket was introducing real prose
+    (`[P450 enzymes] metabolise it`) rather than a broken reference marker.
+    """
+    tail = match.string[match.end() : match.end() + _UNTERMINATED_LOOKAHEAD]
+    return match.group(0) if "]" in tail else ""
+
+
 def clean_narrative_text(value: Any) -> str | None:
     """Decode entities and strip inline markup from DrugBank prose fields.
 
@@ -68,6 +111,7 @@ def clean_narrative_text(value: Any) -> str | None:
     text = _BLOCK_TAG.sub("\n", text)
     text = _ANY_TAG.sub("", text)
     text = _REFERENCE_MARKER.sub("", text)
+    text = _UNTERMINATED_MARKER.sub(_drop_unterminated_marker, text)
     text = _EMPHASIS.sub(r"\1", text)
     # Unwrap remaining bracketed links to their label after reference markers
     # were removed, so `[aspirin]` becomes `aspirin`.
