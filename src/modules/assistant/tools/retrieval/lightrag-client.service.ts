@@ -15,6 +15,29 @@ import {
 } from './lightrag.types.js';
 
 /**
+ * 与 zod 校验层默认值一致的兜底值（zod `.default()` 已写入 process.env，
+ * 这里只兜住"直接构造 ConfigService 的测试/异常路径"）。
+ */
+const FALLBACK_BASE_URL = 'http://lightrag:9621';
+const FALLBACK_TIMEOUT_MS = 8000;
+
+/** 错误 body 只截前 300 字符进日志：日志要的是线索，不是整段 HTML。 */
+const MAX_ERROR_BODY_LOG_CHARS = 300;
+
+/**
+ * 灌入侧写入的稳定 doc id 形态：`leaflet:<leafletId>:<sourceField>:<chunkIndex>`
+ * ——四段，前缀标来源。
+ */
+const DOC_ID_PREFIX_LEAFLET = 'leaflet';
+const DOC_ID_MIN_SEGMENTS = 4;
+
+/** HTTP 状态码分类边界。 */
+const HTTP_STATUS_BAD_REQUEST = 400;
+const HTTP_STATUS_UNAUTHORIZED = 401;
+const HTTP_STATUS_FORBIDDEN = 403;
+const HTTP_STATUS_UNPROCESSABLE = 422;
+
+/**
  * Lucent → LightRAG sidecar 的 HTTP 客户端。
  *
  * 只做三件事：解析配置、发请求、把上游形态归一成 {@link LightragQueryOutcome}
@@ -40,13 +63,14 @@ export class LightragClientService {
       this.configService.get<string>(EnvKey.LIGHTRAG_ENABLED) === 'true';
     this.baseUrl = (
       this.configService.get<string>(EnvKey.LIGHTRAG_BASE_URL) ??
-      'http://lightrag:9621'
+      FALLBACK_BASE_URL
     ).replace(/\/+$/, '');
     const apiKey =
       this.configService.get<string>(EnvKey.LIGHTRAG_API_KEY)?.trim() ?? '';
     this.apiKey = apiKey.length > 0 ? apiKey : null;
     this.timeoutMs =
-      this.configService.get<number>(EnvKey.LIGHTRAG_TIMEOUT_MS) ?? 8000;
+      this.configService.get<number>(EnvKey.LIGHTRAG_TIMEOUT_MS) ??
+      FALLBACK_TIMEOUT_MS;
 
     if (this.enabled && this.apiKey == null) {
       // 启动期 zod 交叉校验已拦过这一条；这里兜住"运行中被改了配置"的窄情形，
@@ -260,17 +284,23 @@ export class LightragClientService {
     const status = response.status;
 
     this.logger.warn(
-      `LightRAG returned ${String(status)} (url=${url}): ${detail.slice(0, 300)}`,
+      `LightRAG returned ${String(status)} (url=${url}): ${detail.slice(0, MAX_ERROR_BODY_LOG_CHARS)}`,
     );
 
-    if (status === 401 || status === 403) {
+    if (
+      status === HTTP_STATUS_UNAUTHORIZED ||
+      status === HTTP_STATUS_FORBIDDEN
+    ) {
       return {
         kind: 'unauthorized',
         reason: 'LightRAG rejected the configured API key.',
         status,
       };
     }
-    if (status === 400 || status === 422) {
+    if (
+      status === HTTP_STATUS_BAD_REQUEST ||
+      status === HTTP_STATUS_UNPROCESSABLE
+    ) {
       return {
         kind: 'bad_request',
         reason: 'LightRAG rejected the retrieval request.',
@@ -355,7 +385,10 @@ function parseDocIdMetadata(
   filePath: string,
 ): { leafletId: string; sourceField: string } | null {
   const parts = filePath.split(':');
-  if (parts.length < 4 || parts[0] !== 'leaflet') {
+  if (
+    parts.length < DOC_ID_MIN_SEGMENTS ||
+    parts[0] !== DOC_ID_PREFIX_LEAFLET
+  ) {
     return null;
   }
 
