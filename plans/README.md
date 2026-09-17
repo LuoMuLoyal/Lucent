@@ -36,6 +36,10 @@ YYYY-MM-DD-short-task-name.md
 
 — DrugBank 未消费数据落地 + 详情页 UI 重构:先修叙事文本 HTML 实体脏数据,再按查看频次重排信息架构(Indications 默认展开、新节默认折叠)、靶点/外部标识直出、FASTA 建表并独立端点按需加载、SDF 仅取标量属性(2D 坐标排除)
 
+- [`2026-09-17-semantica-oag-english-side-plan.md`](2026-09-17-semantica-oag-english-side-plan.md)
+  — Semantica(英文侧 OAG)聚合落地:按语言分工、v0.6.8 源码级能力/缺陷核实、fork 自持清单、存储矩阵与 AGE 1.7 纪律、四类"生成"归属、服务形态与 FastAPI 选型;AGE 引入步骤见 `2026-09-27-apache-age-introduction-plan.md`
+- [`2026-09-17-local-embedding-model-selection.md`](2026-09-17-local-embedding-model-selection.md)
+  — 本地嵌入模型选型调研(未决策):厘清 LightRAG 中文侧 / Lucent pgvector / Semantica 内部三条嵌入线,候选矩阵与许可红线,维度↔pgvector 索引约束,收敛条件待硬件与吞吐基准
 - [`2026-09-10-staging-native-pm2-traefik.md`](2026-09-10-staging-native-pm2-traefik.md)
   — staging 部署迁移:Coolify → 原生 PM2 + 自建 Traefik + 推送即部署;infra 容器化、app 走宿主 PM2、发布命令内联在 workflow
 - [`2026-09-06-rag-hybrid-search-upgrade.md`](2026-09-06-rag-hybrid-search-upgrade.md)
