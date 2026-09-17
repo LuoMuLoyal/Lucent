@@ -124,6 +124,57 @@ services:
         max-size: '10m'
         max-file: '3'
 
+  # ── LightRAG(中文散文检索 sidecar)────────────────────────────
+  # 说明书字段级语义检索 + 医学问答的导入与查询都由它承担(app 侧只调 /query)。
+  # 只 expose 给 app 走容器网络,不发布宿主机端口、不挂 Traefik —— 唯一调用方是
+  # Lucent 内网。
+  #
+  # 配置来自独立文件 deploy/lightrag/.env(见 deploy/lightrag/.env.example 的清单),
+  # 与 app 的 .env **不共用**:那是独立进程、独立 image、独立升级周期,不该读到
+  # JWT_* / DATABASE_URL / 微信密钥。部署平台需给该服务单独注入同一份内容。
+  #
+  # 存储四件套(PGKVStorage / PGVectorStorage / PGTableGraphStorage /
+  # PGDocStatusStorage)在 sidecar env 里选定:纯 SQL 表,不需要 AGE,也不需要
+  # 新数据库服务;它们落在同一 PG 的独立 database(lightrag),不进 Prisma 迁移域。
+  lightrag:
+    image: ${LIGHTRAG_IMAGE:-ghcr.io/hkuds/lightrag:latest}
+    restart: unless-stopped
+    env_file:
+      - deploy/lightrag/.env
+    environment:
+      # 同一 compose 网络 → 走服务名;database 独立于 lucent。
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: '5432'
+      HOST: 0.0.0.0
+      PORT: '9621'
+      WORKING_DIR: /app/data/rag_storage
+      INPUT_DIR: /app/data/inputs
+    volumes:
+      - lightrag-data:/app/data
+    expose:
+      - '9621'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # 升级流程要求排空 pipeline 后停所有 writer 再启新版本(v1.5.7 起并发协议变更
+    # 且无版本标记,漏一个旧 writer 即损坏数据)——给足排空时间,不用默认 10s。
+    stop_grace_period: 60s
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:9621/health\").read()" || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
   # ── VictoriaMetrics(单机时序库,供 Grafana 查询) ──────────────
   # 抓取 lucent app /metrics 与 node-exporter;Basic Auth 凭据经环境变量
   # %{METRICS_USER}/%{METRICS_PASSWORD} 占位符注入(无需渲染脚本)。
@@ -219,3 +270,4 @@ volumes:
   victoriametrics-data:
   grafana-data:
   victorialogs-data:
+  lightrag-data:

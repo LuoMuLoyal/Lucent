@@ -52,6 +52,48 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── LightRAG sidecar（中文散文检索；profile 内，默认不启动）─────
+  # 默认 `docker compose -f compose.dev.yaml up -d` **不会**起它——它拖慢本地启动
+  # 且需要模型 key。需要中文散文检索时显式带 profile：
+  #   cp deploy/lightrag/.env.example deploy/lightrag/.env   # 填模型 key 与 LIGHTRAG_API_KEY
+  #   docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
+  #
+  # 配置只来自 deploy/lightrag/.env（独立文件，不含 Lucent 的 JWT_* / DATABASE_URL /
+  # 微信密钥——见 docs/reference/environment-variables.md 的 LightRAG 小节）。
+  # 端口只绑回环：Lucent 本地进程走 http://127.0.0.1:9621。
+  lightrag:
+    image: ghcr.io/hkuds/lightrag:latest
+    container_name: lucent-lightrag
+    profiles: ['lightrag']
+    restart: unless-stopped
+    env_file:
+      - deploy/lightrag/.env
+    environment:
+      # 容器内访问宿主 Postgres（独立 database `lightrag`，不污染 Prisma 迁移域）。
+      # compose.dev 的 postgres-dev 发布在宿主 15432；容器走 host-gateway 回环。
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_PORT: '15432'
+      HOST: 0.0.0.0
+      PORT: '9621'
+      WORKING_DIR: /app/data/rag_storage
+      INPUT_DIR: /app/data/inputs
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '127.0.0.1:9621:9621'
+    volumes:
+      - lightrag-data:/app/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:9621/health\").read()" || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
   # ── Jaeger (OpenTelemetry trace backend) ──────────────────────
   jaeger:
     image: jaegertracing/all-in-one:1.57
@@ -103,3 +145,4 @@ volumes:
   pgdata-test:
   redisdata:
   seaweedfs-data:
+  lightrag-data:
