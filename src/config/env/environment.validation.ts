@@ -303,6 +303,21 @@ const envSchema = z.object({
   [EnvKey.JPUSH_APNS_PRODUCTION]: z.enum(['true', 'false']).default('false'),
   [EnvKey.JPUSH_API_BASE_URL]: z.string().default('https://api.jpush.cn'),
 
+  // ── LightRAG sidecar client (Chinese prose retrieval) ───────────
+  // 默认关闭:未开启时工具返回"未配置"信封而不报错(计划 §4.1)。
+  // LIGHTRAG_API_KEY 在启用时为必填,由 assertLightragEnvironment 交叉校验。
+  [EnvKey.LIGHTRAG_ENABLED]: z.enum(['true', 'false']).default('false'),
+  [EnvKey.LIGHTRAG_BASE_URL]: z.string().default('http://lightrag:9621'),
+  [EnvKey.LIGHTRAG_API_KEY]: optionalString,
+  [EnvKey.LIGHTRAG_TIMEOUT_MS]: z.coerce
+    .number()
+    .int()
+    .min(100)
+    .max(60000)
+    .default(8000),
+  [EnvKey.LIGHTRAG_WORKSPACE_LEAFLET]: z.string().default('leaflet'),
+  [EnvKey.LIGHTRAG_WORKSPACE_QA]: z.string().default('qa'),
+
   // ── Metrics auth (sensitive, in .env) ────────────────────────────
   [EnvKey.METRICS_USER]: optionalString,
   [EnvKey.METRICS_PASSWORD]: optionalString,
@@ -419,6 +434,7 @@ export const validatedEnvSchema = envSchema.check((ctx) => {
   assertProductionEnvironment(config, report);
   assertTencentCosEnvironment(config, report);
   assertJpushEnvironment(config, report);
+  assertLightragEnvironment(config, report);
   assertAiEnvironment(config, report);
 });
 
@@ -582,6 +598,28 @@ function assertJpushEnvironment(
   );
   if (missingKeys.length > 0) {
     report(`Incomplete JPush environment variables: ${missingKeys.join(', ')}`);
+  }
+}
+
+/**
+ * LightRAG 是"启用即必须能鉴权"的 sidecar:底座地址有默认值,但没有默认密钥,
+ * 所以只有 `LIGHTRAG_ENABLED=true` 时才要求 `LIGHTRAG_API_KEY`。
+ *
+ * 关闭状态下即使残留了 base URL / key 也不报错——关闭是显式决定,不因残留配置
+ * 阻断启动(工具在关闭时返回"未配置"信封,见计划 §4.1)。
+ */
+function assertLightragEnvironment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
+  if (config[EnvKey.LIGHTRAG_ENABLED] !== 'true') {
+    return;
+  }
+
+  if (!(config[EnvKey.LIGHTRAG_API_KEY] ?? '').trim()) {
+    report(
+      `LIGHTRAG_ENABLED is true but ${EnvKey.LIGHTRAG_API_KEY} is missing`,
+    );
   }
 }
 

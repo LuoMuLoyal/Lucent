@@ -140,4 +140,15 @@ export enum EnvKey {
   JPUSH_MASTER_SECRET = 'JPUSH_MASTER_SECRET',
   JPUSH_APNS_PRODUCTION = 'JPUSH_APNS_PRODUCTION',
   JPUSH_API_BASE_URL = 'JPUSH_API_BASE_URL',
+
+  // ── LightRAG sidecar (Chinese prose retrieval) ──────────────────
+  // 中文散文检索层(说明书字段级语义检索 + 医学问答)的 LightRAG sidecar 客户端项。
+  // sidecar 自身的模型/存储变量不在这里——它们只存在于 deploy/lightrag/.env,
+  // 与 Lucent 的 AI_* 完全独立(见 docs/reference/environment-variables.md)。
+  LIGHTRAG_ENABLED = 'LIGHTRAG_ENABLED',
+  LIGHTRAG_BASE_URL = 'LIGHTRAG_BASE_URL',
+  LIGHTRAG_API_KEY = 'LIGHTRAG_API_KEY',
+  LIGHTRAG_TIMEOUT_MS = 'LIGHTRAG_TIMEOUT_MS',
+  LIGHTRAG_WORKSPACE_LEAFLET = 'LIGHTRAG_WORKSPACE_LEAFLET',
+  LIGHTRAG_WORKSPACE_QA = 'LIGHTRAG_WORKSPACE_QA',
 }

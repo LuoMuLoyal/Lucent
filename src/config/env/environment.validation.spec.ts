@@ -150,4 +150,60 @@ describe('validateEnvironment', () => {
       `Incomplete JPush environment variables: ${EnvKey.JPUSH_APP_KEY}`,
     );
   });
+
+  it('defaults LightRAG to disabled with its sidecar address pre-wired', () => {
+    const config = validateEnvironment({ ...baseValidEnv });
+
+    expect(config[EnvKey.LIGHTRAG_ENABLED]).toBe('false');
+    expect(config[EnvKey.LIGHTRAG_BASE_URL]).toBe('http://lightrag:9621');
+    expect(config[EnvKey.LIGHTRAG_TIMEOUT_MS]).toBe(8000);
+    expect(config[EnvKey.LIGHTRAG_WORKSPACE_LEAFLET]).toBe('leaflet');
+    expect(config[EnvKey.LIGHTRAG_WORKSPACE_QA]).toBe('qa');
+  });
+
+  it('requires a LightRAG API key only when the sidecar is enabled', () => {
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.LIGHTRAG_ENABLED]: 'true',
+      }),
+    ).toThrow(`LIGHTRAG_ENABLED is true but ${EnvKey.LIGHTRAG_API_KEY}`);
+
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.LIGHTRAG_ENABLED]: 'true',
+        [EnvKey.LIGHTRAG_API_KEY]: 'sidecar-handshake-key',
+      }),
+    ).not.toThrow();
+  });
+
+  it('tolerates leftover LightRAG values while the sidecar stays disabled', () => {
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.LIGHTRAG_ENABLED]: 'false',
+        [EnvKey.LIGHTRAG_BASE_URL]: 'http://127.0.0.1:9621',
+        [EnvKey.LIGHTRAG_API_KEY]: '',
+      }),
+    ).not.toThrow();
+  });
+
+  it('coerces the LightRAG timeout from its env string', () => {
+    const config = validateEnvironment({
+      ...baseValidEnv,
+      [EnvKey.LIGHTRAG_TIMEOUT_MS]: '12000',
+    });
+
+    expect(config[EnvKey.LIGHTRAG_TIMEOUT_MS]).toBe(12000);
+  });
+
+  it('rejects a non-positive LightRAG timeout', () => {
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.LIGHTRAG_TIMEOUT_MS]: '0',
+      }),
+    ).toThrow(EnvKey.LIGHTRAG_TIMEOUT_MS);
+  });
 });
