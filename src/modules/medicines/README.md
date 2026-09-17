@@ -12,7 +12,9 @@ owner: backend
 
 - `source=drugbank` → 查 `drugbank_drugs`（英文科学实体：机制/药理/靶点/
   相互作用，个人健康 copilot 默认源，`DEFAULT_MEDICINE_SOURCE='drugbank'`）。
-- `source=cn` → 查 `cn_medicine_products`（中国市场产品 + 说明书）。
+- `source=cn` → 查 `cn_medicine_products` 目录 + 经
+  `cn_medicine_product_leaflet_links`（1:1）join `cn_medicine_leaflets`
+  获取正文字段（详情正文只来自说明书；产品表不存正文）。
 - **选择器是 `source` 请求参数，不是 `Accept-Language`**（后者只管文案本地化）；
   跨源不做自动映射，无运行时桥接表（ADR-0008）。
 - 搜索/详情端点为 `@Public()` 公开读；请求头可 bypass 读缓存（单次）。
@@ -49,14 +51,23 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 ## 导入策略（契约要点）
 
 - 入口 `pnpm import:medicine:all`：drugbank-drugs → links → targets-all →
-  targets-active → target-proteins → target-genes → drug-sequences → cn-leaflets →
-  cn-products → cn-product-leaflet-links（顺序源于外键依赖：药序列对 `drugbank_drugs`
+  targets-active → target-proteins → target-genes → drug-structures →
+  cn-v3-leaflets → cn-v3-products → cn-v3-product-leaflet-links
+  （顺序源于外键依赖：药序列对 `drugbank_drugs`
   有外键，故排在药物之后）；批量按目标表冲突键去重后 upsert，幂等。
-- CN 源 = `ChineseDrugData_Master_V2.xlsx`（4.0.0 锁定）；构建细节见
-  `DrugDataBase/ChineseDrugData_Master_V2/build_master_v2.py`。
-- CN 唯一性：优先 `(approval_number, package_spec, manufacturer)`，
-  无批准文号退 `(name, package_spec, manufacturer, national_drug_code)`；
-  表观重复留 staging 上报，不静默丢弃。`pregnancy_lactation` 在 API 层
+- **导入路径（仅 V3）**：`DrugEntityDedup/products_dedup.parquet` 等 Parquet 文件，
+  已做去重 + 保健品删除 + 名称冲突修正 + 条码/国药码并集；导入命令为
+  `cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links`，
+  源键为 `cn_v3_*`，写入 `cn_medicine_products` / `cn_medicine_leaflets` /
+  `cn_medicine_product_leaflet_links`。
+- **Schema 语义（V3 对齐）**：`cn_medicine_products` 是纯目录表（名称/批准文号/
+  条码/价格/类别/overdose 等，无正文）；`cn_medicine_leaflets` 是权威正文
+  （ingredients/indications/dosage/contraindications…）；链接表 1:1 关联，带
+  `match_type` / `match_key` / `match_score`。V2 xlsx 命令（`cn-products` 等）
+  已随 20260917120000 迁移移除（V2 列不存在于新 schema）。
+- CN 唯一性：产品/说明书主键 = V3 的 `entity_id`（产品由 `drug_name_key + maker_key`
+  派生）；导入按 `(id)` 冲突 upsert。无批准文号回退逻辑由 V3 上游解决。
+  `pregnancy_lactation` 在 API 层
   按语境拆为 `pregnancy` + `lactation` 两个 DTO 字段。
 - DrugBank 映射：`drugbank_id` 主键、`secondary_drugbank_ids`、科学叙事字段
   清单化进 RAG chunks（仅 description/indication/MoA/pd/toxicity 等核准字段）；
