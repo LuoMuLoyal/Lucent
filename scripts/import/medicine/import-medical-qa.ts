@@ -4,9 +4,10 @@
  * Imports the alpaca_zh_demo.json medical Q&A dataset (~1.36M records, ~1.83 GB)
  * into the RAG pipeline.
  *
- * Two-phase architecture:
- *   1. --filter: stream-parse NDJSON → safety filter → write medical_qa_chunks
- *   2. --embed:  load chunks → PGVectorStore.addDocuments() → medical_qa_embeddings
+ * Single-phase: stream-parse NDJSON → safety filter → write medical_qa_chunks.
+ * The chunk table is the fact source that LightRAG ingestion reads
+ * (`scripts/import/medicine/rebuild-lightrag-index.ts`); this script no longer
+ * builds any vector index of its own.
  *
  * Prerequisite: convert the JSON array to NDJSON first:
  *   python -c "import json; data=json.load(open('alpaca_zh_demo.json')); [print(json.dumps(r,ensure_ascii=False)) for r in data]" > medical_qa.ndjson
@@ -20,7 +21,6 @@ import { fileURLToPath } from 'node:url';
 
 import { Client } from 'pg';
 import { loadEnvironment } from '../../shared/env.ts';
-import { createEmbeddingStore, embedDocuments } from '../../shared/chunking.ts';
 
 // ESM equivalent of __dirname (scripts/ is a "type": "module" package).
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -216,69 +216,17 @@ async function filterAndWrite(options: {
   return stats;
 }
 
-// ── Phase 2: embed ─────────────────────────────────────────────
-
-async function embedChunks(options: {
-  client: Client;
-  batchSize: number;
-  force: boolean;
-}): Promise<{ embedded: number }> {
-  const embeddingStore = await createEmbeddingStore('medical_qa_embeddings');
-  if (!embeddingStore) {
-    return { embedded: 0 };
-  }
-  const { store, pool } = embeddingStore;
-
-  try {
-    if (options.force) {
-      console.log('Clearing existing embeddings...');
-      await pool.query('DELETE FROM medical_qa_embeddings');
-    }
-
-    // Load safe + caution chunks only (skip blocked)
-    const result = await options.client.query(
-      `SELECT qa_id, question, answer, safety_label FROM medical_qa_chunks WHERE safety_label != 'blocked'`,
-    );
-    const rows = result.rows;
-
-    if (rows.length === 0) {
-      console.log('No chunks to embed.');
-      return { embedded: 0 };
-    }
-
-    const docs = rows.map((row: any) => ({
-      pageContent: row.answer,
-      metadata: {
-        qaId: row.qa_id,
-        question: row.question,
-        safetyLabel: row.safety_label,
-      },
-    }));
-
-    const embedded = await embedDocuments(store, docs, options.batchSize);
-    return { embedded };
-  } finally {
-    await pool.end();
-  }
-}
-
 // ── CLI ────────────────────────────────────────────────────────
 
 function parseArgs(argv: string[]): {
   sourcePath: string;
   limit?: number;
   filter: boolean;
-  embed: boolean;
-  embedBatchSize: number;
-  embedForce: boolean;
   help: boolean;
 } {
   const opts: ReturnType<typeof parseArgs> = {
     sourcePath: DEFAULT_SOURCE_PATH,
     filter: false,
-    embed: false,
-    embedBatchSize: 20,
-    embedForce: false,
     help: false,
   };
 
@@ -293,15 +241,6 @@ function parseArgs(argv: string[]): {
         break;
       case '--filter':
         opts.filter = true;
-        break;
-      case '--embed':
-        opts.embed = true;
-        break;
-      case '--embed-batch-size':
-        opts.embedBatchSize = Number(argv[++i]) || 20;
-        break;
-      case '--embed-force':
-        opts.embedForce = true;
         break;
       case '--help':
       case '-h':
@@ -320,16 +259,14 @@ Usage: node import-medical-qa.ts [options]
 Options:
   --source <path>        NDJSON source file (default: DrugDataBase/医疗问答数据集一共135万条/数据集/medical_qa.ndjson)
   --limit <n>            Max records to import (default: all)
-  --filter               Run Phase 1: parse NDJSON → safety filter → write medical_qa_chunks
-  --embed                Run Phase 2: load chunks → generate embeddings → medical_qa_embeddings
-  --embed-batch-size <n> Batch size for embedding (default: 20)
-  --embed-force          Clear existing embeddings before re-embedding
+  --filter               Parse NDJSON → safety filter → write medical_qa_chunks
   --help, -h             Show this help
 
 Examples:
   node import-medical-qa.ts --filter --limit 10000
-  node import-medical-qa.ts --embed --embed-force
-  node import-medical-qa.ts --filter --embed
+
+Next step (index the written chunks into LightRAG):
+  node scripts/import/medicine/rebuild-lightrag-index.ts --workspace=qa
 `);
 }
 
@@ -342,7 +279,7 @@ async function main(): Promise<void> {
 
   const opts = parseArgs(process.argv.slice(2));
 
-  if (opts.help || (!opts.filter && !opts.embed)) {
+  if (opts.help || !opts.filter) {
     printHelp();
     return;
   }
@@ -351,25 +288,13 @@ async function main(): Promise<void> {
   await client.connect();
 
   try {
-    if (opts.filter) {
-      console.log('=== Phase 1: Filter & Import ===');
-      const stats = await filterAndWrite({
-        sourcePath: opts.sourcePath,
-        limit: opts.limit,
-        client,
-      });
-      console.log(JSON.stringify(stats, null, 2));
-    }
-
-    if (opts.embed) {
-      console.log('=== Phase 2: Embed ===');
-      const embedStats = await embedChunks({
-        client,
-        batchSize: opts.embedBatchSize,
-        force: opts.embedForce,
-      });
-      console.log(JSON.stringify(embedStats, null, 2));
-    }
+    console.log('=== Filter & Import ===');
+    const stats = await filterAndWrite({
+      sourcePath: opts.sourcePath,
+      limit: opts.limit,
+      client,
+    });
+    console.log(JSON.stringify(stats, null, 2));
   } finally {
     await client.end();
   }

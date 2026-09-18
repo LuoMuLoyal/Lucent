@@ -63,14 +63,37 @@ psql -h 127.0.0.1 -p 15432 -U postgres -d lucent -c \
    UNION ALL SELECT 'drugbank_structures', count(*) FROM drugbank_structures;"
 ```
 
-## 导入后重建 RAG 索引（向量嵌入，当前仅英文侧）
+## 导入后建立检索索引
+
+中文散文（说明书字段 / 医学问答）的检索索引由 LightRAG sidecar 承担，先起
+sidecar 再灌：
+
+```bash
+# 1. 起 sidecar（dev 放在 profile 里，默认不启动）
+docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
+
+# 2. 把 chunk 表推进 LightRAG（含中文说明书字段级切分）
+pnpm import:lightrag --workspace=leaflet
+
+# 3. 医学问答语料（先写 chunk 表，再灌）
+node scripts/import/medicine/import-medical-qa.ts --filter
+pnpm import:lightrag --workspace=qa
+```
+
+`--reset` 按稳定 doc id 清空该 workspace 后再灌（幂等）；`--dry-run` 只打印
+首个 doc id。灌入的 doc id 段序是跨进程契约（查询侧靠它反解溯源），详见
+`src/modules/assistant/README.md`。
+
+英文侧（DrugBank 叙事字段）仍走 Lucent 自己的 pgvector，与 LightRAG 无关：
 
 ```bash
 # DrugBank 叙事字段向量索引（chunk + embed 两阶段）
 node scripts/import/medicine/rebuild-drugbank-rag-index.ts --embed
 ```
 
-> 中文说明书向量索引（`rebuild-leaflet-index.ts`）和医学问答向量索引（`import-medical-qa.ts --embed`）当前依赖 `leaflet_embeddings` / `medical_qa_embeddings` 向量表，dev 实测均不存在。这些索引将在 LightRAG 引入后由新脚本替代（见 `plans/2026-09-16-lightrag-introduction-plan.md`）。
+> `rebuild-leaflet-index.ts` 现在**只重建 chunk 表**（`medicine_leaflet_chunks`），
+> 那是 LightRAG 灌入的事实源；它不再建 `leaflet_embeddings`，该表及其调用已随
+> LightRAG 落地删除。同理 `import-medical-qa.ts` 只保留 `--filter` 阶段。
 
 ## 注意事项
 

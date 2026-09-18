@@ -9,13 +9,10 @@ import {
   normalizeValue,
   computeSourceHash,
   insertChunksBatch,
-  createEmbeddingStore,
-  embedDocuments,
   parseRebuildArgs,
 } from '../../shared/chunking.ts';
 
 const CHUNK_TABLE = 'medicine_leaflet_chunks';
-const EMBEDDING_TABLE = 'leaflet_embeddings';
 
 const CHUNKABLE_FIELDS = [
   'indications',
@@ -177,90 +174,6 @@ async function rebuild(client, options) {
   return { leafletCount: leaflets.length, chunkCount: chunks.length, inserted };
 }
 
-// ─── Embedding phase ──────────────────────────────────────────
-
-async function embedChunks(client, options) {
-  const embeddingStore = await createEmbeddingStore(EMBEDDING_TABLE);
-  if (!embeddingStore) {
-    return { embedded: 0 };
-  }
-  const { store, pool } = embeddingStore;
-
-  try {
-    if (options.embedForce) {
-      console.log('Clearing existing embeddings (--embed-force)...');
-      await pool.query(`DELETE FROM "${EMBEDDING_TABLE}"`);
-    }
-
-    // Load all chunks from medicine_leaflet_chunks
-    let allChunks;
-    if (options.embedLimit != null) {
-      allChunks = (
-        await client.query(
-          `
-            SELECT mc.id, mc.leaflet_id, mc.source_field, mc.chunk_text, mc.chunk_index
-            FROM "${CHUNK_TABLE}" mc
-            ORDER BY mc.updated_at DESC, mc.id ASC
-            LIMIT $1
-          `,
-          [options.embedLimit],
-        )
-      ).rows;
-    } else {
-      allChunks = (
-        await client.query(`
-          SELECT mc.id, mc.leaflet_id, mc.source_field, mc.chunk_text, mc.chunk_index
-          FROM "${CHUNK_TABLE}" mc
-          ORDER BY mc.updated_at DESC, mc.id ASC
-        `)
-      ).rows;
-    }
-
-    if (allChunks.length === 0) {
-      console.log(`No chunks found in ${CHUNK_TABLE}.`);
-      return { embedded: 0 };
-    }
-
-    // Load leaflet-to-product mappings for metadata enrichment
-    const linkResult = await client.query(`
-      SELECT l.leaflet_id, l.product_id, p.name
-      FROM cn_medicine_product_leaflet_links l
-      LEFT JOIN cn_medicine_products p ON p.id = l.product_id
-    `);
-    const leafletProducts = new Map();
-    const leafletProductNames = new Map();
-    for (const row of linkResult.rows) {
-      const ids = leafletProducts.get(row.leaflet_id) ?? [];
-      ids.push(row.product_id);
-      leafletProducts.set(row.leaflet_id, ids);
-
-      const names = leafletProductNames.get(row.leaflet_id) ?? [];
-      if (row.name != null) {
-        names.push(row.name);
-      }
-      leafletProductNames.set(row.leaflet_id, names);
-    }
-
-    // Build Document array
-    const docs = allChunks.map((row) => ({
-      pageContent: row.chunk_text,
-      metadata: {
-        leafletId: row.leaflet_id,
-        sourceField: row.source_field,
-        chunkIndex: row.chunk_index,
-        chunkId: row.id,
-        productIds: leafletProducts.get(row.leaflet_id) ?? [],
-        productNames: leafletProductNames.get(row.leaflet_id) ?? [],
-      },
-    }));
-
-    const embedded = await embedDocuments(store, docs, options.embedBatchSize);
-    return { embedded };
-  } finally {
-    await pool.end();
-  }
-}
-
 // ─── CLI ──────────────────────────────────────────────────────
 
 function printHelp() {
@@ -273,11 +186,6 @@ Options:
   --source-version <v>    Version tag for the rebuild
   --source-limit <n>      Max source rows to process (default: all)
   --dry-run               Count chunks without writing
-  --skip-rebuild          Skip chunk rebuild and only embed
-  --embed                 Run embedding phase
-  --embed-limit <n>       Max chunks to embed (default: all)
-  --embed-batch-size <n>  Batch size for embedding (default: 20)
-  --embed-force           Clear existing embeddings before re-embedding
   --help, -h              Show this help
 `);
 }
@@ -300,17 +208,8 @@ async function main() {
   await client.connect();
 
   try {
-    if (!options.skipRebuild) {
-      const summary = await rebuild(client, options);
-      console.log(JSON.stringify({ ...summary, options }, null, 2));
-    } else {
-      console.log(JSON.stringify({ skippedRebuild: true, options }, null, 2));
-    }
-
-    if (options.embed) {
-      const embedSummary = await embedChunks(client, options);
-      console.log(JSON.stringify({ ...embedSummary }, null, 2));
-    }
+    const summary = await rebuild(client, options);
+    console.log(JSON.stringify({ ...summary, options }, null, 2));
   } finally {
     await client.end();
   }
