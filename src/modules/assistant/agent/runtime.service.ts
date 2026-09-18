@@ -39,7 +39,7 @@ import type {
   AssistantToolName,
 } from '../tools/shared/tool-types.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
-import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service.js';
+import { LightragClientService } from '../tools/retrieval/lightrag-client.service.js';
 import { classifyProviderFailure } from '../services/provider-failure.js';
 import {
   buildAssistantSystemPrompt,
@@ -92,7 +92,7 @@ export class AssistantRuntimeService {
 
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
-    private readonly leafletReadService: AssistantToolLeafletReadService,
+    private readonly lightragClient: LightragClientService,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
@@ -333,15 +333,19 @@ export class AssistantRuntimeService {
     );
   }
 
-  async describeFoundation(): Promise<AssistantRuntimeCapabilities> {
+  describeFoundation(): AssistantRuntimeCapabilities {
     const chatModelConfigured = this.hasChatModel();
-    const hasChunks = await this.leafletReadService.hasIndexedChunks();
+    // 中文散文检索的可用性 = sidecar 已启用且 key 就位。旧实现的
+    // `hasIndexedChunks()` 读的是 Lucent 自己的 chunk 表——那是旧向量链路的
+    // 遗留判据，LightRAG 时代查它只会得到一个与检索能力无关的数字。
+    const retrievalAvailable = this.lightragClient.isEnabled();
     return {
       phase: 'foundation',
       chatModelConfigured,
       interactiveChatReady: chatModelConfigured,
       langGraphReady: true,
-      ragEnabled: chatModelConfigured && hasChunks,
+      ragEnabled: chatModelConfigured && retrievalAvailable,
+      retrievalAvailable,
       graphNodeNames: ASSISTANT_RUNTIME_NODE_NAMES,
       toolNames: ASSISTANT_TOOL_NAMES,
       implementedToolNames: ASSISTANT_IMPLEMENTED_TOOL_NAMES,

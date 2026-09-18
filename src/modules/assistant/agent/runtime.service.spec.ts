@@ -53,10 +53,10 @@ function buildConversationRepository() {
   };
 }
 
-function buildLeafletService(hasChunks = false) {
+function buildLightragClient(enabled = false) {
   return {
-    hasIndexedChunks: vi.fn().mockResolvedValue(hasChunks),
-    searchMedicineLeaflets: vi.fn(),
+    isEnabled: vi.fn().mockReturnValue(enabled),
+    query: vi.fn(),
   };
 }
 
@@ -73,7 +73,7 @@ function buildStreamService(
 }
 
 describe('AssistantRuntimeService', () => {
-  it('describes the phase-1 backend foundation', async () => {
+  it('describes the phase-1 backend foundation', () => {
     const llmRuntimeService = {
       hasRoleConfig: vi
         .fn()
@@ -81,11 +81,11 @@ describe('AssistantRuntimeService', () => {
       getModelName: vi.fn().mockReturnValue('test-model'),
     } as unknown as LlmRuntimeService;
 
-    const leafletService = buildLeafletService(false);
+    const lightragClient = buildLightragClient(false);
     const metricsService = buildMetricsService();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      leafletService as never,
+      lightragClient as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -95,12 +95,13 @@ describe('AssistantRuntimeService', () => {
     );
 
     expect(service.hasChatModel()).toBe(true);
-    expect(await service.describeFoundation()).toEqual({
+    expect(service.describeFoundation()).toEqual({
       phase: 'foundation',
       chatModelConfigured: true,
       interactiveChatReady: true,
       langGraphReady: true,
       ragEnabled: false,
+      retrievalAvailable: false,
       graphNodeNames: [
         'prepare_context',
         'classify_intent',
@@ -187,11 +188,11 @@ describe('AssistantRuntimeService', () => {
       }),
     } as unknown as LlmRuntimeService;
 
-    const leafletService = buildLeafletService(false);
+    const lightragClient = buildLightragClient(false);
     const metricsService = buildMetricsService();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      leafletService as never,
+      lightragClient as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -229,11 +230,11 @@ describe('AssistantRuntimeService', () => {
       hasRoleConfig: vi.fn().mockReturnValue(true),
     } as unknown as LlmRuntimeService;
 
-    const leafletService = buildLeafletService(false);
+    const lightragClient = buildLightragClient(false);
     const metricsService = buildMetricsService();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      leafletService as never,
+      lightragClient as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -292,7 +293,7 @@ describe('AssistantRuntimeService', () => {
     const cacheService = buildCacheService();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      buildLeafletService() as never,
+      buildLightragClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       cacheService as never,
@@ -341,7 +342,7 @@ describe('AssistantRuntimeService', () => {
 
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      buildLeafletService() as never,
+      buildLightragClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -388,7 +389,7 @@ describe('AssistantRuntimeService', () => {
 
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      buildLeafletService() as never,
+      buildLightragClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -425,7 +426,7 @@ describe('AssistantRuntimeService', () => {
 
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      buildLeafletService() as never,
+      buildLightragClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -468,7 +469,7 @@ describe('AssistantRuntimeService', () => {
 
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      buildLeafletService() as never,
+      buildLightragClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -492,14 +493,14 @@ describe('AssistantRuntimeService', () => {
     expect(onChunk).toHaveBeenNthCalledWith(1, { content: 'AB' });
   });
 
-  it('describeFoundation reports chat model unavailable', async () => {
+  it('describeFoundation reports chat model unavailable', () => {
     const llmRuntimeService = {
       hasRoleConfig: vi.fn().mockReturnValue(false),
     } as unknown as LlmRuntimeService;
 
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      buildLeafletService() as never,
+      buildLightragClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -508,7 +509,7 @@ describe('AssistantRuntimeService', () => {
       buildStreamService(llmRuntimeService, buildMetricsService()),
     );
 
-    const foundation = await service.describeFoundation();
+    const foundation = service.describeFoundation();
     expect(foundation.chatModelConfigured).toBe(false);
     expect(foundation.interactiveChatReady).toBe(false);
     expect(foundation.ragEnabled).toBe(false);
@@ -553,7 +554,7 @@ describe('AssistantRuntimeService', () => {
     const saver = new MemorySaver();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
-      buildLeafletService() as never,
+      buildLightragClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -623,7 +624,7 @@ describe('AssistantRuntimeService', () => {
       const saver = new MemorySaver();
       const service = new AssistantRuntimeService(
         llmRuntimeService,
-        buildLeafletService() as never,
+        buildLightragClient() as never,
         buildMetricsService() as never,
         new LlmCircuitBreakerService(),
         buildCacheService() as never,
@@ -736,7 +737,7 @@ describe('AssistantRuntimeService', () => {
       };
       const service = new AssistantRuntimeService(
         llmRuntimeService,
-        buildLeafletService() as never,
+        buildLightragClient() as never,
         buildMetricsService() as never,
         new LlmCircuitBreakerService(),
         buildCacheService() as never,

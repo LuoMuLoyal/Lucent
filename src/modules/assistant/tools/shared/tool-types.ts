@@ -67,10 +67,27 @@ export const ASSISTANT_TOOL_DISABLED_REASONS = [
   'context_disabled',
   'model_not_configured',
   'not_implemented',
+  'retrieval_unavailable',
 ] as const;
 
 export type AssistantToolDisabledReason =
   (typeof ASSISTANT_TOOL_DISABLED_REASONS)[number];
+
+/**
+ * Tools whose execution depends on the LightRAG sidecar.
+ *
+ * They are the only ones gated on retrieval availability: when the sidecar is
+ * disabled or unreachable, no degradation path exists for Chinese prose
+ * retrieval (计划 §一.7 —— 不做降级)，所以这些工具必须报
+ * `retrieval_unavailable`，让客户端把它显示成"检索暂不可用"，
+ * 而不是伪装成"确实没有证据"。
+ *
+ * DrugBank passage search deliberately stays out: it reads a pgvector table
+ * inside Lucent's own database, not the sidecar.
+ */
+export const ASSISTANT_RETRIEVAL_TOOL_NAMES = [
+  'search_cn_medicine_knowledge',
+] as const satisfies readonly AssistantToolName[];
 
 export const ASSISTANT_TOOL_SOURCE_MAP = {
   get_today_records: ['daily_records'],

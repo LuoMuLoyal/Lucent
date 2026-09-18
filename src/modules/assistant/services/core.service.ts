@@ -31,12 +31,12 @@ export class AssistantService {
     private readonly streamOrchestratorService: AssistantStreamOrchestratorService,
   ) {}
 
-  async getFoundationCapabilities() {
+  getFoundationCapabilities() {
     return this.streamOrchestratorService.getFoundationCapabilities();
   }
 
   async getCapabilities(userId: string): Promise<AssistantCapabilitiesDataDto> {
-    const foundation = await this.getFoundationCapabilities();
+    const foundation = this.getFoundationCapabilities();
     const settings = await this.userSettingsService.getSettings(userId);
     const policy = this.assistantPolicyService.evaluate(foundation, settings);
 

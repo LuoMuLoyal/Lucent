@@ -8,12 +8,18 @@ import type {
 } from '../types/assistant.types.js';
 import {
   ASSISTANT_CONTEXT_SOURCES,
+  ASSISTANT_RETRIEVAL_TOOL_NAMES,
   ASSISTANT_TOOL_NAMES,
   ASSISTANT_TOOL_SOURCE_MAP,
   type AssistantContextSource,
   type AssistantToolDisabledReason,
   type AssistantToolName,
 } from '../tools/shared/tool-types.js';
+
+/** 依赖 LightRAG sidecar 的工具集合，用于检索可用性判定。 */
+const RETRIEVAL_TOOL_NAMES: ReadonlySet<AssistantToolName> = new Set(
+  ASSISTANT_RETRIEVAL_TOOL_NAMES,
+);
 
 @Injectable()
 export class AssistantPolicyService {
@@ -60,8 +66,13 @@ export class AssistantPolicyService {
     const permittedByUser =
       settings.assistantEnabled && contextPermittedToolNames.includes(toolName);
     const implemented = foundation.implementedToolNames.includes(toolName);
+    const retrievalReady =
+      !RETRIEVAL_TOOL_NAMES.has(toolName) || foundation.retrievalAvailable;
     const enabled =
-      permittedByUser && implemented && foundation.chatModelConfigured;
+      permittedByUser &&
+      implemented &&
+      retrievalReady &&
+      foundation.chatModelConfigured;
 
     return {
       name: toolName,
@@ -75,6 +86,7 @@ export class AssistantPolicyService {
             settings.assistantEnabled,
             permittedByUser,
             implemented,
+            retrievalReady,
             foundation.chatModelConfigured,
           ),
     };
@@ -84,6 +96,7 @@ export class AssistantPolicyService {
     assistantEnabled: boolean,
     permittedByUser: boolean,
     implemented: boolean,
+    retrievalReady: boolean,
     chatModelConfigured: boolean,
   ): AssistantToolDisabledReason {
     if (!assistantEnabled) {
@@ -91,6 +104,11 @@ export class AssistantPolicyService {
     }
     if (!permittedByUser) {
       return 'context_disabled';
+    }
+    // 检索不可用排在 model_not_configured 之前：这两条同时成立时，
+    // "sidecar 没配好"是更具体、更可操作的原因，而模型未配置是全局的。
+    if (!retrievalReady) {
+      return 'retrieval_unavailable';
     }
     if (!chatModelConfigured) {
       return 'model_not_configured';

@@ -22,6 +22,7 @@ const mockFoundation: AssistantRuntimeCapabilities = {
   interactiveChatReady: true,
   langGraphReady: true,
   ragEnabled: false,
+  retrievalAvailable: true,
   graphNodeNames: ['prepare_context', 'agent', 'tools', 'respond'],
   toolNames: ['get_today_records'],
   implementedToolNames: ['get_today_records'],
@@ -70,7 +71,7 @@ describe('AssistantService', () => {
 
   beforeEach(() => {
     runtime = {
-      describeFoundation: vi.fn().mockResolvedValue(mockFoundation),
+      describeFoundation: vi.fn().mockReturnValue(mockFoundation),
       runConversation: vi.fn(),
       resumeConversation: vi.fn(),
       readPendingProposals: vi.fn(),
@@ -139,8 +140,8 @@ describe('AssistantService', () => {
   });
 
   describe('getFoundationCapabilities', () => {
-    it('delegates to runtime.describeFoundation', async () => {
-      const result = await service.getFoundationCapabilities();
+    it('delegates to runtime.describeFoundation', () => {
+      const result = service.getFoundationCapabilities();
 
       expect(result).toBe(mockFoundation);
     });
@@ -618,7 +619,7 @@ describe('AssistantService', () => {
     });
 
     it('returns DEPENDENCY_UNAVAILABLE when chat model is not configured', async () => {
-      runtime.describeFoundation.mockResolvedValue({
+      runtime.describeFoundation.mockReturnValue({
         ...mockFoundation,
         chatModelConfigured: false,
       });

@@ -50,7 +50,7 @@ export class AssistantStreamOrchestratorService {
     private readonly assistantConversationService: AssistantConversationService,
   ) {}
 
-  async getFoundationCapabilities(): Promise<AssistantRuntimeCapabilities> {
+  getFoundationCapabilities(): AssistantRuntimeCapabilities {
     return this.assistantAgentService.describeFoundation();
   }
 
@@ -76,7 +76,7 @@ export class AssistantStreamOrchestratorService {
     const messages = this.normalizeConversation(dto);
     const lastUserMessage = this.readLastUserMessage(messages, locale);
 
-    const foundation = await this.getFoundationCapabilities();
+    const foundation = this.getFoundationCapabilities();
     const settings = await this.userSettingsService.getSettings(userId);
     const policy = this.assistantPolicyService.evaluate(foundation, settings);
 

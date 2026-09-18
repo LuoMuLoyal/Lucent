@@ -10,6 +10,13 @@ export interface AssistantRuntimeCapabilities {
   interactiveChatReady: boolean;
   langGraphReady: boolean;
   ragEnabled: boolean;
+  /**
+   * Whether the LightRAG sidecar is enabled and configured. Chinese prose
+   * retrieval has no degradation path (计划 §一.7), so when this is false the
+   * retrieval tools report `retrieval_unavailable` instead of quietly
+   * returning empty evidence.
+   */
+  retrievalAvailable: boolean;
   graphNodeNames: readonly string[];
   toolNames: readonly AssistantToolName[];
   implementedToolNames: readonly AssistantToolName[];

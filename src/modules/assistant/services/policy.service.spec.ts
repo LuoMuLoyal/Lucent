@@ -12,6 +12,7 @@ describe('AssistantPolicyService', () => {
         interactiveChatReady: true,
         langGraphReady: true,
         ragEnabled: true,
+        retrievalAvailable: true,
         graphNodeNames: ['prepare_context', 'respond'],
         toolNames: [
           'get_today_records',
@@ -347,6 +348,7 @@ describe('AssistantPolicyService', () => {
     'get_meal_analysis_digest',
     'search_cn_medicine_products',
     'get_cn_medicine_detail',
+    'search_cn_medicine_knowledge',
     'search_medicine_leaflets',
     'search_medical_qa_corpus',
     'resolve_drugbank_entity',
@@ -367,6 +369,7 @@ describe('AssistantPolicyService', () => {
       interactiveChatReady: true,
       langGraphReady: true,
       ragEnabled: true,
+      retrievalAvailable: true,
       graphNodeNames: ['prepare_context', 'respond'],
       toolNames: [...ALL_TOOLS],
       implementedToolNames: [...ALL_TOOLS],
@@ -483,6 +486,49 @@ describe('AssistantPolicyService', () => {
     expect(policy.toolCapabilities.every((tc) => !tc.enabled)).toBe(true);
     // When chatModelConfigured is false but assistantEnabled and context is on,
     // disabledReason should be model_not_configured
+    const settingsCap = policy.toolCapabilities.find(
+      (tc) => tc.name === 'get_user_settings',
+    );
+    expect(settingsCap?.disabledReason).toBe('model_not_configured');
+  });
+
+  it('marks retrieval tools as retrieval_unavailable when the sidecar is off', () => {
+    const policy = service.evaluate(
+      buildFoundation({ retrievalAvailable: false }),
+      buildSettings(),
+    );
+
+    // Only the LightRAG-backed tool is gated: DrugBank passages read Lucent's
+    // own pgvector table and must stay enabled.
+    const retrievalCap = policy.toolCapabilities.find(
+      (tc) => tc.name === 'search_cn_medicine_knowledge',
+    );
+    expect(retrievalCap?.implemented).toBe(true);
+    expect(retrievalCap?.enabled).toBe(false);
+    expect(retrievalCap?.disabledReason).toBe('retrieval_unavailable');
+
+    const drugbankCap = policy.toolCapabilities.find(
+      (tc) => tc.name === 'search_drugbank_passages',
+    );
+    expect(drugbankCap?.enabled).toBe(true);
+    expect(drugbankCap?.disabledReason).toBeNull();
+  });
+
+  it('reports retrieval_unavailable ahead of model_not_configured for retrieval tools', () => {
+    const policy = service.evaluate(
+      buildFoundation({
+        retrievalAvailable: false,
+        chatModelConfigured: false,
+      }),
+      buildSettings(),
+    );
+
+    const retrievalCap = policy.toolCapabilities.find(
+      (tc) => tc.name === 'search_cn_medicine_knowledge',
+    );
+    // The sidecar gap is the more specific and actionable cause.
+    expect(retrievalCap?.disabledReason).toBe('retrieval_unavailable');
+
     const settingsCap = policy.toolCapabilities.find(
       (tc) => tc.name === 'get_user_settings',
     );
