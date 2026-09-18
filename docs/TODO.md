@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-17
+updated: 2026-09-18
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -100,6 +100,14 @@ environment 为简化实现(静态数据,关联 B2);`GET /environment/advice` �
 周报 push 通知通道未实现。
 
 ## 后续可做
+
+### D1：dead-code 端点台账（2026-09-18，09-17 审查 S3）
+
+`GET /api/v1/medicines/safety-tips` 接口完整但当前无任何 C 端 UI 消费方
+（死代码保留：i18n、cache、安全过滤等基础设施已搭好）。若未来做随机安全贴士，
+应在移动端药品详情页内以审核内容卡片形式重做。代码侧仅留单行
+`// Dead-code endpoint (no C-end consumer); see docs/TODO.md.` 引用
+（`medicines.controller.ts` 与 `services/medicines.service.ts` 各一处）。
 
 ### B7：餐食分析 v1 历史记录的展示回填（P3，2026-09-15 五日审查 P3）
 
