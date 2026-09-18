@@ -138,15 +138,19 @@ export class SuggestionPresentationService {
     copy: CopyGenerationResult,
     locale: string,
   ): SuggestionItemDto {
-    const primaryAction = copy.actionLabel
-      ? { ...candidate.primaryAction, label: copy.actionLabel }
-      : {
-          ...candidate.primaryAction,
-          label: this.localizeActionLabel(
-            candidate.primaryAction.label,
-            locale,
-          ),
-        };
+    // The rule's action id is the display contract, not the LLM's output:
+    // `copy.actionLabel` was previously taken verbatim, which let a generated
+    // (or echoed) value surface as a raw i18n key in the card. Localization is
+    // now unconditional, and the generated label only serves as a candidate
+    // when the rule's own key has no translation.
+    const primaryAction = {
+      ...candidate.primaryAction,
+      label: this.localizeActionLabel(
+        candidate.primaryAction.label,
+        locale,
+        copy.actionLabel,
+      ),
+    };
 
     return {
       id,
@@ -252,7 +256,67 @@ export class SuggestionPresentationService {
     return translated === key ? value : translated;
   }
 
-  private localizeActionLabel(label: string, locale: string): string {
-    return this.i18n.t(`today-suggestion.action.${label}`, { lang: locale });
+  /**
+   * Resolves an action label to display text.
+   *
+   * Translation order: the rule's own key, then the generated candidate if it
+   * carries a real translation, then humanized fallbacks. Never returns a
+   * snake_case key — an unregistered label used to be emitted verbatim, which
+   * is what put a raw `complete_profile` on the suggestion card.
+   */
+  private localizeActionLabel(
+    label: string,
+    locale: string,
+    fallbackLabel?: string,
+  ): string {
+    const translated = this.translateActionKey(label, locale);
+    if (translated != null) return translated;
+
+    const candidate = fallbackLabel?.trim() ?? '';
+    if (candidate.length > 0 && candidate !== label) {
+      const fallbackTranslated = this.translateActionKey(candidate, locale);
+      if (fallbackTranslated != null) return fallbackTranslated;
+    }
+
+    return humanizeActionLabel(candidate.length > 0 ? candidate : label);
   }
+
+  /** Returns the translation for an action key, or null when unregistered. */
+  private translateActionKey(label: string, locale: string): string | null {
+    const key = `today-suggestion.action.${label}`;
+    const translated: string = this.i18n.t(key, { lang: locale });
+    return isMissingTranslation(translated, key) ? null : translated;
+  }
+}
+
+/**
+ * Whether an i18n result is a lookup miss rather than real copy.
+ *
+ * `nestjs-i18n` echoes the key path when nothing is registered; some
+ * configurations append the resolved language (`key [en]`). Both shapes are
+ * treated as a miss so a missing key never reaches the user as display text.
+ */
+function isMissingTranslation(translated: string, key: string): boolean {
+  const value = translated.trim();
+  return value === key || value.startsWith(`${key} [`);
+}
+
+/**
+ * Last-resort display text for an action label with no translation.
+ *
+ * Turns a snake_case identifier (`complete_profile`) or a camelCase one
+ * (`completeProfile`) into `Complete profile`, so an unregistered key degrades
+ * to readable text instead of exposing an internal identifier to the user.
+ */
+export function humanizeActionLabel(label: string): string {
+  const spaced = label
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (spaced.length === 0) return label;
+
+  const lowered = spaced.toLowerCase();
+  return lowered.charAt(0).toUpperCase() + lowered.slice(1);
 }

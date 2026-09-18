@@ -315,7 +315,7 @@ describe('SuggestionPresentationService', () => {
       expect(dto.confidence).toBe(SuggestionConfidence.HIGH);
     });
 
-    it('uses copy actionLabel when available, overriding candidate label', () => {
+    it('prefers the localized rule label over the generated actionLabel', () => {
       const candidate = buildCandidate({
         primaryAction: {
           actionId: 'go',
@@ -335,14 +335,43 @@ describe('SuggestionPresentationService', () => {
 
       const dto = service.toDto('id-1', candidate, undefined, copy, 'zh-CN');
 
-      expect(dto.primaryAction.label).toBe('AI Label');
+      // The rule's key is the display contract; a generated label must not be
+      // able to override it — that path is how a raw key reached the card.
+      expect(dto.primaryAction.label).not.toBe('AI Label');
+      expect(dto.primaryAction.label).not.toContain('today-suggestion.action.');
     });
 
-    it('localizes action label when copy has no actionLabel', () => {
+    it('falls back to the generated actionLabel when the rule key is unregistered', () => {
       const candidate = buildCandidate({
         primaryAction: {
           actionId: 'go',
-          label: 'log_dose',
+          label: 'unregistered_key',
+          route: '/test',
+          authRequired: true,
+        },
+      });
+      const copy: CopyGenerationResult = {
+        title: 'T',
+        reason: 'R',
+        boundary: 'B',
+        actionLabel: 'log_dose',
+        aiGenerated: true,
+        fromCache: false,
+      };
+
+      const dto = service.toDto('id-1', candidate, undefined, copy, 'en');
+
+      // Neither key is registered in this mock, so the generated candidate is
+      // preferred over the rule key and humanized rather than echoed raw.
+      expect(dto.primaryAction.label).toBe('Log dose');
+      expect(dto.primaryAction.label).not.toContain('today-suggestion.action.');
+    });
+
+    it('never returns a raw snake_case key when nothing is registered', () => {
+      const candidate = buildCandidate({
+        primaryAction: {
+          actionId: 'go',
+          label: 'complete_profile',
           route: '/test',
           authRequired: true,
         },
@@ -358,8 +387,8 @@ describe('SuggestionPresentationService', () => {
 
       const dto = service.toDto('id-1', candidate, undefined, copy, 'en');
 
-      // i18n.t returns "today-suggestion.action.log_dose [en]"
-      expect(dto.primaryAction.label).toContain('action.log_dose');
+      expect(dto.primaryAction.label).toBe('Complete profile');
+      expect(dto.primaryAction.label).not.toContain('_');
     });
 
     it('localizes evidence labels and values', () => {

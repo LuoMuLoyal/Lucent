@@ -6,6 +6,18 @@ import { z } from 'zod';
 /**
  * Schema for generated copy output.
  */
+/**
+ * Detects an internal identifier leaking into user-facing copy.
+ *
+ * The prompt passes `templateKey` / `params` alongside the request, so the
+ * model can echo a key such as `complete_profile` back as its answer. A
+ * label with no space that is all lower-case-with-underscores (or camelCase)
+ * is an identifier, not display text; rejecting it here keeps the key out of
+ * the card and lets the caller fall back to the rule's localized label.
+ */
+const INTERNAL_IDENTIFIER =
+  /^[a-z][a-z0-9]*(?:[_-][a-z0-9]+)+$|^[a-z]+(?:[A-Z][a-z0-9]*)+$/;
+
 export const GeneratedCopySchema = z.object({
   title: z
     .string()
@@ -22,7 +34,11 @@ export const GeneratedCopySchema = z.object({
   actionLabel: z
     .string()
     .min(1, 'Action label is required')
-    .max(10, 'Action label should be very short (max 10 chars)'),
+    .max(10, 'Action label should be very short (max 10 chars)')
+    .refine(
+      (value) => !INTERNAL_IDENTIFIER.test(value.trim()),
+      'Action label must be display text, not an internal identifier',
+    ),
 });
 
 export type GeneratedCopy = z.infer<typeof GeneratedCopySchema>;
