@@ -515,10 +515,18 @@ export class MedicineDoseLogsService {
     });
   }
 
+  /**
+   * The body passed schema validation but cannot be matched to a dose-log
+   * slot (no reminder, and no current medicine to fall back on) or the
+   * reminder/medicine pair disagrees. Reported under its own code rather
+   * than the generic `VALIDATION_FAILED` so the client's sync queue can
+   * distinguish "the server rejected this payload's identity" — which
+   * retrying byte-identically will never fix — from a malformed request.
+   */
   private validationFailed(): DomainFailure {
     return createDomainFailure({
       kind: 'validation',
-      code: 'VALIDATION_FAILED',
+      code: 'DOSE_LOG_TARGET_UNRESOLVED',
     });
   }
 

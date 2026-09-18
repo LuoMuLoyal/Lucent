@@ -79,6 +79,7 @@ const DOMAIN_FAILURE_KIND_BY_CODE: Record<
   REPORT_SHARE_NOT_FOUND: 'not_found',
   RESOURCE_CONFLICT: 'conflict',
   RECORD_ALREADY_EXISTS: 'conflict',
+  DOSE_LOG_TARGET_UNRESOLVED: 'validation',
   RATE_LIMITED: 'rate_limited',
   DEPENDENCY_UNAVAILABLE: 'dependency',
   DEPENDENCY_BAD_GATEWAY: 'dependency',

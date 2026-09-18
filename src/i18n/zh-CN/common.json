@@ -46,6 +46,8 @@
   "problem_resource_conflict_detail": "请求与当前资源状态冲突，请刷新后重试。",
   "problem_record_already_exists_title": "记录已存在",
   "problem_record_already_exists_detail": "请求范围内已经存在一条记录。",
+  "problem_dose_log_target_unresolved_title": "无法匹配服药记录目标",
+  "problem_dose_log_target_unresolved_detail": "请求未指明对应的服药记录，请携带提醒或当前用药信息。",
   "problem_rate_limited_title": "请求过于频繁",
   "problem_rate_limited_detail": "请求过于频繁，请稍后重试。",
   "problem_auth_login_rate_limited_title": "登录尝试过于频繁",

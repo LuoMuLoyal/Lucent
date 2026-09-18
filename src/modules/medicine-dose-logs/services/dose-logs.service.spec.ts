@@ -636,7 +636,7 @@ describe('MedicineDoseLogsService', () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      error: { kind: 'validation', code: 'DOSE_LOG_TARGET_UNRESOLVED' },
     });
   });
 
@@ -724,7 +724,7 @@ describe('MedicineDoseLogsService', () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: { kind: 'validation', code: 'VALIDATION_FAILED' },
+      error: { kind: 'validation', code: 'DOSE_LOG_TARGET_UNRESOLVED' },
     });
     expect(repository.findFirst).not.toHaveBeenCalled();
   });

@@ -155,6 +155,20 @@ const definitions = {
     detailKey: 'common.problem_record_already_exists_detail',
     retryable: false,
   },
+  /**
+   * The body is well-formed but carries no way to identify the dose-log slot
+   * it targets (no `reminderId`, and no current medicine to fall back on).
+   * Split out of the generic `VALIDATION_FAILED` 400 so a client — notably
+   * the offline sync queue — can tell "the server could not match this
+   * payload" apart from "this request is malformed"; the two warrant
+   * different retry decisions.
+   */
+  DOSE_LOG_TARGET_UNRESOLVED: {
+    status: 400,
+    titleKey: 'common.problem_dose_log_target_unresolved_title',
+    detailKey: 'common.problem_dose_log_target_unresolved_detail',
+    retryable: false,
+  },
   RATE_LIMITED: {
     status: 429,
     titleKey: 'common.problem_rate_limited_title',
