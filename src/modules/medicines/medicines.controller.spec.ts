@@ -8,6 +8,7 @@ import { runRiskCheckSchema } from './dto/risk/risk-check-request.dto.js';
 import { recognizeMedicineSchema } from './dto/recognize-medicine.dto.js';
 import { medicineSearchQuerySchema } from './dto/query.dto.js';
 import { okAsync, DomainFailureException } from '../../common/result/index.js';
+import { I18nService } from 'nestjs-i18n';
 
 describe('MedicinesController', () => {
   let controller: MedicinesController;
@@ -41,6 +42,12 @@ describe('MedicinesController', () => {
             getRecords: vi.fn(),
             runStaticCheck: vi.fn(),
             runLlmCheck: vi.fn(),
+          },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            t: vi.fn((key: string) => key),
           },
         },
       ],

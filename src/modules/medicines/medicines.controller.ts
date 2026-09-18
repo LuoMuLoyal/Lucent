@@ -20,7 +20,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { I18nLang } from 'nestjs-i18n';
+import { I18nLang, I18nService } from 'nestjs-i18n';
 import { CurrentUser } from '../auth/index.js';
 
 import { Public } from '../auth/index.js';
@@ -76,10 +76,10 @@ export class MedicinesController {
     private readonly medicinesService: MedicinesService,
     private readonly recognitionQueueService: MedicineRecognitionQueueService,
     private readonly riskCheckService: MedicineRiskCheckService,
+    private readonly i18n: I18nService,
   ) {}
 
-  // TODO(archive): 接口完整但当前无任何 C 端 UI 消费方（死代码保留）；
-  // 若未来做随机安全贴士，应在移动端药品详情页内以审核内容卡片形式重做。
+  // Dead-code endpoint (no C-end consumer); see docs/TODO.md.
   @Public()
   @Get('safety-tips')
   @ApiOperation({ summary: 'Get random medication safety tips' })
@@ -253,7 +253,7 @@ export class MedicinesController {
         createDomainFailure({
           kind: 'validation',
           code: 'VALIDATION_FAILED',
-          detail: '候选预检仅支持 static 检查',
+          detail: this.i18n.t('medicine.candidate_static_only'),
         }),
       );
     }
