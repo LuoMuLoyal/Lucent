@@ -40,13 +40,13 @@ describe('AssistantFoundationGraph', () => {
         [
           'search_cn_medicine_products',
           'get_cn_medicine_detail',
-          'search_medicine_leaflets',
+          'search_cn_medicine_knowledge',
         ],
       ),
     ).toEqual([
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'search_medicine_leaflets',
+      'search_cn_medicine_knowledge',
     ]);
 
     expect(
@@ -55,7 +55,7 @@ describe('AssistantFoundationGraph', () => {
         [
           'search_cn_medicine_products',
           'get_cn_medicine_detail',
-          'search_medicine_leaflets',
+          'search_cn_medicine_knowledge',
           'resolve_drugbank_entity',
           'get_drugbank_detail',
           'search_drugbank_passages',
@@ -64,7 +64,7 @@ describe('AssistantFoundationGraph', () => {
     ).toEqual([
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'search_medicine_leaflets',
+      'search_cn_medicine_knowledge',
     ]);
   });
 
@@ -138,7 +138,6 @@ describe('AssistantFoundationGraph', () => {
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
       'search_cn_medicine_knowledge',
-      'search_medicine_leaflets',
       'resolve_drugbank_entity',
       'get_drugbank_detail',
       'search_drugbank_passages',

@@ -716,20 +716,18 @@ describe('AssistantService', () => {
         ...mockRunConversationResult,
         toolResults: [
           {
-            name: 'search_medicine_leaflets',
+            name: 'search_cn_medicine_knowledge',
             data: {
-              query: { medicineQuery: '布洛芬' },
+              query: {
+                medicineQuery: '布洛芬',
+                source: 'leaflet',
+                mode: 'naive',
+              },
               result: {
-                medicine: { source: 'cn', name: '布洛芬缓释胶囊' },
-                resolvedProduct: {
-                  source: 'cn',
-                  productId: 'p-1',
-                  name: '布洛芬缓释胶囊',
-                },
-                leaflets: [],
                 chunks: [],
-                candidates: [],
-                page: { limit: 4, offset: 0, hasMore: false, queryHash: 'h' },
+                source: 'leaflet',
+                mode: 'naive',
+                disclaimer: 'AI 回答仅供参考,不构成诊疗建议。',
               },
               coverage: { status: 'complete', reason: null },
               timeRange: {
@@ -738,23 +736,51 @@ describe('AssistantService', () => {
                 endDate: null,
               },
               source: {
-                tool: 'search_medicine_leaflets',
+                tool: 'search_cn_medicine_knowledge',
                 generatedAt: '2026-08-17T00:00:00.000Z',
-                tables: ['cn_medicine_leaflets', 'medicine_leaflet_chunks'],
+                tables: ['leaflet:lightrag_chunks'],
               },
               confidence: {
                 level: 'high',
                 reason:
-                  'Resolved a Chinese leaflet product through vector aggregation before retrieving chunks.',
+                  'Retrieved Chinese prose evidence via LightRAG semantic search.',
               },
-              ambiguities: ['布洛芬颗粒'],
+              ambiguities: [],
+            },
+          },
+          {
+            name: 'search_drugbank_passages',
+            data: {
+              query: { medicineQuery: '布洛芬' },
+              result: {
+                passages: [{ drugName: 'Ibuprofen' }],
+              },
+              coverage: {
+                status: 'empty',
+                reason: 'No relevant DrugBank passages found for this query.',
+              },
+              timeRange: {
+                timezone: 'UTC',
+                startDate: null,
+                endDate: null,
+              },
+              source: {
+                tool: 'search_drugbank_passages',
+                generatedAt: '2026-08-17T00:00:00.000Z',
+                tables: ['drugbank_passage_embeddings'],
+              },
+              confidence: { level: 'low', reason: 'No matching passages.' },
+              ambiguities: [],
             },
           },
         ],
       } as never);
       runtime.streamPreGeneratedContent.mockResolvedValue({
         ...mockStreamResult,
-        usedToolNames: ['search_medicine_leaflets'],
+        usedToolNames: [
+          'search_cn_medicine_knowledge',
+          'search_drugbank_passages',
+        ],
       } as never);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
@@ -764,19 +790,32 @@ describe('AssistantService', () => {
 
       expect(result!.toolDetails).toEqual([
         {
-          name: 'search_medicine_leaflets',
-          label: '布洛芬缓释胶囊',
+          name: 'search_cn_medicine_knowledge',
           coverage: { status: 'complete', reason: null },
           confidence: {
             level: 'high',
             reason:
-              'Resolved a Chinese leaflet product through vector aggregation before retrieving chunks.',
+              'Retrieved Chinese prose evidence via LightRAG semantic search.',
           },
-          ambiguities: ['布洛芬颗粒'],
           source: {
-            tool: 'search_medicine_leaflets',
+            tool: 'search_cn_medicine_knowledge',
             generatedAt: '2026-08-17T00:00:00.000Z',
-            tables: ['cn_medicine_leaflets', 'medicine_leaflet_chunks'],
+            tables: ['leaflet:lightrag_chunks'],
+          },
+          disclaimer: 'AI 回答仅供参考,不构成诊疗建议。',
+        },
+        {
+          name: 'search_drugbank_passages',
+          label: 'Ibuprofen',
+          coverage: {
+            status: 'empty',
+            reason: 'No relevant DrugBank passages found for this query.',
+          },
+          confidence: { level: 'low', reason: 'No matching passages.' },
+          source: {
+            tool: 'search_drugbank_passages',
+            generatedAt: '2026-08-17T00:00:00.000Z',
+            tables: ['drugbank_passage_embeddings'],
           },
         },
       ]);
@@ -824,7 +863,7 @@ describe('AssistantService', () => {
         ...mockRunConversationResult,
         toolResults: [
           {
-            name: 'search_medicine_leaflets',
+            name: 'search_cn_medicine_knowledge',
             data: {
               coverage: { status: 'not-a-valid-status', reason: 123 },
               confidence: { level: 'unknown', reason: null },
@@ -851,7 +890,7 @@ describe('AssistantService', () => {
       ).unwrapOr(null);
 
       expect(result!.toolDetails).toEqual([
-        { name: 'search_medicine_leaflets' },
+        { name: 'search_cn_medicine_knowledge' },
       ]);
       expect(warnSpy).toHaveBeenCalled();
     });

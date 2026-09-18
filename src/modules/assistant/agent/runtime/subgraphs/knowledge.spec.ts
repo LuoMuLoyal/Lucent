@@ -26,15 +26,15 @@ const BASE_INPUT = {
   locale: 'zh-CN' as const,
   enabledContextSources: ['current_medicines' as const],
   allowedTools: [
-    'search_medicine_leaflets' as const,
+    'search_cn_medicine_knowledge' as const,
     'search_cn_medicine_products' as const,
     'get_cn_medicine_detail' as const,
   ],
   // Deliberately unordered: knowledge_route must reorder along the chain.
   relevantTools: [
-    'search_medicine_leaflets' as const,
     'search_cn_medicine_products' as const,
     'get_cn_medicine_detail' as const,
+    'search_cn_medicine_knowledge' as const,
   ],
   messages: [
     new SystemMessage('knowledge system prompt'),
@@ -91,9 +91,9 @@ describe('knowledge sub-graph', () => {
     const result = await graph.invoke(BASE_INPUT);
 
     expect(result.relevantTools).toEqual([
+      'search_cn_medicine_knowledge',
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'search_medicine_leaflets',
     ]);
     expect(executeTools).toHaveBeenCalledTimes(1);
   });

@@ -9,7 +9,6 @@ import type {
 import type { AssistantToolName } from './shared/tool-types.js';
 import { ASSISTANT_READ_TOOL_NAMES } from './shared/tool-types.js';
 import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants.js';
-import { AssistantToolLeafletReadService } from './leaflet/read.service.js';
 import { AssistantToolKnowledgeRetrievalService } from './retrieval/knowledge.service.js';
 import {
   AssistantToolDrugbankEntityResolveService,
@@ -31,7 +30,6 @@ const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
   'search_cn_medicine_products',
   'get_cn_medicine_detail',
   'search_cn_medicine_knowledge',
-  'search_medicine_leaflets',
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
@@ -53,7 +51,6 @@ export class AssistantToolService {
 
   constructor(
     private readonly readService: AssistantToolReadService,
-    private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly knowledgeRetrievalService: AssistantToolKnowledgeRetrievalService,
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
@@ -71,11 +68,6 @@ export class AssistantToolService {
    * run serially to keep write-draft assembly deterministic. Every tool is
    * bounded by `TOOL_EXECUTION_TIMEOUT_MS`; a timeout yields a result
    * envelope with `{ timeout: true, reason }` instead of aborting the graph.
-   *
-   * `search_medicine_leaflets` is the one read tool with an in-batch
-   * dependency: it consumes the resolved CN product id produced by
-   * `get_cn_medicine_detail`, so it executes after the parallel read batch
-   * with the finished results available for context building.
    */
   async executeMany(
     context: AssistantToolExecutionContext,
@@ -92,13 +84,9 @@ export class AssistantToolService {
       .map((call, index) => ({ call, index }))
       .filter(({ call }) => !READ_TOOL_NAMES.has(call.name));
 
-    // Read tools (except leaflet) run concurrently.
-    const parallelReads = readEntries.filter(
-      ({ call }) => call.name !== 'search_medicine_leaflets',
-    );
-    if (parallelReads.length > 0) {
+    if (readEntries.length > 0) {
       const executed = await Promise.all(
-        parallelReads.map(async ({ call, index }) => ({
+        readEntries.map(async ({ call, index }) => ({
           index,
           result: await this.executeWithTimeout(
             this.withToolArgs(context, call),
@@ -109,26 +97,6 @@ export class AssistantToolService {
       for (const { index, result } of executed) {
         results[index] = result;
       }
-    }
-
-    // Leaflet runs after the parallel batch so its product-id context can see
-    // the finished `get_cn_medicine_detail` result.
-    const leafletEntry = readEntries.find(
-      ({ call }) => call.name === 'search_medicine_leaflets',
-    );
-    if (leafletEntry != null) {
-      const filled = results.filter(
-        (result): result is AssistantToolExecutionResult => result != null,
-      );
-      const leafletContext = this.buildToolContext(
-        this.withToolArgs(context, leafletEntry.call),
-        'search_medicine_leaflets',
-        filled,
-      );
-      results[leafletEntry.index] = await this.executeWithTimeout(
-        leafletContext,
-        'search_medicine_leaflets',
-      );
     }
 
     // Proposal tools stay serial.
@@ -200,57 +168,6 @@ export class AssistantToolService {
       );
     });
     return Promise.race([execution, timeout]);
-  }
-
-  private buildToolContext(
-    context: AssistantToolExecutionContext,
-    toolName: AssistantToolName,
-    previousResults: readonly AssistantToolExecutionResult[],
-  ): AssistantToolExecutionContext {
-    if (toolName !== 'search_medicine_leaflets') {
-      return context;
-    }
-
-    const productId = this.readResolvedCnProductId(previousResults);
-    if (productId == null) {
-      return context;
-    }
-
-    const payload = parseSearchPayload(context.userMessage, this.logger);
-    return {
-      ...context,
-      userMessage: JSON.stringify({
-        query: payload.query,
-        ...(payload.limit != null ? { limit: payload.limit } : {}),
-        ...(payload.cursor != null ? { cursor: payload.cursor } : {}),
-        filters: {
-          ...payload.filters,
-          productId,
-        },
-      }),
-    };
-  }
-
-  private readResolvedCnProductId(
-    results: readonly AssistantToolExecutionResult[],
-  ): string | null {
-    const detailResult = [...results]
-      .toReversed()
-      .find((result) => result.name === 'get_cn_medicine_detail');
-    const resultEnvelope = detailResult?.data['result'];
-    if (resultEnvelope == null || typeof resultEnvelope !== 'object') {
-      return null;
-    }
-
-    const product = (resultEnvelope as Record<string, unknown>)['product'];
-    if (product == null || typeof product !== 'object') {
-      return null;
-    }
-
-    const productId = (product as Record<string, unknown>)['id'];
-    return typeof productId === 'string' && productId.trim().length > 0
-      ? productId
-      : null;
   }
 
   private async executeOne(
@@ -410,11 +327,6 @@ export class AssistantToolService {
           data: await this.knowledgeRetrievalService.searchCnMedicineKnowledge(
             context,
           ),
-        };
-      case 'search_medicine_leaflets':
-        return {
-          name: toolName,
-          data: await this.leafletReadService.searchMedicineLeaflets(context),
         };
       case 'resolve_drugbank_entity':
         return {

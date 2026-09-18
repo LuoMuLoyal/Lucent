@@ -11,7 +11,7 @@ const ALLOWED = [
   'get_current_medicines',
   'search_cn_medicine_products',
   'get_cn_medicine_detail',
-  'search_medicine_leaflets',
+  'search_cn_medicine_knowledge',
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
@@ -59,7 +59,7 @@ describe('classifyIntent', () => {
     expect(result.relevantTools).toEqual([
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'search_medicine_leaflets',
+      'search_cn_medicine_knowledge',
     ]);
   });
 
@@ -69,7 +69,7 @@ describe('classifyIntent', () => {
       ALLOWED,
     );
     expect(result.intent).toBe('mixed');
-    expect(result.relevantTools).toContain('search_medicine_leaflets');
+    expect(result.relevantTools).toContain('search_cn_medicine_knowledge');
     expect(result.relevantTools).toContain('get_records_by_range');
   });
 

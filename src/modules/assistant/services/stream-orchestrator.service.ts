@@ -311,11 +311,6 @@ export class AssistantStreamOrchestratorService {
     data: Record<string, unknown>,
   ): string | null {
     switch (name) {
-      case 'search_medicine_leaflets':
-        return (
-          this.readNestedString(data, ['result', 'resolvedProduct', 'name']) ??
-          this.readNestedString(data, ['result', 'medicine', 'name'])
-        );
       case 'search_drugbank_passages':
         return this.readNestedString(data, [
           'result',

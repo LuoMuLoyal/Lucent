@@ -23,7 +23,7 @@ export type AssistantIntent =
 const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
   'search_cn_medicine_products',
   'get_cn_medicine_detail',
-  'search_medicine_leaflets',
+  'search_cn_medicine_knowledge',
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',

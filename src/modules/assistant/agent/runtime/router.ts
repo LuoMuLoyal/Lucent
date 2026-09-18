@@ -57,9 +57,9 @@ export function selectRelevantToolsForMessage(
     toolNames: readonly AssistantToolName[],
   ): AssistantToolName[] => {
     const priority: AssistantToolName[] = [
+      'search_cn_medicine_knowledge',
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'search_medicine_leaflets',
       'resolve_drugbank_entity',
       'get_drugbank_detail',
       'search_drugbank_passages',
@@ -88,7 +88,7 @@ export function selectRelevantToolsForMessage(
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
       ...(CN_LEAFLET_STYLE_RULES.some((rule) => rule.test(userMessage))
-        ? ['search_medicine_leaflets' as const]
+        ? ['search_cn_medicine_knowledge' as const]
         : []),
     ]);
   }

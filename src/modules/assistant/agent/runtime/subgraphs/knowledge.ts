@@ -9,16 +9,15 @@ import type { AssistantGraphDeps } from '../graph.js';
 
 /**
  * Dependency order for knowledge-retrieval tools: the LightRAG prose search is
- * self-contained, so it leads; a medicine leaflet query first resolves the
- * product, then fetches detail, then the leaflet; DrugBank resolves an entity
- * before fetching detail/passages. Reordering the bound tools in this order
- * nudges the LLM to follow the dependency chain.
+ * self-contained, so it leads; Chinese medicine products resolve by SQL key
+ * lookup; DrugBank resolves an entity before fetching detail/passages.
+ * Reordering the bound tools in this order nudges the LLM to follow the
+ * dependency chain.
  */
 const KNOWLEDGE_TOOL_ORDER: readonly AssistantToolName[] = [
   'search_cn_medicine_knowledge',
   'search_cn_medicine_products',
   'get_cn_medicine_detail',
-  'search_medicine_leaflets',
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',

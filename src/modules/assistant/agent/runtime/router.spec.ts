@@ -48,7 +48,7 @@ describe('selectAllowedToolsForContextSources', () => {
   it('includes knowledge tools regardless of context sources (always available)', () => {
     const tools = selectAllowedToolsForContextSources([]);
     expect(tools).toContain('search_cn_medicine_products');
-    expect(tools).toContain('search_medicine_leaflets');
+    expect(tools).toContain('search_cn_medicine_knowledge');
     expect(tools).toContain('resolve_drugbank_entity');
   });
 });
@@ -69,7 +69,7 @@ describe('selectRelevantToolsForMessage', () => {
     'get_meal_analysis_digest',
     'search_cn_medicine_products',
     'get_cn_medicine_detail',
-    'search_medicine_leaflets',
+    'search_cn_medicine_knowledge',
     'resolve_drugbank_entity',
     'get_drugbank_detail',
     'search_drugbank_passages',
@@ -158,11 +158,11 @@ describe('selectRelevantToolsForMessage', () => {
     expect(result).toContain('get_cn_medicine_detail');
   });
 
-  it('includes leaflet tools when CN product query mentions 说明书', () => {
+  it('includes prose knowledge tool when CN product query mentions 说明书', () => {
     const result = selectRelevantToolsForMessage('国药准字H10900089的说明书', [
       ...allReadTools,
     ]);
-    expect(result).toContain('search_medicine_leaflets');
+    expect(result).toContain('search_cn_medicine_knowledge');
   });
 
   // ── Write intent ──────────────────────────────────────────────

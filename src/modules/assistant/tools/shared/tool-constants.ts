@@ -33,10 +33,8 @@ export const DEFAULT_PROPOSAL_DATE_OFFSET_DAYS = 0;
 /** Time-to-live for cached assistant proposals before they expire. */
 export const PROPOSAL_TTL_MINUTES = 15;
 
-/** Default page size for assistant vector retrieval tools. */
+/** Default / maximum page size for the DrugBank passage vector retrieval tool. */
 export const ASSISTANT_VECTOR_DEFAULT_LIMIT = 4;
-
-/** Maximum page size for assistant vector retrieval tools. */
 export const ASSISTANT_VECTOR_MAX_LIMIT = 8;
 
 /** Maximum number of recent conversations returned by the assistant conversation list. */

@@ -134,7 +134,7 @@ describe('respond node', () => {
       stateWith({
         finalContent: null,
         messages: [],
-        pendingToolCalls: ['search_medicine_leaflets'],
+        pendingToolCalls: ['search_cn_medicine_knowledge'],
         loopCount: MAX_TOOL_LOOPS,
         intent: 'mixed',
         memoryInjected: false,
@@ -173,7 +173,7 @@ describe('respond node', () => {
       stateWith({
         finalContent: null,
         messages: [],
-        pendingToolCalls: ['search_medicine_leaflets'],
+        pendingToolCalls: ['search_cn_medicine_knowledge'],
         loopCount: MAX_TOOL_LOOPS - 1,
       }),
     );

@@ -44,19 +44,19 @@ describe('assistant system prompts', () => {
   it('knowledge prompt emphasizes evidence-source separation', () => {
     const prompt = buildKnowledgeSystemPrompt([
       'search_cn_medicine_products',
-      'search_medicine_leaflets',
+      'search_cn_medicine_knowledge',
     ]);
     expect(prompt).toContain('Do not attribute one to another');
-    expect(prompt).toContain('Prefer Chinese leaflet evidence');
+    expect(prompt).toContain('Prefer Chinese package-insert evidence');
     expect(prompt).toContain('Prefer DrugBank scientific evidence');
     expect(prompt).toContain('If retrieval misses');
-    expect(prompt).toContain('open corpus of low-trust');
+    expect(prompt).toContain('open QA corpus');
     expect(prompt).toContain('Trust layering for knowledge answers');
   });
 
   it('assistant prompt frames medical QA as low-trust reference', () => {
     const prompt = buildAssistantSystemPrompt(READ_TOOLS);
-    expect(prompt).toContain('open corpus of low-trust');
+    expect(prompt).toContain('open QA corpus');
     expect(prompt).toContain('Trust layering for knowledge answers');
     expect(prompt).not.toContain('curated medical Q&A database');
   });
@@ -77,7 +77,7 @@ describe('assistant system prompts', () => {
       buildWriteSystemPrompt(['propose_create_daily_record']),
       buildKnowledgeSystemPrompt([
         'search_cn_medicine_products',
-        'search_medicine_leaflets',
+        'search_cn_medicine_knowledge',
       ]),
       buildSimpleChatSystemPrompt(),
     ];
@@ -142,13 +142,13 @@ describe('assistant system prompts', () => {
     it('assistant prompt enforces trust layering for medical evidence', () => {
       const prompt = buildAssistantSystemPrompt([
         'search_cn_medicine_products',
-        'search_medicine_leaflets',
+        'search_cn_medicine_knowledge',
       ]);
       // Trust hierarchy must be stated
       expect(prompt).toContain('Trust layering for knowledge answers');
       expect(prompt).toContain('package-insert facts');
       expect(prompt).toContain('scientific grounding');
-      expect(prompt).toContain('open corpus of low-trust');
+      expect(prompt).toContain('open QA corpus');
     });
   });
 });

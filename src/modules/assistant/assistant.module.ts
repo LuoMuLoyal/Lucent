@@ -45,8 +45,6 @@ import { AssistantToolDrugbankEntityResolveService } from './tools/drugbank/enti
 
 import { AssistantToolDrugbankSearchService } from './tools/drugbank/search.service.js';
 
-import { AssistantToolLeafletReadService } from './tools/leaflet/read.service.js';
-
 import { LightragClientService } from './tools/retrieval/lightrag-client.service.js';
 
 import { AssistantToolKnowledgeRetrievalService } from './tools/retrieval/knowledge.service.js';
@@ -106,7 +104,6 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
     AssistantSettingsProposalService,
     AssistantToolService,
     AssistantToolReadService,
-    AssistantToolLeafletReadService,
     LightragClientService,
     AssistantToolKnowledgeRetrievalService,
     AssistantToolMedicineLookupService,
