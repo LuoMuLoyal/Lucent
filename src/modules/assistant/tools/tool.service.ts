@@ -16,7 +16,6 @@ import {
   parseSearchPayload,
 } from './drugbank/entity-resolve.service.js';
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service.js';
-import { AssistantToolMedicalKnowledgeService } from './knowledge/medical.service.js';
 import { AssistantToolMedicineLookupService } from './medicine/lookup.service.js';
 import { AssistantToolProposalService } from './proposal/proposal.service.js';
 import { AssistantToolReadService } from './read/read.service.js';
@@ -33,7 +32,6 @@ const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
   'get_cn_medicine_detail',
   'search_cn_medicine_knowledge',
   'search_medicine_leaflets',
-  'search_medical_qa_corpus',
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
@@ -57,7 +55,6 @@ export class AssistantToolService {
     private readonly readService: AssistantToolReadService,
     private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly knowledgeRetrievalService: AssistantToolKnowledgeRetrievalService,
-    private readonly medicalKnowledgeService: AssistantToolMedicalKnowledgeService,
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
     private readonly medicineLookupService: AssistantToolMedicineLookupService,
@@ -418,13 +415,6 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.leafletReadService.searchMedicineLeaflets(context),
-        };
-      case 'search_medical_qa_corpus':
-        return {
-          name: toolName,
-          data: await this.medicalKnowledgeService.searchMedicalQaCorpus(
-            context,
-          ),
         };
       case 'resolve_drugbank_entity':
         return {

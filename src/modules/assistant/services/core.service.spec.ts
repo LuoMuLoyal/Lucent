@@ -750,38 +750,11 @@ describe('AssistantService', () => {
               ambiguities: ['布洛芬颗粒'],
             },
           },
-          {
-            name: 'search_medical_qa_corpus',
-            data: {
-              query: { medicineQuery: '布洛芬' },
-              result: {
-                knowledge: [],
-                disclaimer: 'AI 回答仅供参考,不构成诊疗建议。',
-                page: { limit: 4, offset: 0, hasMore: false, queryHash: 'h' },
-              },
-              coverage: {
-                status: 'empty',
-                reason: 'No relevant medical knowledge found for this query.',
-              },
-              timeRange: {
-                timezone: 'UTC',
-                startDate: null,
-                endDate: null,
-              },
-              source: {
-                tool: 'search_medical_qa_corpus',
-                generatedAt: '2026-08-17T00:00:00.000Z',
-                tables: ['medical_qa_embeddings'],
-              },
-              confidence: { level: 'low', reason: 'No matching chunks.' },
-              ambiguities: [],
-            },
-          },
         ],
       } as never);
       runtime.streamPreGeneratedContent.mockResolvedValue({
         ...mockStreamResult,
-        usedToolNames: ['search_medicine_leaflets', 'search_medical_qa_corpus'],
+        usedToolNames: ['search_medicine_leaflets'],
       } as never);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 
@@ -805,20 +778,6 @@ describe('AssistantService', () => {
             generatedAt: '2026-08-17T00:00:00.000Z',
             tables: ['cn_medicine_leaflets', 'medicine_leaflet_chunks'],
           },
-        },
-        {
-          name: 'search_medical_qa_corpus',
-          coverage: {
-            status: 'empty',
-            reason: 'No relevant medical knowledge found for this query.',
-          },
-          confidence: { level: 'low', reason: 'No matching chunks.' },
-          source: {
-            tool: 'search_medical_qa_corpus',
-            generatedAt: '2026-08-17T00:00:00.000Z',
-            tables: ['medical_qa_embeddings'],
-          },
-          disclaimer: 'AI 回答仅供参考,不构成诊疗建议。',
         },
       ]);
     });

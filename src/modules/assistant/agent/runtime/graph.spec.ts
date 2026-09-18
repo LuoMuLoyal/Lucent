@@ -59,7 +59,6 @@ describe('AssistantFoundationGraph', () => {
           'resolve_drugbank_entity',
           'get_drugbank_detail',
           'search_drugbank_passages',
-          'search_medical_qa_corpus',
         ],
       ),
     ).toEqual([
@@ -140,7 +139,6 @@ describe('AssistantFoundationGraph', () => {
       'get_cn_medicine_detail',
       'search_cn_medicine_knowledge',
       'search_medicine_leaflets',
-      'search_medical_qa_corpus',
       'resolve_drugbank_entity',
       'get_drugbank_detail',
       'search_drugbank_passages',

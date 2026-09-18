@@ -133,8 +133,6 @@ const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
     'Search Chinese prose medicine knowledge (package-insert fields such as dosage/contraindications/adverse reactions, or an open medical Q&A corpus) by meaning. Pick exactly one source per call; never mix them.',
   search_medicine_leaflets:
     'Search medicine leaflets (package inserts) for usage, dosage, contraindications, and side effects.',
-  search_medical_qa_corpus:
-    'Search an open medical Q&A corpus (low-trust educational reference) for disease knowledge, pathology, and prevention.',
   resolve_drugbank_entity:
     'Resolve a drug name to a DrugBank entity for scientific pharmacology data.',
   get_drugbank_detail:

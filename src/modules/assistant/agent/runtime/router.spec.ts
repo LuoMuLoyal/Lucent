@@ -49,7 +49,6 @@ describe('selectAllowedToolsForContextSources', () => {
     const tools = selectAllowedToolsForContextSources([]);
     expect(tools).toContain('search_cn_medicine_products');
     expect(tools).toContain('search_medicine_leaflets');
-    expect(tools).toContain('search_medical_qa_corpus');
     expect(tools).toContain('resolve_drugbank_entity');
   });
 });
@@ -74,7 +73,6 @@ describe('selectRelevantToolsForMessage', () => {
     'resolve_drugbank_entity',
     'get_drugbank_detail',
     'search_drugbank_passages',
-    'search_medical_qa_corpus',
   ] as const;
 
   const allWriteTools = [

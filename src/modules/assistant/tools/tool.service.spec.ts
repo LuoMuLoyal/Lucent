@@ -104,21 +104,6 @@ describe('AssistantToolService', () => {
       } as never,
       { getStore: vi.fn() } as never,
     );
-    const medicalKnowledgeService = {
-      searchMedicalQaCorpus: vi.fn().mockResolvedValue({
-        query: {},
-        result: { knowledge: [] },
-        coverage: { status: 'empty', reason: 'No query was provided.' },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        source: {
-          tool: 'search_medical_qa_corpus',
-          generatedAt: new Date().toISOString(),
-          tables: ['medical_qa_embeddings'],
-        },
-        confidence: { level: 'low', reason: 'Empty query.' },
-        ambiguities: [],
-      }),
-    } as never;
     const drugbankEntityResolveService =
       new AssistantToolDrugbankEntityResolveService({
         drugbankDrug: {
@@ -206,7 +191,6 @@ describe('AssistantToolService', () => {
       readService,
       leafletReadService,
       knowledgeRetrievalService as never,
-      medicalKnowledgeService,
       drugbankEntityResolveService,
       drugbankSearchService,
       medicineLookupService as never,
@@ -247,12 +231,11 @@ describe('AssistantToolService', () => {
           'get_cn_medicine_detail',
           'get_drugbank_detail',
           'search_medicine_leaflets',
-          'search_medical_qa_corpus',
           'resolve_drugbank_entity',
           'search_drugbank_passages',
         ),
       ),
-    ).resolves.toHaveLength(7);
+    ).resolves.toHaveLength(6);
 
     expect(
       deps.medicineLookupService.searchCnMedicineProducts,

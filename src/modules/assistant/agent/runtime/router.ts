@@ -63,7 +63,6 @@ export function selectRelevantToolsForMessage(
       'resolve_drugbank_entity',
       'get_drugbank_detail',
       'search_drugbank_passages',
-      'search_medical_qa_corpus',
     ];
 
     return [...toolNames].sort((left, right) => {
