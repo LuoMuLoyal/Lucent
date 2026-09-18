@@ -40,6 +40,7 @@ import type {
 } from '../tools/shared/tool-types.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
 import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service.js';
+import { classifyProviderFailure } from '../services/provider-failure.js';
 import {
   buildAssistantSystemPrompt,
   buildReadSystemPrompt,
@@ -534,13 +535,26 @@ export class AssistantRuntimeService {
 
   /**
    * Converts a DomainFailureException raised inside the imperative body into
-   * the Result Err; any other exception (LLM, program, config) is re-thrown
-   * so it reaches the transport boundary unchanged.
+   * the Result Err; a provider failure becomes a `dependency` DomainFailure so
+   * the transport reports a model outage as such (see
+   * {@link classifyProviderFailure}); anything else is re-thrown so it reaches
+   * the transport boundary unchanged.
    */
   private toDomainFailure(error: unknown): DomainFailure {
     if (error instanceof DomainFailureException) {
       return error.failure;
     }
+
+    const provider = classifyProviderFailure(error);
+    if (provider != null) {
+      return createDomainFailure({
+        kind: 'dependency',
+        code: provider.code,
+        detail: provider.detail,
+        retryable: provider.retryable,
+      });
+    }
+
     throw error;
   }
 

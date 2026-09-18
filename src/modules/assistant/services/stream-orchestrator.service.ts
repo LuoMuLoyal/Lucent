@@ -17,6 +17,7 @@ import { IUserSettingsPort } from '../../user-settings/index.js';
 import { AssistantPolicyService } from './policy.service.js';
 import { AssistantToolService } from '../tools/tool.service.js';
 import { AssistantConversationService } from './conversation.service.js';
+import { classifyProviderFailure } from './provider-failure.js';
 import { nowIsoString } from '../../../common/index.js';
 import type {
   AssistantConversationMessage,
@@ -393,10 +394,33 @@ export class AssistantStreamOrchestratorService {
       : 'The last assistant conversation message must be a non-empty user message.';
   }
 
+  /**
+   * Normalizes a failure raised while producing a streamed reply.
+   *
+   * Upstream provider errors (the LLM returning 4xx/5xx) previously escaped as
+   * raw exceptions and were flattened by the SSE mapper into a generic
+   * `INTERNAL_ERROR` / `VALIDATION_FAILED`, which the client renders as "This
+   * reply did not complete". That hid the real cause — a model that is gone or
+   * out of quota looked identical to a bug in the assistant. They are mapped
+   * here to a `dependency` failure so the client can tell "the model is at
+   * fault" apart from "the server broke", and so `retryable` reflects whether
+   * another attempt could plausibly succeed.
+   */
   private toDomainFailure(error: unknown): DomainFailure {
     if (error instanceof DomainFailureException) {
       return error.failure;
     }
+
+    const provider = classifyProviderFailure(error);
+    if (provider != null) {
+      return createDomainFailure({
+        kind: 'dependency',
+        code: provider.code,
+        detail: provider.detail,
+        retryable: provider.retryable,
+      });
+    }
+
     throw error;
   }
 
