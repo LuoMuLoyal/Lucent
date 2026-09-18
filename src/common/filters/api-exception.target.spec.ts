@@ -10,6 +10,7 @@ import type { I18nService } from 'nestjs-i18n';
 import { createDomainFailure } from '../result/domain-failure.js';
 import { DomainFailureException } from '../result/unwrap-result.js';
 import { ApiExceptionFilter } from './api-exception.filter.js';
+import { ValidationException } from './validation-exception.js';
 
 function createI18n(): I18nService {
   const translations: Record<string, string> = {
@@ -154,6 +155,40 @@ describe('ApiExceptionFilter target contract', () => {
         code: 'VALIDATION_FAILED',
         errors: {
           general: ['email must be an email', 'name should not be empty'],
+        },
+      }),
+    );
+  });
+
+  it('forwards per-field Standard Schema issue paths for a strict-key rejection', () => {
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new ValidationException([
+        {
+          path: 'scheduledFor',
+          message: 'Invalid input: expected string, received number',
+        },
+      ]),
+      createHost(response, { method: 'POST', url: '/dose-logs' }),
+    );
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'VALIDATION_FAILED',
+        errors: {
+          issues: [
+            {
+              path: 'scheduledFor',
+              message: 'Invalid input: expected string, received number',
+            },
+          ],
         },
       }),
     );

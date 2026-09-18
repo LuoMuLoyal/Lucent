@@ -23,6 +23,7 @@ import { safeCompare } from './common/index.js';
 import { ProblemDetailsDto, SseProblemDetailsDto } from './common/index.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
+import { ValidationException } from './common/filters/validation-exception.js';
 import { SlowRequestInterceptor } from './common/index.js';
 import type { FastifyRequestWithMetrics } from './common/types/metrics.types.js';
 import { getActiveTraceIds } from './common/logger/trace-context.utils.js';
@@ -241,7 +242,26 @@ export async function setupApp(
   app.useGlobalPipes(
     // Standard Schema pipe validates params that carry `{ schema }` metadata
     // (all request DTOs are zod schemas since the request-side migration).
-    new StandardSchemaValidationPipe(),
+    //
+    // The built-in factory flattens issues into bare `message` strings, which
+    // `resolveErrors` cannot turn back into field-level detail. Keep the
+    // structured issues instead, so a `.strict()` rejection names the
+    // offending key rather than reporting an actionable-less "Bad Request".
+    new StandardSchemaValidationPipe({
+      exceptionFactory: (issues) =>
+        new ValidationException(
+          issues.map((issue) => ({
+            path: (issue.path ?? [])
+              .map((segment) =>
+                // Standard Schema allows a bare key or a `{ key }` segment;
+                // zod emits the latter for object properties.
+                String(typeof segment === 'object' ? segment.key : segment),
+              )
+              .join('.'),
+            message: issue.message,
+          })),
+        ),
+    }),
   );
   app.useGlobalInterceptors(
     app.get(SlowRequestInterceptor),
