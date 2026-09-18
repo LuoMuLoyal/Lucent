@@ -169,10 +169,7 @@ export class DrugbankMedicinesService {
       return null;
     }
 
-    const uniprotIds = uniqueNonEmptyStrings(
-      row.targetRelations.map((relation) => relation.target.uniprotId ?? ''),
-      Number.MAX_SAFE_INTEGER,
-    );
+    const uniprotIds = this.resolveTargetUniprotIds(row.targetRelations);
 
     const [drugRows, targetRows] = await Promise.all([
       this.prisma.drugbankDrugSequence.findMany({
@@ -265,10 +262,7 @@ export class DrugbankMedicinesService {
     drugbankId: string,
     targetRelations: DrugbankDrugTargetWithTarget[],
   ): Promise<SequenceSummaryDto | null> {
-    const uniprotIds = uniqueNonEmptyStrings(
-      targetRelations.map((relation) => relation.target.uniprotId ?? ''),
-      Number.MAX_SAFE_INTEGER,
-    );
+    const uniprotIds = this.resolveTargetUniprotIds(targetRelations);
 
     const [drugChainCount, targetSequenceCount] = await Promise.all([
       this.prisma.drugbankDrugSequence.count({ where: { drugbankId } }),
@@ -287,16 +281,35 @@ export class DrugbankMedicinesService {
   }
 
   /**
+   * Collects the distinct UniProt ids of a drug's target relations.
+   *
+   * Shared by `getSequences` (which fetches the target sequences) and
+   * `countSequences` (which only needs the ids for a count query), so the
+   * dedup + trimming logic lives in exactly one place.
+   */
+  private resolveTargetUniprotIds(
+    relations: DrugbankDrugTargetWithTarget[],
+  ): string[] {
+    return uniqueNonEmptyStrings(
+      relations.map((relation) => relation.target.uniprotId ?? ''),
+      Number.MAX_SAFE_INTEGER,
+    );
+  }
+
+  /**
    * Builds the search WHERE clause for DrugBank drugs.
    *
-   * `searchText` is a pre-built text field (see import script
-   * `drugbank_drugs.py`) that includes the drug name, CAS number, UNII,
-   * secondary IDs, groups, and the first 20 synonyms. This provides broad
-   * discovery but may cause over-matching on common synonym substrings.
+   * `searchText` is the primary discovery field — a pre-built text blob (see
+   * import script `drugbank_drugs.py`) that already carries the drug name,
+   * CAS number, UNII, secondary IDs, groups, and the first 20 synonyms, so a
+   * single `contains` over it covers almost every query. The business fields
+   * (`name` / `casNumber` / `unii`) are kept as a nested fallback OR for rows
+   * whose `searchText` is empty (import gaps), not as a parallel matching
+   * path.
    *
-   * The `matchedBy` field in search results helps callers distinguish
-   * whether a match came from `name`, `casNumber`, `unii`, `searchText`,
-   * or `synonyms`.
+   * `searchText` is deliberately absent from `matchedBy` in search items: it
+   * is an internal index, and its content is already decomposed into the
+   * business fields the client actually highlights.
    */
   private buildWhere(q: string): Prisma.DrugbankDrugWhereInput {
     if (!q) {

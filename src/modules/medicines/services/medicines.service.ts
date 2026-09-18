@@ -166,18 +166,7 @@ export class MedicinesService {
             code: 'INTERNAL_ERROR',
             cause: error instanceof Error ? error : undefined,
           }),
-      ).andThen((detail) => {
-        if (!detail) {
-          return errAsync(
-            createDomainFailure({
-              kind: 'not_found',
-              code: 'RESOURCE_NOT_FOUND',
-              detail: this.i18n.t('medicine.not_found'),
-            }),
-          );
-        }
-        return okAsync(detail);
-      });
+      ).andThen((detail) => this.ensureFound(detail));
     });
   }
 
@@ -217,23 +206,11 @@ export class MedicinesService {
             code: 'INTERNAL_ERROR',
             cause: error instanceof Error ? error : undefined,
           }),
-      ).andThen((sequences) => {
-        if (!sequences) {
-          return errAsync(
-            createDomainFailure({
-              kind: 'not_found',
-              code: 'RESOURCE_NOT_FOUND',
-              detail: this.i18n.t('medicine.not_found'),
-            }),
-          );
-        }
-        return okAsync(sequences);
-      });
+      ).andThen((sequences) => this.ensureFound(sequences));
     });
   }
 
-  // TODO(archive): 接口完整但当前无任何 C 端 UI 消费方（死代码保留）；
-  // 若未来做随机安全贴士，应在移动端药品详情页内以审核内容卡片形式重做。
+  // Dead-code endpoint (no C-end consumer); see docs/TODO.md.
   async getRandomSafetyTips(
     excludeIds: string[],
     lang?: string,
@@ -266,6 +243,23 @@ export class MedicinesService {
         text: useChinese ? tip.contentZh : tip.contentEn,
         category: tip.category,
       }));
+  }
+
+  /**
+   * Maps a nullable adapter result onto the standard `not_found` domain
+   * failure, shared by the detail and sequences read paths.
+   */
+  private ensureFound<T>(value: T | null): ResultAsync<T, DomainFailure> {
+    if (!value) {
+      return errAsync(
+        createDomainFailure({
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: this.i18n.t('medicine.not_found'),
+        }),
+      );
+    }
+    return okAsync(value);
   }
 
   private resolveSource(
