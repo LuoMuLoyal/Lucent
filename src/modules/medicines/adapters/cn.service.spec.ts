@@ -95,7 +95,23 @@ describe('CnMedicinesService', () => {
       expect(result.pagination.total).toBe(1);
     });
 
-    it('builds where clause with OR conditions for query', async () => {
+    it('reports only business keys in matchedBy, never searchText', async () => {
+      prisma.cnMedicineProduct.findMany.mockResolvedValue([makeRow()]);
+      prisma.cnMedicineProduct.count.mockResolvedValue(1);
+
+      // Query hits `name` — which is also a prefix of `searchText` — but the
+      // internal index field must not appear as a matched key.
+      const result = await service.search({
+        q: '阿司匹林',
+        page: 1,
+        pageSize: 10,
+      });
+
+      expect(result.items[0]!.matchedBy).toEqual(['name']);
+      expect(result.items[0]!.matchedBy).not.toContain('searchText');
+    });
+
+    it('builds where clause with nested OR conditions for query', async () => {
       prisma.cnMedicineProduct.findMany.mockResolvedValue([]);
       prisma.cnMedicineProduct.count.mockResolvedValue(0);
 
@@ -103,7 +119,10 @@ describe('CnMedicinesService', () => {
 
       const findManyCall = prisma.cnMedicineProduct.findMany.mock.calls[0]?.[0];
       expect(findManyCall?.where).toHaveProperty('OR');
-      expect(findManyCall?.where.OR).toHaveLength(6);
+      // searchText is the primary discovery field; the business fields sit in
+      // a nested fallback OR for rows with an empty searchText.
+      expect(findManyCall?.where.OR).toHaveLength(2);
+      expect(findManyCall?.where.OR[1]?.OR).toHaveLength(5);
     });
 
     it('returns empty where for empty query', async () => {

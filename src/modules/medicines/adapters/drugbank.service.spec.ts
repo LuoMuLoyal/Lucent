@@ -81,7 +81,7 @@ describe('DrugbankMedicinesService', () => {
       expect(result.pagination).toBeDefined();
     });
 
-    it('builds where clause with OR conditions for query', async () => {
+    it('builds where clause with nested OR conditions for query', async () => {
       prisma.drugbankDrug.findMany.mockResolvedValue([]);
       prisma.drugbankDrug.count.mockResolvedValue(0);
 
@@ -89,7 +89,10 @@ describe('DrugbankMedicinesService', () => {
 
       const findManyCall = prisma.drugbankDrug.findMany.mock.calls[0]?.[0];
       expect(findManyCall?.where).toHaveProperty('OR');
-      expect(findManyCall?.where.OR).toHaveLength(4);
+      // searchText is the primary discovery field; name/casNumber/unii sit in
+      // a nested fallback OR for rows with an empty searchText.
+      expect(findManyCall?.where.OR).toHaveLength(2);
+      expect(findManyCall?.where.OR[1]?.OR).toHaveLength(3);
     });
 
     it('returns empty where for empty query', async () => {
@@ -113,6 +116,22 @@ describe('DrugbankMedicinesService', () => {
       });
 
       expect(result.items[0]!.imageUrl).toBeNull();
+    });
+
+    it('reports only business keys in matchedBy, never searchText', async () => {
+      prisma.drugbankDrug.findMany.mockResolvedValue([makeRow()]);
+      prisma.drugbankDrug.count.mockResolvedValue(1);
+
+      // Query hits `name` — which is also a prefix of `searchText` — but the
+      // internal index field must not be reported as a matched key.
+      const result = await service.search({
+        q: 'aspirin',
+        page: 1,
+        pageSize: 10,
+      });
+
+      expect(result.items[0]!.matchedBy).toEqual(['name']);
+      expect(result.items[0]!.matchedBy).not.toContain('searchText');
     });
   });
 

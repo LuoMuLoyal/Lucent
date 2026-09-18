@@ -305,10 +305,14 @@ export class DrugbankMedicinesService {
 
     return {
       OR: [
-        { name: { contains: q, mode: 'insensitive' } },
-        { casNumber: { contains: q, mode: 'insensitive' } },
-        { unii: { contains: q, mode: 'insensitive' } },
         { searchText: { contains: q, mode: 'insensitive' } },
+        {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { casNumber: { contains: q, mode: 'insensitive' } },
+            { unii: { contains: q, mode: 'insensitive' } },
+          ],
+        },
       ],
     };
   }
@@ -335,11 +339,14 @@ export class DrugbankMedicinesService {
       summary: truncateText(firstNonEmpty(row.description, row.indication)),
       tags,
       imageUrl: null,
+      // `searchText` is an internal index field (its content is a
+      // concatenation of name/CAS/UNII/ids/groups/synonyms), so feeding it to
+      // `detectMatchedBy` would report a duplicate match for every business
+      // field hit — exclude it and let only the real business keys win.
       matchedBy: detectMatchedBy(query, [
         { key: 'name', value: row.name },
         { key: 'casNumber', value: row.casNumber },
         { key: 'unii', value: row.unii },
-        { key: 'searchText', value: row.searchText },
         ...synonymList.map((synonym) => ({
           key: 'synonyms',
           value: synonym,

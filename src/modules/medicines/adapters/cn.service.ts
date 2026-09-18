@@ -111,12 +111,16 @@ export class CnMedicinesService {
 
     return {
       OR: [
-        { name: { contains: q, mode: 'insensitive' } },
-        { brandName: { contains: q, mode: 'insensitive' } },
-        { approvalNumber: { contains: q, mode: 'insensitive' } },
-        { barcode: { contains: q, mode: 'insensitive' } },
-        { nationalDrugCode: { contains: q, mode: 'insensitive' } },
         { searchText: { contains: q, mode: 'insensitive' } },
+        {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { brandName: { contains: q, mode: 'insensitive' } },
+            { approvalNumber: { contains: q, mode: 'insensitive' } },
+            { barcode: { contains: q, mode: 'insensitive' } },
+            { nationalDrugCode: { contains: q, mode: 'insensitive' } },
+          ],
+        },
       ],
     };
   }
@@ -140,13 +144,15 @@ export class CnMedicinesService {
         4,
       ),
       imageUrl: row.imageUrl,
+      // `searchText` is an internal index field (concatenation of
+      // name/brandName/manufacturer/approval/barcode/...), so it is excluded
+      // from `matchedBy` to avoid duplicate business-key hits.
       matchedBy: detectMatchedBy(query, [
         { key: 'name', value: row.name },
         { key: 'brandName', value: row.brandName },
         { key: 'approvalNumber', value: row.approvalNumber },
         { key: 'barcode', value: row.barcode },
         { key: 'nationalDrugCode', value: row.nationalDrugCode },
-        { key: 'searchText', value: row.searchText },
       ]),
     };
   }
