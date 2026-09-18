@@ -193,12 +193,9 @@ export class MedicinesService {
           () =>
             source === 'drugbank'
               ? this.drugbankMedicinesService.getSequences(normalizedId)
-              : Promise.resolve({
-                  id: normalizedId,
-                  source: 'cn' as const,
-                  drug: [],
-                  targets: [],
-                }),
+              : Promise.resolve(
+                  this.cnMedicinesService.getSequences(normalizedId),
+                ),
         ),
         (error) =>
           createDomainFailure({

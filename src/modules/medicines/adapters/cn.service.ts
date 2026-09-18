@@ -6,6 +6,7 @@ import type {
   CnMedicineDetailDto,
   MedicineDetailDataDto,
 } from '../dto/detail.dto.js';
+import type { MedicineSequenceDataDto } from '../dto/sequence.dto.js';
 
 import type {
   MedicineSearchItemDto,
@@ -49,6 +50,25 @@ export class CnMedicinesService {
     return {
       items: rows.map((row) => this.toSearchItem(row, criteria.q)),
       pagination: toPagination(criteria.page, criteria.pageSize, total),
+    };
+  }
+
+  /**
+   * Sequences for one CN product.
+   *
+   * The CN source is a leaflet database with no sequence columns, so it always
+   * answers with an empty set rather than a 404 — the medicine itself exists.
+   * Routing through this adapter (instead of a `Promise.resolve` inline in the
+   * facade) keeps `MedicinesService.getSequences` on the same cache + adapter
+   * dispatch path as `getDetail` / `search`, so the sequences cache key for CN
+   * is consistent even when the source one day starts carrying sequences.
+   */
+  getSequences(id: string): MedicineSequenceDataDto | null {
+    return {
+      id,
+      source: 'cn',
+      drug: [],
+      targets: [],
     };
   }
 

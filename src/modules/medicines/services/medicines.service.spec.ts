@@ -30,6 +30,7 @@ describe('MedicinesService', () => {
           useValue: {
             search: vi.fn(),
             getDetail: vi.fn(),
+            getSequences: vi.fn(),
           },
         },
         {
@@ -37,6 +38,7 @@ describe('MedicinesService', () => {
           useValue: {
             search: vi.fn(),
             getDetail: vi.fn(),
+            getSequences: vi.fn(),
           },
         },
         {
@@ -44,6 +46,7 @@ describe('MedicinesService', () => {
           useValue: {
             getOrSetSearch: vi.fn(),
             getOrSetDetail: vi.fn(),
+            getOrSetSequences: vi.fn(),
             getOrSetSafetyTips: vi.fn(),
           },
         },
@@ -263,6 +266,85 @@ describe('MedicinesService', () => {
       expect.any(Function),
     );
     expect(drugbankMedicinesService.getDetail).toHaveBeenCalledWith('DB01050');
+  });
+
+  describe('getSequences', () => {
+    it('routes drugbank sequences through the cache service and drugbank adapter', async () => {
+      const sequences = {
+        id: 'DB00002',
+        source: 'drugbank' as const,
+        drug: [{ description: 'heavy chain', length: 449, sequence: 'QVQLK' }],
+        targets: [],
+      };
+      drugbankMedicinesService.getSequences.mockResolvedValue(sequences);
+      medicinesCacheService.getOrSetSequences.mockImplementation(
+        async (_source, _id, _bypass, load) => load(),
+      );
+
+      const result = await unwrapResult(
+        service.getSequences(' DB00002 ', { source: 'drugbank' }, false),
+      );
+      expect(result).toEqual(sequences);
+
+      expect(medicinesCacheService.getOrSetSequences).toHaveBeenCalledWith(
+        'drugbank',
+        'DB00002',
+        false,
+        expect.any(Function),
+      );
+      expect(drugbankMedicinesService.getSequences).toHaveBeenCalledWith(
+        'DB00002',
+      );
+      expect(cnMedicinesService.getSequences).not.toHaveBeenCalled();
+    });
+
+    it('routes cn sequences through the cache service and cn adapter (empty set)', async () => {
+      const sequences = {
+        id: 'cn-1',
+        source: 'cn' as const,
+        drug: [],
+        targets: [],
+      };
+      cnMedicinesService.getSequences.mockResolvedValue(sequences);
+      medicinesCacheService.getOrSetSequences.mockImplementation(
+        async (_source, _id, _bypass, load) => load(),
+      );
+
+      const result = await unwrapResult(
+        service.getSequences('cn-1', { source: 'cn' }, false),
+      );
+      expect(result).toEqual(sequences);
+
+      // The CN source goes through the same cache + adapter dispatch path as
+      // drugbank, so its sequences cache key is populated and consistent.
+      expect(medicinesCacheService.getOrSetSequences).toHaveBeenCalledWith(
+        'cn',
+        'cn-1',
+        false,
+        expect.any(Function),
+      );
+      expect(cnMedicinesService.getSequences).toHaveBeenCalledWith('cn-1');
+      expect(drugbankMedicinesService.getSequences).not.toHaveBeenCalled();
+    });
+
+    it('throws not found when the adapter has no sequences record', async () => {
+      drugbankMedicinesService.getSequences.mockResolvedValue(null);
+      medicinesCacheService.getOrSetSequences.mockImplementation(
+        async (_source, _id, _bypass, load) => load(),
+      );
+
+      await expect(
+        unwrapResult(
+          service.getSequences('DB00000', { source: 'drugbank' }, false),
+        ),
+      ).rejects.toMatchObject({
+        failure: {
+          kind: 'not_found',
+          code: 'RESOURCE_NOT_FOUND',
+          detail: 'medicine.not_found',
+        },
+      });
+    });
   });
 
   describe('getRandomSafetyTips', () => {

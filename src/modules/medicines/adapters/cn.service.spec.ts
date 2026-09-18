@@ -177,4 +177,17 @@ describe('CnMedicinesService', () => {
       expect(detail.storage).toBe('密封保存');
     });
   });
+
+  describe('getSequences', () => {
+    it('returns an empty sequence set for any CN product', () => {
+      const result = service.getSequences('med-1');
+
+      expect(result).toEqual({
+        id: 'med-1',
+        source: 'cn',
+        drug: [],
+        targets: [],
+      });
+    });
+  });
 });
