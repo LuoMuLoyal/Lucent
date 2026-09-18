@@ -344,6 +344,16 @@ LIGHTRAG_WORKSPACE_QA       # 默认 qa
 base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独立**：LightRAG 侧用自己的
 变量名与自己的凭据，即使指向同一家厂商也是两套配置、两个 key、各自轮换、各自限流。
 
+关闭时 `search_cn_medicine_knowledge` 在 `GET /assistant/capabilities` 上报
+`disabledReason: 'retrieval_unavailable'`——中文散文检索没有降级路径，必须让客户端
+看见"检索暂不可用"而不是"确实没有证据"。
+
+> **`LIGHTRAG_WORKSPACE_*` 的当前实情**：上游 #2527 确认单实例仅支持单 workspace，
+> 实测 `LIGHTRAG-WORKSPACE` 头并不改变实际读写位置（`get_workspace_from_request`
+> 只被 `/health` 调用）。两个 workspace 变量仍然保留在契约里，但**同一 sidecar 实例上
+> `leaflet` 与 `qa` 实际落在同一命名空间**，靠灌入时写入的 doc id 前缀
+> （`leaflet:` / `qa:`）区分来源。需要真正隔离时应另起一个 sidecar 实例。
+
 **sidecar 自身的配置不在这里。** LightRAG 进程（Python 容器）读它自己那份独立 env
 文件：模板位于 `deploy/lightrag/`（`env.example`，入库并作为 LightRAG 全部变量的
 唯一清单），使用时同目录复制去掉 `.example` 后缀；其中包含存储四件套

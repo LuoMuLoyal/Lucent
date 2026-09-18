@@ -197,7 +197,15 @@ GitHub (CI/CD)                              Coolify 控制面
   pipeline 并停掉所有 writer 再启新版本**;漏一个旧 writer 即损坏数据。
   `stop_grace_period: 60s` 就是为排空留的。
 - **回滚**:停 `lightrag` 服务并把 app 的 `LIGHTRAG_ENABLED` 置 `false` 即可 ——
-  工具会返回"未配置"信封而不是报错,assistant 其余能力不受影响。
+  工具会返回"未配置"信封而不是报错,assistant 其余能力不受影响。客户端会经
+  `capabilities.disabledReason = 'retrieval_unavailable'` 看到"检索暂不可用"。
+- **灌数据**:chunk 表是事实源,用 `pnpm import:lightrag --workspace=leaflet|qa`
+  推进 sidecar(幂等,`--reset` 先按 doc id 清空)。灌入产出的 doc id 段序是
+  跨进程契约(查询侧靠它反解溯源),**改段序等于切断溯源链**;失败的文档用
+  `POST /documents/reprocess_failed` 重试。
+- **workspace 隔离的上游限制**:上游 #2527 确认单实例仅支持单 workspace,实测
+  `LIGHTRAG-WORKSPACE` 头不改变实际读写位置。因此同实例上 `leaflet` 与 `qa`
+  实际共享一个命名空间,靠 doc id 前缀区分;需要物理隔离时要另起实例。
 
 staging 侧同机以容器运行(`compose.staging.yaml`),端口发布到
 `127.0.0.1:9621`(app 是宿主 PM2 进程),`.env.production` 里写

@@ -19,25 +19,33 @@ random docs.
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
 
-## 2026-09-17 LightRAG 中文散文检索（P1 已落地，后续阶段待做）
+## 2026-09-18 LightRAG 中文散文检索（P1/P3 已落地，剩余为评测与生产核对）
 
-基础设施（配置、sidecar 编排、retrieval 客户端、`search_cn_medicine_knowledge` 工具
-与单测）已完成；以下为计划后续阶段，**顺序不可反**——评测通过前不得删除旧散文检索工具。
+中文散文检索已**整体切换到 LightRAG**：旧散文检索工具与服务已删除，契约、
+脚本、双仓客户端全部同步完成（详见当日迁移日志）。剩余为评测与生产侧动作：
 
-- **P2 评测**：建 20–50 条分层中文问题（说明书 / 问答）+ 期望证据 id 的评测集；
-  灌 leaflet workspace，跑 `naive` 基线，记录命中率与溯源完整率。
-  **未评测前 `leaflet` 的 `mode` 只接受 `naive`**（服务端已强制）。
-- **删除旧散文检索工具（P3，需 P2 通过）**：`search_medicine_leaflets`、
-  `search_medical_qa_corpus` 及其服务、`VectorStoreFactory`、
-  `AdminToolsController` 三个端点、`rebuild-leaflet-index.ts --embed` 能力与
-  `import-medical-qa.ts` 嵌入阶段；capabilities 增 `retrieval_unavailable`
-  disabledReason（**改响应 schema → 需 `pnpm export:openapi` 并在 Luminous 侧用
-  其 contract bootstrap 脚本重新生成客户端，双仓同步**）。
-- **P4 灌 qa workspace**：医学问答语料进 LightRAG（`qa` 永远不建图）。
-- **P5 生产核对**：生产库轻量验证 sidecar 可达与 workspace 命中。
-- **P0 评测集**：分层中文问题集尚未建立。
-- **待定**：工具名 `search_cn_medicine_knowledge` 如需改名，在 P2 前定；
-  说明书是否建图由 P2 评测数据决定（当前默认不建图）。
+- **P2 全量评测（未做）**：当前只有一次 20 条语料的小样本模式验证
+  （产物在仓库外的 `lightrag-eval/`），**不足以判断真实规模下图模式是否有增益**；
+  社区经验阈值是 500–2000 页文档以上图模式才明显胜出，本项目远超该阈值，
+  真正的结论必须来自中大规模重跑，且需补**答案质量**评分（论文证明图模式收益
+  体现在端到端答案，而 Lucent 只取上下文、自己生成）。
+  **未评测前 `leaflet` 与 `qa` 的 `mode` 只接受 `naive`**（服务端已强制）。
+- **建图成本决策（未决）**：实测约 4 分钟/chunk、约 $0.057/doc。按 21,142 份
+  说明书估算，全量建图的墙钟与费用**需要单独立项**，不是"顺手跑一下"。
+- **P4 灌 `qa` workspace（脚本就位，未实跑）**：`medical_qa_chunks` 当前 0 行，
+  源数据（`DrugDataBase/医疗问答数据集一共135万条`）尚未导入。步骤：
+  `import-medical-qa.ts --filter` → `pnpm import:lightrag --workspace=qa`。
+- **P5 生产核对（未做）**：生产库验证 sidecar 可达、`/query` 鉴权生效
+  （注意 `/health` 不校验鉴权，不能用来判断 key 是否配对）与 workspace 命中。
+- **workspace 隔离（已知限制，不做）**：上游 #2527 确认单实例仅支持单
+  workspace，实测 `LIGHTRAG-WORKSPACE` 头不改变实际读写位置。因此同实例上
+  `leaflet` 与 `qa` 共享一个命名空间，靠 doc id 前缀区分；需要物理隔离要另起
+  实例。已在 assistant README / env 文档 / deployment 记录。
+- **待定**：工具名 `search_cn_medicine_knowledge` 如需改名，在评测前定。
+
+**已确认保留**：`VectorStoreFactory` 与 `ASSISTANT_VECTOR_*` **不删**——
+`search_drugbank_passages`（英文侧）仍走 Lucent 自己的 pgvector 表，与 LightRAG
+无关（计划 §6 曾标"实施时确认"，现确认保留）。
 
 ## 2026-09-11 文件上传链路遗留（上传链路收敛时发现）
 
