@@ -338,7 +338,9 @@ export class ReportsComputationService {
     fractionDigits: number,
   ): string {
     const delta = Number((currentValue - firstValue).toFixed(fractionDigits));
-    const sign = delta >= 0 ? '+' : '';
+    // No sign for "no change": "+0.0" reads as a small increase, while the
+    // value itself is exactly zero movement.
+    const sign = delta > 0 ? '+' : '';
     return sign + delta.toFixed(fractionDigits);
   }
 }

@@ -456,6 +456,31 @@ describe('ReportsComputationService', () => {
       expect(result.metrics[1]!.direction).toBe('flat');
     });
 
+    it('renders zero movement without a plus sign', () => {
+      // "+0.0" reads as a small increase; zero movement must not imply one.
+      const result = service.compute(
+        makeFacts({ waterSeries: [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5] }),
+        'en',
+      );
+      expect(result.metrics[1]!.delta).toBe('0.0');
+    });
+
+    it('keeps the plus sign for a real increase', () => {
+      const result = service.compute(
+        makeFacts({ waterSeries: [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0] }),
+        'en',
+      );
+      expect(result.metrics[1]!.delta.startsWith('+')).toBe(true);
+    });
+
+    it('keeps the minus sign for a real decrease', () => {
+      const result = service.compute(
+        makeFacts({ waterSeries: [3.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0] }),
+        'en',
+      );
+      expect(result.metrics[1]!.delta.startsWith('-')).toBe(true);
+    });
+
     it('down direction when average is lower than first value', () => {
       const result = service.compute(
         makeFacts({ waterSeries: [3.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0] }),
