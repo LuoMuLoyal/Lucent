@@ -59,6 +59,20 @@ export const LIGHTRAG_SOURCES_WITHOUT_GRAPH: readonly LightragSource[] = [
 export const LIGHTRAG_METADATA_LEAFLET_ID = 'leafletId';
 export const LIGHTRAG_METADATA_SOURCE_FIELD = 'sourceField';
 
+/**
+ * 稳定 doc id 的前缀 —— 灌入侧（`scripts/import/medicine/rebuild-lightrag-index.ts`）
+ * 与解析侧共用，改一处必须改另一处。
+ *
+ *   leaflet:<leafletId>:<sourceField>:<chunkIndex>
+ *   qa:<qaId>:<chunkIndex>
+ *
+ * 前缀也标出了"这条命中该用什么身份溯源"：说明书有 leafletId + 字段名，
+ * 问答只有 qaId。因此 `qa` 命中解析不出 leafletId **不是**溯源缺失，
+ * 不该被标成 partial —— 见 `LightragChunk` 的字段说明。
+ */
+export const LIGHTRAG_DOC_ID_PREFIX_LEAFLET = 'leaflet';
+export const LIGHTRAG_DOC_ID_PREFIX_QA = 'qa';
+
 /** 一个检索命中的 chunk（已从 LightRAG 的 reference 形态归一）。 */
 export interface LightragChunk {
   /** chunk 正文。 */
@@ -69,16 +83,24 @@ export interface LightragChunk {
   score: number | null;
   /** 来源文档路径（LightRAG 的 `file_path`），也承载 Lucent 写入的稳定 doc id。 */
   filePath: string;
-  /** 从 doc id / metadata 解析出的说明书 id；无法解析时为 null。 */
+  /** 从 doc id 解析出的说明书 id；问答命中或无法解析时为 null。 */
   leafletId: string | null;
-  /** 从 doc id / metadata 解析出的说明书字段名；无法解析时为 null。 */
+  /** 从 doc id 解析出的说明书字段名；问答命中或无法解析时为 null。 */
   sourceField: string | null;
+  /** 从 doc id 解析出的问答条目 id；说明书命中或无法解析时为 null。 */
+  qaId: string | null;
 }
 
 /** `POST /query`（`only_need_context=true`）的解构结果。 */
 export interface LightragQueryOutcome {
   chunks: LightragChunk[];
-  /** 至少一条命中无法映射回 `leafletId`（可能是别处灌入的文档）时为 true。 */
+  /**
+   * 至少一条命中**本可溯源却解析不出身份**（doc id 既不是 `leaflet:` 也不是
+   * `qa:` 形态）时为 true。
+   *
+   * 注意语义：`qa` 命中解析不出 `leafletId` 属于正常（它本来就没有说明书身份），
+   * 不算未映射；只有连 qaId 都拿不到才算。
+   */
   hasUnmappedChunk: boolean;
 }
 

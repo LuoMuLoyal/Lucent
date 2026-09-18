@@ -10,6 +10,8 @@ import type {
 } from './lightrag.types.js';
 import {
   LIGHTRAG_DEFAULT_MODE,
+  LIGHTRAG_DOC_ID_PREFIX_LEAFLET,
+  LIGHTRAG_DOC_ID_PREFIX_QA,
   LIGHTRAG_METADATA_LEAFLET_ID,
   LIGHTRAG_METADATA_SOURCE_FIELD,
 } from './lightrag.types.js';
@@ -24,12 +26,11 @@ const FALLBACK_TIMEOUT_MS = 8000;
 /** 错误 body 只截前 300 字符进日志：日志要的是线索，不是整段 HTML。 */
 const MAX_ERROR_BODY_LOG_CHARS = 300;
 
-/**
- * 灌入侧写入的稳定 doc id 形态：`leaflet:<leafletId>:<sourceField>:<chunkIndex>`
- * ——四段，前缀标来源。
- */
-const DOC_ID_PREFIX_LEAFLET = 'leaflet';
-const DOC_ID_MIN_SEGMENTS = 4;
+/** 说明书 doc id 段数：`leaflet:<leafletId>:<sourceField>:<chunkIndex>`。 */
+const DOC_ID_LEAFLET_MIN_SEGMENTS = 4;
+
+/** 问答 doc id 段数：`qa:<qaId>:<chunkIndex>`。 */
+const DOC_ID_QA_MIN_SEGMENTS = 3;
 
 /**
  * sidecar 的 API key 走 `X-API-Key`，**不是** `Authorization: Bearer`。
@@ -365,6 +366,8 @@ function parseQueryResponse(payload: unknown): LightragQueryOutcome | null {
     }
 
     const metadata = parseDocIdMetadata(filePath);
+    // 空 file_path 不算"未映射"：那更像上游给了个没有来源信息的 reference，
+    // 而不是一份身份不明的文档。
     if (metadata == null && filePath.length > 0) {
       hasUnmappedChunk = true;
     }
@@ -380,6 +383,7 @@ function parseQueryResponse(payload: unknown): LightragQueryOutcome | null {
         filePath,
         leafletId: metadata?.leafletId ?? null,
         sourceField: metadata?.sourceField ?? null,
+        qaId: metadata?.qaId ?? null,
       });
     }
   }
@@ -390,31 +394,49 @@ function parseQueryResponse(payload: unknown): LightragQueryOutcome | null {
 /**
  * 从灌入时写入的 doc id 反解溯源信息。
  *
- * doc id 形如 `leaflet:<leafletId>:<sourceField>:<chunkIndex>`（灌数据脚本写入
- * `file_source`，LightRAG 原样回传为 `file_path`）。解析不出来就返回 null，
- * 由调用方标 `coverage: partial`，而不是猜一个 leafletId。
+ * 两种形态（与 `scripts/import/medicine/rebuild-lightrag-index.ts` 严格对应）：
+ *
+ *   `leaflet:<leafletId>:<sourceField>:<chunkIndex>` → { leafletId, sourceField }
+ *   `qa:<qaId>:<chunkIndex>`                        → { qaId }
+ *
+ * 解析不出来就返回 null，由调用方标 `coverage: partial`，而不是猜一个身份。
  */
 function parseDocIdMetadata(
   filePath: string,
-): { leafletId: string; sourceField: string } | null {
+):
+  | { leafletId: string; sourceField: string; qaId: null }
+  | { leafletId: null; sourceField: null; qaId: string }
+  | null {
   const parts = filePath.split(':');
-  if (
-    parts.length < DOC_ID_MIN_SEGMENTS ||
-    parts[0] !== DOC_ID_PREFIX_LEAFLET
-  ) {
-    return null;
+  const prefix = parts[0];
+
+  if (prefix === LIGHTRAG_DOC_ID_PREFIX_LEAFLET) {
+    if (parts.length < DOC_ID_LEAFLET_MIN_SEGMENTS) {
+      return null;
+    }
+    const leafletId = parts[1];
+    const sourceField = parts[2];
+    if (leafletId == null || leafletId.length === 0) {
+      return null;
+    }
+    if (sourceField == null || sourceField.length === 0) {
+      return null;
+    }
+    return { leafletId, sourceField, qaId: null };
   }
 
-  const leafletId = parts[1];
-  const sourceField = parts[2];
-  if (leafletId == null || leafletId.length === 0) {
-    return null;
-  }
-  if (sourceField == null || sourceField.length === 0) {
-    return null;
+  if (prefix === LIGHTRAG_DOC_ID_PREFIX_QA) {
+    if (parts.length < DOC_ID_QA_MIN_SEGMENTS) {
+      return null;
+    }
+    const qaId = parts[1];
+    if (qaId == null || qaId.length === 0) {
+      return null;
+    }
+    return { leafletId: null, sourceField: null, qaId };
   }
 
-  return { leafletId, sourceField };
+  return null;
 }
 
 /**

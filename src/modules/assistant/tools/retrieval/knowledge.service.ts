@@ -121,12 +121,14 @@ export class AssistantToolKnowledgeRetrievalService {
       score: chunk.score,
       leafletId: chunk.leafletId,
       sourceField: chunk.sourceField,
+      qaId: chunk.qaId,
       verifiability: this.resolveVerifiability(source),
       sourceNote: this.resolveSourceNote(source),
     }));
 
-    // 至少一条命中解析不出 leafletId 时，溯源链是断的 —— 明确标 partial，
-    // 让模型知道"有证据但不都能追回原文"，而不是假装完整（计划 §5.4）。
+    // 至少一条命中解析不出身份（doc id 既非 `leaflet:` 也非 `qa:`）时，溯源链是断的
+    // ——明确标 partial，让模型知道"有证据但不都能追回原文"，而不是假装完整（计划 §5.4）。
+    // 注意：`qa` 命中没有 leafletId 属正常（问答本就没有说明书身份），不算未映射。
     const coveragePartial = outcome.value.hasUnmappedChunk;
 
     return buildReadEnvelope({
@@ -324,9 +326,9 @@ export class AssistantToolKnowledgeRetrievalService {
   /**
    * 可信度标注由服务端按 source 写入（计划 §5.3.6）。
    *
-   * `qa` 是开放语料（低可信教育参考，无独立可验证来源），与旧
-   * `search_medical_qa_corpus` 的 `open_corpus` 标注保持一致；`leaflet` 是药品
-   * 说明书，属可溯源的表内证据。
+   * `qa` 是开放语料（低可信教育参考，无独立可验证来源），沿用旧医学问答工具
+   * 就已使用的 `open_corpus` 标注——客户端按它渲染低可信提示，改值会让前端
+   * 静默失去这个提示；`leaflet` 是药品说明书，属可溯源的表内证据。
    */
   private resolveVerifiability(source: LightragSource): string {
     return source === 'qa' ? 'open_corpus' : 'citable';

@@ -90,6 +90,7 @@ describe('LightragClientService', () => {
         filePath: 'leaflet:L-1:contraindications:0',
         leafletId: 'L-1',
         sourceField: 'contraindications',
+        qaId: null,
       },
       {
         text: '对本品过敏者禁用。',
@@ -98,6 +99,7 @@ describe('LightragClientService', () => {
         filePath: 'leaflet:L-1:contraindications:0',
         leafletId: 'L-1',
         sourceField: 'contraindications',
+        qaId: null,
       },
       {
         text: '偶见皮疹。',
@@ -106,6 +108,7 @@ describe('LightragClientService', () => {
         filePath: 'leaflet:L-2:adverse_reactions:3',
         leafletId: 'L-2',
         sourceField: 'adverse_reactions',
+        qaId: null,
       },
     ]);
   });
@@ -139,6 +142,34 @@ describe('LightragClientService', () => {
     expect(init.headers).not.toHaveProperty('Authorization');
   });
 
+  it('maps qa doc ids to qaId without treating them as unmapped', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      jsonResponse({
+        response: 'context',
+        references: [
+          {
+            reference_id: '1',
+            file_path: 'qa:QA-7:0',
+            content: ['问：感冒怎么办？\n答：多休息。'],
+          },
+        ],
+      }),
+    ) as unknown as typeof fetch;
+
+    const result = await buildService().query({
+      workspace: 'qa',
+      query: '感冒',
+      limit: 4,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('expected success');
+    // qa 命中本来就没有说明书身份，不是溯源缺失。
+    expect(result.value.hasUnmappedChunk).toBe(false);
+    expect(result.value.chunks[0]?.qaId).toBe('QA-7');
+    expect(result.value.chunks[0]?.leafletId).toBeNull();
+  });
+
   it('flags chunks whose doc id cannot be mapped back to a leaflet', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       jsonResponse({
@@ -159,6 +190,7 @@ describe('LightragClientService', () => {
     if (!result.ok) throw new Error('expected success');
     expect(result.value.hasUnmappedChunk).toBe(true);
     expect(result.value.chunks[0]?.leafletId).toBeNull();
+    expect(result.value.chunks[0]?.qaId).toBeNull();
   });
 
   it('returns an empty chunk list when the sidecar finds no evidence', async () => {
