@@ -131,12 +131,7 @@ export function toPagination(
 export function toDrugbankDrugInteractions(
   value: Prisma.JsonValue | null | undefined,
 ): DrugbankDrugInteractionDto[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const interactions: DrugbankDrugInteractionDto[] = [];
-  for (const item of value) {
+  return toTypedJsonArray(value, (item): DrugbankDrugInteractionDto | null => {
     if (
       item &&
       typeof item === 'object' &&
@@ -144,14 +139,13 @@ export function toDrugbankDrugInteractions(
       typeof item['drugbankId'] === 'string' &&
       typeof item['description'] === 'string'
     ) {
-      interactions.push({
+      return {
         drugbankId: item['drugbankId'],
         description: item['description'],
-      });
+      };
     }
-  }
-
-  return interactions.length > 0 ? interactions : null;
+    return null;
+  });
 }
 
 /**
@@ -163,39 +157,31 @@ export function toDrugbankDrugInteractions(
 export function toDrugbankExternalIdentifiers(
   value: Prisma.JsonValue | null | undefined,
 ): DrugbankExternalIdentifierDto[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const identifiers: DrugbankExternalIdentifierDto[] = [];
-  for (const item of value) {
-    if (
-      item &&
-      typeof item === 'object' &&
-      !Array.isArray(item) &&
-      typeof item['resource'] === 'string' &&
-      typeof item['identifier'] === 'string'
-    ) {
-      identifiers.push({
-        resource: item['resource'],
-        identifier: item['identifier'],
-      });
-    }
-  }
-
-  return identifiers.length > 0 ? identifiers : null;
+  return toTypedJsonArray(
+    value,
+    (item): DrugbankExternalIdentifierDto | null => {
+      if (
+        item &&
+        typeof item === 'object' &&
+        !Array.isArray(item) &&
+        typeof item['resource'] === 'string' &&
+        typeof item['identifier'] === 'string'
+      ) {
+        return {
+          resource: item['resource'],
+          identifier: item['identifier'],
+        };
+      }
+      return null;
+    },
+  );
 }
 
 /** Maps the raw `external_links` JSON column to the wire shape. */
 export function toDrugbankExternalLinks(
   value: Prisma.JsonValue | null | undefined,
 ): DrugbankExternalLinkDto[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const links: DrugbankExternalLinkDto[] = [];
-  for (const item of value) {
+  return toTypedJsonArray(value, (item): DrugbankExternalLinkDto | null => {
     if (
       item &&
       typeof item === 'object' &&
@@ -203,9 +189,35 @@ export function toDrugbankExternalLinks(
       typeof item['resource'] === 'string' &&
       typeof item['url'] === 'string'
     ) {
-      links.push({ resource: item['resource'], url: item['url'] });
+      return { resource: item['resource'], url: item['url'] };
+    }
+    return null;
+  });
+}
+
+/**
+ * Filters a raw JSON array through a per-entry guard, returning `null` when
+ * the source is absent or nothing survives the guard.
+ *
+ * The three DrugBank typed-array columns (`drug_interactions`,
+ * `external_identifiers`, `external_links`) all follow the same shape:
+ * guard each entry, drop the ones that fail, keep the rest.
+ */
+function toTypedJsonArray<T>(
+  value: Prisma.JsonValue | null | undefined,
+  guard: (raw: unknown) => T | null,
+): T[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const typed: T[] = [];
+  for (const item of value) {
+    const mapped = guard(item);
+    if (mapped !== null) {
+      typed.push(mapped);
     }
   }
 
-  return links.length > 0 ? links : null;
+  return typed.length > 0 ? typed : null;
 }
