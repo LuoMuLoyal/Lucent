@@ -83,6 +83,13 @@ export class MedicinesCacheService {
     return value;
   }
 
+  /**
+   * Reads one cache key, degrading to `undefined` on any cache-layer failure.
+   *
+   * The medicine read path is heavy (DB + joins), so a transient Redis error
+   * must not turn a request into a 500 — the caller (`getOrSet`) treats
+   * `undefined` as a miss and falls through to `load()`.
+   */
   private async cacheGet(key: string): Promise<unknown> {
     try {
       return await this.cache.get(key);
@@ -90,10 +97,17 @@ export class MedicinesCacheService {
       this.logger.warn(
         `Medicine cache get failed (key=${key}): ${String(error)}`,
       );
-      throw error;
+      return undefined;
     }
   }
 
+  /**
+   * Writes one cache key, swallowing failures.
+   *
+   * The value has already been loaded from the source of truth, so a cache
+   * write that fails must not break the business response — it only costs the
+   * next request another read-through.
+   */
   private async cacheSet(
     key: string,
     value: unknown,
@@ -105,7 +119,6 @@ export class MedicinesCacheService {
       this.logger.warn(
         `Medicine cache set failed (key=${key}): ${String(error)}`,
       );
-      throw error;
     }
   }
 

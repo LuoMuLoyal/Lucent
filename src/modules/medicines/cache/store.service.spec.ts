@@ -222,4 +222,41 @@ describe('MedicinesCacheService', () => {
       'medicines:search:drugbank:a%2Bb%26c%3Dd:1:10',
     );
   });
+
+  it('falls through to load() when cache get throws (degraded read)', async () => {
+    const loadedValue = {
+      items: [{ id: 'DB01050' }],
+      pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+    };
+    const load = vi.fn().mockResolvedValue(loadedValue);
+    cache.get.mockRejectedValue(new Error('redis down'));
+
+    const result = await service.getOrSetSearch(
+      { source: 'drugbank', q: 'ibuprofen', page: 1, pageSize: 10 },
+      false,
+      load,
+    );
+
+    // A cache-layer failure must degrade to a read-through, not a 500.
+    expect(result).toBe(loadedValue);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('swallows cache set failures without breaking the response', async () => {
+    const loadedValue = {
+      items: [{ id: 'DB01050' }],
+      pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+    };
+    const load = vi.fn().mockResolvedValue(loadedValue);
+    cache.get.mockResolvedValue(undefined);
+    cache.set.mockRejectedValue(new Error('redis down'));
+
+    await expect(
+      service.getOrSetSearch(
+        { source: 'drugbank', q: 'ibuprofen', page: 1, pageSize: 10 },
+        false,
+        load,
+      ),
+    ).resolves.toBe(loadedValue);
+  });
 });
