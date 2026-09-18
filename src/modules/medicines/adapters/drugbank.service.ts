@@ -285,10 +285,12 @@ export class DrugbankMedicinesService {
    *
    * Shared by `getSequences` (which fetches the target sequences) and
    * `countSequences` (which only needs the ids for a count query), so the
-   * dedup + trimming logic lives in exactly one place.
+   * dedup + trimming logic lives in exactly one place. The parameter is the
+   * projection both call sites already produce (`getSequences` selects only
+   * `target.uniprotId`; `countSequences` gets the full include).
    */
   private resolveTargetUniprotIds(
-    relations: DrugbankDrugTargetWithTarget[],
+    relations: Array<{ target: { uniprotId: string | null } }>,
   ): string[] {
     return uniqueNonEmptyStrings(
       relations.map((relation) => relation.target.uniprotId ?? ''),

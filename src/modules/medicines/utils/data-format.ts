@@ -205,7 +205,7 @@ export function toDrugbankExternalLinks(
  */
 function toTypedJsonArray<T>(
   value: Prisma.JsonValue | null | undefined,
-  guard: (raw: unknown) => T | null,
+  guard: (raw: Prisma.JsonValue) => T | null,
 ): T[] | null {
   if (!Array.isArray(value)) {
     return null;
