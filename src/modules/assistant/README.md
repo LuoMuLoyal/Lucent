@@ -41,17 +41,16 @@ owner: backend
 `read`（日报记录查询 + today/report/sleep 摘要读取，范围上限 14 天，统一 envelope：
 query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查询，
 单一安全候选才返回详情，歧义返回 candidates）、`retrieval`（**中文散文检索**，见下节；
-含 `LightragClientService` 与 `search_cn_medicine_knowledge`）、`leaflet`（中文说明书
-向量检索，miss 不回退关键词猜测）、`knowledge`（医学问答语料：assistant-only，
-开放语料统一 `verifiability: 'open_corpus'` 低可信标注，每页上限
-`MEDICAL_QA_MAX_LIMIT = 5`，前端线性服药流程不得消费）、`records`
+含 `LightragClientService` 与 `search_cn_medicine_knowledge`）、`records`
 （档案/在服药品 + **餐食分析 digest `get_meal_analysis_digest`**）、`proposal`
 （`propose_create/update/delete_daily_record`、`propose_update_user_settings`，
 只产出带 `expiresAt` 的提案，绝不直接写 DB）。
-检索源强制分离：中文说明书、DrugBank passage、医学问答各用独立向量表与
-工具，互不合并；DrugBank passage 检索必须先 `resolve_drugbank_entity` 圈定
-实体范围。AI 分层（assistant=Agent，其余默认 bounded-linear、复用
-`common/llm`、copy 本地化）详见 `docs/explanation/architecture.md`。
+检索源强制分离：中文散文（说明书字段 / 医学问答）走 LightRAG；DrugBank
+passage 走 Lucent 自己的 pgvector 表；`search_cn_medicine_products` /
+`get_cn_medicine_detail` 走 SQL 键查——三者互不合并。DrugBank passage 检索
+必须先 `resolve_drugbank_entity` 圈定实体范围。AI 分层（assistant=Agent，
+其余默认 bounded-linear、复用 `common/llm`、copy 本地化）详见
+`docs/explanation/architecture.md`。
 
 ### 中文散文检索（LightRAG，`tools/retrieval/`）
 
@@ -69,8 +68,29 @@ sidecar**，Lucent 只做参数校验与 envelope 归一：
   `source` 服务端写入（`qa` = `open_corpus`，`leaflet` = `citable`）。
 - **服务不可用 ≠ 没有证据**：超时/5xx 写成
   `coverage.reason: '... retrieval is unavailable: ...'`，绝不静默降级成空结果。
-- 命中带 `leafletId` / `sourceField` 溯源；解析不出的命中标
-  `coverage: partial`，不猜 id。
+  该状态同时经 `GET /capabilities` 暴露为
+  `disabledReason: 'retrieval_unavailable'`（sidecar 未启用/不可达时
+  `search_cn_medicine_knowledge` 报此原因；`search_drugbank_passages` 不受影响，
+  它读的是 Lucent 自己的库）。
+- **溯源**：命中带 `leafletId` / `sourceField`（`source=leaflet`）或 `qaId`
+  （`source=qa`）；doc id 既非 `leaflet:` 也非 `qa:` 形态的命中标
+  `coverage: partial`，不猜身份。`qa` 命中没有 `leafletId` 属正常，不算未映射。
+
+### 中文散文的灌入（`scripts/import/medicine/rebuild-lightrag-index.ts`）
+
+chunk 表是事实源，`pnpm import:lightrag --workspace=leaflet|qa` 把它推进
+sidecar（`POST /documents/texts`），`file_sources` 写稳定 doc id：
+
+```
+leaflet:<leafletId>:<sourceField>:<chunkIndex>
+qa:<qaId>:<chunkIndex>
+```
+
+段序是**跨进程契约**：改这里等于切断查询侧的溯源链。`--reset` 按 doc id
+清空该 workspace 后再灌（幂等）。`leaflet` 与 `qa` 分属两个 workspace，
+**在单实例上并未真正隔离**（上游 #2527：单实例仅支持单 workspace；实测
+`LIGHTRAG-WORKSPACE` 头不改变实际读写位置），所以两者当前落在同一命名空间，
+靠 doc id 前缀区分来源。
 
 sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）见
 `docs/reference/environment-variables.md` 的 LightRAG 小节与

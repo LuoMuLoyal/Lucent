@@ -14705,8 +14705,6 @@
               "search_cn_medicine_products",
               "get_cn_medicine_detail",
               "search_cn_medicine_knowledge",
-              "search_medicine_leaflets",
-              "search_medical_qa_corpus",
               "resolve_drugbank_entity",
               "get_drugbank_detail",
               "search_drugbank_passages",
@@ -14748,7 +14746,8 @@
               "chat_disabled",
               "context_disabled",
               "model_not_configured",
-              "not_implemented"
+              "not_implemented",
+              "retrieval_unavailable"
             ],
             "nullable": true
           }
