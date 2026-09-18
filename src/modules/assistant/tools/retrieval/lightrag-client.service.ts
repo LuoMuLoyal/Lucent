@@ -31,6 +31,19 @@ const MAX_ERROR_BODY_LOG_CHARS = 300;
 const DOC_ID_PREFIX_LEAFLET = 'leaflet';
 const DOC_ID_MIN_SEGMENTS = 4;
 
+/**
+ * sidecar 的 API key 走 `X-API-Key`，**不是** `Authorization: Bearer`。
+ *
+ * 上游事实（HKUDS/LightRAG `api/utils_api.py` 的 `get_combined_auth_dependency`）：
+ * API key 用 `APIKeyHeader(name="X-API-Key")`，而 `Authorization` 留给 OAuth2
+ * 登录令牌（`OAuth2PasswordBearer`）。发成 Bearer 会被当成一个非法的登录令牌，
+ * 直接 401 `Invalid token` —— 而不是"密钥不对"。
+ */
+const AUTH_HEADER_NAME = 'X-API-Key';
+
+/** workspace 头（上游 `get_workspace_from_request` 读的就是它）。 */
+const WORKSPACE_HEADER_NAME = 'LIGHTRAG-WORKSPACE';
+
 /** HTTP 状态码分类边界。 */
 const HTTP_STATUS_BAD_REQUEST = 400;
 const HTTP_STATUS_UNAUTHORIZED = 401;
@@ -188,10 +201,10 @@ export class LightragClientService {
   > {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.apiKey ?? ''}`,
+      [AUTH_HEADER_NAME]: this.apiKey ?? '',
     };
     if (options.workspace != null && options.workspace.length > 0) {
-      headers['LIGHTRAG-WORKSPACE'] = options.workspace;
+      headers[WORKSPACE_HEADER_NAME] = options.workspace;
     }
     if (options.body != null) {
       headers['Content-Type'] = 'application/json';

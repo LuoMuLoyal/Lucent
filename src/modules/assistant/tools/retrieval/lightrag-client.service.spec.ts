@@ -130,10 +130,13 @@ describe('LightragClientService', () => {
     expect(body['include_references']).toBe(true);
     expect(body['mode']).toBe('naive');
     expect(body['chunk_top_k']).toBe(4);
+    // 实测校准：LightRAG 的 API key 走 X-API-Key，Authorization 是 OAuth2 登录令牌专用。
+    // 发成 Bearer 会被判 401 "Invalid token"（不是"密钥不对"）。
     expect(init.headers).toMatchObject({
-      Authorization: 'Bearer handshake-key',
+      'X-API-Key': 'handshake-key',
       'LIGHTRAG-WORKSPACE': 'qa',
     });
+    expect(init.headers).not.toHaveProperty('Authorization');
   });
 
   it('flags chunks whose doc id cannot be mapped back to a leaflet', async () => {

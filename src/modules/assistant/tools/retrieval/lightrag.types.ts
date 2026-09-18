@@ -4,13 +4,15 @@
  * 这一层只描述"Lucent 怎么调 LightRAG"，不描述 LightRAG 自己的存储/模型配置
  * —— 后者只存在于 sidecar 的独立 env 文件里（见 `deploy/lightrag/`）。
  *
- * 上游事实源（2026-09 核对 HKUDS/LightRAG main 分支）：
+ * 上游事实源（2026-09-18 对照 HKUDS/LightRAG main 源码 + v1.5.7 实测）：
  * - `POST /query` → `{ response, references: [{ reference_id, file_path, content? }] }`，
  *   `content` 仅在 `include_chunk_content=true` 时出现；
  * - `POST /documents/texts` → `{ texts: string[], file_sources?: string[] }`；
  * - `POST /documents/delete_document` → `{ doc_ids: string[] }`；
  * - `GET /health`；
- * - workspace 经 `LIGHTRAG-WORKSPACE` 头选择；鉴权经 Bearer token。
+ * - workspace 经 `LIGHTRAG-WORKSPACE` 头选择；
+ * - 鉴权经 **`X-API-Key`** 头（`Authorization` 是 OAuth2 登录令牌专用，发 Bearer
+ *   会被当成非法令牌判 401 `Invalid token`——实测踩过，见客户端注释）。
  */
 
 /**
