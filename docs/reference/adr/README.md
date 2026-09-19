@@ -135,3 +135,7 @@ What becomes easier or harder as a result of this decision?
   - Title: 餐食分析改为一次多模态直出（区间 + 排序结论 + facets）
   - Status: accepted（retires ADR-0005 的成分表接地、人工确认与 coverage 读侧约定）
   - Date: 2026-09-15
+- [0021](0021-semantica-english-side-oag.md)
+  - Title: Semantica 只承接英文侧 OAG（图查询 / 本体治理 / 确定性推理 / PROV-O 溯源）
+  - Status: accepted
+  - Date: 2026-09-19
