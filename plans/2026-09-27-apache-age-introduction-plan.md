@@ -1,7 +1,7 @@
 # Apache AGE 图扩展引入计划
 
 Created: 2026-09-27
-状态：待评审（未开工）
+状态：P0–P5 已落地（2026-09-19）；剩余为 sidecar 容器化与三环境生产核对
 定位：为 Semantica OAG（英文侧本体增强生成）引入 **Apache AGE** 图查询扩展，使其能在 PostgreSQL 18 上运行 Cypher 图查询。**AGE 只服务英文侧 OAG；LightRAG 保持 `PGTableGraphStorage`（纯 SQL 表，不需要 AGE）。**
 
 ---
@@ -20,19 +20,20 @@ Created: 2026-09-27
 
 ---
 
-## 二、现状（2026-09-27 核实）
+## 二、现状（2026-09-19 复核）
 
 ### 2.1 PG 镜像
 
-| 环境 | 镜像           | 数据库                  |
-| ---- | -------------- | ----------------------- |
-| dev  | 待自建（§3.1） | `lucent`（POSTGRES_DB） |
-| test | 待自建（§3.1） | `lucent`                |
-| prod | 待自建（§3.1） | `lucent`                |
+| 环境 | 镜像                              | 数据库                    |
+| ---- | --------------------------------- | ------------------------- |
+| dev  | `lucent-db:18`（自建，AGE 1.7.0） | `lucent` + `lucent_graph` |
+| test | `LUCENT_DB_IMAGE`（同一自建镜像） | `lucent`                  |
+| prod | `LUCENT_DB_IMAGE`（同一自建镜像） | `lucent`                  |
 
-**当前 dev 跑的是 `pgvector/pgvector:pg18`（无 AGE）。** 原计划三环境统一换用
-`dyingbleed/postgres-rag:18-trixie`，该镜像仅发布 `arm64/linux`，在 amd64 上不可用
-（详见 §3.1）。
+三份 compose 都改为 `${LUCENT_DB_IMAGE}`（dev 默认 `lucent-db:18`），AGE 扩展编译在
+镜像内（`docker/postgres-age/`），图落在独立 database `lucent_graph`，不进 Prisma 迁移域。
+原拟用的社区镜像 `dyingbleed/postgres-rag:18-trixie` 仅发布 `arm64/linux`、在 amd64 上
+不可用（详见 §3.1），因此改为自建 —— 该路径已实测通过，amd64 回退风险消除。
 
 ### 2.2 AGE 版本选择
 
@@ -147,14 +148,14 @@ SET search_path = ag_catalog, "$user", public;
 
 ## 五、落地顺序与验收
 
-| 阶段   | 工作量 | 内容                                                               | 验收                                                                                     |
-| ------ | ------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| **P0** | 0.5 天 | 自建镜像：`FROM pgvector/pgvector:pg18` 编译 AGE `PG18/v1.7.0-rc0` | 镜像构建成功；`CREATE EXTENSION age;` 后 `SELECT * FROM ag_catalog.ag_graph;` 返回空结果 |
-| **P1** | 0.5 天 | 三环境 compose 编排（dev/test/prod）+ 独立 database 创建           | 三环境 `pg_isready` 通过，`SELECT * FROM pg_extension WHERE extname = 'age';` 返回 1 行  |
-| **P2** | 1 天   | Semantica sidecar 部署（fork 版 + curated extras）+ AGE 后端配置   | sidecar 启动成功，`CREATE (n:Test {name: 'hello'}) RETURN n;` 返回结果                   |
-| **P3** | 1 天   | DrugBank 数据灌入 Semantica（`DBIngestor` 直连 PG）                | 多跳查询（药→靶点→相互作用药）返回正确结果                                               |
-| **P4** | 1 天   | Lucent 新增 `reason_over_ontology` 工具 + 注册                     | 工具调用返回带 PROV-O 溯源的 envelope                                                    |
-| **P5** | 0.5 天 | 文档 + 迁移日志                                                    | `pnpm docs:verify` / `docs:links` 通过                                                   |
+| 阶段          | 工作量 | 内容                                                                                                                                                                          | 验收                                                                                     |
+| ------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **P0** ✅落地 | 0.5 天 | 自建镜像：`FROM pgvector/pgvector:pg18` 编译 AGE `PG18/v1.7.0-rc0`                                                                                                            | 镜像构建成功；`CREATE EXTENSION age;` 后 `SELECT * FROM ag_catalog.ag_graph;` 返回空结果 |
+| **P1** ✅落地 | 0.5 天 | 三环境 compose 编排（dev/test/prod）+ 独立 database 创建                                                                                                                      | 三环境 `pg_isready` 通过，`SELECT * FROM pg_extension WHERE extname = 'age';` 返回 1 行  |
+| **P2** ⚠️剩余 | 1 天   | Semantica sidecar 部署（fork 版 + curated extras）+ AGE 后端配置。**已落地部分**：dev 本机 `uvicorn` 联通 AGE；**剩余**：`semantica-service` 的 Dockerfile / 镜像与容器内编排 | sidecar 启动成功，`CREATE (n:Test {name: 'hello'}) RETURN n;` 返回结果                   |
+| **P3** ✅落地 | 1 天   | DrugBank 数据灌入 Semantica                                                                                                                                                   | 多跳查询（药→靶点→相互作用药）返回正确结果；实图 3,278 节点 / 211,630 边                 |
+| **P4** ✅落地 | 1 天   | Lucent 新增 `reason_over_ontology` 工具 + 注册                                                                                                                                | 工具调用返回带 PROV-O 溯源的 envelope（220,011 条审计记录、`verify_chain` 无断链）       |
+| **P5** ✅落地 | 0.5 天 | 文档 + 迁移日志                                                                                                                                                               | `pnpm docs:verify` / `docs:links` 通过                                                   |
 
 ---
 
