@@ -33,7 +33,8 @@ LIMIT {limit}
 _EDGES_QUERY = """
 MATCH (a)-[r]->(b)
 RETURN id(a) AS source, id(b) AS target, type(r) AS rel_type,
-       properties(r) AS props, labels(a) AS source_labels
+       properties(r) AS props,
+       properties(a) AS source_props, properties(b) AS target_props
 LIMIT {limit}
 """
 
@@ -70,6 +71,25 @@ def _first_label(labels: Any) -> str:
     return "entity"
 
 
+def _stable_key(record_id: Any, props: dict[str, Any]) -> str:
+    """Choose the identifier that Datalog facts will be built from.
+
+    ``add_fact`` prefers a dict's ``id`` field, so passing AGE's internal row
+    id would make every derived fact read ``shares_target(844424930131970, ...)``
+    — correct but useless to a caller. A business identifier in the properties
+    is therefore preferred, with the row id only as a fallback for nodes that
+    carry none.
+
+    Nodes and edges must resolve to the *same* key or edge facts would not join
+    to node facts at all, which is why this one function is shared by both.
+    """
+    for candidate in ("drugbank_id", "uniprot_id", "id", "name"):
+        value = props.get(candidate)
+        if value not in (None, ""):
+            return str(value)
+    return str(record_id)
+
+
 def export_nodes(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
     """Read nodes in the reasoner's node-dict form."""
     result = store.execute_query(_NODES_QUERY.format(limit=limit))
@@ -82,13 +102,15 @@ def export_nodes(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
         if node_id is None:
             continue
         props = _as_dict(record.get("props"))
-        nodes.append(
-            {
-                "id": str(node_id),
-                "type": _first_label(record.get("labels")),
-                "properties": props,
-            }
-        )
+        key = _stable_key(node_id, props)
+        node = {
+            "id": key,
+            "type": _first_label(record.get("labels")),
+            "properties": props,
+            # Retained so callers can map a fact back to the graph element.
+            "graph_id": str(node_id),
+        }
+        nodes.append(node)
     return nodes
 
 
@@ -108,8 +130,11 @@ def export_edges(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
         props = _as_dict(record.get("props"))
         edges.append(
             {
-                "source": str(source),
-                "target": str(target),
+                # Edge endpoints arrive as row ids, so they are mapped through
+                # the same key function the nodes used. If the two disagreed,
+                # edge facts would never join to node facts.
+                "source": _stable_key(source, _as_dict(record.get("source_props"))),
+                "target": _stable_key(target, _as_dict(record.get("target_props"))),
                 "type": str(rel_type),
                 "properties": props,
             }
@@ -150,6 +175,10 @@ class GraphExport:
         Nodes become typed subjects, edges become predicate-object pairs. The
         predicate is the relationship type in a local namespace, since AGE
         edges carry no IRI.
+
+        Subjects are keyed by their business identifier (``lucent:DB00945``)
+        rather than the row id, so a constraint violation names something the
+        shape author can look up.
         """
         lines = [
             "@prefix lucent: <http://lucent.local/graph#> .",
@@ -158,8 +187,8 @@ class GraphExport:
         ]
 
         for node in self._nodes:
-            subject = f"lucent:node{node['id']}"
-            lines.append(f"{subject} a lucent:{node['type']} ;")
+            subject = f"lucent:{_turtle_key(node['id'])}"
+            lines.append(f"{subject} a lucent:{_turtle_key(node['type'])} ;")
             for key, value in node["properties"].items():
                 predicate = _turtle_key(key)
                 lines.append(f"    lucent:{predicate} {_turtle_literal(value)} ;")
@@ -168,8 +197,8 @@ class GraphExport:
             lines.append("")
 
         for edge in self._edges:
-            subject = f"lucent:node{edge['source']}"
-            obj = f"lucent:node{edge['target']}"
+            subject = f"lucent:{_turtle_key(edge['source'])}"
+            obj = f"lucent:{_turtle_key(edge['target'])}"
             lines.append(f"{subject} lucent:{_turtle_key(edge['type'])} {obj} .")
 
         lines.append("")

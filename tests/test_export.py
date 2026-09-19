@@ -29,37 +29,73 @@ class StubStore:
         return {"success": True, "records": self._edges}
 
 
-def test_nodes_become_the_reasoner_node_dict_shape() -> None:
-    """`add_fact` reads {id, type} for nodes."""
+def test_nodes_use_a_business_key_not_the_row_id() -> None:
+    """Facts built from AGE row ids are correct but unreadable.
+
+    `add_fact` prefers a dict's `id`, so the export must put a business
+    identifier there — otherwise every derived fact reads
+    `shares_target(844424930131970, ...)`.
+    """
     store = StubStore(nodes=[{"id": 1, "labels": ["Drug"], "props": {"name": "Aspirin"}}], edges=[])
     export = GraphExport(store, limit=10)
 
     node = next(iter(export.find_nodes()))
-    assert node["id"] == "1"
+    assert node["id"] == "Aspirin"
     assert node["type"] == "Drug"
     assert node["properties"] == {"name": "Aspirin"}
+    # The row id stays reachable for mapping a fact back to the graph element.
+    assert node["graph_id"] == "1"
 
 
-def test_edges_become_the_reasoner_edge_dict_shape() -> None:
-    """`add_fact` reads {source, target, type} for edges."""
+def test_nodes_prefer_a_canonical_identifier_over_the_name() -> None:
     store = StubStore(
-        nodes=[],
+        nodes=[
+            {
+                "id": 1,
+                "labels": ["Drug"],
+                "props": {"drugbank_id": "DB00945", "name": "Aspirin"},
+            }
+        ],
+        edges=[],
+    )
+    export = GraphExport(store, limit=10)
+
+    assert next(iter(export.find_nodes()))["id"] == "DB00945"
+
+
+def test_nodes_fall_back_to_the_row_id_when_no_business_key_exists() -> None:
+    store = StubStore(nodes=[{"id": 7, "labels": ["Thing"], "props": {}}], edges=[])
+    export = GraphExport(store, limit=10)
+
+    assert next(iter(export.find_nodes()))["id"] == "7"
+
+
+def test_edges_resolve_endpoints_through_the_same_key_as_nodes() -> None:
+    """If the two disagree, edge facts never join to node facts."""
+    store = StubStore(
+        nodes=[
+            {"id": 1, "labels": ["Drug"], "props": {"name": "Aspirin"}},
+            {"id": 2, "labels": ["Protein"], "props": {"name": "COX-1"}},
+        ],
         edges=[
             {
                 "source": 1,
                 "target": 2,
-                "rel_type": "INTERACTS_WITH",
+                "rel_type": "TARGETS",
                 "props": {},
-                "source_labels": ["Drug"],
+                "source_props": {"name": "Aspirin"},
+                "target_props": {"name": "COX-1"},
             }
         ],
     )
     export = GraphExport(store, limit=10)
 
     edge = next(iter(export.find_edges()))
-    assert edge["source"] == "1"
-    assert edge["target"] == "2"
-    assert edge["type"] == "INTERACTS_WITH"
+    node_keys = {node["id"] for node in export.find_nodes()}
+    assert edge["source"] in node_keys
+    assert edge["target"] in node_keys
+    assert edge["source"] == "Aspirin"
+    assert edge["type"] == "TARGETS"
 
 
 def test_agtype_properties_arriving_as_json_text_are_parsed() -> None:
@@ -124,15 +160,27 @@ class TestTurtleSerialisation:
         store = StubStore(
             nodes=[
                 {"id": 1, "labels": ["Drug"], "props": {"name": "Aspirin"}},
-                {"id": 2, "labels": ["Protein"], "props": {}},
+                {"id": 2, "labels": ["Protein"], "props": {"name": "COX-1"}},
             ],
-            edges=[{"source": 1, "target": 2, "rel_type": "TARGETS", "props": {}}],
+            edges=[
+                {
+                    "source": 1,
+                    "target": 2,
+                    "rel_type": "TARGETS",
+                    "props": {},
+                    "source_props": {"name": "Aspirin"},
+                    "target_props": {"name": "COX-1"},
+                }
+            ],
         )
         turtle = GraphExport(store, limit=10).to_turtle()
 
-        assert "lucent:node1 a lucent:Drug" in turtle
+        # Subjects are keyed by the business identifier, so the shape author
+        # can reference a node they recognise.
+        assert "a lucent:Drug" in turtle
+        assert "a lucent:Protein" in turtle
         assert 'lucent:name "Aspirin"' in turtle
-        assert "lucent:node1 lucent:TARGETS lucent:node2" in turtle
+        assert "lucent:TARGETS" in turtle
 
     def test_output_parses_as_turtle(self) -> None:
         """Round-trip through rdflib: the validator will do exactly this."""
