@@ -1,24 +1,43 @@
-"""End-to-end check: the fork's AGE store against the real AGE container.
+"""Connectivity check: the fork's AGE store against a real AGE database.
 
-Not part of the test suite — the suite must run without a database. This is the
-manual verification used to confirm the image and the adapter agree.
+Run against the dev stack:
+
+    uv run python scripts/check_age_connection.py
+
+Connection settings come from the same environment the service reads, so this
+exercises the real configuration path rather than a DSN copied into the script.
+
+Not part of the test suite — the suite must run without a database.
 """
 
 from semantica.graph_store.age_store import ApacheAgeStore
 
-DSN = "host=127.0.0.1 port=15433 dbname=lucent_graph user=postgres password=postgres"
+from semantica_service.config import get_settings
 
-store = ApacheAgeStore(connection_string=DSN, graph_name="lucent_graph")
-store.connect()
-print("connect() + CREATE EXTENSION + SET search_path: OK")
-print("stats:", store.get_stats())
 
-rows = store.execute_query("MATCH (n:Drug) RETURN n.name AS name")
-print("cypher round-trip:", rows)
+def main() -> None:
+    settings = get_settings()
 
-# The fork fix: RETURN column inference must survive a backtick alias and
-# ORDER BY without mistaking either for a column.
-rows2 = store.execute_query("MATCH (n:Drug) RETURN n.name AS `drug name` ORDER BY n.name")
-print("order-by + backtick alias:", rows2)
+    store = ApacheAgeStore(
+        connection_string=settings.age_dsn,
+        graph_name=settings.graph_name,
+    )
+    store.connect()
+    print(f"connected: graph={settings.graph_name}")
+    print("stats:", store.get_stats())
 
-store.close()
+    # A round-trip over the existing graph. Read-only: this script must not
+    # mutate whatever data the target database holds.
+    rows = store.execute_query("MATCH (n) RETURN n LIMIT 5")
+    print("sample nodes:", rows)
+
+    # The fork fix: RETURN column inference must survive a backtick alias and
+    # ORDER BY without mistaking either for a column.
+    rows2 = store.execute_query("MATCH (n) RETURN n.name AS `n name` ORDER BY n.name LIMIT 5")
+    print("backtick alias + order by:", rows2)
+
+    store.close()
+
+
+if __name__ == "__main__":
+    main()

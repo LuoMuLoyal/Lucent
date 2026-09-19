@@ -23,8 +23,10 @@ class Settings(BaseSettings):
     # --- Apache AGE -----------------------------------------------------
     # AGE lives in its own database rather than the Prisma schema's, because
     # the adapter issues SET search_path = ag_catalog for every session.
+    # Port 15432 matches the dev stack's postgres-dev (see Lucent's
+    # compose.dev.yaml); production supplies AGE_DSN explicitly.
     age_dsn: str = Field(
-        default="host=127.0.0.1 port=15433 dbname=lucent_graph user=postgres password=postgres",
+        default="host=127.0.0.1 port=15432 dbname=lucent_graph user=postgres password=postgres",
         description="libpq connection string for the AGE database.",
     )
     graph_name: str = Field(
