@@ -6,7 +6,11 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { isRetryableLlmError } from '../../../../common/llm/retry/llm-retry.helper.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
-import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants.js';
+import {
+  MAX_TOOL_LOOPS,
+  ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  TOOL_EXECUTION_TIMEOUT_MS,
+} from '../../tools/shared/tool-constants.js';
 import type { AssistantToolName } from '../../tools/shared/tool-types.js';
 import type {
   AssistantToolCall,
@@ -42,6 +46,28 @@ const ASSISTANT_NODE_CACHE = new InMemoryCache();
 
 /** TTL for deterministic-rule node caching (seconds). */
 const NODE_CACHE_TTL_SECONDS = 3600;
+
+/**
+ * Run timeout for a single node of the assistant runtime graph.
+ *
+ * A node is not one model call. `agent` streams a model response and the
+ * tool-running nodes (including the sub-graphs, which execute tools inside
+ * their own node) may run a tool whose own budget is far larger than the model
+ * timeout — `reason_over_ontology` alone allows 45s for generation plus the
+ * sidecar round trip.
+ *
+ * Bounding nodes by the *model* timeout put the ceiling below the tools' own
+ * budgets, so those budgets could never be reached: the node was cancelled at
+ * 10s, LangGraph retried it, and (measured through the assistant SSE endpoint)
+ * the client received the start of each attempt's answer before the turn failed
+ * with `Node "agent" exceeded its run timeout`. The node bound is therefore one
+ * model call plus a full tool budget, with the per-tool timeouts and the tool's
+ * internal budget still doing the real limiting.
+ */
+export const ASSISTANT_NODE_TIMEOUT_MS =
+  AI_MODEL_TIMEOUT_MS +
+  Math.max(TOOL_EXECUTION_TIMEOUT_MS, ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS) +
+  5_000;
 
 /** Callback type for executing tools inside the graph. */
 export type ToolExecutorFn = (
@@ -269,7 +295,7 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
         retryOn: isRetryableLlmError,
         maxAttempts: 3,
       },
-      timeout: AI_MODEL_TIMEOUT_MS,
+      timeout: ASSISTANT_NODE_TIMEOUT_MS,
       cachePolicy: false,
     });
 
