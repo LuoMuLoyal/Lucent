@@ -11,6 +11,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 BASE = "http://127.0.0.1:8099"
 
@@ -18,7 +19,9 @@ PASSED: list[str] = []
 FAILED: list[str] = []
 
 
-def call(method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
+def call(
+    method: str, path: str, payload: dict[str, Any] | None = None
+) -> tuple[int, dict[str, Any]]:
     data = json.dumps(payload).encode() if payload is not None else None
     request = urllib.request.Request(
         f"{BASE}{path}",
