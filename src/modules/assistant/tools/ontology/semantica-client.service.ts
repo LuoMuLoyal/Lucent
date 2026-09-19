@@ -368,11 +368,9 @@ function parseErrorDetail(body: string): {
         typeof kind === 'string' && isQueryErrorKind(kind) ? kind : null,
       message: typeof message === 'string' ? message : null,
     };
+    // eslint-disable-next-line error-handling/no-silent-catch -- 非 JSON body，调用方 classifyHttpError 已把同一条 body 记进 warn
   } catch {
-    // 非 JSON body（网关 HTML 之类）：没有结构化信息，交给上层按 server_error 处理。
-    // 不在这里记日志：调用方 classifyHttpError 刚把同一条 body 写进了 warn 日志，
-    // 再记一次只是重复。
-    // eslint-disable-next-line error-handling/no-silent-catch -- 调用方已记录该 body
+    // 网关 HTML 之类的非 JSON body：没有结构化信息，交给上层按 server_error 处理。
     return { errorKind: null, message: null };
   }
 }
