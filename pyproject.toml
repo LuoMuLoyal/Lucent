@@ -1,0 +1,14 @@
+[project]
+name = "semantica-service"
+version = "0.1.0"
+description = "OAG sidecar for the English DrugBank graph"
+readme = "README.md"
+authors = [
+    { name = "Luo", email = "2508015296@qq.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11.31,<0.12.0"]
+build-backend = "uv_build"
