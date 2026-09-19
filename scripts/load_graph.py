@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from collections import Counter
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
@@ -26,44 +27,81 @@ from semantica.graph_store.age_store import ApacheAgeStore
 
 from semantica_service.config import get_settings
 
-# Action verb -> relationship type. DrugBank's `actions` array is the
-# structured field that makes this a mapping rather than an extraction.
-ACTION_EDGE = {
-    "inhibitor": "INHIBITS",
-    "substrate": "SUBSTRATE_OF",
-    "inducer": "INDUCES",
-    "antagonist": "ANTAGONIZES",
-    "agonist": "AGONIZES",
-    "partial agonist": "AGONIZES",
-    "inverse agonist": "ANTAGONIZES",
-    "binder": "BINDS",
-    "ligand": "BINDS",
-    "modulator": "MODULATES",
-    "allosteric modulator": "MODULATES",
-    "negative modulator": "MODULATES",
-    "positive modulator": "MODULATES",
-    "positive allosteric modulator": "MODULATES",
-    "inhibitory allosteric modulator": "MODULATES",
-    "activator": "ACTIVATES",
-    "blocker": "BLOCKS",
-    "regulator": "REGULATES",
-    "downregulator": "DOWNREGULATES",
-    "upregulator": "UPREGULATES",
-    "potentiator": "POTENTIATES",
-    "stimulator": "ACTIVATES",
-    "transporter": "TRANSPORTED_BY",
-    "carrier": "CARRIED_BY",
-    "inactivator": "INACTIVATES",
+# (relation_kind, action) -> relationship type. DrugBank's `actions` array is
+# the structured field that makes this a *mapping* rather than an *extraction*:
+# no model is involved and there is no extraction error to make.
+#
+# The key is two-dimensional on purpose. The same verb means different things
+# per relation kind — `substrate` against an enzyme is SUBSTRATE_OF, but the
+# same verb against a *carrier* does not mean the carrier is metabolised by it.
+# Keying on the verb alone silently asserted that falsehood, so the kind is
+# part of the key.
+ACTION_EDGE: dict[tuple[str, str], str] = {
+    # --- enzyme: the metabolic-DDI core ---
+    ("enzyme", "substrate"): "SUBSTRATE_OF",
+    ("enzyme", "inhibitor"): "INHIBITS",
+    ("enzyme", "inducer"): "INDUCES",
+    ("enzyme", "activator"): "ACTIVATES",
+    ("enzyme", "modulator"): "MODULATES",
+    # --- direct target ---
+    ("target", "antagonist"): "ANTAGONIZES",
+    ("target", "inverse agonist"): "ANTAGONIZES",
+    ("target", "agonist"): "AGONIZES",
+    ("target", "partial agonist"): "AGONIZES",
+    ("target", "stimulator"): "ACTIVATES",
+    ("target", "inhibitor"): "INHIBITS",
+    ("target", "inducer"): "INDUCES",
+    ("target", "binder"): "BINDS",
+    ("target", "antibody"): "BINDS",
+    ("target", "ligand"): "BINDS",
+    ("target", "blocker"): "BLOCKS",
+    ("target", "modulator"): "MODULATES",
+    ("target", "allosteric modulator"): "MODULATES",
+    ("target", "negative modulator"): "MODULATES",
+    ("target", "positive modulator"): "MODULATES",
+    ("target", "positive allosteric modulator"): "MODULATES",
+    ("target", "inhibitory allosteric modulator"): "MODULATES",
+    ("target", "activator"): "ACTIVATES",
+    ("target", "potentiator"): "POTENTIATES",
+    ("target", "inactivator"): "INACTIVATES",
+    ("target", "downregulator"): "DOWNREGULATES",
+    ("target", "upregulator"): "UPREGULATES",
+    ("target", "regulator"): "REGULATES",
+    ("target", "substrate"): "SUBSTRATE_OF",
+    ("target", "other/unknown"): "ACTS_ON",
+    ("target", "other"): "ACTS_ON",
+    ("target", "unknown"): "ACTS_ON",
+    # --- transporter ---
+    ("transporter", "inhibitor"): "INHIBITS",
+    ("transporter", "substrate"): "SUBSTRATE_OF",
+    ("transporter", "inducer"): "INDUCES",
+    ("transporter", "binder"): "BINDS",
+    ("transporter", "antagonist"): "ANTAGONIZES",
+    # --- carrier ---
+    ("carrier", "binder"): "BINDS",
+    ("carrier", "antagonist"): "ANTAGONIZES",
+    ("carrier", "ligand"): "BINDS",
+    ("carrier", "inhibitor"): "INHIBITS",
+    ("carrier", "inducer"): "INDUCES",
+    ("carrier", "regulator"): "REGULATES",
+    ("carrier", "upregulator"): "UPREGULATES",
+    ("carrier", "substrate"): "TRANSPORTED_BY",
 }
 
-# relation_kind -> the edge used when a row carries no recognised action verb.
+# relation_kind -> the edge used when no action verb is recognised. The kind
+# still carries real information, so the fallback is per-kind rather than one
+# catch-all: collapsing everything into TARGETS would lose "this is an enzyme".
 KIND_EDGE = {
-    "target": "TARGETS",
-    "enzyme": "ACTS_ON",
+    "target": "ACTS_ON",
+    "enzyme": "ENZYME_LINKED_TO",
     "transporter": "TRANSPORTED_BY",
     "carrier": "CARRIED_BY",
-    "all": "TARGETS",
+    "all": "ACTS_ON",
 }
+
+# Every action verb observed in the source, so an unrecognised one is visible
+# rather than silently absorbed by the fallback.
+KNOWN_ACTIONS = frozenset(action for _, action in ACTION_EDGE)
 
 
 def parse_args() -> argparse.Namespace:
@@ -327,14 +365,22 @@ def main() -> None:
 
     # --- drug -> target: one edge per recognised action verb ---
     grouped: dict[str, list[dict[str, Any]]] = {}
+    unknown_actions: Counter[str] = Counter()
     for edge in e_dt:
-        verbs = [v for v in (edge.get("actions") or []) if v in ACTION_EDGE]
+        relation_kind = edge["relation_kind"] or "all"
+        verbs = []
+        for verb in edge.get("actions") or []:
+            key = (relation_kind, verb)
+            if key in ACTION_EDGE:
+                verbs.append(ACTION_EDGE[key])
+            else:
+                unknown_actions[verb] += 1
         kinds = (
-            sorted({ACTION_EDGE[v] for v in verbs})
+            sorted(set(verbs))
             if verbs
             # No recognised verb: fall back to the structural relation kind so
             # the edge is not silently dropped.
-            else [KIND_EDGE.get(edge["relation_kind"] or "all", "TARGETS")]
+            else [KIND_EDGE.get(relation_kind, "ACTS_ON")]
         )
         for kind in kinds:
             grouped.setdefault(kind, []).append(
@@ -347,6 +393,11 @@ def main() -> None:
                     },
                 }
             )
+
+    if unknown_actions:
+        print(f"  note: {len(unknown_actions)} unrecognised verb(s) fell back to kind edge:")
+        for verb, n in unknown_actions.most_common(10):
+            print(f"    {verb!r} x{n}")
 
     print(f"creating drug->target edges across {len(grouped)} relationship types...")
     for rel_type, rows in sorted(grouped.items()):
