@@ -14,7 +14,7 @@ import pytest
 
 from semantica_service.config import Settings
 from semantica_service.graph import pool as pool_module
-from semantica_service.graph.pool import StorePool, _dsn_with_timeouts
+from semantica_service.graph.pool import StorePool, _dsn_with_timeouts, _parse_pg_duration_ms
 
 
 class FakeConn:
@@ -94,6 +94,36 @@ def test_dsn_values_with_quotes_are_escaped() -> None:
     import psycopg2.extensions
 
     assert psycopg2.extensions.parse_dsn(parsed_dsn)["password"] == "it's-secret"
+
+
+class TestParsePgDuration:
+    """`SHOW statement_timeout` normalises units, so parsing must not be textual."""
+
+    def test_seconds_are_accepted_for_a_millisecond_request(self) -> None:
+        """The regression: PostgreSQL renders 15000ms as '15s'.
+
+        Comparing the raw string against '15000ms' rejected a correctly
+        configured connection and took the service down.
+        """
+        assert _parse_pg_duration_ms("15s") == 15_000
+
+    def test_plain_milliseconds(self) -> None:
+        assert _parse_pg_duration_ms("15000ms") == 15_000
+
+    def test_zero_means_disabled(self) -> None:
+        assert _parse_pg_duration_ms("0") == 0
+
+    def test_minutes_are_not_confused_with_milliseconds(self) -> None:
+        assert _parse_pg_duration_ms("2min") == 120_000
+
+    def test_fractional_value(self) -> None:
+        assert _parse_pg_duration_ms("1.5s") == 1_500
+
+    def test_unrecognised_value_is_rejected(self) -> None:
+        import pytest as _pytest
+
+        with _pytest.raises(ValueError, match="Unrecognised"):
+            _parse_pg_duration_ms("soon")
 
 
 def test_dsn_preserves_operator_supplied_values() -> None:

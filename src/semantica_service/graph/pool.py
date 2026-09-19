@@ -55,6 +55,33 @@ def _quote_dsn_value(value: str) -> str:
     return f"'{escaped}'"
 
 
+def _parse_pg_duration_ms(value: str) -> int:
+    """Convert a PostgreSQL duration literal to milliseconds.
+
+    ``SHOW statement_timeout`` returns the value normalised to whichever unit
+    reads best, so 15000 ms comes back as ``'15s'``. Comparing the raw string
+    against ``'15000ms'`` would therefore reject a correctly configured
+    connection.
+    """
+    text = value.strip()
+    if text == "0":
+        return 0
+    units = {
+        "us": 0.001,
+        "ms": 1.0,
+        "s": 1000.0,
+        "min": 60_000.0,
+        "h": 3_600_000.0,
+        "d": 86_400_000.0,
+    }
+    # Longest suffix first so "min" is not matched as "m".
+    for suffix in sorted(units, key=len, reverse=True):
+        if text.endswith(suffix):
+            number = text[: -len(suffix)].strip()
+            return int(float(number) * units[suffix])
+    raise ValueError(f"Unrecognised PostgreSQL duration: {value!r}")
+
+
 def _assert_statement_timeout(store: ApacheAgeStore, expected_ms: int) -> None:
     """Verify the live session really carries ``statement_timeout``.
 
@@ -69,10 +96,14 @@ def _assert_statement_timeout(store: ApacheAgeStore, expected_ms: int) -> None:
         row = cur.fetchone()
     actual = row[0] if row else None
     conn.rollback()
-    if actual != f"{expected_ms}ms":
+
+    if actual is None:
+        raise RuntimeError("SHOW statement_timeout returned no rows")
+    actual_ms = _parse_pg_duration_ms(str(actual))
+    if actual_ms != expected_ms:
         raise RuntimeError(
-            f"statement_timeout is {actual!r} but {expected_ms}ms was requested; "
-            "refusing to serve queries with an unbounded timeout."
+            f"statement_timeout is {actual!r} ({actual_ms}ms) but {expected_ms}ms "
+            "was requested; refusing to serve queries with an unbounded timeout."
         )
 
 
