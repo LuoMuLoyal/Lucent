@@ -11,8 +11,9 @@ the graph. It therefore holds **no LLM credentials**.
 ## Status
 
 Working locally against a real AGE database: connection pool, `/health`,
-`/schema`, `/validate` and `/reason`. Not yet integrated into Lucent, and not
-yet deployed. See `docs/VERIFICATION.md` for measured results and known gaps.
+`/schema`, `/query`, `/validate` and `/reason`. Not yet integrated into Lucent,
+and not yet deployed. See `docs/VERIFICATION.md` for measured results and known
+gaps.
 
 ## Requirements
 
@@ -41,6 +42,7 @@ uv run uvicorn semantica_service.main:app --reload --port 8099
 | --- | --- |
 | `GET /health` | Liveness, AGE reachability and graph size |
 | `GET /schema` | Node labels and relationship types, with counts |
+| `POST /query` | Execute one read-only Cypher statement |
 | `POST /validate` | SHACL validation of the graph |
 | `POST /reason` | Datalog inference over the graph |
 | `GET /openapi.json` | Schema, used to generate the Lucent client |
@@ -48,6 +50,84 @@ uv run uvicorn semantica_service.main:app --reload --port 8099
 `/health` returns **503** when the graph is unreachable, so a load balancer
 stops routing to a process whose dependency is down. With no AGE database
 running, a 503 naming a connection error is the expected response.
+
+### /query
+
+The generation half of this loop is Lucent's: it turns a question into Cypher
+with its own model. This endpoint is the other half — it decides whether the
+statement is safe to run, runs it, and reports any failure in a shape the caller
+can hand straight back to its model for a retry. The service holds no LLM
+credentials and never rewrites the statement.
+
+```jsonc
+// request
+{
+  "cypher": "MATCH (d:Drug)-[r:INTERACTS_WITH]->(o:Drug) WHERE toLower(d.name) = $name RETURN o.name AS name, r.description AS description LIMIT 20",
+  "params": {"name": "warfarin"},
+  "limit": 100
+}
+
+// 200
+{
+  "columns": ["name", "description"],
+  "rows": [{"name": "Ibuprofen", "description": "bleeding risk"}],
+  "row_count": 1,
+  "truncated": false,
+  "elapsed_ms": 42
+}
+```
+
+`params` is an object of scalars (string, number, boolean) substituted for
+`$name` placeholders; `limit` is 1..500 and defaults to 100. The statement is
+executed **as written** — this service does not inject a LIMIT into someone
+else's Cypher — so `limit` bounds the response, not the work: a statement whose
+own `LIMIT` is larger than the request's can still make the database produce
+every matching row, and the connection's `statement_timeout` (15 s by default)
+is what stops it running forever. When the statement produced more rows than
+`limit`, the first `limit` come back and `truncated` is `true`. Rows are
+JSON-normalised: anything AGE returns that is not a JSON scalar, list or object
+(a temporal value, a path, a custom type) is stringified rather than dropped.
+
+**The read-only guard.** A statement is refused unless it is one statement that
+begins with `MATCH`, `OPTIONAL`, `WITH`, `UNWIND` or `RETURN`. A keyword scan
+runs over the statement with string literals, quoted identifiers and comments
+blanked out first, so `RETURN 'delete this' AS note` is a projection and a
+`DELETE` mentioned in a trailing comment is not a clause. The refused words are
+`CREATE`, `MERGE`, `SET`, `DELETE`, `DETACH`, `REMOVE`, `DROP`, `CALL`, `COPY`,
+`GRANT`, `REVOKE`, `ALTER`, `TRUNCATE`, `LOAD` and `VACUUM`. A `;`-separated
+second statement is refused as `multiple_statements` (the more specific
+diagnosis); a single trailing `;` is allowed and stripped before execution. The
+guard is deliberately a scanner rather than a parser: an unclosed literal blinds
+it past that point, and AGE's own parser then reports the syntax error.
+
+**Failures.** A refusal is `422` with the submitted statement echoed back:
+
+```jsonc
+{
+  "detail": {
+    "kind": "unsupported_feature",
+    "message": "AGE has no shortestPath; write an explicit typed multi-hop pattern instead",
+    "cypher": "MATCH (a), (b) RETURN shortestPath((a)-[*]->(b))"
+  }
+}
+```
+
+`kind` is one of exactly six values, and each is meant to be actionable without
+reading this service's source:
+
+| `kind` | Meaning | Retry |
+| --- | --- | --- |
+| `not_read_only` | A write/admin clause, or the statement does not begin with a read-only clause | Rewrite as a projection |
+| `multiple_statements` | More than one statement (only one trailing `;` is allowed) | Send one statement |
+| `unsupported_feature` | A construct AGE 1.7 does not implement (`shortestPath` / `allShortestPaths`, multi-type edges like `[r:A\|B]`, `datetime()`) | Use the alternative named in `message` |
+| `syntax_error` | AGE rejected the Cypher's syntax | Fix the statement against `/schema` |
+| `timeout` | Cancelled by `statement_timeout` | Narrow the pattern, or add a `LIMIT` |
+| `internal` | Anything else, including a lost connection | Retry, or report the fault |
+
+`internal` carries the exception's own message but never a stack trace, and
+credential-shaped text is redacted. A missing, blank or oversized `cypher`, a
+`limit` outside 1..500 and a malformed body are ordinary FastAPI 422s — they
+never became a statement, so they get no `kind`.
 
 ### /reason
 
