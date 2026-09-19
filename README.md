@@ -10,9 +10,9 @@ the graph. It therefore holds **no LLM credentials**.
 
 ## Status
 
-The service skeleton, configuration, AGE connection pool and `/health` are in
-place. The reasoning endpoints (`/reason`, `/schema`, `/validate`) are not built
-yet.
+Working locally against a real AGE database: connection pool, `/health`,
+`/schema`, `/validate` and `/reason`. Not yet integrated into Lucent, and not
+yet deployed. See `docs/VERIFICATION.md` for measured results and known gaps.
 
 ## Requirements
 
@@ -40,11 +40,42 @@ uv run uvicorn semantica_service.main:app --reload --port 8099
 | Route | Purpose |
 | --- | --- |
 | `GET /health` | Liveness, AGE reachability and graph size |
+| `GET /schema` | Node labels and relationship types, with counts |
+| `POST /validate` | SHACL validation of the graph |
+| `POST /reason` | Datalog inference over the graph |
 | `GET /openapi.json` | Schema, used to generate the Lucent client |
 
 `/health` returns **503** when the graph is unreachable, so a load balancer
 stops routing to a process whose dependency is down. With no AGE database
 running, a 503 naming a connection error is the expected response.
+
+### /reason
+
+Facts come from the request, or from the graph when `load_from_graph` is set.
+Rules use semantica's textual Datalog syntax, including inequalities:
+
+```jsonc
+{
+  "load_from_graph": true,
+  "rules": [
+    {"rule": "shares_target(X, Y) :- targets(X, P), targets(Y, P), X != Y."}
+  ],
+  "query": "shares_target(db00945, ?Y)"
+}
+```
+
+Facts are keyed by each node's canonical identifier (`drugbank_id`,
+`uniprot_id`), not AGE's row id — row ids would make every derived fact read
+`shares_target(844424930131970, ...)`. `add_fact` lowercases constants, so
+results are ids rather than display names.
+
+### /validate
+
+Supply **exactly one** of `shacl` (Turtle shapes) or `ontology` (shapes are
+derived from it); semantica rejects both-or-neither, surfaced here as 422. The
+graph is exported from AGE as Turtle first, so a graph with no nodes returns
+422 rather than the vacuous "conforms".
+
 
 ## Development
 
