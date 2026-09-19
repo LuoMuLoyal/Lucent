@@ -68,7 +68,7 @@ Created: 2026-09-27
 
 - 基底改用 `pgvector/pgvector:pg18`（自带 pgvector），**只需编译 AGE**，省去 pgvector 编译层
 - 扩展需在每个目标 database 中手动启用：`CREATE EXTENSION IF NOT EXISTS vector;` + `CREATE EXTENSION IF NOT EXISTS age;`
-- 自建镜像的 Dockerfile 落在本仓 `semantica-service/`，与 sidecar 代码同仓发布
+- 自建镜像的 Dockerfile 落在本仓 `docker/postgres-age/`，镜像名 `lucent-db:18`，经 `${LUCENT_DB_IMAGE}` 注入（与 `LUCENT_IMAGE` 同法，仓库不写死 registry）
 
 ### 3.2 数据库隔离（每个环境独立 database）
 
@@ -103,7 +103,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ag_catalog TO semantica;
 # compose.dev.yaml / compose.staging.yaml / compose.yaml
 services:
   postgres:
-    build: ../semantica-service/docker/postgres-age # PG18 + pgvector + AGE 1.7.0
+    image: ${LUCENT_DB_IMAGE} # 自建 lucent-db:18，定义见 docker/postgres-age/
     # ... 其他配置不变
     environment:
       POSTGRES_DB: lucent # Prisma 用这个
@@ -160,14 +160,14 @@ SET search_path = ag_catalog, "$user", public;
 
 ## 六、风险与应对
 
-| 风险                       | 事实                                                                        | 应对                                                                                  |
-| -------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **AGE 1.8.0 SIGSEGV**      | `apache/age#2500`（open）：`id(n) IN <list>` 导致 PG 崩溃                   | 钉 `release/PG18/1.7.0`；升级前先看 #2500 状态                                        |
-| **AGE 版本与 PG 版本绑定** | AGE 的 release 按 PG major version 分支                                     | 锁定 PG18；AGE 升级需换用新镜像                                                       |
-| **AGE 扩展创建权限**       | Semantica 的 AGE adapter 会自己执行 `CREATE EXTENSION`                      | 需要超级用户权限创建扩展，或提前手动创建                                              |
-| **自建镜像维护成本**       | 社区镜像不可用（仅 arm64），改为自建                                        | Dockerfile 落在 `semantica-service/`，随 sidecar 同仓发布与升级；AGE 升级即改一处 tag |
-| **AGE 功能矩阵限制**       | AGE 后端的 Reasoning/analytics 与 Provenance 只标 `Partial`                 | 接受局限；关键查询先实测再决定                                                        |
-| **第三方镜像供应链**       | 原拟用社区镜像 `dyingbleed/postgres-rag`，但该镜像仅 arm64 且维护持续性未知 | 已改为自建（§3.1），供应链风险消除；基底 `pgvector/pgvector:pg18` 为官方维护镜像      |
+| 风险                       | 事实                                                                        | 应对                                                                             |
+| -------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **AGE 1.8.0 SIGSEGV**      | `apache/age#2500`（open）：`id(n) IN <list>` 导致 PG 崩溃                   | 钉 `release/PG18/1.7.0`；升级前先看 #2500 状态                                   |
+| **AGE 版本与 PG 版本绑定** | AGE 的 release 按 PG major version 分支                                     | 锁定 PG18；AGE 升级需换用新镜像                                                  |
+| **AGE 扩展创建权限**       | Semantica 的 AGE adapter 会自己执行 `CREATE EXTENSION`                      | 需要超级用户权限创建扩展，或提前手动创建                                         |
+| **自建镜像维护成本**       | 社区镜像不可用（仅 arm64），改为自建                                        | Dockerfile 落在本仓 `docker/postgres-age/`；AGE 升级即改 `AGE_REF` 一处          |
+| **AGE 功能矩阵限制**       | AGE 后端的 Reasoning/analytics 与 Provenance 只标 `Partial`                 | 接受局限；关键查询先实测再决定                                                   |
+| **第三方镜像供应链**       | 原拟用社区镜像 `dyingbleed/postgres-rag`，但该镜像仅 arm64 且维护持续性未知 | 已改为自建（§3.1），供应链风险消除；基底 `pgvector/pgvector:pg18` 为官方维护镜像 |
 
 ---
 
