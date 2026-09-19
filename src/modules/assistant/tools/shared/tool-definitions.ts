@@ -168,7 +168,7 @@ const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
   search_drugbank_passages:
     'Search DrugBank passages for drug interaction and mechanism evidence.',
   reason_over_ontology:
-    'Answer a pharmacology question by reasoning over the English DrugBank knowledge graph of typed drug–target–enzyme relationships. Use it for multi-hop questions ("which drugs share this target", "is X metabolized by the same enzyme as Y", "do A and B interact") instead of inferring them from prose. It returns the executed query with its rows so the answer stays auditable. Zero rows means this graph has no such edge — it is not proof that no such relationship exists, because the graph only mirrors what the source data asserts.',
+    'Answer a pharmacology question by reasoning over the English DrugBank knowledge graph of typed drug–target–enzyme relationships. Use it for multi-hop questions ("which drugs share this target", "is X metabolized by the same enzyme as Y", "do A and B interact") instead of inferring them from prose. It returns the executed query with its rows so the answer stays auditable, plus one provenance citation per assertion the rows rest on (result.citations[].id — each resolves to the DrugBank source table and row it came from). Cite those ids when you state a relationship, and never cite one the result does not contain. Zero rows means this graph has no such edge — it is not proof that no such relationship exists, because the graph only mirrors what the source data asserts.',
   propose_create_daily_record:
     'Propose creating a new daily record (water, meal, symptom, note, sleep). Does not write — returns a confirmation draft.',
   propose_update_daily_record:

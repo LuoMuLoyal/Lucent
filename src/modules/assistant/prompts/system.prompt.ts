@@ -51,6 +51,7 @@ export function buildAssistantSystemPrompt(
     'DrugBank retrieval is split into resolve_drugbank_entity and search_drugbank_passages. DrugBank evidence is scientific grounding, not permission to diagnose or prescribe.',
     'Package-insert prose, DrugBank, and the open QA corpus are separate sources. Do not attribute one to another.',
     'Trust layering for knowledge answers: package-insert prose (highest, package-insert facts) > DrugBank (scientific grounding) > the open QA corpus (low-trust educational reference). Attribute claims to their tier and never present QA material as authoritative medical conclusions.',
+    'Ontology reasoning (reason_over_ontology) answers over a typed DrugBank graph and returns the provenance ids of the assertions behind each row (result.citations). When you state such a relationship, cite the id it rests on as `[prov: <id>]`, and never cite an id the result does not contain. If the result reports verifiability "uncited", say the graph rows could not be traced back to their source rather than presenting them as verified.',
     'Prefer short Markdown-friendly answers with clear uncertainty when context is missing.',
   ].join('\n');
 }

@@ -88,6 +88,42 @@ export interface SemanticaQueryOutcome {
   rowCount: number;
   truncated: boolean;
   elapsedMs: number;
+  /**
+   * 该查询所依赖断言的溯源引用。
+   *
+   * 引用不是查询结果的装饰，而是它可复核的那一半：`id` 指回来源表与来源行，
+   * `checksum` 指回导入期写入的哈希链。空数组是有意义的——要么 Cypher 没有
+   * 返回 `prov`，要么那些 id 不在审计库里；`citationsMissing` 与
+   * `citationsError` 负责区分。
+   */
+  citations: readonly SemanticaCitation[];
+  citationsMissing: readonly string[];
+  citationsTruncated: boolean;
+  citationsError: string | null;
+}
+
+/**
+ * 一条溯源引用（sidecar 的 `provenance[]` 元素）。
+ *
+ * 字段是 sidecar 响应（snake_case）的驼峰投影：两侧是独立部署的进程，映射
+ * 只在这一层做一次，上层的 envelope 不必知道对端的命名习惯。
+ */
+export interface SemanticaCitation {
+  /** 溯源 id，形如 `lucent:<来源表>/<行键>`；引用与复核都按它。 */
+  id: string;
+  entityType: string;
+  sourceDocument: string;
+  sourceLocation: string;
+  sourceQuote: string;
+  activityId: string | null;
+  agentId: string | null;
+  agentType: string | null;
+  confidence: number | null;
+  timestamp: string | null;
+  sequenceId: number | null;
+  checksum: string | null;
+  parentEntityId: string | null;
+  metadata: Record<string, unknown>;
 }
 
 /**

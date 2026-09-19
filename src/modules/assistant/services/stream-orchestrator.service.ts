@@ -28,6 +28,7 @@ import type {
 } from '../types/assistant.types.js';
 import type { AssistantToolName } from '../tools/shared/tool-types.js';
 import {
+  assistantToolCitationsSchema,
   assistantToolDetailDataSchema,
   type AssistantToolDetailData,
 } from '../schemas/tool-detail.schema.js';
@@ -302,8 +303,59 @@ export class AssistantStreamOrchestratorService {
       }
       if (source != null) detail.source = source;
       if (disclaimer != null) detail.disclaimer = disclaimer;
+      const citations = this.extractCitations(result.name, resultRecord);
+      if (citations != null) detail.citations = citations;
+      const executedQuery = this.extractExecutedQuery(resultRecord);
+      if (executedQuery != null) detail.executedQuery = executedQuery;
       return detail;
     });
+  }
+
+  /**
+   * Projects the query a graph-backed tool actually ran.
+   *
+   * A citation says which rows back the answer; the query says how those rows
+   * were selected. Together they are the reviewable path from question to
+   * evidence, which is the whole point of the tool returning the statement it
+   * executed — projecting only the citations would leave the client unable to
+   * see the half that explains the selection.
+   */
+  private extractExecutedQuery(
+    resultRecord: Record<string, unknown> | undefined,
+  ): string | null {
+    const query = resultRecord?.['cypher'];
+    return typeof query === 'string' && query.length > 0 ? query : null;
+  }
+
+  /**
+   * Projects a tool result's provenance citations, when it has any.
+   *
+   * They live in `result.citations` rather than in the envelope, because they
+   * are tool-specific: only the tools whose answers rest on addressed
+   * assertions can produce them. A malformed citation list is dropped with a
+   * warning instead of failing the detail — the answer is still readable, and
+   * silently presenting it without its evidence would be the worse outcome.
+   */
+  private extractCitations(
+    name: AssistantToolName,
+    resultRecord: Record<string, unknown> | undefined,
+  ): AssistantToolDetailDto['citations'] {
+    if (resultRecord == null) {
+      return undefined;
+    }
+    const raw = resultRecord['citations'];
+    if (raw == null) {
+      return undefined;
+    }
+    const parsed = assistantToolCitationsSchema.safeParse(raw);
+    if (!parsed.success) {
+      this.logger.warn(
+        `Ignoring malformed citations for tool "${name}".`,
+        parsed.error,
+      );
+      return undefined;
+    }
+    return parsed.data.length > 0 ? parsed.data : undefined;
   }
 
   private extractToolLabel(

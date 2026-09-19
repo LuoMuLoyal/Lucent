@@ -17,13 +17,48 @@ const SCHEMA: SemanticaGraphSchema = {
   relationshipTypes: [{ label: 'INTERACTS_WITH', count: 210000 }],
 };
 
+const CITATION = {
+  id: 'lucent:drugbank_drugs/DB00004/drug_interactions/DB14766',
+  entityType: 'graph_assertion',
+  sourceDocument: 'lucent.drugbank_drugs.drug_interactions',
+  sourceLocation: 'drugbank_id=DB00004, drugbankId=DB14766',
+  sourceQuote: 'The risk or severity of immunosuppression can be increased.',
+  activityId: 'lucent:ingest/drugbank_xml@2026-03-05',
+  agentId: 'drugbank:full database.xml@2026-03-05',
+  agentType: 'source_dataset',
+  confidence: 1,
+  timestamp: '2026-09-19T13:00:00+00:00',
+  sequenceId: 12,
+  checksum: 'checksum-12',
+  parentEntityId: null,
+  metadata: { edge_type: 'INTERACTS_WITH' },
+} as const;
+
 const OK_ROWS: SemanticaQueryOutcome = {
   columns: ['name', 'description'],
   rows: [{ name: 'Ibuprofen', description: 'CYP2C9 substrate' }],
   rowCount: 1,
   truncated: false,
   elapsedMs: 12,
+  citations: [CITATION],
+  citationsMissing: [],
+  citationsTruncated: false,
+  citationsError: null,
 };
+
+/** 有行但没有带回任何引用：这些行没有可回溯的来源，不能自称 citable。 */
+const ROWS_WITHOUT_CITATIONS: SemanticaQueryOutcome = {
+  ...OK_ROWS,
+  citations: [],
+};
+
+/** 零行 / 截断用例只关心覆盖率判定，引用字段取"没有引用"。 */
+const NO_CITATIONS = {
+  citations: [],
+  citationsMissing: [],
+  citationsTruncated: false,
+  citationsError: null,
+} as const;
 
 function rejection(
   errorKind: SemanticaCallFailure['errorKind'],
@@ -144,9 +179,92 @@ describe('AssistantToolOntologyReasoningService', () => {
       attempts: 1,
       sourceTier: 'drugbank_structured',
       verifiability: 'citable',
+      citationCount: 1,
+      citationsTruncated: false,
     });
+    expect(envelope.result['citations']).toEqual([
+      {
+        id: CITATION.id,
+        entityType: CITATION.entityType,
+        sourceDocument: CITATION.sourceDocument,
+        sourceLocation: CITATION.sourceLocation,
+        sourceQuote: CITATION.sourceQuote,
+        activityId: CITATION.activityId,
+        agentId: CITATION.agentId,
+        confidence: CITATION.confidence,
+        sequenceId: CITATION.sequenceId,
+        checksum: CITATION.checksum,
+        parentEntityId: null,
+      },
+    ]);
     expect(envelope.source.tables).toEqual(['lucent_graph (Apache AGE)']);
     expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports rows without citations as uncited rather than citable', async () => {
+    const query = vi.fn().mockResolvedValue({
+      ok: true,
+      value: ROWS_WITHOUT_CITATIONS,
+    });
+    const generate = vi
+      .fn()
+      .mockResolvedValue({ cypher: 'MATCH (n) RETURN n.name AS name' });
+
+    const { service } = buildService({ query, generate });
+    const envelope = await service.reasonOverOntology(
+      buildContext({ question: 'Which drugs share this target?' }),
+    );
+
+    expect(envelope.result['verifiability']).toBe('uncited');
+    expect(envelope.result['citations']).toEqual([]);
+    expect(envelope.result['citationCount']).toBe(0);
+  });
+
+  it('asks once for a rewrite that returns provenance, then accepts the answer', async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, value: ROWS_WITHOUT_CITATIONS })
+      .mockResolvedValueOnce({ ok: true, value: OK_ROWS });
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce({ cypher: 'MATCH (n) RETURN n.name AS name' })
+      .mockResolvedValueOnce({
+        cypher: 'MATCH (a)-[r]->(b) RETURN a.name AS name, r.prov AS prov',
+      });
+
+    const { service } = buildService({ query, generate });
+    const envelope = await service.reasonOverOntology(
+      buildContext({ question: 'Which drugs share this target?' }),
+    );
+
+    expect(generate).toHaveBeenCalledTimes(2);
+    const retryContext = generate.mock.calls[1]?.[0] as OntologyCypherContext;
+    expect(retryContext.previousErrorKind).toBe('missing_provenance');
+    expect(retryContext.previousError).toContain('no provenance id came back');
+    expect(envelope.result['verifiability']).toBe('citable');
+    expect(envelope.result['citationCount']).toBe(1);
+  });
+
+  it('does not loop on provenance: a second uncited answer is returned as uncited', async () => {
+    const query = vi.fn().mockResolvedValue({
+      ok: true,
+      value: ROWS_WITHOUT_CITATIONS,
+    });
+    const generate = vi
+      .fn()
+      .mockResolvedValue({
+        cypher: 'MATCH (n) RETURN n.known_for_treatments AS x',
+      });
+
+    const { service } = buildService({ query, generate });
+    const envelope = await service.reasonOverOntology(
+      buildContext({ question: 'What is warfarin indicated for?' }),
+    );
+
+    // 属性类问题本来就没有关系可引：只强制一次，不能把预算耗在同一个形状上。
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(envelope.result['verifiability']).toBe('uncited');
+    expect(envelope.result['rowCount']).toBe(1);
   });
 
   it('retries with the executor error after a rejection', async () => {
@@ -234,6 +352,7 @@ describe('AssistantToolOntologyReasoningService', () => {
         rowCount: 0,
         truncated: false,
         elapsedMs: 5,
+        ...NO_CITATIONS,
       },
     });
 
@@ -258,6 +377,7 @@ describe('AssistantToolOntologyReasoningService', () => {
         rowCount: 1,
         truncated: true,
         elapsedMs: 9,
+        ...NO_CITATIONS,
       },
     });
 

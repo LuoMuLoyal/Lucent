@@ -23,6 +23,25 @@ import {
 const INVALID_ARGUMENT_PREFIX = 'Invalid reason_over_ontology arguments';
 
 /**
+ * 客户端侧的纠正信号：查询跑通了、返回了行，但没有任何 `prov`。
+ *
+ * 与 `SEMANTICA_QUERY_ERROR_KINDS` 分开：那些是 sidecar 的拒绝类别（它拒绝了
+ * 语句），而这是**我们**对一次成功查询的验收结论（语句执行了，但缺了可追溯性）。
+ * 混进同一组常量会让"sidecar 会返回哪些 kind"这个契约失真。
+ */
+const MISSING_PROVENANCE_ERROR_KIND = 'missing_provenance';
+
+/**
+ * 进 envelope 的引用条数上限。
+ *
+ * 引用会随 envelope 一起进模型上下文，所以它和行集一样有预算。上限按**行集能带
+ * 出的 id 数**取：行数上限 25，一行最多两条关系各带一个 `prov`，60 足够覆盖，
+ * 于是"模型在行里看得见的 id"与"客户端拿到手的引用"不会错位——模型照着行里的
+ * id 作答、而客户端只拿到其中一部分，正是这条链路最不该出现的状态。
+ */
+const ONTOLOGY_MAX_CITATIONS = 60;
+
+/**
  * 结果集序列化预算（字符）。
  *
  * 行数上限不等于体积上限：一条相互作用描述可以很长，而 envelope 会整体进模型
@@ -33,6 +52,23 @@ const MAX_RESULT_CHARS = 16000;
 
 const SOURCE_TIER_NOTE =
   'DrugBank structured facts, ingested deterministically (no LLM extraction).';
+
+const CITATION_NOTE =
+  'Each citation id names the source row an assertion came from; it resolves in the sidecar provenance store, where the entry is hash-chained. A missing id means the graph edge exists but its audit entry does not, which is a reason to distrust that row rather than to cite it.';
+
+/**
+ * 可核验性的判定：有行且**有引用**才叫 `citable`。
+ *
+ * 这是一个诚实性判断，不是措辞：图上的边有 `prov`，但如果 Cypher 没把它取出来
+ * （或审计库里没有该 id），那么这些行就没有可回溯的来源，说成 `citable` 等于
+ * 给了一句无法核实的话。零行时无可断言，`citable` 成立。
+ */
+function resolveVerifiability(rowCount: number, citationCount: number): string {
+  if (rowCount === 0) {
+    return 'citable';
+  }
+  return citationCount > 0 ? 'citable' : 'uncited';
+}
 
 /**
  * 英文侧 OAG 工具：`reason_over_ontology`（计划 §3.6）。
@@ -117,6 +153,9 @@ export class AssistantToolOntologyReasoningService {
     let previousCypher: string | null = null;
     let previousErrorKind: string | null = null;
     let previousError: string | null = null;
+    // 只强制要求一次带引用的重写：属性类问题（问某个字段）本来就没有关系可引，
+    // 再逼一次只会把时间花在同一个形状上。
+    let provenanceRetried = false;
     const startedAt = Date.now();
 
     for (
@@ -179,6 +218,33 @@ export class AssistantToolOntologyReasoningService {
       });
 
       if (outcome.ok) {
+        // 行回来了、却一条引用都没有：这些行没有可回溯的来源，而"可审计"是这条
+        // 链路的硬要求。提示词已经要求返回 `r.prov`，但提示词是自律不是保证，
+        // 所以这里按"可纠正"处理——带着具体提示重写一次（只一次）。
+        const rowsWithoutProvenance =
+          outcome.value.rows.length > 0 &&
+          outcome.value.citations.length === 0 &&
+          outcome.value.citationsError == null;
+        if (
+          rowsWithoutProvenance &&
+          !provenanceRetried &&
+          attempt < SEMANTICA_MAX_GENERATION_ATTEMPTS &&
+          Date.now() - startedAt < SEMANTICA_REASONING_BUDGET_MS
+        ) {
+          provenanceRetried = true;
+          this.logger.warn(
+            `Ontology query returned ${String(outcome.value.rows.length)} row(s) with no provenance; asking for a rewrite that returns \`prov\` (attempt ${String(attempt)}).`,
+          );
+          previousCypher = generated.cypher;
+          previousErrorKind = MISSING_PROVENANCE_ERROR_KIND;
+          previousError =
+            `The statement ran and returned ${String(outcome.value.rows.length)} row(s), ` +
+            'but no provenance id came back. Every relationship in this graph ' +
+            'carries a `prov` property; add it to the projection ' +
+            '(`r.prov AS prov`) for each relationship the answer uses.';
+          continue;
+        }
+
         return this.buildSuccessEnvelope({
           question,
           limit,
@@ -309,6 +375,27 @@ export class AssistantToolOntologyReasoningService {
                 'Deterministic Cypher over DrugBank structured facts; the executed query is returned for review.',
             };
 
+    const citations = input.outcome.citations
+      .slice(0, ONTOLOGY_MAX_CITATIONS)
+      .map((citation) => ({
+        id: citation.id,
+        entityType: citation.entityType,
+        sourceDocument: citation.sourceDocument,
+        sourceLocation: citation.sourceLocation,
+        sourceQuote: citation.sourceQuote,
+        activityId: citation.activityId,
+        agentId: citation.agentId,
+        confidence: citation.confidence,
+        sequenceId: citation.sequenceId,
+        checksum: citation.checksum,
+        parentEntityId: citation.parentEntityId,
+      }));
+    // 引用被截断时如实说：一份看起来完整的引用列表会让"每条断言都可回溯"
+    // 变成一句无法核实的话。
+    const citationsTruncated =
+      input.outcome.citationsTruncated ||
+      input.outcome.citations.length > citations.length;
+
     return this.buildEnvelope({
       question: input.question,
       limit: input.limit,
@@ -324,10 +411,16 @@ export class AssistantToolOntologyReasoningService {
         elapsedMs: input.outcome.elapsedMs,
         sourceTier: SEMANTICA_SOURCE_TIER,
         sourceNote: SOURCE_TIER_NOTE,
+        citations,
+        citationCount: input.outcome.citations.length,
+        citationsTruncated,
+        citationsMissing: input.outcome.citationsMissing,
+        citationsError: input.outcome.citationsError,
+        citationNote: CITATION_NOTE,
       },
       coverage,
       confidence,
-      verifiability: 'citable',
+      verifiability: resolveVerifiability(rowCount, citations.length),
       tables: input.tables,
     });
   }

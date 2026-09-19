@@ -45,6 +45,36 @@ export const assistantToolDetailSchema = z.object({
     .nullable()
     .optional()
     .describe('Optional medical knowledge disclaimer from the tool result.'),
+  citations: z
+    .array(
+      z.object({
+        id: z
+          .string()
+          .describe(
+            'Provenance id naming the source row the assertion came from.',
+          ),
+        entityType: z.string().optional(),
+        sourceDocument: z.string().optional(),
+        sourceLocation: z.string().optional(),
+        sourceQuote: z.string().optional(),
+        activityId: z.string().nullable().optional(),
+        agentId: z.string().nullable().optional(),
+        confidence: z.number().nullable().optional(),
+        sequenceId: z.number().nullable().optional(),
+        checksum: z.string().nullable().optional(),
+        parentEntityId: z.string().nullable().optional(),
+      }),
+    )
+    .optional()
+    .describe(
+      'Optional provenance citations: one per assertion the tool result rests on.',
+    ),
+  executedQuery: z
+    .string()
+    .optional()
+    .describe(
+      'Optional executed query (Cypher) for graph-backed tools, so the answer can be reviewed rather than taken on trust.',
+    ),
 });
 
 /** Strongly typed client-facing projection of tool metadata. */

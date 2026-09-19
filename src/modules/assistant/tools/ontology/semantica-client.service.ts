@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import type {
   SemanticaCallFailure,
+  SemanticaCitation,
   SemanticaGraphSchema,
   SemanticaQueryErrorKind,
   SemanticaQueryOutcome,
@@ -133,6 +134,8 @@ export class SemanticaClientService {
         cypher: input.cypher,
         params: input.params,
         limit: input.limit,
+        // 引用与行一起取：分成两次调用会让"哪些行对应哪些引用"重新变成猜测。
+        include_provenance: true,
       },
     });
 
@@ -448,5 +451,73 @@ function parseQueryResponse(payload: unknown): SemanticaQueryOutcome | null {
     rowCount: readCount(record['row_count']),
     truncated: record['truncated'] === true,
     elapsedMs: readCount(record['elapsed_ms']),
+    citations: parseCitations(record['provenance']),
+    citationsMissing: readStringArray(record['provenance_missing']),
+    citationsTruncated: record['provenance_truncated'] === true,
+    citationsError:
+      typeof record['provenance_error'] === 'string'
+        ? record['provenance_error']
+        : null,
   };
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return (value as unknown[]).filter(
+    (item): item is string => typeof item === 'string',
+  );
+}
+
+function readOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function readOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * 引用列表。unknown 形状按字段逐个读：sidecar 是独立部署的进程，它的响应
+ * 漂移不该让整个查询结果作废——读不懂的那条直接丢掉，行本身仍然有效。
+ */
+function parseCitations(value: unknown): SemanticaCitation[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const citations: SemanticaCitation[] = [];
+  for (const item of value as unknown[]) {
+    if (item == null || typeof item !== 'object' || Array.isArray(item)) {
+      continue;
+    }
+    const record = item as Record<string, unknown>;
+    const id = record['id'];
+    if (typeof id !== 'string' || id.length === 0) {
+      continue;
+    }
+    const metadata = record['metadata'];
+    citations.push({
+      id,
+      entityType: readOptionalString(record['entity_type']) ?? 'unknown',
+      sourceDocument: readOptionalString(record['source_document']) ?? '',
+      sourceLocation: readOptionalString(record['source_location']) ?? '',
+      sourceQuote: readOptionalString(record['source_quote']) ?? '',
+      activityId: readOptionalString(record['activity_id']),
+      agentId: readOptionalString(record['agent_id']),
+      agentType: readOptionalString(record['agent_type']),
+      confidence: readOptionalNumber(record['confidence']),
+      timestamp: readOptionalString(record['timestamp']),
+      sequenceId: readOptionalNumber(record['sequence_id']),
+      checksum: readOptionalString(record['checksum']),
+      parentEntityId: readOptionalString(record['parent_entity_id']),
+      metadata:
+        metadata != null &&
+        typeof metadata === 'object' &&
+        !Array.isArray(metadata)
+          ? (metadata as Record<string, unknown>)
+          : {},
+    });
+  }
+  return citations;
 }

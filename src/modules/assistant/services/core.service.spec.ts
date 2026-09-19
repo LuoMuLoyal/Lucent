@@ -895,6 +895,99 @@ describe('AssistantService', () => {
       ]);
       expect(warnSpy).toHaveBeenCalled();
     });
+
+    it('projects ontology citations into the tool detail', async () => {
+      runtime.runConversation.mockResolvedValue({
+        ...mockRunConversationResult,
+        toolResults: [
+          {
+            name: 'reason_over_ontology',
+            data: {
+              query: { question: 'Do warfarin and aspirin interact?' },
+              result: {
+                cypher:
+                  'MATCH (a:Drug)-[r:INTERACTS_WITH]->(b:Drug) RETURN r.prov AS prov LIMIT 5',
+                rows: [
+                  {
+                    prov: 'lucent:drugbank_drugs/DB00682/drug_interactions/DB00945',
+                  },
+                ],
+                rowCount: 1,
+                verifiability: 'citable',
+                citations: [
+                  {
+                    id: 'lucent:drugbank_drugs/DB00682/drug_interactions/DB00945',
+                    entityType: 'graph_assertion',
+                    sourceDocument: 'lucent.drugbank_drugs.drug_interactions',
+                    sourceLocation: 'drugbank_id=DB00682, drugbankId=DB00945',
+                    sourceQuote:
+                      'The risk or severity of bleeding can be increased.',
+                    activityId: 'lucent:ingest/drugbank_xml@2026-03-05',
+                    agentId: 'drugbank:full database.xml@2026-03-05',
+                    confidence: 1,
+                    sequenceId: 42,
+                    checksum: 'checksum-42',
+                    parentEntityId: null,
+                    // 逐行内部细节：属于面向模型的 envelope，不属于来源条；
+                    // 这里刻意留着它，用来钉住投影会把它剥掉（未知键不炸整条引用）。
+                    metadata: { edge_type: 'INTERACTS_WITH' },
+                  },
+                ],
+              },
+              coverage: { status: 'complete', reason: null },
+              timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+              source: {
+                tool: 'reason_over_ontology',
+                generatedAt: '2026-09-19T00:00:00.000Z',
+                tables: ['lucent_graph (Apache AGE)'],
+              },
+              confidence: { level: 'high', reason: 'Deterministic Cypher.' },
+              ambiguities: [],
+            },
+          },
+        ],
+      } as never);
+      runtime.streamPreGeneratedContent.mockResolvedValue({
+        ...mockStreamResult,
+        usedToolNames: ['reason_over_ontology'],
+      } as never);
+      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+
+      const result = (
+        await service.streamMessages('user-1', dto, 'zh-CN', onChunk)
+      ).unwrapOr(null);
+
+      expect(result!.toolDetails).toEqual([
+        {
+          name: 'reason_over_ontology',
+          // 可复核路径的另一半：实际执行的查询与引用一起投影给客户端。
+          executedQuery:
+            'MATCH (a:Drug)-[r:INTERACTS_WITH]->(b:Drug) RETURN r.prov AS prov LIMIT 5',
+          coverage: { status: 'complete', reason: null },
+          confidence: { level: 'high', reason: 'Deterministic Cypher.' },
+          source: {
+            tool: 'reason_over_ontology',
+            generatedAt: '2026-09-19T00:00:00.000Z',
+            tables: ['lucent_graph (Apache AGE)'],
+          },
+          citations: [
+            {
+              id: 'lucent:drugbank_drugs/DB00682/drug_interactions/DB00945',
+              entityType: 'graph_assertion',
+              sourceDocument: 'lucent.drugbank_drugs.drug_interactions',
+              sourceLocation: 'drugbank_id=DB00682, drugbankId=DB00945',
+              sourceQuote: 'The risk or severity of bleeding can be increased.',
+              activityId: 'lucent:ingest/drugbank_xml@2026-03-05',
+              agentId: 'drugbank:full database.xml@2026-03-05',
+              confidence: 1,
+              sequenceId: 42,
+              checksum: 'checksum-42',
+              parentEntityId: null,
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('regenerateConversation', () => {
