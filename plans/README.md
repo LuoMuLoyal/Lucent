@@ -39,7 +39,7 @@ YYYY-MM-DD-short-task-name.md
 - [`2026-09-16-lightrag-introduction-plan.md`](2026-09-16-lightrag-introduction-plan.md)
   — LightRAG 中文散文检索层引入:P1(基础设施)+ P3(删除旧散文检索工具、capabilities 增 `retrieval_unavailable`、双仓契约同步)已落地;P2 全量评测与 P4/P5 未做,剩余事项见 `docs/TODO.md`
 - [`2026-09-17-semantica-oag-english-side-plan.md`](2026-09-17-semantica-oag-english-side-plan.md)
-  — Semantica(英文侧 OAG)聚合落地:按语言分工、v0.6.8 源码级能力/缺陷核实、fork 自持清单、存储矩阵与 AGE 1.7 纪律、四类"生成"归属、服务形态与 FastAPI 选型;AGE 引入步骤见 `2026-09-27-apache-age-introduction-plan.md`
+  — Semantica(英文侧 OAG)聚合落地:按语言分工、`main` 源码级能力/缺陷核实(跟随上游 main,不钉 SHA)、fork 自持清单、存储矩阵与 AGE 1.7 纪律、四类"生成"归属、服务形态与 FastAPI 选型;AGE 引入步骤见 `2026-09-27-apache-age-introduction-plan.md`
 - [`2026-09-17-local-embedding-model-selection.md`](2026-09-17-local-embedding-model-selection.md)
   — 本地嵌入模型选型调研(未决策):厘清 LightRAG 中文侧 / Lucent pgvector / Semantica 内部三条嵌入线,候选矩阵与许可红线,维度↔pgvector 索引约束,收敛条件待硬件与吞吐基准
 - [`2026-09-10-staging-native-pm2-traefik.md`](2026-09-10-staging-native-pm2-traefik.md)

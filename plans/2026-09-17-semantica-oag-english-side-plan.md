@@ -2,6 +2,7 @@
 
 Created: 2026-09-17
 状态：聚合定稿（本文是 Semantica 的唯一执行入口；上游决策不再分散在四份文档里）
+基线：**fork 自持并跟随上游 `main` 最新，不钉 SHA**（2026-09-19 按 `main` 复核全文结论；此前基于 v0.6.8 的判断已逐条重核，差异见 §0 末）
 定位：把工作区内关于 **Semantica** 的全部结论聚合成一份可执行文档 —— 它是什么、为什么只在英文侧用、怎么落地、要改它哪些代码、有什么坑。**AGE 的具体引入步骤不在本文**（见 §9 指针）。
 
 ---
@@ -12,13 +13,23 @@ Semantica 的判断此前散落在四份文档里，互相有引用的"跳来跳
 
 | 来源                                                        | 内容                                                                                            | 本文归属                                                 |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `Lumos-docs/2026-09-15-lightrag-vs-oag-selection-review.md` | 决策主体：按语言分工、Semantica 采纳但限定英文侧、v0.6.8 源码级核实、fork 清单、存储矩阵、风险  | §1–§8 全部                                               |
+| `Lumos-docs/2026-09-15-lightrag-vs-oag-selection-review.md` | 决策主体：按语言分工、Semantica 采纳但限定英文侧、源码级核实、fork 清单、存储矩阵、风险         | §1–§8 全部                                               |
 | `plans/2026-08-28-medicine-risk-graph-plan.md` §6.9         | 最早的 Semantica 替代路线（六步链路逐条对照、与 LightRAG 的关系）                               | §1.3、§3.2、§6                                           |
 | `plans/2026-09-27-apache-age-introduction-plan.md`          | AGE 作为 Semantica 图后端的引入步骤                                                             | §9（指针，不复述）                                       |
 | `plans/2026-09-16-lightrag-introduction-plan.md`            | 中文侧边界（"中文侧不引入 Semantica"）                                                          | §2、§8                                                   |
 | **试点仓 `semantica-oag-pilot/`（2026-09-17）**             | 一手实测：AGE Cypher 子集、三项能力（本体治理 / 推理 / 溯源）、并发与写入基准、四类生成源码核实 | §3.5、§6.3、§6.4、§6.5、§7 第 9–12 项、§8.1 试点验证结果 |
 
 **口径变化提示**：`plans/2026-08-28-medicine-risk-graph-plan.md` 写于 2026-09-06，其 §6.9 的判断（Semantica **替代**自建 OAG、且与 LightRAG 二选一）已被 2026-09-16 复核**取代** —— 现行口径是**按语言分工、两线并行**（§2）。引用时以本文为准。
+
+**基线变更（2026-09-19）**：上游基线由 **v0.6.8 tag** 改为 **`main` 最新**。本文所有源码级结论已在 `main` 上逐条重验，差异仅有三处：
+
+| 变化                         | 原（v0.6.8）                                         | 现（`main`）                                                                           | 影响                                         |
+| ---------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **核心依赖瘦身**             | 52 个强制依赖，含 torch / opencv / librosa，不可裁剪 | 22 个重包移入 extras，核心只剩 numpy / pandas / scipy / sklearn / rdflib / networkx 等 | **§6.1、§8.3 的体积论据作废**（§6.1 已重写） |
+| **`embeddings-local` extra** | 原判"在 PyPI 不存在"                                 | 确实存在                                                                               | 该条文档漂移实例删除                         |
+| **版本与分支**               | 最新 release v0.6.8；`main` 已进 0.7.0               | 同上，且确认 **`main` 是唯一干线**（无 dev/release 分支）                              | §1.1 增补分支模型；pin 策略改为跟随 main     |
+
+**其余全部结论不变**：§5 的七项中文侧缺陷、§7 的 12 项 fork 改动、§6.3 的 AGE Cypher 子集、§6.4 的三个坑（`xsd:xsd:` 前缀重复、Datalog 不等式静默忽略、`load_from_graph` 静默返回 0）在 `main` 上**均仍成立**。
 
 来源标注沿用原文档约定：`[核实]` = 源码 / 官方仓库 / 官方文档 / API 实测；`[二手]` = 第三方分析；`[研判]` = 本文判断。
 
@@ -30,18 +41,19 @@ Semantica 的判断此前散落在四份文档里，互相有引用的"跳来跳
 
 `[核实]` GitHub API + PyPI（2026-09-17 复测）
 
-| 项                    | 值                                                                                                                                      |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 仓库                  | `semantica-agi/semantica`（canonical；`pellera9/semantica` 是 fork，1★ 无 release）                                                     |
-| 描述                  | Graph-Native Infrastructure for Context and Accountable AI Systems                                                                      |
-| 许可                  | **MIT**                                                                                                                                 |
-| 语言 / 体积           | Python（13.1 MB）+ TypeScript（1.2 MB，explorer UI）                                                                                    |
-| Star / fork / watcher | **13,083 / 1,463 / 68**（2026-09-17 实测；2026-09-16 为 12,962 / 1,447 / 67）                                                           |
-| 创建 / 最后 push      | 2025-06-25 / 2026-09-17                                                                                                                 |
-| 最新 release          | **v0.6.8（2026-09-05）**，24 个 release，全部 v0.x；`main` 已进入 0.7.0 时代（CHANGELOG 含 `[0.7.0] - 2026-09-07`）                     |
-| 版本节奏              | 10 个月从 0.0.1 → 0.6.8；2026-06 起放缓                                                                                                 |
-| open issues           | 100                                                                                                                                     |
-| 贡献者分布            | 主维护者 1 人（2,031 commits）/ 核心 2 人（276、142）/ bot 1 个（104）/ 活跃外围约 22 人（4–26）/ **一次性贡献者约百人（各 1 commit）** |
+| 项                    | 值                                                                                                                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 仓库                  | `semantica-agi/semantica`（canonical；`pellera9/semantica` 是 fork，1★ 无 release）                                                                                   |
+| 描述                  | Graph-Native Infrastructure for Context and Accountable AI Systems                                                                                                    |
+| 许可                  | **MIT**                                                                                                                                                               |
+| 语言 / 体积           | Python（13.1 MB）+ TypeScript（1.2 MB，explorer UI）                                                                                                                  |
+| Star / fork / watcher | **13,214 / 1,483 / 68**（2026-09-19 实测；2026-09-17 为 13,083 / 1,463 / 68）                                                                                         |
+| 创建 / 最后 push      | 2025-06-25 / 2026-09-18                                                                                                                                               |
+| 最新 release          | **v0.6.8（2026-09-05）**，24 个 release，全部 v0.x；**`main` 已是 0.7.0，领先 v0.6.8 共 127 个提交，且尚未发布到 PyPI**                                               |
+| 版本节奏              | 10 个月从 0.0.1 → 0.6.8；2026-06 起放缓                                                                                                                               |
+| open issues           | 106                                                                                                                                                                   |
+| **分支模型**          | **只有 `main` 一条干线**：76 个分支里没有 `dev` / `develop` / `release` / `next`，46 个 open PR 全部直打 `main`；其余分支是 dependabot 与短命 feature/fix，不能当基线 |
+| 贡献者分布            | 主维护者 1 人（2,031 commits）/ 核心 2 人（276、142）/ bot 1 个（104）/ 活跃外围约 22 人（4–26）/ **一次性贡献者约百人（各 1 commit）**                               |
 
 **贡献者口径要写准**：仓库确有约 107 位贡献者，但分布极度倾斜 —— 一个账号占前 30 名提交量的约 72%，尾部上百个账号各只有 1 次提交。准确表述是**"单一主维护者 + 长尾一次性贡献者"**：不是业余单人项目，但一次性贡献者也接不了手。这正是选择 **fork 自持**而非跟随上游的直接理由（§7）。
 
@@ -121,7 +133,7 @@ README 内明文：`[核实]`
 | 中文侧检索 / 中文侧结构化推理                                       | **不采纳** —— 中文侧走 LightRAG + 边表 + SQL/CTE（§5 给出硬理由）                                             |
 | 作为执行层（写库 / 审批动作）                                       | **不采纳** —— 文档明文 _"PolicyEngine … does NOT automatically prevent actions"_；执行留在 proposal + confirm |
 | 用它的内置嵌入器 / 中文嵌入                                         | **不用** —— 英文侧用现有 pgvector 检索栈；本体入图是确定性灌入，不需要它的嵌入                                |
-| 上游依赖（跟版本升级）                                              | **不跟** —— fork 自持，按内部节奏升级（§7）                                                                   |
+| 上游依赖（跟版本升级）                                              | **跟 `main` 最新** —— fork 自持，基线始终是 main HEAD（不钉 SHA）；每次升级重读 §5 / §7 的源码级结论          |
 | 仅借 **SHACL 校验**（`pip install pyshacl`，纯 Python、Apache-2.0） | **可选，低风险** —— CI / 导入阶段即可用，不需要整包                                                           |
 
 ### 2.2 为什么是"采纳"而不是"自建"
@@ -144,7 +156,7 @@ README 内明文：`[核实]`
 
 ### 3.2 能力映射
 
-`[核实]` Semantica v0.6.8 能力面
+`[核实]` Semantica `main` 能力面
 
 - **本体生成与治理**：`OntologyEngine` / `OntologyGenerator` + SHACL 校验 + OWL/RDF 导出；
 - **知识存储**：LPG 图后端（**AGE**，见 §6.2）；
@@ -204,7 +216,7 @@ README 内明文：`[核实]`
 
 ### 3.5 四类"生成"的归属
 
-Semantica **有生成能力**，共四处（`[核实]` v0.6.8 读源码）。这四类的归属理由各不相同，
+Semantica **有生成能力**，共四处（`[核实]` 读源码）。这四类的归属理由各不相同，
 不能合并成一句话：
 
 | #   | 生成能力               | 实现                                                                                | 用户可见      | 归属                                 | 理由                                                             |
@@ -313,22 +325,22 @@ f"...{context}\nQuestion: {query}\nAnswer strictly based on the provided graph c
 
 ---
 
-## 五、中文侧为什么不上 OAG：v0.6.8 源码级核实
+## 五、中文侧为什么不上 OAG：`main` 源码级核实
 
-以下均为对 **v0.6.8 tag**（不是 `main`）的核实结果。它们**不影响英文侧**，但决定了中文侧不能交给它。
+以下均为对 **上游 `main`**（2026-09-19 复核；原为 v0.6.8 tag 核实，逐条在 `main` 上重验后结论不变）的结果。它们**不影响英文侧**，但决定了中文侧不能交给它。
 
-| 项                           | 证据                                                                                                                                                                  | 后果                                                                                        |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **中文实体消解静默失效**     | `deduplication/similarity_calculator.py`：token 预筛用 `.split()` 后判定 `"no_shared_tokens"`，v2 blocking key 为 `tok:{token[:4]}`                                   | 中文整串只有一个 token → **一对候选都生成不出来**，不报错，只是什么都不合并                 |
-| **NER 默认英文**             | `extract_entities_spacy(model="en_core_web_sm")`；文档称 ml 档为 _"general English NER"_                                                                              | 中文抽取只能走 `method="llm"`（计量）                                                       |
-| **分句切不了中文**           | `split/methods.py` 硬编码 `en_core_web_sm`；正则回落 `re.split(r"(?<=[.!?])\s+", text)` 要求 ASCII 标点 + 空白                                                        | `。` 结尾的中文句切不开                                                                     |
-| **嵌入硬编码英文**           | `semantic_extract/methods.py` L244 在**无参数的缓存全局**里写死 `TextEmbedder("BAAI/bge-small-en-v1.5")`                                                              | 即使改了存储层嵌入，这条内部相似度路径仍是英文                                              |
-| **加载失败静默降级**         | 模型加载失败时 `get_method()` 返回 `"fallback"` → **128 维 SHA-256 哈希向量**，不抛异常                                                                               | 危险失败模式：以为在用语义嵌入，实际是哈希                                                  |
-| **语言标签不往返**           | `explorer/utils/rdf_parser.py` L55 `if lang and lang.startswith("en")` 使 `@en` 胜出、`@zh` 被丢弃；`owl_generator.py` 导出无标签字面量；SHACL 用 `sh:datatype`       | `@zh` 字面量是 `rdf:langString`，会被 `xsd:string` 形状拒绝；中文标签只能存**无标签字符串** |
-| **changelog 与发布版不一致** | CHANGELOG v0.6.7 #967 声称修好 CJK bigram 回落；v0.6.8 tag 的 `decision_query.py` L1071–1077 **仍是纯 whitespace Jaccard**，MCP server 中 `jaccard` / `bigram` 零出现 | 中文决策/先例检索不可用；**不能把 changelog 当能力清单**                                    |
-| **多语言无支持声明**         | 81 份 in-repo 文档 + README + ARCHITECTURE 中 `multilingual` / `cross-lingual` / `Chinese` / `bge-zh` / `bge-m3` **零命中**                                           | 中文能力属未声明、未验证区                                                                  |
+| 项                           | 证据                                                                                                                                                            | 后果                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **中文实体消解静默失效**     | `deduplication/similarity_calculator.py`：token 预筛用 `.split()` 后判定 `"no_shared_tokens"`，v2 blocking key 为 `tok:{token[:4]}`                             | 中文整串只有一个 token → **一对候选都生成不出来**，不报错，只是什么都不合并                 |
+| **NER 默认英文**             | `extract_entities_spacy(model="en_core_web_sm")`；文档称 ml 档为 _"general English NER"_                                                                        | 中文抽取只能走 `method="llm"`（计量）                                                       |
+| **分句切不了中文**           | `split/methods.py` 硬编码 `en_core_web_sm`；正则回落 `re.split(r"(?<=[.!?])\s+", text)` 要求 ASCII 标点 + 空白                                                  | `。` 结尾的中文句切不开                                                                     |
+| **嵌入硬编码英文**           | `semantic_extract/methods.py` L244 在**无参数的缓存全局**里写死 `TextEmbedder("BAAI/bge-small-en-v1.5")`                                                        | 即使改了存储层嵌入，这条内部相似度路径仍是英文                                              |
+| **加载失败静默降级**         | 模型加载失败时 `get_method()` 返回 `"fallback"` → **128 维 SHA-256 哈希向量**，不抛异常                                                                         | 危险失败模式：以为在用语义嵌入，实际是哈希                                                  |
+| **语言标签不往返**           | `explorer/utils/rdf_parser.py` L55 `if lang and lang.startswith("en")` 使 `@en` 胜出、`@zh` 被丢弃；`owl_generator.py` 导出无标签字面量；SHACL 用 `sh:datatype` | `@zh` 字面量是 `rdf:langString`，会被 `xsd:string` 形状拒绝；中文标签只能存**无标签字符串** |
+| **changelog 与发布版不一致** | CHANGELOG v0.6.7 #967 声称修好 CJK bigram 回落；**`main` 的 `decision_query.py` 仍是纯 whitespace Jaccard**（`jaccard` / `bigram` 在该文件零命中）              | 中文决策/先例检索不可用；**不能把 changelog 当能力清单**                                    |
+| **多语言无支持声明**         | 81 份 in-repo 文档 + README + ARCHITECTURE 中 `multilingual` / `cross-lingual` / `Chinese` / `bge-zh` / `bge-m3` **零命中**                                     | 中文能力属未声明、未验证区                                                                  |
 
-**文档漂移的其他实例**（作为成熟度证据，不是否决理由）：`RELEASE_NOTES.md` 停在 0.5.0；`ARCHITECTURE.md` 称 MCP "10+ tools" 而文档已是 15 个；报错文案建议的 `semantica[embeddings-local]` extra **在 PyPI 上不存在**；README 的性能数字自陈"非 `tests/` 断言"；`_cosine_similarity` 名称与实现（字符 bigram Jaccard）不符。
+**文档漂移的其他实例**（作为成熟度证据，不是否决理由）：`RELEASE_NOTES.md` 停在 0.5.0；`ARCHITECTURE.md` 称 MCP "10+ tools" 而文档已是 15 个；README 的性能数字自陈"非 `tests/` 断言"；`_cosine_similarity` 名称与实现（字符 bigram Jaccard）不符。**注：原列表中的 `semantica[embeddings-local]` extra "在 PyPI 不存在"一条已作废** —— `main` 上该 extra 确实存在（`sentence-transformers` / `fastembed` / `onnxruntime` / `tokenizers`）。
 
 > **结论：引用它时每个 `[核实]` 都必须自己读源码，不信文档。**
 
@@ -356,17 +368,26 @@ f"...{context}\nQuestion: {query}\nAnswer strictly based on the provided graph c
 | 形态           | **官方 HTTP server**（`lightrag-server` / `lightrag-gunicorn` / 官方 Docker 镜像 / GHCR） | **Python 库**，in-process                                                                                                                                        |
 | 从 NestJS 调用 | `fetch` → `:9621`                                                                         | **我们自建 HTTP 服务**：Semantica 自身的 REST 在 `explorer` extra 内（官方定位开发控制台，且不含我们的工具契约）；MCP 为 **stdio-only**，做不了远程服务。见 §6.5 |
 | 生产部署路径   | 官方 Docker + compose + k8s                                                               | **无官方生产镜像** → 自建镜像 + 自写包装服务。见 §6.5                                                                                                            |
-| 基础安装依赖   | 轻（Python ≥3.10）                                                                        | **重，且全部强制**                                                                                                                                               |
+| 基础安装依赖   | 轻（Python ≥3.10）                                                                        | **已大幅瘦身**：`main` 移走了 22 个重包，SHACL 校验不再连带 PyTorch                                                                                              |
 
-`pip install semantica`（**无任何 extra**）的强制依赖分三类：
+**依赖体积已不是问题（`main` 相对 v0.6.8 的关键改善）**：`main` 的
+`feat(deps): slim core dependencies`（2026-09-07）把 22 个重包从强制依赖移入 extras，
+`pip install semantica`（**无任何 extra**）现在只剩：
 
-- **本地模型 / 推理栈**：`torch>=1.13.1`、`transformers>=4.20.0`、`sentence-transformers`、`fastembed`、`onnxruntime`、`tokenizers`
-- **科学与多媒体栈**：`scipy`、`scikit-learn`、`umap-learn`、`gensim`、`spacy`、`opencv-python`、`librosa`、`matplotlib`、`seaborn`、`plotly`、`pillow`
-- **图与文档栈**：`rdflib`、`networkx`、`faiss-cpu`、`pyarrow`、`lxml`、`python-docx`、`openpyxl`、`GitPython`、`grpcio`
+- **基础科学栈**：`numpy`、`pandas`、`scipy`、`scikit-learn`
+- **图与 RDF 栈**：`rdflib`、`networkx`、`pyarrow`
+- **工具栈**：`requests`、`chardet`、`protobuf`、`grpcio`、`pillow`、`pydantic`、`click`、
+  `rich`、`tqdm`、`pyyaml`、`toml`、`python-dotenv`、`loguru`、`structlog`、`httpx`
 
-→ 即便只使用其 SHACL 校验能力（该能力实际只需 `pyshacl`，轻量），也会连带引入 PyTorch + OpenCV + librosa 的镜像体积与 CVE 面。量级估算：轮子下载 0.6–0.9 GB、安装后 2.5–3.5 GB。`[研判，量级估算，落地前应实测]`
+原 v0.6.8 里强制的 `torch` / `transformers` / `sentence-transformers` / `fastembed` /
+`onnxruntime` / `spacy` / `gensim` / `opencv-python` / `librosa` / `matplotlib` / `seaborn` /
+`plotly` / `faiss-cpu` / `lxml` / `python-docx` / `openpyxl` / `GitPython` **全部已转移到
+extras**。因此"只借 SHACL 却连带 PyTorch + OpenCV + librosa"这条论据**对新基线不成立**。
 
-**LLM SDK 不在基础安装内**：`llm-openai` / `llm-deepseek`（两者都只装 `openai`）/ `llm-litellm`（覆盖 OpenAI / Anthropic / Gemini / DeepSeek / Ollama）**均为 extra**；SHACL 也只是 `shacl` extra（`pyshacl>=0.25.0`）。
+→ 这直接改变了 §6.5 的镜像体积结论：**基于 `main` 的 sidecar 镜像不再需要背 PyTorch 栈**，
+只有显式声明用到 extras 才会引入。`[核实 2026-09-19]`
+
+**LLM SDK 不在基础安装内**：`llm-openai` / `llm-deepseek`（两者都只装 `openai`）/ `llm-litellm`（覆盖 OpenAI / Anthropic / Gemini / DeepSeek / Ollama）**均为 extra**；SHACL 也是 `shacl` extra（`pyshacl>=0.25.0`）。
 
 **外部厂商 API 路线下的一个硬缺口**：`OpenAIStore`（唯一的云端嵌入路径）只接受 `api_key` 与 `model`，**没有 `base_url` 透传**（LLM 那条路是支持 `base_url` 的）。"嵌入也走外部厂商"在文档里不支持、代码里也没有这条路径 —— 要么在 Semantica 侧改（§7 第 1 项），要么用 SDK 的 `OPENAI_BASE_URL` 环境变量绕过（未文档化）。
 
@@ -433,6 +454,11 @@ semantica[explorer,shacl,tripletstore-oxigraph,monitoring,viz]  +  llm-openai
    - `to_shacl()` 自动派生的形状有缺陷：数据类型写成 `xsd:xsd:string`（**前缀重复**），
      约束**不可满足** → 连正确数据都被判 `conforms=False`；且不含 `sh:minCount`/`sh:maxCount`，
      缺必填属性反而不报。**误报 + 漏报同时存在，比空形状更危险**（会在 CI 里挡掉合法数据）。
+   - **`main` 复核**：两条均仍在。`SHACLGenerator._resolve_xsd()` 的回落分支仍是
+     `f"xsd:{range_str}"`，别名表里**没有任何 `xsd:` 前缀键**，故 range 若已带前缀即产出
+     `xsd:xsd:string`；`sh:minCount` 只在词条显式声明 `cardinality.min` 或 `required` 时才发，
+     自动派生不产生这两个字段。**类与文件实际位于 `ontology/ontology_generator.py`
+     （`SHACLGenerator` 类），不是 `ontology/shacl_generator.py`** —— 该文件在上游任何版本都不存在。
    - 本体生成**丢弃低频关系类型**：试点喂入 15 种关系类型，**保留 9 种、丢 6 种**，
      丢弃的恰好是边数 ≤3 的（`REGULATES` 1 / `TRANSPORTED_BY` 1 / `ACTIVATES` 2 /
      `BLOCKS` 3 / `CARRIED_BY` 3 / `DOWNREGULATES` 3），保留的都是 ≥10 的 ——
@@ -480,7 +506,7 @@ semantica[explorer,shacl,tripletstore-oxigraph,monitoring,viz]  +  llm-openai
 | 内容                                                                          | 归属                                                                          |
 | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | 包装服务代码（`/reason`、`/schema`、`/validate`、`ontology:rebuild`、AGE 桥） | **独立仓** `semantica-service/`                                               |
-| Dockerfile + 钉版 fork + vendor wheel 树                                      | 同上                                                                          |
+| Dockerfile + fork 自持（跟 main）+ vendor wheel 树                            | 同上                                                                          |
 | `.env` / `.env.example`                                                       | `Lucent/deploy/semantica/`（与 `deploy/lightrag/` 同构，**只放配置**）        |
 | compose 服务定义                                                              | `Lucent/compose{,.dev,.staging}.yaml`（与 lightrag 并列，同机容器、不走 PM2） |
 | TS HTTP 客户端 + 工具注册                                                     | `Lucent/src/modules/assistant/`                                               |
@@ -491,7 +517,7 @@ semantica[explorer,shacl,tripletstore-oxigraph,monitoring,viz]  +  llm-openai
    （`deploy/lightrag/` 只有 `.env` + `.env.example`，镜像来自 GHCR）。
    塞进一个我们拥有并维护的代码库，这个含义就没了。
 2. **语言 / 工具链 / 发布节奏全不同** —— Lucent CI 是 pnpm + Node；多一个 Python 服务
-   要多一套 lint / test / 依赖钉版 / 镜像发布流程，而它的升级周期与 Lucent 版本无关
+   要多一套 lint / test / 依赖管理 / 镜像发布流程，而它的升级周期与 Lucent 版本无关
    （fork 自持意味着按内部节奏 rebase）。
 3. **工作区约定本就是"一个项目一个仓"** —— Lucent / Luminous / Luminous-website 各自独立仓，
    根目录不是 git 仓。一个独立发布的 Python 服务正好符合这个形状。
@@ -528,7 +554,7 @@ FastAPI 把同步 `def` 端点**自动丢进线程池**，阻塞调用不会卡�
 #### 依赖集
 
 ```toml
-semantica[shacl,graph-apache-age,tripletstore-oxigraph]==0.6.8
+semantica[shacl,graph-apache-age,tripletstore-oxigraph]  # 跟随上游 main；不写 ==pin
 fastapi
 uvicorn[standard]
 ```
@@ -559,22 +585,24 @@ uvicorn[standard]
 
 ## 七、fork 清单
 
-fork 自持后，§5 的缺陷从"能力否决"变成"待办"。按必要性排序：
+fork 自持后，§5 的缺陷从"能力否决"变成"待办"。按必要性排序。
 
-| #   | 位置                                                         | 改什么                                                              | 必要性                                                         |
-| --- | ------------------------------------------------------------ | ------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 1   | `embeddings/provider_stores.py` `OpenAIStore.__init__`       | 加 `base_url` 透传（config 或 `OPENAI_BASE_URL` 环境变量）          | **必须** —— 否则外部厂商嵌入接不上                             |
-| 2   | `semantic_extract/methods.py` L244                           | 把硬编码的缓存全局 `TextEmbedder("bge-small-en")` 参数化            | **必须**（若中文文本入图；英文侧可选）                         |
-| 3   | 启动自检                                                     | 断言 `TextEmbedder.get_method() != "fallback"`，否则 fail fast      | **必须** —— 防 128 维哈希向量静默上线                          |
-| 4   | `provenance/storage.py`                                      | 实现 PG 版 `ProvenanceStorage` 子类，审计与 `audit_logs` 同库同事务 | **值得** —— 默认只有 SQLite；**成本已实测为 6 个方法**（§6.4） |
-| 5   | `deduplication/similarity_calculator.py` L200–215 / L671–677 | token 预筛与 blocking key 改字符 n-gram / 前缀                      | 按需 —— 中文实体消解若留在 Lucent 则不需要                     |
-| 6   | `context/decision_query.py` L1071–1077                       | 补上 changelog 承诺的字符 bigram 回落（约 5 行）                    | 按需 —— 用它的决策检索才需要                                   |
-| 7   | `split/methods.py` L340 / L424                               | 中文句切分与 spaCy 模型参数化                                       | 按需 —— 复用现有 chunk 表则不需要                              |
-| 8   | `explorer/utils/rdf_parser.py` L55 + `owl_generator.py`      | 保留语言标签（或明确只存无标签字符串）                              | 按需 —— 双语标签重要才改                                       |
-| 9   | `graph_store/age_store.py` `_infer_return_cols`              | 按逗号切分 `RETURN` 时**同时跟踪引号**（现只跟踪括号深度）          | **必须** —— 见 §6.3，LLM 生成的查询极易触发                    |
-| 10  | `reasoning/datalog_reasoner.py` 规则解析                     | 支持并**真正应用**不等式（`!=` / `<>`）约束                         | **必须** —— 见 §6.4，现为静默忽略，产出假阳性                  |
-| 11  | `reasoning/datalog_reasoner.py` `load_from_graph`            | 对不支持的图对象**抛错**而非静默返回 0                              | **值得** —— 见 §6.4，危险的静默空操作                          |
-| 12  | `ontology/shacl_generator.py` 数据类型前缀                   | 修 `xsd:xsd:string`（前缀重复）导致的不可满足约束；补 `sh:minCount` | **必须** —— 见 §6.4，误报+漏报同时存在                         |
+**2026-09-19 在 `main` 上逐条复核：12 项全部仍然有效**（无一项被上游修掉），多数行号未漂；下表行号已按 `main` 校准（其中第 5、7、8 项的原行号在 `main` 上完全未变）。
+
+| #   | 位置                                                           | 改什么                                                              | 必要性                                                         |
+| --- | -------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 1   | `embeddings/provider_stores.py` `OpenAIStore.__init__`         | 加 `base_url` 透传（config 或 `OPENAI_BASE_URL` 环境变量）          | **必须** —— 否则外部厂商嵌入接不上                             |
+| 2   | `semantic_extract/methods.py` L463                             | 把硬编码的缓存全局 `TextEmbedder("bge-small-en-v1.5")` 参数化       | **必须**（若中文文本入图；英文侧可选）                         |
+| 3   | 启动自检                                                       | 断言 `TextEmbedder.get_method() != "fallback"`，否则 fail fast      | **必须** —— 防 128 维哈希向量静默上线                          |
+| 4   | `provenance/storage.py`                                        | 实现 PG 版 `ProvenanceStorage` 子类，审计与 `audit_logs` 同库同事务 | **值得** —— 默认只有 SQLite；**成本已实测为 6 个方法**（§6.4） |
+| 5   | `deduplication/similarity_calculator.py` L200–215 / L671–677   | token 预筛与 blocking key 改字符 n-gram / 前缀                      | 按需 —— 中文实体消解若留在 Lucent 则不需要                     |
+| 6   | `context/decision_query.py` 决策相似度回落                     | 补上 changelog 承诺的字符 bigram 回落（约 5 行）                    | 按需 —— 用它的决策检索才需要                                   |
+| 7   | `split/methods.py` L340 / L424                                 | 中文句切分与 spaCy 模型参数化                                       | 按需 —— 复用现有 chunk 表则不需要                              |
+| 8   | `explorer/utils/rdf_parser.py` L55 + `owl_generator.py`        | 保留语言标签（或明确只存无标签字符串）                              | 按需 —— 双语标签重要才改                                       |
+| 9   | `graph_store/age_store.py` `_infer_return_cols`                | 按逗号切分 `RETURN` 时**同时跟踪引号**（现只跟踪括号深度）          | **必须** —— 见 §6.3，LLM 生成的查询极易触发                    |
+| 10  | `reasoning/datalog_reasoner.py` 规则解析                       | 支持并**真正应用**不等式（`!=` / `<>`）约束                         | **必须** —— 见 §6.4，现为静默忽略，产出假阳性                  |
+| 11  | `reasoning/datalog_reasoner.py` `load_from_graph`              | 对不支持的图对象**抛错**而非静默返回 0                              | **值得** —— 见 §6.4，危险的静默空操作                          |
+| 12  | `ontology/ontology_generator.py` `SHACLGenerator._resolve_xsd` | 修 `xsd:xsd:string`（前缀重复）导致的不可满足约束；补 `sh:minCount` | **必须** —— 见 §6.4，误报+漏报同时存在                         |
 
 **第 9 项的实测依据（2026-09-17 试点）**：`_infer_return_cols` 按逗号切分 `RETURN` 子句且**不识别字符串字面量**，
 因此 `RETURN a AS x, 'reduces metabolism, increasing risk' AS note` 被切成 5 列而非 4 列，
@@ -583,6 +611,12 @@ AGE 报 `return row and column definition list do not match`。对照实验（�
 已在试点内以 `age_exec.py` 修正并跑通真实 LLM 查询。
 
 **配套两条**：内网镜像 **vendor 整棵 wheel 树**（防上游下架/删库）；一条 `ontology:rebuild`（从 PG + 本体文件全量重建图）作为"未被锁定"的可执行证明。
+
+> **跟随 `main` 的代价与纪律（2026-09-19）**：基线不钉 SHA 意味着 §7 的行号会随上游漂移，
+> 且 46 个 open PR 随时可能改动被 fork 的文件。因此每次 rebase 到新 `main` 时：
+> ① 重跑 §7 清单确认 12 项是否已被上游修掉（修掉则从 fork 改动里删除）；
+> ② 重读 §5 确认中文侧边界未变；③ 重跑 S1 的 AGE 探针（§6.3 的 Cypher 子集结论与后端版本绑定）。
+> vendor wheel 树是这条策略的安全网 —— 上游删库/下架不影响已构建镜像。
 
 ---
 
@@ -668,22 +702,23 @@ AGE 报 `return row and column definition list do not match`。对照实验（�
 ### 8.2 运维手册
 
 - **Semantica**：`ontology:rebuild`（从 PG + 词表全量重建图）作为"未被锁定"的可执行证明；wheel 树 vendor 进内网镜像。
-- 上游升级**不跟**，按内部节奏走；升级前重读 §5 与 §6.2 的源码级结论。
+- 上游升级**跟随 `main` 最新**（不钉 SHA）：每次 rebase 后按 §7 末尾的三步纪律重核 §5 / §7 / §6.3 的源码级结论。
+- **安装来源**：PyPI 落后 `main`，因此生产镜像**从 fork 的 `main` 源码构建**（`pip install .[shacl,graph-apache-age,tripletstore-oxigraph]`），不装 PyPI 的 0.6.8。这样"跟随 main"与"可复现构建"同时成立 —— 可复现性由 vendor wheel 树与镜像层保证，而不是靠版本号 pin。
 
 ### 8.3 风险清单（Semantica 相关条目）
 
-| 风险                             | 事实                                                                                                                        | 应对                                                                                                                                              |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **依赖体积**                     | 基础安装强制 torch / opencv / librosa 等，**且不可裁剪**                                                                    | 用 curated extras 而非 `[all]`；**中文侧不引 Semantica**，体积与 CVE 面只落在英文侧                                                               |
-| **上游文档与代码漂移**           | changelog 声称的 CJK 修复不在发布版；`RELEASE_NOTES.md` 停在 0.5.0；报错文案里的 `semantica[embeddings-local]` extra 不存在 | fork 自持 + vendor wheel 树；**引用它时逐条读源码，不信文档**                                                                                     |
-| **Semantica 存储在 PG 上受限**   | 无纯 PG 表图后端；决策/审批/策略写 Cypher（必须 AGE）；provenance 仅 SQLite                                                 | 英文侧用 AGE；provenance 走自写 PG `ProvenanceStorage`（§7 第 4 项）                                                                              |
-| **嵌入静默降级**                 | 模型加载失败 → 128 维 SHA-256 哈希向量，**不抛异常**                                                                        | fork 第 3 项：启动自检 `get_method() != "fallback"`，否则 fail fast                                                                               |
-| **AGE 版本纪律**                 | `apache/age#2500`（open）：1.8.0 上 `id(n) IN <变量列表>` SIGSEGV 并触发 PG 崩溃恢复                                        | 钉 `release/PG18/1.7.0`；升级前先看 #2500 状态                                                                                                    |
-| **AGE 功能矩阵限制**             | AGE 后端的 Reasoning/analytics 与 Provenance 只标 `Partial`                                                                 | 接受局限；关键查询先实测再决定                                                                                                                    |
-| **第三方镜像供应链**             | `dyingbleed/postgres-rag` 是社区镜像，维护持续性未知                                                                        | 钉 `18-trixie` 不可变标签；上线前审计 Dockerfile 与镜像层；必要时以同一配方自建镜像回退                                                           |
-| **Semantica 项目成熟度**         | 较新开源，社区与维护可持续性存疑                                                                                            | 锁定版本；Skill / Action 留在 Lucent 侧（可剥离）；自建路线仍为可回退的 plan B                                                                    |
-| **Semantica 推理存储后端二选一** | 纯关系表 / JSONB 不满足 Rete / Datalog / SPARQL 推理要求                                                                    | 选 AGE（英文侧确定形态）；源层仍为 Phase 1 关系表，**物化隔离**                                                                                   |
-| **审计缺口（现状）**             | `AuditLogService` 已有、account / auth / data-export 都接了，但 **`proposal-confirm` 写入路径未写审计**                     | 在 confirm 路径补 `assistant.proposal.confirm` 审计（`resourceType` / `resourceId` + `proposalIds` + `decision`），与 §4.1 的断言 provenance 对齐 |
+| 风险                             | 事实                                                                                                                                                                   | 应对                                                                                                                                              |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **依赖体积**                     | 核心依赖已瘦身：22 个重包（torch / opencv / librosa 等）移入 extras，`pip install semantica` 不再强制它们；但**用到本地嵌入 / spaCy / 文档解析时仍要显式装对应 extra** | 用 curated extras 而非 `[all]`；**中文侧不引 Semantica**，体积与 CVE 面只落在英文侧                                                               |
+| **上游文档与代码漂移**           | changelog 声称的 CJK 修复不在 `main`；`RELEASE_NOTES.md` 停在 0.5.0                                                                                                    | fork 自持 + vendor wheel 树；**引用它时逐条读源码，不信文档**                                                                                     |
+| **Semantica 存储在 PG 上受限**   | 无纯 PG 表图后端；决策/审批/策略写 Cypher（必须 AGE）；provenance 仅 SQLite                                                                                            | 英文侧用 AGE；provenance 走自写 PG `ProvenanceStorage`（§7 第 4 项）                                                                              |
+| **嵌入静默降级**                 | 模型加载失败 → 128 维 SHA-256 哈希向量，**不抛异常**                                                                                                                   | fork 第 3 项：启动自检 `get_method() != "fallback"`，否则 fail fast                                                                               |
+| **AGE 版本纪律**                 | `apache/age#2500`（open）：1.8.0 上 `id(n) IN <变量列表>` SIGSEGV 并触发 PG 崩溃恢复                                                                                   | 钉 `release/PG18/1.7.0`；升级前先看 #2500 状态                                                                                                    |
+| **AGE 功能矩阵限制**             | AGE 后端的 Reasoning/analytics 与 Provenance 只标 `Partial`                                                                                                            | 接受局限；关键查询先实测再决定                                                                                                                    |
+| **第三方镜像供应链**             | `dyingbleed/postgres-rag` 是社区镜像，维护持续性未知                                                                                                                   | 钉 `18-trixie` 不可变标签；上线前审计 Dockerfile 与镜像层；必要时以同一配方自建镜像回退                                                           |
+| **Semantica 项目成熟度**         | 较新开源，社区与维护可持续性存疑                                                                                                                                       | 跟随 `main` 最新（不钉 SHA）但 fork 自持；Skill / Action 留在 Lucent 侧（可剥离）；自建路线仍为可回退的 plan B                                    |
+| **Semantica 推理存储后端二选一** | 纯关系表 / JSONB 不满足 Rete / Datalog / SPARQL 推理要求                                                                                                               | 选 AGE（英文侧确定形态）；源层仍为 Phase 1 关系表，**物化隔离**                                                                                   |
+| **审计缺口（现状）**             | `AuditLogService` 已有、account / auth / data-export 都接了，但 **`proposal-confirm` 写入路径未写审计**                                                                | 在 confirm 路径补 `assistant.proposal.confirm` 审计（`resourceType` / `resourceId` + `proposalIds` + `decision`），与 §4.1 的断言 provenance 对齐 |
 
 ### 8.4 非目标（不属本文）
 
@@ -710,7 +745,7 @@ AGE 报 `return row and column definition list do not match`。对照实验（�
 
 1. **按语言分工，不做二选一。** 中文走 LightRAG，英文走 Semantica。信任分层的切分轴仍是**来源**，不是语言。
 2. **不引入 `lightrag-langchain`。** 第三方、AGE 依赖、与官方推荐后端不兼容。
-3. **Semantica 采纳但限定英文侧，并 fork 自持。** 钉 v0.6.8 + vendor wheel 树 + **AGE 1.7.0** + §7 的 8 项改动；**中文侧不引**。
+3. **Semantica 采纳但限定英文侧，并 fork 自持。** **跟随上游 `main` 最新（不钉 SHA）** + vendor wheel 树 + **AGE 1.7.0** + §7 的 12 项改动；**中文侧不引**。
 4. **英文侧不建 LightRAG 图。** DrugBank 的关系已经是结构化的边。
 5. **动作层留在 Lucent。** 执行与审批继续走 proposal + confirm，并补上 confirm 路径缺失的审计。
 6. **中英映射不进结论层。** 作为离线数据资产；将来接图必须带 `confidence` / `review_status`。
@@ -723,13 +758,14 @@ AGE 报 `return row and column definition list do not match`。对照实验（�
 **Semantica**
 
 - 仓库：https://github.com/semantica-agi/semantica
-- 文档：https://docs.getsemantica.ai/ （JS 壳；**markdown 真源在仓库 `docs/`**，引用请走 `github.com/semantica-agi/semantica/blob/v0.6.8/...`）
-- PyPI（extras / 依赖全清单）：https://pypi.org/project/semantica/
+- 文档：https://docs.getsemantica.ai/ （JS 壳；**markdown 真源在仓库 `docs/`**，引用走 `github.com/semantica-agi/semantica/blob/main/...`）
+- PyPI（extras / 依赖全清单）：https://pypi.org/project/semantica/ —— 注意 **PyPI 最新仍是 0.6.8，落后 `main`（0.7.0）127 个提交**；跟 `main` 时不要装 PyPI 版
 - 存储后端清单：https://github.com/semantica-agi/semantica/blob/main/docs/storage-backends.md
-- 嵌入 provider（无 `base_url`）：https://github.com/semantica-agi/semantica/blob/v0.6.8/semantica/embeddings/provider_stores.py
-- 中文实体消解 blocking key：https://github.com/semantica-agi/semantica/blob/v0.6.8/semantica/deduplication/similarity_calculator.py
-- 决策检索（CJK 回落缺失）：https://github.com/semantica-agi/semantica/blob/v0.6.8/semantica/context/decision_query.py
-- 语言标签被丢弃：https://github.com/semantica-agi/semantica/blob/v0.6.8/semantica/explorer/utils/rdf_parser.py
+- 嵌入 provider（无 `base_url`）：https://github.com/semantica-agi/semantica/blob/main/semantica/embeddings/provider_stores.py
+- 中文实体消解 blocking key：https://github.com/semantica-agi/semantica/blob/main/semantica/deduplication/similarity_calculator.py
+- 决策检索（CJK 回落缺失）：https://github.com/semantica-agi/semantica/blob/main/semantica/context/decision_query.py
+- 语言标签被丢弃：https://github.com/semantica-agi/semantica/blob/main/semantica/explorer/utils/rdf_parser.py
+- SHACL 生成（`xsd:xsd:` 前缀 bug）：https://github.com/semantica-agi/semantica/blob/main/semantica/ontology/ontology_generator.py
 - 贡献者分布：https://api.github.com/repos/semantica-agi/semantica/contributors?per_page=100
 
 **Apache AGE**
