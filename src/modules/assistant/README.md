@@ -42,7 +42,9 @@ owner: backend
 query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查询，
 单一安全候选才返回详情，歧义返回 candidates）、`retrieval`（**中文散文检索**，见下节；
 含 `LightragClientService` 与 `search_cn_medicine_knowledge`）、`records`
-（档案/在服药品 + **餐食分析 digest `get_meal_analysis_digest`**）、`proposal`
+（档案/在服药品 + **餐食分析 digest `get_meal_analysis_digest`**）、`ontology`
+（**英文侧 OAG 本体推理**，见下节；含 `SemanticaClientService`、
+`OntologyCypherGeneratorService` 与 `reason_over_ontology`）、`proposal`
 （`propose_create/update/delete_daily_record`、`propose_update_user_settings`，
 只产出带 `expiresAt` 的提案，绝不直接写 DB）。
 检索源强制分离：中文散文（说明书字段 / 医学问答）走 LightRAG；DrugBank
@@ -96,11 +98,45 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 `docs/reference/environment-variables.md` 的 LightRAG 小节与
 `docs/reference/deployment.md`。
 
+### 英文侧 OAG 本体推理（Semantica，`tools/ontology/`）
+
+英文 DrugBank 的结构化事实（药 → 靶点 / 酶 / 转运体、相互作用、ATC）以**确定性灌入**
+建成 Apache AGE 图（零 LLM 抽取），`reason_over_ontology` 在这张图上做类型化多跳推理：
+
+- **分工**：**NL→Cypher 的生成在 Lucent**（`OntologyCypherGeneratorService`，复用
+  `AI_LANGUAGE_*` 角色），sidecar（`semantica-service`）只做**只读校验 + 执行**。
+  因此 sidecar 不需要 LLM 凭据，`SEMANTICA_*` 里也没有密钥项——与 LightRAG 需要
+  密钥握手不同。
+- `SemanticaClientService` —— 纯 HTTP 客户端（`GET /schema`、`POST /query`）；把
+  sidecar 的结构化 `detail.kind`（`not_read_only` / `syntax_error` /
+  `unsupported_feature` / `timeout` …）归一出来，作为重试回路的判据。
+- `AssistantToolOntologyReasoningService` —— `reason_over_ontology`（参数
+  `question` / `limit`）。流程：读 schema → 生成 → 执行；被拒则**把 sidecar 的报错
+  回喂模型重生成**（最多 3 次，总预算 30s）。重试回路是生产必需：实测模型会产出
+  `OPTIONAL MATCH ... AS x` 这类非法语法，回喂报错即可自纠。
+- **envelope 带可复核路径**：`cypher`（实际执行的查询）+ `sourceTier:
+'drugbank_structured'` + `verifiability: 'citable'`；**零行 = DrugBank 没有这条
+  断言**，不是"查不到"；`truncated` 标 `coverage: partial`。PROV-O 引用尚未接
+  （sidecar 未暴露 provenance 端点）。
+- **与中文散文检索各自独立判定**：`ASSISTANT_OAG_TOOL_NAMES` 与
+  `ASSISTANT_RETRIEVAL_TOOL_NAMES` 分开，一个 sidecar 挂掉不会把另一个的工具标成
+  不可用；两者都报 `disabledReason: 'retrieval_unavailable'`（客户端渲染同一个
+  "来源暂不可用"，具体是哪个由工具 envelope 说清）。
+- **生成侧的硬约束写在 prompt 里**：AGE 1.7 无 `shortestPath` / 多类型边 /
+  `datetime()`；必须显式 `LIMIT`；值走 `params`；**名称必须 `toLower()` 匹配**
+  —— 图上名称按 DrugBank 原样大写，精确匹配会静默返回 0 行，而那会被说成
+  "DrugBank 没有这条断言"（看起来像答案的错答案）。真正的强制在 sidecar 的守卫。
+- 部署与变量（`deploy/semantica/`、`SEMANTICA_*`）见
+  `docs/reference/environment-variables.md` 的 Semantica 小节。sidecar 尚无镜像，
+  dev 走本机 `uvicorn`，容器化部署未完成。
+
 ### 工具参数（模型定窗）
 
 工具调用参数经 `AssistantToolCall` 从 `agent` 节点一路带到执行层
 （`AssistantToolExecutionContext.toolArgs`），**不再**从 `userMessage` 文本猜
-参数。`get_meal_analysis_digest` 是当前唯一带参数的工具：`days` / `limit`
+参数。带参数的工具目前有三个：`get_meal_analysis_digest`（`days` / `limit`）、
+`search_cn_medicine_knowledge`（`query` / `source` / `mode` / `limit`）与
+`reason_over_ontology`（`question` / `limit`）。以 `get_meal_analysis_digest` 为例：`days` / `limit`
 由模型给出，服务端封顶最近 `15` 天、最多 `20` 餐（封顶写进 envelope 的
 `ambiguities` + `coverage: partial`）；它读餐食投影列判定 `analyzed` 并取
 headline/区间，只为返回的 ≤`limit` 条回读 `payload.mealAnalysis` 取

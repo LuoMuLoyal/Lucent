@@ -19,6 +19,24 @@ random docs.
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
 
+## 2026-09-19 英文侧 OAG（Semantica）接线已落地，剩余为镜像 / 评测 / 本体
+
+`reason_over_ontology` 工具、四个注册点、policy 门控、sidecar 客户端与 confirm 路径审计
+已落地并真机验证（真实 AGE 图 + 真实模型，详见当日迁移日志）。剩余：
+
+- **sidecar 镜像（未做）**：三份 compose 的 `semantica` 服务定义已就位（profile 门控，
+  避免 `docker compose up` 去拉不存在的镜像），但 `semantica-service` 仓还没有
+  Dockerfile，容器化部署不可用；dev 目前靠本机 `uvicorn` + `.env.development` 直连。
+- **PROV-O 引用未接**：工具 envelope 目前带实际执行的 Cypher + 来源等级作为可复核路径；
+  sidecar 未暴露 provenance 端点（fork 的 PG provenance 后端只在库侧可用）。
+- **英文侧评测集（计划 S0，未做）**：S4 之后"是否继续"的唯一判据；现有六个探测是能力
+  探测，不是评测集。
+- **本体词表与手写 SHACL（计划 S3，未做）**：§4.1 的 YAML 词表未落 Lucent，
+  `/validate` 的 SHACL 目前由调用方提供。
+- **AGE 计划的现状描述过期**：`plans/2026-09-27-apache-age-introduction-plan.md`
+  的状态行与 §2.1 仍写"未开工 / 待自建"，而 dev 已用自建的 `lucent-db` 镜像
+  （AGE 1.7.0）并通过 P0 验收。
+
 ## 2026-09-18 LightRAG 中文散文检索（P1/P3 已落地，剩余为评测与生产核对）
 
 中文散文检索已**整体切换到 LightRAG**：旧散文检索工具与服务已删除，契约、
