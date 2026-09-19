@@ -142,6 +142,22 @@ def export_edges(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
     return edges
 
 
+def _display_name(node: dict[str, Any]) -> str | None:
+    """Human-readable label for a node, or ``None`` when it carries none.
+
+    Facts are keyed by a business identifier (``DB00945``) because Datalog
+    constants must be unique and stable, but a caller reading
+    ``shares_target(db00945, db01050)`` needs names to show a user. The two are
+    kept separate: the key identifies, the label explains.
+    """
+    props = node.get("properties") or {}
+    for candidate in ("name", "uniprot_title", "gene_name"):
+        value = props.get(candidate)
+        if value not in (None, ""):
+            return str(value)
+    return None
+
+
 class GraphExport:
     """A ContextGraph-shaped view over an AGE store.
 
@@ -168,6 +184,30 @@ class GraphExport:
     @property
     def edge_count(self) -> int:
         return len(self._edges)
+
+    def labels(self) -> dict[str, str]:
+        """Map every fact key to its display name.
+
+        The reasoner works in keys, so its output alone is unreadable to a
+        caller. Returning the whole map (rather than names for just the facts
+        that happened to be derived) lets the caller label subject, object and
+        any intermediate ground term without a second round trip.
+
+        Keys are lower-cased because ``add_fact`` normalises constants that
+        way: a graph property of ``DB00945`` becomes ``db00945`` in every fact.
+        Without folding here the map would be keyed in a case that never
+        appears in the facts it is meant to explain.
+        """
+        resolved: dict[str, str] = {}
+        for node in self._nodes:
+            name = _display_name(node)
+            if name is not None:
+                resolved.setdefault(str(node["id"]).lower(), name)
+        return resolved
+
+    def node_types(self) -> dict[str, str]:
+        """Map every fact key to its node type, for the same reason as labels."""
+        return {str(node["id"]).lower(): str(node["type"]) for node in self._nodes}
 
     def to_turtle(self) -> str:
         """Serialise the graph as Turtle for SHACL validation.

@@ -139,3 +139,50 @@ class ReasonResponse(BaseModel):
         default=None,
         description="Populated only when a query was supplied.",
     )
+    # Facts are keyed by business identifier (DB00945), which is what keeps
+    # Datalog constants unique and stable, but a caller showing a result to a
+    # user or to an assistant needs names. Returning the key->name map here
+    # saves a second round trip and keeps the two concerns separate.
+    labels: dict[str, str] = Field(
+        default_factory=dict,
+        description="Display name per fact key, for terms that have one.",
+    )
+    node_types: dict[str, str] = Field(
+        default_factory=dict,
+        description="Node type per fact key.",
+    )
+
+
+# --- /resolve --------------------------------------------------------------
+
+
+class ResolveRequest(BaseModel):
+    """Look up graph terms by name.
+
+    Display names are not unique in the graph — target names in particular
+    repeat across species and strains — so resolution reports every match
+    instead of picking one silently.
+    """
+
+    name: str = Field(min_length=1, description="Exact, case-insensitive name.")
+    limit: int = Field(default=25, ge=1, le=500)
+
+
+class ResolvedTerm(BaseModel):
+    """One graph element matching a name."""
+
+    key: str = Field(description="The identifier used in facts.")
+    name: str
+    type: str
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResolveResponse(BaseModel):
+    """Matches for a name lookup."""
+
+    name: str
+    match_count: int
+    matches: list[ResolvedTerm] = Field(default_factory=list)
+    ambiguous: bool = Field(
+        description="True when the name maps to more than one term.",
+    )

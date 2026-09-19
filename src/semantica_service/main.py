@@ -16,7 +16,7 @@ from fastapi import FastAPI
 
 from .config import get_settings
 from .graph import StorePool
-from .routes import health, reason, schema, validate
+from .routes import health, reason, resolve, schema, validate
 
 __version__ = "0.1.0"
 
@@ -50,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(schema.router)
     app.include_router(validate.router)
     app.include_router(reason.router)
+    app.include_router(resolve.router)
     return app
 
 

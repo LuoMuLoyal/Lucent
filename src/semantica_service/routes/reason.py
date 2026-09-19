@@ -27,11 +27,15 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
     supplies ``find_nodes()`` / ``find_edges()``.
     """
     engine = DatalogReasoner()
+    labels: dict[str, str] = {}
+    node_types: dict[str, str] = {}
 
     if body.load_from_graph:
         pool: StorePool = request.app.state.pool
         with pool.borrow() as store:
             exported = GraphExport(store, limit=body.limit)
+        labels = exported.labels()
+        node_types = exported.node_types()
         try:
             engine.load_from_graph(exported)
         except TypeError as exc:
@@ -87,5 +91,7 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
         fact_count=len(derived),
         derived=sorted(derived),
         bindings=bindings,
+        labels=labels,
+        node_types=node_types,
     )
     return JSONResponse(content=payload.model_dump())

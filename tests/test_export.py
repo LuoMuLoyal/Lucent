@@ -219,3 +219,114 @@ class TestTurtleSerialisation:
     )
     def test_literals_are_rendered_correctly(self, value: Any, expected: str) -> None:
         assert _turtle_literal(value) == expected
+
+
+class TestLabels:
+    """Facts are keyed by identifier; a caller needs names to show them.
+
+    Keys must stay stable and unique for Datalog, but `shares_target(db00945,
+    db01050)` is not something a user or an assistant can present, so the
+    export also exposes the key -> name map.
+    """
+
+    def test_labels_map_keys_to_names(self) -> None:
+        store = StubStore(
+            nodes=[
+                {
+                    "id": 1,
+                    "labels": ["Drug"],
+                    "props": {"drugbank_id": "DB00945", "name": "Aspirin"},
+                },
+                {
+                    "id": 2,
+                    "labels": ["Protein"],
+                    "props": {"uniprot_id": "P23219", "name": "COX-1"},
+                },
+            ],
+            edges=[],
+        )
+        export = GraphExport(store, limit=10)
+
+        assert export.labels() == {"db00945": "Aspirin", "p23219": "COX-1"}
+
+    def test_label_keys_are_lower_cased_to_match_the_facts(self) -> None:
+        """`add_fact` lower-cases constants, so the map must fold case too.
+
+        Otherwise the label table is keyed `DB00945` while every fact reads
+        `db00945`, and nothing ever resolves.
+        """
+        store = StubStore(
+            nodes=[
+                {
+                    "id": 1,
+                    "labels": ["Drug"],
+                    "props": {"drugbank_id": "DB00945", "name": "Aspirin"},
+                }
+            ],
+            edges=[],
+        )
+
+        assert "DB00945" not in GraphExport(store, limit=10).labels()
+
+    def test_labels_fall_back_to_uniprot_title_for_unnamed_targets(self) -> None:
+        """Some targets carry no `name`; showing the id would be a regression."""
+        store = StubStore(
+            nodes=[
+                {
+                    "id": 1,
+                    "labels": ["Protein"],
+                    "props": {"uniprot_id": "P99999", "uniprot_title": "Unnamed protein"},
+                }
+            ],
+            edges=[],
+        )
+
+        assert GraphExport(store, limit=10).labels() == {"p99999": "Unnamed protein"}
+
+    def test_labels_omit_nodes_that_have_no_display_name(self) -> None:
+        """An empty string would render as a blank in a UI; omission is honest."""
+        store = StubStore(
+            nodes=[{"id": 1, "labels": ["Protein"], "props": {"uniprot_id": "P1"}}],
+            edges=[],
+        )
+
+        assert GraphExport(store, limit=10).labels() == {}
+
+    def test_labels_do_not_overwrite_an_earlier_name_on_key_collision(self) -> None:
+        """Two nodes resolving to one key must not produce a shifting name.
+
+        The graph is supposed to have unique keys, so a collision means the
+        export is seeing something unexpected; keeping the first is arbitrary
+        but deterministic, which is what matters for a stable response.
+        """
+        store = StubStore(
+            nodes=[
+                {
+                    "id": 1,
+                    "labels": ["Drug"],
+                    "props": {"drugbank_id": "DB1", "name": "First"},
+                },
+                {
+                    "id": 2,
+                    "labels": ["Drug"],
+                    "props": {"drugbank_id": "DB1", "name": "Second"},
+                },
+            ],
+            edges=[],
+        )
+
+        assert GraphExport(store, limit=10).labels() == {"db1": "First"}
+
+    def test_node_types_map_keys_to_labels(self) -> None:
+        store = StubStore(
+            nodes=[
+                {
+                    "id": 1,
+                    "labels": ["Drug"],
+                    "props": {"drugbank_id": "DB00945", "name": "Aspirin"},
+                }
+            ],
+            edges=[],
+        )
+
+        assert GraphExport(store, limit=10).node_types() == {"db00945": "Drug"}

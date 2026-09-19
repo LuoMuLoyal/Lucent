@@ -358,4 +358,209 @@ def test_all_endpoints_appear_in_openapi(
     with build_client(monkeypatch, StubStore(), settings) as client:
         paths = client.get("/openapi.json").json()["paths"]
 
-    assert set(paths) >= {"/health", "/schema", "/validate", "/reason"}
+    assert set(paths) >= {"/health", "/schema", "/validate", "/reason", "/resolve"}
+
+
+# --- /reason: the label table ----------------------------------------------
+
+
+class KeyedStore(StubStore):
+    """A store whose nodes carry business identifiers and names."""
+
+    def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+        if "MATCH (n)" in query:
+            return {
+                "success": True,
+                "records": [
+                    {
+                        "id": 1,
+                        "labels": ["Drug"],
+                        "props": {"drugbank_id": "DB00945", "name": "Aspirin"},
+                    },
+                    {
+                        "id": 2,
+                        "labels": ["Drug"],
+                        "props": {"drugbank_id": "DB01050", "name": "Ibuprofen"},
+                    },
+                    {
+                        "id": 3,
+                        "labels": ["Protein"],
+                        "props": {"uniprot_id": "P23219", "name": "COX-1"},
+                    },
+                ],
+            }
+        return {
+            "success": True,
+            "records": [
+                {
+                    "source": 1,
+                    "target": 3,
+                    "rel_type": "TARGETS",
+                    "props": {},
+                    "source_props": {"drugbank_id": "DB00945"},
+                    "target_props": {"uniprot_id": "P23219"},
+                },
+                {
+                    "source": 2,
+                    "target": 3,
+                    "rel_type": "TARGETS",
+                    "props": {},
+                    "source_props": {"drugbank_id": "DB01050"},
+                    "target_props": {"uniprot_id": "P23219"},
+                },
+            ],
+        }
+
+
+def test_reason_returns_a_label_table_alongside_facts(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A caller needs names to show a derived fact to a user or an assistant.
+
+    The facts themselves stay keyed by identifier, because that is what keeps
+    Datalog constants unique and stable.
+    """
+    body = {
+        "load_from_graph": True,
+        "rules": [{"rule": "shares_target(A, B) :- targets(A, T), targets(B, T)."}],
+    }
+    with build_client(monkeypatch, KeyedStore(), settings) as client:
+        response = client.post("/reason", json=body)
+
+    assert response.status_code == 200
+    payload = response.json()
+    # Keys are lower-cased because `add_fact` normalises constants that way,
+    # so the label table has to fold case to match the facts it explains.
+    assert payload["labels"]["db00945"] == "Aspirin"
+    assert payload["labels"]["p23219"] == "COX-1"
+    assert payload["node_types"]["db00945"] == "Drug"
+    # The facts keep using keys, so the two concerns stay separate.
+    assert any("db00945" in fact for fact in payload["derived"])
+
+
+def test_reason_omits_labels_when_facts_come_from_the_request(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """No graph was read, so there is nothing to label — omit rather than guess."""
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        response = client.post("/reason", json={"facts": [{"fact": "parent(tom, bob)"}]})
+
+    assert response.status_code == 200
+    assert response.json()["labels"] == {}
+
+
+# --- /resolve --------------------------------------------------------------
+
+
+def test_resolve_finds_a_drug_by_name(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    with build_client(monkeypatch, KeyedStore(), settings) as client:
+        response = client.post("/resolve", json={"name": "Aspirin"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["match_count"] == 1
+    assert body["matches"][0]["key"] == "DB00945"
+    assert body["matches"][0]["type"] == "Drug"
+    assert body["ambiguous"] is False
+
+
+def test_resolve_is_case_insensitive(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    with build_client(monkeypatch, KeyedStore(), settings) as client:
+        response = client.post("/resolve", json={"name": "aSpIrIn"})
+
+    assert response.json()["match_count"] == 1
+
+
+def test_resolve_reports_ambiguity_rather_than_picking_one(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Target names repeat across species, so a name can map to several terms.
+
+    Silently returning the first would look confident and be wrong.
+    """
+
+    class AmbiguousStore(StubStore):
+        def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+            if "MATCH (n)" in query:
+                return {
+                    "success": True,
+                    "records": [
+                        {
+                            "id": 1,
+                            "labels": ["Protein"],
+                            "props": {
+                                "uniprot_id": "P1",
+                                "name": "Beta-lactamase",
+                                "species": "E. coli",
+                            },
+                        },
+                        {
+                            "id": 2,
+                            "labels": ["Protein"],
+                            "props": {
+                                "uniprot_id": "P2",
+                                "name": "Beta-lactamase",
+                                "species": "K. pneumoniae",
+                            },
+                        },
+                    ],
+                }
+            return {"success": True, "records": []}
+
+    with build_client(monkeypatch, AmbiguousStore(), settings) as client:
+        response = client.post("/resolve", json={"name": "Beta-lactamase"})
+
+    body = response.json()
+    assert body["match_count"] == 2
+    assert body["ambiguous"] is True
+    assert {m["key"] for m in body["matches"]} == {"P1", "P2"}
+
+
+def test_resolve_returns_no_matches_for_an_unknown_name(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    with build_client(monkeypatch, KeyedStore(), settings) as client:
+        response = client.post("/resolve", json={"name": "Nonexistent"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["match_count"] == 0
+    assert body["matches"] == []
+    assert body["ambiguous"] is False
+
+
+def test_resolve_rejects_a_blank_name(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    with build_client(monkeypatch, KeyedStore(), settings) as client:
+        response = client.post("/resolve", json={"name": "   "})
+
+    assert response.status_code == 422
+
+
+def test_resolve_matches_on_a_gene_name(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A caller may know the gene, not the protein name."""
+
+    class GeneStore(StubStore):
+        def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+            if "MATCH (n)" in query:
+                return {
+                    "success": True,
+                    "records": [
+                        {
+                            "id": 1,
+                            "labels": ["Protein"],
+                            "props": {
+                                "uniprot_id": "P23219",
+                                "name": "Prostaglandin G/H synthase 1",
+                                "gene_name": "PTGS1",
+                            },
+                        }
+                    ],
+                }
+            return {"success": True, "records": []}
+
+    with build_client(monkeypatch, GeneStore(), settings) as client:
+        response = client.post("/resolve", json={"name": "PTGS1"})
+
+    assert response.json()["match_count"] == 1
