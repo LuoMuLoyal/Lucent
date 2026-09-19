@@ -12,6 +12,12 @@ bounds the *response*, not the work. A statement with no LIMIT of its own can
 still make the database produce every matching row; ``statement_timeout`` is
 what stops it from doing so forever.
 
+Rows are also where citations come from: every edge carries a ``prov`` id (see
+:mod:`semantica_service.provenance`), so a statement that returns one — for
+example ``RETURN d.name, o.name, r.prov AS prov`` — has its evidence resolved
+alongside its rows. The absence of ids is reported as the absence of citations,
+never as an empty list that could pass for a complete one.
+
 The handler is a plain ``def``: psycopg2 is blocking and FastAPI runs
 synchronous handlers in its thread pool, so an ``async def`` here would stall
 every concurrent request.
@@ -34,7 +40,8 @@ from ..cypher import (
     normalize_statement,
 )
 from ..graph import StorePool
-from .schemas import QueryRequest, QueryResponse
+from ..provenance import ProvenanceReader, collect_provenance_ids
+from .schemas import ProvenanceRecordModel, QueryRequest, QueryResponse
 
 router = APIRouter(tags=["query"])
 
@@ -126,11 +133,29 @@ def query(request: Request, body: QueryRequest) -> JSONResponse:
         if isinstance(record, dict)
     ]
 
+    citations: list[ProvenanceRecordModel] = []
+    missing: list[str] = []
+    ids_truncated = False
+    provenance_error: str | None = None
+    if body.include_provenance:
+        reader: ProvenanceReader = request.app.state.provenance
+        ids, ids_truncated = collect_provenance_ids(rows, body.provenance_limit)
+        resolution = reader.resolve(ids)
+        citations = [
+            ProvenanceRecordModel.model_validate(record.to_dict()) for record in resolution.records
+        ]
+        missing = resolution.missing
+        provenance_error = resolution.error
+
     payload = QueryResponse(
         columns=_columns(result.get("keys"), rows),
         rows=rows,
         row_count=len(rows),
         truncated=truncated,
         elapsed_ms=elapsed_ms,
+        provenance=citations,
+        provenance_missing=missing,
+        provenance_truncated=ids_truncated,
+        provenance_error=provenance_error,
     )
     return JSONResponse(content=payload.model_dump())

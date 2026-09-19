@@ -217,6 +217,74 @@ class QueryRequest(BaseModel):
         le=500,
         description="Maximum rows to return. The statement itself is not rewritten.",
     )
+    include_provenance: bool = Field(
+        default=True,
+        description=(
+            "Resolve the provenance ids present in the rows (the `prov` property "
+            "every edge of this graph carries) into citations."
+        ),
+    )
+    provenance_limit: int = Field(
+        default=100,
+        ge=1,
+        le=500,
+        description=(
+            "Maximum distinct citations to resolve. A result set citing more than "
+            "this reports `provenance_truncated` rather than returning a list that "
+            "looks complete."
+        ),
+    )
+
+
+class ProvenanceRecordModel(BaseModel):
+    """One citation: an assertion, and where it came from."""
+
+    id: str = Field(
+        description=(
+            "Provenance id of the form `lucent:<source table>/<row key>`; it names "
+            "the source row, so it is readable without a lookup."
+        )
+    )
+    entity_type: str = Field(
+        description="`graph_assertion`, `source_row` or `ingest_activity`.",
+    )
+    source_document: str = Field(
+        description="Source table, e.g. `lucent.drugbank_drugs.drug_interactions`.",
+    )
+    source_location: str = Field(description="Row key within that source.")
+    source_quote: str = Field(description="The source's own text for this assertion.")
+    activity_id: str | None = Field(
+        default=None,
+        description="The import activity that produced the assertion.",
+    )
+    agent_id: str | None = Field(
+        default=None,
+        description="The source dataset, as a PROV agent.",
+    )
+    agent_type: str | None = Field(default=None, description="What kind of agent that is.")
+    role: str | None = None
+    confidence: float | None = None
+    timestamp: str | None = Field(default=None, description="When the entry was recorded.")
+    sequence_id: int | None = Field(default=None, description="Position in the hash chain.")
+    checksum: str | None = Field(
+        default=None,
+        description="SHA-256 over the entry and its predecessor's checksum.",
+    )
+    parent_entity_id: str | None = Field(
+        default=None,
+        description="The source row a recognised-verb edge was derived from.",
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ChainReport(BaseModel):
+    """Integrity of the hash chain behind a citation."""
+
+    available: bool = Field(description="False when the store could not be read.")
+    valid: bool | None = Field(default=None, description="None when unavailable.")
+    total_entries: int = 0
+    broken_links: list[dict[str, Any]] = Field(default_factory=list)
+    error: str | None = None
 
 
 class QueryResponse(BaseModel):
@@ -239,4 +307,71 @@ class QueryResponse(BaseModel):
     )
     elapsed_ms: int = Field(
         description="Milliseconds spent borrowing a connection and executing the statement.",
+    )
+    provenance: list[ProvenanceRecordModel] = Field(
+        default_factory=list,
+        description=(
+            "Citations for the assertions the rows rest on, resolved from the "
+            "provenance ids present in them. An empty list is meaningful: either "
+            "the rows carried no id, or the ids are not in the store — "
+            "`provenance_missing` and `provenance_error` say which."
+        ),
+    )
+    provenance_missing: list[str] = Field(
+        default_factory=list,
+        description="Ids the rows referenced that the store does not hold.",
+    )
+    provenance_truncated: bool = Field(
+        default=False,
+        description="True when the rows cited more assertions than `provenance_limit`.",
+    )
+    provenance_error: str | None = Field(
+        default=None,
+        description=(
+            "Set when the provenance store could not be read at all, which "
+            "distinguishes 'nothing was recorded' from 'there was nothing to ask'."
+        ),
+    )
+
+
+# --- /provenance -----------------------------------------------------------
+
+
+class ProvenanceRequest(BaseModel):
+    """Resolve provenance ids into citations.
+
+    The ids normally come from a `prov` value a previous `/query` returned;
+    passing them explicitly is what lets a caller re-check the evidence behind
+    an answer without re-running the query that produced it.
+    """
+
+    ids: list[str] = Field(min_length=1, max_length=200)
+    lineage: bool = Field(
+        default=True,
+        description="Also return each id's ancestors — for a verb edge, its source row.",
+    )
+    format: str = Field(
+        default="records",
+        pattern="^(records|jsonld|turtle)$",
+        description="`records` for this service's JSON, or W3C PROV-O as JSON-LD or Turtle.",
+    )
+
+
+class ProvenanceResponse(BaseModel):
+    """Citations for the requested ids, and the integrity of the chain behind them."""
+
+    records: list[ProvenanceRecordModel] = Field(default_factory=list)
+    missing: list[str] = Field(default_factory=list)
+    lineage: list[ProvenanceRecordModel] = Field(
+        default_factory=list,
+        description="Ancestors of the requested ids, when `lineage` was set.",
+    )
+    chain: ChainReport | None = None
+    provo: Any | None = Field(
+        default=None,
+        description="PROV-O document: parsed JSON-LD, or a Turtle string.",
+    )
+    error: str | None = Field(
+        default=None,
+        description="Set when the provenance store could not be read.",
     )

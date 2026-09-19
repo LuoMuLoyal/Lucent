@@ -40,6 +40,27 @@ class Settings(BaseSettings):
     pool_min_size: int = Field(default=1, ge=1)
     pool_max_size: int = Field(default=10, ge=1)
 
+    # --- Provenance -----------------------------------------------------
+    # The audit trail lives in Postgres rather than a file so it survives with
+    # the data it describes, and in Lucent's database rather than the AGE one:
+    # `lucent_graph` exists only to hold the graph, and audit rows are not
+    # graph data. Together with Lucent's own `audit_logs`, one SQL connection
+    # can read both.
+    provenance_dsn: str = Field(
+        default=("host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"),
+        description="libpq connection string for the provenance store.",
+    )
+    provenance_table: str = Field(
+        default="semantica_provenance",
+        description="Table holding the hash-chained provenance entries.",
+    )
+    # Read-only, and used by the import and verification scripts only: the
+    # service never reads the DrugBank source tables at request time.
+    source_dsn: str = Field(
+        default=("host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"),
+        description="libpq connection string for Lucent's DrugBank source tables.",
+    )
+
     # --- Query safety ---------------------------------------------------
     # A runaway variable-length path once ran for two minutes and had to be
     # killed with pg_terminate_backend. Every connection sets a ceiling.

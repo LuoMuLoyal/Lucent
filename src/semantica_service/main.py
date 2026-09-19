@@ -16,7 +16,8 @@ from fastapi import FastAPI
 
 from .config import get_settings
 from .graph import StorePool
-from .routes import health, query, reason, resolve, schema, validate
+from .provenance import ProvenanceReader
+from .routes import health, provenance, query, reason, resolve, schema, validate
 
 __version__ = "0.1.0"
 
@@ -26,15 +27,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Open the AGE pool for the process lifetime.
 
     The pool holds connections, so it is created once per process rather than
-    per request; ``close()`` returns them on shutdown.
+    per request; ``close()`` returns them on shutdown. The provenance reader is
+    constructed here but stays lazy: a deployment whose provenance store has not
+    been migrated yet must still start and still answer queries, reporting
+    citations as unavailable rather than refusing to serve.
     """
     settings = get_settings()
     pool = StorePool(settings)
     app.state.pool = pool
     app.state.settings = settings
+    app.state.provenance = ProvenanceReader(settings)
     try:
         yield
     finally:
+        app.state.provenance.close()
         pool.close()
 
 
@@ -52,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(reason.router)
     app.include_router(resolve.router)
     app.include_router(query.router)
+    app.include_router(provenance.router)
     return app
 
 
