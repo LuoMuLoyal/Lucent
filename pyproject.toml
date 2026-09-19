@@ -7,7 +7,44 @@ authors = [
     { name = "Luo", email = "2508015296@qq.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic-settings>=2.6",
+    # semantica is installed from the fork's main branch, not PyPI: the
+    # released 0.6.8 lags main by 127 commits and predates every fork fix.
+    # extras are curated rather than [all] — [all] also pulls dev, infra,
+    # cloud and graph-all. explorer is deliberately absent: it is a
+    # development console whose routes are not our tool contract.
+    "semantica[shacl,graph-apache-age,tripletstore-oxigraph]",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.27",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[tool.uv.sources]
+semantica = { git = "ssh://git@github.com/LuoMuLoyal/semantica.git", branch = "main" }
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG", "T20"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
 
 [build-system]
 requires = ["uv_build>=0.11.31,<0.12.0"]
