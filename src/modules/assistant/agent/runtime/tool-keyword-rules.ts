@@ -287,6 +287,15 @@ export const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /take .* together/i,
     /together with/i,
     /combined with/i,
+    // 酶/角色类问法：这些问句里没有 "interact" 也没有 "enzyme" 的完整词，
+    // 实测（2026-09-19 走 API 的验证）「Which drugs are substrates of CYP3A4?」
+    // 与「What ATC class does clopidogrel belong to?」都因此没被提供该工具。
+    /substrate/i,
+    /cyp\s?\d/i,
+    /p450/i,
+    /atc/i,
+    /belongs? (to|in)/i,
+    /class(es)? (is|does|of|are)/i,
   ],
   propose_create_daily_record: [
     /帮我记/,
