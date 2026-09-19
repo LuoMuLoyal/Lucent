@@ -1,5 +1,5 @@
 """HTTP routes."""
 
-from . import health
+from . import health, reason, schema, validate
 
-__all__ = ["health"]
+__all__ = ["health", "reason", "schema", "validate"]
