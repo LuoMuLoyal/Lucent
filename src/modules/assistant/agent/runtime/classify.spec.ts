@@ -15,6 +15,7 @@ const ALLOWED = [
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
+  'reason_over_ontology',
   'propose_create_daily_record',
   'propose_update_daily_record',
   'propose_delete_daily_record',
@@ -71,6 +72,24 @@ describe('classifyIntent', () => {
     expect(result.intent).toBe('mixed');
     expect(result.relevantTools).toContain('search_cn_medicine_knowledge');
     expect(result.relevantTools).toContain('get_records_by_range');
+  });
+
+  // 回归：本体推理工具漏出知识集合时，命中它的消息会被判成"读个人数据"，
+  // 路由到 read 子图后模型只拿到个人记录工具（实测会自称"只能查用药记录"）。
+  //
+  // 断言只钉"工具必须被提供"：英文问题里出现 drug/medicine 会同时命中
+  // `get_current_medicines` 的 `/drug/i`，于是 intent 是 knowledge 还是 mixed
+  // 取决于这条预存在的路由特性（mixed 走通用 agent 节点，工具照样绑上）。
+  it('offers ontology reasoning for pharmacology questions', () => {
+    for (const message of [
+      'Which drugs interact with warfarin?',
+      'Which drugs share a target with clopidogrel?',
+      'Which drugs inhibit the enzyme that metabolizes warfarin?',
+    ]) {
+      const result = classifyIntent(message, ALLOWED);
+      expect(result.relevantTools, message).toContain('reason_over_ontology');
+      expect(['knowledge', 'mixed'], message).toContain(result.intent);
+    }
   });
 
   it('falls back to write_proposal when a write intent matches but tools are unavailable', () => {

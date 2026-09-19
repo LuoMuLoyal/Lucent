@@ -27,6 +27,9 @@ const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
+  // 本体推理也是知识检索：漏了它，命中该工具的消息会被判成"读个人数据"，
+  // 于是路由到 read 子图、只绑个人记录工具（实测表现是模型自称"只能查用药记录"）。
+  'reason_over_ontology',
 ]);
 
 /** Write-proposal tools (never write to the DB directly). */
