@@ -8,6 +8,7 @@ import type {
 } from '../types/assistant.types.js';
 import {
   ASSISTANT_CONTEXT_SOURCES,
+  ASSISTANT_OAG_TOOL_NAMES,
   ASSISTANT_RETRIEVAL_TOOL_NAMES,
   ASSISTANT_TOOL_NAMES,
   ASSISTANT_TOOL_SOURCE_MAP,
@@ -19,6 +20,11 @@ import {
 /** 依赖 LightRAG sidecar 的工具集合，用于检索可用性判定。 */
 const RETRIEVAL_TOOL_NAMES: ReadonlySet<AssistantToolName> = new Set(
   ASSISTANT_RETRIEVAL_TOOL_NAMES,
+);
+
+/** 依赖 Semantica sidecar（英文侧 OAG）的工具集合，判定与上面同形但独立。 */
+const OAG_TOOL_NAMES: ReadonlySet<AssistantToolName> = new Set(
+  ASSISTANT_OAG_TOOL_NAMES,
 );
 
 @Injectable()
@@ -68,10 +74,12 @@ export class AssistantPolicyService {
     const implemented = foundation.implementedToolNames.includes(toolName);
     const retrievalReady =
       !RETRIEVAL_TOOL_NAMES.has(toolName) || foundation.retrievalAvailable;
+    const oagReady = !OAG_TOOL_NAMES.has(toolName) || foundation.oagAvailable;
     const enabled =
       permittedByUser &&
       implemented &&
       retrievalReady &&
+      oagReady &&
       foundation.chatModelConfigured;
 
     return {
@@ -82,38 +90,42 @@ export class AssistantPolicyService {
       enabled,
       disabledReason: enabled
         ? null
-        : this.resolveDisabledReason(
-            settings.assistantEnabled,
+        : this.resolveDisabledReason({
+            assistantEnabled: settings.assistantEnabled,
             permittedByUser,
             implemented,
             retrievalReady,
-            foundation.chatModelConfigured,
-          ),
+            oagReady,
+            chatModelConfigured: foundation.chatModelConfigured,
+          }),
     };
   }
 
-  private resolveDisabledReason(
-    assistantEnabled: boolean,
-    permittedByUser: boolean,
-    implemented: boolean,
-    retrievalReady: boolean,
-    chatModelConfigured: boolean,
-  ): AssistantToolDisabledReason {
-    if (!assistantEnabled) {
+  private resolveDisabledReason(input: {
+    assistantEnabled: boolean;
+    permittedByUser: boolean;
+    implemented: boolean;
+    retrievalReady: boolean;
+    oagReady: boolean;
+    chatModelConfigured: boolean;
+  }): AssistantToolDisabledReason {
+    if (!input.assistantEnabled) {
       return 'chat_disabled';
     }
-    if (!permittedByUser) {
+    if (!input.permittedByUser) {
       return 'context_disabled';
     }
-    // 检索不可用排在 model_not_configured 之前：这两条同时成立时，
+    // sidecar 不可用排在 model_not_configured 之前：这两条同时成立时，
     // "sidecar 没配好"是更具体、更可操作的原因，而模型未配置是全局的。
-    if (!retrievalReady) {
+    // 两个 sidecar 共用同一个原因值：客户端渲染的都是"该来源暂不可用"，
+    // 而具体是哪一个由工具的 envelope 说清楚。
+    if (!input.retrievalReady || !input.oagReady) {
       return 'retrieval_unavailable';
     }
-    if (!chatModelConfigured) {
+    if (!input.chatModelConfigured) {
       return 'model_not_configured';
     }
-    if (!implemented) {
+    if (!input.implemented) {
       return 'not_implemented';
     }
     return 'not_implemented';

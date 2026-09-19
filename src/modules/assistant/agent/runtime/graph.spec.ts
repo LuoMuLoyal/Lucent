@@ -141,6 +141,7 @@ describe('AssistantFoundationGraph', () => {
       'resolve_drugbank_entity',
       'get_drugbank_detail',
       'search_drugbank_passages',
+      'reason_over_ontology',
       'propose_create_daily_record',
       'propose_update_user_settings',
     ]);

@@ -40,6 +40,7 @@ import type {
 } from '../tools/shared/tool-types.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
 import { LightragClientService } from '../tools/retrieval/lightrag-client.service.js';
+import { SemanticaClientService } from '../tools/ontology/semantica-client.service.js';
 import { classifyProviderFailure } from '../services/provider-failure.js';
 import {
   buildAssistantSystemPrompt,
@@ -93,6 +94,7 @@ export class AssistantRuntimeService {
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
     private readonly lightragClient: LightragClientService,
+    private readonly semanticaClient: SemanticaClientService,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
@@ -339,6 +341,9 @@ export class AssistantRuntimeService {
     // `hasIndexedChunks()` 读的是 Lucent 自己的 chunk 表——那是旧向量链路的
     // 遗留判据，LightRAG 时代查它只会得到一个与检索能力无关的数字。
     const retrievalAvailable = this.lightragClient.isEnabled();
+    // 英文侧 OAG 与中文侧检索各自独立判定：一个 sidecar 挂掉不该把另一个的
+    // 工具也标成不可用（计划 §2 的语言边界，在可用性判定上同样成立）。
+    const oagAvailable = this.semanticaClient.isEnabled();
     return {
       phase: 'foundation',
       chatModelConfigured,
@@ -346,6 +351,7 @@ export class AssistantRuntimeService {
       langGraphReady: true,
       ragEnabled: chatModelConfigured && retrievalAvailable,
       retrievalAvailable,
+      oagAvailable,
       graphNodeNames: ASSISTANT_RUNTIME_NODE_NAMES,
       toolNames: ASSISTANT_TOOL_NAMES,
       implementedToolNames: ASSISTANT_IMPLEMENTED_TOOL_NAMES,

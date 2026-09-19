@@ -26,6 +26,7 @@ export const ASSISTANT_TOOL_NAMES = [
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
+  'reason_over_ontology',
   'propose_create_daily_record',
   'propose_update_daily_record',
   'propose_delete_daily_record',
@@ -53,6 +54,7 @@ export const ASSISTANT_READ_TOOL_NAMES = [
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
+  'reason_over_ontology',
 ] as const satisfies readonly AssistantToolName[];
 
 export const ASSISTANT_IMPLEMENTED_TOOL_NAMES =
@@ -85,6 +87,20 @@ export const ASSISTANT_RETRIEVAL_TOOL_NAMES = [
   'search_cn_medicine_knowledge',
 ] as const satisfies readonly AssistantToolName[];
 
+/**
+ * Tools whose execution depends on the Semantica sidecar (English-side OAG).
+ *
+ * 与 LightRAG 那几个工具同一条纪律：sidecar 关闭或不可达时**没有降级路径**，
+ * 工具必须报 `retrieval_unavailable`，让客户端显示"推理暂不可用"，而不是把
+ * "服务不可用"说成"图上没有这条断言"。
+ *
+ * 单独一个元组而不是并入上面那个：两个 sidecar 各自独立失败，一个挂掉不该
+ * 把另一个的工具也标成不可用。
+ */
+export const ASSISTANT_OAG_TOOL_NAMES = [
+  'reason_over_ontology',
+] as const satisfies readonly AssistantToolName[];
+
 export const ASSISTANT_TOOL_SOURCE_MAP = {
   get_today_records: ['daily_records'],
   get_records_by_date: ['daily_records'],
@@ -104,6 +120,7 @@ export const ASSISTANT_TOOL_SOURCE_MAP = {
   resolve_drugbank_entity: [],
   get_drugbank_detail: [],
   search_drugbank_passages: [],
+  reason_over_ontology: [],
   propose_create_daily_record: [],
   propose_update_daily_record: ['daily_records'],
   propose_delete_daily_record: ['daily_records'],

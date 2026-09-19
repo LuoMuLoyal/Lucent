@@ -318,6 +318,21 @@ const envSchema = z.object({
   [EnvKey.LIGHTRAG_WORKSPACE_LEAFLET]: z.string().default('leaflet'),
   [EnvKey.LIGHTRAG_WORKSPACE_QA]: z.string().default('qa'),
 
+  // ── Semantica sidecar client (English-side OAG) ─────────────────
+  // 默认关闭:未开启时 reason_over_ontology 返回"未配置"信封而不报错。
+  // 与 LightRAG 不同,**没有可交叉校验的必填项**:它不带密钥,也不要求 Lucent
+  // 这边配任何模型(生成用的是 AI_LANGUAGE_* 角色,已在别处校验)。
+  // 超时下限要大于 sidecar 自己的 statement_timeout(默认 15s),否则
+  // "查询太慢"会先被客户端掐断,拿不到 sidecar 的结构化超时报错。
+  [EnvKey.SEMANTICA_ENABLED]: z.enum(['true', 'false']).default('false'),
+  [EnvKey.SEMANTICA_BASE_URL]: z.string().default('http://semantica:8099'),
+  [EnvKey.SEMANTICA_TIMEOUT_MS]: z.coerce
+    .number()
+    .int()
+    .min(100)
+    .max(120000)
+    .default(20000),
+
   // ── Metrics auth (sensitive, in .env) ────────────────────────────
   [EnvKey.METRICS_USER]: optionalString,
   [EnvKey.METRICS_PASSWORD]: optionalString,

@@ -23,6 +23,7 @@ const mockFoundation: AssistantRuntimeCapabilities = {
   langGraphReady: true,
   ragEnabled: false,
   retrievalAvailable: true,
+  oagAvailable: true,
   graphNodeNames: ['prepare_context', 'agent', 'tools', 'respond'],
   toolNames: ['get_today_records'],
   implementedToolNames: ['get_today_records'],

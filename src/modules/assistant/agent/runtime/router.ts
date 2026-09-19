@@ -62,6 +62,7 @@ export function selectRelevantToolsForMessage(
       'get_cn_medicine_detail',
       'resolve_drugbank_entity',
       'get_drugbank_detail',
+      'reason_over_ontology',
       'search_drugbank_passages',
     ];
 

@@ -172,12 +172,15 @@ describe('AssistantToolService', () => {
         ambiguities: [],
       }),
     };
+    // OAG 工具桩：本用例只关心 dispatch 与缓存键，不跑真实的生成 + sidecar 往返。
+    const ontologyReasoningService = { reasonOverOntology: vi.fn() };
     const service = new AssistantToolService(
       readService,
       knowledgeRetrievalService as never,
       drugbankEntityResolveService,
       drugbankSearchService,
       medicineLookupService as never,
+      ontologyReasoningService as never,
       proposalService,
       cache as never,
       metricsService as never,

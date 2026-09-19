@@ -49,6 +49,12 @@ import { LightragClientService } from './tools/retrieval/lightrag-client.service
 
 import { AssistantToolKnowledgeRetrievalService } from './tools/retrieval/knowledge.service.js';
 
+import { SemanticaClientService } from './tools/ontology/semantica-client.service.js';
+
+import { OntologyCypherGeneratorService } from './tools/ontology/cypher-generator.service.js';
+
+import { AssistantToolOntologyReasoningService } from './tools/ontology/ontology-reasoning.service.js';
+
 import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service.js';
 import { AssistantDrugbankLookupService } from './tools/medicine/drugbank-lookup.service.js';
 
@@ -106,6 +112,9 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
     AssistantToolReadService,
     LightragClientService,
     AssistantToolKnowledgeRetrievalService,
+    SemanticaClientService,
+    OntologyCypherGeneratorService,
+    AssistantToolOntologyReasoningService,
     AssistantToolMedicineLookupService,
     AssistantDrugbankLookupService,
     AssistantToolDrugbankEntityResolveService,

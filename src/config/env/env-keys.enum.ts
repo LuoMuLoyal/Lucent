@@ -151,4 +151,13 @@ export enum EnvKey {
   LIGHTRAG_TIMEOUT_MS = 'LIGHTRAG_TIMEOUT_MS',
   LIGHTRAG_WORKSPACE_LEAFLET = 'LIGHTRAG_WORKSPACE_LEAFLET',
   LIGHTRAG_WORKSPACE_QA = 'LIGHTRAG_WORKSPACE_QA',
+
+  // ── Semantica sidecar (English-side OAG) ────────────────────────
+  // 英文侧知识图谱(semantica-service)的客户端项。sidecar 自己连 AGE 的
+  // DSN/图名/连接池/语句超时在它自己的 deploy/semantica/.env,
+  // 与 Lucent 的 DATABASE_URL 完全独立(见 docs/reference/environment-variables.md)。
+  // 没有 API key:那是我们自己的内网服务、自身不持有任何模型凭据。
+  SEMANTICA_ENABLED = 'SEMANTICA_ENABLED',
+  SEMANTICA_BASE_URL = 'SEMANTICA_BASE_URL',
+  SEMANTICA_TIMEOUT_MS = 'SEMANTICA_TIMEOUT_MS',
 }

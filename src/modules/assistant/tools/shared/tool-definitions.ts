@@ -21,6 +21,10 @@ import {
   LIGHTRAG_QUERY_MODES,
   LIGHTRAG_SOURCES,
 } from '../retrieval/lightrag.types.js';
+import {
+  SEMANTICA_DEFAULT_LIMIT,
+  SEMANTICA_MAX_LIMIT,
+} from '../ontology/semantica.types.js';
 
 interface ToolDefinition {
   type: 'function';
@@ -95,11 +99,37 @@ const CN_MEDICINE_KNOWLEDGE_PARAMETERS = {
   additionalProperties: false,
 } as const;
 
+/**
+ * 本体推理工具的参数。
+ *
+ * `question` 是模型真正要表达的东西（一次一个药理问题），服务端不做文本启发式
+ * 猜测；`limit` 的上界与服务端强制的上界是同一个常量，模型问不到会被静默裁剪的窗口。
+ */
+const ONTOLOGY_REASONING_PARAMETERS = {
+  type: 'object',
+  properties: {
+    question: {
+      type: 'string',
+      description:
+        'One pharmacological question to answer from the English DrugBank knowledge graph. Keep drug and target names in English as DrugBank writes them.',
+    },
+    limit: {
+      type: 'integer',
+      minimum: 1,
+      maximum: SEMANTICA_MAX_LIMIT,
+      description: `Maximum number of graph rows to return (1-${String(SEMANTICA_MAX_LIMIT)}). Defaults to ${String(SEMANTICA_DEFAULT_LIMIT)}.`,
+    },
+  },
+  required: ['question'],
+  additionalProperties: false,
+} as const;
+
 const TOOL_PARAMETERS: Partial<
   Record<AssistantToolName, Record<string, unknown>>
 > = {
   get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
   search_cn_medicine_knowledge: CN_MEDICINE_KNOWLEDGE_PARAMETERS,
+  reason_over_ontology: ONTOLOGY_REASONING_PARAMETERS,
 };
 
 const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
@@ -137,6 +167,8 @@ const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
     'Get detailed DrugBank information: mechanism, pharmacokinetics, interactions.',
   search_drugbank_passages:
     'Search DrugBank passages for drug interaction and mechanism evidence.',
+  reason_over_ontology:
+    'Answer a pharmacology question by reasoning over the English DrugBank knowledge graph of typed drug–target–enzyme relationships. Use it for multi-hop questions ("which drugs share this target", "is X metabolized by the same enzyme as Y", "do A and B interact") instead of inferring them from prose. It returns the executed query with its rows so the answer stays auditable, and zero rows means DrugBank asserts no such relationship.',
   propose_create_daily_record:
     'Propose creating a new daily record (water, meal, symptom, note, sleep). Does not write — returns a confirmation draft.',
   propose_update_daily_record:

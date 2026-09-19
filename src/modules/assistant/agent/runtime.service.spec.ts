@@ -60,6 +60,14 @@ function buildLightragClient(enabled = false) {
   };
 }
 
+function buildSemanticaClient(enabled = false) {
+  return {
+    isEnabled: vi.fn().mockReturnValue(enabled),
+    schema: vi.fn(),
+    query: vi.fn(),
+  };
+}
+
 function buildStreamService(
   llmRuntimeService: unknown,
   metricsService: unknown,
@@ -86,6 +94,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       lightragClient as never,
+      buildSemanticaClient() as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -102,6 +111,7 @@ describe('AssistantRuntimeService', () => {
       langGraphReady: true,
       ragEnabled: false,
       retrievalAvailable: false,
+      oagAvailable: false,
       graphNodeNames: [
         'prepare_context',
         'classify_intent',
@@ -131,6 +141,7 @@ describe('AssistantRuntimeService', () => {
         'resolve_drugbank_entity',
         'get_drugbank_detail',
         'search_drugbank_passages',
+        'reason_over_ontology',
         'propose_create_daily_record',
         'propose_update_daily_record',
         'propose_delete_daily_record',
@@ -155,6 +166,7 @@ describe('AssistantRuntimeService', () => {
         'resolve_drugbank_entity',
         'get_drugbank_detail',
         'search_drugbank_passages',
+        'reason_over_ontology',
         'propose_create_daily_record',
         'propose_update_daily_record',
         'propose_delete_daily_record',
@@ -189,6 +201,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       lightragClient as never,
+      buildSemanticaClient() as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -231,6 +244,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       lightragClient as never,
+      buildSemanticaClient() as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -290,6 +304,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       buildLightragClient() as never,
+      buildSemanticaClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       cacheService as never,
@@ -339,6 +354,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       buildLightragClient() as never,
+      buildSemanticaClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -386,6 +402,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       buildLightragClient() as never,
+      buildSemanticaClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -423,6 +440,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       buildLightragClient() as never,
+      buildSemanticaClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -466,6 +484,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       buildLightragClient() as never,
+      buildSemanticaClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -497,6 +516,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       buildLightragClient() as never,
+      buildSemanticaClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -551,6 +571,7 @@ describe('AssistantRuntimeService', () => {
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       buildLightragClient() as never,
+      buildSemanticaClient() as never,
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
@@ -621,6 +642,7 @@ describe('AssistantRuntimeService', () => {
       const service = new AssistantRuntimeService(
         llmRuntimeService,
         buildLightragClient() as never,
+        buildSemanticaClient() as never,
         buildMetricsService() as never,
         new LlmCircuitBreakerService(),
         buildCacheService() as never,
@@ -734,6 +756,7 @@ describe('AssistantRuntimeService', () => {
       const service = new AssistantRuntimeService(
         llmRuntimeService,
         buildLightragClient() as never,
+        buildSemanticaClient() as never,
         buildMetricsService() as never,
         new LlmCircuitBreakerService(),
         buildCacheService() as never,

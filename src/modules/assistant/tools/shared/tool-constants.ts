@@ -66,6 +66,16 @@ export const ASSISTANT_CREATE_RECORD_KINDS = [
 /** Per-tool execution timeout before a tool result is replaced with a timeout envelope (F-6). */
 export const TOOL_EXECUTION_TIMEOUT_MS = 20_000;
 
+/**
+ * `reason_over_ontology` 的执行超时。
+ *
+ * 20s 的通用预算不够：这条链路里有一轮 LLM 生成（模型超时本身就有 10s）加最多
+ * 两次纠错重试，每次重试又是一轮生成 + 一次 sidecar 往返。超时预算必须大于
+ * 重试回路的最坏情形，否则"正常重试"会被工具层判死，重试回路等于不存在。
+ * 上限仍由工具自身的时间预算（`SEMANTICA_REASONING_BUDGET_MS`）兜住。
+ */
+export const ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS = 45_000;
+
 /** Scoring weights used when ranking daily-record mutation targets. */
 export const MUTATION_MATCH_WEIGHTS = {
   kind: 10,

@@ -8,7 +8,10 @@ import type {
 } from '../types/assistant.types.js';
 import type { AssistantToolName } from './shared/tool-types.js';
 import { ASSISTANT_READ_TOOL_NAMES } from './shared/tool-types.js';
-import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants.js';
+import {
+  ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  TOOL_EXECUTION_TIMEOUT_MS,
+} from './shared/tool-constants.js';
 import { AssistantToolKnowledgeRetrievalService } from './retrieval/knowledge.service.js';
 import {
   AssistantToolDrugbankEntityResolveService,
@@ -16,6 +19,7 @@ import {
 } from './drugbank/entity-resolve.service.js';
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service.js';
 import { AssistantToolMedicineLookupService } from './medicine/lookup.service.js';
+import { AssistantToolOntologyReasoningService } from './ontology/ontology-reasoning.service.js';
 import { AssistantToolProposalService } from './proposal/proposal.service.js';
 import { AssistantToolReadService } from './read/read.service.js';
 import { MetricsService } from '../../../common/metrics/metrics.service.js';
@@ -33,6 +37,7 @@ const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
   'resolve_drugbank_entity',
   'get_drugbank_detail',
   'search_drugbank_passages',
+  'reason_over_ontology',
 ]);
 
 /** TTL for tool-level retrieval caches (ms). */
@@ -45,6 +50,18 @@ const TOOL_CACHE_KEY_PREFIX = 'assistant:tool';
  */
 const READ_TOOL_NAMES = new Set<AssistantToolName>(ASSISTANT_READ_TOOL_NAMES);
 
+/**
+ * 单工具超时覆盖：默认 {@link TOOL_EXECUTION_TIMEOUT_MS}，只有需要在一次调用里
+ * 跑多轮模型往返的工具才例外（目前只有 `reason_over_ontology`，见该常量的说明）。
+ */
+const TOOL_TIMEOUT_OVERRIDES: Partial<Record<AssistantToolName, number>> = {
+  reason_over_ontology: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+};
+
+function resolveToolTimeoutMs(toolName: AssistantToolName): number {
+  return TOOL_TIMEOUT_OVERRIDES[toolName] ?? TOOL_EXECUTION_TIMEOUT_MS;
+}
+
 @Injectable()
 export class AssistantToolService {
   private readonly logger = new Logger(AssistantToolService.name);
@@ -55,6 +72,7 @@ export class AssistantToolService {
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
     private readonly medicineLookupService: AssistantToolMedicineLookupService,
+    private readonly ontologyReasoningService: AssistantToolOntologyReasoningService,
     private readonly proposalService: AssistantToolProposalService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly metricsService: MetricsService,
@@ -123,18 +141,19 @@ export class AssistantToolService {
   }
 
   /**
-   * Runs one tool with a per-tool timeout. When the tool exceeds
-   * `TOOL_EXECUTION_TIMEOUT_MS`, a timeout envelope is returned instead of the
-   * tool result — the graph keeps running and the model sees the timeout
-   * inside the envelope data. The underlying execution is not cancelled (JS
-   * cannot abort it); its eventual settlement is swallowed so a late failure
-   * never surfaces as an unhandled rejection.
+   * Runs one tool with a per-tool timeout. When the tool exceeds its budget
+   * (`TOOL_EXECUTION_TIMEOUT_MS`, or the tool's override), a timeout envelope
+   * is returned instead of the tool result — the graph keeps running and the
+   * model sees the timeout inside the envelope data. The underlying execution
+   * is not cancelled (JS cannot abort it); its eventual settlement is swallowed
+   * so a late failure never surfaces as an unhandled rejection.
    */
   private executeWithTimeout(
     context: AssistantToolExecutionContext,
     toolName: AssistantToolName,
   ): Promise<AssistantToolExecutionResult> {
     const startedAt = performance.now();
+    const timeoutMs = resolveToolTimeoutMs(toolName);
     let timedOut = false;
     const execution = this.executeOne(context, toolName);
     const timeout = new Promise<AssistantToolExecutionResult>((resolve) => {
@@ -148,7 +167,7 @@ export class AssistantToolService {
           },
           timeout: true,
         });
-      }, TOOL_EXECUTION_TIMEOUT_MS);
+      }, timeoutMs);
       // Do not keep the event loop alive just for the timeout loser.
       timer.unref();
     });
@@ -177,10 +196,14 @@ export class AssistantToolService {
     if (KNOWLEDGE_TOOL_NAMES.has(toolName)) {
       // Key on the parsed query (plus filters, e.g. a resolved productId for
       // leaflet lookups) so different lookups never share a cached result.
+      // 参数也进 key：`reason_over_ontology` 的问题、`search_cn_medicine_knowledge`
+      // 的 source/mode 都在 toolArgs 里，只按 userMessage 建 key 会让同一条消息下
+      // 两次参数不同的调用互相命中缓存，返回另一次的结果。
       const payload = parseSearchPayload(context.userMessage, this.logger);
       const keySeed = JSON.stringify({
         query: payload.query.trim().toLowerCase(),
         filters: payload.filters,
+        args: context.toolArgs ?? {},
       });
       const cacheKey = `${TOOL_CACHE_KEY_PREFIX}:${toolName}:${context.locale}:${makeShortHash(keySeed)}`;
 
@@ -342,6 +365,11 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.drugbankSearchService.search(context),
+        };
+      case 'reason_over_ontology':
+        return {
+          name: toolName,
+          data: await this.ontologyReasoningService.reasonOverOntology(context),
         };
       case 'propose_create_daily_record':
         return this.proposalService.buildCreateDailyRecordProposal(
