@@ -19,29 +19,22 @@ random docs.
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
 
-## 2026-09-19 英文侧 OAG（Semantica）接线已落地，剩余为镜像 / 评测 / 本体
+## 2026-09-19 英文侧 OAG（Semantica）：问答链路已落地，推理与图谱缺口待做
 
 `reason_over_ontology` 工具、四个注册点、policy 门控、sidecar 客户端、confirm 路径审计、
 **PROV-O 端到端引用**（边上 `prov` → sidecar `/provenance` 解析 → envelope `citations`
-→ SSE `toolDetails` → 来源条）已落地并真机验证（详见当日迁移日志）。剩余：
+→ SSE `toolDetails` → 来源条）已落地并真机验证（详见当日迁移日志）。
+
+**剩余工作的执行口径见 `plans/2026-09-19-semantica-reasoning-and-graph-hardening-plan.md`**
+（推理接线 R1–R5、图谱缺口 D1–D2、服务硬化 S1–S3、评测集 E1–E2），决策见
+`docs/reference/adr/0021-semantica-english-side-oag.md`。此处只留不属该计划的条目：
 
 - **sidecar 镜像（未做）**：三份 compose 的 `semantica` 服务定义已就位（profile 门控，
   避免 `docker compose up` 去拉不存在的镜像），但 `semantica-service` 仓还没有
   Dockerfile，容器化部署不可用；dev 目前靠本机 `uvicorn` + `.env.development` 直连。
-- **旁路端点未做**：`/reason` 的 `load_from_graph` 导出桥一次只加载约 23%（双 LIMIT
-  且无 `ORDER BY`，211,630 条边里非确定地取到一部分），要改成 keyset 分页或超限即报错；
-  sidecar 的 `uvicorn --timeout-keep-alive` 与客户端传输层重试目前只做在评测脚本里。
-- **图谱数据缺口**：`ATCClass` 节点只有 `code`、没有类名（Lucent 库里也没有 ATC 名称表），
-  所以"这是什么类"只能答 code；相互作用边**单向**（只按列举方建边，19,842 行里只有
-  4,218 个药出现在源列），因此"图上无此边"不等于"临床上无相互作用"——工具措辞已按此写，
-  但补全双向边与导入 ATC 类名都还没做。
-- **英文侧评测集（计划 S0，未做）**：S4 之后"是否继续"的唯一判据；现有六个探测是能力
-  探测，不是评测集。
-- **本体词表与手写 SHACL（计划 S3，未做）**：§4.1 的 YAML 词表未落 Lucent，
-  `/validate` 的 SHACL 目前由调用方提供。
-- **AGE 计划的现状描述过期**：`plans/2026-09-27-apache-age-introduction-plan.md`
-  的状态行与 §2.1 仍写"未开工 / 待自建"，而 dev 已用自建的 `lucent-db` 镜像
-  （AGE 1.7.0）并通过 P0 验收。
+  归 `plans/2026-09-27-apache-age-introduction-plan.md` 的 P2 剩余项。
+- **模型供应商配额/凭据**：本轮评测中途开始快失败（`rejected our credentials or
+exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前先确认配额。
 
 ## 2026-09-18 LightRAG 中文散文检索（P1/P3 已落地，剩余为评测与生产核对）
 

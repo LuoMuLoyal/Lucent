@@ -2,7 +2,7 @@
 
 Created: 2026-09-17
 状态：调研记录（**未决策**；缺硬件与规模输入，收敛条件见 §6）
-定位：回答"LightRAG / OAG 的向量嵌入，本地用哪个模型"。先厘清**要嵌入的不是一件事而是三条线**（§0），再给候选矩阵（§2）、服务形态（§3）、分档推荐（§4）与红线清单（§5）。**不推翻** `2026-09-16-lightrag-introduction-plan.md` 与 `2026-09-17-semantica-oag-english-side-plan.md` 的任何既有决定，只补它们留下的"嵌入模型"空位。
+定位：回答"LightRAG / OAG 的向量嵌入，本地用哪个模型"。先厘清**要嵌入的不是一件事而是三条线**（§0），再给候选矩阵（§2）、服务形态（§3）、分档推荐（§4）与红线清单（§5）。**不推翻** `2026-09-16-lightrag-introduction-plan.md` 与 Semantica 英文侧 OAG 的既有决定（决策见 `docs/reference/adr/0021-semantica-english-side-oag.md`），只补它们留下的"嵌入模型"空位。
 
 证据标注沿用同目录既有约定：`[核实]` = 源码 / 官方仓库 / 官方文档 / 实测；`[二手]` = 第三方；`[研判]` = 本文判断；`[待核实]` = 本条**尚未**复核，落地前必须补。
 
@@ -18,7 +18,7 @@ Created: 2026-09-17
 
 **两条必须先说清的前提**：
 
-1. **OAG 主链不吃嵌入。** `[核实：2026-09-17-semantica-oag-english-side-plan.md §2.1/§3.1]` 英文侧入图是"DrugBank 结构化边**确定性灌入**"，不需要 LLM 抽取，也不需要 Semantica 的嵌入器；Phase 4 推理（Rete / Datalog / SPARQL）同样与向量无关。**真正需要嵌入的只有 §0 表的第 1、2 行**，第 3 行是"顺手修掉的一条历史路径"。
+1. **OAG 主链不吃嵌入。** `[核实：`docs/reference/adr/0021-semantica-english-side-oag.md` §决定 3]` 英文侧入图是"DrugBank 结构化边**确定性灌入**"，不需要 LLM 抽取，也不需要 Semantica 的嵌入器；Phase 4 推理（Rete / Datalog / SPARQL）同样与向量无关。**真正需要嵌入的只有 §0 表的第 1、2 行**，第 3 行是"顺手修掉的一条历史路径"。
 2. **LightRAG 的嵌入是一次性锁定的。** `[核实：LightRAG env.docker-compose-full @main，2026-09-17 抓取]` 上游原文 _"Embedding Configuration (Should not be changed after the first file processed)"_。换模型或换维度 = 中文侧全量重建（21k 说明书 + 上限 136 万 QA）。因此**先小样本跑通、再定模型、最后全量**，顺序不可反。
 
 ---
@@ -140,12 +140,12 @@ OLLAMA_EMBEDDING_NUM_CTX=8192
 
 ## 七、与现有文档的关系
 
-| 文档                                                  | 关系                                                                                             |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `plans/2026-09-16-lightrag-introduction-plan.md`      | 本调研补它的 `EMBEDDING_*` 空位（该计划 §4.2 只定义变量名，未选模型）；§0 数据规模引自其 §0 实测 |
-| `plans/2026-09-17-semantica-oag-english-side-plan.md` | 本调研 §0 第 3 行、§5.4 引自其 §5 / §7；**不改变**"OAG 主链不吃嵌入"的结论                       |
-| `plans/2026-09-06-rag-hybrid-search-upgrade.md`       | 向量侧的选型若变更，需回看该计划的混合检索（向量 + FTS）是否需要同维度                           |
-| `deploy/lightrag/.env.example`                        | 本调研结论落地时改动的唯一 sidecar 配置入口（`EMBEDDING_*` + 本地 rerank 段）                    |
-| `docs/reference/environment-variables.md`             | LightRAG 小节与新选型无变量名冲突；`AI_EMBEDDING_MODEL` 语义描述可能需补"可指向自建端点"         |
+| 文档                                                    | 关系                                                                                             |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `plans/2026-09-16-lightrag-introduction-plan.md`        | 本调研补它的 `EMBEDDING_*` 空位（该计划 §4.2 只定义变量名，未选模型）；§0 数据规模引自其 §0 实测 |
+| `docs/reference/adr/0021-semantica-english-side-oag.md` | 本调研 §0 第 3 行、§5.4 引自原 Semantica 计划（已删除）；**不改变**"OAG 主链不吃嵌入"的结论      |
+| `plans/2026-09-06-rag-hybrid-search-upgrade.md`         | 向量侧的选型若变更，需回看该计划的混合检索（向量 + FTS）是否需要同维度                           |
+| `deploy/lightrag/.env.example`                          | 本调研结论落地时改动的唯一 sidecar 配置入口（`EMBEDDING_*` + 本地 rerank 段）                    |
+| `docs/reference/environment-variables.md`               | LightRAG 小节与新选型无变量名冲突；`AI_EMBEDDING_MODEL` 语义描述可能需补"可指向自建端点"         |
 
 **外网出处**（`[二手]` 来源，落地前应复核）：[LightRAG env.docker-compose-full](https://github.com/HKUDS/LightRAG/blob/main/env.docker-compose-full)、[Ollama OpenAI compatibility](https://docs.ollama.com/openai)、[ollama bge-m3](https://ollama.com/library/bge-m3)、[Qwen3-Embedding-0.6B 模型卡](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B)。
