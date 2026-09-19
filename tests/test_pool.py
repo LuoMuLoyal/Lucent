@@ -31,7 +31,7 @@ class FakeStore:
     def __init__(self, connection_string: str, graph_name: str) -> None:
         self.connection_string = connection_string
         self.graph_name = graph_name
-        self._conn = FakeConn()
+        self._conn: FakeConn | None = FakeConn()
         FakeStore.instances.append(self)
 
     def connect(self) -> bool:
@@ -69,14 +69,37 @@ def patch_store(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_dsn_carries_both_timeouts(settings: Settings) -> None:
     dsn = _dsn_with_timeouts(settings)
     assert "connect_timeout=10" in dsn
-    assert "options=-c statement_timeout=15000" in dsn
+    assert "options='-c statement_timeout=15000'" in dsn
     assert dsn.startswith("host=db port=5432 dbname=graph user=u password=p")
+
+
+def test_dsn_is_accepted_by_libpq(settings: Settings) -> None:
+    """`options` holds a space, so it must be quoted or libpq rejects the DSN.
+
+    Without the quotes libpq reads `statement_timeout=15000` as a connection
+    option of its own and fails with 'invalid connection option'.
+    """
+    import psycopg2.extensions
+
+    parsed = psycopg2.extensions.parse_dsn(_dsn_with_timeouts(settings))
+    assert parsed["options"] == "-c statement_timeout=15000"
+    assert parsed["connect_timeout"] == "10"
+
+
+def test_dsn_values_with_quotes_are_escaped() -> None:
+    """A password containing a quote must not break out of the value."""
+    settings = Settings(age_dsn="host=db password=it's-secret")
+    parsed_dsn = _dsn_with_timeouts(settings)
+
+    import psycopg2.extensions
+
+    assert psycopg2.extensions.parse_dsn(parsed_dsn)["password"] == "it's-secret"
 
 
 def test_dsn_preserves_operator_supplied_values() -> None:
     """An explicit DSN override must not be clobbered."""
     settings = Settings(
-        age_dsn="host=db connect_timeout=99 options=-c statement_timeout=1000",
+        age_dsn="host=db connect_timeout=99 options='-c statement_timeout=1000'",
         connect_timeout_s=10,
         statement_timeout_ms=15_000,
     )

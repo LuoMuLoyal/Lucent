@@ -31,15 +31,28 @@ from ..config import Settings, get_settings
 def _dsn_with_timeouts(settings: Settings) -> str:
     """Return ``settings.age_dsn`` with connection-level timeouts applied.
 
-    Existing keys are preserved: an operator who set ``connect_timeout`` in the
-    DSN keeps their value rather than having it overwritten.
+    ``statement_timeout`` is a server GUC, not a libpq connection option, so it
+    can only be passed through ``options=-c ...``. That value contains a space
+    and therefore must be single-quoted, otherwise libpq parses
+    ``statement_timeout=15000`` as an option in its own right and rejects the
+    whole DSN with ``invalid connection option``.
+
+    Existing keys are preserved: an operator who set ``connect_timeout`` or
+    ``options`` in the DSN keeps their value rather than having it overwritten.
     """
     parts = [settings.age_dsn.strip()]
     if "connect_timeout" not in settings.age_dsn:
         parts.append(f"connect_timeout={settings.connect_timeout_s}")
     if "options" not in settings.age_dsn:
-        parts.append(f"options=-c statement_timeout={settings.statement_timeout_ms}")
+        options = f"-c statement_timeout={settings.statement_timeout_ms}"
+        parts.append(f"options={_quote_dsn_value(options)}")
     return " ".join(part for part in parts if part)
+
+
+def _quote_dsn_value(value: str) -> str:
+    """Quote a libpq DSN value, escaping embedded quotes and backslashes."""
+    escaped = value.replace("\\", "\\\\").replace("'", "\\'")
+    return f"'{escaped}'"
 
 
 def _assert_statement_timeout(store: ApacheAgeStore, expected_ms: int) -> None:

@@ -25,6 +25,7 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.8",
     "mypy>=1.13",
+    "types-psycopg2>=2.9.21.20260911",
 ]
 
 [tool.uv.sources]
