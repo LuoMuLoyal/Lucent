@@ -148,9 +148,23 @@ export class AssistantController {
     @Body({ schema: confirmAssistantProposalSchema })
     dto: ConfirmAssistantProposalDto,
   ) {
-    return unwrapResult(
+    const result = await unwrapResult(
       this.assistantService.confirmProposal(user.sub, conversationId, dto),
     );
+    // confirm 是助手唯一的写库/审批入口：决议本身必须留痕（计划 §8.3 的审计
+    // 缺口）。`metadata` 只放结构化字段——用户填的 `note` 是自由文本，不进审计表。
+    this.auditLogService.logFireAndForget({
+      userId: user.sub,
+      action: 'assistant.proposal.confirm',
+      resourceType: 'assistant_conversation',
+      resourceId: conversationId,
+      metadata: {
+        proposalIds: dto.proposalIds,
+        decision: dto.decision,
+        status: result.status,
+      },
+    });
+    return result;
   }
 
   @Patch('conversations/:conversationId')

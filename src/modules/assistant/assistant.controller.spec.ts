@@ -498,6 +498,17 @@ describe('AssistantController', () => {
       'conversation-1',
       { proposalIds: ['proposal-1'], decision: 'approved' },
     );
+    expect(auditLogService.logFireAndForget).toHaveBeenCalledWith({
+      userId: 'u1',
+      action: 'assistant.proposal.confirm',
+      resourceType: 'assistant_conversation',
+      resourceId: 'conversation-1',
+      metadata: {
+        proposalIds: ['proposal-1'],
+        decision: 'approved',
+        status: 'approved',
+      },
+    });
   });
 
   it('renames one persisted conversation resource', async () => {
