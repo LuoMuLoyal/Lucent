@@ -8,3 +8,11 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local configuration — holds database credentials. .env.example is committed.
+.env
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
