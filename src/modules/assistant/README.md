@@ -114,10 +114,19 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   `question` / `limit`）。流程：读 schema → 生成 → 执行；被拒则**把 sidecar 的报错
   回喂模型重生成**（最多 3 次，总预算 30s）。重试回路是生产必需：实测模型会产出
   `OPTIONAL MATCH ... AS x` 这类非法语法，回喂报错即可自纠。
-- **envelope 带可复核路径**：`cypher`（实际执行的查询）+ `sourceTier:
-'drugbank_structured'` + `verifiability: 'citable'`；**零行 = DrugBank 没有这条
-  断言**，不是"查不到"；`truncated` 标 `coverage: partial`。PROV-O 引用尚未接
-  （sidecar 未暴露 provenance 端点）。
+- **envelope 带可复核路径**：`cypher`（实际执行的查询）+ `citations`（每条断言一条
+  PROV-O 引用）+ `sourceTier: 'drugbank_structured'`；**零行 = DrugBank 没有这条
+  断言**，不是"查不到"；`truncated` 标 `coverage: partial`。**引用由 sidecar 解析**：
+  图上每条边带 `prov` id（指回来源表与来源行），sidecar 把它解成来源表 / 行键 /
+  原文 / 哈希链位置；行回来了却一条引用都没有时 `verifiability` 是 `'uncited'`
+  （而不是 `'citable'`），并由工具**强制重写一次**要求返回 `r.prov`。SSE 把
+  `citations` 与 `executedQuery` 一起投影给客户端（`toolDetails`），来源条可点击
+  复制 id 去复核。生成侧与 prompt 侧的细节见 §"生成侧的硬约束"。
+- **图节点超时必须高于工具预算**：`ASSISTANT_NODE_TIMEOUT_MS` = 模型超时 + 一次
+  工具预算（默认 60s）。原先节点默认取 `AI_MODEL_TIMEOUT_MS`（10s），比
+  `reason_over_ontology` 自己的 45s 预算还小——实测表现是慢查询被节点超时掐断、
+  LangGraph 重试三次，客户端只拿到每次尝试的半截答案，最后以
+  `Node "agent" exceeded its run timeout` 结束。
 - **与中文散文检索各自独立判定**：`ASSISTANT_OAG_TOOL_NAMES` 与
   `ASSISTANT_RETRIEVAL_TOOL_NAMES` 分开，一个 sidecar 挂掉不会把另一个的工具标成
   不可用；两者都报 `disabledReason: 'retrieval_unavailable'`（客户端渲染同一个
@@ -126,6 +135,11 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   `datetime()`；必须显式 `LIMIT`；值走 `params`；**名称必须 `toLower()` 匹配**
   —— 图上名称按 DrugBank 原样大写，精确匹配会静默返回 0 行，而那会被说成
   "DrugBank 没有这条断言"（看起来像答案的错答案）。真正的强制在 sidecar 的守卫。
+  另外三条来自实测（2026-09-19 走 API 的验证）：**关系必须返回 `prov`**；
+  **多跳的角色链各有各的关系类型**（"抑制那个代谢 X 的酶"是
+  `(X)-[:SUBSTRATE_OF]->(e:Protein)<-[:INHIBITS]-(i:Drug)`，两侧用同一个类型会
+  返回 0 行）；**酶按基因名问、ATC 按 code 问**（"CYP3A4" 存在 `gene_name` 上，
+  而 ATCClass 节点只有 `code`、没有名称）。
 - 部署与变量（`deploy/semantica/`、`SEMANTICA_*`）见
   `docs/reference/environment-variables.md` 的 Semantica 小节。sidecar 尚无镜像，
   dev 走本机 `uvicorn`，容器化部署未完成。
