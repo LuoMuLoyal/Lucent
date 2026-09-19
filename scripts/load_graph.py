@@ -209,6 +209,48 @@ def build_edges(
     return total
 
 
+def atc_parent(code: str) -> str | None:
+    """Return the parent ATC code, or ``None`` at the top of the hierarchy.
+
+    ATC levels are not a uniform one-character step: the chemical-substance
+    level is 7 characters (``N06AB05``) and its parent, the chemical subgroup,
+    is 5 (``N06AB``) — so the step is 2 there and 1 everywhere else. Stripping
+    a single character would leave every level-7 node unattached.
+    """
+    if len(code) == 7:
+        return code[:5]
+    if len(code) > 1:
+        return code[:-1]
+    return None
+
+
+def build_atc_hierarchy_edges(
+    store: ApacheAgeStore, pairs: list[dict[str, Any]], batch: int
+) -> int:
+    """Create ATCClass -> ATCClass edges.
+
+    ATC nodes are matched on ``code`` rather than ``drugbank_id``, so they need
+    their own matcher; the generic one matches source nodes on ``drugbank_id``.
+    """
+    if not pairs:
+        return 0
+    total = 0
+    for chunk in batched(pairs, batch):
+        payload = cypher_list(chunk)
+        query = (
+            f"UNWIND {payload} AS row "
+            f"MATCH (a:ATCClass {{code: row.source}}) "
+            f"MATCH (b:ATCClass {{code: row.target}}) "
+            f"CREATE (a)-[:SUBCLASS_OF]->(b) "
+            f"RETURN count(*) AS created"
+        )
+        result = run(store, query)
+        total += int(result["records"][0]["created"])
+        print(f"    SUBCLASS_OF: {total}/{len(pairs)}", end="\r", flush=True)
+    print()
+    return total
+
+
 def main() -> None:
     args = parse_args()
     settings = get_settings()
@@ -324,6 +366,19 @@ def main() -> None:
     print(f"creating {len(e_da)} IN_ATC_CLASS edges...")
     da_rows = [{"source": e["source"], "target": e["target"], "props": {}} for e in e_da]
     build_edges(store, "IN_ATC_CLASS", da_rows, args.batch)
+
+    # --- ATC hierarchy: parent class -> child class ---
+    # Without these the class levels are isolated nodes: drugs attach to leaf
+    # codes only (level 7), so "every drug in N06A" would have no path to
+    # follow. The hierarchy is what makes a class-scoped query expressible.
+    by_code = {a["code"]: a for a in atc}
+    hierarchy: list[dict[str, Any]] = []
+    for code in by_code:
+        parent = atc_parent(code)
+        if parent is not None and parent in by_code:
+            hierarchy.append({"source": parent, "target": code, "props": {}})
+    print(f"creating {len(hierarchy)} SUBCLASS_OF edges...")
+    build_atc_hierarchy_edges(store, hierarchy, args.batch)
 
     elapsed = time.perf_counter() - started
     stats = store.get_stats()
