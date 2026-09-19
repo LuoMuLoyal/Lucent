@@ -42,6 +42,12 @@ python_version = "3.13"
 strict = true
 warn_unreachable = true
 
+# semantica ships neither a py.typed marker nor stubs, so its types are
+# unavailable. Scoped to that one package: our own code stays under strict.
+[[tool.mypy.overrides]]
+module = ["semantica.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
