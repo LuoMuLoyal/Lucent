@@ -1,7 +1,10 @@
 services:
   # ── PostgreSQL 18 (development) ──────────────────────────────
+  # 镜像含 Apache AGE（图扩展开销，见 docker/postgres-age/）。AGE 只服务英文侧
+  # OAG，图数据在独立 database `lucent_graph` 中。构建一次即可：
+  #   docker build -t lucent-db:18 docker/postgres-age
   postgres-dev:
-    image: pgvector/pgvector:pg18
+    image: ${LUCENT_DB_IMAGE:-lucent-db:18}
     container_name: lucent-postgres-dev
     restart: unless-stopped
     environment:
@@ -20,7 +23,7 @@ services:
 
   # ── PostgreSQL 18 (test / e2e) ───────────────────────────────
   postgres-test:
-    image: pgvector/pgvector:pg18
+    image: ${LUCENT_DB_IMAGE:-lucent-db:18}
     container_name: lucent-postgres-test
     restart: unless-stopped
     environment:

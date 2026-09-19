@@ -23,7 +23,7 @@
 
 services:
   postgres:
-    image: pgvector/pgvector:pg18
+    image: ${LUCENT_DB_IMAGE:?LUCENT_DB_IMAGE is required — full image ref, e.g. your-registry/lucent-db:18}
     restart: unless-stopped
     # 慢查询日志:超过 500ms 的语句写入容器日志(docker logs lucent-postgres)。
     command: ['postgres', '-c', 'log_min_duration_statement=500']
