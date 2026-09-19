@@ -243,7 +243,8 @@ describe('AssistantToolOntologyReasoningService', () => {
     );
 
     expect(envelope.coverage.status).toBe('empty');
-    expect(envelope.coverage.reason).toContain('no edges matching');
+    expect(envelope.coverage.reason).toContain('no edge matching');
+    expect(envelope.coverage.reason).toContain('not that none exists');
     expect(envelope.confidence.level).toBe('low');
     expect(envelope.result['verifiability']).toBe('citable');
   });

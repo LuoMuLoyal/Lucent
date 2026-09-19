@@ -59,7 +59,7 @@ Reasoning rules:
 - "Can A and B be taken together?" is a question about the interaction edge between A and B: match the edge and report what its properties say.
 - Interaction questions are answered from interaction edges, never from text similarity.
 - Keep roles distinct: an inhibitor of an enzyme and a substrate of that enzyme are clinically different. Use the specific relationship type rather than a generic one.
-- Never answer from general knowledge. If the graph has no such edge, zero rows is the correct and useful answer.
+- Never answer from general knowledge. If the graph has no such edge, zero rows is the correct and useful answer — and it means "this graph has no such edge", never "no such relationship exists".
 
 Also return a one-sentence \`rationale\` describing what the query retrieves.`;
 

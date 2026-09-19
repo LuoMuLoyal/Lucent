@@ -281,7 +281,8 @@ export class AssistantToolOntologyReasoningService {
       rowCount === 0
         ? {
             status: 'empty',
-            reason: 'The ontology graph has no edges matching this question.',
+            reason:
+              'The ontology graph has no edge matching this question. That means the source data asserts no such relationship — not that none exists.',
           }
         : truncated
           ? {
