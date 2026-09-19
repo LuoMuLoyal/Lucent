@@ -116,6 +116,47 @@ services:
         max-size: '50m'
         max-file: '5'
 
+  # ── Semantica(英文侧 OAG sidecar)─────────────────────────────
+  # 只读 Cypher 的校验 + 执行、SHACL 校验与 Datalog 推理;NL→Cypher 的生成在 Lucent
+  # 侧完成,所以这个服务**不持有模型凭据**,Lucent 那边也没有共享密钥要同步(不鉴权:
+  # 只在内网、不发布公网端口、不挂 Traefik)。
+  #
+  # staging 的 app 是宿主 PM2 进程,所以端口发布到回环(与 lightrag 一致):
+  # 应用侧 .env.production 写 SEMANTICA_BASE_URL=http://127.0.0.1:8099。
+  #
+  # AGE_DSN **不在这里覆盖**:它含口令,由 deploy/semantica/.env 按环境填(模板见
+  # 该目录 .env.example)。图在独立 database `lucent_graph` 中,宿主 Postgres 容器
+  # 发布在回环 5432 —— 容器内的 DSN 写 host=host.docker.internal port=5432。
+  #
+  # profile 门控:镜像尚未提供(semantica-service 仓还没有 Dockerfile),所以不加
+  # profile 会让 `docker compose up` 去拉一个不存在的镜像而失败。
+  semantica:
+    image: ${SEMANTICA_IMAGE:-lucent-semantica:latest}
+    profiles: ['semantica']
+    restart: unless-stopped
+    env_file:
+      - deploy/semantica/.env
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '127.0.0.1:8099:8099'
+    healthcheck:
+      # /health 真借一条 AGE 连接读图规模,图不可达时返回 503 → 探针如实失败。
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8099/health\").read()" || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
   # ── VictoriaMetrics(抓取宿主 app 的 /metrics,面板经 Traefik + BasicAuth)──
   # 抓取配置 monitoring/victoriametrics/vmscraper.staging.yml 的目标是
   # host.docker.internal:3000 —— 靠下方 extra_hosts 解析到宿主。

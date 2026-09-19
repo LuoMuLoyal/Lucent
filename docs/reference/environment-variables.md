@@ -377,6 +377,44 @@ docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
 `LIGHTRAG_BASE_URL` 在 dev 走 `http://127.0.0.1:9621`（compose profile 发布到回环），
 在 production 走默认的容器名地址（同 compose 网络）。
 
+### Semantica sidecar — 英文侧 OAG（本体推理）
+
+```text
+SEMANTICA_ENABLED    # 默认 false；关闭时 reason_over_ontology 返回"未配置"信封，不抛错
+SEMANTICA_BASE_URL   # 默认 http://semantica:8099
+SEMANTICA_TIMEOUT_MS # 默认 20000；须大于 sidecar 的 statement_timeout（默认 15s）
+```
+
+**没有 API key。** 与 LightRAG 不同，这是我们自己的服务：只在内网 compose 网络上
+（不发布宿主端口、不挂 Traefik），自身也不持有任何模型凭据 —— NL→Cypher 的生成在
+Lucent 侧用 `AI_LANGUAGE_*` 角色完成（`BaseLlmGeneratorService`），sidecar 只做校验与执行。
+因此**没有启动期交叉校验**：`SEMANTICA_ENABLED=true` 但服务不可达时，表现为工具返回
+"推理不可用"信封，而不是进程起不来。
+
+`SEMANTICA_TIMEOUT_MS` 的下限要高于 sidecar 自己的 `statement_timeout`（默认 15s）：
+否则"查询太慢"会先被客户端掐断，拿不到 sidecar 的结构化超时报错，重试回路也就收不到
+"收窄查询"这个可执行的提示。
+
+可用性判定：`reason_over_ontology` 在 sidecar 关闭时上报
+`disabledReason: 'retrieval_unavailable'`——与 LightRAG 那条线同一条纪律（没有降级路径，
+必须让客户端看见"暂不可用"而不是"确实没有证据"）。两条线**各自独立判定**：一个 sidecar
+挂掉不会把另一个的工具也标成不可用。
+
+**sidecar 自身的配置不在这里**：AGE DSN / 图名 / 连接池 / 语句超时在它自己的 env 文件里
+（模板位于 `deploy/semantica/`，复制去掉后缀即为运行时文件，变量清单与 semantica-service
+仓的同名同义），与 Lucent 的 `DATABASE_URL` 完全独立（AGE 在独立 database `lucent_graph`
+中，不进 Prisma 迁移域）。dev 也可以直接在本机跑（不起容器）：
+
+```bash
+cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
+# 然后在 .env.development 里设 SEMANTICA_ENABLED=true 与
+# SEMANTICA_BASE_URL=http://127.0.0.1:8099
+```
+
+> **当前实情（2026-09-19）**：`semantica-service` 尚未提供 Dockerfile/镜像，因此三份
+> compose 里的 `semantica` 服务（profile `semantica`）**暂时起不来**——服务定义已经写好
+> 是为了让 dev / staging / prod 形态一致（AGE 计划 §一 的"三环境同一形态"），镜像是下一步。
+
 Observability:
 
 ```text

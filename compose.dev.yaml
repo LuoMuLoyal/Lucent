@@ -97,6 +97,48 @@ services:
       retries: 10
       start_period: 60s
 
+  # ── Semantica(英文侧 OAG sidecar)───────────────────────────────
+  # 本体推理:图是 DrugBank 结构化字段的确定性灌入(零 LLM 抽取、零 token),服务只做
+  # 只读 Cypher 的校验 + 执行、SHACL 校验与 Datalog 推理,**自身不持有模型凭据**
+  # (NL→Cypher 的生成在 Lucent 侧),因此 Lucent 那边也没有对应的 API key 项。
+  #
+  # dev 默认不起它:**开发环境直接在本机跑**更省事,也不需要镜像:
+  #   cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
+  # 然后在 .env.development 里设 SEMANTICA_ENABLED=true 与
+  # SEMANTICA_BASE_URL=http://127.0.0.1:8099。本服务定义与下面 lightrag 同形,
+  # 是为了需要容器化时形态一致(见 compose.yaml 的同名服务)。
+  #
+  # 配置只来自 deploy/semantica/.env(独立文件,不含 Lucent 的 JWT_* / DATABASE_URL
+  # / 微信密钥),模板见该目录 .env.example。
+  semantica:
+    image: ${SEMANTICA_IMAGE:-lucent-semantica:latest}
+    container_name: lucent-semantica
+    profiles: ['semantica']
+    restart: unless-stopped
+    env_file:
+      - deploy/semantica/.env
+    environment:
+      # 容器内访问宿主 Postgres(AGE 在独立 database `lucent_graph` 中,不进 Prisma 域)。
+      # compose.dev 的 postgres-dev 发布在宿主 15432;容器走 host-gateway 回环。
+      AGE_DSN: host=host.docker.internal port=15432 dbname=lucent_graph user=postgres password=postgres
+      GRAPH_NAME: lucent_graph
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      # 只绑回环:Lucent 本地进程走 http://127.0.0.1:8099
+      - '127.0.0.1:8099:8099'
+    healthcheck:
+      # /health 真借一条 AGE 连接读图规模,图不可达时返回 503 → 探针如实失败。
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8099/health\").read()" || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   # ── Jaeger (OpenTelemetry trace backend) ──────────────────────
   jaeger:
     image: jaegertracing/all-in-one:1.57
