@@ -330,3 +330,72 @@ class TestLabels:
         )
 
         assert GraphExport(store, limit=10).node_types() == {"db00945": "Drug"}
+
+
+class TestEndpointLabels:
+    """Edges can reference nodes the node query's limit never reached.
+
+    Both export queries take the same `limit` but run independently, so on a
+    graph larger than the limit an edge endpoint is frequently absent from the
+    node list. That endpoint still becomes a Datalog constant, and a constant
+    with no entry in the label table is exactly the unreadable output the table
+    exists to prevent.
+    """
+
+    def _store(self) -> StubStore:
+        return StubStore(
+            nodes=[
+                {
+                    "id": 1,
+                    "labels": ["Drug"],
+                    "props": {"drugbank_id": "DB00945", "name": "Aspirin"},
+                }
+            ],
+            edges=[
+                {
+                    "source": 1,
+                    "target": 99,
+                    "rel_type": "TARGETS",
+                    "props": {},
+                    "source_props": {"drugbank_id": "DB00945", "name": "Aspirin"},
+                    "target_props": {"uniprot_id": "P23219", "name": "COX-1"},
+                }
+            ],
+        )
+
+    def test_endpoint_outside_the_node_limit_still_gets_a_label(self) -> None:
+        """Node 99 is not in the node list, but its fact needs a name."""
+        labels = GraphExport(self._store(), limit=1).labels()
+
+        assert labels["db00945"] == "Aspirin"
+        assert labels["p23219"] == "COX-1"
+
+    def test_endpoint_label_keys_match_the_fact_constants(self) -> None:
+        labels = GraphExport(self._store(), limit=1).labels()
+
+        assert "P23219" not in labels
+        assert "p23219" in labels
+
+    def test_endpoint_without_a_name_is_simply_unlabelled(self) -> None:
+        store = StubStore(
+            nodes=[],
+            edges=[
+                {
+                    "source": 1,
+                    "target": 2,
+                    "rel_type": "TARGETS",
+                    "props": {},
+                    "source_props": {"drugbank_id": "DB1"},
+                    "target_props": {"uniprot_id": "P1"},
+                }
+            ],
+        )
+
+        assert GraphExport(store, limit=1).labels() == {}
+
+    def test_endpoint_types_are_reported_as_unknown(self) -> None:
+        """The edge query does not return labels, so guessing would be a lie."""
+        types = GraphExport(self._store(), limit=1).node_types()
+
+        assert types["db00945"] == "Drug"
+        assert types["p23219"] == "unknown"

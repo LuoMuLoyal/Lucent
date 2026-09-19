@@ -83,7 +83,7 @@ def _stable_key(record_id: Any, props: dict[str, Any]) -> str:
     Nodes and edges must resolve to the *same* key or edge facts would not join
     to node facts at all, which is why this one function is shared by both.
     """
-    for candidate in ("drugbank_id", "uniprot_id", "id", "name"):
+    for candidate in _KEY_CANDIDATES:
         value = props.get(candidate)
         if value not in (None, ""):
             return str(value)
@@ -115,7 +115,13 @@ def export_nodes(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
 
 
 def export_edges(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
-    """Read edges in the reasoner's edge-dict form."""
+    """Read edges in the reasoner's edge-dict form.
+
+    Each edge also carries ``source_props`` / ``target_props``: the endpoint
+    node's own properties. They are not part of the reasoner's edge contract,
+    but they are the only way to name an endpoint whose node row fell outside
+    the node query's limit.
+    """
     result = store.execute_query(_EDGES_QUERY.format(limit=limit))
     if not result.get("success"):
         raise RuntimeError(f"AGE edge export failed: {result.get('error')}")
@@ -128,30 +134,65 @@ def export_edges(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
             continue
         rel_type = record.get("rel_type") or "connected_to"
         props = _as_dict(record.get("props"))
+        source_props = _as_dict(record.get("source_props"))
+        target_props = _as_dict(record.get("target_props"))
         edges.append(
             {
                 # Edge endpoints arrive as row ids, so they are mapped through
                 # the same key function the nodes used. If the two disagreed,
                 # edge facts would never join to node facts.
-                "source": _stable_key(source, _as_dict(record.get("source_props"))),
-                "target": _stable_key(target, _as_dict(record.get("target_props"))),
+                "source": _stable_key(source, source_props),
+                "target": _stable_key(target, target_props),
                 "type": str(rel_type),
                 "properties": props,
+                # Retained for label resolution only.
+                "source_props": source_props,
+                "target_props": target_props,
             }
         )
     return edges
 
 
-def _display_name(node: dict[str, Any]) -> str | None:
-    """Human-readable label for a node, or ``None`` when it carries none.
+# Property names that can carry a display label, in preference order. Shared so
+# the node path and the edge-endpoint path cannot drift apart.
+_NAME_CANDIDATES = ("name", "uniprot_title", "gene_name", "code")
+
+# Property names that can carry a fact key, in preference order. `code` is
+# included because ATC class nodes are identified by their code.
+_KEY_CANDIDATES = ("drugbank_id", "uniprot_id", "id", "code", "name")
+
+
+def _endpoint_key(props: dict[str, Any]) -> str | None:
+    """Derive the fact key for an edge endpoint from its own properties.
+
+    Mirrors ``_stable_key`` — the same candidate order — so an endpoint names
+    the same key the node list would have used for it, lower-cased to match the
+    constants ``add_fact`` produces. Returns ``None`` when the endpoint carries
+    no usable identifier, in which case it simply goes unlabelled.
+    """
+    return _lower_or_none(_first_present(props, _KEY_CANDIDATES))
+
+
+def _lower_or_none(value: str | None) -> str | None:
+    return None if value is None else value.lower()
+
+
+def _display_name(props: dict[str, Any]) -> str | None:
+    """Human-readable label from a node's properties, or ``None`` if it has none.
 
     Facts are keyed by a business identifier (``DB00945``) because Datalog
     constants must be unique and stable, but a caller reading
     ``shares_target(db00945, db01050)`` needs names to show a user. The two are
     kept separate: the key identifies, the label explains.
+
+    ``code`` is the last resort: ATC class nodes carry a code rather than a
+    name, and a class is legitimately identified by its code.
     """
-    props = node.get("properties") or {}
-    for candidate in ("name", "uniprot_title", "gene_name"):
+    return _first_present(props, _NAME_CANDIDATES)
+
+
+def _first_present(props: dict[str, Any], candidates: tuple[str, ...]) -> str | None:
+    for candidate in candidates:
         value = props.get(candidate)
         if value not in (None, ""):
             return str(value)
@@ -197,17 +238,45 @@ class GraphExport:
         way: a graph property of ``DB00945`` becomes ``db00945`` in every fact.
         Without folding here the map would be keyed in a case that never
         appears in the facts it is meant to explain.
+
+        Edge endpoints are included because the node and edge queries are
+        independent: an edge can point at a node the node query's limit did not
+        reach, and that endpoint still becomes a Datalog constant.
         """
         resolved: dict[str, str] = {}
         for node in self._nodes:
-            name = _display_name(node)
+            name = _display_name(node.get("properties") or {})
             if name is not None:
                 resolved.setdefault(str(node["id"]).lower(), name)
+        for props in self._endpoint_props():
+            key = _endpoint_key(props)
+            name = _display_name(props)
+            if key is not None and name is not None:
+                resolved.setdefault(key, name)
         return resolved
 
     def node_types(self) -> dict[str, str]:
         """Map every fact key to its node type, for the same reason as labels."""
-        return {str(node["id"]).lower(): str(node["type"]) for node in self._nodes}
+        resolved = {str(node["id"]).lower(): str(node["type"]) for node in self._nodes}
+        # Endpoints outside the node limit carry no label, so their type is
+        # reported as unknown rather than guessed.
+        for props in self._endpoint_props():
+            key = _endpoint_key(props)
+            if key is not None:
+                resolved.setdefault(key, "unknown")
+        return resolved
+
+    def _endpoint_props(self) -> Iterator[dict[str, Any]]:
+        """Yield the property dict of every edge endpoint, deduplicated."""
+        seen: set[str] = set()
+        for edge in self._edges:
+            for side in ("source_props", "target_props"):
+                props = edge.get(side) or {}
+                key = _endpoint_key(props)
+                if key is None or key in seen:
+                    continue
+                seen.add(key)
+                yield props
 
     def to_turtle(self) -> str:
         """Serialise the graph as Turtle for SHACL validation.
