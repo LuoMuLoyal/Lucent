@@ -60,6 +60,10 @@ class StubRangeStore:
     contract AGE offers — so ``page_size`` is what drives the paging loop and
     ``population`` is what decides where it stops.
 
+    ``edge_population`` defaults to ``population``. It is separate because the
+    export mirrors one-directional interaction edges, and a test measuring the
+    *node* read should not have its limits consumed by the edge mirror.
+
     ``hard_cap`` models a store that ignores ``LIMIT`` and always returns the
     same rows. Nothing in the protocol forbids it, and a paging loop that
     assumed otherwise would spin forever rather than fail.
@@ -70,19 +74,22 @@ class StubRangeStore:
         population: int,
         batch: int | None = None,
         hard_cap: int | None = None,
+        edge_population: int | None = None,
     ) -> None:
         self._population = population
+        self._edge_population = population if edge_population is None else edge_population
         self._batch = batch
         self._hard_cap = hard_cap
         self.queries: list[str] = []
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
         self.queries.append(query)
+        exists = self._population if "MATCH (n)" in query else self._edge_population
         if self._hard_cap is not None:
-            served = self._hard_cap
+            served = min(self._hard_cap, exists)
         else:
-            asked = _page_limit(query) or self._population
-            served = min(asked, self._population)
+            asked = _page_limit(query) or exists
+            served = min(asked, exists)
             if self._batch is not None:
                 served = min(served, self._batch)
         if "MATCH (n)" in query:
@@ -286,21 +293,32 @@ class TestDeterministicRange:
             assert "ORDER BY" in query, f"unordered query would be non-deterministic: {query}"
 
     def test_a_short_page_is_complete_and_a_full_one_is_truncated(self) -> None:
-        """`truncated` is what stops an absent derivation reading as a finding."""
-        complete = GraphExport(StubRangeStore(population=1), limit=10, page_size=100)
+        """`truncated` is what stops an absent derivation reading as a finding.
+
+        Edges are held at zero so the node read is what is measured: the export
+        mirrors one-directional edges, and a mirror competing for the same limit
+        would make this test about mirroring rather than about paging.
+        """
+        complete = GraphExport(
+            StubRangeStore(population=1, edge_population=0), limit=10, page_size=100
+        )
         assert complete.truncated is False
         assert complete.node_count == 1
 
         # Exactly the limit is not truncation: the export probes one row past
         # it, finds nothing, and reports a complete answer.
-        exact = GraphExport(StubRangeStore(population=100), limit=100, page_size=100)
+        exact = GraphExport(
+            StubRangeStore(population=100, edge_population=0), limit=100, page_size=100
+        )
         assert exact.truncated is False
         assert exact.node_count == 100
 
         # One row more than the limit is truncation, and saying so is what keeps
         # a conclusion drawn from a slice from being presented as if it covered
         # the whole graph.
-        cut = GraphExport(StubRangeStore(population=101), limit=100, page_size=100)
+        cut = GraphExport(
+            StubRangeStore(population=101, edge_population=0), limit=100, page_size=100
+        )
         assert cut.truncated is True
         assert cut.node_count == 100
 
@@ -311,7 +329,7 @@ class TestDeterministicRange:
         cannot cover it. Getting 50 here would mean the later pages repeated
         the first instead of advancing past it.
         """
-        store = StubRangeStore(population=120)
+        store = StubRangeStore(population=120, edge_population=0)
         export = GraphExport(store, limit=120, page_size=50)
 
         assert export.node_count == 120

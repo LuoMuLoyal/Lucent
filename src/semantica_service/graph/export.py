@@ -40,6 +40,7 @@ from typing import Any
 
 from semantica.graph_store.age_store import ApacheAgeStore
 
+from .orientation import edge_key, mirror_edges, orientation_of
 from .retry import log_retry, read_with_retry
 
 _logger = logging.getLogger("semantica_service.graph")
@@ -286,6 +287,19 @@ def _reader(
     return run
 
 
+def _fact_key(edge: dict[str, Any]) -> str:
+    """The Datalog fact text an edge becomes.
+
+    Must agree with the key :meth:`GraphExport.fact_assertions` builds, because
+    the two are joined by string: an orientation recorded under a different
+    spelling would never be found for the conclusion it belongs to.
+    """
+    source = _lower_or_none(str(edge.get("source")))
+    target = _lower_or_none(str(edge.get("target")))
+    predicate = str(edge.get("type") or "connected_to").replace(" ", "_").lower()
+    return f"{predicate}({source}, {target})"
+
+
 def _has_more(
     store: ApacheAgeStore,
     template: str,
@@ -426,6 +440,45 @@ def export_edges(
     return edges, truncated
 
 
+def export_symmetric_edges(
+    edges: list[dict[str, Any]],
+    *,
+    limit: int,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Add the missing direction of every stored one-directional edge.
+
+    The interaction table names a drug in a source column that was populated for
+    only 4,218 of 19,842 rows, so 80 of the graph's 895 drugs never appear as a
+    source — warfarin among them, with 0 outgoing edges and 530 incoming. A rule
+    written as ``interacts_with(A, B)`` therefore finds nothing for warfarin, and
+    that reads as a finding.
+
+    The mirror is capped at ``limit`` in its own right rather than sharing the
+    read's budget. Sharing it does not work: a scope that loads exactly its
+    limit — which is the normal case for any interesting scope, since the read
+    stops precisely there — leaves no room at all, so every mirror would be
+    dropped and the fix would silently not apply. Measured on a warfarin scope:
+    34,496 one-way edges present, 0 mirrored.
+
+    So the bound here is on the mirror alone, and the response reports the two
+    counts separately. A caller that cares about total size has both numbers.
+    """
+    mirrors = mirror_edges(edges)
+    if not mirrors:
+        return [], False
+
+    if len(mirrors) > limit:
+        # Sorted so the retained prefix is stable between identical requests.
+        # `edge_key` rather than this module's `_endpoint_key`: that one reads
+        # *node properties*, while these are already-resolved endpoint keys.
+        mirrors = sorted(
+            mirrors,
+            key=lambda e: (edge_key(e["source"]), edge_key(e["target"])),
+        )[:limit]
+        return mirrors, True
+    return mirrors, False
+
+
 def _edge_filter(
     drug_keys: list[str] | None,
     atc_keys: list[str] | None,
@@ -553,6 +606,15 @@ class GraphExport:
             include_atc_links=include_atc_links,
             page_size=page_size,
         )
+        # The stored graph carries only one direction of each interaction, so
+        # the mirror is added here rather than left to every rule author to
+        # remember. The orientation of each edge is recorded so a conclusion can
+        # still say which way the source data ran.
+        self._mirrors, mirrored_truncated = export_symmetric_edges(self._edges, limit=limit)
+        self._orientations = {
+            _fact_key(edge): orientation_of(edge) for edge in (*self._edges, *self._mirrors)
+        }
+        self._edges = [*self._edges, *self._mirrors]
         self.range = ExportRange(
             scope=scope_label,
             node_count=len(self._nodes),
@@ -560,7 +622,7 @@ class GraphExport:
             drug_keys=sorted(drug_keys or []),
             atc_keys=sorted(atc_keys or []),
             seed_drug_keys=sorted(seed_drug_keys or []),
-            truncated=nodes_truncated or edges_truncated,
+            truncated=nodes_truncated or edges_truncated or mirrored_truncated,
             limit=limit,
         )
         # The single most useful line this service emits: an empty derivation
@@ -596,6 +658,16 @@ class GraphExport:
     @property
     def truncated(self) -> bool:
         return self.range.truncated
+
+    def orientations(self) -> dict[str, dict[str, Any]]:
+        """Map every edge fact to the orientation its source data used.
+
+        A mirrored edge is an edge the graph does not literally store, so a
+        conclusion resting on one must be able to say so: the assertion ran the
+        other way round, and the description on it is written from the other
+        drug's point of view.
+        """
+        return {fact: orientation.describe() for fact, orientation in self._orientations.items()}
 
     def labels(self) -> dict[str, str]:
         """Map every fact key to its display name.

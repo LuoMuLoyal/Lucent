@@ -106,7 +106,9 @@ def main() -> None:
         assert calls == 1, "a deterministic failure was retried"
         print("  the syntax error was raised on the first attempt")
         print()
-        print(f"  classification check: syntax -> {classify(RuntimeError('syntax error')).__name__}")
+        print(
+            f"  classification check: syntax -> {classify(RuntimeError('syntax error')).__name__}"
+        )
     finally:
         pool.close()
 
