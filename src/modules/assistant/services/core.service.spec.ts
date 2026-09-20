@@ -1,7 +1,13 @@
-import { okAsync, fromPromise } from '../../../common/result/index.js';
+import {
+  okAsync,
+  fromPromise,
+  errAsync,
+} from '../../../common/result/index.js';
+import { createDomainFailure } from '../../../common/result/index.js';
 import type { AssistantRuntimeService } from '../agent/runtime.service.js';
 import type { UserSettingsService } from '../../user-settings/index.js';
 import type { DailyRecordsService } from '../../daily-records/index.js';
+import type { AuditLogService } from '../../audit-log/index.js';
 import type { AssistantPolicyService } from './policy.service.js';
 import type { AssistantToolService } from '../tools/tool.service.js';
 import type { AssistantConversationService } from './conversation.service.js';
@@ -69,6 +75,7 @@ describe('AssistantService', () => {
   let toolExecutor: vi.Mocked<AssistantToolService>;
   let conversation: vi.Mocked<AssistantConversationService>;
   let memory: vi.Mocked<AssistantMemoryService>;
+  let auditLog: vi.Mocked<AuditLogService>;
 
   beforeEach(() => {
     runtime = {
@@ -116,10 +123,15 @@ describe('AssistantService', () => {
       deleteAllForUser: vi.fn().mockReturnValue(okAsync(3)),
     } as unknown as vi.Mocked<AssistantMemoryService>;
 
+    auditLog = {
+      logFireAndForget: vi.fn(),
+    } as unknown as vi.Mocked<AuditLogService>;
+
     const proposalConfirmService = new AssistantProposalConfirmService(
       runtime as unknown as AssistantRuntimeService,
       userSettings as unknown as UserSettingsService,
       dailyRecords as unknown as DailyRecordsService,
+      auditLog as unknown as AuditLogService,
     );
 
     const streamOrchestratorService = new AssistantStreamOrchestratorService(
@@ -296,6 +308,68 @@ describe('AssistantService', () => {
       }
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
       expect(runtime.readPendingProposals).not.toHaveBeenCalled();
+    });
+
+    it('audits a successful confirm with the request decision and the effective status', async () => {
+      await service.confirmProposal('user-1', 'conv-1', dto);
+
+      expect(auditLog.logFireAndForget).toHaveBeenCalledWith({
+        userId: 'user-1',
+        action: 'assistant.proposal.confirm',
+        resourceType: 'assistant_conversation',
+        resourceId: 'conv-1',
+        metadata: {
+          proposalIds: ['proposal-1'],
+          requestDecision: 'approved',
+          effectiveStatus: 'approved',
+        },
+      });
+    });
+
+    it('audits a failed confirm instead of throwing past the audit call', async () => {
+      // The write blows up: this is precisely the path that used to leave no
+      // audit trace, because the log call sat after `await unwrapResult(...)`.
+      dailyRecords.create.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'internal',
+            code: 'INTERNAL_ERROR',
+            detail: 'write failed',
+          }),
+        ),
+      );
+
+      const result = await service.confirmProposal('user-1', 'conv-1', dto);
+
+      expect(result.isErr()).toBe(true);
+      expect(auditLog.logFireAndForget).toHaveBeenCalledWith({
+        userId: 'user-1',
+        action: 'assistant.proposal.confirm',
+        resourceType: 'assistant_conversation',
+        resourceId: 'conv-1',
+        metadata: {
+          proposalIds: ['proposal-1'],
+          requestDecision: 'approved',
+          effectiveStatus: 'failed',
+          failureCode: 'INTERNAL_ERROR',
+        },
+      });
+    });
+
+    it('audits a rejected confirm as such', async () => {
+      await service.confirmProposal('user-1', 'conv-1', {
+        proposalIds: ['proposal-1'],
+        decision: 'rejected',
+      });
+
+      expect(auditLog.logFireAndForget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            requestDecision: 'rejected',
+            effectiveStatus: 'rejected',
+          }) as unknown,
+        }),
+      );
     });
 
     it('applies approved create_daily_record writes server-side then resumes', async () => {

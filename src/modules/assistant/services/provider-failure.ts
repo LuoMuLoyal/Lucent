@@ -1,4 +1,15 @@
 import type { DomainFailureCode } from '../../../common/result/domain-failure.js';
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_FORBIDDEN,
+  HTTP_STATUS_GATEWAY_TIMEOUT,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_REQUEST_TIMEOUT,
+  HTTP_STATUS_TOO_MANY_REQUESTS,
+  HTTP_STATUS_UNAUTHORIZED,
+  HTTP_STATUS_UNPROCESSABLE_ENTITY,
+} from '../../../common/constants/http-status.js';
 
 /** A provider failure normalized into a domain-level dependency failure. */
 export interface ProviderFailure {
@@ -35,28 +46,35 @@ export function classifyProviderFailure(
   const status = extractStatus(error);
   if (status == null) return null;
 
-  if (status === 429) {
+  if (status === HTTP_STATUS_TOO_MANY_REQUESTS) {
     return {
       code: 'DEPENDENCY_UNAVAILABLE',
       detail: 'The assistant model is rate limited. Please try again shortly.',
       retryable: true,
     };
   }
-  if (status === 408 || status === 504) {
+  if (
+    status === HTTP_STATUS_REQUEST_TIMEOUT ||
+    status === HTTP_STATUS_GATEWAY_TIMEOUT
+  ) {
     return {
       code: 'DEPENDENCY_TIMEOUT',
       detail: 'The assistant model did not respond in time.',
       retryable: true,
     };
   }
-  if (status >= 500) {
+  if (status >= HTTP_STATUS_INTERNAL_SERVER_ERROR) {
     return {
       code: 'DEPENDENCY_BAD_GATEWAY',
       detail: 'The assistant model is temporarily unavailable.',
       retryable: true,
     };
   }
-  if (status === 400 || status === 404 || status === 422) {
+  if (
+    status === HTTP_STATUS_BAD_REQUEST ||
+    status === HTTP_STATUS_NOT_FOUND ||
+    status === HTTP_STATUS_UNPROCESSABLE_ENTITY
+  ) {
     // Model id retired, or the request is rejected as permanently invalid.
     // Retrying an identical request cannot help.
     return {
@@ -66,7 +84,7 @@ export function classifyProviderFailure(
       retryable: false,
     };
   }
-  if (status === 401 || status === 403) {
+  if (status === HTTP_STATUS_UNAUTHORIZED || status === HTTP_STATUS_FORBIDDEN) {
     // Credentials or quota: an operator problem, not a transport blip. Kept
     // retryable so the user is offered recovery, and reported distinctly from
     // a generic server error so the cause is visible in diagnostics.

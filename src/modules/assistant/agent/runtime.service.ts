@@ -41,7 +41,7 @@ import type {
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
 import { LightragClientService } from '../tools/retrieval/lightrag-client.service.js';
 import { SemanticaClientService } from '../tools/ontology/semantica-client.service.js';
-import { classifyProviderFailure } from '../services/provider-failure.js';
+import { toDomainFailure } from '../services/domain-failure.js';
 import {
   buildAssistantSystemPrompt,
   buildReadSystemPrompt,
@@ -546,26 +546,12 @@ export class AssistantRuntimeService {
   /**
    * Converts a DomainFailureException raised inside the imperative body into
    * the Result Err; a provider failure becomes a `dependency` DomainFailure so
-   * the transport reports a model outage as such (see
-   * {@link classifyProviderFailure}); anything else is re-thrown so it reaches
-   * the transport boundary unchanged.
+   * the transport reports a model outage as such; anything else is re-thrown so
+   * it reaches the transport boundary unchanged. Shared with the other
+   * collapsed-`ResultAsync` boundaries — see {@link toDomainFailure}.
    */
   private toDomainFailure(error: unknown): DomainFailure {
-    if (error instanceof DomainFailureException) {
-      return error.failure;
-    }
-
-    const provider = classifyProviderFailure(error);
-    if (provider != null) {
-      return createDomainFailure({
-        kind: 'dependency',
-        code: provider.code,
-        detail: provider.detail,
-        retryable: provider.retryable,
-      });
-    }
-
-    throw error;
+    return toDomainFailure(error);
   }
 
   /**

@@ -21,6 +21,8 @@ import type {
 } from '../dto/confirm-proposal.dto.js';
 import { AssistantRuntimeService } from '../agent/runtime.service.js';
 import { IUserSettingsPort } from '../../user-settings/index.js';
+import { AuditLogService } from '../../audit-log/index.js';
+import { toDomainFailure } from './domain-failure.js';
 import type { AssistantProposedAction } from '../types/assistant.types.js';
 
 /**
@@ -28,6 +30,14 @@ import type { AssistantProposedAction } from '../types/assistant.types.js';
  *
  * Extracted from `AssistantService` to isolate the proposal-write switch/case
  * logic and the expiry-validation chain from the rest of the orchestration.
+ *
+ * Auditing lives here rather than in the controller because confirm is the
+ * assistant's only write/approval entry point and the audit record has to
+ * survive *every* outcome, including the failing ones. In the controller the
+ * log call sat after `await unwrapResult(...)`, so any rejection (a failed
+ * write, a failed resume) threw past it and left the attempt unrecorded —
+ * exactly the "user pressed approve and nothing happened, with no way to tell
+ * who" gap the audit trail exists to close.
  */
 @Injectable()
 export class AssistantProposalConfirmService {
@@ -35,6 +45,7 @@ export class AssistantProposalConfirmService {
     private readonly assistantAgentService: AssistantRuntimeService,
     private readonly userSettingsService: IUserSettingsPort,
     private readonly dailyRecordsService: DailyRecordsService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   confirmProposal(
@@ -48,8 +59,47 @@ export class AssistantProposalConfirmService {
   ): ResultAsync<AssistantConfirmResult, DomainFailure> {
     return fromPromise(
       this.doConfirmProposal(userId, conversationId, dto, getConversation),
-      (error) => this.toDomainFailure(error),
-    );
+      (error) => toDomainFailure(error),
+    )
+      .map((result) => {
+        this.auditConfirm(userId, conversationId, dto, result.status, null);
+        return result;
+      })
+      .mapErr((failure) => {
+        this.auditConfirm(userId, conversationId, dto, 'failed', failure.code);
+        return failure;
+      });
+  }
+
+  /**
+   * Writes the audit record for one confirm attempt.
+   *
+   * `requestDecision` is what the user asked for, `effectiveStatus` is what the
+   * server actually did (or `failed`). They are kept apart on purpose: in the
+   * success path they currently coincide, but collapsing them into one field
+   * would make "the user approved and the write failed" indistinguishable from
+   * "the user rejected" — which is the one signal this trail exists to carry.
+   * The user's free-text `note` is deliberately not recorded.
+   */
+  private auditConfirm(
+    userId: string,
+    conversationId: string,
+    dto: ConfirmAssistantProposalDto,
+    effectiveStatus: string,
+    failureCode: string | null,
+  ): void {
+    this.auditLogService.logFireAndForget({
+      userId,
+      action: 'assistant.proposal.confirm',
+      resourceType: 'assistant_conversation',
+      resourceId: conversationId,
+      metadata: {
+        proposalIds: dto.proposalIds,
+        requestDecision: dto.decision,
+        effectiveStatus,
+        ...(failureCode != null ? { failureCode } : {}),
+      },
+    });
   }
 
   private async doConfirmProposal(
@@ -110,7 +160,7 @@ export class AssistantProposalConfirmService {
   ): ResultAsync<void, DomainFailure> {
     return fromPromise(
       this.assistantAgentService.readPendingProposals(conversationId),
-      (error) => this.toDomainFailure(error),
+      (error) => toDomainFailure(error),
     ).andThen(({ pendingReview, proposals }) => {
       if (pendingReview == null || pendingReview.status !== 'pending') {
         return errAsync(
@@ -224,13 +274,6 @@ export class AssistantProposalConfirmService {
           .map(() => undefined);
       }
     }
-  }
-
-  private toDomainFailure(error: unknown): DomainFailure {
-    if (error instanceof DomainFailureException) {
-      return error.failure;
-    }
-    throw error;
   }
 
   private conversationNotFound(): DomainFailure {

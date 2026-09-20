@@ -498,17 +498,10 @@ describe('AssistantController', () => {
       'conversation-1',
       { proposalIds: ['proposal-1'], decision: 'approved' },
     );
-    expect(auditLogService.logFireAndForget).toHaveBeenCalledWith({
-      userId: 'u1',
-      action: 'assistant.proposal.confirm',
-      resourceType: 'assistant_conversation',
-      resourceId: 'conversation-1',
-      metadata: {
-        proposalIds: ['proposal-1'],
-        decision: 'approved',
-        status: 'approved',
-      },
-    });
+    // The confirm audit record is written by AssistantProposalConfirmService so
+    // that failing confirms are recorded too; the controller must not write a
+    // second entry (that would double-count every successful confirm).
+    expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
   });
 
   it('renames one persisted conversation resource', async () => {
