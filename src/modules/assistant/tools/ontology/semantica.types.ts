@@ -266,8 +266,12 @@ export interface SemanticaCitation {
  * 该失败是否值得让模型改写后重试。
  *
  * 只有「查询本身有问题」才重试：读-only 守卫、语法、AGE 不支持的构造、以及
- * 单条查询超时（模型可以收窄查询）。基础设施类失败（未配置 / 连不上 / 鉴权 /
- * 5xx）重试多少次都一样，只会把工具耗时翻几倍。
+ * 单条查询超时（模型可以收窄查询）。
+ *
+ * `internal` 刻意不在内：它是 sidecar 自身的 bug（5xx / 未分类异常），语句本身
+ * 没有问题，回喂给模型重写不会改变结果——三次重试就是三次同样的坏结果，只是把
+ * 工具耗时与 token 成本翻几倍。基础设施类失败（未配置 / 连不上 / 鉴权 / 5xx）
+ * 同理，重试多少次都一样。
  */
 export function isRetryableSemanticaFailure(
   failure: SemanticaCallFailure,

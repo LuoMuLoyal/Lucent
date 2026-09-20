@@ -16,22 +16,19 @@ import {
   SEMANTICA_REASON_ERROR_KINDS,
 } from './semantica.types.js';
 
-/**
- * 与 zod 校验层默认值一致的兜底值（zod `.default()` 已写入 process.env，
- * 这里只兜住"直接构造 ConfigService 的测试/异常路径"）。
- */
-const FALLBACK_BASE_URL = 'http://semantica:8099';
-const FALLBACK_TIMEOUT_MS = 15000;
+import {
+  SEMANTICA_DEFAULT_BASE_URL,
+  SEMANTICA_DEFAULT_TIMEOUT_MS,
+} from '../../../../config/env/sidecar-defaults.js';
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_FORBIDDEN,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+  HTTP_STATUS_UNAUTHORIZED,
+} from '../../../../common/constants/http-status.js';
 
 /** 错误 body 只截前 300 字符进日志：日志要的是线索，不是整段 HTML。 */
 const MAX_ERROR_BODY_LOG_CHARS = 300;
-
-/** HTTP 状态码分类边界。 */
-const HTTP_STATUS_BAD_REQUEST = 400;
-const HTTP_STATUS_UNAUTHORIZED = 401;
-const HTTP_STATUS_FORBIDDEN = 403;
-/** 5xx 是服务端故障，与"查询被拒"（4xx）是两类：前者重试没有意义。 */
-const HTTP_STATUS_SERVER_ERROR = 500;
 
 /**
  * Lucent → Semantica sidecar（英文侧 OAG）的 HTTP 客户端。
@@ -61,11 +58,11 @@ export class SemanticaClientService {
       this.configService.get<string>(EnvKey.SEMANTICA_ENABLED) === 'true';
     this.baseUrl = (
       this.configService.get<string>(EnvKey.SEMANTICA_BASE_URL) ??
-      FALLBACK_BASE_URL
+      SEMANTICA_DEFAULT_BASE_URL
     ).replace(/\/+$/, '');
     this.timeoutMs =
       this.configService.get<number>(EnvKey.SEMANTICA_TIMEOUT_MS) ??
-      FALLBACK_TIMEOUT_MS;
+      SEMANTICA_DEFAULT_TIMEOUT_MS;
   }
 
   /** sidecar 是否已启用。 */
@@ -424,7 +421,7 @@ export class SemanticaClientService {
 
     if (
       status >= HTTP_STATUS_BAD_REQUEST &&
-      status < HTTP_STATUS_SERVER_ERROR
+      status < HTTP_STATUS_INTERNAL_SERVER_ERROR
     ) {
       const parsed = parseErrorDetail(body);
       return {
@@ -446,7 +443,14 @@ export class SemanticaClientService {
   }
 }
 
-/** 解析错误 body，取出结构化 `kind` 与可读 message。 */
+/**
+ * 解析错误 body，取出结构化 `kind` 与可读 message。
+ *
+ * `catch` 里不再重复记日志：调用方 `classifyHttpError` 在调用本函数之前已经把
+ * 同一条 body 记进 warn，这里能补的信息只有"它不是 JSON"，而那句话对定位问题没有
+ * 增量。真正需要的是"我们故意吞掉"这件事别被当成疏忽，故保留显式豁免而不是
+ * 加一条重复的 warn 来满足规则。
+ */
 function parseErrorDetail(body: string): {
   errorKind: SemanticaErrorKind | null;
   message: string | null;

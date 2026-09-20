@@ -17,6 +17,7 @@ import {
   SEMANTICA_MAX_LIMIT,
   SEMANTICA_REASONING_BUDGET_MS,
   SEMANTICA_SOURCE_TIER,
+  type SemanticaErrorKind,
 } from './semantica.types.js';
 
 /** 该工具在参数边界拒绝非法入参的统一前缀。 */
@@ -30,6 +31,16 @@ const INVALID_ARGUMENT_PREFIX = 'Invalid reason_over_ontology arguments';
  * 混进同一组常量会让"sidecar 会返回哪些 kind"这个契约失真。
  */
 const MISSING_PROVENANCE_ERROR_KIND = 'missing_provenance';
+
+/**
+ * 上一次失败给重试回路的类别，与 `OntologyCypherContext.previousErrorKind` 同域。
+ *
+ * 收成一个具名别名而不是在各处重复联合：这是"什么可以进 RETRY_HINTS 查表"的
+ * 定义，散开写就会在新增一类拒绝时漏掉某一处。
+ */
+type PreviousErrorKind =
+  | SemanticaErrorKind
+  | typeof MISSING_PROVENANCE_ERROR_KIND;
 
 /**
  * 进 envelope 的引用条数上限。
@@ -151,7 +162,7 @@ export class AssistantToolOntologyReasoningService {
     const tables = [`${graphSchema.graph} (Apache AGE)`];
 
     let previousCypher: string | null = null;
-    let previousErrorKind: string | null = null;
+    let previousErrorKind: PreviousErrorKind | null = null;
     let previousError: string | null = null;
     // 只强制要求一次带引用的重写：属性类问题（问某个字段）本来就没有关系可引，
     // 再逼一次只会把时间花在同一个形状上。

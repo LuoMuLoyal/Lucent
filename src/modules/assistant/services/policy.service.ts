@@ -8,24 +8,14 @@ import type {
 } from '../types/assistant.types.js';
 import {
   ASSISTANT_CONTEXT_SOURCES,
-  ASSISTANT_OAG_TOOL_NAMES,
-  ASSISTANT_RETRIEVAL_TOOL_NAMES,
+  ASSISTANT_OAG_TOOL_NAME_SET,
+  ASSISTANT_RETRIEVAL_TOOL_NAME_SET,
   ASSISTANT_TOOL_NAMES,
   ASSISTANT_TOOL_SOURCE_MAP,
   type AssistantContextSource,
   type AssistantToolDisabledReason,
   type AssistantToolName,
 } from '../tools/shared/tool-types.js';
-
-/** 依赖 LightRAG sidecar 的工具集合，用于检索可用性判定。 */
-const RETRIEVAL_TOOL_NAMES: ReadonlySet<AssistantToolName> = new Set(
-  ASSISTANT_RETRIEVAL_TOOL_NAMES,
-);
-
-/** 依赖 Semantica sidecar（英文侧 OAG）的工具集合，判定与上面同形但独立。 */
-const OAG_TOOL_NAMES: ReadonlySet<AssistantToolName> = new Set(
-  ASSISTANT_OAG_TOOL_NAMES,
-);
 
 @Injectable()
 export class AssistantPolicyService {
@@ -73,8 +63,10 @@ export class AssistantPolicyService {
       settings.assistantEnabled && contextPermittedToolNames.includes(toolName);
     const implemented = foundation.implementedToolNames.includes(toolName);
     const retrievalReady =
-      !RETRIEVAL_TOOL_NAMES.has(toolName) || foundation.retrievalAvailable;
-    const oagReady = !OAG_TOOL_NAMES.has(toolName) || foundation.oagAvailable;
+      !ASSISTANT_RETRIEVAL_TOOL_NAME_SET.has(toolName) ||
+      foundation.retrievalAvailable;
+    const oagReady =
+      !ASSISTANT_OAG_TOOL_NAME_SET.has(toolName) || foundation.oagAvailable;
     const enabled =
       permittedByUser &&
       implemented &&

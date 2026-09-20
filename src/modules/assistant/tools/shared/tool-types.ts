@@ -104,6 +104,20 @@ export const ASSISTANT_OAG_TOOL_NAMES = [
   'reason_over_rules',
 ] as const satisfies readonly AssistantToolName[];
 
+/**
+ * Membership sets for the two sidecar-gated groups above.
+ *
+ * Exported from here rather than re-wrapped at each call site: the arrays are
+ * the source of truth and a `new Set(...)` in the policy service was a second
+ * declaration of the same fact, so adding a tool meant editing two places that
+ * had no reason to disagree. Consumers read these directly.
+ */
+export const ASSISTANT_RETRIEVAL_TOOL_NAME_SET: ReadonlySet<AssistantToolName> =
+  new Set(ASSISTANT_RETRIEVAL_TOOL_NAMES);
+
+export const ASSISTANT_OAG_TOOL_NAME_SET: ReadonlySet<AssistantToolName> =
+  new Set(ASSISTANT_OAG_TOOL_NAMES);
+
 export const ASSISTANT_TOOL_SOURCE_MAP = {
   get_today_records: ['daily_records'],
   get_records_by_date: ['daily_records'],

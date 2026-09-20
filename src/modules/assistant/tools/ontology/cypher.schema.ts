@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SemanticaErrorKind } from './semantica.types.js';
 
 /**
  * 模型产出的 Cypher 查询。
@@ -31,7 +32,15 @@ export interface OntologyCypherContext {
   };
   /** 上一次被拒绝的查询与原因（首次生成为 null）。 */
   previousCypher: string | null;
-  previousErrorKind: string | null;
+  /**
+   * 上一次的拒绝类别，决定 RETRY_HINTS 里给哪一句纠正方向。
+   *
+   * 取值的三处来源都是封闭集合：sidecar 的结构化 kind（`/query` 与 `/reason`
+   * 各自的词表）、本层的客户端侧信号 `missing_provenance`。写成 `string` 会让
+   * 拼错或改名在编译期溜过去，而它的唯一用途就是查表——查不到就静默降级成
+   * 一句通用提示，正好抹掉"为什么重试"这个信息。
+   */
+  previousErrorKind: SemanticaErrorKind | 'missing_provenance' | null;
   previousError: string | null;
   /** 第几次尝试，从 1 开始。 */
   attempt: number;

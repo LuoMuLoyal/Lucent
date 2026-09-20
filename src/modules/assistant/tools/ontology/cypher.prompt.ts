@@ -32,7 +32,6 @@ const RETRY_HINTS: Record<string, string> = {
     'Rewrite without the unsupported construct (see the AGE limitations above).',
   timeout:
     'The query was cancelled by the statement timeout. Narrow it: anchor on specific nodes, filter by name or identifier early, add tighter relationship types, and reduce the traversal depth.',
-  internal: 'Retry with a simpler, more defensive query.',
   // 客户端侧的纠正信号（不是 sidecar 的拒绝类别）：行回来了但一条引用都没有。
   missing_provenance:
     "The statement ran and returned rows, but no provenance id came back. Every relationship in this graph carries a `prov` property. If the answer rests on a relationship, add it to the projection (`r.prov AS prov`, one per relationship the answer uses). If the question is about a node's own fields and no relationship is involved, return the same query unchanged.",
@@ -118,12 +117,15 @@ function formatSchemaBlock(context: OntologyCypherContext): string {
 
 function formatRetryBlock(context: OntologyCypherContext): string {
   const kind = context.previousErrorKind ?? 'rejected';
-  const hint = RETRY_HINTS[kind] ?? RETRY_HINTS['internal'];
+  // 未登记的 kind 不编造"怎么改"：只有知道原因才谈得上纠正方向，硬套一句提示
+  // 就是让模型去修一个我们并不了解的错误（`internal` 正是这一类——sidecar 自己
+  // 出了问题，不是查询写错了）。
+  const hint = RETRY_HINTS[kind];
 
   return [
     `Your previous query was rejected (attempt ${String(context.attempt)}).`,
     `Rejected query:\n\`\`\`cypher\n${context.previousCypher ?? ''}\n\`\`\``,
     `Executor error (${kind}): ${context.previousError ?? ''}`,
-    `How to fix it: ${hint ?? ''}`,
+    ...(hint != null ? [`How to fix it: ${hint}`] : []),
   ].join('\n\n');
 }
