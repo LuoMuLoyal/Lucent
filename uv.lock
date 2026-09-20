@@ -1405,6 +1405,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "pydantic-settings" },
+    { name = "pyyaml" },
     { name = "semantica", extra = ["graph-apache-age", "shacl", "tripletstore-oxigraph"] },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1416,12 +1417,14 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
     { name = "types-psycopg2" },
+    { name = "types-pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "semantica", extras = ["shacl", "graph-apache-age", "tripletstore-oxigraph"], git = "ssh://git@github.com/LuoMuLoyal/semantica.git?branch=main" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
 ]
@@ -1433,6 +1436,7 @@ dev = [
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.8" },
     { name = "types-psycopg2", specifier = ">=2.9.21.20260911" },
+    { name = "types-pyyaml", specifier = ">=6.0" },
 ]
 
 [[package]]
@@ -1502,6 +1506,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/23/6e/6dd8466de262775179699bebe9d21b2aabac4a53df512686f9f7c405fabc/types_psycopg2-2.9.21.20260911.tar.gz", hash = "sha256:834373add0aaf2497401acc49c41c540c4adfdec9bcc265f0460bb0808826a7d", size = 27831, upload-time = "2026-09-11T06:45:03.02Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ab/79/1fb4dd00dad9a230af7485bcd2da0cb3b653c2de9bfa38e3ffe93d2e8d20/types_psycopg2-2.9.21.20260911-py3-none-any.whl", hash = "sha256:429920488100aa22c220f40aaaac96270125ea64333cf159858e422daa7d8174", size = 25026, upload-time = "2026-09-11T06:45:01.783Z" },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20260906"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz", hash = "sha256:f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212", size = 18649, upload-time = "2026-09-06T06:35:35.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl", hash = "sha256:bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b", size = 21282, upload-time = "2026-09-06T06:35:34.372Z" },
 ]
 
 [[package]]

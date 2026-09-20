@@ -58,13 +58,33 @@ LIMIT {limit}
 
 # Edges are paged on the row id of the relationship itself: a relationship has
 # no business key, and id() is stable and unique within a graph.
+#
+# The ORDER BY is two-level on purpose. Ordering by ``id(r)`` alone is
+# deterministic but not *useful*: INTERACTS_WITH has 200,182 edges against the
+# mechanism relations' low thousands, so a bounded read fills entirely with
+# interactions and the INHIBITS / SUBSTRATE_OF / ACTS_ON edges that every
+# shipped rule consumes never arrive. The scope would then be reproducible and
+# still derive nothing, which is the false-negative problem in a new costume.
+# Mechanism edges therefore order first, and the row id only breaks ties within
+# a type. Within each type the order stays total, so the load stays
+# reproducible.
+_MECHANISM_REL_TYPES = (
+    "INHIBITS",
+    "SUBSTRATE_OF",
+    "ACTS_ON",
+    "INDUCES",
+    "ENZYME_LINKED_TO",
+    "TRANSPORTED_BY",
+    "CARRIED_BY",
+)
+
 _EDGES_QUERY = """
 MATCH (a)-[r]->(b)
 WHERE {where}
 RETURN id(r) AS rel_id, id(a) AS source, id(b) AS target, type(r) AS rel_type,
        properties(r) AS props,
        properties(a) AS source_props, properties(b) AS target_props
-ORDER BY id(r)
+ORDER BY CASE WHEN type(r) IN {mechanism} THEN 0 ELSE 1 END, id(r)
 LIMIT {limit}
 """
 
@@ -170,35 +190,76 @@ def _fetch_pages(
     parameters: dict[str, Any],
     limit: int,
     page_size: int,
+    formatting: dict[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Run a query in pages until ``limit`` or exhaustion.
 
-    Keepset pagination is not needed here because the queries take no offset:
-    each page re-runs the same ordered query and the caller keeps a cursor over
-    the result. A graph read is small enough for that, and it keeps the queries
-    free of a running OFFSET that would get slower with every page.
+    Each page re-runs the same ordered query with a larger ``LIMIT`` and keeps
+    the rows beyond the previous page's count. The query takes no offset, so the
+    ordering is the only thing that makes the pages line up — which is why an
+    unordered export cannot be paged correctly at all, and why the ordering is
+    checked in the tests rather than left implicit.
+
+    A growing ``LIMIT`` re-reads earlier rows on every round trip. That is the
+    price of not using ``OFFSET``, which would make each page scan further than
+    the last and turn a deep read quadratic. Reads here are bounded by ``limit``,
+    which the caller sets, so the total work stays proportionate to the answer.
     """
     records: list[dict[str, Any]] = []
-    truncated = False
+    truncated: bool = False
     while len(records) < limit:
         remaining = limit - len(records)
         size = min(page_size, remaining)
+        # Ask for everything seen so far plus the next page, so the new rows are
+        # the tail rather than a repeat of the first page.
+        wanted = len(records) + size
         result = store.execute_query(
-            template.format(where=where, limit=size),
+            template.format(where=where, limit=wanted, **(formatting or {})),
             parameters,
         )
         if not result.get("success"):
             raise RuntimeError(f"AGE export failed: {result.get('error')}")
         page = [r for r in (result.get("records") or []) if isinstance(r, dict)]
-        records.extend(page)
-        # A short page means the query ran out of matches, so the result is
-        # complete rather than cut. Only a full page at the limit is ambiguous.
-        if len(page) < size:
+        # Rows before `len(records)` were the previous page's; anything at or
+        # beyond that index is new.
+        fresh = page[len(records) :]
+        records = page
+        if len(page) < wanted:
+            # The query ran out of matches, so the result is complete rather
+            # than cut. Only a full result at the limit is ambiguous.
             return records, False
+        if not fresh:
+            # A full page with nothing new cannot make progress; stopping beats
+            # spinning forever on a query result that never advances.
+            break
         if len(records) >= limit:
-            truncated = True
+            # A full result at exactly the limit is ambiguous: the graph may
+            # hold precisely this many rows, or more. Without settling it, a
+            # complete answer would be reported as a truncated one — and a
+            # caller told its input was cut will discount a conclusion that was
+            # in fact drawn from everything. One extra row resolves it.
+            truncated = _has_more(store, template, where, parameters, formatting, limit)
             break
     return records, truncated
+
+
+def _has_more(
+    store: ApacheAgeStore,
+    template: str,
+    where: str,
+    parameters: dict[str, Any],
+    formatting: dict[str, Any] | None,
+    limit: int,
+) -> bool:
+    """Whether the graph holds more than ``limit`` matching rows."""
+    result = store.execute_query(
+        template.format(where=where, limit=limit + 1, **(formatting or {})),
+        parameters,
+    )
+    if not result.get("success"):
+        raise RuntimeError(f"AGE export failed: {result.get('error')}")
+    rows = [r for r in (result.get("records") or []) if isinstance(r, dict)]
+    return len(rows) > limit
 
 
 def export_nodes(
@@ -282,7 +343,17 @@ def export_edges(
     the node query's limit.
     """
     where, parameters = _edge_filter(drug_keys, atc_keys, include_atc_links)
-    records, truncated = _fetch_pages(store, _EDGES_QUERY, where, parameters, limit, page_size)
+    records, truncated = _fetch_pages(
+        store,
+        _EDGES_QUERY,
+        where,
+        parameters,
+        limit,
+        page_size,
+        # Rendered as a Cypher list literal: the mechanism types are constants
+        # in this module, never caller input, so there is nothing to inject.
+        formatting={"mechanism": list(_MECHANISM_REL_TYPES)},
+    )
 
     edges: list[dict[str, Any]] = []
     for record in records:

@@ -20,7 +20,13 @@ from semantica_service.config import Settings
 
 
 class StubStore:
-    """AGE store stand-in driven by canned stats and query results."""
+    """AGE store stand-in driven by canned stats and query results.
+
+    The default stats carry every relationship type the shipped rule library
+    consumes, because startup verifies the library against this vocabulary: a
+    stub reporting a narrower graph would (correctly) stop the app from booting,
+    which is a property of the rules rather than of whatever a test is checking.
+    """
 
     def __init__(self, stats: dict[str, Any] | None = None) -> None:
         self._stats = (
@@ -30,7 +36,16 @@ class StubStore:
                 "node_count": 3,
                 "relationship_count": 2,
                 "label_counts": {"Drug": 2, "Protein": 1},
-                "relationship_type_counts": {"TARGETS": 2},
+                "relationship_type_counts": {
+                    # Exactly the types the shipped rule library consumes, so
+                    # startup verification passes. A stub reporting a narrower
+                    # graph would correctly refuse to boot.
+                    "TARGETS": 2,
+                    "INHIBITS": 2,
+                    "SUBSTRATE_OF": 1,
+                    "ACTS_ON": 1,
+                    "IN_ATC_CLASS": 1,
+                },
             }
         )
 
@@ -135,7 +150,16 @@ def test_schema_lists_labels_and_types(monkeypatch: pytest.MonkeyPatch, settings
     assert body["graph"] == "lucent_graph"
     assert body["node_count"] == 3
     assert {item["label"] for item in body["labels"]} == {"Drug", "Protein"}
-    assert body["relationship_types"] == [{"label": "TARGETS", "count": 2}]
+    assert {item["label"] for item in body["relationship_types"]} == {
+        "TARGETS",
+        "INHIBITS",
+        "SUBSTRATE_OF",
+        "ACTS_ON",
+        "IN_ATC_CLASS",
+    }
+    # Ordered by count then name, so the response is diffable between calls.
+    # INHIBITS and TARGETS both have 2, and the tie breaks on the name.
+    assert body["relationship_types"][0] == {"label": "INHIBITS", "count": 2}
 
 
 def test_schema_orders_by_count_then_name(
@@ -358,6 +382,186 @@ def test_reason_rejects_an_invalid_query(
 
     assert response.status_code == 422
     assert "Invalid query" in response.json()["detail"]
+
+
+# --- /rules ----------------------------------------------------------------
+
+
+def test_rules_lists_the_library(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    """A caller has to discover which intents exist before it can name one."""
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        response = client.get("/rules")
+
+    assert response.status_code == 200
+    rules = response.json()["rules"]
+    assert rules
+    by_intent = {rule["intent"]: rule for rule in rules}
+    assert "interaction" in by_intent
+    assert by_intent["interaction"]["id"]
+    assert by_intent["interaction"]["derives"]
+    assert by_intent["interaction"]["consumes"]
+
+
+# --- /reason with a library rule -------------------------------------------
+
+
+def test_reason_names_the_rule_it_applied(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A conclusion has to say which rule produced it, or it is just a fact."""
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+        ],
+        "intent": "interaction",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert body["rule"]["id"] == "potential_ddi_inhibitor_substrate"
+    assert body["rule"]["intent"] == "interaction"
+
+
+def test_a_conclusion_is_marked_derived_not_asserted(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """The plan's hard constraint: inference must not wear assertion's clothes."""
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+        ],
+        "intent": "interaction",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    conclusions = body["conclusions"]
+    assert conclusions
+    for conclusion in conclusions:
+        assert conclusion["verifiability"] == "derived"
+        assert conclusion["rule_id"] == "potential_ddi_inhibitor_substrate"
+
+
+def test_a_conclusion_carries_its_premises(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Without premises a conclusion cannot be checked by whoever reads it."""
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+        ],
+        "intent": "interaction",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    conclusion = next(c for c in body["conclusions"] if c["object"] == "db2")
+    assert conclusion["subject"] == "db1"
+    assert conclusion["predicate"] == "potential_ddi"
+
+
+def test_only_the_rules_own_head_becomes_a_conclusion(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Reporting every derived fact would present the premises as findings."""
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+        ],
+        "intent": "interaction",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert body["conclusions"]
+    assert {c["predicate"] for c in body["conclusions"]} == {"potential_ddi"}
+
+
+def test_reason_refuses_an_unknown_intent(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """An unrecognised intent must not quietly run nothing and report success."""
+    payload = {"facts": [{"fact": "inhibits(db1, e1)"}], "intent": "no_such_intent"}
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        response = client.post("/reason", json=payload)
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert "no_such_intent" in detail
+    # The list is included so the caller can correct the request without a
+    # second round trip to /rules.
+    assert "interaction" in detail
+
+
+def test_reason_refuses_both_intent_and_rule_id(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    payload = {
+        "facts": [{"fact": "inhibits(db1, e1)"}],
+        "intent": "interaction",
+        "rule_id": "potential_ddi_inhibitor_substrate",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        response = client.post("/reason", json=payload)
+
+    assert response.status_code == 422
+    assert "at most one" in response.json()["detail"]
+
+
+def test_reason_accepts_a_rule_by_id(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+        ],
+        "rule_id": "potential_ddi_inhibitor_substrate",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert body["rule"]["id"] == "potential_ddi_inhibitor_substrate"
+    assert body["conclusions"]
+
+
+def test_request_supplied_rules_produce_no_attributed_conclusions(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Only reviewed rules are citable, so an inline rule cannot claim a rule_id."""
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+        ],
+        "rules": [{"rule": "potential_ddi(A, B) :- inhibits(A, E), substrate_of(B, E), A != B."}],
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    # The facts were still derived...
+    assert any("potential_ddi" in fact for fact in body["derived"])
+    # ...but nothing claims them as a library rule's output.
+    assert body["rule"] is None
+    assert body["conclusions"] == []
+    assert body["conclusions_complete"] is True
+
+
+def test_reason_without_a_rule_still_reasons(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Naming a rule is optional; the endpoint's original contract still holds."""
+    payload = {
+        "facts": [{"fact": "inhibits(db1, e1)"}],
+        "rules": [{"rule": "inhibited(A) :- inhibits(A, E)."}],
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert body["fact_count"] >= 1
+    assert body["rule"] is None
 
 
 # --- /validate -------------------------------------------------------------

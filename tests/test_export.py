@@ -55,16 +55,36 @@ class StubStore:
 class StubRangeStore:
     """Serves the node and edge queries the scoped export issues.
 
-    Every page returns the same canned rows, so a test can drive the paging
-    loop by choosing a small ``page_size``.
+    ``population`` is how many rows exist in the graph. A query returns the
+    smaller of the ``LIMIT`` it asked for and that population — the same
+    contract AGE offers — so ``page_size`` is what drives the paging loop and
+    ``population`` is what decides where it stops.
+
+    ``hard_cap`` models a store that ignores ``LIMIT`` and always returns the
+    same rows. Nothing in the protocol forbids it, and a paging loop that
+    assumed otherwise would spin forever rather than fail.
     """
 
-    def __init__(self, batch: int) -> None:
+    def __init__(
+        self,
+        population: int,
+        batch: int | None = None,
+        hard_cap: int | None = None,
+    ) -> None:
+        self._population = population
         self._batch = batch
+        self._hard_cap = hard_cap
         self.queries: list[str] = []
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
         self.queries.append(query)
+        if self._hard_cap is not None:
+            served = self._hard_cap
+        else:
+            asked = _page_limit(query) or self._population
+            served = min(asked, self._population)
+            if self._batch is not None:
+                served = min(served, self._batch)
         if "MATCH (n)" in query:
             rows: list[dict[str, Any]] = [
                 {
@@ -72,7 +92,7 @@ class StubRangeStore:
                     "labels": ["Drug"],
                     "props": {"drugbank_id": f"DB{i:05d}", "name": f"Drug {i}"},
                 }
-                for i in range(self._batch)
+                for i in range(served)
             ]
         else:
             rows = [
@@ -85,10 +105,9 @@ class StubRangeStore:
                     "source_props": {"drugbank_id": f"DB{i:05d}"},
                     "target_props": {"drugbank_id": f"DB{i + 1:05d}"},
                 }
-                for i in range(self._batch)
+                for i in range(served)
             ]
-        limit = _page_limit(query)
-        return {"success": True, "records": rows[:limit] if limit else rows}
+        return {"success": True, "records": rows}
 
 
 def test_nodes_use_a_business_key_not_the_row_id() -> None:
@@ -259,7 +278,7 @@ class TestDeterministicRange:
         queries took `LIMIT` on an unordered match, so two identical requests
         loaded different edges (measured: ~23% of 211,630, differing per run).
         """
-        store = StubRangeStore(batch=1)
+        store = StubRangeStore(population=1)
         GraphExport(store, limit=10)
 
         assert store.queries
@@ -268,23 +287,78 @@ class TestDeterministicRange:
 
     def test_a_short_page_is_complete_and_a_full_one_is_truncated(self) -> None:
         """`truncated` is what stops an absent derivation reading as a finding."""
-        complete = GraphExport(StubRangeStore(batch=1), limit=10, page_size=100)
+        complete = GraphExport(StubRangeStore(population=1), limit=10, page_size=100)
         assert complete.truncated is False
         assert complete.node_count == 1
 
-        # One full page of exactly the limit means the graph may have more.
-        cut = GraphExport(StubRangeStore(batch=100), limit=100, page_size=100)
+        # Exactly the limit is not truncation: the export probes one row past
+        # it, finds nothing, and reports a complete answer.
+        exact = GraphExport(StubRangeStore(population=100), limit=100, page_size=100)
+        assert exact.truncated is False
+        assert exact.node_count == 100
+
+        # One row more than the limit is truncation, and saying so is what keeps
+        # a conclusion drawn from a slice from being presented as if it covered
+        # the whole graph.
+        cut = GraphExport(StubRangeStore(population=101), limit=100, page_size=100)
         assert cut.truncated is True
         assert cut.node_count == 100
 
     def test_paging_collects_up_to_the_limit_across_round_trips(self) -> None:
-        store = StubRangeStore(batch=50)
+        """A graph larger than one page is read in full up to the limit.
+
+        The stub has 120 nodes and the page size is 50, so one round trip
+        cannot cover it. Getting 50 here would mean the later pages repeated
+        the first instead of advancing past it.
+        """
+        store = StubRangeStore(population=120)
         export = GraphExport(store, limit=120, page_size=50)
 
-        # 50 + 50 + 50 = 150 offered, cut at the 120 limit.
+        assert export.node_count == 120
+        # The population is exactly 120 and the limit is 120, so the graph was
+        # exhausted rather than cut — nothing was left behind.
+        assert export.truncated is False
+        assert len(store.queries) > 2, "the read did not page"
+
+    def test_each_page_asks_for_a_larger_prefix(self) -> None:
+        """Paging must advance, which means the LIMIT grows with each round trip.
+
+        The queries take no OFFSET, so re-running the same LIMIT would return
+        the same rows forever: the loop would look like it was paging while
+        never getting past page one.
+        """
+        store = StubRangeStore(population=120)
+        GraphExport(store, limit=120, page_size=50)
+
+        limits = [
+            limit
+            for q in store.queries
+            if "MATCH (n)" in q
+            if (limit := _page_limit(q)) is not None
+        ]
+        assert len(limits) >= 2, "the read did not page"
+        assert limits == sorted(limits), f"page limits did not grow: {limits}"
+        assert limits[-1] > limits[0]
+
+    def test_a_population_beyond_the_limit_is_reported_as_truncated(self) -> None:
+        store = StubRangeStore(population=500)
+        export = GraphExport(store, limit=120, page_size=50)
+
         assert export.node_count == 120
         assert export.truncated is True
-        assert len(store.queries) > 2, "the read did not page"
+
+    def test_paging_cannot_loop_forever_on_a_query_that_never_advances(self) -> None:
+        """A store that ignores LIMIT must not spin the request.
+
+        Nothing in the protocol guarantees a store honours LIMIT, and a loop
+        that never advances would hold a worker until the process ran out of
+        them rather than failing.
+        """
+        store = StubRangeStore(population=500, hard_cap=50)
+        export = GraphExport(store, limit=120, page_size=50)
+
+        assert export.node_count == 50
+        assert len(store.queries) < 10, "the paging loop kept asking without advancing"
 
     def test_scope_keys_reach_the_query_as_parameters(self) -> None:
         """A scope is applied in the query, not filtered afterwards.
@@ -300,7 +374,7 @@ class TestDeterministicRange:
                 return super().execute_query(query, parameters)
 
         GraphExport(
-            CapturingStore(batch=1),
+            CapturingStore(population=1),
             limit=10,
             drug_keys=["DB00945"],
             atc_keys=["L01"],
@@ -316,7 +390,7 @@ class TestDeterministicRange:
         IN_ATC_CLASS and SUBCLASS_OF are structural: following them turns a
         targeted question into a whole-graph load by way of two hops.
         """
-        store = StubRangeStore(batch=1)
+        store = StubRangeStore(population=1)
         GraphExport(store, limit=10, drug_keys=["DB00945"], scope_label="explicit")
 
         edge_queries = [q for q in store.queries if "MATCH (a)-[r]->(b)" in q]
@@ -325,7 +399,7 @@ class TestDeterministicRange:
 
     def test_range_describes_what_was_loaded(self) -> None:
         export = GraphExport(
-            StubRangeStore(batch=2),
+            StubRangeStore(population=2),
             limit=10,
             drug_keys=["DB00002", "DB00001"],
             scope_label="explicit",

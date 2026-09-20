@@ -163,6 +163,19 @@ class ReasonRequest(BaseModel):
 
     rules: list[RuleSpec] = Field(default_factory=list, max_length=100)
     facts: list[FactSpec] = Field(default_factory=list, max_length=20_000)
+    intent: str | None = Field(
+        default=None,
+        description=(
+            "Name a rule from the versioned library instead of sending rule text. "
+            "Preferred: a conclusion has to be attributable to a reviewed rule, and "
+            "rule text supplied per request is text nobody reviewed. Exactly one of "
+            "`intent` / `rule_id` may be given alongside `load_from_graph`."
+        ),
+    )
+    rule_id: str | None = Field(
+        default=None,
+        description="Name a library rule by id rather than by intent.",
+    )
     # When true the graph is loaded as the initial fact set via
     # load_from_graph, and `facts` is ignored.
     load_from_graph: bool = False
@@ -189,6 +202,63 @@ class ReasonRequest(BaseModel):
     )
 
 
+class DerivedConclusion(BaseModel):
+    """One conclusion, with the rule that produced it and the premises it rests on.
+
+    A bare derived fact is not reportable: ``potential_ddi(db00001, db00002)``
+    is a pair of identifiers, and presenting it as a finding would hide that it
+    is *inferred* rather than asserted by the source data. The rule id and the
+    premise citations are what make it auditable, and `derived=True` is what
+    keeps it from being read as a DrugBank assertion.
+    """
+
+    fact: str
+    subject: str
+    predicate: str
+    object: str
+    rule_id: str
+    verifiability: str = Field(
+        default="derived",
+        description=(
+            "Always 'derived' for a rule output. The plan requires derived "
+            "relations never be presented in the same shape as asserted ones."
+        ),
+    )
+    citations: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Provenance ids of the premise facts this conclusion rests on. Each "
+            "premise is looked up in `fact_assertions`; a premise with no id is "
+            "omitted here and listed in `uncited_premises` instead."
+        ),
+    )
+    uncited_premises: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Premise facts whose graph edges carry no provenance id. The "
+            "conclusion is real but not fully citable, and saying so is better "
+            "than silently dropping the premise."
+        ),
+    )
+
+
+class DerivedRuleInfo(BaseModel):
+    """The rule a reasoning run applied, as the response reports it."""
+
+    id: str
+    intent: str
+    summary: str = ""
+    citation_hint: str = ""
+    consumes: list[str] = Field(default_factory=list)
+    derives: str = ""
+
+
+class RuleLibraryResponse(BaseModel):
+    """The rule library, so a caller can discover what it may name."""
+
+    rules: list[DerivedRuleInfo] = Field(default_factory=list)
+
+
 class ReasonResponse(BaseModel):
     """Result of a reasoning run."""
 
@@ -213,6 +283,27 @@ class ReasonResponse(BaseModel):
     range: ReasonRange | None = Field(
         default=None,
         description="What was loaded. Present for graph-backed inference, absent otherwise.",
+    )
+    rule: DerivedRuleInfo | None = Field(
+        default=None,
+        description="The library rule that was applied, when one was named.",
+    )
+    conclusions: list[DerivedConclusion] = Field(
+        default_factory=list,
+        description=(
+            "Conclusions the named rule produced, each with its premises. Only "
+            "populated when a library rule was applied: without a rule there is "
+            "nothing to attribute an inferred fact to."
+        ),
+    )
+    conclusions_complete: bool = Field(
+        default=True,
+        description=(
+            "False when premise recovery stopped before covering every conclusion, "
+            "because the result was larger than the recovery bound. A conclusion "
+            "with no citations should then be read as 'not looked up yet' rather "
+            "than as 'rests on nothing'."
+        ),
     )
     fact_assertions: dict[str, str | None] = Field(
         default_factory=dict,

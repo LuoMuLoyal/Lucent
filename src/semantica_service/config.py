@@ -72,6 +72,12 @@ class Settings(BaseSettings):
     # an unbounded input can pin a worker indefinitely.
     max_reasoning_facts: int = Field(default=50_000, ge=1)
     reasoning_timeout_s: int = Field(default=30, ge=1)
+    # `rules/*.yaml` shipped with the service. Overridable so a deployment can
+    # mount a reviewed rule set without rebuilding the image.
+    rules_dir: str = Field(
+        default="",
+        description="Directory holding the versioned rule library; empty uses the shipped set.",
+    )
 
 
 @lru_cache

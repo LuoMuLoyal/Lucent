@@ -14,6 +14,7 @@ false negatives that read like findings.
 
 from __future__ import annotations
 
+import re
 import threading
 
 from fastapi import APIRouter, HTTPException, Request
@@ -21,13 +22,21 @@ from fastapi.responses import JSONResponse
 from semantica.reasoning.datalog_reasoner import DatalogReasoner
 
 from ..graph import GraphExport, ScopeSpec, StorePool, resolve_scope
+from ..reasoning import MAX_RECOVERED, ReasoningRule, RuleLibrary, recovery_is_complete
 from ..reasoning_limits import (
     KIND_TIMEOUT,
     FactBudget,
     check_declared_sizes,
     reject,
 )
-from .schemas import ReasonRange, ReasonRequest, ReasonResponse
+from .schemas import (
+    DerivedConclusion,
+    DerivedRuleInfo,
+    ReasonRange,
+    ReasonRequest,
+    ReasonResponse,
+    RuleLibraryResponse,
+)
 
 router = APIRouter(tags=["reason"])
 
@@ -121,6 +130,129 @@ def _load_graph(request: Request, body: ReasonRequest) -> GraphExport:
         )
 
 
+def _resolve_rule(request: Request, body: ReasonRequest) -> ReasoningRule | None:
+    """Look up the rule the request named, or refuse it.
+
+    Naming a rule rather than sending its text is what keeps a conclusion
+    attributable: the rule was reviewed in this repository, and the response can
+    cite its id. Request-supplied rule text is still accepted, but it cannot be
+    reported as a library rule and so produces no attributed conclusions.
+    """
+    if body.intent is None and body.rule_id is None:
+        return None
+    if body.intent is not None and body.rule_id is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="Supply at most one of 'intent' or 'rule_id'.",
+        )
+
+    library: RuleLibrary = request.app.state.rules
+    rule = (
+        library.by_id(body.rule_id)
+        if body.rule_id is not None
+        else library.by_intent(str(body.intent))
+    )
+    if rule is None:
+        # The list names the namespace the caller actually used: an error
+        # listing rule ids would name values a caller has no way to supply.
+        if body.rule_id is not None:
+            named, available = body.rule_id, ", ".join(sorted(library.rules)) or "none"
+        else:
+            named, available = str(body.intent), ", ".join(library.intents()) or "none"
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"No rule named {named!r} in the library. "
+                f"Registered: {available}. "
+                "Unregistered rules cannot be called: a conclusion must be "
+                "attributable to a reviewed rule."
+            ),
+        )
+    return rule
+
+
+def _conclusions(
+    rule: ReasoningRule,
+    derived: list[str],
+    fact_assertions: dict[str, str | None],
+    premises_by_conclusion: dict[str, list[str]],
+) -> list[DerivedConclusion]:
+    """Build the attributed conclusion list for one rule application.
+
+    Only facts the rule's own head predicate produces are turned into
+    conclusions: ``derive_all`` returns the whole fact base, so reporting every
+    fact would present the premises as if they were findings.
+
+    Each premise is resolved through ``fact_assertions`` to the provenance id of
+    the edge that asserts it. A premise with no id is not dropped — it moves to
+    ``uncited_premises``, because a conclusion resting partly on uncitable
+    evidence is still a conclusion, and hiding that would overstate it.
+    """
+    head = rule.head_predicate
+    conclusions: list[DerivedConclusion] = []
+
+    for fact in derived:
+        parsed = _parse_fact(fact)
+        if parsed is None:
+            continue
+        predicate, subject, obj = parsed
+        if predicate != head:
+            continue
+
+        citations: list[str] = []
+        uncited: list[str] = []
+        for premise in premises_by_conclusion.get(fact, []):
+            prov = fact_assertions.get(premise)
+            if prov:
+                citations.append(prov)
+            else:
+                uncited.append(premise)
+
+        conclusions.append(
+            DerivedConclusion(
+                fact=fact,
+                subject=subject,
+                predicate=predicate,
+                object=obj,
+                rule_id=rule.id,
+                citations=citations,
+                uncited_premises=uncited,
+            )
+        )
+    return conclusions
+
+
+_FACT = re.compile(r"^([a-zA-Z0-9_]+)\(([^,]*),\s*([^,)]*)\)$")
+
+
+def _parse_fact(fact: str) -> tuple[str, str, str] | None:
+    """Split ``predicate(a, b)`` into parts, or ``None`` when not binary.
+
+    Unary and n-ary facts are skipped rather than guessed at: the conclusion
+    model names a subject and an object, so inventing them would misreport the
+    rule's output.
+    """
+    match = _FACT.match(fact.strip())
+    if not match:
+        return None
+    return match.group(1), match.group(2).strip(), match.group(3).strip()
+
+
+def _premises_of(
+    engine: DatalogReasoner, rule: ReasoningRule, facts: list[str]
+) -> dict[str, list[str]]:
+    """Map each conclusion to the ground premises that produced it.
+
+    The engine does not report which body atoms fired for a derived fact, so the
+    premises are recovered by re-running the rule's body against the fact base
+    for the bound head arguments. This is what makes a conclusion auditable at
+    all: without it the response could name the rule but not the evidence.
+    """
+    from ..reasoning.provenance_bridge import premises_for_conclusion
+
+    return premises_for_conclusion(engine, rule, facts)
+
+
 @router.post("/reason", response_model=ReasonResponse)
 def reason(request: Request, body: ReasonRequest) -> JSONResponse:
     """Derive facts from rules and facts.
@@ -138,6 +270,18 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
 
     settings = request.app.state.settings
     check_declared_sizes(body)
+
+    applied = _resolve_rule(request, body)
+    if applied is not None:
+        try:
+            engine.add_rule(applied.body)
+        except (ValueError, IndexError) as exc:
+            # A library rule that the engine rejects is our defect, not the
+            # caller's: it passed the loader and still cannot be parsed.
+            raise HTTPException(
+                status_code=500,
+                detail=f"Library rule {applied.id!r} failed to load: {exc}",
+            ) from exc
 
     if body.load_from_graph:
         exported = _load_graph(request, body)
@@ -217,6 +361,32 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
         labels=labels,
         node_types=node_types,
         range=reason_range,
+        rule=DerivedRuleInfo(**applied.describe()) if applied is not None else None,
+        conclusions=(
+            _conclusions(
+                applied,
+                derived,
+                fact_assertions,
+                _premises_of(engine, applied, derived),
+            )
+            if applied is not None
+            else []
+        ),
+        conclusions_complete=(
+            recovery_is_complete(applied, derived, MAX_RECOVERED) if applied is not None else True
+        ),
         fact_assertions=fact_assertions,
     )
+    return JSONResponse(content=payload.model_dump())
+
+
+@router.get("/rules", response_model=RuleLibraryResponse)
+def list_rules(request: Request) -> JSONResponse:
+    """List the versioned rule library.
+
+    A caller has to be able to discover which intents exist before it can name
+    one, and a rule set nobody can enumerate is one nobody can rely on.
+    """
+    library: RuleLibrary = request.app.state.rules
+    payload = RuleLibraryResponse(rules=[DerivedRuleInfo(**r) for r in library.describe()])
     return JSONResponse(content=payload.model_dump())

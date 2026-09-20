@@ -11,6 +11,10 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "pydantic-settings>=2.6",
+    # The rule library is YAML so rules can be reviewed as data rather than as
+    # request parameters. Parsed with safe_load only: a rule file is
+    # configuration, never code.
+    "pyyaml>=6.0",
     # semantica is installed from the fork's main branch, not PyPI: the
     # released 0.6.8 lags main by 127 commits and predates every fork fix.
     # extras are curated rather than [all] — [all] also pulls dev, infra,
@@ -26,6 +30,7 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "types-psycopg2>=2.9.21.20260911",
+    "types-pyyaml>=6.0",
 ]
 
 [tool.uv.sources]
