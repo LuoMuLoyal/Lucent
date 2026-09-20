@@ -88,6 +88,10 @@ class ExportRange:
     edge_count: int = 0
     drug_keys: list[str] = field(default_factory=list)
     atc_keys: list[str] = field(default_factory=list)
+    #: The keys the caller named, as opposed to the neighbours the expansion
+    #: pulled in. "The scope is warfarin" and "the scope is warfarin plus its
+    #: interaction partners" are different claims about what was reasoned over.
+    seed_drug_keys: list[str] = field(default_factory=list)
     # Set when the bound cut the load short. A caller seeing this must not read
     # an absent derivation as a negative finding.
     truncated: bool = False
@@ -100,6 +104,7 @@ class ExportRange:
             "edge_count": self.edge_count,
             "drug_count": len(self.drug_keys),
             "atc_count": len(self.atc_keys),
+            "seed_drug_keys": self.seed_drug_keys,
             "drug_keys": self.drug_keys,
             "atc_keys": self.atc_keys,
             "truncated": self.truncated,
@@ -237,17 +242,22 @@ def _node_filter(
 ) -> tuple[str, dict[str, Any]]:
     """Cypher predicate and parameters selecting the scoped nodes.
 
-    The two scoped kinds need different property names — a drug carries
-    ``drugbank_id``, an ATC class carries ``code`` — so the predicate names
-    both rather than filtering afterwards, which would make the LIMIT apply to
-    the wrong population.
+    The scoped kinds carry different identifier properties — a drug has
+    ``drugbank_id``, a protein ``uniprot_id``, an ATC class ``code`` — so the
+    predicate names all three rather than filtering afterwards, which would
+    make the LIMIT apply to the wrong population.
+
+    Protein keys are accepted under ``$drug_keys`` because that list is the
+    whole scope key set, not only its drugs: the neighbourhood expansion
+    resolves drug keys and protein keys into one list, and both become Datalog
+    constants that need node facts behind them.
     """
     if not drug_keys and not atc_keys:
         return "true", {}
     clauses = []
     parameters: dict[str, Any] = {}
     if drug_keys:
-        clauses.append(f"n.{_DRUG_COLUMN} IN $drug_keys")
+        clauses.append(f"(n.{_DRUG_COLUMN} IN $drug_keys OR n.{_PROTEIN_COLUMN} IN $drug_keys)")
         parameters["drug_keys"] = drug_keys
     if atc_keys:
         clauses.append(f"n.{_ATC_COLUMN} IN $atc_keys")
@@ -309,11 +319,14 @@ def _edge_filter(
 ) -> tuple[str, dict[str, Any]]:
     """Cypher predicate selecting edges inside the scope.
 
-    An edge is in scope when *both* endpoints are, for the scoped kinds: a
-    drug's interaction with a drug outside the scope is a statement about a
-    drug the caller did not ask about, and loading it would put facts in the
-    base whose subject is out of range. Protein endpoints are exempt because a
-    drug's target is part of that drug's own description.
+    An edge is in scope when *either* endpoint is one of the scope's keys —
+    the scope is a neighbourhood, not an intersection. Requiring both ends
+    would make every caller-named scope edge-free, since a caller names one
+    drug and that drug's interaction partners are by definition not what was
+    named; the fact base would then be edgeless and no rule could fire.
+
+    The scope's key list is what bounds the result, and it was itself built
+    under an ordered limit, so the load stays finite and reproducible.
     """
     if not drug_keys and not atc_keys:
         return "true", {}
@@ -321,7 +334,7 @@ def _edge_filter(
     parameters: dict[str, Any] = {}
     endpoint = []
     if drug_keys:
-        endpoint.append(f"(a.{_DRUG_COLUMN} IN $drug_keys AND b.{_DRUG_COLUMN} IN $drug_keys)")
+        endpoint.append(f"(a.{_DRUG_COLUMN} IN $drug_keys OR b.{_DRUG_COLUMN} IN $drug_keys)")
         parameters["drug_keys"] = drug_keys
     if atc_keys:
         endpoint.append(f"(a.{_ATC_COLUMN} IN $atc_keys OR b.{_ATC_COLUMN} IN $atc_keys)")
@@ -344,6 +357,7 @@ _NAME_CANDIDATES = ("name", "uniprot_title", "gene_name", "code")
 _KEY_CANDIDATES = ("drugbank_id", "uniprot_id", "id", "code", "name")
 
 _DRUG_COLUMN = "drugbank_id"
+_PROTEIN_COLUMN = "uniprot_id"
 _ATC_COLUMN = "code"
 
 
@@ -405,6 +419,7 @@ class GraphExport:
         *,
         drug_keys: list[str] | None = None,
         atc_keys: list[str] | None = None,
+        seed_drug_keys: list[str] | None = None,
         scope_label: str = "all",
         include_atc_links: bool = False,
         page_size: int = PAGE_SIZE,
@@ -430,6 +445,7 @@ class GraphExport:
             edge_count=len(self._edges),
             drug_keys=sorted(drug_keys or []),
             atc_keys=sorted(atc_keys or []),
+            seed_drug_keys=sorted(seed_drug_keys or []),
             truncated=nodes_truncated or edges_truncated,
             limit=limit,
         )

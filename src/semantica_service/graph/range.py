@@ -50,6 +50,47 @@ ORDER BY d.drugbank_id
 LIMIT $limit
 """
 
+# Drugs that the scope's drugs interact with, in either direction. A scope
+# named by a drug is a question *about that drug*, and its interaction partners
+# are part of the answer — requiring both endpoints to be named by the caller
+# would make every scope edge-free, because a caller names one drug at a time.
+#
+# Both directions are read because the source data is single-directional: the
+# interaction list only names a drug on the source side for 4,218 of 19,842
+# rows (the plan's D2). Warfarin, the most asked-about drug in this graph, has
+# 530 incoming edges and no outgoing ones at all.
+#
+# The two directions are two statements rather than one undirected pattern:
+# `-[r]-` cannot use either endpoint index and an undirected scan over 200,182
+# interaction edges exceeds the connection's statement_timeout (measured).
+_INTERACTION_PARTNERS_OUT = """
+UNWIND $keys AS seed
+MATCH (a:Drug {drugbank_id: seed})-[:INTERACTS_WITH]->(b:Drug)
+RETURN DISTINCT b.drugbank_id AS key, b.name AS name
+ORDER BY b.drugbank_id
+LIMIT $limit
+"""
+
+_INTERACTION_PARTNERS_IN = """
+UNWIND $keys AS seed
+MATCH (a:Drug)-[:INTERACTS_WITH]->(b:Drug {drugbank_id: seed})
+RETURN DISTINCT a.drugbank_id AS key, a.name AS name
+ORDER BY a.drugbank_id
+LIMIT $limit
+"""
+
+# The proteins a scope's drugs act on. A target is not a drug, so it can never
+# be named by the caller, yet it is exactly what makes an interaction
+# mechanistic rather than a bare pair of names.
+_PROTEIN_NEIGHBOURS = """
+UNWIND $keys AS seed
+MATCH (a:Drug {drugbank_id: seed})-[r]->(p:Protein)
+WHERE NOT type(r) IN ['IN_ATC_CLASS', 'SUBCLASS_OF']
+RETURN DISTINCT p.uniprot_id AS key, p.name AS name
+ORDER BY p.uniprot_id
+LIMIT $limit
+"""
+
 
 @dataclass(frozen=True)
 class ScopeSpec:
@@ -75,6 +116,11 @@ class ResolvedScope:
 
     drug_keys: list[str] = field(default_factory=list)
     atc_keys: list[str] = field(default_factory=list)
+    #: The keys the caller actually named, as opposed to the neighbours that
+    #: came along with them. A response has to keep these apart: "the scope is
+    #: warfarin" and "the scope is warfarin plus 530 interaction partners" are
+    #: different claims about what was reasoned over.
+    seed_drug_keys: list[str] = field(default_factory=list)
     labels: dict[str, str] = field(default_factory=dict)
     # True when a resolution query hit its limit, so the scope is a prefix of
     # what the caller named rather than all of it.
@@ -89,6 +135,7 @@ class ResolvedScope:
         return {
             "drug_count": len(self.drug_keys),
             "atc_count": len(self.atc_keys),
+            "seed_drug_keys": self.seed_drug_keys,
             "drug_keys": self.drug_keys,
             "atc_keys": self.atc_keys,
             "truncated": self.truncated,
@@ -111,28 +158,25 @@ def resolve_scope(store: ApacheAgeStore, spec: ScopeSpec) -> ResolvedScope:
     whole point of the module: an unordered ``LIMIT`` returns a different set
     on each run, which would make two identical reasoning requests disagree
     about what the graph contains.
+
+    The result is the named drugs **plus their neighbourhood** — interaction
+    partners and protein neighbours. A caller names one drug at a time, so a
+    scope that contained only what was named would have no edges in it at all,
+    and an edge-free fact base can derive nothing whatever the rules say.
     """
     resolved = ResolvedScope()
     if spec.is_empty:
         return resolved
 
     if spec.drug_names:
-        rows = _rows(
-            store.execute_query(
-                _RESOLVE_DRUGS,
-                {"names": list(spec.drug_names), "limit": spec.limit},
-            ),
+        _collect_drugs(
+            store,
+            resolved,
+            _RESOLVE_DRUGS,
+            {"names": list(spec.drug_names), "limit": spec.limit},
             "drug",
+            spec.limit,
         )
-        for row in rows:
-            key = row.get("key")
-            if key in (None, ""):
-                continue
-            resolved.drug_keys.append(str(key))
-            name = row.get("name")
-            if name not in (None, ""):
-                resolved.labels[str(key).lower()] = str(name)
-        resolved.truncated = resolved.truncated or len(rows) >= spec.limit
 
     if spec.atc_prefixes:
         for prefix in spec.atc_prefixes:
@@ -145,31 +189,79 @@ def resolve_scope(store: ApacheAgeStore, spec: ScopeSpec) -> ResolvedScope:
             )
             for row in rows:
                 key = row.get("key")
-                if key in (None, ""):
-                    continue
-                resolved.atc_keys.append(str(key))
+                if key not in (None, ""):
+                    resolved.atc_keys.append(str(key))
             resolved.truncated = resolved.truncated or len(rows) >= spec.limit
 
         if resolved.atc_keys:
-            rows = _rows(
-                store.execute_query(
-                    _DRUGS_IN_ATC,
-                    {"codes": resolved.atc_keys, "limit": spec.limit},
-                ),
+            _collect_drugs(
+                store,
+                resolved,
+                _DRUGS_IN_ATC,
+                {"codes": resolved.atc_keys, "limit": spec.limit},
                 "ATC member drug",
+                spec.limit,
             )
-            for row in rows:
-                key = row.get("key")
-                if key in (None, ""):
-                    continue
-                resolved.drug_keys.append(str(key))
-                name = row.get("name")
-                if name not in (None, ""):
-                    resolved.labels[str(key).lower()] = str(name)
-            resolved.truncated = resolved.truncated or len(rows) >= spec.limit
 
-    # A drug reachable through two paths must appear once, or the fact list
-    # would carry a duplicate and the counts would overstate the scope.
+    if spec.drug_names:
+        # The seeds are the named drugs only. Expansion reads them and appends
+        # to a separate list, so a partner's own partners can never be reached:
+        # warfarin cites 530 drugs, and one more hop would pull in most of the
+        # graph and make the scope meaningless as a bound.
+        resolved.seed_drug_keys = sorted(dict.fromkeys(resolved.drug_keys))
+        resolved.drug_keys = list(resolved.seed_drug_keys)
+        _collect_neighbours(store, resolved, resolved.seed_drug_keys, spec.limit)
+
     resolved.drug_keys = sorted(dict.fromkeys(resolved.drug_keys))
     resolved.atc_keys = sorted(dict.fromkeys(resolved.atc_keys))
     return resolved
+
+
+def _collect_drugs(
+    store: ApacheAgeStore,
+    resolved: ResolvedScope,
+    query: str,
+    parameters: dict[str, Any],
+    what: str,
+    limit: int,
+) -> None:
+    """Run a drug-returning resolution query into ``resolved``."""
+    rows = _rows(store.execute_query(query, parameters), what)
+    for row in rows:
+        key = row.get("key")
+        if key in (None, ""):
+            continue
+        resolved.drug_keys.append(str(key))
+        name = row.get("name")
+        if name not in (None, ""):
+            resolved.labels[str(key).lower()] = str(name)
+    resolved.truncated = resolved.truncated or len(rows) >= limit
+
+
+def _collect_neighbours(
+    store: ApacheAgeStore,
+    resolved: ResolvedScope,
+    seeds: list[str],
+    limit: int,
+) -> None:
+    """Expand the named drugs into their interaction and protein neighbourhood.
+
+    The expansion is bounded by ``limit`` and ordered, and hitting that bound
+    sets ``truncated`` — a scope quietly capped at its first N neighbours would
+    be the same false-negative machine the ordered export exists to remove.
+    """
+    for query in (
+        _INTERACTION_PARTNERS_OUT,
+        _INTERACTION_PARTNERS_IN,
+        _PROTEIN_NEIGHBOURS,
+    ):
+        rows = _rows(store.execute_query(query, {"keys": seeds, "limit": limit}), "neighbour")
+        for row in rows:
+            key = row.get("key")
+            if key in (None, ""):
+                continue
+            resolved.drug_keys.append(str(key))
+            name = row.get("name")
+            if name not in (None, ""):
+                resolved.labels[str(key).lower()] = str(name)
+        resolved.truncated = resolved.truncated or len(rows) >= limit

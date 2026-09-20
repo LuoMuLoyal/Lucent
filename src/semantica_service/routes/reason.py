@@ -74,6 +74,7 @@ def _load_graph(request: Request, body: ReasonRequest) -> GraphExport:
             limit=body.limit,
             drug_keys=resolved.drug_keys,
             atc_keys=resolved.atc_keys,
+            seed_drug_keys=resolved.seed_drug_keys,
             scope_label="explicit",
         )
 

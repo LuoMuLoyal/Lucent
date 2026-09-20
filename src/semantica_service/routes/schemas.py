@@ -147,6 +147,13 @@ class ReasonRange(BaseModel):
     edge_count: int = 0
     truncated: bool = False
     limit: int = 0
+    seed_drug_keys: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The keys the caller named. The rest of `drug_keys` are neighbours "
+            "pulled in by the expansion, so the two are reported apart."
+        ),
+    )
     drug_keys: list[str] = Field(default_factory=list)
     atc_keys: list[str] = Field(default_factory=list)
 

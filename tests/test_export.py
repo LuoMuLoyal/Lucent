@@ -125,6 +125,39 @@ def test_nodes_prefer_a_canonical_identifier_over_the_name() -> None:
     assert next(iter(export.find_nodes()))["id"] == "DB00945"
 
 
+def test_a_scoped_edge_needs_only_one_endpoint_in_scope() -> None:
+    """The scope is a neighbourhood, not an intersection.
+
+    A caller names drugs one at a time, so requiring both endpoints of an edge
+    to be named would make every scope edge-free — and an edge-free fact base
+    derives nothing whatever the rules say. Measured against the real graph:
+    warfarin is cited by 530 interaction rows and cites none of its own.
+    """
+    store = StubStore(nodes=[], edges=[])
+    GraphExport(store, limit=10, drug_keys=["DB00682"], scope_label="explicit")
+
+    edge_queries = [q for q in store.queries if "MATCH (a)-[r]->(b)" in q]
+    assert edge_queries
+    # `OR` between the two endpoints: either side may carry the scope key.
+    assert all(
+        "a.drugbank_id IN $drug_keys OR b.drugbank_id IN $drug_keys" in q for q in edge_queries
+    )
+
+
+def test_scope_keys_reach_the_node_query_for_both_drugs_and_proteins() -> None:
+    """A scope key set holds drug ids and protein (UniProt) ids alike.
+
+    The neighbourhood expansion resolves both into one list, and both become
+    Datalog constants, so the node read has to recognise either property name.
+    """
+    store = StubStore(nodes=[], edges=[])
+    GraphExport(store, limit=10, drug_keys=["P23219"], scope_label="explicit")
+
+    node_queries = [q for q in store.queries if "MATCH (n)" in q]
+    assert node_queries
+    assert all("n.uniprot_id IN $drug_keys" in q for q in node_queries)
+
+
 def test_nodes_fall_back_to_the_row_id_when_no_business_key_exists() -> None:
     store = StubStore(nodes=[{"id": 7, "labels": ["Thing"], "props": {}}], edges=[])
     export = GraphExport(store, limit=10)
