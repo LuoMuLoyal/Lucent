@@ -10,9 +10,9 @@ that look like findings.
 Two things enforce it:
 
 * **Ordering.** Every query orders by the graph's own identifier before it
-  limits, and pages with keyset pagination. ``LIMIT`` without ``ORDER BY`` is a
-  random sample, which is what this bridge used to do: two identical requests
-  loaded different edges (about 23% of 211,630 in the measured case).
+  limits. ``LIMIT`` without ``ORDER BY`` is a random sample, which is what this
+  bridge used to do: two identical requests loaded different edges (about 23% of
+  211,630 in the measured case).
 * **Scope.** A drug set resolved from names or ATC prefixes, plus a bounded
   neighbourhood expansion. Nothing is loaded outside it, and the response
   echoes the range and whether the bound truncated it.
@@ -45,10 +45,11 @@ from .retry import log_retry, read_with_retry
 
 _logger = logging.getLogger("semantica_service.graph")
 
-# Node reads page by *fact key* rather than row id, because the key is what the
+# Node reads order by *fact key* rather than row id, because the key is what the
 # caller's scope was expressed in and what the reasoner's constants are built
-# from. Ordering by row id would be equally deterministic but would make the
-# page boundary meaningless to the scope.
+# from. Ordering by row id would be equally reproducible but would make the load
+# boundary meaningless to the scope: the truncated prefix would be an arbitrary
+# set of nodes rather than the scope's own ordering.
 _NODES_QUERY = """
 MATCH (n)
 WHERE {where}
@@ -57,7 +58,7 @@ ORDER BY coalesce(n.drugbank_id, n.uniprot_id, n.code, n.name, '')
 LIMIT {limit}
 """
 
-# Edges are paged on the row id of the relationship itself: a relationship has
+# Edges are ordered on the row id of the relationship itself: a relationship has
 # no business key, and id() is stable and unique within a graph.
 #
 # The ORDER BY is two-level on purpose. Ordering by ``id(r)`` alone is
@@ -194,7 +195,7 @@ def _stable_key(record_id: Any, props: dict[str, Any]) -> str:
     return str(record_id)
 
 
-def _fetch_pages(
+def _fetch_ordered(
     store: ApacheAgeStore,
     template: str,
     where: str,
@@ -315,7 +316,7 @@ def export_nodes(
     graph: the caller states its extent through the returned truncation flag.
     """
     where, parameters = _node_filter(drug_keys, atc_keys)
-    records, truncated = _fetch_pages(store, _NODES_QUERY, where, parameters, limit)
+    records, truncated = _fetch_ordered(store, _NODES_QUERY, where, parameters, limit)
 
     nodes: list[dict[str, Any]] = []
     for record in records:
@@ -381,7 +382,7 @@ def export_edges(
     the node query's limit.
     """
     where, parameters = _edge_filter(drug_keys, atc_keys, include_atc_links)
-    records, truncated = _fetch_pages(
+    records, truncated = _fetch_ordered(
         store,
         _EDGES_QUERY,
         where,
