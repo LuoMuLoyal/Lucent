@@ -468,6 +468,78 @@ def test_a_conclusion_carries_its_premises(
     assert conclusion["predicate"] == "potential_ddi"
 
 
+def test_a_query_that_pins_nothing_selects_every_conclusion(
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Settings,
+) -> None:
+    """An all-variable head call asks about every pair, so it must select all of them.
+
+    Regression: ``_pinned_arguments`` returns ``None`` both for "asks a
+    different predicate" and for "asks this predicate but pins nothing". The
+    caller treated both as "select nothing", so ``potential_ddi(?A, ?B)``
+    returned zero conclusions while its own ``bindings`` listed every pair —
+    a well-formed question answered with a confident empty set.
+    """
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+            {"fact": "inhibits(db3, e2)"},
+            {"fact": "substrate_of(db4, e2)"},
+        ],
+        "intent": "interaction",
+        "query": "potential_ddi(?A, ?B)",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert len(body["bindings"]) == 2
+    assert len(body["conclusions"]) == 2
+    assert body["conclusions_complete"] is True
+    # Narrowing is what dropped them before; the selection itself must not.
+    assert {c["object"] for c in body["conclusions"]} == {"db2", "db4"}
+
+
+def test_pinning_one_argument_still_narrows(
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Settings,
+) -> None:
+    """The counterpart to the regression above: pinning must still filter."""
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+            {"fact": "inhibits(db3, e2)"},
+            {"fact": "substrate_of(db4, e2)"},
+        ],
+        "intent": "interaction",
+        "query": "potential_ddi(db1, ?B)",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert [c["object"] for c in body["conclusions"]] == ["db2"]
+
+
+def test_a_query_for_another_predicate_selects_no_conclusions(
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Settings,
+) -> None:
+    """Asking a different predicate is not the same as asking with variables."""
+    payload = {
+        "facts": [
+            {"fact": "inhibits(db1, e1)"},
+            {"fact": "substrate_of(db2, e1)"},
+        ],
+        "intent": "interaction",
+        "query": "shares_target(?A, ?B)",
+    }
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert body["conclusions"] == []
+
+
 def test_only_the_rules_own_head_becomes_a_conclusion(
     monkeypatch: pytest.MonkeyPatch, settings: Settings
 ) -> None:

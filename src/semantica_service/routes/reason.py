@@ -275,11 +275,20 @@ def _requested_conclusions(
         return set()
 
     subject_variable, object_variable = head_variables
-    pinned = _pinned_arguments(query, rule.head_predicate)
-    if pinned is None:
-        # No pattern, or not a call to this rule's head: nothing was selected.
+    if query is None:
+        # No query at all: every derived conclusion is in scope.
         return set()
-    pinned_subject, pinned_object = pinned
+
+    pinned = _pinned_arguments(query, rule.head_predicate)
+    if pinned is None and not _calls_head(query, rule.head_predicate):
+        # The query asks a different predicate, so it selects none of this
+        # rule's conclusions.
+        return set()
+    # ``pinned`` is None for an all-variable head call such as
+    # ``potential_ddi(?A, ?B)`` — nothing is pinned, which means every binding
+    # row is selected, not that no row is. Returning the empty set here would
+    # discard every answer to a well-formed question.
+    pinned_subject, pinned_object = pinned if pinned is not None else (None, None)
 
     selected: set[tuple[str, str]] = set()
     for row in bindings:
@@ -321,6 +330,17 @@ def _pinned_arguments(query: str | None, predicate: str) -> tuple[str | None, st
 
 
 _FACT = re.compile(r"^([a-zA-Z0-9_]+)\(([^,]*),\s*([^,)]*)\)$")
+
+
+def _calls_head(query: str, predicate: str) -> bool:
+    """Whether a query pattern is a call to this rule's head predicate.
+
+    Needed because ``_pinned_arguments`` collapses two different situations into
+    ``None``: "asks a different predicate" and "asks this predicate but pins
+    nothing". The first selects no conclusions; the second selects all of them.
+    """
+    parsed = _parse_fact(query)
+    return parsed is not None and parsed[0] == predicate
 
 
 def _parse_fact(fact: str) -> tuple[str, str, str] | None:
