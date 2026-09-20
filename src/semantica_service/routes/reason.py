@@ -25,6 +25,7 @@ from semantica.reasoning.datalog_reasoner import DatalogReasoner
 from ..graph import GraphExport, ScopeSpec, StorePool, resolve_scope
 from ..reasoning import MAX_RECOVERED, ReasoningRule, RuleLibrary, recovery_is_complete
 from ..reasoning_limits import (
+    KIND_SCOPE_EMPTY,
     KIND_TIMEOUT,
     FactBudget,
     check_declared_sizes,
@@ -115,13 +116,21 @@ def _load_graph(request: Request, body: ReasonRequest) -> GraphExport:
             # An empty scope is not a small scope; it is a scope that matched
             # nothing, and reporting "no derivations" for it would be a
             # statement about a graph nobody asked about.
-            raise HTTPException(
-                status_code=422,
-                detail=(
+            #
+            # Refused through `reject` so the reason carries a `kind`: this is
+            # the one refusal a caller is most likely to misread as an answer,
+            # and an unstructured detail left it indistinguishable from a
+            # generic 422 in every client that branches on the code.
+            reject(
+                KIND_SCOPE_EMPTY,
+                422,
+                (
                     "Scope matched nothing in the graph: "
                     f"drug_names={list(body.scope.drug_names)!r}, "
                     f"atc_prefixes={list(body.scope.atc_prefixes)!r}."
                 ),
+                drug_names=list(body.scope.drug_names),
+                atc_prefixes=list(body.scope.atc_prefixes),
             )
         return GraphExport(
             store,

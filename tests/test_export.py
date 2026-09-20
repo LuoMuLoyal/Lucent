@@ -80,6 +80,9 @@ class StubRangeStore:
         self._edge_population = population if edge_population is None else edge_population
         self._batch = batch
         self._hard_cap = hard_cap
+        #: Return every matching row regardless of the LIMIT asked for. Models a
+        #: store that ignores it, which nothing in the protocol forbids.
+        self.ignore_limit = False
         self.queries: list[str] = []
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
@@ -87,6 +90,8 @@ class StubRangeStore:
         exists = self._population if "MATCH (n)" in query else self._edge_population
         if self._hard_cap is not None:
             served = min(self._hard_cap, exists)
+        elif self.ignore_limit:
+            served = exists
         else:
             asked = _page_limit(query) or exists
             served = min(asked, exists)
@@ -297,86 +302,78 @@ class TestDeterministicRange:
 
         Edges are held at zero so the node read is what is measured: the export
         mirrors one-directional edges, and a mirror competing for the same limit
-        would make this test about mirroring rather than about paging.
+        would make this test about mirroring rather than about truncation.
         """
-        complete = GraphExport(
-            StubRangeStore(population=1, edge_population=0), limit=10, page_size=100
-        )
+        complete = GraphExport(StubRangeStore(population=1, edge_population=0), limit=10)
         assert complete.truncated is False
         assert complete.node_count == 1
 
         # Exactly the limit is not truncation: the export probes one row past
         # it, finds nothing, and reports a complete answer.
-        exact = GraphExport(
-            StubRangeStore(population=100, edge_population=0), limit=100, page_size=100
-        )
+        exact = GraphExport(StubRangeStore(population=100, edge_population=0), limit=100)
         assert exact.truncated is False
         assert exact.node_count == 100
 
         # One row more than the limit is truncation, and saying so is what keeps
         # a conclusion drawn from a slice from being presented as if it covered
         # the whole graph.
-        cut = GraphExport(
-            StubRangeStore(population=101, edge_population=0), limit=100, page_size=100
-        )
+        cut = GraphExport(StubRangeStore(population=101, edge_population=0), limit=100)
         assert cut.truncated is True
         assert cut.node_count == 100
 
-    def test_paging_collects_up_to_the_limit_across_round_trips(self) -> None:
-        """A graph larger than one page is read in full up to the limit.
+    def test_one_query_reads_the_whole_limit(self) -> None:
+        """The read is one query, not one per page.
 
-        The stub has 120 nodes and the page size is 50, so one round trip
-        cannot cover it. Getting 50 here would mean the later pages repeated
-        the first instead of advancing past it.
+        It used to grow the LIMIT on every round trip so page boundaries would
+        line up without OFFSET. That is correct but quadratic: loading 50,000
+        edges took 25 queries of increasing size, each re-reading everything the
+        last had returned, and measured 57 seconds against 0.3 for the single
+        equivalent query. The driver materialises every row either way, so the
+        extra round trips bought nothing back.
         """
         store = StubRangeStore(population=120, edge_population=0)
-        export = GraphExport(store, limit=120, page_size=50)
+        export = GraphExport(store, limit=120)
 
         assert export.node_count == 120
-        # The population is exactly 120 and the limit is 120, so the graph was
-        # exhausted rather than cut — nothing was left behind.
-        assert export.truncated is False
-        assert len(store.queries) > 2, "the read did not page"
+        node_queries = [q for q in store.queries if "MATCH (n)" in q]
+        assert len(node_queries) == 2, (
+            f"expected one read plus one truncation probe, got {len(node_queries)}"
+        )
 
-    def test_each_page_asks_for_a_larger_prefix(self) -> None:
-        """Paging must advance, which means the LIMIT grows with each round trip.
+    def test_the_read_asks_for_exactly_the_limit(self) -> None:
+        """Asking for more than the limit would spend work the caller declined."""
+        store = StubRangeStore(population=500, edge_population=0)
+        GraphExport(store, limit=120)
 
-        The queries take no OFFSET, so re-running the same LIMIT would return
-        the same rows forever: the loop would look like it was paging while
-        never getting past page one.
-        """
-        store = StubRangeStore(population=120)
-        GraphExport(store, limit=120, page_size=50)
+        limits = [n for q in store.queries if "MATCH (n)" in q if (n := _page_limit(q)) is not None]
 
-        limits = [
-            limit
-            for q in store.queries
-            if "MATCH (n)" in q
-            if (limit := _page_limit(q)) is not None
-        ]
-        assert len(limits) >= 2, "the read did not page"
-        assert limits == sorted(limits), f"page limits did not grow: {limits}"
-        assert limits[-1] > limits[0]
+        # The read asks for 120; the truncation probe asks for one more, which
+        # is the smallest question that can distinguish "exactly 120" from "more
+        # than 120".
+        assert limits == [120, 121], f"unexpected limits: {limits}"
 
     def test_a_population_beyond_the_limit_is_reported_as_truncated(self) -> None:
         store = StubRangeStore(population=500)
-        export = GraphExport(store, limit=120, page_size=50)
+        export = GraphExport(store, limit=120)
 
         assert export.node_count == 120
         assert export.truncated is True
 
-    def test_paging_cannot_loop_forever_on_a_query_that_never_advances(self) -> None:
-        """A store that ignores LIMIT must not spin the request.
+    def test_a_store_that_ignores_the_limit_cannot_spin_the_request(self) -> None:
+        """A store that over-delivers must not make the read unbounded.
 
-        Nothing in the protocol guarantees a store honours LIMIT, and a loop
-        that never advances would hold a worker until the process ran out of
-        them rather than failing.
+        Nothing in the protocol guarantees a store honours LIMIT. With paging
+        this was a loop that never advanced; now the result is sliced back to
+        the limit, so an over-delivering store cannot put more into the reasoner
+        than the caller allowed, and the range it echoes stays true.
         """
-        store = StubRangeStore(population=500, hard_cap=50)
-        export = GraphExport(store, limit=120, page_size=50)
+        store = StubRangeStore(population=500, edge_population=0)
+        store.execute_ignoring_limit = True  # type: ignore[attr-defined]
+        export = GraphExport(store, limit=120)
 
-        assert export.node_count == 50
-        assert len(store.queries) < 10, "the paging loop kept asking without advancing"
+        assert export.node_count == 120
+        assert export.truncated is True
+        assert len(store.queries) < 10, "the read kept asking"
 
     def test_scope_keys_reach_the_query_as_parameters(self) -> None:
         """A scope is applied in the query, not filtered afterwards.

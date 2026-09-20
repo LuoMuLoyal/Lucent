@@ -26,6 +26,12 @@ from .config import get_settings
 KIND_FACT_LIMIT = "fact_limit_exceeded"
 KIND_TIMEOUT = "reasoning_timeout"
 KIND_INPUT_TOO_LARGE = "input_too_large"
+#: A scope that matched nothing. This one is not a resource ceiling, but it
+#: belongs here because it is the same class of answer: a refusal the caller
+#: must be able to branch on. A caller that cannot tell it apart from a generic
+#: 422 will retry an unanswerable request, and one that cannot tell it apart
+#: from an empty result will report a typo as a negative finding.
+KIND_SCOPE_EMPTY = "scope_matched_nothing"
 
 
 def reject(kind: str, status_code: int, detail: str, **extra: Any) -> NoReturn:

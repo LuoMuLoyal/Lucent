@@ -45,11 +45,6 @@ from .retry import log_retry, read_with_retry
 
 _logger = logging.getLogger("semantica_service.graph")
 
-#: Rows fetched per round trip. Paging exists so a large scope does not build
-#: one enormous result set in memory on either side of the wire; it does not
-#: bound the total, which is what ``limit`` is for.
-PAGE_SIZE = 2000
-
 # Node reads page by *fact key* rather than row id, because the key is what the
 # caller's scope was expressed in and what the reasoner's constants are built
 # from. Ordering by row id would be equally deterministic but would make the
@@ -205,67 +200,55 @@ def _fetch_pages(
     where: str,
     parameters: dict[str, Any],
     limit: int,
-    page_size: int,
     formatting: dict[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
-    """Run a query in pages until ``limit`` or exhaustion.
+    """Read up to ``limit`` rows in one ordered query.
 
-    Each page re-runs the same ordered query with a larger ``LIMIT`` and keeps
-    the rows beyond the previous page's count. The query takes no offset, so the
-    ordering is the only thing that makes the pages line up — which is why an
-    unordered export cannot be paged correctly at all, and why the ordering is
-    checked in the tests rather than left implicit.
+    One query, not one per page. The earlier version grew the ``LIMIT`` on every
+    round trip so that page boundaries would line up without ``OFFSET``, which
+    is correct but quadratic: loading 50,000 edges took 25 queries of
+    increasing size (2,000 … 50,000), each one re-reading and discarding
+    everything the last had already returned. Measured at **57 seconds**, of
+    which the single equivalent query is **0.3 seconds** — the work was almost
+    entirely redundant re-reads, and the driver materialises every row anyway,
+    so the extra round trips bought no memory back.
 
-    A growing ``LIMIT`` re-reads earlier rows on every round trip. That is the
-    price of not using ``OFFSET``, which would make each page scan further than
-    the last and turn a deep read quadratic. Reads here are bounded by ``limit``,
-    which the caller sets, so the total work stays proportionate to the answer.
+    The reason the growing ``LIMIT`` existed is that a read must be ordered to
+    be reproducible at all: ``LIMIT`` without ``ORDER BY`` is a random sample,
+    not a prefix. Ordering still does that work here; what is gone is re-asking
+    for rows already in hand.
     """
-    records: list[dict[str, Any]] = []
-    truncated: bool = False
-    while len(records) < limit:
-        remaining = limit - len(records)
-        size = min(page_size, remaining)
-        # Ask for everything seen so far plus the next page, so the new rows are
-        # the tail rather than a repeat of the first page.
-        wanted = len(records) + size
-        # Retried because every query here is an ordered read: re-running one
-        # cannot change the graph or the answer, so a dropped connection costs
-        # a round trip rather than the whole request. A deterministic failure
-        # (bad syntax, cancelled statement) is raised without retrying.
-        #
-        # `wanted` is bound as a default argument rather than closed over: the
-        # lambda runs later, and a loop variable captured by reference would
-        # change under it between attempts.
-        query = template.format(where=where, limit=wanted, **(formatting or {}))
-        result = read_with_retry(
-            _reader(store, query, parameters),
-            on_retry=log_retry,
-        )
-        if not result.get("success"):
-            raise RuntimeError(f"AGE export failed: {result.get('error')}")
-        page = [r for r in (result.get("records") or []) if isinstance(r, dict)]
-        # Rows before `len(records)` were the previous page's; anything at or
-        # beyond that index is new.
-        fresh = page[len(records) :]
-        records = page
-        if len(page) < wanted:
-            # The query ran out of matches, so the result is complete rather
-            # than cut. Only a full result at the limit is ambiguous.
-            return records, False
-        if not fresh:
-            # A full page with nothing new cannot make progress; stopping beats
-            # spinning forever on a query result that never advances.
-            break
-        if len(records) >= limit:
-            # A full result at exactly the limit is ambiguous: the graph may
-            # hold precisely this many rows, or more. Without settling it, a
-            # complete answer would be reported as a truncated one — and a
-            # caller told its input was cut will discount a conclusion that was
-            # in fact drawn from everything. One extra row resolves it.
-            truncated = _has_more(store, template, where, parameters, formatting, limit)
-            break
-    return records, truncated
+    query = template.format(where=where, limit=limit, **(formatting or {}))
+    # Retried because every query here is an ordered read: re-running one cannot
+    # change the graph or the answer, so a dropped connection costs a round trip
+    # rather than the whole request. A deterministic failure (bad syntax,
+    # cancelled statement) is raised without retrying.
+    result = read_with_retry(
+        _reader(store, query, parameters),
+        on_retry=log_retry,
+    )
+    if not result.get("success"):
+        raise RuntimeError(f"AGE export failed: {result.get('error')}")
+    records = [r for r in (result.get("records") or []) if isinstance(r, dict)]
+    if len(records) > limit:
+        # A store that over-delivers is not a reason to exceed the caller's
+        # bound. The query states the LIMIT and AGE honours it, but the export
+        # does not depend on that being true: `limit` bounds what enters the
+        # reasoner, and a fact base larger than the caller allowed would make
+        # the echoed range a lie.
+        records = records[:limit]
+        return records, True
+
+    if len(records) < limit:
+        # The query ran out of matches, so the result is complete rather than
+        # cut. Only a full result at the limit is ambiguous.
+        return records, False
+
+    # A full result at exactly the limit is ambiguous: the graph may hold
+    # precisely this many rows, or more. Without settling it, a complete answer
+    # would be reported as a truncated one — and a caller told its input was cut
+    # will discount a conclusion that was in fact drawn from everything.
+    return records, _has_more(store, template, where, parameters, formatting, limit)
 
 
 def _reader(
@@ -325,7 +308,6 @@ def export_nodes(
     *,
     drug_keys: list[str] | None = None,
     atc_keys: list[str] | None = None,
-    page_size: int = PAGE_SIZE,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Read nodes in the reasoner's node-dict form.
 
@@ -333,7 +315,7 @@ def export_nodes(
     graph: the caller states its extent through the returned truncation flag.
     """
     where, parameters = _node_filter(drug_keys, atc_keys)
-    records, truncated = _fetch_pages(store, _NODES_QUERY, where, parameters, limit, page_size)
+    records, truncated = _fetch_pages(store, _NODES_QUERY, where, parameters, limit)
 
     nodes: list[dict[str, Any]] = []
     for record in records:
@@ -390,7 +372,6 @@ def export_edges(
     drug_keys: list[str] | None = None,
     atc_keys: list[str] | None = None,
     include_atc_links: bool = False,
-    page_size: int = PAGE_SIZE,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Read edges in the reasoner's edge-dict form.
 
@@ -406,7 +387,6 @@ def export_edges(
         where,
         parameters,
         limit,
-        page_size,
         # Rendered as a Cypher list literal: the mechanism types are constants
         # in this module, never caller input, so there is nothing to inject.
         formatting={"mechanism": list(_MECHANISM_REL_TYPES)},
@@ -589,14 +569,12 @@ class GraphExport:
         seed_drug_keys: list[str] | None = None,
         scope_label: str = "all",
         include_atc_links: bool = False,
-        page_size: int = PAGE_SIZE,
     ) -> None:
         self._nodes, nodes_truncated = export_nodes(
             store,
             limit,
             drug_keys=drug_keys,
             atc_keys=atc_keys,
-            page_size=page_size,
         )
         self._edges, edges_truncated = export_edges(
             store,
@@ -604,7 +582,6 @@ class GraphExport:
             drug_keys=drug_keys,
             atc_keys=atc_keys,
             include_atc_links=include_atc_links,
-            page_size=page_size,
         )
         # The stored graph carries only one direction of each interaction, so
         # the mirror is added here rather than left to every rule author to

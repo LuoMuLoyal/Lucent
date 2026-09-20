@@ -94,7 +94,7 @@ class ScopedStore(StubStore):
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
         self.parameters.append(parameters)
-        if "toLower(d.name) IN $names" in query:
+        if "toLower(d.name) IN wanted" in query:
             if not self._matching:
                 return {"success": True, "records": []}
             return {"success": True, "records": [{"key": "DB00945", "name": "Aspirin"}]}
@@ -352,7 +352,12 @@ def test_a_scope_that_matches_nothing_is_refused_not_answered(
         response = client.post("/reason", json=payload)
 
     assert response.status_code == 422
-    assert "matched nothing" in response.json()["detail"]
+    detail = response.json()["detail"]
+    # The reason is structured, not just a message: a client has to branch on
+    # this case, because it is the one refusal that resembles an answer.
+    assert detail["kind"] == "scope_matched_nothing"
+    assert "matched nothing" in detail["message"]
+    assert detail["drug_names"] == ["NotADrug"]
 
 
 def test_a_scope_resolves_to_drug_keys(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:

@@ -57,7 +57,7 @@ def test_every_resolution_query_is_ordered_before_it_limits() -> None:
     """
     store = RecordingStore(
         {
-            "toLower(d.name) IN $names": [{"key": "DB00682", "name": "Warfarin"}],
+            "toLower(d.name) IN wanted": [{"key": "DB00682", "name": "Warfarin"}],
         }
     )
     resolve_scope(store, ScopeSpec(drug_names=("warfarin",), limit=100))
@@ -76,7 +76,7 @@ def test_the_expansion_is_one_hop_not_a_transitive_closure() -> None:
     """
     store = RecordingStore(
         {
-            "toLower(d.name) IN $names": [{"key": "DB00682", "name": "Warfarin"}],
+            "toLower(d.name) IN wanted": [{"key": "DB00682", "name": "Warfarin"}],
             "MATCH (a:Drug {drugbank_id: seed})": [{"key": "DB00005", "name": "Partner"}],
         }
     )
@@ -92,7 +92,7 @@ def test_seeds_and_neighbours_are_reported_apart() -> None:
     """ "The scope is warfarin" and "warfarin plus 530 partners" differ."""
     store = RecordingStore(
         {
-            "toLower(d.name) IN $names": [{"key": "DB00682", "name": "Warfarin"}],
+            "toLower(d.name) IN wanted": [{"key": "DB00682", "name": "Warfarin"}],
             "MATCH (a:Drug {drugbank_id: seed})": [{"key": "DB00005", "name": "Partner"}],
         }
     )
@@ -109,7 +109,7 @@ def test_an_interaction_is_read_in_both_directions() -> None:
     one way only, warfarin — the most asked-about drug here — has no
     interactions at all, and the reasoning input would be empty for it.
     """
-    store = RecordingStore({"toLower(d.name) IN $names": [{"key": "DB00682", "name": "Warfarin"}]})
+    store = RecordingStore({"toLower(d.name) IN wanted": [{"key": "DB00682", "name": "Warfarin"}]})
     resolve_scope(store, ScopeSpec(drug_names=("warfarin",), limit=100))
 
     outgoing = store.query_for(")-[:INTERACTS_WITH]->(b:Drug)")
@@ -139,7 +139,7 @@ def test_a_resolution_that_hits_its_bound_says_so() -> None:
     """A silently capped scope is the same false-negative machine as a slice."""
     store = RecordingStore(
         {
-            "toLower(d.name) IN $names": [
+            "toLower(d.name) IN wanted": [
                 {"key": "DB00001", "name": "A"},
                 {"key": "DB00002", "name": "B"},
             ]
@@ -163,7 +163,7 @@ def test_a_drug_reachable_twice_appears_once() -> None:
     """Duplicates would overstate the scope in the echoed range."""
     store = RecordingStore(
         {
-            "toLower(d.name) IN $names": [{"key": "DB00682", "name": "Warfarin"}],
+            "toLower(d.name) IN wanted": [{"key": "DB00682", "name": "Warfarin"}],
             "MATCH (a:Drug {drugbank_id: seed})": [{"key": "DB00682", "name": "Warfarin"}],
         }
     )
@@ -172,9 +172,51 @@ def test_a_drug_reachable_twice_appears_once() -> None:
     assert resolved.drug_keys == ["DB00682"]
 
 
+def test_the_scope_folds_the_callers_casing() -> None:
+    """The name the caller types must not have to be lower-cased by hand.
+
+    The graph holds the display spelling and `/resolve` returns it, so a caller
+    that resolves "Clopidogrel" and passes the result back was rejected with
+    "matched nothing in the graph" -- about a drug the graph plainly holds, and
+    about the very spelling the API had just returned. Matching only the stored
+    side left the parameter named `drug_names` accepting lowercase alone.
+    """
+    store = RecordingStore(
+        {"toLower(d.name) IN wanted": [{"key": "DB00758", "name": "Clopidogrel"}]}
+    )
+
+    for spelling in ("Clopidogrel", "clopidogrel", "CLOPIDOGREL"):
+        store = RecordingStore(
+            {"toLower(d.name) IN wanted": [{"key": "DB00758", "name": "Clopidogrel"}]}
+        )
+        resolve_scope(store, ScopeSpec(drug_names=(spelling,), limit=100))
+
+        query, parameters = store.query_for("toLower(d.name) IN wanted")
+
+        assert "WITH [n IN $names | toLower(n)] AS wanted" in query, (
+            f"{spelling!r} is not folded before comparison"
+        )
+        assert parameters["names"] == [spelling], (
+            "the caller's spelling must reach the query verbatim; the fold is Cypher's job"
+        )
+
+
+def test_an_id_matches_regardless_of_case() -> None:
+    """DrugBank ids are upper-case; a caller may type them either way."""
+    store = RecordingStore(
+        {"toLower(d.name) IN wanted": [{"key": "DB00758", "name": "Clopidogrel"}]}
+    )
+
+    resolve_scope(store, ScopeSpec(drug_names=("db00758",), limit=100))
+
+    query, _ = store.query_for("toLower(d.name) IN wanted")
+
+    assert "toLower(d.drugbank_id) IN wanted" in query
+
+
 def test_labels_fold_case_to_match_the_facts() -> None:
     """`add_fact` lower-cases constants, so the label map has to fold too."""
-    store = RecordingStore({"toLower(d.name) IN $names": [{"key": "DB00682", "name": "Warfarin"}]})
+    store = RecordingStore({"toLower(d.name) IN wanted": [{"key": "DB00682", "name": "Warfarin"}]})
     resolved = resolve_scope(store, ScopeSpec(drug_names=("warfarin",), limit=100))
 
     assert resolved.labels == {"db00682": "Warfarin"}

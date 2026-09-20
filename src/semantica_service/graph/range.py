@@ -24,9 +24,18 @@ from semantica.graph_store.age_store import ApacheAgeStore
 _DRUG_COLUMN = "drugbank_id"
 _ATC_COLUMN = "code"
 
+# Names are matched case-insensitively on both sides. The graph stores the
+# display spelling ("Clopidogrel") and the caller may type any casing, so the
+# comparison lowercases the input as well as the stored value. Without this the
+# parameter named `drug_names` silently accepted only lowercase -- and rejected
+# the exact spelling `/resolve` returns, which is the spelling a caller is most
+# likely to supply. The failure text then read "matched nothing in the graph"
+# about a drug the graph plainly holds, which is precisely the false negative
+# the scope echo exists to prevent.
 _RESOLVE_DRUGS = """
+WITH [n IN $names | toLower(n)] AS wanted
 MATCH (d:Drug)
-WHERE toLower(d.name) IN $names OR d.drugbank_id IN $names
+WHERE toLower(d.name) IN wanted OR toLower(d.drugbank_id) IN wanted
 RETURN d.drugbank_id AS key, d.name AS name
 ORDER BY d.drugbank_id
 LIMIT $limit
