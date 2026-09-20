@@ -335,7 +335,9 @@ LightRAG sidecar — 中文散文检索(说明书字段级语义检索 + 医学�
 LIGHTRAG_ENABLED            # 默认 false；关闭时检索工具返回"未配置"信封，不抛错
 LIGHTRAG_BASE_URL           # 默认 http://lightrag:9621
 LIGHTRAG_API_KEY            # 启用时必填（sidecar 调用密钥）
-LIGHTRAG_TIMEOUT_MS         # 默认 8000；工具级 20s（TOOL_EXECUTION_TIMEOUT_MS）兜底
+LIGHTRAG_TIMEOUT_MS         # 默认 8000；`naive` 模式的客户端超时
+LIGHTRAG_GRAPH_TIMEOUT_MS   # 默认 60000；图模式的客户端超时（见下方说明）
+LIGHTRAG_GRAPH_SOURCES      # 默认 leaflet；逗号分隔，含义是"这些来源的图已建好"
 LIGHTRAG_WORKSPACE_LEAFLET  # 默认 leaflet
 LIGHTRAG_WORKSPACE_QA       # 默认 qa
 ```
@@ -343,6 +345,20 @@ LIGHTRAG_WORKSPACE_QA       # 默认 qa
 `LIGHTRAG_ENABLED=true` 时启动校验要求 `LIGHTRAG_API_KEY` 非空；关闭状态下残留的
 base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独立**：LightRAG 侧用自己的
 变量名与自己的凭据，即使指向同一家厂商也是两套配置、两个 key、各自轮换、各自限流。
+
+> **图模式（`local`/`global`/`hybrid`/`mix`）与这两个变量**：图模式每次查询要现调 LLM
+> 做关键词抽取、再遍历图，实测 16–29 秒（`naive` 是 352ms），因此需要一个远大于 8 秒的
+> 预算。`LIGHTRAG_GRAPH_SOURCES` 决定**哪些来源允许**图模式——它是"**索引建没建**"的
+> 运维事实，不是代码分支：没建图却放行图模式的后果**不是报错，是空结果**（图模式拿不到
+> 实体，`coverage.reason` 会如实说明）。设成空串即回到"图模式全禁"。
+>
+> 超时是三层嵌套的，改动时三个值要一起看：
+> 客户端 `LIGHTRAG_GRAPH_TIMEOUT_MS`(60s) < 工具级
+> `RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS`(65s) < 图节点
+> `ASSISTANT_NODE_TIMEOUT_MS`。客户端必须是最小的那个，超时信封里才会是
+> "检索超时"而不是工具层那句笼统的 "Tool execution timed out."。
+>
+> 依据见 `lightrag-eval/results/mode-comparison.md`（line 132-134 与结论 5）。
 
 关闭时 `search_cn_medicine_knowledge` 在 `GET /assistant/capabilities` 上报
 `disabledReason: 'retrieval_unavailable'`——中文散文检索没有降级路径，必须让客户端

@@ -63,11 +63,21 @@ sidecar**，Lucent 只做参数校验与 envelope 归一：
   `LIGHTRAG-WORKSPACE` 头）。固定带 `only_need_context=true` +
   `include_chunk_content=true`，**绝不让 sidecar 生成答案**（否则是双重生成且绕开
   安全层）。失败（超时/4xx/5xx/不可达）返回判别式结果而非抛异常。
+  客户端超时按模式分两档（`resolveTimeoutMs`）：`naive` 用
+  `LIGHTRAG_TIMEOUT_MS`(8s)，图模式用 `LIGHTRAG_GRAPH_TIMEOUT_MS`(60s)——图模式实测
+  16–29 秒，共用一个 8 秒预算会把它们全部打成超时。
 - `AssistantToolKnowledgeRetrievalService` —— `search_cn_medicine_knowledge`
   （参数 `query` / `source` / `mode` / `limit`）。它是**唯一**知道哪些参数组合
-  合法的地方：`source` 由模型给出但 **workspace 由服务端映射**；`qa` 与评测前的
-  `leaflet` 只接受 `naive`；`bypass` 与未知 mode 直接拒绝；`verifiability` 按
-  `source` 服务端写入（`qa` = `open_corpus`，`leaflet` = `citable`）。
+  合法的地方：`source` 由模型给出但 **workspace 由服务端映射**；图模式
+  （`local`/`global`/`hybrid`/`mix`）**只对已建图的来源开放**，白名单来自
+  `LIGHTRAG_GRAPH_SOURCES`（默认 `leaflet`）；`bypass` 与未知 mode 直接拒绝；
+  `verifiability` 按 `source` 服务端写入（`qa` = `open_corpus`，`leaflet` = `citable`）。
+- **图模式的启用开关是运维事实，不是代码分支**：`LIGHTRAG_GRAPH_SOURCES` 表达的是
+  "**这些来源的图已经建好了**"（建图是独立长任务，约 $0.057/doc）。没建图却放行图模式的
+  后果**不是报错，是空结果**——图模式拿不到实体。设成空串即回到"图模式全禁"。
+  超时三层嵌套，改动时要一起看：客户端 60s < `RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS`
+  65s < `ASSISTANT_NODE_TIMEOUT_MS`。依据见
+  `lightrag-eval/results/mode-comparison.md`（line 132-134 与结论 5）。
 - **服务不可用 ≠ 没有证据**：超时/5xx 写成
   `coverage.reason: '... retrieval is unavailable: ...'`，绝不静默降级成空结果。
   该状态同时经 `GET /capabilities` 暴露为

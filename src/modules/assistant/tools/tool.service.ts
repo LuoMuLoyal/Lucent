@@ -10,6 +10,7 @@ import type { AssistantToolName } from './shared/tool-types.js';
 import { ASSISTANT_READ_TOOL_NAMES } from './shared/tool-types.js';
 import {
   ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
   TOOL_EXECUTION_TIMEOUT_MS,
 } from './shared/tool-constants.js';
 import { AssistantToolKnowledgeRetrievalService } from './retrieval/knowledge.service.js';
@@ -54,7 +55,7 @@ const READ_TOOL_NAMES = new Set<AssistantToolName>(ASSISTANT_READ_TOOL_NAMES);
 
 /**
  * 单工具超时覆盖：默认 {@link TOOL_EXECUTION_TIMEOUT_MS}，只有需要在一次调用里
- * 跑多轮模型往返的工具才例外（目前只有 `reason_over_ontology`，见该常量的说明）。
+ * 跑多轮模型往返的工具才例外（`reason_over_ontology`，见该常量的说明）。
  */
 const TOOL_TIMEOUT_OVERRIDES: Partial<Record<AssistantToolName, number>> = {
   reason_over_ontology: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
@@ -62,6 +63,9 @@ const TOOL_TIMEOUT_OVERRIDES: Partial<Record<AssistantToolName, number>> = {
   // ——比一次 Cypher 读图贵得多。用同一个覆盖值，是因为瓶颈从"生成"换成了"推导"，
   // 量级相同；默认的 15s 对两者都太短。
   reason_over_rules: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  // 中文散文检索：`naive` 只要 352ms，但图模式要现调 LLM 抽关键词再遍历图，
+  // 实测 16–29 秒。工具级预算必须容得下最慢的那条路，否则"能用的模式"会被判死。
+  search_cn_medicine_knowledge: RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
 };
 
 function resolveToolTimeoutMs(toolName: AssistantToolName): number {

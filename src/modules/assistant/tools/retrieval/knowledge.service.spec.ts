@@ -19,6 +19,9 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
       [EnvKey.LIGHTRAG_BASE_URL]: 'http://lightrag:9621',
       [EnvKey.LIGHTRAG_API_KEY]: 'handshake-key',
       [EnvKey.LIGHTRAG_TIMEOUT_MS]: 8000,
+      [EnvKey.LIGHTRAG_GRAPH_TIMEOUT_MS]: 60_000,
+      // 与 `LIGHTRAG_DEFAULT_GRAPH_SOURCES` 一致：说明书侧的图是建好的。
+      [EnvKey.LIGHTRAG_GRAPH_SOURCES]: 'leaflet',
       [EnvKey.LIGHTRAG_WORKSPACE_LEAFLET]: 'leaflet',
       [EnvKey.LIGHTRAG_WORKSPACE_QA]: 'qa',
       ...envOverrides,
@@ -281,16 +284,39 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
     expect(envelope.coverage.reason).toContain('"qa"');
   });
 
-  it('rejects graph modes for leaflets until evaluation passes', async () => {
-    const fetchMock = vi.fn();
+  it('passes a graph mode through once the source has a graph built', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(leafletQueryResponse());
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const envelope = await buildService().searchCnMedicineKnowledge(
       buildContext({ query: '阿司匹林', source: 'leaflet', mode: 'local' }),
     );
 
+    expect(envelope.coverage.status).toBe('complete');
+    const result = envelope.result as { mode: string };
+    expect(result.mode).toBe('local');
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    // `request()` 把 body 序列化成 JSON 字符串；这里断言 mode 真的发到了线上，
+    // 而不只是信封里回显了它。
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body['mode']).toBe('local');
+  });
+
+  it('rejects graph modes for a source whose graph is not built', async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    // 空列表 = 没有任何来源建图，即回到"图模式全禁"。
+    const envelope = await buildService({
+      [EnvKey.LIGHTRAG_GRAPH_SOURCES]: '',
+    }).searchCnMedicineKnowledge(
+      buildContext({ query: '阿司匹林', source: 'leaflet', mode: 'local' }),
+    );
+
     expect(fetchMock).not.toHaveBeenCalled();
     expect(envelope.coverage.reason).toContain('requires a knowledge graph');
+    expect(envelope.coverage.reason).toContain('"leaflet"');
   });
 
   it('rejects bypass mode explicitly', async () => {

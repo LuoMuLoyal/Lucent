@@ -16,6 +16,7 @@ describe('LightragClientService', () => {
       [EnvKey.LIGHTRAG_BASE_URL]: 'http://lightrag:9621',
       [EnvKey.LIGHTRAG_API_KEY]: 'handshake-key',
       [EnvKey.LIGHTRAG_TIMEOUT_MS]: 8000,
+      [EnvKey.LIGHTRAG_GRAPH_TIMEOUT_MS]: 60_000,
       ...overrides,
     };
     const configService = {
@@ -23,6 +24,18 @@ describe('LightragClientService', () => {
     };
     return new LightragClientService(configService as unknown as ConfigService);
   }
+
+  it('gives graph modes a larger timeout budget than naive', () => {
+    const service = buildService();
+
+    // 图模式每次查询要现调 LLM 抽关键词再遍历图（实测 16–29 秒），
+    // 8 秒的 naive 预算会把它们全部打成超时。
+    expect(service.resolveTimeoutMs('naive')).toBe(8000);
+    expect(service.resolveTimeoutMs('local')).toBe(60_000);
+    expect(service.resolveTimeoutMs('global')).toBe(60_000);
+    expect(service.resolveTimeoutMs('hybrid')).toBe(60_000);
+    expect(service.resolveTimeoutMs('mix')).toBe(60_000);
+  });
 
   function jsonResponse(body: unknown, status = 200): Response {
     return new Response(JSON.stringify(body), {

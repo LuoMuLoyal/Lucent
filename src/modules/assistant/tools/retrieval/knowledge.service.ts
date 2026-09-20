@@ -18,8 +18,9 @@ import {
   LIGHTRAG_DEFAULT_MODE,
   LIGHTRAG_MAX_LIMIT,
   LIGHTRAG_QUERY_MODES,
+  LIGHTRAG_REJECTED_MODES,
   LIGHTRAG_SOURCES,
-  LIGHTRAG_SOURCES_WITHOUT_GRAPH,
+  parseGraphSources,
 } from '../retrieval/lightrag.types.js';
 
 /** 该工具在 `source` 判定前拒绝非法入参的统一前缀。 */
@@ -34,8 +35,9 @@ const INVALID_ARGUMENT_PREFIX =
  * 1. `source` 由模型给出，但 **workspace 由服务端映射**（模型不能直接指定
  *    workspace 名）：模型一旦能指定 workspace，就能跨库检索，`leaflet` 与 `qa`
  *    的证据分层立刻失效（计划 §5.3.1）。
- * 2. `qa` 与（评测前的）`leaflet` 都只接受 `naive`：没建图时 `local/global/mix`
- *    拿不到实体，下场是空结果；与其返回空，不如拒绝并给出原因（计划 §5.3.2/§5.3.3）。
+ * 2. 图模式（`local`/`global`/`hybrid`/`mix`）只对**已建图**的来源开放，白名单来自
+ *    `LIGHTRAG_GRAPH_SOURCES`（默认 `leaflet`）。没建图时这些模式拿不到实体，
+ *    下场是空结果；与其返回空，不如拒绝并给出原因（计划 §5.3.2/§5.3.3）。
  * 3. `bypass` 与其它非法 mode 在参数边界就被拒（计划 §5.3.4）。
  * 4. `verifiability` 由服务端按 `source` 写入，不由上游给（计划 §5.3.6）。
  */
@@ -47,6 +49,8 @@ export class AssistantToolKnowledgeRetrievalService {
 
   private readonly leafletWorkspace: string;
   private readonly qaWorkspace: string;
+  /** 已建好知识图谱、因而可接受图模式的来源。空集 = 图模式全禁。 */
+  private readonly graphSources: ReadonlySet<LightragSource>;
 
   constructor(
     private readonly lightrag: LightragClientService,
@@ -58,6 +62,11 @@ export class AssistantToolKnowledgeRetrievalService {
       'leaflet';
     this.qaWorkspace =
       this.configService.get<string>(EnvKey.LIGHTRAG_WORKSPACE_QA) ?? 'qa';
+    this.graphSources = new Set(
+      parseGraphSources(
+        this.configService.get<string>(EnvKey.LIGHTRAG_GRAPH_SOURCES),
+      ),
+    );
   }
 
   async searchCnMedicineKnowledge(
@@ -231,13 +240,16 @@ export class AssistantToolKnowledgeRetrievalService {
       return { ok: true, mode: LIGHTRAG_DEFAULT_MODE };
     }
 
-    // `bypass` 单独先判：它不在白名单里，若漏掉这一步就会落进"未知 mode"的
-    // 通用分支——虽然同样被拒，但原因读起来像笔误，而实际它是一个必须点名拒绝的
-    // 危险模式（绕过检索直接问 LLM，会绕开 Lucent 的安全层）。
-    if (raw === 'bypass') {
+    // 已知危险 mode 先判：它们不在白名单里，若漏掉这一步就会落进"未知 mode"的
+    // 通用分支——虽然同样被拒，但原因读起来像笔误，而实际上这些模式上游认得、
+    // 是能用但不该用的（`bypass` 绕过检索直接问 LLM，会绕开 Lucent 的安全层）。
+    if (
+      typeof raw === 'string' &&
+      (LIGHTRAG_REJECTED_MODES as readonly string[]).includes(raw)
+    ) {
       return {
         ok: false,
-        reason: `${INVALID_ARGUMENT_PREFIX}: "bypass" mode is not allowed.`,
+        reason: `${INVALID_ARGUMENT_PREFIX}: "${raw}" mode is not allowed.`,
       };
     }
 
@@ -248,7 +260,7 @@ export class AssistantToolKnowledgeRetrievalService {
       };
     }
 
-    if (raw !== 'naive' && LIGHTRAG_SOURCES_WITHOUT_GRAPH.includes(source)) {
+    if (raw !== 'naive' && !this.graphSources.has(source)) {
       return {
         ok: false,
         reason: `${INVALID_ARGUMENT_PREFIX}: mode "${raw}" requires a knowledge graph, which is not built for source "${source}"; use "naive".`,

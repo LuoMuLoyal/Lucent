@@ -9,6 +9,7 @@ import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.j
 import {
   MAX_TOOL_LOOPS,
   ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
   TOOL_EXECUTION_TIMEOUT_MS,
 } from '../../tools/shared/tool-constants.js';
 import type { AssistantToolName } from '../../tools/shared/tool-types.js';
@@ -66,7 +67,11 @@ const NODE_CACHE_TTL_SECONDS = 3600;
  */
 export const ASSISTANT_NODE_TIMEOUT_MS =
   AI_MODEL_TIMEOUT_MS +
-  Math.max(TOOL_EXECUTION_TIMEOUT_MS, ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS) +
+  Math.max(
+    TOOL_EXECUTION_TIMEOUT_MS,
+    ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+    RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
+  ) +
   5_000;
 
 /** Callback type for executing tools inside the graph. */

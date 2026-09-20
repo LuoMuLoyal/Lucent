@@ -31,6 +31,16 @@ export const LIGHTRAG_QUERY_MODES = [
 
 export type LightragQueryMode = (typeof LIGHTRAG_QUERY_MODES)[number];
 
+/**
+ * 已知的危险 mode：必须**点名**拒绝，而不是落进"未知 mode"的通用分支。
+ *
+ * 上游认得这些值，所以它们不是笔误——是能用、但不该用的模式。`bypass` 绕过检索
+ * 直接问 LLM，既是双重生成也绕开了 Lucent 的安全层（计划 §5.3.4）。列在这里而不是
+ * 在工具层写 `raw === 'bypass'`：将来上游再加一个同类模式时，只需要在这个词表里
+ * 补一项，不必到调用点找那行字面量比较。
+ */
+export const LIGHTRAG_REJECTED_MODES = ['bypass'] as const;
+
 /** Lucent 侧允许模型选择的检索来源（服务端映射到 workspace，模型不能直接指定 workspace 名）。 */
 export const LIGHTRAG_SOURCES = ['leaflet', 'qa'] as const;
 
@@ -44,16 +54,38 @@ export const LIGHTRAG_DEFAULT_LIMIT = 4;
 export const LIGHTRAG_MAX_LIMIT = 8;
 
 /**
- * 未通过建图评测前只开放 `naive` 的来源。
+ * 把 `LIGHTRAG_GRAPH_SOURCES`（逗号分隔）解析成来源集合。
  *
- * `qa` 永远不建图（全量抽取的墙钟成本在数千小时量级），`leaflet` 在 P2 评测
- * 证明图模式有收益前也不建图——没建图时 `local/global/mix` 拿不到实体、下场是空
- * 结果，不如直接拒绝并给出 reason。
+ * 语义是"**这些来源的知识图谱已经建好了**"——即它们可以接受图模式
+ * （`local`/`global`/`hybrid`/`mix`）。这取决于**索引建没建**，是一件运维事实，
+ * 不是一个代码分支：建图是独立的长任务（约 $0.057/doc；说明书侧按
+ * `lightrag-eval/results/mode-comparison.md` 的实测速率外推是数百小时量级），
+ * 所以这个开关必须能跟着索引状态走，而不必重新发版。
+ *
+ * 背景：`mode-comparison.md` 结论 4 明确写着「`leaflet` 建图当前保持 off 是
+ * "**待验证前的默认**"，不是"已验证的结论"」——所以这里的默认值是待验证状态下的
+ * 选择，不是对图模式优劣的判定。
+ *
+ * 未知值**丢弃而不报错**：那是配置笔误，不是请求参数错误——请求参数的白名单校验
+ * 在 `AssistantToolKnowledgeRetrievalService.parseMode`，两者不该混成同一个错误。
+ * 返回空数组是合法结果，含义是"没有任何来源建了图"，即图模式全禁。
+ *
+ * 注意：没建图却放行图模式的后果**不是报错，是空结果**（图模式拿不到实体）。
+ * 契约层会把原因如实写进 `coverage.reason`，但配置与索引状态应当保持一致。
  */
-export const LIGHTRAG_SOURCES_WITHOUT_GRAPH: readonly LightragSource[] = [
-  'leaflet',
-  'qa',
-];
+export function parseGraphSources(
+  raw: string | undefined | null,
+): LightragSource[] {
+  if (raw == null) {
+    return [];
+  }
+  return raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part): part is LightragSource =>
+      (LIGHTRAG_SOURCES as readonly string[]).includes(part),
+    );
+}
 
 /** 说明书 chunk 的来源字段（灌入时写入 metadata，查询侧用于溯源）。 */
 export const LIGHTRAG_METADATA_LEAFLET_ID = 'leafletId';

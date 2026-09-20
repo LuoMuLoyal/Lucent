@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import type { core } from 'zod';
 import { EnvKey } from './env-keys.enum.js';
+import {
+  LIGHTRAG_DEFAULT_BASE_URL,
+  LIGHTRAG_DEFAULT_GRAPH_SOURCES,
+  LIGHTRAG_DEFAULT_TIMEOUT_MS,
+  LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS,
+  SEMANTICA_DEFAULT_BASE_URL,
+  SEMANTICA_DEFAULT_TIMEOUT_MS,
+} from './sidecar-defaults.js';
 
 /**
  * Supported runtime environments.
@@ -307,14 +315,27 @@ const envSchema = z.object({
   // 默认关闭:未开启时工具返回"未配置"信封而不报错(计划 §4.1)。
   // LIGHTRAG_API_KEY 在启用时为必填,由 assertLightragEnvironment 交叉校验。
   [EnvKey.LIGHTRAG_ENABLED]: z.enum(['true', 'false']).default('false'),
-  [EnvKey.LIGHTRAG_BASE_URL]: z.string().default('http://lightrag:9621'),
+  [EnvKey.LIGHTRAG_BASE_URL]: z.string().default(LIGHTRAG_DEFAULT_BASE_URL),
   [EnvKey.LIGHTRAG_API_KEY]: optionalString,
   [EnvKey.LIGHTRAG_TIMEOUT_MS]: z.coerce
     .number()
     .int()
     .min(100)
     .max(60000)
-    .default(8000),
+    .default(LIGHTRAG_DEFAULT_TIMEOUT_MS),
+  // 图模式的独立预算。上限放到 120000（与 SEMANTICA_TIMEOUT_MS 同级）而不是
+  // 复用上面那个 60000 天花板：实测最慢的 global 已到 28.5s，60s 顶格后没有余量。
+  [EnvKey.LIGHTRAG_GRAPH_TIMEOUT_MS]: z.coerce
+    .number()
+    .int()
+    .min(100)
+    .max(120000)
+    .default(LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS),
+  // 逗号分隔的来源列表,含义是"这些来源的图已经建好了"。
+  // 空串是合法值(没有任何来源建图 → 图模式全禁,回到旧行为),所以不能只做非空校验。
+  [EnvKey.LIGHTRAG_GRAPH_SOURCES]: z
+    .string()
+    .default(LIGHTRAG_DEFAULT_GRAPH_SOURCES),
   [EnvKey.LIGHTRAG_WORKSPACE_LEAFLET]: z.string().default('leaflet'),
   [EnvKey.LIGHTRAG_WORKSPACE_QA]: z.string().default('qa'),
 
@@ -325,13 +346,13 @@ const envSchema = z.object({
   // 超时下限要大于 sidecar 自己的 statement_timeout(默认 15s),否则
   // "查询太慢"会先被客户端掐断,拿不到 sidecar 的结构化超时报错。
   [EnvKey.SEMANTICA_ENABLED]: z.enum(['true', 'false']).default('false'),
-  [EnvKey.SEMANTICA_BASE_URL]: z.string().default('http://semantica:8099'),
+  [EnvKey.SEMANTICA_BASE_URL]: z.string().default(SEMANTICA_DEFAULT_BASE_URL),
   [EnvKey.SEMANTICA_TIMEOUT_MS]: z.coerce
     .number()
     .int()
     .min(100)
     .max(120000)
-    .default(20000),
+    .default(SEMANTICA_DEFAULT_TIMEOUT_MS),
 
   // ── Metrics auth (sensitive, in .env) ────────────────────────────
   [EnvKey.METRICS_USER]: optionalString,

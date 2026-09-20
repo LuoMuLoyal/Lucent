@@ -76,6 +76,21 @@ export const TOOL_EXECUTION_TIMEOUT_MS = 20_000;
  */
 export const ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS = 45_000;
 
+/**
+ * `search_cn_medicine_knowledge` 的执行超时。
+ *
+ * 通用 20s 预算按 `naive`（纯向量检索，实测 352ms）定的；图模式
+ * （`local`/`global`/`hybrid`/`mix`）每次查询都要现调 LLM 做关键词抽取再遍历图，
+ * 实测 16–29 秒——20s 会被打成超时，工具等于不可用
+ * （`lightrag-eval/results/mode-comparison.md` line 132-134 的原话是
+ * "工具级 `TOOL_EXECUTION_TIMEOUT_MS` 20s 也未必够"）。
+ *
+ * 必须**大于**客户端的图模式超时（`LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS` = 60s），
+ * 否则客户端还没来得及报"检索超时"，工具层就先把它判死了——那样 timeout 信封里
+ * 只剩一句笼统的 "Tool execution timed out."，丢掉了真正有用的原因。
+ */
+export const RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS = 65_000;
+
 /** Scoring weights used when ranking daily-record mutation targets. */
 export const MUTATION_MATCH_WEIGHTS = {
   kind: 10,

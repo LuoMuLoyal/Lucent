@@ -16,12 +16,17 @@ import {
   LIGHTRAG_METADATA_SOURCE_FIELD,
 } from './lightrag.types.js';
 
-/**
- * 与 zod 校验层默认值一致的兜底值（zod `.default()` 已写入 process.env，
- * 这里只兜住"直接构造 ConfigService 的测试/异常路径"）。
- */
-const FALLBACK_BASE_URL = 'http://lightrag:9621';
-const FALLBACK_TIMEOUT_MS = 8000;
+import {
+  LIGHTRAG_DEFAULT_BASE_URL,
+  LIGHTRAG_DEFAULT_TIMEOUT_MS,
+  LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS,
+} from '../../../../config/env/sidecar-defaults.js';
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_FORBIDDEN,
+  HTTP_STATUS_UNAUTHORIZED,
+  HTTP_STATUS_UNPROCESSABLE_ENTITY,
+} from '../../../../common/constants/http-status.js';
 
 /** 错误 body 只截前 300 字符进日志：日志要的是线索，不是整段 HTML。 */
 const MAX_ERROR_BODY_LOG_CHARS = 300;
@@ -45,12 +50,6 @@ const AUTH_HEADER_NAME = 'X-API-Key';
 /** workspace 头（上游 `get_workspace_from_request` 读的就是它）。 */
 const WORKSPACE_HEADER_NAME = 'LIGHTRAG-WORKSPACE';
 
-/** HTTP 状态码分类边界。 */
-const HTTP_STATUS_BAD_REQUEST = 400;
-const HTTP_STATUS_UNAUTHORIZED = 401;
-const HTTP_STATUS_FORBIDDEN = 403;
-const HTTP_STATUS_UNPROCESSABLE = 422;
-
 /**
  * Lucent → LightRAG sidecar 的 HTTP 客户端。
  *
@@ -71,20 +70,24 @@ export class LightragClientService {
   private readonly baseUrl: string;
   private readonly apiKey: string | null;
   private readonly timeoutMs: number;
+  private readonly graphTimeoutMs: number;
 
   constructor(private readonly configService: ConfigService) {
     this.enabled =
       this.configService.get<string>(EnvKey.LIGHTRAG_ENABLED) === 'true';
     this.baseUrl = (
       this.configService.get<string>(EnvKey.LIGHTRAG_BASE_URL) ??
-      FALLBACK_BASE_URL
+      LIGHTRAG_DEFAULT_BASE_URL
     ).replace(/\/+$/, '');
     const apiKey =
       this.configService.get<string>(EnvKey.LIGHTRAG_API_KEY)?.trim() ?? '';
     this.apiKey = apiKey.length > 0 ? apiKey : null;
     this.timeoutMs =
       this.configService.get<number>(EnvKey.LIGHTRAG_TIMEOUT_MS) ??
-      FALLBACK_TIMEOUT_MS;
+      LIGHTRAG_DEFAULT_TIMEOUT_MS;
+    this.graphTimeoutMs =
+      this.configService.get<number>(EnvKey.LIGHTRAG_GRAPH_TIMEOUT_MS) ??
+      LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS;
 
     if (this.enabled && this.apiKey == null) {
       // 启动期 zod 交叉校验已拦过这一条；这里兜住"运行中被改了配置"的窄情形，
@@ -98,6 +101,20 @@ export class LightragClientService {
   /** sidecar 是否已启用且具备鉴权条件。 */
   isEnabled(): boolean {
     return this.enabled && this.apiKey != null;
+  }
+
+  /**
+   * 该检索模式该用哪个客户端超时。
+   *
+   * `naive` 是纯向量检索（实测 352ms），8 秒足够；图模式每次查询都要现调 LLM 做
+   * 关键词抽取、再遍历图（实测 16–29 秒），必须换成图模式预算，否则"能用的模式"
+   * 会被超时统一打成失败（`mode-comparison.md` line 132-134）。
+   *
+   * 放在客户端而不是工具层：超时信封里的原因要能说清是"检索超时"，
+   * 而不是让工具层用一句笼统的 "Tool execution timed out." 盖掉。
+   */
+  resolveTimeoutMs(mode: LightragQueryMode): number {
+    return mode === 'naive' ? this.timeoutMs : this.graphTimeoutMs;
   }
 
   /** 未启用时的统一失败结果，供工具层直接产出"未配置"信封。 */
@@ -129,12 +146,14 @@ export class LightragClientService {
       return { ok: false, failure: this.buildDisabledFailure() };
     }
 
+    const mode = input.mode ?? LIGHTRAG_DEFAULT_MODE;
     const response = await this.request('/query', {
       method: 'POST',
       workspace: input.workspace,
+      timeoutMs: this.resolveTimeoutMs(mode),
       body: {
         query: input.query,
-        mode: input.mode ?? LIGHTRAG_DEFAULT_MODE,
+        mode,
         only_need_context: true,
         include_references: true,
         include_chunk_content: true,
@@ -174,6 +193,7 @@ export class LightragClientService {
     const response = await this.request('/health', {
       method: 'GET',
       workspace: null,
+      timeoutMs: this.timeoutMs,
       body: null,
     });
 
@@ -185,15 +205,16 @@ export class LightragClientService {
   /**
    * 发一次请求并把非 2xx / 网络错误归一成 {@link LightragCallFailure}。
    *
-   * `timeoutMs` 是**客户端**超时：它比工具级 `TOOL_EXECUTION_TIMEOUT_MS` 短，
-   * 这样超时原因能由本层说清楚（"检索超时"）而不是落到工具层那个笼统的
-   * "Tool execution timed out."。
+   * `timeoutMs` 由调用方按检索模式给出（见 {@link resolveTimeoutMs}），且必须
+   * **小于**工具级 `RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS`：这样超时原因能由本层
+   * 说清楚（"检索超时"），而不是落到工具层那句笼统的 "Tool execution timed out."。
    */
   private async request(
     path: string,
     options: {
       method: 'GET' | 'POST';
       workspace: string | null;
+      timeoutMs: number;
       body: Record<string, unknown> | null;
     },
   ): Promise<
@@ -218,7 +239,7 @@ export class LightragClientService {
         headers,
         // exactOptionalPropertyTypes: `undefined` 不能赋给 BodyInit | null，显式用 null。
         body: options.body == null ? null : JSON.stringify(options.body),
-        signal: AbortSignal.timeout(this.timeoutMs),
+        signal: AbortSignal.timeout(options.timeoutMs),
       });
     } catch (error) {
       // 网络层失败（超时/连接拒绝/DNS）在这里落地为判别式结果，绝不抛出：
@@ -228,7 +249,10 @@ export class LightragClientService {
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return { ok: false, failure: this.classifyNetworkError(error) };
+      return {
+        ok: false,
+        failure: this.classifyNetworkError(error, options.timeoutMs),
+      };
     }
 
     if (!response.ok) {
@@ -261,7 +285,10 @@ export class LightragClientService {
     }
   }
 
-  private classifyNetworkError(error: unknown): LightragCallFailure {
+  private classifyNetworkError(
+    error: unknown,
+    timeoutMs: number,
+  ): LightragCallFailure {
     const isTimeout =
       error instanceof Error &&
       (error.name === 'TimeoutError' || error.name === 'AbortError');
@@ -269,7 +296,7 @@ export class LightragClientService {
     return isTimeout
       ? {
           kind: 'timeout',
-          reason: `LightRAG retrieval timed out after ${String(this.timeoutMs)}ms.`,
+          reason: `LightRAG retrieval timed out after ${String(timeoutMs)}ms.`,
           status: null,
         }
       : {
@@ -313,7 +340,7 @@ export class LightragClientService {
     }
     if (
       status === HTTP_STATUS_BAD_REQUEST ||
-      status === HTTP_STATUS_UNPROCESSABLE
+      status === HTTP_STATUS_UNPROCESSABLE_ENTITY
     ) {
       return {
         kind: 'bad_request',
