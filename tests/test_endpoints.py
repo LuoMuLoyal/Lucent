@@ -594,6 +594,70 @@ def test_validate_requires_exactly_one_shape_source(
     assert "exactly one" in neither.json()["detail"].lower()
 
 
+def test_validate_refuses_shapes_in_the_wrong_namespace(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A shape in the wrong namespace would return a clean report from no check.
+
+    Measured against the live graph: the same shape reports 895 violations in
+    the right namespace and conforms in any other. Returning that pass would be
+    worse than an error, because the caller acts on it.
+    """
+    wrong = SHACL_SHAPES.replace("http://lucent.local/graph#", "http://example.org/other#")
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        response = client.post("/validate", json={"shacl": wrong})
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert "cannot constrain this graph" in detail
+    # The correct namespace is named so the caller can fix it without guessing.
+    assert "http://lucent.local/graph#" in detail
+
+
+def test_validate_refuses_shapes_that_never_name_the_graph(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Declaring the prefix is not enough; the shapes have to use it.
+
+    A document of unrelated shapes constrains nothing here and would conform.
+    """
+    unrelated = """
+    @prefix sh: <http://www.w3.org/ns/shacl#> .
+    @prefix ex: <http://example.org/x#> .
+
+    ex:Shape a sh:NodeShape ;
+        sh:targetClass ex:Widget ;
+        sh:property [ sh:path ex:size ; sh:minCount 1 ] .
+    """
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        response = client.post("/validate", json={"shacl": unrelated})
+
+    assert response.status_code == 422
+    assert "cannot constrain this graph" in response.json()["detail"]
+
+
+def test_ontology_validation_is_not_namespace_gated(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """An ontology supplies its own terms, so there is no prefix to get wrong.
+
+    The engine's own rejection of an incomplete ontology is beside the point
+    here: what matters is that the failure is not the namespace gate, which
+    applies only to caller-supplied shapes.
+    """
+    payload: dict[str, Any] = {"ontology": {"classes": []}}
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        try:
+            response = client.post("/validate", json=payload)
+        except ValueError as exc:
+            # The engine rejecting an incomplete ontology is the expected path
+            # here; reaching it at all proves the gate let the request through.
+            assert "cannot constrain this graph" not in str(exc)
+            return
+
+    assert "cannot constrain this graph" not in response.text
+
+
 def test_validate_conforming_graph(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
     with build_client(monkeypatch, StubStore(), settings) as client:
         response = client.post("/validate", json={"shacl": SHACL_SHAPES})

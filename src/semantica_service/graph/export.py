@@ -94,6 +94,16 @@ LIMIT {limit}
 # and turn a targeted question into a whole-graph load by way of two hops.
 _EXCLUDED_REL_TYPES = ("IN_ATC_CLASS", "SUBCLASS_OF")
 
+#: The namespace every exported term lives in. A caller writing SHACL shapes has
+#: to use exactly this IRI, and getting it wrong is not a loud failure: a shape
+#: whose terms match nothing selects no targets, so SHACL reports "conforms" and
+#: the caller reads a clean bill of health off a check that never ran. It is
+#: exported so the shape gate can compare against it rather than repeat it.
+GRAPH_NAMESPACE = "http://lucent.local/graph#"
+
+#: The Turtle prefix bound to :data:`GRAPH_NAMESPACE` in the export.
+GRAPH_PREFIX = "lucent"
+
 
 @dataclass
 class ExportRange:
@@ -629,7 +639,7 @@ class GraphExport:
         shape author can look up.
         """
         lines = [
-            "@prefix lucent: <http://lucent.local/graph#> .",
+            f"@prefix lucent: <{GRAPH_NAMESPACE}> .",
             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .",
             "",
         ]

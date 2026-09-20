@@ -14,7 +14,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from semantica.ontology.engine import OntologyEngine
 
-from ..graph import GraphExport, StorePool
+from ..graph import GRAPH_NAMESPACE, GRAPH_PREFIX, GraphExport, StorePool
+from ..graph.shapes import check_shape_namespaces
 from .schemas import ValidateRequest, ValidateResponse, Violation
 
 router = APIRouter(tags=["validate"])
@@ -56,12 +57,30 @@ def validate(request: Request, body: ValidateRequest) -> JSONResponse:
     Exactly one of ``shacl`` / ``ontology`` must be supplied — semantica raises
     when given both or neither, and rejecting it here yields a clear 422
     instead of a 500 from inside the engine.
+
+    Shapes whose terms do not resolve into the graph's namespace are refused
+    rather than run. SHACL reports "conforms" for a shape that selects no
+    targets, so running them would return a clean report from a check that
+    never happened — and a false pass is worse than an error, because the
+    caller acts on it.
     """
     if (body.shacl is None) == (body.ontology is None):
         raise HTTPException(
             status_code=422,
             detail="Supply exactly one of 'shacl' or 'ontology', not both or neither.",
         )
+
+    if body.shacl is not None:
+        report = check_shape_namespaces(body.shacl)
+        if not report.ok:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "The shapes cannot constrain this graph: "
+                    + " ".join(report.problems)
+                    + f" The export uses @prefix {GRAPH_PREFIX}: <{GRAPH_NAMESPACE}> ."
+                ),
+            )
 
     pool: StorePool = request.app.state.pool
     settings = request.app.state.settings
