@@ -10,10 +10,24 @@ the graph. It therefore holds **no LLM credentials**.
 
 ## Status
 
-Working locally against a real AGE database: connection pool, `/health`,
-`/schema`, `/query`, `/validate`, `/reason` and `/provenance`. Wired into Lucent
-(assistant tool `reason_over_ontology`); not yet deployed as a container image.
+Working locally against a real AGE database (3,278 nodes / 211,630 edges):
+connection pool, `/health`, `/schema`, `/query`, `/validate`, `/reason`,
+`/rules` and `/provenance`. Wired into Lucent (assistant tool
+`reason_over_ontology`); not yet deployed as a container image.
 See `docs/VERIFICATION.md` for measured results and known gaps.
+
+Two graph-data gaps are handled rather than inherited, and both were measured
+before being fixed:
+
+- **Interactions were stored one-directionally.** Only 4,218 of 19,842 source
+  rows named a drug in the source column, so 80 of the graph's 895 drugs never
+  appear as a source — warfarin among them, with 0 outgoing edges and 530
+  incoming. An outgoing-only traversal therefore answered "warfarin interacts
+  with nothing". The export now mirrors symmetric relations and records the
+  original direction as metadata.
+- **SHACL validation could pass vacuously.** A shape in the wrong namespace
+  selects no targets and is reported as conforming. `/validate` now refuses such
+  shapes instead.
 
 ## Requirements
 
@@ -45,6 +59,7 @@ uv run uvicorn semantica_service.main:app --reload --port 8099
 | `POST /query` | Execute one read-only Cypher statement |
 | `POST /validate` | SHACL validation of the graph |
 | `POST /reason` | Datalog inference over the graph |
+| `GET /rules` | The versioned rule library, so a caller can discover intents |
 | `GET /openapi.json` | Schema, used to generate the Lucent client |
 
 `/health` returns **503** when the graph is unreachable, so a load balancer
@@ -206,17 +221,58 @@ Rules use semantica's textual Datalog syntax, including inequalities:
 ```jsonc
 {
   "load_from_graph": true,
-  "rules": [
-    {"rule": "shares_target(X, Y) :- targets(X, P), targets(Y, P), X != Y."}
-  ],
-  "query": "shares_target(db00945, ?Y)"
+  "scope": {"drug_names": ["warfarin"]},
+  "intent": "interaction",
+  "query": "potential_ddi(db00682, ?Y)"
 }
 ```
 
 Facts are keyed by each node's canonical identifier (`drugbank_id`,
 `uniprot_id`), not AGE's row id — row ids would make every derived fact read
-`shares_target(844424930131970, ...)`. `add_fact` lowercases constants, so
-results are ids rather than display names.
+`potential_ddi(844424930131970, ...)`. `add_fact` lowercases constants, so
+results are ids rather than display names; `labels` maps them back.
+
+**A graph-backed run must state its scope.** Supply `scope` (drug names, ATC
+prefixes) or `scope_all: true`; neither is a 422. Datalog has no negation, so
+"not derived" is its only answer for "not present" — and that answer carries
+information only if the caller knows what was loaded. The response echoes the
+extent it reached in `range` (`node_count`, `edge_count`, `truncated`, `limit`),
+and a scope that matches nothing is refused rather than answered, so a typo'd
+drug name cannot come back as a clean negative finding.
+
+**Naming a rule instead of sending one.** `intent` or `rule_id` selects a rule
+from the versioned library in `rules/reasoning.yaml` (list them with `GET
+/rules`). The response then carries `rule` and a `conclusions` list: one entry
+per fact the rule's own head predicate produced, each with
+`verifiability: "derived"`, the `rule_id`, and the premises it rests on.
+
+```jsonc
+"conclusions": [
+  {
+    "fact": "potential_ddi(db00091, db00208)",
+    "subject": "db00091",
+    "predicate": "potential_ddi",
+    "object": "db00208",
+    "rule_id": "potential_ddi_inhibitor_substrate",
+    "verifiability": "derived",          // never presented as an assertion
+    "citations": ["lucent:drugbank_drugs/DB00091/…/enzyme/INHIBITS"],
+    "uncited_premises": ["substrate_of(db00208, p10635)"]
+  }
+]
+```
+
+Only the rule's head becomes a conclusion: `derive_all` returns the whole fact
+base, and reporting every fact would present the premises as findings. Each
+premise is resolved through `fact_assertions` to the `prov` id of the edge that
+asserts it; a premise with no id moves to `uncited_premises` rather than being
+dropped, because a conclusion resting partly on uncitable evidence is still a
+conclusion and hiding that would overstate it. `conclusions_complete` is `false`
+when premise recovery stopped before covering every conclusion — a conclusion
+with no citations then means "not looked up yet", not "rests on nothing".
+
+Rule text sent in `rules` is still accepted and still derives facts, but it
+produces no attributed conclusions: a fact can only be cited to a reviewed rule,
+and an inline rule has no id to cite.
 
 ### /validate
 
@@ -224,6 +280,16 @@ Supply **exactly one** of `shacl` (Turtle shapes) or `ontology` (shapes are
 derived from it); semantica rejects both-or-neither, surfaced here as 422. The
 graph is exported from AGE as Turtle first, so a graph with no nodes returns
 422 rather than the vacuous "conforms".
+
+**Shapes must be able to select targets in this graph.** A shape whose terms
+resolve to a namespace the data does not use selects nothing, constrains
+nothing, and is reported as conforming — a clean pass from a check that never
+ran. Measured on the live graph with a shape requiring a property that does not
+exist: **895 violations** in the correct namespace
+(`http://lucent.local/graph#`), **conforms** in any other. So a shape is refused
+(422) when the graph's prefix is bound to a different IRI, or when no term in it
+falls in the graph's namespace at all. `ontology` validation is not gated: an
+ontology carries its own terms, so there is no prefix to get wrong.
 
 
 ## Development
@@ -237,7 +303,7 @@ uv run mypy src tests    # types
 
 ## Design constraints
 
-Two constraints shape the code and should not be relaxed:
+Three constraints shape the code and should not be relaxed:
 
 1. **Every handler is a synchronous `def`.** `psycopg2`, the Datalog fixpoint
    and pyshacl are blocking or CPU-bound. FastAPI runs synchronous handlers in
@@ -246,9 +312,60 @@ Two constraints shape the code and should not be relaxed:
 2. **Requests borrow a connection; there is no global store.** A single shared
    `ApacheAgeStore` holds one connection and measured 2.9x slower at 16
    concurrent callers.
+3. **A graph read is reproducible or it is not trusted.** Every exported query
+   orders before it limits: `LIMIT` without `ORDER BY` is a random sample, not a
+   prefix, so two identical requests would load different edges and an empty
+   derivation would mean nothing. Paging advances by growing the `LIMIT` rather
+   than using `OFFSET`, which would make each page scan further than the last.
 
 Every pooled connection carries a `statement_timeout`. A variable-length Cypher
 path on a dense graph can otherwise run for minutes.
+
+## Operations
+
+**Retry.** Graph reads are retried on failures classified as transient (a
+dropped connection, a pooler restart) and raised immediately on failures that
+will repeat identically (a syntax error, a cancelled statement, a missing
+graph). Retrying is safe because the reads are idempotent — ordered
+`MATCH ... RETURN` only — not because optimism is warranted; retrying a
+deterministic failure would spend the caller's budget to arrive at the same
+error, later, while hiding it behind a longer wait.
+
+**Logging.** `LOG_FORMAT=json` (default) emits one JSON object per line with the
+event name in `event` and its values as fields; `LOG_FORMAT=text` renders the
+same fields for a human. The numbers are the point: whether a scope was
+truncated and how many facts a fixpoint produced are what decide whether an
+answer means anything, and they are useless buried in prose. Two lines answer
+the question that matters — was that empty result a finding or an empty input:
+
+```json
+{"event": "export_loaded", "scope": "explicit", "nodes": 541, "edges": 33350, "truncated": true}
+{"event": "reason_finished", "facts": 78159, "conclusions": 27683, "rule": "potential_ddi_inhibitor_substrate"}
+```
+
+**Verification scripts.** Each asserts a property that cannot be checked without
+a real database, and each prints what it measured:
+
+```bash
+uv run python scripts/check_reason_range.py    # determinism, scope, truncation, ceilings
+uv run python scripts/check_reason_rule.py     # conclusion -> premise -> prov citation chain
+uv run python scripts/check_shapes.py          # a shape really constrains the graph
+uv run python scripts/check_transport.py       # retry recovers; counts in logs are real
+uv run python scripts/check_orientation.py     # no interaction is one-directional
+```
+
+## Settings
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `AGE_DSN` | local dev | libpq string for the AGE database |
+| `GRAPH_NAME` | `lucent_graph` | AGE graph to read |
+| `STATEMENT_TIMEOUT_MS` | `15000` | Per-statement ceiling, asserted on every connection |
+| `MAX_REASONING_FACTS` | `50000` | Refuses a fixpoint larger than this |
+| `REASONING_TIMEOUT_S` | `30` | Wall-clock ceiling on the fixpoint |
+| `RULES_DIR` | *(shipped)* | Mount a reviewed rule set without rebuilding the image |
+| `LOG_LEVEL` | `INFO` | Root log level |
+| `LOG_FORMAT` | `json` | `json` or `text` |
 
 ## Layout
 
@@ -256,7 +373,13 @@ path on a dense graph can otherwise run for minutes.
 src/semantica_service/
 ├── main.py          application factory and lifespan
 ├── config.py        environment-backed settings
-├── graph/           AGE connection pool
+├── logging_setup.py structured logging (JSON / text)
+├── reasoning_limits.py  fact and wall-clock ceilings
+├── graph/           AGE connection pool, scoped export, retry, shapes, orientation
+├── reasoning/       the versioned rule library and premise recovery
 ├── provenance/      provenance ids, citation lookup, PROV-O rendering
 └── routes/          HTTP endpoints
+
+rules/reasoning.yaml the versioned rule library
+scripts/check_*.py   verifications that need a real database
 ```
