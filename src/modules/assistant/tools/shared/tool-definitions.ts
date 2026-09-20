@@ -88,7 +88,7 @@ const CN_MEDICINE_KNOWLEDGE_PARAMETERS = {
     mode: {
       type: 'string',
       enum: [...LIGHTRAG_QUERY_MODES],
-      description: `Retrieval mode. Defaults to "${LIGHTRAG_DEFAULT_MODE}". Only "naive" is accepted today — the knowledge graph that "local"/"global"/"hybrid"/"mix" require is not built, and "bypass" is rejected.`,
+      description: `Retrieval mode. "${LIGHTRAG_DEFAULT_MODE}" (default) = vector similarity over text chunks: fast, and the right choice for a single fact (one dosage, one contraindication). "local"/"global"/"hybrid"/"mix" = graph-augmented retrieval: they traverse a knowledge graph of entities and relations, which surfaces evidence spread across several documents that vector search alone misses — use one of these when the question needs cross-document connection (e.g. what several drugs interact with), not for single-fact lookups. They are much slower (tens of seconds) because they first call a model to extract keywords. The graph is built for "leaflet" only, so "qa" accepts "${LIGHTRAG_DEFAULT_MODE}" alone; "bypass" is rejected.`,
     },
     limit: {
       type: 'integer',
