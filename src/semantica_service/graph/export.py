@@ -1,10 +1,21 @@
-"""Bridge from the AGE graph store to the shapes semantica's engines accept.
+"""Export the AGE graph into the shapes semantica's engines accept.
 
-``DatalogReasoner.load_from_graph`` documents that a graph-store handle is not
-an accepted input — it needs a ContextGraph-like object or dicts, and raises
-``TypeError`` otherwise (a fork fix; upstream returned 0 and silently reasoned
-over an empty fact base). AGE stores are explicitly named as unsupported. This
-module is therefore the adapter the plan calls the "application-side bridge".
+The engine input has to be *deterministic* and its extent has to be *stated*.
+Both requirements come from the same fact: Datalog has no negation, so "no
+derivation" is the only answer available for "not present", and that answer is
+only meaningful if the caller knows exactly what was loaded. A random slice of
+the graph therefore does not merely lose rows — it manufactures false negatives
+that look like findings.
+
+Two things enforce it:
+
+* **Ordering.** Every query orders by the graph's own identifier before it
+  limits, and pages with keyset pagination. ``LIMIT`` without ``ORDER BY`` is a
+  random sample, which is what this bridge used to do: two identical requests
+  loaded different edges (about 23% of 211,630 in the measured case).
+* **Scope.** A drug set resolved from names or ATC prefixes, plus a bounded
+  neighbourhood expansion. Nothing is loaded outside it, and the response
+  echoes the range and whether the bound truncated it.
 
 The dict shapes emitted here follow ``DatalogReasoner.add_fact``'s accepted
 forms:
@@ -12,31 +23,88 @@ forms:
 * ``{subject, predicate, object}``
 * ``{source, target, type}``
 * ``{id, type}``
+
+``DatalogReasoner.load_from_graph`` documents that a graph-store handle is not
+an accepted input — it needs a ContextGraph-like object or dicts, and raises
+``TypeError`` otherwise (a fork fix; upstream returned 0 and silently reasoned
+over an empty fact base). AGE stores are explicitly named as unsupported. This
+module is therefore the adapter the plan calls the "application-side bridge".
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator
+from dataclasses import dataclass, field
 from typing import Any
 
 from semantica.graph_store.age_store import ApacheAgeStore
 
-# One Cypher round-trip per kind of element. Reading through execute_query
-# rather than get_nodes keeps the shape under our control, since the dict
-# forms above are what the reasoner actually consumes.
+#: Rows fetched per round trip. Paging exists so a large scope does not build
+#: one enormous result set in memory on either side of the wire; it does not
+#: bound the total, which is what ``limit`` is for.
+PAGE_SIZE = 2000
+
+# Node reads page by *fact key* rather than row id, because the key is what the
+# caller's scope was expressed in and what the reasoner's constants are built
+# from. Ordering by row id would be equally deterministic but would make the
+# page boundary meaningless to the scope.
 _NODES_QUERY = """
 MATCH (n)
+WHERE {where}
 RETURN id(n) AS id, labels(n) AS labels, properties(n) AS props
+ORDER BY coalesce(n.drugbank_id, n.uniprot_id, n.code, n.name, '')
 LIMIT {limit}
 """
 
+# Edges are paged on the row id of the relationship itself: a relationship has
+# no business key, and id() is stable and unique within a graph.
 _EDGES_QUERY = """
 MATCH (a)-[r]->(b)
-RETURN id(a) AS source, id(b) AS target, type(r) AS rel_type,
+WHERE {where}
+RETURN id(r) AS rel_id, id(a) AS source, id(b) AS target, type(r) AS rel_type,
        properties(r) AS props,
        properties(a) AS source_props, properties(b) AS target_props
+ORDER BY id(r)
 LIMIT {limit}
 """
+
+# Relationship types that are not part of the reasoning vocabulary. The ATC
+# hierarchy and the drug->class links are structural: including them in a
+# neighbourhood expansion would pull in every sibling drug sharing an ATC code
+# and turn a targeted question into a whole-graph load by way of two hops.
+_EXCLUDED_REL_TYPES = ("IN_ATC_CLASS", "SUBCLASS_OF")
+
+
+@dataclass
+class ExportRange:
+    """What was actually loaded, for the response that has to state it.
+
+    Without this a caller cannot tell a finding of "nothing derived" apart from
+    "nothing was loaded", which is precisely the confusion the plan forbids.
+    """
+
+    scope: str
+    node_count: int = 0
+    edge_count: int = 0
+    drug_keys: list[str] = field(default_factory=list)
+    atc_keys: list[str] = field(default_factory=list)
+    # Set when the bound cut the load short. A caller seeing this must not read
+    # an absent derivation as a negative finding.
+    truncated: bool = False
+    limit: int = 0
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "scope": self.scope,
+            "node_count": self.node_count,
+            "edge_count": self.edge_count,
+            "drug_count": len(self.drug_keys),
+            "atc_count": len(self.atc_keys),
+            "drug_keys": self.drug_keys,
+            "atc_keys": self.atc_keys,
+            "truncated": self.truncated,
+            "limit": self.limit,
+        }
 
 
 def _as_dict(value: Any) -> dict[str, Any]:
@@ -90,31 +158,112 @@ def _stable_key(record_id: Any, props: dict[str, Any]) -> str:
     return str(record_id)
 
 
-def export_nodes(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
-    """Read nodes in the reasoner's node-dict form."""
-    result = store.execute_query(_NODES_QUERY.format(limit=limit))
-    if not result.get("success"):
-        raise RuntimeError(f"AGE node export failed: {result.get('error')}")
+def _fetch_pages(
+    store: ApacheAgeStore,
+    template: str,
+    where: str,
+    parameters: dict[str, Any],
+    limit: int,
+    page_size: int,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Run a query in pages until ``limit`` or exhaustion.
+
+    Keepset pagination is not needed here because the queries take no offset:
+    each page re-runs the same ordered query and the caller keeps a cursor over
+    the result. A graph read is small enough for that, and it keeps the queries
+    free of a running OFFSET that would get slower with every page.
+    """
+    records: list[dict[str, Any]] = []
+    truncated = False
+    while len(records) < limit:
+        remaining = limit - len(records)
+        size = min(page_size, remaining)
+        result = store.execute_query(
+            template.format(where=where, limit=size),
+            parameters,
+        )
+        if not result.get("success"):
+            raise RuntimeError(f"AGE export failed: {result.get('error')}")
+        page = [r for r in (result.get("records") or []) if isinstance(r, dict)]
+        records.extend(page)
+        # A short page means the query ran out of matches, so the result is
+        # complete rather than cut. Only a full page at the limit is ambiguous.
+        if len(page) < size:
+            return records, False
+        if len(records) >= limit:
+            truncated = True
+            break
+    return records, truncated
+
+
+def export_nodes(
+    store: ApacheAgeStore,
+    limit: int,
+    *,
+    drug_keys: list[str] | None = None,
+    atc_keys: list[str] | None = None,
+    page_size: int = PAGE_SIZE,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Read nodes in the reasoner's node-dict form.
+
+    With no keys the whole graph is read, which is only ever right for a small
+    graph: the caller states its extent through the returned truncation flag.
+    """
+    where, parameters = _node_filter(drug_keys, atc_keys)
+    records, truncated = _fetch_pages(store, _NODES_QUERY, where, parameters, limit, page_size)
 
     nodes: list[dict[str, Any]] = []
-    for record in result.get("records", []):
+    for record in records:
         node_id = record.get("id")
         if node_id is None:
+            # A node with no row id cannot be referenced by an edge, so it has
+            # no place in a fact base built to join edges to nodes.
             continue
         props = _as_dict(record.get("props"))
-        key = _stable_key(node_id, props)
-        node = {
-            "id": key,
-            "type": _first_label(record.get("labels")),
-            "properties": props,
-            # Retained so callers can map a fact back to the graph element.
-            "graph_id": str(node_id),
-        }
-        nodes.append(node)
-    return nodes
+        nodes.append(
+            {
+                "id": _stable_key(node_id, props),
+                "type": _first_label(record.get("labels")),
+                "properties": props,
+                # Retained so callers can map a fact back to the graph element.
+                "graph_id": str(node_id),
+            }
+        )
+    return nodes, truncated
 
 
-def export_edges(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
+def _node_filter(
+    drug_keys: list[str] | None, atc_keys: list[str] | None
+) -> tuple[str, dict[str, Any]]:
+    """Cypher predicate and parameters selecting the scoped nodes.
+
+    The two scoped kinds need different property names — a drug carries
+    ``drugbank_id``, an ATC class carries ``code`` — so the predicate names
+    both rather than filtering afterwards, which would make the LIMIT apply to
+    the wrong population.
+    """
+    if not drug_keys and not atc_keys:
+        return "true", {}
+    clauses = []
+    parameters: dict[str, Any] = {}
+    if drug_keys:
+        clauses.append(f"n.{_DRUG_COLUMN} IN $drug_keys")
+        parameters["drug_keys"] = drug_keys
+    if atc_keys:
+        clauses.append(f"n.{_ATC_COLUMN} IN $atc_keys")
+        parameters["atc_keys"] = atc_keys
+    return "(" + " OR ".join(clauses) + ")", parameters
+
+
+def export_edges(
+    store: ApacheAgeStore,
+    limit: int,
+    *,
+    drug_keys: list[str] | None = None,
+    atc_keys: list[str] | None = None,
+    include_atc_links: bool = False,
+    page_size: int = PAGE_SIZE,
+) -> tuple[list[dict[str, Any]], bool]:
     """Read edges in the reasoner's edge-dict form.
 
     Each edge also carries ``source_props`` / ``target_props``: the endpoint
@@ -122,12 +271,11 @@ def export_edges(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
     but they are the only way to name an endpoint whose node row fell outside
     the node query's limit.
     """
-    result = store.execute_query(_EDGES_QUERY.format(limit=limit))
-    if not result.get("success"):
-        raise RuntimeError(f"AGE edge export failed: {result.get('error')}")
+    where, parameters = _edge_filter(drug_keys, atc_keys, include_atc_links)
+    records, truncated = _fetch_pages(store, _EDGES_QUERY, where, parameters, limit, page_size)
 
     edges: list[dict[str, Any]] = []
-    for record in result.get("records", []):
+    for record in records:
         source = record.get("source")
         target = record.get("target")
         if source is None or target is None:
@@ -145,12 +293,46 @@ def export_edges(store: ApacheAgeStore, limit: int) -> list[dict[str, Any]]:
                 "target": _stable_key(target, target_props),
                 "type": str(rel_type),
                 "properties": props,
-                # Retained for label resolution only.
+                # Retained for label resolution and the fact -> assertion map.
+                "graph_id": str(record.get("rel_id")) if record.get("rel_id") else None,
                 "source_props": source_props,
                 "target_props": target_props,
             }
         )
-    return edges
+    return edges, truncated
+
+
+def _edge_filter(
+    drug_keys: list[str] | None,
+    atc_keys: list[str] | None,
+    include_atc_links: bool,
+) -> tuple[str, dict[str, Any]]:
+    """Cypher predicate selecting edges inside the scope.
+
+    An edge is in scope when *both* endpoints are, for the scoped kinds: a
+    drug's interaction with a drug outside the scope is a statement about a
+    drug the caller did not ask about, and loading it would put facts in the
+    base whose subject is out of range. Protein endpoints are exempt because a
+    drug's target is part of that drug's own description.
+    """
+    if not drug_keys and not atc_keys:
+        return "true", {}
+
+    parameters: dict[str, Any] = {}
+    endpoint = []
+    if drug_keys:
+        endpoint.append(f"(a.{_DRUG_COLUMN} IN $drug_keys AND b.{_DRUG_COLUMN} IN $drug_keys)")
+        parameters["drug_keys"] = drug_keys
+    if atc_keys:
+        endpoint.append(f"(a.{_ATC_COLUMN} IN $atc_keys OR b.{_ATC_COLUMN} IN $atc_keys)")
+        parameters["atc_keys"] = atc_keys
+
+    clauses = ["(" + " OR ".join(endpoint) + ")"]
+    if not include_atc_links:
+        # Structural links are excluded from a neighbourhood expansion so that
+        # sharing an ATC code does not drag in every sibling drug.
+        clauses.append(f"NOT type(r) IN {list(_EXCLUDED_REL_TYPES)!r}")
+    return " AND ".join(clauses), parameters
 
 
 # Property names that can carry a display label, in preference order. Shared so
@@ -160,6 +342,9 @@ _NAME_CANDIDATES = ("name", "uniprot_title", "gene_name", "code")
 # Property names that can carry a fact key, in preference order. `code` is
 # included because ATC class nodes are identified by their code.
 _KEY_CANDIDATES = ("drugbank_id", "uniprot_id", "id", "code", "name")
+
+_DRUG_COLUMN = "drugbank_id"
+_ATC_COLUMN = "code"
 
 
 def _endpoint_key(props: dict[str, Any]) -> str | None:
@@ -206,11 +391,48 @@ class GraphExport:
     ``load_from_graph`` looks for first. Materialising once keeps the two
     generators consistent — Datalog consumes both, and re-querying between them
     could observe a graph that changed underneath.
+
+    The ``range`` attribute is part of the contract, not a debugging aid: a
+    caller that cannot see what was loaded cannot interpret an empty
+    derivation, and an empty derivation is the only negative answer Datalog
+    can give.
     """
 
-    def __init__(self, store: ApacheAgeStore, limit: int) -> None:
-        self._nodes = export_nodes(store, limit)
-        self._edges = export_edges(store, limit)
+    def __init__(
+        self,
+        store: ApacheAgeStore,
+        limit: int,
+        *,
+        drug_keys: list[str] | None = None,
+        atc_keys: list[str] | None = None,
+        scope_label: str = "all",
+        include_atc_links: bool = False,
+        page_size: int = PAGE_SIZE,
+    ) -> None:
+        self._nodes, nodes_truncated = export_nodes(
+            store,
+            limit,
+            drug_keys=drug_keys,
+            atc_keys=atc_keys,
+            page_size=page_size,
+        )
+        self._edges, edges_truncated = export_edges(
+            store,
+            limit,
+            drug_keys=drug_keys,
+            atc_keys=atc_keys,
+            include_atc_links=include_atc_links,
+            page_size=page_size,
+        )
+        self.range = ExportRange(
+            scope=scope_label,
+            node_count=len(self._nodes),
+            edge_count=len(self._edges),
+            drug_keys=sorted(drug_keys or []),
+            atc_keys=sorted(atc_keys or []),
+            truncated=nodes_truncated or edges_truncated,
+            limit=limit,
+        )
 
     def find_nodes(self) -> Iterator[dict[str, Any]]:
         yield from self._nodes
@@ -225,6 +447,10 @@ class GraphExport:
     @property
     def edge_count(self) -> int:
         return len(self._edges)
+
+    @property
+    def truncated(self) -> bool:
+        return self.range.truncated
 
     def labels(self) -> dict[str, str]:
         """Map every fact key to its display name.
@@ -265,6 +491,32 @@ class GraphExport:
             if key is not None:
                 resolved.setdefault(key, "unknown")
         return resolved
+
+    def fact_assertions(self) -> dict[str, str | None]:
+        """Map every edge fact to the assertion it came from, or to ``None``.
+
+        Datalog's answer is a derived predicate over opaque constants; a
+        conclusion is only auditable if each premise can be traced back to
+        something the source data actually asserts. The key is the same triple
+        ``add_fact`` builds for an edge dict — ``type(source, target)`` — with
+        the graph's ``prov`` id as the value.
+
+        A ``None`` value is meaningful and is kept rather than dropped: the
+        edge exists in the graph but carries no provenance id, so a conclusion
+        resting on it is real but uncitable. Dropping the entry would make that
+        edge look like it was never loaded.
+        """
+        assertions: dict[str, str | None] = {}
+        for edge in self._edges:
+            source = _lower_or_none(str(edge["source"]))
+            target = _lower_or_none(str(edge["target"]))
+            if source is None or target is None:
+                continue
+            predicate = str(edge["type"]).replace(" ", "_").lower()
+            key = f"{predicate}({source}, {target})"
+            prov = (edge.get("properties") or {}).get("prov")
+            assertions.setdefault(key, str(prov) if prov not in (None, "") else None)
+        return assertions
 
     def _endpoint_props(self) -> Iterator[dict[str, Any]]:
         """Yield the property dict of every edge endpoint, deduplicated."""

@@ -63,9 +63,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     settings = get_settings()
-    store = ApacheAgeStore(
-        connection_string=settings.age_dsn, graph_name=settings.graph_name
-    )
+    store = ApacheAgeStore(connection_string=settings.age_dsn, graph_name=settings.graph_name)
     store.connect()
 
     print("== deleting existing drug->target edges ==")
@@ -95,9 +93,7 @@ def main() -> None:
                 verbs.append(ACTION_EDGE[key])
             else:
                 fallback += 1
-        kinds = (
-            sorted(set(verbs)) if verbs else [KIND_EDGE.get(relation_kind, "ACTS_ON")]
-        )
+        kinds = sorted(set(verbs)) if verbs else [KIND_EDGE.get(relation_kind, "ACTS_ON")]
         for kind in kinds:
             grouped.setdefault(kind, []).append(
                 {

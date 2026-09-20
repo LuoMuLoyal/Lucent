@@ -7,6 +7,7 @@ must match the dict shapes ``add_fact`` accepts, which is what these tests pin.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pytest
@@ -14,19 +15,80 @@ import pytest
 from semantica_service.graph.export import GraphExport, _first_label, _turtle_literal
 
 
-class StubStore:
-    """Returns canned AGE results per query kind."""
+def _page_limit(query: str) -> int | None:
+    """Read the LIMIT a paged query asked for, so stubs can honour it."""
+    match = re.search(r"LIMIT (\d+)", query)
+    return int(match.group(1)) if match else None
 
-    def __init__(self, nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> None:
+
+class StubStore:
+    """Returns canned AGE results per query kind.
+
+    The real bridge pages its reads, so a stub must too: a double that always
+    returns every canned row regardless of the requested page size would let a
+    paging bug through, and paging is what makes the export deterministic.
+    """
+
+    def __init__(
+        self,
+        nodes: list[dict[str, Any]],
+        edges: list[dict[str, Any]],
+        fail: bool = False,
+    ) -> None:
         self._nodes = nodes
         self._edges = edges
+        self._fail = fail
+        self.queries: list[str] = []
+
+    def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+        self.queries.append(query)
+        if self._fail:
+            return {"success": False, "error": "boom"}
+        records = self._nodes if "MATCH (n)" in query else self._edges
+        # The real bridge pages by re-running an ordered query with a page
+        # size; honouring it here keeps a paging bug from hiding behind a stub
+        # that always returns everything.
+        limit = _page_limit(query)
+        return {"success": True, "records": records[:limit] if limit else records}
+
+
+class StubRangeStore:
+    """Serves the node and edge queries the scoped export issues.
+
+    Every page returns the same canned rows, so a test can drive the paging
+    loop by choosing a small ``page_size``.
+    """
+
+    def __init__(self, batch: int) -> None:
+        self._batch = batch
         self.queries: list[str] = []
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
         self.queries.append(query)
         if "MATCH (n)" in query:
-            return {"success": True, "records": self._nodes}
-        return {"success": True, "records": self._edges}
+            rows: list[dict[str, Any]] = [
+                {
+                    "id": i,
+                    "labels": ["Drug"],
+                    "props": {"drugbank_id": f"DB{i:05d}", "name": f"Drug {i}"},
+                }
+                for i in range(self._batch)
+            ]
+        else:
+            rows = [
+                {
+                    "rel_id": i,
+                    "source": i,
+                    "target": i + 1,
+                    "rel_type": "INTERACTS_WITH",
+                    "props": {"prov": f"lucent:row/{i}"},
+                    "source_props": {"drugbank_id": f"DB{i:05d}"},
+                    "target_props": {"drugbank_id": f"DB{i + 1:05d}"},
+                }
+                for i in range(self._batch)
+            ]
+        limit = _page_limit(query)
+        return {"success": True, "records": rows[:limit] if limit else rows}
 
 
 def test_nodes_use_a_business_key_not_the_row_id() -> None:
@@ -144,13 +206,159 @@ def test_export_failure_surfaces_rather_than_returning_empty() -> None:
     An empty result would let inference silently run over nothing, which is the
     exact failure mode the load_from_graph fork fix addresses.
     """
-
-    class FailingStore:
-        def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
-            return {"success": False, "error": "boom"}
-
     with pytest.raises(RuntimeError, match="boom"):
-        GraphExport(FailingStore(), limit=10)
+        GraphExport(StubStore(nodes=[], edges=[], fail=True), limit=10)
+
+
+class TestDeterministicRange:
+    """The export must be reproducible, and must say how far it reached.
+
+    Datalog has no negation, so "not derived" is its only answer for "not
+    present" — and that answer means nothing unless the caller knows what was
+    loaded. Two properties follow, and both are tested here: the same request
+    loads the same set, and the response states the extent it reached.
+    """
+
+    def test_every_query_orders_before_it_limits(self) -> None:
+        """LIMIT without ORDER BY is a random sample, not a prefix.
+
+        This is the defect the reasoning bridge was built to remove: the old
+        queries took `LIMIT` on an unordered match, so two identical requests
+        loaded different edges (measured: ~23% of 211,630, differing per run).
+        """
+        store = StubRangeStore(batch=1)
+        GraphExport(store, limit=10)
+
+        assert store.queries
+        for query in store.queries:
+            assert "ORDER BY" in query, f"unordered query would be non-deterministic: {query}"
+
+    def test_a_short_page_is_complete_and_a_full_one_is_truncated(self) -> None:
+        """`truncated` is what stops an absent derivation reading as a finding."""
+        complete = GraphExport(StubRangeStore(batch=1), limit=10, page_size=100)
+        assert complete.truncated is False
+        assert complete.node_count == 1
+
+        # One full page of exactly the limit means the graph may have more.
+        cut = GraphExport(StubRangeStore(batch=100), limit=100, page_size=100)
+        assert cut.truncated is True
+        assert cut.node_count == 100
+
+    def test_paging_collects_up_to_the_limit_across_round_trips(self) -> None:
+        store = StubRangeStore(batch=50)
+        export = GraphExport(store, limit=120, page_size=50)
+
+        # 50 + 50 + 50 = 150 offered, cut at the 120 limit.
+        assert export.node_count == 120
+        assert export.truncated is True
+        assert len(store.queries) > 2, "the read did not page"
+
+    def test_scope_keys_reach_the_query_as_parameters(self) -> None:
+        """A scope is applied in the query, not filtered afterwards.
+
+        Filtering client-side would make LIMIT bound the wrong population: the
+        page would be filled with out-of-scope rows that are then discarded.
+        """
+        captured: list[Any] = []
+
+        class CapturingStore(StubRangeStore):
+            def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+                captured.append(parameters)
+                return super().execute_query(query, parameters)
+
+        GraphExport(
+            CapturingStore(batch=1),
+            limit=10,
+            drug_keys=["DB00945"],
+            atc_keys=["L01"],
+            scope_label="explicit",
+        )
+
+        assert any(p and p.get("drug_keys") == ["DB00945"] for p in captured if p)
+        assert any(p and p.get("atc_keys") == ["L01"] for p in captured if p)
+
+    def test_structural_atc_links_are_excluded_from_a_scoped_edge_read(self) -> None:
+        """Sharing an ATC code must not drag every sibling drug into scope.
+
+        IN_ATC_CLASS and SUBCLASS_OF are structural: following them turns a
+        targeted question into a whole-graph load by way of two hops.
+        """
+        store = StubRangeStore(batch=1)
+        GraphExport(store, limit=10, drug_keys=["DB00945"], scope_label="explicit")
+
+        edge_queries = [q for q in store.queries if "MATCH (a)-[r]->(b)" in q]
+        assert edge_queries
+        assert all("IN_ATC_CLASS" in q and "SUBCLASS_OF" in q for q in edge_queries)
+
+    def test_range_describes_what_was_loaded(self) -> None:
+        export = GraphExport(
+            StubRangeStore(batch=2),
+            limit=10,
+            drug_keys=["DB00002", "DB00001"],
+            scope_label="explicit",
+        )
+        described = export.range.describe()
+
+        assert described["scope"] == "explicit"
+        assert described["drug_count"] == 2
+        # Sorted, so the echoed range cannot depend on dictionary order.
+        assert described["drug_keys"] == ["DB00001", "DB00002"]
+        assert described["truncated"] is False
+
+
+class TestFactAssertions:
+    """A derivation is only auditable through the assertions behind it.
+
+    Datalog returns a predicate over opaque constants. Without a map from each
+    premise fact back to the graph edge that asserts it, a conclusion cannot be
+    cited, and an uncitable conclusion is indistinguishable from an invented
+    one.
+    """
+
+    def _export(self) -> GraphExport:
+        store = StubStore(
+            nodes=[],
+            edges=[
+                {
+                    "rel_id": 10,
+                    "source": 1,
+                    "target": 2,
+                    "rel_type": "INHIBITS",
+                    "props": {"prov": "lucent:a/b/1/INHIBITS"},
+                    "source_props": {"drugbank_id": "DB00001"},
+                    "target_props": {"uniprot_id": "P23219"},
+                },
+                {
+                    "rel_id": 11,
+                    "source": 3,
+                    "target": 2,
+                    "rel_type": "SUBSTRATE_OF",
+                    # No prov: the edge is real but uncitable, and saying so is
+                    # different from pretending it was never loaded.
+                    "props": {},
+                    "source_props": {"drugbank_id": "DB00003"},
+                    "target_props": {"uniprot_id": "P23219"},
+                },
+            ],
+        )
+        return GraphExport(store, limit=10)
+
+    def test_each_edge_fact_maps_to_its_provenance_id(self) -> None:
+        assertions = self._export().fact_assertions()
+
+        assert assertions["inhibits(db00001, p23219)"] == "lucent:a/b/1/INHIBITS"
+        assert assertions["substrate_of(db00003, p23219)"] is None
+
+    def test_the_key_matches_the_fact_add_fact_builds(self) -> None:
+        """The map is useless if its keys disagree with the facts it explains."""
+        from semantica.reasoning.datalog_reasoner import DatalogReasoner
+
+        engine = DatalogReasoner()
+        for edge in self._export().find_edges():
+            engine.add_fact(edge)
+        derived = set(engine.derive_all())
+
+        assert set(self._export().fact_assertions()) <= derived
 
 
 class TestTurtleSerialisation:

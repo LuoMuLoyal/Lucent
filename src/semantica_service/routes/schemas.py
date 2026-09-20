@@ -110,19 +110,71 @@ class FactSpec(BaseModel):
     fact: str
 
 
+class ScopeSpecModel(BaseModel):
+    """The subgraph a graph-backed inference runs over.
+
+    Inference over a truncated graph can only ever answer "not derived", which
+    is indistinguishable from "does not hold" unless the extent is known. A
+    scope is therefore required for graph-backed reasoning, and it is stated in
+    terms a caller can produce rather than in internal keys.
+    """
+
+    drug_names: list[str] = Field(
+        default_factory=list,
+        max_length=200,
+        description="Drug names or DrugBank ids to reason over (case-insensitive, exact).",
+    )
+    atc_prefixes: list[str] = Field(
+        default_factory=list,
+        max_length=50,
+        description="ATC code prefixes; includes the classes and the drugs assigned to them.",
+    )
+
+
+class ReasonRange(BaseModel):
+    """What a graph-backed inference actually loaded.
+
+    Present on every graph-backed response so that "nothing derived" is never
+    read as a negative finding: a caller seeing ``truncated`` knows the answer
+    is relative to a bounded load, and a caller seeing ``drug_count: 0`` knows
+    the scope resolved to nothing at all.
+    """
+
+    scope: str = Field(description="'explicit' when a scope was supplied, 'all' otherwise.")
+    drug_count: int = 0
+    atc_count: int = 0
+    node_count: int = 0
+    edge_count: int = 0
+    truncated: bool = False
+    limit: int = 0
+    drug_keys: list[str] = Field(default_factory=list)
+    atc_keys: list[str] = Field(default_factory=list)
+
+
 class ReasonRequest(BaseModel):
     """Run Datalog inference over facts and rules."""
 
-    rules: list[RuleSpec] = Field(default_factory=list)
-    facts: list[FactSpec] = Field(default_factory=list)
+    rules: list[RuleSpec] = Field(default_factory=list, max_length=100)
+    facts: list[FactSpec] = Field(default_factory=list, max_length=20_000)
     # When true the graph is loaded as the initial fact set via
     # load_from_graph, and `facts` is ignored.
     load_from_graph: bool = False
+    # Graph-backed inference requires a scope. `scope_all` is the explicit
+    # opt-in to the whole graph, which is only sound on a graph small enough to
+    # fit under `limit` — the response says whether it did.
+    scope: ScopeSpecModel | None = None
+    scope_all: bool = Field(
+        default=False,
+        description=(
+            "Load the entire graph instead of a named scope. Sound only when the "
+            "graph fits under `limit`; the response reports `truncated` otherwise."
+        ),
+    )
     limit: int = Field(
         default=1000,
         ge=1,
         le=50_000,
-        description="Maximum nodes to load when load_from_graph is set.",
+        description="Maximum nodes and edges to load when load_from_graph is set.",
     )
     query: str | None = Field(
         default=None,
@@ -150,6 +202,18 @@ class ReasonResponse(BaseModel):
     node_types: dict[str, str] = Field(
         default_factory=dict,
         description="Node type per fact key.",
+    )
+    range: ReasonRange | None = Field(
+        default=None,
+        description="What was loaded. Present for graph-backed inference, absent otherwise.",
+    )
+    fact_assertions: dict[str, str | None] = Field(
+        default_factory=dict,
+        description=(
+            "Premise fact -> the provenance id of the graph edge that asserts it, or "
+            "null when the edge carries no id. This is what makes a derivation "
+            "auditable: a conclusion is only citable through the assertions it rests on."
+        ),
     )
 
 

@@ -128,7 +128,7 @@ def test_ids_are_readable_and_namespaced() -> None:
 
 
 def test_collects_ids_from_flat_and_nested_values() -> None:
-    rows = [
+    rows: list[dict[str, Any]] = [
         # 列被别名过、或整条关系被返回（AGE 会嵌套 properties），两种都要认出来。
         {"drug": "Warfarin", "prov": EDGE_ID},
         {"r": {"type": "INTERACTS_WITH", "properties": {"prov": EDGE_ID}}},

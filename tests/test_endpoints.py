@@ -64,6 +64,32 @@ class StubStore:
         pass
 
 
+class ScopedStore(StubStore):
+    """A store that mimics the scoped export, including its resolution queries.
+
+    Scope resolution reads Drug / ATCClass nodes by name or code before the
+    export itself runs, so a stub that only knows the export queries would make
+    every scope look empty.
+    """
+
+    def __init__(self, *, matching: bool) -> None:
+        super().__init__()
+        self._matching = matching
+        self.parameters: list[Any] = []
+
+    def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+        self.parameters.append(parameters)
+        if "toLower(d.name) IN $names" in query:
+            if not self._matching:
+                return {"success": True, "records": []}
+            return {"success": True, "records": [{"key": "DB00945", "name": "Aspirin"}]}
+        if "c.code STARTS WITH $prefix" in query:
+            return {"success": True, "records": [{"key": "L01XX29", "name": "L01XX29"}]}
+        if "UNWIND $codes" in query:
+            return {"success": True, "records": [{"key": "DB00945", "name": "Aspirin"}]}
+        return super().execute_query(query, parameters)
+
+
 class StubPool:
     def __init__(self, store: StubStore) -> None:
         self._store = store
@@ -242,6 +268,7 @@ def test_reason_loads_facts_from_the_graph(
     """load_from_graph goes through the export bridge, not the raw store."""
     payload = {
         "load_from_graph": True,
+        "scope_all": True,
         "rules": [{"rule": "targets(X, Y) :- targets(X, Y)."}],
     }
     with build_client(monkeypatch, StubStore(), settings) as client:
@@ -252,6 +279,71 @@ def test_reason_loads_facts_from_the_graph(
     # Three nodes plus one edge were exported and became facts.
     assert body["fact_count"] >= 4
     assert any("targets" in fact for fact in body["derived"])
+
+
+def test_graph_backed_reason_requires_a_scope(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Reasoning over an unstated slice cannot distinguish absent from false.
+
+    Datalog has no negation, so "not derived" is its only answer for "not
+    present". That answer carries information only if the caller knows what was
+    loaded, so the extent must be stated rather than defaulted.
+    """
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        response = client.post("/reason", json={"load_from_graph": True})
+
+    assert response.status_code == 422
+    assert "scope" in response.json()["detail"]
+
+
+def test_graph_backed_reason_echoes_the_range_it_loaded(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """The response states the extent, which is what makes an empty result readable."""
+    payload = {"load_from_graph": True, "scope_all": True}
+    with build_client(monkeypatch, StubStore(), settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    reason_range = body["range"]
+    assert reason_range["scope"] == "all"
+    assert reason_range["node_count"] == 3
+    assert reason_range["edge_count"] == 1
+    assert reason_range["truncated"] is False
+
+
+def test_a_scope_that_matches_nothing_is_refused_not_answered(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """ "No derivations" for an empty scope is a statement about nobody.
+
+    Returning an empty result would let a typo'd drug name read as a clean
+    negative finding.
+    """
+    payload = {
+        "load_from_graph": True,
+        "scope": {"drug_names": ["NotADrug"]},
+    }
+    with build_client(monkeypatch, ScopedStore(matching=False), settings) as client:
+        response = client.post("/reason", json=payload)
+
+    assert response.status_code == 422
+    assert "matched nothing" in response.json()["detail"]
+
+
+def test_a_scope_resolves_to_drug_keys(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    """A scope named in drug names is resolved into the keys facts are built from."""
+    payload = {
+        "load_from_graph": True,
+        "scope": {"drug_names": ["Aspirin"]},
+        "facts": [{"fact": "placeholder(1)"}],
+    }
+    store = ScopedStore(matching=True)
+    with build_client(monkeypatch, store, settings) as client:
+        body = client.post("/reason", json=payload).json()
+
+    assert body["range"]["drug_keys"] == ["DB00945"]
+    assert any(p and p.get("drug_keys") == ["DB00945"] for p in store.parameters if p)
 
 
 def test_reason_rejects_an_invalid_query(
@@ -422,6 +514,7 @@ def test_reason_returns_a_label_table_alongside_facts(
     """
     body = {
         "load_from_graph": True,
+        "scope_all": True,
         "rules": [{"rule": "shares_target(A, B) :- targets(A, T), targets(B, T)."}],
     }
     with build_client(monkeypatch, KeyedStore(), settings) as client:
