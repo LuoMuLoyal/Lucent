@@ -35,6 +35,12 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
   归 `plans/2026-09-27-apache-age-introduction-plan.md` 的 P2 剩余项。
 - **模型供应商配额/凭据**：本轮评测中途开始快失败（`rejected our credentials or
 exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前先确认配额。
+- **ATC 类名（已决策 ②，不做导入）**：1,467 个 `ATCClass` 节点只有 `code`/`level`，
+  无 `name`/`title`/`description`。已在源库核实：`drugbank_drugs.atc_codes` 存的是
+  JSON 数组且**只有代码**（如 `["B01AB07"]`，共 3,257 行），`information_schema`
+  里没有任何含 ATC 名称的列或表——名称在整条导入链路上都不存在，不是导入漏了字段。
+  故维持现状：产品层只呈现 code，"类名"交给模型/UI 解释。若产品明确要求类名，
+  需单独立项导入公开 ATC 索引，并先确认许可与数据来源（计划 D1 选项 ①）。
 
 ## 2026-09-18 LightRAG 中文散文检索（P1/P3 已落地，剩余为评测与生产核对）
 
