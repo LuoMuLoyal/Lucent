@@ -1,0 +1,6 @@
+tree a2cc4cd79f519be3a8de5f44b509a3a1b1a4f82f
+parent f1cb7522b2719923fc321e4177b28900ff6ba588
+author Luo <2508015296@qq.com> 1787400232 +0800
+committer Luo <2508015296@qq.com> 1787400232 +0800
+
+refactor(contract): 收紧安全 PIN 响应 DTO

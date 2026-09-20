@@ -6,19 +6,28 @@
 
 Lucent is the NestJS backend for [Luminous](https://github.com/LuoMuLoyal/Luminous), a personal health
 management assistant. It provides authentication, health records, AI-powered analysis, medicine
-knowledge retrieval, and data export.
+knowledge retrieval, ontology-grounded drug reasoning, and data export.
 
-**Current version:** `0.1.0-dev` — see the [Roadmap](ROADMAP.md) for the path to stable release.
+**Current version:** `0.1.0-dev` — planned evolution and remaining work are tracked in
+[docs/TODO.md](docs/TODO.md) and [plans/](plans/).
 
 ## Key Features
 
-- **Auth** — credential login + WeChat / Apple / QQ OAuth, JWT sessions, in-app Security PIN
+- **Auth** — credential login + WeChat / Apple / QQ / Weibo / Google OAuth, JWT sessions,
+  device-session management, password re-authentication for sensitive operations
 - **Health Records** — daily records (water, meal, vital, mood, symptom, activity, note, sleep),
-  dose logs, medicine reminders, allergies / conditions / current medicines
+  dose logs, medicine reminders, health events, allergies / conditions / current medicines
 - **AI Pipeline** — Today analysis, Report summaries, NL record candidates, meal-analysis vision,
-  agent-based assistant with source-split RAG, SSE streaming
-- **Medicine Knowledge** — CN products + leaflet chunks, DrugBank drugs, medical QA corpus,
-  three independent vector retrieval sources
+  agent-based assistant with source-split retrieval, SSE streaming, proposal-based writes
+  confirmed by the user
+- **Proactive Suggestions** — rule engine plus arbitration / suppression / lifecycle over daily
+  records, dose logs, health events and profile, materialized at write time
+- **Medicine Knowledge** — CN products + leaflet chunks, DrugBank drugs, medical QA corpus.
+  Three retrieval sources are kept strictly separate: Chinese prose via LightRAG,
+  DrugBank passages via Lucent's own pgvector tables, CN product lookups via SQL
+- **Ontology-Augmented Generation (English side)** — DrugBank structured facts are mapped
+  deterministically into an Apache AGE graph (no LLM extraction); `reason_over_ontology` performs
+  typed multi-hop queries where each conclusion carries a PROV-O citation back to its source row
 - **Data Export** — BullMQ async PDF export with inline fallback
 - **Admin Panel** — embedded AdminJS at `/admin` with auto-discovered Prisma resources
 
@@ -56,7 +65,7 @@ Prerequisites: Node.js `24.x`, pnpm `11.x` or `12.x`, Docker (for `dev:stack`).
 - Database model: [prisma/schema.prisma](prisma/schema.prisma).
 - Runtime configuration: [docs/reference/environment-variables.md](docs/reference/environment-variables.md).
 - Medicine data imports: [src/modules/medicines/README.md](src/modules/medicines/README.md).
-- Product direction: [../Luminous/docs/product/Product_Vision.md](../Luminous/docs/product/Product_Vision.md).
+- Product direction: [../Luminous/docs/product/product-vision.md](../Luminous/docs/product/product-vision.md).
 
 Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI when API code changes:
 
@@ -68,8 +77,8 @@ Before merging API contract changes, export a fresh local `docs/reference/genera
 
 ```bash
 cd ../Luminous
-dart run tool/bootstrap_generated_sources.dart
-dart run tool/verify_lucent_openapi_sync.dart
+dart run scripts/contract/bootstrap.dart
+dart run scripts/contract/verify_openapi.dart
 ```
 
 Generated artifact policy in this repo:
@@ -85,14 +94,16 @@ Lucent CI re-exports the spec and fails when the committed
 ## Stack
 
 - NestJS 12 (ESM / SWC builder), zod 4 + Standard Schema validation
-- Prisma 7 / PostgreSQL
+- Prisma 7 / PostgreSQL 18 (pgvector + Apache AGE in the self-built image)
 - Redis / BullMQ
 - Passport JWT
 - Winston / nest-winston structured logging
-- prom-client / Prometheus / Grafana metrics (ADR-0006)
+- prom-client / VictoriaMetrics / Grafana metrics (ADR-0006, ADR-0016)
 - WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
 - LangChain / LangGraph-based AI integration foundation
+- LightRAG sidecar for Chinese prose retrieval; Semantica + Apache AGE sidecar for
+  ontology-grounded drug reasoning (ADR-0021)
 
 ## Local Development
 
@@ -112,13 +123,24 @@ Local toolchain baseline:
 
 Local infrastructure note:
 
-- `pnpm dev:stack` now starts both local PostgreSQL services from `pgvector/pgvector:pg18`.
-- This is required for Lucent assistant RAG indexing because local scripts and `PGVectorStore` expect the `vector` extension to exist.
-- GitHub Actions CI now uses the same `pgvector/pgvector:pg18` PostgreSQL family for its test database service so vector-dependent backend paths are not validated against a weaker database baseline than local development.
+- `pnpm dev:stack` starts both local PostgreSQL services from the self-built
+  `${LUCENT_DB_IMAGE:-lucent-db:18}` image (`docker/postgres-age/`), which layers
+  **Apache AGE** on top of `pgvector/pgvector:pg18`. Build it once with
+  `docker build -t lucent-db:18 docker/postgres-age`.
+- pgvector is required for Lucent assistant RAG indexing because local scripts and `PGVectorStore`
+  expect the `vector` extension to exist.
+- AGE serves the English-side OAG only. Its graph lives in a separate `lucent_graph` database so it
+  never mixes with the Prisma migration domain; LightRAG keeps using plain SQL tables. See ADR-0021.
+- GitHub Actions CI uses the same `pgvector/pgvector:pg18` PostgreSQL family for its test database
+  service so vector-dependent backend paths are not validated against a weaker database baseline
+  than local development.
 - `pnpm dev:stack` also starts SeaweedFS (`chrislusf/seaweedfs:4.41`) as the dev-only S3-compatible
   object storage (S3 API on port `8333`, Filer on `8888`). Set `STORAGE_PROVIDER=s3` and configure
   `STORAGE_S3_*` in `.env.development` to use local object storage instead of Tencent COS.
-  See ADR-0014 for details.
+  See ADR-0014.
+- The LightRAG and Semantica sidecars are declared in `compose.dev.yaml` behind profiles, so a plain
+  `pnpm dev:stack` does not start them. Without them the corresponding assistant tools report
+  `retrieval_unavailable` rather than silently returning empty evidence.
 
 For the mobile full-stack E2E lane, run Lucent against the test database so
 the test-only support route is available:
@@ -234,9 +256,8 @@ Two deployment models run in parallel: production on Coolify + GitHub Actions CD
   - `logger/` for the shared Winston/Nest logging module plus request context helpers
 - `scripts/` contains a small set of local helpers grouped by purpose:
   - `scripts/dev/` for local runtime helpers
-- `scripts/contract/` for contract export helpers
-- `scripts/import/medicine/` for medicine data import helpers and Python parsers
-  - `scripts/import/food/` for food composition import helpers and Python parsers
+  - `scripts/contract/` for contract export helpers
+  - `scripts/import/medicine/` for medicine data import helpers and Python parsers
 - `compose.yaml` (production: app + postgres/redis + monitoring stack, run by Coolify)
   and `compose.staging.yaml` (staging: infrastructure containers only — the app runs as a
   host PM2 process) at the repo root hold the stack definitions; `deploy/` holds the
