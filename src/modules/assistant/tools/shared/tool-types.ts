@@ -27,6 +27,7 @@ export const ASSISTANT_TOOL_NAMES = [
   'get_drugbank_detail',
   'search_drugbank_passages',
   'reason_over_ontology',
+  'reason_over_rules',
   'propose_create_daily_record',
   'propose_update_daily_record',
   'propose_delete_daily_record',
@@ -55,6 +56,7 @@ export const ASSISTANT_READ_TOOL_NAMES = [
   'get_drugbank_detail',
   'search_drugbank_passages',
   'reason_over_ontology',
+  'reason_over_rules',
 ] as const satisfies readonly AssistantToolName[];
 
 export const ASSISTANT_IMPLEMENTED_TOOL_NAMES =
@@ -99,6 +101,7 @@ export const ASSISTANT_RETRIEVAL_TOOL_NAMES = [
  */
 export const ASSISTANT_OAG_TOOL_NAMES = [
   'reason_over_ontology',
+  'reason_over_rules',
 ] as const satisfies readonly AssistantToolName[];
 
 export const ASSISTANT_TOOL_SOURCE_MAP = {
@@ -121,6 +124,7 @@ export const ASSISTANT_TOOL_SOURCE_MAP = {
   get_drugbank_detail: [],
   search_drugbank_passages: [],
   reason_over_ontology: [],
+  reason_over_rules: [],
   propose_create_daily_record: [],
   propose_update_daily_record: ['daily_records'],
   propose_delete_daily_record: ['daily_records'],

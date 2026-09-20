@@ -55,6 +55,8 @@ import { OntologyCypherGeneratorService } from './tools/ontology/cypher-generato
 
 import { AssistantToolOntologyReasoningService } from './tools/ontology/ontology-reasoning.service.js';
 
+import { AssistantToolRuleReasoningService } from './tools/ontology/rule-reasoning.service.js';
+
 import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service.js';
 import { AssistantDrugbankLookupService } from './tools/medicine/drugbank-lookup.service.js';
 
@@ -115,6 +117,7 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
     SemanticaClientService,
     OntologyCypherGeneratorService,
     AssistantToolOntologyReasoningService,
+    AssistantToolRuleReasoningService,
     AssistantToolMedicineLookupService,
     AssistantDrugbankLookupService,
     AssistantToolDrugbankEntityResolveService,

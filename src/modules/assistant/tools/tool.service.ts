@@ -20,6 +20,7 @@ import {
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service.js';
 import { AssistantToolMedicineLookupService } from './medicine/lookup.service.js';
 import { AssistantToolOntologyReasoningService } from './ontology/ontology-reasoning.service.js';
+import { AssistantToolRuleReasoningService } from './ontology/rule-reasoning.service.js';
 import { AssistantToolProposalService } from './proposal/proposal.service.js';
 import { AssistantToolReadService } from './read/read.service.js';
 import { MetricsService } from '../../../common/metrics/metrics.service.js';
@@ -38,6 +39,7 @@ const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
   'get_drugbank_detail',
   'search_drugbank_passages',
   'reason_over_ontology',
+  'reason_over_rules',
 ]);
 
 /** TTL for tool-level retrieval caches (ms). */
@@ -56,6 +58,10 @@ const READ_TOOL_NAMES = new Set<AssistantToolName>(ASSISTANT_READ_TOOL_NAMES);
  */
 const TOOL_TIMEOUT_OVERRIDES: Partial<Record<AssistantToolName, number>> = {
   reason_over_ontology: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  // 规则推理不走模型往返（规则与查询都是显式给的），但它在服务端要做一次不动点
+  // ——比一次 Cypher 读图贵得多。用同一个覆盖值，是因为瓶颈从"生成"换成了"推导"，
+  // 量级相同；默认的 15s 对两者都太短。
+  reason_over_rules: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
 };
 
 function resolveToolTimeoutMs(toolName: AssistantToolName): number {
@@ -73,6 +79,7 @@ export class AssistantToolService {
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
     private readonly medicineLookupService: AssistantToolMedicineLookupService,
     private readonly ontologyReasoningService: AssistantToolOntologyReasoningService,
+    private readonly ruleReasoningService: AssistantToolRuleReasoningService,
     private readonly proposalService: AssistantToolProposalService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly metricsService: MetricsService,
@@ -370,6 +377,11 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.ontologyReasoningService.reasonOverOntology(context),
+        };
+      case 'reason_over_rules':
+        return {
+          name: toolName,
+          data: await this.ruleReasoningService.reasonOverRules(context),
         };
       case 'propose_create_daily_record':
         return this.proposalService.buildCreateDailyRecordProposal(

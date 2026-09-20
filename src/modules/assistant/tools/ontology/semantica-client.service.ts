@@ -4,11 +4,17 @@ import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import type {
   SemanticaCallFailure,
   SemanticaCitation,
+  SemanticaDerivedConclusion,
+  SemanticaErrorKind,
   SemanticaGraphSchema,
-  SemanticaQueryErrorKind,
   SemanticaQueryOutcome,
+  SemanticaReasonOutcome,
+  SemanticaRuleInfo,
 } from './semantica.types.js';
-import { SEMANTICA_QUERY_ERROR_KINDS } from './semantica.types.js';
+import {
+  SEMANTICA_QUERY_ERROR_KINDS,
+  SEMANTICA_REASON_ERROR_KINDS,
+} from './semantica.types.js';
 
 /**
  * 与 zod 校验层默认值一致的兜底值（zod `.default()` 已写入 process.env，
@@ -150,6 +156,100 @@ export class SemanticaClientService {
         failure: this.buildMalformedFailure(
           response.status,
           'Semantica returned an unreadable query response.',
+        ),
+      };
+    }
+
+    return { ok: true, value: parsed };
+  }
+
+  /**
+   * 枚举规则库（`GET /rules`）。
+   *
+   * 有了它，intent 才是可发现的：模型不该靠猜规则 id，也不该被硬编码在提示词里
+   * ——规则库改一条，提示词就漂移一次。读回的是规则自己声明的 intent 与摘要。
+   */
+  async rules(): Promise<
+    | { ok: true; value: readonly SemanticaRuleInfo[] }
+    | { ok: false; failure: SemanticaCallFailure }
+  > {
+    if (!this.isEnabled()) {
+      return { ok: false, failure: this.buildDisabledFailure() };
+    }
+
+    const response = await this.request('/rules', {
+      method: 'GET',
+      body: null,
+    });
+    if (!response.ok) {
+      return { ok: false, failure: response.failure };
+    }
+
+    const parsed = parseRulesResponse(response.payload);
+    if (parsed == null) {
+      return {
+        ok: false,
+        failure: this.buildMalformedFailure(
+          response.status,
+          'Semantica returned an unreadable rule library.',
+        ),
+      };
+    }
+
+    return { ok: true, value: parsed };
+  }
+
+  /**
+   * 按规则推导（`POST /reason`）。
+   *
+   * 与 {@link query} 的分别不是"另一个端点"，而是**另一种断言**：`/query` 读的是
+   * 图上的断言，`/reason` 返回的是规则推导出来的结论，并带上每条结论的前提引用。
+   * 上层必须把两者分开呈现（计划 §3.4 约束 4），所以这里也返回不同的类型。
+   *
+   * `scope` 让 sidecar 只导出被问到的子图。省略它意味着在全图上做不动点——
+   * 那不是"更全"，而是把一个分钟级的计算塞进一个秒级的工具调用。
+   */
+  async reason(input: {
+    intent: string;
+    query: string;
+    scope: {
+      drugNames?: readonly string[];
+      atcPrefixes?: readonly string[];
+    };
+    limit: number;
+  }): Promise<
+    | { ok: true; value: SemanticaReasonOutcome }
+    | { ok: false; failure: SemanticaCallFailure }
+  > {
+    if (!this.isEnabled()) {
+      return { ok: false, failure: this.buildDisabledFailure() };
+    }
+
+    const response = await this.request('/reason', {
+      method: 'POST',
+      body: {
+        load_from_graph: true,
+        intent: input.intent,
+        query: input.query,
+        scope: {
+          drug_names: input.scope.drugNames ?? [],
+          atc_prefixes: input.scope.atcPrefixes ?? [],
+        },
+        limit: input.limit,
+      },
+    });
+
+    if (!response.ok) {
+      return { ok: false, failure: response.failure };
+    }
+
+    const parsed = parseReasonResponse(response.payload, input.query);
+    if (parsed == null) {
+      return {
+        ok: false,
+        failure: this.buildMalformedFailure(
+          response.status,
+          'Semantica returned an unreadable reasoning response.',
         ),
       };
     }
@@ -348,7 +448,7 @@ export class SemanticaClientService {
 
 /** 解析错误 body，取出结构化 `kind` 与可读 message。 */
 function parseErrorDetail(body: string): {
-  errorKind: SemanticaQueryErrorKind | null;
+  errorKind: SemanticaErrorKind | null;
   message: string | null;
 } {
   try {
@@ -367,8 +467,12 @@ function parseErrorDetail(body: string): {
     const kind = record['kind'];
     const message = record['message'];
     return {
+      // 两个端点各有自己的 kind 词表，这里接受并集：只认 `/query` 那一组会让
+      // `/reason` 的 `scope_matched_nothing` 被读成 null，上层于是把"你的范围
+      // 没命中"报成"推理服务不可用"——一个可修正的输入问题被伪装成基础设施
+      // 故障，模型转而用别的方式猜答案。
       errorKind:
-        typeof kind === 'string' && isQueryErrorKind(kind) ? kind : null,
+        typeof kind === 'string' && isKnownErrorKind(kind) ? kind : null,
       message: typeof message === 'string' ? message : null,
     };
     // eslint-disable-next-line error-handling/no-silent-catch -- 非 JSON body，调用方 classifyHttpError 已把同一条 body 记进 warn
@@ -378,8 +482,11 @@ function parseErrorDetail(body: string): {
   }
 }
 
-function isQueryErrorKind(value: string): value is SemanticaQueryErrorKind {
-  return (SEMANTICA_QUERY_ERROR_KINDS as readonly string[]).includes(value);
+function isKnownErrorKind(value: string): value is SemanticaErrorKind {
+  return (
+    (SEMANTICA_QUERY_ERROR_KINDS as readonly string[]).includes(value) ||
+    (SEMANTICA_REASON_ERROR_KINDS as readonly string[]).includes(value)
+  );
 }
 
 function parseSchemaResponse(payload: unknown): SemanticaGraphSchema | null {
@@ -468,6 +575,172 @@ function readStringArray(value: unknown): string[] {
   return (value as unknown[]).filter(
     (item): item is string => typeof item === 'string',
   );
+}
+
+function parseRulesResponse(payload: unknown): SemanticaRuleInfo[] | null {
+  if (payload == null || typeof payload !== 'object') {
+    return null;
+  }
+  const rules = (payload as Record<string, unknown>)['rules'];
+  if (!Array.isArray(rules)) {
+    return null;
+  }
+
+  const parsed: SemanticaRuleInfo[] = [];
+  for (const entry of rules as unknown[]) {
+    const rule = parseRuleInfo(entry);
+    if (rule != null) {
+      parsed.push(rule);
+    }
+  }
+  return parsed;
+}
+
+function parseRuleInfo(value: unknown): SemanticaRuleInfo | null {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = readOptionalString(record['id']);
+  if (id == null) {
+    return null;
+  }
+  return {
+    id,
+    intent: readOptionalString(record['intent']) ?? '',
+    summary: readOptionalString(record['summary']) ?? '',
+    citationHint: readOptionalString(record['citation_hint']) ?? '',
+    consumes: readStringArray(record['consumes']),
+    derives: readOptionalString(record['derives']) ?? '',
+  };
+}
+
+function parseReasonResponse(
+  payload: unknown,
+  query: string,
+): SemanticaReasonOutcome | null {
+  if (payload == null || typeof payload !== 'object') {
+    return null;
+  }
+  const record = payload as Record<string, unknown>;
+  const conclusions = record['conclusions'];
+  if (!Array.isArray(conclusions)) {
+    return null;
+  }
+
+  const bindings = parseBindings(record['bindings']);
+  const parsedConclusions: SemanticaDerivedConclusion[] = [];
+  for (const entry of conclusions as unknown[]) {
+    const conclusion = parseConclusion(entry);
+    if (conclusion != null) {
+      parsedConclusions.push(conclusion);
+    }
+  }
+
+  return {
+    factCount: readCount(record['fact_count']),
+    bindings,
+    // 合并在这一层做一次：sidecar 的绑定行只有变量，钉死的常量只在查询模式里。
+    // 上层若各自去拼，总有一次会漏。
+    groundedBindings: groundBindings(bindings, query),
+    conclusions: parsedConclusions,
+    conclusionsComplete: record['conclusions_complete'] === true,
+    rule: parseRuleInfo(record['rule']),
+  };
+}
+
+function parseBindings(value: unknown): Record<string, string>[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const parsed: Record<string, string>[] = [];
+  for (const row of value as unknown[]) {
+    if (row == null || typeof row !== 'object' || Array.isArray(row)) {
+      continue;
+    }
+    const binding: Record<string, string> = {};
+    for (const [key, entry] of Object.entries(row as Record<string, unknown>)) {
+      if (typeof entry === 'string') {
+        binding[key] = entry;
+      }
+    }
+    parsed.push(binding);
+  }
+  return parsed;
+}
+
+/**
+ * 把查询模式里钉死的常量补进绑定行。
+ *
+ * sidecar 的 `query('potential_ddi(db00682, ?B)')` 返回的行**只有变量**——实测
+ * `[{B: 'db04951'}, ...]`，常量 `db00682` 根本不在行里。因此只读绑定行的调用方
+ * 会以为 A 没绑定，进而选不出任何结论。常量要从模式里取，变量从行里取。
+ *
+ * 模式解析失败时原样返回：这一层不猜。上层会因为缺少常量而少拼出结论，那是
+ * 可见的偏差，好过这里凭空造一个值。
+ */
+function groundBindings(
+  bindings: readonly Record<string, string>[],
+  query: string,
+): Record<string, string>[] {
+  const constants = readPatternConstants(query);
+  if (constants == null) {
+    return [...bindings];
+  }
+  return bindings.map((row) => ({ ...constants, ...row }));
+}
+
+/**
+ * 查询模式里钉死的实参：变量位置留空，常量位置给值。
+ *
+ * 与 sidecar 的 `_pinned_arguments` 是同一条规则的两侧实现。刻意不共享代码：
+ * 两侧是独立部署的进程，共享的只有线上契约，把一侧的内部函数当成另一侧的依赖
+ * 会让"独立部署"变成一句空话。
+ */
+function readPatternConstants(query: string): Record<string, string> | null {
+  const open = query.indexOf('(');
+  const close = query.lastIndexOf(')');
+  if (open === -1 || close <= open) {
+    return null;
+  }
+  const args = query
+    .slice(open + 1, close)
+    .split(',')
+    .map((arg) => arg.trim());
+  if (args.length !== 2) {
+    return null;
+  }
+
+  const constants: Record<string, string> = {};
+  // 规则的 head 变量按位置命名 A、B（见规则库）；模式里写常量就是不绑定。
+  const names = ['A', 'B'] as const;
+  names.forEach((name, index) => {
+    const arg = args[index] ?? '';
+    if (arg.length > 0 && !arg.startsWith('?')) {
+      constants[name] = arg;
+    }
+  });
+  return Object.keys(constants).length > 0 ? constants : null;
+}
+
+function parseConclusion(value: unknown): SemanticaDerivedConclusion | null {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const fact = readOptionalString(record['fact']);
+  if (fact == null) {
+    return null;
+  }
+  return {
+    fact,
+    subject: readOptionalString(record['subject']) ?? '',
+    predicate: readOptionalString(record['predicate']) ?? '',
+    object: readOptionalString(record['object']) ?? '',
+    ruleId: readOptionalString(record['rule_id']) ?? '',
+    citations: readStringArray(record['citations']),
+    uncitedPremises: readStringArray(record['uncited_premises']),
+  };
 }
 
 function readOptionalString(value: unknown): string | null {

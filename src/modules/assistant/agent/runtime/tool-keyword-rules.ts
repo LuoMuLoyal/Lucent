@@ -297,6 +297,32 @@ export const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /belongs? (to|in)/i,
     /class(es)? (is|does|of|are)/i,
   ],
+  /**
+   * 规则推理：问的是**图上看不见的关系**，所以路由必须与 `reason_over_ontology`
+   * 区分开。两者的关键词重叠严重（都会出现"相互作用""酶"），刻意让这一条更窄：
+   * 只有问法里出现"推导/潜在/间接/通过某酶"这类**需要多跳**的信号才路由到这里，
+   * 其余仍走直读边的 `reason_over_ontology`。
+   *
+   * 优先级（见 `EXPLICIT_RULE_REASONING_RULES`）：规则推理命中时优先于直读——
+   * 一个问题两者都能答，而"推导 + 前提引用"是信息更多的那个答案。反过来路由
+   * 会用一个更弱的结论替掉一个可引用前提的结论。
+   */
+  reason_over_rules: [
+    /推导/,
+    /推断/,
+    /潜在.*相互作用/,
+    /可能.*相互作用/,
+    /会不会.*相互作用/,
+    /间接/,
+    /通过.*酶.*(影响|作用)/,
+    /由.*代谢.*(影响|导致)/,
+    /共同.*(酶|靶点).*(导致|引起|可能)/,
+    /deriv/i,
+    /infer/i,
+    /potential.*(interaction|ddi)/i,
+    /indirect/i,
+    /metaboli[sz]ed by .*(affect|interact)/i,
+  ],
   propose_create_daily_record: [
     /帮我记/,
     /记一下/,

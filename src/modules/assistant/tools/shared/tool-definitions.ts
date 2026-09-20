@@ -24,6 +24,8 @@ import {
 import {
   SEMANTICA_DEFAULT_LIMIT,
   SEMANTICA_MAX_LIMIT,
+  SEMANTICA_REASON_DEFAULT_LIMIT,
+  SEMANTICA_REASON_MAX_LIMIT,
 } from '../ontology/semantica.types.js';
 
 interface ToolDefinition {
@@ -124,12 +126,60 @@ const ONTOLOGY_REASONING_PARAMETERS = {
   additionalProperties: false,
 } as const;
 
+/**
+ * 规则推理工具的参数。
+ *
+ * 与 {@link ONTOLOGY_REASONING_PARAMETERS} 的关键区别：这里**必须显式给范围**。
+ * `/reason` 的代价随范围增长，不给范围就是在全图上跑不动点——那不是"更全"，
+ * 而是把一个分钟级的计算塞进秒级的工具调用，结果只会是超时，而超时会被
+ * 误读成"图上没有"。所以 `scope` 是 required 而不是可选。
+ *
+ * `intent` 也 required：规则库里有哪几条规则由 sidecar 说了算，模型从
+ * `list_reasoning_rules` 拿，不靠猜也不写死在提示词里。
+ */
+const RULE_REASONING_PARAMETERS = {
+  type: 'object',
+  properties: {
+    intent: {
+      type: 'string',
+      description:
+        'Which rule library entry to apply, as reported by the rule list. Each intent names one rule.',
+    },
+    query: {
+      type: 'string',
+      description:
+        'The rule\'s conclusion to read, in Datalog form. Pin what you are asking about with a constant and leave the rest as a `?` variable, e.g. `potential_ddi(DB00682, ?B)` asks "what does this drug potentially interact with". A pattern that pins nothing is refused rather than answered.',
+    },
+    drug_names: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'Drug names or DrugBank ids bounding the subgraph to reason over. At least one of `drug_names` / `atc_prefixes` is required: the reasoning runs over an explicit scope, never the whole graph.',
+    },
+    atc_prefixes: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'ATC class prefixes (e.g. "B01A") bounding the subgraph. Alternative to naming drugs directly.',
+    },
+    limit: {
+      type: 'integer',
+      minimum: 1,
+      maximum: SEMANTICA_REASON_MAX_LIMIT,
+      description: `Maximum number of graph edges to read into the scope (1-${String(SEMANTICA_REASON_MAX_LIMIT)}). Defaults to ${String(SEMANTICA_REASON_DEFAULT_LIMIT)}. A scope that hits this bound is reported as truncated — raise it only when you need the wider subgraph, because the reasoning cost grows with it.`,
+    },
+  },
+  required: ['intent', 'query'],
+  additionalProperties: false,
+} as const;
+
 const TOOL_PARAMETERS: Partial<
   Record<AssistantToolName, Record<string, unknown>>
 > = {
   get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
   search_cn_medicine_knowledge: CN_MEDICINE_KNOWLEDGE_PARAMETERS,
   reason_over_ontology: ONTOLOGY_REASONING_PARAMETERS,
+  reason_over_rules: RULE_REASONING_PARAMETERS,
 };
 
 const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
@@ -169,6 +219,8 @@ const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
     'Search DrugBank passages for drug interaction and mechanism evidence.',
   reason_over_ontology:
     'Answer a pharmacology question by reasoning over the English DrugBank knowledge graph of typed drug–target–enzyme relationships. Use it for multi-hop questions ("which drugs share this target", "is X metabolized by the same enzyme as Y", "do A and B interact") instead of inferring them from prose. It returns the executed query with its rows so the answer stays auditable, plus one provenance citation per assertion the rows rest on (result.citations[].id — each resolves to the DrugBank source table and row it came from). Cite those ids when you state a relationship, and never cite one the result does not contain. Zero rows means this graph has no such edge — it is not proof that no such relationship exists, because the graph only mirrors what the source data asserts.',
+  reason_over_rules:
+    'Derive new facts from the DrugBank knowledge graph using a stated rule, for questions the graph cannot answer by reading edges alone ("do A and B interact through a shared enzyme", "what does this drug potentially interact with"). Unlike reason_over_ontology this returns *derived* conclusions, not asserted edges: each one names the rule that produced it and carries citations to the assertions it rests on. Present them as derived, never as things the data states. Requires an explicit scope (`drug_names` or `atc_prefixes`) — it reasons over that subgraph, and a conclusion is only as complete as the scope it came from. An empty result is a finding about the scope you gave, not about the graph.',
   propose_create_daily_record:
     'Propose creating a new daily record (water, meal, symptom, note, sleep). Does not write — returns a confirmation draft.',
   propose_update_daily_record:
