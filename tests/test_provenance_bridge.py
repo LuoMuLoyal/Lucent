@@ -156,6 +156,87 @@ class TestRecovery:
         assert "potential_ddi(db9, db8)" not in recovered
 
 
+class TestNarrowingBeforeTheCap:
+    """The cap applies to what was asked about, not to the whole fact base.
+
+    This ordering is a correctness property, not a tuning knob, and getting it
+    wrong is invisible in the response shape. Measured on a one-drug scope:
+    20,116 conclusions with a cap of 500, where the query asked about 67 — every
+    one of those 67 came back with no citations while 500 unrelated pairs got
+    them. The response looked complete; the answers had no evidence.
+    """
+
+    def _wide_engine(self, rule: Any) -> DatalogReasoner:
+        """Enough conclusions that an un-narrowed cap cannot reach the target.
+
+        The target is added under an id that sorts *after* every generated one,
+        so a prefix of the sorted conclusions cannot contain it.
+        """
+        facts = [f"inhibits(db{i:04d}, e1)" for i in range(MAX_RECOVERED + 50)]
+        facts += [f"substrate_of(db{i:04d}, e1)" for i in range(MAX_RECOVERED + 50)]
+        # `zzz` sorts last, so `potential_ddi(zzz, ...)` falls outside any prefix
+        # short enough to be capped.
+        facts += ["inhibits(zzz, e9)", "substrate_of(zzz2, e9)"]
+        return _engine(rule, facts)
+
+    def test_a_narrowed_conclusion_is_recovered_even_past_the_cap(self, rule: Any) -> None:
+        """The target sorts last, so an un-narrowed prefix never reaches it."""
+        engine = self._wide_engine(rule)
+        derived = engine.derive_all()
+        target = ("zzz", "zzz2")
+
+        un_narrowed = premises_for_conclusion(engine, rule, derived)
+        narrowed = premises_for_conclusion(engine, rule, derived, only={target})
+
+        assert "potential_ddi(zzz, zzz2)" not in un_narrowed, (
+            "the premise of this test no longer holds: the target fell inside the cap"
+        )
+        assert "potential_ddi(zzz, zzz2)" in narrowed
+
+    def test_narrowing_excludes_what_was_not_asked_about(self, rule: Any) -> None:
+        engine = self._wide_engine(rule)
+
+        narrowed = premises_for_conclusion(
+            engine, rule, engine.derive_all(), only={("db0001", "db0002")}
+        )
+
+        assert set(narrowed) == {"potential_ddi(db0001, db0002)"}
+
+    def test_completeness_is_measured_against_the_narrowed_set(self, rule: Any) -> None:
+        """A caller asking about 3 pairs must not be told its answer was cut.
+
+        Completeness reported against the whole fact base would mark every
+        narrowed response incomplete, and a caller told its input was truncated
+        will discount a conclusion that was in fact fully attributed.
+        """
+        engine = self._wide_engine(rule)
+        derived = engine.derive_all()
+        selected = {("zzz", "zzz2"), ("zzz2", "zzz")}
+
+        assert recovery_is_complete(rule, derived, MAX_RECOVERED) is False
+        assert recovery_is_complete(rule, derived, MAX_RECOVERED, selected) is True
+
+    def test_no_narrowing_still_covers_the_whole_fact_base(self, rule: Any) -> None:
+        """`only=None` means "everything", which is what an unqueried request wants."""
+        facts = ["inhibits(db1, e1)", "substrate_of(db2, e1)"]
+        engine = _engine(rule, facts)
+        derived = engine.derive_all()
+
+        assert recovery_is_complete(rule, derived, MAX_RECOVERED, None) is True
+        assert set(premises_for_conclusion(engine, rule, derived, only=None)) == {
+            "potential_ddi(db1, db2)"
+        }
+
+    def test_a_non_binary_conclusion_is_not_selected(self, rule: Any) -> None:
+        """A unary fact has no pair, so it cannot match a pair-keyed selection."""
+        engine = _engine(rule, ["inhibits(db1, e1)", "substrate_of(db2, e1)"])
+        derived = [*engine.derive_all(), "unary(thing)"]
+
+        narrowed = premises_for_conclusion(engine, rule, derived, only={("thing", "other")})
+
+        assert narrowed == {}
+
+
 class TestFactKeyAgreement:
     """Recovered premises must be keyed the way the graph's assertion map is.
 

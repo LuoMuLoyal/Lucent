@@ -188,12 +188,23 @@ def _conclusions(
     derived: list[str],
     fact_assertions: dict[str, str | None],
     premises_by_conclusion: dict[str, list[str]],
+    bindings: list[dict[str, str]] | None = None,
+    query: str | None = None,
 ) -> list[DerivedConclusion]:
     """Build the attributed conclusion list for one rule application.
 
     Only facts the rule's own head predicate produces are turned into
     conclusions: ``derive_all`` returns the whole fact base, so reporting every
     fact would present the premises as if they were findings.
+
+    When the request carried a ``query``, the conclusions are narrowed to what
+    that query's bindings name. Without this the two halves of the response
+    answered different questions: ``query: "potential_ddi(db00682, ?B)"``
+    alongside ``conclusions`` holding *every* pair the rule derived — measured
+    at 20,116 on a one-drug scope, of which the query matched a handful. A
+    caller asking about one drug received the whole scope's derivations and had
+    to re-filter them, and a model reading the envelope would find its answer
+    buried under 20,000 unrelated pairs.
 
     Each premise is resolved through ``fact_assertions`` to the provenance id of
     the edge that asserts it. A premise with no id is not dropped — it moves to
@@ -202,6 +213,7 @@ def _conclusions(
     """
     head = rule.head_predicate
     conclusions: list[DerivedConclusion] = []
+    wanted = _requested_conclusions(rule, bindings, query) if bindings is not None else None
 
     for fact in derived:
         parsed = _parse_fact(fact)
@@ -209,6 +221,8 @@ def _conclusions(
             continue
         predicate, subject, obj = parsed
         if predicate != head:
+            continue
+        if wanted is not None and (subject, obj) not in wanted:
             continue
 
         citations: list[str] = []
@@ -234,6 +248,78 @@ def _conclusions(
     return conclusions
 
 
+def _requested_conclusions(
+    rule: ReasoningRule,
+    bindings: list[dict[str, str]],
+    query: str | None,
+) -> set[tuple[str, str]]:
+    """The ``(subject, object)`` pairs the request's query selects.
+
+    Both halves are needed, and the reason is a property of the engine that is
+    easy to get wrong: ``query('potential_ddi(db00682, ?B)')`` returns rows
+    keyed by the **variables only** — measured as ``[{'B': 'db04951'}, ...]``,
+    with no entry for the constant ``db00682``. So the bound arguments have to
+    come from the query pattern and the free ones from the binding rows. Reading
+    either alone selects nothing: variables-only skips every row because the
+    pinned variable is missing, and pattern-only cannot enumerate the answers.
+
+    A head variable that is neither pinned in the pattern nor present in a
+    binding row selects nothing rather than acting as a wildcard. A caller that
+    left a position open in a way the engine did not bind did not ask about every
+    value of it.
+    """
+    head_variables = rule.head_variables
+    if len(head_variables) != 2:
+        # Conclusions are binary; a rule of another arity has no pair to select,
+        # and guessing one would report facts the query never asked for.
+        return set()
+
+    subject_variable, object_variable = head_variables
+    pinned = _pinned_arguments(query, rule.head_predicate)
+    if pinned is None:
+        # No pattern, or not a call to this rule's head: nothing was selected.
+        return set()
+    pinned_subject, pinned_object = pinned
+
+    selected: set[tuple[str, str]] = set()
+    for row in bindings:
+        subject = pinned_subject or row.get(subject_variable)
+        obj = pinned_object or row.get(object_variable)
+        if subject is None or obj is None:
+            continue
+        selected.add((subject.lower(), obj.lower()))
+    return selected
+
+
+def _pinned_arguments(query: str | None, predicate: str) -> tuple[str | None, str | None] | None:
+    """The constants a query's pattern pins, or ``None`` when it pins neither.
+
+    Returns ``(subject, object)`` with ``None`` for a position the pattern left
+    as a variable. ``None`` for the whole tuple means the query is absent or is
+    not a call to this predicate, which is not the same as a pattern that pins
+    nothing — the caller filters on that distinction.
+    """
+    if not query:
+        return None
+
+    # Reuse the fact parser: a Datalog query pattern and a fact have the same
+    # `predicate(a, b)` shape, so parsing them separately would let the two
+    # drift apart on whitespace or case.
+    parsed = _parse_fact(query)
+    if parsed is None:
+        return None
+    pattern_predicate, subject, obj = parsed
+    if pattern_predicate != predicate:
+        return None
+
+    # A leading `?` marks a variable in the query syntax.
+    pinned_subject = None if subject.startswith("?") else subject
+    pinned_object = None if obj.startswith("?") else obj
+    if pinned_subject is None and pinned_object is None:
+        return None
+    return (pinned_subject, pinned_object)
+
+
 _FACT = re.compile(r"^([a-zA-Z0-9_]+)\(([^,]*),\s*([^,)]*)\)$")
 
 
@@ -251,7 +337,10 @@ def _parse_fact(fact: str) -> tuple[str, str, str] | None:
 
 
 def _premises_of(
-    engine: DatalogReasoner, rule: ReasoningRule, facts: list[str]
+    engine: DatalogReasoner,
+    rule: ReasoningRule,
+    facts: list[str],
+    only: set[tuple[str, str]] | None = None,
 ) -> dict[str, list[str]]:
     """Map each conclusion to the ground premises that produced it.
 
@@ -262,7 +351,7 @@ def _premises_of(
     """
     from ..reasoning.provenance_bridge import premises_for_conclusion
 
-    return premises_for_conclusion(engine, rule, facts)
+    return premises_for_conclusion(engine, rule, facts, only=only)
 
 
 @router.post("/reason", response_model=ReasonResponse)
@@ -366,6 +455,17 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
             ) from exc
         bindings = [{str(k): str(v) for k, v in row.items()} for row in bindings]
 
+    # Computed once and used for both the conclusion list and premise recovery,
+    # so the two cannot disagree about which conclusions the request asked for.
+    # Recovery is bounded (MAX_RECOVERED), and applying that bound to the wrong
+    # population is not a rounding error: capping before narrowing spent the
+    # whole budget on facts the caller never asked about.
+    selected = (
+        _requested_conclusions(applied, bindings, body.query)
+        if applied is not None and bindings is not None
+        else None
+    )
+
     payload = ReasonResponse(
         fact_count=len(derived),
         derived=sorted(derived),
@@ -379,13 +479,17 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
                 applied,
                 derived,
                 fact_assertions,
-                _premises_of(engine, applied, derived),
+                _premises_of(engine, applied, derived, selected),
+                bindings,
+                body.query,
             )
             if applied is not None
             else []
         ),
         conclusions_complete=(
-            recovery_is_complete(applied, derived, MAX_RECOVERED) if applied is not None else True
+            recovery_is_complete(applied, derived, MAX_RECOVERED, selected)
+            if applied is not None
+            else True
         ),
         fact_assertions=fact_assertions,
     )

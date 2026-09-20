@@ -33,21 +33,34 @@ def premises_for_conclusion(
     rule: ReasoningRule,
     derived: list[str],
     limit: int = MAX_RECOVERED,
+    only: set[tuple[str, str]] | None = None,
 ) -> dict[str, list[str]]:
     """Map each conclusion fact to the ground premises that entail it.
 
     Returns a dict keyed by the conclusion fact string, holding at most ``limit``
     entries. A conclusion outside that bound is simply absent, and the caller
-    reports the shortfall through ``premises_complete`` so a caller can tell
+    reports the shortfall through ``recovery_is_complete`` so a caller can tell
     "this conclusion has no recoverable premises" from "recovery stopped before
-    reaching it" — collapsing those two would present an unattributed
-    conclusion as an uncitable one.
+    reaching it" — collapsing those two would present an unattributed conclusion
+    as an uncitable one.
+
+    ``only`` narrows which conclusions are recovered at all, and it is applied
+    **before** the cap rather than after. That ordering is the whole point: with
+    a query in play the caller has said which conclusions it cares about, and
+    capping first spent the entire budget on the alphabetically-first pairs of
+    the whole fact base — measured on a one-drug scope, 20,116 conclusions and a
+    cap of 500 meant the 67 the query actually asked about received no citations
+    at all, while 500 unrelated ones did.
 
     Conclusions are processed in sorted order so the same request always
     recovers the same subset; iterating the database's order would make the
     citation set vary between identical calls.
     """
-    conclusions = sorted(fact for fact in derived if _is_head_of(rule, fact))
+    conclusions = sorted(
+        fact
+        for fact in derived
+        if _is_head_of(rule, fact) and (only is None or _pair_of(fact) in only)
+    )
     recovered: dict[str, list[str]] = {}
     for fact in conclusions[:limit]:
         premises = _premises_for(engine, rule, fact)
@@ -56,9 +69,27 @@ def premises_for_conclusion(
     return recovered
 
 
-def recovery_is_complete(rule: ReasoningRule, derived: list[str], limit: int) -> bool:
-    """True when every conclusion of ``rule`` had its premises looked up."""
-    return len([f for f in derived if _is_head_of(rule, f)]) <= limit
+def recovery_is_complete(
+    rule: ReasoningRule,
+    derived: list[str],
+    limit: int,
+    only: set[tuple[str, str]] | None = None,
+) -> bool:
+    """True when every selected conclusion of ``rule`` had its premises looked up."""
+    selected = [
+        fact
+        for fact in derived
+        if _is_head_of(rule, fact) and (only is None or _pair_of(fact) in only)
+    ]
+    return len(selected) <= limit
+
+
+def _pair_of(fact: str) -> tuple[str, str] | None:
+    """``(subject, object)`` of a binary fact, lower-cased, or ``None``."""
+    args = _args_of(fact)
+    if len(args) != 2:
+        return None
+    return (args[0].lower(), args[1].lower())
 
 
 def _is_head_of(rule: ReasoningRule, fact: str) -> bool:
