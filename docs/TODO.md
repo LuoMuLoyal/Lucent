@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-18
+updated: 2026-09-20
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-18
+Last updated: 2026-09-20
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -52,7 +52,12 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
   社区经验阈值是 500–2000 页文档以上图模式才明显胜出，本项目远超该阈值，
   真正的结论必须来自中大规模重跑，且需补**答案质量**评分（论文证明图模式收益
   体现在端到端答案，而 Lucent 只取上下文、自己生成）。
-  **未评测前 `leaflet` 与 `qa` 的 `mode` 只接受 `naive`**（服务端已强制）。
+  **图模式的开关已改为配置驱动**（`LIGHTRAG_GRAPH_SOURCES`，默认 `leaflet`）：
+  `leaflet` 现在放行 `local`/`global`/`hybrid`/`mix`，`qa` 仍只接受 `naive`。
+  这是把"待验证前的默认"翻转了，**不是评测结论**——P2 全量评测仍未做，
+  上面那条判断标准（"图模式显著优于 naive"）依然没有被真正检验。
+  **放行前必须先建图**：没建图时图模式拿到的是**空结果而非报错**，
+  只有 `coverage.reason` 会说明；索引状态与 `LIGHTRAG_GRAPH_SOURCES` 必须一致。
 - **建图成本决策（未决）**：实测约 4 分钟/chunk、约 $0.057/doc。按 21,142 份
   说明书估算，全量建图的墙钟与费用**需要单独立项**，不是"顺手跑一下"。
 - **P4 灌 `qa` workspace（脚本就位，未实跑）**：`medical_qa_chunks` 当前 0 行，
@@ -131,6 +136,51 @@ environment 为简化实现(静态数据,关联 B2);`GET /environment/advice` �
 周报 push 通知通道未实现。
 
 ## 后续可做
+
+### R1：本体推理的入参夹紧对模型不可见（2026-09-20，09-19 审查 S-2）
+
+`ontology-reasoning.service.ts` 的 `normalizeLimit()` 把 `limit` 静默夹到
+[1, `SEMANTICA_MAX_LIMIT`]：模型请求 200 行只拿到 100 行，而 envelope 里**没有任何
+字段说明发生过夹紧**。后果是模型反复要更大的窗口，每次都拿到同样的行数，体感像
+"返回结果忽好忽坏"。建议在 result envelope 内补 `requestedLimit` 与 `limitCapped`
+两个字段，与 `MEAL_DIGEST_LIMIT_CAP_MESSAGE` 的做法同构（那条已在 09-16 修过同类
+问题：谎报"Requested N"）。验收：请求越界 limit 时模型能在 `ambiguities` 或
+envelope 字段里读到"你要了 N，已夹到 M"。
+
+### R2：引用 schema 漂移只有 warn、没有指标（2026-09-20，09-19 审查 S-7）
+
+`stream-orchestrator.service.ts` 的 `extractCitations()` 用 `safeParse` 失败即 drop
+并 warn。声明的语义是"sidecar 响应漂移不该让整个查询结果作废"（这个取舍正确），
+但**没有计数器**：sidecar 升级导致 schema 漂移时，表现为"客户端永远看不到 citations
+但不知道为什么"，只能在日志里翻。建议加 metrics 计数器
+（如 `assistant_tool_citations_dropped_total{reason="schema_mismatch"}`）。验收：
+人为构造一次 schema 不匹配，指标可观测。
+
+### R3：建议卡内部标识符正则覆盖不全（2026-09-20，09-18 审查 S2）
+
+`today-suggestion/schemas/copy.schema.ts` 的 `INTERNAL_IDENTIFIER` 要求至少一次
+`_`/`-`/大小写切换，因此 `logdose`、`complete`、`save` 这类**单段纯小写**内部标识符
+不会被拒绝。本次已覆盖的 `complete_profile` / `mark_as_taken` / `logDose` 都没问题，
+但 prompt 若改用单词形态命名 `templateKey`，这道安全网会失灵。
+更稳的做法是维护 `KNOWN_INTERNAL_ACTION_LABELS` 白名单（模型能回吐的内部标识符是
+有限集，显示文本才近无穷）。验收：白名单外的 `templateKey` 取值一律被 refine 拒绝。
+
+### R4：代码注释里的 `Task 10` 未进台账（2026-09-20，09-18 审查 S3）
+
+`medicine-dose-logs/services/dose-logs.service.ts` 的 `TODO(error)` 注释引用了
+`Task 10`（等 health-events ownership shim 移除后直接消费 events Result），但
+`docs/TODO.md` 里没有对应条目——编号漂在代码注释里，台账失效。要么按 D1 / B7 的
+体例登一条，要么把注释里的编号去掉、只留一句描述。验收：代码注释引用的编号在
+本文件可检索到。
+
+### R5：已下线工具的关键词规则残留（2026-09-20，09-18 审查 S5）
+
+`agent/runtime/tool-keyword-rules.ts` 里 `search_medical_qa_corpus` /
+`search_medicine_leaflets` 下线时只删了工具本身，对应的关键词规则未清理。
+`tool-keyword-rules.ts` 与 `tool-types.ts` 强耦合（每个 `AssistantToolName` 必须有
+一份规则），目前已不可达，但回滚时会绕开 keyword 检查。建议与
+`search_drugbank_passages` 的做法对齐（未实现的工具显式标 `[]` + 注释）。
+验收：规则表里每一项要么有可达的工具，要么显式标空并说明原因。
 
 ### D1：dead-code 端点台账（2026-09-18，09-17 审查 S3）
 
