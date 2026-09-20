@@ -79,6 +79,17 @@ class Settings(BaseSettings):
         description="Directory holding the versioned rule library; empty uses the shipped set.",
     )
 
+    # --- Observability --------------------------------------------------
+    # JSON by default: the service's useful output is quantitative (how many
+    # edges a scope loaded, whether it was truncated, how many facts the
+    # fixpoint produced), and those values are only queryable as fields.
+    # `text` renders the same fields for a human reading a terminal.
+    log_level: str = Field(default="INFO", description="Root log level.")
+    log_format: str = Field(
+        default="json",
+        description="'json' for one object per line, 'text' for a readable line.",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

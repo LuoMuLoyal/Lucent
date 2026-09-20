@@ -9,6 +9,7 @@ every other request while it runs.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -17,9 +18,12 @@ from fastapi import FastAPI
 
 from .config import Settings, get_settings
 from .graph import StorePool
+from .logging_setup import configure_logging, log_event
 from .provenance import ProvenanceReader
 from .reasoning import RuleLibrary, load_library, verify_against_vocabulary
 from .routes import health, provenance, query, reason, resolve, schema, validate
+
+logger = logging.getLogger("semantica_service")
 
 __version__ = "0.1.0"
 
@@ -41,16 +45,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     follows" that is indistinguishable from a real negative finding.
     """
     settings = get_settings()
+    configure_logging(settings.log_level, settings.log_format)
     pool = StorePool(settings)
     app.state.pool = pool
     app.state.settings = settings
     app.state.provenance = ProvenanceReader(settings)
     app.state.rules = _load_rules(settings, pool)
+    log_event(
+        logger,
+        "service_started",
+        graph=settings.graph_name,
+        rules=len(app.state.rules.rules),
+        pool_max_size=settings.pool_max_size,
+    )
     try:
         yield
     finally:
         app.state.provenance.close()
         pool.close()
+        log_event(logger, "service_stopped")
 
 
 def _load_rules(settings: Settings, pool: StorePool) -> RuleLibrary:

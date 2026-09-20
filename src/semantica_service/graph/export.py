@@ -33,11 +33,16 @@ module is therefore the adapter the plan calls the "application-side bridge".
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+import logging
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
 from semantica.graph_store.age_store import ApacheAgeStore
+
+from .retry import log_retry, read_with_retry
+
+_logger = logging.getLogger("semantica_service.graph")
 
 #: Rows fetched per round trip. Paging exists so a large scope does not build
 #: one enormous result set in memory on either side of the wire; it does not
@@ -223,9 +228,18 @@ def _fetch_pages(
         # Ask for everything seen so far plus the next page, so the new rows are
         # the tail rather than a repeat of the first page.
         wanted = len(records) + size
-        result = store.execute_query(
-            template.format(where=where, limit=wanted, **(formatting or {})),
-            parameters,
+        # Retried because every query here is an ordered read: re-running one
+        # cannot change the graph or the answer, so a dropped connection costs
+        # a round trip rather than the whole request. A deterministic failure
+        # (bad syntax, cancelled statement) is raised without retrying.
+        #
+        # `wanted` is bound as a default argument rather than closed over: the
+        # lambda runs later, and a loop variable captured by reference would
+        # change under it between attempts.
+        query = template.format(where=where, limit=wanted, **(formatting or {}))
+        result = read_with_retry(
+            _reader(store, query, parameters),
+            on_retry=log_retry,
         )
         if not result.get("success"):
             raise RuntimeError(f"AGE export failed: {result.get('error')}")
@@ -251,6 +265,25 @@ def _fetch_pages(
             truncated = _has_more(store, template, where, parameters, formatting, limit)
             break
     return records, truncated
+
+
+def _reader(
+    store: ApacheAgeStore,
+    query: str,
+    parameters: dict[str, Any],
+) -> Callable[[], dict[str, Any]]:
+    """A zero-argument callable that runs one query.
+
+    Built as a closure over already-bound values rather than written inline as a
+    ``lambda`` in the paging loop: a lambda there would close over the loop
+    variable and re-run with whatever value it held when the retry fired.
+    """
+
+    def run() -> dict[str, Any]:
+        result: dict[str, Any] = store.execute_query(query, parameters)
+        return result
+
+    return run
 
 
 def _has_more(
@@ -529,6 +562,21 @@ class GraphExport:
             seed_drug_keys=sorted(seed_drug_keys or []),
             truncated=nodes_truncated or edges_truncated,
             limit=limit,
+        )
+        # The single most useful line this service emits: an empty derivation
+        # later in the request is only readable next to what was loaded here.
+        _logger.info(
+            "export_loaded",
+            extra={
+                "event": "export_loaded",
+                "scope": scope_label,
+                "nodes": self.range.node_count,
+                "edges": self.range.edge_count,
+                "truncated": self.range.truncated,
+                "limit": limit,
+                "seed_keys": len(self.range.seed_drug_keys),
+                "drug_keys": len(self.range.drug_keys),
+            },
         )
 
     def find_nodes(self) -> Iterator[dict[str, Any]]:

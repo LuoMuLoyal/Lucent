@@ -14,6 +14,7 @@ false negatives that read like findings.
 
 from __future__ import annotations
 
+import logging
 import re
 import threading
 
@@ -39,6 +40,8 @@ from .schemas import (
 )
 
 router = APIRouter(tags=["reason"])
+
+_logger = logging.getLogger("semantica_service.reason")
 
 
 def _derive_with_deadline(engine: DatalogReasoner, timeout_s: int) -> list[str] | None:
@@ -376,6 +379,19 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
             recovery_is_complete(applied, derived, MAX_RECOVERED) if applied is not None else True
         ),
         fact_assertions=fact_assertions,
+    )
+    # Pairs with `export_loaded`: this line and that one together answer "was
+    # the empty result a finding or an empty input?" from logs alone.
+    _logger.info(
+        "reason_finished",
+        extra={
+            "event": "reason_finished",
+            "facts": payload.fact_count,
+            "conclusions": len(payload.conclusions),
+            "rule": payload.rule.id if payload.rule is not None else None,
+            "truncated": reason_range.truncated if reason_range is not None else None,
+            "conclusions_complete": payload.conclusions_complete,
+        },
     )
     return JSONResponse(content=payload.model_dump())
 
