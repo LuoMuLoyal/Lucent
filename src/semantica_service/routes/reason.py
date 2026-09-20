@@ -14,14 +14,56 @@ false negatives that read like findings.
 
 from __future__ import annotations
 
+import threading
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from semantica.reasoning.datalog_reasoner import DatalogReasoner
 
 from ..graph import GraphExport, ScopeSpec, StorePool, resolve_scope
+from ..reasoning_limits import (
+    KIND_TIMEOUT,
+    FactBudget,
+    check_declared_sizes,
+    reject,
+)
 from .schemas import ReasonRange, ReasonRequest, ReasonResponse
 
 router = APIRouter(tags=["reason"])
+
+
+def _derive_with_deadline(engine: DatalogReasoner, timeout_s: int) -> list[str] | None:
+    """Run the fixpoint under a wall-clock ceiling.
+
+    Datalog is CPU-bound and semi-naive, so a pathological rule/data pair spins
+    inside ``derive_all`` without ever yielding. The call therefore runs on a
+    worker thread the caller can abandon: on timeout the deadline returns
+    ``None`` and the request is refused, rather than the worker holding a
+    threadpool slot until the process runs out of them.
+
+    The abandoned thread cannot be killed — Python offers no way to interrupt
+    a running frame — so it finishes on its own. That is a real cost and the
+    reason the ceiling exists: the alternative is not "no cost", it is an
+    unbounded number of such threads.
+    """
+    result: list[str] = []
+    failure: list[BaseException] = []
+
+    def run() -> None:
+        try:
+            result.extend(engine.derive_all())
+        except BaseException as exc:  # noqa: BLE001 - re-raised in the caller
+            failure.append(exc)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(timeout=timeout_s)
+
+    if worker.is_alive():
+        return None
+    if failure:
+        raise failure[0]
+    return result
 
 
 def _load_graph(request: Request, body: ReasonRequest) -> GraphExport:
@@ -94,6 +136,9 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
     reason_range: ReasonRange | None = None
     fact_assertions: dict[str, str | None] = {}
 
+    settings = request.app.state.settings
+    check_declared_sizes(body)
+
     if body.load_from_graph:
         exported = _load_graph(request, body)
         labels = exported.labels()
@@ -129,11 +174,25 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
                 detail=f"Invalid rule {rule.rule!r}: {exc}",
             ) from exc
 
-    # derive_all() returns every fact in the base, not only the inferred ones,
-    # so it covers both the rules and no-rules cases. With no facts at all it
-    # returns an empty list, which is indistinguishable from "nothing derived"
-    # and worth reporting explicitly.
-    derived = engine.derive_all()
+    # The fixpoint runs under a wall-clock ceiling because it is CPU-bound and
+    # synchronous: an unbounded derivation does not make one request slow, it
+    # holds a threadpool worker until the process runs out of them. The ceiling
+    # is enforced on a worker thread so the signal can fire mid-fixpoint rather
+    # than only being noticed once the work has already finished.
+    budget = FactBudget(settings.max_reasoning_facts)
+    derived = _derive_with_deadline(engine, settings.reasoning_timeout_s)
+    if derived is None:
+        reject(
+            KIND_TIMEOUT,
+            422,
+            (
+                f"Reasoning exceeded {settings.reasoning_timeout_s}s "
+                "(REASONING_TIMEOUT_S). Narrow the scope or raise the ceiling."
+            ),
+            timeout_s=settings.reasoning_timeout_s,
+        )
+    budget.check(len(derived), source="rules over the loaded fact base")
+
     if not derived:
         raise HTTPException(
             status_code=422,

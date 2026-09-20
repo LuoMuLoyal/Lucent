@@ -119,8 +119,45 @@ def main() -> None:
     finally:
         pool.close()
 
+    _check_limits()
+
     print()
     print("all checks passed")
+
+
+def _check_limits() -> None:
+    """The reasoning ceilings have to bite, not just exist.
+
+    Both settings previously had no call site, so an operator could set them and
+    observe nothing. A ceiling nobody can trigger is indistinguishable from no
+    ceiling at all.
+    """
+    from fastapi import HTTPException
+
+    from semantica_service.reasoning_limits import FactBudget
+
+    print()
+    print("=== resource ceilings ===")
+    try:
+        FactBudget(100).check(101, source="rules over the loaded fact base")
+    except HTTPException as exc:
+        detail = exc.detail
+        assert isinstance(detail, dict)
+        print(f"  fact ceiling refused: kind={detail['kind']} msg={detail['message'][:70]}...")
+    else:  # pragma: no cover - the assertion below is the contract
+        raise AssertionError("the fact ceiling did not refuse an oversized result")
+
+    from semantica_service.routes.reason import _derive_with_deadline
+
+    class SlowEngine:
+        def derive_all(self) -> list[str]:
+            import time
+
+            time.sleep(10)
+            return ["late(x)"]
+
+    assert _derive_with_deadline(SlowEngine(), timeout_s=1) is None  # type: ignore[arg-type]
+    print("  wall clock refused a fixpoint that outran its deadline")
 
 
 if __name__ == "__main__":
