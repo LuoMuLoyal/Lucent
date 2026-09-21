@@ -114,7 +114,7 @@
     "adminjs": "^7.8.17",
     "ali-oss": "^6.23.0",
     "argon2": "^0.44.0",
-    "better-auth": "1.7.1",
+    "better-auth": "1.7.5",
     "bullmq": "^5.78.0",
     "bullmq-otel": "^2.0.1",
     "cache-manager": "^7.2.8",
