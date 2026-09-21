@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-17
+updated: 2026-09-21
 ---
 
 # Environment Variables
@@ -381,6 +381,26 @@ base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独�
 
 两处唯一共享的值是 `LIGHTRAG_API_KEY` —— Lucent 侧的调用密钥与 sidecar env 里的同名项
 **必须一致**（鉴权握手，不是模型配置复用）。
+
+> **抽取/关键词必须用便宜的非 thinking 模型，查询才用强模型**（2026-09-21 更正）。
+> 按角色分离的变量就是为此存在的：`EXTRACT_LLM_MODEL` / `KEYWORD_LLM_MODEL` 与
+> `QUERY_LLM_MODEL`。若三者配成同一个强模型且不关 thinking，建图会慢一个数量级，
+> 而且**抽出的实体名会带上剂量单位**（实测 `2 Tablets`、`20mg Per Kilogram`
+> 被当成实体）。两条纪律：
+>
+> - **关 thinking** 走 role 级 provider option，变量名是
+>   `{ROLE}_{BINDING}_{FIELD}`，值为 JSON：`EXTRACT_OPENAI_LLM_EXTRA_BODY={"enable_thinking": false}`
+>   （`KEYWORD_*` 同理）。实测同一句话默认调用返回 999 字符 reasoning、耗时 4644ms，
+>   关掉后无 reasoning、486ms。
+> - **并发闸门是 `MAX_ASYNC_LLM`**（每角色 LLM 调用并发，默认仅 4），
+>   不是 `MAX_PARALLEL_INSERT`（那只管文档级 / PG 写入并发）。只调后者等于调错管道。
+>
+> 另外 `SUMMARY_LANGUAGE` 默认 `English`（会把实体描述写成英文），中文语料要显式设
+> `Chinese`；默认实体本体是 `Person`/`Organization`/`Location` 那套通用类型，对药品
+> 说明书不对口，用 `ENTITY_TYPE_PROMPT_FILE` 指定领域 profile（`PROMPT_DIR` 默认
+> `./prompts`，只认裸文件名 + 固定子目录 `entity_type/`，**不接受绝对路径**）。
+> 完整清单与实测数据见 `deploy/lightrag/.env.example` 与
+> `lightrag-eval/results/mode-comparison.md` §九。
 
 启用步骤（复制模板 → 填模型 key → 起 profile，见模板头注释）：
 

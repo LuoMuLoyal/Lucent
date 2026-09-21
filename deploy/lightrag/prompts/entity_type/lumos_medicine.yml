@@ -1,0 +1,54 @@
+# 中文药品说明书实体抽取 profile
+# ---------------------------------------------------------------------------
+# 挂载进容器后由 PROMPT_DIR/ENTITY_TYPE_PROMPT_FILE 定位：
+#   PROMPT_DIR=/app/data/prompts
+#   ENTITY_TYPE_PROMPT_FILE=lumos_medicine.yml
+# 容器内实际路径 /app/data/prompts/entity_type/lumos_medicine.yml
+# （compose 把 deploy/lightrag/prompts 挂到 /app/data/prompts）。
+#
+# 为什么需要它：LightRAG 默认本体是 Person / Organization / Location / Event
+# 那套通用类型，对药品说明书完全不对口 —— 实测把药品归成 artifact / person，
+# 把 "2 Tablets"、"1500 Cells Per Cubic Millimeter" 这类剂量+单位抽成实体名，
+# 290 个节点里 26 个带数值/单位。
+#
+# 本文件只覆盖 `entity_types_guidance` 与示例，**不替换**抽取主 prompt：
+# 角色、输出格式、字段语义仍由上游 entity_extraction_system_prompt 决定。
+# 校验规则（prompt.py load_entity_extraction_prompt_profile）：
+#   - 顶层必须是 mapping；
+#   - entity_types_guidance 必须是非空字符串；
+#   - 当前抽取模式对应的 examples 字段必须存在（文本模式 → entity_extraction_examples，
+#     设 ENTITY_EXTRACTION_USE_JSON=true 后则必须给 entity_extraction_json_examples）。
+
+entity_types_guidance: |
+  Classify each entity using one of the following types. If no type fits, use `Other`.
+  药品说明书领域本体（实体名与描述一律用中文；药品通用名可保留原文）：
+
+  - Drug: 药品通用名、活性成分、化学名（如贝那普利、氢氯噻嗪、利多卡因）
+  - DrugClass: 药物类别/作用机制分类（如 ACE 抑制剂、噻嗪类利尿剂、酰胺类局麻药）
+  - Disease: 疾病、适应症、禁忌症、临床状态（如高血压、青光眼、严重充血性心衰）
+  - Symptom: 症状与体征（如少尿、水肿、嗜睡、心悸）
+  - AdverseReaction: 不良反应/毒性反应（如血管性水肿、惊厥、骨髓抑制）
+  - LabTest: 检验检查项目与指标（如血清肌酐、血钾、GOT、中性粒细胞计数）
+  - BodyPart: 器官、组织、解剖部位（如肾脏、肝脏、中枢神经系统、心肌）
+  - Population: 用药人群与特殊人群（如老年患者、孕妇、儿童、肾功能不全患者）
+  - Procedure: 医疗操作、给药方式、监测手段（如静脉注射、血液透析、心功能监测）
+  - DrugInteraction: 相互作用的药物、食物或物质（如保钾利尿剂、钾盐、酒精）
+
+  **实体命名铁律**：
+  - 实体名必须是纯粹的实体名称，严禁包含剂量、数值、百分比、单位或时间量。
+    剂量、浓度、疗程、频次、阈值一律作为 description 的内容，不进入实体名。
+    例如"成人一次两片"这件事，"氨氯地平"是实体名，用量写进它的 description。
+  - 同一实体在全文必须用同一个名称，避免同一概念出现多种写法。
+  - 本段只是命名约定，**不是待抽取的内容**；不要从本段生成任何实体或关系。
+
+entity_extraction_examples:
+  - |
+    entity{tuple_delimiter}贝那普利{tuple_delimiter}Drug{tuple_delimiter}一种血管紧张素转换酶（ACE）抑制剂，用于治疗高血压，可单用或与氢氯噻嗪组成复方制剂。
+    entity{tuple_delimiter}高血压{tuple_delimiter}Disease{tuple_delimiter}本品的主要适应症；适用于单一治疗不能达到满意疗效的病人。
+    entity{tuple_delimiter}血管性水肿{tuple_delimiter}AdverseReaction{tuple_delimiter}服用 ACE 抑制剂后可能出现的过敏样反应，可累及面部、四肢、唇舌及喉部。
+    entity{tuple_delimiter}保钾利尿剂{tuple_delimiter}DrugInteraction{tuple_delimiter}不推荐与本品联合使用的药物类别，合用可致血钾升高。
+    entity{tuple_delimiter}肾功能不全患者{tuple_delimiter}Population{tuple_delimiter}需要调整剂量并监测肾功能与血钾的特殊人群。
+    relation{tuple_delimiter}贝那普利{tuple_delimiter}高血压{tuple_delimiter}适应症,降压治疗{tuple_delimiter}贝那普利用于治疗高血压，推荐剂量为每日一次 10/12.5mg。
+    relation{tuple_delimiter}贝那普利{tuple_delimiter}血管性水肿{tuple_delimiter}不良反应,过敏样反应{tuple_delimiter}贝那普利可能引起血管性水肿，一旦发生须立即停药并就医。
+    relation{tuple_delimiter}贝那普利{tuple_delimiter}保钾利尿剂{tuple_delimiter}药物相互作用,禁忌联用{tuple_delimiter}与保钾利尿剂合用会增加高钾血症风险，故不推荐联合使用。
+    {completion_delimiter}

@@ -58,8 +58,11 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
   上面那条判断标准（"图模式显著优于 naive"）依然没有被真正检验。
   **放行前必须先建图**：没建图时图模式拿到的是**空结果而非报错**，
   只有 `coverage.reason` 会说明；索引状态与 `LIGHTRAG_GRAPH_SOURCES` 必须一致。
-- **建图成本决策（未决）**：实测约 4 分钟/chunk、约 $0.057/doc。按 21,142 份
-  说明书估算，全量建图的墙钟与费用**需要单独立项**，不是"顺手跑一下"。
+- **建图成本决策（未决）**：实测约 **10.5 s/chunk**、约 $0.057/doc（抽取侧换
+  `deepseek-v4-flash-0731` + 关 thinking + 开 `MAX_ASYNC_LLM` 之后的数字；
+  同一口径下改配置前是 61.4 s/chunk，旧文档记的"4 分钟/chunk"已证伪）。
+  按 21,142 份说明书估算，全量建图的墙钟与费用**需要单独立项**，不是"顺手跑一下"。
+  依据见 `lightrag-eval/PROCESS.md` 与 `lightrag-eval/results/mode-comparison.md` §一、§九。
 - **P4 灌 `qa` workspace（脚本就位，未实跑）**：`medical_qa_chunks` 当前 0 行，
   源数据（`DrugDataBase/医疗问答数据集一共135万条`）尚未导入。步骤：
   `import-medical-qa.ts --filter` → `pnpm import:lightrag --workspace=qa`。

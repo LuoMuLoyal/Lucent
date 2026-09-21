@@ -92,12 +92,16 @@ services:
       PORT: '9621'
       WORKING_DIR: /app/data/rag_storage
       INPUT_DIR: /app/data/inputs
+      # 领域本体 prompt profile 的根目录；ENTITY_TYPE_PROMPT_FILE 相对它解析。
+      PROMPT_DIR: /app/data/prompts
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:
       - '127.0.0.1:9621:9621'
     volumes:
       - lightrag-data:/app/data
+      # 只读挂载：prompt 是配置事实源，需随镜像一起评审与回滚。
+      - ./deploy/lightrag/prompts:/app/data/prompts:ro
     # 升级需排空 pipeline 再停 writer(v1.5.7 起并发协议变更且无版本标记)。
     stop_grace_period: 60s
     healthcheck:

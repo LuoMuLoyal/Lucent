@@ -73,7 +73,8 @@ sidecar**，Lucent 只做参数校验与 envelope 归一：
   `LIGHTRAG_GRAPH_SOURCES`（默认 `leaflet`）；`bypass` 与未知 mode 直接拒绝；
   `verifiability` 按 `source` 服务端写入（`qa` = `open_corpus`，`leaflet` = `citable`）。
 - **图模式的启用开关是运维事实，不是代码分支**：`LIGHTRAG_GRAPH_SOURCES` 表达的是
-  "**这些来源的图已经建好了**"（建图是独立长任务，约 $0.057/doc）。没建图却放行图模式的
+  "**这些来源的图已经建好了**"（建图是独立长任务，约 $0.057/doc、约 11.5 s/chunk ——
+  后者是抽取侧换成便宜模型 + 关 thinking + 开 `MAX_ASYNC_LLM` 之后的实测值）。没建图却放行图模式的
   后果**不是报错，是空结果**——图模式拿不到实体。设成空串即回到"图模式全禁"。
   超时三层嵌套，改动时要一起看：客户端 60s < `RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS`
   65s < `ASSISTANT_NODE_TIMEOUT_MS`。依据见
