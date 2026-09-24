@@ -1,105 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   AUTH_POSTURE_DECORATORS,
-  checkDtoValidatorExplicitness,
   checkEndpointAuthPosture,
   getDecoratorName,
   getDecorators,
   HTTP_METHOD_DECORATORS,
   parseSourceFile,
-  RULE_DTO_VALIDATOR_MISSING,
   RULE_ENDPOINT_AUTH_POSTURE,
 } from './check-ast-conventions.ts';
 import ts from 'typescript';
 
-const DTO_FILE = 'src/modules/sample/dto/sample.dto.ts';
 const CONTROLLER_FILE = 'src/modules/sample/sample.controller.ts';
-
-const DTO_MISSING = `\
-import { ApiProperty } from '@nestjs/swagger';
-
-export class SampleDto {
-  @ApiProperty()
-  title!: string;
-}
-`;
-
-const DTO_VALID = `\
-import { IsString, MaxLength } from 'class-validator';
-
-export class SampleDto {
-  @IsString()
-  @MaxLength(80)
-  title!: string;
-}
-`;
-
-describe('checkDtoValidatorExplicitness', () => {
-  it('flags a DTO property with no @Is* decorator', () => {
-    const warnings = checkDtoValidatorExplicitness(DTO_FILE, DTO_MISSING);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toMatchObject({
-      file: DTO_FILE,
-      line: 5,
-      rule: RULE_DTO_VALIDATOR_MISSING,
-    });
-    expect(warnings[0].message).toContain('title');
-  });
-
-  it('does not flag a property carrying @Is* decorators', () => {
-    expect(checkDtoValidatorExplicitness(DTO_FILE, DTO_VALID)).toEqual([]);
-  });
-
-  it('accepts repo composite validators named with the Is prefix', () => {
-    const source = `\
-import { IsStrongPassword } from '../../../common/validators/auth.decorators';
-
-export class PasswordDto {
-  @IsStrongPassword()
-  password!: string;
-}
-`;
-    expect(checkDtoValidatorExplicitness(DTO_FILE, source)).toEqual([]);
-  });
-
-  it('excludes private readonly injection members (modifier-based)', () => {
-    const source = `\
-export class SampleDto {
-  private readonly client: HttpClient;
-}
-`;
-    expect(checkDtoValidatorExplicitness(DTO_FILE, source)).toEqual([]);
-  });
-
-  it('excludes static members', () => {
-    const source = `\
-export class SampleDto {
-  static readonly KIND = 'sample';
-
-  title!: string;
-}
-`;
-    const warnings = checkDtoValidatorExplicitness(DTO_FILE, source);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0].message).toContain('title');
-    expect(warnings[0].line).toBe(4);
-  });
-
-  it('checks every class in the file', () => {
-    const source = `\
-export class FirstDto {
-  title!: string;
-}
-
-export class SecondDto {
-  name!: string;
-}
-`;
-    const warnings = checkDtoValidatorExplicitness(DTO_FILE, source);
-    expect(warnings).toHaveLength(2);
-    expect(warnings.map((w) => w.line)).toEqual([2, 6]);
-  });
-});
 
 const CONTROLLER_MISSING = `\
 import { Get } from '@nestjs/common';

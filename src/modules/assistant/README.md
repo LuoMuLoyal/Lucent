@@ -154,6 +154,15 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 - 部署与变量（`deploy/semantica/`、`SEMANTICA_*`）见
   `docs/reference/environment-variables.md` 的 Semantica 小节。sidecar 尚无镜像，
   dev 走本机 `uvicorn`，容器化部署未完成。
+- **不接它的生成能力、Rete / SPARQL / 时态推理 / 决策智能**：答案出口唯一
+  （ADR-0021）。它自带的四类生成（答案 / 查询 / 本体候选 / 实体关系抽取）都不用，
+  "解释"也不走 `ExplanationGenerator`（它吃不了 Datalog 的字符串输出）——我们自己的
+  "规则名 + 前提引用"就是解释。Rete 需要 `Rule` 对象而非 Datalog 文本且没有
+  fixpoint；SPARQL 需要三元组库（Oxigraph 在本仓只是 extra）；时态与决策记录没有
+  产品场景。
+- **不引入它的嵌入 / NER / 消解 / 文档解析链路**：英文侧走确定性灌入，用不到。
+- **不把推理结论写成诊断或用药建议**：结论只作为"待复核的潜在关系"呈现
+  （`verifiability: 'derived'`），不进入任何自动建议。
 
 ### 工具参数（模型定窗）
 

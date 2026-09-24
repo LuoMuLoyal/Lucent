@@ -486,7 +486,8 @@ export class MedicineDoseLogsService {
     // folds the events module ResultAsync with unwrapResult (its DomainFailure
     // surfaces as DomainFailureException through the global filter). Unknown
     // failures rethrow. TODO(error): consume the events Result directly when
-    // the health-events ownership shim is removed (Task 10).
+    // the health-events ownership shim is removed (see docs/TODO.md,
+    // "health-events ownership shim 的移除").
     return fromPromise(
       this.healthEventsOwnership.ensureActiveOwnedByUser(userId, healthEventId),
       (error) => {

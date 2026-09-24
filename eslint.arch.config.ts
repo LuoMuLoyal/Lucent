@@ -43,13 +43,8 @@ export default tseslint.config(
       reportUnusedDisableDirectives: 'off',
     },
   },
-  // W1 空 catch 观察块(带注释不报;allowEmptyCatch: false 即空 catch 也计入)
-  {
-    files: ['src/**/*.ts', 'test/**/*.ts'],
-    rules: {
-      'no-empty': ['warn', { allowEmptyCatch: false }],
-    },
-  },
+  // W1 空 catch:观察期 0 违规,已于 2026-09-24 转 error 并迁入 eslint.config.ts
+  // (oxlint 不覆盖 no-empty)。
   // W2 service 层裸 throw new Error → 引导走 ADR-0012 错误契约
   {
     files: ['src/**/*.service.ts'],

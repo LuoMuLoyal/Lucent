@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-20
+updated: 2026-09-24
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-20
+Last updated: 2026-09-24
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -19,20 +19,23 @@ random docs.
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
 
-## 2026-09-19 英文侧 OAG（Semantica）：问答链路已落地，推理与图谱缺口待做
+## 2026-09-19 英文侧 OAG（Semantica）：主链、推理与硬化已全部落地
 
-`reason_over_ontology` 工具、四个注册点、policy 门控、sidecar 客户端、confirm 路径审计、
-**PROV-O 端到端引用**（边上 `prov` → sidecar `/provenance` 解析 → envelope `citations`
-→ SSE `toolDetails` → 来源条）已落地并真机验证（详见当日迁移日志）。
-
-**剩余工作的执行口径见 `plans/2026-09-19-semantica-reasoning-and-graph-hardening-plan.md`**
-（推理接线 R1–R5、图谱缺口 D1–D2、服务硬化 S1–S3、评测集 E1–E2），决策见
-`docs/reference/adr/0021-semantica-english-side-oag.md`。此处只留不属该计划的条目：
+`reason_over_ontology` / `reason_over_rules` 工具、四个注册点、policy 门控、sidecar
+客户端、confirm 路径审计、**PROV-O 端到端引用**（边上 `prov` → sidecar `/provenance`
+解析 → envelope `citations` → SSE `toolDetails` → 来源条）已落地并真机验证；推理输入桥、
+规则库（`reason_over_rules`）、推理资源上限、ATC 类名决策、相互作用双向边、服务硬化与
+评测集（11/11 通过）亦已完成，实施计划按约定删除。决策见
+`docs/reference/adr/0021-semantica-english-side-oag.md`，代码相邻的约束与非目标见
+`src/modules/assistant/README.md`（英文侧 OAG 小节）。此处只留尚未闭环的条目：
 
 - **sidecar 镜像（未做）**：三份 compose 的 `semantica` 服务定义已就位（profile 门控，
   避免 `docker compose up` 去拉不存在的镜像），但 `semantica-service` 仓还没有
   Dockerfile，容器化部署不可用；dev 目前靠本机 `uvicorn` + `.env.development` 直连。
   归 `plans/2026-09-27-apache-age-introduction-plan.md` 的 P2 剩余项。
+- **导出阶段的读取不受推理预算约束**：`REASONING_TIMEOUT_S` 覆盖不动点推理，不覆盖
+  `load_from_graph` 的导出读取。导出侧已从 57s 降到 12.7s（50,000 边），但在更小的
+  调用方预算下仍可能击穿超时预期（依据见 `semantica-oag-pilot/CORRECTIONS-r3.md`）。
 - **模型供应商配额/凭据**：本轮评测中途开始快失败（`rejected our credentials or
 exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前先确认配额。
 - **ATC 类名（已决策 ②，不做导入）**：1,467 个 `ATCClass` 节点只有 `code`/`level`，
@@ -88,43 +91,7 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
 「替换/移除」路径调用。验收：替换头像后旧对象可被回收，且用户无法借删除端点触达他人对象
 （沿用各资源端点「跨用户访问 → 404」的 e2e 约定）。对侧登记见 Luminous `docs/TODO.md`。
 
-### `/medicines/recognize` 响应 schema 缺失（P3）
-
-`files/upload` 的响应 schema 已在同日补齐（见当日迁移日志），但
-`POST /api/v1/user/medicines/recognize` 同样只有 description、没有 `content`，生成客户端的响应体
-被丢掉——Luminous 的 scan 只能手写 Dio + `coerceToStringMap` 解析 `name` / `approvalNumber`，
-协议违规退化为 `Left(unknown)`。方案：按 daily-records / files 的既有写法补
-`registerResponseSchema` + `@SerializeOptions`，重新导出 OpenAPI。验收：Luminous 该调用点可改用
-类型化客户端并删掉手写解析（对侧登记见 Luminous `docs/TODO.md`）。
-
-## 2026-09-06 OAuth 登入门槛调整（微博全链路移除待办）
-
-前端已把微博登录 UI 入口隐藏（`Luminous`），后端微博 OAuth 全链路移除作为待办：
-删除 `src/modules/auth/providers/weibo-oauth.provider.ts`（及其 spec）、
-`oauth.controller.ts` 中 `/api/v1/auth/oauth/weibo/*` 端点与
-`registerResponseSchema` 条目、`oauth.dto.ts` 的 `weiboOAuthAuthorizeSchema` /
-`weiboOAuthCallbackSchema` 及相关类型、`oauth.config.ts` 的 `weibo` 项、
-`EnvKey.WEIBO_*` 环境变量（同步 `docs/reference/environment-variables.md`）、
-`state.service.ts` 的 weibo 回跳路径、`oauth.types.ts` 的 `OAUTH_PROVIDER_WEIBO`、
-`auth.service.ts` / `facade.service.ts` 的 weibo 方法与相关测试；移除后重新导出 OpenAPI。
-
-### B5：风险检查候选预检的错误可观测性（P3，2026-08-16 F-9 审查 P2）
-
-`MedicineRiskCheckService.evaluateStaticCheck` 候选详情解析失败时，非 NotFound 异常被 `badRequest('候选药品资料不可用…')` 包装为 400 且原始错误不记录日志（`services/risk/risk-check.service.ts`）。建议：抛错前 `logger.warn` 记录原始 error，或将上游知识库服务类异常转 502/503；验收：候选资料不可用时仍显式失败，且日志可定位原始异常。
-
-### B6：候选预检与药品详情知识缓存的交互口径（P3，2026-08-16 F-9 审查 P2）
-
-候选预检通过 `getDetailWithCache(candidate.id, {source}, false)` 取详情，miss 时会写入药品详情知识缓存（`services/medicines.service.ts`）；「预检不落库」口径仅指 risk-check records 与 records 缓存（已确认不触碰）。验收：确认该口径并在必要时文档化；无行为改动。
-
 ## 文档治理观察期(2026-08-31,来源:doc-governance-overhaul 计划,文件已删)
-
-### G2:arch:check 观察期规则转级(warn → error,一周评估)
-
-基线(2026-08-31):依赖图 R1=7(product-events spec 深引 today-suggestion)、R2=0、
-R3=12(common/queue → 4 模块)、R4=1(medicines cache spec 直引 keyv)、R5=0、循环依赖 5 环;
-eslint.arch W1=0、W2=12(service 裸 throw)、W3=1033(magic numbers)、W4=54(测试 `: any`);
-AST C1=849(DTO 缺 `@Is*`)、C2=111(端点缺显式鉴权)。逐条清理后分批转 error,
-全部清零后启用 `check-ast-conventions.ts --strict`。
 
 ### G3:CI 增加 openapi.json 一致性 diff 校验
 
@@ -140,50 +107,17 @@ environment 为简化实现(静态数据,关联 B2);`GET /environment/advice` �
 
 ## 后续可做
 
-### R1：本体推理的入参夹紧对模型不可见（2026-09-20，09-19 审查 S-2）
+### health-events ownership shim 的移除
 
-`ontology-reasoning.service.ts` 的 `normalizeLimit()` 把 `limit` 静默夹到
-[1, `SEMANTICA_MAX_LIMIT`]：模型请求 200 行只拿到 100 行，而 envelope 里**没有任何
-字段说明发生过夹紧**。后果是模型反复要更大的窗口，每次都拿到同样的行数，体感像
-"返回结果忽好忽坏"。建议在 result envelope 内补 `requestedLimit` 与 `limitCapped`
-两个字段，与 `MEAL_DIGEST_LIMIT_CAP_MESSAGE` 的做法同构（那条已在 09-16 修过同类
-问题：谎报"Requested N"）。验收：请求越界 limit 时模型能在 `ambiguities` 或
-envelope 字段里读到"你要了 N，已夹到 M"。
+`HealthEventsOwnershipService` 为模块外消费方（reports / medicine-dose-logs /
+daily-records）保留 legacy `Promise<T>` 契约，内部用 `unwrapResult` 折叠模块自身的
+`ResultAsync`，抛出的 `DomainFailureException` 由全局过滤器转成 Problem Details。
+三个消费方各自把 Promise 折回 Result（daily-records 的 `requireActiveHealthEvent`）
+或直接 rethrow（medicine-dose-logs 的 `fromPromise`），属过渡形态。
 
-### R2：引用 schema 漂移只有 warn、没有指标（2026-09-20，09-19 审查 S-7）
-
-`stream-orchestrator.service.ts` 的 `extractCitations()` 用 `safeParse` 失败即 drop
-并 warn。声明的语义是"sidecar 响应漂移不该让整个查询结果作废"（这个取舍正确），
-但**没有计数器**：sidecar 升级导致 schema 漂移时，表现为"客户端永远看不到 citations
-但不知道为什么"，只能在日志里翻。建议加 metrics 计数器
-（如 `assistant_tool_citations_dropped_total{reason="schema_mismatch"}`）。验收：
-人为构造一次 schema 不匹配，指标可观测。
-
-### R3：建议卡内部标识符正则覆盖不全（2026-09-20，09-18 审查 S2）
-
-`today-suggestion/schemas/copy.schema.ts` 的 `INTERNAL_IDENTIFIER` 要求至少一次
-`_`/`-`/大小写切换，因此 `logdose`、`complete`、`save` 这类**单段纯小写**内部标识符
-不会被拒绝。本次已覆盖的 `complete_profile` / `mark_as_taken` / `logDose` 都没问题，
-但 prompt 若改用单词形态命名 `templateKey`，这道安全网会失灵。
-更稳的做法是维护 `KNOWN_INTERNAL_ACTION_LABELS` 白名单（模型能回吐的内部标识符是
-有限集，显示文本才近无穷）。验收：白名单外的 `templateKey` 取值一律被 refine 拒绝。
-
-### R4：代码注释里的 `Task 10` 未进台账（2026-09-20，09-18 审查 S3）
-
-`medicine-dose-logs/services/dose-logs.service.ts` 的 `TODO(error)` 注释引用了
-`Task 10`（等 health-events ownership shim 移除后直接消费 events Result），但
-`docs/TODO.md` 里没有对应条目——编号漂在代码注释里，台账失效。要么按 D1 / B7 的
-体例登一条，要么把注释里的编号去掉、只留一句描述。验收：代码注释引用的编号在
-本文件可检索到。
-
-### R5：已下线工具的关键词规则残留（2026-09-20，09-18 审查 S5）
-
-`agent/runtime/tool-keyword-rules.ts` 里 `search_medical_qa_corpus` /
-`search_medicine_leaflets` 下线时只删了工具本身，对应的关键词规则未清理。
-`tool-keyword-rules.ts` 与 `tool-types.ts` 强耦合（每个 `AssistantToolName` 必须有
-一份规则），目前已不可达，但回滚时会绕开 keyword 检查。建议与
-`search_drugbank_passages` 的做法对齐（未实现的工具显式标 `[]` + 注释）。
-验收：规则表里每一项要么有可达的工具，要么显式标空并说明原因。
+验收：消费方改为直接消费 events 的 `Result` 后，删除该 shim 与三处 `TODO(error)`
+折叠代码（`services/ownership.service.ts`、`daily-records/services/records.service.ts`、
+`medicine-dose-logs/services/dose-logs.service.ts`）。
 
 ### D1：dead-code 端点台账（2026-09-18，09-17 审查 S3）
 

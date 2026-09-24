@@ -41,19 +41,19 @@
 
 ## Architecture Checks (arch:check)
 
-`pnpm arch:check` 聚合三类观察期检查（全部 warn 不阻断；逐条评估后转 error，进度见
-`docs/TODO.md`）：
+`pnpm arch:check` 聚合三类检查。观察期已于 2026-09-24 裁决：除已转级/退役的规则外
+全部**维持 warn 不阻断**，不再计划转 error：
 
 - **依赖图**（dependency-cruiser，`.dependency-cruiser.cjs`）：模块间只准 barrel import
   （module 类直引对方 `.module.ts` 豁免）；跨模块 import 其他模块 `repositories/`、`dto/` 禁止；
   `src/common/**` 禁止 import `src/modules/**`；业务模块禁止直连 `ioredis`/`keyv`（走公共缓存封装）；
   controller 禁止 import `@prisma/client` 与 `src/prisma/**`。
-- **代码模式**（`eslint.arch.config.ts`，独立 flat config，与主 lint 互不影响）：空 catch 块、
+- **代码模式**（`eslint.arch.config.ts`，独立 flat config，与主 lint 互不影响）：
   service 层裸 `throw new Error`（ADR-0012 例外见下节）、`no-magic-numbers` 白名单、
-  测试文件 `: any`。
-- **AST 约定**（`scripts/arch/check-ast-conventions.ts`）：DTO 每个实例属性至少一个 `@Is*`
-  校验器；controller 端点鉴权姿态显式化（方法或类级 `@Public()` / `@UseGuards`）。
-  加 `--strict` 时有告警则 exit 1（转 error 后启用）。
+  测试文件 `: any`。原 W1（空 catch）已转 error 并迁入 `eslint.config.ts`。
+- **AST 约定**（`scripts/arch/check-ast-conventions.ts`）：controller 端点鉴权姿态显式化
+  （方法或类级 `@Public()` / `@UseGuards`）。加 `--strict` 时有告警则 exit 1（不接入门禁）。
+  原 C1（DTO 属性须带 class-validator `@Is*`）已随 zod 迁移退役。
 
 ## Read First
 

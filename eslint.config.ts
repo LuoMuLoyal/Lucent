@@ -79,6 +79,12 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-confusing-void-expression': 'error',
 
+      // 架构观察期转级（G2，2026-09-24）：空块/空 catch 在观察期
+      // 内清零（0 违规）且 oxlint 不覆盖该规则，故定为 error。catch 的语义另有
+      // error-handling/no-silent-catch（更严：要求 log 或 rethrow）兜住，这一条
+      // 同时覆盖非 catch 的空块。
+      'no-empty': ['error', { allowEmptyCatch: false }],
+
       // ── 错误处理（ADR-0012）──
       // 规则启用为 error，现有违规文件在下方 override 中暂时 off，清理后逐个删除。
       'error-handling/no-bare-throw-error': 'error',

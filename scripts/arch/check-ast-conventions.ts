@@ -1,17 +1,9 @@
 // AST convention check for Lucent (CLI entry).
 //
-// Parses `src/**/*.dto.ts` and `src/**/*.controller.ts` with the TypeScript
-// compiler API (`ts.createSourceFile`, syntax-level only — no full Program)
-// and reports two WARN-level convention findings:
+// Parses `src/**/*.controller.ts` with the TypeScript compiler API
+// (`ts.createSourceFile`, syntax-level only — no full Program) and reports
+// WARN-level convention findings:
 //
-// - C1 dto-validator-missing: every non-static instance property of a class
-//   in a DTO file must carry at least one class-validator decorator — any
-//   decorator whose name starts with `Is` (e.g. `@IsString()`, or the repo
-//   composites `@IsStrongPassword` / `@IsVerificationCode` /
-//   `@IsEmailAddress` from src/common/validators/auth.decorators.ts).
-//   Properties with `private`/`protected` modifiers are excluded: they are
-//   injection members, not DTO data properties. No `@Exclude` exemption is
-//   implemented — a repo-wide grep found zero `@Exclude` usage.
 // - C2 endpoint-auth-posture: every method carrying an HTTP method decorator
 //   (@Get/@Post/@Patch/@Put/@Delete/@Sse/...) must state its auth posture
 //   explicitly via `@Public()` (src/modules/auth) or `@UseGuards(...)` on the
@@ -21,6 +13,14 @@
 //   on the implicit default — exactly the drift this rule surfaces. Swagger
 //   (`@ApiBearerAuth`) and rate-limit (`@Throttle`) decorators do not express
 //   a posture and never satisfy the rule.
+//
+// C1 (dto-validator-missing) was retired on 2026-09-24: it required
+// class-validator `@Is*` decorators on DTO class properties, but this repo
+// validates requests with zod 4 Standard Schemas bound through
+// `@Body({ schema })`. All 44 remaining hits were *response* classes that must
+// not carry request-validation decorators (health/app DTOs, RFC 9457 problem
+// details, `AssistantConfirmResult`), so the rule could only produce false
+// positives.
 //
 // Modes:
 // - Default: print the WARN report without blocking (exit 0).
@@ -39,7 +39,6 @@ import { execSync } from 'node:child_process';
 import { basename, join, resolve } from 'node:path';
 import ts from 'typescript';
 
-export const RULE_DTO_VALIDATOR_MISSING = 'dto-validator-missing';
 export const RULE_ENDPOINT_AUTH_POSTURE = 'endpoint-auth-posture';
 
 /** NestJS HTTP method decorators that mark a controller method as an endpoint. */
@@ -65,9 +64,6 @@ export const AUTH_POSTURE_DECORATORS: readonly string[] = [
   'Public',
   'UseGuards',
 ];
-
-/** A class-validator decorator must be named with this prefix. */
-const VALIDATOR_NAME_PREFIX = 'Is';
 
 export interface ConventionWarning {
   /** Repo-relative POSIX path of the scanned file. */
@@ -122,12 +118,6 @@ function hasDecoratorNamed(node: ts.Node, names: readonly string[]): boolean {
   });
 }
 
-function hasModifierKind(node: ts.Node, kind: ts.SyntaxKind): boolean {
-  const modifiers = (node as { modifiers?: readonly ts.ModifierLike[] })
-    .modifiers;
-  return (modifiers ?? []).some((modifier) => modifier.kind === kind);
-}
-
 function memberName(
   member: ts.PropertyDeclaration | ts.MethodDeclaration,
 ): string {
@@ -151,47 +141,6 @@ function lineNumber(sourceFile: ts.SourceFile, node: ts.Node): number {
   return (
     sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
   );
-}
-
-// --- C1: DTO validator explicitness --------------------------------------
-/**
- * Every non-static, non-private instance property of every class in a DTO
- * file must carry at least one decorator named with the `Is` prefix
- * (class-validator). WARNs otherwise.
- */
-export function checkDtoValidatorExplicitness(
-  file: string,
-  source: string,
-): ConventionWarning[] {
-  const sourceFile = parseSourceFile(source);
-  const warnings: ConventionWarning[] = [];
-  for (const statement of sourceFile.statements) {
-    if (!ts.isClassDeclaration(statement)) continue;
-    for (const member of statement.members) {
-      if (!ts.isPropertyDeclaration(member)) continue;
-      // Static members are not DTO data.
-      if (hasModifierKind(member, ts.SyntaxKind.StaticKeyword)) continue;
-      // private/protected members are injection artifacts, not DTO data.
-      if (
-        hasModifierKind(member, ts.SyntaxKind.PrivateKeyword) ||
-        hasModifierKind(member, ts.SyntaxKind.ProtectedKeyword)
-      ) {
-        continue;
-      }
-      const hasValidator = getDecorators(member).some((decorator) => {
-        const name = getDecoratorName(decorator);
-        return name !== null && name.startsWith(VALIDATOR_NAME_PREFIX);
-      });
-      if (hasValidator) continue;
-      warnings.push({
-        file,
-        line: lineNumber(sourceFile, member.name),
-        rule: RULE_DTO_VALIDATOR_MISSING,
-        message: `property "${memberName(member)}" has no class-validator @Is* decorator`,
-      });
-    }
-  }
-  return warnings;
 }
 
 // --- C2: endpoint auth posture -------------------------------------------
@@ -254,14 +203,9 @@ function collectSourceFiles(repoRoot: string, suffix: string): string[] {
 }
 
 function runCheck(repoRoot: string, strict: boolean): void {
-  const dtoFiles = collectSourceFiles(repoRoot, '.dto.ts');
   const controllerFiles = collectSourceFiles(repoRoot, '.controller.ts');
 
   const warnings: ConventionWarning[] = [];
-  for (const file of dtoFiles) {
-    const source = readFileSync(resolve(repoRoot, file), 'utf-8');
-    warnings.push(...checkDtoValidatorExplicitness(file, source));
-  }
   for (const file of controllerFiles) {
     const source = readFileSync(resolve(repoRoot, file), 'utf-8');
     warnings.push(...checkEndpointAuthPosture(file, source));
@@ -269,8 +213,7 @@ function runCheck(repoRoot: string, strict: boolean): void {
 
   if (warnings.length === 0) {
     console.log(
-      `AST convention check passed (${dtoFiles.length} dto files, ` +
-        `${controllerFiles.length} controller files, no warnings).`,
+      `AST convention check passed (${controllerFiles.length} controller files, no warnings).`,
     );
     return;
   }
@@ -311,11 +254,7 @@ function parseArgs(args: string[]): ParsedArgs {
 const USAGE = `
 Usage: node scripts/arch/check-ast-conventions.ts [options]
 
-Scans src/**/*.dto.ts and src/**/*.controller.ts and reports WARN-level
-convention findings:
-  C1 dto-validator-missing   DTO properties must carry a class-validator
-                             @Is* decorator (private/protected members are
-                             excluded as injection members).
+Scans src/**/*.controller.ts and reports WARN-level convention findings:
   C2 endpoint-auth-posture   Controller endpoints must state their auth
                              posture via @Public() or @UseGuards(...) on the
                              method or its class.

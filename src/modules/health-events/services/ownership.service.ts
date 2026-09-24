@@ -26,7 +26,8 @@ import {
  * logs) and fold the module's `ResultAsync` with `unwrapResult`; the thrown
  * `DomainFailureException` is turned into the same Problem Details by the
  * global filter. TODO(error): remove this shim when those consumers migrate
- * (Tasks 8.2/10) and let them consume the Result directly.
+ * (see docs/TODO.md, "health-events ownership shim 的移除") and let them
+ * consume the Result directly.
  */
 @Injectable()
 export class HealthEventsOwnershipService {

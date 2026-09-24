@@ -402,7 +402,7 @@ export class DailyRecordsService {
    * Result. The façade still throws `DomainFailureException` for out-of-scope
    * consumers (reports, medicine-dose-logs); here the failure is recovered
    * as an Err. TODO(error): drop this extraction when the façade becomes
-   * ResultAsync (Tasks 8.2/10).
+   * ResultAsync (see docs/TODO.md, "health-events ownership shim 的移除").
    */
   private requireActiveHealthEvent(
     userId: string,
