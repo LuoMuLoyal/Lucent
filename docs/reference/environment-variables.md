@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-21
+updated: 2026-09-24
 ---
 
 # Environment Variables
@@ -156,14 +156,6 @@ QQ_APP_SECRET
 QQ_REDIRECT_URI
 ```
 
-Weibo OAuth:
-
-```text
-WEIBO_APP_ID
-WEIBO_APP_SECRET
-WEIBO_REDIRECT_URI
-```
-
 Google OAuth:
 
 ```text
@@ -173,7 +165,7 @@ GOOGLE_REDIRECT_URI
 ```
 
 All OAuth provider variables are optional. When unset, the provider logs a warning
-at startup but does not block application launch. QQ, Weibo, and Google each use
+at startup but does not block application launch. QQ and Google each use
 the standard OAuth 2.0 authorization-code flow; WeChat additionally supports a
 mobile SDK path.
 

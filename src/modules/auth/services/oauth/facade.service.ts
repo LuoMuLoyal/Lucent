@@ -20,19 +20,15 @@ import type {
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
-  WeiboOAuthAuthorizeDto,
-  WeiboOAuthCallbackDto,
 } from '../../dto/shared/oauth.dto.js';
 import { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
 import { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
-import { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider.js';
 import { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider.js';
 import { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider.js';
 import {
   OAUTH_PROVIDER_GOOGLE,
   OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_WECHAT_WEB,
-  OAUTH_PROVIDER_WEIBO,
   type OAuthAuthorizeResult,
   type OAuthProfile,
 } from '../../types/oauth.types.js';
@@ -55,7 +51,6 @@ export class AuthOAuthFacadeService {
     private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
     private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
     private readonly qqOAuthProvider: QqOAuthProvider,
-    private readonly weiboOAuthProvider: WeiboOAuthProvider,
     private readonly googleOAuthProvider: GoogleOAuthProvider,
     private readonly authOAuthStateService: AuthOAuthStateService,
     private readonly authTokenService: AuthTokenService,
@@ -203,38 +198,6 @@ export class AuthOAuthFacadeService {
     return this.authOAuthStateService
       .consume(OAUTH_PROVIDER_QQ, dto.state, 'login')
       .andThen(() => this.qqOAuthProvider.fetchProfile({ code: dto.code }))
-      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
-  }
-
-  createWeiboAuthorizeUrl(
-    dto?: WeiboOAuthAuthorizeDto,
-  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
-    return this.authOAuthStateService
-      .createState(OAUTH_PROVIDER_WEIBO, 'login', dto?.callbackUri)
-      .andThen(({ state, ttlSec }) =>
-        this.authOAuthStateService
-          .peek(OAUTH_PROVIDER_WEIBO, state)
-          .map((entry) => ({
-            authorizeUrl: this.weiboOAuthProvider.buildAuthorizeUrl(
-              state,
-              dto?.callbackUri,
-            ),
-            state,
-            expiresIn: ttlSec,
-            ...(entry.callbackUri !== undefined && {
-              callbackUri: entry.callbackUri,
-            }),
-          })),
-      );
-  }
-
-  loginWithWeibo(
-    dto: WeiboOAuthCallbackDto,
-    context?: AuthRequestContext,
-  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
-    return this.authOAuthStateService
-      .consume(OAUTH_PROVIDER_WEIBO, dto.state, 'login')
-      .andThen(() => this.weiboOAuthProvider.fetchProfile({ code: dto.code }))
       .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 

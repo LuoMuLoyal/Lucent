@@ -53,8 +53,6 @@ describe('OAuthController', () => {
             loginWithApple: vi.fn(),
             createQqAuthorizeUrl: vi.fn(),
             loginWithQq: vi.fn(),
-            createWeiboAuthorizeUrl: vi.fn(),
-            loginWithWeibo: vi.fn(),
             createGoogleAuthorizeUrl: vi.fn(),
             loginWithGoogle: vi.fn(),
           },
@@ -206,39 +204,6 @@ describe('OAuthController', () => {
 
       const result = await controller.loginWithQq(
         { code: 'qq-code', state: 'state-qq' },
-        mockRequest,
-      );
-
-      expect(result).toHaveProperty('user');
-    });
-  });
-
-  describe('POST /auth/oauth/weibo/authorize', () => {
-    it('returns the authorize URL resource', async () => {
-      authService.createWeiboAuthorizeUrl.mockReturnValue(
-        okAsync({
-          authorizeUrl: 'https://weibo/auth',
-          state: 'state-weibo',
-          expiresIn: 300,
-        }),
-      );
-
-      const result = await controller.createWeiboAuthorizeUrl({
-        callbackUri: 'https://app/cb',
-      });
-
-      expect(result).toHaveProperty('authorizeUrl');
-    });
-  });
-
-  describe('POST /auth/oauth/weibo/callback', () => {
-    it('returns an auth resource', async () => {
-      authService.loginWithWeibo.mockReturnValue(
-        okAsync(mockAuthResult as never),
-      );
-
-      const result = await controller.loginWithWeibo(
-        { code: 'weibo-code', state: 'state-weibo' },
         mockRequest,
       );
 

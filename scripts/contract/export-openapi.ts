@@ -568,7 +568,7 @@ async function main() {
   // bodies are normally emitted inline by Swagger; the dart-dio generator's
   // inline-model resolver names identical bodies after the first operation it
   // encounters, so content-equal bodies shared across operations collapsed
-  // onto one request model (e.g. QQ/weibo/google OAuth callbacks reusing the
+  // onto one request model (e.g. QQ/google OAuth callbacks reusing the
   // wechat-web request, session refresh reusing logout, clinic share reusing
   // preview). A per-operation component keeps each operation's client request
   // model and parameter name aligned with its operationId. The wire shape is

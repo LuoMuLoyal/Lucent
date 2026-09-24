@@ -30,8 +30,6 @@ import {
   oauthCodeCallbackSchema,
   qqOAuthAuthorizeSchema,
   qqOAuthCallbackSchema,
-  weiboOAuthAuthorizeSchema,
-  weiboOAuthCallbackSchema,
 } from '../dto/shared/oauth.dto.js';
 import type {
   AppleOAuthCallbackDto,
@@ -42,8 +40,6 @@ import type {
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
-  WeiboOAuthAuthorizeDto,
-  WeiboOAuthCallbackDto,
 } from '../dto/shared/oauth.dto.js';
 
 import {
@@ -332,78 +328,6 @@ export class OAuthController {
     return buildAuthResponse(result.user, result);
   }
 
-  // ── POST /api/v1/auth/oauth/weibo/authorize ───────────────
-
-  @Post('oauth/weibo/authorize')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create Weibo OAuth authorize URL' })
-  @ApiResponse({
-    status: 200,
-    description: 'OAuth authorize URL with state and expiry.',
-  })
-  @SerializeOptions({ schema: oauthAuthorizeResponseSchema })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid callback URI',
-    type: ProblemDetailsDto,
-  })
-  async createWeiboAuthorizeUrl(
-    @Body({ schema: weiboOAuthAuthorizeSchema }) dto?: WeiboOAuthAuthorizeDto,
-  ) {
-    return unwrapResult(this.authService.createWeiboAuthorizeUrl(dto));
-  }
-
-  // ── POST /api/v1/auth/oauth/weibo/callback ────────────────
-
-  @Post('oauth/weibo/callback')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Weibo OAuth callback login' })
-  @ApiResponse({
-    status: 200,
-    description: 'Authenticated user with token pair.',
-  })
-  @SerializeOptions({ schema: loginResponseSchema })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid OAuth state or missing/malformed callback credential',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'OAuth sign-in failed',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'OAuth identity is already linked to another account',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 502,
-    description:
-      'OAuth provider rejected the exchange or returned an unusable profile',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 503,
-    description: 'Authentication method unavailable',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 504,
-    description: 'OAuth provider timed out',
-    type: ProblemDetailsDto,
-  })
-  async loginWithWeibo(
-    @Body({ schema: weiboOAuthCallbackSchema }) dto: WeiboOAuthCallbackDto,
-    @Req() request: FastifyRequest,
-  ) {
-    const result = await unwrapResult(
-      this.authService.loginWithWeibo(dto, extractAuthRequestContext(request)),
-    );
-    return buildAuthResponse(result.user, result);
-  }
-
   // ── POST /api/v1/auth/oauth/google/authorize ──────────────
 
   @Post('oauth/google/authorize')
@@ -519,22 +443,6 @@ registerResponseSchema({
 
 registerResponseSchema({
   path: '/api/v1/auth/oauth/qq/callback',
-  method: 'post',
-  componentName: 'LoginResponse',
-  schema: loginResponseSchema,
-  description: 'Authenticated user with token pair.',
-});
-
-registerResponseSchema({
-  path: '/api/v1/auth/oauth/weibo/authorize',
-  method: 'post',
-  componentName: 'OAuthAuthorizeResponse',
-  schema: oauthAuthorizeResponseSchema,
-  description: 'OAuth authorize URL with state and expiry.',
-});
-
-registerResponseSchema({
-  path: '/api/v1/auth/oauth/weibo/callback',
   method: 'post',
   componentName: 'LoginResponse',
   schema: loginResponseSchema,

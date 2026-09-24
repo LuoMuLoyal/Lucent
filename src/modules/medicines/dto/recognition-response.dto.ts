@@ -26,6 +26,14 @@ export const medicineRecognitionAsyncResponseSchema = z.object({
     ),
 });
 
+/**
+ * zod 4 Standard Schema for the synchronous `POST /medicines/recognize`
+ * response: the recognition resource itself, with no job wrapper. Aliased to
+ * the same object so the inline and queued-fallback shapes can never drift.
+ */
+export const medicineRecognitionResponseSchema =
+  medicineRecognitionResultSchema;
+
 /** Inline recognition resource when the queue is unavailable. */
 export type MedicineRecognitionResultDto = z.infer<
   typeof medicineRecognitionResultSchema
@@ -35,3 +43,6 @@ export type MedicineRecognitionResultDto = z.infer<
 export type MedicineRecognitionAsyncResponseDto = z.infer<
   typeof medicineRecognitionAsyncResponseSchema
 >;
+
+/** Recognition resource returned by the synchronous endpoint. */
+export type MedicineRecognitionResponseDto = MedicineRecognitionResultDto;

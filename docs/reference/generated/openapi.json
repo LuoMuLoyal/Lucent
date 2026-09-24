@@ -3840,136 +3840,6 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/oauth/weibo/authorize": {
-      "post": {
-        "operationId": "createWeiboAuthorizeUrl",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateWeiboAuthorizeUrlRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OAuth authorize URL with state and expiry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid callback URI",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Create Weibo OAuth authorize URL",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/weibo/callback": {
-      "post": {
-        "operationId": "loginWithWeibo",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginWithWeiboRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid OAuth state or missing/malformed callback credential",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "OAuth sign-in failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "OAuth identity is already linked to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "OAuth provider rejected the exchange or returned an unusable profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "OAuth provider timed out",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Weibo OAuth callback login",
-        "tags": ["Auth"]
-      }
-    },
     "/api/v1/auth/oauth/google/authorize": {
       "post": {
         "operationId": "createGoogleAuthorizeUrl",
@@ -4596,7 +4466,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Recognized medicine fields, null when not extractable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRecognitionResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -8420,6 +8297,29 @@
         ],
         "additionalProperties": false
       },
+      "MedicineRecognitionResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvalNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "specification": {
+            "type": "string",
+            "nullable": true
+          },
+          "manufacturer": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["name", "approvalNumber", "specification", "manufacturer"],
+        "additionalProperties": false
+      },
       "MedicineRecognitionJob": {
         "type": "object",
         "properties": {
@@ -11009,34 +10909,6 @@
         "additionalProperties": false
       },
       "LoginWithQqRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "OAuth 授权码"
-          },
-          "state": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "授权时生成的 state"
-          }
-        },
-        "required": ["code", "state"],
-        "additionalProperties": false
-      },
-      "CreateWeiboAuthorizeUrlRequest": {
-        "type": "object",
-        "properties": {
-          "callbackUri": {
-            "type": "string",
-            "maxLength": 2048,
-            "description": "微博授权完成后的客户端回跳地址"
-          }
-        },
-        "additionalProperties": false
-      },
-      "LoginWithWeiboRequest": {
         "type": "object",
         "properties": {
           "code": {

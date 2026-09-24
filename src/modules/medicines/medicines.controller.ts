@@ -50,6 +50,7 @@ import {
 import { recognizeMedicineSchema } from './dto/recognize-medicine.dto.js';
 import type { RecognizeMedicineDto } from './dto/recognize-medicine.dto.js';
 import { medicineRecognitionAsyncResponseSchema } from './dto/recognition-response.dto.js';
+import { medicineRecognitionResponseSchema } from './dto/recognition-response.dto.js';
 import { runRiskCheckSchema } from './dto/risk/risk-check-request.dto.js';
 import type { RunRiskCheckDto } from './dto/risk/risk-check-request.dto.js';
 import {
@@ -273,6 +274,11 @@ export class MedicinesController {
   @ApiOperation({
     summary: 'AI recognize medicine box image and extract medicine info',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Recognized medicine fields, null when not extractable.',
+  })
+  @SerializeOptions({ schema: medicineRecognitionResponseSchema })
   async recognize(
     @CurrentUser() _user: UserPayload,
     @Body({ schema: recognizeMedicineSchema }) dto: RecognizeMedicineDto,
@@ -377,6 +383,15 @@ registerResponseSchema({
   componentName: 'MedicineRiskCheckRecordResponse',
   schema: medicineRiskCheckRecordResponseSchema,
   description: 'The created medicine risk check record.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/recognize',
+  method: 'post',
+  componentName: 'MedicineRecognitionResponse',
+  schema: medicineRecognitionResponseSchema,
+  description:
+    'Recognized medicine fields, null when the model could not extract them.',
 });
 
 registerResponseSchema({

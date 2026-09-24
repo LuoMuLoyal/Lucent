@@ -32,7 +32,6 @@ export interface OAuthConfig {
     issuer: string;
   };
   qq: OAuthProviderConfig;
-  weibo: OAuthProviderConfig;
   google: OAuthProviderConfig;
 }
 
@@ -60,11 +59,6 @@ export const oauthConfig = registerAs(
       appId: resolveCredential(process.env[EnvKey.QQ_APP_ID]),
       appSecret: resolveCredential(process.env[EnvKey.QQ_APP_SECRET]),
       redirectUri: process.env[EnvKey.QQ_REDIRECT_URI] ?? '',
-    },
-    weibo: {
-      appId: resolveCredential(process.env[EnvKey.WEIBO_APP_ID]),
-      appSecret: resolveCredential(process.env[EnvKey.WEIBO_APP_SECRET]),
-      redirectUri: process.env[EnvKey.WEIBO_REDIRECT_URI] ?? '',
     },
     google: {
       appId: resolveCredential(process.env[EnvKey.GOOGLE_CLIENT_ID]),

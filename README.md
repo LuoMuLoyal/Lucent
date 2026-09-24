@@ -13,7 +13,7 @@ knowledge retrieval, ontology-grounded drug reasoning, and data export.
 
 ## Key Features
 
-- **Auth** — credential login + WeChat / Apple / QQ / Weibo / Google OAuth, JWT sessions,
+- **Auth** — credential login + WeChat / Apple / QQ / Google OAuth, JWT sessions,
   device-session management, password re-authentication for sensitive operations
 - **Health Records** — daily records (water, meal, vital, mood, symptom, activity, note, sleep),
   dose logs, medicine reminders, health events, allergies / conditions / current medicines

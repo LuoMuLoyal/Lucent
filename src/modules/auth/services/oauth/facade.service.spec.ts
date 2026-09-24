@@ -2,7 +2,6 @@ import type { UserService } from '../../../user/index.js';
 import type { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider.js';
 import type { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider.js';
 import type { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
-import type { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider.js';
 import type { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
 import type { AuthOAuthStateService } from './state.service.js';
 import type { AuthTokenService } from '../token.service.js';
@@ -73,7 +72,6 @@ describe('AuthOAuthFacadeService', () => {
   let wechatWebProvider: vi.Mocked<WechatWebOAuthProvider>;
   let wechatMobileProvider: vi.Mocked<WechatMobileOAuthProvider>;
   let qqProvider: vi.Mocked<QqOAuthProvider>;
-  let weiboProvider: vi.Mocked<WeiboOAuthProvider>;
   let googleProvider: vi.Mocked<GoogleOAuthProvider>;
   let stateService: vi.Mocked<AuthOAuthStateService>;
   let tokenService: vi.Mocked<AuthTokenService>;
@@ -114,12 +112,6 @@ describe('AuthOAuthFacadeService', () => {
         .fn()
         .mockReturnValue(okAsync({ ...mockProfile, provider: 'qq' })),
     } as unknown as vi.Mocked<QqOAuthProvider>;
-    weiboProvider = {
-      buildAuthorizeUrl: vi.fn().mockReturnValue('https://weibo/auth?url=1'),
-      fetchProfile: vi
-        .fn()
-        .mockReturnValue(okAsync({ ...mockProfile, provider: 'weibo' })),
-    } as unknown as vi.Mocked<WeiboOAuthProvider>;
     googleProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://google/auth?url=1'),
       fetchProfile: vi
@@ -163,7 +155,6 @@ describe('AuthOAuthFacadeService', () => {
       wechatWebProvider,
       wechatMobileProvider,
       qqProvider,
-      weiboProvider,
       googleProvider,
       stateService,
       tokenService,

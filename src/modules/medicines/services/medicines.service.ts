@@ -18,6 +18,7 @@ import {
 } from '../dto/source.dto.js';
 
 import type { MedicineSafetyTipResponseDto } from '../dto/safety-tip-response.dto.js';
+import type { MedicineRecognitionResponseDto } from '../dto/recognition-response.dto.js';
 
 import type { MedicineDetailDataDto } from '../dto/detail.dto.js';
 import type { MedicineSequenceDataDto } from '../dto/sequence.dto.js';
@@ -48,12 +49,9 @@ export class MedicinesService {
     private readonly llmRuntime: LlmRuntimeService,
   ) {}
 
-  async recognizeMedicine(imageUrl: string): Promise<{
-    name: string | null;
-    approvalNumber: string | null;
-    specification: string | null;
-    manufacturer: string | null;
-  }> {
+  async recognizeMedicine(
+    imageUrl: string,
+  ): Promise<MedicineRecognitionResponseDto> {
     const model = this.llmRuntime.createChatModel('chat', {
       temperature: 0.1,
     });

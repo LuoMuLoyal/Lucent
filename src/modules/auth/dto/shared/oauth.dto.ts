@@ -48,21 +48,6 @@ export const qqOAuthAuthorizeSchema = z
 /** Strongly typed body of `POST /auth/oauth/qq/authorize`. */
 export type QqOAuthAuthorizeDto = z.infer<typeof qqOAuthAuthorizeSchema>;
 
-/** Standard Schema for `POST /auth/oauth/weibo/authorize` body. */
-export const weiboOAuthAuthorizeSchema = z
-  .object({
-    callbackUri: z
-      .string()
-      .max(2048, 'callbackUri 不能超过 2048 个字符')
-      .describe('微博授权完成后的客户端回跳地址')
-      .optional(),
-  })
-  .strict()
-  .optional();
-
-/** Strongly typed body of `POST /auth/oauth/weibo/authorize`. */
-export type WeiboOAuthAuthorizeDto = z.infer<typeof weiboOAuthAuthorizeSchema>;
-
 /** Standard Schema for `POST /auth/oauth/google/authorize` body. */
 export const googleOAuthAuthorizeSchema = z
   .object({
@@ -149,12 +134,6 @@ export const qqOAuthCallbackSchema = oauthCodeState.strict();
 
 /** Strongly typed body of `POST /auth/oauth/qq/callback`. */
 export type QqOAuthCallbackDto = z.infer<typeof qqOAuthCallbackSchema>;
-
-/** Standard Schema for `POST /auth/oauth/weibo/callback` body. */
-export const weiboOAuthCallbackSchema = oauthCodeState.strict();
-
-/** Strongly typed body of `POST /auth/oauth/weibo/callback`. */
-export type WeiboOAuthCallbackDto = z.infer<typeof weiboOAuthCallbackSchema>;
 
 /** Standard Schema for `POST /auth/oauth/google/callback` body. */
 export const googleOAuthCallbackSchema = oauthCodeState.strict();

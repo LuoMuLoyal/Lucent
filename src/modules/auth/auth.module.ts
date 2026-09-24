@@ -34,7 +34,6 @@ import { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.prov
 import { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
 import { GoogleOAuthProvider } from './providers/google-oauth.provider.js';
 import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
-import { WeiboOAuthProvider } from './providers/weibo-oauth.provider.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
 
@@ -75,7 +74,6 @@ import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
     WechatWebOAuthProvider,
     AppleOAuthProvider,
     QqOAuthProvider,
-    WeiboOAuthProvider,
     GoogleOAuthProvider,
     AuthBetterAuthAdapter,
   ],

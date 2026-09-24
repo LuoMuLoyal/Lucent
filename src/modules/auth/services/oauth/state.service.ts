@@ -19,7 +19,6 @@ import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   OAUTH_PROVIDER_QQ,
-  OAUTH_PROVIDER_WEIBO,
   OAUTH_PROVIDER_GOOGLE,
   type OAuthProviderName,
 } from '../../types/oauth.types.js';
@@ -226,8 +225,6 @@ export class AuthOAuthStateService {
         return '/login/oauth/wechat';
       case OAUTH_PROVIDER_QQ:
         return '/login/oauth/qq';
-      case OAUTH_PROVIDER_WEIBO:
-        return '/login/oauth/weibo';
       case OAUTH_PROVIDER_GOOGLE:
         return '/login/oauth/google';
       default:

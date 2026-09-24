@@ -19,8 +19,6 @@ import type {
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
-  WeiboOAuthAuthorizeDto,
-  WeiboOAuthCallbackDto,
 } from '../dto/shared/oauth.dto.js';
 import type { RegisterDto } from '../dto/credentials/register.dto.js';
 import type { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
@@ -217,19 +215,6 @@ export class AuthService {
     context?: AuthRequestContext,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithQq(dto, context);
-  }
-
-  createWeiboAuthorizeUrl(
-    dto?: WeiboOAuthAuthorizeDto,
-  ): ResultAsync<OAuthAuthorizeResult, DomainFailure> {
-    return this.authOAuthFacadeService.createWeiboAuthorizeUrl(dto);
-  }
-
-  loginWithWeibo(
-    dto: WeiboOAuthCallbackDto,
-    context?: AuthRequestContext,
-  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
-    return this.authOAuthFacadeService.loginWithWeibo(dto, context);
   }
 
   createGoogleAuthorizeUrl(
