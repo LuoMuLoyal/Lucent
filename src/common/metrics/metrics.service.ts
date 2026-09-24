@@ -49,6 +49,10 @@ export class MetricsService implements OnApplicationBootstrap {
 
   private readonly assistantCacheAccesses: Counter<'kind' | 'hit'>;
 
+  // ── Assistant tool detail metrics ─────────────────────────────────────────
+
+  private readonly assistantToolCitationsDropped: Counter<'reason'>;
+
   // ── Proactive suggestion metrics ─────────────────────────────────────────
 
   private readonly suggestionRecomputeEnqueues: Counter;
@@ -133,6 +137,15 @@ export class MetricsService implements OnApplicationBootstrap {
       name: 'assistant_cache_accesses_total',
       help: 'Assistant cache accesses by layer and hit/miss',
       labelNames: ['kind', 'hit'],
+      registers: [this.registry],
+    });
+
+    // 只按固定的丢弃原因打标：带上工具名会让基数随工具数量增长，而这里要回答的
+    // 问题只有一个——sidecar 响应漂移导致引用被整批丢弃时，有没有人看得见。
+    this.assistantToolCitationsDropped = new Counter<'reason'>({
+      name: 'assistant_tool_citations_dropped_total',
+      help: 'Total assistant tool citation lists dropped before reaching the client',
+      labelNames: ['reason'],
       registers: [this.registry],
     });
 
@@ -313,6 +326,19 @@ export class MetricsService implements OnApplicationBootstrap {
       return;
     }
     this.assistantCacheAccesses.inc({ kind, hit: String(hit) });
+  }
+
+  /**
+   * Records a citation list dropped before it reached the client (reason only —
+   * no tool name or user id, so cardinality stays bounded). 声明的语义是"漂移不该
+   * 让整个查询结果作废"，但没有计数器时，其表现是"客户端永远看不到 citations 而
+   * 不知道为什么"，只能在日志里翻。
+   */
+  recordToolCitationsDropped(reason: string): void {
+    if (!this.enabled) {
+      return;
+    }
+    this.assistantToolCitationsDropped.inc({ reason });
   }
 
   recordSuggestionRecomputeEnqueue(): void {

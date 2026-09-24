@@ -148,6 +148,20 @@ export const MEAL_DIGEST_LIMIT_CAP_MESSAGE = (
     ? `More analyzed meals were found than the digest returns per call; only the newest ${String(maxLimit)} are included.`
     : `Requested ${String(requestedLimit)} meals, but the digest returns at most ${String(maxLimit)} analyzed meals.`;
 
+/**
+ * `reason_over_ontology` 的行数上限被服务端夹紧时的说明。
+ *
+ * 与 [MEAL_DIGEST_LIMIT_CAP_MESSAGE] 同构：`requestedLimit` 为 null 表示模型没有传
+ * `limit`（或传了不可用的值），此时只是按默认值读取，不能说成「你请求了 N 行」。
+ */
+export const ONTOLOGY_LIMIT_CAP_MESSAGE = (
+  requestedLimit: number | null,
+  maxLimit: number,
+) =>
+  requestedLimit === null
+    ? `The ontology query returns at most ${String(maxLimit)} rows per call.`
+    : `Requested ${String(requestedLimit)} rows, but the ontology query returns at most ${String(maxLimit)} rows.`;
+
 // ---------------------------------------------------------------------------
 // Shared domain types
 // ---------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+import { MetricsService } from '../../../common/metrics/metrics.service.js';
 import {
   createDomainFailure,
   fromPromise,
@@ -49,6 +50,7 @@ export class AssistantStreamOrchestratorService {
     private readonly assistantPolicyService: AssistantPolicyService,
     private readonly assistantToolExecutor: AssistantToolService,
     private readonly assistantConversationService: AssistantConversationService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   getFoundationCapabilities(): AssistantRuntimeCapabilities {
@@ -349,6 +351,9 @@ export class AssistantStreamOrchestratorService {
     }
     const parsed = assistantToolCitationsSchema.safeParse(raw);
     if (!parsed.success) {
+      // 丢弃是对的取舍，但必须留下计数：sidecar 升级导致 schema 漂移时，
+      // 没有计数器就只能看到"客户端永远没有引用"而查不出原因。
+      this.metricsService.recordToolCitationsDropped('schema_mismatch');
       this.logger.warn(
         `Ignoring malformed citations for tool "${name}".`,
         parsed.error,

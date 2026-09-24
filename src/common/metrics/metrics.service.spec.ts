@@ -302,4 +302,24 @@ describe('MetricsService', () => {
       }).not.toThrow();
     });
   });
+
+  describe('recordToolCitationsDropped', () => {
+    it('records a dropped citation list labeled only by reason', async () => {
+      service.recordToolCitationsDropped('schema_mismatch');
+
+      const metrics = await service.getMetrics();
+      expect(metrics).toContain('assistant_tool_citations_dropped_total');
+      expect(metrics).toContain('reason="schema_mismatch"');
+      // No tool name or user id may leak into the labels.
+      expect(metrics).not.toContain('userId');
+    });
+
+    it('does not throw when disabled', () => {
+      const svc = createService('test', 'false');
+
+      expect(() => {
+        svc.recordToolCitationsDropped('schema_mismatch');
+      }).not.toThrow();
+    });
+  });
 });

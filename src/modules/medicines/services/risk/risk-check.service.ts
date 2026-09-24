@@ -293,6 +293,12 @@ export class MedicineRiskCheckService {
     // item (that semantics is reserved for box items whose data is temporarily
     // unavailable). If the box already holds the same source + sourceRefId, the
     // candidate is not added again (avoids duplicate counts/findings).
+    //
+    // Cache scope: `bypassCache=false` goes through `getOrSetDetail`, so a miss
+    // here DOES warm the shared medicine-detail knowledge cache. "预检不落库"
+    // refers only to the risk-check records and records caches, neither of which
+    // this path touches — warming the detail cache is intended behaviour, not
+    // leakage. (Confirmed 2026-09-24; no behaviour change.)
     let candidateIncluded = false;
     if (candidate != null) {
       const candidateSourceRefId = candidate.id.trim();
@@ -315,6 +321,14 @@ export class MedicineRiskCheckService {
           if (error instanceof DomainFailureException) {
             throw error;
           }
+          // 400 是给用户的答复，但它抹掉了"为什么拿不到候选资料"：没有这条日志时，
+          // 上游知识库故障与"这个 id 确实不存在"在日志里长得一模一样。
+          this.logger.warn(
+            `Candidate medicine detail unavailable (source=${candidate.source}, id=${candidateSourceRefId}): ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            error instanceof Error ? error.stack : undefined,
+          );
           throw new DomainFailureException(
             createDomainFailure({
               kind: 'validation',

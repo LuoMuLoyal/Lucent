@@ -6,6 +6,7 @@ import type {
   AssistantToolExecutionContext,
 } from '../../types/assistant.types.js';
 import { buildReadEnvelope } from '../presenters.js';
+import { ONTOLOGY_LIMIT_CAP_MESSAGE } from '../shared/tool-constants.js';
 import { OntologyCypherGeneratorService } from './cypher-generator.service.js';
 import type { OntologyCypherOutput } from './cypher.schema.js';
 import { SemanticaClientService } from './semantica-client.service.js';
@@ -115,7 +116,7 @@ export class AssistantToolOntologyReasoningService {
     if (!parsed.ok) {
       return this.buildEnvelope({
         question: parsed.question,
-        limit: parsed.limit,
+        limitInfo: parsed.limitInfo,
         result: buildEmptyResult(),
         coverage: { status: 'empty', reason: parsed.reason },
         confidence: { level: 'low', reason: parsed.reason },
@@ -124,12 +125,12 @@ export class AssistantToolOntologyReasoningService {
       });
     }
 
-    const { question, limit } = parsed;
+    const { question, limitInfo } = parsed;
 
     if (!this.semantica.isEnabled()) {
       return this.buildUnavailableEnvelope({
         question,
-        limit,
+        limitInfo,
         reason:
           'Ontology reasoning is not configured on this deployment; the English-side knowledge graph cannot be queried.',
         tables: [],
@@ -139,7 +140,7 @@ export class AssistantToolOntologyReasoningService {
     if (!this.cypherGenerator.hasLanguageModel()) {
       return this.buildUnavailableEnvelope({
         question,
-        limit,
+        limitInfo,
         reason:
           'Ontology reasoning is unavailable: no language model is configured for query generation.',
         tables: [],
@@ -152,7 +153,7 @@ export class AssistantToolOntologyReasoningService {
     if (!schemaOutcome.ok) {
       return this.buildUnavailableEnvelope({
         question,
-        limit,
+        limitInfo,
         reason: `Ontology reasoning is unavailable: ${schemaOutcome.failure.reason}`,
         tables: [],
       });
@@ -182,7 +183,7 @@ export class AssistantToolOntologyReasoningService {
       ) {
         return this.buildGenerationFailureEnvelope({
           question,
-          limit,
+          limitInfo,
           attempts: attempt - 1,
           lastCypher: previousCypher,
           lastError: previousError,
@@ -214,7 +215,7 @@ export class AssistantToolOntologyReasoningService {
         );
         return this.buildUnavailableEnvelope({
           question,
-          limit,
+          limitInfo,
           reason: `Ontology reasoning is unavailable: query generation failed (${
             error instanceof Error ? error.message : String(error)
           }).`,
@@ -225,7 +226,7 @@ export class AssistantToolOntologyReasoningService {
       const outcome = await this.semantica.query({
         cypher: generated.cypher,
         params: normalizeParams(generated.params),
-        limit,
+        limit: limitInfo.limit,
       });
 
       if (outcome.ok) {
@@ -258,7 +259,7 @@ export class AssistantToolOntologyReasoningService {
 
         return this.buildSuccessEnvelope({
           question,
-          limit,
+          limitInfo,
           cypher: generated.cypher,
           rationale: generated.rationale ?? null,
           outcome: outcome.value,
@@ -277,7 +278,7 @@ export class AssistantToolOntologyReasoningService {
       if (!isRetryableSemanticaFailure(outcome.failure)) {
         return this.buildUnavailableEnvelope({
           question,
-          limit,
+          limitInfo,
           reason: `Ontology reasoning is unavailable: ${outcome.failure.reason}`,
           tables,
         });
@@ -290,7 +291,7 @@ export class AssistantToolOntologyReasoningService {
 
     return this.buildGenerationFailureEnvelope({
       question,
-      limit,
+      limitInfo,
       attempts: SEMANTICA_MAX_GENERATION_ATTEMPTS,
       lastCypher: previousCypher,
       lastError: previousError,
@@ -308,7 +309,7 @@ export class AssistantToolOntologyReasoningService {
    */
   private buildGenerationFailureEnvelope(input: {
     question: string;
-    limit: number;
+    limitInfo: OntologyLimitResolution;
     attempts: number;
     lastCypher: string | null;
     lastError: string | null;
@@ -320,7 +321,7 @@ export class AssistantToolOntologyReasoningService {
 
     return this.buildEnvelope({
       question: input.question,
-      limit: input.limit,
+      limitInfo: input.limitInfo,
       result: {
         ...buildEmptyResult(),
         cypher: input.lastCypher,
@@ -342,7 +343,7 @@ export class AssistantToolOntologyReasoningService {
 
   private buildSuccessEnvelope(input: {
     question: string;
-    limit: number;
+    limitInfo: OntologyLimitResolution;
     cypher: string;
     rationale: string | null;
     outcome: SemanticaQueryOutcome;
@@ -409,7 +410,7 @@ export class AssistantToolOntologyReasoningService {
 
     return this.buildEnvelope({
       question: input.question,
-      limit: input.limit,
+      limitInfo: input.limitInfo,
       result: {
         cypher: input.cypher,
         rationale: input.rationale,
@@ -439,7 +440,7 @@ export class AssistantToolOntologyReasoningService {
   /** 服务不可用 / 未配置 / 生成失败：明确的"没有证据可读"，不是"确实没有"。 */
   private buildUnavailableEnvelope(input: {
     question: string;
-    limit: number;
+    limitInfo: OntologyLimitResolution;
     reason: string;
     tables: string[];
   }): AssistantReadResultEnvelope {
@@ -447,7 +448,7 @@ export class AssistantToolOntologyReasoningService {
 
     return this.buildEnvelope({
       question: input.question,
-      limit: input.limit,
+      limitInfo: input.limitInfo,
       result: buildEmptyResult(),
       coverage: { status: 'empty', reason: input.reason },
       confidence: {
@@ -461,21 +462,37 @@ export class AssistantToolOntologyReasoningService {
 
   private buildEnvelope(input: {
     question: string;
-    limit: number;
+    limitInfo: OntologyLimitResolution;
     result: Record<string, unknown>;
     coverage: AssistantReadCoverage;
     confidence: AssistantReadConfidence;
     verifiability: string;
     tables: string[];
   }): AssistantReadResultEnvelope {
+    // 夹紧这件事必须写在信封里：只回传夹紧后的值，模型看到的是"要 200 行又只拿到
+    // 100 行"且没有任何解释，于是继续要更大的窗口。
+    const ambiguities = input.limitInfo.limitCapped
+      ? [
+          ONTOLOGY_LIMIT_CAP_MESSAGE(
+            input.limitInfo.requestedLimit,
+            input.limitInfo.limit,
+          ),
+        ]
+      : [];
+
     return buildReadEnvelope({
       toolName: 'reason_over_ontology',
-      query: { question: input.question, limit: input.limit },
+      query: {
+        question: input.question,
+        limit: input.limitInfo.limit,
+        requestedLimit: input.limitInfo.requestedLimit,
+        limitCapped: input.limitInfo.limitCapped,
+      },
       result: { ...input.result, verifiability: input.verifiability },
       coverage: input.coverage,
       timeRange: { timezone: 'UTC', startDate: null, endDate: null },
       confidence: input.confidence,
-      ambiguities: [],
+      ambiguities,
       tables: input.tables,
     });
   }
@@ -494,39 +511,64 @@ function buildEmptyResult(): Record<string, unknown> {
 }
 
 /**
+ * `limit` 的完整口径：模型要的值、实际生效的值、以及两者是否不同。
+ *
+ * `requestedLimit` 为 null 表示模型根本没传 `limit`（或传了不可用的值），此时不该
+ * 在信封里说成「你请求了 N 行」——与 [MEAL_DIGEST_LIMIT_CAP_MESSAGE] 同一取舍。
+ */
+type OntologyLimitResolution = {
+  limit: number;
+  requestedLimit: number | null;
+  limitCapped: boolean;
+};
+
+/**
  * 参数解析：`question` 必填，`limit` 越界即夹到合法区间。
  *
  * 返回判别式联合而不是抛异常：非法参数是正常的"模型给错了"情形，应该变成
  * 一个可读的空信封让模型自我纠正，而不是把整条 graph 打挂。
  */
-function parseArguments(
-  toolArgs: Record<string, unknown> | undefined,
-):
-  | { ok: true; question: string; limit: number }
-  | { ok: false; question: string; limit: number; reason: string } {
+function parseArguments(toolArgs: Record<string, unknown> | undefined):
+  | { ok: true; question: string; limitInfo: OntologyLimitResolution }
+  | {
+      ok: false;
+      question: string;
+      limitInfo: OntologyLimitResolution;
+      reason: string;
+    } {
   const args = toolArgs ?? {};
   const rawQuestion =
     typeof args['question'] === 'string' ? args['question'] : '';
   const question = rawQuestion.trim();
-  const limit = normalizeLimit(args['limit']);
+  const limitInfo = normalizeLimit(args['limit']);
 
   if (question.length === 0) {
     return {
       ok: false,
       question,
-      limit,
+      limitInfo,
       reason: `${INVALID_ARGUMENT_PREFIX}: "question" must not be empty.`,
     };
   }
 
-  return { ok: true, question, limit };
+  return { ok: true, question, limitInfo };
 }
 
-function normalizeLimit(limit: unknown): number {
+function normalizeLimit(limit: unknown): OntologyLimitResolution {
   if (typeof limit !== 'number' || Number.isNaN(limit)) {
-    return SEMANTICA_DEFAULT_LIMIT;
+    return {
+      limit: SEMANTICA_DEFAULT_LIMIT,
+      requestedLimit: null,
+      limitCapped: false,
+    };
   }
-  return Math.max(1, Math.min(SEMANTICA_MAX_LIMIT, Math.trunc(limit)));
+  const requested = Math.trunc(limit);
+  const resolved = Math.max(1, Math.min(SEMANTICA_MAX_LIMIT, requested));
+  return {
+    limit: resolved,
+    requestedLimit: requested,
+    limitCapped: resolved !== requested,
+  };
 }
 
 /** 只放行标量参数：sidecar 会把它转义成字面量，复合值没有意义。 */

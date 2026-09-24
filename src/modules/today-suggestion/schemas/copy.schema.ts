@@ -2,21 +2,59 @@
  * Zod schema for AI-generated suggestion copy.
  */
 import { z } from 'zod';
+import {
+  ACTION_LABEL_TEMPLATES,
+  COPY_TEMPLATES,
+} from '../constants/copy-templates.js';
 
 /**
  * Schema for generated copy output.
  */
 /**
+ * The finite set of internal identifiers the model can echo back as its answer.
+ *
+ * Derived from the two registries instead of hand-listed, because those are
+ * literally what the prompt hands the model: the action-label registry (both the
+ * long form and the short one) plus every `actionKeys` entry the rules pass
+ * alongside `templateKey`. A shape-based net cannot cover this set — a rename to
+ * a single lower-case word (`record`, `confirm`, `save`) has no underscore and
+ * no case change, and the dotted template keys this module actually ships
+ * (`water.behind.target`) never matched the old pattern either.
+ */
+export const KNOWN_INTERNAL_ACTION_LABELS: ReadonlySet<string> = new Set(
+  [
+    ...Object.keys(ACTION_LABEL_TEMPLATES),
+    ...Object.values(ACTION_LABEL_TEMPLATES).flatMap((template) => [
+      template.default,
+      ...(template.short != null ? [template.short] : []),
+    ]),
+    ...Object.values(COPY_TEMPLATES).flatMap(
+      (template) => template.actionKeys ?? [],
+    ),
+  ].map((label) => label.trim()),
+);
+
+/**
  * Detects an internal identifier leaking into user-facing copy.
  *
  * The prompt passes `templateKey` / `params` alongside the request, so the
- * model can echo a key such as `complete_profile` back as its answer. A
- * label with no space that is all lower-case-with-underscores (or camelCase)
- * is an identifier, not display text; rejecting it here keeps the key out of
- * the card and lets the caller fall back to the rule's localized label.
+ * model can echo a key such as `complete_profile` back as its answer. Two nets
+ * catch that: the registry above for identifiers we actually ship, and a shape
+ * test for underscore/camelCase identifiers we have not shipped yet. Both are
+ * case-sensitive so that ordinary capitalized display text ("Record") survives.
+ * Rejecting here keeps the key out of the card and lets the caller fall back to
+ * the rule's localized label.
  */
 const INTERNAL_IDENTIFIER =
   /^[a-z][a-z0-9]*(?:[_-][a-z0-9]+)+$|^[a-z]+(?:[A-Z][a-z0-9]*)+$/;
+
+function isInternalIdentifier(value: string): boolean {
+  const trimmed = value.trim();
+  return (
+    KNOWN_INTERNAL_ACTION_LABELS.has(trimmed) ||
+    INTERNAL_IDENTIFIER.test(trimmed)
+  );
+}
 
 export const GeneratedCopySchema = z.object({
   title: z
@@ -36,7 +74,7 @@ export const GeneratedCopySchema = z.object({
     .min(1, 'Action label is required')
     .max(10, 'Action label should be very short (max 10 chars)')
     .refine(
-      (value) => !INTERNAL_IDENTIFIER.test(value.trim()),
+      (value) => !isInternalIdentifier(value),
       'Action label must be display text, not an internal identifier',
     ),
 });

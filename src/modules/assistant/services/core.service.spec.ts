@@ -1,3 +1,4 @@
+import type { MetricsService } from '../../../common/metrics/metrics.service.js';
 import {
   okAsync,
   fromPromise,
@@ -140,6 +141,7 @@ describe('AssistantService', () => {
       policy as unknown as AssistantPolicyService,
       toolExecutor as unknown as AssistantToolService,
       conversation as unknown as AssistantConversationService,
+      { recordToolCitationsDropped: vi.fn() } as unknown as MetricsService,
     );
 
     service = new AssistantService(

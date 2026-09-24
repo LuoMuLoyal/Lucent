@@ -250,11 +250,9 @@ describe('AssistantToolOntologyReasoningService', () => {
       ok: true,
       value: ROWS_WITHOUT_CITATIONS,
     });
-    const generate = vi
-      .fn()
-      .mockResolvedValue({
-        cypher: 'MATCH (n) RETURN n.known_for_treatments AS x',
-      });
+    const generate = vi.fn().mockResolvedValue({
+      cypher: 'MATCH (n) RETURN n.known_for_treatments AS x',
+    });
 
     const { service } = buildService({ query, generate });
     const envelope = await service.reasonOverOntology(
@@ -409,6 +407,50 @@ describe('AssistantToolOntologyReasoningService', () => {
       params: { name: 'ibuprofen' },
       limit: 100,
     });
+  });
+
+  it('tells the model its limit was capped instead of silently shrinking it', async () => {
+    const query = vi.fn().mockResolvedValue({ ok: true, value: OK_ROWS });
+    const generate = vi.fn().mockResolvedValue({
+      cypher: 'MATCH (d:Drug) RETURN d.name AS name',
+      params: {},
+    });
+
+    const { service } = buildService({ query, generate });
+    const envelope = await service.reasonOverOntology(
+      buildContext({ question: 'What is ibuprofen?', limit: 200 }),
+    );
+
+    // 只回传夹紧后的值，模型看到的是"要 200 行又只拿到 100 行"且没有解释，
+    // 于是继续要更大的窗口 —— 夹紧必须写在信封里。
+    expect(envelope.query).toMatchObject({
+      limit: 100,
+      requestedLimit: 200,
+      limitCapped: true,
+    });
+    expect(envelope.ambiguities).toEqual([
+      expect.stringContaining('Requested 200 rows'),
+    ]);
+  });
+
+  it('does not claim a cap when the model never asked for a limit', async () => {
+    const query = vi.fn().mockResolvedValue({ ok: true, value: OK_ROWS });
+    const generate = vi.fn().mockResolvedValue({
+      cypher: 'MATCH (d:Drug) RETURN d.name AS name',
+      params: {},
+    });
+
+    const { service } = buildService({ query, generate });
+    const envelope = await service.reasonOverOntology(
+      buildContext({ question: 'What is ibuprofen?' }),
+    );
+
+    // 没传 limit 时按默认值读取，不能说成"你请求了 N 行"。
+    expect(envelope.query).toMatchObject({
+      requestedLimit: null,
+      limitCapped: false,
+    });
+    expect(envelope.ambiguities).toEqual([]);
   });
 
   it('reports unavailable when the schema cannot be read', async () => {
