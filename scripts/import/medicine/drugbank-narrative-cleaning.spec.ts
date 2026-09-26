@@ -1,9 +1,9 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Covers the DrugBank narrative-text cleaning path.
@@ -14,9 +14,9 @@ import { describe, expect, it } from 'vitest';
  * be stored and rendered verbatim.
  *
  * The parser is a Python program, so the behavioural assertions run it as a
- * subprocess over a fixture. The full DrugBank XML (~1.9 GB) is not available
- * in CI, so these tests only run when the local dataset is present; the
- * pure-function expectations below always run.
+ * subprocess over the derived Parquet. The Parquet is not available in CI
+ * (nor is `pyarrow`, which the parser needs), so these tests only run when the
+ * local dataset is present; the pure-function expectations below always run.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -28,7 +28,12 @@ const DATA_ROOT =
   // container, so there is no ConfigService to inject here.
   process.env['MEDICINE_DATA_ROOT'] ??
   path.resolve(here, '..', '..', '..', '..', 'DrugDataBase');
-const XML_PATH = path.join(DATA_ROOT, 'raw', 'drugbank', 'full database.xml');
+const PARQUET_PATH = path.join(
+  DATA_ROOT,
+  'derived',
+  'drugbank',
+  'drugbank_drugs.parquet',
+);
 
 interface DrugRecord {
   name: string;
@@ -39,10 +44,24 @@ interface DrugRecord {
   description: string | null;
 }
 
+/**
+ * Interpreter used for the parser subprocess.
+ *
+ * The Parquet parsers need `pyarrow` (see `requirements.txt`), which the
+ * default `python` on PATH does not always have — point `MEDICINE_PYTHON` at an
+ * interpreter that does to actually exercise the corpus assertions.
+ */
+const PYTHON = process.env['MEDICINE_PYTHON'] ?? 'python';
+
+/** `pyarrow` is only installable on demand, so probe instead of assuming. */
+const PYTHON_READS_PARQUET =
+  spawnSync(PYTHON, ['-c', 'import pyarrow.parquet'], { stdio: 'ignore' })
+    .status === 0;
+
 function parseDrugs(limit: number): DrugRecord[] {
   const stdout = execFileSync(
-    'python',
-    [parserPath, '--source-path', XML_PATH, '--limit', String(limit)],
+    PYTHON,
+    [parserPath, '--source-path', PARQUET_PATH, '--limit', String(limit)],
     { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 },
   );
 
@@ -86,16 +105,24 @@ const DIRTY = new RegExp(
   ].join('|'),
 );
 
-describe.skipIf(!existsSync(XML_PATH))(
+describe.skipIf(!existsSync(PARQUET_PATH) || !PYTHON_READS_PARQUET)(
   'drugbank_drugs parser narrative cleaning',
   () => {
-    const records = parseDrugs(400);
+    let records: DrugRecord[] = [];
+    let cetuximab: DrugRecord | undefined;
 
-    // DrugBank emits several rows per name (parent entry plus salt forms), and
-    // only one carries the narrative fields. Pick the populated one.
-    const cetuximab = records.find(
-      (record) => record.drugbank_id === 'DB00002' && record.indication,
-    );
+    // Loaded in `beforeAll`, not at collection: `describe.skipIf` still runs the
+    // suite body to register the tests, so parsing here would blow up on a
+    // machine without the dataset (or without `pyarrow`) instead of skipping.
+    beforeAll(() => {
+      records = parseDrugs(400);
+
+      // DrugBank emits several rows per name (parent entry plus salt forms),
+      // and only one carries the narrative fields. Pick the populated one.
+      cetuximab = records.find(
+        (record) => record.drugbank_id === 'DB00002' && record.indication,
+      );
+    });
 
     it('emits records', () => {
       expect(records.length).toBeGreaterThan(0);
@@ -130,16 +157,6 @@ describe.skipIf(!existsSync(XML_PATH))(
       expect(cetuximab?.indication).toContain('Cetuximab is indicated for');
       // The `&#13;` line breaks must survive as real newlines.
       expect(cetuximab?.indication).toMatch(/\n/);
-    });
-
-    it('does not strip literal asterisks that are source content', () => {
-      // DB06071 ships "CD-10* or TOP** peptidases" — a footnote marker in the
-      // original prose, not emphasis markup. Stripping it would corrupt text.
-      const dts = records.find((record) => record.drugbank_id === 'DB06071');
-
-      if (dts?.description) {
-        expect(dts.description).toContain('TOP**');
-      }
     });
   },
 );
@@ -227,6 +244,22 @@ const CLEANER_CASES: {
     drops: ['[', ']'],
   },
   { input: 'dose of [100 mg] daily', keeps: '100 mg', drops: ['[', ']'] },
+  // DB06071 `description`, verbatim: a bare `*` and an unpaired `**` are source
+  // content (footnote markers), not emphasis markup. Stripping them would
+  // corrupt the prose. Asserted here rather than off the corpus sample, which
+  // only reaches the first few hundred drugs.
+  {
+    input:
+      'express high levels of CD-10* or TOP** peptidases, such as prostate cancer',
+    keeps: 'CD-10* or TOP** peptidases',
+    drops: [],
+  },
+  // Paired emphasis *is* markup and still gets unwrapped.
+  {
+    input: 'causes **severe** hepatotoxicity in rare cases',
+    keeps: 'severe',
+    drops: ['**severe**'],
+  },
   {
     input: 'seen in [vitamin K] deficiency',
     keeps: 'vitamin K',
@@ -242,7 +275,7 @@ const CLEANER_CASES: {
 describe('clean_narrative_text marker handling', () => {
   function clean(input: string): string {
     const stdout = execFileSync(
-      'python',
+      PYTHON,
       [
         '-c',
         [

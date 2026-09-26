@@ -35,6 +35,15 @@ const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
  * 解压件从顶层的 `unziped/` 移到了 `raw/drugbank/`。
  */
 const DRUGBANK_DIR = path.join(DATA_ROOT, 'raw', 'drugbank');
+/**
+ * DrugBank 派生件目录。
+ *
+ * `drugbank_drugs.parquet` 是 `raw/drugbank/full database.xml` 的全字段列存
+ * （55 个顶层字段，见 `DrugDataBase/derived/drugbank/README.md`）。药品导入以它为
+ * 源：Parquet 导出侧按「`<drugbank>` 的直接子元素 `<drug>`」判定真药，因此不会有
+ * XML 里那 99.4 万条 `<pathways>` 内嵌引用的干扰。
+ */
+const DRUGBANK_DERIVED_DIR = path.join(DATA_ROOT, 'derived', 'drugbank');
 /** V3 去重产物（原 `DrugEntityDedup/`，现位于 `derived/v3-dedup/`）。 */
 const V3_DEDUP_DIR = path.join(DATA_ROOT, 'derived', 'v3-dedup');
 const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
@@ -203,10 +212,17 @@ const COMMANDS = {
   // V2 xlsx columns no longer exist in the DB schema (20260917120000 migration).
   // V3 cn-v3-* commands are the sole CN import path.
   'drugbank-drugs': {
+    // Source is the all-fields Parquet derived from `raw/drugbank/full
+    // database.xml`. The XML path was dropped: matching `<drug>` by tag name
+    // also matched the ~994k `<pathways>` references, inflating every run to
+    // 1,014,340 rows and leaving some attributes null on the real rows.
     parser: path.join(thisDir, 'parsers', 'drugbank_drugs.py'),
-    defaultSourcePath: path.join(DRUGBANK_DIR, 'full database.xml'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
     sourceKey: 'drugbank_drugs',
-    sourceName: 'drugbank_full_database_xml',
+    sourceName: 'drugbank_drugs_parquet',
     tableName: 'drugbank_drugs',
     columns: [
       'drugbank_id',

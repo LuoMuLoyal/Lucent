@@ -12,7 +12,10 @@ updated: 2026-09-17
 - 本地 Docker stack 已运行（`pnpm dev:stack`，需 PostgreSQL 18）
 - 数据库已迁移（`pnpm db:migrate`）
 - 数据集文件已准备在 `DrugDataBase/` 目录下（V3 去重产物在 `DrugDataBase/derived/v3-dedup/`，
-  DrugBank 解压件在 `DrugDataBase/raw/drugbank/`）
+  DrugBank 派生件在 `DrugDataBase/derived/drugbank/`，原始解压件在 `DrugDataBase/raw/drugbank/`）
+- `python` 已装 Parquet 依赖：`pip install -r scripts/import/medicine/requirements.txt`
+  （只依赖 `pyarrow`）。V3 与 DrugBank 的源都是 Parquet，解析器以子进程默认调用 PATH 上的
+  `python`；没装 `pyarrow` 会直接报错退出
 - 阅读 `src/modules/medicines/README.md` 了解导入策略与数据语义
 
 ## 可用导入命令
@@ -37,7 +40,7 @@ pnpm import:medicine:all
 | 数据源               | 命令                                                                                       | 说明                                        |
 | -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------- |
 | 中国药品/说明书/链接 | `--command cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links`              | V3 去重 Parquet，产品纯目录、正文在说明书表 |
-| DrugBank 药品        | `--command drugbank-drugs`                                                                 | XML 全量解析，含靶点 XML 动作富化           |
+| DrugBank 药品        | `--command drugbank-drugs`                                                                 | 全字段 Parquet 解析，含靶点 XML 动作富化    |
 | DrugBank 外部链接    | `--command drugbank-links`                                                                 | drug links.csv                              |
 | DrugBank 靶点        | `--command drugbank-targets-all` / `drugbank-targets-active`                               | all.csv / pharmacologically_active.csv      |
 | DrugBank 序列        | `--command drugbank-target-proteins` / `drugbank-target-genes` / `drugbank-drug-sequences` | FASTA 文件                                  |
@@ -98,7 +101,9 @@ node scripts/import/medicine/rebuild-drugbank-rag-index.ts --embed
 
 ## 注意事项
 
-- DrugBank `full_database.xml` 约 1.9 GB，导入耗时较长，建议在后台运行
+- DrugBank 药品的源是 `DrugDataBase/derived/drugbank/drugbank_drugs.parquet`（约 125 MB，
+  zstd）。它由 `raw/drugbank/full database.xml`（约 1.8 GB）一次性转换而来，导出侧按
+  「父元素必须是 `<drugbank>`」判定真药；`full database.xml` 已不再被导入读取
 - 导入脚本的 env 文件解析顺序与运行时一致：`.env.<NODE_ENV>.local` → `.env.<NODE_ENV>`
 - 如导入中断，重跑脚本即可（upsert 语义，不会产生重复行）
 - 导入后行数与时间戳以导入脚本输出为准；`docs/archive/01-reference/contracts/data-sources.md` 为只进不出的归档快照，

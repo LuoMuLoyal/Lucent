@@ -1,6 +1,7 @@
 """Parses `structures.sdf` (DrugBank computed structure descriptors).
 
-Only the fields `drugbank_drugs` does not already carry from the XML are
+Only the fields `drugbank_drugs` does not already carry from the DrugBank XML
+(now read through `derived/drugbank/drugbank_drugs.parquet`) are
 emitted, plus the chemistry descriptors that exist nowhere else. See the
 `drugbank_structures` model comment for why `JCHEM_TRADITIONAL_IUPAC` and the
 duplicated list fields are left out.

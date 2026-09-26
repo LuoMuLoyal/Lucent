@@ -69,6 +69,11 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   派生）；导入按 `(id)` 冲突 upsert。无批准文号回退逻辑由 V3 上游解决。
   `pregnancy_lactation` 在 API 层
   按语境拆为 `pregnancy` + `lactation` 两个 DTO 字段。
+- **DrugBank 源**：`DrugDataBase/derived/drugbank/drugbank_drugs.parquet` —— `full
+database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>` 的直接子元素
+  `<drug>`」过滤掉 `<pathways>` 里的约 99.4 万条嵌套引用，因此解析器一药一行；
+  `full database.xml` 不再参与导入。落库仍是原来的 34 列，Parquet 多出的 `prices` /
+  `manufacturers` / `patents` / `dosages` / `pathways` / `snp_effects` 等尚无对应表列。
 - DrugBank 映射：`drugbank_id` 主键、`secondary_drugbank_ids`、科学叙事字段
   清单化进 RAG chunks（仅 description/indication/MoA/pd/toxicity 等核准字段）；
   原始大文件不入 Git。
@@ -78,8 +83,8 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   不强拆 name/chain。靶点序列**不建外键**（`drugbank_targets.uniprot_id` 可空且非唯一），
   消费方按 `uniprot_id` 关联。
 - 结构描述符：`drugbank_id` 即主键（实测 14622 条 SDF 记录对 14622 个不同药物 id，
-  无重复，不需要合并策略）。只落 XML 未提供的字段；`SALTS` 现有表没有故收下，
-  而 `SYNONYMS`/`PRODUCTS`/`DRUG_GROUPS`/`SECONDARY_ACCESSION_NUMBERS` 与 XML 一致
+  无重复，不需要合并策略）。只落药表未提供的字段；`SALTS` 现有表没有故收下，
+  而 `SYNONYMS`/`PRODUCTS`/`DRUG_GROUPS`/`SECONDARY_ACCESSION_NUMBERS` 与药表一致
   故不重复导入。**`JCHEM_TRADITIONAL_IUPAC` 刻意不收**：该字段上游系统性张冠李戴
   （阿司匹林读成地塞米松磷酸盐、二甲双胍与布洛芬都读成 biotin），而同记录内其余
   字段均正确。源里两个 pKa 单元格是字面量 `NaN`，解析时按非有限值剔除。

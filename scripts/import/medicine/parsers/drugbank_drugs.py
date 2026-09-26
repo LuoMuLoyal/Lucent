@@ -1,9 +1,36 @@
+"""DrugBank 药品解析器 —— 读 `DrugDataBase/derived/drugbank/drugbank_drugs.parquet`。
+
+为什么改用 Parquet
+------------------
+原先本文件直接流式解析 `full database.xml`，以标签名 `<drug>` 匹配药品。但 XML 里
+`<pathways><pathway><drugs><drug>` 是**同名元素**（约 99.4 万条引用，每条只有 id +
+name），于是每次导入都会多出近百万条残缺行（`raw_row_count` = 1,014,340），真药只有
+19,842 条；引用行先于真药写入，真记录即便随后 upsert 覆盖，也只在部分列上生效。
+
+Parquet 导出侧在抽取时就用父元素判定（`<drugbank>` 的直接子元素 `<drug>`），只保留
+真药，因此本解析器一条不多、一条不少。字段语义与旧 XML 解析器逐字段对拍一致。
+
+Parquet 取值约定
+----------------
+- 叶子字段（`name` / `description` / `state` / `cas_number` / …）就是纯文本，
+  文本清洗与旧路径完全相同（仍走 `clean_narrative_text`，只作用于散文列）
+- 结构化字段是 JSON：容器元素名 → 其子元素。**单个子元素不是数组**，需归一化
+- 带属性的子元素被导出成 `{"@": {...}, "#": 文本}`；旧解析器刻意丢弃属性的列
+  （`synonyms` / `categories` / `food_interactions` / `atc_codes`）取 `#` 或 `@`
+
+范围
+----
+只保留旧解析器原本就写入 `drugbank_drugs` 的列。Parquet 里另有 25 个
+`drugbank_drugs` 没有对应表列的字段（`prices` / `manufacturers` / `patents` /
+`dosages` / `pathways` / `snp_effects` / `reactions` / `msds` / `fda_label` …），
+需要建列迁移后才能导入，此处不处理。
+"""
 from __future__ import annotations
 
 import argparse
 import datetime as dt
-import xml.etree.ElementTree as ET
-from typing import Any
+import json
+from typing import Any, Iterator
 
 from common import (
     build_search_text,
@@ -14,6 +41,48 @@ from common import (
     normalize_text,
 )
 
+# 散文字段：需要解码实体、去掉内联标记。其余字段保持原样。
+NARRATIVE_FIELDS = (
+    "description",
+    "indication",
+    "pharmacodynamics",
+    "mechanism_of_action",
+    "toxicity",
+    "metabolism",
+    "absorption",
+    "half_life",
+    "protein_binding",
+    "route_of_elimination",
+    "volume_of_distribution",
+    "clearance",
+)
+
+# 容器列 → 其中承载条目的子元素名（JSON 里的 key）。
+CONTAINER_CHILDREN = {
+    "groups": "group",
+    "synonyms": "synonym",
+    "categories": "category",
+    "food_interactions": "food-interaction",
+    "drug_interactions": "drug-interaction",
+    "external_identifiers": "external-identifier",
+    "external_links": "external-link",
+    "atc_codes": "atc-code",
+    "targets": "target",
+    "enzymes": "enzyme",
+    "carriers": "carrier",
+    "transporters": "transporter",
+}
+
+# 靶点关系四组：Parquet 列 → 单数元素名。旧解析器用它作为 `relation_kind`。
+RELATION_GROUPS = (
+    ("targets", "target"),
+    ("enzymes", "enzyme"),
+    ("carriers", "carrier"),
+    ("transporters", "transporter"),
+)
+
+PARQUET_BATCH_ROWS = 2048
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -22,107 +91,78 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def local_name(tag: str) -> str:
-    return tag.rsplit("}", 1)[-1]
+def as_json(value: Any) -> Any:
+    """解析结构化列；非 JSON 文本返回 None。
+
+    只在首字符是 `{` / `[` 时才尝试 `json.loads`：药名里本来就有
+    `{(4Z)-2-[(1R,2R)-…}acetic acid`、`[Leu1, Thr2]-63-desulfohirudin` 这种以括号
+    起头的纯文本，无条件解析会误判（前者还是合法 JSON 对象，会直接丢掉整个药名）。
+    """
+    if not isinstance(value, str):
+        return None
+
+    if value.lstrip()[:1] not in ("{", "["):
+        return None
+
+    try:
+        return json.loads(value)
+    except ValueError:
+        return None
 
 
-def child_elements(parent: ET.Element, name: str) -> list[ET.Element]:
-    return [child for child in parent if local_name(child.tag) == name]
+def container_items(value: Any, child_name: str) -> list[Any]:
+    """顶层容器列（JSON 字符串）→ 条目列表。"""
+    return items_of(as_json(value), child_name)
 
 
-def first_child(parent: ET.Element, name: str) -> ET.Element | None:
-    for child in parent:
-        if local_name(child.tag) == name:
-            return child
+def items_of(payload: Any, child_name: str) -> list[Any]:
+    """容器对象 → 条目列表（单个条目不是数组，统一成列表）。
+
+    与 `container_items` 分开：嵌套节点的取值已经是解析好的对象，不能再走
+    `as_json`（它只认字符串）。
+    """
+    if not isinstance(payload, dict):
+        return []
+
+    items = payload.get(child_name)
+    if items is None:
+        return []
+    return items if isinstance(items, list) else [items]
+
+
+def leaf_text(value: Any) -> str | None:
+    """子元素 → 文本。带属性的元素是 `{"@": …, "#": 文本}`，取 `#`。"""
+    if isinstance(value, dict):
+        return normalize_text(value.get("#"))
+    if isinstance(value, list):
+        return None
+    return normalize_text(value)
+
+
+def category_text(value: Any) -> str | None:
+    """`<categories><category>` 里还嵌着一层 `<category>`，那才是名字。
+
+    旧解析器用 `descendant_texts(…, "category")` 取所有后代文本，等价于取内层
+    `<category>`；只有 `mesh-id`、没有内层的那种两边都取不到。
+    """
+    if isinstance(value, dict):
+        inner = value.get("category")
+        if inner is not None:
+            return leaf_text(inner)
+        return normalize_text(value.get("#"))
+    return normalize_text(value)
+
+
+def atc_code(value: Any) -> str | None:
+    """`<atc-code code="…">` 的 `code` 属性 —— 旧解析器只取属性，不取元素文本。"""
+    if isinstance(value, dict):
+        attrib = value.get("@")
+        if isinstance(attrib, dict):
+            return normalize_text(attrib.get("code"))
     return None
 
 
-def child_text(parent: ET.Element, name: str) -> str | None:
-    child = first_child(parent, name)
-    return normalize_text(child.text if child is not None else None)
-
-
-def narrative_text(parent: ET.Element, name: str) -> str | None:
-    """Like `child_text`, but decodes entities and strips inline markup.
-
-    Used for prose fields only. Identifier/URL/date fields keep `child_text` so
-    their content is never rewritten.
-    """
-    child = first_child(parent, name)
-    return clean_narrative_text(child.text if child is not None else None)
-
-
-def parse_xml_targets(
-    drug: ET.Element,
-) -> list[dict[str, Any]]:
-    """Extract `<targets>` / `<enzymes>` / `<carriers>` / `<transporters>`.
-
-    These carry the pharmacology the CSV exports lack entirely: each entry has
-    a `BE...` target id, the target name, organism, and the `<actions>` list
-    (inhibitor / agonist / antagonist / substrate, ...).
-
-    The XML target id space (`BE0000451`) is disjoint from the numeric ids used
-    by `all.csv`, so entries are keyed by target `name` + `organism` for the
-    importer to resolve against `drugbank_targets`.
-    """
-    relations: list[dict[str, Any]] = []
-
-    for group_name in ("targets", "enzymes", "carriers", "transporters"):
-        group = first_child(drug, group_name)
-        if group is None:
-            continue
-
-        # Container elements are named after the singular (`<target>`,
-        # `<enzyme>`, ...), not the plural.
-        item_name = group_name[:-1]
-
-        for item in child_elements(group, item_name):
-            name = child_text(item, "name")
-            if name is None:
-                continue
-
-            actions_parent = first_child(item, "actions")
-            actions: list[str] = []
-            if actions_parent is not None:
-                actions = normalize_list(
-                    [
-                        action.text
-                        for action in child_elements(actions_parent, "action")
-                    ]
-                )
-
-            relations.append(
-                {
-                    "source_target_id": child_text(item, "id"),
-                    "name": name,
-                    "organism": child_text(item, "organism"),
-                    "actions": actions,
-                    "relation_kind": item_name,
-                    "known_action": child_text(item, "known-action"),
-                }
-            )
-
-    return relations
-
-
-def descendant_texts(parent: ET.Element | None, child_name: str) -> list[str]:
-    if parent is None:
-        return []
-
-    texts = []
-    for descendant in parent.iter():
-        if local_name(descendant.tag) != child_name:
-            continue
-        text = normalize_text(descendant.text)
-        if text is not None:
-            texts.append(text)
-    return normalize_list(texts)
-
-
-def parse_iso_datetime(value: str | None) -> str | None:
-    if value is None:
-        return None
-
+def parse_iso_datetime(value: Any) -> str | None:
     normalized = normalize_text(value)
     if normalized is None:
         return None
@@ -133,198 +173,224 @@ def parse_iso_datetime(value: str | None) -> str | None:
         return normalized
 
 
-def element_to_data(element: ET.Element | None) -> Any:
-    if element is None:
-        return None
-
-    children = list(element)
-    if not children:
-        if element.attrib:
-            payload = dict(element.attrib)
-            text = normalize_text(element.text)
-            if text is not None:
-                payload["value"] = text
-            return payload
-        return normalize_text(element.text)
-
-    grouped: dict[str, list[Any]] = {}
-    for child in children:
-        grouped.setdefault(local_name(child.tag), []).append(element_to_data(child))
-
-    payload: dict[str, Any] = dict(element.attrib)
-    for key, values in grouped.items():
-        payload[key] = values if len(values) > 1 else values[0]
-
-    text = normalize_text(element.text)
-    if text is not None:
-        payload["value"] = text
-
-    return payload
+def parse_relation_actions(value: Any) -> list[str]:
+    """`<actions>` 节点（已解析的嵌套对象）→ action 文本列表。"""
+    return normalize_list(
+        [leaf_text(item) for item in items_of(value, "action")]
+    )
 
 
-def parse_drug_interactions(parent: ET.Element | None) -> list[dict[str, str | None]]:
-    if parent is None:
-        return []
+def parse_xml_targets(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """重建 `<targets>` / `<enzymes>` / `<carriers>` / `<transporters>` 关系。
 
+    这些是 CSV 导出件完全没有的药理信息：每条带 `BE…` 靶点 id、名称、物种，以及
+    `<actions>`（inhibitor / agonist / antagonist / substrate …）。XML 的靶点 id
+    空间与 `all.csv` 的数字 id 不重叠，因此仍按 `name` + `organism` 交给导入侧
+    去 `drugbank_targets` 里解析。
+    """
+    relations: list[dict[str, Any]] = []
+
+    for column, item_name in RELATION_GROUPS:
+        for item in container_items(row.get(column), item_name):
+            if not isinstance(item, dict):
+                # 旧解析器要求这些条目有 <name> 子元素；纯文本条目等效于缺名。
+                continue
+
+            name = normalize_text(item.get("name"))
+            if name is None:
+                continue
+
+            relations.append(
+                {
+                    "source_target_id": normalize_text(item.get("id")),
+                    "name": name,
+                    "organism": normalize_text(item.get("organism")),
+                    "actions": parse_relation_actions(item.get("actions")),
+                    "relation_kind": item_name,
+                    "known_action": normalize_text(item.get("known-action")),
+                }
+            )
+
+    return relations
+
+
+def parse_drug_interactions(value: Any) -> list[dict[str, str | None]]:
     interactions = []
-    for child in child_elements(parent, "drug-interaction"):
+    for item in container_items(value, "drug-interaction"):
+        if not isinstance(item, dict):
+            continue
         interactions.append(
             {
-                "drugbankId": child_text(child, "drugbank-id"),
-                "name": child_text(child, "name"),
-                "description": child_text(child, "description"),
+                "drugbankId": normalize_text(item.get("drugbank-id")),
+                "name": normalize_text(item.get("name")),
+                "description": normalize_text(item.get("description")),
             }
         )
     return interactions
 
 
-def parse_external_identifiers(parent: ET.Element | None) -> list[dict[str, str | None]]:
-    if parent is None:
-        return []
-
+def parse_external_identifiers(value: Any) -> list[dict[str, str | None]]:
     identifiers = []
-    for child in child_elements(parent, "external-identifier"):
+    for item in container_items(value, "external-identifier"):
+        if not isinstance(item, dict):
+            continue
         identifiers.append(
             {
-                "resource": child_text(child, "resource"),
-                "identifier": child_text(child, "identifier"),
+                "resource": normalize_text(item.get("resource")),
+                "identifier": normalize_text(item.get("identifier")),
             }
         )
     return identifiers
 
 
-def parse_external_links(parent: ET.Element | None) -> list[dict[str, str | None]]:
-    if parent is None:
-        return []
-
+def parse_external_links(value: Any) -> list[dict[str, str | None]]:
     links = []
-    for child in child_elements(parent, "external-link"):
+    for item in container_items(value, "external-link"):
+        if not isinstance(item, dict):
+            continue
         links.append(
             {
-                "resource": child_text(child, "resource"),
-                "url": child_text(child, "url"),
+                "resource": normalize_text(item.get("resource")),
+                "url": normalize_text(item.get("url")),
             }
         )
     return links
 
 
-def parse_atc_codes(parent: ET.Element | None) -> list[str]:
-    if parent is None:
-        return []
-
-    codes = []
-    for child in child_elements(parent, "atc-code"):
-        code = normalize_text(child.attrib.get("code"))
-        if code is not None:
-            codes.append(code)
-    return normalize_list(codes)
-
-
-def build_record(drug: ET.Element) -> dict[str, Any] | None:
-    drugbank_ids = child_elements(drug, "drugbank-id")
-    id_values = [normalize_text(item.text) for item in drugbank_ids]
-    id_values = [item for item in id_values if item is not None]
-    if not id_values:
-        emit_error("Missing DrugBank identifier")
+def build_record(row: dict[str, Any], row_number: int) -> dict[str, Any] | None:
+    primary_id = normalize_text(row.get("drugbank_id"))
+    if primary_id is None:
+        emit_error("Missing DrugBank identifier", row_number)
         return None
 
-    primary_id = None
-    secondary_ids: list[str] = []
-    for index, item in enumerate(drugbank_ids):
-        current_id = normalize_text(item.text)
-        if current_id is None:
-            continue
-
-        is_primary = normalize_text(item.attrib.get("primary")) == "true"
-        if primary_id is None and (is_primary or index == 0):
-            primary_id = current_id
-        else:
-            secondary_ids.append(current_id)
-
-    primary_id = primary_id or id_values[0]
-    name = child_text(drug, "name")
+    name = normalize_text(row.get("name"))
     if name is None:
-        emit_error(f"Missing drug name for {primary_id}")
+        emit_error(f"Missing drug name for {primary_id}", row_number)
         return None
 
-    groups = descendant_texts(first_child(drug, "groups"), "group")
-    synonyms = descendant_texts(first_child(drug, "synonyms"), "synonym")
-    categories = descendant_texts(first_child(drug, "categories"), "category")
-    food_interactions = descendant_texts(
-        first_child(drug, "food-interactions"), "food-interaction"
+    all_ids_payload = as_json(row.get("drugbank_ids"))
+    all_ids = (
+        [normalize_text(item) for item in all_ids_payload]
+        if isinstance(all_ids_payload, list)
+        else []
+    )
+    all_ids = [item for item in all_ids if item is not None]
+
+    # 主键那一项不进 secondary；其余（含重复项）全部保留，与旧解析器的位置逻辑一致。
+    try:
+        primary_index = all_ids.index(primary_id)
+    except ValueError:
+        primary_index = -1
+    secondary_ids = [
+        item for index, item in enumerate(all_ids) if index != primary_index
+    ]
+
+    cas_number = normalize_text(row.get("cas_number"))
+    unii = normalize_text(row.get("unii"))
+
+    groups = normalize_list(
+        [leaf_text(item) for item in container_items(row.get("groups"), "group")]
+    )
+    synonyms = normalize_list(
+        [
+            leaf_text(item)
+            for item in container_items(row.get("synonyms"), "synonym")
+        ]
+    )
+    categories = normalize_list(
+        [
+            category_text(item)
+            for item in container_items(row.get("categories"), "category")
+        ]
+    )
+    food_interactions = normalize_list(
+        [
+            leaf_text(item)
+            for item in container_items(
+                row.get("food_interactions"), "food-interaction"
+            )
+        ]
+    )
+    atc_codes = normalize_list(
+        [
+            atc_code(item)
+            for item in container_items(row.get("atc_codes"), "atc-code")
+        ]
     )
 
-    record = {
+    narrative = {
+        field: clean_narrative_text(row.get(field)) for field in NARRATIVE_FIELDS
+    }
+
+    record: dict[str, Any] = {
         "drugbank_id": primary_id,
         "secondary_drugbank_ids": secondary_ids or None,
-        "drug_type": normalize_text(drug.attrib.get("type")),
-        "source_created_at": parse_iso_datetime(drug.attrib.get("created")),
-        "source_updated_at": parse_iso_datetime(drug.attrib.get("updated")),
+        "drug_type": normalize_text(row.get("type")),
+        "source_created_at": parse_iso_datetime(row.get("created")),
+        "source_updated_at": parse_iso_datetime(row.get("updated")),
         "name": name,
-        "description": narrative_text(drug, "description"),
-        "cas_number": child_text(drug, "cas-number"),
-        "unii": child_text(drug, "unii"),
-        "state": child_text(drug, "state"),
+        "cas_number": cas_number,
+        "unii": unii,
+        "state": normalize_text(row.get("state")),
         "groups": groups or None,
-        "indication": narrative_text(drug, "indication"),
-        "pharmacodynamics": narrative_text(drug, "pharmacodynamics"),
-        "mechanism_of_action": narrative_text(drug, "mechanism-of-action"),
-        "toxicity": narrative_text(drug, "toxicity"),
-        "metabolism": narrative_text(drug, "metabolism"),
-        "absorption": narrative_text(drug, "absorption"),
-        "half_life": narrative_text(drug, "half-life"),
-        "protein_binding": narrative_text(drug, "protein-binding"),
-        "route_of_elimination": narrative_text(drug, "route-of-elimination"),
-        "volume_of_distribution": narrative_text(drug, "volume-of-distribution"),
-        "clearance": narrative_text(drug, "clearance"),
-        "classification": element_to_data(first_child(drug, "classification")),
+        "classification": as_json(row.get("classification")),
         "synonyms": synonyms or None,
-        "products": element_to_data(first_child(drug, "products")),
-        "international_brands": element_to_data(first_child(drug, "international-brands")),
+        "products": as_json(row.get("products")),
+        "international_brands": as_json(row.get("international_brands")),
         "categories": categories or None,
-        "atc_codes": parse_atc_codes(first_child(drug, "atc-codes")) or None,
+        "atc_codes": atc_codes or None,
         "food_interactions": food_interactions or None,
-        "drug_interactions": parse_drug_interactions(
-            first_child(drug, "drug-interactions")
-        )
+        "drug_interactions": parse_drug_interactions(row.get("drug_interactions"))
         or None,
         "external_identifiers": parse_external_identifiers(
-            first_child(drug, "external-identifiers")
+            row.get("external_identifiers")
         )
         or None,
-        "external_links": parse_external_links(first_child(drug, "external-links"))
-        or None,
-        "xml_targets": parse_xml_targets(drug) or None,
+        "external_links": parse_external_links(row.get("external_links")) or None,
+        "xml_targets": parse_xml_targets(row) or None,
         "search_text": build_search_text(
-            [name, primary_id, child_text(drug, "cas-number"), child_text(drug, "unii")]
+            [name, primary_id, cas_number, unii]
             + secondary_ids
             + groups
             + synonyms[:20]
         ),
     }
+    record.update(narrative)
 
     return record
 
 
+def iter_rows(source_path: str) -> Iterator[tuple[int, dict[str, Any]]]:
+    """按批流式读取 Parquet，保持文件行序（即 XML 文档序）。"""
+    try:
+        import pyarrow.parquet as pq
+    except ModuleNotFoundError:
+        raise SystemExit(
+            "pyarrow is required for the DrugBank Parquet import. "
+            "Run `pip install -r scripts/import/medicine/requirements.txt`."
+        )
+
+    parquet = pq.ParquetFile(source_path)
+    row_number = 0
+    for batch in parquet.iter_batches(batch_size=PARQUET_BATCH_ROWS):
+        for row in batch.to_pylist():
+            row_number += 1
+            yield row_number, row
+
+
 def main() -> None:
     args = parse_args()
-    context = ET.iterparse(args.source_path, events=("start", "end"))
-    _, root = next(context)
 
     emitted = 0
-    for event, element in context:
-        if event != "end" or local_name(element.tag) != "drug":
+    for row_number, row in iter_rows(args.source_path):
+        record = build_record(row, row_number)
+        if record is None:
             continue
 
-        record = build_record(element)
-        if record is not None:
-            emit_record(record)
-            emitted += 1
-            if args.limit is not None and emitted >= args.limit:
-                break
-
-        element.clear()
-        root.clear()
+        emit_record(record)
+        emitted += 1
+        if args.limit is not None and emitted >= args.limit:
+            break
 
 
 if __name__ == "__main__":
