@@ -66,6 +66,15 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
   同一口径下改配置前是 61.4 s/chunk，旧文档记的"4 分钟/chunk"已证伪）。
   按 21,142 份说明书估算，全量建图的墙钟与费用**需要单独立项**，不是"顺手跑一下"。
   依据见 `lightrag-eval/PROCESS.md` 与 `lightrag-eval/results/mode-comparison.md` §一、§九。
+  **注**：上述 10.5 s/chunk 未计入抽缓存复用。已核实 LightRAG 的抽取缓存键是
+  **chunk 内容级**（`utils.py:5244` 的 hash 输入不含 `file_path`，实盘验证同文本必然同键），
+  故同一段文本在不同说明书下只抽一次 —— 实测语料 chunk 级重复率 **70.2%**
+  （205,454 → 61,207）。方向应是**命中缓存复用抽取结果、但仍按 leaflet 归属完整写入**，
+  **不可按 chunk 跳过写入**：跳过会丢掉约 **69,264 条跨药品断言**
+  （仅 `validity_period` 一句"24个月"就横跨 7,368 种药品）。详见迁移日志 2026-09-26。
+- **`validity_period` 的「暂定」信号已在库内丢失**：2026-09-26 的就地归一化把
+  `暂定一年半` 覆盖为 `18个月`，抹平了「厂家未定稿」这层含义（实测 1,491 行）。
+  需要该信号时只能回 `DrugDataBase/DrugEntityDedup/leaflets_dedup.parquet` 取。
 - **P4 灌 `qa` workspace（脚本就位，未实跑）**：`medical_qa_chunks` 当前 0 行，
   源数据（`DrugDataBase/医疗问答数据集一共135万条`）尚未导入。步骤：
   `import-medical-qa.ts --filter` → `pnpm import:lightrag --workspace=qa`。

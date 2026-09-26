@@ -30,31 +30,4 @@ YYYY-MM-DD-short-task-name.md
 3. Move durable decisions into the owning docs.
 4. Delete the plan file once it stops being the active execution source.
 
-## Current Plans
-
-— OpenAPI 组件名/operationId 命名重构:消除 dart-dio 客户端的 Controller/V1/Dto/内联 \_inner 机械名,按 AIP-190/136 语义化命名,双仓一次性迁移(不做兼容)
-
-— DrugBank 未消费数据落地 + 详情页 UI 重构:先修叙事文本 HTML 实体脏数据,再按查看频次重排信息架构(Indications 默认展开、新节默认折叠)、靶点/外部标识直出、FASTA 建表并独立端点按需加载、SDF 仅取标量属性(2D 坐标排除)
-
-- [`2026-09-16-lightrag-introduction-plan.md`](2026-09-16-lightrag-introduction-plan.md)
-  — LightRAG 中文散文检索层引入:P1(基础设施)+ P3(删除旧散文检索工具、capabilities 增 `retrieval_unavailable`、双仓契约同步)已落地;P2 全量评测与 P4/P5 未做,剩余事项见 `docs/TODO.md`
-- [`2026-09-17-local-embedding-model-selection.md`](2026-09-17-local-embedding-model-selection.md)
-  — 本地嵌入模型选型调研(未决策):厘清 LightRAG 中文侧 / Lucent pgvector / Semantica 内部三条嵌入线,候选矩阵与许可红线,维度↔pgvector 索引约束,收敛条件待硬件与吞吐基准
-- [`2026-09-10-staging-native-pm2-traefik.md`](2026-09-10-staging-native-pm2-traefik.md)
-  — staging 部署迁移:Coolify → 原生 PM2 + 自建 Traefik + 推送即部署;infra 容器化、app 走宿主 PM2、发布命令内联在 workflow
-- [`2026-09-06-rag-hybrid-search-upgrade.md`](2026-09-06-rag-hybrid-search-upgrade.md)
-  — 三源 RAG 混合检索升级:PG18 FTS + RRF 融合(向量+关键词),零新运行时;中文分词决策;不顶替 LightRAG/GrapRAG,保留 F-15 合规分层
-- [`2026-09-02-agentic-proactive-evolution.md`](2026-09-02-agentic-proactive-evolution.md)
-  — Agentic → Proactive → 伴身演进后端任务清单:AI 上下文统一、proposal 服务域化、today/review/reminders 提案工具、BullMQ 事件总线与依从性触发器、跨端会话一致(远期)
-- [`2026-08-28-medicine-risk-graph-plan.md`](2026-08-28-medicine-risk-graph-plan.md)
-  — 药品风险检查图数据结构引入:Phase 1 关系化 JSONB(PG18),Phase 2 SQL/CTE 图查询,Phase 3 LightRAG 开放检索,Phase 4 OAG(Semantica 替代路线见 §6.9)
-- [`2026-08-22-medium-to-large-migration-inventory.md`](2026-08-22-medium-to-large-migration-inventory.md)
-  — 中小型到中大型过渡迁移盘点:配置、Worker/队列、Outbox、Prisma 边界、跨仓合同、数据库发布与可观测性
-- [`2026-08-14-saas-modules-and-node-monorepo.md`](2026-08-14-saas-modules-and-node-monorepo.md)
-  — SaaS 化后端模块与 Node monorepo 合并计划(0.1.0 后启动)
-- [`2026-08-02-rnacos-runtime-config-tuning.md`](2026-08-02-rnacos-runtime-config-tuning.md)
-  — rnacos 动态运行时配置与调优:餐食识别/队列/缓存参数热更新
-- [`2026-07-24-worker-separation-and-cron-repeatable.md`](2026-07-24-worker-separation-and-cron-repeatable.md)
-  — BullMQ Worker 进程分离:`WORKER_MODE` 环境变量拆分 api/worker 进程
-
-已完成的计划按约定直接删除,持久决策落 ADR(`docs/reference/adr/`)与迁移日志。
+已完成的计划按约定直接删除
