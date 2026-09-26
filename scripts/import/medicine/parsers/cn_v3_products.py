@@ -1,4 +1,4 @@
-"""V3 product parser — reads DrugEntityDedup/products_dedup.parquet.
+"""V3 product parser — reads derived/v3-dedup/products_dedup.parquet.
 
 DB schema (post V3 migration): product table is a catalogue only —
 no body text columns. Column names match V3 directly (no renaming).

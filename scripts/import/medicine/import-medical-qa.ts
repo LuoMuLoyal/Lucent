@@ -28,8 +28,7 @@ const REPO_ROOT = path.resolve(thisDir, '..', '..', '..');
 const DRUG_DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
 const DEFAULT_SOURCE_PATH = path.join(
   DRUG_DATA_ROOT,
-  '医疗问答数据集一共135万条',
-  '数据集',
+  'qa',
   'medical_qa.ndjson',
 );
 
@@ -257,7 +256,7 @@ function printHelp(): void {
 Usage: node import-medical-qa.ts [options]
 
 Options:
-  --source <path>        NDJSON source file (default: DrugDataBase/医疗问答数据集一共135万条/数据集/medical_qa.ndjson)
+  --source <path>        NDJSON source file (default: DrugDataBase/qa/medical_qa.ndjson)
   --limit <n>            Max records to import (default: all)
   --filter               Parse NDJSON → safety filter → write medical_qa_chunks
   --help, -h             Show this help

@@ -1,4 +1,4 @@
-"""V3 product↔leaflet link parser — reads DrugEntityDedup/product_leaflet_links.parquet.
+"""V3 product↔leaflet link parser — reads derived/v3-dedup/product_leaflet_links.parquet.
 
 V3's link table is a clean 1:1 map (every product gets exactly one leaflet):
   product_entity_id → cn_medicine_products.id (V3 entity_id)

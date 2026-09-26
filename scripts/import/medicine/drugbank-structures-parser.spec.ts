@@ -19,7 +19,7 @@ const parserPath = path.join(here, 'parsers', 'drugbank_structures.py');
 const DATA_ROOT =
   process.env['MEDICINE_DATA_ROOT'] ??
   path.resolve(here, '..', '..', '..', '..', 'DrugDataBase');
-const SDF_PATH = path.join(DATA_ROOT, 'unziped', 'structures.sdf');
+const SDF_PATH = path.join(DATA_ROOT, 'raw', 'drugbank', 'structures.sdf');
 
 interface StructureRecord {
   drugbank_id: string;

@@ -74,9 +74,9 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
   （仅 `validity_period` 一句"24个月"就横跨 7,368 种药品）。详见迁移日志 2026-09-26。
 - **`validity_period` 的「暂定」信号已在库内丢失**：2026-09-26 的就地归一化把
   `暂定一年半` 覆盖为 `18个月`，抹平了「厂家未定稿」这层含义（实测 1,491 行）。
-  需要该信号时只能回 `DrugDataBase/DrugEntityDedup/leaflets_dedup.parquet` 取。
+  需要该信号时只能回 `DrugDataBase/derived/v3-dedup/leaflets_dedup.parquet` 取。
 - **P4 灌 `qa` workspace（脚本就位，未实跑）**：`medical_qa_chunks` 当前 0 行，
-  源数据（`DrugDataBase/医疗问答数据集一共135万条`）尚未导入。步骤：
+  源数据（`DrugDataBase/qa/`）尚未导入。步骤：
   `import-medical-qa.ts --filter` → `pnpm import:lightrag --workspace=qa`。
 - **P5 生产核对（未做）**：生产库验证 sidecar 可达、`/query` 鉴权生效
   （注意 `/health` 不校验鉴权，不能用来判断 key 是否配对）与 workspace 命中。

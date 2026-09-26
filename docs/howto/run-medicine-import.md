@@ -11,7 +11,8 @@ updated: 2026-09-17
 
 - 本地 Docker stack 已运行（`pnpm dev:stack`，需 PostgreSQL 18）
 - 数据库已迁移（`pnpm db:migrate`）
-- 数据集文件已准备在 `DrugDataBase/` 目录下（V3 去重产物在 `DrugDataBase/DrugEntityDedup/`）
+- 数据集文件已准备在 `DrugDataBase/` 目录下（V3 去重产物在 `DrugDataBase/derived/v3-dedup/`，
+  DrugBank 解压件在 `DrugDataBase/raw/drugbank/`）
 - 阅读 `src/modules/medicines/README.md` 了解导入策略与数据语义
 
 ## 可用导入命令

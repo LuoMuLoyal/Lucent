@@ -11,7 +11,7 @@ except ModuleNotFoundError:  # pragma: no cover - depends on local tooling
     load_workbook = None
 
 
-# Headers exported by DrugDataBase/ChineseDrugData_Master_V2/build_master_v2.py
+# Headers exported by DrugDataBase/derived/v2-chinese-master/build_master_v2.py
 # for the ProductInstructionLinks sheet.
 LINK_FIELDS = [
     "product_id",

@@ -1,4 +1,4 @@
-"""V3 leaflet parser — reads DrugEntityDedup/leaflets_dedup.parquet.
+"""V3 leaflet parser — reads derived/v3-dedup/leaflets_dedup.parquet.
 
 DB schema (post V3 migration) uses V3 column names directly. This parser
 maps V3 Parquet columns → DB columns with no renaming needed (the schema

@@ -28,7 +28,7 @@ const DATA_ROOT =
   // container, so there is no ConfigService to inject here.
   process.env['MEDICINE_DATA_ROOT'] ??
   path.resolve(here, '..', '..', '..', '..', 'DrugDataBase');
-const XML_PATH = path.join(DATA_ROOT, 'unziped', 'full database.xml');
+const XML_PATH = path.join(DATA_ROOT, 'raw', 'drugbank', 'full database.xml');
 
 interface DrugRecord {
   name: string;

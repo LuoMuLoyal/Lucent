@@ -28,22 +28,27 @@ export {
 };
 
 const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
+/**
+ * 外部来源的 DrugBank 解压件。
+ *
+ * 路径集中在此处：`DrugDataBase/` 按 raw / derived / qa / tools 分层后，
+ * 解压件从顶层的 `unziped/` 移到了 `raw/drugbank/`。
+ */
+const DRUGBANK_DIR = path.join(DATA_ROOT, 'raw', 'drugbank');
+/** V3 去重产物（原 `DrugEntityDedup/`，现位于 `derived/v3-dedup/`）。 */
+const V3_DEDUP_DIR = path.join(DATA_ROOT, 'derived', 'v3-dedup');
 const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
 const IMPORT_RUNS_TABLE = 'drug_source_imports';
 
 const COMMANDS = {
   // ─── V3 (deduplicated) Chinese drug data ─────────────────────
-  // Reads from DrugDataBase/DrugEntityDedup/ Parquet files.
+  // Reads from DrugDataBase/derived/v3-dedup/ Parquet files.
   // sourceKey = cn_products_v3 etc. keeps import runs separate from V2.
   // V3 cn-v3-* commands are the sole CN import path; V2 xlsx commands were
   // removed with the schema alignment (20260917120000 migration).
   'cn-v3-products': {
     parser: path.join(thisDir, 'parsers', 'cn_v3_products.py'),
-    defaultSourcePath: path.join(
-      DATA_ROOT,
-      'DrugEntityDedup',
-      'products_dedup.parquet',
-    ),
+    defaultSourcePath: path.join(V3_DEDUP_DIR, 'products_dedup.parquet'),
     sourceKey: 'cn_v3_products',
     sourceName: 'drug_entity_dedup_v3',
     tableName: 'cn_medicine_products',
@@ -98,11 +103,7 @@ const COMMANDS = {
   },
   'cn-v3-leaflets': {
     parser: path.join(thisDir, 'parsers', 'cn_v3_leaflets.py'),
-    defaultSourcePath: path.join(
-      DATA_ROOT,
-      'DrugEntityDedup',
-      'leaflets_dedup.parquet',
-    ),
+    defaultSourcePath: path.join(V3_DEDUP_DIR, 'leaflets_dedup.parquet'),
     sourceKey: 'cn_v3_leaflets',
     sourceName: 'drug_entity_dedup_v3_leaflets',
     tableName: 'cn_medicine_leaflets',
@@ -173,11 +174,7 @@ const COMMANDS = {
   },
   'cn-v3-product-leaflet-links': {
     parser: path.join(thisDir, 'parsers', 'cn_v3_links.py'),
-    defaultSourcePath: path.join(
-      DATA_ROOT,
-      'DrugEntityDedup',
-      'product_leaflet_links.parquet',
-    ),
+    defaultSourcePath: path.join(V3_DEDUP_DIR, 'product_leaflet_links.parquet'),
     sourceKey: 'cn_v3_product_leaflet_links',
     sourceName: 'drug_entity_dedup_v3_links',
     tableName: 'cn_medicine_product_leaflet_links',
@@ -207,7 +204,7 @@ const COMMANDS = {
   // V3 cn-v3-* commands are the sole CN import path.
   'drugbank-drugs': {
     parser: path.join(thisDir, 'parsers', 'drugbank_drugs.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'full database.xml'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'full database.xml'),
     sourceKey: 'drugbank_drugs',
     sourceName: 'drugbank_full_database_xml',
     tableName: 'drugbank_drugs',
@@ -286,7 +283,7 @@ const COMMANDS = {
   },
   'drugbank-links': {
     parser: path.join(thisDir, 'parsers', 'drugbank_external_links.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'drug links.csv'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'drug links.csv'),
     sourceKey: 'drugbank_external_links',
     sourceName: 'drugbank_drug_links_csv',
     tableName: 'drugbank_external_links',
@@ -341,7 +338,7 @@ const COMMANDS = {
   },
   'drugbank-targets-all': {
     parser: path.join(thisDir, 'parsers', 'drugbank_targets.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'all.csv'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'all.csv'),
     sourceKey: 'drugbank_targets_all',
     sourceName: 'drugbank_all_targets_csv',
     sourceDataset: 'all',
@@ -384,7 +381,7 @@ const COMMANDS = {
     parser: path.join(thisDir, 'parsers', 'drugbank_targets.py'),
     defaultSourcePath: path.join(
       DATA_ROOT,
-      'unziped',
+      DRUGBANK_DIR,
       'pharmacologically_active.csv',
     ),
     sourceKey: 'drugbank_targets_pharmacologically_active',
@@ -430,7 +427,7 @@ const COMMANDS = {
   // under the table's (source_dataset, uniprot_id) key.
   'drugbank-target-proteins': {
     parser: path.join(thisDir, 'parsers', 'drugbank_target_sequences.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'protein.fasta'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'protein.fasta'),
     sourceKey: 'drugbank_target_sequences_protein_fasta',
     sourceName: 'drugbank_target_protein_fasta',
     sourceDataset: 'protein_fasta',
@@ -456,7 +453,7 @@ const COMMANDS = {
   },
   'drugbank-target-genes': {
     parser: path.join(thisDir, 'parsers', 'drugbank_target_sequences.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'gene.fasta'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'gene.fasta'),
     sourceKey: 'drugbank_target_sequences_gene_fasta',
     sourceName: 'drugbank_target_gene_fasta',
     sourceDataset: 'gene_fasta',
@@ -484,7 +481,7 @@ const COMMANDS = {
   // one drug legitimately owns several rows, distinguished by `description`.
   'drugbank-drug-sequences': {
     parser: path.join(thisDir, 'parsers', 'drugbank_drug_sequences.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'drug sequences.fasta'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'drug sequences.fasta'),
     sourceKey: 'drugbank_drug_sequences_fasta',
     sourceName: 'drugbank_drug_sequences_fasta',
     tableName: 'drugbank_drug_sequences',
@@ -503,7 +500,7 @@ const COMMANDS = {
   // `DRUGBANK_ID` per record, so the drug id is the natural conflict key.
   'drugbank-structures': {
     parser: path.join(thisDir, 'parsers', 'drugbank_structures.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'unziped', 'structures.sdf'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'structures.sdf'),
     sourceKey: 'drugbank_structures_sdf',
     sourceName: 'drugbank_structures_sdf',
     tableName: 'drugbank_structures',

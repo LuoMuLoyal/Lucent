@@ -22,7 +22,7 @@ const drugParser = path.join(here, 'parsers', 'drugbank_drug_sequences.py');
 const DATA_ROOT =
   process.env['MEDICINE_DATA_ROOT'] ??
   path.resolve(here, '..', '..', '..', '..', 'DrugDataBase');
-const UNZIPPED = path.join(DATA_ROOT, 'unziped');
+const UNZIPPED = path.join(DATA_ROOT, 'raw', 'drugbank');
 const PROTEIN_FASTA = path.join(UNZIPPED, 'protein.fasta');
 const GENE_FASTA = path.join(UNZIPPED, 'gene.fasta');
 const DRUG_FASTA = path.join(UNZIPPED, 'drug sequences.fasta');
