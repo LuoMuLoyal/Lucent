@@ -12,7 +12,9 @@ the graph. It therefore holds **no LLM credentials**.
 
 Working locally against a real AGE database (3,278 nodes / 211,630 edges):
 connection pool, `/health`, `/schema`, `/query`, `/validate`, `/reason`,
-`/rules` and `/provenance`. Wired into Lucent (assistant tool
+`/rules` and `/provenance`. The graph can also be browsed in semantica's official
+Knowledge Explorer via a scoped export — see
+[Visualization](#visualization). Wired into Lucent (assistant tool
 `reason_over_ontology`); not yet deployed as a container image.
 See `docs/VERIFICATION.md` for measured results and known gaps.
 
@@ -65,6 +67,83 @@ uv run uvicorn semantica_service.main:app --reload --port 8099
 `/health` returns **503** when the graph is unreachable, so a load balancer
 stops routing to a process whose dependency is down. With no AGE database
 running, a 503 naming a connection error is the expected response.
+
+## Visualization
+
+The graph can be browsed in semantica's official Knowledge Explorer, but **not
+by pointing the Explorer at AGE** — it has no AGE adapter. Its session is built
+as `GraphSession(ContextGraph(...))`, an *in-memory* graph, and it never opens a
+connection of its own. So the graph is exported to a file first and the Explorer
+loads that file:
+
+```bash
+# 1. Export a bounded, scoped slice of AGE (read-only).
+uv run python scripts/export_context_graph.py --drug Warfarin --drug Clopidogrel
+
+# 2. Serve it to the official UI.
+SEMANTICA_ALLOW_ANONYMOUS=true uv run semantica-explorer \
+  --graph data/viz/Warfarin-Clopidogrel.json --port 8010 --no-browser
+```
+
+Then open <http://127.0.0.1:8010>.
+
+`SEMANTICA_ALLOW_ANONYMOUS=true` is required **only for local use**: without it,
+every Explorer route answers 503 when `SEMANTICA_API_KEY` is unset. It makes the
+process unauthenticated, so it must stay on loopback.
+
+### Why an export rather than a route
+
+The Explorer is a development console, and `pyproject.toml` keeps `explorer` out
+of the service's dependencies so its routes never become part of the tool
+contract. A script is read-only, runs on demand, and adds nothing to the served
+surface.
+
+### Scope and size
+
+The whole graph cannot be the file: 211,630 edges loaded into memory is both slow
+and unreadable. `--drug` / `--atc` name the scope in the same terms `/reason`
+uses, so the picture shows the slice reasoning would run over — including the
+symmetric-edge mirroring, without which warfarin (530 incoming, 0 outgoing)
+renders as an isolated dot.
+
+Two limits are deliberately separate:
+
+| Flag | Meaning | Default |
+| --- | --- | --- |
+| `--read-limit` | How much to read from AGE before choosing what to draw | 60000 |
+| `--limit` | How many nodes *and* edges to put in the file | 400 |
+
+They are separate because `GraphExport` bounds nodes and edges *independently*,
+and confusing the two produced a payload with **no connected component at all**:
+at a 400 limit the node query fills entirely with drugs (ordered by business key)
+while every edge points at a `Protein`, so 400 nodes and 400 edges shared zero
+endpoints. Neither query was truncated, so nothing was reported as wrong — the UI
+would simply have drawn 400 disconnected dots. The script now selects from the
+*intersection*, refuses to write an edge-free graph, and reports both counts.
+
+Selection also spreads edges across relationship types rather than ranking purely
+by degree. `INTERACTS_WITH` is 200,182 of 211,630 edges, so degree ranking alone
+yielded 400 interaction edges over 37 drug nodes and no proteins; round-robin by
+type keeps `INHIBITS` / `ACTS_ON` / `SUBSTRATE_OF` in the picture, which is what
+shows *why* two drugs interact rather than only that they do.
+
+### One-time setup
+
+The Explorer's frontend bundle is not shipped in the installed wheel, so it must
+be built once from the fork:
+
+```bash
+cd ../semantica/explorer && npm ci && npm run build   # outputs to ../semantica/static
+# then copy that static/ into the installed package:
+#   .venv/Lib/site-packages/semantica/static
+```
+
+Without it, `GET /` serves an "Explorer UI not available" placeholder while the
+API still works. The service imports `semantica` from `site-packages`, so the
+bundle must be copied there — building it in the fork source tree is not enough.
+`python-multipart` is required by the Explorer's import route and is a
+dependency of the `explorer` extra that this project does not install; it is
+declared directly instead.
 
 ### /query
 

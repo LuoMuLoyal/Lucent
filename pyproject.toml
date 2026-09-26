@@ -18,9 +18,17 @@ dependencies = [
     # semantica is installed from the fork's main branch, not PyPI: the
     # released 0.6.8 lags main by 127 commits and predates every fork fix.
     # extras are curated rather than [all] — [all] also pulls dev, infra,
-    # cloud and graph-all. explorer is deliberately absent: it is a
-    # development console whose routes are not our tool contract.
+    # cloud and graph-all. The `explorer` extra is still deliberately absent:
+    # its routes are a development console, not our tool contract, and the
+    # service never mounts them. Visualization runs as a separate process
+    # against an export (scripts/export_context_graph.py), which needs only
+    # the dependency below.
     "semantica[shacl,graph-apache-age,tripletstore-oxigraph]",
+    # Required to import semantica.explorer at all: its export/import route
+    # declares a Form parameter, and FastAPI refuses to define the route
+    # without it. It ships in the `explorer` extra, which is not installed,
+    # so it is declared directly rather than pulling the whole extra in.
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
