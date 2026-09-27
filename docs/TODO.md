@@ -19,15 +19,10 @@ random docs.
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
 
-## 2026-09-19 英文侧 OAG（Semantica）：主链、推理与硬化已全部落地
+## 2026-09-19 英文侧 OAG（Semantica）剩余项
 
-`reason_over_ontology` / `reason_over_rules` 工具、四个注册点、policy 门控、sidecar
-客户端、confirm 路径审计、**PROV-O 端到端引用**（边上 `prov` → sidecar `/provenance`
-解析 → envelope `citations` → SSE `toolDetails` → 来源条）已落地并真机验证；推理输入桥、
-规则库（`reason_over_rules`）、推理资源上限、ATC 类名决策、相互作用双向边、服务硬化与
-评测集（11/11 通过）亦已完成，实施计划按约定删除。决策见
-`docs/reference/adr/0021-semantica-english-side-oag.md`，代码相邻的约束与非目标见
-`src/modules/assistant/README.md`（英文侧 OAG 小节）。此处只留尚未闭环的条目：
+决策见 `docs/reference/adr/0021-semantica-english-side-oag.md`，代码相邻的约束与非目标见
+`src/modules/assistant/README.md`（英文侧 OAG 小节）。尚未闭环的条目：
 
 - **sidecar 镜像（未做）**：三份 compose 的 `semantica` 服务定义已就位（profile 门控，
   避免 `docker compose up` 去拉不存在的镜像），但 `semantica-service` 仓还没有
@@ -38,18 +33,10 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
   调用方预算下仍可能击穿超时预期（依据见 `semantica-oag-pilot/CORRECTIONS-r3.md`）。
 - **模型供应商配额/凭据**：本轮评测中途开始快失败（`rejected our credentials or
 exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前先确认配额。
-- **ATC 类名（已决策 ②，不做导入）**：1,467 个 `ATCClass` 节点只有 `code`/`level`，
-  无 `name`/`title`/`description`。已在源库核实：`drugbank_drugs.atc_codes` 存的是
-  JSON 数组且**只有代码**（如 `["B01AB07"]`，共 3,636 行 / 5,780 个代码，元素全为
-  字符串），`information_schema`
-  里没有任何含 ATC 名称的列或表——名称在整条导入链路上都不存在，不是导入漏了字段。
-  故维持现状：产品层只呈现 code，"类名"交给模型/UI 解释。若产品明确要求类名，
-  需单独立项导入公开 ATC 索引，并先确认许可与数据来源（计划 D1 选项 ①）。
 
-## 2026-09-18 LightRAG 中文散文检索（P1/P3 已落地，剩余为评测与生产核对）
+## 2026-09-18 LightRAG 中文散文检索（剩余为评测与生产核对）
 
-中文散文检索已**整体切换到 LightRAG**：旧散文检索工具与服务已删除，契约、
-脚本、双仓客户端全部同步完成（详见当日迁移日志）。剩余为评测与生产侧动作：
+剩余为评测与生产侧动作：
 
 - **P2 全量评测（未做）**：当前只有一次 20 条语料的小样本模式验证
   （产物在仓库外的 `lightrag-eval/`），**不足以判断真实规模下图模式是否有增益**；
@@ -87,9 +74,8 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
   实例。已在 assistant README / env 文档 / deployment 记录。
 - **待定**：工具名 `search_cn_medicine_knowledge` 如需改名，在评测前定。
 
-**已确认保留**：`VectorStoreFactory` 与 `ASSISTANT_VECTOR_*` **不删**——
-`search_drugbank_passages`（英文侧）仍走 Lucent 自己的 pgvector 表，与 LightRAG
-无关（计划 §6 曾标"实施时确认"，现确认保留）。
+`VectorStoreFactory` 与 `ASSISTANT_VECTOR_*` **不删**：`search_drugbank_passages`（英文侧）
+走 Lucent 自己的 pgvector 表，与 LightRAG 无关。
 
 ## 2026-09-11 文件上传链路遗留（上传链路收敛时发现）
 
@@ -205,17 +191,17 @@ ESM 化后遗留清单与后续跟进：
 （rate-limiting 套件与日志链路通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
 评估替代方案或 fork peer 声明。
 
-### 高级可观测性（基础已完成）
+### 高级可观测性进阶项
 
-基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则 + OpenTelemetry 分布式追踪：`src/tracing.ts`、`trace-context.utils.ts`、base-llm-generator 集成）。以下为进阶项：
+基础可观测性（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则 + OpenTelemetry 分布式追踪：`src/tracing.ts`、`trace-context.utils.ts`、base-llm-generator 集成）之外的进阶项：
 
 - 添加 synthetic uptime monitoring
 
-### 药物结构式 2D 可视化（2026-09-16，DrugBank 结构描述符落地后）
+### 药物结构式 2D 可视化
 
 `drugbank_structures` 已入库并随详情下发（SMILES / InChI / 分子式 / 分子量 / pKa /
-类药性规则等），前端以文本 + 复制呈现。**2D 结构式图形渲染刻意未做**：Flutter 生态无成熟
-的 SMILES 出图包，且 `structures.sdf` 实测为纯 2D（z 恒为 0），没有构象数据可消费。
+类药性规则等），前端以文本 + 复制呈现。2D 结构式图形渲染未做：Flutter 生态无成熟
+的 SMILES 出图包，且 `structures.sdf` 为纯 2D（z 恒为 0），没有构象数据可消费。
 若将来要出图，需先引入/自研 SMILES 布局渲染，并评估移动端渲染成本。
 
 ### 响应侧 Standard Schema 序列化的未竟事项（2026-09-03，NestJS 12 计划收尾）
@@ -227,9 +213,3 @@ ESM 化后遗留清单与后续跟进：
 - `@SerializeOptions` 未被 Swagger 自省,响应组件靠 export 期注册表注入;注册路径必须与导出
   operation 逐字一致(含 RouterModule 前缀与 `{…}` 参数),不一致导出会显式报错——新增模块照此约定。
 - SSE/text 流端点不注册响应组件(非 JSON 200),如需结构化 `event: error` 语义遵循 ADR-0012/0017。
-
-### `@nestjs/observe` 复议条件（2026-09-03，NestJS 12 计划收尾）
-
-v12 升级与自研 observability 栈(metrics/logger/tracing)完成,未采用 `@nestjs/observe`;
-当官方模块覆盖自研 OTel 注入点(BullMQ worker span、HTTP/LLM span、queue 深度 gauges)或
-staging 基线对照暴露缺口时复议。
