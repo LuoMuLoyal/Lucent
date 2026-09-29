@@ -14,10 +14,10 @@ const MAX_TYPES_IN_PROMPT = 60;
 
 /** AGE 1.7 的硬限制（试点实测，计划 §6.3）：写出来比让模型自己撞错便宜。 */
 const AGE_LIMITATIONS = [
-  '- No `shortestPath()` / `allShortestPaths()`. Write an explicit typed multi-hop pattern instead.',
-  '- No multi-type edge patterns like `[r:A|B]`. Write one pattern per relationship type.',
+  '- No `shortestPath()` / `allShortestPaths()`. There is no shortest-path primitive at all: write an explicit bounded multi-hop pattern instead, e.g. `MATCH (a:Drug {drugbank_id: $a})-[r1:INTERACTS_WITH*1..3]-(b:Drug {drugbank_id: $b})` and rank by `length(...)`. Asking for "the shortest path" or "how many hops" still gets answered — just not with `shortestPath()`.',
+  '- No multi-type edge patterns like `[r:A|B]`. Write one pattern per relationship type. Leaving a type off entirely (`[r]`) is allowed; listing two types is not.',
   '- No `datetime()`. Stored dates are strings; compare them as strings.',
-  '- A variable-length path must be anchored on a specific node, typed, and bounded (e.g. `-[:SUBSTRATE_OF*1..2]->` inside a larger anchored pattern). Unanchored or unbounded traversal over the interaction graph explodes and is cancelled by the statement timeout.',
+  '- A variable-length path must be anchored on a specific node and bounded (e.g. `-[:SUBSTRATE_OF*1..2]->` inside a larger anchored pattern). Unanchored or unbounded traversal over the interaction graph explodes and is cancelled by the statement timeout. "Anchored" means a specific node is pinned by id or name; it does not mean the path itself needs a type.',
 ].join('\n');
 
 /** 每种拒绝原因配一句"怎么改"，重试才有方向而不是随机重问。 */
@@ -52,7 +52,7 @@ Output rules (the executor rejects the query when any is broken):
 
 Citation rule (this is how the answer becomes auditable):
 - Every relationship carries a \`prov\` property: a provenance id naming the source row the edge came from. Whenever the answer rests on a relationship, return that relationship's \`prov\` as a column aliased \`prov\` — \`RETURN d.name AS drug, o.name AS other, r.prov AS prov\`. Returning \`r\` itself also works.
-- Return one \`prov\` per relationship the answer asserts. On a multi-hop question that means one per hop that matters (e.g. \`r1.prov AS prov\`, \`r2.prov AS prov2\`).
+- Return one \`prov\` per relationship the answer asserts. On a multi-hop question that means one per hop that matters (e.g. \`r1.prov AS prov\`, \`r2.prov AS prov2\`) — **but only after you have bound that alias in a MATCH pattern.** An alias you project must exist: \`MATCH (x)-[r1:ACTS_ON]->(p)\` then \`r1.prov\`. Writing \`r1.prov\` for a pattern that never named \`r1\` is an undefined variable and the query fails outright — it does not degrade to zero rows. Before returning, check every \`<alias>.prov\` you wrote and confirm \`<alias>\` appears inside a \`[...]\` in some MATCH above.
 - Never fabricate a \`prov\` value, and never filter on one.
 
 Matching rules:
@@ -71,7 +71,7 @@ Reasoning rules:
 - Never answer from general knowledge. If the graph has no such edge, zero rows is the correct and useful answer — and it means "this graph has no such edge", never "no such relationship exists".
 
 Multi-hop shapes that questions are usually asking for (write the shape, then filter):
-- "which drugs share a target with X" — two hops through the same protein, and the relationship types are NOT known in advance, so leave them untyped: \`MATCH (x:Drug)-[r1]->(p:Protein)<-[r2]-(y:Drug) WHERE x.drugbank_id = $id AND y.drugbank_id <> $id\`. Narrowing this by guessing one relationship type is the usual reason a question with hundreds of real answers returns nothing.
+- "which drugs share a target with X" — two hops through the same protein, and the relationship types are NOT known in advance, so leave the TYPE off: \`MATCH (x:Drug)-[r1]->(p:Protein)<-[r2]-(y:Drug) WHERE x.drugbank_id = $id AND y.drugbank_id <> $id\`. Note the difference between leaving a type off (write \`[r1]\`, which is fine and is what "untyped" means here) and leaving the alias off (write \`-[]\`, which makes \`r1.prov\` impossible). Always keep the alias so the hop stays citable. Narrowing this by guessing one relationship type is the usual reason a question with hundreds of real answers returns nothing.
 - "which drugs inhibit an enzyme that metabolizes X" / "…metabolized by the same enzyme as X" — the enzyme links the two drugs, and each side has its own role: \`MATCH (x:Drug)-[:SUBSTRATE_OF]->(e:Protein)<-[:INHIBITS]-(i:Drug)\`. A substrate link is \`SUBSTRATE_OF\`, an inhibitor link is \`INHIBITS\`; matching both sides with one type returns nothing.
 - "is A an inhibitor of the enzyme that metabolizes B" — the same shape anchored on both drugs: \`MATCH (b:Drug)-[:SUBSTRATE_OF]->(e:Protein)<-[r:INHIBITS]-(a:Drug)\`.
 - A question about a class ("which ATC class", "which drugs are in class X") is the \`IN_ATC_CLASS\` edge, and the ATC hierarchy is \`SUBCLASS_OF\` (parent -> child) if a query needs to widen to a parent class.
