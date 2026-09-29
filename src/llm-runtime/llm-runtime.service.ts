@@ -133,6 +133,20 @@ export class LlmRuntimeService implements LlmRuntimePort {
 
   // ─── Embedding model ─────────────────────────────────────────────────────
 
+  /**
+   * Embedding vector dimension from `AI_EMBEDDING_DIMENSION`, or `null` when
+   * the embedding role is not configured.
+   *
+   * Exposed so pgvector stores can declare a typed `vector(n)` column and
+   * build an HNSW index — an untyped `vector` column cannot back either.
+   */
+  get embeddingDimension(): number | null {
+    if (this.config.provider !== 'openai-compatible') {
+      return null;
+    }
+    return this.config.embedding.dimension ?? null;
+  }
+
   createEmbeddingModel(): OpenAIEmbeddings | null {
     const roleConfig = this.config.embedding;
     if (
