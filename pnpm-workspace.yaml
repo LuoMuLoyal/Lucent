@@ -18,3 +18,8 @@ minimumReleaseAgeExclude:
 overrides:
   stack-trace: 0.0.10
   find-my-way: 9.6.0
+  # 两个上游约束相向而行：@nestjs/platform-fastify@12.1.0 要求 fastify 恰好 5.12.5，
+  # 而 @adminjs/fastify@4.2.0 的解析停在 5.12.1（其声明 ^5.2.1 本可升，属陈旧解析）。
+  # 两份副本使 FastifyInstance 成为两个不同的名义类型，typecheck 报 5 处
+  # "incompatible between these types"。钉死单一版本消除重影。
+  fastify: 5.12.5
