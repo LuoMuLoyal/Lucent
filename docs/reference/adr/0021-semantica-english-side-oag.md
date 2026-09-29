@@ -1,6 +1,6 @@
 # ADR-0021: Semantica 只承接英文侧 OAG（图查询 / 本体治理 / 确定性推理 / PROV-O 溯源）
 
-- **Status**: accepted
+- **Status**: accepted（决定 4「图后端」已被 [ADR-0022](0022-graph-backend-neo4j.md) 取代，其余仍有效）
 - **Date**: 2026-09-19
 - **Deciders**: LuoMuLoyal
 
@@ -34,6 +34,9 @@ Cypher 化的多跳图、OWL/SHACL 校验、Datalog 与 PROV-O —— 成本高�
    （sidecar 因此不需要任何 LLM 凭据）。
 4. **图后端是 Apache AGE 1.7.0**（自建 PG18 镜像、独立 database `lucent_graph`、
    不升 1.8.0），LightRAG 永远不用 AGE。
+   **（2026-09-29：本决定已被 [ADR-0022](0022-graph-backend-neo4j.md) 取代——AGE 的多跳
+   能力缺口催生了一整层 Datalog/Oxigraph 补偿架构，且该层存在静默缺陷；图后端改为 Neo4j。
+   其余决定不变。）**
 5. **sidecar 是我们自建的服务**（`semantica-service`，FastAPI + 同步 `def` + 连接池 +
    `statement_timeout`）：Semantica 自身没有可拉取的生产镜像，也没有我们的工具契约。
 6. **溯源是一等能力**：图上每条边带 `prov` id 指向来源表与来源行，审计记录进 Postgres

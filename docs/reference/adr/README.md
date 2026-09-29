@@ -137,5 +137,9 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-09-15
 - [0021](0021-semantica-english-side-oag.md)
   - Title: Semantica 只承接英文侧 OAG（图查询 / 本体治理 / 确定性推理 / PROV-O 溯源）
-  - Status: accepted
+  - Status: accepted (决定 4「图后端是 Apache AGE 1.7.0」已被 0022 取代)
   - Date: 2026-09-19
+- [0022](0022-graph-backend-neo4j.md)
+  - Title: 图后端由 Apache AGE 改为 Neo4j
+  - Status: accepted（supersedes 0021 的决定 4）
+  - Date: 2026-09-29
