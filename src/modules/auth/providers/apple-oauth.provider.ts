@@ -126,11 +126,17 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
   private verifyIdentityToken(
     identityToken: string,
   ): ResultAsync<AppleIdTokenPayload, DomainFailure> {
-    // Decode without verification to extract kid from header
-    const decoded = this.jwtService.decode<DecodedAppleToken | null>(
-      identityToken,
-      { complete: true },
-    );
+    // Decode without verification to extract kid from header.
+    //
+    // `@nestjs/jwt` declares the `{ complete: true }` overload as returning a
+    // non-nullable object, but it delegates to `jsonwebtoken.decode`, which
+    // returns `null` for a malformed token (verified against the installed
+    // version). The assertion below restores the real return type so the null
+    // guard is meaningful; without it the guard looks dead and a malformed
+    // token would reach `decoded.header` and throw a TypeError.
+    const decoded = this.jwtService.decode<DecodedAppleToken>(identityToken, {
+      complete: true,
+    }) as DecodedAppleToken | null;
     if (!decoded) {
       return errAsync(this.validationFailure());
     }
