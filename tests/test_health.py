@@ -58,7 +58,7 @@ class StubPool:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(graph_name="lucent_graph")
+    return Settings(neo4j_database="neo4j")
 
 
 def build_client(
@@ -77,7 +77,7 @@ def test_health_reports_graph_size(monkeypatch: pytest.MonkeyPatch, settings: Se
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["graph"] == "lucent_graph"
+    assert body["graph"] == "neo4j"
     assert body["stats"] == {"nodes": 396, "edges": 6784}
 
 
@@ -102,11 +102,11 @@ def test_health_reports_pool_occupancy(monkeypatch: pytest.MonkeyPatch, settings
     assert body["pool"] == {"size": 1, "idle": 0}
 
 
-def test_health_uses_the_configured_graph_name(
+def test_health_uses_the_configured_database(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The reported graph follows configuration rather than a hardcoded name."""
-    custom = Settings(graph_name="some_other_graph")
+    custom = Settings(neo4j_database="some_other_graph")
     with build_client(monkeypatch, StubStore(), custom) as client:
         body = client.get("/health").json()
 

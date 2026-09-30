@@ -34,7 +34,7 @@ EDGE_ID = "lucent:drugbank_drugs/DB00682/drug_interactions/DB00945"
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(graph_name="lucent_graph")
+    return Settings(neo4j_database="neo4j")
 
 
 def record(entity_id: str = EDGE_ID, **overrides: Any) -> ProvenanceRecord:

@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from semantica.graph_store.age_store import ApacheAgeStore
+from semantica.graph_store.neo4j_store import Neo4jStore
 
 # A drug is named by its DrugBank id; a class by its ATC code. Both are the
 # keys ``export._KEY_CANDIDATES`` prefers, so a resolved key is directly usable
@@ -160,7 +160,7 @@ def _rows(result: dict[str, Any], what: str) -> list[dict[str, Any]]:
     return [record for record in records if isinstance(record, dict)]
 
 
-def resolve_scope(store: ApacheAgeStore, spec: ScopeSpec) -> ResolvedScope:
+def resolve_scope(store: Neo4jStore, spec: ScopeSpec) -> ResolvedScope:
     """Resolve a named scope into graph keys, deterministically.
 
     Every query here carries an ``ORDER BY`` before its ``LIMIT``. That is the
@@ -227,7 +227,7 @@ def resolve_scope(store: ApacheAgeStore, spec: ScopeSpec) -> ResolvedScope:
 
 
 def _collect_drugs(
-    store: ApacheAgeStore,
+    store: Neo4jStore,
     resolved: ResolvedScope,
     query: str,
     parameters: dict[str, Any],
@@ -248,7 +248,7 @@ def _collect_drugs(
 
 
 def _collect_neighbours(
-    store: ApacheAgeStore,
+    store: Neo4jStore,
     resolved: ResolvedScope,
     seeds: list[str],
     limit: int,

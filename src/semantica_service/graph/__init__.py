@@ -1,4 +1,4 @@
-"""Graph access: AGE connection pooling, scoping and the semantica bridge."""
+"""Graph access: Neo4j session pooling, scoping and the semantica bridge."""
 
 from .export import (
     GRAPH_NAMESPACE,
@@ -8,7 +8,7 @@ from .export import (
     export_edges,
     export_nodes,
 )
-from .pool import StorePool, _dsn_with_timeouts
+from .pool import StorePool
 from .range import ResolvedScope, ScopeSpec, resolve_scope
 from .shapes import NamespaceReport, ShapeNamespaceError, check_shape_namespaces
 
@@ -22,7 +22,6 @@ __all__ = [
     "ScopeSpec",
     "ShapeNamespaceError",
     "StorePool",
-    "_dsn_with_timeouts",
     "check_shape_namespaces",
     "export_edges",
     "export_nodes",

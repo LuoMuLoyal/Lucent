@@ -94,7 +94,7 @@ def validate(request: Request, body: ValidateRequest) -> JSONResponse:
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Graph '{settings.graph_name}' has no nodes to validate (limit={body.limit})."
+                f"Graph '{settings.neo4j_database}' has no nodes to validate (limit={body.limit})."
             ),
         )
 

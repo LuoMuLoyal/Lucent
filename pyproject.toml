@@ -23,7 +23,18 @@ dependencies = [
     # service never mounts them. Visualization runs as a separate process
     # against an export (scripts/export_context_graph.py), which needs only
     # the dependency below.
-    "semantica[shacl,graph-apache-age,tripletstore-oxigraph]",
+    # The `graph-apache-age` extra is gone with the AGE backend: it pulled in
+    # psycopg2 for the graph connection, which nothing here uses any more.
+    # Neo4j comes through semantica's own extra so the adapter it ships is
+    # importable.
+    "semantica[shacl,graph-neo4j,tripletstore-oxigraph]",
+    # Still required, and NOT via the graph extra: semantica's PostgresStorage
+    # — the hash-chained provenance store, which lives in Lucent's database
+    # rather than the graph's — imports psycopg2 itself. Dropping the AGE extra
+    # removed it, and because ProvenanceReader reports a lookup failure instead
+    # of raising, citations silently resolved to nothing. Declared explicitly so
+    # the dependency is visible where it is actually used.
+    "psycopg2-binary>=2.9.0",
     # Required to import semantica.explorer at all: its export/import route
     # declares a Form parameter, and FastAPI refuses to define the route
     # without it. It ships in the `explorer` extra, which is not installed,

@@ -43,7 +43,7 @@ def get_schema(request: Request) -> JSONResponse:
     rel_types.sort(key=lambda item: (-item.count, item.label))
 
     payload = SchemaResponse(
-        graph=settings.graph_name,
+        graph=settings.neo4j_database,
         node_count=int(stats.get("node_count", 0)),
         relationship_count=int(stats.get("relationship_count", 0)),
         labels=labels,

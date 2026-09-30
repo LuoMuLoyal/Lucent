@@ -72,7 +72,7 @@ class StubPool:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(graph_name="lucent_graph")
+    return Settings(neo4j_database="neo4j")
 
 
 def build_client(

@@ -46,9 +46,18 @@ class Flaky:
         return {"success": True, "records": [], "attempt": self.calls}
 
 
-CONNECTION_DROPPED = RuntimeError("server closed the connection unexpectedly")
-SYNTAX_ERROR = RuntimeError("syntax error at or near MATCH")
-TIMEOUT = RuntimeError("canceling statement due to statement timeout")
+CONNECTION_DROPPED = RuntimeError(
+    "ServiceUnavailable: Failed to establish connection to ('127.0.0.1', 7687)"
+)
+SYNTAX_ERROR = RuntimeError(
+    "Query execution failed: {neo4j_code: Neo.ClientError.Statement.SyntaxError} "
+    "{message: Invalid input 'RETURN'}"
+)
+TIMEOUT = RuntimeError(
+    "Query execution failed: {neo4j_code: "
+    "Neo.ClientError.Transaction.TransactionTimedOutClientConfiguration} "
+    "{message: The transaction has been terminated.}"
+)
 
 
 class TestClassification:
@@ -67,12 +76,33 @@ class TestClassification:
         """
         assert classify(TIMEOUT) is PermanentReadError
 
-    def test_a_missing_graph_is_permanent(self) -> None:
-        assert classify(RuntimeError('graph "lucent_graph" does not exist')) is PermanentReadError
+    def test_a_missing_database_is_permanent(self) -> None:
+        assert (
+            classify(
+                RuntimeError(
+                    "Query execution failed: {neo4j_code: "
+                    "Neo.ClientError.Database.DatabaseNotFound} {message: Graph not found: x}"
+                )
+            )
+            is PermanentReadError
+        )
 
     def test_permission_denied_is_permanent(self) -> None:
         assert (
             classify(RuntimeError("permission denied for table ag_catalog")) is PermanentReadError
+        )
+
+    def test_a_write_in_read_mode_is_permanent(self) -> None:
+        """A refused write is a verdict about the statement, not the transport."""
+        assert (
+            classify(
+                RuntimeError(
+                    "Query execution failed: {neo4j_code: "
+                    "Neo.ClientError.Statement.AccessMode} {message: Writing in read access mode "
+                    "not allowed.}"
+                )
+            )
+            is PermanentReadError
         )
 
     def test_an_unknown_error_is_not_retried_forever(self) -> None:
@@ -86,9 +116,15 @@ class TestClassification:
         is still a syntax error; preferring the transient reading would retry it
         three times.
         """
-        both = RuntimeError("connection already closed; syntax error at or near X")
+        both = RuntimeError("connection refused; syntax error at or near X")
 
         assert classify(both) is PermanentReadError
+
+    def test_a_raw_driver_exception_is_transient(self) -> None:
+        """The driver's own class is honoured when the wrapper kept it."""
+        from neo4j.exceptions import ServiceUnavailable
+
+        assert classify(ServiceUnavailable("unable to retrieve routing")) is TransientReadError
 
 
 class TestRetry:
@@ -108,7 +144,7 @@ class TestRetry:
         operation = Flaky(5, SYNTAX_ERROR)
         policy = RetryPolicy(attempts=3, sleep=sleep)
 
-        with pytest.raises(RuntimeError, match="syntax error"):
+        with pytest.raises(RuntimeError, match="SyntaxError"):
             read_with_retry(operation, policy=policy)
 
         assert operation.calls == 1, "a deterministic failure was retried"
@@ -119,7 +155,7 @@ class TestRetry:
         operation = Flaky(9, CONNECTION_DROPPED)
         policy = RetryPolicy(attempts=2, sleep=Recorder())
 
-        with pytest.raises(TransientReadError, match="server closed the connection"):
+        with pytest.raises(TransientReadError, match="ServiceUnavailable"):
             read_with_retry(operation, policy=policy)
 
         assert operation.calls == 2

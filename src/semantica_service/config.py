@@ -1,7 +1,7 @@
 """Service configuration.
 
 All settings come from the environment so the same image can run against any
-AGE database. Defaults target the local development stack; nothing here
+Neo4j database. Defaults target the local development stack; nothing here
 carries a credential.
 """
 
@@ -20,32 +20,42 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # --- Apache AGE -----------------------------------------------------
-    # AGE lives in its own database rather than the Prisma schema's, because
-    # the adapter issues SET search_path = ag_catalog for every session.
-    # Port 15432 matches the dev stack's postgres-dev (see Lucent's
-    # compose.dev.yaml); production supplies AGE_DSN explicitly.
-    age_dsn: str = Field(
-        default="host=127.0.0.1 port=15432 dbname=lucent_graph user=postgres password=postgres",
-        description="libpq connection string for the AGE database.",
+    # --- Neo4j ----------------------------------------------------------
+    # Bolt rather than the HTTP interface: the driver speaks it natively and
+    # unlike Apache AGE, Neo4j is its own server, so there is no database to
+    # share with the Prisma schema and no search_path to override. Port 7687
+    # is Bolt; 7474 is the browser UI and is not used by this service.
+    neo4j_uri: str = Field(
+        default="bolt://127.0.0.1:7687",
+        description="Bolt URI of the Neo4j server.",
     )
-    graph_name: str = Field(
-        default="lucent_graph",
-        description="AGE graph to query.",
+    neo4j_user: str = Field(default="neo4j", description="Neo4j user.")
+    neo4j_password: str = Field(
+        default="",
+        description="Neo4j password. Empty means 'not configured', which fails loudly.",
+    )
+    neo4j_database: str = Field(
+        default="neo4j",
+        description="Neo4j database to query.",
     )
 
     # --- Connection pool ------------------------------------------------
     # A single shared store serialises concurrent requests (measured 2.9x
     # slower at 16 concurrent callers), so requests borrow from a pool.
+    #
+    # Neo4j's driver carries its own pool, but sessions are *not* thread-safe,
+    # so the service still hands each request its own session; these bounds
+    # size that pool and must match the driver's own connection ceiling.
     pool_min_size: int = Field(default=1, ge=1)
     pool_max_size: int = Field(default=10, ge=1)
 
     # --- Provenance -----------------------------------------------------
     # The audit trail lives in Postgres rather than a file so it survives with
-    # the data it describes, and in Lucent's database rather than the AGE one:
-    # `lucent_graph` exists only to hold the graph, and audit rows are not
-    # graph data. Together with Lucent's own `audit_logs`, one SQL connection
-    # can read both.
+    # the data it describes, and in Lucent's database rather than the graph's:
+    # the graph exists only to hold the graph, and audit rows are not graph
+    # data. Together with Lucent's own `audit_logs`, one SQL connection can
+    # read both. This store is independent of the graph backend, so the
+    # AGE -> Neo4j migration does not touch it.
     provenance_dsn: str = Field(
         default=("host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"),
         description="libpq connection string for the provenance store.",
@@ -63,7 +73,11 @@ class Settings(BaseSettings):
 
     # --- Query safety ---------------------------------------------------
     # A runaway variable-length path once ran for two minutes and had to be
-    # killed with pg_terminate_backend. Every connection sets a ceiling.
+    # killed with pg_terminate_backend. Every transaction sets a ceiling.
+    #
+    # Neo4j has no per-connection statement_timeout, so this is applied per
+    # transaction instead (`session.run(..., timeout=...)`), which is stricter:
+    # the bound travels with the call rather than with the connection.
     statement_timeout_ms: int = Field(default=15_000, ge=0)
     connect_timeout_s: int = Field(default=10, ge=1)
 

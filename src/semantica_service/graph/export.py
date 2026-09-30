@@ -1,4 +1,4 @@
-"""Export the AGE graph into the shapes semantica's engines accept.
+"""Export the Neo4j graph into the shapes semantica's engines accept.
 
 The engine input has to be *deterministic* and its extent has to be *stated*.
 Both requirements come from the same fact: Datalog has no negation, so "no
@@ -38,7 +38,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
-from semantica.graph_store.age_store import ApacheAgeStore
+from semantica.graph_store.neo4j_store import Neo4jStore
 
 from .orientation import edge_key, mirror_edges, orientation_of
 from .retry import log_retry, read_with_retry
@@ -196,7 +196,7 @@ def _stable_key(record_id: Any, props: dict[str, Any]) -> str:
 
 
 def _fetch_ordered(
-    store: ApacheAgeStore,
+    store: Neo4jStore,
     template: str,
     where: str,
     parameters: dict[str, Any],
@@ -253,7 +253,7 @@ def _fetch_ordered(
 
 
 def _reader(
-    store: ApacheAgeStore,
+    store: Neo4jStore,
     query: str,
     parameters: dict[str, Any],
 ) -> Callable[[], dict[str, Any]]:
@@ -285,7 +285,7 @@ def _fact_key(edge: dict[str, Any]) -> str:
 
 
 def _has_more(
-    store: ApacheAgeStore,
+    store: Neo4jStore,
     template: str,
     where: str,
     parameters: dict[str, Any],
@@ -304,7 +304,7 @@ def _has_more(
 
 
 def export_nodes(
-    store: ApacheAgeStore,
+    store: Neo4jStore,
     limit: int,
     *,
     drug_keys: list[str] | None = None,
@@ -367,7 +367,7 @@ def _node_filter(
 
 
 def export_edges(
-    store: ApacheAgeStore,
+    store: Neo4jStore,
     limit: int,
     *,
     drug_keys: list[str] | None = None,
@@ -562,7 +562,7 @@ class GraphExport:
 
     def __init__(
         self,
-        store: ApacheAgeStore,
+        store: Neo4jStore,
         limit: int,
         *,
         drug_keys: list[str] | None = None,

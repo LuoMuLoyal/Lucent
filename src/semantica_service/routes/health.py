@@ -41,7 +41,7 @@ def health(request: Request) -> JSONResponse:
             status_code=503,
             content={
                 "status": "unavailable",
-                "graph": settings.graph_name,
+                "graph": settings.neo4j_database,
                 "error": f"{type(exc).__name__}: {exc}",
             },
         )
@@ -50,7 +50,7 @@ def health(request: Request) -> JSONResponse:
         status_code=200,
         content={
             "status": "ok",
-            "graph": settings.graph_name,
+            "graph": settings.neo4j_database,
             "pool": {"size": pool.size, "idle": pool.idle_count},
             "stats": stats,
         },

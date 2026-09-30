@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     log_event(
         logger,
         "service_started",
-        graph=settings.graph_name,
+        graph=settings.neo4j_database,
         rules=len(app.state.rules.rules),
         pool_max_size=settings.pool_max_size,
     )

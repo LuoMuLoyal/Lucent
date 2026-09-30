@@ -127,7 +127,7 @@ class StubPool:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(graph_name="lucent_graph")
+    return Settings(neo4j_database="neo4j")
 
 
 def build_client(
@@ -147,7 +147,7 @@ def test_schema_lists_labels_and_types(monkeypatch: pytest.MonkeyPatch, settings
 
     assert response.status_code == 200
     body = response.json()
-    assert body["graph"] == "lucent_graph"
+    assert body["graph"] == "neo4j"
     assert body["node_count"] == 3
     assert {item["label"] for item in body["labels"]} == {"Drug", "Protein"}
     assert {item["label"] for item in body["relationship_types"]} == {

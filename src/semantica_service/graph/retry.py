@@ -1,10 +1,11 @@
-"""Retry for AGE reads that fail for reasons that are not the query's fault.
+"""Retry for Neo4j reads that fail for reasons that are not the query's fault.
 
 A graph read here is a sequence of round trips, and each can fail on something
-transient: a connection dropped by the server between pages, a pooler restarting,
-a statement cancelled by ``statement_timeout`` on a connection that had drifted.
-None of those say anything about whether the query is answerable, and today every
-one of them surfaces to the caller as a failure of the whole request.
+transient: a connection dropped by the server between pages, a cluster member
+restarting, a transaction cancelled by the server's timeout on a connection that
+had drifted. None of those say anything about whether the query is answerable,
+and today every one of them surfaces to the caller as a failure of the whole
+request.
 
 What makes retrying safe is that these reads are **idempotent by construction**:
 every exported query is a ``MATCH ... RETURN`` with an ``ORDER BY`` before its
@@ -32,29 +33,44 @@ from typing import Any
 #: on its own, including from the verification scripts.
 logger = logging.getLogger("semantica_service.graph")
 
-#: Failures worth trying again: the connection went away underneath the read.
-_TRANSIENT_MARKERS = (
-    "server closed the connection unexpectedly",
-    "connection already closed",
-    "connection reset by peer",
-    "could not connect",
-    "connection refused",
-    "terminating connection",
-    "ssl connection has been closed",
-    "deadlock detected",
-    "could not serialize access",
-)
-
 #: Failures that will fail again identically. Retrying these spends the
 #: caller's budget to arrive at the same error, later.
+#:
+#: Matched on text rather than on class because semantica wraps every driver
+#: error in ``ProcessingError("Query execution failed: ...")`` and the class
+#: name is lost in the wrapping; the driver's own code and message survive in
+#: the string. Neo4j names them `Neo.ClientError.Statement.SyntaxError` and
+#: friends, so both the CamelCase class name and the code appear here.
 _PERMANENT_MARKERS = (
+    "syntaxerror",
     "syntax error",
+    "clienterror",
     "does not exist",
     "permission denied",
-    "canceling statement due to statement timeout",
-    "statement timeout",
-    "invalid connection option",
-    "undefined table",
+    "unauthorized",
+    "authentication",
+    "forbidden",
+    "invalid input",
+    "unsupported",
+    "was cancelled",
+    "transaction timeout",
+)
+
+#: Failures worth trying again: the connection went away underneath the read.
+#: Neo4j reports these as ``ServiceUnavailable`` / ``SessionExpired`` /
+#: ``TransientError``; the driver's own text is matched too, because the
+#: wrapping above can leave only the message.
+_TRANSIENT_MARKERS = (
+    "serviceunavailable",
+    "sessionexpired",
+    "transienterror",
+    "connection reset",
+    "connection refused",
+    "could not connect",
+    "connection to the database closed",
+    "deadlock",
+    "leader switch",
+    "no longer available",
 )
 
 
@@ -90,10 +106,14 @@ class RetryPolicy:
 def classify(error: BaseException) -> type[TransientReadError] | type[PermanentReadError]:
     """Decide whether a failed read is worth retrying.
 
-    Only ``psycopg2``'s operational and interface errors can be transient.
-    Everything else — a bad query, a programming error, a value error from our
-    own code — is treated as permanent: retrying it would produce the same
-    failure while hiding it behind repeated attempts.
+    Only the driver's own connection-level failures can be transient. Everything
+    else — a bad query, a programming error, a value error from our own code —
+    is treated as permanent: retrying it would produce the same failure while
+    hiding it behind repeated attempts.
+
+    Classification is by class where the class survives, and by text otherwise:
+    semantica wraps driver errors in ``ProcessingError``, which erases the type
+    even though it keeps the message.
     """
     text = str(error).lower()
     if any(marker in text for marker in _PERMANENT_MARKERS):
@@ -106,10 +126,11 @@ def classify(error: BaseException) -> type[TransientReadError] | type[PermanentR
     # defect in the query, and the attempts cap bounds the cost either way.
     module = type(error).__module__
     name = type(error).__name__
-    if module.startswith("psycopg2") and name in {
-        "OperationalError",
-        "InterfaceError",
-        "DatabaseError",
+    if module.startswith("neo4j") and name in {
+        "ServiceUnavailable",
+        "SessionExpired",
+        "TransientError",
+        "Neo4jError",
     }:
         return TransientReadError
     return PermanentReadError
