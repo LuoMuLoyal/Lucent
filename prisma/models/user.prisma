@@ -62,7 +62,6 @@ model User {
   updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   profile                UserProfile?
   lucentSessions         UserSession[]               @relation("lucentSessions")
-  sessions               Session[]
   accounts               Account[]
   allergies              UserAllergy[]
   conditions             UserCondition[]

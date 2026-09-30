@@ -1,0 +1,49 @@
+// Lucent identity accounts.
+//
+// One row per (provider, provider account) identity attached to a Lucent user.
+// Local email+password logins are a `credential` provider account holding the
+// argon2 hash; social logins store the provider profile snapshot.
+//
+// Ownership: `src/modules/auth/services/oauth/oauth.service.ts` is the single
+// writer for social identities; `identity/password-management.service.ts` for
+// credential rows.
+
+model Account {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Identity key. `issuer` is the logical identity namespace (e.g.
+  // `local:credential`, or a provider name such as `google`); `providerId`
+  // selects the concrete strategy; `accountId` is the provider-side stable
+  // user id.
+  issuer     String
+  providerId String @map("provider_id")
+  accountId  String @map("account_id")
+
+  // Credential accounts only: argon2 hash of the local password.
+  password String?
+
+  // Social token material, when the provider issues it.
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+
+  // Provider profile snapshot, used for account matching and unlinking UX.
+  providerUnionId         String?   @map("provider_union_id")
+  providerEmail           String?   @map("provider_email")
+  providerEmailVerifiedAt DateTime? @map("provider_email_verified_at") @db.Timestamptz(3)
+  rawProfile              Json?     @map("raw_profile") @db.JsonB
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@index([providerUnionId])
+  @@index([providerEmail])
+  @@map("accounts")
+}
