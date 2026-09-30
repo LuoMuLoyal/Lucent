@@ -119,6 +119,7 @@
             "name": "date",
             "required": true,
             "in": "query",
+            "description": "Date in YYYY-MM-DD format.",
             "schema": {
               "type": "string",
               "description": "Date in YYYY-MM-DD format."
@@ -146,6 +147,7 @@
             "name": "page",
             "required": false,
             "in": "query",
+            "description": "Page number (1-based).",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -157,6 +159,7 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
+            "description": "Page size (1-100).",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -611,6 +614,7 @@
             "name": "date",
             "required": false,
             "in": "query",
+            "description": "Calendar date in YYYY-MM-DD format.",
             "schema": {
               "type": "string",
               "description": "Calendar date in YYYY-MM-DD format."
@@ -646,6 +650,7 @@
             "name": "date",
             "required": false,
             "in": "query",
+            "description": "Calendar date in YYYY-MM-DD format.",
             "schema": {
               "type": "string",
               "description": "Calendar date in YYYY-MM-DD format."
@@ -681,6 +686,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Health event id.",
             "schema": {
               "type": "string",
               "minLength": 1,
@@ -691,6 +697,7 @@
             "name": "date",
             "required": false,
             "in": "query",
+            "description": "Calendar date in YYYY-MM-DD format.",
             "schema": {
               "type": "string",
               "description": "Calendar date in YYYY-MM-DD format."
@@ -746,6 +753,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Health event id.",
             "schema": {
               "type": "string",
               "minLength": 1,
@@ -756,6 +764,7 @@
             "name": "date",
             "required": true,
             "in": "path",
+            "description": "Calendar date in YYYY-MM-DD format.",
             "schema": {
               "type": "string",
               "description": "Calendar date in YYYY-MM-DD format."
@@ -841,6 +850,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Health event id.",
             "schema": {
               "type": "string",
               "minLength": 1,
@@ -957,6 +967,7 @@
             "name": "dateFrom",
             "required": false,
             "in": "query",
+            "description": "Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.",
             "schema": {
               "type": "string",
               "description": "Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
@@ -966,6 +977,7 @@
             "name": "dateTo",
             "required": false,
             "in": "query",
+            "description": "Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.",
             "schema": {
               "type": "string",
               "description": "Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
@@ -2085,6 +2097,7 @@
             "name": "range",
             "required": false,
             "in": "query",
+            "description": "Supported report aggregation range.",
             "schema": {
               "type": "string",
               "enum": ["last_7_days", "last_30_days", "custom"],
@@ -2095,6 +2108,7 @@
             "name": "startDate",
             "required": false,
             "in": "query",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD).",
             "schema": {
               "type": "string",
               "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
@@ -2104,6 +2118,7 @@
             "name": "endDate",
             "required": false,
             "in": "query",
+            "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD).",
             "schema": {
               "type": "string",
               "description": "Required when range is \"custom\". ISO 8601 date string (YYYY-MM-DD)."
@@ -2568,6 +2583,7 @@
             "name": "status",
             "required": false,
             "in": "query",
+            "description": "Filter events by status. No time range is required.",
             "schema": {
               "type": "string",
               "enum": ["active", "ended"],
@@ -2578,6 +2594,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
+            "description": "Opaque cursor for pagination: composite of the last item startedAt ISO 8601 value and id joined with \"|\", as returned by nextCursor. Must not be constructed by the client.",
             "schema": {
               "type": "string",
               "description": "Opaque cursor for pagination: composite of the last item startedAt ISO 8601 value and id joined with \"|\", as returned by nextCursor. Must not be constructed by the client."
@@ -2587,6 +2604,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
+            "description": "Page size (1-100).",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -3494,6 +3512,7 @@
             "name": "code",
             "required": true,
             "in": "query",
+            "description": "OAuth 授权码",
             "schema": {
               "type": "string",
               "maxLength": 512,
@@ -3504,6 +3523,7 @@
             "name": "state",
             "required": true,
             "in": "query",
+            "description": "授权时生成的 state",
             "schema": {
               "type": "string",
               "maxLength": 512,
@@ -4216,6 +4236,7 @@
             "name": "source",
             "required": false,
             "in": "query",
+            "description": "Knowledge source selector.",
             "schema": {
               "type": "string",
               "description": "Knowledge source selector."
@@ -4225,6 +4246,7 @@
             "name": "q",
             "required": false,
             "in": "query",
+            "description": "Search keyword.",
             "schema": {
               "type": "string",
               "maxLength": 200,
@@ -4235,6 +4257,7 @@
             "name": "page",
             "required": false,
             "in": "query",
+            "description": "Page number, 1-based.",
             "schema": {
               "default": 1,
               "type": "integer",
@@ -4247,6 +4270,7 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
+            "description": "Page size.",
             "schema": {
               "default": 20,
               "type": "integer",
@@ -4303,6 +4327,7 @@
             "name": "source",
             "required": false,
             "in": "query",
+            "description": "Knowledge source selector.",
             "schema": {
               "type": "string",
               "description": "Knowledge source selector."
@@ -4356,6 +4381,7 @@
             "name": "source",
             "required": false,
             "in": "query",
+            "description": "Knowledge source selector.",
             "schema": {
               "type": "string",
               "description": "Knowledge source selector."
@@ -6136,6 +6162,7 @@
             "name": "lat",
             "required": false,
             "in": "query",
+            "description": "Approximate latitude.",
             "schema": {
               "type": "number",
               "minimum": -90,
@@ -6147,6 +6174,7 @@
             "name": "lon",
             "required": false,
             "in": "query",
+            "description": "Approximate longitude.",
             "schema": {
               "type": "number",
               "minimum": -180,
@@ -6446,6 +6474,7 @@
             "name": "lang",
             "required": false,
             "in": "query",
+            "description": "Content language: 'zh' or 'en'. Default: 'zh'.",
             "schema": {
               "type": "string",
               "enum": ["zh", "en"],
@@ -6485,6 +6514,7 @@
             "name": "lang",
             "required": false,
             "in": "query",
+            "description": "Content language: 'zh' or 'en'. Default: 'zh'.",
             "schema": {
               "type": "string",
               "enum": ["zh", "en"],

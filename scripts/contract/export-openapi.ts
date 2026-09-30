@@ -186,6 +186,9 @@ function toWorktreeEol(content, repoRoot) {
 }
 
 function setIfMissing(key: string, value: string) {
+  // Falsy (not just undefined) on purpose: `.env.development` ships these keys
+  // with an empty value, and the schema validates a present-but-blank URI as a
+  // present value — so an empty string still fails `z.url()`.
   if (!process.env[key]) {
     process.env[key] = value;
   }

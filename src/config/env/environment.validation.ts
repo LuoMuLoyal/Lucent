@@ -137,24 +137,29 @@ const envSchema = z.object({
   [EnvKey.ADMIN_ENABLED]: z.enum(['true', 'false']).optional(),
 
   // ── AI provider (secrets in .env; base URL/model also via env) ────
+  // The base URLs use `optionalEmptyUri`: every env file ships the whole AI
+  // block with blank values, and blank is the intended "role not configured"
+  // state. A present-but-blank value still reaches the schema as *present*, so
+  // plain `z.url()` would reject the shipped template. The "all keys in a role
+  // group are set, or none are" rule lives in the superRefine below.
   [EnvKey.AI_PROVIDER]: z.enum(['openai-compatible', '']).optional(),
   [EnvKey.AI_ANALYSIS_API_KEY]: optionalString,
-  [EnvKey.AI_ANALYSIS_BASE_URL]: optionalUri,
+  [EnvKey.AI_ANALYSIS_BASE_URL]: optionalEmptyUri,
   [EnvKey.AI_ANALYSIS_MODEL]: optionalString,
   [EnvKey.AI_VISION_API_KEY]: optionalString,
-  [EnvKey.AI_VISION_BASE_URL]: optionalUri,
+  [EnvKey.AI_VISION_BASE_URL]: optionalEmptyUri,
   [EnvKey.AI_VISION_MODEL]: optionalString,
   [EnvKey.AI_LANGUAGE_API_KEY]: optionalString,
-  [EnvKey.AI_LANGUAGE_BASE_URL]: optionalUri,
+  [EnvKey.AI_LANGUAGE_BASE_URL]: optionalEmptyUri,
   [EnvKey.AI_LANGUAGE_MODEL]: optionalString,
   [EnvKey.AI_CHAT_API_KEY]: optionalString,
-  [EnvKey.AI_CHAT_BASE_URL]: optionalUri,
+  [EnvKey.AI_CHAT_BASE_URL]: optionalEmptyUri,
   [EnvKey.AI_CHAT_MODEL]: optionalString,
   [EnvKey.AI_CHAT_COMPRESSION_API_KEY]: optionalString,
-  [EnvKey.AI_CHAT_COMPRESSION_BASE_URL]: optionalUri,
+  [EnvKey.AI_CHAT_COMPRESSION_BASE_URL]: optionalEmptyUri,
   [EnvKey.AI_CHAT_COMPRESSION_MODEL]: optionalString,
   [EnvKey.AI_EMBEDDING_API_KEY]: optionalString,
-  [EnvKey.AI_EMBEDDING_BASE_URL]: optionalUri,
+  [EnvKey.AI_EMBEDDING_BASE_URL]: optionalEmptyUri,
   [EnvKey.AI_EMBEDDING_MODEL]: optionalString,
   [EnvKey.AI_EMBEDDING_DIMENSION]: z.coerce
     .number()
@@ -220,7 +225,7 @@ const envSchema = z.object({
   [EnvKey.APPLE_CLIENT_SECRET]: optionalString,
   [EnvKey.QQ_APP_ID]: optionalString,
   [EnvKey.QQ_APP_SECRET]: optionalString,
-  [EnvKey.QQ_REDIRECT_URI]: optionalUri,
+  [EnvKey.QQ_REDIRECT_URI]: optionalEmptyUri,
 
   [EnvKey.GOOGLE_CLIENT_ID]: optionalString,
   [EnvKey.GOOGLE_CLIENT_SECRET]: optionalString,
