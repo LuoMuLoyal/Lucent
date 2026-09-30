@@ -2,7 +2,11 @@
 
 # ── Stage 1: deps ──────────────────────────────────────────────
 FROM node:26.9-alpine AS deps
-RUN corepack enable
+# Node 26 no longer bundles corepack (the `corepack` API doc was dropped after
+# v25), so a bare `corepack enable` exits 127 with "not found". Install it from
+# npm first. The pnpm version itself still comes from
+# package.json#packageManager, same as CI's pnpm/action-setup.
+RUN npm install --global corepack@latest && corepack enable
 WORKDIR /app
 # pnpm-workspace.yaml 携带 overrides（stack-trace 固定版本）等工作区配置；
 # 缺失会导致 pnpm install --frozen-lockfile 报 ERR_PNPM_LOCKFILE_CONFIG_MISMATCH。
@@ -12,7 +16,8 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 
 # ── Stage 2: builder ───────────────────────────────────────────
 FROM node:26.9-alpine AS builder
-RUN corepack enable
+# See the deps stage: corepack is not bundled with Node 26.
+RUN npm install --global corepack@latest && corepack enable
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
