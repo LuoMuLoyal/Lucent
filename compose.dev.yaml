@@ -1,7 +1,49 @@
 services:
+  # ── Neo4j (development) ──────────────────────────────────────
+  # 英文侧 OAG 的图后端。semantica-service 经 Bolt 访问它;Lucent 自己**从不直连**。
+  # dev 通常不需要这个容器 —— 直接 `docker run` 或本机装一个都行,见
+  # deploy/semantica/.env.example。这里定义它只是让"一条命令起 dev 依赖"成立。
+  #
+  # 内存显式封顶(与 staging 同值):默认约 1.5 GiB。heap 512m + pagecache 256m
+  # 是实测基线 —— 本图(3,278 节点 / 211,630 边)RSS 1,243 MiB。
+  #
+  # ⚠️ 除 NEO4J_AUTH 外,任何 `NEO4J_` 前缀变量都被当作配置键解析,未声明的键
+  # 会让容器**拒绝启动**(实测 `server.memory.recovery_policy` 在 5.26 不存在)。
+  neo4j-dev:
+    image: ${NEO4J_IMAGE:-neo4j:5.26.31-community}
+    container_name: lucent-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4jdevpassword}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+      # healthcheck 用:非 NEO4J_ 前缀,否则会被解析成 `server.password` 而报错。
+      LUCENT_NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4jdevpassword}
+    ports:
+      - '127.0.0.1:7687:7687' # Bolt
+      - '127.0.0.1:7474:7474' # HTTP:浏览器排查
+    volumes:
+      - neo4j-dev-data:/data
+      - neo4j-dev-logs:/logs
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'cypher-shell -u neo4j -p "$$LUCENT_NEO4J_PASSWORD" "RETURN 1" >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
   # ── PostgreSQL 18 (development) ──────────────────────────────
-  # 镜像含 Apache AGE（图扩展开销，见 docker/postgres-age/）。AGE 只服务英文侧
-  # OAG，图数据在独立 database `lucent_graph` 中。构建一次即可：
+  # 镜像含 pgvector 与 zhparser(见 docker/postgres-age/)。**图数据已迁出**:
+  # AGE 只为兼容既有库保留,英文侧 OAG 不再使用它。构建一次即可：
   #   docker build -t lucent-db:18 docker/postgres-age
   postgres-dev:
     image: ${LUCENT_DB_IMAGE:-lucent-db:18}
@@ -104,7 +146,7 @@ services:
 
   # ── Semantica(英文侧 OAG sidecar)───────────────────────────────
   # 本体推理:图是 DrugBank 结构化字段的确定性灌入(零 LLM 抽取、零 token),服务只做
-  # 只读 Cypher 的校验 + 执行、SHACL 校验与 Datalog 推理,**自身不持有模型凭据**
+  # 只读 Cypher 的校验 + 执行、SHACL 校验与规则推理,**自身不持有模型凭据**
   # (NL→Cypher 的生成在 Lucent 侧),因此 Lucent 那边也没有对应的 API key 项。
   #
   # dev 默认不起它:**开发环境直接在本机跑**更省事,也不需要镜像:
@@ -123,17 +165,19 @@ services:
     env_file:
       - deploy/semantica/.env
     environment:
-      # 容器内访问宿主 Postgres(AGE 在独立 database `lucent_graph` 中,不进 Prisma 域)。
-      # compose.dev 的 postgres-dev 发布在宿主 15432;容器走 host-gateway 回环。
-      AGE_DSN: host=host.docker.internal port=15432 dbname=lucent_graph user=postgres password=postgres
-      GRAPH_NAME: lucent_graph
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+      # 容器内访问图库:走 compose 服务名 `neo4j-dev`(服务名即可解析)。
+      # 口令与 neo4j-dev 的 NEO4J_AUTH 一致,改一处要改两处。
+      NEO4J_URI: bolt://neo4j-dev:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4jdevpassword}
+    depends_on:
+      neo4j-dev:
+        condition: service_healthy
     ports:
       # 只绑回环:Lucent 本地进程走 http://127.0.0.1:8099
       - '127.0.0.1:8099:8099'
     healthcheck:
-      # /health 真借一条 AGE 连接读图规模,图不可达时返回 503 → 探针如实失败。
+      # /health 真借一条 Bolt 连接读图规模,图不可达时返回 503 → 探针如实失败。
       test:
         [
           'CMD-SHELL',
@@ -194,5 +238,7 @@ volumes:
   pgdata-dev:
   pgdata-test:
   redisdata:
+  neo4j-dev-data:
+  neo4j-dev-logs:
   seaweedfs-data:
   lightrag-data:

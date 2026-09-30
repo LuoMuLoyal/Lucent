@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # staging 的 Lucent 应用以原生 Node + PM2 跑在宿主机上(root 用户,
 # 代码目录 /opt/lucent,见 deploy/ecosystem.config.cjs),本文件只负责它依赖的
-# 容器:postgres / redis / victoriametrics / victorialogs / traefik。
+# 容器:postgres / redis / neo4j / victoriametrics / victorialogs / traefik。
 #
 # 用法(在仓库根目录,服务器上即 /opt/lucent):
 #   docker compose -f compose.staging.yaml --env-file .env.production up -d
@@ -11,10 +11,11 @@
 #   (最后一条:改完 deploy/traefik/ 下的配置后需要重启,热加载不保证生效)
 #
 # 要点:
-#   - 插值变量(POSTGRES_PASSWORD / REDIS_PASSWORD / METRICS_USER / METRICS_PASSWORD)
-#     来自 --env-file .env.production —— 与应用运行时配置文件同一个,避免密码两处维护;
+#   - 插值变量(POSTGRES_PASSWORD / REDIS_PASSWORD / NEO4J_PASSWORD /
+#     METRICS_USER / METRICS_PASSWORD)来自 --env-file .env.production ——
+#     与应用运行时配置文件同一个,避免密码两处维护;
 #     注意 DATABASE_URL / REDIS_URL 里内嵌的密码必须与这两个变量一致。
-#   - 容器端口全部只绑 127.0.0.1:应用经回环访问 postgres/redis/日志库,
+#   - 容器端口全部只绑 127.0.0.1:应用经回环访问 postgres/redis/neo4j/日志库,
 #     公网只经 traefik(80/443)进出,不需要云安全组再收口。
 #   - traefik 的域名 / 邮箱 / 面板密码**不走环境变量**:直接改
 #     deploy/traefik/*.yml(由仓库里的 .example 模板复制而来,见 docs/howto/deploy.md)。
@@ -120,17 +121,79 @@ services:
         max-size: '50m'
         max-file: '5'
 
+  # ── Neo4j(英文侧 OAG 的图后端)───────────────────────────────
+  # semantica-service 经 Bolt 访问它;Lucent 自己**从不直连**(Lucent ->
+  # semantica -> Neo4j 是单向的)。所以这里只发布回环端口供 sidecar 使用,
+  # 与 postgres/redis 同一姿态。
+  #
+  # 内存显式封顶,勿依赖默认值:默认配置约 1.5 GiB,会挤占 2c4g 机器。
+  # heap 512m + pagecache 256m 是实测基线 —— 同一张图(3,278 节点 /
+  # 211,630 边)RSS 1,243 MiB;heap 2g 的配置则是 2,673 MiB,差的只是配置。
+  # pagecache 固定上限正是选它的理由:**数据增长不会线性吃内存**。
+  #
+  # 版本钉死到补丁号:Neo4j major 升级有存储格式变更与配置前缀变更,浮动 tag
+  # 会在某次 `pull` 时静默换版本。升级前必须先备份。
+  neo4j:
+    image: ${NEO4J_IMAGE:-neo4j:5.26.31-community}
+    restart: unless-stopped
+    environment:
+      # 口令必须显式提供:空口令在这里是危险默认,让编排直接失败比开一个无认证的库好。
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+      # 同一个口令另给一份非 NEO4J_ 前缀的副本,供 healthcheck 使用:NEO4J_AUTH 是
+      # `user/password` 复合值,cypher-shell 要的是裸口令。
+      #
+      # ⚠️ 只写 Neo4j 真实存在的设置。除 NEO4J_AUTH 外,任何 `NEO4J_` 前缀的变量
+      # 都被当作配置键解析,未声明的键会让容器**拒绝启动**:
+      #   Failed to read config: Unrecognized setting.
+      #     No declared setting with name: server.memory.recovery_policy.
+      # 5.26 的内存设置只有 heap.initial_size / heap.max_size / pagecache.size
+      # 三项(见镜像内 neo4j.conf),迁移计划 §4.3 草案里的
+      # `server.memory.recovery__policy` 并不存在 —— 照抄会让库起不来。
+      # 同理**不能**用 `NEO4J_PASSWORD` 这个变量名:它被解析成 `server.password`。
+      LUCENT_NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+    ports:
+      - '127.0.0.1:7687:7687' # Bolt:sidecar 走这个
+      - '127.0.0.1:7474:7474' # HTTP:仅运维排查
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    ulimits:
+      # Neo4j 每个数据文件占一个 fd,默认 1024 在批量导入时会耗尽。
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      # Bolt 握手不靠 HTTP,而 HTTP 端点在恢复期就已监听 —— 用后者当探针会
+      # 在数据库真正可用之前报健康。cypher-shell 会真的建会话并查询。
+      test:
+        [
+          'CMD-SHELL',
+          'cypher-shell -u neo4j -p "$$LUCENT_NEO4J_PASSWORD" "RETURN 1" >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
   # ── Semantica(英文侧 OAG sidecar)─────────────────────────────
-  # 只读 Cypher 的校验 + 执行、SHACL 校验与 Datalog 推理;NL→Cypher 的生成在 Lucent
+  # 只读 Cypher 的校验 + 执行、SHACL 校验与规则推理;NL→Cypher 的生成在 Lucent
   # 侧完成,所以这个服务**不持有模型凭据**,Lucent 那边也没有共享密钥要同步(不鉴权:
   # 只在内网、不发布公网端口、不挂 Traefik)。
   #
   # staging 的 app 是宿主 PM2 进程,所以端口发布到回环(与 lightrag 一致):
   # 应用侧 .env.production 写 SEMANTICA_BASE_URL=http://127.0.0.1:8099。
   #
-  # AGE_DSN **不在这里覆盖**:它含口令,由 deploy/semantica/.env 按环境填(模板见
-  # 该目录 .env.example)。图在独立 database `lucent_graph` 中,宿主 Postgres 容器
-  # 发布在回环 5432 —— 容器内的 DSN 写 host=host.docker.internal port=5432。
+  # NEO4J_* **不在这里覆盖**:口令由 deploy/semantica/.env 按环境填(模板见
+  # 该目录 .env.example)。图在 compose 内的 neo4j 服务上,容器内 URI 写
+  # bolt://neo4j:7687(服务名即主机名,与 postgres/redis 同一网络)。
   #
   # profile 门控:镜像尚未提供(semantica-service 仓还没有 Dockerfile),所以不加
   # profile 会让 `docker compose up` 去拉一个不存在的镜像而失败。
@@ -140,12 +203,13 @@ services:
     restart: unless-stopped
     env_file:
       - deploy/semantica/.env
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+    depends_on:
+      neo4j:
+        condition: service_healthy
     ports:
       - '127.0.0.1:8099:8099'
     healthcheck:
-      # /health 真借一条 AGE 连接读图规模,图不可达时返回 503 → 探针如实失败。
+      # /health 真借一条 Bolt 连接读图规模,图不可达时返回 503 → 探针如实失败。
       test:
         [
           'CMD-SHELL',
@@ -235,6 +299,9 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  # 图数据与日志分开:日志会持续增长,备份/清理的节奏与数据不同。
+  neo4j-data:
+  neo4j-logs:
   victoriametrics-data:
   victorialogs-data:
   letsencrypt:
