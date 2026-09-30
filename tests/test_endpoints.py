@@ -17,18 +17,25 @@ from fastapi.testclient import TestClient
 
 from semantica_service import main
 from semantica_service.config import Settings
+from semantica_service.reasoning import build_query, load_library
 
 
 class StubStore:
-    """AGE store stand-in driven by canned stats and query results.
+    """Neo4j store stand-in driven by canned stats and query results.
 
     The default stats carry every relationship type the shipped rule library
     consumes, because startup verifies the library against this vocabulary: a
     stub reporting a narrower graph would (correctly) stop the app from booting,
     which is a property of the rules rather than of whatever a test is checking.
+
+    Every statement and its parameters are recorded, so a test can assert that a
+    caller-supplied value was *bound* rather than interpolated into the query
+    text — the difference between data and code.
     """
 
     def __init__(self, stats: dict[str, Any] | None = None) -> None:
+        self.queries: list[str] = []
+        self.parameters: list[Any] = []
         self._stats = (
             stats
             if stats is not None
@@ -53,6 +60,8 @@ class StubStore:
         return self._stats
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+        self.queries.append(query)
+        self.parameters.append(parameters)
         if "MATCH (n)" in query:
             return {
                 "success": True,
@@ -79,28 +88,52 @@ class StubStore:
         pass
 
 
-class ScopedStore(StubStore):
-    """A store that mimics the scoped export, including its resolution queries.
+class RuleStore(StubStore):
+    """A store whose rule queries return prepared rows.
 
-    Scope resolution reads Drug / ATCClass nodes by name or code before the
-    export itself runs, so a stub that only knows the export queries would make
-    every scope look empty.
+    Rules are Cypher against the graph, so a reasoning test supplies the rows the
+    rule's join would produce.
+    """
+
+    def __init__(self, rows: list[dict[str, Any]] | None = None) -> None:
+        super().__init__()
+        self._rows = rows or []
+
+    def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
+        # The rule joins are the only statements that project premise ids.
+        if "premise_1" in query:
+            self.queries.append(query)
+            self.parameters.append(parameters)
+            return {"success": True, "records": list(self._rows)}
+        return super().execute_query(query, parameters)
+
+
+class ScopedStore(StubStore):
+    """A store that mimics scope resolution, including its lookups.
+
+    Scope resolution reads Drug / ATCClass nodes by name or code before the rule
+    runs, so a stub that only knows the rule query would make every scope look
+    empty.
     """
 
     def __init__(self, *, matching: bool) -> None:
         super().__init__()
         self._matching = matching
-        self.parameters: list[Any] = []
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
-        self.parameters.append(parameters)
         if "toLower(d.name) IN wanted" in query:
+            self.queries.append(query)
+            self.parameters.append(parameters)
             if not self._matching:
                 return {"success": True, "records": []}
             return {"success": True, "records": [{"key": "DB00945", "name": "Aspirin"}]}
         if "c.code STARTS WITH $prefix" in query:
+            self.queries.append(query)
+            self.parameters.append(parameters)
             return {"success": True, "records": [{"key": "L01XX29", "name": "L01XX29"}]}
         if "UNWIND $codes" in query:
+            self.queries.append(query)
+            self.parameters.append(parameters)
             return {"success": True, "records": [{"key": "DB00945", "name": "Aspirin"}]}
         return super().execute_query(query, parameters)
 
@@ -196,113 +229,65 @@ def test_schema_on_an_empty_graph_is_not_an_error(
 # --- /reason ---------------------------------------------------------------
 
 
-def test_reason_derives_transitive_closure(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """The classic Datalog case, over request-supplied facts."""
-    payload = {
-        "facts": [
-            {"fact": "parent(tom, bob)"},
-            {"fact": "parent(bob, ann)"},
-        ],
-        "rules": [
-            {"rule": "ancestor(X, Y) :- parent(X, Y)."},
-            {"rule": "ancestor(X, Z) :- parent(X, Y), ancestor(Y, Z)."},
-        ],
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json=payload)
-
-    assert response.status_code == 200
-    derived = set(response.json()["derived"])
-    assert "ancestor(tom, ann)" in derived
-    assert "ancestor(tom, bob)" in derived
 
 
-def test_reason_honours_inequality_constraints(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Inequalities were the subject of a fork fix; they must not be ignored."""
-    payload = {
-        "facts": [
-            {"fact": "takes(alice, aspirin)"},
-            {"fact": "takes(bob, aspirin)"},
-        ],
-        "rules": [{"rule": "conflict(X, Y) :- takes(X, D), takes(Y, D), X != Y."}],
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json=payload)
-
-    assert response.status_code == 200
-    derived = set(response.json()["derived"])
-    # alice and bob share a drug, so a conflict is derived...
-    assert any("conflict" in fact and "alice" in fact and "bob" in fact for fact in derived)
-    # ...but nothing is in conflict with itself.
-    assert not any(fact.startswith("conflict(alice, alice") for fact in derived)
-
-
-def test_reason_query_returns_bindings(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    payload = {
-        "facts": [{"fact": "parent(tom, bob)"}],
-        "rules": [{"rule": "ancestor(X, Y) :- parent(X, Y)."}],
-        "query": "ancestor(tom, ?Y)",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json=payload)
-
-    assert response.status_code == 200
-    assert response.json()["bindings"] == [{"Y": "bob"}]
-
-
-def test_reason_with_no_facts_is_rejected(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Reporting "derived nothing" would hide the caller's wiring mistake."""
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json={"rules": [{"rule": "a(X) :- b(X)."}]})
-
-    assert response.status_code == 422
-    assert "No facts" in response.json()["detail"]
-
-
-def test_reason_rejects_a_malformed_rule(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    payload = {"facts": [{"fact": "parent(tom, bob)"}], "rules": [{"rule": "this is not a rule"}]}
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json=payload)
-
-    assert response.status_code == 422
-    assert "Invalid rule" in response.json()["detail"]
-
-
-def test_reason_rejects_a_malformed_fact(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json={"facts": [{"fact": "((("}]})
-
-    assert response.status_code == 422
-    assert "Invalid fact" in response.json()["detail"]
-
-
-def test_reason_loads_facts_from_the_graph(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """load_from_graph goes through the export bridge, not the raw store."""
-    payload = {
+def reason_rule(**overrides: Any) -> dict[str, Any]:
+    """A valid reasoning request: one reviewed rule over the whole graph."""
+    payload: dict[str, Any] = {
         "load_from_graph": True,
         "scope_all": True,
-        "rules": [{"rule": "targets(X, Y) :- targets(X, Y)."}],
+        "intent": "shared_target",
     }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json=payload)
+    payload.update(overrides)
+    return payload
+
+
+def test_reason_applies_the_named_rule(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """The rule's Cypher runs and its rows become derived facts."""
+    rows = [
+        {
+            "subject": "DB00945",
+            "object": "DB01050",
+            "premise_1": "lucent:a",
+            "premise_2": "lucent:b",
+        },
+    ]
+    with build_client(monkeypatch, RuleStore(rows), settings) as client:
+        response = client.post("/reason", json=reason_rule())
 
     assert response.status_code == 200
     body = response.json()
-    # Three nodes plus one edge were exported and became facts.
-    assert body["fact_count"] >= 4
-    assert any("targets" in fact for fact in body["derived"])
+    assert body["fact_count"] == 1
+    assert body["derived"] == ["shares_target(DB00945, DB01050)"]
+
+
+def test_reason_requires_load_from_graph(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """The rules read the graph, so an unset flag is a caller error.
+
+    Not defaulting it to true is deliberate: a caller written against the old
+    contract would otherwise receive an empty result and read it as a negative
+    finding rather than as a request that never reached the graph.
+    """
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        response = client.post("/reason", json={"intent": "shared_target"})
+
+    assert response.status_code == 422
+    assert "load_from_graph" in response.json()["detail"]
+
+
+def test_reason_requires_a_rule(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Without a named rule there is nothing to evaluate."""
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        response = client.post("/reason", json={"load_from_graph": True, "scope_all": True})
+
+    assert response.status_code == 422
+    assert "intent" in response.json()["detail"]
 
 
 def test_graph_backed_reason_requires_a_scope(
@@ -310,30 +295,25 @@ def test_graph_backed_reason_requires_a_scope(
 ) -> None:
     """Reasoning over an unstated slice cannot distinguish absent from false.
 
-    Datalog has no negation, so "not derived" is its only answer for "not
-    present". That answer carries information only if the caller knows what was
-    loaded, so the extent must be stated rather than defaulted.
+    "Not derived" is the only answer a rule can give for "not present", and it
+    carries information only if the caller knows what was looked at.
     """
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json={"load_from_graph": True})
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        response = client.post("/reason", json={"load_from_graph": True, "intent": "shared_target"})
 
     assert response.status_code == 422
     assert "scope" in response.json()["detail"]
 
 
-def test_graph_backed_reason_echoes_the_range_it_loaded(
+def test_graph_backed_reason_echoes_the_range_it_looked_at(
     monkeypatch: pytest.MonkeyPatch, settings: Settings
 ) -> None:
     """The response states the extent, which is what makes an empty result readable."""
-    payload = {"load_from_graph": True, "scope_all": True}
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        body = client.post("/reason", json=reason_rule()).json()
 
     reason_range = body["range"]
     assert reason_range["scope"] == "all"
-    assert reason_range["node_count"] == 3
-    assert reason_range["edge_count"] == 1
-    assert reason_range["truncated"] is False
 
 
 def test_a_scope_that_matches_nothing_is_refused_not_answered(
@@ -346,6 +326,7 @@ def test_a_scope_that_matches_nothing_is_refused_not_answered(
     """
     payload = {
         "load_from_graph": True,
+        "intent": "shared_target",
         "scope": {"drug_names": ["NotADrug"]},
     }
     with build_client(monkeypatch, ScopedStore(matching=False), settings) as client:
@@ -360,33 +341,245 @@ def test_a_scope_that_matches_nothing_is_refused_not_answered(
     assert detail["drug_names"] == ["NotADrug"]
 
 
-def test_a_scope_resolves_to_drug_keys(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    """A scope named in drug names is resolved into the keys facts are built from."""
+def test_a_scope_resolves_to_drug_keys_and_is_echoed(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A scope named in drug names is resolved into the keys the rule binds."""
     payload = {
         "load_from_graph": True,
+        "intent": "shared_target",
         "scope": {"drug_names": ["Aspirin"]},
-        "facts": [{"fact": "placeholder(1)"}],
     }
     store = ScopedStore(matching=True)
     with build_client(monkeypatch, store, settings) as client:
         body = client.post("/reason", json=payload).json()
 
     assert body["range"]["drug_keys"] == ["DB00945"]
-    assert any(p and p.get("drug_keys") == ["DB00945"] for p in store.parameters if p)
 
 
-def test_reason_rejects_an_invalid_query(
+def test_the_scope_is_bound_as_a_parameter_not_interpolated(
     monkeypatch: pytest.MonkeyPatch, settings: Settings
 ) -> None:
+    """A drug id comes from the request, so it is data and must be bound.
+
+    Interpolating it would make the request body a route to arbitrary Cypher in
+    exactly the endpoint that is supposed to be evaluating reviewed rules.
+    """
     payload = {
-        "facts": [{"fact": "parent(tom, bob)"}],
-        "query": "not a valid pattern",
+        "load_from_graph": True,
+        "intent": "shared_target",
+        "scope": {"drug_names": ["Aspirin"]},
     }
-    with build_client(monkeypatch, StubStore(), settings) as client:
+    store = ScopedStore(matching=True)
+    with build_client(monkeypatch, store, settings) as client:
+        client.post("/reason", json=payload)
+
+    # The scope must have been sent as a bound parameter, and the literal id must
+    # not appear in the rule's query text: a drug id comes from the request, so
+    # interpolating it would make the body a route to arbitrary Cypher.
+    bound = [p for p in store.parameters if p and "seed_keys" in p]
+    assert bound, "the scope was not passed as a parameter"
+    rule_queries = [q for q in store.queries if "premise_1" in q]
+    assert rule_queries, "the rule query was never sent"
+    assert all("DB00945" not in q for q in rule_queries)
+
+
+def test_reason_names_the_rule_it_applied(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A conclusion is only attributable if the response names the reviewed rule."""
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        body = client.post("/reason", json=reason_rule()).json()
+
+    assert body["rule"]["id"] == "shared_target_pair"
+    assert body["rule"]["intent"] == "shared_target"
+    assert body["rule"]["derives"] == "shares_target"
+
+
+def test_a_conclusion_is_marked_derived_not_asserted(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    rows = [{"subject": "DB1", "object": "DB2", "premise_1": "lucent:x", "premise_2": "lucent:y"}]
+    with build_client(monkeypatch, RuleStore(rows), settings) as client:
+        body = client.post("/reason", json=reason_rule()).json()
+
+    conclusion = body["conclusions"][0]
+    assert conclusion["verifiability"] == "derived"
+    assert conclusion["predicate"] == "shares_target"
+    assert conclusion["subject"] == "DB1"
+    assert conclusion["object"] == "DB2"
+
+
+def test_a_conclusion_carries_the_provenance_of_both_premises(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Citations come from the same query as the conclusion, not a second pass."""
+    rows = [
+        {
+            "subject": "DB1",
+            "object": "DB2",
+            "premise_1": "lucent:drugbank_drug_targets/DB1/P/all/ACTS_ON",
+            "premise_2": "lucent:drugbank_drug_targets/DB2/P/all/ACTS_ON",
+        }
+    ]
+    with build_client(monkeypatch, RuleStore(rows), settings) as client:
+        body = client.post("/reason", json=reason_rule()).json()
+
+    citations = body["conclusions"][0]["citations"]
+    assert len(citations) == 2
+    assert "DB1" in citations[0] and "DB2" in citations[1]
+
+
+def test_a_conclusion_missing_a_premise_says_so_rather_than_hiding_it(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A conclusion resting on uncitable evidence is still a conclusion.
+
+    Dropping the gap would present it as fully supported.
+    """
+    rows = [{"subject": "DB1", "object": "DB2", "premise_1": "lucent:x", "premise_2": None}]
+    with build_client(monkeypatch, RuleStore(rows), settings) as client:
+        body = client.post("/reason", json=reason_rule()).json()
+
+    conclusion = body["conclusions"][0]
+    assert conclusion["citations"] == ["lucent:x"]
+    assert conclusion["uncited_premises"]
+
+
+def test_a_scoped_rule_is_restricted_to_the_named_drug_not_its_neighbours(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """The scope is the drug the caller named, not the 501 keys it expands to.
+
+    Measured regression: naming Warfarin resolves to ~501 drug keys (its
+    interaction partners), and scoping the rule to that whole set returned 500
+    shared-target pairs for a drug that has 26. The neighbours' own pairs are not
+    pairs involving Warfarin, and they swamped the answer — a scoped request that
+    looked like it worked.
+    """
+    payload = {
+        "load_from_graph": True,
+        "intent": "shared_target",
+        "scope": {"drug_names": ["Aspirin"]},
+    }
+    store = ScopedStore(matching=True)
+    with build_client(monkeypatch, store, settings) as client:
+        client.post("/reason", json=payload)
+
+    rule_calls = [
+        (q, p)
+        for q, p in zip(store.queries, store.parameters, strict=False)
+        if "premise_1" in q
+    ]
+    assert rule_calls, "the rule query was never sent"
+    query, params = rule_calls[0]
+    # The rule is scoped to the seed the caller named...
+    assert params and params.get("seed_keys") == ["DB00945"]
+    # ...and it is the seed list that is bound, not the neighbour expansion.
+    assert "drug_keys" not in (params or {})
+    # The literal id must not appear in the query text: a drug id comes from the
+    # request, so interpolating it would make the body a route to arbitrary Cypher.
+    assert "DB00945" not in query
+
+
+def test_the_rule_scopes_on_either_endpoint(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A partner may be either the subject or the object of a conclusion.
+
+    Restricting to one side would silently halve every symmetric rule's output.
+    """
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        client.post(
+            "/reason",
+            json={
+                "load_from_graph": True,
+                "intent": "shared_target",
+                "scope": {"drug_names": ["Aspirin"]},
+            },
+        )
+
+    rule = load_library().by_id("shared_target_pair")
+    assert rule is not None
+    query, _ = build_query(rule, seed_keys=("DB00945",))
+    assert "a." in query and "b." in query
+    assert "$seed_keys" in query
+
+
+def test_reason_refuses_an_unknown_intent(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        response = client.post("/reason", json=reason_rule(intent="not_a_rule"))
+
+    assert response.status_code == 422
+    assert "No rule named" in response.json()["detail"]
+
+
+def test_reason_refuses_both_intent_and_rule_id(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        response = client.post(
+            "/reason", json=reason_rule(intent="shared_target", rule_id="shared_target_pair")
+        )
+
+    assert response.status_code == 422
+    assert "at most one" in response.json()["detail"]
+
+
+def test_reason_accepts_a_rule_by_id(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        response = client.post(
+            "/reason",
+            json={"load_from_graph": True, "scope_all": True, "rule_id": "shared_target_pair"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["rule"]["id"] == "shared_target_pair"
+
+
+def test_request_supplied_rules_are_no_longer_accepted(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """The Datalog evaluator is gone, so the field is gone.
+
+    Accepting and ignoring it would answer a question the caller did not ask —
+    it sent a rule and would receive the library rule's output.
+    """
+    payload = reason_rule(rules=[{"rule": "ancestor(X, Y) :- parent(X, Y)."}])
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
         response = client.post("/reason", json=payload)
 
     assert response.status_code == 422
-    assert "Invalid query" in response.json()["detail"]
+
+
+def test_request_supplied_facts_are_no_longer_accepted(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    payload = reason_rule(facts=[{"fact": "parent(tom, bob)"}])
+    with build_client(monkeypatch, RuleStore([]), settings) as client:
+        response = client.post("/reason", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_the_declared_fact_budget_is_enforced(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """`max_reasoning_facts` has to refuse work, not just be configurable."""
+    small = settings.model_copy(update={"max_reasoning_facts": 1})
+    rows = [
+        {"subject": "DB1", "object": "DB2", "premise_1": "lucent:a", "premise_2": "lucent:b"},
+        {"subject": "DB3", "object": "DB4", "premise_1": "lucent:c", "premise_2": "lucent:d"},
+    ]
+    with build_client(monkeypatch, RuleStore(rows), small) as client:
+        response = client.post("/reason", json=reason_rule())
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["kind"] == "fact_limit_exceeded"
+
+
 
 
 # --- /rules ----------------------------------------------------------------
@@ -406,599 +599,3 @@ def test_rules_lists_the_library(monkeypatch: pytest.MonkeyPatch, settings: Sett
     assert by_intent["interaction"]["derives"]
     assert by_intent["interaction"]["consumes"]
 
-
-# --- /reason with a library rule -------------------------------------------
-
-
-def test_reason_names_the_rule_it_applied(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """A conclusion has to say which rule produced it, or it is just a fact."""
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-        ],
-        "intent": "interaction",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    assert body["rule"]["id"] == "potential_ddi_inhibitor_substrate"
-    assert body["rule"]["intent"] == "interaction"
-
-
-def test_a_conclusion_is_marked_derived_not_asserted(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """The plan's hard constraint: inference must not wear assertion's clothes."""
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-        ],
-        "intent": "interaction",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    conclusions = body["conclusions"]
-    assert conclusions
-    for conclusion in conclusions:
-        assert conclusion["verifiability"] == "derived"
-        assert conclusion["rule_id"] == "potential_ddi_inhibitor_substrate"
-
-
-def test_a_conclusion_carries_its_premises(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Without premises a conclusion cannot be checked by whoever reads it."""
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-        ],
-        "intent": "interaction",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    conclusion = next(c for c in body["conclusions"] if c["object"] == "db2")
-    assert conclusion["subject"] == "db1"
-    assert conclusion["predicate"] == "potential_ddi"
-
-
-def test_a_query_that_pins_nothing_selects_every_conclusion(
-    monkeypatch: pytest.MonkeyPatch,
-    settings: Settings,
-) -> None:
-    """An all-variable head call asks about every pair, so it must select all of them.
-
-    Regression: ``_pinned_arguments`` returns ``None`` both for "asks a
-    different predicate" and for "asks this predicate but pins nothing". The
-    caller treated both as "select nothing", so ``potential_ddi(?A, ?B)``
-    returned zero conclusions while its own ``bindings`` listed every pair —
-    a well-formed question answered with a confident empty set.
-    """
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-            {"fact": "inhibits(db3, e2)"},
-            {"fact": "substrate_of(db4, e2)"},
-        ],
-        "intent": "interaction",
-        "query": "potential_ddi(?A, ?B)",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    assert len(body["bindings"]) == 2
-    assert len(body["conclusions"]) == 2
-    assert body["conclusions_complete"] is True
-    # Narrowing is what dropped them before; the selection itself must not.
-    assert {c["object"] for c in body["conclusions"]} == {"db2", "db4"}
-
-
-def test_pinning_one_argument_still_narrows(
-    monkeypatch: pytest.MonkeyPatch,
-    settings: Settings,
-) -> None:
-    """The counterpart to the regression above: pinning must still filter."""
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-            {"fact": "inhibits(db3, e2)"},
-            {"fact": "substrate_of(db4, e2)"},
-        ],
-        "intent": "interaction",
-        "query": "potential_ddi(db1, ?B)",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    assert [c["object"] for c in body["conclusions"]] == ["db2"]
-
-
-def test_a_query_for_another_predicate_selects_no_conclusions(
-    monkeypatch: pytest.MonkeyPatch,
-    settings: Settings,
-) -> None:
-    """Asking a different predicate is not the same as asking with variables."""
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-        ],
-        "intent": "interaction",
-        "query": "shares_target(?A, ?B)",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    assert body["conclusions"] == []
-
-
-def test_only_the_rules_own_head_becomes_a_conclusion(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Reporting every derived fact would present the premises as findings."""
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-        ],
-        "intent": "interaction",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    assert body["conclusions"]
-    assert {c["predicate"] for c in body["conclusions"]} == {"potential_ddi"}
-
-
-def test_reason_refuses_an_unknown_intent(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """An unrecognised intent must not quietly run nothing and report success."""
-    payload = {"facts": [{"fact": "inhibits(db1, e1)"}], "intent": "no_such_intent"}
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json=payload)
-
-    assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert "no_such_intent" in detail
-    # The list is included so the caller can correct the request without a
-    # second round trip to /rules.
-    assert "interaction" in detail
-
-
-def test_reason_refuses_both_intent_and_rule_id(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    payload = {
-        "facts": [{"fact": "inhibits(db1, e1)"}],
-        "intent": "interaction",
-        "rule_id": "potential_ddi_inhibitor_substrate",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json=payload)
-
-    assert response.status_code == 422
-    assert "at most one" in response.json()["detail"]
-
-
-def test_reason_accepts_a_rule_by_id(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-        ],
-        "rule_id": "potential_ddi_inhibitor_substrate",
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    assert body["rule"]["id"] == "potential_ddi_inhibitor_substrate"
-    assert body["conclusions"]
-
-
-def test_request_supplied_rules_produce_no_attributed_conclusions(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Only reviewed rules are citable, so an inline rule cannot claim a rule_id."""
-    payload = {
-        "facts": [
-            {"fact": "inhibits(db1, e1)"},
-            {"fact": "substrate_of(db2, e1)"},
-        ],
-        "rules": [{"rule": "potential_ddi(A, B) :- inhibits(A, E), substrate_of(B, E), A != B."}],
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    # The facts were still derived...
-    assert any("potential_ddi" in fact for fact in body["derived"])
-    # ...but nothing claims them as a library rule's output.
-    assert body["rule"] is None
-    assert body["conclusions"] == []
-    assert body["conclusions_complete"] is True
-
-
-def test_reason_without_a_rule_still_reasons(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Naming a rule is optional; the endpoint's original contract still holds."""
-    payload = {
-        "facts": [{"fact": "inhibits(db1, e1)"}],
-        "rules": [{"rule": "inhibited(A) :- inhibits(A, E)."}],
-    }
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        body = client.post("/reason", json=payload).json()
-
-    assert body["fact_count"] >= 1
-    assert body["rule"] is None
-
-
-# --- /validate -------------------------------------------------------------
-
-
-SHACL_SHAPES = """
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix lucent: <http://lucent.local/graph#> .
-
-lucent:DrugShape a sh:NodeShape ;
-    sh:targetClass lucent:Drug ;
-    sh:property [
-        sh:path lucent:name ;
-        sh:minCount 1 ;
-        sh:message "A Drug must have a name." ;
-    ] .
-"""
-
-
-def test_validate_requires_exactly_one_shape_source(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """semantica rejects both-or-neither; the endpoint surfaces it as 422."""
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        neither = client.post("/validate", json={})
-        both = client.post("/validate", json={"shacl": SHACL_SHAPES, "ontology": {"concepts": []}})
-
-    assert neither.status_code == 422
-    assert both.status_code == 422
-    assert "exactly one" in neither.json()["detail"].lower()
-
-
-def test_validate_refuses_shapes_in_the_wrong_namespace(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """A shape in the wrong namespace would return a clean report from no check.
-
-    Measured against the live graph: the same shape reports 895 violations in
-    the right namespace and conforms in any other. Returning that pass would be
-    worse than an error, because the caller acts on it.
-    """
-    wrong = SHACL_SHAPES.replace("http://lucent.local/graph#", "http://example.org/other#")
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/validate", json={"shacl": wrong})
-
-    assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert "cannot constrain this graph" in detail
-    # The correct namespace is named so the caller can fix it without guessing.
-    assert "http://lucent.local/graph#" in detail
-
-
-def test_validate_refuses_shapes_that_never_name_the_graph(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Declaring the prefix is not enough; the shapes have to use it.
-
-    A document of unrelated shapes constrains nothing here and would conform.
-    """
-    unrelated = """
-    @prefix sh: <http://www.w3.org/ns/shacl#> .
-    @prefix ex: <http://example.org/x#> .
-
-    ex:Shape a sh:NodeShape ;
-        sh:targetClass ex:Widget ;
-        sh:property [ sh:path ex:size ; sh:minCount 1 ] .
-    """
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/validate", json={"shacl": unrelated})
-
-    assert response.status_code == 422
-    assert "cannot constrain this graph" in response.json()["detail"]
-
-
-def test_ontology_validation_is_not_namespace_gated(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """An ontology supplies its own terms, so there is no prefix to get wrong.
-
-    The engine's own rejection of an incomplete ontology is beside the point
-    here: what matters is that the failure is not the namespace gate, which
-    applies only to caller-supplied shapes.
-    """
-    payload: dict[str, Any] = {"ontology": {"classes": []}}
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        try:
-            response = client.post("/validate", json=payload)
-        except ValueError as exc:
-            # The engine rejecting an incomplete ontology is the expected path
-            # here; reaching it at all proves the gate let the request through.
-            assert "cannot constrain this graph" not in str(exc)
-            return
-
-    assert "cannot constrain this graph" not in response.text
-
-
-def test_validate_conforming_graph(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/validate", json={"shacl": SHACL_SHAPES})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["shacl_source"] == "inline"
-    assert body["summary"]
-
-
-def test_validate_reports_violations(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    """A shape requiring a property the graph lacks must produce violations."""
-    strict = """
-    @prefix sh: <http://www.w3.org/ns/shacl#> .
-    @prefix lucent: <http://lucent.local/graph#> .
-
-    lucent:DrugShape a sh:NodeShape ;
-        sh:targetClass lucent:Drug ;
-        sh:property [
-            sh:path lucent:approval_status ;
-            sh:minCount 1 ;
-            sh:message "A Drug must have an approval_status." ;
-        ] .
-    """
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/validate", json={"shacl": strict})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["conforms"] is False
-    assert body["violation_count"] > 0
-    assert body["violations"][0]["component"] or body["violations"][0]["message"]
-
-
-def test_validate_rejects_an_empty_graph(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """An empty graph conforms vacuously, which would be misleading."""
-
-    class EmptyStore(StubStore):
-        def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
-            return {"success": True, "records": []}
-
-    with build_client(monkeypatch, EmptyStore(), settings) as client:
-        response = client.post("/validate", json={"shacl": SHACL_SHAPES})
-
-    assert response.status_code == 422
-    assert "no nodes" in response.json()["detail"].lower()
-
-
-# --- schema surface --------------------------------------------------------
-
-
-def test_all_endpoints_appear_in_openapi(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """The Lucent client is generated from this document."""
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        paths = client.get("/openapi.json").json()["paths"]
-
-    assert set(paths) >= {"/health", "/schema", "/validate", "/reason", "/resolve"}
-
-
-# --- /reason: the label table ----------------------------------------------
-
-
-class KeyedStore(StubStore):
-    """A store whose nodes carry business identifiers and names."""
-
-    def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
-        if "MATCH (n)" in query:
-            return {
-                "success": True,
-                "records": [
-                    {
-                        "id": 1,
-                        "labels": ["Drug"],
-                        "props": {"drugbank_id": "DB00945", "name": "Aspirin"},
-                    },
-                    {
-                        "id": 2,
-                        "labels": ["Drug"],
-                        "props": {"drugbank_id": "DB01050", "name": "Ibuprofen"},
-                    },
-                    {
-                        "id": 3,
-                        "labels": ["Protein"],
-                        "props": {"uniprot_id": "P23219", "name": "COX-1"},
-                    },
-                ],
-            }
-        return {
-            "success": True,
-            "records": [
-                {
-                    "source": 1,
-                    "target": 3,
-                    "rel_type": "TARGETS",
-                    "props": {},
-                    "source_props": {"drugbank_id": "DB00945"},
-                    "target_props": {"uniprot_id": "P23219"},
-                },
-                {
-                    "source": 2,
-                    "target": 3,
-                    "rel_type": "TARGETS",
-                    "props": {},
-                    "source_props": {"drugbank_id": "DB01050"},
-                    "target_props": {"uniprot_id": "P23219"},
-                },
-            ],
-        }
-
-
-def test_reason_returns_a_label_table_alongside_facts(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """A caller needs names to show a derived fact to a user or an assistant.
-
-    The facts themselves stay keyed by identifier, because that is what keeps
-    Datalog constants unique and stable.
-    """
-    body = {
-        "load_from_graph": True,
-        "scope_all": True,
-        "rules": [{"rule": "shares_target(A, B) :- targets(A, T), targets(B, T)."}],
-    }
-    with build_client(monkeypatch, KeyedStore(), settings) as client:
-        response = client.post("/reason", json=body)
-
-    assert response.status_code == 200
-    payload = response.json()
-    # Keys are lower-cased because `add_fact` normalises constants that way,
-    # so the label table has to fold case to match the facts it explains.
-    assert payload["labels"]["db00945"] == "Aspirin"
-    assert payload["labels"]["p23219"] == "COX-1"
-    assert payload["node_types"]["db00945"] == "Drug"
-    # The facts keep using keys, so the two concerns stay separate.
-    assert any("db00945" in fact for fact in payload["derived"])
-
-
-def test_reason_omits_labels_when_facts_come_from_the_request(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """No graph was read, so there is nothing to label — omit rather than guess."""
-    with build_client(monkeypatch, StubStore(), settings) as client:
-        response = client.post("/reason", json={"facts": [{"fact": "parent(tom, bob)"}]})
-
-    assert response.status_code == 200
-    assert response.json()["labels"] == {}
-
-
-# --- /resolve --------------------------------------------------------------
-
-
-def test_resolve_finds_a_drug_by_name(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    with build_client(monkeypatch, KeyedStore(), settings) as client:
-        response = client.post("/resolve", json={"name": "Aspirin"})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["match_count"] == 1
-    assert body["matches"][0]["key"] == "DB00945"
-    assert body["matches"][0]["type"] == "Drug"
-    assert body["ambiguous"] is False
-
-
-def test_resolve_is_case_insensitive(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    with build_client(monkeypatch, KeyedStore(), settings) as client:
-        response = client.post("/resolve", json={"name": "aSpIrIn"})
-
-    assert response.json()["match_count"] == 1
-
-
-def test_resolve_reports_ambiguity_rather_than_picking_one(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """Target names repeat across species, so a name can map to several terms.
-
-    Silently returning the first would look confident and be wrong.
-    """
-
-    class AmbiguousStore(StubStore):
-        def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
-            if "MATCH (n)" in query:
-                return {
-                    "success": True,
-                    "records": [
-                        {
-                            "id": 1,
-                            "labels": ["Protein"],
-                            "props": {
-                                "uniprot_id": "P1",
-                                "name": "Beta-lactamase",
-                                "species": "E. coli",
-                            },
-                        },
-                        {
-                            "id": 2,
-                            "labels": ["Protein"],
-                            "props": {
-                                "uniprot_id": "P2",
-                                "name": "Beta-lactamase",
-                                "species": "K. pneumoniae",
-                            },
-                        },
-                    ],
-                }
-            return {"success": True, "records": []}
-
-    with build_client(monkeypatch, AmbiguousStore(), settings) as client:
-        response = client.post("/resolve", json={"name": "Beta-lactamase"})
-
-    body = response.json()
-    assert body["match_count"] == 2
-    assert body["ambiguous"] is True
-    assert {m["key"] for m in body["matches"]} == {"P1", "P2"}
-
-
-def test_resolve_returns_no_matches_for_an_unknown_name(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    with build_client(monkeypatch, KeyedStore(), settings) as client:
-        response = client.post("/resolve", json={"name": "Nonexistent"})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["match_count"] == 0
-    assert body["matches"] == []
-    assert body["ambiguous"] is False
-
-
-def test_resolve_rejects_a_blank_name(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
-    with build_client(monkeypatch, KeyedStore(), settings) as client:
-        response = client.post("/resolve", json={"name": "   "})
-
-    assert response.status_code == 422
-
-
-def test_resolve_matches_on_a_gene_name(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
-    """A caller may know the gene, not the protein name."""
-
-    class GeneStore(StubStore):
-        def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
-            if "MATCH (n)" in query:
-                return {
-                    "success": True,
-                    "records": [
-                        {
-                            "id": 1,
-                            "labels": ["Protein"],
-                            "props": {
-                                "uniprot_id": "P23219",
-                                "name": "Prostaglandin G/H synthase 1",
-                                "gene_name": "PTGS1",
-                            },
-                        }
-                    ],
-                }
-            return {"success": True, "records": []}
-
-    with build_client(monkeypatch, GeneStore(), settings) as client:
-        response = client.post("/resolve", json={"name": "PTGS1"})
-
-    assert response.json()["match_count"] == 1

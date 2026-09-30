@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 from fastapi import HTTPException
-from semantica.reasoning.datalog_reasoner import DatalogReasoner
 
+from semantica_service.reasoning import load_library
 from semantica_service.reasoning_limits import (
     KIND_FACT_LIMIT,
     KIND_INPUT_TOO_LARGE,
@@ -66,11 +66,10 @@ def test_the_refusal_names_the_size_and_the_setting() -> None:
 
 
 class DeclaredBody:
-    """Minimal stand-in for the request model's declared sizes."""
+    """Minimal stand-in for the request model's declared size."""
 
-    def __init__(self, facts: int, rules: int) -> None:
-        self.facts: list[Any] = [None] * facts
-        self.rules: list[Any] = [None] * rules
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
 
 
 def test_a_request_declaring_more_than_the_ceiling_is_refused(
@@ -78,64 +77,67 @@ def test_a_request_declaring_more_than_the_ceiling_is_refused(
 ) -> None:
     """Refusing up front is what keeps the check cheap.
 
-    The alternative is to accept the body, build the engine, and only then
-    notice — by which point the memory has already been committed.
+    The alternative is to accept the body, run the rule, and only then notice —
+    by which point the whole result set has been materialised in this process.
     """
     from semantica_service.config import get_settings
 
     monkeypatch.setattr(get_settings(), "max_reasoning_facts", 3)
 
     with pytest.raises(HTTPException) as caught:
-        check_declared_sizes(DeclaredBody(facts=4, rules=0))
+        check_declared_sizes(DeclaredBody(limit=4))
 
     assert _detail(caught.value)["kind"] == KIND_INPUT_TOO_LARGE
 
 
 class TestDeadline:
-    """The fixpoint runs under a wall-clock ceiling.
+    """A rule that outruns the ceiling is refused, with a structured reason.
 
-    Semi-naive evaluation spins inside one call and never yields, so without a
-    deadline a pathological rule/data pair holds a threadpool worker until the
-    process runs out of them — one slow request becomes an outage.
+    The engine is the database now, so the ceiling is the transaction timeout
+    rather than a wall-clock thread join: a query that outruns it comes back as
+    ``TimeoutError`` from the pool, and the route has to turn that into
+    ``KIND_TIMEOUT`` rather than let it surface as an internal failure. A
+    caller has to be able to tell "too big" from "too slow" to know whether to
+    narrow the scope or give up.
     """
 
-    def test_a_fast_derivation_returns_its_facts(self) -> None:
-        from semantica_service.routes.reason import _derive_with_deadline
+    def test_a_rule_that_times_out_is_refused_not_reported_as_internal(self) -> None:
+        from semantica_service.routes.reason import _run_rule
 
-        engine = DatalogReasoner()
-        engine.add_fact("parent(tom, bob)")
-        engine.add_rule("ancestor(X, Y) :- parent(X, Y).")
+        class TimingOutPool:
+            def borrow(self) -> Any:
+                raise TimeoutError("pool exhausted")
 
-        derived = _derive_with_deadline(engine, timeout_s=10)
+        class FakeRequest:
+            app = type("App", (), {"state": type("S", (), {"pool": TimingOutPool()})()})()
 
-        assert derived is not None
-        assert "ancestor(tom, bob)" in derived
+        rule = load_library().by_id("shared_target_pair")
+        assert rule is not None
 
-    def test_a_derivation_that_outruns_the_deadline_returns_none(self) -> None:
-        """None is the refusal signal; the caller turns it into a structured error."""
-        from semantica_service.routes.reason import _derive_with_deadline
+        with pytest.raises(HTTPException) as raised:
+            _run_rule(FakeRequest(), rule, [], limit=10)  # type: ignore[arg-type]
 
-        class SlowEngine:
-            def derive_all(self) -> list[str]:
-                import time
+        assert _detail(raised.value)["kind"] == KIND_TIMEOUT
 
-                time.sleep(5)
-                return ["late(x)"]
+    def test_the_timeout_message_tells_the_caller_what_to_change(self) -> None:
+        """A refusal that does not say what to narrow is not actionable."""
+        from semantica_service.routes.reason import _run_rule
 
-        slow: Any = SlowEngine()
-        assert _derive_with_deadline(slow, timeout_s=1) is None
+        class TimingOutPool:
+            def borrow(self) -> Any:
+                raise TimeoutError("pool exhausted")
 
-    def test_an_engine_failure_propagates_rather_than_reading_as_a_timeout(self) -> None:
-        """A crash and a deadline are different answers and must not be merged."""
-        from semantica_service.routes.reason import _derive_with_deadline
+        class FakeRequest:
+            app = type("App", (), {"state": type("S", (), {"pool": TimingOutPool()})()})()
 
-        class BrokenEngine:
-            def derive_all(self) -> list[str]:
-                raise RuntimeError("boom")
+        rule = load_library().by_id("shared_target_pair")
+        assert rule is not None
 
-        broken: Any = BrokenEngine()
-        with pytest.raises(RuntimeError, match="boom"):
-            _derive_with_deadline(broken, timeout_s=10)
+        with pytest.raises(HTTPException) as raised:
+            _run_rule(FakeRequest(), rule, [], limit=10)  # type: ignore[arg-type]
+
+        message = str(_detail(raised.value)["message"])
+        assert "scope" in message.lower()
 
 
 def test_the_timeout_kind_is_distinct_from_the_fact_limit() -> None:

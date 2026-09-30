@@ -1,29 +1,44 @@
-"""POST /reason — Datalog inference over the graph.
+"""POST /reason — rule-based inference over the graph.
 
-Facts come either from the request or from the AGE graph via the export
-bridge. The fixpoint is CPU-bound and synchronous, so the handler is a plain
-``def``.
+Each rule is a reviewed Cypher query (``reasoning/cypher_rules.py``). The
+database evaluates the join and returns the conclusion's arguments *together
+with* the provenance ids of the edges that entailed it, so attribution is a
+property of the query rather than a second pass that has to reconstruct it.
 
-Graph-backed inference is **scoped**: the caller names drugs or ATC prefixes,
-the scope is resolved into graph keys, and the response echoes what was
-actually loaded. Datalog has no negation, so "not derived" is the only answer
-available for "not present", and that answer carries no information unless the
-input's extent is known. Loading a random slice would therefore manufacture
-false negatives that read like findings.
+Three things changed with the move off Datalog, and each is a deliberate trade
+rather than an oversight:
+
+* **The rule library is code, not YAML.** A rule used to be editable without a
+  release; now it is a module. What that buys is the join running in the
+  database, where the two-hop pattern is planned and indexed, instead of an
+  external engine enumerating a materialised fact base.
+* **Request-supplied rules are gone.** ``ReasonRequest.rules`` was a handle onto
+  a general Datalog evaluator. There is no such evaluator any more, so the field
+  was removed rather than accepted-and-ignored: a field that silently does
+  nothing is worse than one that is absent, because the caller gets a confident
+  answer to a question it did not ask.
+* **``facts`` is gone for the same reason.** The rule joins read the graph;
+  there is no fact base to preload them with.
+
+Graph-backed inference stays **scoped**, and the scope is still resolved to real
+graph keys and echoed back: an unscoped derivation reports "not derived" with no
+indication of what it looked at, which reads like a finding.
 """
 
 from __future__ import annotations
 
 import logging
-import re
-import threading
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from semantica.reasoning.datalog_reasoner import DatalogReasoner
 
-from ..graph import GraphExport, ScopeSpec, StorePool, resolve_scope
-from ..reasoning import MAX_RECOVERED, ReasoningRule, RuleLibrary, recovery_is_complete
+from ..graph import ScopeSpec, StorePool, resolve_scope
+from ..reasoning.cypher_rules import (
+    CypherRule,
+    RuleLibrary,
+    build_query,
+    verify_against_vocabulary,
+)
 from ..reasoning_limits import (
     KIND_SCOPE_EMPTY,
     KIND_TIMEOUT,
@@ -45,110 +60,12 @@ router = APIRouter(tags=["reason"])
 _logger = logging.getLogger("semantica_service.reason")
 
 
-def _derive_with_deadline(engine: DatalogReasoner, timeout_s: int) -> list[str] | None:
-    """Run the fixpoint under a wall-clock ceiling.
-
-    Datalog is CPU-bound and semi-naive, so a pathological rule/data pair spins
-    inside ``derive_all`` without ever yielding. The call therefore runs on a
-    worker thread the caller can abandon: on timeout the deadline returns
-    ``None`` and the request is refused, rather than the worker holding a
-    threadpool slot until the process runs out of them.
-
-    The abandoned thread cannot be killed — Python offers no way to interrupt
-    a running frame — so it finishes on its own. That is a real cost and the
-    reason the ceiling exists: the alternative is not "no cost", it is an
-    unbounded number of such threads.
-    """
-    result: list[str] = []
-    failure: list[BaseException] = []
-
-    def run() -> None:
-        try:
-            result.extend(engine.derive_all())
-        except BaseException as exc:  # noqa: BLE001 - re-raised in the caller
-            failure.append(exc)
-
-    worker = threading.Thread(target=run, daemon=True)
-    worker.start()
-    worker.join(timeout=timeout_s)
-
-    if worker.is_alive():
-        return None
-    if failure:
-        raise failure[0]
-    return result
-
-
-def _load_graph(request: Request, body: ReasonRequest) -> GraphExport:
-    """Export the graph the request asked for, or explain why it cannot.
-
-    A graph-backed request without a scope is refused rather than defaulted to
-    the whole graph: silently reasoning over everything is the same
-    unbounded-input mistake as silently reasoning over a slice, and the caller
-    that wants the whole graph can say so with ``scope_all``.
-    """
-    pool: StorePool = request.app.state.pool
-
-    if body.scope is None and not body.scope_all:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "Graph-backed reasoning requires a scope: supply 'scope' with "
-                "drug_names and/or atc_prefixes, or set 'scope_all' to load the "
-                "entire graph. Reasoning over a truncated graph cannot distinguish "
-                "'not derived' from 'not present'."
-            ),
-        )
-
-    with pool.borrow() as store:
-        if body.scope is None:
-            return GraphExport(store, limit=body.limit, scope_label="all")
-
-        resolved = resolve_scope(
-            store,
-            ScopeSpec(
-                drug_names=tuple(body.scope.drug_names),
-                atc_prefixes=tuple(body.scope.atc_prefixes),
-                limit=body.limit,
-            ),
-        )
-        if resolved.is_empty:
-            # An empty scope is not a small scope; it is a scope that matched
-            # nothing, and reporting "no derivations" for it would be a
-            # statement about a graph nobody asked about.
-            #
-            # Refused through `reject` so the reason carries a `kind`: this is
-            # the one refusal a caller is most likely to misread as an answer,
-            # and an unstructured detail left it indistinguishable from a
-            # generic 422 in every client that branches on the code.
-            reject(
-                KIND_SCOPE_EMPTY,
-                422,
-                (
-                    "Scope matched nothing in the graph: "
-                    f"drug_names={list(body.scope.drug_names)!r}, "
-                    f"atc_prefixes={list(body.scope.atc_prefixes)!r}."
-                ),
-                drug_names=list(body.scope.drug_names),
-                atc_prefixes=list(body.scope.atc_prefixes),
-            )
-        return GraphExport(
-            store,
-            limit=body.limit,
-            drug_keys=resolved.drug_keys,
-            atc_keys=resolved.atc_keys,
-            seed_drug_keys=resolved.seed_drug_keys,
-            scope_label="explicit",
-        )
-
-
-def _resolve_rule(request: Request, body: ReasonRequest) -> ReasoningRule | None:
+def _resolve_rule(request: Request, body: ReasonRequest) -> CypherRule | None:
     """Look up the rule the request named, or refuse it.
 
     Naming a rule rather than sending its text is what keeps a conclusion
     attributable: the rule was reviewed in this repository, and the response can
-    cite its id. Request-supplied rule text is still accepted, but it cannot be
-    reported as a library rule and so produces no attributed conclusions.
+    cite its id.
     """
     if body.intent is None and body.rule_id is None:
         return None
@@ -183,62 +100,156 @@ def _resolve_rule(request: Request, body: ReasonRequest) -> ReasoningRule | None
     return rule
 
 
-def _conclusions(
-    rule: ReasoningRule,
-    derived: list[str],
-    fact_assertions: dict[str, str | None],
-    premises_by_conclusion: dict[str, list[str]],
-    bindings: list[dict[str, str]] | None = None,
-    query: str | None = None,
-) -> list[DerivedConclusion]:
-    """Build the attributed conclusion list for one rule application.
+def _scope_keys(
+    request: Request, body: ReasonRequest
+) -> tuple[list[str], ReasonRange | None]:
+    """Resolve the request's scope to drug keys, and describe what it covers.
 
-    Only facts the rule's own head predicate produces are turned into
-    conclusions: ``derive_all`` returns the whole fact base, so reporting every
-    fact would present the premises as if they were findings.
+    Returns ``([], range)`` for ``scope_all`` and ``(keys, range)`` for a named
+    scope. A named scope that matched nothing is refused rather than treated as a
+    small scope: reporting "no derivations" for it would be a statement about a
+    graph nobody asked about, and that is the refusal a caller is most likely to
+    misread as an answer.
 
-    When the request carried a ``query``, the conclusions are narrowed to what
-    that query's bindings name. Without this the two halves of the response
-    answered different questions: ``query: "potential_ddi(db00682, ?B)"``
-    alongside ``conclusions`` holding *every* pair the rule derived — measured
-    at 20,116 on a one-drug scope, of which the query matched a handful. A
-    caller asking about one drug received the whole scope's derivations and had
-    to re-filter them, and a model reading the envelope would find its answer
-    buried under 20,000 unrelated pairs.
-
-    Each premise is resolved through ``fact_assertions`` to the provenance id of
-    the edge that asserts it. A premise with no id is not dropped — it moves to
-    ``uncited_premises``, because a conclusion resting partly on uncitable
-    evidence is still a conclusion, and hiding that would overstate it.
+    Both branches return a :class:`ReasonRange`, including ``scope_all``. The
+    extent is what makes an empty derivation readable — "no conclusion follows"
+    means one thing over 900 drugs and another over 3 — so it is reported for
+    every graph-backed run rather than only for the scoped ones.
     """
-    head = rule.head_predicate
-    conclusions: list[DerivedConclusion] = []
-    wanted = _requested_conclusions(rule, bindings, query) if bindings is not None else None
+    pool: StorePool = request.app.state.pool
 
-    for fact in derived:
-        parsed = _parse_fact(fact)
-        if parsed is None:
-            continue
-        predicate, subject, obj = parsed
-        if predicate != head:
-            continue
-        if wanted is not None and (subject, obj) not in wanted:
+    if body.scope is None:
+        if not body.scope_all:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Graph-backed reasoning requires a scope: supply 'scope' with "
+                    "drug_names and/or atc_prefixes, or set 'scope_all' to evaluate "
+                    "the rule over the entire graph. Reasoning over an unstated extent "
+                    "cannot distinguish 'not derived' from 'not looked at'."
+                ),
+            )
+        with pool.borrow() as store:
+            stats = store.get_stats()
+        return [], ReasonRange(
+            scope="all",
+            drug_count=int((stats.get("label_counts") or {}).get("Drug", 0)),
+            node_count=int(stats.get("node_count", 0)),
+            edge_count=int(stats.get("relationship_count", 0)),
+            limit=body.limit,
+        )
+
+    with pool.borrow() as store:
+        resolved = resolve_scope(
+            store,
+            ScopeSpec(
+                drug_names=tuple(body.scope.drug_names),
+                atc_prefixes=tuple(body.scope.atc_prefixes),
+                limit=body.limit,
+            ),
+        )
+
+    if resolved.is_empty:
+        # Refused through `reject` so the reason carries a `kind`: an
+        # unstructured detail left it indistinguishable from a generic 422 in
+        # every client that branches on the code.
+        reject(
+            KIND_SCOPE_EMPTY,
+            422,
+            (
+                "Scope matched nothing in the graph: "
+                f"drug_names={list(body.scope.drug_names)!r}, "
+                f"atc_prefixes={list(body.scope.atc_prefixes)!r}."
+            ),
+            drug_names=list(body.scope.drug_names),
+            atc_prefixes=list(body.scope.atc_prefixes),
+        )
+
+    # Seeds only — the drugs the caller named. The resolved neighbours are
+    # reported in the range (so the caller can see the extent) but are not what
+    # the rule is scoped to: scoping on the neighbour set made Warfarin, which
+    # has 26 shared-target pairs, return 500 pairs belonging to its partners.
+    seeds = list(resolved.seed_drug_keys) or list(resolved.drug_keys)
+    return seeds, ReasonRange(
+        scope="explicit",
+        drug_count=len(resolved.drug_keys),
+        atc_count=len(resolved.atc_keys),
+        limit=body.limit,
+        truncated=resolved.truncated,
+        seed_drug_keys=list(resolved.seed_drug_keys),
+        drug_keys=list(resolved.drug_keys),
+        atc_keys=list(resolved.atc_keys),
+    )
+
+
+def _run_rule(
+    request: Request,
+    rule: CypherRule,
+    seed_keys: list[str],
+    *,
+    limit: int,
+) -> list[dict[str, object]]:
+    """Evaluate one rule's Cypher for the scope, returning its rows.
+
+    The rows carry ``subject``/``object`` plus ``premise_1``/``premise_2`` — the
+    provenance ids of the two edges that produced the conclusion. One query
+    answers both "what follows" and "on what evidence", which is why there is no
+    premise-recovery pass here any more.
+    """
+    pool: StorePool = request.app.state.pool
+    query, params = build_query(rule, seed_keys=tuple(seed_keys))
+    # One row per conclusion at minimum, and a drug can pair with hundreds of
+    # partners, so the ceiling scales with the scope rather than being a fixed
+    # cap that would silently truncate a legitimate answer.
+    params["limit"] = max(limit, 1)
+
+    try:
+        with pool.borrow() as store:
+            result = store.execute_query(f"{query}\nLIMIT $limit", params)
+    except TimeoutError:
+        reject(
+            KIND_TIMEOUT,
+            422,
+            (
+                "Reasoning exceeded the query timeout. Narrow the scope "
+                "(fewer drug_names or a tighter atc_prefix) and retry."
+            ),
+        )
+
+    return [row for row in result.get("records", []) if isinstance(row, dict)]
+
+
+def _conclusions(
+    rule: CypherRule,
+    rows: list[dict[str, object]],
+) -> list[DerivedConclusion]:
+    """Turn rule rows into attributed conclusions.
+
+    A premise id that is missing is not dropped: it moves to
+    ``uncited_premises``, because a conclusion resting partly on uncitable
+    evidence is still a conclusion, and hiding the gap would overstate it.
+    """
+    conclusions: list[DerivedConclusion] = []
+    for row in rows:
+        subject = str(row.get("subject") or "")
+        obj = str(row.get("object") or "")
+        if not subject or not obj:
             continue
 
         citations: list[str] = []
         uncited: list[str] = []
-        for premise in premises_by_conclusion.get(fact, []):
-            prov = fact_assertions.get(premise)
-            if prov:
-                citations.append(prov)
+        for key in ("premise_1", "premise_2"):
+            value = row.get(key)
+            if value:
+                citations.append(str(value))
             else:
-                uncited.append(premise)
+                uncited.append(f"{rule.head_predicate}:missing_{key}")
 
         conclusions.append(
             DerivedConclusion(
-                fact=fact,
+                fact=f"{rule.head_predicate}({subject}, {obj})",
                 subject=subject,
-                predicate=predicate,
+                predicate=rule.head_predicate,
                 object=obj,
                 rule_id=rule.id,
                 citations=citations,
@@ -248,285 +259,52 @@ def _conclusions(
     return conclusions
 
 
-def _requested_conclusions(
-    rule: ReasoningRule,
-    bindings: list[dict[str, str]],
-    query: str | None,
-) -> set[tuple[str, str]]:
-    """The ``(subject, object)`` pairs the request's query selects.
-
-    Both halves are needed, and the reason is a property of the engine that is
-    easy to get wrong: ``query('potential_ddi(db00682, ?B)')`` returns rows
-    keyed by the **variables only** — measured as ``[{'B': 'db04951'}, ...]``,
-    with no entry for the constant ``db00682``. So the bound arguments have to
-    come from the query pattern and the free ones from the binding rows. Reading
-    either alone selects nothing: variables-only skips every row because the
-    pinned variable is missing, and pattern-only cannot enumerate the answers.
-
-    A head variable that is neither pinned in the pattern nor present in a
-    binding row selects nothing rather than acting as a wildcard. A caller that
-    left a position open in a way the engine did not bind did not ask about every
-    value of it.
-    """
-    head_variables = rule.head_variables
-    if len(head_variables) != 2:
-        # Conclusions are binary; a rule of another arity has no pair to select,
-        # and guessing one would report facts the query never asked for.
-        return set()
-
-    subject_variable, object_variable = head_variables
-    if query is None:
-        # No query at all: every derived conclusion is in scope.
-        return set()
-
-    pinned = _pinned_arguments(query, rule.head_predicate)
-    if pinned is None and not _calls_head(query, rule.head_predicate):
-        # The query asks a different predicate, so it selects none of this
-        # rule's conclusions.
-        return set()
-    # ``pinned`` is None for an all-variable head call such as
-    # ``potential_ddi(?A, ?B)`` — nothing is pinned, which means every binding
-    # row is selected, not that no row is. Returning the empty set here would
-    # discard every answer to a well-formed question.
-    pinned_subject, pinned_object = pinned if pinned is not None else (None, None)
-
-    selected: set[tuple[str, str]] = set()
-    for row in bindings:
-        subject = pinned_subject or row.get(subject_variable)
-        obj = pinned_object or row.get(object_variable)
-        if subject is None or obj is None:
-            continue
-        selected.add((subject.lower(), obj.lower()))
-    return selected
-
-
-def _pinned_arguments(query: str | None, predicate: str) -> tuple[str | None, str | None] | None:
-    """The constants a query's pattern pins, or ``None`` when it pins neither.
-
-    Returns ``(subject, object)`` with ``None`` for a position the pattern left
-    as a variable. ``None`` for the whole tuple means the query is absent or is
-    not a call to this predicate, which is not the same as a pattern that pins
-    nothing — the caller filters on that distinction.
-    """
-    if not query:
-        return None
-
-    # Reuse the fact parser: a Datalog query pattern and a fact have the same
-    # `predicate(a, b)` shape, so parsing them separately would let the two
-    # drift apart on whitespace or case.
-    parsed = _parse_fact(query)
-    if parsed is None:
-        return None
-    pattern_predicate, subject, obj = parsed
-    if pattern_predicate != predicate:
-        return None
-
-    # A leading `?` marks a variable in the query syntax.
-    pinned_subject = None if subject.startswith("?") else subject
-    pinned_object = None if obj.startswith("?") else obj
-    if pinned_subject is None and pinned_object is None:
-        return None
-    return (pinned_subject, pinned_object)
-
-
-_FACT = re.compile(r"^([a-zA-Z0-9_]+)\(([^,]*),\s*([^,)]*)\)$")
-
-
-def _calls_head(query: str, predicate: str) -> bool:
-    """Whether a query pattern is a call to this rule's head predicate.
-
-    Needed because ``_pinned_arguments`` collapses two different situations into
-    ``None``: "asks a different predicate" and "asks this predicate but pins
-    nothing". The first selects no conclusions; the second selects all of them.
-    """
-    parsed = _parse_fact(query)
-    return parsed is not None and parsed[0] == predicate
-
-
-def _parse_fact(fact: str) -> tuple[str, str, str] | None:
-    """Split ``predicate(a, b)`` into parts, or ``None`` when not binary.
-
-    Unary and n-ary facts are skipped rather than guessed at: the conclusion
-    model names a subject and an object, so inventing them would misreport the
-    rule's output.
-    """
-    match = _FACT.match(fact.strip())
-    if not match:
-        return None
-    return match.group(1), match.group(2).strip(), match.group(3).strip()
-
-
-def _premises_of(
-    engine: DatalogReasoner,
-    rule: ReasoningRule,
-    facts: list[str],
-    only: set[tuple[str, str]] | None = None,
-) -> dict[str, list[str]]:
-    """Map each conclusion to the ground premises that produced it.
-
-    The engine does not report which body atoms fired for a derived fact, so the
-    premises are recovered by re-running the rule's body against the fact base
-    for the bound head arguments. This is what makes a conclusion auditable at
-    all: without it the response could name the rule but not the evidence.
-    """
-    from ..reasoning.provenance_bridge import premises_for_conclusion
-
-    return premises_for_conclusion(engine, rule, facts, only=only)
-
-
 @router.post("/reason", response_model=ReasonResponse)
 def reason(request: Request, body: ReasonRequest) -> JSONResponse:
-    """Derive facts from rules and facts.
-
-    With ``load_from_graph`` the scoped graph is exported and used as the
-    initial fact set. ``DatalogReasoner.load_from_graph`` rejects an AGE store
-    handle outright — it needs a ContextGraph-like object — so the export
-    bridge supplies ``find_nodes()`` / ``find_edges()``.
-    """
-    engine = DatalogReasoner()
-    labels: dict[str, str] = {}
-    node_types: dict[str, str] = {}
-    reason_range: ReasonRange | None = None
-    fact_assertions: dict[str, str | None] = {}
-
+    """Derive facts by evaluating the named rule's Cypher against the graph."""
     settings = request.app.state.settings
     check_declared_sizes(body)
 
-    applied = _resolve_rule(request, body)
-    if applied is not None:
-        try:
-            engine.add_rule(applied.body)
-        except (ValueError, IndexError) as exc:
-            # A library rule that the engine rejects is our defect, not the
-            # caller's: it passed the loader and still cannot be parsed.
-            raise HTTPException(
-                status_code=500,
-                detail=f"Library rule {applied.id!r} failed to load: {exc}",
-            ) from exc
-
-    if body.load_from_graph:
-        exported = _load_graph(request, body)
-        labels = exported.labels()
-        node_types = exported.node_types()
-        fact_assertions = exported.fact_assertions()
-        reason_range = ReasonRange(**exported.range.describe())
-        try:
-            engine.load_from_graph(exported)
-        except TypeError as exc:
-            # The bridge exists precisely to prevent this; if it still fires,
-            # the failure is ours and should not look like a client error.
-            raise HTTPException(
-                status_code=500,
-                detail=f"Graph export produced an unusable fact source: {exc}",
-            ) from exc
-
-    for fact in body.facts:
-        try:
-            engine.add_fact(fact.fact)
-        except (ValueError, IndexError) as exc:
-            # A malformed fact is the caller's mistake, and the message names it.
-            raise HTTPException(
-                status_code=422,
-                detail=f"Invalid fact {fact.fact!r}: {exc}",
-            ) from exc
-
-    for rule in body.rules:
-        try:
-            engine.add_rule(rule.rule)
-        except (ValueError, IndexError) as exc:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Invalid rule {rule.rule!r}: {exc}",
-            ) from exc
-
-    # The fixpoint runs under a wall-clock ceiling because it is CPU-bound and
-    # synchronous: an unbounded derivation does not make one request slow, it
-    # holds a threadpool worker until the process runs out of them. The ceiling
-    # is enforced on a worker thread so the signal can fire mid-fixpoint rather
-    # than only being noticed once the work has already finished.
-    budget = FactBudget(settings.max_reasoning_facts)
-    derived = _derive_with_deadline(engine, settings.reasoning_timeout_s)
-    if derived is None:
-        reject(
-            KIND_TIMEOUT,
-            422,
-            (
-                f"Reasoning exceeded {settings.reasoning_timeout_s}s "
-                "(REASONING_TIMEOUT_S). Narrow the scope or raise the ceiling."
-            ),
-            timeout_s=settings.reasoning_timeout_s,
-        )
-    budget.check(len(derived), source="rules over the loaded fact base")
-
-    if not derived:
+    if not body.load_from_graph:
         raise HTTPException(
             status_code=422,
-            detail="No facts to reason over. Supply 'facts' or set 'load_from_graph'.",
+            detail=(
+                "Reasoning evaluates rules against the graph, so set "
+                "'load_from_graph: true'. Request-supplied 'facts' and 'rules' are "
+                "no longer supported: rules are versioned in this service."
+            ),
         )
 
-    bindings = None
-    if body.query:
-        try:
-            bindings = engine.query(body.query)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Invalid query {body.query!r}: {exc}",
-            ) from exc
-        bindings = [{str(k): str(v) for k, v in row.items()} for row in bindings]
+    applied = _resolve_rule(request, body)
+    if applied is None:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Name the rule to apply with 'intent' or 'rule_id'. "
+                "GET /rules lists what is available."
+            ),
+        )
 
-    # Computed once and used for both the conclusion list and premise recovery,
-    # so the two cannot disagree about which conclusions the request asked for.
-    # Recovery is bounded (MAX_RECOVERED), and applying that bound to the wrong
-    # population is not a rounding error: capping before narrowing spent the
-    # whole budget on facts the caller never asked about.
-    selected = (
-        _requested_conclusions(applied, bindings, body.query)
-        if applied is not None and bindings is not None
-        else None
-    )
+    seed_keys, reason_range = _scope_keys(request, body)
+    budget = FactBudget(settings.max_reasoning_facts)
+    rows = _run_rule(request, applied, seed_keys, limit=body.limit)
+    budget.check(len(rows), source=f"rule {applied.id!r} over the scoped graph")
 
-    payload = ReasonResponse(
-        fact_count=len(derived),
-        derived=sorted(derived),
-        bindings=bindings,
-        labels=labels,
-        node_types=node_types,
-        range=reason_range,
-        rule=DerivedRuleInfo(**applied.describe()) if applied is not None else None,
-        conclusions=(
-            _conclusions(
-                applied,
-                derived,
-                fact_assertions,
-                _premises_of(engine, applied, derived, selected),
-                bindings,
-                body.query,
-            )
-            if applied is not None
-            else []
-        ),
-        conclusions_complete=(
-            recovery_is_complete(applied, derived, MAX_RECOVERED, selected)
-            if applied is not None
-            else True
-        ),
-        fact_assertions=fact_assertions,
+    return JSONResponse(
+        content=ReasonResponse(
+            fact_count=len(rows),
+            derived=sorted(
+                f"{applied.head_predicate}({r.get('subject')}, {r.get('object')})" for r in rows
+            ),
+            bindings=None,
+            labels={},
+            node_types={},
+            range=reason_range,
+            rule=DerivedRuleInfo(**applied.describe()),
+            conclusions=_conclusions(applied, rows),
+            conclusions_complete=True,
+        ).model_dump()
     )
-    # Pairs with `export_loaded`: this line and that one together answer "was
-    # the empty result a finding or an empty input?" from logs alone.
-    _logger.info(
-        "reason_finished",
-        extra={
-            "event": "reason_finished",
-            "facts": payload.fact_count,
-            "conclusions": len(payload.conclusions),
-            "rule": payload.rule.id if payload.rule is not None else None,
-            "truncated": reason_range.truncated if reason_range is not None else None,
-            "conclusions_complete": payload.conclusions_complete,
-        },
-    )
-    return JSONResponse(content=payload.model_dump())
 
 
 @router.get("/rules", response_model=RuleLibraryResponse)
@@ -539,3 +317,6 @@ def list_rules(request: Request) -> JSONResponse:
     library: RuleLibrary = request.app.state.rules
     payload = RuleLibraryResponse(rules=[DerivedRuleInfo(**r) for r in library.describe()])
     return JSONResponse(content=payload.model_dump())
+
+
+__all__ = ["router", "verify_against_vocabulary"]

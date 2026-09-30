@@ -1,10 +1,10 @@
 """Resource ceilings for reasoning.
 
-The Datalog fixpoint and SHACL validation are CPU-bound and synchronous, and
-they run inside a thread pool with a finite number of workers. An unbounded
-input therefore does not merely make one request slow — it removes workers from
-every other request until the pool is exhausted, which turns a heavy query into
-an outage.
+A rule's join runs in the database, but its *result* still lands in this
+process, and the handler runs inside a thread pool with a finite number of
+workers. An unbounded result therefore does not merely make one request slow —
+it removes workers from every other request until the pool is exhausted, which
+turns a heavy query into an outage.
 
 ``max_reasoning_facts`` and ``reasoning_timeout_s`` were defined in the settings
 but had **no call site**: an operator could set them and observe nothing. This
@@ -81,20 +81,20 @@ class FactBudget:
 
 
 def check_declared_sizes(body: Any) -> None:
-    """Refuse an oversized request body before any work happens.
+    """Refuse an oversized request before any work happens.
 
-    Pydantic's ``max_length`` already bounds these lists at the transport
-    layer; this is the check that carries a ``kind``, so a caller gets a
-    structured reason rather than a validation-error blob it cannot branch on.
+    The ``limit`` a caller declares is the number of conclusions it will accept.
+    Bounding it here means an unreasonable one is refused with a structured
+    ``kind`` rather than by running a query whose result nobody can consume.
     """
     settings = get_settings()
-    declared = len(body.facts) + len(body.rules)
+    declared = int(getattr(body, "limit", 0) or 0)
     if declared > settings.max_reasoning_facts:
         reject(
             KIND_INPUT_TOO_LARGE,
             422,
             (
-                f"Request declares {declared} facts and rules, over the configured "
+                f"Request declares a limit of {declared}, over the configured "
                 f"ceiling of {settings.max_reasoning_facts} (MAX_REASONING_FACTS)."
             ),
             declared=declared,

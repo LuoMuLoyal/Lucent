@@ -1,10 +1,9 @@
 """Application composition: settings, connection pool and routers.
 
 Every handler in this service is a synchronous ``def``. The underlying work —
-``psycopg2`` against Apache AGE, the Datalog fixpoint, pyshacl validation — is
-blocking or CPU-bound, and FastAPI runs synchronous handlers in a thread pool.
-Declaring them ``async def`` would place that work on the event loop and stall
-every other request while it runs.
+the Neo4j driver, pyshacl validation — is blocking, and FastAPI runs synchronous
+handlers in a thread pool. Declaring them ``async def`` would place that work on
+the event loop and stall every other request while it runs.
 """
 
 from __future__ import annotations
@@ -12,11 +11,10 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 
-from .config import Settings, get_settings
+from .config import get_settings
 from .graph import StorePool
 from .logging_setup import configure_logging, log_event
 from .provenance import ProvenanceReader
@@ -30,7 +28,7 @@ __version__ = "0.1.0"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Open the AGE pool for the process lifetime.
+    """Open the Neo4j pool for the process lifetime.
 
     The pool holds connections, so it is created once per process rather than
     per request; ``close()`` returns them on shutdown. The provenance reader is
@@ -38,11 +36,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     been migrated yet must still start and still answer queries, reporting
     citations as unavailable rather than refusing to serve.
 
-    The rule library is loaded and checked against the graph's vocabulary here,
-    and a failure stops startup. The alternative is worse than a crash: a rule
-    that consumes a relationship type the graph does not have simply never
-    fires, so the service would answer every request with a confident "nothing
-    follows" that is indistinguishable from a real negative finding.
+    The rule library is checked against the graph's vocabulary here, and a
+    failure stops startup. The alternative is worse than a crash: a rule that
+    consumes a relationship type the graph does not have simply never fires, so
+    the service would answer every request with a confident "nothing follows"
+    that is indistinguishable from a real negative finding.
     """
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_format)
@@ -50,7 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.pool = pool
     app.state.settings = settings
     app.state.provenance = ProvenanceReader(settings)
-    app.state.rules = _load_rules(settings, pool)
+    app.state.rules = _check_rules(pool)
     log_event(
         logger,
         "service_started",
@@ -66,17 +64,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         log_event(logger, "service_stopped")
 
 
-def _load_rules(settings: Settings, pool: StorePool) -> RuleLibrary:
-    """Load the rule library and verify it against the live vocabulary.
+def _check_rules(pool: StorePool) -> RuleLibrary:
+    """Return the rule library, verified against the live vocabulary.
 
-    A graph that cannot be read is *not* a reason to refuse startup: the
-    service still answers``/health`` with 503, which is how a load balancer is
-    told to stop routing to it. The vocabulary check is therefore skipped when
-    the graph is unreachable, and reported through health instead of by
-    crashing the process.
+    A graph that cannot be read is *not* a reason to refuse startup: the service
+    still answers ``/health`` with 503, which is how a load balancer is told to
+    stop routing to it. The vocabulary check is therefore skipped when the graph
+    is unreachable, and reported through health instead of by crashing.
     """
-    directory = Path(settings.rules_dir) if settings.rules_dir else None
-    library = load_library(directory)
+    library = load_library()
     try:
         with pool.borrow() as store:
             stats = store.get_stats()

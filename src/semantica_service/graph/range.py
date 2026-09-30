@@ -130,6 +130,11 @@ class ResolvedScope:
     #: warfarin" and "the scope is warfarin plus 530 interaction partners" are
     #: different claims about what was reasoned over.
     seed_drug_keys: list[str] = field(default_factory=list)
+    #: UniProt ids of the proteins the scoped drugs act on. Kept out of
+    #: ``drug_keys`` on purpose: the two are different identifier namespaces, and
+    #: a Uniprot id in a set of DrugBank ids matches nothing while still being
+    #: counted as a drug.
+    protein_keys: list[str] = field(default_factory=list)
     labels: dict[str, str] = field(default_factory=dict)
     # True when a resolution query hit its limit, so the scope is a prefix of
     # what the caller named rather than all of it.
@@ -253,16 +258,22 @@ def _collect_neighbours(
     seeds: list[str],
     limit: int,
 ) -> None:
-    """Expand the named drugs into their interaction and protein neighbourhood.
+    """Expand the named drugs into their interaction neighbourhood.
 
     The expansion is bounded by ``limit`` and ordered, and hitting that bound
     sets ``truncated`` — a scope quietly capped at its first N neighbours would
     be the same false-negative machine the ordered export exists to remove.
+
+    Only *drug* neighbours are collected here. The protein neighbours are
+    recorded separately as ``protein_keys``: a UniProt id is not a DrugBank id,
+    and appending one to ``drug_keys`` would put an identifier into a set whose
+    every other member is matched against ``Drug.drugbank_id``. The old code did
+    exactly that, and the result was a key set that silently matched nothing for
+    those entries while inflating the reported drug count.
     """
     for query in (
         _INTERACTION_PARTNERS_OUT,
         _INTERACTION_PARTNERS_IN,
-        _PROTEIN_NEIGHBOURS,
     ):
         rows = _rows(store.execute_query(query, {"keys": seeds, "limit": limit}), "neighbour")
         for row in rows:
@@ -273,4 +284,15 @@ def _collect_neighbours(
             name = row.get("name")
             if name not in (None, ""):
                 resolved.labels[str(key).lower()] = str(name)
+        resolved.truncated = resolved.truncated or len(rows) >= limit
+
+    protein_rows = _rows(
+        store.execute_query(_PROTEIN_NEIGHBOURS, {"keys": seeds, "limit": limit}),
+        "protein neighbour",
+    )
+    for row in protein_rows:
+        key = row.get("key")
+        if key in (None, ""):
+            continue
+        resolved.protein_keys.append(str(key))
         resolved.truncated = resolved.truncated or len(rows) >= limit

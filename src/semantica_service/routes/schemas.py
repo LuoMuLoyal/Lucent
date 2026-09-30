@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # --- /schema ---------------------------------------------------------------
 
@@ -93,23 +93,6 @@ class ValidateResponse(BaseModel):
 # --- /reason ---------------------------------------------------------------
 
 
-class RuleSpec(BaseModel):
-    """A Datalog rule, in the textual syntax semantica parses.
-
-    Example: ``ancestor(X, Y) :- parent(X, Y).``
-    Inequalities are supported and were the subject of a fork fix:
-    ``conflict(X, Y) :- takes(X, D), takes(Y, D), X != Y.``
-    """
-
-    rule: str
-
-
-class FactSpec(BaseModel):
-    """A ground or rule-derived fact, e.g. ``parent(tom, bob)``."""
-
-    fact: str
-
-
 class ScopeSpecModel(BaseModel):
     """The subgraph a graph-backed inference runs over.
 
@@ -159,46 +142,61 @@ class ReasonRange(BaseModel):
 
 
 class ReasonRequest(BaseModel):
-    """Run Datalog inference over facts and rules."""
+    """Run the named rule's Cypher over the scoped graph.
 
-    rules: list[RuleSpec] = Field(default_factory=list, max_length=100)
-    facts: list[FactSpec] = Field(default_factory=list, max_length=20_000)
+    ``rules`` and ``facts`` were removed when the Datalog engine was replaced by
+    Cypher rules: there is no general-purpose evaluator to hand arbitrary rule
+    text to, so a request carrying one would either be ignored or would require
+    re-implementing the evaluator this migration removed.
+
+    ``extra="forbid"`` is what makes their removal *visible*. Without it Pydantic
+    ignores unknown keys, so a caller still sending ``rules`` would receive the
+    library rule's output while believing its own rule ran — a confident answer
+    to a question it did not ask. Rejecting the field turns that silent wrong
+    answer into a 422 naming the field.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
     intent: str | None = Field(
         default=None,
         description=(
-            "Name a rule from the versioned library instead of sending rule text. "
-            "Preferred: a conclusion has to be attributable to a reviewed rule, and "
-            "rule text supplied per request is text nobody reviewed. Exactly one of "
-            "`intent` / `rule_id` may be given alongside `load_from_graph`."
+            "Name a rule from the versioned library. A conclusion has to be "
+            "attributable to a reviewed rule, and a rule supplied per request is "
+            "text nobody reviewed. Exactly one of `intent` / `rule_id` is required."
         ),
     )
     rule_id: str | None = Field(
         default=None,
         description="Name a library rule by id rather than by intent.",
     )
-    # When true the graph is loaded as the initial fact set via
-    # load_from_graph, and `facts` is ignored.
-    load_from_graph: bool = False
+    # The rules are Cypher evaluated by the database, so the graph is the fact
+    # base and there is nothing to preload. Kept as an explicit flag so a caller
+    # written against the old contract gets a clear refusal instead of an empty
+    # answer: omitting it is the one mistake that would otherwise look like
+    # "nothing follows".
+    load_from_graph: bool = Field(
+        default=False,
+        description=(
+            "Must be true. The rules read the graph directly; there is no separate "
+            "fact base to load them with."
+        ),
+    )
     # Graph-backed inference requires a scope. `scope_all` is the explicit
-    # opt-in to the whole graph, which is only sound on a graph small enough to
-    # fit under `limit` — the response says whether it did.
+    # opt-in to the whole graph.
     scope: ScopeSpecModel | None = None
     scope_all: bool = Field(
         default=False,
         description=(
-            "Load the entire graph instead of a named scope. Sound only when the "
-            "graph fits under `limit`; the response reports `truncated` otherwise."
+            "Evaluate the rule over the entire graph instead of a named scope. "
+            "The response reports what the scope resolved to."
         ),
     )
     limit: int = Field(
         default=1000,
         ge=1,
         le=50_000,
-        description="Maximum nodes and edges to load when load_from_graph is set.",
-    )
-    query: str | None = Field(
-        default=None,
-        description="Optional goal, e.g. 'ancestor(tom, ?Y)'. Omit to return all derived facts.",
+        description="Maximum derived facts to return.",
     )
 
 

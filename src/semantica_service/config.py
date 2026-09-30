@@ -82,16 +82,13 @@ class Settings(BaseSettings):
     connect_timeout_s: int = Field(default=10, ge=1)
 
     # --- Reasoning ------------------------------------------------------
-    # Datalog fixpoint and SHACL validation are CPU-bound and synchronous;
-    # an unbounded input can pin a worker indefinitely.
+    # A rule's join and SHACL validation both run against the database now, so
+    # the work is bounded by the scope rather than by a local fixpoint. The cap
+    # stays because a rule over `scope_all` can still return every pair in the
+    # graph, and an unbounded response is an unbounded response whatever
+    # produces it.
     max_reasoning_facts: int = Field(default=50_000, ge=1)
     reasoning_timeout_s: int = Field(default=30, ge=1)
-    # `rules/*.yaml` shipped with the service. Overridable so a deployment can
-    # mount a reviewed rule set without rebuilding the image.
-    rules_dir: str = Field(
-        default="",
-        description="Directory holding the versioned rule library; empty uses the shipped set.",
-    )
 
     # --- Observability --------------------------------------------------
     # JSON by default: the service's useful output is quantitative (how many
