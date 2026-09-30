@@ -219,6 +219,63 @@ def _run_rule(
     return [row for row in result.get("records", []) if isinstance(row, dict)]
 
 
+def _resolve_names(
+    request: Request, rows: list[dict[str, object]]
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Map the conclusion endpoints to their display names and node types.
+
+    A conclusion is rendered as ``potential_ddi(DB00682, DB00188)``, which is a
+    stable identifier and not something a caller can show a user. The names are
+    resolved here, in one query over exactly the endpoints the answer mentions,
+    rather than by exporting the whole graph: the export that used to build this
+    map pulled thousands of nodes to label a handful of ids, and on a scope
+    returning three conclusions it was almost all waste.
+
+    Both maps are keyed by the identifier as it appears in the conclusion, so a
+    caller looks up ``subject``/``object`` directly.
+    """
+    keys = sorted(
+        {str(row[end]) for row in rows for end in ("subject", "object") if row.get(end) is not None}
+    )
+    if not keys:
+        return {}, {}
+
+    pool: StorePool = request.app.state.pool
+    try:
+        with pool.borrow() as store:
+            result = store.execute_query(
+                """
+                MATCH (n)
+                WHERE n.drugbank_id IN $keys
+                   OR n.uniprot_id IN $keys
+                   OR n.code IN $keys
+                RETURN coalesce(n.drugbank_id, n.uniprot_id, n.code) AS key,
+                       coalesce(n.name, n.code) AS name,
+                       head(labels(n)) AS type
+                """,
+                {"keys": keys},
+            )
+    except Exception:  # noqa: BLE001 - labelling must not fail the answer
+        # The conclusions are already computed and correct; failing the whole
+        # request because a display name could not be fetched would trade a
+        # readable answer for no answer. An empty map is honest: the client
+        # falls back to the identifier.
+        _logger.warning("could not resolve display names for %d keys", len(keys), exc_info=True)
+        return {}, {}
+
+    labels: dict[str, str] = {}
+    node_types: dict[str, str] = {}
+    for row in result.get("records", []):
+        if not isinstance(row, dict) or row.get("key") is None:
+            continue
+        key = str(row["key"])
+        if row.get("name") is not None:
+            labels[key] = str(row["name"])
+        if row.get("type") is not None:
+            node_types[key] = str(row["type"])
+    return labels, node_types
+
+
 def _conclusions(
     rule: CypherRule,
     rows: list[dict[str, object]],
@@ -289,6 +346,7 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
     budget = FactBudget(settings.max_reasoning_facts)
     rows = _run_rule(request, applied, seed_keys, limit=body.limit)
     budget.check(len(rows), source=f"rule {applied.id!r} over the scoped graph")
+    labels, node_types = _resolve_names(request, rows)
 
     return JSONResponse(
         content=ReasonResponse(
@@ -297,8 +355,8 @@ def reason(request: Request, body: ReasonRequest) -> JSONResponse:
                 f"{applied.head_predicate}({r.get('subject')}, {r.get('object')})" for r in rows
             ),
             bindings=None,
-            labels={},
-            node_types={},
+            labels=labels,
+            node_types=node_types,
             range=reason_range,
             rule=DerivedRuleInfo(**applied.describe()),
             conclusions=_conclusions(applied, rows),

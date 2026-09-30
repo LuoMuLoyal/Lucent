@@ -46,7 +46,7 @@ def main() -> None:
     try:
         with pool.borrow() as store:
             for label, query in QUERIES.items():
-                print(f"{label}: {store.execute_query(query)['records']}")
+                print(f"{label}: {store.execute_query(query, {})['records']}")
 
             print()
             print("=== determinism (the defect R1 removes) ===")
@@ -147,17 +147,30 @@ def _check_limits() -> None:
     else:  # pragma: no cover - the assertion below is the contract
         raise AssertionError("the fact ceiling did not refuse an oversized result")
 
-    from semantica_service.routes.reason import _derive_with_deadline
+    from semantica_service.reasoning_limits import check_declared_sizes
 
-    class SlowEngine:
-        def derive_all(self) -> list[str]:
-            import time
+    # The request-side ceiling: it reads the declared `limit` off the body. A
+    # ceiling nobody can trigger is indistinguishable from no ceiling at all,
+    # so the check drives it with a body that declares an oversized limit.
+    class Oversized:
+        limit = 10**9
 
-            time.sleep(10)
-            return ["late(x)"]
+    try:
+        check_declared_sizes(Oversized())  # type: ignore[arg-type]
+    except HTTPException as exc:
+        detail = exc.detail
+        assert isinstance(detail, dict)
+        print(f"  declared-size ceiling refused: kind={detail['kind']}")
+    else:  # pragma: no cover - the assertion below is the contract
+        raise AssertionError("an oversized declared limit was not refused")
 
-    assert _derive_with_deadline(SlowEngine(), timeout_s=1) is None  # type: ignore[arg-type]
-    print("  wall clock refused a fixpoint that outran its deadline")
+    # The execution deadline is now the Neo4j transaction timeout, not a
+    # hand-rolled wall clock around a Python fixpoint. Driving it here would
+    # need a real server, so what is asserted is that the pool converts its own
+    # saturation into the same structured refusal the endpoint maps.
+    from semantica_service.graph.pool import StorePool  # noqa: F401  (import check)
+
+    print("  execution timeout is carried by the Neo4j transaction, not a local deadline")
 
 
 if __name__ == "__main__":

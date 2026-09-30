@@ -72,13 +72,18 @@ def main() -> None:
         print(f"        {body['match_count']} matches across species={species}")
 
     print("\n=== /reason over the real graph, with labels ===")
-    rules = {
+    # `/reason` now applies a shipped Cypher rule chosen by intent; the caller
+    # no longer supplies a Datalog rule. `interaction` maps to the
+    # inhibitor/substrate rule, which is the same shape the old
+    # `shares_enzyme` example had.
+    request = {
         "load_from_graph": True,
         "limit": 5000,
-        "rules": [{"rule": ("shares_enzyme(A, B) :- inhibits(A, E), substrate_of(B, E), A != B.")}],
+        "intent": "interaction",
+        "scope": {"drug_names": ["Warfarin"]},
     }
     started = time.perf_counter()
-    status, body = call("POST", "/reason", rules)
+    status, body = call("POST", "/reason", request)
     elapsed = (time.perf_counter() - started) * 1000
     check("reason 200", status == 200, str(body)[:300])
     facts = body.get("derived", [])
@@ -87,38 +92,39 @@ def main() -> None:
     check("reason returns facts", len(facts) > 0)
     check("reason returns a label table", len(labels) > 0, f"{len(labels)} labels")
 
-    # The whole point: can a caller turn a fact into names?
-    shared = [f for f in facts if f.startswith("shares_enzyme(")]
-    check("derived shares_enzyme facts exist", len(shared) > 0, f"{len(shared)} found")
-    print(f"        {len(shared)} shares_enzyme facts")
+    # The whole point: can a caller turn a derived term into a name? The
+    # conclusion rows already carry the identifiers as separate fields, so they
+    # are read directly rather than parsed back out of the rendered fact string.
+    conclusions = body.get("conclusions") or []
+    derived = [row for row in conclusions if row.get("verifiability") == "derived"]
+    check("conclusions are marked derived", len(derived) > 0, f"{len(derived)} derived")
+    print(f"        {len(derived)} derived conclusions")
 
     unresolved = 0
     sample_lines = []
-    for fact in shared[:5]:
-        inner = fact[len("shares_enzyme(") : -1]
-        a, b = [p.strip() for p in inner.split(",")]
-        name_a, name_b = labels.get(a, f"<no label for {a}>"), labels.get(b, f"<no label for {b}>")
-        sample_lines.append(f"        {fact}  ->  {name_a}  ×  {name_b}")
-    for fact in shared:
-        inner = fact[len("shares_enzyme(") : -1]
-        a, b = [p.strip() for p in inner.split(",")]
-        if a not in labels or b not in labels:
+    for row in derived[:5]:
+        a, b = row["subject"], row["object"]
+        name_a = labels.get(a, f"<no label for {a}>")
+        name_b = labels.get(b, f"<no label for {b}>")
+        sample_lines.append(f"        {row['fact']}  ->  {name_a}  ×  {name_b}")
+    for row in derived:
+        if row["subject"] not in labels or row["object"] not in labels:
             unresolved += 1
     for line in sample_lines:
         print(line)
     check(
-        f"every derived term resolves to a name ({len(shared)} facts)",
+        f"every derived term resolves to a name ({len(derived)} conclusions)",
         unresolved == 0,
         f"{unresolved} unresolved",
     )
 
+    # Every conclusion must be citable: a conclusion whose premise carries no
+    # provenance id cannot be checked by the reader, and saying so is the point.
+    uncited = [row for row in derived if row.get("uncited_premises")]
+    check("every conclusion carries its premise provenance", not uncited, f"{uncited[:2]}")
+
     print("\n=== does the self-interaction guard hold? ===")
-    self_pairs = []
-    for fact in shared:
-        inner = fact[len("shares_enzyme(") : -1]
-        a, b = [p.strip() for p in inner.split(",")]
-        if a == b:
-            self_pairs.append(fact)
+    self_pairs = [row["fact"] for row in derived if row["subject"] == row["object"]]
     check("no self-pairs survive the inequality filter", len(self_pairs) == 0, str(self_pairs[:3]))
 
     print("\n=== /schema ===")

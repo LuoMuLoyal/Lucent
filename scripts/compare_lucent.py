@@ -26,9 +26,10 @@ from typing import Any
 
 import psycopg2
 import psycopg2.extras
-from semantica.graph_store.age_store import ApacheAgeStore
 
 from semantica_service.config import get_settings
+from semantica_service.graph.adapter import Neo4jGraphStore
+from semantica_service.graph.pool import StorePool
 
 SOURCE_DSN = "host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"
 
@@ -109,10 +110,21 @@ def lucent_passages_available(cur: Any) -> tuple[bool, str]:
 
 def main() -> None:
     settings = get_settings()
-    store = ApacheAgeStore(connection_string=settings.age_dsn, graph_name=settings.graph_name)
-    store.connect()
+    pool = StorePool(settings)
+    with pool.borrow() as store:
+        run_comparison(store)
+
+
+def run_comparison(store: Neo4jGraphStore) -> None:
     conn = psycopg2.connect(SOURCE_DSN)
     conn.set_session(readonly=True)
+    try:
+        _compare(store, conn)
+    finally:
+        conn.close()
+
+
+def _compare(store: Neo4jGraphStore, conn: Any) -> None:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     ok, why = lucent_passages_available(cur)
@@ -177,7 +189,7 @@ def main() -> None:
         MATCH (a:Drug {name:'Paroxetine'})-[i:INTERACTS_WITH]-(b:Drug {name:'Tramadol'})
         RETURN a.name AS a, b.name AS b, i.description AS note
         """,
-        None,
+        {},
     )
     gms = (time.perf_counter() - t0) * 1000
     grows = res.get("records", []) if res.get("success") else []
@@ -218,9 +230,6 @@ def main() -> None:
     with open("out_compare_lucent.json", "w", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=2, default=str)
     print("\nwrote out_compare_lucent.json")
-
-    conn.close()
-    store.close()
 
 
 if __name__ == "__main__":

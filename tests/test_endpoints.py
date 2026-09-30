@@ -95,9 +95,20 @@ class RuleStore(StubStore):
     rule's join would produce.
     """
 
-    def __init__(self, rows: list[dict[str, Any]] | None = None) -> None:
+    def __init__(
+        self,
+        rows: list[dict[str, Any]] | None = None,
+        names: list[dict[str, Any]] | None = None,
+    ) -> None:
         super().__init__()
         self._rows = rows or []
+        # What the display-name lookup returns for the conclusion endpoints.
+        # Defaulted to a resolving map so most tests exercise the reasoning
+        # rather than the labelling.
+        self._names = names if names is not None else [
+            {"key": "DB00945", "name": "Aspirin", "type": "Drug"},
+            {"key": "DB00682", "name": "Warfarin", "type": "Drug"},
+        ]
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
         # The rule joins are the only statements that project premise ids.
@@ -105,6 +116,10 @@ class RuleStore(StubStore):
             self.queries.append(query)
             self.parameters.append(parameters)
             return {"success": True, "records": list(self._rows)}
+        if "coalesce(n.drugbank_id" in query:
+            self.queries.append(query)
+            self.parameters.append(parameters)
+            return {"success": True, "records": list(self._names)}
         return super().execute_query(query, parameters)
 
 
@@ -428,6 +443,61 @@ def test_a_conclusion_carries_the_provenance_of_both_premises(
     citations = body["conclusions"][0]["citations"]
     assert len(citations) == 2
     assert "DB1" in citations[0] and "DB2" in citations[1]
+
+
+def test_the_answer_carries_names_for_the_identifiers_it_returns(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """A conclusion is returned as identifiers, so the names must come with it.
+
+    `potential_ddi(DB00682, DB00188)` is not something a caller can show a user.
+    These maps used to be built by exporting the whole graph; the rewrite left
+    them hardcoded empty, so the endpoint answered with bare ids and no way to
+    render them. Nothing failed — the response was well-formed and simply
+    unusable — which is why this is pinned.
+    """
+    rows = [{"subject": "DB00945", "object": "DB00682", "premise_1": "p", "premise_2": "q"}]
+    with build_client(monkeypatch, RuleStore(rows), settings) as client:
+        body = client.post("/reason", json=reason_rule()).json()
+
+    assert body["labels"] == {"DB00945": "Aspirin", "DB00682": "Warfarin"}
+    assert body["node_types"] == {"DB00945": "Drug", "DB00682": "Drug"}
+
+
+def test_only_the_returned_endpoints_are_looked_up(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """The lookup is bounded by the answer, not by the graph.
+
+    Labelling by exporting the graph pulled thousands of nodes to name a handful
+    of ids; on a scope returning three conclusions almost all of it was waste.
+    """
+    rows = [{"subject": "DB00945", "object": "DB00682", "premise_1": "p", "premise_2": "q"}]
+    store = RuleStore(rows)
+    with build_client(monkeypatch, store, settings) as client:
+        client.post("/reason", json=reason_rule())
+
+    lookup = [p for q, p in zip(store.queries, store.parameters, strict=False) if "coalesce" in q]
+    assert lookup, "the display-name lookup did not run"
+    assert lookup[0]["keys"] == ["DB00682", "DB00945"]
+
+
+def test_a_missing_name_does_not_fail_the_answer(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Labelling is a convenience; losing it must not cost the conclusions.
+
+    An unresolvable key is reported by omission so the client falls back to the
+    identifier, rather than turning a correct answer into an error.
+    """
+    rows = [{"subject": "DB00945", "object": "DB00682", "premise_1": "p", "premise_2": "q"}]
+    store = RuleStore(rows, names=[{"key": "DB00945", "name": "Aspirin", "type": "Drug"}])
+    with build_client(monkeypatch, store, settings) as client:
+        body = client.post("/reason", json=reason_rule()).json()
+
+    assert body["fact_count"] == 1
+    assert body["labels"] == {"DB00945": "Aspirin"}
+    assert "DB00682" not in body["labels"]
 
 
 def test_a_conclusion_missing_a_premise_says_so_rather_than_hiding_it(

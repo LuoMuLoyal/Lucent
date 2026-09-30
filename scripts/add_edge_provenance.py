@@ -56,10 +56,11 @@ from typing import Any
 
 import psycopg2
 import psycopg2.extras
-from semantica.graph_store.age_store import ApacheAgeStore
 from semantica.provenance import PostgresStorage, ProvenanceManager
 
 from semantica_service.config import get_settings
+from semantica_service.graph.adapter import Neo4jGraphStore
+from semantica_service.graph.pool import StorePool
 from semantica_service.provenance.ids import (
     PREFIX,
     activity_prov_id,
@@ -478,14 +479,19 @@ def match_pattern(rel_type: str) -> str:
     return f"(a:Drug)-[r:{rel_type}]->(b:Protein)"
 
 
-def run_graph_pass(store: ApacheAgeStore) -> None:
-    """Write the provenance id onto every edge, one statement per type."""
+def run_graph_pass(store: Neo4jGraphStore) -> None:
+    """Write the provenance id onto every edge, one statement per type.
+
+    Note the ids are derived from the endpoints' own properties, never from the
+    graph's internal element id: an element id is not stable across a reload,
+    so ids derived from it would silently change meaning on the next import.
+    """
     print("== graph pass: prov ids onto the edges ==")
     started = time.perf_counter()
     for rel_type, expression in graph_statements():
         query = f"MATCH {match_pattern(rel_type)} SET r.prov = {expression} RETURN count(r) AS n"
         try:
-            result = store.execute_query(query)
+            result = store.execute_query(query, {})
         except Exception as exc:  # noqa: BLE001 - one bad type must not hide the rest
             print(f"  {rel_type:20} FAILED: {type(exc).__name__}: {exc}")
             continue
@@ -709,11 +715,11 @@ def run_store_pass_via_manager(
 # --------------------------------------------------------------------------
 
 
-def graph_ids(store: ApacheAgeStore) -> set[str]:
+def graph_ids(store: Neo4jGraphStore) -> set[str]:
     """Every provenance id currently written on an edge."""
     ids: set[str] = set()
     for rel_type, _ in graph_statements():
-        result = store.execute_query(f"MATCH {match_pattern(rel_type)} RETURN r.prov AS prov")
+        result = store.execute_query(f"MATCH {match_pattern(rel_type)} RETURN r.prov AS prov", {})
         for record in result.get("records", []):
             value = record.get("prov")
             if value:
@@ -722,7 +728,7 @@ def graph_ids(store: ApacheAgeStore) -> set[str]:
 
 
 def run_verify(
-    store: ApacheAgeStore,
+    store: Neo4jGraphStore,
     manager: ProvenanceManager,
     rows: list[ProvRow],
     *,
@@ -821,11 +827,11 @@ def main() -> None:
     run_checks = args.verify or not (args.graph or args.store or args.verify)
 
     settings = get_settings()
-    store = ApacheAgeStore(connection_string=settings.age_dsn, graph_name=settings.graph_name)
-    store.connect()
+    pool = StorePool(settings)
 
-    if run_graph:
-        run_graph_pass(store)
+    with pool.borrow() as store:
+        if run_graph:
+            run_graph_pass(store)
 
     storage = PostgresStorage(
         connection_string=settings.provenance_dsn,

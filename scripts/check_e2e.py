@@ -64,60 +64,98 @@ def main() -> int:
     status, body = call("GET", "/schema")
     check("schema returns 200", status == 200, f"got {status}")
     labels = {item["label"] for item in body.get("labels", [])}
-    check("schema lists Drug and Protein", labels == {"Drug", "Protein"}, f"labels={labels}")
+    # A superset assertion, not equality: the graph may gain a label and that is
+    # not a failure of this check. Equality would fail on a correct graph the
+    # moment a label is added, which is how this check went red while the graph
+    # was right.
+    check("schema lists Drug and Protein", {"Drug", "Protein"} <= labels, f"labels={labels}")
     types = {item["label"] for item in body.get("relationship_types", [])}
-    check("schema lists both edge types", types == {"TARGETS", "INTERACTS_WITH"}, f"types={types}")
+    check(
+        "schema lists the interaction and mechanism edge types",
+        {"INTERACTS_WITH", "ACTS_ON", "INHIBITS", "SUBSTRATE_OF"} <= types,
+        f"types={types}",
+    )
 
     print()
     print("=== /reason (over the live graph) ===")
-    # Reachability across the graph: which drugs share a target protein?
-    # Facts are built from each node's canonical identifier (drugbank_id),
-    # lowercased by add_fact, so results are ids rather than display names.
+    # `/reason` derives from the shipped Cypher rules; the scope is the drug the
+    # caller names. The old form of this check posted a Datalog rule and a query,
+    # which the endpoint no longer accepts — that is now a 422 by design, so
+    # posting it would have tested the refusal rather than the reasoning.
     status, body = call(
         "POST",
         "/reason",
         {
             "load_from_graph": True,
-            "rules": [
-                {"rule": "shares_target(X, Y) :- targets(X, P), targets(Y, P), X != Y."},
-            ],
-            "query": "shares_target(db00945, ?Y)",
+            "intent": "shared_target",
+            "scope": {"drug_names": ["Warfarin"]},
         },
     )
     check("reason returns 200", status == 200, f"got {status}: {body}")
-    bindings = body.get("bindings") or []
-    partners = {row.get("Y") for row in bindings}
-    # db00945 is Aspirin, db01050 is Ibuprofen; both target COX-1.
+    conclusions = body.get("conclusions") or []
     check(
-        "shared-target inference finds Ibuprofen (db01050)",
-        "db01050" in partners,
-        f"bindings={bindings}",
+        "shared-target inference returns conclusions",
+        len(conclusions) > 0,
+        f"conclusions={conclusions[:3]}",
+    )
+    # Warfarin is present in this bounded subgraph and has a known count. The
+    # earlier version of this check named Aspirin, which the graph does not
+    # contain at all — it asserted on a drug that was never loaded.
+    check(
+        "the scope is the named drug, not its whole neighbourhood",
+        len(conclusions) <= 100,
+        f"{len(conclusions)} conclusions: a neighbour-set scope returned 500 here",
     )
     # Aspirin must not be inferred as sharing a target with itself.
     check(
         "no self-conflict in the inferred set",
-        not any(row.get("Y") == "db00945" for row in bindings),
-        f"bindings={bindings}",
+        not any(row.get("subject") == row.get("object") for row in conclusions),
+        f"conclusions={conclusions[:3]}",
+    )
+    # Every conclusion must be citable: a conclusion whose premise has no
+    # provenance id cannot be checked by the reader.
+    uncited = body.get("uncited_premises") or []
+    check("every conclusion carries its premise provenance", not uncited, f"uncited={uncited}")
+    # A drug the graph does not contain must be refused, not silently widened to
+    # the whole graph: an empty scope that reads as "no relations" is the most
+    # misleading possible answer.
+    status, body = call(
+        "POST",
+        "/reason",
+        {
+            "load_from_graph": True,
+            "intent": "shared_target",
+            "scope": {"drug_names": ["NoSuchDrugNameAnywhere"]},
+        },
+    )
+    check(
+        "an unknown drug name is refused rather than widened",
+        status == 422 and body.get("detail", {}).get("kind") == "scope_matched_nothing",
+        f"got {status}: {body}",
     )
 
     print()
     print("=== /validate (violation expected) ===")
+    # The path must be one the export actually writes. `lucent:name` was used
+    # here before and reported 0 violations: the shape selected real Drug nodes
+    # but the path matched nothing, so "conforms" was a clean pass from a check
+    # that never ran. `drugbank_id` is a property the export really emits.
     shapes = """
     @prefix sh: <http://www.w3.org/ns/shacl#> .
     @prefix lucent: <http://lucent.local/graph#> .
 
-    lucent:ProteinShape a sh:NodeShape ;
-        sh:targetClass lucent:Protein ;
+    lucent:DrugShape a sh:NodeShape ;
+        sh:targetClass lucent:Drug ;
         sh:property [
-            sh:path lucent:name ;
+            sh:path lucent:no_such_property_exists ;
             sh:minCount 1 ;
-            sh:message "A Protein must have a name." ;
+            sh:message "This property does not exist, so this must not conform." ;
         ] .
     """
     status, body = call("POST", "/validate", {"shacl": shapes, "explain": True})
     check("validate returns 200", status == 200, f"got {status}: {body}")
     check(
-        "validate detects the unnamed Protein",
+        "validate reports a non-conforming graph",
         body.get("conforms") is False,
         f"conforms={body.get('conforms')}",
     )
@@ -136,7 +174,7 @@ def main() -> int:
     lucent:DrugShape a sh:NodeShape ;
         sh:targetClass lucent:Drug ;
         sh:property [
-            sh:path lucent:name ;
+            sh:path lucent:drugbank_id ;
             sh:minCount 1 ;
         ] .
     """
@@ -149,8 +187,17 @@ def main() -> int:
 
     print()
     print("=== error handling ===")
-    status, _ = call("POST", "/reason", {"rules": [{"rule": "a(X) :- b(X)."}]})
-    check("empty fact base is 422", status == 422, f"got {status}")
+    # A legacy Datalog payload: the fields are gone by design, and the point of
+    # rejecting them is that a caller who sends them must not receive a confident
+    # answer derived from a rule it did not run.
+    status, body = call("POST", "/reason", {"rules": [{"rule": "a(X) :- b(X)."}]})
+    check("a legacy rules payload is 422", status == 422, f"got {status}")
+    detail = json.dumps(body)
+    check(
+        "the refusal names the field that was removed",
+        "rules" in detail,
+        f"detail={detail[:200]}",
+    )
 
     status, _ = call("POST", "/validate", {"shacl": lenient, "ontology": {"concepts": []}})
     check("both shape sources is 422", status == 422, f"got {status}")

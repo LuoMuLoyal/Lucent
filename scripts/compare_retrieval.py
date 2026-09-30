@@ -23,9 +23,10 @@ from typing import Any
 
 import psycopg2
 import psycopg2.extras
-from semantica.graph_store.age_store import ApacheAgeStore
 
 from semantica_service.config import get_settings
+from semantica_service.graph.adapter import Neo4jGraphStore
+from semantica_service.graph.pool import StorePool
 
 SOURCE_DSN = "host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"
 
@@ -163,8 +164,12 @@ QUESTIONS: list[dict[str, Any]] = [
 
 def main() -> None:
     settings = get_settings()
-    store = ApacheAgeStore(connection_string=settings.age_dsn, graph_name=settings.graph_name)
-    store.connect()
+    pool = StorePool(settings)
+    with pool.borrow() as store:
+        run_comparison(store)
+
+
+def run_comparison(store: Neo4jGraphStore) -> None:
     stats = store.get_stats()
     print("== graph under test ==")
     print(f"  nodes={stats.get('node_count')} edges={stats.get('relationship_count')}")
@@ -173,92 +178,93 @@ def main() -> None:
 
     report: list[dict[str, Any]] = []
 
-    for q in QUESTIONS:
+    try:
+        for q in QUESTIONS:
+            print("\n" + "=" * 78)
+            print(f"[{q['id']}] {q['question']}")
+            print(f"  扁平基线说明: {q['flat_note']}")
+
+            t0 = time.perf_counter()
+            try:
+                gres = store.execute_query(q["graph"]["cypher"].strip(), {})
+                grows = gres.get("records", []) if gres.get("success") else []
+                gerr = None if gres.get("success") else gres.get("error")
+            except Exception as exc:  # noqa: BLE001
+                grows, gerr = [], f"{type(exc).__name__}: {exc}"
+            gms = (time.perf_counter() - t0) * 1000
+
+            suffix = f" ERR={gerr}" if gerr else ""
+            print(f"\n  [OAG 图遍历] {len(grows)} 行 / {gms:.0f} ms{suffix}")
+            for row in grows[:5]:
+                print(f"      {row}")
+
+            t0 = time.perf_counter()
+            frows = flat_search(cur, q["flat_terms"], limit=8)
+            fms = (time.perf_counter() - t0) * 1000
+            print(f"\n  [扁平全文检索] {len(frows)} 行 / {fms:.0f} ms  (query={q['flat_terms']!r})")
+            for row in frows[:5]:
+                print(f"      {row['name']} ({row['drugbank_id']}) rank={row['rank']:.4f}")
+
+            report.append(
+                {
+                    "id": q["id"],
+                    "question": q["question"],
+                    "flat_note": q["flat_note"],
+                    "graph_rows": len(grows),
+                    "graph_ms": round(gms, 1),
+                    "graph_error": gerr,
+                    "graph_sample": grows[:8],
+                    "flat_rows": len(frows),
+                    "flat_ms": round(fms, 1),
+                    "flat_sample": [r["name"] for r in frows],
+                }
+            )
+
+        # A concrete "no flat equivalent" case, run both ways.
         print("\n" + "=" * 78)
-        print(f"[{q['id']}] {q['question']}")
-        print(f"  扁平基线说明: {q['flat_note']}")
-
+        print("[q5_two_drug_interaction] 帕罗西汀 与 曲马多 是否直接相互作用？")
         t0 = time.perf_counter()
-        try:
-            gres = store.execute_query(q["graph"]["cypher"].strip(), None)
-            grows = gres.get("records", []) if gres.get("success") else []
-            gerr = None if gres.get("success") else gres.get("error")
-        except Exception as exc:  # noqa: BLE001
-            grows, gerr = [], f"{type(exc).__name__}: {exc}"
-        gms = (time.perf_counter() - t0) * 1000
-
-        print(f"\n  [OAG 图遍历] {len(grows)} 行 / {gms:.0f} ms" + (f" ERR={gerr}" if gerr else ""))
-        for row in grows[:5]:
+        ires = store.execute_query(
+            """
+            MATCH (a:Drug {name: 'Paroxetine'})-[i:INTERACTS_WITH]-(b:Drug {name: 'Tramadol'})
+            RETURN a.name AS a, b.name AS b, left(i.description, 200) AS note
+            """,
+            {},
+        )
+        ims = (time.perf_counter() - t0) * 1000
+        irows = ires.get("records", []) if ires.get("success") else []
+        print(f"  [OAG 直接问答] {len(irows)} 行 / {ims:.0f} ms")
+        for row in irows[:3]:
             print(f"      {row}")
 
         t0 = time.perf_counter()
-        frows = flat_search(cur, q["flat_terms"], limit=8)
-        fms = (time.perf_counter() - t0) * 1000
-        print(f"\n  [扁平全文检索] {len(frows)} 行 / {fms:.0f} ms  (query={q['flat_terms']!r})")
-        for row in frows[:5]:
-            print(f"      {row['name']} ({row['drugbank_id']}) rank={row['rank']:.4f}")
+        f2 = flat_lookup_interaction(cur, "Paroxetine", "Tramadol")
+        f2ms = (time.perf_counter() - t0) * 1000
+        print(f"  [扁平: 读帕罗西汀的相互作用数组再过滤] {len(f2)} 行 / {f2ms:.0f} ms")
+        for row in f2[:3]:
+            print(f"      {row}")
+        print("  注意: 该扁平路径要求调用方已知帕罗西汀是「哪一条」记录，且只查一个方向。")
 
         report.append(
             {
-                "id": q["id"],
-                "question": q["question"],
-                "flat_note": q["flat_note"],
-                "graph_rows": len(grows),
-                "graph_ms": round(gms, 1),
-                "graph_error": gerr,
-                "graph_sample": grows[:8],
-                "flat_rows": len(frows),
-                "flat_ms": round(fms, 1),
-                "flat_sample": [r["name"] for r in frows],
+                "id": "q5_two_drug_interaction",
+                "question": "帕罗西汀 与 曲马多 是否直接相互作用？",
+                "flat_note": "扁平路径需先把一方整条交互数组取出再在调用方过滤，且单向",
+                "graph_rows": len(irows),
+                "graph_ms": round(ims, 1),
+                "graph_error": None,
+                "graph_sample": irows[:5],
+                "flat_rows": len(f2),
+                "flat_ms": round(f2ms, 1),
+                "flat_sample": [r["target_name"] for r in f2],
             }
         )
 
-    # A concrete "no flat equivalent" case, run both ways.
-    print("\n" + "=" * 78)
-    print("[q5_two_drug_interaction] 帕罗西汀 与 曲马多 是否直接相互作用？")
-    t0 = time.perf_counter()
-    ires = store.execute_query(
-        """
-        MATCH (a:Drug {name: 'Paroxetine'})-[i:INTERACTS_WITH]-(b:Drug {name: 'Tramadol'})
-        RETURN a.name AS a, b.name AS b, left(i.description, 200) AS note
-        """,
-        None,
-    )
-    ims = (time.perf_counter() - t0) * 1000
-    irows = ires.get("records", []) if ires.get("success") else []
-    print(f"  [OAG 直接问答] {len(irows)} 行 / {ims:.0f} ms")
-    for row in irows[:3]:
-        print(f"      {row}")
-
-    t0 = time.perf_counter()
-    f2 = flat_lookup_interaction(cur, "Paroxetine", "Tramadol")
-    f2ms = (time.perf_counter() - t0) * 1000
-    print(f"  [扁平: 读帕罗西汀的相互作用数组再过滤] {len(f2)} 行 / {f2ms:.0f} ms")
-    for row in f2[:3]:
-        print(f"      {row}")
-    print("  注意: 该扁平路径要求调用方已知帕罗西汀是「哪一条」记录，且只查一个方向。")
-
-    report.append(
-        {
-            "id": "q5_two_drug_interaction",
-            "question": "帕罗西汀 与 曲马多 是否直接相互作用？",
-            "flat_note": "扁平路径需先把一方整条交互数组取出再在调用方过滤，且单向",
-            "graph_rows": len(irows),
-            "graph_ms": round(ims, 1),
-            "graph_error": None,
-            "graph_sample": irows[:5],
-            "flat_rows": len(f2),
-            "flat_ms": round(f2ms, 1),
-            "flat_sample": [r["target_name"] for r in f2],
-        }
-    )
-
-    with open("out_compare.json", "w", encoding="utf-8") as handle:
-        json.dump(report, handle, ensure_ascii=False, indent=2, default=str)
-    print("\nwrote out_compare.json")
-
-    conn.close()
-    store.close()
+        with open("out_compare.json", "w", encoding="utf-8") as handle:
+            json.dump(report, handle, ensure_ascii=False, indent=2, default=str)
+        print("\nwrote out_compare.json")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

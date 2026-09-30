@@ -66,12 +66,9 @@ select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG", "T20"]
 # print ban applies to the service and tests only. Test doubles must keep the
 # real store's signature (`execute_query(self, query, parameters=None)`) to stay
 # substitutable, which leaves those arguments unused by design.
-# The verification-report generator embeds Chinese prose in markdown literals,
-# where wrapping is governed by the document rather than by line length.
 [tool.ruff.lint.per-file-ignores]
 "scripts/*" = ["T201"]
 "tests/*" = ["ARG002"]
-"scripts/write_verification_scale.py" = ["T201", "E501"]
 
 [tool.mypy]
 python_version = "3.13"

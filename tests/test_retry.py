@@ -59,10 +59,28 @@ TIMEOUT = RuntimeError(
     "{message: The transaction has been terminated.}"
 )
 
+# The provenance store is still PostgreSQL, and this is the message libpq raises
+# when the server goes away mid-read. It was classified transient before the
+# graph moved to Neo4j; the Neo4j marker list replaced it wholesale, so the
+# dropped provenance connection became a permanent failure with no test to
+# notice. Pinned here because the classifier is shared by both backends.
+PROVENANCE_CONNECTION_DROPPED = RuntimeError("server closed the connection unexpectedly")
+
 
 class TestClassification:
     def test_a_dropped_connection_is_transient(self) -> None:
         assert classify(CONNECTION_DROPPED) is TransientReadError
+
+    def test_a_dropped_provenance_connection_is_transient(self) -> None:
+        """The other backend's transport failure must stay retryable.
+
+        The classifier is shared: the graph is Neo4j, but the provenance store is
+        PostgreSQL. Migrating the graph replaced the marker list with Neo4j's and
+        silently dropped libpq's, which turned a recoverable dropped connection
+        into a permanent failure. Nothing caught it until the transport check
+        script was run against the real database.
+        """
+        assert classify(PROVENANCE_CONNECTION_DROPPED) is TransientReadError
 
     def test_a_syntax_error_is_permanent(self) -> None:
         assert classify(SYNTAX_ERROR) is PermanentReadError

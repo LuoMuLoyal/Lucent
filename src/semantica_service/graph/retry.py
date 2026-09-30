@@ -60,7 +60,14 @@ _PERMANENT_MARKERS = (
 #: Neo4j reports these as ``ServiceUnavailable`` / ``SessionExpired`` /
 #: ``TransientError``; the driver's own text is matched too, because the
 #: wrapping above can leave only the message.
+#:
+#: The libpq/psycopg2 texts are kept even though the *graph* no longer runs on
+#: Postgres: the provenance store still does, and this classifier is the one
+#: `read_with_retry` consults for it. Dropping them when the graph moved would
+#: have quietly turned a recoverable dropped connection into a permanent
+#: failure — measured, and the reason they are listed explicitly here.
 _TRANSIENT_MARKERS = (
+    # Neo4j / Bolt
     "serviceunavailable",
     "sessionexpired",
     "transienterror",
@@ -71,6 +78,14 @@ _TRANSIENT_MARKERS = (
     "deadlock",
     "leader switch",
     "no longer available",
+    # libpq / psycopg2 (the provenance store still connects this way)
+    "server closed the connection unexpectedly",
+    "connection already closed",
+    "connection reset by peer",
+    "terminating connection",
+    "ssl connection has been closed",
+    "deadlock detected",
+    "could not serialize access",
 )
 
 
@@ -189,4 +204,4 @@ def read_with_retry(
             active.sleep(delay)
 
     assert last is not None  # only reachable after a caught exception
-    raise TransientReadError(f"AGE read failed after {attempts} attempt(s): {last}") from last
+    raise TransientReadError(f"graph read failed after {attempts} attempt(s): {last}") from last

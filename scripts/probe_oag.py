@@ -14,13 +14,12 @@ import argparse
 import time
 from typing import Any
 
-from semantica.graph_store.age_store import ApacheAgeStore
-
 from semantica_service.config import get_settings
+from semantica_service.graph.pool import StorePool
 
 # Each probe is (key, description, cypher, params).
-# `id(a) <> id(b)` is used instead of comparing a business key, because the
-# graph has no guaranteed-unique comparison property that AGE indexes.
+# `a <> b` is used instead of comparing a business key: not every label carries
+# `drugbank_id`, and comparing identifiers across labels would compare nulls.
 PROBES: list[tuple[str, str, str, dict[str, Any]]] = [
     (
         "cyp_mediated_ddi",
@@ -116,48 +115,47 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     settings = get_settings()
-    store = ApacheAgeStore(connection_string=settings.age_dsn, graph_name=settings.graph_name)
-    store.connect()
 
-    stats = store.get_stats()
-    print("== graph ==")
-    print(f"  nodes: {stats.get('node_count')}  edges: {stats.get('relationship_count')}")
-    print(f"  labels: {stats.get('label_counts')}")
-    print(f"  edge types: {len(stats.get('relationship_type_counts') or {})}")
-    print()
-
-    probes = [p for p in PROBES if args.only is None or p[0] == args.only]
-    passed = failed = 0
-
-    for key, desc, cypher, params in probes:
-        print("=" * 78)
-        print(f"[{key}] {desc}")
-        started = time.perf_counter()
-        try:
-            result = store.execute_query(cypher.strip(), params or None)
-        except Exception as exc:  # noqa: BLE001 - one bad probe must not stop the run
-            print(f"  EXCEPTION {type(exc).__name__}: {str(exc)[:220]}")
-            failed += 1
-            continue
-        elapsed = (time.perf_counter() - started) * 1000
-
-        if not result.get("success"):
-            print(f"  FAILED: {result.get('error')}")
-            failed += 1
-            continue
-
-        records = result.get("records", [])
-        passed += 1
-        print(f"  rows={len(records)}  {elapsed:.0f} ms  cols={result.get('keys')}")
-        for row in records[: args.show]:
-            print(f"    {row}")
-        if len(records) > args.show:
-            print(f"    ... {len(records) - args.show} more")
+    pool = StorePool(settings)
+    with pool.borrow() as store:
+        stats = store.get_stats()
+        print("== graph ==")
+        print(f"  nodes: {stats.get('node_count')}  edges: {stats.get('relationship_count')}")
+        print(f"  labels: {stats.get('label_counts')}")
+        print(f"  edge types: {len(stats.get('relationship_type_counts') or {})}")
         print()
 
-    print("=" * 78)
-    print(f"probes passed {passed}, failed {failed}")
-    store.close()
+        probes = [p for p in PROBES if args.only is None or p[0] == args.only]
+        passed = failed = 0
+
+        for key, desc, cypher, params in probes:
+            print("=" * 78)
+            print(f"[{key}] {desc}")
+            started = time.perf_counter()
+            try:
+                result = store.execute_query(cypher.strip(), params)
+            except Exception as exc:  # noqa: BLE001 - one bad probe must not stop the run
+                print(f"  EXCEPTION {type(exc).__name__}: {str(exc)[:220]}")
+                failed += 1
+                continue
+            elapsed = (time.perf_counter() - started) * 1000
+
+            if not result.get("success"):
+                print(f"  FAILED: {result.get('error')}")
+                failed += 1
+                continue
+
+            records = result.get("records", [])
+            passed += 1
+            print(f"  rows={len(records)}  {elapsed:.0f} ms  cols={result.get('keys')}")
+            for row in records[: args.show]:
+                print(f"    {row}")
+            if len(records) > args.show:
+                print(f"    ... {len(records) - args.show} more")
+            print()
+
+        print("=" * 78)
+        print(f"probes passed {passed}, failed {failed}")
 
 
 if __name__ == "__main__":

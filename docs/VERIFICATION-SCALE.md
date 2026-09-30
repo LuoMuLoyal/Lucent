@@ -1,6 +1,14 @@
 # 扩量验证：OAG 中规模实测（895 药 / 21 万边）
 
-> 由 `scripts/write_verification_scale.py` 生成，数字取自**当前运行中的**
+> **历史文件（2026-09-19 的快照）。** 数字取自当时的 AGE 部署，其中**关系类型
+> 一项已过时**（原文 26 种；实测为 **21 种**，见下）。图后端已于 2026-09-30
+> 迁移到 Neo4j，本文描述的操作路径（AGE 导出 / `load_graph.py`）**已不存在**：
+> 取代它的是 `scripts/load_graph_neo4j.py`，其生成器
+> `scripts/write_verification_scale.py` 已随 AGE 适配器一并删除。**本文只作为
+> 当时判断的留档，不应作为当前规模或操作依据。** 当前图规模与连接自检见
+> `scripts/check_graph_connection.py`。
+
+> 原注：由 `scripts/write_verification_scale.py` 生成，数字取自**当前运行中的**
 > `semantica-service` 与 `lucent-postgres-dev` 上的真实数据。
 > 试点（`semantica-oag-pilot`）仅作可行性判断，结论不沿用，以本文实测为准。
 
@@ -13,7 +21,7 @@
 | Drug | 895 |
 | Protein | 916 |
 | ATCClass | 1467 |
-| 关系类型 | 26 种 |
+| 关系类型 | ~~26 种~~ → **21 种**（Neo4j 迁移时实测订正） |
 
 选材口径：20 个 ATC 四位数类目（N06A/N05A/N03A/M01A/C10A/J01C/L01X/L04A…）
 并集 12 个锚点药，取诱导子图。相对试点的 86 药 / 6784 边，边数扩大约 31×。
@@ -25,8 +33,8 @@
 token 消耗为 0。这与试点 `ontology_map.py` 是同一条路子。
 
 ```
-lucent 源表 --(只读 SELECT)--> JSONL --(查表 + UNWIND)--> Apache AGE
-        export_subgraph.py          load_graph.py / ACTION_EDGE
+lucent 源表 --(只读 SELECT)--> JSONL --(查表 + UNWIND)--> Neo4j
+        export_subgraph.py          load_graph_neo4j.py / ACTION_EDGE
 ```
 
 映射键是**二维**的：同一个动词在不同 relation_kind 下含义不同。
@@ -153,16 +161,21 @@ name*），用 `contains` 匹配。实测按契约输入正常：`Paroxetine` �
 
 ## 5. 六个类型化多跳探测（`scripts/probe_oag.py`）
 
-| 探测 | 行数 | 耗时 |
-| --- | --- | --- |
-| `cyp_mediated_ddi` | 40 | 485 ms |
-| `shared_targets` | 15 | 150 ms |
-| `cascade_metabolic_chain`（4 跳） | 25 | 1895 ms |
-| `inhibition_plus_interaction` | 20 | 21 ms |
-| `serotonergic_overlap` | 30 | 23 ms |
-| `atc_class_hub_targets`（层级下钻） | 15 | 29 ms |
+| 探测 | 行数 | 耗时（AGE 当时） | 耗时（Neo4j 迁移后复测） |
+| --- | --- | --- | --- |
+| `cyp_mediated_ddi` | 40 | 485 ms | 144 ms |
+| `shared_targets` | 15 | 150 ms | 76 ms |
+| `cascade_metabolic_chain`（4 跳） | 25 | 1895 ms | 139 ms |
+| `inhibition_plus_interaction` | 20 | 21 ms | 72 ms |
+| `serotonergic_overlap` | 30 | 23 ms | 50 ms |
+| `atc_class_hub_targets`（层级下钻） | 15 | 29 ms | 81 ms |
 
-6/6 通过。修复映射后，探测输出能区分动作粒度（例如同一靶点上
+2026-09-30 在 Neo4j 5.26.31 上复测：**6/6 通过，行数逐项一致**。
+多跳类探测显著变快（4 跳级联 1895 → 139 ms）；单跳类反而略慢，量级在几十毫秒，
+属冷启动与驱动开销，不构成回归。注意两列不是同一台机器上的受控对比，
+只作数量级参考。
+
+6/6 通过（AGE 与 Neo4j 两次均如此）。修复映射后，探测输出能区分动作粒度（例如同一靶点上
 `act_a: ANTAGONIZES` / `act_b: AGONIZES` 分别列出，而非笼统的 `TARGETS`）。
 ATC 类的实测结果符合药理：N06A（抗抑郁药）内作用最多的靶点依次是
 血清素转运体（26 药）、去甲肾上腺素转运体（23 药）、CYP3A4（21 药）。
