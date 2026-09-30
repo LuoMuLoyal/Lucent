@@ -4,7 +4,7 @@ Created: 2026-09-16
 Revised: 2026-09-17（按库内实测修正前提 + 按数据本质收敛范围：LightRAG 只为**中文散文**提供语义检索；中文产品表走 SQL、英文 DrugBank 关系数据走 AGE + OAG，均不在本计划范围；V3 全量导入落地后更新实测数据）
 Revised: 2026-09-18（P1 + **P3 已落地**：旧散文检索工具/服务/脚本阶段已删除，capabilities 已增 `retrieval_unavailable`，双仓契约已同步；P2 仅有一次 20 条小样本模式验证，全量评测与 P4/P5 仍未做。剩余事项见 `docs/TODO.md`）
 状态：P1 已完成、P3 已完成（2026-09-18）；P2 小样本验证已做但**全量评测未做**，P4/P5 未开工——剩余事项已移交 `docs/TODO.md`
-定位：把**中文药品知识检索中的"散文部分"**（说明书字段级语义检索 + 医学问答）整体交给 LightRAG —— **导入与查询都归它**。**中文产品表检索不迁移**（保持 SQL 键查）；**英文侧不在本计划范围**（其关系数据走 AGE + OAG，见 `2026-09-27-apache-age-introduction-plan.md`）。
+定位：把**中文药品知识检索中的"散文部分"**（说明书字段级语义检索 + 医学问答）整体交给 LightRAG —— **导入与查询都归它**。**中文产品表检索不迁移**（保持 SQL 键查）；**英文侧不在本计划范围**（其关系数据走 OAG + Neo4j，见 ADR-0022；实施计划执行完毕已删）。
 
 ---
 
@@ -32,20 +32,20 @@ Revised: 2026-09-18（P1 + **P3 已落地**：旧散文检索工具/服务/脚�
 
 ## 一、决定与边界
 
-| #   | 决定                            | 内容                                                                                                                                                                                                                                                                                            |
-| --- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **LightRAG 是中文散文检索核心** | 中文说明书字段级语义检索 + 医学问答的**导入 + 查询**都走 LightRAG；Lucent 不再自己维护中文向量索引                                                                                                                                                                                              |
-| 2   | **中文产品表不迁移**            | `search_cn_medicine_products` / `get_cn_medicine_detail` 保持 SQL 键查（产品表是键值型结构化数据，点查即可，不需要语义检索）                                                                                                                                                                    |
-| 3   | **模式由模型选，默认 `naive`**  | `naive` / `local` / `global` / `hybrid` / `mix`，**默认 `naive`**；`bypass` 进黑名单。说明书**建图仅作为 P2 评测项**，评测证明有收益才启用 `local/global/mix` 并改默认（§六 P2）                                                                                                                |
-| 4   | **来源由模型选**                | `source` 是工具的一个参数，模型可自由决定查说明书还是查问答                                                                                                                                                                                                                                     |
-| 5   | **删旧散文检索工具**            | `search_medicine_leaflets`、`search_medical_qa_corpus` 及其 service / spec 删除；**`search_cn_medicine_products` / `get_cn_medicine_detail` 保留**                                                                                                                                              |
-| 6   | **删旧向量表与脚本阶段**        | dev 实测三张 embedding 表**均不存在**，无需 DROP；删除 `rebuild-leaflet-index.ts`、`import-medical-qa.ts` 的 `--embed` 阶段等**会创建**这些不存在的表的脚本阶段                                                                                                                                 |
-| 7   | **不做降级**                    | LightRAG 不可用 = 中文散文检索不可用。用 `capabilities.disabledReason` 显式暴露，不静默降级为"没有证据"                                                                                                                                                                                         |
-| 8   | **不保留 `resolvedProduct`**    | 返回 chunks + `leafletId` + `sourceField` 即可；产品身份交给结构化工具（SQL，保留）                                                                                                                                                                                                             |
-| 9   | **不新增 ADR**                  | 决策记在本计划 + 模块 README + 迁移日志                                                                                                                                                                                                                                                         |
-| 10  | **英文侧单独规划**              | 英文 DrugBank 关系数据（交互/靶点/ATC/序列）→ **AGE + OAG**（`2026-09-27-apache-age-introduction-plan.md`）；叙事字段（mechanism/toxicity/pharmacodynamics…）→ 单独评估建向量检索，**不引入 LightRAG**。`drugbank_passage_embeddings` / `search_drugbank_passages` 现状为"从未建设"，不承诺保留 |
+| #   | 决定                            | 内容                                                                                                                                                                                                                                                                                |
+| --- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **LightRAG 是中文散文检索核心** | 中文说明书字段级语义检索 + 医学问答的**导入 + 查询**都走 LightRAG；Lucent 不再自己维护中文向量索引                                                                                                                                                                                  |
+| 2   | **中文产品表不迁移**            | `search_cn_medicine_products` / `get_cn_medicine_detail` 保持 SQL 键查（产品表是键值型结构化数据，点查即可，不需要语义检索）                                                                                                                                                        |
+| 3   | **模式由模型选，默认 `naive`**  | `naive` / `local` / `global` / `hybrid` / `mix`，**默认 `naive`**；`bypass` 进黑名单。说明书**建图仅作为 P2 评测项**，评测证明有收益才启用 `local/global/mix` 并改默认（§六 P2）                                                                                                    |
+| 4   | **来源由模型选**                | `source` 是工具的一个参数，模型可自由决定查说明书还是查问答                                                                                                                                                                                                                         |
+| 5   | **删旧散文检索工具**            | `search_medicine_leaflets`、`search_medical_qa_corpus` 及其 service / spec 删除；**`search_cn_medicine_products` / `get_cn_medicine_detail` 保留**                                                                                                                                  |
+| 6   | **删旧向量表与脚本阶段**        | dev 实测三张 embedding 表**均不存在**，无需 DROP；删除 `rebuild-leaflet-index.ts`、`import-medical-qa.ts` 的 `--embed` 阶段等**会创建**这些不存在的表的脚本阶段                                                                                                                     |
+| 7   | **不做降级**                    | LightRAG 不可用 = 中文散文检索不可用。用 `capabilities.disabledReason` 显式暴露，不静默降级为"没有证据"                                                                                                                                                                             |
+| 8   | **不保留 `resolvedProduct`**    | 返回 chunks + `leafletId` + `sourceField` 即可；产品身份交给结构化工具（SQL，保留）                                                                                                                                                                                                 |
+| 9   | **不新增 ADR**                  | 决策记在本计划 + 模块 README + 迁移日志                                                                                                                                                                                                                                             |
+| 10  | **英文侧单独规划**              | 英文 DrugBank 关系数据（交互/靶点/ATC/序列）→ **OAG + Neo4j**（ADR-0022；实施计划执行完毕已删）；叙事字段（mechanism/toxicity/pharmacodynamics…）→ 单独评估建向量检索，**不引入 LightRAG**。`drugbank_passage_embeddings` / `search_drugbank_passages` 现状为"从未建设"，不承诺保留 |
 
-**不在范围内**：英文侧 OAG（Semantica + AGE）；英文叙事字段的向量检索；中文产品表的结构化键查（保持原状）。
+**不在范围内**：英文侧 OAG（Semantica + Neo4j）；英文叙事字段的向量检索；中文产品表的结构化键查（保持原状）。
 
 ---
 
@@ -128,9 +128,9 @@ LightRAG 自带四种存储，**向量是其中一等公民**：`PGKVStorage` / 
 
 ### 3.4 与英文侧的关系（边界）
 
-- 英文 DrugBank 关系数据 → **AGE + OAG**：见 `2026-09-27-apache-age-introduction-plan.md`，本计划不引入、不冲突。
+- 英文 DrugBank 关系数据 → **OAG + Neo4j**：见 ADR-0022，本计划不引入、不冲突。
 - 英文 DrugBank 叙事字段 → 建向量检索（pgvector 或独立方案）**另行评估**，不引入 LightRAG。
-- **中文侧不引入 Semantica / AGE**（无多跳关系网络可走，硬上成本大于收益）。
+- **中文侧不引入 Semantica**（无多跳关系网络可走，硬上成本大于收益）。
 
 ---
 

@@ -1,6 +1,6 @@
 # ADR-0022: 图后端由 Apache AGE 改为 Neo4j
 
-- **Status**: accepted（图后端决定已定；实施未开工，见 `plans/2026-09-29-neo4j-graph-store-migration-plan.md`）
+- **Status**: accepted（图后端决定已定；实施未开工——实施计划为 2026-09-29 命名的那份，已按约定删除）
 - **Date**: 2026-09-29
 - **Deciders**: LuoMuLoyal
 
@@ -58,8 +58,8 @@ MATCH (a)-[:INHIBITS]->(e)<-[:SUBSTRATE_OF]-(b) WHERE a <> b
 
 ## Decision
 
-1. **图后端改为 Neo4j（Community）**，取代 AGE 1.7.0。落地见
-   `plans/2026-09-29-neo4j-graph-store-migration-plan.md`（实施完毕该文件按约定删除）。
+1. **图后端改为 Neo4j（Community）**，取代 AGE 1.7.0。落地见 2026-09-29 命名的那份迁移计划
+   （实施完毕该文件按约定删除）。
    HTTP 拓扑与 `SEMANTICA_*` 三个键不动；Lucent 侧改动为提示词常量 1 处、引擎名断言 3 处
    （`core.service.spec.ts` 2 处 + `ontology-reasoning.service.spec.ts` 1 处）、以及
    `assistant/README.md` 与 env 文档的散文，**不是零改动**，明细见计划 §3.2。

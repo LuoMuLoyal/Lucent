@@ -62,8 +62,14 @@ updated: 2026-09-10
 
    ```bash
    docker compose -f compose.staging.yaml --env-file .env.production up -d
-   docker compose -f compose.staging.yaml --env-file .env.production ps   # 等 postgres/redis healthy
+   docker compose -f compose.staging.yaml --env-file .env.production ps   # 等 postgres/redis/neo4j healthy
    ```
+
+   > `neo4j` 是英文侧 OAG 的图后端,不入门控,随基础设施一起起。它需要
+   > `.env.production` 里有 `NEO4J_PASSWORD`(缺失时 compose 直接失败,不会起一个
+   > 无认证实例)。**首次启动前先确认内存余量**:heap 512m + pagecache 256m 实测
+   > RSS 约 1.2 GiB。若只想跑业务不含英文侧 OAG,可用
+   > `up -d postgres redis victoriametrics victorialogs traefik` 显式跳过它。
 
 7. **首次发布**——执行 §二 的手动发布命令串(此时 PM2 里还没有 `lucent` 进程,
    `pm2 stop lucent || true` 会静默跳过,`pm2 startOrReload` 首次启动)。
@@ -144,6 +150,7 @@ docker compose -f compose.staging.yaml --env-file .env.production up -d
 |                                        | `TRUST_PROXY`                          | `true`(经 Traefik 后限流取真实 IP)                                                                                   |
 |                                        | `PUBLIC_BASE_URL`                      | `https://api.<域名>`                                                                                                 |
 |                                        | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与上面两个 URL 内嵌的密码一致**                                                                 |
+|                                        | `NEO4J_PASSWORD`                       | compose 插值用(Neo4j 容器与探针);**必填**,缺失即拒绝启动                                                             |
 |                                        | `METRICS_USER` / `METRICS_PASSWORD`    | 应用的`/metrics` Basic Auth + VictoriaMetrics 抓取凭据                                                               |
 |                                        | 其余密钥                               | JWT / Better Auth / ADMIN / 邮件 / AI / 对象存储,见[environment-variables.md](../reference/environment-variables.md) |
 | `deploy/traefik/*.yml`(服务器本地)     | `acme.email`                           | ACME 注册邮箱,必填                                                                                                   |

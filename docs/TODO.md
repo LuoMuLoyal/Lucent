@@ -27,12 +27,13 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
 - **sidecar 镜像（未做）**：三份 compose 的 `semantica` 服务定义已就位（profile 门控，
   避免 `docker compose up` 去拉不存在的镜像），但 `semantica-service` 仓还没有
   Dockerfile，容器化部署不可用；dev 目前靠本机 `uvicorn` + `.env.development` 直连。
-  归 `plans/2026-09-29-neo4j-graph-store-migration-plan.md` 的 P6 剩余项。
+  原属 Neo4j 迁移计划的 P6 剩余项（该计划实施完毕已删）。
 - **导出阶段的读取不受推理预算约束**：`REASONING_TIMEOUT_S` 覆盖不动点推理，不覆盖
   `load_from_graph` 的导出读取。导出侧已从 57s 降到 12.7s（50,000 边），但在更小的
   调用方预算下仍可能击穿超时预期（依据见 `semantica-oag-pilot/CORRECTIONS-r3.md`）。
-  **注**：Neo4j 迁移计划 P4 将把三条推理规则改写为 Cypher 并删除 Oxigraph 接线，
-  届时本条的"导出侧读取"路径本身可能消失，落地时一并核对。
+  **注**：Neo4j 迁移已完成（见 `plans/README.md` 所述删除的计划与 ADR-0022），
+  P4 已把三条推理规则改写为 Cypher 并删除 Oxigraph 接线；但"导出侧读取"路径
+  **仍在**（`/reason` 之外仍有导出路径），故本条**依然成立**，未随迁移消失。
 - **模型供应商配额/凭据**：本轮评测中途开始快失败（`rejected our credentials or
 exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前先确认配额。
 

@@ -410,7 +410,7 @@ docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
 ```text
 SEMANTICA_ENABLED    # 默认 false；关闭时 reason_over_ontology 返回"未配置"信封，不抛错
 SEMANTICA_BASE_URL   # 默认 http://semantica:8099
-SEMANTICA_TIMEOUT_MS # 默认 20000；须大于 sidecar 的 statement_timeout（默认 15s）
+SEMANTICA_TIMEOUT_MS # 默认 20000；须大于 sidecar 的查询超时（默认 15s）
 ```
 
 **没有 API key。** 与 LightRAG 不同，这是我们自己的服务：只在内网 compose 网络上
@@ -419,7 +419,7 @@ Lucent 侧用 `AI_LANGUAGE_*` 角色完成（`BaseLlmGeneratorService`），side
 因此**没有启动期交叉校验**：`SEMANTICA_ENABLED=true` 但服务不可达时，表现为工具返回
 "推理不可用"信封，而不是进程起不来。
 
-`SEMANTICA_TIMEOUT_MS` 的下限要高于 sidecar 自己的 `statement_timeout`（默认 15s）：
+`SEMANTICA_TIMEOUT_MS` 的下限要高于 sidecar 自己的查询超时（默认 15s）：
 否则"查询太慢"会先被客户端掐断，拿不到 sidecar 的结构化超时报错，重试回路也就收不到
 "收窄查询"这个可执行的提示。
 
@@ -428,10 +428,10 @@ Lucent 侧用 `AI_LANGUAGE_*` 角色完成（`BaseLlmGeneratorService`），side
 必须让客户端看见"暂不可用"而不是"确实没有证据"）。两条线**各自独立判定**：一个 sidecar
 挂掉不会把另一个的工具也标成不可用。
 
-**sidecar 自身的配置不在这里**：AGE DSN / 图名 / 连接池 / 语句超时在它自己的 env 文件里
-（模板位于 `deploy/semantica/`，复制去掉后缀即为运行时文件，变量清单与 semantica-service
-仓的同名同义），与 Lucent 的 `DATABASE_URL` 完全独立（AGE 在独立 database `lucent_graph`
-中，不进 Prisma 迁移域）。dev 也可以直接在本机跑（不起容器）：
+**sidecar 自身的配置不在这里**：Neo4j URI / 凭据 / 库名 / 连接池 / 查询超时在它自己的
+env 文件里（模板位于 `deploy/semantica/`，复制去掉后缀即为运行时文件，变量清单与
+semantica-service 仓的同名同义），与 Lucent 的 `DATABASE_URL` 完全独立（图在 Neo4j 中，
+**不进 Prisma 迁移域**，也没有共用的 Postgres database）。dev 也可以直接在本机跑（不起容器）：
 
 ```bash
 cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
@@ -439,9 +439,26 @@ cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
 # SEMANTICA_BASE_URL=http://127.0.0.1:8099
 ```
 
+**Neo4j 容器由编排提供**：
+
+```text
+NEO4J_PASSWORD  # 必填（三份编排都按 :?required 硬失败）；同时用于 NEO4J_AUTH 与健康探针
+NEO4J_IMAGE     # 可选，默认 neo4j:5.26.31-community（钉补丁号，勿用浮动 tag）
+```
+
+> **⚠️ Neo4j 容器的环境变量有硬约束**：除 `NEO4J_AUTH` 外，任何 `NEO4J_` 前缀的变量
+> 都被当作配置键解析，**未声明的键会让容器拒绝启动**（`Failed to read config:
+Unrecognized setting`）。因此：
+> ① 口令**不能**再用一个 `NEO4J_PASSWORD` 环境变量传给 Neo4j 容器（会被解析成
+> `server.password` 而报错），编排改用非该前缀的 `LUCENT_NEO4J_PASSWORD` 承载裸口令
+> 供 `cypher-shell` 探针使用；
+> ② 只写 5.26 真实存在的内存设置（`heap.initial_size` / `heap.max_size` /
+> `pagecache.size`）。`server.memory.recovery_policy` 在 5.26 **不存在**，照抄会让库起不来。
+
 > **当前实情（2026-09-19）**：`semantica-service` 尚未提供 Dockerfile/镜像，因此三份
 > compose 里的 `semantica` 服务（profile `semantica`）**暂时起不来**——服务定义已经写好
 > 是为了让 dev / staging / prod 形态一致（AGE 计划 §一 的"三环境同一形态"），镜像是下一步。
+> 该限制不影响 `neo4j` 服务本身：它不入门控，`docker compose up neo4j` 即可单独使用。
 
 Observability:
 
