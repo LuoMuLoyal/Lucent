@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PasswordReauthService } from './password-reauth.service.js';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { AuthIdentityService } from './identity.service.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
 import {
   createDomainFailure,
@@ -21,7 +21,7 @@ function collectResult<T>(
 
 describe('PasswordReauthService', () => {
   let service: PasswordReauthService;
-  let adapter: vi.Mocked<AuthBetterAuthAdapter>;
+  let identity: vi.Mocked<AuthIdentityService>;
   let rateLimitService: vi.Mocked<AuthRateLimitService>;
 
   beforeEach(async () => {
@@ -29,7 +29,7 @@ describe('PasswordReauthService', () => {
       providers: [
         PasswordReauthService,
         {
-          provide: AuthBetterAuthAdapter,
+          provide: AuthIdentityService,
           useValue: {
             verifyPasswordForUser: vi.fn().mockReturnValue(okAsync(true)),
           },
@@ -46,7 +46,7 @@ describe('PasswordReauthService', () => {
     }).compile();
 
     service = module.get(PasswordReauthService);
-    adapter = module.get(AuthBetterAuthAdapter);
+    identity = module.get(AuthIdentityService);
     rateLimitService = module.get(AuthRateLimitService);
   });
 
@@ -58,7 +58,7 @@ describe('PasswordReauthService', () => {
     expect(rateLimitService.checkReauthRateLimit).toHaveBeenCalledWith(
       'user-1',
     );
-    expect(adapter.verifyPasswordForUser).toHaveBeenCalledWith(
+    expect(identity.verifyPasswordForUser).toHaveBeenCalledWith(
       'user-1',
       'Passw0rd123',
     );
@@ -67,7 +67,7 @@ describe('PasswordReauthService', () => {
   });
 
   it('returns AUTH_WRONG_PASSWORD and records a failure when password is wrong', async () => {
-    adapter.verifyPasswordForUser.mockReturnValue(okAsync(false));
+    identity.verifyPasswordForUser.mockReturnValue(okAsync(false));
 
     const outcome = await collectResult(service.verify('user-1', 'WrongPass'));
 
@@ -79,12 +79,12 @@ describe('PasswordReauthService', () => {
     expect(rateLimitService.clearReauthFailures).not.toHaveBeenCalled();
   });
 
-  it('propagates AUTH_PASSWORD_NOT_SET from the adapter', async () => {
+  it('propagates AUTH_PASSWORD_NOT_SET from the identity service', async () => {
     const failure = createDomainFailure({
       kind: 'authentication',
       code: 'AUTH_PASSWORD_NOT_SET',
     });
-    adapter.verifyPasswordForUser.mockReturnValue(errAsync(failure));
+    identity.verifyPasswordForUser.mockReturnValue(errAsync(failure));
 
     const outcome = await collectResult(service.verify('user-1', 'AnyPass'));
 
@@ -105,6 +105,6 @@ describe('PasswordReauthService', () => {
     );
 
     expect(outcome).toEqual({ ok: false, error: failure });
-    expect(adapter.verifyPasswordForUser).not.toHaveBeenCalled();
+    expect(identity.verifyPasswordForUser).not.toHaveBeenCalled();
   });
 });

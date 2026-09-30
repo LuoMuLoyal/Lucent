@@ -399,11 +399,6 @@ async function main() {
   // and DTOs. It never starts the HTTP server or connects to real infra, so
   // missing secrets should not block artifact generation. Provide safe
   // placeholders for required environment variables when they are absent.
-  setIfMissing(
-    'BETTER_AUTH_SECRET',
-    'better-auth-export-only-placeholder-0000',
-  );
-  setIfMissing('BETTER_AUTH_URL', 'http://localhost:3000');
   setIfMissing('JWT_ACCESS_SECRET', 'jwt-access-export-only-placeholder-000');
   setIfMissing('JWT_REFRESH_SECRET', 'jwt-refresh-export-only-placeholder-00');
   setIfMissing('ADMIN_EMAIL', 'admin@example.com');

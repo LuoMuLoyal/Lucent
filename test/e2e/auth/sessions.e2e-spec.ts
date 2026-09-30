@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
@@ -18,9 +18,6 @@ const LOGOUT_PATH = '/api/v1/auth/logout';
 const REFRESH_PATH = '/api/v1/auth/refresh';
 const REGISTER_PATH = '/api/v1/auth/register';
 const SEND_CODE_PATH = '/api/v1/auth/send-verification-code';
-const RESET_PASSWORD_PATH = '/api/v1/auth/reset-password';
-const ACCOUNT_PASSWORD_PATH = '/api/v1/account/password';
-const DELETE_ACCOUNT_PATH = '/api/v1/account';
 
 const TEST_PASSWORD = 'Test@123456';
 
@@ -48,15 +45,6 @@ interface RegisterLoginData {
 
 function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
-}
-
-async function expectBetterAuthSessionCount(
-  prisma: E2eTestContext['prisma'],
-  userId: string,
-  expected: number,
-): Promise<void> {
-  const count = await prisma.session.count({ where: { userId } });
-  expect(count).toBe(expected);
 }
 
 describe('Session Management API (e2e)', () => {
@@ -306,131 +294,6 @@ describe('Session Management API (e2e)', () => {
         .post(REFRESH_PATH)
         .send({ refreshToken: userB.tokens.refreshToken })
         .expect(200);
-    });
-  });
-
-  // ════════════════════════════════════════════════════════════
-  // Better Auth session lifecycle
-  // ════════════════════════════════════════════════════════════
-
-  describe('Better Auth session lifecycle', () => {
-    it('should not leave Better Auth sessions after credential register', async () => {
-      const { user } = await registerUserViaApi();
-
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 0);
-    });
-
-    it('should not leave Better Auth sessions after credential login', async () => {
-      const { user } = await registerUserViaApi();
-
-      await request(app.getHttpServer())
-        .post(LOGIN_PATH)
-        .send({ email: user.email, password: TEST_PASSWORD })
-        .expect(200);
-
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 0);
-    });
-
-    it('should revoke Better Auth sessions on logout', async () => {
-      const { user, tokens } = await registerUserViaApi();
-
-      // Simulate a stray Better Auth session created as an internal side
-      // effect; logout must wipe it along with the Lucent session.
-      await ctx.prisma.session.create({
-        data: {
-          id: randomUUID(),
-          userId: user.id,
-          token: `test-token-${randomUUID()}`,
-          expiresAt: new Date(Date.now() + 86400000),
-        },
-      });
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 1);
-
-      await request(app.getHttpServer())
-        .post(LOGOUT_PATH)
-        .set('Authorization', bearer(tokens.accessToken))
-        .send({ refreshToken: tokens.refreshToken })
-        .expect(204);
-
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 0);
-    });
-
-    it('should revoke Better Auth sessions on change password', async () => {
-      const { user, tokens } = await registerUserViaApi();
-
-      await ctx.prisma.session.create({
-        data: {
-          id: randomUUID(),
-          userId: user.id,
-          token: `test-token-${randomUUID()}`,
-          expiresAt: new Date(Date.now() + 86400000),
-        },
-      });
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 1);
-
-      await request(app.getHttpServer())
-        .post(ACCOUNT_PASSWORD_PATH)
-        .set('Authorization', bearer(tokens.accessToken))
-        .send({ password: TEST_PASSWORD, newPassword: 'NewPass@123456' })
-        .expect(204);
-
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 0);
-    });
-
-    it('should revoke Better Auth sessions on reset password', async () => {
-      const { user } = await registerUserViaApi();
-
-      await ctx.prisma.session.create({
-        data: {
-          id: randomUUID(),
-          userId: user.id,
-          token: `test-token-${randomUUID()}`,
-          expiresAt: new Date(Date.now() + 86400000),
-        },
-      });
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 1);
-
-      // Seed a forgot-password verification code in cache (same hash format as
-      // the verification service) and consume it via the reset-password endpoint.
-      const code = '123456';
-      const hash = createHash('sha256')
-        .update(`forgot-password:${user.email}:${code}`)
-        .digest('hex');
-      const cache = app.get<Cache>(CACHE_MANAGER);
-      await cache.set(
-        `vcode:forgot-password:${user.email}`,
-        hash,
-        5 * 60 * 1000,
-      );
-
-      await request(app.getHttpServer())
-        .post(RESET_PASSWORD_PATH)
-        .send({ email: user.email, code, password: 'ResetPass@123456' })
-        .expect(200);
-
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 0);
-    });
-
-    it('should revoke Better Auth sessions on delete account', async () => {
-      const { user, tokens } = await registerUserViaApi();
-
-      await ctx.prisma.session.create({
-        data: {
-          id: randomUUID(),
-          userId: user.id,
-          token: `test-token-${randomUUID()}`,
-          expiresAt: new Date(Date.now() + 86400000),
-        },
-      });
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 1);
-
-      await request(app.getHttpServer())
-        .delete(DELETE_ACCOUNT_PATH)
-        .set('Authorization', bearer(tokens.accessToken))
-        .send({ password: TEST_PASSWORD })
-        .expect(204);
-
-      await expectBetterAuthSessionCount(ctx.prisma, user.id, 0);
     });
   });
 });

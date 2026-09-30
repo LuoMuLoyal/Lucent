@@ -16,7 +16,7 @@ import { UserStatus } from '#generated/prisma/client.js';
 
 import { AccountService } from './account.service.js';
 import {
-  AuthBetterAuthAdapter,
+  AuthIdentityService,
   PasswordReauthService,
 } from '../../auth/index.js';
 import { UserService } from '../../user/index.js';
@@ -100,7 +100,7 @@ describe('AccountService', () => {
   let userService: DeepMocked<UserService>;
   let prisma: MockedPrisma;
   let passwordReauthService: vi.Mocked<PasswordReauthService>;
-  let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
+  let identityService: vi.Mocked<AuthIdentityService>;
   let module: TestingModule;
 
   beforeEach(async () => {
@@ -142,12 +142,9 @@ describe('AccountService', () => {
           },
         },
         {
-          provide: AuthBetterAuthAdapter,
+          provide: AuthIdentityService,
           useValue: {
             hasPassword: vi.fn().mockReturnValue(okAsync(true)),
-            revokeBetterAuthSessions: vi
-              .fn()
-              .mockReturnValue(okAsync(undefined)),
           },
         },
       ],
@@ -157,7 +154,7 @@ describe('AccountService', () => {
     userService = module.get(UserService);
     prisma = module.get(PrismaService) as unknown as MockedPrisma;
     passwordReauthService = module.get(PasswordReauthService);
-    betterAuthAdapter = module.get(AuthBetterAuthAdapter);
+    identityService = module.get(AuthIdentityService);
   });
 
   afterEach(() => {
@@ -212,7 +209,7 @@ describe('AccountService', () => {
     });
 
     it('should set hasPassword to false when there is no credential account', async () => {
-      (betterAuthAdapter.hasPassword as vi.Mock).mockReturnValueOnce(
+      (identityService.hasPassword as vi.Mock).mockReturnValueOnce(
         okAsync(false),
       );
       (userService.findById as vi.Mock).mockResolvedValue(baseUser);
@@ -387,10 +384,6 @@ describe('AccountService', () => {
           providerId: { not: 'credential' },
         },
       });
-      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
-        baseUser.id,
-        expect.anything(),
-      );
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
       expect(result.value.linkedIdentities).toHaveLength(1);
@@ -456,7 +449,7 @@ describe('AccountService', () => {
     });
 
     it('should return an authorization DomainFailure when unlinking the last sign-in method', async () => {
-      (betterAuthAdapter.hasPassword as vi.Mock).mockReturnValueOnce(
+      (identityService.hasPassword as vi.Mock).mockReturnValueOnce(
         okAsync(false),
       );
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
@@ -513,7 +506,7 @@ describe('AccountService', () => {
     });
 
     it('should allow unlinking when password verification succeeds and multiple identities remain', async () => {
-      (betterAuthAdapter.hasPassword as vi.Mock).mockReturnValueOnce(
+      (identityService.hasPassword as vi.Mock).mockReturnValueOnce(
         okAsync(false),
       );
       (userService.findById as vi.Mock)
@@ -570,7 +563,7 @@ describe('AccountService', () => {
       // a DomainFailure Err — this must propagate as a dependency failure,
       // NOT be silently folded into `false` (which would incorrectly trigger
       // the FORBIDDEN guard).
-      (betterAuthAdapter.hasPassword as vi.Mock)
+      (identityService.hasPassword as vi.Mock)
         .mockReturnValueOnce(okAsync(true)) // pre-transaction check
         .mockReturnValueOnce(
           errAsync(

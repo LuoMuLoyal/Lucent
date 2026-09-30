@@ -11,7 +11,7 @@ import {
   type ResultAsync,
 } from '../../../common/result/index.js';
 import {
-  AuthBetterAuthAdapter,
+  AuthIdentityService,
   CREDENTIAL_PROVIDER_ID,
   PasswordReauthService,
 } from '../../auth/index.js';
@@ -29,12 +29,12 @@ export class AccountService {
     private readonly userService: UserService,
     private readonly prisma: PrismaService,
     private readonly passwordReauthService: PasswordReauthService,
-    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
+    private readonly authIdentityService: AuthIdentityService,
   ) {}
 
   getAccount(userId: string): ResultAsync<AccountDto, DomainFailure> {
     return this.getActiveAccountUser(userId).andThen((user) =>
-      this.betterAuthAdapter
+      this.authIdentityService
         .hasPassword(userId)
         .map((hasPassword) => this.toAccountDto(user, hasPassword)),
     );
@@ -67,7 +67,7 @@ export class AccountService {
         this.passwordReauthService.verify(userId, dto.password).map(() => user),
       )
       .andThen((user) =>
-        this.betterAuthAdapter
+        this.authIdentityService
           .hasPassword(userId)
           .map((hasPassword) => ({ user, hasPassword })),
       )
@@ -107,7 +107,7 @@ export class AccountService {
             // rather than being silently folded into "no password" (which
             // would incorrectly trigger the FORBIDDEN guard).
             const txHasPasswordResult =
-              await this.betterAuthAdapter.hasPassword(userId, tx);
+              await this.authIdentityService.hasPassword(userId, tx);
             if (txHasPasswordResult.isErr()) {
               throw new DomainFailureException(txHasPasswordResult.error);
             }
@@ -155,8 +155,6 @@ export class AccountService {
                 }),
               );
             }
-
-            await this.betterAuthAdapter.revokeBetterAuthSessions(userId, tx);
           }),
           (error) => {
             if (error instanceof DomainFailureException) {

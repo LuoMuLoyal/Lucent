@@ -26,7 +26,6 @@ import {
   AuthSessionRepositoryPort,
   type SessionContextData,
 } from '../repositories/session.repository.js';
-import { AuthBetterAuthAdapter } from '../adapters/better-auth.adapter.js';
 
 export type {
   AuthRequestContext,
@@ -51,7 +50,6 @@ export class AuthTokenService {
     private readonly sessionRepository: AuthSessionRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -206,13 +204,6 @@ export class AuthTokenService {
         if (lucentResult.isErr()) {
           throw new DomainFailureException(lucentResult.error);
         }
-
-        const betterAuthResult =
-          await this.betterAuthAdapter.revokeBetterAuthSessions(userId, tx);
-
-        if (betterAuthResult.isErr()) {
-          throw new DomainFailureException(betterAuthResult.error);
-        }
       }),
       (error) => {
         if (error instanceof DomainFailureException) {
@@ -236,13 +227,6 @@ export class AuthTokenService {
 
         if (lucentResult.isErr()) {
           throw new DomainFailureException(lucentResult.error);
-        }
-
-        const betterAuthResult =
-          await this.betterAuthAdapter.revokeBetterAuthSessions(userId, tx);
-
-        if (betterAuthResult.isErr()) {
-          throw new DomainFailureException(betterAuthResult.error);
         }
       }),
       (error) => {
@@ -273,8 +257,7 @@ export class AuthTokenService {
           );
         }
         return this.sessionRepository.revokeSessionById(sessionId);
-      })
-      .andThen(() => this.betterAuthAdapter.revokeBetterAuthSessions(userId));
+      });
   }
 
   listSessions(userId: string): ResultAsync<

@@ -1,13 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { User, UserStatus } from '#generated/prisma/client.js';
+import { User } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
 import {
-  createDomainFailure,
-  errAsync,
   fromPromise,
   mapUnknownToDependencyFailure,
-  mapUnknownToInternalFailure,
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
@@ -22,6 +19,7 @@ import type {
   QqOAuthCallbackDto,
 } from '../../dto/shared/oauth.dto.js';
 import { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
+import { AppleOAuthProvider } from '../../providers/apple-oauth.provider.js';
 import { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
 import { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider.js';
 import { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider.js';
@@ -39,7 +37,6 @@ import {
   type OAuthStateEntry,
 } from './state.service.js';
 import { AuthTokenService, type TokenPair } from '../token.service.js';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
 import type { AuthRequestContext } from '../../types/auth-request.js';
 
 @Injectable()
@@ -52,11 +49,11 @@ export class AuthOAuthFacadeService {
     private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
     private readonly qqOAuthProvider: QqOAuthProvider,
     private readonly googleOAuthProvider: GoogleOAuthProvider,
+    private readonly appleOAuthProvider: AppleOAuthProvider,
     private readonly authOAuthStateService: AuthOAuthStateService,
     private readonly authTokenService: AuthTokenService,
     private readonly authOAuthService: AuthOAuthService,
     private readonly authNotificationService: AuthNotificationService,
-    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
   ) {}
 
   createWechatWebAuthorizeUrl(
@@ -126,47 +123,16 @@ export class AuthOAuthFacadeService {
     dto: AppleOAuthCallbackDto,
     context?: AuthRequestContext,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
-    const idTokenName = (() => {
-      if (!dto.givenName && !dto.familyName) {
-        return undefined;
-      }
-      const name: { firstName?: string; lastName?: string } = {};
-      if (dto.givenName) {
-        name.firstName = dto.givenName;
-      }
-      if (dto.familyName) {
-        name.lastName = dto.familyName;
-      }
-      return { name };
-    })();
-
-    const idToken = {
-      token: dto.identityToken,
-      ...(dto.authorizationCode && {
-        accessToken: dto.authorizationCode,
-      }),
-      ...(idTokenName && { user: idTokenName }),
-    };
-
-    return fromPromise<{ user: { id: string } }, DomainFailure>(
-      this.betterAuthAdapter.auth.api.signInSocial({
-        body: { provider: 'apple', idToken },
-      }) as Promise<{ user: { id: string } }>,
-      (error) => this.mapBetterAuthOAuthError(error),
-    )
-      .andThen((result) => this.lift(this.userService.findById(result.user.id)))
-      .andThen((user) => {
-        if (!user) {
-          return errAsync(
-            createDomainFailure({
-              kind: 'authentication',
-              code: 'AUTH_OAUTH_FAILED',
-              detail: 'Better Auth returned a user that does not exist locally',
-            }),
-          );
-        }
-        return this.finalizeSocialLogin(user, context);
-      });
+    return this.appleOAuthProvider
+      .fetchProfile({
+        identityToken: dto.identityToken,
+        ...(dto.authorizationCode !== undefined && {
+          authorizationCode: dto.authorizationCode,
+        }),
+        ...(dto.givenName !== undefined && { givenName: dto.givenName }),
+        ...(dto.familyName !== undefined && { familyName: dto.familyName }),
+      })
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
   createQqAuthorizeUrl(
@@ -231,29 +197,9 @@ export class AuthOAuthFacadeService {
       .consume(OAUTH_PROVIDER_GOOGLE, dto.state, 'login')
       .andThen(() => this.googleOAuthProvider.exchangeCodeForTokens(dto.code))
       .andThen(({ accessToken, idToken }) =>
-        fromPromise<{ user: { id: string } }, DomainFailure>(
-          this.betterAuthAdapter.auth.api.signInSocial({
-            body: {
-              provider: 'google',
-              idToken: { token: idToken, accessToken },
-            },
-          }) as Promise<{ user: { id: string } }>,
-          (error) => this.mapBetterAuthOAuthError(error),
-        ),
+        this.googleOAuthProvider.fetchProfileFromIdToken(idToken, accessToken),
       )
-      .andThen((result) => this.lift(this.userService.findById(result.user.id)))
-      .andThen((user) => {
-        if (!user) {
-          return errAsync(
-            createDomainFailure({
-              kind: 'authentication',
-              code: 'AUTH_OAUTH_FAILED',
-              detail: 'Better Auth returned a user that does not exist locally',
-            }),
-          );
-        }
-        return this.finalizeSocialLogin(user, context);
-      });
+      .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
 
   linkWechatWebIdentity(
@@ -334,96 +280,5 @@ export class AuthOAuthFacadeService {
             return { user: updatedUser, ...tokens };
           }),
       );
-  }
-
-  private finalizeSocialLogin(
-    user: User,
-    context?: AuthRequestContext,
-  ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
-    return this.userService
-      .update(user.id, {
-        lastLoginAt: new Date(),
-        status: UserStatus.active,
-      })
-      .andThen((updatedUser) =>
-        this.authTokenService
-          .generateTokenPair(updatedUser, context)
-          .andThen((tokens) =>
-            this.betterAuthAdapter
-              .revokeBetterAuthSessions(updatedUser.id)
-              .map(() => ({ user: updatedUser, ...tokens })),
-          ),
-      );
-  }
-
-  private mapBetterAuthOAuthError(error: unknown): DomainFailure {
-    const isBetterAuthAPIError = (
-      e: unknown,
-    ): e is {
-      statusCode: number;
-      body?: { code?: string; message?: string };
-    } =>
-      typeof e === 'object' &&
-      e !== null &&
-      'statusCode' in e &&
-      typeof (e as Record<string, unknown>)['statusCode'] === 'number';
-
-    if (isBetterAuthAPIError(error)) {
-      const code = error.body?.code;
-      switch (code) {
-        case 'USER_ALREADY_EXISTS':
-        case 'IDENTITY_ALREADY_LINKED':
-          return createDomainFailure({
-            kind: 'conflict',
-            code: 'RESOURCE_CONFLICT',
-          });
-        case 'INVALID_TOKEN':
-        case 'OAUTH_ACCOUNT_NOT_LINKED':
-        case 'INVALID_OAUTH_RESPONSE':
-        case 'EMAIL_NOT_VERIFIED':
-        case 'OAUTH_PROVIDER_ERROR':
-        case 'SOCIAL_PROVIDER_ERROR':
-        case 'INVALID_OAUTH_STATE':
-        case 'OAUTH_ACCESS_DENIED':
-          return createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_OAUTH_FAILED',
-          });
-        // Configuration/disabled errors: the OAuth method is unavailable.
-        case 'SOCIAL_SIGN_IN_DISABLED':
-        case 'PROVIDER_NOT_FOUND':
-          return createDomainFailure({
-            kind: 'dependency',
-            code: 'AUTH_METHOD_DISABLED',
-          });
-        default:
-          // Any other Better Auth API error is treated as an OAuth failure
-          // rather than leaking as a raw 500.  Better Auth 5xx responses are
-          // considered dependency failures.
-          if (error.statusCode >= 500) {
-            return createDomainFailure({
-              kind: 'dependency',
-              code: 'DEPENDENCY_UNAVAILABLE',
-            });
-          }
-          return createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_OAUTH_FAILED',
-          });
-      }
-    }
-
-    return mapUnknownToInternalFailure(error, 'Unexpected OAuth error');
-  }
-
-  /**
-   * Lifts a plain Promise into a ResultAsync.  Unexpected errors are mapped to
-   * `DEPENDENCY_UNAVAILABLE` so they stay inside the Result channel instead of
-   * becoming unhandled rejections.
-   */
-  private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
-    return fromPromise(promise, (error) =>
-      mapUnknownToDependencyFailure(error, 'OAuth user lookup failed'),
-    );
   }
 }

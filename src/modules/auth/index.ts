@@ -3,12 +3,12 @@ export type { UserPayload } from './services/token.service.js';
 export { ARGON2_OPTIONS } from './config/argon2-options.js';
 export { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
 export {
-  AuthBetterAuthAdapter,
-  BETTER_AUTH_TRUSTED_PROVIDERS,
+  AuthIdentityService,
   CREDENTIAL_PROVIDER_ID,
-  isBetterAuthTrustedProvider,
+  isTrustedIdentityProvider,
   LOCAL_CREDENTIAL_ISSUER,
-} from './adapters/better-auth.adapter.js';
+  TRUSTED_IDENTITY_PROVIDERS,
+} from './services/identity/identity.service.js';
 export { AuthService } from './services/auth.service.js';
 export type { ChangeEmailDto } from './dto/password/change-email.dto.js';
 export { changeEmailSchema } from './dto/password/change-email.dto.js';

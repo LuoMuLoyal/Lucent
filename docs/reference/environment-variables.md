@@ -67,7 +67,6 @@ DATABASE_URL
 REDIS_URL
 JWT_ACCESS_SECRET
 JWT_REFRESH_SECRET
-BETTER_AUTH_SECRET
 ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_COOKIE_SECRET
@@ -116,25 +115,9 @@ staging 不再使用镜像:它的发布 secrets 是 `STAGING_SSH_HOST` / `STAGIN
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
 traffic. If you do expose browser clients from another origin, set it explicitly.
 
-JWT, Better Auth and admin secrets are required in every runtime now; keep them in the env
+JWT and admin secrets are required in every runtime now; keep them in the env
 files, not in code defaults. The checked-in dev/test templates already provide
 local values.
-
-## Better Auth
-
-```text
-BETTER_AUTH_SECRET
-BETTER_AUTH_URL
-```
-
-- `BETTER_AUTH_SECRET` — signing secret for Better Auth sessions and tokens. Must be at least 32
-  characters; treat it as a sensitive credential. Required in all runtimes once Better Auth is wired
-  into the runtime (Task 2 onwards); startup validation fails if missing.
-- `BETTER_AUTH_URL` — public base URL used by Better Auth to build callback and verification links.
-  Defaults to `http://localhost:3000` when unset.
-
-These variables are introduced by the Better Auth migration. Password reset uses the product-level
-verification code instead of Better Auth email links, so no email-callback URL is required.
 
 ## Optional Integrations
 

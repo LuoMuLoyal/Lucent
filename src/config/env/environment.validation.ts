@@ -123,10 +123,6 @@ const envSchema = z.object({
   [EnvKey.JWT_ISSUER]: z.string().default('lucent-api'),
   [EnvKey.JWT_AUDIENCE]: z.string().default('luminous-app'),
 
-  // ── Better Auth (sensitive, in .env) ─────────────────────────────
-  [EnvKey.BETTER_AUTH_SECRET]: z.string().min(32),
-  [EnvKey.BETTER_AUTH_URL]: optionalUri,
-
   // ── Admin (sensitive, in .env) ───────────────────────────────────
   [EnvKey.ADMIN_EMAIL]: z.email(),
   [EnvKey.ADMIN_PASSWORD]: z.string().min(8),
@@ -570,7 +566,6 @@ function assertProductionEnvironment(
     EnvKey.REDIS_URL,
     EnvKey.JWT_ACCESS_SECRET,
     EnvKey.JWT_REFRESH_SECRET,
-    EnvKey.BETTER_AUTH_SECRET,
     EnvKey.ADMIN_EMAIL,
     EnvKey.ADMIN_PASSWORD,
     EnvKey.ADMIN_COOKIE_SECRET,

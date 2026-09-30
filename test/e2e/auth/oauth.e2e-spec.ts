@@ -357,11 +357,11 @@ describe('OAuth API (e2e)', () => {
         .expect(400);
     });
 
-    it('should return 503 when Apple provider is not configured in Better Auth (test env)', async () => {
-      // Apple Sign-In is now handled by Better Auth signInSocial, which
-      // requires APPLE_APP_ID and APPLE_CLIENT_SECRET in the environment.
-      // In the test environment these are not set, so the provider is
-      // not registered and the endpoint returns 503 AUTH_METHOD_DISABLED.
+    it('should reject an unverifiable identityToken with 400', async () => {
+      // Apple Sign-In verification is owned by Lucent's AppleOAuthProvider,
+      // which checks the token signature against Apple's JWKS. A synthetic
+      // token cannot be verified, so the callback fails before any session
+      // is minted.
       await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
         .send({
@@ -369,7 +369,7 @@ describe('OAuth API (e2e)', () => {
           givenName: 'Apple',
           familyName: 'User',
         })
-        .expect(503);
+        .expect(400);
     });
   });
 

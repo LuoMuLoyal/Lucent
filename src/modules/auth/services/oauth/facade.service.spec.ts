@@ -8,7 +8,7 @@ import type { AuthTokenService } from '../token.service.js';
 import type { AuthOAuthService } from './oauth.service.js';
 import type { AuthNotificationService } from '../notification.service.js';
 import type { OAuthProfile } from '../../types/oauth.types.js';
-import type { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import type { AppleOAuthProvider } from '../../providers/apple-oauth.provider.js';
 import { AuthOAuthFacadeService } from './facade.service.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import {
@@ -77,10 +77,7 @@ describe('AuthOAuthFacadeService', () => {
   let tokenService: vi.Mocked<AuthTokenService>;
   let oauthService: vi.Mocked<AuthOAuthService>;
   let notificationService: vi.Mocked<AuthNotificationService>;
-  let betterAuthAdapter: {
-    auth: { api: { signInSocial: ReturnType<typeof vi.fn> } };
-    revokeBetterAuthSessions: ReturnType<typeof vi.fn>;
-  };
+  let appleProvider: vi.Mocked<AppleOAuthProvider>;
 
   beforeEach(() => {
     userService = {
@@ -98,14 +95,11 @@ describe('AuthOAuthFacadeService', () => {
           okAsync({ ...mockProfile, provider: 'wechat_mobile' }),
         ),
     } as unknown as vi.Mocked<WechatMobileOAuthProvider>;
-    betterAuthAdapter = {
-      auth: {
-        api: {
-          signInSocial: vi.fn(),
-        },
-      },
-      revokeBetterAuthSessions: vi.fn().mockReturnValue(okAsync(undefined)),
-    };
+    appleProvider = {
+      fetchProfile: vi
+        .fn()
+        .mockReturnValue(okAsync({ ...mockProfile, provider: 'apple' })),
+    } as unknown as vi.Mocked<AppleOAuthProvider>;
     qqProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://qq/auth?url=1'),
       fetchProfile: vi
@@ -122,6 +116,9 @@ describe('AuthOAuthFacadeService', () => {
         .mockReturnValue(
           okAsync({ accessToken: 'google-access', idToken: 'google-id-token' }),
         ),
+      fetchProfileFromIdToken: vi
+        .fn()
+        .mockReturnValue(okAsync({ ...mockProfile, provider: 'google' })),
     } as unknown as vi.Mocked<GoogleOAuthProvider>;
     stateService = {
       createState: vi
@@ -156,11 +153,11 @@ describe('AuthOAuthFacadeService', () => {
       wechatMobileProvider,
       qqProvider,
       googleProvider,
+      appleProvider,
       stateService,
       tokenService,
       oauthService,
       notificationService,
-      betterAuthAdapter as unknown as AuthBetterAuthAdapter,
     );
   });
 
@@ -347,11 +344,7 @@ describe('AuthOAuthFacadeService', () => {
   });
 
   describe('loginWithApple', () => {
-    it('calls Better Auth social sign-in and returns tokens', async () => {
-      betterAuthAdapter.auth.api.signInSocial.mockResolvedValue({
-        user: { id: 'user-1' },
-      });
-
+    it('verifies the identity token, resolves the profile, and returns tokens', async () => {
       const outcome = await collectResult(
         service.loginWithApple({
           identityToken: 'apple-token',
@@ -359,21 +352,18 @@ describe('AuthOAuthFacadeService', () => {
         }),
       );
 
-      expect(betterAuthAdapter.auth.api.signInSocial).toHaveBeenCalledWith({
-        body: {
-          provider: 'apple',
-          idToken: {
-            token: 'apple-token',
-            accessToken: 'auth-code',
-          },
-        },
+      expect(appleProvider.fetchProfile).toHaveBeenCalledWith({
+        identityToken: 'apple-token',
+        authorizationCode: 'auth-code',
+        givenName: undefined,
+        familyName: undefined,
       });
-      expect(userService.update).toHaveBeenCalledWith('user-1', {
-        lastLoginAt: expect.any(Date),
-        status: UserStatus.active,
-      });
-      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
-        'user-1',
+      expect(oauthService.findOrCreateOAuthUser).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: 'apple' }),
+      );
+      expect(oauthService.updateOAuthLoginUser).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({ provider: 'apple' }),
       );
       expect(outcome).toEqual({
         ok: true,
@@ -383,11 +373,7 @@ describe('AuthOAuthFacadeService', () => {
   });
 
   describe('loginWithGoogle', () => {
-    it('exchanges code for tokens, calls Better Auth, and returns tokens', async () => {
-      betterAuthAdapter.auth.api.signInSocial.mockResolvedValue({
-        user: { id: 'user-1' },
-      });
-
+    it('exchanges code for tokens, verifies the id token, and returns tokens', async () => {
       const outcome = await collectResult(
         service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
       );
@@ -400,21 +386,16 @@ describe('AuthOAuthFacadeService', () => {
       expect(googleProvider.exchangeCodeForTokens).toHaveBeenCalledWith(
         'google-code',
       );
-      expect(betterAuthAdapter.auth.api.signInSocial).toHaveBeenCalledWith({
-        body: {
-          provider: 'google',
-          idToken: {
-            token: 'google-id-token',
-            accessToken: 'google-access',
-          },
-        },
-      });
-      expect(userService.update).toHaveBeenCalledWith('user-1', {
-        lastLoginAt: expect.any(Date),
-        status: UserStatus.active,
-      });
-      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
-        'user-1',
+      expect(googleProvider.fetchProfileFromIdToken).toHaveBeenCalledWith(
+        'google-id-token',
+        'google-access',
+      );
+      expect(oauthService.findOrCreateOAuthUser).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: 'google' }),
+      );
+      expect(oauthService.updateOAuthLoginUser).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({ provider: 'google' }),
       );
       expect(outcome).toEqual({
         ok: true,
@@ -422,11 +403,15 @@ describe('AuthOAuthFacadeService', () => {
       });
     });
 
-    it('returns AUTH_OAUTH_FAILED when Better Auth user does not exist locally', async () => {
-      betterAuthAdapter.auth.api.signInSocial.mockResolvedValue({
-        user: { id: 'missing-user' },
-      });
-      userService.findById.mockResolvedValue(null);
+    it('returns AUTH_OAUTH_FAILED when the profile cannot be resolved to a user', async () => {
+      oauthService.findOrCreateOAuthUser.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_OAUTH_FAILED',
+          }),
+        ),
+      );
 
       const outcome = await collectResult(
         service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
@@ -439,6 +424,7 @@ describe('AuthOAuthFacadeService', () => {
           code: 'AUTH_OAUTH_FAILED',
         }),
       });
+      expect(oauthService.updateOAuthLoginUser).not.toHaveBeenCalled();
     });
 
     it('propagates an invalid state failure', async () => {
@@ -452,61 +438,38 @@ describe('AuthOAuthFacadeService', () => {
       expect(googleProvider.exchangeCodeForTokens).not.toHaveBeenCalled();
     });
 
-    it('maps an unknown Better Auth 4xx error to AUTH_OAUTH_FAILED', async () => {
-      betterAuthAdapter.auth.api.signInSocial.mockRejectedValue({
-        statusCode: 400,
-        body: { code: 'UNKNOWN_OAUTH_ERROR' },
+    it('propagates an id-token verification failure from the provider', async () => {
+      const verificationFailure = createDomainFailure({
+        kind: 'dependency',
+        code: 'DEPENDENCY_UNAVAILABLE',
       });
+      googleProvider.fetchProfileFromIdToken.mockReturnValue(
+        errAsync(verificationFailure),
+      );
 
       const outcome = await collectResult(
         service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
       );
 
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({
-          kind: 'authentication',
-          code: 'AUTH_OAUTH_FAILED',
-        }),
-      });
+      expect(outcome).toEqual({ ok: false, error: verificationFailure });
+      expect(oauthService.findOrCreateOAuthUser).not.toHaveBeenCalled();
     });
 
-    it('maps a disabled social provider error to AUTH_METHOD_DISABLED', async () => {
-      betterAuthAdapter.auth.api.signInSocial.mockRejectedValue({
-        statusCode: 400,
-        body: { code: 'SOCIAL_SIGN_IN_DISABLED' },
+    it('propagates a token-exchange failure from the provider', async () => {
+      const exchangeFailure = createDomainFailure({
+        kind: 'dependency',
+        code: 'DEPENDENCY_UNAVAILABLE',
       });
+      googleProvider.exchangeCodeForTokens.mockReturnValue(
+        errAsync(exchangeFailure),
+      );
 
       const outcome = await collectResult(
         service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
       );
 
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({
-          kind: 'dependency',
-          code: 'AUTH_METHOD_DISABLED',
-        }),
-      });
-    });
-
-    it('maps an unknown Better Auth 5xx error to DEPENDENCY_UNAVAILABLE', async () => {
-      betterAuthAdapter.auth.api.signInSocial.mockRejectedValue({
-        statusCode: 500,
-        body: { code: 'FAILED_TO_CREATE_SESSION' },
-      });
-
-      const outcome = await collectResult(
-        service.loginWithGoogle({ code: 'google-code', state: 'state-123' }),
-      );
-
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({
-          kind: 'dependency',
-          code: 'DEPENDENCY_UNAVAILABLE',
-        }),
-      });
+      expect(outcome).toEqual({ ok: false, error: exchangeFailure });
+      expect(oauthService.findOrCreateOAuthUser).not.toHaveBeenCalled();
     });
   });
 

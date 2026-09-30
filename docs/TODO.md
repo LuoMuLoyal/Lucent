@@ -184,7 +184,7 @@ ESM 化后遗留清单与后续跟进：
   以动态 import + default/具名回退装载。上游发布 ESM 版本后改回裸 named import。
 - 两处 PDF 服务用 `createRequire(import.meta.url).resolve` 解析 `@fontpkg/*` 字体资产路径（ESM 无
   `require.resolve`），属惯用法保留。
-- `cos-nodejs-sdk-v5`（default import）、`better-auth`（ESM 出口）、adminjs 系与 `@scalar/*`（动态
+- `cos-nodejs-sdk-v5`（default import）、adminjs 系与 `@scalar/*`（动态
   default import）当前互操作正常，无需改动；若上游导出形态变化，按计划口径复核。
 
 ### @nestjs/throttler 与 nest-winston 的 ^12 peer 跟进（2026-09-02，NestJS 12 升级第一步）

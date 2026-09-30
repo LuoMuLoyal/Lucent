@@ -8,8 +8,10 @@ owner: backend
 ## 模块意图
 
 认证与安全基础设施:注册/登录/会话/OAuth/密码重置/邮箱验证全流程。
-基于 Better Auth(凭据与 argon2 密码哈希)+ JWT(access/refresh 双 token)双层
-架构,支持 6 种 OAuth 提供商与本地凭据登录,并向全应用供给守卫与认证装饰器。
+Lucent 自持身份层(accounts 表存本地凭据与 OAuth 身份,argon2 密码哈希)
+
+- JWT(access/refresh 双 token)双层架构,支持 6 种 OAuth 提供商与本地凭据
+  登录,并向全应用供给守卫与认证装饰器。
 
 ## 边界
 
@@ -23,12 +25,14 @@ owner: backend
 - imports:`UserModule`、`NotificationsModule`、`MailModule`、Passport/Jwt。
 - 被引用:几乎所有模块经 barrel 取 `@Public()`/`@CurrentUser()`/`UserPayload`;
   DI 层被 `account`、`assistant`、`data-export`、`files`、`user-settings` 导入。
-  exports:`AuthService`、`AuthBetterAuthAdapter`、`PasswordReauthService`。
+  exports:`AuthService`、`AuthIdentityService`、`PasswordReauthService`。
 
 ## 内部结构
 
 - `services/auth.service.ts` — facade,委托子服务,自身不含业务逻辑。
-- `services/identity/credential.service.ts` — 注册/登录(经 Better Auth API)。
+- `services/identity/credential.service.ts` — 注册/登录(本地凭据)。
+- `services/identity/identity.service.ts` — Lucent 自持身份层:argon2 哈希、
+  accounts 读写、本地用户创建与凭据校验。
 - `services/identity/password-reauth.service.ts` — 敏感操作前密码重验(非 token)。
 - `services/identity/rate-limit.service.ts` — 登录失败限流(基于 Redis)。
 - `services/identity/verification-code.service.ts` — 邮箱验证码生成与校验。
@@ -38,7 +42,7 @@ owner: backend
 - `services/oauth/oauth.service.ts` — OAuth profile → 用户链接/创建。
 - `services/oauth/state.service.ts` — OAuth state 生成与 CSRF 校验。
 - `services/notification.service.ts` — 安全通知(登录提醒、密码变更)。
-- `adapters/better-auth.adapter.ts` — 封装 Better Auth + Prisma 映射。
+- `services/identity/email-verification.service.ts` — 邮箱验证 token 签发与消费。
 - `providers/` — 6 个 OAuth 提供商;Apple/Google 为受信提供商(自动关联账号)。
 - `repositories/` — session/account 仓储(port + Prisma 实现)。
 - `guards/jwt-auth.guard.ts`、`strategies/jwt-access.strategy.ts`、`decorators/`。

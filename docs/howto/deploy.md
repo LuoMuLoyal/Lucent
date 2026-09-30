@@ -142,22 +142,22 @@ docker compose -f compose.staging.yaml --env-file .env.production up -d
 
 ## 三、Staging「改哪些值」清单
 
-| 文件                                   | 键 / 值                                | 说明                                                                                                                 |
-| -------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `.env.production`(根,gitignored)       | `DATABASE_URL`                         | `postgresql://lucent:<POSTGRES_PASSWORD>@127.0.0.1:5432/lucent?schema=public`                                        |
-|                                        | `REDIS_URL`                            | `redis://:<REDIS_PASSWORD>@127.0.0.1:6379`                                                                           |
-|                                        | `VICTORIALOGS_URL`                     | `http://127.0.0.1:9428/insert/jsonline`                                                                              |
-|                                        | `TRUST_PROXY`                          | `true`(经 Traefik 后限流取真实 IP)                                                                                   |
-|                                        | `PUBLIC_BASE_URL`                      | `https://api.<域名>`                                                                                                 |
-|                                        | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与上面两个 URL 内嵌的密码一致**                                                                 |
-|                                        | `NEO4J_PASSWORD`                       | compose 插值用(Neo4j 容器与探针);**必填**,缺失即拒绝启动                                                             |
-|                                        | `METRICS_USER` / `METRICS_PASSWORD`    | 应用的`/metrics` Basic Auth + VictoriaMetrics 抓取凭据                                                               |
-|                                        | 其余密钥                               | JWT / Better Auth / ADMIN / 邮件 / AI / 对象存储,见[environment-variables.md](../reference/environment-variables.md) |
-| `deploy/traefik/*.yml`(服务器本地)     | `acme.email`                           | ACME 注册邮箱,必填                                                                                                   |
-|                                        | 4 条`rule` 的域名                      | `api.` / `metrics.` / `logs.` / `traefik.`                                                                           |
-|                                        | `basicAuth.users`                      | 三个面板共用;`openssl passwd -apr1` 或 `htpasswd -nbB` 生成 `用户:哈希`                                              |
-| `deploy/ecosystem.config.cjs`          | `cwd`                                  | 默认`/opt/lucent`,换目录时改这里与工作流里的 `APP_DIR`                                                               |
-| `.github/workflows/lucent-staging.yml` | `APP_DIR`                              | 服务器代码目录,须与`ecosystem.config.cjs` 的 `cwd` 一致                                                              |
+| 文件                                   | 键 / 值                                | 说明                                                                                                   |
+| -------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `.env.production`(根,gitignored)       | `DATABASE_URL`                         | `postgresql://lucent:<POSTGRES_PASSWORD>@127.0.0.1:5432/lucent?schema=public`                          |
+|                                        | `REDIS_URL`                            | `redis://:<REDIS_PASSWORD>@127.0.0.1:6379`                                                             |
+|                                        | `VICTORIALOGS_URL`                     | `http://127.0.0.1:9428/insert/jsonline`                                                                |
+|                                        | `TRUST_PROXY`                          | `true`(经 Traefik 后限流取真实 IP)                                                                     |
+|                                        | `PUBLIC_BASE_URL`                      | `https://api.<域名>`                                                                                   |
+|                                        | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与上面两个 URL 内嵌的密码一致**                                                   |
+|                                        | `NEO4J_PASSWORD`                       | compose 插值用(Neo4j 容器与探针);**必填**,缺失即拒绝启动                                               |
+|                                        | `METRICS_USER` / `METRICS_PASSWORD`    | 应用的`/metrics` Basic Auth + VictoriaMetrics 抓取凭据                                                 |
+|                                        | 其余密钥                               | JWT / ADMIN / 邮件 / AI / 对象存储,见[environment-variables.md](../reference/environment-variables.md) |
+| `deploy/traefik/*.yml`(服务器本地)     | `acme.email`                           | ACME 注册邮箱,必填                                                                                     |
+|                                        | 4 条`rule` 的域名                      | `api.` / `metrics.` / `logs.` / `traefik.`                                                             |
+|                                        | `basicAuth.users`                      | 三个面板共用;`openssl passwd -apr1` 或 `htpasswd -nbB` 生成 `用户:哈希`                                |
+| `deploy/ecosystem.config.cjs`          | `cwd`                                  | 默认`/opt/lucent`,换目录时改这里与工作流里的 `APP_DIR`                                                 |
+| `.github/workflows/lucent-staging.yml` | `APP_DIR`                              | 服务器代码目录,须与`ecosystem.config.cjs` 的 `cwd` 一致                                                |
 
 改完 traefik 配置要重启才生效(单文件 bind-mount 的 fsnotify 不可靠):
 

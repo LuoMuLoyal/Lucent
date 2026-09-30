@@ -6,7 +6,7 @@ import { UserService } from '../../../user/index.js';
 import { VerificationCodeService } from './verification-code.service.js';
 import { AuthTokenService } from '../token.service.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { AuthIdentityService } from './identity.service.js';
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import {
@@ -42,16 +42,6 @@ const mockUser: User = {
   emailVerifiedAt: new Date('2026-01-01'),
   lastLoginAt: new Date('2026-01-01T00:00:00Z'),
   deletedAt: null,
-  createdAt: new Date('2026-01-01'),
-  updatedAt: new Date('2026-06-01'),
-};
-
-const mockBetterAuthUser = {
-  id: 'user-1',
-  email: 'test@example.com',
-  name: 'Tester',
-  image: null,
-  emailVerified: true,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-06-01'),
 };
@@ -95,12 +85,11 @@ describe('CredentialAuthService', () => {
   let verificationCodeService: vi.Mocked<VerificationCodeService>;
   let authTokenService: vi.Mocked<AuthTokenService>;
   let authRateLimitService: vi.Mocked<AuthRateLimitService>;
-  let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
+  let identityService: vi.Mocked<AuthIdentityService>;
 
-  let signUpEmailMock: vi.Mock;
-  let signInEmailMock: vi.Mock;
+  let hashPasswordMock: vi.Mock;
   let verifyPasswordForUserMock: vi.Mock;
-  let revokeBetterAuthSessionsMock: vi.Mock;
+  let createLocalUserMock: vi.Mock;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -143,20 +132,15 @@ describe('CredentialAuthService', () => {
           },
         },
         {
-          provide: AuthBetterAuthAdapter,
+          provide: AuthIdentityService,
           useValue: {
-            auth: {
-              api: {
-                signUpEmail: vi.fn(),
-                signInEmail: vi.fn(),
-              },
-            },
             hashPassword: vi.fn(),
             verifyPassword: vi.fn(),
             verifyPasswordForUser: vi.fn(),
-            revokeBetterAuthSessions: vi.fn(),
-            credentialProviderId: 'credential',
-            credentialIssuer: 'local:credential',
+            hasPassword: vi.fn(),
+            upsertCredentialAccount: vi.fn(),
+            createLocalUser: vi.fn(),
+            authenticateByEmail: vi.fn(),
           },
         },
       ],
@@ -167,7 +151,7 @@ describe('CredentialAuthService', () => {
     verificationCodeService = module.get(VerificationCodeService);
     authTokenService = module.get(AuthTokenService);
     authRateLimitService = module.get(AuthRateLimitService);
-    betterAuthAdapter = module.get(AuthBetterAuthAdapter);
+    identityService = module.get(AuthIdentityService);
 
     // Default mock responses
     userService.findByEmail.mockResolvedValue(null);
@@ -185,28 +169,16 @@ describe('CredentialAuthService', () => {
     authRateLimitService.recordLoginFailure.mockReturnValue(okAsync(undefined));
     authRateLimitService.clearLoginFailures.mockReturnValue(okAsync(undefined));
 
-    signUpEmailMock = betterAuthAdapter.auth.api
-      .signUpEmail as unknown as vi.Mock;
-    signInEmailMock = betterAuthAdapter.auth.api
-      .signInEmail as unknown as vi.Mock;
+    hashPasswordMock = identityService.hashPassword as unknown as vi.Mock;
     verifyPasswordForUserMock =
-      betterAuthAdapter.verifyPasswordForUser as unknown as vi.Mock;
-    revokeBetterAuthSessionsMock =
-      betterAuthAdapter.revokeBetterAuthSessions as unknown as vi.Mock;
+      identityService.verifyPasswordForUser as unknown as vi.Mock;
+    createLocalUserMock = identityService.createLocalUser as unknown as vi.Mock;
 
-    signUpEmailMock.mockResolvedValue({
-      token: null,
-      user: mockBetterAuthUser,
-    });
-    signInEmailMock.mockResolvedValue({
-      redirect: false,
-      token: 'better-auth-session-token',
-      user: mockBetterAuthUser,
-    });
-    betterAuthAdapter.hashPassword.mockResolvedValue('$argon2id$new-hash');
-    betterAuthAdapter.verifyPassword.mockResolvedValue(true);
+    hashPasswordMock.mockResolvedValue('$argon2id$new-hash');
     verifyPasswordForUserMock.mockReturnValue(okAsync(true));
-    revokeBetterAuthSessionsMock.mockReturnValue(okAsync(undefined));
+    createLocalUserMock.mockReturnValue(
+      okAsync({ user: { id: 'user-1' }, created: true }),
+    );
   });
 
   afterEach(() => {
@@ -228,12 +200,11 @@ describe('CredentialAuthService', () => {
         '123456',
         'register',
       );
-      expect(signUpEmailMock).toHaveBeenCalledWith({
-        body: {
-          email: 'new@example.com',
-          password: 'Secure@Pass1',
-          name: 'NewUser',
-        },
+      expect(hashPasswordMock).toHaveBeenCalledWith('Secure@Pass1');
+      expect(createLocalUserMock).toHaveBeenCalledWith({
+        email: 'new@example.com',
+        passwordHash: '$argon2id$new-hash',
+        nickname: 'NewUser',
       });
       expect(userService.update).toHaveBeenCalledWith('user-1', {
         emailVerified: true,
@@ -243,7 +214,6 @@ describe('CredentialAuthService', () => {
         mockUser,
         undefined,
       );
-      expect(revokeBetterAuthSessionsMock).toHaveBeenCalledWith('user-1');
       expect(outcome).toEqual({
         ok: true,
         value: expect.objectContaining({
@@ -261,33 +231,30 @@ describe('CredentialAuthService', () => {
       });
       await collectResult(service.register(dto));
 
-      expect(signUpEmailMock).toHaveBeenCalledWith({
-        body: expect.objectContaining({
-          email: 'new@example.com',
-          name: 'new',
-        }),
+      expect(createLocalUserMock).toHaveBeenCalledWith({
+        email: 'new@example.com',
+        passwordHash: '$argon2id$new-hash',
+        nickname: 'new',
       });
     });
 
     it('should reject an already-registered email with the generic credential failure (anti-enumeration)', async () => {
-      signUpEmailMock.mockResolvedValue({
-        token: null,
-        user: { ...mockBetterAuthUser, id: 'synthetic-id' },
-      });
-      userService.findById.mockResolvedValue(null);
+      createLocalUserMock.mockReturnValue(
+        okAsync({ user: { id: 'existing-user' }, created: false }),
+      );
 
       const outcome = await collectResult(service.register(buildRegisterDto()));
 
       expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
     });
 
-    it('should validate the code before calling Better Auth (anti-enumeration)', async () => {
+    it('should validate the code before creating the user (anti-enumeration)', async () => {
       await collectResult(service.register(buildRegisterDto()));
 
       const verifyOrder =
         verificationCodeService.verify.mock.invocationCallOrder;
-      const signUpOrder = signUpEmailMock.mock.invocationCallOrder;
-      expect(verifyOrder[0]!).toBeLessThan(signUpOrder[0]!);
+      const createOrder = createLocalUserMock.mock.invocationCallOrder;
+      expect(verifyOrder[0]!).toBeLessThan(createOrder[0]!);
     });
 
     it('should propagate verification code failures', async () => {
@@ -308,7 +275,7 @@ describe('CredentialAuthService', () => {
           code: 'AUTH_VERIFICATION_CODE_MISMATCH',
         }),
       });
-      expect(signUpEmailMock).not.toHaveBeenCalled();
+      expect(createLocalUserMock).not.toHaveBeenCalled();
     });
 
     it('should pass auth context to token generation', async () => {
@@ -323,7 +290,15 @@ describe('CredentialAuthService', () => {
 
     it('maps infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
       const error = new Error('db connection lost');
-      signUpEmailMock.mockRejectedValue(error);
+      createLocalUserMock.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+            cause: error,
+          }),
+        ),
+      );
 
       const outcome = await collectResult(service.register(buildRegisterDto()));
 
@@ -331,7 +306,6 @@ describe('CredentialAuthService', () => {
         ok: false,
         error: expect.objectContaining({
           code: 'DEPENDENCY_UNAVAILABLE',
-          cause: error,
         }),
       });
     });
@@ -356,7 +330,6 @@ describe('CredentialAuthService', () => {
         'user-1',
         'Secure@Pass1',
       );
-      expect(signInEmailMock).not.toHaveBeenCalled();
       expect(authRateLimitService.clearLoginFailures).toHaveBeenCalledWith(
         'test@example.com',
       );
@@ -399,7 +372,6 @@ describe('CredentialAuthService', () => {
       expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
         'test@example.com',
       );
-      expect(signInEmailMock).not.toHaveBeenCalled();
     });
 
     it('should reject when both password and code are provided', async () => {
@@ -412,7 +384,6 @@ describe('CredentialAuthService', () => {
         'test@example.com',
       );
       expect(verificationCodeService.verify).not.toHaveBeenCalled();
-      expect(signInEmailMock).not.toHaveBeenCalled();
     });
 
     it('should reject OAuth-only user without credential account', async () => {
@@ -446,7 +417,6 @@ describe('CredentialAuthService', () => {
         '654321',
         'login',
       );
-      expect(signInEmailMock).not.toHaveBeenCalled();
       expect(outcome).toEqual({
         ok: true,
         value: expect.objectContaining({

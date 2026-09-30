@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { randomUUID } from 'node:crypto';
 
 import { normalizeEmail, now } from '../../../../common/index.js';
 import {
@@ -13,10 +12,10 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import type { User } from '#generated/prisma/client.js';
-import { PrismaService } from '../../../../prisma/index.js';
 import { UserService } from '../../../user/index.js';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
 import { INotificationSender } from '../../../notifications/index.js';
+import { AuthIdentityService } from './identity.service.js';
+import { EmailVerificationService } from './email-verification.service.js';
 import { VerificationCodeService } from './verification-code.service.js';
 import type { ChangePasswordDto } from '../../dto/password/change-password.dto.js';
 import type { ChangeEmailDto } from '../../dto/password/change-email.dto.js';
@@ -26,7 +25,6 @@ import type { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.j
 import type { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
 import type { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
 import { AuthTokenService } from '../token.service.js';
-import { fromBetterAuth } from './better-auth-error.js';
 import { PasswordReauthService } from './password-reauth.service.js';
 
 /**
@@ -49,8 +47,8 @@ export class PasswordManagementService {
     private readonly authTokenService: AuthTokenService,
     private readonly passwordReauthService: PasswordReauthService,
     private readonly notificationsService: INotificationSender,
-    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
-    private readonly prisma: PrismaService,
+    private readonly authIdentityService: AuthIdentityService,
+    private readonly emailVerificationService: EmailVerificationService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -62,18 +60,9 @@ export class PasswordManagementService {
   ): ResultAsync<void, DomainFailure> {
     return this.getActiveUser(userId)
       .andThen(() => this.passwordReauthService.verify(userId, dto.password))
-      .andThen(() =>
-        this.lift(
-          this.prisma.account.findFirst({
-            where: {
-              userId,
-              providerId: this.betterAuthAdapter.credentialProviderId,
-            },
-          }),
-        ),
-      )
-      .andThen((account) => {
-        if (!account) {
+      .andThen(() => this.authIdentityService.hasPassword(userId))
+      .andThen((hasPassword) => {
+        if (!hasPassword) {
           return errAsync(
             createDomainFailure({
               kind: 'authentication',
@@ -82,13 +71,11 @@ export class PasswordManagementService {
           );
         }
 
-        return this.lift(this.betterAuthAdapter.hashPassword(dto.newPassword))
+        return this.lift(this.authIdentityService.hashPassword(dto.newPassword))
           .andThen((hashedPassword) =>
-            this.lift(
-              this.prisma.account.update({
-                where: { id: account.id },
-                data: { password: hashedPassword },
-              }),
+            this.authIdentityService.upsertCredentialAccount(
+              userId,
+              hashedPassword,
             ),
           )
           .andThen(() => this.authTokenService.revokeAll(userId))
@@ -117,15 +104,8 @@ export class PasswordManagementService {
 
       const email = normalizeEmail(user.email);
 
-      return this.lift(
-        this.prisma.account.findFirst({
-          where: {
-            userId,
-            providerId: this.betterAuthAdapter.credentialProviderId,
-          },
-        }),
-      ).andThen((existingAccount) => {
-        if (existingAccount) {
+      return this.authIdentityService.hasPassword(userId).andThen((exists) => {
+        if (exists) {
           return errAsync(
             createDomainFailure({
               kind: 'conflict',
@@ -137,20 +117,12 @@ export class PasswordManagementService {
         return this.verificationCodeService
           .verify(email, dto.code, 'set-password')
           .andThen(() =>
-            this.lift(this.betterAuthAdapter.hashPassword(dto.password)),
+            this.lift(this.authIdentityService.hashPassword(dto.password)),
           )
           .andThen((hashedPassword) =>
-            this.lift(
-              this.prisma.account.create({
-                data: {
-                  id: randomUUID(),
-                  userId,
-                  providerId: this.betterAuthAdapter.credentialProviderId,
-                  issuer: this.betterAuthAdapter.credentialIssuer,
-                  accountId: userId,
-                  password: hashedPassword,
-                },
-              }),
+            this.authIdentityService.upsertCredentialAccount(
+              userId,
+              hashedPassword,
             ),
           )
           .andThen(() => this.authTokenService.revokeAll(userId))
@@ -214,13 +186,15 @@ export class PasswordManagementService {
       }));
   }
 
+  /**
+   * Confirms a mailbox using a token mailed to the address.
+   *
+   * Lucent issues these tokens itself ({@link EmailVerificationService}); the
+   * token is single-use and short-lived, and consuming it marks the account
+   * verified.
+   */
   verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
-    return fromBetterAuth(
-      this.betterAuthAdapter.auth.api.verifyEmail({
-        query: { token: dto.token },
-      }),
-      'Better Auth call failed',
-    ).map(() => undefined);
+    return this.emailVerificationService.consume(dto.token);
   }
 
   // ── Password Reset (verification-code mode) ──────────────────
@@ -267,18 +241,9 @@ export class PasswordManagementService {
 
       return this.verificationCodeService
         .verify(email, dto.code, 'forgot-password')
-        .andThen(() =>
-          this.lift(
-            this.prisma.account.findFirst({
-              where: {
-                userId,
-                providerId: this.betterAuthAdapter.credentialProviderId,
-              },
-            }),
-          ),
-        )
-        .andThen((account) => {
-          if (!account) {
+        .andThen(() => this.authIdentityService.hasPassword(userId))
+        .andThen((hasPassword) => {
+          if (!hasPassword) {
             // OAuth-only account without a local credential — nothing to reset.
             return errAsync(
               createDomainFailure({
@@ -288,13 +253,11 @@ export class PasswordManagementService {
             );
           }
 
-          return this.lift(this.betterAuthAdapter.hashPassword(dto.password))
+          return this.lift(this.authIdentityService.hashPassword(dto.password))
             .andThen((hashedPassword) =>
-              this.lift(
-                this.prisma.account.update({
-                  where: { id: account.id },
-                  data: { password: hashedPassword },
-                }),
+              this.authIdentityService.upsertCredentialAccount(
+                userId,
+                hashedPassword,
               ),
             )
             .andThen(() => this.authTokenService.revokeAll(userId))

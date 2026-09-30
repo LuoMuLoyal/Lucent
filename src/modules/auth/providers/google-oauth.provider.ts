@@ -1,3 +1,5 @@
+import { createPublicKey } from 'node:crypto';
+
 import {
   extractErrorInfo,
   fetchWithRetry,
@@ -18,6 +20,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { ConfigKey } from '../../../config/env/config-keys.enum.js';
 import type { OAuthConfig } from '../../../config/services/oauth.config.js';
 import {
@@ -33,7 +36,25 @@ import {
 const GOOGLE_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
+const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+const GOOGLE_ISSUER = 'https://accounts.google.com';
+/** Google also issues tokens with the scheme-less issuer. */
+const GOOGLE_ISSUER_ALT = 'accounts.google.com';
 const GOOGLE_SCOPE = 'openid email profile';
+const GOOGLE_JWKS_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+interface GoogleJwk {
+  kty: string;
+  kid: string;
+  use: string;
+  alg: string;
+  n: string;
+  e: string;
+}
+
+interface GoogleJwksResponse {
+  keys: GoogleJwk[];
+}
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -59,8 +80,13 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
   readonly provider = OAUTH_PROVIDER_GOOGLE;
 
   private readonly logger = new Logger(GoogleOAuthProvider.name);
+  private googleKeys: GoogleJwk[] = [];
+  private lastJwksFetch = 0;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   buildAuthorizeUrl(state: string, callbackUri?: string): string {
     const config = this.getConfig();
@@ -135,6 +161,140 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
         }),
       ),
     );
+  }
+
+  /**
+   * Builds a profile from an ID token obtained by {@link exchangeCodeForTokens}.
+   *
+   * The ID token is verified against Google's JWKS and its claims checked
+   * (issuer, audience, expiry) before the profile is trusted; the authoritative
+   * profile fields then come from the userinfo endpoint, which is bound to the
+   * access token Google just issued.
+   */
+  fetchProfileFromIdToken(
+    idToken: string,
+    accessToken: string,
+  ): ResultAsync<OAuthProfile, DomainFailure> {
+    return this.verifyIdToken(idToken).andThen(() =>
+      this.fetchUserInfo(accessToken).map(
+        (userInfo): OAuthProfile => ({
+          provider: OAUTH_PROVIDER_GOOGLE,
+          providerUserId: userInfo.sub,
+          email: userInfo.email ?? null,
+          emailVerifiedAt: userInfo.email_verified === true ? new Date() : null,
+          nickname: userInfo.name ?? null,
+          avatar: userInfo.picture ?? null,
+          rawProfile: toInputJsonValue({
+            sub: userInfo.sub,
+            email: userInfo.email ?? null,
+            name: userInfo.name ?? null,
+            given_name: userInfo.given_name ?? null,
+            family_name: userInfo.family_name ?? null,
+            picture: userInfo.picture ?? null,
+            locale: userInfo.locale ?? null,
+          }),
+        }),
+      ),
+    );
+  }
+
+  /**
+   * Verifies a Google ID token: signature against Google's published JWKS,
+   * plus `iss`/`aud`/`exp` claims. A token that fails any check is treated as
+   * an upstream failure rather than a client validation error, because Lucent
+   * only ever sees tokens it requested itself.
+   */
+  private verifyIdToken(idToken: string): ResultAsync<void, DomainFailure> {
+    const config = this.readRawConfig();
+    if (!config.appId) {
+      return errAsync(dependencyBadGateway());
+    }
+
+    return this.getGoogleJwk(idToken)
+      .andThen((jwk) => this.jwkToPemResult(jwk))
+      .andThen((publicKey) =>
+        fromPromise(
+          this.jwtService.verifyAsync(idToken, {
+            secret: publicKey,
+            algorithms: ['RS256'],
+            issuer: [GOOGLE_ISSUER, GOOGLE_ISSUER_ALT],
+            audience: config.appId,
+            clockTolerance: 30, // 30s leeway for clock skew
+          }),
+          (error) => {
+            const { message: reason, stack } = extractErrorInfo(error);
+            this.logger.error(
+              `Google ID token verification failed: ${reason}`,
+              stack,
+            );
+            return dependencyBadGateway(error);
+          },
+        ),
+      )
+      .map(() => undefined);
+  }
+
+  /** Resolves the JWKS entry matching the token's `kid`. */
+  private getGoogleJwk(idToken: string): ResultAsync<GoogleJwk, DomainFailure> {
+    // Decode without verification purely to read the `kid`; the signature and
+    // claims are checked by `verifyAsync` once the key is in hand.
+    const decoded = this.jwtService.decode<{ header?: { kid?: string } }>(
+      idToken,
+      { complete: true },
+    ) as { header?: { kid?: string } } | null;
+    const kid = decoded?.header?.kid;
+    if (!kid) {
+      return errAsync(dependencyBadGateway());
+    }
+
+    return this.fetchGoogleJwks().andThen((keys) => {
+      const jwk = keys.find((key) => key.kid === kid);
+      if (!jwk) {
+        // Upstream returned keys that do not cover this token's kid.
+        return errAsync(dependencyBadGateway());
+      }
+      return okAsync(jwk);
+    });
+  }
+
+  private fetchGoogleJwks(): ResultAsync<GoogleJwk[], DomainFailure> {
+    const nowMs = Date.now();
+    if (
+      this.googleKeys.length > 0 &&
+      nowMs - this.lastJwksFetch < GOOGLE_JWKS_TTL_MS
+    ) {
+      return okAsync(this.googleKeys);
+    }
+
+    return this.fetchGoogleApi(GOOGLE_JWKS_URL)
+      .andThen((response) => this.parseJson<GoogleJwksResponse>(response))
+      .map((data) => {
+        this.googleKeys = data.keys;
+        this.lastJwksFetch = nowMs;
+        return this.googleKeys;
+      });
+  }
+
+  private jwkToPemResult(jwk: GoogleJwk): ResultAsync<string, DomainFailure> {
+    return fromPromise(
+      Promise.resolve().then(() => this.jwkToPem(jwk)),
+      (error) => {
+        const { message: reason, stack } = extractErrorInfo(error);
+        this.logger.error(
+          `Failed to convert Google JWK to PEM: ${reason}`,
+          stack,
+        );
+        return dependencyBadGateway(error);
+      },
+    );
+  }
+
+  private jwkToPem(jwk: GoogleJwk): string {
+    const key = createPublicKey({
+      key: { kty: jwk.kty, n: jwk.n, e: jwk.e },
+      format: 'jwk',
+    });
+    return key.export({ type: 'spki', format: 'pem' }) as string;
   }
 
   onModuleInit(): void {

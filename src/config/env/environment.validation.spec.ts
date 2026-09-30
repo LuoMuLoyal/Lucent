@@ -17,7 +17,6 @@ describe('validateEnvironment', () => {
   const adminEmail = 'admin@example.com';
   const adminPassword = 'admin12345';
   const adminCookieSecret = 'dev_lucent_admin_cookie_secret_32_chars';
-  const betterAuthSecret = 'dev_better_auth_secret_32_chars_long';
 
   const baseValidEnv = {
     [EnvKey.NODE_ENV]: NodeEnvironment.Development,
@@ -26,7 +25,6 @@ describe('validateEnvironment', () => {
     [EnvKey.ADMIN_EMAIL]: adminEmail,
     [EnvKey.ADMIN_PASSWORD]: adminPassword,
     [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
-    [EnvKey.BETTER_AUTH_SECRET]: betterAuthSecret,
   };
 
   it('keeps explicit local config values outside production', () => {

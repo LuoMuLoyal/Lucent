@@ -12,7 +12,7 @@ import {
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { AuthIdentityService } from './identity.service.js';
 import type { RegisterDto } from '../../dto/credentials/register.dto.js';
 import type { LoginDto } from '../../dto/credentials/login.dto.js';
 import {
@@ -20,10 +20,7 @@ import {
   type AuthRequestContext,
   type TokenPair,
 } from '../token.service.js';
-import {
-  credentialsInvalidFailure,
-  fromBetterAuth,
-} from './better-auth-error.js';
+import { credentialsInvalidFailure } from './credential-failure.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
 import { VerificationCodeService } from './verification-code.service.js';
 
@@ -46,7 +43,7 @@ export class CredentialAuthService {
     private readonly verificationCodeService: VerificationCodeService,
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
-    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
+    private readonly authIdentityService: AuthIdentityService,
   ) {}
 
   // ── Registration ─────────────────────────────────────────────
@@ -65,19 +62,29 @@ export class CredentialAuthService {
     return this.verificationCodeService
       .verify(email, dto.code, 'register')
       .andThen(() =>
-        fromBetterAuth(
-          this.betterAuthAdapter.auth.api.signUpEmail({
-            body: { email, password: dto.password, name },
-          }),
-          'Better Auth call failed',
+        fromPromise(
+          this.authIdentityService.hashPassword(dto.password),
+          (error) =>
+            mapUnknownToDependencyFailure(error, 'Password hashing failed'),
         ),
       )
-      .andThen((result) => this.lift(this.userService.findById(result.user.id)))
+      .andThen((passwordHash) =>
+        this.authIdentityService.createLocalUser({
+          email,
+          passwordHash,
+          nickname: name,
+        }),
+      )
+      .andThen(({ user, created }) => {
+        if (!created) {
+          // The email is already registered.  Deliberately the same code as
+          // other credential failures — never reveal that the email is taken.
+          return errAsync(credentialsInvalidFailure());
+        }
+        return this.lift(this.userService.findById(user.id));
+      })
       .andThen((user) => {
         if (!user) {
-          // Better Auth returned a synthetic user because the email already
-          // exists.  Deliberately the same code as other credential failures —
-          // never reveal that the email is registered.
           return errAsync(credentialsInvalidFailure());
         }
         return this.userService
@@ -88,11 +95,7 @@ export class CredentialAuthService {
           .andThen((updatedUser) =>
             this.authTokenService
               .generateTokenPair(updatedUser, context)
-              .andThen((tokens) =>
-                this.betterAuthAdapter
-                  .revokeBetterAuthSessions(updatedUser.id)
-                  .map(() => ({ user: updatedUser, ...tokens })),
-              ),
+              .map((tokens) => ({ user: updatedUser, ...tokens })),
           );
       });
   }
@@ -153,13 +156,13 @@ export class CredentialAuthService {
     }
 
     if (hasPassword) {
-      // Verify directly against the Better Auth credential account so this
-      // path never creates a Better Auth session.  Both "no credential
-      // account" and "wrong password" are folded into the same generic
+      // Verify directly against the Lucent credential identity so this path
+      // never mints a session as a side effect.  Both "no credential
+      // identity" and "wrong password" are folded into the same generic
       // anti-enumeration failure and counted against the rate limit.
-      // Internal/dependency failures from the adapter are propagated unchanged
-      // so they are not masked as wrong credentials.
-      return this.betterAuthAdapter
+      // Internal/dependency failures are propagated unchanged so they are not
+      // masked as wrong credentials.
+      return this.authIdentityService
         .verifyPasswordForUser(user.id, dto.password as string)
         .andThen((valid) =>
           valid ? okAsync(user) : errAsync(credentialsInvalidFailure()),

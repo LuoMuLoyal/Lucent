@@ -1,4 +1,5 @@
 import type { ConfigService } from '@nestjs/config';
+import type { JwtService } from '@nestjs/jwt';
 import { GoogleOAuthProvider } from './google-oauth.provider.js';
 import type {
   DomainFailure,
@@ -57,7 +58,10 @@ describe('GoogleOAuthProvider', () => {
       getOrThrow: vi.fn().mockReturnValue(fullConfig),
     } as unknown as vi.Mocked<ConfigService>;
 
-    provider = new GoogleOAuthProvider(configService);
+    provider = new GoogleOAuthProvider(configService, {
+      verifyAsync: vi.fn(),
+      decode: vi.fn(),
+    } as unknown as JwtService);
     fetchWithRetry.mockReset();
   });
 

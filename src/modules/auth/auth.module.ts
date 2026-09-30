@@ -35,7 +35,8 @@ import { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
 import { GoogleOAuthProvider } from './providers/google-oauth.provider.js';
 import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
-import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
+import { AuthIdentityService } from './services/identity/identity.service.js';
+import { EmailVerificationService } from './services/identity/email-verification.service.js';
 
 @Module({
   imports: [
@@ -75,8 +76,9 @@ import { AuthBetterAuthAdapter } from './adapters/better-auth.adapter.js';
     AppleOAuthProvider,
     QqOAuthProvider,
     GoogleOAuthProvider,
-    AuthBetterAuthAdapter,
+    AuthIdentityService,
+    EmailVerificationService,
   ],
-  exports: [AuthService, AuthBetterAuthAdapter, PasswordReauthService],
+  exports: [AuthService, AuthIdentityService, PasswordReauthService],
 })
 export class AuthModule {}

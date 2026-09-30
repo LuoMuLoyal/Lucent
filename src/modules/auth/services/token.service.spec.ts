@@ -9,7 +9,6 @@ import { AuthTokenService } from './token.service.js';
 import { normalizeEmail } from '../../../common/index.js';
 import { PrismaService } from '../../../prisma/index.js';
 import { AuthSessionRepositoryPort } from '../repositories/session.repository.js';
-import { AuthBetterAuthAdapter } from '../adapters/better-auth.adapter.js';
 import {
   createDomainFailure,
   errAsync,
@@ -53,7 +52,6 @@ function collectResult<T>(
 describe('AuthTokenService', () => {
   let service: AuthTokenService;
   let sessionRepo: vi.Mocked<AuthSessionRepositoryPort>;
-  let betterAuthAdapter: vi.Mocked<AuthBetterAuthAdapter>;
   let prisma: { $transaction: vi.Mock };
 
   const mockTx = {} as unknown as Prisma.TransactionClient;
@@ -73,10 +71,6 @@ describe('AuthTokenService', () => {
         .mockImplementation((fn: (tx: Prisma.TransactionClient) => unknown) =>
           fn(mockTx),
         ),
-    };
-
-    const betterAuthAdapterMock = {
-      revokeBetterAuthSessions: vi.fn().mockReturnValue(okAsync(undefined)),
     };
 
     const sessionRepoMock = {
@@ -120,10 +114,6 @@ describe('AuthTokenService', () => {
           },
         },
         {
-          provide: AuthBetterAuthAdapter,
-          useValue: betterAuthAdapterMock,
-        },
-        {
           provide: PrismaService,
           useValue: prisma,
         },
@@ -132,7 +122,6 @@ describe('AuthTokenService', () => {
 
     service = module.get(AuthTokenService);
     sessionRepo = module.get(AuthSessionRepositoryPort);
-    betterAuthAdapter = module.get(AuthBetterAuthAdapter);
   });
 
   afterEach(() => {
@@ -389,7 +378,7 @@ describe('AuthTokenService', () => {
   });
 
   describe('revoke', () => {
-    it('should delete the session by refresh token hash and revoke Better Auth sessions', async () => {
+    it('should delete the session by refresh token hash', async () => {
       const outcome = await collectResult(
         service.revoke('user-1', 'some-token'),
       );
@@ -399,10 +388,6 @@ describe('AuthTokenService', () => {
       expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
         'user-1',
         hash('some-token'),
-        mockTx,
-      );
-      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
-        'user-1',
         mockTx,
       );
     });
@@ -418,7 +403,7 @@ describe('AuthTokenService', () => {
       );
     });
 
-    it('should not revoke Better Auth sessions when Lucent session deletion fails', async () => {
+    it('should not revoke when Lucent session deletion fails', async () => {
       sessionRepo.deleteSessionsByUserIdAndHash.mockReturnValueOnce(
         errAsync(refreshTokenInvalid()),
       );
@@ -432,12 +417,11 @@ describe('AuthTokenService', () => {
         error: expect.objectContaining({ code: 'AUTH_REFRESH_TOKEN_INVALID' }),
       });
       expect(prisma.$transaction).toHaveBeenCalled();
-      expect(betterAuthAdapter.revokeBetterAuthSessions).not.toHaveBeenCalled();
     });
   });
 
   describe('revokeAll', () => {
-    it('should delete all sessions for the user and revoke Better Auth sessions', async () => {
+    it('should delete all sessions for the user', async () => {
       const outcome = await collectResult(service.revokeAll('user-1'));
 
       expect(outcome).toEqual({ ok: true, value: undefined });
@@ -446,13 +430,9 @@ describe('AuthTokenService', () => {
         'user-1',
         mockTx,
       );
-      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
-        'user-1',
-        mockTx,
-      );
     });
 
-    it('should not revoke Better Auth sessions when Lucent session deletion fails', async () => {
+    it('should not revoke when Lucent session deletion fails', async () => {
       sessionRepo.deleteSessionsByUserId.mockReturnValueOnce(
         errAsync(refreshTokenInvalid()),
       );
@@ -464,12 +444,11 @@ describe('AuthTokenService', () => {
         error: expect.objectContaining({ code: 'AUTH_REFRESH_TOKEN_INVALID' }),
       });
       expect(prisma.$transaction).toHaveBeenCalled();
-      expect(betterAuthAdapter.revokeBetterAuthSessions).not.toHaveBeenCalled();
     });
   });
 
   describe('revokeById', () => {
-    it('should revoke a session by its ID and clean up Better Auth sessions', async () => {
+    it('should revoke a session by its ID', async () => {
       sessionRepo.findSessionById.mockReturnValueOnce(
         okAsync({
           id: 'session-1',
@@ -483,9 +462,6 @@ describe('AuthTokenService', () => {
 
       expect(outcome).toEqual({ ok: true, value: undefined });
       expect(sessionRepo.revokeSessionById).toHaveBeenCalledWith('session-1');
-      expect(betterAuthAdapter.revokeBetterAuthSessions).toHaveBeenCalledWith(
-        'user-1',
-      );
     });
 
     it('should map a missing session to AUTH_SESSION_NOT_FOUND', async () => {

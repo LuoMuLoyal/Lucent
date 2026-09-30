@@ -6,22 +6,22 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { AuthBetterAuthAdapter } from '../../adapters/better-auth.adapter.js';
+import { AuthIdentityService } from './identity.service.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
 
 /**
  * Verifies the user's current password for sensitive operations. It combines
- * Redis-based rate limiting with Better Auth credential verification and emits
- * the domain failures expected by the API boundary:
+ * Redis-based rate limiting with credential verification and emits the domain
+ * failures expected by the API boundary:
  *
- * - `AUTH_PASSWORD_NOT_SET` — the user has no local credential account.
+ * - `AUTH_PASSWORD_NOT_SET` — the user has no local credential identity.
  * - `AUTH_WRONG_PASSWORD` — the supplied password does not match.
  * - `RATE_LIMITED` — too many consecutive failures (carries `retryAfter`).
  */
 @Injectable()
 export class PasswordReauthService {
   constructor(
-    private readonly betterAuthAdapter: AuthBetterAuthAdapter,
+    private readonly authIdentityService: AuthIdentityService,
     private readonly rateLimitService: AuthRateLimitService,
   ) {}
 
@@ -33,7 +33,7 @@ export class PasswordReauthService {
     return this.rateLimitService
       .checkReauthRateLimit(userId)
       .andThen(() =>
-        this.betterAuthAdapter.verifyPasswordForUser(userId, password),
+        this.authIdentityService.verifyPasswordForUser(userId, password),
       )
       .andThen((valid) => {
         if (!valid) {
