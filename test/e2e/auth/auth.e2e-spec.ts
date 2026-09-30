@@ -515,7 +515,7 @@ describe('Auth API (e2e)', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('POST /api/v1/auth/verify-email', () => {
-    const INVALID_BETTER_AUTH_TOKEN =
+    const INVALID_VERIFICATION_TOKEN =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
     it('should reject missing token with VALIDATION_FAILED', async () => {
@@ -528,10 +528,10 @@ describe('Auth API (e2e)', () => {
       expect(body['code']).toBe('VALIDATION_FAILED');
     });
 
-    it('should reject an invalid or expired Better Auth token with AUTH_VERIFICATION_CODE_EXPIRED', async () => {
+    it('should reject an invalid or expired verification token with AUTH_VERIFICATION_CODE_EXPIRED', async () => {
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.verifyEmail)
-        .send({ token: INVALID_BETTER_AUTH_TOKEN })
+        .send({ token: INVALID_VERIFICATION_TOKEN })
         .expect(400);
 
       const body = res.body as Record<string, unknown>;

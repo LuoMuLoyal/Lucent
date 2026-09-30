@@ -155,8 +155,8 @@ export class PasswordManagementService {
           );
         }
         // The code here is the product-level anti-abuse verification code;
-        // Better Auth email-verification / password-reset tokens are handled
-        // by verifyEmail, forgotPassword, and resetPassword instead.
+        // Emailed verification / reset tokens are handled by verifyEmail,
+        // forgotPassword, and resetPassword instead.
         return this.verificationCodeService
           .verify(newEmail, dto.code, 'change-email')
           .andThen(() =>
@@ -176,7 +176,7 @@ export class PasswordManagementService {
     locale?: string,
   ): ResultAsync<{ message: string }, DomainFailure> {
     // This code is a product-level anti-abuse verification code stored in
-    // cache; it is unrelated to Better Auth's Verification table tokens.
+    // cache; it is unrelated to the accounts table credentials.
     return this.verificationCodeService
       .send(normalizeEmail(dto.email), dto.scene, clientKey, locale)
       .map(() => ({
@@ -325,7 +325,7 @@ export class PasswordManagementService {
   }
 
   /**
-   * Lifts non-Prisma IO (Better Auth calls, Argon2 callbacks, token service,
+   * Lifts non-Prisma IO (Argon2 callbacks, token service,
    * user lookups) into `ResultAsync`. Unknown exceptions are mapped to
    * `DEPENDENCY_UNAVAILABLE` so they stay inside the Result channel instead
    * of becoming unhandled rejections.

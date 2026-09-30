@@ -163,7 +163,7 @@ export async function createTestUser(
 
 /**
  * Register a credential user through the public auth API so that the account
- * has a valid credential password and Better Auth account record.
+ * has a valid credential password and an accounts credential record.
  */
 export async function registerTestUser(
   ctx: E2eTestContext,

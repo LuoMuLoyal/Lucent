@@ -321,7 +321,7 @@ describe('AuthOAuthService', () => {
       );
     });
 
-    it('should reject linking Better Auth-managed providers', async () => {
+    it('should reject linking untrusted third-party providers', async () => {
       const outcome = await collectResult(
         service.linkOAuthProfileToUser('user-1', googleProfile),
       );

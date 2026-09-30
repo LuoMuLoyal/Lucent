@@ -9,7 +9,7 @@ import {
  * Standard Schema (zod) for `POST /auth/reset-password` body.
  *
  * Password reset uses the product-level verification code (same anti-abuse
- * mechanism as register / set-password) instead of a Better Auth email link.
+ * mechanism as register / set-password) instead of an emailed reset link.
  */
 export const resetPasswordSchema = z
   .object({

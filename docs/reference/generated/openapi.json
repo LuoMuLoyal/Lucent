@@ -10817,7 +10817,7 @@
           "token": {
             "type": "string",
             "minLength": 1,
-            "description": "Better Auth 邮件验证 token"
+            "description": "Lucent 签发的邮件验证 token"
           }
         },
         "required": ["token"],

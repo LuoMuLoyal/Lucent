@@ -192,7 +192,7 @@ export class CredentialAuthService {
   }
 
   /**
-   * Lifts non-Prisma IO (Better Auth calls, Argon2 callbacks, token service,
+   * Lifts non-Prisma IO (Argon2 callbacks, token service,
    * user lookups) into `ResultAsync`. Unknown exceptions are mapped to
    * `DEPENDENCY_UNAVAILABLE` so they stay inside the Result channel instead
    * of becoming unhandled rejections.

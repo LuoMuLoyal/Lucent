@@ -25,8 +25,8 @@ interface RateLimitBucket {
 /**
  * Manages product-level anti-abuse verification codes for register, login,
  * set-password, change-email, and delete-account flows. Codes are stored in
- * cache (not the database) and are distinct from Better Auth's Verification
- * table tokens used for email verification and password reset.
+ * cache (not the database) and are distinct from the emailed verification and
+ * password-reset tokens issued by `EmailVerificationService`.
  */
 @Injectable()
 export class VerificationCodeService {

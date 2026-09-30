@@ -13,7 +13,7 @@ export const verifyEmailSchema = z
     token: z
       .string({ error: 'token 不能为空' })
       .min(1, 'token 不能为空')
-      .describe('Better Auth 邮件验证 token'),
+      .describe('Lucent 签发的邮件验证 token'),
   })
   .strict();
 

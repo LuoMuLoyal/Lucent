@@ -457,7 +457,7 @@ describe('CredentialAuthService', () => {
       expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
     });
 
-    it('maps a Better Auth internal error to DEPENDENCY_UNAVAILABLE instead of folding it into AUTH_WRONG_PASSWORD', async () => {
+    it('maps an internal error to DEPENDENCY_UNAVAILABLE instead of folding it into AUTH_WRONG_PASSWORD', async () => {
       verifyPasswordForUserMock.mockReturnValue(
         errAsync(
           createDomainFailure({
