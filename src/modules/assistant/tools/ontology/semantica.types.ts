@@ -72,7 +72,7 @@ export type SemanticaQueryErrorKind =
  * `/reason` 拒绝时返回的结构化错误类别。
  *
  * 与 {@link SEMANTICA_QUERY_ERROR_KINDS} 分开：那一组是**语句**的问题（语法、
- * 只读、AGE 不支持），这一组是**请求**的问题（范围、事实上限、超时）。合并成
+ * 只读、构造不可用），这一组是**请求**的问题（范围、事实上限、超时）。合并成
  * 一组会让"重试是否有意义"这个判据失真——改写 Cypher 修不了空范围。
  */
 export const SEMANTICA_REASON_ERROR_KINDS = [
@@ -134,7 +134,7 @@ export interface SemanticaCallFailure {
   status: number | null;
   /** sidecar 给出的结构化错误类别（仅 `rejected` 时有值）。 */
   errorKind: SemanticaErrorKind | null;
-  /** 可回喂模型的原文（AGE / 语法报错），重试回路用它自纠。 */
+  /** 可回喂模型的原文（图库 / 语法报错），重试回路用它自纠。 */
   detail: string | null;
 }
 
@@ -265,7 +265,7 @@ export interface SemanticaCitation {
 /**
  * 该失败是否值得让模型改写后重试。
  *
- * 只有「查询本身有问题」才重试：读-only 守卫、语法、AGE 不支持的构造、以及
+ * 只有「查询本身有问题」才重试：读-only 守卫、语法、不可用的构造、以及
  * 单条查询超时（模型可以收窄查询）。
  *
  * `internal` 刻意不在内：它是 sidecar 自身的 bug（5xx / 未分类异常），语句本身

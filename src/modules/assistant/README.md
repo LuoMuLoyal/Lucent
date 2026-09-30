@@ -112,7 +112,7 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 ### 英文侧 OAG 本体推理（Semantica，`tools/ontology/`）
 
 英文 DrugBank 的结构化事实（药 → 靶点 / 酶 / 转运体、相互作用、ATC）以**确定性灌入**
-建成 Apache AGE 图（零 LLM 抽取），`reason_over_ontology` 在这张图上做类型化多跳推理：
+建成 Neo4j 图（零 LLM 抽取），`reason_over_ontology` 在这张图上做类型化多跳推理：
 
 - **分工**：**NL→Cypher 的生成在 Lucent**（`OntologyCypherGeneratorService`，复用
   `AI_LANGUAGE_*` 角色），sidecar（`semantica-service`）只做**只读校验 + 执行**。
@@ -142,9 +142,9 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   `ASSISTANT_RETRIEVAL_TOOL_NAMES` 分开，一个 sidecar 挂掉不会把另一个的工具标成
   不可用；两者都报 `disabledReason: 'retrieval_unavailable'`（客户端渲染同一个
   "来源暂不可用"，具体是哪个由工具 envelope 说清）。
-- **生成侧的硬约束写在 prompt 里**：AGE 1.7 无 `shortestPath` / 多类型边 /
-  `datetime()`；必须显式 `LIMIT`；值走 `params`；**名称必须 `toLower()` 匹配**
-  —— 图上名称按 DrugBank 原样大写，精确匹配会静默返回 0 行，而那会被说成
+- **生成侧的硬约束写在 prompt 里**：值走 `params`；必须显式 `LIMIT`；变长路径必须锚定
+  且有界（无锚定遍历会被事务超时取消）；**名称必须 `toLower()` 匹配** ——
+  图上名称按 DrugBank 原样大写，精确匹配会静默返回 0 行，而那会被说成
   "DrugBank 没有这条断言"（看起来像答案的错答案）。真正的强制在 sidecar 的守卫。
   另外三条来自实测（2026-09-19 走 API 的验证）：**关系必须返回 `prov`**；
   **多跳的角色链各有各的关系类型**（"抑制那个代谢 X 的酶"是

@@ -48,5 +48,8 @@ export const SEMANTICA_DEFAULT_BASE_URL = 'http://semantica:8099';
  *
  * Must exceed the sidecar's own `statement_timeout` (15s by default), otherwise
  * the client cuts the call before the server can report a structured timeout.
+ * The sidecar enforces that ceiling as a Neo4j transaction timeout
+ * (`begin_transaction(timeout=)`), which the server honours; a client that gave
+ * up first would turn a structured `timeout` refusal into an opaque disconnect.
  */
 export const SEMANTICA_DEFAULT_TIMEOUT_MS = 20000;

@@ -120,8 +120,9 @@ describe('SemanticaClientService', () => {
         {
           detail: {
             kind: 'unsupported_feature',
-            message: 'AGE does not support multi-type edges.',
-            cypher: 'MATCH (d:Drug)-[r:A|B]->(o) RETURN o',
+            message:
+              'The graph does not support this construct: There is no procedure with the name `apoc.path.expand`.',
+            cypher: 'MATCH (d:Drug) CALL apoc.path.expand(d) RETURN d',
           },
         },
         422,
@@ -130,7 +131,7 @@ describe('SemanticaClientService', () => {
 
     const service = buildService();
     const outcome = await service.query({
-      cypher: 'MATCH (d:Drug)-[r:A|B]->(o) RETURN o',
+      cypher: 'MATCH (d:Drug) CALL apoc.path.expand(d) RETURN d',
       params: {},
       limit: 10,
     });
@@ -138,10 +139,12 @@ describe('SemanticaClientService', () => {
     expect(outcome.ok).toBe(false);
     expect(outcome.ok ? null : outcome.failure).toEqual({
       kind: 'rejected',
-      reason: 'AGE does not support multi-type edges.',
+      reason:
+        'The graph does not support this construct: There is no procedure with the name `apoc.path.expand`.',
       status: 422,
       errorKind: 'unsupported_feature',
-      detail: 'AGE does not support multi-type edges.',
+      detail:
+        'The graph does not support this construct: There is no procedure with the name `apoc.path.expand`.',
     });
   });
 

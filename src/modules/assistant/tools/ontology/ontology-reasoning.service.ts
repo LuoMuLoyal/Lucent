@@ -88,7 +88,7 @@ function resolveVerifiability(rowCount: number, citationCount: number): string {
  * 分工（§3.5 ②）：**Lucent 生成 Cypher，sidecar 校验 + 执行**。生成放在这里
  * 的理由是复用 `LlmRuntimeService` 的角色化配置（一套凭据 / 成本 / 限流），
  * 而 sidecar 因此不需要 LLM 凭据；校验与执行放在 sidecar 的理由是紧挨本体
- * schema 与 AGE 限制（只有一处守卫，不会漂移）。
+ * schema 与只读守卫（只有一处守卫，不会漂移）。
  *
  * 重试回路是**生产必需**（§8.1 风险 2）：把 sidecar 的结构化报错回喂模型重生成，
  * 最多 {@link SEMANTICA_MAX_GENERATION_ATTEMPTS} 次。基础设施类失败不重试——
@@ -160,7 +160,7 @@ export class AssistantToolOntologyReasoningService {
     }
 
     const graphSchema = schemaOutcome.value;
-    const tables = [`${graphSchema.graph} (Apache AGE)`];
+    const tables = [`${graphSchema.graph} (Neo4j)`];
 
     let previousCypher: string | null = null;
     let previousErrorKind: PreviousErrorKind | null = null;

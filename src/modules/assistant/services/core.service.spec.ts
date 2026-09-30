@@ -1015,7 +1015,7 @@ describe('AssistantService', () => {
               source: {
                 tool: 'reason_over_ontology',
                 generatedAt: '2026-09-19T00:00:00.000Z',
-                tables: ['lucent_graph (Apache AGE)'],
+                tables: ['lucent_graph (Neo4j)'],
               },
               confidence: { level: 'high', reason: 'Deterministic Cypher.' },
               ambiguities: [],
@@ -1044,7 +1044,7 @@ describe('AssistantService', () => {
           source: {
             tool: 'reason_over_ontology',
             generatedAt: '2026-09-19T00:00:00.000Z',
-            tables: ['lucent_graph (Apache AGE)'],
+            tables: ['lucent_graph (Neo4j)'],
           },
           citations: [
             {

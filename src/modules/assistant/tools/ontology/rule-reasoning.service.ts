@@ -355,7 +355,7 @@ export class AssistantToolRuleReasoningService {
       confidence: input.confidence,
       // 范围为空会让结论集为空，这是最容易被误读成"没有关系"的一种空。
       ambiguities: buildAmbiguities(input),
-      tables: ['lucent_graph (Apache AGE, rule-derived)'],
+      tables: ['lucent_graph (Neo4j, rule-derived)'],
     });
   }
 }

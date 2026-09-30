@@ -197,7 +197,7 @@ describe('AssistantToolOntologyReasoningService', () => {
         parentEntityId: null,
       },
     ]);
-    expect(envelope.source.tables).toEqual(['lucent_graph (Apache AGE)']);
+    expect(envelope.source.tables).toEqual(['lucent_graph (Neo4j)']);
     expect(generate).toHaveBeenCalledTimes(1);
   });
 

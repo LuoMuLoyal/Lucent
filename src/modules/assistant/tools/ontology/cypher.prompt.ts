@@ -12,12 +12,9 @@ import type { OntologyCypherContext } from './cypher.schema.js';
 /** 每个 schema/关系类型在 prompt 里最多列出的条数：全量列会把 prompt 撑爆。 */
 const MAX_TYPES_IN_PROMPT = 60;
 
-/** AGE 1.7 的硬限制（试点实测，计划 §6.3）：写出来比让模型自己撞错便宜。 */
-const AGE_LIMITATIONS = [
-  '- No `shortestPath()` / `allShortestPaths()`. There is no shortest-path primitive at all: write an explicit bounded multi-hop pattern instead, e.g. `MATCH (a:Drug {drugbank_id: $a})-[r1:INTERACTS_WITH*1..3]-(b:Drug {drugbank_id: $b})` and rank by `length(...)`. Asking for "the shortest path" or "how many hops" still gets answered — just not with `shortestPath()`.',
-  '- No multi-type edge patterns like `[r:A|B]`. Write one pattern per relationship type. Leaving a type off entirely (`[r]`) is allowed; listing two types is not.',
-  '- No `datetime()`. Stored dates are strings; compare them as strings.',
-  '- A variable-length path must be anchored on a specific node and bounded (e.g. `-[:SUBSTRATE_OF*1..2]->` inside a larger anchored pattern). Unanchored or unbounded traversal over the interaction graph explodes and is cancelled by the statement timeout. "Anchored" means a specific node is pinned by id or name; it does not mean the path itself needs a type.',
+/** 迁移到 Neo4j 5.26 后仍然成立的书写约束：不是引擎缺陷，而是查询成本的边界。 */
+const QUERY_CONSTRAINTS = [
+  '- A variable-length path must be anchored on a specific node and bounded (e.g. `-[:SUBSTRATE_OF*1..2]->` inside a larger anchored pattern). Unanchored or unbounded traversal over the interaction graph explodes and is cancelled by the transaction timeout. "Anchored" means a specific node is pinned by id or name; it does not mean the path itself needs a type.',
 ].join('\n');
 
 /** 每种拒绝原因配一句"怎么改"，重试才有方向而不是随机重问。 */
@@ -29,15 +26,15 @@ const RETRY_HINTS: Record<string, string> = {
   syntax_error:
     'Fix the Cypher syntax. A common mistake is `OPTIONAL MATCH ... AS x` — aliases belong on the RETURN projection, not on MATCH.',
   unsupported_feature:
-    'Rewrite without the unsupported construct (see the AGE limitations above).',
+    'Rewrite without the unsupported construct the server named in the message.',
   timeout:
-    'The query was cancelled by the statement timeout. Narrow it: anchor on specific nodes, filter by name or identifier early, add tighter relationship types, and reduce the traversal depth.',
+    'The query was cancelled by the transaction timeout. Narrow it: anchor on specific nodes, filter by name or identifier early, add tighter relationship types, and reduce the traversal depth.',
   // 客户端侧的纠正信号（不是 sidecar 的拒绝类别）：行回来了但一条引用都没有。
   missing_provenance:
     "The statement ran and returned rows, but no provenance id came back. Every relationship in this graph carries a `prov` property. If the answer rests on a relationship, add it to the projection (`r.prov AS prov`, one per relationship the answer uses). If the question is about a node's own fields and no relationship is involved, return the same query unchanged.",
 };
 
-const SYSTEM_PROMPT = `You translate a pharmacology question into ONE read-only Cypher query for an Apache AGE graph.
+const SYSTEM_PROMPT = `You translate a pharmacology question into ONE read-only Cypher query for a Neo4j graph.
 
 The graph holds DrugBank's structured data: drugs, their targets / enzymes / transporters / carriers, ATC classes, and the typed relationships between them. It was ingested deterministically from structured fields — no text extraction — so every edge is an authoritative DrugBank assertion.
 
@@ -61,8 +58,8 @@ Matching rules:
 - Enzymes, transporters and receptors are asked about by abbreviation ("CYP3A4", "UGT1A1", "ABCB1") but stored under their full DrugBank name ("Cytochrome P450 3A4"). The abbreviation is the protein's \`gene_name\`, so match either field — \`WHERE toLower(p.gene_name) = toLower($enzyme) OR toLower(p.name) = toLower($enzyme)\` — or, when the question gives a partial name, \`toLower(p.name) CONTAINS toLower($enzyme)\`. Matching only \`p.name\` against an abbreviation returns zero rows for a protein that is in the graph.
 - ATC classes are keyed by \`code\` and carry no name: a question about "which ATC class" is answered with the code(s) from \`IN_ATC_CLASS\`, and a broader class is reached by walking \`SUBCLASS_OF\` upward from that code. There is no class label in this graph, so do not filter on \`name\` for an ATCClass node — it has none.
 
-Apache AGE 1.7 limitations (hard — these fail at execution):
-${AGE_LIMITATIONS}
+Read-only and cost constraints (hard — these fail at execution):
+${QUERY_CONSTRAINTS}
 
 Reasoning rules:
 - "Can A and B be taken together?" is a question about the interaction edge between A and B: match the edge and report what its properties say.
