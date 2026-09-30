@@ -12,7 +12,6 @@ is why the acceptance cases below matter as much as the refusals.
 from __future__ import annotations
 
 import pytest
-from psycopg2 import errors as pg_errors
 from semantica.utils.exceptions import ProcessingError
 
 from semantica_service.cypher import (
@@ -141,28 +140,40 @@ def test_more_than_one_statement_is_refused(cypher: str) -> None:
     assert kind_of(cypher) == "multiple_statements"
 
 
-# --- constructs AGE 1.7 cannot run -----------------------------------------
+# --- constructs that used to be refused on AGE's behalf --------------------
 
 
 @pytest.mark.parametrize(
-    "cypher,hint",
+    "cypher",
     [
-        ("MATCH (a), (b) RETURN shortestPath((a)-[*]->(b))", "shortestPath"),
-        ("MATCH (a), (b) RETURN allShortestPaths((a)-[*]->(b))", "shortestPath"),
-        ("MATCH (a)-[r:INTERACTS_WITH|TARGETS]->(c) RETURN r", "multi-type"),
-        ("MATCH (a)-[:TARGETS|BINDS]->(c) RETURN a", "multi-type"),
-        ("MATCH (n) WHERE n.created = datetime() RETURN n", "datetime"),
-        ("MATCH (n) WHERE n.created > datetime({year: 2020}) RETURN n", "datetime"),
+        "MATCH (a), (b) RETURN shortestPath((a)-[*]->(b)) AS p",
+        "MATCH (a), (b) RETURN allShortestPaths((a)-[*]->(b)) AS p",
+        "MATCH (a)-[r:INTERACTS_WITH|TARGETS]->(c) RETURN r",
+        "MATCH (a)-[:TARGETS|BINDS]->(c) RETURN a",
+        "MATCH (n) WHERE n.created = datetime() RETURN n",
+        "MATCH (n) WHERE n.created > datetime({year: 2020}) RETURN n",
     ],
 )
-def test_age_17_unsupported_constructs_are_refused(cypher: str, hint: str) -> None:
-    kind, message = refusal(cypher)
+def test_constructs_age_lacked_are_accepted_now(cypher: str) -> None:
+    """These were refused because AGE 1.7 could not parse them, not because a
+    caller did not want them. Neo4j implements all three, so the guard must let
+    them through rather than preserving the limitation the migration removes."""
+    assert kind_of(cypher) is None
+
+
+def test_a_procedure_error_is_still_reported_as_unsupported() -> None:
+    """The kind stays in the vocabulary even though nothing AGE-specific
+    produces it: it is a client contract, and a genuinely unavailable procedure
+    is still an unsupported feature rather than an internal failure."""
+    kind, _ = classify_message(
+        "{neo4j_code: Neo.ClientError.Procedure.ProcedureNotFound} "
+        "{message: There is no procedure with the name `apoc.path.expand`}"
+    )
     assert kind == "unsupported_feature"
-    assert hint in message
 
 
-def test_unsupported_constructs_inside_literals_are_not_refused() -> None:
-    """The words are only unsupported as constructs, not as data."""
+def test_age_era_limitation_words_are_ordinary_identifiers_now() -> None:
+    """`datetime` and `shortestPath` are data or function calls, not refusals."""
     assert kind_of("MATCH (n) WHERE n.note = 'datetime(' RETURN n") is None
     assert kind_of("MATCH (n) RETURN 'shortestPath(x)' AS note") is None
 
@@ -212,18 +223,25 @@ def test_normalize_keeps_semicolons_inside_literals() -> None:
 @pytest.mark.parametrize(
     "message,expected",
     [
-        ('syntax error at or near "FOO"', "syntax_error"),
-        ('ERROR: syntax error at or near "|"', "syntax_error"),
-        ("invalid input syntax for type agtype", "syntax_error"),
-        ("canceling statement due to statement timeout", "timeout"),
-        ("statement timeout", "timeout"),
-        ("function datetime() does not exist", "unsupported_feature"),
-        ("shortestPath() is not implemented", "unsupported_feature"),
-        ("multi-type edges are not supported", "unsupported_feature"),
+        (
+            "{neo4j_code: Neo.ClientError.Statement.SyntaxError} "
+            "{message: Invalid input 'RETURN'}",
+            "syntax_error",
+        ),
+        ("syntax error at or near FOO", "syntax_error"),
+        (
+            "{neo4j_code: Neo.ClientError.Transaction.TransactionTimedOutClientConfiguration} "
+            "{message: The transaction has been terminated.}",
+            "timeout",
+        ),
+        (
+            "Query execution failed: transaction timeout after 15000ms",
+            "timeout",
+        ),
         ("something exploded", "internal"),
     ],
 )
-def test_classify_message_maps_age_failures(message: str, expected: str) -> None:
+def test_classify_message_maps_neo4j_failures(message: str, expected: str) -> None:
     kind, _ = classify_message(message)
     assert kind == expected
 
@@ -243,21 +261,28 @@ def wrapped_store_error(message: str, cause: BaseException | None = None) -> Pro
 
 
 def test_classify_error_reads_the_exception_type_chain() -> None:
-    """PostgreSQL reports a cancelled statement as ``QueryCanceled``, and its
-    message need not contain the phrases — the type name is the signal."""
-    cause = pg_errors.QueryCanceled("stopped")
+    """The driver reports a cancelled transaction as ``ClientError`` carrying the
+    timeout code, and its message is the signal — the wrapper's type is not."""
+    cause = RuntimeError(
+        "{neo4j_code: Neo.ClientError.Transaction.TransactionTimedOutClientConfiguration} "
+        "{message: The transaction has been terminated.}"
+    )
     kind, _ = classify_error(wrapped_store_error("query did not finish", cause=cause))
     assert kind == "timeout"
 
 
 def test_classify_error_uses_the_innermost_message() -> None:
-    """The store's wrapper prefixes the driver's message; the caller wants AGE's
-    own words rather than the wrapper's."""
-    cause = pg_errors.SyntaxError('syntax error at or near "FOO"\nLINE 1: SELECT ...')
+    """The store's wrapper prefixes the driver's message; the caller wants
+    Neo4j's own words rather than the wrapper's."""
+    cause = RuntimeError(
+        "{neo4j_code: Neo.ClientError.Statement.SyntaxError} "
+        "{message: Invalid input 'RETURN' (line 1, column 10)}\n"
+        "second line that must not be echoed"
+    )
     kind, message = classify_error(wrapped_store_error("Query execution failed", cause=cause))
     assert kind == "syntax_error"
-    assert 'near "FOO"' in message
-    assert "LINE 1" not in message
+    assert "Invalid input 'RETURN'" in message
+    assert "second line" not in message
 
 
 def test_classify_error_reports_an_unknown_failure_as_internal() -> None:

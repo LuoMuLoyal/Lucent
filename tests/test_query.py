@@ -341,24 +341,22 @@ def test_query_refuses_two_statements(monkeypatch: pytest.MonkeyPatch, settings:
 
 
 @pytest.mark.parametrize(
-    "cypher,hint",
+    "cypher",
     [
-        ("MATCH (a), (b) RETURN shortestPath((a)-[*]->(b))", "shortestPath"),
-        ("MATCH (a)-[r:TARGETS|BINDS]->(b) RETURN r", "multi-type"),
-        ("MATCH (n) WHERE n.at = datetime() RETURN n", "datetime"),
+        "MATCH (a), (b) RETURN shortestPath((a)-[*]->(b)) AS p",
+        "MATCH (a)-[r:TARGETS|BINDS]->(b) RETURN r",
+        "MATCH (n) WHERE n.at = datetime() RETURN n",
     ],
 )
-def test_query_reports_age_17_unsupported_constructs(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings, cypher: str, hint: str
+def test_query_accepts_constructs_age_could_not_run(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings, cypher: str
 ) -> None:
-    """The message says what to write instead, which is what a retry needs."""
+    """These were refused because AGE could not parse them. Neo4j can, so the
+    endpoint must execute them rather than preserve the old limitation."""
     with build_client(monkeypatch, rows_store([]), settings) as client:
         response = client.post("/query", json={"cypher": cypher})
 
-    detail = response.json()["detail"]
-    assert response.status_code == 422
-    assert detail["kind"] == "unsupported_feature"
-    assert hint in detail["message"]
+    assert response.status_code == 200
 
 
 # --- failure classification over HTTP -------------------------------------
@@ -380,7 +378,9 @@ def test_query_reports_a_syntax_error(monkeypatch: pytest.MonkeyPatch, settings:
 def test_query_reports_a_timeout(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
     store = StubStore(
         error=ProcessingError(
-            "Query execution failed: canceling statement due to statement timeout"
+            "Query execution failed: {neo4j_code: "
+            "Neo.ClientError.Transaction.TransactionTimedOutClientConfiguration} "
+            "{message: The transaction has been terminated.}"
         )
     )
     with build_client(monkeypatch, store, settings) as client:
@@ -389,7 +389,7 @@ def test_query_reports_a_timeout(monkeypatch: pytest.MonkeyPatch, settings: Sett
     detail = response.json()["detail"]
     assert response.status_code == 422
     assert detail["kind"] == "timeout"
-    assert "statement_timeout" in detail["message"]
+    assert "timeout" in detail["message"]
 
 
 def test_query_reports_an_unexpected_failure_as_internal(

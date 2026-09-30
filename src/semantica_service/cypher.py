@@ -3,7 +3,7 @@
 Lucent generates Cypher from natural language with its own model; this service
 is the "validate and execute" half of that loop, so every statement it runs was
 written somewhere else. This module decides whether a statement may run at all,
-and turns whatever AGE reports back into one of a small, fixed set of error
+and turns whatever Neo4j reports back into one of a small, fixed set of error
 kinds that the caller can feed to its model for a retry.
 
 Two rules are enforced, because the statement is not ours:
@@ -15,12 +15,21 @@ Two rules are enforced, because the statement is not ours:
   ``RETURN 'delete this' AS note`` is a projection and not a ``DELETE``.
 
 The scan is textual rather than a parser: this service has no Cypher parser and
-AGE's own parser is the real authority on syntax. The scan's job is narrower —
-refuse the constructs that write, and refuse the ones AGE 1.7 does not
-implement (``docs/VERIFICATION.md`` records the subset that was measured
-against a live database).
+Neo4j's own parser is the real authority on syntax. The scan's job is narrower —
+refuse the constructs that write. It is also **not the only gate**: every query
+runs in a session opened in Neo4j's ``READ`` access mode, which refuses writes
+server-side (``Neo.ClientError.Statement.AccessMode``). The scan exists so the
+caller gets a structured, actionable refusal *before* a round trip; the access
+mode exists so a construct the scan does not model still cannot write.
 
-Because AGE's own errors reach us wrapped (semantica raises ``ProcessingError``
+What this module no longer does is reject statements on AGE's behalf. The
+previous version carried a third rule — refuse ``shortestPath()``, ``datetime()``
+and multi-type edge patterns — because Apache AGE 1.7 could not parse them.
+Those three were capabilities AGE *lacked*, not things callers did not want, and
+Neo4j implements all of them. Keeping the checks would have preserved exactly the
+limitation the migration exists to remove.
+
+Because Neo4j's errors reach us wrapped (semantica raises ``ProcessingError``
 with the driver's message embedded), classification reads the whole exception
 chain — type names and messages — rather than a single exception type.
 """
@@ -75,36 +84,6 @@ _WRITE_RE = re.compile(r"\b(?:" + "|".join(_WRITE_KEYWORDS) + r")\b")
 _PARAM_RE = re.compile(r"\$[A-Za-z_]\w*")
 _FIRST_WORD_RE = re.compile(r"[A-Za-z_]\w*")
 
-_MSG_SHORTEST_PATH = "AGE has no shortestPath; write an explicit typed multi-hop pattern instead"
-_MSG_MULTI_TYPE = "AGE does not support multi-type edges; split into one pattern per type"
-_MSG_DATETIME = "AGE 1.7 has no datetime(); compare stored string dates instead"
-
-# Constructs AGE 1.7 does not implement, detected in the submitted statement
-# before it reaches the database. Patterns run over the blanked-out statement,
-# so `RETURN 'datetime(' AS note` stays a projection.
-_UNSUPPORTED_SYNTAX: tuple[tuple[re.Pattern[str], str], ...] = (
-    (
-        re.compile(r"\b(?:shortestpath|allshortestpaths)\s*\(", re.IGNORECASE),
-        _MSG_SHORTEST_PATH,
-    ),
-    (
-        # `[r:A|B]` and `[:A|B]` — a pipe between labels inside one bracket.
-        # A list comprehension uses `|` too but never has a colon before it.
-        re.compile(r"\[[^][:]*:[^][]*\|"),
-        _MSG_MULTI_TYPE,
-    ),
-    (re.compile(r"\bdatetime\s*\(", re.IGNORECASE), _MSG_DATETIME),
-)
-
-# The same constructs as AGE names them when it is the one that rejects them.
-# Both directions are checked because AGE reports some of these as a parse
-# error and others as an unknown function, and the exact wording varies.
-_UNSUPPORTED_ERROR_TEXT: tuple[tuple[tuple[str, ...], str], ...] = (
-    (("shortestpath", "allshortestpaths"), _MSG_SHORTEST_PATH),
-    (("multi-type", "multiple relationship types", "multiple types"), _MSG_MULTI_TYPE),
-    (("datetime",), _MSG_DATETIME),
-)
-
 _MSG_MULTIPLE = (
     "Send exactly one Cypher statement; only a single trailing ';' is allowed. "
     "Two statements cannot be validated as read-only together."
@@ -122,12 +101,12 @@ _MSG_START = (
     "this one begins with {found}."
 )
 _MSG_TIMEOUT = (
-    "The query was cancelled by the server's statement_timeout. Narrow the pattern "
+    "The query was cancelled by the transaction timeout. Narrow the pattern "
     "(avoid unbounded variable-length paths) or reduce the result set, then retry."
 )
 
 # A message is caller-facing, so it is kept short and never carries a stack
-# trace. Any credential-shaped text is redacted even though a psycopg2 message
+# trace. Any credential-shaped text is redacted even though a driver message
 # does not normally contain the DSN: the cost of being wrong is a leaked
 # password in a caller's logs.
 _MAX_MESSAGE = 300
@@ -204,11 +183,11 @@ def strip_literals_and_comments(cypher: str) -> str:
 
 
 def normalize_statement(cypher: str) -> str:
-    """Return the statement as it is handed to AGE.
+    """Return the statement as it is handed to Neo4j.
 
     Leading and trailing whitespace goes, and a single trailing ``;`` with it:
-    AGE's ``cypher()`` takes one statement, and a separator is not part of it.
-    Comments after the terminator go too, for the same reason.
+    the driver takes one statement, and a separator is not part of it. Comments
+    after the terminator go too, for the same reason.
 
     Only call this on a statement :func:`check_read_only` has accepted; it does
     not re-validate anything.
@@ -229,8 +208,7 @@ def check_read_only(cypher: str) -> QueryProblem | None:
 
     Precedence, when more than one rule matches: a second statement is reported
     as ``multiple_statements`` (the more specific diagnosis — the caller's fix
-    is to send one statement), then a write/admin keyword as ``not_read_only``,
-    then the clauses AGE 1.7 cannot run as ``unsupported_feature``.
+    is to send one statement), then a write/admin keyword as ``not_read_only``.
     """
     scan = strip_literals_and_comments(cypher)
     text = scan.strip()
@@ -255,10 +233,6 @@ def check_read_only(cypher: str) -> QueryProblem | None:
     if first is None or first.group(0).upper() not in _READ_ONLY_STARTS:
         found = first.group(0) if first is not None else "no keyword"
         return ("not_read_only", _MSG_START.format(found=found))
-
-    for pattern, message in _UNSUPPORTED_SYNTAX:
-        if pattern.search(scannable):
-            return ("unsupported_feature", message)
 
     return None
 
@@ -289,25 +263,39 @@ def _innermost_message(error: BaseException) -> str:
 def _classify(described: str, message: str) -> QueryProblem:
     """Decide an error kind from a lower-cased description and a message.
 
-    Timeout is checked first: a cancelled statement arrives as an
-    ``OperationalError`` subclass, and a caller that retried it as an
-    ``internal`` failure would simply time out again.
+    Timeout is checked first: a cancelled transaction must not be reported as
+    ``internal``, because a caller that treats it that way would either give up
+    on an answerable question or re-run the same expensive query into the same
+    wall.
+
+    ``unsupported_feature`` is still part of the vocabulary even though nothing
+    produces it any more: it is a *client* contract (Lucent's
+    ``SEMANTICA_QUERY_ERROR_KINDS``), and a category a caller can receive must
+    not vanish from the server that names it. A procedure that is genuinely
+    unavailable still lands here.
     """
     if (
-        "querycanceled" in described
-        or "statement timeout" in described
-        or "canceling statement" in described
+        "transactiontimedout" in described
+        or "transaction timeout" in described
+        or "the transaction has been terminated" in described
     ):
         return ("timeout", _MSG_TIMEOUT)
 
-    for needles, text in _UNSUPPORTED_ERROR_TEXT:
-        if any(needle in described for needle in needles):
-            return ("unsupported_feature", text)
+    if "procedurenotfound" in described or "unsupported" in described:
+        return (
+            "unsupported_feature",
+            f"The graph does not support this construct: {_one_line(message)}. "
+            "Rewrite the statement without it.",
+        )
 
-    if "syntax error" in described or "invalid input syntax" in described:
+    if (
+        "syntaxerror" in described
+        or "syntax error" in described
+        or "invalid input" in described
+    ):
         return (
             "syntax_error",
-            f"AGE rejected the Cypher: {_one_line(message)}. "
+            f"Neo4j rejected the Cypher: {_one_line(message)}. "
             "Check the statement against the graph schema.",
         )
 
@@ -319,8 +307,8 @@ def classify_error(error: BaseException) -> QueryProblem:
 
     The whole chain is read — type names and messages — because semantica wraps
     driver errors in ``ProcessingError`` with the original only reachable as
-    context: PostgreSQL's ``QueryCanceled`` is a link down that chain, not the
-    exception the caller catches.
+    context: the ``CypherSyntaxError`` / ``ClientError`` is a link down that
+    chain, not the exception the caller catches.
     """
     described = " | ".join(f"{type(link).__name__}: {link}" for link in _chain(error)).lower()
     return _classify(described, _innermost_message(error))
