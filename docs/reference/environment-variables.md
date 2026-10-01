@@ -394,13 +394,23 @@ docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
 SEMANTICA_ENABLED    # 默认 false；关闭时 reason_over_ontology 返回"未配置"信封，不抛错
 SEMANTICA_BASE_URL   # 默认 http://semantica:8099
 SEMANTICA_TIMEOUT_MS # 默认 20000；须大于 sidecar 的查询超时（默认 15s）
+SEMANTICA_API_KEY    # 与 sidecar 的 API_TOKEN 必须一致；仅 ENABLED=true 时强制
 ```
 
-**没有 API key。** 与 LightRAG 不同，这是我们自己的服务：只在内网 compose 网络上
-（不发布宿主端口、不挂 Traefik），自身也不持有任何模型凭据 —— NL→Cypher 的生成在
-Lucent 侧用 `AI_LANGUAGE_*` 角色完成（`BaseLlmGeneratorService`），sidecar 只做校验与执行。
-因此**没有启动期交叉校验**：`SEMANTICA_ENABLED=true` 但服务不可达时，表现为工具返回
-"推理不可用"信封，而不是进程起不来。
+**两侧共享一个握手凭据。** `SEMANTICA_API_KEY`（本侧）与 `API_TOKEN`（sidecar 侧）是
+同一个值：sidecar 除 `/health` 外的每个端点都要求 `Authorization: Bearer <它>`。
+
+早期版本没有这一项，理由是 sidecar 只在内网 compose 网络上、不发布宿主端口。跨云部署
+（app 在鲲鹏、Neo4j + sidecar 在腾讯云）之后该前提不成立，于是补上 —— sidecar 会按调用方
+的要求执行只读 Cypher，仅靠安全组白名单收口不够。
+
+**启动期交叉校验**：`SEMANTICA_ENABLED=true` 而 `SEMANTICA_API_KEY` 缺失（含空白串）时
+校验直接失败，进程起不来。没有这条校验，漏配要到第一次推理调用才暴露，而上层把 401 归一
+成 `kind: 'unauthorized'` 后呈现的是"推理服务不可用"——一个配置错误被伪装成基础设施故障。
+关闭状态下即便残留了 base URL / key 也不报错。
+
+服务**不可达**（配了 key 但对方没起来）仍属运行时问题：表现为工具返回"推理不可用"信封，
+而不是进程起不来。
 
 `SEMANTICA_TIMEOUT_MS` 的下限要高于 sidecar 自己的查询超时（默认 15s）：
 否则"查询太慢"会先被客户端掐断，拿不到 sidecar 的结构化超时报错，重试回路也就收不到

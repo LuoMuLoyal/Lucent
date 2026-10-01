@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-24
+updated: 2026-10-01
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-09-24
+Last updated: 2026-10-01
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -18,6 +18,30 @@ random docs.
 
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
+
+## 2026-10-01 比赛期临时发布的端口（正式生产必须收回）
+
+为比赛演示期把可调试性放在第一优先级，`compose.yaml` 把全部服务端口直接发布到宿主机，
+由云厂商安全组按来源 IP 白名单收口。**这是一次有意的临时姿态，不是目标形态**；正式生产
+前必须按下表收回。
+
+| 端口                     | 服务                        | 目标形态                   | 收回后如何访问                                   |
+| ------------------------ | --------------------------- | -------------------------- | ------------------------------------------------ |
+| `5432`                   | postgres                    | **删除**                   | 仅容器网络；运维经 app 或 `docker compose exec`  |
+| `6379`                   | redis                       | **删除**                   | 同上                                             |
+| `3000`                   | app                         | **删除**                   | 只保留 `expose`；公网入口走 Coolify Traefik 域名 |
+| `9621`                   | lightrag                    | **删除**                   | 仅容器网络，唯一调用方是 app                     |
+| `7687` / `7474`          | neo4j                       | **删除**                   | 仅容器网络，唯一调用方是同机 semantica           |
+| `8099`                   | semantica                   | **跨云则保留，同机则删除** | 跨云时 app 到不了容器网络，只能走宿主端口        |
+| `9100`                   | node-exporter               | **删除**                   | 由 victoriametrics 经容器网络抓取                |
+| `8428` / `3001` / `9428` | VM / Grafana / VictoriaLogs | 保留                       | 原本就发布，安全组收口                           |
+
+风险最高的两条是 **postgres/redis**（口令即唯一防线，且 redis 的 `--requirepass` 一旦
+配错就是无口令实例）与 **neo4j**（`NEO4J_AUTH` 按设计要被 sidecar 读到，口令在
+`deploy/semantica/` 下的运行时 env 文件里明文存放）。semantica 的 `8099` 已补上
+bearer 鉴权（`API_TOKEN` / `SEMANTICA_API_KEY`），所以它属于"发布端口 + 鉴权"而不是裸奔。
+
+条目完成即删行；收回动作本身记入当日迁移日志。
 
 ## 2026-09-19 英文侧 OAG（Semantica）剩余项
 
