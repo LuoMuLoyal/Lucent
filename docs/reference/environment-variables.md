@@ -494,11 +494,15 @@ VICTORIALOGS_URL
   ADR-0010 for the full tracing strategy.
 - `OTEL_EXPORTER_OTLP_ENDPOINT` — OTLP HTTP trace reporting endpoint. Default:
   `http://127.0.0.1:4318/v1/traces` (local Jaeger all-in-one port 4318). Only
-  used when `OTEL_ENABLED=true`. In production, no trace backend is deployed —
-  the OTel SDK still starts so that `trace_id` is injected into logs, but OTLP
-  export failures are silently dropped. In development, the endpoint points to
-  the Jaeger all-in-one container (`compose.dev.yaml`). See ADR-0016
-  Decision 3 for the trace backend strategy.
+  used when `OTEL_ENABLED=true`. 导出失败会被静默丢弃（不影响主流程）。
+  In development, the endpoint points to the Jaeger all-in-one container
+  (`compose.dev.yaml`). See ADR-0016 Decision 3 for the trace backend strategy.
+  **生产指向 VictoriaTraces（阿里云）时路径不是标准的 `/v1/traces`**：
+  该服务的 OTLP/HTTP 端点是 `/insert/opentelemetry/v1/traces`，端口 10428：
+  `http://<阿里云公网IP>:10428/insert/opentelemetry/v1/traces`。
+  实测发到 `/opentelemetry/v1/traces` 返回 400 —— 写错路径的表现是"一个 span 都
+  没有"而非报错。Grafana 侧用内置 `jaeger` 数据源读它
+  （`http://victoriatraces:10428/select/jaeger`，同机走容器网络）。
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
   Winston batches log entries as newline-delimited JSON and POSTs them directly
   to this URL (no Vector sidecar needed).
