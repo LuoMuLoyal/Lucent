@@ -17,9 +17,19 @@
 #     ${VAR} 插值与 app 的 env_file 都来自同一份变量源。
 #   - 告警(vmalert/alertmanager/告警规则)与备份脚本已退役,当前不做配置。
 #
-# 端口映射说明:grafana / victoriametrics / victorialogs 直接发布宿主机端口,
-# 公网访问由云厂商安全组收口(不再使用 SSH 隧道);app:3000 仅内网暴露,
-# 公网入口只有 Coolify Traefik 路由的域名。
+# 端口映射说明:**当前为比赛期,所有服务端口都直接发布到宿主机**,由云厂商
+# 安全组收口(不依赖 SSH 隧道)。这覆盖了 app/postgres/redis/lightrag/neo4j/
+# semantica/node-exporter —— 见 docs/TODO.md 的"比赛期临时发布端口"条目,
+# 正式生产必须收回其中的 postgres / redis / neo4j / lightrag / semantica /
+# node-exporter。
+#
+# 为什么比赛期要全开:可调试性是当前第一优先级 —— 能直连数据库看数据、能直接
+# 打 sidecar 的 /schema 看图谱形态,比"最小暴露面"重要得多。安全组按来源 IP
+# 白名单收口。
+#
+# 正式生产的姿态应是:只有 grafana / victoriametrics / victorialogs 发布宿主
+# 端口(经安全组),app:3000 仅内网暴露、公网入口只走 Traefik 域名,其余一律
+# 只 expose 给容器网络。
 
 services:
   postgres:
@@ -33,6 +43,9 @@ services:
       POSTGRES_DB: lucent
     volumes:
       - postgres-data:/var/lib/postgresql
+    ports:
+      # 比赛期:直连数据库查数据。正式生产应删除(见文件头)。
+      - '5432:5432'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U lucent']
       interval: 5s
@@ -55,6 +68,9 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --appendonly yes
     volumes:
       - redis-data:/data
+    ports:
+      # 比赛期:直连 Redis 查队列/缓存。正式生产应删除(见文件头)。
+      - '6379:6379'
     healthcheck:
       test:
         ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
@@ -99,6 +115,10 @@ services:
       VICTORIALOGS_URL: http://victorialogs:9428/insert/jsonline
     expose:
       - '3000'
+    ports:
+      # 比赛期:绕开 Traefik 直连 app,便于用 curl/Postman 打接口与看健康检查。
+      # 正式生产应删除,只保留上面的 expose(公网入口走 Traefik 域名)。
+      - '3000:3000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -157,6 +177,9 @@ services:
       - ./deploy/lightrag/prompts:/app/data/prompts:ro
     expose:
       - '9621'
+    ports:
+      # 比赛期:直连 LightRAG 调试检索与建图。正式生产应删除(见文件头)。
+      - '9621:9621'
     depends_on:
       postgres:
         condition: service_healthy
@@ -201,6 +224,15 @@ services:
       LUCENT_NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
     expose:
       - '7687'
+    ports:
+      # 比赛期:7687 直连 Bolt(cypher-shell / Neo4j Browser 驱动),
+      # 7474 是 Browser UI,核对图谱内容最直观的两个入口。
+      # 正式生产应全部删除:只有同机的 semantica 需要 7687,走容器网络即可。
+      #
+      # ⚠️ 生产事故的现成配方:Neo4j 端口一旦公网可达,口令就是唯一防线
+      # (NEO4J_AUTH),而它按设计是要被 sidecar 读到的。
+      - '7687:7687'
+      - '7474:7474'
     volumes:
       - neo4j-data:/data
       - neo4j-logs:/logs
@@ -229,16 +261,21 @@ services:
   # ── Semantica(英文侧 OAG sidecar)─────────────────────────────
   # 本体推理:只读 Cypher 的校验 + 执行、SHACL 校验与规则推理。图是 DrugBank
   # 结构化字段的确定性灌入(零 LLM 抽取),**服务不持有模型凭据** —— NL→Cypher 的
-  # 生成在 Lucent 侧用 AI_LANGUAGE_* 完成,因此两边也没有共享密钥要同步
-  # (sidecar 不鉴权:只 expose 给 app 走容器网络,不发布宿主端口、不挂 Traefik)。
+  # 生成在 Lucent 侧用 AI_LANGUAGE_* 完成。
+  #
+  # 两侧共享一个值:API_TOKEN(sidecar 侧)/ SEMANTICA_API_KEY(app 侧),除
+  # /health 外每个端点都校验它。早期版本刻意不带凭据,因为当时只走容器网络、
+  # 不发布宿主端口;跨云部署后该前提消失(见下面的 ports 注释)。
   #
   # 配置来自独立文件 deploy/semantica/.env(模板见该目录 .env.example),与 app 的
   # .env **不共用**:那是独立进程、独立镜像、独立升级周期,不该读到 JWT_* /
   # DATABASE_URL / 微信密钥。其中 NEO4J_* 按环境填(含口令,不入库),图在
   # Neo4j 中,**完全不进 Prisma 的 Postgres 域**。
   #
-  # profile 门控:镜像尚未提供(semantica-service 仓还没有 Dockerfile),不加 profile
-  # 会让 `docker compose up` 去拉一个不存在的镜像而失败。
+  # profile 门控:该镜像需要构建/搬运(semantica-service 仓已有 Dockerfile,
+  # 但依赖里有 git 依赖,服务器无外网时构建会失败 —— 须在有网机器上
+  # `docker build` 后 `docker save` 搬运),不加 profile 会让
+  # `docker compose up` 去拉一个不存在的镜像而失败。
   semantica:
     image: ${SEMANTICA_IMAGE:-lucent-semantica:latest}
     profiles: ['semantica']
@@ -250,6 +287,14 @@ services:
       NEO4J_URI: bolt://neo4j:7687
     expose:
       - '8099'
+    ports:
+      # 比赛期:跨云部署的必要项 —— app 在另一台机器上,容器网络到不了这里的
+      # expose。直连还能用 curl 打 /schema、/rules 看图谱形态。
+      # 正式生产若仍跨云,这一条要保留;若同机则应删除,改回只 expose。
+      #
+      # 鉴权已经就位(API_TOKEN,见 deploy/semantica/.env.example),所以这是
+      # "发布端口 + bearer 鉴权"而不是"发布端口 + 裸奔"。
+      - '8099:8099'
     depends_on:
       neo4j:
         condition: service_healthy
@@ -339,12 +384,18 @@ services:
         max-size: '10m'
         max-file: '3'
 
-  # node-exporter 走 bridge 网络,network 指标只反映容器 netns(已知取舍,
-  # 不换 host 网络是为了不把 9100 端口暴露到宿主机网卡);CPU/内存/磁盘
-  # 指标均来自挂载的宿主机 /proc、/sys、/,不受影响。
+  # node-exporter 走 bridge 网络,network 指标只反映容器 netns(已知取舍;
+  # CPU/内存/磁盘指标均来自挂载的宿主机 /proc、/sys、/,不受影响)。
+  #
+  # 注意:它没有换成 host 网络 —— 换了才能拿到宿主机真实的网络指标,但那是另一个
+  # 取舍,与下面 9100 是否发布无关。
   node-exporter:
     image: prom/node-exporter:v1.9.1
     restart: unless-stopped
+    ports:
+      # 比赛期:直接访问 /metrics 核对采集是否正常(此前只能从 VM 的 scrape
+      # 配置间接判断)。正式生产应删除(见文件头)。
+      - '9100:9100'
     command:
       - '--path.rootfs=/host'
       - '--path.procfs=/host/proc'
