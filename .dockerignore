@@ -1,0 +1,43 @@
+# 构建上下文裁剪。semantica-service 仓里有几个大目录，不排除会让
+# `docker build` 把几十 MB 不必要的文件送进 daemon。
+#
+# 镜像里**不放** .env：配置事实源在编排侧（compose 的 env_file），
+# 打进镜像会让凭据随镜像流转。Dockerfile 刻意不 COPY 它。
+.env
+.env.*
+!.env.example
+
+# 本地虚拟环境：依赖由 deps 阶段按 uv.lock 重装，跨架构/跨平台复制无意义
+# （.venv 里是宿主平台的二进制与绝对路径 shebang）。
+.venv
+
+# Python 缓存
+__pycache__/
+*.py[oc]
+*.egg-info
+build/
+dist/
+wheels/
+
+# 工具缓存
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 图数据与脚本产物：灌库用的 JSONL 约 40 MB，应在**有网机器上**灌进 Neo4j
+# 再随数据库带走，不该进镜像（服务器无外网也灌不动，因为灌图要调 LLM）。
+data/
+
+# 探针/对比输出
+out_compare.json
+out_compare_lucent.json
+out_load.log
+
+# 文档与测试不进运行镜像
+docs/
+tests/
+*.md
+!README.md
+.git/
+.github/
+.gitignore
