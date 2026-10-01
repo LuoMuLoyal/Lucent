@@ -48,10 +48,6 @@ bearer 鉴权（`API_TOKEN` / `SEMANTICA_API_KEY`），所以它属于"发布端
 决策见 `docs/reference/adr/0021-semantica-english-side-oag.md`，代码相邻的约束与非目标见
 `src/modules/assistant/README.md`（英文侧 OAG 小节）。尚未闭环的条目：
 
-- **sidecar 镜像（未做）**：三份 compose 的 `semantica` 服务定义已就位（profile 门控，
-  避免 `docker compose up` 去拉不存在的镜像），但 `semantica-service` 仓还没有
-  Dockerfile，容器化部署不可用；dev 目前靠本机 `uvicorn` + `.env.development` 直连。
-  原属 Neo4j 迁移计划的 P6 剩余项（该计划实施完毕已删）。
 - **导出阶段的读取不受推理预算约束**：`REASONING_TIMEOUT_S` 覆盖不动点推理，不覆盖
   `load_from_graph` 的导出读取。导出侧已从 57s 降到 12.7s（50,000 边），但在更小的
   调用方预算下仍可能击穿超时预期（依据见 `semantica-oag-pilot/CORRECTIONS-r3.md`）。
