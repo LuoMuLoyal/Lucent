@@ -5,6 +5,9 @@ import { SemanticaClientService } from './semantica-client.service.js';
 describe('SemanticaClientService', () => {
   const originalFetch = globalThis.fetch;
 
+  /** 任意非空值：客户端只把它放进 Authorization，不做别的判断。 */
+  const TEST_API_KEY = 'test-semantica-token';
+
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
@@ -15,6 +18,7 @@ describe('SemanticaClientService', () => {
       [EnvKey.SEMANTICA_ENABLED]: 'true',
       [EnvKey.SEMANTICA_BASE_URL]: 'http://semantica:8099',
       [EnvKey.SEMANTICA_TIMEOUT_MS]: 20000,
+      [EnvKey.SEMANTICA_API_KEY]: TEST_API_KEY,
       ...overrides,
     };
     const configService = {
@@ -215,5 +219,56 @@ describe('SemanticaClientService', () => {
 
     const service = buildService();
     await expect(service.health()).resolves.toEqual({ ok: true, reason: null });
+  });
+
+  // ── bearer token ───────────────────────────────────────────────────
+  //
+  // sidecar 把鉴权挂在路由级（除 /health 外的每个端点），所以凭据不是"POST 才
+  // 需要"。这几条钉住的是"确实发出去了"，而不是"构造时读到了"：凭据漏发时
+  // sidecar 回 401，客户端归一成 kind: 'unauthorized'，上层会把一个配置错误
+  // 呈现成"推理服务不可用"——与真的挂了无从区分。
+
+  function sentHeaders(call = 0): Record<string, string> {
+    const init = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[
+      call
+    ]?.[1] as RequestInit | undefined;
+    return (init?.headers ?? {}) as Record<string, string>;
+  }
+
+  it('sends the bearer token on POST requests', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ rows: [], columns: [] }));
+
+    const service = buildService();
+    await service.query({
+      cypher: 'MATCH (n) RETURN n',
+      params: {},
+      limit: 10,
+    });
+
+    expect(sentHeaders()['Authorization']).toBe(`Bearer ${TEST_API_KEY}`);
+  });
+
+  it('sends the bearer token on GET requests too', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ graph: 'neo4j', node_count: 0 }));
+
+    const service = buildService();
+    await service.schema();
+
+    expect(sentHeaders()['Authorization']).toBe(`Bearer ${TEST_API_KEY}`);
+  });
+
+  it('sends the token configured for this environment, not a literal', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ status: 'ok' }));
+
+    const service = buildService({ [EnvKey.SEMANTICA_API_KEY]: 'rotated-key' });
+    await service.health();
+
+    expect(sentHeaders()['Authorization']).toBe('Bearer rotated-key');
   });
 });

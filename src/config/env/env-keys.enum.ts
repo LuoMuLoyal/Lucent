@@ -145,8 +145,12 @@ export enum EnvKey {
   // 英文侧知识图谱(semantica-service)的客户端项。sidecar 自己连 Neo4j 的
   // URI/凭据/库名/连接池/查询超时在它自己的 deploy/semantica/.env,
   // 与 Lucent 的 DATABASE_URL 完全独立(见 docs/reference/environment-variables.md)。
-  // 没有 API key:那是我们自己的内网服务、自身不持有任何模型凭据。
+  //
+  // SEMANTICA_API_KEY 是与 sidecar 的握手凭据,两侧必须一致(对方是 API_TOKEN)。
+  // 早期设计里它不存在:那时 sidecar 只在 compose 容器网络内、不发布宿主端口,
+  // 自身也不持有模型凭据。跨云部署后端口已发布,该前提不再成立,于是补上。
   SEMANTICA_ENABLED = 'SEMANTICA_ENABLED',
   SEMANTICA_BASE_URL = 'SEMANTICA_BASE_URL',
   SEMANTICA_TIMEOUT_MS = 'SEMANTICA_TIMEOUT_MS',
+  SEMANTICA_API_KEY = 'SEMANTICA_API_KEY',
 }

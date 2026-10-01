@@ -345,8 +345,6 @@ const envSchema = z.object({
 
   // ── Semantica sidecar client (English-side OAG) ─────────────────
   // 默认关闭:未开启时 reason_over_ontology 返回"未配置"信封而不报错。
-  // 与 LightRAG 不同,**没有可交叉校验的必填项**:它不带密钥,也不要求 Lucent
-  // 这边配任何模型(生成用的是 AI_LANGUAGE_* 角色,已在别处校验)。
   // 超时下限要大于 sidecar 自己的查询超时(默认 15s),否则
   // "查询太慢"会先被客户端掐断,拿不到 sidecar 的结构化超时报错。
   [EnvKey.SEMANTICA_ENABLED]: z.enum(['true', 'false']).default('false'),
@@ -357,6 +355,9 @@ const envSchema = z.object({
     .min(100)
     .max(120000)
     .default(SEMANTICA_DEFAULT_TIMEOUT_MS),
+  // 与 sidecar 的 API_TOKEN 是同一个值。和 LightRAG 一样属于"启用即必须能鉴权":
+  // 没有默认密钥,所以只在 SEMANTICA_ENABLED=true 时强制(见下方 superRefine)。
+  [EnvKey.SEMANTICA_API_KEY]: optionalString,
 
   // ── Metrics auth (sensitive, in .env) ────────────────────────────
   [EnvKey.METRICS_USER]: optionalString,
@@ -433,6 +434,7 @@ export const validatedEnvSchema = envSchema.check((ctx) => {
   assertTencentCosEnvironment(config, report);
   assertJpushEnvironment(config, report);
   assertLightragEnvironment(config, report);
+  assertSemanticaEnvironment(config, report);
   assertAiEnvironment(config, report);
 });
 
@@ -616,6 +618,33 @@ function assertLightragEnvironment(
   if (!(config[EnvKey.LIGHTRAG_API_KEY] ?? '').trim()) {
     report(
       `LIGHTRAG_ENABLED is true but ${EnvKey.LIGHTRAG_API_KEY} is missing`,
+    );
+  }
+}
+
+/**
+ * Semantica 与 LightRAG 同属"启用即必须能鉴权"的 sidecar:底座地址有默认值,
+ * 但没有默认密钥,所以只有 `SEMANTICA_ENABLED=true` 时才要求 `SEMANTICA_API_KEY`。
+ *
+ * 为什么这条校验值得存在:没有它,漏配的后果是在**第一次推理调用**时才暴露,
+ * 而上层把 401 归一成 `kind: 'unauthorized'` 之后呈现给模型的是"推理服务不可用"
+ * ——一个配置错误被伪装成基础设施故障,和侧车真的挂了无从区分。启动即失败把
+ * 这个歧义消掉。
+ *
+ * 关闭状态下即使残留了 base URL / key 也不报错:关闭是显式决定,不因残留配置
+ * 阻断启动(工具在关闭时返回"未配置"信封)。
+ */
+function assertSemanticaEnvironment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
+  if (config[EnvKey.SEMANTICA_ENABLED] !== 'true') {
+    return;
+  }
+
+  if (!(config[EnvKey.SEMANTICA_API_KEY] ?? '').trim()) {
+    report(
+      `SEMANTICA_ENABLED is true but ${EnvKey.SEMANTICA_API_KEY} is missing`,
     );
   }
 }

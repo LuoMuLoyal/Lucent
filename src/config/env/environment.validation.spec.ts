@@ -187,6 +187,56 @@ describe('validateEnvironment', () => {
     ).not.toThrow();
   });
 
+  it('defaults Semantica to disabled with its sidecar address pre-wired', () => {
+    const config = validateEnvironment({ ...baseValidEnv });
+
+    expect(config[EnvKey.SEMANTICA_ENABLED]).toBe('false');
+    expect(config[EnvKey.SEMANTICA_BASE_URL]).toBe('http://semantica:8099');
+    expect(config[EnvKey.SEMANTICA_TIMEOUT_MS]).toBe(20000);
+  });
+
+  it('requires a Semantica API key only when the sidecar is enabled', () => {
+    // 没有这条校验，漏配的后果在第一次推理调用时才出现，而上层把 401 归一成
+    // unauthorized 之后呈现的是"推理服务不可用"——配置错误被伪装成基础设施故障。
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.SEMANTICA_ENABLED]: 'true',
+      }),
+    ).toThrow(`SEMANTICA_ENABLED is true but ${EnvKey.SEMANTICA_API_KEY}`);
+
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.SEMANTICA_ENABLED]: 'true',
+        [EnvKey.SEMANTICA_API_KEY]: 'sidecar-handshake-key',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a blank Semantica key rather than treating it as configured', () => {
+    // 空串与"没设置"在这里必须是同一件事，否则 `.env` 里那句 `SEMANTICA_API_KEY=`
+    // 会通过校验，然后每次调用都带着一个必然被拒的 `Bearer `。
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.SEMANTICA_ENABLED]: 'true',
+        [EnvKey.SEMANTICA_API_KEY]: '   ',
+      }),
+    ).toThrow(`SEMANTICA_ENABLED is true but ${EnvKey.SEMANTICA_API_KEY}`);
+  });
+
+  it('tolerates leftover Semantica values while the sidecar stays disabled', () => {
+    expect(() =>
+      validateEnvironment({
+        ...baseValidEnv,
+        [EnvKey.SEMANTICA_ENABLED]: 'false',
+        [EnvKey.SEMANTICA_BASE_URL]: 'http://127.0.0.1:8099',
+        [EnvKey.SEMANTICA_API_KEY]: '',
+      }),
+    ).not.toThrow();
+  });
+
   it('coerces the LightRAG timeout from its env string', () => {
     const config = validateEnvironment({
       ...baseValidEnv,

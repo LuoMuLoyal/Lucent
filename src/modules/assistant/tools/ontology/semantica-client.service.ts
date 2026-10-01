@@ -37,9 +37,10 @@ const MAX_ERROR_BODY_LOG_CHARS = 300;
  * 判别式结果」。查询语义（生成什么 Cypher、允不允许重试、envelope 长什么样）
  * 都在工具层，客户端保持纯粹。
  *
- * **没有 API key。** sidecar 是我们自己的服务、只在内网 compose 网络上
- * （不发布宿主端口、不挂 Traefik），且它自身不持有任何模型凭据 —— 与 LightRAG
- * 需要密钥握手的情形不同（上游产品自带鉴权）。要暴露给公网时必须先加鉴权。
+ * **带共享 bearer token。** sidecar 原先只在内网 compose 网络上、不发布宿主端口，
+ * 因此刻意不带凭据；跨云部署后端口已发布、调用来自另一台机器，那个前提不再成立
+ * （sidecar 会按调用方的要求执行只读 Cypher）。两侧的值必须一致：这里是
+ * `SEMANTICA_API_KEY`，对面是 `API_TOKEN`。
  *
  * 失败一律返回判别式结果而不是抛异常：调用方必须能把"推理服务不可用"与
  * "图上确实查不到"区分开，异常会诱使调用方用一个 catch 把两者合成"没有证据"
@@ -52,6 +53,7 @@ export class SemanticaClientService {
   private readonly enabled: boolean;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
+  private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
     this.enabled =
@@ -63,6 +65,9 @@ export class SemanticaClientService {
     this.timeoutMs =
       this.configService.get<number>(EnvKey.SEMANTICA_TIMEOUT_MS) ??
       SEMANTICA_DEFAULT_TIMEOUT_MS;
+    // 缺失即空串：启动期校验已保证 enabled 时它非空，这里不重复抛错。
+    this.apiKey =
+      this.configService.get<string>(EnvKey.SEMANTICA_API_KEY) ?? '';
   }
 
   /** sidecar 是否已启用。 */
@@ -288,7 +293,10 @@ export class SemanticaClientService {
     | { ok: false; status: number; failure: SemanticaCallFailure }
   > {
     const url = `${this.baseUrl}${path}`;
-    const headers: Record<string, string> = {};
+    // 每个请求都带凭据，包括 GET：sidecar 把鉴权挂在路由级，连 /schema 也要令牌。
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.apiKey}`,
+    };
     if (options.body != null) {
       headers['Content-Type'] = 'application/json';
     }
