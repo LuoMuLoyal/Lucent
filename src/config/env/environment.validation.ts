@@ -95,10 +95,17 @@ const envSchema = z.object({
   [EnvKey.PUBLIC_BASE_URL]: z.string().default('http://localhost:3000'),
 
   // ── Logging / observability (non-sensitive, defaults below) ────
+  // 刻意**不给默认值**:默认级别由环境决定(development=debug / test=error /
+  // production=info),解析在 `src/common/logger/logger.config.ts` 的 resolveLevel。
+  // 这里若写死 `.default('debug')`,校验结果会先于该解析生效,把三种环境的日志
+  // 级别一起压成 debug —— 生产的 info 与测试的 error 都再也轮不到。
   [EnvKey.LOG_LEVEL]: z
     .enum(['error', 'warn', 'info', 'debug', 'verbose'])
-    .default('debug'),
-  [EnvKey.LOG_FORMAT]: z.enum(['pretty', 'json']).default('pretty'),
+    .optional(),
+  // 同上,刻意**不给默认值**:未设置时由环境决定格式(development=pretty,
+  // 其余=json),解析在 `logger.config.ts`。写死 `.default('pretty')` 会把
+  // 生产的 json 输出压成 pretty,直接影响日志采集。
+  [EnvKey.LOG_FORMAT]: z.enum(['pretty', 'json']).optional(),
   [EnvKey.SLOW_REQUEST_THRESHOLD_MS]: z.coerce
     .number()
     .int()

@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-24
+updated: 2026-10-01
 ---
 
 # Environment Variables
@@ -447,6 +447,7 @@ Observability:
 
 ```text
 LOG_LEVEL
+LOG_FORMAT
 SLOW_REQUEST_THRESHOLD_MS
 METRICS_ENABLED
 METRICS_USER
@@ -456,8 +457,15 @@ OTEL_EXPORTER_OTLP_ENDPOINT
 VICTORIALOGS_URL
 ```
 
-- `LOG_LEVEL` — Winston log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
-  development, `info` in production.
+- `LOG_LEVEL` — Winston log level (`error` / `warn` / `info` / `debug` / `verbose`).
+  **未设置**时按环境取默认（在 `src/common/logger/logger.config.ts` 的 `resolveLevel` 解析）：
+  development = `debug`、test = `error`、production = `info`。显式设置的值总是优先。
+  校验层刻意**不**给它默认值 —— 写死默认值会让该校验结果先于按环境解析生效，
+  把三种环境的日志级别压成同一个。
+- `LOG_FORMAT` — 日志格式（`pretty` = 人读 / `json` = 机器采集）。**未设置**时按环境取默认：
+  development 用 `pretty`，其余环境用 `json`（在 `logger.config.ts` 解析）。
+  与 `LOG_LEVEL` 同理，校验层刻意**不**给它默认值 —— 写死 `.default('pretty')` 会让
+  生产输出 pretty 而不是 JSON，直接影响日志采集。
 - `SLOW_REQUEST_THRESHOLD_MS` — requests exceeding this duration (in ms) trigger a `warn` log
   via `SlowRequestInterceptor`. Default: `2000`. Range: 10–300000.
 - `METRICS_ENABLED` — enable/disable Prometheus metrics collection (`prom-client`).
