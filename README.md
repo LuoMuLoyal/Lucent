@@ -56,13 +56,22 @@ uv run uvicorn semantica_service.main:app --reload --port 8099
 
 | Route | Purpose |
 | --- | --- |
-| `GET /health` | Liveness, Neo4j reachability and graph size |
+| `GET /health` | Liveness, Neo4j reachability and graph size. **The only route that needs no token** |
 | `GET /schema` | Node labels and relationship types, with counts |
 | `POST /query` | Execute one read-only Cypher statement |
 | `POST /validate` | SHACL validation of the graph |
 | `POST /reason` | Evaluate a versioned Cypher rule over the graph |
 | `GET /rules` | The versioned rule library, so a caller can discover intents |
 | `GET /openapi.json` | Schema, used to generate the Lucent client |
+
+Every route above except `/health` requires `Authorization: Bearer $API_TOKEN`;
+a missing or wrong token is **401**. `/health` stays open because the compose
+healthcheck and any load balancer probe it and neither can carry a credential.
+
+```bash
+curl -H "Authorization: Bearer $API_TOKEN" http://127.0.0.1:8099/schema
+curl http://127.0.0.1:8099/health          # no token
+```
 
 `/health` returns **503** when the graph is unreachable, so a load balancer
 stops routing to a process whose dependency is down. With no Neo4j server
@@ -486,6 +495,7 @@ uv run python scripts/check_orientation.py     # no interaction is one-direction
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
+| `API_TOKEN` | *(none)* | Shared bearer token for every route except `/health`. Empty refuses startup — the service publishes a host port and executes caller-supplied Cypher, so booting without it would serve unprotected |
 | `NEO4J_URI` | `bolt://127.0.0.1:7687` | Bolt URI of the Neo4j server |
 | `NEO4J_USER` | `neo4j` | Neo4j user |
 | `NEO4J_PASSWORD` | *(none)* | Neo4j password. Empty fails loudly rather than connecting without credentials |
