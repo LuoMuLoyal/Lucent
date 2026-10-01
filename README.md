@@ -116,6 +116,18 @@ Then open <http://127.0.0.1:8010>.
 every Explorer route answers 503 when `SEMANTICA_API_KEY` is unset. It makes the
 process unauthenticated, so it must stay on loopback.
 
+> ⚠️ **Two different `SEMANTICA_*` secrets live in this project — do not conflate them.**
+>
+> | Name | Read by | Purpose |
+> | --- | --- | --- |
+> | `SEMANTICA_API_KEY` | `semantica-explorer` (upstream, installed from the fork) | The library's **own** Explorer session key. Unrelated to this service; nothing in `src/semantica_service/` reads it. |
+> | `API_TOKEN` | this service (`Settings.api_token`) | The bearer token **our** routes check. |
+>
+> They are independent: setting one does not satisfy the other, and rotating one does
+> not rotate the other. The name that *does* have to match something is `API_TOKEN`,
+> which must equal Lucent's `SEMANTICA_API_KEY` — a Lucent-side name that happens to
+> collide with the upstream one above.
+
 ### Why an export rather than a route
 
 The Explorer is a development console, and `pyproject.toml` keeps `explorer` out
