@@ -42,9 +42,9 @@ services:
       start_period: 60s
 
   # ── PostgreSQL 18 (development) ──────────────────────────────
-  # 镜像含 pgvector 与 zhparser(见 docker/postgres-age/)。**图数据已迁出**:
-  # AGE 只为兼容既有库保留,英文侧 OAG 不再使用它。构建一次即可：
-  #   docker build -t lucent-db:18 docker/postgres-age
+  # 镜像含 pgvector 与 zhparser(见 docker/postgres/)。图数据在 Neo4j,不经这里。
+  # 构建一次即可：
+  #   docker build -t lucent-db:18 docker/postgres
   postgres-dev:
     image: ${LUCENT_DB_IMAGE:-lucent-db:18}
     container_name: lucent-postgres-dev

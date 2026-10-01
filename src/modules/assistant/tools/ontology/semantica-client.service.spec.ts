@@ -53,7 +53,7 @@ describe('SemanticaClientService', () => {
   it('parses the schema response', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       jsonResponse({
-        graph: 'lucent_graph',
+        graph: 'neo4j',
         node_count: 3278,
         relationship_count: 211630,
         labels: [{ label: 'Drug', count: 895 }],
@@ -65,7 +65,7 @@ describe('SemanticaClientService', () => {
     await expect(service.schema()).resolves.toEqual({
       ok: true,
       value: {
-        graph: 'lucent_graph',
+        graph: 'neo4j',
         nodeCount: 3278,
         relationshipCount: 211630,
         labels: [{ label: 'Drug', count: 895 }],

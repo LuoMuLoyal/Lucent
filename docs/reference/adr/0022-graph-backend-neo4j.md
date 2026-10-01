@@ -1,6 +1,6 @@
 # ADR-0022: 图后端由 Apache AGE 改为 Neo4j
 
-- **Status**: accepted（图后端决定已定；实施未开工——实施计划为 2026-09-29 命名的那份，已按约定删除）
+- **Status**: accepted（图后端决定已定；**已实施完毕**——AGE 资产于 2026-10-01 整体移除，见决定 7 的后续说明）
 - **Date**: 2026-09-29
 - **Deciders**: LuoMuLoyal
 
@@ -83,6 +83,11 @@ MATCH (a)-[:INHIBITS]->(e)<-[:SUBSTRATE_OF]-(b) WHERE a <> b
    语义上不是同一条边），`MERGE` 会静默合并。
 7. **AGE 资产暂不删除**：`docker/postgres-age/` 与 `lucent_graph` 保留为回滚路径，
    迁移验证通过并稳定运行一个周期后清理。
+
+   > **后续（2026-10-01）**：观察期结束，AGE 已整体移除——镜像改为 `docker/postgres/`
+   > （只留 pgvector + zhparser，删去 `age` 扩展与 `shared_preload_libraries=age`），
+   > Lucent 侧 8 处 `lucent_graph` 元数据改为图库真名（Neo4j database，默认 `neo4j`）。
+   > 本条决定的历史文本保留，仅作记录；回滚路径不再存在。
 
 ## Options Considered
 

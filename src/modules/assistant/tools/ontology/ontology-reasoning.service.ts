@@ -160,7 +160,9 @@ export class AssistantToolOntologyReasoningService {
     }
 
     const graphSchema = schemaOutcome.value;
-    const tables = [`${graphSchema.graph} (Neo4j)`];
+    // 图库名本身就是 Neo4j 的 database 名（sidecar 的 NEO4J_DATABASE），
+    // 例如 `neo4j`；它标识数据来源，不再需要拼引擎后缀。
+    const tables = [graphSchema.graph];
 
     let previousCypher: string | null = null;
     let previousErrorKind: PreviousErrorKind | null = null;

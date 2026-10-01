@@ -124,13 +124,13 @@ Local toolchain baseline:
 Local infrastructure note:
 
 - `pnpm dev:stack` starts both local PostgreSQL services from the self-built
-  `${LUCENT_DB_IMAGE:-lucent-db:18}` image (`docker/postgres-age/`), which layers
-  **Apache AGE** on top of `pgvector/pgvector:pg18`. Build it once with
-  `docker build -t lucent-db:18 docker/postgres-age`.
+  `${LUCENT_DB_IMAGE:-lucent-db:18}` image (`docker/postgres/`), which layers
+  **zhparser** on top of `pgvector/pgvector:pg18`. Build it once with
+  `docker build -t lucent-db:18 docker/postgres`.
 - pgvector is required for Lucent assistant RAG indexing because local scripts and `PGVectorStore`
   expect the `vector` extension to exist.
-- AGE serves the English-side OAG only. Its graph lives in a separate `lucent_graph` database so it
-  never mixes with the Prisma migration domain; LightRAG keeps using plain SQL tables. See ADR-0021.
+- The English-side OAG graph lives in **Neo4j**, entirely outside Postgres and the Prisma migration
+  domain; LightRAG keeps using plain SQL tables. See ADR-0022.
 - GitHub Actions CI uses the same `pgvector/pgvector:pg18` PostgreSQL family for its test database
   service so vector-dependent backend paths are not validated against a weaker database baseline
   than local development.

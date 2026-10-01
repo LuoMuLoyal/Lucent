@@ -10,7 +10,7 @@ import type {
 } from './semantica.types.js';
 
 const SCHEMA: SemanticaGraphSchema = {
-  graph: 'lucent_graph',
+  graph: 'neo4j',
   nodeCount: 3278,
   relationshipCount: 211630,
   labels: [{ label: 'Drug', count: 895 }],
@@ -173,7 +173,7 @@ describe('AssistantToolOntologyReasoningService', () => {
     expect(envelope.confidence.level).toBe('high');
     expect(envelope.result).toMatchObject({
       cypher: 'MATCH (d:Drug) RETURN d.name AS name LIMIT 5',
-      graph: 'lucent_graph',
+      graph: 'neo4j',
       rowCount: 1,
       truncated: false,
       attempts: 1,
@@ -197,7 +197,7 @@ describe('AssistantToolOntologyReasoningService', () => {
         parentEntityId: null,
       },
     ]);
-    expect(envelope.source.tables).toEqual(['lucent_graph (Neo4j)']);
+    expect(envelope.source.tables).toEqual(['neo4j']);
     expect(generate).toHaveBeenCalledTimes(1);
   });
 
