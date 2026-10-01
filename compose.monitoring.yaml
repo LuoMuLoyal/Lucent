@@ -5,14 +5,15 @@
 #   1. Grafana 查询 VictoriaMetrics 是**密集链路**。一个仪表盘刷新会打出几十个
 #      range query。若 VM 在阿里云而 Grafana 留在鲲鹏,数据就要在公网上往返两次
 #      (VM 拉鲲鹏的 /metrics → Grafana 再把同一份数据从阿里云拉回鲲鹏),还要
-#      穿过 3M 带宽。三个服务同机后,Grafana → VM 走容器网络,和原先一样便宜。
+#      穿过 3M 带宽。四个服务同机后,Grafana → VM/VictoriaLogs/VictoriaTraces
+#      全走容器网络,和原先一样便宜。
 #
 #   2. 监控与被观测对象分离:鲲鹏整台挂掉时,历史指标不会跟着一起没 —— 那正是
 #      你最需要看指标的时刻。
 #
-#   3. 1c2g 的预算够:三者空载合计约 450 MB,有数据时 700 MB–1 GB,系统占约
-#      300 MB。所以每个服务都加了 memory limit(见下),不能让 OOM killer
-#      在 2 GB 的机器上随机挑一个杀。
+#   3. 1c2g 的预算够:四者空载合计约 460 MB(VictoriaTraces 实测仅 7.5 MiB),
+#      有数据时 700 MB–1 GB,系统占约 300 MB。所以每个服务都加了 memory limit
+#      (见下),不能让 OOM killer 在 2 GB 的机器上随机挑一个杀。
 #
 # ⚠️ 与 compose.yaml 的关系:那份跑在鲲鹏,这份跑在阿里云,**两者互不依赖**,
 #    各自 `docker compose -f <文件> up -d`。唯一关联是网络流量:
@@ -21,8 +22,9 @@
 #      │  victoriametrics :8428  ←──┐        │
 #      │  grafana        :3001   ───┘ 容器网络│
 #      │  victorialogs   :9428                │
+#      │  victoriatraces :10428               │
 #      └──────────┬───────────────────────────┘
-#                 │ 公网抓取(VM 主动 pull)
+#                 │ 公网抓取(VM 主动 pull) / 公网推日志与 span(app 主动 push)
 #      ┌──────────▼───────────────────────────┐
 #      │  鲲鹏 4c8g                            │
 #      │    app          :3000  (/metrics)     │
@@ -114,7 +116,10 @@ services:
   #    app 侧的 VICTORIALOGS_URL 要填 `http://<阿里云公网IP>:9428`。
   # Web UI 通过发布端口访问(安全组收口);应用日志同时进 stdout 由容器收集。
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.15.0
+    # ⚠️ 版本线与 VictoriaMetrics **不同**:VictoriaLogs 现在是 1.5x(v1.51.1 起),
+    # 不是 1.1x。此前这里写的 v1.15.0 在 Docker Hub 上根本不存在(实测
+    # `manifest unknown`),意味着该服务从未真正起来过。与 compose.staging.yaml 对齐。
+    image: victoriametrics/victoria-logs:v1.51.1
     restart: unless-stopped
     ports:
       - '9428:9428'
@@ -135,7 +140,52 @@ services:
         max-size: '10m'
         max-file: '3'
 
+  # ── VictoriaTraces(分布式追踪库,补齐可观测性第三支柱) ──────────
+  # 鲲鹏的 app 通过 OTLP/HTTP 推 span 过来(需 OTEL_ENABLED=true)。
+  #
+  # ⚠️ **OTLP/HTTP 的路径不是标准的 `/v1/traces`**,而是
+  #      /insert/opentelemetry/v1/traces
+  #    实测:发到 `/opentelemetry/v1/traces` 返回 400,发到上面这个返回 200。
+  #    所以 app 侧的 OTEL_EXPORTER_OTLP_ENDPOINT 必须写完整路径,否则一个 span
+  #    都收不到,而且默认端口是 10428(不是常见的 4318)。
+  #
+  # 轻量得多:实测空载 RSS 约 7.5 MiB(VictoriaTraces 建在 VictoriaLogs 之上,
+  # 接收 OTLP → 转成结构化日志 → 对外提供 Jaeger Query API)。
+  # 因此 256M 限额有极大余量,留够缓冲即可。
+  #
+  # ⚠️ 与 VictoriaLogs 一样**没有内建鉴权**。官方文档明确要求它"运行在无法从
+  #    公网直达的环境中"。当前口径是**安全组按来源 IP 白名单作唯一防线**;
+  #    若要加固,可加 `-httpAuth.username` / `-httpAuth.password`(覆盖整个 HTTP
+  #    服务,包括写入与 /metrics),代价是 Grafana 数据源与抓取都要带凭据。
+  victoriatraces:
+    # 钉具体版本:该项目尚在 0.x(官方 README 明说"磁盘结构与 API 可能不向后兼容"),
+    # 用 `latest` 会在某次 `docker compose pull` 后静默换大版本。
+    image: victoriametrics/victoria-traces:v0.12.0
+    restart: unless-stopped
+    ports:
+      # 10428 = HTTP API / Jaeger Query / OTLP-HTTP 写入,全在同端口。
+      - '10428:10428'
+    volumes:
+      - victoriatraces-data:/data
+    command:
+      - '-storageDataPath=/data'
+      # 追踪数据只保留 7 天(与 VM 的 30d 不同):span 是排查用的短期素材,
+      # 放久了既占盘也几乎不会再查。
+      - '-retentionPeriod=7d'
+      - '-httpListenAddr=0.0.0.0:10428'
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
 volumes:
   victoriametrics-data:
   grafana-data:
   victorialogs-data:
+  # ⚠️ 必须显式声明:漏了会让 compose 静默创建匿名卷,容器重建即丢失全部 trace。
+  victoriatraces-data:

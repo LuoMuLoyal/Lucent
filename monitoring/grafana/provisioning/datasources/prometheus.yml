@@ -13,3 +13,25 @@ datasources:
     url: http://victoriametrics:8428
     isDefault: true
     editable: false
+
+  # 注:VictoriaLogs 没有对应的**内置** Grafana 数据源插件
+  # (grafana/grafana 镜像不预装 victoriametrics-logs-datasource)。
+  # 要看日志就直接开 http://<阿里云>:9428 的 VictoriaLogs UI —— 它有自带查询界面,
+  # 比赛期够用。若以后想进 Grafana,再加
+  #   GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
+  # 并在这里补一条 type 为该插件的数据源。此处刻意不预先声明:一个指向未安装
+  # 插件的数据源会让 Grafana 启动时报未知类型,反而把已经能用的面板一起拖坏。
+
+  - name: VictoriaTraces
+    uid: victoriatraces
+    type: jaeger
+    access: proxy
+    # VictoriaTraces 对外提供 Jaeger Query Service JSON API,所以用 Grafana **内置**
+    # 的 jaeger 数据源接它(该类型已确认存在于 grafana/grafana:12.1.0,无需装插件)。
+    # 路径上限是查询 API 的根 `/select/jaeger`(不要带 /api)。
+    url: http://victoriatraces:10428/select/jaeger
+    editable: false
+    jsonData:
+      # 打开服务依赖图视图。
+      nodeGraph:
+        enabled: true
