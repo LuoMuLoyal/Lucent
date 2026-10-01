@@ -501,10 +501,20 @@ VICTORIALOGS_URL
   Decision 3 for the trace backend strategy.
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
   Winston batches log entries as newline-delimited JSON and POSTs them directly
-  to this URL (no Vector sidecar needed). Production `compose.yaml` injects
-  `http://victorialogs:9428/insert/jsonline`; staging(原生 PM2)在
-  `.env.production` 里写 `http://127.0.0.1:9428/insert/jsonline`(容器端口发布到回环)。
+  to this URL (no Vector sidecar needed).
+  **默认回落到** `http://victorialogs:9428/insert/jsonline`（写在 `compose.yaml` 的
+  app 服务里，供单机全栈部署使用）。监控栈在阿里云那台时容器名在本机解析不了，
+  必须在 `.env` 里覆盖成 `http://<阿里云公网IP>:9428/insert/jsonline`，并在阿里云
+  安全组放行鲲鹏的出口 IP。
+  staging(原生 PM2)在 `.env.production` 里写 `http://127.0.0.1:9428/insert/jsonline`
+  (容器端口发布到回环)。
   Unset = only Console (stdout) transport is used. See ADR-0016 for the log backend strategy.
+- `LUCENT_PUBLIC_HOST` — **不是 app 的变量**，不经过 zod 校验层：它只由
+  `compose.monitoring.yaml`（阿里云那台）消费，作为 VictoriaMetrics 抓取目标的
+  主机名（`vmscraper.yml` 里经 `%{LUCENT_PUBLIC_HOST}` 展开成
+  `http://<值>:3000/metrics` 与 `:9100/metrics`）。填鲲鹏的**公网**地址，
+  不带协议与端口。该文件用 `:?` 校验它，未设置时 compose 拒绝启动。
+  单机全栈部署时填本机容器网络可达的地址即可。
 
 Security:
 
