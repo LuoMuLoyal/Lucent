@@ -1391,7 +1391,7 @@ wheels = [
 [[package]]
 name = "semantica"
 version = "0.7.0"
-source = { git = "ssh://git@github.com/LuoMuLoyal/semantica.git?branch=main#42519e6570949770bdad4a98d977a9a532c480f5" }
+source = { git = "https://github.com/LuoMuLoyal/semantica.git?branch=main#42519e6570949770bdad4a98d977a9a532c480f5" }
 dependencies = [
     { name = "chardet" },
     { name = "click" },
@@ -1459,7 +1459,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.6" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "semantica", extras = ["shacl", "graph-neo4j", "tripletstore-oxigraph"], git = "ssh://git@github.com/LuoMuLoyal/semantica.git?branch=main" },
+    { name = "semantica", extras = ["shacl", "graph-neo4j", "tripletstore-oxigraph"], git = "https://github.com/LuoMuLoyal/semantica.git?branch=main" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
 ]
 

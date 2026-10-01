@@ -8,20 +8,10 @@
 # GitHub。离线服务器上构建必然失败 —— 所以本镜像**在有网机器构建后
 # `docker save` 搬运**，不要在服务器上重建。
 #
-# ── 关于 git 依赖的协议改写 ──────────────────────────────────────────
-# `pyproject.toml` 的 [tool.uv.sources] 写的是
-#   git = "ssh://git@github.com/LuoMuLoyal/semantica.git"
-# 而 uv.lock 把它锁到具体 commit：
-#   ssh://git@github.com/LuoMuLoyal/semantica.git?branch=main#42519e6570...
-#
-# 容器构建环境没有 SSH key，`ssh://` 会直接失败。该仓库是**公开**的，
-# 所以下面在构建阶段把 pyproject.toml 里的 ssh 前缀改写成 https
-# （uv 会用改写后的 URL 去 fetch，`uv.lock` 里的 commit 锁定依然生效，
-# 因为 UV 只比对包名与 version）。这样不必在镜像里塞密钥，也不必改动
-# 仓库存档的 pyproject.toml。
-#
-# 若将来该 fork 转为私有，则必须改用构建期 secret（BuildKit `--secret`）
-# 注入部署密钥，不能回退到把 key COPY 进镜像。
+# git 依赖走 HTTPS（见 pyproject.toml 的 [tool.uv.sources]）：该 fork 是公开的，
+# HTTPS 无需任何凭据即可解析，CI / 容器 / 任意机器都能构建。
+# 若将来该 fork 转为私有，须改用构建期 secret（BuildKit `--secret`）
+# 注入部署密钥，不能把 key COPY 进镜像。
 
 # ── Stage 1: 依赖 ────────────────────────────────────────────────────
 FROM python:3.13-slim AS deps
@@ -48,14 +38,8 @@ ENV UV_COMPILE_BYTECODE=1 \
 # 不必重新 clone GitHub 与解析依赖。
 COPY pyproject.toml uv.lock ./
 
-# ssh:// → https://。**两处都要改**：`pyproject.toml` 的 [tool.uv.sources]
-# 与 `uv.lock` 里 `semantica` 包的 `source = { git = ... }`。
-# `--frozen` 会以 lock 记录为准去 fetch，只改 pyproject 仍会走 ssh
-# （实测报 "cannot run ssh: No such file or directory"）。
-# 两个文件都只在本层副本上改写，仓库里的文件不受影响；lock 的 commit
-# 锁定（#42519e65…）保持有效，因此解析结果仍是同一份代码。
-RUN sed -i 's|ssh://git@github.com/|https://github.com/|g' pyproject.toml uv.lock \
-    && uv sync --frozen --no-dev --no-install-project
+# 依赖按 lock 精确安装。git 依赖由 HTTPS 解析（公开 fork，无需凭据）。
+RUN uv sync --frozen --no-dev --no-install-project
 
 # ── Stage 2: 运行时 ──────────────────────────────────────────────────
 FROM python:3.13-slim AS runtime
@@ -90,8 +74,7 @@ COPY --from=deps --chown=semantica:semantica /app/.venv /app/.venv
 # uv 装在 /usr/local/bin，运行时阶段可用（它是静态二进制，不依赖 venv）。
 COPY --chown=semantica:semantica src ./src
 COPY --chown=semantica:semantica pyproject.toml uv.lock README.md ./
-RUN sed -i 's|ssh://git@github.com/|https://github.com/|g' pyproject.toml \
-    && VIRTUAL_ENV=/app/.venv uv pip install --no-deps --no-build-isolation -e . \
+RUN VIRTUAL_ENV=/app/.venv uv pip install --no-deps --no-build-isolation -e . \
     && find /app -name '__pycache__' -type d -prune -exec rm -rf {} +
 
 ENV PATH="/app/.venv/bin:$PATH" \

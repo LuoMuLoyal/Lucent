@@ -53,7 +53,12 @@ dev = [
 ]
 
 [tool.uv.sources]
-semantica = { git = "ssh://git@github.com/LuoMuLoyal/semantica.git", branch = "main" }
+# HTTPS, not SSH: this fork is public, and an HTTPS source resolves without
+# credentials on CI, in containers and on any other machine. SSH would force
+# every build environment to carry a deploy key for a repository that needs
+# none. (The fork is ours — `origin` — so switching schemes is safe: the lock
+# pins the commit either way.)
+semantica = { git = "https://github.com/LuoMuLoyal/semantica.git", branch = "main" }
 
 [tool.ruff]
 target-version = "py313"
