@@ -120,17 +120,23 @@ jobs:
       NODE_ENV: test
       HOST: 0.0.0.0
       PORT: 3000
-      CORS_ORIGIN: http://127.0.0.1:3000
+      # The e2e suite asserts CORS behavior for the Origins it sends, so the
+      # allowlist must cover them: the assistant SSE spec uses
+      # http://localhost:9100 and the CORS-preflight guard uses
+      # https://web.example.com.
+      CORS_ORIGIN: http://127.0.0.1:3000,http://localhost:9100,https://web.example.com
       DATABASE_URL: postgresql://lucent:lucent_dev@127.0.0.1:5432/lucent?schema=public
       REDIS_URL: redis://127.0.0.1:6379
       JWT_ACCESS_SECRET: ci_access_secret_min_32_chars_padchars
       JWT_REFRESH_SECRET: ci_refresh_secret_min_32_charschars
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 14d
-      BETTER_AUTH_SECRET: ci_better_auth_secret_min_32_chars_pad
-      BETTER_AUTH_URL: http://127.0.0.1:3000
       MAIL_DRIVER: log
       MAIL_FROM: noreply@example.com
+      # Required by the testing-support suite: TestingSharedSecretGuard
+      # forbids every request when this is unset (`.env.test` is not tracked,
+      # so the workflow env block is the only source in CI).
+      TESTING_SHARED_SECRET: e2e-test-shared-secret
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: ci_admin_password
       ADMIN_COOKIE_SECRET: ci_admin_cookie_secret_32chars_plus

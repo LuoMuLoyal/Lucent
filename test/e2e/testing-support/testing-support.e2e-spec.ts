@@ -6,6 +6,7 @@ import request from 'supertest';
 
 import { AppModule } from '../../../src/app.module.js';
 import { setupApp } from '../../../src/setup-app.js';
+import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 
 const TESTING_PATH = '/api/v1/testing/fullstack-e2e/record-lane/prepare';
@@ -15,7 +16,6 @@ const USER_SETTINGS_PATH = '/api/v1/user/settings';
 const AUTHORIZATION_HEADER = 'Authorization';
 const BEARER = 'Bearer';
 const TESTING_SECRET_HEADER = 'x-testing-secret';
-const TESTING_SECRET = 'e2e-test-shared-secret';
 
 const TEST_EMAIL = 'fullstack-record-lane@example.com';
 const TEST_PASSWORD = 'RecordLane123';
@@ -33,12 +33,20 @@ function expectData<T>(body: T): T {
 
 describe('Testing Support API (e2e)', () => {
   let app: NestFastifyApplication;
+  // Resolved from ConfigService after the module compiles: `ConfigModule`
+  // loads `.env.<NODE_ENV>` during init and overwrites `process.env`, so a
+  // value assigned here beforehand would not be the one the guard compares
+  // against.
+  let testingSecret: string;
 
   beforeAll(async () => {
-    process.env['TESTING_SHARED_SECRET'] = TESTING_SECRET;
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
+
+    testingSecret = moduleFixture
+      .get(ConfigService)
+      .getOrThrow<string>(EnvKey.TESTING_SHARED_SECRET);
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ trustProxy: true }),
@@ -63,7 +71,7 @@ describe('Testing Support API (e2e)', () => {
 
     const firstPrepareRes = await request(app.getHttpServer())
       .post(TESTING_PATH)
-      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
+      .set(TESTING_SECRET_HEADER, testingSecret)
       .send(preparePayload)
       .expect(200);
 
@@ -139,7 +147,7 @@ describe('Testing Support API (e2e)', () => {
 
     const secondPrepareRes = await request(app.getHttpServer())
       .post(TESTING_PATH)
-      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
+      .set(TESTING_SECRET_HEADER, testingSecret)
       .send(preparePayload)
       .expect(200);
 
@@ -193,7 +201,7 @@ describe('Testing Support API (e2e)', () => {
   it('should reject a malformed date with VALIDATION_FAILED', async () => {
     const res = await request(app.getHttpServer())
       .post(TESTING_PATH)
-      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
+      .set(TESTING_SECRET_HEADER, testingSecret)
       .send({
         email: TEST_EMAIL,
         password: TEST_PASSWORD,
@@ -208,7 +216,7 @@ describe('Testing Support API (e2e)', () => {
   it('should reject unknown body keys (strict schema)', async () => {
     const res = await request(app.getHttpServer())
       .post(TESTING_PATH)
-      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
+      .set(TESTING_SECRET_HEADER, testingSecret)
       .send({
         email: TEST_EMAIL,
         password: TEST_PASSWORD,

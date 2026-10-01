@@ -16,6 +16,7 @@ import { SseConnectionRegistry } from '../../../src/common/api/sse/sse-connectio
 import { SseProblemDetailsMapper } from '../../../src/common/api/sse/sse-problem-details.js';
 import { ProblemCatalog } from '../../../src/common/api/problem-catalog.js';
 import { DataRetentionService } from '../../../src/modules/data-retention/index.js';
+import { MealAnalysisSweeperService } from '../../../src/modules/daily-records/index.js';
 import { LifecycleService } from '../../../src/modules/today-suggestion/index.js';
 import { ReminderSchedulerService } from '../../../src/modules/medicine-reminders/index.js';
 import { WeeklyInsightSchedulerService } from '../../../src/modules/notification-preferences/index.js';
@@ -42,6 +43,7 @@ const SCHEDULER_IDS = [
   'lifecycle-refresh',
   'reminder-dispatch',
   'weekly-insight',
+  'meal-analysis-reap',
 ];
 
 describe('startup and shutdown ordering (e2e)', () => {
@@ -98,6 +100,10 @@ describe('startup and shutdown ordering (e2e)', () => {
         },
         {
           provide: WeeklyInsightSchedulerService,
+          useValue: makeSchedulerStub(),
+        },
+        {
+          provide: MealAnalysisSweeperService,
           useValue: makeSchedulerStub(),
         },
       ],

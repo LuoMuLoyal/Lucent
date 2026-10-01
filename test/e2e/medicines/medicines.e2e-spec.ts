@@ -184,7 +184,6 @@ describe('Medicines API (e2e)', () => {
         drugType: 'OTC',
         mainCategory: '解热镇痛',
         subcategory: '非甾体抗炎药',
-        indications: '用于缓解轻至中度疼痛。',
         approvalNumber: '国药准字H10900089',
         searchText: '布洛芬缓释胶囊 国药准字H10900089',
       },
