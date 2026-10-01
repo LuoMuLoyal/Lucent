@@ -1,8 +1,18 @@
 # VictoriaMetrics scrape 配置(静态,仓库内直接挂载使用)
-# Basic Auth 凭据通过 %{ENV_VAR} 占位符注入:VictoriaMetrics 在启动时从
-# victoriametrics 容器环境变量(METRICS_USER / METRICS_PASSWORD,由 compose
-# 从 ${METRICS_USER}/${METRICS_PASSWORD} 传入)展开 %{...},无需渲染脚本。
-# 与 app 端 METRICS_USER/METRICS_PASSWORD 一致;两侧未配置时 /metrics 匿名可用。
+#
+# ⚠️ 本文件由**阿里云那台**的 VictoriaMetrics 加载(compose.monitoring.yaml),
+#    抓取目标在**鲲鹏那台**,两者跨云,只能走公网 —— 两家云的 VPC 不互通,
+#    填内网地址会连接超时。
+#
+# 目标主机经 %{LUCENT_PUBLIC_HOST} 注入:VictoriaMetrics 在启动时从自己的容器
+# 环境变量展开 %{...}(该变量在 compose.monitoring.yaml 里由 ${LUCENT_PUBLIC_HOST}
+# 传入),所以仓库里不写死任何公网 IP。
+#
+# Basic Auth 凭据同理走 %{METRICS_USER}/%{METRICS_PASSWORD},与鲲鹏 app 侧一致;
+# 两侧未配置时 /metrics 匿名可用。
+#
+# 若把两份 compose 部署到**同一台**机器(单机全栈),把 LUCENT_PUBLIC_HOST 设为
+# 该机容器网络可达的地址即可;下面的目标名不变。
 
 scrape_configs:
   - job_name: 'lucent'
@@ -11,12 +21,14 @@ scrape_configs:
       username: '%{METRICS_USER}'
       password: '%{METRICS_PASSWORD}'
     static_configs:
-      - targets: ['app:3000']
+      # 鲲鹏的 app。公网抓取要走 app 发布的 3000 端口。
+      - targets: ['%{LUCENT_PUBLIC_HOST}:3000']
         labels:
           service: 'lucent-backend'
 
   - job_name: 'node'
     static_configs:
-      - targets: ['node-exporter:9100']
+      # 鲲鹏的 node-exporter(它必须留在被采集的那台机器上)。
+      - targets: ['%{LUCENT_PUBLIC_HOST}:9100']
         labels:
           service: 'lucent-host'

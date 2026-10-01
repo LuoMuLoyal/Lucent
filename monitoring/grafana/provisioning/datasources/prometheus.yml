@@ -5,6 +5,11 @@ datasources:
     uid: prometheus
     type: prometheus
     access: proxy
+    # ⚠️ 故意保持容器服务名,不要改成公网地址。
+    # Grafana 与 VictoriaMetrics 部署在**同一台**(阿里云 1c2g,见
+    # compose.monitoring.yaml),所以这一跳走容器网络。
+    # 若改成公网 IP,每次面板刷新都会让密集的 range query 穿过公网 + 3M 带宽
+    # —— 那正是把两者放同机要避免的。
     url: http://victoriametrics:8428
     isDefault: true
     editable: false

@@ -18,18 +18,22 @@
 #   - 告警(vmalert/alertmanager/告警规则)与备份脚本已退役,当前不做配置。
 #
 # 端口映射说明:**当前为比赛期,所有服务端口都直接发布到宿主机**,由云厂商
-# 安全组收口(不依赖 SSH 隧道)。这覆盖了 app/postgres/redis/lightrag/neo4j/
-# semantica/node-exporter —— 见 docs/TODO.md 的"比赛期临时发布端口"条目,
-# 正式生产必须收回其中的 postgres / redis / neo4j / lightrag / semantica /
-# node-exporter。
+# 安全组收口(不依赖 SSH 隧道)。本文件覆盖鲲鹏的 app/postgres/redis/lightrag/
+# neo4j/semantica/node-exporter;监控栈的 grafana/victoriametrics/victorialogs
+# 在阿里云那台,端口见 compose.monitoring.yaml。见 docs/TODO.md 的"比赛期临时
+# 发布端口"条目 —— 正式生产必须收回其中的 postgres / redis / neo4j / lightrag /
+# semantica / node-exporter。
 #
 # 为什么比赛期要全开:可调试性是当前第一优先级 —— 能直连数据库看数据、能直接
 # 打 sidecar 的 /schema 看图谱形态,比"最小暴露面"重要得多。安全组按来源 IP
 # 白名单收口。
 #
-# 正式生产的姿态应是:只有 grafana / victoriametrics / victorialogs 发布宿主
-# 端口(经安全组),app:3000 仅内网暴露、公网入口只走 Traefik 域名,其余一律
-# 只 expose 给容器网络。
+# 正式生产的姿态应是:app:3000 仅内网暴露、公网入口只走 Traefik 域名,其余一律
+# 只 expose 给容器网络;监控栈按其自己的文件部署并经安全组收口。
+#
+# 跨机引用:node-exporter(本文件)与阿里云的 VictoriaMetrics(其对侧文件)之间
+# 靠公网抓取打通 —— 阿里云抓 `LUCENT_PUBLIC_HOST:9100` 与 `:3000`,安全组只放行
+# 阿里云的出口 IP。两家云的 VPC 不互通,不要填内网地址。
 
 services:
   postgres:
@@ -112,7 +116,10 @@ services:
       JPUSH_APP_KEY: ${JPUSH_APP_KEY:-}
       JPUSH_MASTER_SECRET: ${JPUSH_MASTER_SECRET:-}
       JPUSH_APNS_PRODUCTION: ${JPUSH_APNS_PRODUCTION:-false}
-      VICTORIALOGS_URL: http://victorialogs:9428/insert/jsonline
+      # 监控栈搬到阿里云后,容器名 `victorialogs` 在鲲鹏上解析不了 —— 跨云部署
+      # 须在 .env 里覆盖成本机的公网地址(http://<阿里云公网IP>:9428/insert/jsonline)。
+      # 默认值保留容器名,供单机全栈部署使用。
+      VICTORIALOGS_URL: ${VICTORIALOGS_URL:-http://victorialogs:9428/insert/jsonline}
     expose:
       - '3000'
     ports:
@@ -315,77 +322,14 @@ services:
         max-size: '50m'
         max-file: '5'
 
-  # ── VictoriaMetrics(单机时序库,供 Grafana 查询) ──────────────
-  # 抓取 lucent app /metrics 与 node-exporter;Basic Auth 凭据经环境变量
-  # %{METRICS_USER}/%{METRICS_PASSWORD} 占位符注入(无需渲染脚本)。
-  victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.151.0
-    restart: unless-stopped
-    ports:
-      # VMUI / 查询接口,公网访问由云安全组收口
-      - '8428:8428'
-    volumes:
-      - ./monitoring/victoriametrics/vmscraper.yml:/etc/vmscraper.yml:ro
-      - victoriametrics-data:/storage
-    environment:
-      METRICS_USER: ${METRICS_USER}
-      METRICS_PASSWORD: ${METRICS_PASSWORD}
-    command:
-      - '-storageDataPath=/storage'
-      - '-retentionPeriod=30d'
-      - '-httpListenAddr=0.0.0.0:8428'
-      # 抓取配置:不传这个参数时 VictoriaMetrics 不会加载 /etc/vmscraper.yml
-      # (卷挂了文件也没用),app 与 node-exporter 的指标会一直是空的。
-      - '-promscrape.config=/etc/vmscraper.yml'
-    depends_on:
-      app:
-        condition: service_started
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-
-  grafana:
-    image: grafana/grafana:12.1.0
-    restart: unless-stopped
-    ports:
-      # Grafana UI,公网访问由云安全组收口
-      - '3001:3000'
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: 'false'
-    volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/opt/grafana/dashboards:ro
-      - grafana-data:/var/lib/grafana
-    logging:
-      driver: json-file
-      options:
-        max-size: '50m'
-        max-file: '5'
-
-  # ── VictoriaLogs(日志库,app 的 VICTORIALOGS_URL 直推) ────────
-  # Web UI 通过发布端口访问(安全组收口);应用日志同时进 stdout 由容器收集。
-  victorialogs:
-    image: victoriametrics/victoria-logs:v1.15.0
-    restart: unless-stopped
-    ports:
-      - '9428:9428'
-    volumes:
-      - victorialogs-data:/storage
-    command:
-      - '-storageDataPath=/storage'
-      - '-retentionPeriod=30d'
-      - '-httpListenAddr=0.0.0.0:9428'
-    logging:
-      driver: json-file
-      options:
-        max-size: '10m'
-        max-file: '3'
-
-  # node-exporter 走 bridge 网络,network 指标只反映容器 netns(已知取舍;
-  # CPU/内存/磁盘指标均来自挂载的宿主机 /proc、/sys、/,不受影响)。
+  # ── node-exporter(唯一留在鲲鹏的监控组件) ────────────────────
+  # VictoriaMetrics / Grafana / VictoriaLogs 已搬到阿里云那台(见
+  # compose.monitoring.yaml):Grafana 查询 VM 是密集链路,若两者分处两机就会让
+  # 同一份数据在公网上往返两次。node-exporter 不能走 —— 它必须采集**本机**
+  # 宿主机的 /proc、/sys、/,搬到别处就只是在采集那台的指标。
+  #
+  # 它走 bridge 网络,network 指标只反映容器 netns(已知取舍;CPU/内存/磁盘指标
+  # 均来自挂载的宿主机 /proc、/sys、/,不受影响)。
   #
   # 注意:它没有换成 host 网络 —— 换了才能拿到宿主机真实的网络指标,但那是另一个
   # 取舍,与下面 9100 是否发布无关。
@@ -393,8 +337,8 @@ services:
     image: prom/node-exporter:v1.9.1
     restart: unless-stopped
     ports:
-      # 比赛期:直接访问 /metrics 核对采集是否正常(此前只能从 VM 的 scrape
-      # 配置间接判断)。正式生产应删除(见文件头)。
+      # 比赛期:阿里云那台的 VictoriaMetrics 要经公网抓它,所以必须发布。
+      # 正式生产应改为只让安全组放行阿里云出口 IP,并考虑收回端口(见文件头)。
       - '9100:9100'
     command:
       - '--path.rootfs=/host'
@@ -416,7 +360,6 @@ volumes:
   # 图数据与日志分开:日志会持续增长,备份/清理的节奏与数据不同。
   neo4j-data:
   neo4j-logs:
-  victoriametrics-data:
-  grafana-data:
-  victorialogs-data:
+  # victoriametrics-data / grafana-data / victorialogs-data 已随服务搬到
+  # compose.monitoring.yaml(阿里云那台),不再属于本文件的卷。
   lightrag-data:

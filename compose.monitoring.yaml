@@ -1,0 +1,141 @@
+# Lucent Monitoring Stack Compose — 部署在**阿里云 1c2g**那台
+# ---------------------------------------------------------------------------
+# 为什么监控栈单独一台机器:
+#
+#   1. Grafana 查询 VictoriaMetrics 是**密集链路**。一个仪表盘刷新会打出几十个
+#      range query。若 VM 在阿里云而 Grafana 留在鲲鹏,数据就要在公网上往返两次
+#      (VM 拉鲲鹏的 /metrics → Grafana 再把同一份数据从阿里云拉回鲲鹏),还要
+#      穿过 3M 带宽。三个服务同机后,Grafana → VM 走容器网络,和原先一样便宜。
+#
+#   2. 监控与被观测对象分离:鲲鹏整台挂掉时,历史指标不会跟着一起没 —— 那正是
+#      你最需要看指标的时刻。
+#
+#   3. 1c2g 的预算够:三者空载合计约 450 MB,有数据时 700 MB–1 GB,系统占约
+#      300 MB。所以每个服务都加了 memory limit(见下),不能让 OOM killer
+#      在 2 GB 的机器上随机挑一个杀。
+#
+# ⚠️ 与 compose.yaml 的关系:那份跑在鲲鹏,这份跑在阿里云,**两者互不依赖**,
+#    各自 `docker compose -f <文件> up -d`。唯一关联是网络流量:
+#
+#      ┌── 阿里云 1c2g ──────────────────────┐
+#      │  victoriametrics :8428  ←──┐        │
+#      │  grafana        :3001   ───┘ 容器网络│
+#      │  victorialogs   :9428                │
+#      └──────────┬───────────────────────────┘
+#                 │ 公网抓取(VM 主动 pull)
+#      ┌──────────▼───────────────────────────┐
+#      │  鲲鹏 4c8g                            │
+#      │    app          :3000  (/metrics)     │
+#      │    node-exporter:9100                 │
+#      └──────────────────────────────────────┘
+#
+# 用哪个文件:`-f compose.monitoring.yaml`(在本目录下运行)。
+# 环境变量同样读仓库根的 .env(阿里云那台只需 METRICS_* / GRAFANA_* /
+# LUCENT_PUBLIC_HOST / VICTORIALOGS_URL 这几项)。
+#
+# 两份文件的服务名与卷名**互不重叠**,所以在同一台机器上先后 `up` 也能共存
+# (默认 project 名都是 `lucent`,但服务不冲突)。
+
+services:
+  # ── VictoriaMetrics(单机时序库,供 Grafana 查询) ──────────────
+  # 抓取鲲鹏的 app /metrics 与 node-exporter;Basic Auth 凭据经环境变量
+  # %{METRICS_USER}/%{METRICS_PASSWORD} 占位符注入(无需渲染脚本)。
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.151.0
+    restart: unless-stopped
+    ports:
+      # VMUI / 查询接口,公网访问由云安全组收口
+      - '8428:8428'
+    volumes:
+      - ./monitoring/victoriametrics/vmscraper.yml:/etc/vmscraper.yml:ro
+      - victoriametrics-data:/storage
+    environment:
+      METRICS_USER: ${METRICS_USER}
+      METRICS_PASSWORD: ${METRICS_PASSWORD}
+      # 抓取目标所在机器(鲲鹏)的公网地址,由 vmscraper.yml 经 %{...} 展开。
+      LUCENT_PUBLIC_HOST: ${LUCENT_PUBLIC_HOST:?LUCENT_PUBLIC_HOST is required — 鲲鹏的公网 IP 或域名(不带协议/端口)}
+    command:
+      - '-storageDataPath=/storage'
+      - '-retentionPeriod=30d'
+      - '-httpListenAddr=0.0.0.0:8428'
+      # 抓取配置:不传这个参数时 VictoriaMetrics 不会加载 /etc/vmscraper.yml
+      # (卷挂了文件也没用),app 与 node-exporter 的指标会一直是空的。
+      - '-promscrape.config=/etc/vmscraper.yml'
+    deploy:
+      resources:
+        limits:
+          # 1c2g 上必须封顶:没有限制时容器可吃满 2 GB,触发 OOM killer
+          # 随机杀进程(通常是 Grafana 或 VM 自己)。
+          memory: 512M
+    healthcheck:
+      # VM 的 /health 不需要凭据(-http.pathPrefix 未改动时即本路径)。
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8428/health || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+  # ── Grafana(查询 VM,走容器网络) ───────────────────────────────
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    ports:
+      # Grafana UI,公网访问由云安全组收口
+      - '3001:3000'
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/opt/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      # 同机依赖,可以表达(compose.yaml 那边跨机,故不写依赖)。
+      victoriametrics:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+  # ── VictoriaLogs(日志库,鲲鹏的 app 通过 VICTORIALOGS_URL 直推) ──
+  # ⚠️ 与 VM 不同:日志是**应用推**过来的,链路方向相反(鲲鹏 → 阿里云),
+  #    写入通常比查询稀疏,所以这一跳走公网是可接受的。
+  #    app 侧的 VICTORIALOGS_URL 要填 `http://<阿里云公网IP>:9428`。
+  # Web UI 通过发布端口访问(安全组收口);应用日志同时进 stdout 由容器收集。
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.15.0
+    restart: unless-stopped
+    ports:
+      - '9428:9428'
+    volumes:
+      - victorialogs-data:/storage
+    command:
+      - '-storageDataPath=/storage'
+      - '-retentionPeriod=30d'
+      - '-httpListenAddr=0.0.0.0:9428'
+    deploy:
+      resources:
+        limits:
+          # 日志量不可控,给一个比 VM 小的上限,超了宁可丢新日志也不要拖垮本机。
+          memory: 384M
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  victoriametrics-data:
+  grafana-data:
+  victorialogs-data:
