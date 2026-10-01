@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from typing import Any
 
 import pytest
+from conftest import TEST_API_TOKEN
 from fastapi.testclient import TestClient
 
 from semantica_service import main
@@ -105,10 +106,14 @@ class RuleStore(StubStore):
         # What the display-name lookup returns for the conclusion endpoints.
         # Defaulted to a resolving map so most tests exercise the reasoning
         # rather than the labelling.
-        self._names = names if names is not None else [
-            {"key": "DB00945", "name": "Aspirin", "type": "Drug"},
-            {"key": "DB00682", "name": "Warfarin", "type": "Drug"},
-        ]
+        self._names = (
+            names
+            if names is not None
+            else [
+                {"key": "DB00945", "name": "Aspirin", "type": "Drug"},
+                {"key": "DB00682", "name": "Warfarin", "type": "Drug"},
+            ]
+        )
 
     def execute_query(self, query: str, parameters: Any = None) -> dict[str, Any]:
         # The rule joins are the only statements that project premise ids.
@@ -175,15 +180,22 @@ class StubPool:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(neo4j_database="neo4j")
+    return Settings(neo4j_database="neo4j", api_token=TEST_API_TOKEN)
 
 
 def build_client(
     monkeypatch: pytest.MonkeyPatch, store: StubStore, settings: Settings
 ) -> TestClient:
+    """An authenticated client, since every route but /health now requires it.
+
+    The token is supplied as a client-wide default header rather than at each
+    call site: these tests are about the reasoning contract, and threading a
+    credential through forty requests would bury it. Authentication itself is
+    covered in `test_auth.py`, including the unauthenticated cases.
+    """
     monkeypatch.setattr(main, "StorePool", lambda _settings: StubPool(store))
     monkeypatch.setattr(main, "get_settings", lambda: settings)
-    return TestClient(main.create_app())
+    return TestClient(main.create_app(), headers={"Authorization": f"Bearer {TEST_API_TOKEN}"})
 
 
 # --- /schema ---------------------------------------------------------------
@@ -244,8 +256,6 @@ def test_schema_on_an_empty_graph_is_not_an_error(
 # --- /reason ---------------------------------------------------------------
 
 
-
-
 def reason_rule(**overrides: Any) -> dict[str, Any]:
     """A valid reasoning request: one reviewed rule over the whole graph."""
     payload: dict[str, Any] = {
@@ -257,9 +267,7 @@ def reason_rule(**overrides: Any) -> dict[str, Any]:
     return payload
 
 
-def test_reason_applies_the_named_rule(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
+def test_reason_applies_the_named_rule(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
     """The rule's Cypher runs and its rows become derived facts."""
     rows = [
         {
@@ -294,9 +302,7 @@ def test_reason_requires_load_from_graph(
     assert "load_from_graph" in response.json()["detail"]
 
 
-def test_reason_requires_a_rule(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> None:
+def test_reason_requires_a_rule(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
     """Without a named rule there is nothing to evaluate."""
     with build_client(monkeypatch, RuleStore([]), settings) as client:
         response = client.post("/reason", json={"load_from_graph": True, "scope_all": True})
@@ -537,9 +543,7 @@ def test_a_scoped_rule_is_restricted_to_the_named_drug_not_its_neighbours(
         client.post("/reason", json=payload)
 
     rule_calls = [
-        (q, p)
-        for q, p in zip(store.queries, store.parameters, strict=False)
-        if "premise_1" in q
+        (q, p) for q, p in zip(store.queries, store.parameters, strict=False) if "premise_1" in q
     ]
     assert rule_calls, "the rule query was never sent"
     query, params = rule_calls[0]
@@ -650,8 +654,6 @@ def test_the_declared_fact_budget_is_enforced(
     assert response.json()["detail"]["kind"] == "fact_limit_exceeded"
 
 
-
-
 # --- /rules ----------------------------------------------------------------
 
 
@@ -668,4 +670,3 @@ def test_rules_lists_the_library(monkeypatch: pytest.MonkeyPatch, settings: Sett
     assert by_intent["interaction"]["id"]
     assert by_intent["interaction"]["derives"]
     assert by_intent["interaction"]["consumes"]
-

@@ -11,9 +11,10 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
 
 # 同目录的姊妹测试模块（无 __init__.py，pytest 会把 tests/ 放进 sys.path）。
+from conftest import TEST_API_TOKEN
+from fastapi.testclient import TestClient
 from test_query import StubStore, build_client, rows_store
 
 from semantica_service import main
@@ -34,7 +35,7 @@ EDGE_ID = "lucent:drugbank_drugs/DB00682/drug_interactions/DB00945"
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(neo4j_database="neo4j")
+    return Settings(neo4j_database="neo4j", api_token=TEST_API_TOKEN)
 
 
 def record(entity_id: str = EDGE_ID, **overrides: Any) -> ProvenanceRecord:

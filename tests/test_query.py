@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from typing import Any
 
 import pytest
+from conftest import TEST_API_TOKEN
 from fastapi.testclient import TestClient
 from semantica.utils.exceptions import ProcessingError
 
@@ -72,15 +73,16 @@ class StubPool:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(neo4j_database="neo4j")
+    return Settings(neo4j_database="neo4j", api_token=TEST_API_TOKEN)
 
 
 def build_client(
     monkeypatch: pytest.MonkeyPatch, store: StubStore, settings: Settings
 ) -> TestClient:
+    """An authenticated client; every route but /health requires the token."""
     monkeypatch.setattr(main, "StorePool", lambda _settings: StubPool(store))
     monkeypatch.setattr(main, "get_settings", lambda: settings)
-    return TestClient(main.create_app())
+    return TestClient(main.create_app(), headers={"Authorization": f"Bearer {TEST_API_TOKEN}"})
 
 
 def rows_store(records: list[dict[str, Any]], keys: list[str] | None = None) -> StubStore:

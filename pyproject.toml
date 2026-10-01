@@ -67,6 +67,14 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG", "T20"]
 
+# `Depends()`/`Security()` in an argument default is FastAPI's dependency
+# injection idiom, not the mutable-default bug B008 exists to catch: the call
+# is evaluated once at import and the router reads it as a marker. Bugbear
+# ships this exception list for exactly this case — the alternative is a
+# `# noqa: B008` on every dependency-using function.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Security"]
+
 # Operator scripts report through stdout — that IS their interface, so the
 # print ban applies to the service and tests only. Test doubles must keep the
 # real store's signature (`execute_query(self, query, parameters=None)`) to stay

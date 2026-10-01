@@ -12,14 +12,15 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
-from .config import get_settings
+from .config import Settings, get_settings
 from .graph import StorePool
 from .logging_setup import configure_logging, log_event
 from .provenance import ProvenanceReader
 from .reasoning import RuleLibrary, load_library, verify_against_vocabulary
 from .routes import health, provenance, query, reason, resolve, schema, validate
+from .security import require_api_token
 
 logger = logging.getLogger("semantica_service")
 
@@ -85,21 +86,54 @@ def _check_rules(pool: StorePool) -> RuleLibrary:
 
 
 def create_app() -> FastAPI:
-    """Build the FastAPI application."""
+    """Build the FastAPI application.
+
+    Every route except ``/health`` requires the shared bearer token. The
+    dependency is attached here rather than inside each router so the protected
+    surface is one readable list; a test pins the list against the app's actual
+    routes, so a router added later cannot quietly join the open side.
+
+    A missing token stops startup. The alternative — booting anyway and
+    rejecting every request — is indistinguishable from a working deployment
+    until the first call, and the failure would surface at the caller as
+    "ontology reasoning is unavailable", which is the wrong diagnosis.
+    """
+    settings = get_settings()
+    _require_api_token(settings)
+
     app = FastAPI(
         title="Semantica Service",
         description="Ontology-grounded reasoning over the English DrugBank graph.",
         version=__version__,
         lifespan=lifespan,
     )
+    protected = [Depends(require_api_token)]
+    # Open on purpose: the compose healthcheck and any load balancer probe it,
+    # and neither can carry a credential.
     app.include_router(health.router)
-    app.include_router(schema.router)
-    app.include_router(validate.router)
-    app.include_router(reason.router)
-    app.include_router(resolve.router)
-    app.include_router(query.router)
-    app.include_router(provenance.router)
+    app.include_router(schema.router, dependencies=protected)
+    app.include_router(validate.router, dependencies=protected)
+    app.include_router(reason.router, dependencies=protected)
+    app.include_router(resolve.router, dependencies=protected)
+    app.include_router(query.router, dependencies=protected)
+    app.include_router(provenance.router, dependencies=protected)
     return app
+
+
+def _require_api_token(settings: Settings) -> None:
+    """Refuse to build the app when no token is configured.
+
+    Raises at import time (``app = create_app()`` below), so the container exits
+    instead of serving an unauthenticated reasoning endpoint on a published
+    port. The message names the variable, because the operator's next action is
+    to set it.
+    """
+    if not settings.api_token:
+        raise RuntimeError(
+            "API_TOKEN is required: this service publishes a port and executes "
+            "caller-supplied Cypher. Set API_TOKEN to a shared secret, the same "
+            "value that Lucent carries as SEMANTICA_API_KEY."
+        )
 
 
 app = create_app()

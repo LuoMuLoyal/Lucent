@@ -101,6 +101,27 @@ class Settings(BaseSettings):
         description="'json' for one object per line, 'text' for a readable line.",
     )
 
+    # --- Authentication -------------------------------------------------
+    # Shared bearer token, checked on every route except ``/health``.
+    #
+    # This service was written to be reachable only over a compose network
+    # (``expose``, no published port, no Traefik) and carried no credential at
+    # all. It is now published to a host port and called across machines, so
+    # that premise is gone: ``/query`` executes read-only Cypher and would
+    # otherwise be open to anyone who can reach the port.
+    #
+    # Empty means "not configured". ``create_app()`` refuses to start rather
+    # than serving unprotected — the same posture as an empty
+    # ``neo4j_password``, but enforced earlier, because a service that boots
+    # without its credential is a service that is already exposed.
+    #
+    # ``/health`` stays open on purpose: it is the compose healthcheck and
+    # whatever a load balancer probes, and neither can carry a credential.
+    api_token: str = Field(
+        default="",
+        description="Shared bearer token; empty refuses startup. Not used by /health.",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

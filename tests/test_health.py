@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from typing import Any
 
 import pytest
+from conftest import TEST_API_TOKEN
 from fastapi.testclient import TestClient
 
 from semantica_service import main
@@ -58,7 +59,7 @@ class StubPool:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(neo4j_database="neo4j")
+    return Settings(neo4j_database="neo4j", api_token=TEST_API_TOKEN)
 
 
 def build_client(
@@ -67,7 +68,7 @@ def build_client(
     """Create a client whose lifespan installs a stub pool and fixed settings."""
     monkeypatch.setattr(main, "StorePool", lambda _settings: StubPool(store))
     monkeypatch.setattr(main, "get_settings", lambda: settings)
-    return TestClient(main.create_app())
+    return TestClient(main.create_app(), headers={"Authorization": f"Bearer {TEST_API_TOKEN}"})
 
 
 def test_health_reports_graph_size(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
@@ -106,7 +107,7 @@ def test_health_uses_the_configured_database(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The reported graph follows configuration rather than a hardcoded name."""
-    custom = Settings(neo4j_database="some_other_graph")
+    custom = Settings(neo4j_database="some_other_graph", api_token=TEST_API_TOKEN)
     with build_client(monkeypatch, StubStore(), custom) as client:
         body = client.get("/health").json()
 
