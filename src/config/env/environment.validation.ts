@@ -371,48 +371,6 @@ const envSchema = z.object({
   [EnvKey.LATEST_VERSION]: optionalString,
   [EnvKey.DOWNLOAD_URL]: optionalString,
 
-  // ── Meal analysis thresholds (non-sensitive, defaults) ──────────
-  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(10000)
-    .default(100),
-  [EnvKey.MEAL_SMALL_PORTION_GRAMS]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(10000)
-    .default(30),
-  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .default(20),
-  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .default(20),
-  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .default(20),
-
-  // ── Fuzzy matching (non-sensitive, defaults) ────────────────────
-  [EnvKey.FUZZY_ACCEPT_SCORE]: z.coerce.number().min(0).max(1).default(0.7),
-  [EnvKey.FUZZY_MIN_LEAD]: z.coerce.number().min(0).max(1).default(0.1),
-  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(1),
-
   // ── Verification codes (non-sensitive, defaults) ────────────────
   [EnvKey.VERIFICATION_CODE_TTL_MS]: z.coerce
     .number()
