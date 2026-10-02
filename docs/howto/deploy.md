@@ -187,7 +187,7 @@ curl -fsS -u "$METRICS_USER:$METRICS_PASSWORD" 'http://127.0.0.1:3001/api/health
 | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与 `DATABASE_URL`/`REDIS_URL` 内嵌口令一致**                                              |
 | `PUBLIC_BASE_URL`                      | `http://<主站IP>:3000`                                                                                         |
 | `CORS_ORIGIN`                          | 当前 `*`;收紧时改成客户端来源                                                                                  |
-| `TRUST_PROXY`                          | `true`(当前无反代,保留给将来)                                                                                  |
+| `TRUST_PROXY`                          | `false`(当前无反代;接入反代后改 `true`)                                                                        |
 | `SEMANTICA_BASE_URL`                   | `http://<图库IP>:8099`(公网)                                                                                   |
 | `VICTORIALOGS_URL`                     | `http://<监控IP>:9428/insert/jsonline`(公网)                                                                   |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`          | `http://<监控IP>:10428/insert/opentelemetry/v1/traces`                                                         |

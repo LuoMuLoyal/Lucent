@@ -88,7 +88,8 @@ METRICS_PASSWORD
 主站上 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入(容器名寻址,不写回环),
 所以 `.env` 里内嵌的密码必须与 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 一致
-(改密码要改两处);`TRUST_PROXY=true` 与 `VICTORIALOGS_URL` 也是主站必填项。
+(改密码要改两处);`TRUST_PROXY`(当前无反代 → `false`)与 `VICTORIALOGS_URL`
+也是主站必填项。
 
 非敏感运行时参数(host/port/日志级别/阈值/各业务开关)均通过环境变量配置,未设置时使用
 代码内默认值(见下文各节);全部可覆盖项见 `.env.production.example` 注释。

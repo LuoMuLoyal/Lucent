@@ -108,7 +108,9 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: '3000'
-      TRUST_PROXY: 'true'
+      # ⚠️ 当前拓扑无反代,默认 false:trusting X-Forwarded-* 会让客户端
+      # 伪造 XFF 绕过按 IP 的限流。接入反代后再在 .env 里设为 true。
+      TRUST_PROXY: ${TRUST_PROXY:-false}
       METRICS_USER: ${METRICS_USER}
       METRICS_PASSWORD: ${METRICS_PASSWORD}
       # JPush 推送密钥经环境变量注入(缺失时服务静默禁用推送并启动 warn)。

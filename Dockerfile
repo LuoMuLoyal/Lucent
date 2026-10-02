@@ -95,7 +95,7 @@ COPY --chown=lucent:lucent --from=builder /app/src/config/env/env-file-paths.ts 
 COPY --chown=lucent:lucent package.json ./
 # 启动入口:先 prisma migrate deploy 再启动应用(见脚本头注释)
 COPY --chown=lucent:lucent --chmod=755 entrypoint.sh ./entrypoint.sh
-# 运行时只写 stdout(Coolify/容器收集)+ VictoriaLogs(见 compose.yaml),
+# 运行时只写 stdout(容器收集)+ VictoriaLogs(见 compose.yaml),
 # 不再需要容器内日志目录。
 USER lucent
 EXPOSE 3000
