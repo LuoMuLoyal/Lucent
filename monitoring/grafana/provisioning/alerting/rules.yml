@@ -10,6 +10,17 @@
 #    PromQL 一律是字面量。annotations 同样不插值，故 `{{ $labels.x }}` 可安全直写。
 #
 # ⚠️ 数据源 uid 必须是 `prometheus`（见 provisioning/datasources/prometheus.yml）。
+#
+# ⚠️ **每条 PromQL 都必须恒返回一个值**，末尾统一带 `or on() vector(...)` 哨兵。
+#    原因：Grafana 把「查询结果为空」判为 NoData，并为每条进 NoData 的规则**自动生成**
+#    一条名为 `DatasourceNoData` 的告警，再由通知策略发信。健康态下本该安静的表达式
+#    （如 `up == 0` 在 up=1 时返回空集）会因此**持续刷告警邮件**。
+#    ⚠️ 必须写 `or on() vector(...)` 而不是 `or vector(...)`：左操作数带标签时后者是
+#    **并集**，会额外留下一个无标签的哨兵序列；阈值方向相反时它立刻误触发
+#    （实测 `up{job="lucent"} or vector(0)` 同时返回 `up=1` 与 `=0`，配 `lt 1`
+#    直接误报 LucentDown）。`or on()` 才是在左为空时"替换"而非"追加"。
+#    哨兵取值按阈值方向选：`gt` 阈值配 `vector(0)`（不触发），`lt` 阈值配 `vector(100)`
+#    （不触发）。`noDataState: OK` 是第二道保险。
 
 apiVersion: 1
 
@@ -34,7 +45,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'up{job="lucent"} == 0',
+                      'expr': 'up{job="lucent"} or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -74,7 +85,7 @@ groups:
                       'conditions':
                         [
                           {
-                            'evaluator': { 'params': [-1], 'type': 'gt' },
+                            'evaluator': { 'params': [1], 'type': 'lt' },
                             'operator': { 'type': 'and' },
                             'query': { 'params': ['C'] },
                             'reducer': { 'params': [], 'type': 'last' },
@@ -90,7 +101,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '2m',
             'labels': { 'severity': 'critical', 'service': 'lucent' },
@@ -114,7 +125,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'up{job="node"} == 0',
+                      'expr': 'up{job="node"} or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -154,7 +165,7 @@ groups:
                       'conditions':
                         [
                           {
-                            'evaluator': { 'params': [-1], 'type': 'gt' },
+                            'evaluator': { 'params': [1], 'type': 'lt' },
                             'operator': { 'type': 'and' },
                             'query': { 'params': ['C'] },
                             'reducer': { 'params': [], 'type': 'last' },
@@ -170,7 +181,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '5m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },
@@ -203,7 +214,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'sum(rate(http_requests_total{job="lucent",status=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{job="lucent"}[5m])), 0.001)',
+                      'expr': 'sum(rate(http_requests_total{job="lucent",status=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{job="lucent"}[5m])), 0.001) or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -259,7 +270,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '5m',
             'labels': { 'severity': 'critical', 'service': 'lucent' },
@@ -283,7 +294,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job="lucent"}[5m])))',
+                      'expr': 'histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job="lucent"}[5m]))) or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -339,7 +350,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '10m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },
@@ -372,7 +383,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': '(node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"}) * 100',
+                      'expr': '(node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"}) * 100 or on() vector(100)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -428,7 +439,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '5m',
             'labels': { 'severity': 'critical', 'service': 'lucent' },
@@ -452,7 +463,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': '(node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}) * 100',
+                      'expr': '(node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}) * 100 or on() vector(100)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -508,7 +519,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '10m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },
@@ -532,7 +543,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': '(node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}) * 100',
+                      'expr': '(node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}) * 100 or on() vector(100)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -588,7 +599,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '5m',
             'labels': { 'severity': 'critical', 'service': 'lucent' },
@@ -621,7 +632,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'max by (queue) (bullmq_waiting_jobs{job="lucent"})',
+                      'expr': 'max by (queue) (bullmq_waiting_jobs{job="lucent"}) or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -677,7 +688,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '10m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },
@@ -701,7 +712,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'sum(increase(bullmq_jobs_total{job="lucent",status="failed"}[15m]))',
+                      'expr': 'sum(increase(bullmq_jobs_total{job="lucent",status="failed"}[15m])) or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -757,7 +768,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '15m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },
@@ -781,7 +792,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'sum(increase(today_suggestion_materialization_failed_total{job="lucent"}[10m]))',
+                      'expr': 'sum(increase(today_suggestion_materialization_failed_total{job="lucent"}[10m])) or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -837,7 +848,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '10m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },
@@ -861,7 +872,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'sum(increase(audit_log_write_failure_total{job="lucent"}[10m]))',
+                      'expr': 'sum(increase(audit_log_write_failure_total{job="lucent"}[10m])) or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -917,7 +928,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '10m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },
@@ -950,7 +961,7 @@ groups:
                   'model':
                     {
                       'editorMode': 'code',
-                      'expr': 'sum(rate(llm_call_duration_seconds_count{job="lucent",status="error"}[5m])) / clamp_min(sum(rate(llm_call_duration_seconds_count{job="lucent"}[5m])), 0.001)',
+                      'expr': 'sum(rate(llm_call_duration_seconds_count{job="lucent",status="error"}[5m])) / clamp_min(sum(rate(llm_call_duration_seconds_count{job="lucent"}[5m])), 0.001) or on() vector(0)',
                       'instant': false,
                       'intervalMs': 1000,
                       'maxDataPoints': 43200,
@@ -1006,7 +1017,7 @@ groups:
                     },
                 },
               ],
-            'noDataState': 'NoData',
+            'noDataState': 'OK',
             'execErrState': 'Error',
             'for': '15m',
             'labels': { 'severity': 'warning', 'service': 'lucent' },

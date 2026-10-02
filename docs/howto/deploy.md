@@ -205,7 +205,7 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
   'http://127.0.0.1:3001/api/alertmanager/grafana/config/api/v1/receivers/test'
 ```
 
-⚠️ 三点易错处:
+⚠️ 四点易错处:
 
 - `GF_SMTP_ENABLED` 默认是 **false**,此时 Grafana **静默丢弃**邮件通知——告警照常触发、
   状态页照常变红,却一封都不发。判据是上面第 3 步:真发了才有 `"status":"ok"`。
@@ -213,6 +213,19 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
   联系点),用第 2 步核对。
 - 只挂规则文件而忘记发信那组变量时,邮件会以 `example@email.com` 为收件人发出并被退信。
   该默认值来自 Grafana 自带 contact point,不是本仓库的配置。
+- **收到大量 `DatasourceNoData` 邮件**(标题里的名字不是 12 条规则中任何一条)说明规则
+  在健康态下**查询返回空集**:Grafana 会为每条进 NoData 的规则自动生成 `DatasourceNoData`
+  告警并触发通知。修法是给 PromQL 补哨兵使其恒有值,同时 `noDataState` 设 `OK`。
+  ⚠️ 哨兵**必须写 `or on() vector(...)`**,不能写 `or vector(...)`:`or` 在左操作数带标签时
+  是**并集**,带标签的序列会把无标签哨兵一并留下,阈值方向相反时立刻误报
+  (实测 `up{job="lucent"} or vector(0)` 同时返回 `up=1` 与 `=0`,配 `lt 1` 直接假报 LucentDown)。
+  核对是否复发:
+
+  ```bash
+  curl -s -u "admin:$PW" 'http://127.0.0.1:3001/api/alertmanager/grafana/api/v2/alerts' \
+    | python3 -c 'import json,sys,collections; d=json.load(sys.stdin); print(collections.Counter(a["labels"]["alertname"] for a in d))'
+  # 期望:Counter()  —— 全部 inactive,无 DatasourceNoData
+  ```
 
 ## 四、「改哪些值」清单
 
