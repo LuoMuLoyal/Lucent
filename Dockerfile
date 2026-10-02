@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Stage 1: deps ──────────────────────────────────────────────
-FROM node:26.9-alpine AS deps
+FROM node:26.10-alpine AS deps
 # Node 26 no longer bundles corepack (the `corepack` API doc was dropped after
 # v25), so a bare `corepack enable` exits 127 with "not found". Install it from
 # npm first. The pnpm version itself still comes from
@@ -15,7 +15,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
 # ── Stage 2: builder ───────────────────────────────────────────
-FROM node:26.9-alpine AS builder
+FROM node:26.10-alpine AS builder
 # See the deps stage: corepack is not bundled with Node 26.
 RUN npm install --global corepack@latest && corepack enable
 WORKDIR /app
@@ -68,7 +68,7 @@ RUN set -eux; \
     done
 
 # ── Stage 3: production ────────────────────────────────────────
-FROM node:26.9-alpine AS production
+FROM node:26.10-alpine AS production
 RUN apk add --no-cache tini curl
 WORKDIR /app
 # 创建非 root 用户
