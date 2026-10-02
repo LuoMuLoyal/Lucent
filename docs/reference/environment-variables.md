@@ -464,6 +464,8 @@ METRICS_USER
 METRICS_PASSWORD
 OTEL_ENABLED
 OTEL_EXPORTER_OTLP_ENDPOINT
+OTEL_TRACES_SAMPLER
+OTEL_TRACES_SAMPLER_ARG
 VICTORIALOGS_URL
 ```
 
@@ -500,6 +502,16 @@ VICTORIALOGS_URL
   **生产指向 VictoriaTraces（阿里云）时路径不是标准的 `/v1/traces`**：
   该服务的 OTLP/HTTP 端点是 `/insert/opentelemetry/v1/traces`，端口 10428：
   `http://<阿里云公网IP>:10428/insert/opentelemetry/v1/traces`。
+- `OTEL_TRACES_SAMPLER` — trace 采样器，取 OTel 规范的标准取值：`always_on` /
+  `always_off` / `traceidratio` / `parentbased_always_on` / `parentbased_always_off` /
+  `parentbased_traceidratio`。`src/tracing.ts` **不传** `sampler`，NodeSDK 因此走
+  `createSamplerFromEnv()` 读这两个变量 —— 所以**改采样率只需重启，不必改代码或重建镜像**。
+  ⚠️ 取值非法时 OTel 只打一行 `diag.error` 然后**回落默认 `always_on`**，不抛错也不阻止启动：
+  配错会静默变成全量采集，改动后务必核对拼写。
+- `OTEL_TRACES_SAMPLER_ARG` — 采样率，取值 0–1，仅当 sampler 为 `traceidratio` /
+  `parentbased_traceidratio` 时生效。生产用 `0.1`（10%）：span 是排查用的短期素材，
+  全量采集既涨存储也涨跨云带宽。环境变量天然是字符串，校验层用 `z.coerce.number()`
+  而非 `z.number()`（后者会永远校验失败）。
   实测发到 `/opentelemetry/v1/traces` 返回 400 —— 写错路径的表现是"一个 span 都
   没有"而非报错。Grafana 侧用内置 `jaeger` 数据源读它
   （`http://victoriatraces:10428/select/jaeger`，同机走容器网络）。

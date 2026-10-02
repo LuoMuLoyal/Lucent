@@ -86,6 +86,22 @@ const envSchema = z.object({
   [EnvKey.OPENAPI_EXPORT_SKIP_REDIS]: z.enum(['true', 'false']).optional(),
   [EnvKey.OTEL_ENABLED]: z.enum(['true', 'false']).optional(),
   [EnvKey.OTEL_EXPORTER_OTLP_ENDPOINT]: optionalEmptyUri,
+  // 采样器由 OTel 标准环境变量控制，`tracing.ts` 不传 `sampler` 时
+  // NodeSDK 会走 `createSamplerFromEnv()` 读取这两项，因此无需改代码。
+  // 取值与 OTel 规范一致（`specification/sdk-environment-variables.md`）。
+  [EnvKey.OTEL_TRACES_SAMPLER]: z
+    .enum([
+      'always_on',
+      'always_off',
+      'traceidratio',
+      'parentbased_always_on',
+      'parentbased_always_off',
+      'parentbased_traceidratio',
+    ])
+    .optional(),
+  // 仅当 sampler 为 `traceidratio` / `parentbased_traceidratio` 时生效。
+  // 写成字符串再 coerce：环境变量天然是字符串，直接 `z.number()` 会永远校验失败。
+  [EnvKey.OTEL_TRACES_SAMPLER_ARG]: z.coerce.number().min(0).max(1).optional(),
   [EnvKey.VICTORIALOGS_URL]: optionalEmptyUri,
 
   // ── App (non-sensitive, defaults below) ─────────────────────────
