@@ -158,6 +158,7 @@ docker compose up -d --force-recreate semantica
 ```bash
 cd /opt/lucent-monitoring
 vim .env                     # LUCENT_PUBLIC_HOST=<主站IP> / METRICS_* / GRAFANA_ADMIN_PASSWORD
+                             # + 告警那组: ALERT_EMAIL_TO / MAIL_* / GF_SMTP_ENABLED
 docker compose up -d
 docker compose ps
 ```
@@ -175,6 +176,43 @@ curl -fsS -u "$METRICS_USER:$METRICS_PASSWORD" 'http://127.0.0.1:3001/api/health
 
 `LUCENT_PUBLIC_HOST` 改 IP 时,必须**同步**改主站 `.env` 的 `PUBLIC_BASE_URL`
 ——它们是同一事实的两处表达。
+
+### 告警(邮件)
+
+规则/联系点/通知策略随 `monitoring/grafana/provisioning/` 一起部署,`docker compose up -d`
+(或重建 grafana)即装载,**不需要进 Grafana UI 手工配**。改 `.env` 里的发信那组后必须
+**重建 grafana 容器**才生效(`GF_SMTP_*` 是启动时读的环境变量):
+
+```bash
+docker compose up -d --force-recreate grafana
+```
+
+验证装载与真实发信:
+
+```bash
+PW=$(grep '^GRAFANA_ADMIN_PASSWORD=' /opt/lucent-monitoring/.env | cut -d= -f2)
+
+# 1) 12 条规则都装进来了(provenance 应为 file,即来自文件而非 UI)
+curl -fsS -u "admin:$PW" 'http://127.0.0.1:3001/api/v1/provisioning/alert-rules' \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d), "条")'
+
+# 2) 联系点地址已从 $ALERT_EMAIL_TO 插值展开成真实邮箱
+curl -fsS -u "admin:$PW" 'http://127.0.0.1:3001/api/v1/provisioning/contact-points'
+
+# 3) 真实发一封测试信(走 smtp.qq.com),status 应为 ok
+curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
+  -d '{"receivers":[{"name":"lucent-email","grafana_managed_receiver_configs":[{"uid":"lucent_email_alert","name":"lucent-email","type":"email","settings":{"addresses":"<收件邮箱>","singleEmail":false}}]}],"alert":{"annotations":{"summary":"self-test"},"labels":{"alertname":"SelfTest","severity":"critical"}}}' \
+  'http://127.0.0.1:3001/api/alertmanager/grafana/config/api/v1/receivers/test'
+```
+
+⚠️ 三点易错处:
+
+- `GF_SMTP_ENABLED` 默认是 **false**,此时 Grafana **静默丢弃**邮件通知——告警照常触发、
+  状态页照常变红,却一封都不发。判据是上面第 3 步:真发了才有 `"status":"ok"`。
+- 联系点地址若仍是 `<example@email.com>`,说明 provisioning 没生效(那是 Grafana 内置默认
+  联系点),用第 2 步核对。
+- 只挂规则文件而忘记发信那组变量时,邮件会以 `example@email.com` 为收件人发出并被退信。
+  该默认值来自 Grafana 自带 contact point,不是本仓库的配置。
 
 ## 四、「改哪些值」清单
 
@@ -215,11 +253,14 @@ curl -fsS -u "$METRICS_USER:$METRICS_PASSWORD" 'http://127.0.0.1:3001/api/health
 
 ### 监控机 `/opt/lucent-monitoring/.env`
 
-| 键                                  | 值 / 说明                                       |
-| ----------------------------------- | ----------------------------------------------- |
-| `LUCENT_PUBLIC_HOST`                | `<主站IP>`;改它必须同步改主站 `PUBLIC_BASE_URL` |
-| `METRICS_USER` / `METRICS_PASSWORD` | 抓主站 `/metrics` 的凭据,须与主站侧一致         |
-| `GRAFANA_ADMIN_PASSWORD`            | Grafana 管理员口令                              |
+| 键                                                                  | 值 / 说明                                       |
+| ------------------------------------------------------------------- | ----------------------------------------------- |
+| `LUCENT_PUBLIC_HOST`                                                | `<主站IP>`;改它必须同步改主站 `PUBLIC_BASE_URL` |
+| `METRICS_USER` / `METRICS_PASSWORD`                                 | 抓主站 `/metrics` 的凭据,须与主站侧一致         |
+| `GRAFANA_ADMIN_PASSWORD`                                            | Grafana 管理员口令                              |
+| `ALERT_EMAIL_TO`                                                    | 告警收件邮箱;联系点读 `$ALERT_EMAIL_TO` 展开    |
+| `MAIL_HOST` / `MAIL_PORT` / `MAIL_USER` / `MAIL_PASS` / `MAIL_FROM` | 发信账号,映射成 `GF_SMTP_*`;须与主站侧一致      |
+| `GF_SMTP_ENABLED`                                                   | `true`;设为 `false` 会**静默丢弃**邮件通知      |
 
 ## 五、安全组
 

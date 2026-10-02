@@ -33,7 +33,8 @@
 #
 # 用哪个文件:`-f compose.monitoring.yaml`(在本目录下运行)。
 # 环境变量同样读仓库根的 .env(阿里云那台只需 METRICS_* / GRAFANA_* /
-# LUCENT_PUBLIC_HOST / VICTORIALOGS_URL 这几项)。
+# LUCENT_PUBLIC_HOST / VICTORIALOGS_URL,以及邮件告警那组 ALERT_EMAIL_TO /
+# MAIL_* / GF_SMTP_ENABLED)。
 #
 # 两份文件的服务名与卷名**互不重叠**,所以在同一台机器上先后 `up` 也能共存
 # (默认 project 名都是 `lucent`,但服务不冲突)。
@@ -92,6 +93,32 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: 'false'
+
+      # ── 邮件告警（Grafana 统一告警的发信通道）───────────────────────
+      # 为什么告警在这里而不是 vmalert + Alertmanager:阿里云那台只有 1.6 GiB,
+      # 四个监控服务的 memory limit 合计已 1792 MB。Grafana 本来就在跑,用它做
+      # 告警评估与通知**不新增任何容器**;而 Alertmanager 还需要额外一个进程,
+      # 且它的 alertmanager.yml 不支持环境变量插值(得靠渲染脚本,那套已随
+      # Coolify 部署一起退役)。
+      #
+      # ⚠️ GF_SMTP_* 只在这里给值,不写进 provisioning 文件 —— 口令因此只落在
+      #    被 gitignore 的 .env 里。规则/联系点/通知策略三个 YAML 全部可入库。
+      #
+      # ⚠️ GF_SMTP_ENABLED 必须显式为 true:默认 false 时 Grafana 会**静默**
+      #    丢弃邮件通知(告警照常触发、状态页照常变红,但一封都不发)。
+      GF_SMTP_ENABLED: ${GF_SMTP_ENABLED:-true}
+      GF_SMTP_HOST: ${MAIL_HOST:-smtp.qq.com}:${MAIL_PORT:-587}
+      GF_SMTP_USER: ${MAIL_USER:?MAIL_USER is required for alert email}
+      GF_SMTP_PASSWORD: ${MAIL_PASS:?MAIL_PASS is required for alert email}
+      GF_SMTP_FROM_ADDRESS: ${MAIL_FROM:?MAIL_FROM is required for alert email}
+      GF_SMTP_FROM_NAME: Lucent Alerting
+      # QQ 邮箱用 587 + STARTTLS(非 465 隐式 TLS)。
+      GF_SMTP_STARTTLS_POLICY: Opportunistic
+
+      # 告警收件人。provisioning/alerting/contact-points.yml 里读 $ALERT_EMAIL_TO
+      # (Grafana 12 的 alerting provisioning 支持环境变量插值,故仓库不写死邮箱)。
+      # ⚠️ 留空则联系点地址为空,Grafana 不会报错,只是发不出去。
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:?ALERT_EMAIL_TO is required for alert email}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/opt/grafana/dashboards:ro

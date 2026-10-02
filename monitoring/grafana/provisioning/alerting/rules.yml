@@ -1,0 +1,1021 @@
+# Lucent 告警规则（Grafana 统一告警）
+# ---------------------------------------------------------------------------
+# 由 compose.monitoring.yaml 挂到 Grafana 的 /etc/grafana/provisioning:ro，
+# Grafana 启动时自动装载；改完重启容器生效（provisioned 资源不能在 UI 里改）。
+#
+# 为什么用 Grafana 统一告警而不是 vmalert + Alertmanager：阿里云那台只有
+# 1.6 GiB 内存，四个监控服务限额已占 1792 MB；Grafana 已在跑，用它不新增进程。
+#
+# ⚠️ data.model 段**不支持**环境变量插值（Grafana 文档明确列出），所以下面的
+#    PromQL 一律是字面量。annotations 同样不插值，故 `{{ $labels.x }}` 可安全直写。
+#
+# ⚠️ 数据源 uid 必须是 `prometheus`（见 provisioning/datasources/prometheus.yml）。
+
+apiVersion: 1
+
+groups:
+  - {
+      'orgId': 1,
+      'name': 'lucent-availability',
+      'folder': 'lucent-availability',
+      'interval': '1m',
+      'rules':
+        [
+          {
+            'uid': 'lucent_down',
+            'title': 'LucentDown',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'up{job="lucent"} == 0',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [-1], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '2m',
+            'labels': { 'severity': 'critical', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '鲲鹏主站 /metrics 已连续 2 分钟抓不到（up=0），app 可能已挂。',
+                'runbook': '⚠️ 跨云抓取：也可能是鲲鹏安全组收口了阿里云出口 IP，或 3M 带宽拥塞 —— 先手工 `curl http://<鲲鹏IP>:3000/metrics` 从阿里云那台确认，再判断是不是 app 真挂了。',
+              },
+            'isPaused': false,
+          },
+          {
+            'uid': 'lucent_node_down',
+            'title': 'KunpengHostDown',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'up{job="node"} == 0',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [-1], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '5m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '鲲鹏 node-exporter（:9100）连续 5 分钟抓不到，主机指标断流。',
+                'runbook': '主机可能重启、node-exporter 容器停了，或安全组变更。app 本身的告警看 LucentDown。',
+              },
+            'isPaused': false,
+          },
+        ],
+    }
+  - {
+      'orgId': 1,
+      'name': 'lucent-http',
+      'folder': 'lucent-http',
+      'interval': '1m',
+      'rules':
+        [
+          {
+            'uid': 'lucent_high_5xx',
+            'title': 'LucentHigh5xxRate',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'sum(rate(http_requests_total{job="lucent",status=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{job="lucent"}[5m])), 0.001)',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [0.05], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '5m',
+            'labels': { 'severity': 'critical', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '5 分钟内 5xx 占比超过 5%，用户可见错误。',
+                'runbook': '按 route 标签定位：`topk(5, sum by (route) (rate(http_requests_total{status=~"5.."}[5m])))`。',
+              },
+            'isPaused': false,
+          },
+          {
+            'uid': 'lucent_latency_p99',
+            'title': 'LucentHttpP99High',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job="lucent"}[5m])))',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [3], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '10m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': 'HTTP p99 延迟连续 10 分钟高于 3 秒，接口明显变慢。',
+                'runbook': '常见来源：LLM 调用变慢、数据库慢查询（postgres 日志中 log_min_duration_statement=500）。',
+              },
+            'isPaused': false,
+          },
+        ],
+    }
+  - {
+      'orgId': 1,
+      'name': 'lucent-host',
+      'folder': 'lucent-host',
+      'interval': '1m',
+      'rules':
+        [
+          {
+            'uid': 'kunpeng_memory_low',
+            'title': 'KunpengHostMemoryLow',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': '(node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"}) * 100',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [10], 'type': 'lt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '5m',
+            'labels': { 'severity': 'critical', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '鲲鹏可用内存低于 10%。',
+                'runbook': '⚠️ 鲲鹏**没有 swap**，内存耗尽会被直接 OOM kill（PostgreSQL / LightRAG 首当其冲），不会像另两台那样先换页。这是该机第一风险。',
+              },
+            'isPaused': false,
+          },
+          {
+            'uid': 'kunpeng_disk_low',
+            'title': 'KunpengHostDiskLow',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': '(node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}) * 100',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [15], 'type': 'lt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '10m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '鲲鹏根分区可用空间低于 15%。',
+                'runbook': '镜像、PostgreSQL 数据与容器日志是主要增长源。',
+              },
+            'isPaused': false,
+          },
+          {
+            'uid': 'kunpeng_disk_critical',
+            'title': 'KunpengHostDiskCritical',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': '(node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}) * 100',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [8], 'type': 'lt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '5m',
+            'labels': { 'severity': 'critical', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '鲲鹏根分区可用空间低于 8%，PostgreSQL 随时可能写失败。',
+                'runbook': '立即清理：`docker system prune`、容器日志、旧 pg_dump。',
+              },
+            'isPaused': false,
+          },
+        ],
+    }
+  - {
+      'orgId': 1,
+      'name': 'lucent-jobs',
+      'folder': 'lucent-jobs',
+      'interval': '1m',
+      'rules':
+        [
+          {
+            'uid': 'bullmq_waiting_backlog',
+            'title': 'BullMQWaitingBacklog',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'max by (queue) (bullmq_waiting_jobs{job="lucent"})',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [100], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '10m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '某个 BullMQ 队列等待任务超过 100 且持续 10 分钟，消费者跟不上。',
+                'runbook': '邮件队列与今日建议重算队列共用 Redis；查看瓶颈是 LLM 调用还是数据库。',
+              },
+            'isPaused': false,
+          },
+          {
+            'uid': 'bullmq_job_failures',
+            'title': 'BullMQJobFailures',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'sum(increase(bullmq_jobs_total{job="lucent",status="failed"}[15m]))',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [5], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '15m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '15 分钟内 BullMQ 失败任务超过 5 个。',
+                'runbook': '按 queue 标签定位：`sum by (queue) (increase(bullmq_jobs_total{status="failed"}[15m]))`。',
+              },
+            'isPaused': false,
+          },
+          {
+            'uid': 'suggestion_materialization_failed',
+            'title': 'SuggestionMaterializationFailing',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'sum(increase(today_suggestion_materialization_failed_total{job="lucent"}[10m]))',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [0], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '10m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '「今日建议」物化出现失败，用户会看到空白或过期内容。',
+                'runbook': '对照 today_suggestion_materialization_ready_total 看失败占比；stale 时长看 today_suggestion_stale_age_seconds。',
+              },
+            'isPaused': false,
+          },
+          {
+            'uid': 'audit_log_write_failed',
+            'title': 'AuditLogWriteFailing',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'sum(increase(audit_log_write_failure_total{job="lucent"}[10m]))',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [0], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '10m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': '审计日志写入失败，合规记录出现缺口。',
+                'runbook': '按 action 标签定位：`sum by (action) (increase(audit_log_write_failure_total[10m]))`。',
+              },
+            'isPaused': false,
+          },
+        ],
+    }
+  - {
+      'orgId': 1,
+      'name': 'lucent-ai',
+      'folder': 'lucent-ai',
+      'interval': '5m',
+      'rules':
+        [
+          {
+            'uid': 'llm_error_rate',
+            'title': 'LlmErrorRateHigh',
+            'condition': 'C',
+            'data':
+              [
+                {
+                  'refId': 'A',
+                  'relativeTimeRange': { 'from': 300, 'to': 0 },
+                  'datasourceUid': 'prometheus',
+                  'model':
+                    {
+                      'editorMode': 'code',
+                      'expr': 'sum(rate(llm_call_duration_seconds_count{job="lucent",status="error"}[5m])) / clamp_min(sum(rate(llm_call_duration_seconds_count{job="lucent"}[5m])), 0.001)',
+                      'instant': false,
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'range': true,
+                      'refId': 'A',
+                    },
+                },
+                {
+                  'refId': 'B',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['B'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'A',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'reducer': 'last',
+                      'refId': 'B',
+                      'type': 'reduce',
+                    },
+                },
+                {
+                  'refId': 'C',
+                  'datasourceUid': '__expr__',
+                  'model':
+                    {
+                      'conditions':
+                        [
+                          {
+                            'evaluator': { 'params': [0.2], 'type': 'gt' },
+                            'operator': { 'type': 'and' },
+                            'query': { 'params': ['C'] },
+                            'reducer': { 'params': [], 'type': 'last' },
+                            'type': 'query',
+                          },
+                        ],
+                      'datasource': { 'type': '__expr__', 'uid': '__expr__' },
+                      'expression': 'B',
+                      'intervalMs': 1000,
+                      'maxDataPoints': 43200,
+                      'refId': 'C',
+                      'type': 'threshold',
+                    },
+                },
+              ],
+            'noDataState': 'NoData',
+            'execErrState': 'Error',
+            'for': '15m',
+            'labels': { 'severity': 'warning', 'service': 'lucent' },
+            'annotations':
+              {
+                'summary': 'LLM 调用错误率超过 20%。AI 是核心演示能力，供应商故障会连带建议/分析/助手全部失效。',
+                'runbook': '先确认是 401/403（key 或免费额度）还是超时；模型经百炼（阿里云），额度耗尽返回 403。',
+              },
+            'isPaused': false,
+          },
+        ],
+    }

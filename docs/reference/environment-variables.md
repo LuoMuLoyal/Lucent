@@ -547,6 +547,36 @@ VICTORIALOGS_URL
   不带协议与端口。该文件用 `:?` 校验它，未设置时 compose 拒绝启动。
   单机全栈部署时填本机容器网络可达的地址即可。
 
+Alerting (监控机专属，不经过 zod 校验层):
+
+```text
+ALERT_EMAIL_TO
+GF_SMTP_ENABLED
+MAIL_HOST
+MAIL_PORT
+MAIL_USER
+MAIL_PASS
+MAIL_FROM
+```
+
+Grafana 统一告警的规则、联系点与通知策略都在
+`monitoring/grafana/provisioning/alerting/`（可入库、不含机密），这里只有发信通道。
+
+- `ALERT_EMAIL_TO` — 告警收件地址。`contact-points.yml` 里写
+  `addresses: $ALERT_EMAIL_TO`，由 Grafana 12 的 provisioning 环境变量插值展开。
+  在这几个变量里它是**唯一刻意写死的真实邮箱**——因为它是收件人而非凭据。
+- `GF_SMTP_ENABLED` — 必须显式为 `true`（模板与 compose 都默认 `true`）。
+  ⚠️ Grafana 该键**默认 false**，此时通知被**静默丢弃**：告警照常触发、状态页照常
+  变红，但一封邮件都不发。compose 因此用 `${GF_SMTP_ENABLED:-true}` 兜底。
+- `MAIL_HOST` / `MAIL_PORT` / `MAIL_USER` / `MAIL_PASS` / `MAIL_FROM` — 与主站业务
+  邮件同源（`compose.monitoring.yaml` 把它们映射成 `GF_SMTP_HOST` / `GF_SMTP_PORT`
+  等）。QQ 邮箱用 `smtp.qq.com` + `587` 配 `STARTTLS`（不是 465 隐式 TLS），故
+  compose 设 `GF_SMTP_STARTTLS_POLICY: Opportunistic`。
+  ⚠️ 监控机不发业务邮件，但它**仍需要这几项**：compose 解析阶段就要有值，
+  且 `GF_SMTP_USER` 通常必须与 `GF_SMTP_FROM_ADDRESS` 同域，否则被 SMTP 服务器拒发。
+  两侧值由 `deploy-secrets/build_envs.py` 的跨机守卫校验一致——只改一侧的表现是
+  「告警触发但邮件静默不发」。
+
 Security:
 
 ```text

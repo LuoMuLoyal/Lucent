@@ -168,7 +168,7 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 | 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT` |
 | 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                          |
 | 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE`                                                                                                                                                                |
-| 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD`                                                                                                                               |
+| 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD` `ALERT_EMAIL_TO` `MAIL_*` `GF_SMTP_ENABLED`                                                                                   |
 
 - `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
   `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接,不需手填;两者必须与 `.env` 里的
@@ -213,7 +213,15 @@ SSE 连接会收到终止事件后关闭,建议低峰发布。
 - **链路追踪**:OTLP 推到监控机 `10428`,采样率由 `OTEL_TRACES_SAMPLER` /
   `OTEL_TRACES_SAMPLER_ARG` 控制(改环境变量即可,不必重建镜像)。
   见 ADR-0010 / ADR-0016。
-- **告警当前未配置**。
+- **告警**:用 **Grafana 统一告警**(不引入 vmalert + Alertmanager)。告警规则、
+  联系点与通知策略是 `monitoring/grafana/provisioning/alerting/` 下三个可入库 YAML,
+  由 Grafana 在启动时装载;机密(发信账号与收件人)只经 `.env` 注入 `GF_SMTP_*` /
+  `ALERT_EMAIL_TO`,不落 provisioning 文件。**选型理由**:监控机只有 1.6 GiB,
+  四个监控服务的 memory limit 合计已 1792 MB —— Grafana 本来就在跑,用它做告警评估
+  与通知**不新增任何容器**;Alertmanager 还要多一个进程,且其 `alertmanager.yml`
+  不支持环境变量插值。
+  ⚠️ `GF_SMTP_ENABLED` 必须显式为 `true`:**默认 false 时 Grafana 静默丢弃邮件通知**
+  —— 告警照常触发、状态页照常变红,但一封都不发。这是最难查的一类失败。
 
 ## 服务器前置要求
 
