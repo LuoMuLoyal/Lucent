@@ -192,3 +192,22 @@ describe('embedDocuments — counts must match what was written', () => {
     expect(addDocuments).not.toHaveBeenCalled();
   });
 });
+
+describe('parseRebuildArgs — batch size must respect the provider cap', () => {
+  it('defaults embedBatchSize to 10, not 20', async () => {
+    const { parseRebuildArgs } = await import('./chunking.ts');
+
+    // The provider rejects >10 with `400 InternalError.Algo.InvalidParameter:
+    // batch size is invalid, it should not be larger than 10.`. The old
+    // default of 20 made the very first embedding run fail.
+    expect(parseRebuildArgs([]).embedBatchSize).toBe(10);
+  });
+
+  it('still honours an explicit --embed-batch-size', async () => {
+    const { parseRebuildArgs } = await import('./chunking.ts');
+
+    expect(parseRebuildArgs(['--embed-batch-size', '5']).embedBatchSize).toBe(
+      5,
+    );
+  });
+});

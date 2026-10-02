@@ -9,6 +9,18 @@ const EMBED_MAX_ATTEMPTS = 3;
 /** 重试退避基数：第 n 次重试等 `n * BASE` 毫秒（线性，指数在此规模上没必要）。 */
 const EMBED_RETRY_BASE_MS = 1000;
 
+/**
+ * 默认嵌入批大小。
+ *
+ * 取 10 是因为**这是 provider 的硬上限，不是调优参数**：百炼
+ * `text-embedding-v4` 超过 10 直接返回
+ * `400 InternalError.Algo.InvalidParameter: batch size is invalid,
+ * it should not be larger than 10.: input.contents`。
+ * 旧默认值 20 会让首次运行必然失败（实测如此）。
+ * 换 provider 后可上调，但先确认它的批量上限。
+ */
+const DEFAULT_EMBED_BATCH_SIZE = 10;
+
 // ─── Text chunking ────────────────────────────────────────────
 
 function splitByParagraphs(text) {
@@ -343,7 +355,7 @@ function parseRebuildArgs(argv) {
     skipRebuild: false,
     embed: false,
     embedLimit: null,
-    embedBatchSize: 20,
+    embedBatchSize: DEFAULT_EMBED_BATCH_SIZE,
     embedForce: false,
   };
 
@@ -388,7 +400,8 @@ function parseRebuildArgs(argv) {
       continue;
     }
     if (part === '--embed-batch-size') {
-      options.embedBatchSize = Number(argv[index + 1]) || 20;
+      options.embedBatchSize =
+        Number(argv[index + 1]) || DEFAULT_EMBED_BATCH_SIZE;
       index += 1;
       continue;
     }

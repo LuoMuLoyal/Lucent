@@ -269,7 +269,7 @@ Options:
   --skip-rebuild          Skip chunk rebuild and only embed
   --embed                 Run embedding phase
   --embed-limit <n>       Max chunks to embed (default: all)
-  --embed-batch-size <n>  Batch size for embedding (default: 20)
+  --embed-batch-size <n>  Batch size for embedding (default: 10; provider cap)
   --embed-force           Clear existing embeddings before re-embedding
   --help, -h              Show this help
 
