@@ -15,7 +15,7 @@
  * nothing (idempotent).
  *
  * Usage (repo root): `node scripts/dev/esm-import-extension-codemod.ts`
- * Runs under Node 24 native TypeScript type stripping.
+ * Runs under Node 26 native TypeScript type stripping.
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';

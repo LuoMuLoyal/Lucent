@@ -126,7 +126,7 @@ export class CronJobsService implements OnModuleInit {
    * behind in Redis (which `queue.add({ repeat })` would do).
    *
    * All schedules use `tz: 'UTC'` to match the production container timezone
-   * (node:24-alpine defaults to UTC).
+   * (node:26-alpine defaults to UTC).
    */
   private async registerSchedulers(): Promise<void> {
     const registrations: Promise<unknown>[] = [];

@@ -34,15 +34,14 @@ knowledge retrieval, ontology-grounded drug reasoning, and data export.
 ## Quick Start
 
 ```bash
-corepack enable
-corepack prepare pnpm@12.0.0 --activate
+npm install --global pnpm@12.0.0
 pnpm install
 pnpm dev:stack        # start local PostgreSQL + Redis + SeaweedFS
 pnpm db:migrate       # apply migrations
 pnpm start:dev        # start dev server
 ```
 
-Prerequisites: Node.js `24.x`, pnpm `11.x` or `12.x`, Docker (for `dev:stack`).
+Prerequisites: Node.js `26.x`, pnpm `11.x` or `12.x`, Docker (for `dev:stack`).
 
 ## Documentation
 
@@ -108,8 +107,7 @@ Lucent CI re-exports the spec and fails when the committed
 ## Local Development
 
 ```bash
-corepack enable
-corepack prepare pnpm@12.0.0 --activate
+npm install --global pnpm@12.0.0
 pnpm install
 pnpm dev:stack
 pnpm db:migrate
@@ -118,8 +116,8 @@ pnpm start:dev
 
 Local toolchain baseline:
 
-- Node.js `24.x`
-- pnpm `11.x` / `12.x` compatible (`12.0.0` is the pinned CI / recommended Corepack baseline; `11.9.0` also accepted)
+- Node.js `26.x`
+- pnpm `11.x` / `12.x` compatible (`12.0.0` is the pinned CI baseline; `11.9.0` also accepted)
 
 Local infrastructure note:
 

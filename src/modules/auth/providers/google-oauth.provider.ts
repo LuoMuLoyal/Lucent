@@ -294,7 +294,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
       key: { kty: jwk.kty, n: jwk.n, e: jwk.e },
       format: 'jwk',
     });
-    return key.export({ type: 'spki', format: 'pem' }) as string;
+    return key.export({ type: 'spki', format: 'pem' });
   }
 
   onModuleInit(): void {

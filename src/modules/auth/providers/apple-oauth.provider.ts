@@ -248,7 +248,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
       },
       format: 'jwk',
     });
-    return key.export({ type: 'spki', format: 'pem' }) as string;
+    return key.export({ type: 'spki', format: 'pem' });
   }
 
   // ── Config ──────────────────────────────────────────────────

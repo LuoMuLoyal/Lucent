@@ -1,4 +1,4 @@
-// Doc coverage shared logic — pure/testable. Node 24 native TS, ESM syntax.
+// Doc coverage shared logic — pure/testable. Node 26 native TS, ESM syntax.
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
