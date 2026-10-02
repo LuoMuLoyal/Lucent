@@ -41,6 +41,54 @@
 
 全量导入耗时 **304.6 s**（约 695 边/秒）。
 
+### 跨云生产部署（腾讯云 · 2026-10-02）
+
+同一份 `data/*.jsonl`（213,065 行，约 40 MB）灌入生产 Neo4j，**规模指标与本地基线逐项一致**：
+
+| 指标 | 本地基线 | 腾讯云生产 |
+| --- | --- | --- |
+| 节点 | 3,278 | **3,278** |
+| 边 | 211,630 | **211,630** |
+| 关系类型 | 21 | **21** |
+| 平行边组 | 175 | **175** |
+| `prov` 覆盖 | 211,630 | **211,630** |
+
+`load_graph_neo4j.py` 自带的 `verify_load()` 在生产环境同样通过，`/health` 与 `/schema`
+分别报出 3,278 / 211,630。耗时 **974.6 s**（约 217 边/秒）——比本地慢约 3.2 倍，
+符合该机 2 核 / 3.6 GiB 与单机跑 `CREATE` 的预期，**不是数据问题**。
+
+**加载器不必在容器内构建。** 镜像只 `COPY src`（依赖里 `semantica` 是 git 依赖，
+服务器无外网时构建必然失败），因此镜像内**没有 `scripts/` 也没有 `data/`**；
+而宿主 `python3` 没有 `neo4j` 驱动且无 `pip`。做法是**拿 semantica 镜像本身当解释器**，
+把脚本与数据只读挂载进去执行：
+
+```bash
+docker run --rm --network lucent-neo4j_default \
+  -e NEO4J_PASSWORD="$PW" \
+  -v /opt/lucent-neo4j/loader/scripts:/loader/scripts:ro \
+  -v /opt/lucent-neo4j/loader/data:/loader/data:ro \
+  --entrypoint python luomuloyal/lucent-semantica:latest-amd64 \
+  /loader/scripts/load_graph_neo4j.py \
+    --data /loader/data --uri bolt://neo4j:7687 --user neo4j --password "$PW"
+```
+
+镜像里已有 `neo4j` 6.3.1 与 Python 3.13，服务器**零安装**；`PYTHONPATH=/app/src` 让脚本能
+import `semantica_service.provenance.ids`（prov id 的事实源，必须与导出侧同源）。
+
+**一条会看错的现象：直接查 Neo4j 时华法林 `outgoing = 0`。**
+库中存的是**导出时的原始单向边**（2,534 条单向），**镜像在查询期做**
+（`graph/orientation.py` 的 `mirror_edge`，由 `graph/export.py` 调用）。
+所以：
+
+- `/query` **不镜像** —— 它就是照原样执行调用方给的 Cypher，`MATCH (d:Drug)-[:INTERACTS_WITH]->()`
+  查华法林得到 0 行是**正确行为**，不是缺陷；
+- `/reason` **镜像** —— 以 `Warfarin` 为 scope 推出 **313 条**交互结论、扩展出 **531 个药**
+  （`seed_drug_keys: ["DB00682"]` 自身 + 530 个对手药）。
+
+这条写在这里是因为"存储层单向、查询层对称"这个分工不写在 README 里，
+第一次直接用 `cypher-shell` 核对图谱时，`0 outgoing` 极容易被当成 README 里警告过的
+那个旧缺陷（镜像未生效）而复现排查。
+
 ---
 
 ## 3. 端到端验证（真实环境，非桩）

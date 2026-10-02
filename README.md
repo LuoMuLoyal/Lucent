@@ -27,6 +27,17 @@ before being fixed:
   incoming. An outgoing-only traversal therefore answered "warfarin interacts
   with nothing". The export now mirrors symmetric relations and records the
   original direction as metadata.
+
+  ⚠️ **The mirror is applied at query time, not at load time.** Neo4j still holds
+  the original one-directional edges (2,534 of them); `graph/orientation.py`'s
+  `mirror_edge` synthesises the reverse on the way out, and only the paths that
+  go through `graph/export.py` see it — `/reason` and the visualisation export.
+  `/query` does **not**: it executes the caller's Cypher verbatim, so
+  `MATCH (d:Drug {id:"DB00682"})-[:INTERACTS_WITH]->()` correctly returns nothing.
+  Checking the graph with `cypher-shell` therefore shows `0 outgoing` for
+  warfarin and it is **not** a regression — read this before reopening the defect
+  above. Reasoning with `scope.drug_names = ["Warfarin"]` returns 313 conclusions
+  across 531 drugs, which is what confirms the mirror is live.
 - **SHACL validation could pass vacuously.** A shape in the wrong namespace
   selects no targets and is reported as conforming. `/validate` now refuses such
   shapes instead.
