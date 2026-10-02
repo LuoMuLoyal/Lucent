@@ -377,6 +377,24 @@ base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独�
 > 完整清单与实测数据见 `deploy/lightrag/.env.example` 与
 > `lightrag-eval/results/mode-comparison.md` §九。
 
+> **嵌入维度是「声明」与「投递」两个变量，只设一个会写入失败**（2026-10-02 实测）。
+> `EMBEDDING_DIM` 只声明期望维度并据此建向量表（如 `..._768d`）；真正把维度作为
+> `dimensions` 参数发给 API 的是 `EMBEDDING_SEND_DIM`，其**默认值为 `false`**
+> （jina/gemini 会被强制为 `true`，OpenAI 兼容端点必须显式打开）。文本向量模型普遍
+> 支持动态降维且**默认输出不等于你要的维度**：`text-embedding-v4` 支持 64–2048，
+> 不传 `dimensions` 时返回 1024。于是 LightRAG 按 768 建表、API 返回 1024，
+> 10 条 embeddings 共 10240 个数除不尽 768，`PGVectorStorage[entities]` flush 失败、
+> 整批文档标 `failed`：
+>
+> ```
+> Embedding dimension mismatch detected: total elements (10240) cannot be
+> evenly divided by expected dimension (768)
+> ```
+>
+> 启动日志里可提前核对，不必等报错：
+> `Send embedding dimension: True by env var (dimensions=768, has_param=True, binding=openai)`
+> —— 若是 `False`，无论 `EMBEDDING_DIM` 填多少都不会生效。
+
 启用步骤（复制模板 → 填模型 key → 起 profile，见模板头注释）：
 
 ```bash

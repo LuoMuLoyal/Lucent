@@ -64,6 +64,12 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   也不是它打印的 `importedRowCount`（该值由写入侧累加，丢行时照样报满）。
   逐表对账口径与排查步骤见 [`docs/howto/run-medicine-import.md`](../../../docs/howto/run-medicine-import.md)。
   读取侧的余数批丢失缺陷已修复并被 `scripts/shared/db-upsert.spec.ts` 覆盖。
+- **检索索引（说明书侧）有两套灌入口径，按需要选**：`pnpm import:lightrag`
+  以 chunk 表为粒度（一份说明书 = 几十个文档），批量快但中断后无法按说明书续传；
+  `pnpm import:lightrag:leaflets` 以**一份说明书 = 一个文档**
+  （`file_source = leaflet:<leafletId>`）为原子单位，支持断点续传，
+  完成状态以 LightRAG 的 `doc_status` 为准（本地账本仅作缓存）。
+  两者写入同一 workspace，**不要对同一批说明书混用**，否则同一说明书会出现两份文档。
 - **Schema 语义（V3 对齐）**：`cn_medicine_products` 是纯目录表（名称/批准文号/
   条码/价格/类别/overdose 等，无正文）；`cn_medicine_leaflets` 是权威正文
   （ingredients/indications/dosage/contraindications…）；链接表 1:1 关联，带

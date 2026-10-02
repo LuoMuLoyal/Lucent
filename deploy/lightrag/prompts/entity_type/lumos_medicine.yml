@@ -34,6 +34,16 @@ entity_types_guidance: |
   - Procedure: 医疗操作、给药方式、监测手段（如静脉注射、血液透析、心功能监测）
   - DrugInteraction: 相互作用的药物、食物或物质（如保钾利尿剂、钾盐、酒精）
 
+  **Drug 与 DrugInteraction 的划分**（按实体本身是什么，不按它出现在哪一节）：
+  - 一个**具体的药品**（通用名/活性成分/化学名）永远是 Drug，
+    哪怕它只出现在"药物相互作用"一节里、只作为相互作用的另一方被提到。
+    例：在阿司匹林的相互作用里提到"布洛芬"，布洛芬仍是 Drug。
+  - DrugInteraction 只用于**非具体药品**的类别名或物质：
+    药类统称（保钾利尿剂、抗凝剂）、食物（酒精、西柚汁）、
+    非药品物质（钾盐、维生素K）。这些没有单独的通用名，本身不是一个可开具的药品。
+  - 判断口径：能作为一份说明书的主体药品 → Drug；
+    只能是"某类药/某种食物"的泛称 → DrugInteraction。
+
   **实体命名铁律**：
   - 实体名必须是纯粹的实体名称，严禁包含剂量、数值、百分比、单位或时间量。
     剂量、浓度、疗程、频次、阈值一律作为 description 的内容，不进入实体名。
@@ -47,6 +57,7 @@ entity_extraction_examples:
     entity{tuple_delimiter}高血压{tuple_delimiter}Disease{tuple_delimiter}本品的主要适应症；适用于单一治疗不能达到满意疗效的病人。
     entity{tuple_delimiter}血管性水肿{tuple_delimiter}AdverseReaction{tuple_delimiter}服用 ACE 抑制剂后可能出现的过敏样反应，可累及面部、四肢、唇舌及喉部。
     entity{tuple_delimiter}保钾利尿剂{tuple_delimiter}DrugInteraction{tuple_delimiter}不推荐与本品联合使用的药物类别，合用可致血钾升高。
+    entity{tuple_delimiter}布洛芬{tuple_delimiter}Drug{tuple_delimiter}在"药物相互作用"一节中作为合用药物被提到的具体药品；合用可增加肾损伤风险。
     entity{tuple_delimiter}肾功能不全患者{tuple_delimiter}Population{tuple_delimiter}需要调整剂量并监测肾功能与血钾的特殊人群。
     relation{tuple_delimiter}贝那普利{tuple_delimiter}高血压{tuple_delimiter}适应症,降压治疗{tuple_delimiter}贝那普利用于治疗高血压，推荐剂量为每日一次 10/12.5mg。
     relation{tuple_delimiter}贝那普利{tuple_delimiter}血管性水肿{tuple_delimiter}不良反应,过敏样反应{tuple_delimiter}贝那普利可能引起血管性水肿，一旦发生须立即停药并就医。

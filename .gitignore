@@ -89,6 +89,11 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # 嵌入凭据、Postgres 口令),不入库;生产由部署平台按同一份清单注入
 /deploy/lightrag/.env
 
+# LightRAG 灌入的断点续传账本:运行时状态,记录"哪份说明书已灌完"。
+# 服务端 doc_status 才是事实源(见 docs/howto/run-medicine-import.md),
+# 这份文件只是本机缓存,换机器就应重新拉取,入库会带来无意义的冲突。
+/scripts/import/medicine/.lightrag-leaflet-ledger.jsonl
+
 # Generated docs
 /docs/reference/generated/compodoc
 

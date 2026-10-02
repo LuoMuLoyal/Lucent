@@ -124,6 +124,42 @@ pnpm import:lightrag --workspace=qa
 首个 doc id。灌入的 doc id 段序是跨进程契约（查询侧靠它反解溯源），详见
 `src/modules/assistant/README.md`。
 
+### 按说明书灌入（可断点续传）
+
+上面那条走 **chunk 表**，一份说明书被拆成几十个独立文档，中断后无法回答
+"哪份说明书写完了"。需要按说明书为单位、能中断续跑时用另一条：
+
+```bash
+# 一份说明书 = 一个文档（file_source = leaflet:<leafletId>）
+pnpm import:lightrag:leaflets --from-file=targets.tsv --batch=4
+
+pnpm import:lightrag:leaflets --status       # 只看进度
+pnpm import:lightrag:leaflets --resume-only  # 只等已提交的跑完，不提交新的
+pnpm import:lightrag:leaflets --force        # 忽略完成状态强制重灌
+```
+
+**断点续传的三层依据**（从可信到最快）：
+
+1. **服务端 `doc_status`（事实源）**：`/documents/paginated` 按 `file_path` 取文档状态，
+   `processed` 才算完成。它在 Postgres 里，重启容器不丢；
+2. **本地账本 JSONL（快照）**：默认 `scripts/import/medicine/.lightrag-leaflet-ledger.jsonl`，
+   每份完成即追加一行。作用只是中断后不必全量拉服务端；
+3. **`--force`**：显式忽略以上两者。
+
+账本与①冲突时**以①为准**——实测把账本改名后重跑，10 份仍被正确识别为已完成。
+同 `file_source` 重复提交时 LightRAG 返回 **409**，脚本把它当"已完成"而非错误，
+这正是续传能安全重跑的原因。
+
+> ⚠️ **`EMBEDDING_DIM` 与 `EMBEDDING_SEND_DIM` 是两个变量。** 前者声明"期望几维"，
+> 后者决定"要不要把期望告诉 API"。只设前者时，`text-embedding-v4` 会按自己的
+> 默认 1024 维返回，而 LightRAG 已按 768 建表，写库时报
+> `Embedding dimension mismatch detected: total elements (10240) cannot be evenly
+divided by expected dimension (768)`，整批文档标 failed。启动日志里搜索
+> `Send embedding dimension:` 可提前确认——必须是 `True`。
+>
+> ⚠️ **prompt profile 改动后必须重建容器**才会生效（启动时读取），
+> 改文件不重启 = 静默沿用旧 prompt。
+
 英文侧（DrugBank 叙事字段）仍走 Lucent 自己的 pgvector，与 LightRAG 无关：
 
 ```bash
