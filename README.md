@@ -205,9 +205,12 @@ If the OpenAI-compatible base URL targets DeepSeek, Lucent now disables
 DeepSeek `thinking` mode automatically for these streaming tool-use flows so
 `tool_choice` requests can complete normally.
 
-Production deployment uses a repo-owned compose (`compose.yaml`) registered as a
-Coolify Docker Compose Service. Coolify's built-in Traefik terminates TLS and routes
-the API domain to `app:3000`; no Nginx is involved. See the deployment docs below.
+Deployment runs a repo-owned compose on each host, managed with plain
+`docker compose`: `compose.yaml` is deployed twice with an explicit service subset
+(app + data + retrieval on one host, graph backend on another) and
+`compose.monitoring.yaml` runs the observability stack on a third. Access is
+controlled by the cloud security group's source-IP allowlist. See the deployment
+docs below.
 
 Local database layout:
 
@@ -240,11 +243,10 @@ pnpm check
 
 Use narrower commands while iterating, then run `pnpm check` before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files. Repo helper scripts under `scripts/` use their own lighter TS project; validate them with `pnpm typecheck:tools`.
 
-Two deployment models run in parallel: production on Coolify + GitHub Actions CD
-(build & push the Docker image), staging on the host as a native Node process
-(PM2 + self-hosted Traefik, deployed over SSH on every push to `main`). See
-[docs/reference/deployment.md](docs/reference/deployment.md) and
-[docs/howto/deploy.md](docs/howto/deploy.md).
+Deployment is three hosts running a repo compose each, with GitHub Actions CD only
+building & pushing the Docker image. See
+[docs/reference/deployment.md](docs/reference/deployment.md) for the model and
+[docs/howto/deploy.md](docs/howto/deploy.md) for the operational steps.
 
 ## Source Layout
 
@@ -258,11 +260,11 @@ Two deployment models run in parallel: production on Coolify + GitHub Actions CD
   - `scripts/dev/` for local runtime helpers
   - `scripts/contract/` for contract export helpers
   - `scripts/import/medicine/` for medicine data import helpers and Python parsers
-- `compose.yaml` (production: app + postgres/redis + monitoring stack, run by Coolify)
-  and `compose.staging.yaml` (staging: infrastructure containers only — the app runs as a
-  host PM2 process) at the repo root hold the stack definitions; `deploy/` holds the
-  staging PM2 process config and the Traefik configuration templates; `monitoring/`
-  contains VictoriaMetrics scrape config and Grafana provisioning/dashboards.
+- `compose.yaml` (the app + data + retrieval services, and the graph backend pair),
+  `compose.monitoring.yaml` (the metrics/logs/traces stack) and `compose.dev.yaml`
+  (local dev) at the repo root hold the stack definitions; `deploy/` holds sidecar
+  configuration (LightRAG env template and prompt profiles); `monitoring/` contains
+  VictoriaMetrics scrape config and Grafana provisioning/dashboards.
 - `entrypoint.sh` at the repo root is the container startup entrypoint (copied into the
   image): it runs `prisma migrate deploy` before starting the app, so migrations are
   applied automatically on container start and a failed migration aborts startup.
@@ -276,26 +278,24 @@ Two deployment models run in parallel: production on Coolify + GitHub Actions CD
 ## Deployment Model
 
 - GitHub Actions owns validation (`lucent-ci`): lint, typecheck, build, unit tests, e2e tests.
-- **production** — image build & push (`lucent-production`, manual `workflow_dispatch`):
-  build the Lucent Dockerfile and push to the publisher's own registry (`REGISTRY_IMAGE`
-  GitHub secret, e.g. `docker.io/<your-user>/lucent`), tagged `<short-sha>`. No server-side
-  build, no SSH deploy scripts, no hardcoded image address in the repo. `compose.yaml`
-  (app, postgres, redis, victoriametrics, grafana, victorialogs, node-exporter) is the single
-  source of truth and is registered in Coolify as a Docker Compose Service; Coolify runs it and
-  its Traefik terminates TLS for the API domain. Releases: update the `LUCENT_IMAGE` full image
-  reference in the Coolify service, then Pull Latest Images & Restart (the container entrypoint
-  runs `prisma migrate deploy` on start).
-- **staging** — push to `main` deploys immediately (`lucent-staging` does not wait for
-  `lucent-ci`): the workflow SSHes to the staging host and runs the command sequence
-  documented in [docs/howto/deploy.md](docs/howto/deploy.md) — `pm2 stop`, hard-sync to
-  `origin/main`, `pnpm install`, `prisma:generate` + `build`, `prisma migrate deploy`,
-  `pm2 startOrReload`, then a local health gate. The app is a native PM2 process at
-  `/opt/lucent`; `compose.staging.yaml` only runs postgres, redis, victoriametrics,
-  victorialogs and a self-hosted Traefik (the only public entry: 80/443, ACME TLS,
-  BasicAuth-protected panels). Manual deploy is the same command sequence; rollback is
-  fix-forward (check out the old sha and re-run).
+- **Image build & push** (`lucent-production`, manual `workflow_dispatch`): build the Lucent
+  Dockerfile and push to the publisher's own registry (`REGISTRY_IMAGE` GitHub secret, e.g.
+  `docker.io/<your-user>/lucent`), tagged `<short-sha>-<arch>`. No server-side build, no SSH
+  deploy scripts, no hardcoded image address in the repo.
+- **Runtime** — three hosts, one compose per host, each managed with plain
+  `docker compose up -d`; all ports are published and access is controlled by the cloud
+  security group's source-IP allowlist. `compose.yaml` is deployed twice with an explicit
+  service subset (app + postgres/redis/lightrag/node-exporter on one host; neo4j + semantica
+  on another), and `compose.monitoring.yaml` runs the metrics/logs/traces stack on a third.
+  Cross-host traffic goes over the public internet (the clouds' VPCs are not peered), so
+  inter-host addresses must be public. Releases: update the `LUCENT_IMAGE` reference in the
+  host's `.env`, then pull and `up -d --force-recreate <service>` (the container entrypoint
+  runs `prisma migrate deploy` on start); rollback is the same sequence with the previous
+  short sha. There is no reverse proxy, no domain and no TLS today — the API is served over
+  plain HTTP.
 - Alerting and automated DB backups are currently not configured (metrics stack retained).
-- See [docs/reference/deployment.md](docs/reference/deployment.md) for the full model.
+- See [docs/reference/deployment.md](docs/reference/deployment.md) for the full model and
+  [docs/howto/deploy.md](docs/howto/deploy.md) for the operational steps.
 
 ## Docs
 

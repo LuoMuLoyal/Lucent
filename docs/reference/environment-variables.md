@@ -53,8 +53,8 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 - `pnpm db:reset:dev` / `db:reset:test` — 重置对应数据库(`prisma migrate reset --force`)
 - `pnpm import:medicine:all` — 药品知识库默认导入序列(数据源细节见模块 README 与导入脚本)
 - 部署见 [deployment.md](deployment.md) 与 [../howto/deploy.md](../howto/deploy.md):
-  production 走 Coolify + 仓库 compose + 镜像;staging 走宿主原生 PM2 + 自建 Traefik
-  (推送即部署,无发布脚本)
+  三台机器各跑一份仓库内 compose(鲲鹏主站 / 腾讯云 Neo4j+semantica / 阿里云监控栈),
+  用 `docker compose up -d` 直接管理;跨云走公网,访问控制由云安全组限源承担
 - 非 development 目标的 Prisma 命令须显式指定 NODE_ENV,例如
   `NODE_ENV=test pnpm exec prisma migrate deploy`
 
@@ -74,23 +74,21 @@ METRICS_USER
 METRICS_PASSWORD
 ```
 
-生产(Coolify compose)下 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml`
-按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
+生产(`compose.yaml`,服务器 `/opt/lucent/.env`)下 `DATABASE_URL` / `REDIS_URL` 由
+`compose.yaml` 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
 
 `ADMIN_ENABLED`(`'true'` / `'false'`,默认开启)控制 AdminJS 面板是否注册:
 设为 `'false'` 时启动阶段完全跳过面板——不加载 `adminjs` / `@adminjs/fastify` /
 `@sergiyiva/adminjs-prisma`,也不做 Prisma DMMF 自省与 resource 构建,可省下一块
-启动内存(内存受限的 staging 用得上:`.env.production` 里写 `ADMIN_ENABLED=false`)。
+启动内存(内存受限的主机用得上:`.env` 里写 `ADMIN_ENABLED=false`)。
 只认字面量 `'false'`,其它值/未设置都保持开启;关闭面板**不影响** `ADMIN_EMAIL` /
 `ADMIN_PASSWORD` / `ADMIN_COOKIE_SECRET` 的必填性(它们同时被 AdminJS 登录与
 `AdminGuard` 的管理员断言复用)。
 
-**staging(原生 PM2)**下这两个值写在服务器上仓库根 `.env.production` 里,指向回环
-(`127.0.0.1`)——容器端口只绑 `127.0.0.1`。同一份文件也被
-`docker compose -f compose.staging.yaml --env-file .env.production` 读取做插值,
-所以 `DATABASE_URL` / `REDIS_URL` 里内嵌的密码必须与 `POSTGRES_PASSWORD` /
-`REDIS_PASSWORD` 一致(改密码要改两处);`TRUST_PROXY=true` 与
-`VICTORIALOGS_URL=http://127.0.0.1:9428/insert/jsonline` 也是 staging 必填项。
+主站上 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
+`POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入(容器名寻址,不写回环),
+所以 `.env` 里内嵌的密码必须与 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 一致
+(改密码要改两处);`TRUST_PROXY=true` 与 `VICTORIALOGS_URL` 也是主站必填项。
 
 非敏感运行时参数(host/port/日志级别/阈值/各业务开关)均通过环境变量配置,未设置时使用
 代码内默认值(见下文各节);全部可覆盖项见 `.env.production.example` 注释。
@@ -101,16 +99,16 @@ is served without authentication (not recommended for production). VictoriaMetri
 scrape config (`monitoring/victoriametrics/vmscraper.yml`)用 `%{METRICS_USER}` /
 `%{METRICS_PASSWORD}` 占位符从容器环境变量注入同名凭据。
 
-GitHub Actions CD 只为 production 构建并推送镜像到 Docker Hub(仓库级 secrets):
+GitHub Actions CD 构建并推送镜像到发布者自有 registry(仓库级 secrets):
 
 ```text
+REGISTRY_IMAGE
 DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
 ```
 
-staging 不再使用镜像:它的发布 secrets 是 `STAGING_SSH_HOST` / `STAGING_SSH_USER` /
-`STAGING_SSH_KEY`(可选 `STAGING_SSH_PORT`、`STAGING_SSH_KNOWN_HOSTS`),变量
-`STAGING_API_HOST` 用于发布后的公共健康检查(见 environment `staging`)。
+镜像只在服务器侧被消费:更新目标主机 `.env` 里的 `LUCENT_IMAGE` 引用后
+`docker compose pull && docker compose up -d --force-recreate <service>`。
 
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
 traffic. If you do expose browser clients from another origin, set it explicitly.
@@ -169,7 +167,7 @@ the pair must always be set together. `JPUSH_APNS_PRODUCTION` accepts `true` or
 The Master Secret is sensitive and must not be committed.
 
 **0.1.0 发布门槛**：生产环境必须配齐 `JPUSH_APP_KEY` / `JPUSH_MASTER_SECRET`（经
-Coolify/生产环境变量注入）并完成真机验证。缺失时服务静默禁用推送并在启动日志
+生产环境变量注入,即服务器上的 `/opt/lucent/.env`）并完成真机验证。缺失时服务静默禁用推送并在启动日志
 `warn`;最低上线检查见 [deployment.md](deployment.md)。
 
 Daily-record image uploads through object storage (Tencent COS or S3):
@@ -211,7 +209,7 @@ truly configured only after `ALIYUN_OSS_ACCESS_KEY_ID`, `ALIYUN_OSS_ACCESS_KEY_S
 `ALIYUN_OSS_BUCKET` are all set. Like COS, OSS signed URLs are not audience-specific: the
 external audience (e.g. meal-analysis vision model) receives the same URL as the client.
 
-S3-compatible object storage (dev: SeaweedFS / staging: 七牛云 Kodo S3 兼容) — set `STORAGE_PROVIDER=s3` to use:
+S3-compatible object storage (dev: SeaweedFS / prod: 七牛云 Kodo S3 兼容) — set `STORAGE_PROVIDER=s3` to use:
 
 ```text
 STORAGE_PROVIDER=s3
@@ -466,10 +464,10 @@ Unrecognized setting`）。因此：
 > ② 只写 5.26 真实存在的内存设置（`heap.initial_size` / `heap.max_size` /
 > `pagecache.size`）。`server.memory.recovery_policy` 在 5.26 **不存在**，照抄会让库起不来。
 
-> **当前实情（2026-09-19）**：`semantica-service` 尚未提供 Dockerfile/镜像，因此三份
-> compose 里的 `semantica` 服务（profile `semantica`）**暂时起不来**——服务定义已经写好
-> 是为了让 dev / staging / prod 形态一致（AGE 计划 §一 的"三环境同一形态"），镜像是下一步。
-> 该限制不影响 `neo4j` 服务本身：它不入门控，`docker compose up neo4j` 即可单独使用。
+> **`semantica` 服务**（profile `semantica`）定义在三份 compose 里以保持 dev / prod 形态
+> 一致，但其镜像只在图库机上有意义（主站不启用该 profile，见
+> `docs/reference/deployment.md`）。该限制不影响 `neo4j` 服务本身：它不入门控，
+> `docker compose up neo4j` 即可单独使用。
 
 Observability:
 
@@ -537,16 +535,14 @@ VICTORIALOGS_URL
   Winston batches log entries as newline-delimited JSON and POSTs them directly
   to this URL (no Vector sidecar needed).
   **默认回落到** `http://victorialogs:9428/insert/jsonline`（写在 `compose.yaml` 的
-  app 服务里，供单机全栈部署使用）。监控栈在阿里云那台时容器名在本机解析不了，
-  必须在 `.env` 里覆盖成 `http://<阿里云公网IP>:9428/insert/jsonline`，并在阿里云
-  安全组放行鲲鹏的出口 IP。
-  staging(原生 PM2)在 `.env.production` 里写 `http://127.0.0.1:9428/insert/jsonline`
-  (容器端口发布到回环)。
+  app 服务里，供单机全栈部署使用）。监控栈在另一台机器时容器名在本机解析不了，
+  必须在 `.env` 里覆盖成 `http://<监控机地址>:9428/insert/jsonline`，并在监控机
+  安全组放行本机的出口 IP。
   Unset = only Console (stdout) transport is used. See ADR-0016 for the log backend strategy.
 - `LUCENT_PUBLIC_HOST` — **不是 app 的变量**，不经过 zod 校验层：它只由
-  `compose.monitoring.yaml`（阿里云那台）消费，作为 VictoriaMetrics 抓取目标的
+  `compose.monitoring.yaml`（监控机）消费，作为 VictoriaMetrics 抓取目标的
   主机名（`vmscraper.yml` 里经 `%{LUCENT_PUBLIC_HOST}` 展开成
-  `http://<值>:3000/metrics` 与 `:9100/metrics`）。填鲲鹏的**公网**地址，
+  `http://<值>:3000/metrics` 与 `:9100/metrics`）。填主站的**公网**地址，
   不带协议与端口。该文件用 `:?` 校验它，未设置时 compose 拒绝启动。
   单机全栈部署时填本机容器网络可达的地址即可。
 
@@ -562,9 +558,10 @@ TRUST_PROXY
   `TestingSharedSecretGuard`; the client must send the shared secret via the
   `x-testing-shared-secret` header. Only registered when `NODE_ENV=test`.
 - `TRUST_PROXY` — when set to `true`, Fastify trusts `X-Forwarded-*` headers
-  from the reverse proxy. Required in production behind the Coolify Traefik
-  proxy, and in staging behind the self-hosted Traefik container, for correct
-  client IP extraction and protocol detection (rate limiting buckets per client).
+  from a reverse proxy. There is no reverse proxy in the current topology (the app
+  is published directly), so it is only needed if one is introduced later; keep it
+  set for correct client IP extraction and protocol detection behind a proxy
+  (rate limiting buckets per client).
 
 Client-facing configuration (optional):
 

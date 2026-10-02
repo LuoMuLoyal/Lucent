@@ -121,7 +121,7 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-08-24
 - [0017](0017-coolify-deployment.md)
   - Title: Coolify 部署模型(仓库 compose + Docker Hub 镜像)
-  - Status: accepted (amended 2026-09-10: staging 改为原生 PM2 + 自建 Traefik + 推送即部署)
+  - Status: superseded by 0023 (Coolify 与 staging 模型均已退役)
   - Date: 2026-09-08
 - [0018](0018-config-env-only.md)
   - Title: 配置文件回退纯环境变量(YAML 层退役)
@@ -143,3 +143,7 @@ What becomes easier or harder as a result of this decision?
   - Title: 图后端由 Apache AGE 改为 Neo4j
   - Status: accepted（supersedes 0021 的决定 4）
   - Date: 2026-09-29
+- [0023](0023-three-server-compose-deployment.md)
+  - Title: 三机 Compose 部署模型(跨云公网 + 安全组收口)
+  - Status: accepted（supersedes 0017）
+  - Date: 2026-10-02

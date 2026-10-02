@@ -63,8 +63,17 @@ function collectMarkdownFiles(repoRoot: string): string[] {
 
 /**
  * Files subject to path-token validation: the active docs surface plus
- * module/common READMEs, active plans, and root entry docs. Migration logs
- * are excluded (append-only history mentions removed paths by design).
+ * module/common READMEs, active plans, and root entry docs.
+ *
+ * Three append-only, point-in-time surfaces are excluded because they mention
+ * since-removed paths *by design* and cannot be corrected without rewriting
+ * history (AGENTS.md: migration logs and ADRs are append-only; dated plans are
+ * snapshots):
+ *   - `docs/logs/**`  — dated ledger
+ *   - `docs/reference/adr/**` — decisions are never edited, only superseded
+ *   - dated `plans/*.md` — handled in `collectPathCheckFiles` below
+ * Link-target validation still applies to the first two (only path tokens are
+ * skipped), so a genuinely broken Markdown link is still reported.
  */
 function collectPathCheckFiles(
   repoRoot: string,
@@ -72,7 +81,9 @@ function collectPathCheckFiles(
 ): string[] {
   const set = new Set<string>();
   for (const f of docsFiles) {
-    if (!f.startsWith('docs/logs/')) set.add(f);
+    if (!f.startsWith('docs/logs/') && !f.startsWith('docs/reference/adr/')) {
+      set.add(f);
+    }
   }
   const add = (rel: string) => {
     if (existsSync(resolve(repoRoot, rel))) set.add(rel.replace(/\\/g, '/'));

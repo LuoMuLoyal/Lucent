@@ -1,7 +1,8 @@
 # ADR-0017: Coolify 部署模型(仓库 compose + Docker Hub 镜像)
 
-- **Status**: accepted (amended 2026-09-10: staging 迁出 Coolify,改为宿主原生
-  PM2 + 自建 Traefik + 推送即部署;下文 Coolify 模型继续适用于 production)
+- **Status**: superseded by [0023](0023-three-server-compose-deployment.md)(2026-10-02:
+  三台机器上均无 Coolify / Traefik,`80`/`443` 无监听;实际形态为各机跑仓库 compose +
+  安全组收口,staging 资产已退役。原文保留,历史上限以落笔时设计为准)
 - **Date**: 2026-09-08
 - **Deciders**: LuoMuLoyal
 

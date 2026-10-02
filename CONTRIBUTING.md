@@ -33,9 +33,11 @@ This runs lint, app typecheck, tools typecheck, build, unit tests, and e2e tests
 pnpm typecheck
 ```
 
-Deployment is Coolify + GitHub Actions CD (build & push the publisher's own image,
+Deployment is three hosts each running a repo compose with plain `docker compose`
+(GitHub Actions CD only builds & pushes the publisher's own image,
 `REGISTRY_IMAGE` GitHub secret, e.g. `docker.io/<your-user>/lucent`);
-see [docs/howto/deploy.md](docs/howto/deploy.md).
+see [docs/reference/deployment.md](docs/reference/deployment.md) for the model and
+[docs/howto/deploy.md](docs/howto/deploy.md) for the steps.
 
 ## What Not To Commit
 

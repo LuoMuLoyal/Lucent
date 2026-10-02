@@ -2,190 +2,133 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-09-17
+updated: 2026-10-02
 ---
 
 # Lucent Deployment
 
-> 当前有两套并行模型(2026-09-10 起):
+> **三台机器,各跑一份仓库内 compose**,用 `docker compose up -d` 直接管理。
+> 跨云通信走公网(无 VPC 对等),访问控制由**云安全组的来源 IP 白名单**承担。
+> 当前无反向代理、无域名、无 TLS,app 以 HTTP 直接对外提供入口。
 >
-> - **production** — 仓库 `compose.yaml`(含 app)在 Coolify 注册为 Docker Compose Service,
->   镜像由 GitHub Actions 构建推送,反代/TLS 由 Coolify 自带 Traefik 接管;
-> - **staging** — 应用以原生 Node + PM2 跑在宿主机(`/opt/lucent`),依赖的
->   postgres/redis/指标栈/自建 Traefik 由根 `compose.staging.yaml` 自管,
->   推送 main 即部署。
+> 决策见 [ADR-0023](adr/0023-three-server-compose-deployment.md);操作步骤见
+> [howto/deploy.md](../howto/deploy.md)。[ADR-0017](adr/0017-coolify-deployment.md)
+> 的 Coolify 模型与 staging(宿主 PM2 + 自建 Traefik)已退役。
 >
-> 决策见 [ADR-0017](adr/0017-coolify-deployment.md)(2026-09-10 修订);
-> 操作步骤见 [howto/deploy.md](../howto/deploy.md)。旧的 ADR-0004 模型
-> (GitHub Actions + 腾讯 TCR + `deploy.ts` 单 slot 停机部署 + Nginx)已退役。
+> 🔒 **本文只描述形态,不写真实地址。** 公网 IP、端口暴露矩阵与安全组规则属运维信息,
+> 在**服务器侧的 `.env` 与私有运维笔记**中维护,不入库(仓库可能公开)。
+> 下文用占位符:`<主站IP>` = Lucent 主站,`<图库IP>` = 图后端机,`<监控IP>` = 监控机。
 
-## Staging(原生 PM2 + 自建 Traefik)
-
-### 拓扑
+## 拓扑
 
 ```
-push main ──► lucent-staging(.github/workflows/lucent-staging.yml)
-                │  ssh root@<staging-host>
-                └─ cd /opt/lucent
-                   pm2 stop → git reset --hard origin/main → pnpm install
-                   → prisma:generate + build → prisma migrate deploy
-                   → pm2 startOrReload → 健康门禁
-
-                    ┌─ Traefik 容器(80/443,file provider)────────┐
-公网 ── 443 ────────┤  api.<域名>      → host.docker.internal:3000  │
-                    │  metrics.<域名>  → victoriametrics:8428  ┐    │
-                    │  logs.<域名>     → victorialogs:9428     ├ BasicAuth
-                    │  traefik.<域名>  → api@internal          ┘    │
-                    └──────────────────┬───────────────────────────┘
-宿主机(root,Node 24 + pnpm + PM2)
-  /opt/lucent ── pm2 `lucent` ── dist/main.js ── 127.0.0.1:3000
-       │ DATABASE_URL / REDIS_URL / VICTORIALOGS_URL 走 127.0.0.1
-       ▼
-容器(compose.staging.yaml,project `lucent-staging`)
-  postgres · redis · victoriametrics · victorialogs(+ traefik,见上)
+              客户端
+                │  http://<主站IP>:3000
+┌───────────────▼──────────────────────────┐
+│ 主站(华为云 鲲鹏, aarch64)               │
+│   /opt/lucent/compose.yaml               │
+│   app                 :3000  公网入口     │
+│   postgres            :5432              │
+│   redis               :6379              │
+│   lightrag            :9621              │
+│   node-exporter       :9100              │
+└───┬───────────────────────────────┬──────┘
+    │ 公网(跨云唯一通路)           │
+    │ app→semantica                 │ app push 日志/追踪
+    │ ◀── 监控机 pull 指标 ─────────┤
+┌───▼──────────────────────┐  ┌─────▼────────────────────────────┐
+│ 图库机(腾讯云, amd64)     │  │ 监控机(阿里云, amd64)            │
+│  /opt/lucent-neo4j/       │  │  /opt/lucent-monitoring/         │
+│   neo4j        :7474/7687 │  │   victoriametrics :8428          │
+│   semantica    :8099      │  │   grafana         :3001          │
+│                           │  │   victorialogs    :9428          │
+│                           │  │   victoriatraces  :10428         │
+└───────────────────────────┘  └──────────────────────────────────┘
 ```
 
-### 组件与端口
+> ⚠️ **跨云走公网,不是内网 VPC。** 三家云之间没有 VPC 对等连接,私网网段互不可达。
+> 所有跨机地址必须填**对方的公网地址**(如 `SEMANTICA_BASE_URL=http://<图库IP>:8099`),
+> 安全组按**对方的公网出口 IP** 做白名单。三家均为 1:1 NAT,出口 IP == 公网 IP。
+> 填内网地址的失败形态是**超时**,不是连接拒绝——各服务按自己的回落语义处理。
 
-| 服务            | 运行方式                                | 端口                       | 说明                                                                    |
-| --------------- | --------------------------------------- | -------------------------- | ----------------------------------------------------------------------- |
-| app             | 宿主 PM2(`deploy/ecosystem.config.cjs`) | 宿主 `0.0.0.0:3000`        | `cwd=/opt/lucent`,日志 `logs/pm2-*.log`;健康检查 `/api/v1/health/ready` |
-| postgres        | 容器 `pgvector/pgvector:pg18`           | `127.0.0.1:5432`           | 卷 `postgres-data`                                                      |
-| redis           | 容器 `redis:8-alpine`                   | `127.0.0.1:6379`           | requirepass + appendonly;卷 `redis-data`                                |
-| victoriametrics | 容器 `victoria-metrics:v1.151.0`        | `127.0.0.1:8428`           | 抓宿主 `host.docker.internal:3000/metrics`;保留 15d                     |
-| victorialogs    | 容器 `victoria-logs:v1.51.1`            | `127.0.0.1:9428`           | 接收 Winston JSON 日志;保留 15d                                         |
-| traefik         | 容器 `traefik:v3.6`                     | `80` / `443`(唯一公网入口) | 证书存卷 `letsencrypt`;配置见下                                         |
-| lightrag        | 容器 `ghcr.io/hkuds/lightrag:latest`    | `127.0.0.1:9621`           | 中文散文检索 sidecar;独立 `deploy/lightrag/.env`;卷 `lightrag-data`     |
+**流量方向决定安全组往哪边开**:
 
-容器端口一律只绑回环:应用经回环访问数据库与日志库,公网只经 Traefik,TLS 与面板
-BasicAuth 都由 Traefik 终止,不再依赖云安全组收口。
+| 链路                             | 方向            | 安全组开在哪             |
+| -------------------------------- | --------------- | ------------------------ |
+| 监控机 → 主站 `3000`/`9100`      | 监控机主动 pull | 主站侧,放行监控机出口 IP |
+| 主站 app → 监控机 `9428`/`10428` | 应用主动 push   | 监控机侧,放行主站出口 IP |
+| 主站 app → 图库机 `8099`         | 应用主动调用    | 图库机侧,放行主站出口 IP |
 
-### 配置与密钥
+## 三台机器
 
-- **应用运行时**:仓库根 `.env.production`(gitignored,不入库),应用按
-  `NODE_ENV=production` 自动加载(`src/config/env/env-file-paths.ts`);
-  `TRUST_PROXY=true` 必须开启,否则经 Traefik 后限流取不到真实客户端 IP;
-  `VICTORIALOGS_URL=http://127.0.0.1:9428/insert/jsonline`(容器端口发布到回环)。
-- **同一份 `.env.production` 也供 compose 插值**:`docker compose -f compose.staging.yaml
---env-file .env.production ...`,需要 `POSTGRES_PASSWORD`、`REDIS_PASSWORD`、
-  `METRICS_USER`、`METRICS_PASSWORD`。**注意** `DATABASE_URL` / `REDIS_URL` 里内嵌的
-  密码必须与 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 一致(改密码要改两处)。
-- **Traefik 配置不走环境变量**:`deploy/traefik/*.yml` 是服务器本地的 gitignored 文件
-  (由仓库里的 `.example` 模板复制而来),域名、邮箱、面板密码哈希直接改文件;
-  改完 `docker compose ... restart traefik`(单文件 bind-mount 的 fsnotify 不可靠)。
-- **GitHub Actions**(environment `staging`):secrets `STAGING_SSH_HOST` /
-  `STAGING_SSH_USER`(root)/ `STAGING_SSH_KEY` / 可选 `STAGING_SSH_PORT`、
-  `STAGING_SSH_KNOWN_HOSTS`;variable `STAGING_API_HOST`(发布后公共健康检查用)。
+| 机器           | 架构    | 工作目录                 | compose                   | 起的服务                                                    |
+| -------------- | ------- | ------------------------ | ------------------------- | ----------------------------------------------------------- |
+| 主站(华为云)   | aarch64 | `/opt/lucent`            | `compose.yaml`            | `postgres` `redis` `app` `lightrag` `node-exporter`         |
+| 图库机(腾讯云) | amd64   | `/opt/lucent-neo4j`      | `compose.yaml`            | `neo4j` `semantica`                                         |
+| 监控机(阿里云) | amd64   | `/opt/lucent-monitoring` | `compose.monitoring.yaml` | `victoriametrics` `grafana` `victorialogs` `victoriatraces` |
 
-### 发布
+**同一份 `compose.yaml` 在主站与图库机各部署一份**,用**显式服务名**决定起哪些
+(图库机执行 `docker compose up -d neo4j semantica`)。`semantica` 服务带
+`profiles: ['semantica']`,在主站上不启用。三台机器的 compose 内容均与仓库一致。
 
-1. 推送到 `main` → `lucent-staging` **立即**部署(不等 `lucent-ci` 结果、无人工批准)。
-2. 远端串行执行:校验 `.env.production` 存在且含 `DATABASE_URL`,并把它导出到安装环境
-   (postinstall 会跑 `prisma:generate`,而 `prisma.config.ts` 要求该变量存在)
-   → `pm2 stop lucent` → `git fetch --prune origin && git reset --hard origin/main`
-   → `pnpm install --frozen-lockfile` → `NODE_ENV=production pnpm prisma:generate` + `pnpm build`
-   → `NODE_ENV=production pnpm exec prisma migrate deploy`
-   → `pm2 startOrReload deploy/ecosystem.config.cjs --update-env` → `pm2 save`
-   → 本机健康门禁(`/api/v1/health/ready`)→ 工作流再做一次公共健康检查(`/api/v1/health/deep`)。
-   全程带 `NODE_ENV=production`:Prisma 与 Nest 都按它选择 `.env.*` 文件,漏掉会去读
-   服务器上不存在的 `.env.development`,报 `DATABASE_URL environment variable is required`。
-3. 停机窗口 = 上述第 2 步全程(含构建,通常 1–3 分钟);SSE 连接会先收到终止事件再关闭。
-4. 手动发布/重发:SSH 登录后敲同一串命令(原文见
-   [howto/deploy.md](../howto/deploy.md))。
-5. **回滚不做**:模型是 fix-forward —— 需要回旧版本时手动
-   `git checkout <旧 sha>` 后重跑同一串命令;数据库迁移不回退,破坏性变更继续
-   expand-contract。
-6. 基础设施(容器)变更不随应用发布自动生效:改 `compose.staging.yaml` 后手动
-   `docker compose -f compose.staging.yaml --env-file .env.production up -d`。
+**为什么主站放鲲鹏**:4c/7.2 GiB 是唯一能同时扛住 Lucent + PG + Redis + LightRAG 的机器,
+且「国产 CPU + 国产 OS(Huawei Cloud EulerOS)上跑核心业务」是大赛鼓励的国产化方向。
+**为什么 Neo4j 放图库机**:它是 JVM 应用,固定内存约 852 MiB(heap 512m + pagecache 256m),
+把 1.2 GB 级负载挪出主站;同时 x86 可省一次跨架构验证。
+**为什么监控栈独立一台**:Grafana 查询 VM 是密集链路(一个仪表盘刷新打出几十个 range query),
+VM 与 Grafana 同机会让同一份数据在公网上往返两次并穿过窄带宽;监控与被观测对象分离也保证
+主站整台挂掉时历史指标还在。
 
-### 面板与指标
+## 组件与端口
 
-- 三个面板域名都挂 BasicAuth(`401` 未认证):`metrics.<域名>`(VictoriaMetrics VMUI)、
-  `logs.<域名>`(VictoriaLogs UI,LogsQL 按 `trace_id` 检索)、`traefik.<域名>`
-  (Traefik dashboard:反代自身的路由 / 服务 / 中间件 / 证书与 ACME 状态)。
-- `/metrics` 仍由应用的 `METRICS_USER` / `METRICS_PASSWORD` 做 Basic Auth;
-  抓取配置 `monitoring/victoriametrics/vmscraper.staging.yml` 的目标是
-  `host.docker.internal:3000`。
-- 面板不是公网必需时,可直接编辑那两个 traefik 配置文件删掉对应路由(不影响 api 路由)。
+| 机器   | 服务              | 镜像                                       | 端口          | 说明                                                                                                            |
+| ------ | ----------------- | ------------------------------------------ | ------------- | --------------------------------------------------------------------------------------------------------------- |
+| 主站   | `app`             | `<registry>/lucent:<sha>-arm64`            | `3000`        | 公网入口;健康检查 `/api/v1/health`                                                                              |
+| 主站   | `postgres`        | `<registry>/lucent-db:18-arm64`            | `5432`        | 卷 `postgres-data`;镜像自带 `vector` + `zhparser`;**`lucent` 与 `lightrag` 两库各需 `CREATE EXTENSION vector`** |
+| 主站   | `redis`           | `redis:8-alpine`                           | `6379`        | requirepass + appendonly;卷 `redis-data`                                                                        |
+| 主站   | `lightrag`        | `ghcr.io/hkuds/lightrag:latest`            | `9621`        | 中文散文检索 sidecar;独立 `deploy/lightrag/.env`;卷 `lightrag-data`                                             |
+| 主站   | `node-exporter`   | `prom/node-exporter:v1.9.1`                | `9100`        | 宿主机指标;**只放行监控机出口 IP**                                                                              |
+| 图库机 | `neo4j`           | `neo4j:5.26.31-community`                  | `7474`/`7687` | 固定 heap 512m + pagecache 256m                                                                                 |
+| 图库机 | `semantica`       | `<registry>/lucent-semantica:latest-amd64` | `8099`        | 英文侧 OAG;bearer 鉴权(`API_TOKEN` / `SEMANTICA_API_KEY`)                                                       |
+| 监控机 | `victoriametrics` | `victoria-metrics:v1.151.0`                | `8428`        | 抓主站 `3000`/`9100`                                                                                            |
+| 监控机 | `grafana`         | `grafana:12.1.0`                           | `3001`        | provisioning/dashboards 来自 `monitoring/grafana/`                                                              |
+| 监控机 | `victorialogs`    | `victoria-logs:v1.51.1`                    | `9428`        | 接收 Winston JSON 日志                                                                                          |
+| 监控机 | `victoriatraces`  | `victoria-traces:v0.12.0`                  | `10428`       | OTLP trace 入口                                                                                                 |
 
-### 排障速查(staging)
+所有服务 `restart: unless-stopped`,主机重启后自动恢复。
 
-- 应用起不来:`pm2 status` / `pm2 logs lucent --lines 100`;再不行看
-  `/api/v1/health/deep` 输出。
-- 域名打不开或 502:先看 `traefik.<域名>` 面板(dashboard)确认路由与证书状态;
-  502 多数是 `host.docker.internal` 解析问题(容器缺 `extra_hosts: host-gateway`)
-  或 PM2 进程没起来。
-- 数据库连不上:确认容器 healthy(`docker compose -f compose.staging.yaml ps`)、
-  `.env.production` 里 `DATABASE_URL` 的密码与 `POSTGRES_PASSWORD` 一致。
-- 证书没签发:确认 DNS 已指向该机、80 可达(或 CDN 放行 `/.well-known/acme-challenge/`),
-  再看 traefik 容器日志的 ACME 报错。
-- **用 IP 测 HTTPS 报 self-signed 属正常**:Traefik 在没有匹配 SNI/Host 的证书时回落到内置
-  自签证书(`TRAEFIK DEFAULT CERT`),而路由规则是 `Host(\`api.<域名>\`)`,`https://127.0.0.1/`
-  既拿不到真证书也匹配不到路由(只会得到 Traefik 的 404)。分层验证:
-  ① 直连应用 `curl -fsS http://127.0.0.1:3000/api/v1/health/deep`;
-  ② 验路由(不校验证书)`curl -k -sS -o /dev/null -w '%{http_code}\n' -H 'Host: api.<域名>'
-https://127.0.0.1/api/v1/health/deep`(200/503 = 路由通了,404 = Host 未匹配);
-  ③ 验证书 `curl -fsS --resolve api.<域名>:443:127.0.0.1 https://api.<域名>/api/v1/health/deep`
-  (不通再查 ACME:域名是否已填真实值、DNS 是否指向该机、安全组是否放行 80)。
-- 指标为空:确认 victoriametrics 容器带 `-promscrape.config=/etc/vmscraper.yml`,
-  且 `METRICS_*` 两侧一致。
+### 暴露面:安全组是访问控制层
 
-## Production(Coolify)
+**端口发布到 `0.0.0.0` 不等于对全网开放。** 云安全组按来源 IP 白名单收口;把某端口限定到
+指定 IP 后,其可达性等同于「只有该 IP 能连」——这与「仅绑回环 + SSH 隧道」是同一档的
+访问控制,区别只在审计面与多一层云厂商依赖。**判断暴露面看安全组放行了谁,不看端口是否发布。**
 
-### 拓扑
+原则(具体规则在私有运维笔记中维护,**不入库**):
 
-```
-GitHub (CI/CD)                              Coolify 控制面
-┌──────────────────────┐                    ┌───────────────────────────────┐
-│ lucent-ci            │  push 镜像到       │ Coolify UI                   │
-│  lint/test/build     │  发布者自己的      │  Docker Compose Service 资源  │
-│ lucent-production    │  registry          │  (粘贴 compose.yaml)          │
-│  build Dockerfile    ├───────────────────▶│                               │
-│  → registry          │                    │  Traefik(自动装)              │
-└──────────────────────┘                    │   ├── 域名 → app:3000 + TLS   │
-                                            └───────────────┬───────────────┘
-                                                            │ SSH / docker
-                                            目标服务器(Coolify 纳管)
-                                            ┌───────────────────────────────┐
-                                            │ postgres / redis / app        │
-                                            │ victoriametrics / grafana     │
-                                            │ victorialogs / node-exporter  │
-                                            └───────────────────────────────┘
+- 对外入口只有 app 的 `3000`;
+- `9100` **只放行监控机出口 IP**,绝不放行 `0.0.0.0/0`;
+- 数据与 sidecar 端口(`5432`/`6379`/`9621`/`7687`/`7474`/`8099`)只放行
+  运维 IP 与确实需要对端的来源 IP;
+- 监控栈端口只放行运维 IP。
+
+比放行本机 IP 更严的做法是开 SSH 隧道(端口不必对任何 IP 放行):
+
+```bash
+ssh -N -L 8428:127.0.0.1:8428 -L 9428:127.0.0.1:9428 \
+    -L 3001:127.0.0.1:3001 root@<监控IP>
 ```
 
-- **编排单一事实源**:`compose.yaml`(production,app + postgres + redis +
-  victoriametrics + grafana + victorialogs + node-exporter)。
-- **反向代理 / TLS**:Coolify 在被管服务器自动安装 Traefik;域名、HTTPS 证书在
-  Coolify 面板配置,不再有 Nginx、`certs/`、`check-cert.sh`。
-- **镜像**:`compose.yaml` 的 app 服务带 `build` 段(context = 仓库根,Dockerfile =
-  根 `Dockerfile`),Coolify 可直接在部署服务器上构建;也可由 CI/CD 构建并推送发布者
-  自有镜像仓库,仓库名由 GitHub secret `REGISTRY_IMAGE` 注入(**公开仓库代码不写死
-  用户名/镜像地址**),此时把 `LUCENT_IMAGE` 指到已推送的引用即拉取而不重新构建。
-  镜像 tag 见下文。
-- **日志**:应用只写 stdout(容器/Coolify 收集)+ VictoriaLogs
-  (`VICTORIALOGS_URL` 由 compose 注入),不写文件系统。
+### 无 TLS
 
-### 组件与端口
+`app` 直接以 HTTP 提供入口,**没有反向代理、没有域名、没有证书**。后果:客户端到服务端的
+流量未加密,`METRICS_USER`/`METRICS_PASSWORD` 与各 sidecar 的 bearer token 在跨云公网上
+明文过线。引入域名 + TLS 终止是独立的后续决策。
 
-| 服务              | 镜像                                           | 端口        | 说明                                                                 |
-| ----------------- | ---------------------------------------------- | ----------- | -------------------------------------------------------------------- |
-| `app`             | `${LUCENT_IMAGE}`(服务器构建,或 CI 已推送引用) | 仅内网 3000 | 公网入口 = Coolify 域名路由;健康检查 `/api/v1/health`                |
-| `postgres`        | `pgvector/pgvector:pg18`                       | 无          | 卷 `postgres-data`                                                   |
-| `redis`           | `redis:8-alpine`                               | 无          | 卷 `redis-data`;requirepass                                          |
-| `victoriametrics` | `victoria-metrics:v1.151.0`                    | `8428:8428` | 抓 app `/metrics` 与 node-exporter;卷 `victoriametrics-data`         |
-| `grafana`         | `grafana:12.1.0`                               | `3001:3000` | provisioning/dashboards 来自 `monitoring/grafana/`;卷 `grafana-data` |
-| `victorialogs`    | `victoria-logs:v1.15.0`                        | `9428:9428` | 接收 Winston JSON 日志;卷 `victorialogs-data`                        |
-| `node-exporter`   | `node-exporter:v1.9.1`                         | 无          | 宿主机 CPU/内存/磁盘指标                                             |
-| `lightrag`        | `ghcr.io/hkuds/lightrag:latest`                | 无          | 中文散文检索 sidecar;只 expose 9621 给 app;卷 `lightrag-data`        |
-
-端口映射(8428/9428/3001)直接发布宿主机,**公网访问由云厂商安全组收口**。
-`/metrics` 端点 Basic Auth 由 `METRICS_USER` / `METRICS_PASSWORD` 控制。
-
-#### LightRAG sidecar(中文散文检索)
+### LightRAG sidecar(中文散文检索)
 
 - **配置独立**:`lightrag` 服务的 `env_file` 是 `deploy/lightrag/.env`,**不共用**
   app 的 `.env`。那是独立进程,不该读到 `JWT_*` / `DATABASE_URL` / 微信密钥。
-  部署平台需给该服务单独注入一份(清单见 `deploy/lightrag/.env.example`)。
+  清单见 `deploy/lightrag/.env.example`。
 - **Lucent 侧只需两项**:`LIGHTRAG_ENABLED=true` 与 `LIGHTRAG_API_KEY`(须与
   sidecar env 的同名项一致,是鉴权握手)。`LIGHTRAG_BASE_URL` 走默认的
   `http://lightrag:9621`(同 compose 网络)。
@@ -195,86 +138,90 @@ GitHub (CI/CD)                              Coolify 控制面
   (`MAX_PARALLEL_INSERT=2`)。
 - **升级纪律**:sidecar 并发协议在 v1.5.7 起有变更且无版本标记,**升级前必须排空
   pipeline 并停掉所有 writer 再启新版本**;漏一个旧 writer 即损坏数据。
-  `stop_grace_period: 60s` 就是为排空留的。
+  `stop_grace_period: 60s` 就是为排空留的。改 `.env` 后必须
+  `up -d --force-recreate`,**`up -d` 不重建容器**。
 - **回滚**:停 `lightrag` 服务并把 app 的 `LIGHTRAG_ENABLED` 置 `false` 即可 ——
   工具会返回"未配置"信封而不是报错,assistant 其余能力不受影响。客户端会经
   `capabilities.disabledReason = 'retrieval_unavailable'` 看到"检索暂不可用"。
 - **灌数据**:chunk 表是事实源,用 `pnpm import:lightrag --workspace=leaflet|qa`
-  推进 sidecar(幂等,`--reset` 先按 doc id 清空)。灌入产出的 doc id 段序是
-  跨进程契约(查询侧靠它反解溯源),**改段序等于切断溯源链**;失败的文档用
-  `POST /documents/reprocess_failed` 重试。
+  推进 sidecar(幂等,`--reset` 先按 doc id 清空)。按说明书逐份灌入的断点续传
+  见 [howto/run-medicine-import.md](../howto/run-medicine-import.md)。
+  灌入产出的 doc id 段序是跨进程契约(查询侧靠它反解溯源),**改段序等于切断溯源链**;
+  失败的文档用 `POST /documents/reprocess_failed` 重试。
 - **workspace 隔离的上游限制**:上游 #2527 确认单实例仅支持单 workspace,实测
   `LIGHTRAG-WORKSPACE` 头不改变实际读写位置。因此同实例上 `leaflet` 与 `qa`
   实际共享一个命名空间,靠 doc id 前缀区分;需要物理隔离时要另起实例。
 
-staging 侧同机以容器运行(`compose.staging.yaml`),端口发布到
-`127.0.0.1:9621`(app 是宿主 PM2 进程),`.env.production` 里写
-`LIGHTRAG_BASE_URL=http://127.0.0.1:9621`。
+### 英文侧 OAG(Neo4j + semantica)
 
-### 环境变量
+图库机只跑这两个服务,由主站的 app 经公网 `8099` 调用。`neo4j` 不在主站,
+app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/reason`)。
+`SEMANTICA_ENABLED=false` 时工具返回"未配置"信封,主流程不受影响。
 
-- 变量清单与语义见 [environment-variables.md](environment-variables.md),
-  模板见仓库根 `.env.production.example`。
-- compose 插值所需变量(在 Coolify 服务环境变量中配置):
-  `POSTGRES_PASSWORD`、`REDIS_PASSWORD`、`LUCENT_IMAGE`、`METRICS_USER`、
-  `METRICS_PASSWORD`、`GRAFANA_ADMIN_PASSWORD`;
-  `DATABASE_URL` / `REDIS_URL` 由 compose 的 `environment` 块拼接,不需手填。
-  `LUCENT_IMAGE` 是 app 的**完整镜像引用**(把 `<你的用户名>` 换成自己的
-  Docker Hub 用户名,示例 `<你的用户名>/lucent:1a2b3c4d`)。
-- app 的其余运行时变量经 `env_file: [.env]` 注入:在 Coolify 面板粘贴完整变量表
-  (Coolify 会写入服务目录的 `.env`)。
-- GitHub Actions secrets:`DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`(登录镜像仓库)、
-  `REGISTRY_IMAGE`(发布镜像仓库引用)。
+## 配置与密钥
 
-### 镜像 tag 策略
+**配置是服务器上的 `.env`**,不入库。compose 的 `${VAR}` 插值与 app 的
+`env_file` 读同一份文件;模板是仓库内 `.env.production.example`。
 
-- **production** 只推 `<git sha 前 8 位>`,**不推 `latest`**;`latest` 不再有消费者
-  (staging 已改为原生部署,不再使用镜像)。
-- `compose.yaml` 的 `LUCENT_IMAGE` 填完整引用 `<你的用户名>/lucent:<短 sha>`;
-  **生产发布固定短 sha**(在 Coolify 面板维护),回滚 = 把 `LUCENT_IMAGE` 改回旧短 sha
-  的完整引用再重启,天然可回退。
+| 机器   | 配置文件                           | 关键键                                                                                                                                                                                                        |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                          |
+| 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE`                                                                                                                                                                |
+| 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD`                                                                                                                               |
 
-### 发布与迁移
+- `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
+  `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接,不需手填;两者必须与 `.env` 里的
+  口令一致。
+- 变量完整语义见 [environment-variables.md](environment-variables.md)。
+- `LUCENT_PUBLIC_HOST`(监控机)与主站的 `PUBLIC_BASE_URL` 是同一事实的两处表达,
+  **改 IP 时必须同步**。
+- **多机 `.env` 是漂移源**:新增变量要逐台补,没有集中式配置源。
 
-两条路径按是否已有镜像区分:
+## 镜像与发布
 
-1. **拉取 CI 已推送镜像**(常规):手动触发 `lucent-production`(`workflow_dispatch`,
-   main)构建推送镜像 → 在 Coolify 面板把服务的 `LUCENT_IMAGE` 更新为含新短 sha 的
-   完整引用 → **Pull Latest Images & Restart**。
-2. **服务器就地构建**(镜像仓库不可用时的替代路径):`LUCENT_IMAGE` 指向目标引用,
-   Coolify 的 Docker Compose 构建走 compose 的 `build` 段;手动等价命令是
-   `docker compose up -d --build app`(不带 `--build` 时已有镜像直接复用)。
-   构建发生在部署服务器上,吃它的 CPU/内存/磁盘。
+- **镜像仓库**:发布者自有 registry,Docker Hub 仓库名由 GitHub secret
+  `REGISTRY_IMAGE` 注入(**公开仓库代码不写死用户名**)。
+- **tag**:`<git sha 前 8 位>-<架构>`,如 `<registry>/lucent:1a2b3c4d-arm64`。
+  主站需要 `linux/arm64`,图库机/监控机用 amd64。
+- **换版本**:改服务器 `.env` 里的 `LUCENT_IMAGE`,然后
+  `docker compose pull <service> && docker compose up -d --force-recreate <service>`。
+- **回滚 = 把镜像引用改回旧短 sha 再 `up -d`**,天然可回退。schema 不回退,
+  破坏性迁移继续遵守 expand-contract。
+- **跨架构构建**:给主站的镜像必须 `docker buildx build --platform linux/arm64`,
+  否则 `exec format error`。跨架构构建走 QEMU 模拟,耗时明显长于原生。
+  离线场景(无外网)的完整搬运流程(镜像 `docker save` + 跨机传输)属运维手册内容,不入库。
+- **镜像来源两条路径**:CI(`lucent-production`,`workflow_dispatch`)构建推送后拉取;
+  或服务器就地 `docker compose build app`。常规走 CI,就地构建是镜像仓库不可用时的替代。
 
-两条路径下容器启动时 `entrypoint.sh` 都自动执行 `prisma migrate deploy`,失败则容器
-不启动(不会带坏 schema 上线);验证:`curl https://<domain>/api/v1/health/deep`。
+## 数据库迁移
 
-发布窗口:单 slot 停机(容器重建期间 ~15–45s,就地构建含构建耗时会明显更长),
+`entrypoint.sh` 在容器启动时自动执行 `prisma migrate deploy`,**失败则容器不启动**,
+不会带坏 schema 上线。验证:`curl http://<主站IP>:3000/api/v1/health/deep`。
+
+发布窗口:单 slot 停机(容器重建期间约 15–45s;就地构建含构建耗时会更长),
 SSE 连接会收到终止事件后关闭,建议低峰发布。
 
-## 监控与告警(现状)
+## 监控与日志
 
-- **保留指标**:VictoriaMetrics + Grafana(production;看板 `monitoring/grafana/dashboards/`)。
-- **staging** 无 Grafana,直接用 VMUI(经 `metrics.<域名>` 面板路由)。
-- **告警已退役**:vmalert / alertmanager / 告警规则已删除,**当前不配置告警通知**。
-- **备份未启用**:当前不做数据库自动备份;生产上线前应在 Coolify 的 postgres 组件
-  开启定时备份(S3)或另行安排 `pg_dump` 运维。
-
-## 日志
-
-- **staging**:PM2 日志 `logs/pm2-*.log`(服务器本地)+ VictoriaLogs
-  (`logs.<域名>` 面板);容器日志 `docker compose -f compose.staging.yaml logs`。
-- **production**:stdout(Coolify 面板 / `docker logs`)+ VictoriaLogs
-  (`http://<host>:9428`,安全组收口)。
-- 字段约定见 [logging-conventions.md](logging-conventions.md);OpenTelemetry
-  trace 注入见 ADR-0010/0016。按 `trace_id` 检索时在搜索框输入 `trace_id:xxx`。
+- **指标**:主站 `node-exporter`(`9100`)与 app `/metrics`(`3000`)由监控机的
+  VictoriaMetrics 经公网抓取;`LUCENT_PUBLIC_HOST` 在监控机侧指定主站地址。
+- **面板**:Grafana `http://<监控IP>:3001`、VMUI `http://<监控IP>:8428`、
+  VictoriaLogs UI `http://<监控IP>:9428`。
+- **日志**:app 只写 stdout(容器收集)+ VictoriaLogs(`VICTORIALOGS_URL`),
+  不写文件系统、不挂日志卷。字段约定见 [logging-conventions.md](logging-conventions.md)。
+- **链路追踪**:OTLP 推到监控机 `10428`,采样率由 `OTEL_TRACES_SAMPLER` /
+  `OTEL_TRACES_SAMPLER_ARG` 控制(改环境变量即可,不必重建镜像)。
+  见 ADR-0010 / ADR-0016。
+- **告警当前未配置**。
 
 ## 服务器前置要求
 
-- **staging**:Node 24(`.node-version` / `package.json#engines`)+ pnpm 12(corepack
-  或全局安装)+ PM2(全局安装并以 root `pm2 startup` 注册开机自启)+ Docker 20.10+
-  (需要 `host-gateway`);DNS 已指向该机、80/443 放行;无需云安全组额外收口
-  (容器端口只绑回环)。首次接入步骤见 [howto/deploy.md](../howto/deploy.md)。
-- **production**:目标服务器加入 Coolify(Servers → Add Server,Coolify 自动装
-  Docker + Agent + Traefik);云安全组按需放行 `3001` / `8428` / `9428`(指标栈),
-  `80` / `443` 交给 Coolify Traefik。
+- **三台共同**:Docker 20.10+ 与 `docker compose` 插件;云安全组按上文原则放行;
+  无需 Node/pnpm/PM2(应用在容器里跑,不需要宿主运行时)。
+- **主站**:`linux/arm64` 镜像;工作目录下有 `compose.yaml`、`.env`、
+  `deploy/lightrag/.env`。
+- **图库机**:工作目录下有 `compose.yaml` 与 `.env`;Neo4j 固定内存约 852 MiB,
+  注意主机余量。
+- **监控机**:工作目录下有 `compose.monitoring.yaml`、`.env` 与 `monitoring/`
+  (provisioning 与 dashboards)。首次接入步骤见 [howto/deploy.md](../howto/deploy.md)。
