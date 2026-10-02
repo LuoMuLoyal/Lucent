@@ -44,7 +44,7 @@ updated: 2026-10-02
    cp deploy/lightrag/.env.example deploy/lightrag/.env && vim deploy/lightrag/.env
    ```
 
-3. **拉镜像**(主站要 `linux/arm64` 标签):
+3. **拉镜像**(tag 是 multi-arch,Docker 自动选本机架构那一层):
 
    ```bash
    docker compose pull postgres redis lightrag node-exporter app
@@ -81,8 +81,10 @@ updated: 2026-10-02
 ```bash
 cd /opt/lucent
 
-# 1) 换镜像引用(改这一处即可;完整引用含短 sha 与架构后缀)
-vim .env                     # LUCENT_IMAGE=<registry>/lucent:<新短sha>-arm64
+# 1) 换镜像引用(改这一处即可;tag 是 multi-arch,不带架构后缀)
+vim .env                     # LUCENT_IMAGE=<registry>/lucent:sha-<新短sha>
+                             # LUCENT_DB_IMAGE=<registry>/lucent-db:sha-<同一次发布的短sha>
+                             # (两者由同一次 release.yml 发布,用同一个 sha)
 
 # 2) 拉取并重建(up -d 不会拉新镜像,也不会重建容器)
 docker compose pull app
@@ -95,7 +97,9 @@ for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/v1/health/ready && 
 - `--force-recreate` 不能省:改 `.env` 后 `up -d` 看到容器已存在就什么都不做,
   **环境变量与镜像都不会更新**。
 - 停机窗口 = app 容器重建时间(约 15–45s)。
-- **回滚**:把 `LUCENT_IMAGE` 改回旧短 sha,重跑同一串命令。
+- **回滚**:把 `LUCENT_IMAGE` 改回旧 `sha-` tag,重跑同一串命令。
+- **发布新版本**:在 GitHub 手动触发 `Release` workflow(限 main),产物 tag 见
+  workflow 的 step summary;本地无需构建。
 
 ### 改 sidecar 配置
 
@@ -233,8 +237,8 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 
 | 键                                     | 值 / 说明                                                                                                      |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `LUCENT_IMAGE`                         | `<registry>/lucent:<短sha>-arm64`                                                                              |
-| `LUCENT_DB_IMAGE`                      | `<registry>/lucent-db:18-arm64`                                                                                |
+| `LUCENT_IMAGE`                         | `<registry>/lucent:sha-<短sha>`                                                                                |
+| `LUCENT_DB_IMAGE`                      | `<registry>/lucent-db:sha-<同一短sha>`                                                                         |
 | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与 `DATABASE_URL`/`REDIS_URL` 内嵌口令一致**                                              |
 | `PUBLIC_BASE_URL`                      | `http://<主站IP>:3000`                                                                                         |
 | `CORS_ORIGIN`                          | 当前 `*`;收紧时改成客户端来源                                                                                  |

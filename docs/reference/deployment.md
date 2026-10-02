@@ -83,8 +83,8 @@ VM 与 Grafana 同机会让同一份数据在公网上往返两次并穿过窄�
 
 | 机器   | 服务              | 镜像                                       | 端口          | 说明                                                                                                            |
 | ------ | ----------------- | ------------------------------------------ | ------------- | --------------------------------------------------------------------------------------------------------------- |
-| 主站   | `app`             | `<registry>/lucent:<sha>-arm64`            | `3000`        | 公网入口;健康检查 `/api/v1/health`                                                                              |
-| 主站   | `postgres`        | `<registry>/lucent-db:18-arm64`            | `5432`        | 卷 `postgres-data`;镜像自带 `vector` + `zhparser`;**`lucent` 与 `lightrag` 两库各需 `CREATE EXTENSION vector`** |
+| 主站   | `app`             | `<registry>/lucent:sha-<sha8>`             | `3000`        | 公网入口;健康检查 `/api/v1/health`;multi-arch(tag 不含架构)                                                     |
+| 主站   | `postgres`        | `<registry>/lucent-db:sha-<sha8>`          | `5432`        | 卷 `postgres-data`;镜像自带 `vector` + `zhparser`;**`lucent` 与 `lightrag` 两库各需 `CREATE EXTENSION vector`** |
 | 主站   | `redis`           | `redis:8-alpine`                           | `6379`        | requirepass + appendonly;卷 `redis-data`                                                                        |
 | 主站   | `lightrag`        | `ghcr.io/hkuds/lightrag:latest`            | `9621`        | 中文散文检索 sidecar;独立 `deploy/lightrag/.env`;卷 `lightrag-data`                                             |
 | 主站   | `node-exporter`   | `prom/node-exporter:v1.9.1`                | `9100`        | 宿主机指标;**只放行监控机出口 IP**                                                                              |
@@ -180,19 +180,25 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 
 ## 镜像与发布
 
-- **镜像仓库**:发布者自有 registry,Docker Hub 仓库名由 GitHub secret
-  `REGISTRY_IMAGE` 注入(**公开仓库代码不写死用户名**)。
-- **tag**:`<git sha 前 8 位>-<架构>`,如 `<registry>/lucent:1a2b3c4d-arm64`。
-  主站需要 `linux/arm64`,图库机/监控机用 amd64。
-- **换版本**:改服务器 `.env` 里的 `LUCENT_IMAGE`,然后
+- **镜像仓库**:发布者自有 registry,仓库引用由 GitHub secret `REGISTRY_IMAGE`
+  注入(**公开仓库代码不写死用户名**)。发布 `lucent`(应用,仓库根 `Dockerfile`)与
+  `lucent-db`(PostgreSQL + pgvector + 编译期产出的 zhparser 原生 `.so`)两个镜像。
+- **tag**:`sha-<git sha 前 8 位>`,如 `<registry>/lucent:sha-1a2b3c4d`。
+  **tag 不含架构** —— 它指向一个 **multi-arch manifest list**,Docker 按目标平台
+  自动选层。所以换机器/换架构**不必改 tag**,只改 sha。
+- **发布流程**:GitHub Actions `release.yml`(`workflow_dispatch`,限 main)。
+  **每架构原生构建**(`ubuntu-latest` 出 amd64、`ubuntu-24.04-arm` 出 arm64)
+  → 各自按 digest 推送 → merge job 用 `buildx imagetools create` 合成 manifest,
+  同时打 `sha-<sha8>` 与 `latest`。**不走 QEMU**:arm64 runner 对公开仓库免费,
+  原生构建既快又避免模拟环境的工具链差异(本项目实测 QEMU 下 `prisma` 会 panic)。
+  模型细节见 [.github/workflows/README.md](../../.github/workflows/README.md)。
+- **换版本**:改服务器 `.env` 里的 `LUCENT_IMAGE` / `LUCENT_DB_IMAGE`,然后
   `docker compose pull <service> && docker compose up -d --force-recreate <service>`。
-- **回滚 = 把镜像引用改回旧短 sha 再 `up -d`**,天然可回退。schema 不回退,
+- **回滚 = 把镜像引用改回旧 `sha-` tag 再 `up -d`**,天然可回退。schema 不回退,
   破坏性迁移继续遵守 expand-contract。
-- **跨架构构建**:给主站的镜像必须 `docker buildx build --platform linux/arm64`,
-  否则 `exec format error`。跨架构构建走 QEMU 模拟,耗时明显长于原生。
-  离线场景(无外网)的完整搬运流程(镜像 `docker save` + 跨机传输)属运维手册内容,不入库。
-- **镜像来源两条路径**:CI(`lucent-production`,`workflow_dispatch`)构建推送后拉取;
-  或服务器就地 `docker compose build app`。常规走 CI,就地构建是镜像仓库不可用时的替代。
+- **镜像来源两条路径**:CI(`release.yml`)构建推送后拉取(常规);
+  或服务器就地 `docker compose build app`(镜像仓库不可用时的替代,只适用 amd64
+  或本机原生架构)。离线场景(无外网)的完整搬运流程属运维手册内容,不入库。
 
 ## 数据库迁移
 
@@ -227,7 +233,7 @@ SSE 连接会收到终止事件后关闭,建议低峰发布。
 
 - **三台共同**:Docker 20.10+ 与 `docker compose` 插件;云安全组按上文原则放行;
   无需 Node/pnpm/PM2(应用在容器里跑,不需要宿主运行时)。
-- **主站**:`linux/arm64` 镜像;工作目录下有 `compose.yaml`、`.env`、
+- **主站**:工作目录下有 `compose.yaml`、`.env`、
   `deploy/lightrag/.env`。
 - **图库机**:工作目录下有 `compose.yaml` 与 `.env`;Neo4j 固定内存约 852 MiB,
   注意主机余量。

@@ -120,7 +120,7 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
 
 ### G3:CI 增加 openapi.json 一致性 diff 校验
 
-lucent-ci.yml 现仅在 E2E 前重导出 spec 供契约测试;增加
+ci.yml 现仅在 E2E 前重导出 spec 供契约测试;增加
 `git diff --exit-code docs/reference/generated/openapi.json` 步骤,使"代码已改但忘记提交
 重导出产物"在 CI 失败(README 的 CI 叙述已按此写,补齐实现)。
 
@@ -178,7 +178,7 @@ R-4 路线图清理完成时裁决去留：若 Luminous 已全面切换 `observe
 
 ### F3：CI lint 作业并行化（P3，2026-08-30 审查 Suggestion）
 
-oxlint 落地稳定后，将 `lucent-ci.yml` ci-lint-typecheck 作业中的 `lint:oxlint` 与
+oxlint 落地稳定后，将 `ci.yml` lint-typecheck 作业中的 `lint:oxlint` 与
 `typecheck`/`typecheck:tools` 并行（独立 step 或 matrix），缩短 CI 时长；当前串行稳妥但低效。
 
 ### B2：环境数据接入真实天气 API（P3）

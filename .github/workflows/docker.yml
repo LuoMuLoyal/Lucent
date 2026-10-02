@@ -1,0 +1,65 @@
+name: Docker
+
+# 镜像构建与漏洞扫描，**不推送**。真正的 multi-arch 发布在 release.yml。
+# 这里用与 release 相同的原生双架构矩阵，保证「扫过的架构」与「发布的架构」一致
+# —— 生产跑的是 arm64（鲲鹏主站），而 arm64 层此前从未被扫描过。
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+
+concurrency:
+  group: lucent-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-scan:
+    name: Build + Trivy (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 原生 runner per arch —— 不走 QEMU。`ubuntu-24.04-arm` 对**公开仓库**
+          # 免费；本仓库是 public。
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          # 单平台 + 原生 runner：不需要 QEMU，也不需要 buildx 的多平台输出。
+          platforms: ${{ matrix.platform }}
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+          tags: lucent-ci:scan
+
+      # 宽松模式：扫描并输出 HIGH/CRITICAL 漏洞报告，但不阻断 CI。
+      # 待基线建立后再考虑收紧为 exit-code: 1 或加 .trivyignore 白名单。
+      - name: Trivy scan (report only)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: lucent-ci:scan
+          severity: HIGH,CRITICAL
+          exit-code: '0'

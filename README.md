@@ -1,6 +1,6 @@
 # Lucent
 
-[![CI](https://github.com/LuoMuLoyal/Lucent/actions/workflows/lucent-ci.yml/badge.svg)](https://github.com/LuoMuLoyal/Lucent/actions/workflows/lucent-ci.yml)
+[![CI](https://github.com/LuoMuLoyal/Lucent/actions/workflows/ci.yml/badge.svg)](https://github.com/LuoMuLoyal/Lucent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Frontend: Luminous](https://img.shields.io/badge/frontend-LuoMuLoyal%2FLuminous-16a34a?logo=github)](https://github.com/LuoMuLoyal/Luminous)
 
@@ -277,11 +277,14 @@ building & pushing the Docker image. See
 
 ## Deployment Model
 
-- GitHub Actions owns validation (`lucent-ci`): lint, typecheck, build, unit tests, e2e tests.
-- **Image build & push** (`lucent-production`, manual `workflow_dispatch`): build the Lucent
-  Dockerfile and push to the publisher's own registry (`REGISTRY_IMAGE` GitHub secret, e.g.
-  `docker.io/<your-user>/lucent`), tagged `<short-sha>-<arch>`. No server-side build, no SSH
-  deploy scripts, no hardcoded image address in the repo.
+- GitHub Actions owns validation (`ci.yml`): lint, typecheck, build, unit tests, e2e tests.
+  `docker.yml` builds both architectures and Trivy-scans them without pushing.
+- **Image release** (`release.yml`, manual `workflow_dispatch` from `main`): builds `lucent`
+  and `lucent-db` **natively per architecture** (amd64 + arm64) and merges them into
+  multi-arch manifests in the publisher's own registry (`REGISTRY_IMAGE` GitHub secret, e.g.
+  `docker.io/<your-user>/lucent`), tagged `sha-<short-sha>` plus `latest`. No QEMU, no
+  server-side build, no SSH deploy scripts, no hardcoded image address in the repo.
+  See [.github/workflows/README.md](.github/workflows/README.md) for the release model.
 - **Runtime** — three hosts, one compose per host, each managed with plain
   `docker compose up -d`; all ports are published and access is controlled by the cloud
   security group's source-IP allowlist. `compose.yaml` is deployed twice with an explicit
@@ -291,8 +294,9 @@ building & pushing the Docker image. See
   inter-host addresses must be public. Releases: update the `LUCENT_IMAGE` reference in the
   host's `.env`, then pull and `up -d --force-recreate <service>` (the container entrypoint
   runs `prisma migrate deploy` on start); rollback is the same sequence with the previous
-  short sha. There is no reverse proxy, no domain and no TLS today — the API is served over
-  plain HTTP.
+  `sha-` tag. Because the tag points at a multi-arch manifest, the architecture is chosen by
+  Docker — switching hosts never changes the tag. There is no reverse proxy, no domain and no
+  TLS today — the API is served over plain HTTP.
 - Alerting and automated DB backups are currently not configured (metrics stack retained).
 - See [docs/reference/deployment.md](docs/reference/deployment.md) for the full model and
   [docs/howto/deploy.md](docs/howto/deploy.md) for the operational steps.

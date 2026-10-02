@@ -67,11 +67,15 @@ Service + Coolify 自带 Traefik 接管域名与 TLS」的模型,并在其 2026-
    `pull` 后 `up -d --force-recreate`);所有服务 `restart: unless-stopped`,
    主机重启后自动恢复,无需额外的进程管理器或平台 Agent。
 
-7. **镜像来自发布者自有 registry**,tag 为 `<git sha 前 8 位>-<架构>`。
-   主站需要 `linux/arm64` 镜像(构建机 `buildx --platform linux/arm64` 构建后推送或搬运)。
-   **镜像引用写在服务器的 `.env` 里**(`LUCENT_IMAGE` 等),换版本即改这一处。
-   **回滚 = 把镜像引用改回旧短 sha 再 `up -d`**,天然可回退;
-   schema 不回退,破坏性迁移继续遵守 expand-contract。
+7. **镜像来自发布者自有 registry**,tag 为 **`sha-<git sha 前 8 位>`(不含架构)**。
+   一个 tag 指向 **multi-arch manifest list**(`release.yml` 用 **每架构原生构建**
+   —— `ubuntu-24.04-arm` 对公开仓库免费 —— 再按 digest 合成),Docker 按目标平台
+   自动选层,因此**换架构不必改 tag,只改 sha**。**不走 QEMU**:模拟环境下的工具链
+   行为与原生不同(本项目实测 `prisma` 在 QEMU 下会 panic)。
+   **镜像引用写在服务器的 `.env` 里**(`LUCENT_IMAGE` / `LUCENT_DB_IMAGE`),
+   换版本即改这一处。**回滚 = 把镜像引用改回旧 `sha-` tag 再 `up -d`**,
+   天然可回退;schema 不回退,破坏性迁移继续遵守 expand-contract。
+   发布模型细节见 `.github/workflows/README.md`。
 
 8. **配置是服务器上的 `.env`,不入库**。compose 的 `${VAR}` 插值与 app 的
    `env_file` 读同一份,已 gitignore;模板是仓库内的 `.env.production.example`。
@@ -97,8 +101,11 @@ Service + Coolify 自带 Traefik 接管域名与 TLS」的模型,并在其 2026-
 - **staging 资产退役**:staging 专用 compose、`.github/workflows/` 下的 staging workflow、
   `deploy/` 下的 PM2 进程配置与 Traefik 模板、以及对应的计划文件全部删除
   —— 它们描述的环境已不存在,留着只会让下一次「照文档操作」踩空。
-- **`lucent-production.yml` 保留**:CI 构建推送镜像的职责不变,只是消费者从
+- **镜像发布链路保留并强化**:CI 构建推送镜像的职责不变,只是消费者从
   「平台面板改 `LUCENT_IMAGE`」变成「服务器上改 `.env` 再 `up -d`」。
+  workflow 随后按关注点拆为 `ci.yml` / `docker.yml` / `release.yml`
+  (见 `.github/workflows/README.md`),并把 app 与 db 镜像都改为
+  **双架构原生构建 + manifest 合并**,tag 规范化为 `sha-<sha8>`。
 - **暴露面由安全组决定**:端口发布形态见各 compose;可达范围见安全组规则。
   **不要把 `node-exporter` 暴露给 `0.0.0.0/0`**,也不要让数据端口落到运维来源之外。
 - **运维信息与仓库分离**:真实 IP、安全组规则、镜像仓库账号属运维信息,

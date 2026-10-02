@@ -100,7 +100,8 @@ is served without authentication (not recommended for production). VictoriaMetri
 scrape config (`monitoring/victoriametrics/vmscraper.yml`)用 `%{METRICS_USER}` /
 `%{METRICS_PASSWORD}` 占位符从容器环境变量注入同名凭据。
 
-GitHub Actions CD 构建并推送镜像到发布者自有 registry(仓库级 secrets):
+GitHub Actions `release.yml` 构建并推送 multi-arch 镜像到发布者自有 registry
+(仓库级 secrets):
 
 ```text
 REGISTRY_IMAGE
@@ -108,8 +109,12 @@ DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
 ```
 
-镜像只在服务器侧被消费:更新目标主机 `.env` 里的 `LUCENT_IMAGE` 引用后
-`docker compose pull && docker compose up -d --force-recreate <service>`。
+`REGISTRY_IMAGE` 是 app 镜像完整引用(如 `docker.io/<用户名>/lucent`);DB 镜像由它
+派生出同命名空间的 `<namespace>/lucent-db`,**不需要单独配 secret**。
+
+镜像只在服务器侧被消费:更新目标主机 `.env` 里的 `LUCENT_IMAGE` / `LUCENT_DB_IMAGE`
+引用后 `docker compose pull && docker compose up -d --force-recreate <service>`。
+tag 形如 `sha-<短sha>`,指向 multi-arch manifest,故不含架构、跨机器通用。
 
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
 traffic. If you do expose browser clients from another origin, set it explicitly.

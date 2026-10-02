@@ -207,8 +207,11 @@ function checkFile(file: string, repoRoot: string): BrokenLink[] {
 // `<name>`, `YYYY-MM-DD`, any uppercase segment) are skipped so the check
 // stays at zero false positives — a missed reference is acceptable, a wrong
 // one is not.
+//
+// `.github/` is included because workflow files get renamed: a doc pointing at
+// `lucent-ci.yml` after the split to `ci.yml` is exactly the rot this catches.
 const PATH_TOKEN_RE =
-  /(?:^|[\s(`"'\[>])((?:docs|src|plans|scripts|test|prisma|monitoring|deploy)\/[a-z0-9][a-zA-Z0-9_.\-/]*\.[a-z0-9]{1,6})(?=[\s)`"'\],.;:!?]|$)/g;
+  /(?:^|[\s(`"'\[>])((?:docs|src|plans|scripts|test|prisma|monitoring|deploy|\.github)\/[a-z0-9][a-zA-Z0-9_.\-/]*\.[a-z0-9]{1,6})(?=[\s)`"'\],.;:!?]|$)/g;
 
 function isPlaceholderPath(token: string): boolean {
   return /[*<>{}]/.test(token) || /[A-Z]/.test(token);
