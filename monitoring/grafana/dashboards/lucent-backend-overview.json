@@ -81,7 +81,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "targets": [
         {
-          "expr": "nodejs_event_loop_lag_seconds * 1000",
+          "expr": "nodejs_eventloop_lag_seconds * 1000",
           "legendFormat": "lag",
           "refId": "A"
         }
@@ -158,7 +158,7 @@
           "refId": "B"
         },
         {
-          "expr": "nodejs_resident_memory_bytes / 1048576",
+          "expr": "process_resident_memory_bytes / 1048576",
           "legendFormat": "rss",
           "refId": "C"
         },
@@ -225,7 +225,7 @@
           "refId": "A"
         },
         {
-          "expr": "nodejs_active_requests",
+          "expr": "nodejs_active_requests_total",
           "legendFormat": "requests",
           "refId": "B"
         }
