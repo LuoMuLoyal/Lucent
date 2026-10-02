@@ -60,6 +60,10 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   `cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links`，
   源键为 `cn_v3_*`，写入 `cn_medicine_products` / `cn_medicine_leaflets` /
   `cn_medicine_product_leaflet_links`。
+- **完整性契约**：导入完成的判据是**目标表行数与源文件相等**，不是脚本退出码，
+  也不是它打印的 `importedRowCount`（该值由写入侧累加，丢行时照样报满）。
+  逐表对账口径与排查步骤见 [`docs/howto/run-medicine-import.md`](../../../docs/howto/run-medicine-import.md)。
+  读取侧的余数批丢失缺陷已修复并被 `scripts/shared/db-upsert.spec.ts` 覆盖。
 - **Schema 语义（V3 对齐）**：`cn_medicine_products` 是纯目录表（名称/批准文号/
   条码/价格/类别/overdose 等，无正文）；`cn_medicine_leaflets` 是权威正文
   （ingredients/indications/dosage/contraindications…）；链接表 1:1 关联，带

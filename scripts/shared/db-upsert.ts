@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import readline from 'node:readline';
 import { spawn } from 'node:child_process';
 
 import { REPO_ROOT } from './env.ts';
@@ -258,11 +257,18 @@ async function streamParseAndUpsert(config, sourcePath, options, flushBatch) {
     process.stderr.write(chunk);
   });
 
-  const stdout = readline.createInterface({
-    input: child.stdout,
-    crlfDelay: Infinity,
-  });
-
+  // ⚠️ 刻意不用 `readline` 的异步迭代器。
+  //
+  // 原写法是 `for await (const line of readline.createInterface(...))`，循环体内
+  // `await flushBatch()` 会长时间暂停消费 stdout。此时若子进程已输出完毕并退出，
+  // readline 的内部状态会与其 close 事件竞争，在循环末尾抛 `readline was closed`：
+  //   · 该次导入被记为 status = failed（但进程仍退出 0，错误只体现在 note 里）；
+  //   · **最后一批（不足 batchSize 的余数批）没有写入**。
+  // 实测：63,889 行的 links 表稳定只写入 63,800 行（638 个整批），恰丢末尾 89 行；
+  // 而同样 63,889 行的 products 表因每批耗时不同未触发 —— 典型的时序相关丢数据。
+  //
+  // 改为在 `data` 事件上手工切行：读取是同步的，不依赖 await 时序；
+  // 行处理串到一条 promise 链上顺序执行，既保留 await 写入又不阻塞读取。
   const stats = {
     rawRowCount: 0,
     rejectedRowCount: 0,
@@ -271,9 +277,9 @@ async function streamParseAndUpsert(config, sourcePath, options, flushBatch) {
 
   let currentBatch = [];
 
-  for await (const line of stdout) {
+  const handleLine = async (line) => {
     if (!line.trim()) {
-      continue;
+      return;
     }
 
     const payload = JSON.parse(line);
@@ -282,7 +288,7 @@ async function streamParseAndUpsert(config, sourcePath, options, flushBatch) {
     if (payload.kind === 'error') {
       stats.rejectedRowCount += 1;
       collectRejectionSample(stats.rejectionSamples, payload);
-      continue;
+      return;
     }
 
     if (payload.kind !== 'record') {
@@ -291,7 +297,7 @@ async function streamParseAndUpsert(config, sourcePath, options, flushBatch) {
         rowNumber: null,
         message: `Unsupported payload kind: ${String(payload.kind)}`,
       });
-      continue;
+      return;
     }
 
     currentBatch.push(payload.data);
@@ -299,6 +305,42 @@ async function streamParseAndUpsert(config, sourcePath, options, flushBatch) {
       await flushBatch(currentBatch);
       currentBatch = [];
     }
+  };
+
+  let queue = Promise.resolve();
+  let buffer = '';
+  let streamError = null;
+
+  child.stdout.setEncoding('utf-8');
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk;
+    let newlineIndex = buffer.indexOf('\n');
+    while (newlineIndex !== -1) {
+      const line = buffer.slice(0, newlineIndex);
+      buffer = buffer.slice(newlineIndex + 1);
+      queue = queue.then(() => handleLine(line));
+      newlineIndex = buffer.indexOf('\n');
+    }
+  });
+  child.stdout.on('error', (error) => {
+    streamError = error;
+  });
+
+  await new Promise((resolve, reject) => {
+    child.stdout.on('end', resolve);
+    child.stdout.on('error', reject);
+  });
+
+  // 收尾：最后一行可能没有换行符。
+  if (buffer.length > 0) {
+    const tail = buffer;
+    buffer = '';
+    queue = queue.then(() => handleLine(tail));
+  }
+  await queue;
+
+  if (streamError) {
+    throw new Error(`Parser stdout stream error: ${String(streamError)}`);
   }
 
   await flushBatch(currentBatch);
