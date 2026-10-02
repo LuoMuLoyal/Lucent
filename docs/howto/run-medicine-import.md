@@ -160,12 +160,43 @@ divided by expected dimension (768)`，整批文档标 failed。启动日志里�
 > ⚠️ **prompt profile 改动后必须重建容器**才会生效（启动时读取），
 > 改文件不重启 = 静默沿用旧 prompt。
 
-英文侧（DrugBank 叙事字段）仍走 Lucent 自己的 pgvector，与 LightRAG 无关：
+英文侧（DrugBank 叙事字段）走 Lucent 自己的 pgvector，与 LightRAG 无关。
+两阶段，**默认只跑第一阶段，必须显式加 `--embed` 才灌向量**：
 
 ```bash
-# DrugBank 叙事字段向量索引（chunk + embed 两阶段）
+# 阶段 1：chunk（默认行为，写 drugbank_passage_chunks）
+node scripts/import/medicine/rebuild-drugbank-rag-index.ts
+
+# 阶段 2：embed（写 drugbank_passage_embeddings）
 node scripts/import/medicine/rebuild-drugbank-rag-index.ts --embed
+
+# 已有 chunk、只想补向量
+node scripts/import/medicine/rebuild-drugbank-rag-index.ts --skip-rebuild --embed
+
+# 试跑：--dry-run 只数 chunk；--limit N 只取前 N 药
 ```
+
+⚠️ 三个前置条件，缺一个都跑不通：
+
+1. **`vector` 扩展必须已装在该库上**（`CREATE EXTENSION IF NOT EXISTS vector`）。
+   与 LightRAG 用的 `lightrag` 库各自独立装。
+2. **`AI_EMBEDDING_*` 四个变量都要有值**，包括 `AI_EMBEDDING_DIMENSION`。
+   `.env.development` 里这几个键**存在但为空**，而 `loadEnvironment` 用
+   `override: true`，空值会覆盖外部注入的环境变量——本地导入必须写进
+   `.env.development.local`（该文件已 gitignore）。
+3. **`--embed-batch-size` 不要超过 provider 上限**（`text-embedding-v4` 是 10）。
+   默认值已改为 10；超限会被拒：
+   `400 ... batch size is invalid, it should not be larger than 10.`
+
+> **维度必须显式投递**：`AI_EMBEDDING_DIMENSION` 不只是"声明期望维度"，它会被
+> 透传给 embeddings 客户端。`text-embedding-v4` 支持 64–2048 动态降维，
+> **不传 `dimensions` 时默认返回 1024**，与运行时的 768 不一致会导致向量不可达。
+> 生产实测：`vector(768)` + HNSW 索引，48,475 chunks / 48,475 embeddings。
+
+> **对账口径**：`drugbank_passage_embeddings.id` 是 `PGVectorStore` 自生成的随机
+> uuid，与 `drugbank_passage_chunks.id` 是**两个不同的 id 域**。真正的关联键是
+> `cmetadata->>'chunkId'`。用 `embeddings.id = chunks.id` join 会得到"全是孤儿"
+> 的假象。
 
 > `rebuild-leaflet-index.ts` 现在**只重建 chunk 表**（`medicine_leaflet_chunks`），
 > 那是 LightRAG 灌入的事实源；它不再建 `leaflet_embeddings`，该表及其调用已随
