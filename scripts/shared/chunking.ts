@@ -4,6 +4,11 @@ const DEFAULT_MAX_CHUNK_LENGTH = 1000;
 const DEFAULT_CHUNK_OVERLAP = 100;
 const INSERT_BATCH_SIZE = 500;
 
+/** 单批嵌入的最大尝试次数（首次 + 重试）。 */
+const EMBED_MAX_ATTEMPTS = 3;
+/** 重试退避基数：第 n 次重试等 `n * BASE` 毫秒（线性，指数在此规模上没必要）。 */
+const EMBED_RETRY_BASE_MS = 1000;
+
 // ─── Text chunking ────────────────────────────────────────────
 
 function splitByParagraphs(text) {
@@ -152,6 +157,17 @@ async function insertChunksBatch(
 /**
  * Creates a PGVectorStore from environment configuration.
  * Returns { store, pool } or null if embedding is not configured.
+ *
+ * 读的四个变量与运行时（`LlmRuntimeService.createEmbeddingModel` +
+ * `VectorStoreFactory`）**必须一致**，否则灌进去的向量检索不出来：
+ *
+ * - `AI_EMBEDDING_DIMENSION` 必须读且必须透传给 `OpenAIEmbeddings`。
+ *   文本向量模型普遍支持动态降维且**默认输出不等于你要的维度**
+ *   （`text-embedding-v4` 支持 64–2048，不传 `dimensions` 时返回 **1024**）。
+ *   只建表不声明维度会得到无类型 `vector` 列，运行时按 768 建 HNSW 索引，
+ *   两侧对不上即报维度不匹配。运行时一直是透传的，脚本这边曾经漏掉。
+ * - 维度也必须传给 `ensureTableInDatabase`，列才会建成 `vector(n)`——
+ *   无类型列建不了 HNSW 索引，检索退化为全表扫描。
  */
 async function createEmbeddingStore(tableName) {
   const apiKey = process.env.AI_EMBEDDING_API_KEY?.trim();
@@ -163,6 +179,21 @@ async function createEmbeddingStore(tableName) {
       'Embedding is not configured. Set AI_EMBEDDING_API_KEY, AI_EMBEDDING_BASE_URL, and AI_EMBEDDING_MODEL.',
     );
     return null;
+  }
+
+  const rawDimension = process.env.AI_EMBEDDING_DIMENSION?.trim();
+  const dimensions = rawDimension ? Number(rawDimension) : null;
+  if (dimensions != null && !Number.isInteger(dimensions)) {
+    throw new Error(
+      `AI_EMBEDDING_DIMENSION must be an integer, got "${String(rawDimension)}".`,
+    );
+  }
+  if (dimensions == null) {
+    // 不中断：不是所有 provider 都需要显式维度。但这里必须响一声——静默按模型
+    // 默认维度建表，正是"灌进去检索不出来"的成因。
+    console.warn(
+      'AI_EMBEDDING_DIMENSION is not set; the table will be created with an untyped vector column and no HNSW index.',
+    );
   }
 
   const { OpenAIEmbeddings } = await import('@langchain/openai');
@@ -178,6 +209,7 @@ async function createEmbeddingStore(tableName) {
     apiKey,
     configuration: { baseURL: baseUrl },
     model,
+    ...(dimensions != null ? { dimensions } : {}),
   });
 
   const pool = new Pool({ connectionString, max: 2 });
@@ -194,13 +226,54 @@ async function createEmbeddingStore(tableName) {
     distanceStrategy: 'cosine',
   });
 
-  await store.ensureTableInDatabase();
+  await store.ensureTableInDatabase(dimensions ?? undefined);
+
+  if (dimensions != null) {
+    // 与 VectorStoreFactory 一致：索引需要具体维度类型，缺了就退化成全表扫描。
+    // createHnswIndex 内部吞异常只打 console.error，所以自己再确认一次。
+    await store.createHnswIndex({ dimensions });
+    const indexed = await hasVectorIndex(pool, tableName);
+    if (!indexed) {
+      console.warn(
+        `HNSW index missing on "${tableName}"; vector search will fall back to a sequential scan.`,
+      );
+    }
+  }
 
   return { store, pool };
 }
 
+/** 索引是否真的建成了——用于把 createHnswIndex 吞掉的失败暴露出来。 */
+async function hasVectorIndex(pool, tableName) {
+  try {
+    const result = await pool.query(
+      `SELECT count(*)::text AS count
+         FROM pg_indexes
+        WHERE schemaname = current_schema()
+          AND tablename = $1
+          AND indexdef ILIKE '%USING hnsw%'`,
+      [tableName],
+    );
+    return Number(result.rows[0]?.count ?? '0') > 0;
+  } catch (error) {
+    console.warn(
+      `Could not verify HNSW index on "${tableName}": ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return false;
+  }
+}
+
 /**
  * Embeds documents in batches with progress logging and retry-on-error.
+ *
+ * 失败语义：单个批次最多重试 `EMBED_MAX_ATTEMPTS` 次；仍失败则**抛错中止**，
+ * 不再像旧实现那样 `console.error` 一句就跳过。旧写法有两个问题——
+ * 一是失败批次没重试（`sleep` 之后循环照走），二是计数把失败批次也算进去
+ * （`embedded += batch.length` 在抛错点之前），于是最终打印的条数是虚的。
+ * 这与 `db-upsert.ts` 曾经的"报满却丢行"是同一类缺陷。
+ *
+ * 至于"重试仍然失败要不要当作致命"——这里选择致命。嵌入是幂等且可重跑的，
+ * 而带着空洞的索引在检索侧表现为"有些内容就是搜不到"，没有报错可循。
  *
  * @param {object} store  — PGVectorStore instance
  * @param {object[]} docs — Array of { pageContent, metadata }
@@ -220,18 +293,35 @@ async function embedDocuments(store, docs, batchSize) {
   let embedded = 0;
   for (let i = 0; i < docs.length; i += batchSize) {
     const batch = docs.slice(i, i + batchSize);
+    let lastError = null;
 
-    try {
-      await store.addDocuments(batch);
-      embedded += batch.length;
-      const pct = ((embedded / docs.length) * 100).toFixed(1);
-      console.log(`  ${embedded}/${docs.length} (${pct}%)`);
-    } catch (error) {
-      console.error(
-        `  Batch ${i}-${i + batch.length} failed: ${error instanceof Error ? error.message : error}`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    for (let attempt = 1; attempt <= EMBED_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        await store.addDocuments(batch);
+        lastError = null;
+        break;
+      } catch (error) {
+        lastError = error;
+        const waitMs = EMBED_RETRY_BASE_MS * attempt;
+        console.error(
+          `  Batch ${i}-${i + batch.length} failed (attempt ${attempt}/${EMBED_MAX_ATTEMPTS}): ${error instanceof Error ? error.message : error}`,
+        );
+        if (attempt < EMBED_MAX_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+        }
+      }
     }
+
+    if (lastError != null) {
+      throw new Error(
+        `Embedding failed for batch ${i}-${i + batch.length} after ${EMBED_MAX_ATTEMPTS} attempts; ${embedded}/${docs.length} chunks were embedded before the failure. Re-run to retry (embedded chunks are upserted by id, so repeats are harmless).`,
+        { cause: lastError },
+      );
+    }
+
+    embedded += batch.length;
+    const pct = ((embedded / docs.length) * 100).toFixed(1);
+    console.log(`  ${embedded}/${docs.length} (${pct}%)`);
 
     if (i + batchSize < docs.length) {
       await new Promise((resolve) => setTimeout(resolve, 200));
