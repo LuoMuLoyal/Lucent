@@ -266,3 +266,16 @@ Luminous 真机反馈(2026-10-04)：能力面板显示工具全部可用，但�
   应与读意图并行判定而非互斥。
 - 能力面板口径(客户端侧)：「全局可用」与「本轮提供」没有可表达的字段，已登记在
   `Luminous/docs/TODO.md`。
+
+## Today 建议卡的服务端契约缺口（动作 label / route / 文案语言）
+
+Luminous 真机反馈(2026-10-04，App 语言为英文)：
+
+- 「健康档案信息不完整」建议卡的主操作按钮显示的是原始动作 id `complete_profile`，
+  而同一张卡的次级操作显示英文标签。说明动作 label 映射缺 `complete_profile` 一项、
+  缺失时回落到 actionId；需要补齐映射，或让契约在 label 缺省时报错。
+- 该动作下发的 route 为 `/mine/profile/edit`，客户端路由表里并不存在（客户端只有
+  `/profile`），点下去渲染成 go_router 的 "Page Not Found"。服务端需要下发客户端真实
+  存在的 location；客户端侧已加对账兜底（Luminous `openRoute` 先匹配路由表，未知即提示不导航）。
+- 同卡标题与原因文案是中文（`title` / `reason`），而请求语言是英文：服务端建议文案未按
+  请求语言本地化，或只有中文 seed。需要按 `Accept-Language` / locale 下发对应语言文案。
