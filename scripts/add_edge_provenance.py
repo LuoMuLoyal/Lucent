@@ -50,6 +50,7 @@ import json
 import sys
 import time
 from collections.abc import Iterator
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -74,7 +75,7 @@ from semantica_service.provenance.ids import (
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from export_subgraph import ANCHORS, SCOPE_PREFIXES  # noqa: E402
-from load_graph import ACTION_EDGE, KIND_EDGE, atc_parent  # noqa: E402
+from load_graph_neo4j import ACTION_EDGE, KIND_EDGE, atc_parent  # noqa: E402
 
 # Every relationship type a drug->target row can produce, derived from the same
 # mapping the load used rather than a hand-written list that could drift.
@@ -829,7 +830,13 @@ def main() -> None:
     settings = get_settings()
     pool = StorePool(settings)
 
-    with pool.borrow() as store:
+    # Only the graph pass and the cross-check need Neo4j. The store pass reads
+    # Lucent's source tables and writes the audit store, both of which live on
+    # the app machine — borrowing a store unconditionally made `--store` fail
+    # wherever bolt was unreachable, which is the deployment case: the audit
+    # store is in Lucent's database on one host, the graph on another.
+    needs_graph = run_graph or run_checks
+    with (pool.borrow() if needs_graph else nullcontext(None)) as store:
         if run_graph:
             run_graph_pass(store)
 
@@ -880,7 +887,8 @@ def main() -> None:
         )
 
     storage.close()
-    store.close()
+    if store is not None:
+        store.close()
 
 
 if __name__ == "__main__":
