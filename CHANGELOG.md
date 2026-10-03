@@ -2,10 +2,10 @@
 
 All notable changes to Lucent are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-This file is a **release-level summary**. The detailed, dated record of every change lives in
+This file is a release-level summary. The detailed, dated record of every change lives in
 [`docs/logs/migration-log/`](docs/logs/migration-log/) (one file per day, append-only), and design
 decisions live in [`docs/reference/adr/`](docs/reference/adr/).
 
@@ -21,7 +21,7 @@ will be assigned a version when the first release milestone in [ROADMAP.md](ROAD
 #### Authentication, accounts and sessions
 
 - Credential login and registration, plus WeChat (web and mobile), Apple, QQ and Google OAuth
-- JWT access + refresh token rotation backed by device-session records, with remote session
+- JWT access and refresh token rotation backed by device-session records, with remote session
   revocation
 - In-app Security PIN with short-lived elevation tokens, and `SecurityElevationGuard` on password
   change, email change, identity management and data export
@@ -35,22 +35,22 @@ will be assigned a version when the first release milestone in [ROADMAP.md](ROAD
   scheduling plus delivery tracking
 - Health events with user-confirmed start and end, per-day check-ins, and related causes and
   medicines
-- Health context: allergies, conditions, current medicines, and the profile that carries
-  date of birth, sex, height, weight, activity level and dietary preferences
-- Record image attachments via signed object-storage URLs
+- Health context: allergies, conditions, current medicines, and the profile carrying date of birth,
+  sex, height, weight, activity level and dietary preferences
+- Record image attachments through signed object-storage URLs
 - User settings, including assistant enablement, memory and per-source context toggles
 
 #### AI pipeline
 
-- **Bounded-linear pipeline** (context → copy → generator → policy → persistence) for Today
-  analysis, Report summaries and natural-language record candidates, each with SSE streaming
-- **Agent-based assistant** on LangGraph: intent routing, bounded retrieval loops with an explicit
-  stop reason, persisted conversations and optional cross-conversation memory
-- **Strictly separated retrieval sources**: Chinese prose through LightRAG, DrugBank passages
-  through Lucent's own pgvector tables, and Chinese product lookups through SQL
-- **Proposal-based writes**: create / update / delete of records and settings are emitted as
-  time-limited proposals that the user must confirm before the server applies them atomically
-- **Meal-analysis vision pipeline**: dish recognition plus deterministic food-composition matching,
+- Bounded-linear pipeline (context → copy → generator → policy → persistence) for Today analysis,
+  Report summaries and natural-language record candidates, each with SSE streaming
+- Agent-based assistant on LangGraph: intent routing, bounded retrieval loops with an explicit stop
+  reason, persisted conversations and optional cross-conversation memory
+- Strictly separated retrieval sources: Chinese prose through LightRAG, DrugBank passages through
+  Lucent's own pgvector tables, and Chinese product lookups through SQL
+- Proposal-based writes: create / update / delete of records and settings are emitted as
+  time-limited proposals the user must confirm before the server applies them atomically
+- Meal-analysis vision pipeline: dish recognition plus deterministic food-composition matching,
   asynchronous execution on BullMQ with an inline fallback, dish-template learning from
   user-confirmed analyses, and an output safety filter
 - `AiSafetyPolicyService` applied to every AI output, including streamed chunks, forbidding
@@ -61,15 +61,15 @@ will be assigned a version when the first release milestone in [ROADMAP.md](ROAD
 #### Medicine knowledge and retrieval
 
 - DrugBank structured import, Chinese medicine products and leaflet chunks, and a medical QA corpus
-- **Ontology-Augmented Generation (English side)**: DrugBank structured facts are mapped into the
-  graph backend deterministically, with no LLM extraction in the loop; typed multi-hop reasoning
-  runs only through pre-registered, versioned rules
-- **Proposition-level provenance**: every assertion resolves back to its source table, source row
-  and source text, and provenance records are chained by digest so any later edit or deletion is
+- Ontology-Augmented Generation (English side): DrugBank structured facts are mapped into the graph
+  backend deterministically, with no LLM extraction in the loop; typed multi-hop reasoning runs
+  only through pre-registered, versioned rules
+- Proposition-level provenance: every assertion resolves back to its source table, source row and
+  source text, and provenance records are chained by digest so any later edit or deletion is
   detectable; the chain can be exported as W3C PROV-O
-- **Explicit retrieval availability**: an unavailable retrieval or reasoning service is reported as
-  unavailable rather than degrading into an empty result that downstream code would read as "no
-  risk found"
+- Explicit retrieval availability: an unavailable retrieval or reasoning service is reported as
+  unavailable instead of degrading into an empty result that downstream code would read as no risk
+  found
 
 #### Proactive suggestions
 
@@ -77,11 +77,11 @@ will be assigned a version when the first release milestone in [ROADMAP.md](ROAD
   suppression and lifecycle layers
 - Write-time materialisation: suggestions are recomputed when data changes, so reading the home
   screen never triggers a recomputation
-- User feedback that genuinely participates in later filtering, including "do not remind me again"
+- User feedback that participates in later filtering, including "do not remind me again"
 
 #### Review, export and sharing
 
-- Coverage-aware daily / weekly / monthly review that abstains when evidence is thin, rather than
+- Coverage-aware daily / weekly / monthly review that abstains when evidence is thin, instead of
   emitting a weaker claim
 - Health-event review with a fixed four-section structure
 - Visit summary with field-level authorisation (free-text notes off by default), PDF export, and
@@ -129,7 +129,7 @@ will be assigned a version when the first release milestone in [ROADMAP.md](ROAD
 | Version     | Status         | Notes                                                                                          |
 | ----------- | -------------- | ---------------------------------------------------------------------------------------------- |
 | `0.1.0-dev` | In development | Current state: all feature areas above exist and are exercised by tests; no stable release yet |
-| `1.0.0`     | Planned        | First release milestone — see [ROADMAP.md](ROADMAP.md)                                         |
+| `1.0.0`     | Planned        | First release milestone, see [ROADMAP.md](ROADMAP.md)                                          |
 
 Lucent has not published a stable release. Per [Semantic Versioning](https://semver.org/), major
 version zero (`0.y.z`) is for initial development, and the public API should not be considered

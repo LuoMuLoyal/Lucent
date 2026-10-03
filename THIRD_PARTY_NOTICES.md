@@ -3,13 +3,13 @@
 Lucent itself is licensed under the [MIT License](LICENSE).
 
 Lucent is built on third-party open-source software. This file records the components that ship in,
-or are deployed alongside, a Lucent runtime, together with their licences. It is a notice of
-provenance, not a modification of any upstream licence: each component remains under its own terms,
-and the upstream `LICENSE` / `NOTICE` files inside each package are authoritative.
+or are deployed alongside, a Lucent runtime, together with their licences. It records provenance.
+It does not modify any upstream licence: each component remains under its own terms, and the
+upstream `LICENSE` / `NOTICE` files inside each package are authoritative.
 
 Version ranges below follow the repository manifests
 (`package.json`, `pnpm-lock.yaml`, `compose.yaml`, `compose.monitoring.yaml`). Patch-level versions
-move as dependencies are updated and are deliberately not pinned here — resolve the exact version
+move as dependencies are updated and are deliberately not pinned here; resolve the exact version
 from the lockfile and the container image tag for any given checkout.
 
 ## Application dependencies
@@ -76,15 +76,15 @@ Three deployed components carry strong-copyleft terms. Each runs as an **indepen
 process** reached over a network protocol, and none of them is compiled into, bundled with, or
 redistributed as part of the Lucent application image or its MIT source release:
 
-- **Neo4j Community Edition (GPLv3)** — the graph database. It is declared as its own compose
+- **Neo4j Community Edition (GPLv3)**: the graph database. It is declared as its own compose
   service (`neo4j`) on a dedicated host, with its own image tag, memory limits and environment. The
   Semantica sidecar reaches it over Bolt; Lucent never links against it.
-- **Grafana OSS (AGPLv3)** — dashboards and unified alerting, running on the monitoring host as its
+- **Grafana OSS (AGPLv3)**: dashboards and unified alerting, running on the monitoring host as its
   own container.
-- **Redis 8** — tri-licensed under RSALv2, SSPLv1 and AGPLv3; deployers choose the terms that fit
+- **Redis 8**: tri-licensed under RSALv2, SSPLv1 and AGPLv3; deployers choose the terms that fit
   their situation.
 
-The separation is a deployment boundary, not merely a documentation claim: every one of these
+This separation is a deployment boundary rather than a statement in a document. Every one of these
 components has its own image, its own process, its own configuration file and its own upgrade
 cycle, and can be swapped or removed without rebuilding Lucent.
 
@@ -105,9 +105,9 @@ cycle, and can be swapped or removed without rebuilding Lucent.
 ## Data sources
 
 Drug knowledge in Lucent is imported from the **DrugBank** dataset (academic use) and from public
-Chinese medicine datasets. These are data sources, not software dependencies: they are imported by
-Lucent's own pipeline, cleaned and filtered on the way in, and are not redistributed with the source
-release. Their respective terms of use apply to the data itself.
+Chinese medicine datasets. These are data sources rather than software dependencies: they are
+imported by Lucent's own pipeline, cleaned and filtered on the way in, and are not redistributed
+with the source release. Their respective terms of use apply to the data itself.
 
 ## Reporting
 
