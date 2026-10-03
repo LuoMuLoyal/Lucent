@@ -62,8 +62,8 @@ When controller or DTO code changes:
 2. In the Luminous repo, regenerate the Flutter client:
    ```bash
    cd ../Luminous
-   dart run tool/bootstrap_generated_sources.dart
-   dart run tool/verify_lucent_openapi_sync.dart
+   dart run scripts/contract/bootstrap.dart
+   dart run scripts/contract/verify_openapi.dart
    ```
 3. Append a dated entry to `docs/logs/migration-log/YYYY-MM-DD.md`.
 
@@ -82,3 +82,9 @@ When module structure, dependencies, or AI pipeline architecture changes:
 - Any backend code change: append to today's `docs/logs/migration-log/YYYY-MM-DD.md`.
 - Completed TODO items: delete the line from `docs/TODO.md`.
 - Active multi-step plans: `plans/YYYY-MM-DD-short-task-name.md`.
+
+## Community
+
+- Behaviour expectations: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- Security reports: follow [SECURITY.md](SECURITY.md) rather than opening a public issue.
+- Third-party components and their licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

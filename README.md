@@ -8,8 +8,8 @@ Lucent is the NestJS backend for [Luminous](https://github.com/LuoMuLoyal/Lumino
 management assistant. It provides authentication, health records, AI-powered analysis, medicine
 knowledge retrieval, ontology-grounded drug reasoning, and data export.
 
-**Current version:** `0.1.0-dev` — planned evolution and remaining work are tracked in
-[docs/TODO.md](docs/TODO.md) and [plans/](plans/).
+**Current version:** `0.1.0-dev` — the evolution plan lives in [ROADMAP.md](ROADMAP.md), and the
+remaining-work ledger in [docs/TODO.md](docs/TODO.md) plus [plans/](plans/).
 
 ## Key Features
 
@@ -26,7 +26,7 @@ knowledge retrieval, ontology-grounded drug reasoning, and data export.
   Three retrieval sources are kept strictly separate: Chinese prose via LightRAG,
   DrugBank passages via Lucent's own pgvector tables, CN product lookups via SQL
 - **Ontology-Augmented Generation (English side)** — DrugBank structured facts are mapped
-  deterministically into an Apache AGE graph (no LLM extraction); `reason_over_ontology` performs
+  deterministically into a Neo4j graph (no LLM extraction); `reason_over_ontology` performs
   typed multi-hop queries where each conclusion carries a PROV-O citation back to its source row
 - **Data Export** — BullMQ async PDF export with inline fallback
 - **Admin Panel** — embedded AdminJS at `/admin` with auto-discovered Prisma resources
@@ -53,9 +53,13 @@ Prerequisites: Node.js `26.x`, pnpm `11.x` or `12.x`, Docker (for `dev:stack`).
 | API contract          | `docs/reference/generated/openapi.json` (generated, tracked)                       |
 | ADRs                  | [docs/reference/adr/](docs/reference/adr/)                                         |
 | Docs index            | [docs/README.md](docs/README.md)                                                   |
+| Changelog             | [CHANGELOG.md](CHANGELOG.md)                                                       |
+| Roadmap               | [ROADMAP.md](ROADMAP.md)                                                           |
 | TODO                  | [docs/TODO.md](docs/TODO.md)                                                       |
 | Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md)                                                 |
 | Security policy       | [SECURITY.md](SECURITY.md)                                                         |
+| Code of conduct       | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)                                           |
+| Licensing             | [LICENSE](LICENSE) · [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)              |
 
 ## Source Of Truth
 
@@ -93,16 +97,21 @@ Lucent CI re-exports the spec and fails when the committed
 ## Stack
 
 - NestJS 12 (ESM / SWC builder), zod 4 + Standard Schema validation
-- Prisma 7 / PostgreSQL 18 (pgvector + Apache AGE in the self-built image)
-- Redis / BullMQ
+- Prisma 7 / PostgreSQL 18 (self-built image: `pgvector/pgvector:pg18` + zhparser; `pg_trgm` ships
+  with PostgreSQL contrib)
+- Redis 8 / BullMQ
+- Neo4j 5.26 Community as the English-side OAG graph backend, with the Semantica sidecar
+  for ontology-grounded reasoning (decision: ADR-0022; bundled as a separate container, not linked
+  into this codebase — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
 - Passport JWT
 - Winston / nest-winston structured logging
 - prom-client / VictoriaMetrics / Grafana metrics (ADR-0006, ADR-0016)
+- Grafana unified alerting on the monitoring host (rules, contact points and notification policies
+  are versioned under `monitoring/grafana/provisioning/alerting/`)
 - WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
 - LangChain / LangGraph-based AI integration foundation
-- LightRAG sidecar for Chinese prose retrieval; Semantica + Apache AGE sidecar for
-  ontology-grounded drug reasoning (ADR-0021)
+- LightRAG sidecar for Chinese prose retrieval (ADR-0021)
 
 ## Local Development
 
@@ -295,7 +304,9 @@ building & pushing the Docker image. See
   `sha-` tag. Because the tag points at a multi-arch manifest, the architecture is chosen by
   Docker — switching hosts never changes the tag. There is no reverse proxy, no domain and no
   TLS today — the API is served over plain HTTP.
-- Alerting and automated DB backups are currently not configured (metrics stack retained).
+- Alerting is configured (Grafana unified alerting on the monitoring host; alert rules, contact
+  points and notification policies are versioned YAML under `monitoring/grafana/provisioning/alerting/`).
+  Automated database backups are **not** configured yet.
 - See [docs/reference/deployment.md](docs/reference/deployment.md) for the full model and
   [docs/howto/deploy.md](docs/howto/deploy.md) for the operational steps.
 
