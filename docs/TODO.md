@@ -273,30 +273,6 @@ Luminous 真机反馈(2026-10-04，App 语言为英文)：
   本来就有 en-US 文案（`:27-32`）。修法：按请求 locale 物化/缓存，或在读路径用
   `Accept-Language` 重新本地化。
 
-## 药品搜索结果的 name 对 DrugBank 条目是完整系统命名（需要可读展示名）
-
-Luminous 真机反馈(2026-10-04)：搜索 `bu` 时 DrugBank 结果的标题是一整串系统命名，例如
-`1,1,1-TRIFLUORO-3-ACETAMIDO-4-PHENYL-BUTAN-2-ONE(N-ACETYL-L-PHENYLALANYL-TRIFLUOROMETHYL-KETONE)`，
-客户端只能截断到两行，用户读不出是哪个药。
-
-**2026-10-04 实测修正（`DrugDataBase/derived/drugbank/drugbank_drugs.parquet`，19,842 行 × 59 列
-= 源 XML 全字段超集；并对 `DB07380` 回源 XML 交叉验证）：**
-
-- **DrugBank 的 `name` 本身就是通用名**，系统命名(IUPAC)不在该字段。抽查：`Acetylsalicylic acid`
-  (阿司匹林)、`Warfarin`、`Metformin`、`Ibuprofen`、`Naproxen`。
-- **78.1% 的行名 ≤ 25 字符**，完全可读；长名(>50 字符)仅 **12.1%**，且集中在
-  `groups=experimental` 的**未上市研究化合物**——它们本来就没有通用名/品牌名，不是数据缺失。
-- 长名那批里**只有 14.7% 存在更短的替代文本**（synonyms 中的短名或 product/brand 名，
-  如 `BeneFIX`、`Quadramet`）。报告里的 `DB07380` 属于无替代的那类：synonyms 里唯一一条
-  就是同一个系统命名，products/brands/atc 全空。
-- 因此**原「取 synonyms 中第一个非系统命名」的方案覆盖不到主要 case**；给 `DB07380` 这类
-  条目"生成可读药名"也没有依据可依。
-
-**结论与去向**：已按「后端加 `displayName`（品牌名 → 短同义词 → 原名）」评估，但该字段只能让
-上市药更通俗（约 330 行），**消灭不掉约 1,900 行只有系统命名的条目**。故本轮决定**不加后端字段**，
-改由客户端做长名呈现（截断 + 展开），登记在 `Luminous/docs/TODO.md`。
-若将来仍要统一各来源的展示口径，`displayName` 仍是候选，但需连同上面的覆盖率一起评估期望值。
-
 ## 2026-10-04 后端硬编码文案与 locale 缺口审计（Luminous ARB 迁移后的同源排查）
 
 背景：Luminous 已把客户端硬编码的中/英文诊断文案迁入 ARB；同一类问题（文案不经 i18n、
