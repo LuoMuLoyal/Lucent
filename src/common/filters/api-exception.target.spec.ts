@@ -4,9 +4,11 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import type { I18nService } from 'nestjs-i18n';
+import { LlmNotConfiguredException } from '../llm/safety/llm-not-configured.exception.js';
 import { createDomainFailure } from '../result/domain-failure.js';
 import { DomainFailureException } from '../result/unwrap-result.js';
 import { ApiExceptionFilter } from './api-exception.filter.js';
@@ -102,6 +104,56 @@ describe('ApiExceptionFilter target contract', () => {
     expect(response.type).toHaveBeenCalledWith('application/problem+json');
     expect(response.send).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'RESOURCE_NOT_FOUND' }),
+    );
+  });
+
+  it('emits LLM_NOT_CONFIGURED, not DEPENDENCY_UNAVAILABLE, for a missing model', () => {
+    // Both are 503, so the stable code is the only thing a client can branch
+    // on: "configure this deployment" versus "retry later".
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new LlmNotConfiguredException('analysis'),
+      createHost(response, { method: 'POST', url: '/risk-check' }),
+    );
+
+    expect(response.status).toHaveBeenCalledWith(
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'LLM_NOT_CONFIGURED', retryable: false }),
+    );
+    // The role must not leak to the client as a detail sentence.
+    const body = response.send.mock.calls[0]?.[0] as { detail?: string };
+    expect(body.detail).not.toContain('analysis');
+  });
+
+  it('keeps a runtime dependency failure as retryable DEPENDENCY_UNAVAILABLE', () => {
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new ServiceUnavailableException('upstream model 503'),
+      createHost(response, { method: 'POST', url: '/risk-check' }),
+    );
+
+    expect(response.status).toHaveBeenCalledWith(
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'DEPENDENCY_UNAVAILABLE',
+        retryable: true,
+      }),
     );
   });
 

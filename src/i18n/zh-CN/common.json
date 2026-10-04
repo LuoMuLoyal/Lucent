@@ -56,6 +56,8 @@
   "problem_auth_verification_code_rate_limited_detail": "验证码请求次数过多，请稍后重试。",
   "problem_dependency_unavailable_title": "服务暂时不可用",
   "problem_dependency_unavailable_detail": "请求所需的服务暂时不可用，请稍后重试。",
+  "problem_llm_not_configured_title": "模型能力未配置",
+  "problem_llm_not_configured_detail": "当前部署未启用该功能所需的模型，请稍后重试或联系管理员配置。",
   "problem_dependency_bad_gateway_title": "上游服务错误",
   "problem_dependency_bad_gateway_detail": "上游服务返回了无效响应，请稍后重试。",
   "problem_dependency_timeout_title": "服务响应超时",

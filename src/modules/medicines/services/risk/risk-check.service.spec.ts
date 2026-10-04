@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { MedicineRiskCheckService } from './risk-check.service.js';
 import type { PrismaService } from '../../../../prisma/index.js';
@@ -150,6 +151,42 @@ describe('MedicineRiskCheckService', () => {
     await expect(unwrap(svc.runLlmCheck('u1'))).rejects.toThrow(
       DomainFailureException,
     );
+  });
+
+  it('reports LLM_NOT_CONFIGURED (not a retryable outage) when no model exists', async () => {
+    const { llmGenerator, svc } = build();
+    vi.mocked(llmGenerator.hasAnalysisModel).mockReturnValue(false);
+
+    const failure = await unwrap(svc.runLlmCheck('u1')).then(
+      () => null,
+      (error: unknown) => (error as DomainFailureException).failure,
+    );
+
+    expect(failure?.code).toBe('LLM_NOT_CONFIGURED');
+    expect(failure?.retryable).not.toBe(true);
+    // The registered bilingual detail must not be overridden by a raw sentence.
+    expect(failure?.detail).toBeUndefined();
+  });
+
+  it('keeps a runtime LLM outage off 503 so the client does not call it unconfigured', async () => {
+    // The client renders *any* 503 on this endpoint as "AI analysis is not
+    // configured" (`risk_check.dart` matches the code or a 503 status), so a
+    // retryable outage must not be mapped to DEPENDENCY_UNAVAILABLE — that
+    // would present a transient failure as a permanent configuration gap.
+    const { llmGenerator, riskContextBuilder, svc } = build();
+    vi.mocked(riskContextBuilder.buildLlmContext).mockResolvedValue(
+      {} as never,
+    );
+    vi.mocked(llmGenerator.generate).mockRejectedValue(
+      new ServiceUnavailableException('LLM generate failed: upstream 503'),
+    );
+
+    const failure = await unwrap(svc.runLlmCheck('u1')).then(
+      () => null,
+      (error: unknown) => (error as DomainFailureException).failure,
+    );
+
+    expect(failure?.code).toBe('INTERNAL_ERROR');
   });
 
   it('runLlmCheck builds context, generates output and persists', async () => {

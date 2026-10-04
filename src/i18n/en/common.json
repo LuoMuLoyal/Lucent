@@ -56,6 +56,8 @@
   "problem_auth_verification_code_rate_limited_detail": "Too many verification codes were requested. Wait and try again.",
   "problem_dependency_unavailable_title": "Service temporarily unavailable",
   "problem_dependency_unavailable_detail": "A required service is temporarily unavailable. Try again later.",
+  "problem_llm_not_configured_title": "Model is not configured",
+  "problem_llm_not_configured_detail": "This deployment does not have the model required for that feature. Try again later or contact the administrator.",
   "problem_dependency_bad_gateway_title": "Upstream service error",
   "problem_dependency_bad_gateway_detail": "An upstream service returned an invalid response. Try again later.",
   "problem_dependency_timeout_title": "Service timed out",

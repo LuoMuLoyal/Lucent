@@ -84,6 +84,7 @@ const DOMAIN_FAILURE_KIND_BY_CODE: Record<
   DEPENDENCY_UNAVAILABLE: 'dependency',
   DEPENDENCY_BAD_GATEWAY: 'dependency',
   DEPENDENCY_TIMEOUT: 'dependency',
+  LLM_NOT_CONFIGURED: 'dependency',
   INTERNAL_ERROR: 'internal',
 };
 

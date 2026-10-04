@@ -193,6 +193,16 @@ const definitions = {
     detailKey: 'common.problem_dependency_unavailable_detail',
     retryable: true,
   },
+  // 与 DEPENDENCY_UNAVAILABLE 分开的原因见 docs/TODO.md「AI 未配置与运行时失败不可区分」:
+  // 前者是"稍后重试就好",这条是"这台部署没有配该角色的模型"——客户端据此决定是提示
+  // 重试还是提示去配置,而 DEPENDENCY_UNAVAILABLE 同时承载两者时无法区分。
+  // 同为 503 是有意的:对外仍是"暂时不可用",区别在稳定 code 可被客户端映射。
+  LLM_NOT_CONFIGURED: {
+    status: 503,
+    titleKey: 'common.problem_llm_not_configured_title',
+    detailKey: 'common.problem_llm_not_configured_detail',
+    retryable: false,
+  },
   DEPENDENCY_BAD_GATEWAY: {
     status: 502,
     titleKey: 'common.problem_dependency_bad_gateway_title',

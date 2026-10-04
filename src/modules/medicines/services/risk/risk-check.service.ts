@@ -1,5 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { LlmNotConfiguredException } from '../../../../common/llm/safety/llm-not-configured.exception.js';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma/index.js';
@@ -151,11 +152,16 @@ export class MedicineRiskCheckService {
     userId: string,
   ): Promise<MedicineRiskCheckRecordDto> {
     if (!this.llmGenerator.hasAnalysisModel()) {
+      // 出网 detail 交给注册表的双语文案；这里不传 detail，避免覆盖它
+      // （problem-catalog 的 `options.detail ?? translate(...)` 语义）。
+      this.logger.warn(
+        `Risk-check LLM requested without an analysis model configured (userId=${userId})`,
+      );
       throw new DomainFailureException(
         createDomainFailure({
           kind: 'dependency',
-          code: 'DEPENDENCY_UNAVAILABLE',
-          detail: 'LLM analysis model is not configured',
+          // 稳定码区分「这台部署没配 AI」(重试无用)与「运行时 LLM 失败」(可重试)。
+          code: 'LLM_NOT_CONFIGURED',
         }),
       );
     }
@@ -472,11 +478,26 @@ export class MedicineRiskCheckService {
   /**
    * Converts an unknown error thrown inside `doRun*` methods into a
    * `DomainFailure`. `DomainFailureException` instances are unwrapped to
-   * preserve their original domain semantics; all other errors are mapped
-   * to `INTERNAL_ERROR` so no raw exception leaks past the ResultAsync
-   * boundary.
+   * preserve their original domain semantics; everything else falls back to
+   * `INTERNAL_ERROR` so no raw exception leaks past the ResultAsync boundary.
+   *
+   * **Deliberately no `ServiceUnavailableException` branch.** The generator
+   * signals a runtime model failure that way, and mapping it to
+   * `DEPENDENCY_UNAVAILABLE` would answer 503 — but the client renders *any*
+   * 503 on this endpoint as "AI analysis is not configured"
+   * (`risk_check.dart` matches the code **or** `statusCode == 503`). A
+   * retryable outage would then be presented as a permanent configuration gap,
+   * which is the very confusion this change set removes. Runtime failures stay
+   * `INTERNAL_ERROR` (500) so the client shows the real failure instead.
    */
   private toDomainFailure(error: unknown): DomainFailure {
+    if (error instanceof LlmNotConfiguredException) {
+      return createDomainFailure({
+        kind: 'dependency',
+        code: 'LLM_NOT_CONFIGURED',
+        cause: error,
+      });
+    }
     return mapUnknownToInternalFailure(error);
   }
 

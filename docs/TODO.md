@@ -542,16 +542,3 @@ Luminous 真机反馈(2026-10-04)：头像上传后不显示。客户端侧根�
   （客户端看不到）还是能经 HTTP 端点返回，本次未追调用链。
 - 邮件 `resolveLocale` 的严格匹配是否真的被 `zh-Hans` 客户端命中，取决于客户端实际发送的
   `Accept-Language`（本地与生产均未取样）。
-
-## 风险检查的「AI 未配置」与运行时 LLM 失败在协议上不可区分
-
-- 客户端反馈(2026-10-04)：风险检查 AI 标签页显示「AI analysis is not configured」。客户端侧已修
-  （只有 503 / `DEPENDENCY_UNAVAILABLE` 才显示该状态；此前任何异常——离线/超时/401/模型失败——都会误报）。
-- 协议缺口：`DEPENDENCY_UNAVAILABLE` 同时承载「依赖未配置」与「运行时 LLM 失败」——
-  `src/common/llm/generators/base-llm-generator.service.ts` 的 `ServiceUnavailableException`、
-  熔断 `LlmCircuitOpenError` 都回落成该 code（`src/common/filters/api-exception.filter.ts`）。
-  建议给「AI 能力未配置」单独的 problem code 或能力信号（如 capabilities 字段），客户端才能区分
-  「去配置」与「稍后重试」。
-- 部署前提（建议写进环境文档/部署清单）：`AI_PROVIDER=openai-compatible` 且
-  `AI_ANALYSIS_API_KEY` / `AI_ANALYSIS_BASE_URL` / `AI_ANALYSIS_MODEL` 三者齐备
-  （`src/config/services/llm.config.ts`，见 `docs/reference/environment-variables.md`）。

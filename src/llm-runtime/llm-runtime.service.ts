@@ -1,15 +1,11 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import type {
   LlmRole,
   LlmRuntimePort,
 } from '../common/llm/llm-runtime.port.js';
+import { LlmNotConfiguredException } from '../common/llm/safety/llm-not-configured.exception.js';
 import { llmConfig, type ThinkingMode } from '../config/services/llm.config.js';
 
 /**
@@ -104,12 +100,17 @@ export class LlmRuntimeService implements LlmRuntimePort {
   }
 
   /**
-   * Creates a chat model for the given role, throwing a
-   * `ServiceUnavailableException` if the role is not configured.
+   * Creates a chat model for the given role, throwing
+   * `LlmNotConfiguredException` if the role is not configured.
    *
    * Use this instead of `createChatModel` when the model is mandatory
    * and a missing configuration should surface as a clear error rather
    * than silently producing a broken model with empty-string credentials.
+   *
+   * The exception carries the stable `LLM_NOT_CONFIGURED` code so clients can
+   * distinguish a deployment that lacks the model from a runtime dependency
+   * failure — a distinction that used to be impossible, because both surfaced
+   * as `DEPENDENCY_UNAVAILABLE`.
    */
   requireChatModel(
     role: LlmRole,
@@ -123,9 +124,7 @@ export class LlmRuntimeService implements LlmRuntimePort {
       this.logger.warn(
         `requireChatModel called for unconfigured role "${role}" — throwing`,
       );
-      throw new ServiceUnavailableException(
-        `LLM role "${role}" is not configured. Set the corresponding environment variables to enable this feature.`,
-      );
+      throw new LlmNotConfiguredException(role);
     }
 
     return this.createChatModel(role, options);
