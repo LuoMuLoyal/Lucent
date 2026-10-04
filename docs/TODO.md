@@ -296,3 +296,16 @@ Luminous 真机反馈(2026-10-04，App 语言为英文)：
   客户端发的 `Accept-Language: en` 被控制器解析后即丢弃。`constants/copy-fallback.ts`
   本来就有 en-US 文案（`:27-32`）。修法：按请求 locale 物化/缓存，或在读路径用
   `Accept-Language` 重新本地化。
+
+## 药品搜索结果的 name 对 DrugBank 条目是完整系统命名（需要可读展示名）
+
+Luminous 真机反馈(2026-10-04)：搜索 `bu` 时 DrugBank 结果的标题是一整串系统命名，例如
+`1,1,1-TRIFLUORO-3-ACETAMIDO-4-PHENYL-BUTAN-2-ONE(N-ACETYL-L-PHENYLALANYL-TRIFLUOROMETHYL-KETONE)`，
+客户端只能截断到两行，用户读不出是哪个药。
+
+- 契约现状：搜索项模型只有 `name`（生成客户端
+  `generated/lucent_api/lib/src/model/medicine_search_response_items.dart` 的 `r'name'`），
+  没有展示名/泛名/同义词字段；`synonyms` 只存在于**详情**响应
+  （`medicine_detail_response*.dart`）。
+- 待办：搜索响应补一个可读展示名（首选泛名/INN，或 `synonyms` 中第一个非系统命名），
+  或在入库时把 `name` 生成为可读药名、系统命名另存一列。客户端不做名称猜测。
