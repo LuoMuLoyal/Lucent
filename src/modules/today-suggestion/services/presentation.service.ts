@@ -17,6 +17,11 @@ import {
 } from './copy/writer.service.js';
 import { SuggestionCopyQueueService } from './copy/queue.service.js';
 import { getFallbackCopy } from '../constants/copy-fallback.js';
+import {
+  localizeEvidenceLabel,
+  localizeEvidenceValue,
+  resolveActionLabel,
+} from './action-label.js';
 
 /**
  * Handles the "presentation" half of the suggestion engine:
@@ -145,7 +150,8 @@ export class SuggestionPresentationService {
     // when the rule's own key has no translation.
     const primaryAction = {
       ...candidate.primaryAction,
-      label: this.localizeActionLabel(
+      label: resolveActionLabel(
+        this.i18n,
         candidate.primaryAction.label,
         locale,
         copy.actionLabel,
@@ -161,14 +167,14 @@ export class SuggestionPresentationService {
       reason: copy.reason,
       evidence: candidate.evidence.map((e) => ({
         ...e,
-        label: this.localizeEvidenceLabel(e.label, locale),
-        value: this.localizeEvidenceValue(e.value, locale, e.args),
+        label: localizeEvidenceLabel(this.i18n, e.label, locale),
+        value: localizeEvidenceValue(this.i18n, e.value, locale, e.args),
       })),
       boundary: copy.boundary,
       primaryAction,
       secondaryActions: candidate.secondaryActions?.map((a) => ({
         ...a,
-        label: this.localizeActionLabel(a.label, locale),
+        label: resolveActionLabel(this.i18n, a.label, locale),
       })),
       confidence: candidate.confidence,
       ruleId: candidate.ruleId,
@@ -236,87 +242,4 @@ export class SuggestionPresentationService {
       SuggestionFeedback.SUPPRESS,
     ];
   }
-
-  private localizeEvidenceLabel(label: string, locale: string): string {
-    return this.i18n.t(`today-suggestion.evidence.${label}`, { lang: locale });
-  }
-
-  private localizeEvidenceValue(
-    value: string,
-    locale: string,
-    args?: Record<string, string | number>,
-  ): string {
-    const key = `today-suggestion.evidence_value.${value}`;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- tsc infers unknown (variable assignment loses generic inference), ESLint infers string
-    const translated = this.i18n.t(
-      key,
-      args != null ? { lang: locale, args } : { lang: locale },
-    ) as string;
-    // When i18n can't find the key, it returns the key path itself — fall back to raw value
-    return translated === key ? value : translated;
-  }
-
-  /**
-   * Resolves an action label to display text.
-   *
-   * Translation order: the rule's own key, then the generated candidate if it
-   * carries a real translation, then humanized fallbacks. Never returns a
-   * snake_case key — an unregistered label used to be emitted verbatim, which
-   * is what put a raw `complete_profile` on the suggestion card.
-   */
-  private localizeActionLabel(
-    label: string,
-    locale: string,
-    fallbackLabel?: string,
-  ): string {
-    const translated = this.translateActionKey(label, locale);
-    if (translated != null) return translated;
-
-    const candidate = fallbackLabel?.trim() ?? '';
-    if (candidate.length > 0 && candidate !== label) {
-      const fallbackTranslated = this.translateActionKey(candidate, locale);
-      if (fallbackTranslated != null) return fallbackTranslated;
-    }
-
-    return humanizeActionLabel(candidate.length > 0 ? candidate : label);
-  }
-
-  /** Returns the translation for an action key, or null when unregistered. */
-  private translateActionKey(label: string, locale: string): string | null {
-    const key = `today-suggestion.action.${label}`;
-    const translated: string = this.i18n.t(key, { lang: locale });
-    return isMissingTranslation(translated, key) ? null : translated;
-  }
-}
-
-/**
- * Whether an i18n result is a lookup miss rather than real copy.
- *
- * `nestjs-i18n` echoes the key path when nothing is registered; some
- * configurations append the resolved language (`key [en]`). Both shapes are
- * treated as a miss so a missing key never reaches the user as display text.
- */
-function isMissingTranslation(translated: string, key: string): boolean {
-  const value = translated.trim();
-  return value === key || value.startsWith(`${key} [`);
-}
-
-/**
- * Last-resort display text for an action label with no translation.
- *
- * Turns a snake_case identifier (`complete_profile`) or a camelCase one
- * (`completeProfile`) into `Complete profile`, so an unregistered key degrades
- * to readable text instead of exposing an internal identifier to the user.
- */
-export function humanizeActionLabel(label: string): string {
-  const spaced = label
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (spaced.length === 0) return label;
-
-  const lowered = spaced.toLowerCase();
-  return lowered.charAt(0).toUpperCase() + lowered.slice(1);
 }

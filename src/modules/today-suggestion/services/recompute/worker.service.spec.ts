@@ -28,6 +28,21 @@ function status(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * User-locale lookup the worker performs before generating copy. Defaults to a
+ * user with no stored preference, which resolves to the product default —
+ * pass a locale to assert the profile-driven path.
+ */
+function prismaDouble(locale: string | null = null) {
+  return {
+    user: {
+      findUnique: vi.fn().mockResolvedValue({ profile: { locale } }),
+    },
+  };
+}
+
+const prisma = prismaDouble();
+
 describe('SuggestionRecomputeWorkerService', () => {
   it('recomputes the suggestion materialization and marks the same version ready', async () => {
     const observedSignals = [
@@ -86,6 +101,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       materializationStore as never,
       cache as never,
       baseline as never,
+      prisma as never,
       metrics as never,
     );
 
@@ -139,6 +155,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       materializationStore as never,
       cache as never,
       baseline as never,
+      prisma as never,
     );
 
     await worker.process(job({ sourceVersion: 3 }));
@@ -171,6 +188,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       materializationStore as never,
       cache as never,
       baseline as never,
+      prisma as never,
       metrics as never,
     );
 
@@ -211,6 +229,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       materializationStore as never,
       cache as never,
       baseline as never,
+      prisma as never,
     );
 
     await expect(worker.process(job())).rejects.toThrow('rule failed');
@@ -247,6 +266,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       materializationStore as never,
       cache as never,
       baseline as never,
+      prisma as never,
     );
 
     await worker.process(job());
@@ -289,6 +309,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       materializationStore as never,
       cache as never,
       baseline as never,
+      prisma as never,
     );
 
     await worker.process(job());
@@ -344,6 +365,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       materializationStore as never,
       cache as never,
       baseline as never,
+      prisma as never,
     );
 
     await expect(worker.process(job())).resolves.toBeUndefined();
@@ -357,5 +379,98 @@ describe('SuggestionRecomputeWorkerService', () => {
       computedVersion: 1,
     });
     expect(cache.invalidateBaseline).not.toHaveBeenCalled();
+  });
+
+  // ── locale resolution ────────────────────────────────────────────────
+
+  /**
+   * Builds a worker whose user-locale lookup returns [locale], and returns the
+   * `recompute` spy so the caller can assert the locale it was called with.
+   */
+  async function recomputeLocaleFor(locale: string | null) {
+    const suggestionService = {
+      recompute: vi.fn().mockResolvedValue({
+        generatedAt: '2026-08-09T08:00:01.000Z',
+        primary: undefined,
+        secondary: undefined,
+        observations: undefined,
+      }),
+    };
+    const materializationStore = {
+      readStatus: vi.fn().mockResolvedValue(status()),
+      markReady: vi.fn().mockResolvedValue(undefined),
+      markFailed: vi.fn(),
+    };
+    const cache = {
+      invalidateSignals: vi.fn().mockResolvedValue(undefined),
+      invalidateBaseline: vi.fn().mockResolvedValue(undefined),
+    };
+    const baseline = {
+      recordObservations: vi.fn().mockResolvedValue(undefined),
+    };
+    const worker = new SuggestionRecomputeWorkerService(
+      suggestionService as never,
+      materializationStore as never,
+      cache as never,
+      baseline as never,
+      prismaDouble(locale) as never,
+    );
+
+    await worker.process(job());
+
+    return suggestionService.recompute.mock.calls[0]![3] as {
+      locale: string;
+    };
+  }
+
+  it('generates copy in the language stored on the user profile', async () => {
+    // Copy is persisted at recompute time, so a hardcoded locale here is what
+    // made an English-locale user receive Chinese card titles and bodies.
+    const options = await recomputeLocaleFor('en-US');
+
+    expect(options.locale).toBe('en');
+  });
+
+  it('keeps the product default when the user has no stored preference', async () => {
+    // The client uploads `''` for "follow the system language", so a blank or
+    // missing preference is normal and must not become `en`.
+    expect((await recomputeLocaleFor(null)).locale).toBe('zh-CN');
+    expect((await recomputeLocaleFor('')).locale).toBe('zh-CN');
+  });
+
+  it('still recomputes when the locale lookup fails', async () => {
+    const suggestionService = {
+      recompute: vi.fn().mockResolvedValue({
+        generatedAt: '2026-08-09T08:00:01.000Z',
+        primary: undefined,
+        secondary: undefined,
+        observations: undefined,
+      }),
+    };
+    const materializationStore = {
+      readStatus: vi.fn().mockResolvedValue(status()),
+      markReady: vi.fn().mockResolvedValue(undefined),
+      markFailed: vi.fn(),
+    };
+    const failingPrisma = {
+      user: { findUnique: vi.fn().mockRejectedValue(new Error('db down')) },
+    };
+    const worker = new SuggestionRecomputeWorkerService(
+      suggestionService as never,
+      materializationStore as never,
+      { invalidateSignals: vi.fn().mockResolvedValue(undefined) } as never,
+      { recordObservations: vi.fn().mockResolvedValue(undefined) } as never,
+      failingPrisma as never,
+    );
+
+    await worker.process(job());
+
+    // A locale lookup is not allowed to fail the recompute.
+    expect(suggestionService.recompute).toHaveBeenCalledWith(
+      'user-1',
+      '2026-08-09',
+      undefined,
+      expect.objectContaining({ locale: 'zh-CN' }),
+    );
   });
 });

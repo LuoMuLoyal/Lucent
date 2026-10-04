@@ -1,10 +1,13 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { resolveLocale } from '../../../../common/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import { SuggestionService } from '../suggestion.service.js';
 import { MaterializationStore } from '../materialization/store.service.js';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
 import { BaselineService } from '../lifecycle/baseline.service.js';
+import { SUGGESTION_DEFAULT_LOCALE } from '../../constants/locale.constants.js';
 import type { RecomputeJobData } from './queue.service.js';
 
 const MAX_RECOMPUTE_VERSION_FOLLOW_UPS = 3;
@@ -18,6 +21,7 @@ export class SuggestionRecomputeWorkerService {
     private readonly materializationStore: MaterializationStore,
     private readonly cache: SuggestionCacheService,
     private readonly baseline: BaselineService,
+    private readonly prisma: PrismaService,
     @Optional() private readonly metricsService?: MetricsService,
   ) {}
 
@@ -72,13 +76,19 @@ export class SuggestionRecomputeWorkerService {
           currentJob.userId,
           currentJob.localDate,
         );
+        // Copy is persisted at recompute time, so the language has to be the
+        // user's own preference rather than a fixed default: hardcoding
+        // `zh-CN` here is what made an English-locale user receive Chinese
+        // card titles/bodies. A user with no stored preference keeps the
+        // product default.
+        const locale = await this.resolveUserLocale(currentJob.userId);
         let baselineObservationError: unknown;
         await this.suggestionService.recompute(
           currentJob.userId,
           currentJob.localDate,
           undefined,
           {
-            locale: 'zh-CN',
+            locale,
             sourceVersion: currentJob.sourceVersion,
             onSuccessfulRecompute: async (signals) => {
               try {
@@ -214,5 +224,36 @@ export class SuggestionRecomputeWorkerService {
       sourceVersion: latest.sourceVersion,
       reasonCodes: latest.reasonCodes,
     };
+  }
+
+  /**
+   * Resolves the language the persisted card copy should be generated in.
+   *
+   * Read from the user profile (the client uploads its language there) rather
+   * than from a job field, so a debounced recompute started before a language
+   * change still uses the current preference. A missing/blank preference (the
+   * client uploads `''` for "follow the system language") keeps the product
+   * default, matching `SuggestionService.recompute`'s fallback.
+   */
+  private async resolveUserLocale(userId: string): Promise<string> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { profile: { select: { locale: true } } },
+      });
+      const raw = user?.profile?.locale;
+      if (raw != null && raw.trim().length > 0) {
+        return resolveLocale(raw);
+      }
+    } catch (error) {
+      // A locale lookup must never fail the recompute: the copy falls back to
+      // the product default instead.
+      this.logger.warn(
+        `Failed to read locale for suggestion recompute (user=${userId}); using default: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+    return SUGGESTION_DEFAULT_LOCALE;
   }
 }

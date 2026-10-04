@@ -243,36 +243,6 @@ ESM 化后遗留清单与后续跟进：
   operation 逐字一致(含 RouterModule 前缀与 `{…}` 参数),不一致导出会显式报错——新增模块照此约定。
 - SSE/text 流端点不注册响应组件(非 JSON 200),如需结构化 `event: error` 语义遵循 ADR-0012/0017。
 
-## Today 建议卡的服务端契约缺口（动作 label / route / 文案语言）
-
-Luminous 真机反馈(2026-10-04，App 语言为英文)：
-
-- 「健康档案信息不完整」建议卡的主操作按钮显示的是原始动作 id `complete_profile`，
-  而同一张卡的次级操作显示英文标签。根因已定位到读路径：`rules/medication/coverage.service.ts:63-68`
-  把内部模板 key 当 label 种子（`label: 'complete_profile'`），
-  `presentation.service.ts` 的 `toDto` 本地化只在 recompute 路径生效；
-  持久化写入 `lifecycle/manager.service.ts:70` 与 GET 读回 `:204` 都原样透传
-  `primaryAction`，`suggestion.service.ts` 的 `readCurrent`（`:44-99`）从不调 `toDto`，
-  只靠 ≤3 分钟的 Redis 结果缓存命中时才拿到本地化版本。既有测试只覆盖 `toDto`
-  （`presentation.service.spec.ts:370-392`、`action-label.integration.spec.ts`），
-  `manager.service.spec.ts:299-304` 用的是已 humanize 的 `'Log dose'` fixture，
-  所以持久化读路径无人看守。修法：读路径也本地化（或持久化本地化后的 action），
-  并让契约在 label 缺省时报错。
-- 该动作下发的 route 为 `/mine/profile/edit`，客户端路由表里并不存在——客户端只有
-  `/profile`（`settings/presentation/routes.dart:193-201` 的 `ProfileRoute`，也是
-  `mine` 归档行用的 `Routes.profile`）。点下去渲染成 go_router 的 "Page Not Found"
-  （`app/router.dart` 没有 `errorBuilder`）。客户端侧已加对账兜底（Luminous
-  `openRoute` 先匹配路由表，未知即提示不导航）；服务端需要改下发
-  `coverage.service.ts:66`，并检查 `services/notification/escalation.service.ts:94`
-  同样把该 route 透传进通知深链。
-- 同卡标题与原因文案是中文（`title` / `reason`），而请求语言是英文：
-  recompute worker 硬编码 `{ locale: 'zh-CN' }`（`services/recompute/worker.service.ts:81`，
-  `suggestion.service.ts:113` 再兜一次），而 `readCurrent` 的 locale 参数是
-  `_options`（未使用）、结果缓存 key 与 `getActiveSuggestions` 都不带 locale——
-  客户端发的 `Accept-Language: en` 被控制器解析后即丢弃。`constants/copy-fallback.ts`
-  本来就有 en-US 文案（`:27-32`）。修法：按请求 locale 物化/缓存，或在读路径用
-  `Accept-Language` 重新本地化。
-
 ## 2026-10-04 后端硬编码文案与 locale 缺口审计（Luminous ARB 迁移后的同源排查）
 
 背景：Luminous 已把客户端硬编码的中/英文诊断文案迁入 ARB；同一类问题（文案不经 i18n、
@@ -378,12 +348,9 @@ Luminous 真机反馈(2026-10-04，App 语言为英文)：
   语言选择发生在缓存之后，见 `src/modules/medicines/services/medicines.service.ts:213-240`）。
   **风险位**：`src/modules/today-analysis/services/pipeline/context.service.ts:90,122`
   的 context 缓存键只有 `userId:date`；当前内容恒定中文故不串语言，
-  但一旦按类别①末条本地化 facts，就会跨语言复用陈旧 locale 的结果——
-  与下面这条已登记项同型。
-  `today-suggestion` 读路径/缓存缺口**已在台账**（本文件「Today 建议卡的服务端契约缺口」节），
-  本轮复核**仍未修复**：`src/modules/today-suggestion/services/recompute/worker.service.ts:81`
-  与 `src/modules/today-suggestion/services/suggestion.service.ts:113` 依旧硬编码 `'zh-CN'`，
-  故不重复登记。
+  但一旦按类别①末条本地化 facts，就会跨语言复用陈旧 locale 的结果。
+  （`today-suggestion` 的读路径/worker 硬编码 `'zh-CN'` 已于 2026-10-04 修复，
+  见当日迁移日志，此处不再登记。）
 
 - **`i18n.t(key)` 不传 `lang` 依赖 AsyncLocalStorage**：`nestjs-i18n@10.8.4` 的
   `translate()` 取 `I18nContext.current()?.lang || fallbackLanguage`（其 `i18n.service.js:94`），

@@ -42,8 +42,13 @@ owner: backend
   的 drift-guard 锁在一起。
 - `services/arbitration/` — 打分(scoring)、抑制(suppression)、仲裁(arbiter)。
 - `services/lifecycle/` — 生命周期管理(manager)与基线判定(baseline)。
+- `services/action-label.ts` — 卡片动作/证据标签的本地化解析,`toDto`(重算内联路径)
+  与 `getActiveSuggestions`(读路径)共用。**两条路径必须都过这里**:持久化的
+  `primaryAction.label` 是规则的模板 key(`complete_profile`)而非展示文案,
+  读路径漏本地化就会把内部标识符当按钮文案下发。
 - `services/materialization/`、`services/recompute/` — 物化存储与重算三件套
-  (queue/trigger/worker)。
+  (queue/trigger/worker)。worker 在生成文案前读 `profile.locale` 决定语言
+  (文案在重算时就被物化);用户未设语言时用 `constants/locale.constants.ts` 的产品默认。
 - `services/cache/` — 信号/基线缓存与领域事件失效监听。
 - `services/copy/`、`services/explanation/` — AI 文案与 AI 解释(各含队列)。
 - `services/feedback/` — 反馈记录与统计(SUPPRESS 影响后续过滤)。

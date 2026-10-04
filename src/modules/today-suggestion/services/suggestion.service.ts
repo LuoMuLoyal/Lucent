@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { now, nowIsoString, formatDateOnly } from '../../../common/index.js';
+import {
+  now,
+  nowIsoString,
+  formatDateOnly,
+  resolveLocale,
+} from '../../../common/index.js';
 import type { SuggestionCandidate } from '../types/candidate.types.js';
 import { SuggestionLifecycleState } from '../types/suggestion.types.js';
 import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto.js';
@@ -12,11 +17,26 @@ import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
 import { MaterializationStore } from './materialization/store.service.js';
 import type { MaterializationStatusView } from '../types/materialization.types.js';
 import type { SuggestionSignal } from '../types/signal.types.js';
+import { SUGGESTION_DEFAULT_LOCALE } from '../constants/locale.constants.js';
 
 export interface SuggestionRecomputeOptions {
   locale?: string;
   sourceVersion?: number;
   onSuccessfulRecompute?: (signals: SuggestionSignal[]) => Promise<void>;
+}
+
+/**
+ * Normalizes a request/user locale for the suggestion engine.
+ *
+ * `unset` means "the user has no stored preference" (the client uploads an
+ * empty string for "follow the system language"), which falls back to the
+ * product's primary language rather than to `resolveLocale`'s `en` — matching
+ * the long-standing behaviour of this module.
+ */
+function resolveRequestLocale(raw: string | null | undefined): string {
+  return raw != null && raw.trim().length > 0
+    ? resolveLocale(raw)
+    : SUGGESTION_DEFAULT_LOCALE;
 }
 
 /**
@@ -45,9 +65,12 @@ export class SuggestionService {
     userId: string,
     date?: string,
     excludeIds?: string[],
-    _options?: { locale?: string },
+    options?: { locale?: string },
   ): Promise<TodaySuggestionsDataDto> {
     const targetDate = date ?? formatDateOnly(now());
+    // Normalized once and reused: the read path needs it to localize the
+    // action/evidence labels it rebuilds from persisted rows.
+    const locale = resolveRequestLocale(options?.locale);
     const status = await this.materializationStore.readStatus(
       userId,
       targetDate,
@@ -75,6 +98,7 @@ export class SuggestionService {
         userId,
         targetDate,
         status.computedVersion,
+        locale,
       );
       const excluded = new Set(excludeIds ?? []);
       const current = persisted.filter((item) => !excluded.has(item.id));
@@ -110,7 +134,12 @@ export class SuggestionService {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
     const excludeKey = SuggestionCacheService.buildExcludeKey(excludeIds);
-    const locale = options?.locale ?? 'zh-CN';
+    // Pass-through is intentional here: the caller (worker or an explicit
+    // caller) already owns the locale, and copy generation / persistence accept
+    // it verbatim — `copy-fallback.ts` even keys on `en-US`. `readCurrent`
+    // normalizes instead, because it feeds the value to `I18nService`, which
+    // needs a registered language tag.
+    const locale = options?.locale ?? SUGGESTION_DEFAULT_LOCALE;
     const sourceVersion = options?.sourceVersion;
 
     // 0. Check suggestion result cache

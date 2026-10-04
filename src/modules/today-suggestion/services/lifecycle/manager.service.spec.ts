@@ -2,6 +2,7 @@ import { LifecycleService } from './manager.service.js';
 import { SuggestionLifecycleState } from '../../types/suggestion.types.js';
 import type { SuggestionCandidate } from '../../types/candidate.types.js';
 import { formatDateOnly, now } from '../../../../common/index.js';
+import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 function createMockCache() {
   return {
@@ -32,7 +33,11 @@ describe('LifecycleService', () => {
       },
     };
 
-    service = new LifecycleService(prismaMock as never, createMockCache());
+    service = new LifecycleService(
+      prismaMock as never,
+      createMockCache(),
+      makeTestI18n() as never,
+    );
   });
 
   // ── persistActive ──────────────────────────────────────────────────────
@@ -329,6 +334,95 @@ describe('LifecycleService', () => {
         title: 'Take your medicine',
         lifecycleState: SuggestionLifecycleState.ACTIVE,
       });
+    });
+
+    it('localizes the persisted raw action key instead of passing it through', async () => {
+      // The regression this guards: the stored `primaryAction.label` is the
+      // rule's template key (`complete_profile`), so this read path used to
+      // render an internal identifier as the button label whenever the
+      // ≤3-minute result cache had expired — while a cache hit showed the
+      // properly localized label for the same card.
+      findManyMock.mockResolvedValue([
+        {
+          id: 'sug-coverage',
+          type: 'coverage',
+          triggerType: 'event',
+          ruleId: 'coverage_rule',
+          ruleVersion: '1.0.0',
+          title: '完善健康档案',
+          reason: '缺少必要资料',
+          boundary: '仅供参考',
+          evidence: [
+            {
+              kind: 'profile',
+              label: 'missing_fields',
+              value: 'birthDate,sexAtBirth',
+            },
+          ],
+          primaryAction: {
+            actionId: 'go_complete_profile',
+            label: 'complete_profile',
+            route: '/profile',
+            authRequired: true,
+          },
+          secondaryActions: null,
+          priorityScore: 800,
+          confidence: 'high',
+          lifecycleState: 'active',
+          notificationEligible: false,
+          subtype: 'profile',
+          locale: 'en',
+          generatedAt: new Date('2026-07-09T08:00:00.000Z'),
+        },
+      ]);
+
+      const result = await service.getActiveSuggestions(
+        'user-1',
+        '2026-07-09',
+        undefined,
+        'en',
+      );
+
+      // Never the internal key, and never an i18n key path.
+      expect(result[0]!.primaryAction.label).toBe('Complete profile');
+      expect(result[0]!.primaryAction.label).not.toContain('complete_profile');
+      expect(result[0]!.evidence[0]!.label).toBe('Missing fields');
+    });
+
+    it('falls back to the product default language when no locale is given', async () => {
+      findManyMock.mockResolvedValue([
+        {
+          id: 'sug-coverage',
+          type: 'coverage',
+          triggerType: 'event',
+          ruleId: 'coverage_rule',
+          ruleVersion: '1.0.0',
+          title: '完善健康档案',
+          reason: '缺少必要资料',
+          boundary: '仅供参考',
+          evidence: [],
+          primaryAction: {
+            actionId: 'go_complete_profile',
+            label: 'complete_profile',
+            route: '/profile',
+            authRequired: true,
+          },
+          secondaryActions: null,
+          priorityScore: 800,
+          confidence: 'high',
+          lifecycleState: 'active',
+          notificationEligible: false,
+          subtype: 'profile',
+          locale: 'zh-CN',
+          generatedAt: new Date('2026-07-09T08:00:00.000Z'),
+        },
+      ]);
+
+      const result = await service.getActiveSuggestions('user-1', '2026-07-09');
+
+      // Still localized (not the raw key), just in the default language.
+      expect(result[0]!.primaryAction.label).not.toBe('complete_profile');
+      expect(result[0]!.primaryAction.label.length).toBeGreaterThan(0);
     });
   });
 

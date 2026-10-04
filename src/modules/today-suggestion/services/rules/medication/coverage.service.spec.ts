@@ -28,6 +28,29 @@ describe('CoverageRuleService', () => {
     expect(candidate!.type).toBe(SuggestionType.COVERAGE);
   });
 
+  it('deep-links the profile action to a route the client actually has', () => {
+    // The client registers `/profile` only (settings `ProfileRoute`, also used
+    // by the mine archive row). `/mine/profile/edit` is not a location in the
+    // route table, so tapping the card rendered go_router's "Page Not Found".
+    const signals = [
+      buildSignal({
+        source: 'profile',
+        kind: 'profile_completeness',
+        payload: {
+          activeAllergyCount: 0,
+          activeConditionCount: 0,
+          missingFields: ['birthDate'],
+          isComplete: false,
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+
+    expect(candidate!.primaryAction.route).toBe('/profile');
+    expect(candidate!.primaryAction.route).not.toContain('/mine/profile/edit');
+  });
+
   it('should match when there are zero records today', () => {
     const signals = [
       buildSignal({

@@ -1,6 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma/index.js';
 import { now, nowIsoString, formatDateOnly } from '../../../../common/index.js';
 import type { SuggestionCandidate } from '../../types/candidate.types.js';
@@ -17,6 +18,11 @@ import {
   SUGGESTION_ACTIVE_DURATION_MS,
   SUGGESTION_FADING_DURATION_MS,
 } from '../../constants/lifecycle.constants.js';
+import {
+  localizeEvidenceLabel,
+  localizeEvidenceValue,
+  resolveActionLabel,
+} from '../action-label.js';
 
 /** Max items returned by the history endpoint. */
 const HISTORY_MAX_LIMIT = 500;
@@ -37,6 +43,7 @@ export class LifecycleService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -173,14 +180,26 @@ export class LifecycleService {
   /**
    * Reads the persisted active cards used to recover a result after the
    * short-lived suggestion result cache expires. Persisted copy is already
-   * localized, so this method never invokes copy generation. The materialized
-   * Today result has one current locale; do not filter by request locale or a
-   * cache miss in another locale would hide the persisted current cards.
+   * localized, so this method never invokes copy generation.
+   *
+   * The **action and evidence labels are localized here**, not read from the
+   * persisted JSON: the stored `primaryAction` still carries the rule's raw
+   * template key (`complete_profile`), which is an internal identifier. This
+   * path used to pass it through verbatim, so the same card showed a proper
+   * label on a result-cache hit and the raw key on a miss — see
+   * `docs/TODO.md`「Today 建议卡的服务端契约缺口」.
+   *
+   * The materialized Today result has one current locale; it is deliberately
+   * not filtered by request locale, because a cache miss in another locale
+   * would otherwise hide the persisted current cards. Consequence: the card's
+   * copy language is fixed at recompute time, so the request locale is used
+   * only for the labels localized here.
    */
   async getActiveSuggestions(
     userId: string,
     date: string,
     sourceVersion?: number,
+    locale = 'zh-CN',
   ): Promise<SuggestionItemDto[]> {
     const records = await this.prisma.userSuggestion.findMany({
       where: {
@@ -192,28 +211,68 @@ export class LifecycleService {
       orderBy: { priorityScore: 'desc' },
     });
 
-    return records.map((record) => ({
-      id: record.id,
-      type: record.type as SuggestionItemDto['type'],
-      cardTone: this.cardToneFor(record.type),
-      icon: this.iconFor(record.type, record.subtype),
-      title: record.title,
-      reason: record.reason,
-      evidence: record.evidence as never,
-      boundary: record.boundary,
-      primaryAction: record.primaryAction as never,
-      ...(record.secondaryActions != null
-        ? { secondaryActions: record.secondaryActions as never }
-        : {}),
-      confidence: record.confidence as SuggestionItemDto['confidence'],
-      ruleId: record.ruleId,
-      ruleVersion: record.ruleVersion,
-      triggerType: record.triggerType as SuggestionItemDto['triggerType'],
-      lifecycleState: SuggestionLifecycleState.ACTIVE,
-      notificationEligible: record.notificationEligible,
-      feedbackOptions: this.feedbackOptionsFor(record.type),
-      subtype: record.subtype ?? undefined,
-    }));
+    return records.map((record) => {
+      const primaryAction = record.primaryAction as {
+        actionId: string;
+        label: string;
+        route: string;
+        authRequired: boolean;
+      };
+      const secondaryActions = record.secondaryActions as Array<{
+        actionId: string;
+        label: string;
+        route: string;
+        authRequired: boolean;
+      }> | null;
+      const evidence = record.evidence as Array<{
+        kind: string;
+        label: string;
+        value: string;
+        args?: Record<string, string | number>;
+        recordId?: string;
+        medicineId?: string;
+      }>;
+
+      return {
+        id: record.id,
+        type: record.type as SuggestionItemDto['type'],
+        cardTone: this.cardToneFor(record.type),
+        icon: this.iconFor(record.type, record.subtype),
+        title: record.title,
+        reason: record.reason,
+        evidence: evidence.map((item) => ({
+          ...item,
+          label: localizeEvidenceLabel(this.i18n, item.label, locale),
+          value: localizeEvidenceValue(
+            this.i18n,
+            item.value,
+            locale,
+            item.args,
+          ),
+        })),
+        boundary: record.boundary,
+        primaryAction: {
+          ...primaryAction,
+          label: resolveActionLabel(this.i18n, primaryAction.label, locale),
+        },
+        ...(secondaryActions != null
+          ? {
+              secondaryActions: secondaryActions.map((action) => ({
+                ...action,
+                label: resolveActionLabel(this.i18n, action.label, locale),
+              })),
+            }
+          : {}),
+        confidence: record.confidence as SuggestionItemDto['confidence'],
+        ruleId: record.ruleId,
+        ruleVersion: record.ruleVersion,
+        triggerType: record.triggerType as SuggestionItemDto['triggerType'],
+        lifecycleState: SuggestionLifecycleState.ACTIVE,
+        notificationEligible: record.notificationEligible,
+        feedbackOptions: this.feedbackOptionsFor(record.type),
+        subtype: record.subtype ?? undefined,
+      };
+    });
   }
 
   private cardToneFor(type: string): SuggestionItemDto['cardTone'] {

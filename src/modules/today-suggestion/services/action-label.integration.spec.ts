@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { humanizeActionLabel } from './presentation.service.js';
+import { humanizeActionLabel } from './action-label.js';
 
 /**
  * Exercises action-label resolution against the REAL en i18n table.

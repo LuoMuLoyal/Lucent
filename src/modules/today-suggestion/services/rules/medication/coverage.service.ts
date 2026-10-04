@@ -63,7 +63,11 @@ export class CoverageRuleService implements SuggestionRule {
           primaryAction: {
             actionId: 'go_complete_profile',
             label: 'complete_profile',
-            route: '/mine/profile/edit',
+            // Client route table has `/profile` only (`Routes.profile` in
+            // Luminous; declared by the settings `ProfileRoute`). The previous
+            // `/mine/profile/edit` was not a registered location, so tapping the
+            // card rendered go_router's "Page Not Found".
+            route: '/profile',
             authRequired: true,
           },
           priorityScore: COVERAGE_BASE_SCORE,
