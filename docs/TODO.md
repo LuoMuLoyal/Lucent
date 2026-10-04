@@ -309,3 +309,19 @@ Luminous 真机反馈(2026-10-04)：搜索 `bu` 时 DrugBank 结果的标题是�
   （`medicine_detail_response*.dart`）。
 - 待办：搜索响应补一个可读展示名（首选泛名/INN，或 `synonyms` 中第一个非系统命名），
   或在入库时把 `name` 生成为可读药名、系统命名另存一列。客户端不做名称猜测。
+
+## 生产环境 S3 公共基址缺 bucket 段（上传成功也拿不到可访问 URL）
+
+Luminous 真机反馈(2026-10-04)：头像上传后不显示。客户端侧根因已修（`/files/upload` 的
+`fileName` 被传成 `avatars/{userId}/...`，被 schema `^[^\\/]+$` 拒收 400，已改为 basename）；
+但即使上传成功，产出的 URL 仍会 404：
+
+- `STORAGE_S3_PUBLIC_BASE_URL=https://s3.cn-south-1.qiniucs.com`（`Lucent/.env.production`），
+  没有 bucket 段；而 `STORAGE_S3_BUCKET=lucent` 且 SDK 用 `forcePathStyle: true`
+  （`src/common/storage/s3.runtime.ts`）→ 对象实际落在 `.../lucent/files/...`。
+- `buildPublicUrl`（`src/common/storage/object-key.utils.ts`，被
+  `src/modules/files/services/files.service.ts` 调用）产出 `{base}/{objectKey}` =
+  `.../files/...`，缺少 `/lucent` 前缀。
+- 待办：把该环境变量补成 `https://s3.cn-south-1.qiniucs.com/lucent`（或在服务端拼 bucket），
+  并用一次真实 HEAD 验证；另外 dev/本地栈该变量为空，客户端
+  `PresignedUpload.requirePublicUrl()` 会按设计抛错，是否要给更明确的提示由产品定。
