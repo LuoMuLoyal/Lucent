@@ -1,6 +1,10 @@
 import { buildUserPrompt } from '../../../common/index.js';
 import type { PromptCopy } from '../../../common/index.js';
 import type { TodayAnalysisContext } from '../services/pipeline/context.service.js';
+import {
+  MEAL_ANALYSIS_MISSING_TITLE,
+  MEAL_ANALYSIS_TITLE,
+} from '../services/pipeline/context.service.js';
 
 export function buildTodayAnalysisSystemPrompt(): string {
   return [
@@ -13,7 +17,10 @@ export function buildTodayAnalysisSystemPrompt(): string {
     'Prefer concrete, low-risk suggestions such as hydration, rest, logging, and checking whether a planned dose was already taken.',
     'If data is missing, say that the summary is limited by missing records.',
     'Return only structured output that matches the required schema.',
-    'Meal records in recentRecords appear as "饮食分析" with a note carrying the recognized dishes, the kcal interval, and the most important findings. If a meal record shows "饮食分析缺失", treat it as missing meal-analysis data rather than confirmed absence of food.',
+    // Referencing the same constants the context builder writes keeps the two
+    // sides in lockstep; a rename now fails to compile instead of silently
+    // desynchronizing prompt from facts.
+    `Meal records in recentRecords appear as "${MEAL_ANALYSIS_TITLE}" with a note carrying the recognized dishes, the kcal interval, and the most important findings. If a meal record shows "${MEAL_ANALYSIS_MISSING_TITLE}", treat it as missing meal-analysis data rather than confirmed absence of food.`,
   ].join(' ');
 }
 

@@ -1,43 +1,39 @@
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import type { TodayRecommendationResponseDto } from '../../dto/recommendation-response.dto.js';
 
 interface GuideSource {
   id: string;
-  contentEn: string;
-  contentZh: string;
+  /** i18n key under `today-analysis.guides.*` holding the guide text. */
+  textKey: string;
   category: string;
 }
 
 @Injectable()
 export class TodayRecommendationsService {
+  /**
+   * Guide definitions carry an i18n key instead of inline zh/en pairs.
+   *
+   * The copy lives in `src/i18n/{zh-CN,en}/today-analysis.json` so it follows
+   * the same path as every other user-visible string, and adding a language no
+   * longer means editing this file (see docs/TODO.md「AI 侧固定中文」).
+   */
   private readonly guides: GuideSource[] = [
     {
       id: 'add-medicine',
-      contentEn: 'Add your current medicines and set up reminder plans.',
-      contentZh: '在用药页添加当前服用的药品，建立提醒计划。',
+      textKey: 'guides.add_medicine',
       category: 'onboarding',
     },
-    {
-      id: 'log-water',
-      contentEn: 'Log a glass of water to start tracking daily intake.',
-      contentZh: '记录一次饮水，帮助追踪每日摄入。',
-      category: 'onboarding',
-    },
+    { id: 'log-water', textKey: 'guides.log_water', category: 'onboarding' },
     {
       id: 'record-sleep',
-      contentEn:
-        "Record last night's sleep so trend analysis becomes more accurate.",
-      contentZh: '记录昨晚睡眠，趋势分析会更准确。',
+      textKey: 'guides.record_sleep',
       category: 'onboarding',
     },
-    {
-      id: 'check-mood',
-      contentEn:
-        'Check in with your mood to build a long-term emotional picture.',
-      contentZh: '随手记录心情，长期观察情绪变化。',
-      category: 'onboarding',
-    },
+    { id: 'check-mood', textKey: 'guides.check_mood', category: 'onboarding' },
   ];
+
+  constructor(private readonly i18n: I18nService) {}
 
   /**
    * Returns deterministic cold-start guide cards.
@@ -53,14 +49,16 @@ export class TodayRecommendationsService {
     lang?: string,
   ): TodayRecommendationResponseDto[] {
     const normalizedLang = (lang ?? 'en').toLowerCase();
-    const useChinese = normalizedLang.startsWith('zh');
+    const resolvedLang = normalizedLang.startsWith('zh') ? 'zh-CN' : 'en';
 
     const excludedIdSet = new Set(excludeIds);
     return this.guides
       .filter((item) => !excludedIdSet.has(item.id))
       .map((item) => ({
         id: item.id,
-        text: useChinese ? item.contentZh : item.contentEn,
+        text: this.i18n.t(`today-analysis.${item.textKey}`, {
+          lang: resolvedLang,
+        }),
         category: item.category,
       }));
   }

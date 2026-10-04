@@ -25,6 +25,27 @@ import { TriggerEvaluatorService } from './trigger-evaluator.service.js';
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
 
+/**
+ * Meal-fact markers shared with the system prompt.
+ *
+ * These strings are **model-facing contract**, not user copy: the system prompt
+ * tells the model to expect them, so the two must be changed together. They used
+ * to be duplicated as literals in `prompts/analysis.prompt.ts`, where a wording
+ * change on one side silently desynchronized the other. Exporting them makes the
+ * coupling explicit and compilers catch a rename.
+ *
+ * They are deliberately *not* localized yet. The facts JSON is produced once per
+ * request and the prompt is English; localizing one side without the other (and
+ * without re-running the evaluation) would change model input with no measured
+ * benefit. See docs/TODO.md「AI 侧固定中文」.
+ */
+export const MEAL_ANALYSIS_TITLE = '饮食分析';
+export const MEAL_ANALYSIS_MISSING_TITLE = '饮食分析缺失';
+export const MEAL_ANALYSIS_MISSING_NOTE =
+  '未能识别饮食内容，缺少可使用的餐食分析数据';
+export const MEAL_DISHES_LABEL = '识别菜品：';
+export const MEAL_KCAL_LABEL = '热量区间：';
+
 type TriggerDimension = 'water' | 'meal' | 'sleep' | 'mood';
 
 export interface TodayAnalysisContext {
@@ -402,10 +423,10 @@ export class TodayAnalysisContextService {
     if (status === 'analysis_failed') {
       return {
         kind: record.kind,
-        title: '饮食分析缺失',
+        title: MEAL_ANALYSIS_MISSING_TITLE,
         value: this.trimNullableText(record.value),
         unit: this.trimNullableText(record.unit),
-        note: '未能识别饮食内容，缺少可使用的餐食分析数据',
+        note: MEAL_ANALYSIS_MISSING_NOTE,
         createdAt: record.createdAt.toISOString(),
       };
     }
@@ -421,11 +442,11 @@ export class TodayAnalysisContextService {
 
     const noteParts: string[] = [];
     if (dishNames.length > 0) {
-      noteParts.push(`识别菜品：${dishNames.join('、')}`);
+      noteParts.push(`${MEAL_DISHES_LABEL}${dishNames.join('、')}`);
     }
     if (analysis.calorieRange != null) {
       noteParts.push(
-        `热量区间：${String(analysis.calorieRange.min)}–${String(analysis.calorieRange.max)} kcal`,
+        `${MEAL_KCAL_LABEL}${String(analysis.calorieRange.min)}–${String(analysis.calorieRange.max)} kcal`,
       );
     }
     // 只把最重要的两段结论给 LLM：全文由详情页与助手摘要承载。
@@ -439,7 +460,7 @@ export class TodayAnalysisContextService {
 
     return {
       kind: record.kind,
-      title: '饮食分析',
+      title: MEAL_ANALYSIS_TITLE,
       value: this.trimNullableText(record.value),
       unit: this.trimNullableText(record.unit),
       note,

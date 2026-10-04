@@ -8,6 +8,7 @@ import type {
 import type { NotificationsService } from '../../notifications/index.js';
 import type { TodayAnalysisGeneratorService } from './pipeline/generator.service.js';
 import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service.js';
+import { makeTestI18n } from '../../../common/tests/test-i18n.js';
 import { TodayAnalysisService } from './analysis.service.js';
 import { fromPromise, okAsync } from '../../../common/result/index.js';
 import type { PushDeliveryService } from '../../notifications/index.js';
@@ -1026,6 +1027,7 @@ describe('TodayAnalysisService', () => {
       } as never),
       notificationsService,
       pushDeliveryService,
+      makeTestI18n() as never,
       materializationStore as never,
     );
   }

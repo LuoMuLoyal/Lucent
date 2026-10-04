@@ -305,8 +305,9 @@ Luminous 真机反馈(2026-10-04)：头像上传后不显示。客户端侧根�
 ## 2026-10-04 后端硬编码文案与 locale 缺口审计（Luminous ARB 迁移后的同源排查）
 
 背景：Luminous 已把客户端硬编码的中/英文诊断文案迁入 ARB；同一类问题（文案不经 i18n、
-语言在错误的位置被固定）此前没有在后端系统排查过。本轮为**只审计不改码**：以下为已核实项，
-修复另行立项。
+语言在错误的位置被固定）此前没有在后端系统排查过。**只审计不改码**，以下为已核实项；
+其中助手展示文案、`recommendations` 冷启动文案与今日分析通知标题已于 2026-10-04 修复
+（见当日迁移日志），相应条目已从本清单删除，其余仍待修。
 
 判定口径是「该文案是否随请求语言经 `I18nService` 解析」，而不是「字符串里有没有中文」。
 两条关键事实决定了下面条目的可见性：
@@ -346,23 +347,11 @@ Luminous 真机反馈(2026-10-04)：头像上传后不显示。客户端侧根�
 - **通知/推送文案（写入 DB，语言在写入时刻被物化，客户端只能原样展示）**：
   `src/modules/auth/services/notification.service.ts:15-16,27-28` 的
   「账户登录提醒」「您的账户通过…登录。如非本人操作…」为纯中文，而同模块已有
-  `notifications.*` i18n key 可用；`src/modules/today-analysis/services/analysis.service.ts:477`
-  的中文标题「AI 今日总结已生成」与同一条通知里按请求 locale 生成的
-  `content: data.summary` 拼在一起，英文用户拿到中英混排；
+  `notifications.*` i18n key 可用；
   `src/modules/data-export/services/processor.service.ts:148-160` 的
   `kindLabels` 与「…导出成功」「您的…已生成」全中文，而 worker 里根本没有请求 locale
   （导出请求体是带 `language` 的，需要在入队时把它带进 job）。
   修法：这些写入点统一 `i18n.t(key, { lang })` 并显式传 `lang`（理由见类别②末条）。
-
-- **助手工具/提案的展示文案（客户端卡片直接渲染这些 label/value 与 title/summary/constraints）**：
-  `src/modules/assistant/tools/presenters.ts:119-175,210,218-224,240-262` 用 zh/en 三元内联，
-  `src/modules/assistant/tools/proposal/daily-record-proposal.service.ts:88,123,136-148,214,233-243,307,314-322,336-346`
-  同型，`src/modules/today-analysis/services/pipeline/recommendations.service.ts:15-38`
-  把 `contentZh`/`contentEn` 直接写成代码常量。
-  修法：迁到 `src/i18n` 下的 assistant 命名空间（`src/modules/assistant/services/conversation.service.ts:432`
-  已用 `i18n.t('assistant.conversation_not_found')`，说明归属地现成，这里是漏改）；
-  presenter 只按 `locale` 取 key。同类对照：`src/modules/medicines/services/medicines.service.ts:253,275`
-  也已走 i18n。
 
 - **PDF/导出物成品文案（用户下载的文件，全套内联三元）**：
   `src/modules/data-export/utils/report-pdf.theme.ts:9-13,65-69,78-84`、
@@ -386,11 +375,11 @@ Luminous 真机反馈(2026-10-04)：头像上传后不显示。客户端侧根�
   修法：改成稳定 code（必要时用 `args` 插值），不要拼句子。
 
 - **AI prompt 侧的固定中文（会经提示词影响模型输出）**：
-  `src/modules/today-analysis/services/pipeline/context.service.ts:405,408,424,428,442`
-  把「饮食分析」「饮食分析缺失」「识别菜品：」「热量区间：」固定中文写进 facts JSON，
-  并与 `src/modules/today-analysis/prompts/analysis.prompt.ts:16` 的英文系统提示词
-  硬编码引用这两个中文字面量形成耦合——改文案必须同时改提示词。
-  修法：facts 用稳定 code/结构化字段，提示词里的占位说明按 `languageLabel` 生成。
+  `src/modules/today-analysis/services/pipeline/context.service.ts` 的「饮食分析」「饮食分析缺失」
+  「识别菜品：」「热量区间：」已抽成 `MEAL_ANALYSIS_*` / `MEAL_DISHES_LABEL` / `MEAL_KCAL_LABEL`
+  常量并由提示词引用，**字面量耦合已消除**（改文案不会再出现一侧改了另一侧没改）。
+  **仍未做**：这些 facts 仍是中文，而系统提示词是英文；是否本地化需连同评测一起做
+  （单侧改动会改变模型输入而无实测收益）。
 
 ### 类别 ②：locale 处理缺口
 

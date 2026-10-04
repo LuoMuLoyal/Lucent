@@ -13,6 +13,7 @@ import { AssistantDailyRecordProposalService } from './proposal/daily-record-pro
 import { AssistantSettingsProposalService } from './proposal/settings-proposal.service.js';
 import { AssistantToolReadService } from './read/read.service.js';
 import { AssistantToolRecordQueryService } from './records/query.service.js';
+import { makeTestI18n } from '../../../common/tests/test-i18n.js';
 import { AssistantToolService } from './tool.service.js';
 
 describe('AssistantToolService', () => {
@@ -83,8 +84,11 @@ describe('AssistantToolService', () => {
     const dailyRecordProposalService = new AssistantDailyRecordProposalService(
       dailyRecordCandidatesService as never,
       recordQueryService,
+      makeTestI18n() as never,
     );
-    const settingsProposalService = new AssistantSettingsProposalService();
+    const settingsProposalService = new AssistantSettingsProposalService(
+      makeTestI18n() as never,
+    );
     const proposalService = new AssistantToolProposalService(
       dailyRecordProposalService,
       settingsProposalService,

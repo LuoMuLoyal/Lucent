@@ -8,7 +8,6 @@ import {
   buildUpdateRecordPreviewFields,
   buildSettingsPreviewFields,
   collectSettingsDraftKeys,
-  localeText,
   boolText,
   contextPreviewLabel,
   describeCreateRecordSummary,
@@ -17,6 +16,7 @@ import {
   describeRecordTargetLabel,
 } from './presenters.js';
 import { DailyRecordKind } from '#generated/prisma/client.js';
+import { createTestTranslator } from './shared/test-translator.js';
 
 describe('presenters', () => {
   // -----------------------------------------------------------------------
@@ -262,7 +262,7 @@ describe('presenters', () => {
           unit: 'ml',
           note: '早餐后',
         },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(fields).toContainEqual({
         label: '类型',
@@ -296,7 +296,7 @@ describe('presenters', () => {
           unit: null,
           note: null,
         },
-        'en',
+        createTestTranslator('en'),
       );
       expect(fields).toHaveLength(2);
       expect(fields[0]!.label).toBe('Kind');
@@ -313,7 +313,7 @@ describe('presenters', () => {
           unit: null,
           note: null,
         },
-        'en',
+        createTestTranslator('en'),
       );
       expect(fields).toContainEqual({ label: 'Value', value: '3/5' });
     });
@@ -326,7 +326,7 @@ describe('presenters', () => {
     it('includes only provided fields', () => {
       const fields = buildUpdateRecordPreviewFields(
         { title: '新标题', value: null, unit: null, note: null },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(fields).toHaveLength(1);
       expect(fields[0]).toEqual({ label: '标题', value: '新标题' });
@@ -335,7 +335,7 @@ describe('presenters', () => {
     it('includes value with unit', () => {
       const fields = buildUpdateRecordPreviewFields(
         { title: null, value: '500', unit: 'ml', note: null },
-        'en',
+        createTestTranslator('en'),
       );
       expect(fields).toContainEqual({ label: 'Value', value: '500 ml' });
     });
@@ -343,7 +343,7 @@ describe('presenters', () => {
     it('includes note when provided', () => {
       const fields = buildUpdateRecordPreviewFields(
         { title: null, value: null, unit: null, note: 'updated note' },
-        'en',
+        createTestTranslator('en'),
       );
       expect(fields).toEqual([{ label: 'Note', value: 'updated note' }]);
     });
@@ -351,7 +351,7 @@ describe('presenters', () => {
     it('returns empty array when no fields provided', () => {
       const fields = buildUpdateRecordPreviewFields(
         { title: null, value: null, unit: null, note: null },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(fields).toEqual([]);
     });
@@ -364,7 +364,7 @@ describe('presenters', () => {
     it('includes assistantEnabled field', () => {
       const fields = buildSettingsPreviewFields(
         { assistantEnabled: true },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(fields).toContainEqual({ label: '助手', value: '开启' });
     });
@@ -372,7 +372,7 @@ describe('presenters', () => {
     it('includes assistantMemoryEnabled field', () => {
       const fields = buildSettingsPreviewFields(
         { assistantMemoryEnabled: false },
-        'en',
+        createTestTranslator('en'),
       );
       expect(fields).toContainEqual({
         label: 'Persistent memory',
@@ -388,14 +388,14 @@ describe('presenters', () => {
             dailyRecords: false,
           },
         },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(fields).toContainEqual({ label: '健康档案', value: '开启' });
       expect(fields).toContainEqual({ label: '最近记录', value: '关闭' });
     });
 
     it('returns empty for empty draft', () => {
-      const fields = buildSettingsPreviewFields({}, 'en');
+      const fields = buildSettingsPreviewFields({}, createTestTranslator('en'));
       expect(fields).toEqual([]);
     });
   });
@@ -432,45 +432,43 @@ describe('presenters', () => {
   // -----------------------------------------------------------------------
   // locale helpers
   // -----------------------------------------------------------------------
-  describe('localeText', () => {
-    it('returns Chinese text for zh-CN', () => {
-      expect(localeText('zh-CN', '中文', 'English')).toBe('中文');
-    });
-
-    it('returns English text for en', () => {
-      expect(localeText('en', '中文', 'English')).toBe('English');
-    });
-  });
-
   describe('boolText', () => {
     it('returns 开启/关闭 for zh-CN', () => {
-      expect(boolText(true, 'zh-CN')).toBe('开启');
-      expect(boolText(false, 'zh-CN')).toBe('关闭');
+      const t = createTestTranslator('zh-CN');
+      expect(boolText(true, t)).toBe('开启');
+      expect(boolText(false, t)).toBe('关闭');
     });
 
     it('returns On/Off for en', () => {
-      expect(boolText(true, 'en')).toBe('On');
-      expect(boolText(false, 'en')).toBe('Off');
+      const t = createTestTranslator('en');
+      expect(boolText(true, t)).toBe('On');
+      expect(boolText(false, t)).toBe('Off');
     });
   });
 
   describe('contextPreviewLabel', () => {
     it('maps known keys to localized labels', () => {
-      expect(contextPreviewLabel('healthProfile', 'zh-CN')).toBe('健康档案');
-      expect(contextPreviewLabel('healthProfile', 'en')).toBe('Health profile');
-      expect(contextPreviewLabel('dailyRecords', 'zh-CN')).toBe('最近记录');
-      expect(contextPreviewLabel('dailyRecords', 'en')).toBe('Recent records');
-      expect(contextPreviewLabel('sleepRecords', 'zh-CN')).toBe('睡眠数据');
-      expect(contextPreviewLabel('sleepRecords', 'en')).toBe('Sleep data');
-      expect(contextPreviewLabel('currentMedicines', 'zh-CN')).toBe('当前用药');
-      expect(contextPreviewLabel('currentMedicines', 'en')).toBe(
+      const zh = createTestTranslator('zh-CN');
+      const en = createTestTranslator('en');
+      expect(contextPreviewLabel('healthProfile', zh)).toBe('健康档案');
+      expect(contextPreviewLabel('healthProfile', en)).toBe('Health profile');
+      expect(contextPreviewLabel('dailyRecords', zh)).toBe('最近记录');
+      expect(contextPreviewLabel('dailyRecords', en)).toBe('Recent records');
+      expect(contextPreviewLabel('sleepRecords', zh)).toBe('睡眠数据');
+      expect(contextPreviewLabel('sleepRecords', en)).toBe('Sleep data');
+      expect(contextPreviewLabel('currentMedicines', zh)).toBe('当前用药');
+      expect(contextPreviewLabel('currentMedicines', en)).toBe(
         'Current medicines',
       );
     });
 
     it('returns the raw key for unknown keys', () => {
-      expect(contextPreviewLabel('unknown', 'zh-CN')).toBe('unknown');
-      expect(contextPreviewLabel('unknown', 'en')).toBe('unknown');
+      expect(
+        contextPreviewLabel('unknown', createTestTranslator('zh-CN')),
+      ).toBe('unknown');
+      expect(contextPreviewLabel('unknown', createTestTranslator('en'))).toBe(
+        'unknown',
+      );
     });
   });
 
@@ -486,7 +484,7 @@ describe('presenters', () => {
           value: '500',
           unit: 'ml',
         },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(summary).toContain('water');
       expect(summary).toContain('2026-07-11');
@@ -500,7 +498,7 @@ describe('presenters', () => {
           value: null,
           unit: null,
         },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(summary).not.toContain('500');
       expect(summary).toContain('2026-07-11');
@@ -514,7 +512,7 @@ describe('presenters', () => {
           value: '500',
           unit: 'ml',
         },
-        'en',
+        createTestTranslator('en'),
       );
       expect(summary).toContain('water');
       expect(summary).toContain('2026-07-11');
@@ -525,7 +523,7 @@ describe('presenters', () => {
     it('builds zh-CN summary', () => {
       const summary = describeUpdateRecordSummary(
         { kind: DailyRecordKind.water, occurredAt: '2026-07-11' },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(summary).toContain('water');
       expect(summary).toContain('2026-07-11');
@@ -534,7 +532,7 @@ describe('presenters', () => {
     it('builds English summary', () => {
       const summary = describeUpdateRecordSummary(
         { kind: DailyRecordKind.symptom, occurredAt: '2026-07-11' },
-        'en',
+        createTestTranslator('en'),
       );
       expect(summary).toContain('symptom');
       expect(summary).toContain('2026-07-11');
@@ -545,7 +543,7 @@ describe('presenters', () => {
     it('builds zh-CN summary', () => {
       const summary = describeDeleteRecordSummary(
         { kind: DailyRecordKind.note, occurredAt: '2026-07-11' },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(summary).toContain('删除');
       expect(summary).toContain('note');
@@ -554,7 +552,7 @@ describe('presenters', () => {
     it('builds English summary', () => {
       const summary = describeDeleteRecordSummary(
         { kind: DailyRecordKind.note, occurredAt: '2026-07-11' },
-        'en',
+        createTestTranslator('en'),
       );
       expect(summary).toContain('delete');
       expect(summary).toContain('note');
@@ -570,7 +568,7 @@ describe('presenters', () => {
           value: '500',
           unit: 'ml',
         },
-        'zh-CN',
+        createTestTranslator('zh-CN'),
       );
       expect(label).toBe('2026-07-11 water 500 ml');
     });
@@ -583,7 +581,7 @@ describe('presenters', () => {
           value: null,
           unit: null,
         },
-        'en',
+        createTestTranslator('en'),
       );
       expect(label).toBe('2026-07-11 note');
     });

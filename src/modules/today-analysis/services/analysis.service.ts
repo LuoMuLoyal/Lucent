@@ -4,6 +4,7 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { trace } from '@opentelemetry/api';
 
 import {
@@ -77,6 +78,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     policyService: LlmSafetyPolicyService,
     private readonly notificationsService: INotificationSender,
     private readonly pushDeliveryService: PushDeliveryService,
+    private readonly i18n: I18nService,
     @Optional()
     private readonly materializationStore?: TodayAnalysisMaterializationStore,
   ) {
@@ -405,12 +407,13 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
   protected override async afterPersist(
     userId: string,
     data: TodayAnalysisDataDto,
+    locale: string,
   ): Promise<void> {
     const scope = {
       date: data.date,
       source: 'today-analysis',
     } as const;
-    const notification = this.buildTodaySummaryNotification(data);
+    const notification = this.buildTodaySummaryNotification(data, locale);
 
     await this.createNotificationSafely(userId, notification, scope);
     await this.deliverPushBestEffort(userId, notification);
@@ -471,10 +474,14 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
 
   private buildTodaySummaryNotification(
     data: TodayAnalysisDataDto,
+    locale: string,
   ): CreateNotificationDto {
     return {
       type: 'ai_today_summary',
-      title: 'AI 今日总结已生成',
+      // The title is persisted with the row, so it must be resolved at write
+      // time in the requester's language. Hardcoding it produced a Chinese
+      // title above an English `content` for English-locale users.
+      title: this.i18n.t('notifications.today_summary_title', { lang: locale }),
       content: data.summary,
       action: data.action,
       actionPayload: {

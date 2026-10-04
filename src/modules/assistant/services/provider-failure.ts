@@ -14,6 +14,11 @@ import {
 /** A provider failure normalized into a domain-level dependency failure. */
 export interface ProviderFailure {
   code: DomainFailureCode;
+  /**
+   * Log-only explanation. Never sent to the client: outbound `detail` comes
+   * from the `ProblemCatalog` bilingual registry, and passing a hardcoded
+   * sentence here used to override it (see `services/domain-failure.ts`).
+   */
   detail: string;
   retryable: boolean;
 }

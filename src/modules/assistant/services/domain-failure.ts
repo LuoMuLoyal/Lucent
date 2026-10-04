@@ -30,8 +30,14 @@ export function toDomainFailure(error: unknown): DomainFailure {
     return createDomainFailure({
       kind: 'dependency',
       code: provider.code,
-      detail: provider.detail,
+      // The classifier exists to pick a code and a retry hint. Its prose was
+      // also passed as `detail`, which overrides the registered bilingual
+      // detail in `ProblemCatalog.build` (`options.detail ?? translate(...)`),
+      // so English users got a hardcoded English sentence and zh users got
+      // English too. The registry owns outbound copy (ADR-0012); the sentence
+      // is kept in `cause` for logs only.
       retryable: provider.retryable,
+      cause: error,
     });
   }
 

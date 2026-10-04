@@ -77,7 +77,7 @@ export abstract class BaseLlmSummaryService<
       aiGenerated,
     );
     await this.persistSummary(userId, data);
-    await this.afterPersist(userId, data);
+    await this.afterPersist(userId, data, locale);
     return data;
   }
 
@@ -102,7 +102,7 @@ export abstract class BaseLlmSummaryService<
       aiGenerated,
     );
     await this.persistSummary(userId, data);
-    await this.afterPersist(userId, data);
+    await this.afterPersist(userId, data, locale);
     return data;
   }
 
@@ -146,8 +146,12 @@ export abstract class BaseLlmSummaryService<
   protected async afterPersist(
     _userId: string,
     _data: TDataDto,
+    _locale: string,
   ): Promise<void> {
-    // Optional hook for notifications / side effects.
+    // Optional hook for notifications / side effects. `locale` is the request
+    // locale resolved in `generate`/`generateStream`: side effects here write
+    // persisted copy, and without it the language would be fixed at write time
+    // to the fallback.
   }
 
   private async assertAiSummariesEnabled(

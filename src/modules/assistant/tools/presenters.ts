@@ -13,6 +13,20 @@ import {
   MAX_RANGE_DAYS,
 } from './shared/tool-constants.js';
 
+/**
+ * Translator bound to one locale by the caller.
+ *
+ * The presenter helpers below are plain functions rather than DI providers, so
+ * instead of reaching for a global i18n instance they receive a translator that
+ * the owning service builds from its injected `I18nService` (see
+ * `shared/copy.ts`). That keeps them pure and unit-testable while getting the
+ * copy out of the source file.
+ */
+export type AssistantTranslator = (
+  key: string,
+  args?: Record<string, string | number>,
+) => string;
+
 export function buildReadEnvelope(input: {
   toolName: AssistantToolName;
   query: Record<string, unknown>;
@@ -113,25 +127,25 @@ export function buildCreateRecordPreviewFields(
     unit: string | null;
     note: string | null;
   },
-  locale: 'zh-CN' | 'en',
+  t: AssistantTranslator,
 ) {
   const fields = [
-    { label: localeText(locale, '类型', 'Kind'), value: item.kind },
-    { label: localeText(locale, '日期', 'Date'), value: item.occurredAt },
+    { label: t('preview.kind'), value: item.kind },
+    { label: t('preview.date'), value: item.occurredAt },
   ];
   if (item.value != null)
     fields.push({
-      label: localeText(locale, '数值', 'Value'),
+      label: t('preview.value'),
       value: item.unit != null ? `${item.value} ${item.unit}` : item.value,
     });
   if (item.title != null)
     fields.push({
-      label: localeText(locale, '标题', 'Title'),
+      label: t('preview.title'),
       value: item.title,
     });
   if (item.note != null)
     fields.push({
-      label: localeText(locale, '备注', 'Note'),
+      label: t('preview.note'),
       value: item.note,
     });
   return fields;
@@ -139,22 +153,22 @@ export function buildCreateRecordPreviewFields(
 
 export function buildUpdateRecordPreviewFields(
   draft: AssistantUpdateDailyRecordProposalPayload['draft'],
-  locale: 'zh-CN' | 'en',
+  t: AssistantTranslator,
 ) {
   const fields: Array<{ label: string; value: string }> = [];
   if (draft.title != null)
     fields.push({
-      label: localeText(locale, '标题', 'Title'),
+      label: t('preview.title'),
       value: draft.title,
     });
   if (draft.value != null)
     fields.push({
-      label: localeText(locale, '数值', 'Value'),
+      label: t('preview.value'),
       value: draft.unit != null ? `${draft.value} ${draft.unit}` : draft.value,
     });
   if (draft.note != null)
     fields.push({
-      label: localeText(locale, '备注', 'Note'),
+      label: t('preview.note'),
       value: draft.note,
     });
   return fields;
@@ -162,24 +176,24 @@ export function buildUpdateRecordPreviewFields(
 
 export function buildSettingsPreviewFields(
   draft: AssistantUpdateUserSettingsProposalPayload['draft'],
-  locale: 'zh-CN' | 'en',
+  t: AssistantTranslator,
 ) {
   const fields: Array<{ label: string; value: string }> = [];
   if (draft.assistantEnabled != null)
     fields.push({
-      label: localeText(locale, '助手', 'Assistant'),
-      value: boolText(draft.assistantEnabled, locale),
+      label: t('preview.assistant'),
+      value: boolText(draft.assistantEnabled, t),
     });
   if (draft.assistantMemoryEnabled != null)
     fields.push({
-      label: localeText(locale, '持久化记忆', 'Persistent memory'),
-      value: boolText(draft.assistantMemoryEnabled, locale),
+      label: t('preview.persistent_memory'),
+      value: boolText(draft.assistantMemoryEnabled, t),
     });
   if (draft.assistantContext != null) {
     for (const [key, value] of Object.entries(draft.assistantContext)) {
       fields.push({
-        label: contextPreviewLabel(key, locale),
-        value: boolText(value, locale),
+        label: contextPreviewLabel(key, t),
+        value: boolText(value, t),
       });
     }
   }
@@ -199,30 +213,26 @@ export function collectSettingsDraftKeys(
 }
 
 // Locale helpers
-export function localeText(
-  locale: 'zh-CN' | 'en',
-  zhText: string,
-  enText: string,
-): string {
-  return locale === 'zh-CN' ? zhText : enText;
-}
-export function boolText(value: boolean, locale: 'zh-CN' | 'en'): string {
-  return locale === 'zh-CN' ? (value ? '开启' : '关闭') : value ? 'On' : 'Off';
+export function boolText(value: boolean, t: AssistantTranslator): string {
+  return value ? t('preview.on') : t('preview.off');
 }
 export function contextPreviewLabel(
   key: string,
-  locale: 'zh-CN' | 'en',
+  t: AssistantTranslator,
 ): string {
   switch (key) {
     case 'healthProfile':
-      return localeText(locale, '健康档案', 'Health profile');
+      return t('preview.health_profile');
     case 'dailyRecords':
-      return localeText(locale, '最近记录', 'Recent records');
+      return t('preview.daily_records');
     case 'sleepRecords':
-      return localeText(locale, '睡眠数据', 'Sleep data');
+      return t('preview.sleep_records');
     case 'currentMedicines':
-      return localeText(locale, '当前用药', 'Current medicines');
+      return t('preview.current_medicines');
     default:
+      // An unknown key is a schema drift, not user copy: keep it verbatim so
+      // the gap is visible instead of showing a placeholder that looks like a
+      // translation bug.
       return key;
   }
 }
@@ -235,31 +245,36 @@ export function describeCreateRecordSummary(
     value: string | null;
     unit: string | null;
   },
-  locale: 'zh-CN' | 'en',
+  t: AssistantTranslator,
 ): string {
-  if (locale === 'zh-CN')
-    return item.value != null
-      ? `准备保存一条 ${item.occurredAt} 的 ${item.kind} 记录。`
-      : `准备保存一条 ${item.occurredAt} 的记录。`;
-  return `Ready to save one ${item.kind} record for ${item.occurredAt}.`;
+  return item.value != null
+    ? t('proposal.summary.create_record', {
+        kind: item.kind,
+        occurredAt: item.occurredAt,
+      })
+    : t('proposal.summary.create_record_no_kind', {
+        occurredAt: item.occurredAt,
+      });
 }
 
 export function describeUpdateRecordSummary(
   target: { kind: DailyRecordKind; occurredAt: string },
-  locale: 'zh-CN' | 'en',
+  t: AssistantTranslator,
 ): string {
-  return locale === 'zh-CN'
-    ? `准备修改 ${target.occurredAt} 的一条 ${target.kind} 记录。`
-    : `Ready to update one ${target.kind} record from ${target.occurredAt}.`;
+  return t('proposal.summary.update_record', {
+    kind: target.kind,
+    occurredAt: target.occurredAt,
+  });
 }
 
 export function describeDeleteRecordSummary(
   target: { kind: DailyRecordKind; occurredAt: string },
-  locale: 'zh-CN' | 'en',
+  t: AssistantTranslator,
 ): string {
-  return locale === 'zh-CN'
-    ? `准备删除 ${target.occurredAt} 的一条 ${target.kind} 记录。`
-    : `Ready to delete one ${target.kind} record from ${target.occurredAt}.`;
+  return t('proposal.summary.delete_record', {
+    kind: target.kind,
+    occurredAt: target.occurredAt,
+  });
 }
 
 export function describeRecordTargetLabel(
@@ -269,7 +284,7 @@ export function describeRecordTargetLabel(
     value?: string | null;
     unit?: string | null;
   },
-  _locale: 'zh-CN' | 'en',
+  _t: AssistantTranslator,
 ): string {
   const valuePart =
     item.value != null

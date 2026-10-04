@@ -1,10 +1,11 @@
 import { TodayRecommendationsService } from './recommendations.service.js';
+import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 describe('TodayRecommendationsService', () => {
   let service: TodayRecommendationsService;
 
   beforeEach(() => {
-    service = new TodayRecommendationsService();
+    service = new TodayRecommendationsService(makeTestI18n() as never);
   });
 
   describe('getColdStartGuides', () => {

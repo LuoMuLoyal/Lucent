@@ -20,5 +20,11 @@
     "tone": "Keep the tone calm, concrete, and non-diagnostic.",
     "action_label_hint": "The actionLabel should stay close to \"{actionLabel}\".",
     "facts_label": "Facts JSON:"
+  },
+  "guides": {
+    "add_medicine": "Add your current medicines and set up reminder plans.",
+    "log_water": "Log a glass of water to start tracking daily intake.",
+    "record_sleep": "Record last night's sleep so trend analysis becomes more accurate.",
+    "check_mood": "Check in with your mood to build a long-term emotional picture."
   }
 }

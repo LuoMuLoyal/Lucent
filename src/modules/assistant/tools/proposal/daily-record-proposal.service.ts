@@ -1,6 +1,7 @@
 import { formatDateOnly, now } from '../../../../common/index.js';
 import { generatePrefixedId } from '../../../../common/index.js';
 import { Inject, Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import type { IDailyRecordCandidateGenerator } from '../../types/ports.js';
 import { DAILY_RECORD_CANDIDATE_GENERATOR } from '../../types/ports.js';
 import type {
@@ -16,6 +17,7 @@ import {
   DEFAULT_PROPOSAL_DATE_OFFSET_DAYS,
   PROPOSAL_TTL_MINUTES,
 } from '../shared/tool-constants.js';
+import { createAssistantTranslator } from '../shared/copy.js';
 import {
   buildCreateRecordPreviewFields,
   buildProposalExpiryIso,
@@ -24,7 +26,6 @@ import {
   describeDeleteRecordSummary,
   describeRecordTargetLabel,
   describeUpdateRecordSummary,
-  localeText,
 } from '../presenters.js';
 import { extractRecordUpdateDraft } from './proposal-draft-extractor.js';
 
@@ -34,12 +35,14 @@ export class AssistantDailyRecordProposalService {
     @Inject(DAILY_RECORD_CANDIDATE_GENERATOR)
     private readonly dailyRecordCandidatesService: IDailyRecordCandidateGenerator,
     private readonly recordQueryService: AssistantToolRecordQueryService,
+    private readonly i18n: I18nService,
   ) {}
 
   async buildCreateDailyRecordProposal(
     context: AssistantToolExecutionContext,
     toolName: AssistantToolName,
   ): Promise<AssistantToolExecutionResult> {
+    const t = createAssistantTranslator(this.i18n, context.locale);
     const occurredAtResolution = this.recordQueryService.resolveSingleDate(
       context.userMessage,
       {
@@ -83,11 +86,7 @@ export class AssistantDailyRecordProposalService {
           ambiguities: occurredAtResolution.ambiguities,
           candidates: candidates.items,
           unsupportedKind: first.kind,
-          reason: localeText(
-            context.locale,
-            '该记录类型暂不支持自动记录，请手动添加。',
-            'This record kind is not supported for auto-recording yet. Please add it manually.',
-          ),
+          reason: t('proposal.reason.unsupported_kind'),
         },
       };
     }
@@ -120,32 +119,20 @@ export class AssistantDailyRecordProposalService {
           type: 'create_daily_record',
           status: 'proposed',
           confirmationRequired: true,
-          title: localeText(context.locale, '保存这条记录', 'Save this record'),
-          summary: describeCreateRecordSummary(first, context.locale),
+          title: t('proposal.create_record.title'),
+          summary: describeCreateRecordSummary(first, t),
           reason: first.rationale,
-          previewFields: buildCreateRecordPreviewFields(first, context.locale),
+          previewFields: buildCreateRecordPreviewFields(first, t),
           target: {
             kind: 'daily_record_draft',
-            label: describeRecordTargetLabel(first, context.locale),
+            label: describeRecordTargetLabel(first, t),
             matchedBy: occurredAtResolution.matchedBy,
             snapshot: payload.draft,
           },
           constraints: [
-            localeText(
-              context.locale,
-              '必须先经过你确认，后端不会直接写入。',
-              'Must be confirmed by you before any write happens.',
-            ),
-            localeText(
-              context.locale,
-              '确认后只会按当前草稿创建一条记录，不会扩展到其他字段。',
-              'Confirmation creates exactly one record from this draft and nothing broader.',
-            ),
-            localeText(
-              context.locale,
-              '如果你稍后改变想法，应重新生成新的草稿再确认。',
-              'If your intent changes, generate a fresh draft instead of reusing this one.',
-            ),
+            t('proposal.constraint.confirm_first'),
+            t('proposal.constraint.create_scope'),
+            t('proposal.constraint.create_regenerate'),
           ],
           expiresAt: buildProposalExpiryIso(PROPOSAL_TTL_MINUTES),
           payloadVersion: 1,
@@ -159,6 +146,7 @@ export class AssistantDailyRecordProposalService {
     context: AssistantToolExecutionContext,
     toolName: AssistantToolName,
   ): Promise<AssistantToolExecutionResult> {
+    const t = createAssistantTranslator(this.i18n, context.locale);
     const target =
       await this.recordQueryService.findTargetDailyRecordForMutation(context, {
         dateResolution: this.recordQueryService.resolveSingleDate(
@@ -209,40 +197,21 @@ export class AssistantDailyRecordProposalService {
           type: 'update_daily_record',
           status: 'proposed',
           confirmationRequired: true,
-          title: localeText(
-            context.locale,
-            '修改这条记录',
-            'Update this record',
-          ),
-          summary: describeUpdateRecordSummary(target.record, context.locale),
+          title: t('proposal.update_record.title'),
+          summary: describeUpdateRecordSummary(target.record, t),
           reason: target.reason,
-          previewFields: buildUpdateRecordPreviewFields(
-            updateDraft,
-            context.locale,
-          ),
+          previewFields: buildUpdateRecordPreviewFields(updateDraft, t),
           target: {
             kind: 'daily_record',
-            label: describeRecordTargetLabel(target.record, context.locale),
+            label: describeRecordTargetLabel(target.record, t),
             recordId: target.record.id,
             matchedBy: target.matchedBy,
             snapshot: target.record,
           },
           constraints: [
-            localeText(
-              context.locale,
-              '必须先经过你确认，后端不会直接写入。',
-              'Must be confirmed by you before any write happens.',
-            ),
-            localeText(
-              context.locale,
-              '只允许修改白名单字段：时间、标题、数值、单位、备注、结构化 payload。',
-              'Only allowlisted fields can change: occurredAt, title, value, unit, note, and structured payload.',
-            ),
-            localeText(
-              context.locale,
-              '这条提案只针对当前匹配到的单条记录，若列表发生变化请重新生成。',
-              'This proposal targets one matched record only. Regenerate it if the record list changes.',
-            ),
+            t('proposal.constraint.confirm_first'),
+            t('proposal.constraint.update_allowlist'),
+            t('proposal.constraint.update_single'),
           ],
           expiresAt: buildProposalExpiryIso(PROPOSAL_TTL_MINUTES),
           payloadVersion: 1,
@@ -256,6 +225,7 @@ export class AssistantDailyRecordProposalService {
     context: AssistantToolExecutionContext,
     toolName: AssistantToolName,
   ): Promise<AssistantToolExecutionResult> {
+    const t = createAssistantTranslator(this.i18n, context.locale);
     const target =
       await this.recordQueryService.findTargetDailyRecordForMutation(context, {
         dateResolution: this.recordQueryService.resolveSingleDate(
@@ -302,50 +272,34 @@ export class AssistantDailyRecordProposalService {
           type: 'delete_daily_record',
           status: 'proposed',
           confirmationRequired: true,
-          title: localeText(
-            context.locale,
-            '删除这条记录',
-            'Delete this record',
-          ),
-          summary: describeDeleteRecordSummary(target.record, context.locale),
+          title: t('proposal.delete_record.title'),
+          summary: describeDeleteRecordSummary(target.record, t),
           reason: target.reason,
           previewFields: [
             {
-              label: localeText(context.locale, '记录类型', 'Kind'),
+              label: t('preview.kind'),
               value: target.record.kind,
             },
             {
-              label: localeText(context.locale, '日期', 'Date'),
+              label: t('preview.date'),
               value: target.record.occurredAt,
             },
             {
-              label: localeText(context.locale, '定位方式', 'Matched by'),
+              label: t('preview.matched_by'),
               value: target.matchedBy.join(', '),
             },
           ],
           target: {
             kind: 'daily_record',
-            label: describeRecordTargetLabel(target.record, context.locale),
+            label: describeRecordTargetLabel(target.record, t),
             recordId: target.record.id,
             matchedBy: target.matchedBy,
             snapshot: target.record,
           },
           constraints: [
-            localeText(
-              context.locale,
-              '必须先经过你确认，后端不会直接删除。',
-              'Must be confirmed by you before any deletion happens.',
-            ),
-            localeText(
-              context.locale,
-              '只会删除当前匹配到的这一条记录，不会批量删除。',
-              'Only the single matched record can be deleted. No bulk delete is allowed.',
-            ),
-            localeText(
-              context.locale,
-              '如果你表达得不够具体，系统宁可拒绝生成提案，也不会猜测要删哪条。',
-              'If your message is not specific enough, the system refuses to guess which record to delete.',
-            ),
+            t('proposal.constraint.confirm_first_delete'),
+            t('proposal.constraint.delete_single'),
+            t('proposal.constraint.delete_refuse_guess'),
           ],
           expiresAt: buildProposalExpiryIso(PROPOSAL_TTL_MINUTES),
           payloadVersion: 1,

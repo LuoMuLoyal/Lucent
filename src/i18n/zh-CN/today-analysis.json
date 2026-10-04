@@ -20,5 +20,11 @@
     "tone": "语气保持平静、具体，不要做诊断。",
     "action_label_hint": "actionLabel 应尽量贴近“{actionLabel}”。",
     "facts_label": "事实 JSON："
+  },
+  "guides": {
+    "add_medicine": "在用药页添加当前服用的药品，建立提醒计划。",
+    "log_water": "记录一次饮水，帮助追踪每日摄入。",
+    "record_sleep": "记录昨晚睡眠，趋势分析会更准确。",
+    "check_mood": "随手记录心情，长期观察情绪变化。"
   }
 }
