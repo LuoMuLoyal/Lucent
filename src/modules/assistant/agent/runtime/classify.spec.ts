@@ -99,4 +99,22 @@ describe('classifyIntent', () => {
     expect(result.intent).toBe('write_proposal');
     expect(result.relevantTools).toEqual([]);
   });
+
+  it('routes a memory-capability question to settings read, not simple_chat', () => {
+    // Reported from a real device: "你拥有记忆吗" only matched the write-side
+    // memory keyword, so the read rules came back empty and the turn fell
+    // through to simple_chat — whose prompt then told the user the assistant
+    // had no data tools at all.
+    const result = classifyIntent('你拥有记忆吗', ALLOWED);
+
+    expect(result.intent).toBe('read_data');
+    expect(result.relevantTools).toContain('get_user_settings');
+  });
+
+  it('keeps a memory toggle classified as a write proposal', () => {
+    const result = classifyIntent('关闭AI记忆', ALLOWED);
+
+    expect(result.intent).toBe('write_proposal');
+    expect(result.relevantTools).toContain('propose_update_user_settings');
+  });
 });

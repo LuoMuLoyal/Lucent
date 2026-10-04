@@ -243,30 +243,6 @@ ESM 化后遗留清单与后续跟进：
   operation 逐字一致(含 RouterModule 前缀与 `{…}` 参数),不一致导出会显式报错——新增模块照此约定。
 - SSE/text 流端点不注册响应组件(非 JSON 200),如需结构化 `event: error` 语义遵循 ADR-0012/0017。
 
-## 助手工具路由与 simple_chat 提示词：模型自述「本轮没有数据工具」
-
-Luminous 真机反馈(2026-10-04)：能力面板显示工具全部可用，但问「你在吗」时助手回答「这次运行里
-我也没有可用的记录类工具」。已核实不是 provider / 开关 / 套餐问题，是两处提示词与路由缺口：
-
-- `GET /assistant/capabilities` 报的是**全局**工具集(`services/policy.service.ts`)，而对话/流式
-  请求只把**按关键词路由出的子集**交给模型(`agent/runtime/router.ts` + `agent/runtime/classify.ts`
-  - `agent/runtime/graph.ts`)。无关键词命中即 `simple_chat`、绑定 0 个工具，且
-    `agent/prompts/system.prompt.ts` 的 simple_chat 提示词字面写着「本次运行没有服务端批准的数据
-    工具，不要声称查看了记录/睡眠/用药/档案」——模型如实转述。该提示词有 spec 锁定
-    (`prompts/system.prompt.spec.ts`)。
-- `get_user_settings` 的读规则(`agent/runtime/tool-keyword-rules.ts`)没有记忆/设置关键词，
-  「你拥有记忆吗」只命中写入规则的 `/记忆/`；而写意图分支仅在读规则零命中时才走，于是同样掉进
-  `simple_chat`，本可回答的能力/设置问题无法回答(记忆读写见 `services/memory.service.ts`，
-  设置开关见 `user-settings`，两者均已实现)。
-
-待办：
-
-- simple_chat 提示词改为如实描述「本轮未选取数据工具，本轮不能读取记录」，而不是断言工具不存在。
-- 给 `get_user_settings` 读规则补记忆/设置关键词(记忆、设置、开关、权限…)，并评估写意图分支是否
-  应与读意图并行判定而非互斥。
-- 能力面板口径(客户端侧)：「全局可用」与「本轮提供」没有可表达的字段，已登记在
-  `Luminous/docs/TODO.md`。
-
 ## Today 建议卡的服务端契约缺口（动作 label / route / 文案语言）
 
 Luminous 真机反馈(2026-10-04，App 语言为英文)：

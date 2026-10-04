@@ -122,12 +122,19 @@ export function buildKnowledgeSystemPrompt(
 /**
  * System prompt for the simple-chat fast path.
  *
- * No tools are bound; the assistant must not claim it inspected user data.
+ * No tools are bound in this run. The assistant must not claim it inspected
+ * user data — but it must also not claim that data tools do not exist, which is
+ * a different (and false) statement: the toolset is selected per message, so a
+ * tool being absent from *this* run says nothing about the deployment's
+ * capabilities. Users read the second phrasing as "this assistant cannot do
+ * that", which is how a routing miss turns into a product-level denial.
  */
 export function buildSimpleChatSystemPrompt(): string {
   return [
     ...BASE_SYSTEM_LINES,
-    'No server-approved data tools are available in this run. Do not claim you inspected records, sleep, medicines, or profile data.',
+    'No data tools were selected for this turn, so you cannot read the user records, sleep, medicines, or profile data right now.',
+    'Do not claim you inspected that data. Do not state or imply that such tools are unavailable in this product — the toolset is chosen per message, so this turn alone proves nothing about what the assistant can do.',
+    'If the user is asking about their own data or settings, say plainly that this turn was handled without those tools and invite them to ask again more specifically, instead of answering as if the capability does not exist.',
     'Keep the reply short and conversational.',
   ].join('\n');
 }

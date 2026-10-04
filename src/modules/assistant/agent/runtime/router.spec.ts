@@ -199,6 +199,27 @@ describe('selectRelevantToolsForMessage', () => {
     expect(result).toEqual(['propose_update_user_settings']);
   });
 
+  it('routes a memory question to the settings read tool', () => {
+    // "你拥有记忆吗" used to match only the write-side memory keyword, so the
+    // read rules came back empty and the turn fell through to simple_chat
+    // (which then told the user the assistant had no data tools).
+    const result = selectRelevantToolsForMessage('你拥有记忆吗', [
+      'get_user_settings',
+      ...allWriteTools,
+    ]);
+    expect(result).toEqual(['get_user_settings']);
+  });
+
+  it('keeps a memory toggle on the write path despite memory read keywords', () => {
+    // The read keywords added for the case above must not hijack a genuine
+    // settings mutation: write tools still win when write intent matches.
+    const result = selectRelevantToolsForMessage('关闭AI记忆', [
+      'get_user_settings',
+      ...allWriteTools,
+    ]);
+    expect(result).toEqual(['propose_update_user_settings']);
+  });
+
   // ── Summary routing ───────────────────────────────────────────
 
   it('routes to today summary by date for dated summary query', () => {

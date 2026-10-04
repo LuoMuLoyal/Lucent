@@ -93,10 +93,19 @@ export const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /设置/,
     /权限/,
     /开关/,
+    // 记忆/隐私类提问同属"读设置"：只给写规则关键词会让"你拥有记忆吗"落到
+    // simple_chat(写意图分支仅在读规则零命中时才走),于是本可回答的能力问题答不出。
+    /记忆/,
+    /记住/,
+    /隐私/,
+    /授权/,
     /setting/i,
     /permission/i,
     /toggle/i,
     /enabled/i,
+    /memory/i,
+    /remember/i,
+    /privacy/i,
   ],
   get_current_medicines: [
     /药/,

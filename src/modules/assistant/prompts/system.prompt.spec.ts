@@ -63,9 +63,20 @@ describe('assistant system prompts', () => {
 
   it('simple-chat prompt forbids claiming data access', () => {
     const prompt = buildSimpleChatSystemPrompt();
-    expect(prompt).toContain('No server-approved data tools are available');
-    expect(prompt).toContain('Do not claim you inspected records');
+    expect(prompt).toContain('No data tools were selected for this turn');
+    expect(prompt).toContain('Do not claim you inspected that data');
     expect(prompt).not.toContain('Allowed tools in this run');
+  });
+
+  it('simple-chat prompt does not deny the tools exist product-wide', () => {
+    // A routing miss used to make the model tell users the assistant has no
+    // data tools at all. The prompt must forbid that inference explicitly.
+    const prompt = buildSimpleChatSystemPrompt();
+    expect(prompt).not.toContain('No server-approved data tools are available');
+    expect(prompt).toContain(
+      'Do not state or imply that such tools are unavailable in this product',
+    );
+    expect(prompt).toContain('the toolset is chosen per message');
   });
 
   // ── AI safety policy edge-case tests ─────────────────────────────
