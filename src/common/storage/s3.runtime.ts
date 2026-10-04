@@ -84,11 +84,41 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
       provider: this.provider,
       bucket: this.config.bucket,
       region: this.config.region,
-      publicBaseUrl: this.config.publicBaseUrl,
+      publicBaseUrl: this.resolvePublicBaseUrl(),
       uploadExpiresSeconds: this.config.uploadExpiresSeconds,
       maxUploadBytes: this.config.maxUploadBytes,
       downloadExpiresSeconds: this.config.downloadExpiresSeconds,
     };
+  }
+
+  /**
+   * Returns the public base URL **including the bucket path segment**.
+   *
+   * This runtime sets `forcePathStyle: true`, so an object at key
+   * `files/…` is actually served from `{endpoint}/{bucket}/files/…`. A
+   * configured base without the bucket segment (e.g.
+   * `https://s3.cn-south-1.qiniucs.com`) therefore produced public URLs that
+   * 404 — see `docs/TODO.md`'s S3 entry.
+   *
+   * The bucket is appended here rather than required in the environment
+   * variable because path-style addressing is this runtime's own fact: the
+   * other providers (`tencent-cos`, `aliyun-oss`) are virtual-host/CDN style,
+   * where appending a bucket would be wrong, and `publicBaseUrl` is a shared
+   * provider-agnostic field. Keeping the rule next to `forcePathStyle` also
+   * means a deployment cannot drift out of sync with the code.
+   *
+   * Idempotent: a base that already carries the bucket (the workaround
+   * previously recorded in the TODO) is left untouched.
+   */
+  private resolvePublicBaseUrl(): string {
+    const base = this.config.publicBaseUrl.trim();
+    if (!base || !this.config.bucket) return base;
+
+    const trimmed = base.replace(/\/+$/, '');
+    // Already bucket-qualified? Compare the final path segment.
+    if (trimmed.endsWith(`/${this.config.bucket}`)) return trimmed;
+
+    return `${trimmed}/${this.config.bucket}`;
   }
 
   isConfigured(): boolean {

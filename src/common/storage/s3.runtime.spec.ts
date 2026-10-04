@@ -96,6 +96,65 @@ describe('S3StorageRuntime', () => {
       expect(config.maxUploadBytes).toBe(10_485_760);
       expect(config.downloadExpiresSeconds).toBe(600);
     });
+
+    it('appends the bucket to the public base URL', () => {
+      // forcePathStyle means objects are served from {base}/{bucket}/{key};
+      // without this segment the built public URL 404s.
+      const runtime = new S3StorageRuntime(
+        buildConfigService(
+          buildS3Config({
+            bucket: 'lucent',
+            publicBaseUrl: 'https://s3.cn-south-1.qiniucs.com',
+          }),
+        ),
+      );
+
+      expect(runtime.getConfig().publicBaseUrl).toBe(
+        'https://s3.cn-south-1.qiniucs.com/lucent',
+      );
+    });
+
+    it('strips trailing slashes before appending the bucket', () => {
+      const runtime = new S3StorageRuntime(
+        buildConfigService(
+          buildS3Config({
+            bucket: 'lucent',
+            publicBaseUrl: 'https://cdn.example.com//',
+          }),
+        ),
+      );
+
+      expect(runtime.getConfig().publicBaseUrl).toBe(
+        'https://cdn.example.com/lucent',
+      );
+    });
+
+    it('leaves an already bucket-qualified base URL untouched', () => {
+      // The workaround recorded in docs/TODO.md set the bucket in the env var;
+      // applying it twice must not produce .../lucent/lucent.
+      const runtime = new S3StorageRuntime(
+        buildConfigService(
+          buildS3Config({
+            bucket: 'lucent',
+            publicBaseUrl: 'https://s3.cn-south-1.qiniucs.com/lucent',
+          }),
+        ),
+      );
+
+      expect(runtime.getConfig().publicBaseUrl).toBe(
+        'https://s3.cn-south-1.qiniucs.com/lucent',
+      );
+    });
+
+    it('keeps an empty public base URL empty', () => {
+      // Local/dev leaves it unset; the client relies on "" meaning "no public
+      // URL configured" rather than a half-built host.
+      const runtime = new S3StorageRuntime(
+        buildConfigService(buildS3Config({ publicBaseUrl: '' })),
+      );
+
+      expect(runtime.getConfig().publicBaseUrl).toBe('');
+    });
   });
 
   describe('isConfigured()', () => {
