@@ -28,6 +28,18 @@ const optionalString = z.string().optional();
 const optionalUri = z.url().optional();
 const optionalEmptyUri = z.union([z.literal(''), z.url()]).optional();
 
+/**
+ * Semantic reasoning-mode for the LLM roles (`AI_THINKING` and its
+ * per-role overrides). Kept distinct from the generic string primitives so a
+ * typo like `disable` fails at startup instead of silently falling back to
+ * `auto` and leaving the operator convinced the switch is on.
+ */
+const thinkingModeSchema = z.enum(['auto', 'enabled', 'disabled']);
+const optionalThinkingMode = z
+  .union([thinkingModeSchema, z.literal('')])
+  .optional()
+  .transform((value) => (value === '' || value == null ? undefined : value));
+
 const postgresUrl = z
   .string()
   .refine(
@@ -187,6 +199,14 @@ const envSchema = z.object({
     .max(4096)
     .default(1536),
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]: optionalString,
+  // Semantic reasoning-mode control: `auto` (default) leaves the provider
+  // detection untouched, so an upgrade without these variables changes nothing.
+  [EnvKey.AI_THINKING]: thinkingModeSchema.default('auto'),
+  [EnvKey.AI_ANALYSIS_THINKING]: optionalThinkingMode,
+  [EnvKey.AI_VISION_THINKING]: optionalThinkingMode,
+  [EnvKey.AI_LANGUAGE_THINKING]: optionalThinkingMode,
+  [EnvKey.AI_CHAT_THINKING]: optionalThinkingMode,
+  [EnvKey.AI_CHAT_COMPRESSION_THINKING]: optionalThinkingMode,
 
   // ── Mail (driver/host/port/from non-sensitive; user/pass sensitive) ──
   [EnvKey.MAIL_DRIVER]: z.enum(['log', 'smtp']).default('log'),

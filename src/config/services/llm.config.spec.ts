@@ -25,6 +25,12 @@ describe('llmConfig', () => {
     EnvKey.AI_EMBEDDING_MODEL,
     EnvKey.AI_EMBEDDING_DIMENSION,
     EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS,
+    EnvKey.AI_THINKING,
+    EnvKey.AI_ANALYSIS_THINKING,
+    EnvKey.AI_VISION_THINKING,
+    EnvKey.AI_LANGUAGE_THINKING,
+    EnvKey.AI_CHAT_THINKING,
+    EnvKey.AI_CHAT_COMPRESSION_THINKING,
   ];
 
   beforeEach(() => {
@@ -47,35 +53,42 @@ describe('llmConfig', () => {
   function callFactory() {
     return llmConfig() as {
       provider: string | null;
+      thinking: string;
       analysis: {
         apiKey: string | null;
         baseUrl: string | null;
         model: string | null;
+        thinking: string;
       };
       vision: {
         apiKey: string | null;
         baseUrl: string | null;
         model: string | null;
+        thinking: string;
       };
       language: {
         apiKey: string | null;
         baseUrl: string | null;
         model: string | null;
+        thinking: string;
       };
       chat: {
         apiKey: string | null;
         baseUrl: string | null;
         model: string | null;
+        thinking: string;
       };
       chatCompression: {
         apiKey: string | null;
         baseUrl: string | null;
         model: string | null;
+        thinking: string;
       };
       embedding: {
         apiKey: string | null;
         baseUrl: string | null;
         model: string | null;
+        thinking: string;
         dimension?: number;
       };
       safety: { forbiddenPatterns: string[] };
@@ -90,21 +103,25 @@ describe('llmConfig', () => {
       apiKey: null,
       baseUrl: null,
       model: null,
+      thinking: 'auto',
     });
     expect(config.vision).toEqual({
       apiKey: null,
       baseUrl: null,
       model: null,
+      thinking: 'auto',
     });
     expect(config.chat).toEqual({
       apiKey: null,
       baseUrl: null,
       model: null,
+      thinking: 'auto',
     });
     expect(config.embedding).toEqual({
       apiKey: null,
       baseUrl: null,
       model: null,
+      thinking: 'auto',
       // dimension default (1536) now lives in the zod layer; the factory
       // passes the raw env value through, so it is absent when unset.
       dimension: undefined,
@@ -125,6 +142,7 @@ describe('llmConfig', () => {
       apiKey: 'sk-analysis',
       baseUrl: 'https://api.openai.com/v1',
       model: 'gpt-4o',
+      thinking: 'auto',
     });
   });
 
@@ -230,5 +248,58 @@ describe('llmConfig', () => {
     const config = callFactory();
 
     expect(config.safety.forbiddenPatterns).toEqual([]);
+  });
+
+  // ── Thinking mode ───────────────────────────────────────────────────
+
+  it('defaults every role to thinking=auto when nothing is configured', () => {
+    const config = callFactory();
+
+    expect(config.thinking).toBe('auto');
+    expect(config.analysis.thinking).toBe('auto');
+    expect(config.chat.thinking).toBe('auto');
+    expect(config.chatCompression.thinking).toBe('auto');
+  });
+
+  it('applies the global thinking mode to roles without an override', () => {
+    process.env[EnvKey.AI_THINKING] = 'disabled';
+
+    const config = callFactory();
+
+    expect(config.thinking).toBe('disabled');
+    expect(config.analysis.thinking).toBe('disabled');
+    expect(config.chat.thinking).toBe('disabled');
+    // Embedding has no chat model, but it must still resolve to the global
+    // value rather than something undefined.
+    expect(config.embedding.thinking).toBe('disabled');
+  });
+
+  it('lets a role-level thinking mode override the global one', () => {
+    process.env[EnvKey.AI_THINKING] = 'disabled';
+    process.env[EnvKey.AI_CHAT_THINKING] = 'enabled';
+
+    const config = callFactory();
+
+    expect(config.chat.thinking).toBe('enabled');
+    expect(config.analysis.thinking).toBe('disabled');
+  });
+
+  it('treats an unrecognized thinking value as auto, not as disabled', () => {
+    // A typo must not silently change provider behaviour.
+    process.env[EnvKey.AI_THINKING] = 'disable';
+    process.env[EnvKey.AI_ANALYSIS_THINKING] = 'false';
+
+    const config = callFactory();
+
+    expect(config.thinking).toBe('auto');
+    expect(config.analysis.thinking).toBe('auto');
+  });
+
+  it('accepts thinking values case-insensitively', () => {
+    process.env[EnvKey.AI_ANALYSIS_THINKING] = 'DISABLED';
+
+    const config = callFactory();
+
+    expect(config.analysis.thinking).toBe('disabled');
   });
 });

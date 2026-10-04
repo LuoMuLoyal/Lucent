@@ -11,11 +11,16 @@ describe('LlmRuntimeService', () => {
       baseUrl: 'https://analysis.example.com/v1',
       model: 'analysis-model',
     },
-    vision: { apiKey: null, baseUrl: null, model: null },
-    language: { apiKey: null, baseUrl: null, model: null },
-    chat: { apiKey: null, baseUrl: null, model: null },
-    chatCompression: { apiKey: null, baseUrl: null, model: null },
-    embedding: { apiKey: null, baseUrl: null, model: null },
+    vision: { apiKey: null, baseUrl: null, model: null, thinking: 'auto' },
+    language: { apiKey: null, baseUrl: null, model: null, thinking: 'auto' },
+    chat: { apiKey: null, baseUrl: null, model: null, thinking: 'auto' },
+    chatCompression: {
+      apiKey: null,
+      baseUrl: null,
+      model: null,
+      thinking: 'auto',
+    },
+    embedding: { apiKey: null, baseUrl: null, model: null, thinking: 'auto' },
     safety: { forbiddenPatterns: [] },
   };
 
@@ -31,7 +36,12 @@ describe('LlmRuntimeService', () => {
     it('returns false when the role has no apiKey', () => {
       const service = new LlmRuntimeService({
         ...baseConfig,
-        analysis: { apiKey: null, baseUrl: 'url', model: 'model' },
+        analysis: {
+          apiKey: null,
+          baseUrl: 'url',
+          model: 'model',
+          thinking: 'auto',
+        },
       });
 
       expect(service.hasRoleConfig('analysis')).toBe(false);
@@ -40,7 +50,12 @@ describe('LlmRuntimeService', () => {
     it('returns false when the role has no baseUrl', () => {
       const service = new LlmRuntimeService({
         ...baseConfig,
-        analysis: { apiKey: 'key', baseUrl: null, model: 'model' },
+        analysis: {
+          apiKey: 'key',
+          baseUrl: null,
+          model: 'model',
+          thinking: 'auto',
+        },
       });
 
       expect(service.hasRoleConfig('analysis')).toBe(false);
@@ -49,7 +64,12 @@ describe('LlmRuntimeService', () => {
     it('returns false when the role has no model', () => {
       const service = new LlmRuntimeService({
         ...baseConfig,
-        analysis: { apiKey: 'key', baseUrl: 'url', model: null },
+        analysis: {
+          apiKey: 'key',
+          baseUrl: 'url',
+          model: null,
+          thinking: 'auto',
+        },
       });
 
       expect(service.hasRoleConfig('analysis')).toBe(false);
@@ -87,7 +107,12 @@ describe('LlmRuntimeService', () => {
           baseUrl: 'https://l.test',
           model: 'l-model',
         },
-        chat: { apiKey: 'c-key', baseUrl: 'https://c.test', model: 'c-model' },
+        chat: {
+          apiKey: 'c-key',
+          baseUrl: 'https://c.test',
+          model: 'c-model',
+          thinking: 'auto',
+        },
         chatCompression: {
           apiKey: 'cc-key',
           baseUrl: 'https://cc.test',
@@ -174,7 +199,12 @@ describe('LlmRuntimeService', () => {
           baseUrl: 'https://l.test',
           model: 'l-model',
         },
-        chat: { apiKey: 'c-key', baseUrl: 'https://c.test', model: 'c-model' },
+        chat: {
+          apiKey: 'c-key',
+          baseUrl: 'https://c.test',
+          model: 'c-model',
+          thinking: 'auto',
+        },
         chatCompression: {
           apiKey: 'cc-key',
           baseUrl: 'https://cc.test',
@@ -239,7 +269,7 @@ describe('LlmRuntimeService', () => {
 
       const model = service.createChatModel('analysis');
 
-      expect(model).toBeDefined();
+      expect(model.modelKwargs).toEqual({ thinking: { type: 'disabled' } });
     });
 
     it('does not set thinking-disabled for non-deepseek baseUrls', () => {
@@ -247,7 +277,96 @@ describe('LlmRuntimeService', () => {
 
       const model = service.createChatModel('analysis');
 
-      expect(model).toBeDefined();
+      // LangChain defaults the field to an empty object; what matters is that
+      // no reasoning directive was emitted.
+      expect(model.modelKwargs ?? {}).toEqual({});
+    });
+
+    it('honours an explicit enabled mode on DeepSeek', () => {
+      const service = new LlmRuntimeService({
+        ...baseConfig,
+        analysis: {
+          ...baseConfig.analysis,
+          baseUrl: 'https://api.deepseek.com',
+          thinking: 'enabled',
+        },
+      });
+
+      const model = service.createChatModel('analysis');
+
+      expect(model.modelKwargs).toEqual({ thinking: { type: 'enabled' } });
+    });
+
+    it('keeps the legacy Aliyun qwen3 default under auto', () => {
+      const service = new LlmRuntimeService({
+        ...baseConfig,
+        analysis: {
+          ...baseConfig.analysis,
+          baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+          model: 'qwen3-max',
+        },
+      });
+
+      const model = service.createChatModel('analysis');
+
+      expect(model.modelKwargs).toEqual({ enable_thinking: false });
+    });
+
+    it('leaves auto untouched for a non-qwen model on an Aliyun host', () => {
+      // The regression this fixes: production runs deepseek-v4.1-flash through
+      // an Aliyun MaaS gateway, which matched neither legacy branch — so
+      // thinking was silently uncontrolled. `auto` must stay a no-op here.
+      const service = new LlmRuntimeService({
+        ...baseConfig,
+        analysis: {
+          ...baseConfig.analysis,
+          baseUrl:
+            'https://ws-abc.cn-beijing.maas.aliyuncs.com/compatible-mode/v1',
+          model: 'deepseek-v4.1-flash',
+        },
+      });
+
+      const model = service.createChatModel('analysis');
+
+      // LangChain defaults the field to an empty object; what matters is that
+      // no reasoning directive was emitted.
+      expect(model.modelKwargs ?? {}).toEqual({});
+    });
+
+    it('controls thinking on an Aliyun host that auto would have skipped', () => {
+      const service = new LlmRuntimeService({
+        ...baseConfig,
+        analysis: {
+          ...baseConfig.analysis,
+          baseUrl:
+            'https://ws-abc.cn-beijing.maas.aliyuncs.com/compatible-mode/v1',
+          model: 'deepseek-v4.1-flash',
+          thinking: 'disabled',
+        },
+      });
+
+      const model = service.createChatModel('analysis');
+
+      expect(model.modelKwargs).toEqual({ enable_thinking: false });
+    });
+
+    it('sends nothing for an unrecognized gateway even when set explicitly', () => {
+      // Guessing a payload shape here would turn a config mistake into a
+      // provider-side request validation error.
+      const service = new LlmRuntimeService({
+        ...baseConfig,
+        analysis: {
+          ...baseConfig.analysis,
+          baseUrl: 'https://models.example.com/v1',
+          thinking: 'disabled',
+        },
+      });
+
+      const model = service.createChatModel('analysis');
+
+      // LangChain defaults the field to an empty object; what matters is that
+      // no reasoning directive was emitted.
+      expect(model.modelKwargs ?? {}).toEqual({});
     });
 
     it('creates a chat model for an unconfigured role using fallback values', () => {

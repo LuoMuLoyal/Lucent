@@ -276,6 +276,12 @@ AI_CHAT_COMPRESSION_MODEL
 AI_EMBEDDING_API_KEY
 AI_EMBEDDING_BASE_URL
 AI_EMBEDDING_MODEL
+AI_THINKING
+AI_ANALYSIS_THINKING
+AI_VISION_THINKING
+AI_LANGUAGE_THINKING
+AI_CHAT_THINKING
+AI_CHAT_COMPRESSION_THINKING
 ```
 
 AI safety configuration (optional):
@@ -288,6 +294,36 @@ AI_SAFETY_FORBIDDEN_PATTERNS
 - If unset or empty, a hardcoded medical-advice baseline is used.
 - Example: `AI_SAFETY_FORBIDDEN_PATTERNS=诊断,确诊,停药,\bprescription\b`
 
+Reasoning ("thinking") mode (optional):
+
+```text
+AI_THINKING                    # 默认 auto；全局默认值
+AI_ANALYSIS_THINKING           # 按角色覆盖，未设则继承 AI_THINKING
+AI_VISION_THINKING
+AI_LANGUAGE_THINKING
+AI_CHAT_THINKING
+AI_CHAT_COMPRESSION_THINKING
+```
+
+- Values are semantic, not vendor payloads: `auto` | `enabled` | `disabled`.
+  Anything else is rejected at startup (a typo must not silently fall back to
+  `auto` and leave the operator believing the switch is on).
+- **`auto` preserves pre-existing behaviour** and is the default. It applies the
+  legacy detection — DeepSeek host (`api.deepseek.com`), or an Aliyun-compatible
+  host serving a `qwen3*` model — and emits nothing anywhere else. Upgrading
+  without setting these variables therefore cannot change a single request.
+- An explicit `enabled` / `disabled` **is** honoured on the recognized families
+  even when `auto` would have stayed quiet. That is the point of the switch:
+  production used to run a DeepSeek model through an Aliyun MaaS gateway, which
+  matched neither legacy branch, so thinking was uncontrolled there.
+- How the intent reaches the wire is decided from the role's `BASE_URL`
+  (`src/llm-runtime/llm-runtime.service.ts`): DeepSeek gets
+  `thinking: { type }`, Aliyun-compatible gateways get `enable_thinking`.
+  An unrecognized gateway receives nothing rather than a guessed field, because
+  an unknown reasoning parameter is a request-validation error on strict
+  OpenAI-compatible servers.
+- Embedding has no chat model, so no `AI_EMBEDDING_THINKING` exists.
+
 `AI_PROVIDER` currently supports only `openai-compatible`.
 
 Each role is independent. If a role is configured, that role must provide all of
@@ -295,9 +331,11 @@ Each role is independent. If a role is configured, that role must provide all of
 
 DeepSeek compatibility note:
 
-- When an AI role points to `https://api.deepseek.com`, Lucent now disables DeepSeek `thinking`
-  mode for LangChain OpenAI-compatible chat runtime creation. This prevents Today/Report streaming
-  tool-use requests from failing on `tool_choice`.
+- When an AI role points to `https://api.deepseek.com`, Lucent disables DeepSeek `thinking`
+  mode by default for LangChain OpenAI-compatible chat runtime creation. This prevents Today/Report
+  streaming tool-use requests from failing on `tool_choice`.
+- That default is now `AI_THINKING=auto` behaviour and can be overridden per deployment or per
+  role with `AI_<ROLE>_THINKING` (see the reasoning-mode section above).
 
 Recommended role split:
 

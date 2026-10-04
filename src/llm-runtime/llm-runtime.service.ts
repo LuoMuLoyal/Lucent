@@ -10,7 +10,7 @@ import type {
   LlmRole,
   LlmRuntimePort,
 } from '../common/llm/llm-runtime.port.js';
-import { llmConfig } from '../config/services/llm.config.js';
+import { llmConfig, type ThinkingMode } from '../config/services/llm.config.js';
 
 /**
  * Concrete LLM runtime service.
@@ -177,9 +177,14 @@ export class LlmRuntimeService implements LlmRuntimePort {
   /**
    * Applies provider-specific adjustments to the ChatOpenAI constructor fields.
    *
-   * Currently handles:
-   * - DeepSeek: disables the "thinking" response mode to get direct answers.
-   * - Aliyun qwen3.x: disables thinking mode so that tool_choice works.
+   * Two concerns live here and they are deliberately separated:
+   *
+   * 1. **Thinking mode** — driven by the role's `thinking` setting
+   *    (`AI_<ROLE>_THINKING`, falling back to `AI_THINKING`). `disabled` /
+   *    `enabled` are honoured on every provider that exposes a switch;
+   *    `auto` keeps the legacy detection so existing deployments are unchanged.
+   * 2. **Provider quirks** — adjustments required for a provider to work at
+   *    all, independent of what the operator asked for.
    *
    * Extend this method when adding support for other providers with
    * non-standard behaviour.
@@ -190,6 +195,7 @@ export class LlmRuntimeService implements LlmRuntimePort {
       baseUrl: string | null;
       apiKey: string | null;
       model: string | null;
+      thinking?: ThinkingMode;
       dimension?: number;
     },
   ): void {
@@ -197,25 +203,66 @@ export class LlmRuntimeService implements LlmRuntimePort {
       return;
     }
 
-    if (roleConfig.baseUrl?.includes('api.deepseek.com')) {
+    this.applyThinkingMode(fields, roleConfig);
+  }
+
+  /**
+   * Translates the semantic thinking mode into the provider's own payload.
+   *
+   * Two rules keep this safe to deploy:
+   *
+   * - **`auto` never changes existing behaviour.** It reproduces exactly the
+   *   legacy detection (DeepSeek host, or an Aliyun-compatible host serving a
+   *   `qwen3*` model) and emits nothing anywhere else, so upgrading without
+   *   setting the new variables cannot alter a single outbound request.
+   * - **An explicit `enabled` / `disabled` is honoured on the recognized
+   *   families even when `auto` would have stayed quiet** — e.g. a DeepSeek
+   *   model served through an Aliyun-compatible gateway, which is precisely
+   *   the case the old detection missed. An unrecognized gateway still gets
+   *   nothing, because sending an unknown reasoning field is a
+   *   request-validation error on strict OpenAI-compatible servers; the
+   *   operator sees no effect instead of a broken request.
+   */
+  private applyThinkingMode(
+    fields: NonNullable<ConstructorParameters<typeof ChatOpenAI>[0]>,
+    roleConfig: {
+      baseUrl: string | null;
+      model: string | null;
+      thinking?: ThinkingMode;
+    },
+  ): void {
+    const isDeepSeek =
+      roleConfig.baseUrl?.includes('api.deepseek.com') === true;
+    const isAliyunCompat =
+      roleConfig.baseUrl?.includes('aliyuncs.com') === true;
+    const explicit =
+      roleConfig.thinking === 'enabled' || roleConfig.thinking === 'disabled';
+
+    if (isDeepSeek) {
+      const mode: ThinkingMode = explicit
+        ? (roleConfig.thinking as ThinkingMode)
+        : 'disabled';
       fields.modelKwargs = {
-        thinking: {
-          type: 'disabled',
-        },
+        thinking: { type: mode === 'enabled' ? 'enabled' : 'disabled' },
       };
-      this.logger.debug('Applied DeepSeek quirk: thinking mode disabled');
+      this.logger.debug(`Applied DeepSeek thinking mode: ${mode}`);
       return;
     }
 
-    if (
-      roleConfig.baseUrl?.includes('aliyuncs.com') &&
-      roleConfig.model?.toLowerCase().startsWith('qwen3')
-    ) {
-      fields.modelKwargs = {
-        enable_thinking: false,
-      };
+    if (isAliyunCompat) {
+      const legacyQwen3 =
+        roleConfig.model?.toLowerCase().startsWith('qwen3') === true;
+      if (!explicit && !legacyQwen3) {
+        return;
+      }
+      const mode: ThinkingMode = explicit
+        ? (roleConfig.thinking as ThinkingMode)
+        : 'disabled';
+      fields.modelKwargs = { enable_thinking: mode === 'enabled' };
       this.logger.debug(
-        'Applied Aliyun qwen3 quirk: enable_thinking=false (tool_choice compatibility)',
+        `Applied Aliyun-compatible thinking mode: ${mode} (enable_thinking=${
+          mode === 'enabled' ? 'true' : 'false'
+        })`,
       );
     }
   }
