@@ -180,13 +180,13 @@ jobs:
       #    也不能用 `pattern: digests-lucent-*`：它是 `digests-lucent-db-*`
       #    的前缀，会把 DB 的层混进 app 的 manifest。
       - name: Download digests (amd64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: digests-lucent-amd64
           path: /tmp/digests/lucent-amd64
 
       - name: Download digests (arm64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: digests-lucent-arm64
           path: /tmp/digests/lucent-arm64
