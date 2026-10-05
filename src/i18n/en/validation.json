@@ -17,5 +17,24 @@
   },
   "scene": {
     "invalid": "Invalid verification scene"
+  },
+  "field_label": {
+    "email": "Email",
+    "password": "Password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "nickname": "Nickname",
+    "code": "Verification code",
+    "token": "Token",
+    "scene": "Scene",
+    "refreshToken": "Refresh token",
+    "candidateId": "Medicine id",
+    "dateFrom": "Start date",
+    "dateTo": "End date",
+    "callbackUri": "Callback URI",
+    "identityToken": "Identity token",
+    "authorizationCode": "Authorization code",
+    "givenName": "Given name",
+    "familyName": "Family name"
   }
 }

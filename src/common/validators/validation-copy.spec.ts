@@ -4,8 +4,13 @@ import type { I18nService } from 'nestjs-i18n';
 import {
   VALIDATION_COPY_SCOPE,
   VALIDATION_MESSAGE_CODES,
+  fieldLabel,
   translateValidationMessage,
 } from './validation-copy.js';
+import {
+  PASSWORD_MIN_LENGTH,
+  VERIFICATION_CODE_LENGTH,
+} from './auth.decorators.js';
 import { makeTestI18n } from '../tests/test-i18n.js';
 
 /** Minimal translator that records the key + options it was asked for. */
@@ -90,6 +95,113 @@ describe('translateValidationMessage', () => {
       expect(missing).toEqual([]);
     },
   );
+
+  it.each(['zh-CN', 'en'] as const)(
+    'leaves no placeholder unresolved in %s',
+    (locale) => {
+      // Regression: the first implementation required callers to pass
+      // `{field}` / `{limit}`, so users saw a literal "{field} is required".
+      // Interpolation must be derived, not requested.
+      const i18n = makeTestI18n() as unknown as I18nService;
+
+      for (const code of VALIDATION_MESSAGE_CODES) {
+        const out = translateValidationMessage(i18n, locale, code, {
+          fieldPath: 'password',
+        });
+        expect(out, `${code} (${locale})`).not.toMatch(/\{\w+\}/u);
+      }
+    },
+  );
+
+  it('derives the field label from the issue path', () => {
+    const i18n = makeTestI18n() as unknown as I18nService;
+
+    const out = translateValidationMessage(
+      i18n,
+      'en',
+      'validation.field.required',
+      { fieldPath: 'code' },
+    );
+
+    expect(out).toBe('Verification code is required');
+  });
+
+  it('localizes the field label, not just the message', () => {
+    // Regression: an English-only label table produced
+    // "Verification code不能为空" for a zh-CN request.
+    const i18n = makeTestI18n() as unknown as I18nService;
+
+    const out = translateValidationMessage(
+      i18n,
+      'zh-CN',
+      'validation.field.required',
+      { fieldPath: 'code' },
+    );
+
+    expect(out).toBe('验证码不能为空');
+    expect(out).not.toMatch(/[A-Za-z]/u);
+  });
+
+  it('renders a fully Chinese message for a zh-CN request', () => {
+    const i18n = makeTestI18n() as unknown as I18nService;
+
+    for (const [code, fieldPath] of [
+      ['validation.field.required', 'nickname'],
+      ['validation.password.too_short', 'password'],
+    ] as const) {
+      const out = translateValidationMessage(i18n, 'zh-CN', code, {
+        fieldPath,
+      });
+      expect(out, code).not.toMatch(/[A-Za-z]{3,}/u);
+    }
+  });
+
+  it('uses the last path segment and passes unknown fields through', () => {
+    const i18n = makeTestI18n() as unknown as I18nService;
+
+    expect(
+      translateValidationMessage(i18n, 'en', 'validation.field.required', {
+        fieldPath: 'profile.email',
+      }),
+    ).toBe('Email is required');
+
+    expect(fieldLabel('brandNewField')).toBe('brandNewField');
+  });
+
+  it('derives the numeric bound from the registered code', () => {
+    const i18n = makeTestI18n() as unknown as I18nService;
+
+    const tooShort = translateValidationMessage(
+      i18n,
+      'en',
+      'validation.password.too_short',
+      { fieldPath: 'password' },
+    );
+    expect(tooShort).toContain(String(PASSWORD_MIN_LENGTH));
+    expect(tooShort).not.toContain('{limit}');
+
+    const codeLength = translateValidationMessage(
+      i18n,
+      'en',
+      'validation.code.invalid_length',
+      { fieldPath: 'code' },
+    );
+    expect(codeLength).toContain(String(VERIFICATION_CODE_LENGTH));
+  });
+
+  it('lets an explicit context override the derived values', () => {
+    const i18n = makeTestI18n() as unknown as I18nService;
+
+    const out = translateValidationMessage(
+      i18n,
+      'en',
+      'validation.field.too_long',
+      { field: 'Display name', limit: 42 },
+    );
+
+    expect(out).toContain('Display name');
+    expect(out).toContain('42');
+  });
 
   it('keeps the zh-CN and en dictionaries in step', () => {
     const read = (locale: string): Record<string, unknown> =>

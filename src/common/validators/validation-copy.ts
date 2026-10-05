@@ -22,9 +22,62 @@
  */
 
 import type { I18nService } from 'nestjs-i18n';
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  VERIFICATION_CODE_LENGTH,
+} from './auth.decorators.js';
 
 /** i18n namespace holding validation copy. */
 export const VALIDATION_COPY_SCOPE = 'validation';
+
+/**
+ * Per-code interpolation values that the message itself cannot carry.
+ *
+ * A code like `validation.password.too_short` states the *rule*, not the bound
+ * — the bound lives in the schema (`PASSWORD_MIN_LENGTH`). Keeping it here
+ * means one place to update when a limit moves, instead of every call site
+ * remembering to pass it.
+ */
+const CODE_LIMITS: Record<string, number> = {
+  'validation.field.too_long': 20,
+  'validation.password.too_short': PASSWORD_MIN_LENGTH,
+  'validation.password.too_long': PASSWORD_MAX_LENGTH,
+  'validation.code.invalid_length': VERIFICATION_CODE_LENGTH,
+};
+
+/**
+ * Fallback English labels for a field path.
+ *
+ * **Only** a fallback: the primary source is `validation.field_label.<path>` in
+ * the i18n dictionaries, because a single English table cannot serve Chinese
+ * copy — an early version used this table directly and produced
+ * "Verification code不能为空". Kept so an untranslated field still reads as a
+ * label rather than a wire key.
+ *
+ * An unknown path falls back to the raw segment: a new field shows its key,
+ * which is visible-but-not-cryptic and does not require editing two files to
+ * ship.
+ */
+const FALLBACK_FIELD_LABELS: Record<string, string> = {
+  email: 'Email',
+  password: 'Password',
+  currentPassword: 'Current password',
+  newPassword: 'New password',
+  nickname: 'Nickname',
+  code: 'Verification code',
+  token: 'Token',
+  scene: 'Scene',
+  refreshToken: 'Refresh token',
+  candidateId: 'Medicine id',
+  dateFrom: 'Start date',
+  dateTo: 'End date',
+  callbackUri: 'Callback URI',
+  identityToken: 'Identity token',
+  authorizationCode: 'Authorization code',
+  givenName: 'Given name',
+  familyName: 'Family name',
+};
 
 /**
  * Registered message codes.
@@ -51,19 +104,32 @@ export type ValidationMessageCode = (typeof VALIDATION_MESSAGE_CODES)[number];
 const CODE_SET: ReadonlySet<string> = new Set(VALIDATION_MESSAGE_CODES);
 
 export interface ValidationMessageContext {
-  /** Field label to interpolate into the message, e.g. `密码`. */
+  /**
+   * Field path from the schema issue (e.g. `password`). Used to derive a
+   * human-readable `{field}` label.
+   */
+  fieldPath?: string;
+  /** Explicit field label; wins over `fieldPath` derivation. */
   field?: string;
-  /** Numeric bound (`min` / `max` / exact length). */
+  /**
+   * Explicit numeric bound. Omitted values are looked up in `CODE_LIMITS`, so a
+   * message never ships with a literal `{limit}` placeholder.
+   */
   limit?: number;
 }
 
 /**
  * Renders a schema-authored message for the request language.
  *
+ * Interpolation is **derived, not required**: `{field}` comes from the issue
+ * path and `{limit}` from the code's registered bound. Relying on callers to
+ * pass them shipped literal `{field}` text to users once already, which is
+ * exactly the failure mode this function must not have.
+ *
  * @param i18n    Translator (injected at the validation boundary).
  * @param locale  Resolved request language.
  * @param message Either a registered code or plain text.
- * @param context Interpolation values for the message.
+ * @param context Optional overrides for the derived values.
  */
 export function translateValidationMessage(
   i18n: I18nService,
@@ -77,18 +143,81 @@ export function translateValidationMessage(
   }
 
   const args: Record<string, string | number> = {};
-  if (context.field != null) args['field'] = context.field;
-  if (context.limit != null) args['limit'] = context.limit;
+  const field =
+    context.field ??
+    (context.fieldPath == null
+      ? null
+      : resolveFieldLabel(i18n, locale, context.fieldPath));
+  if (field != null) args['field'] = field;
+
+  const limit = context.limit ?? CODE_LIMITS[message];
+  if (limit != null) args['limit'] = limit;
 
   const translated: string = i18n.t(
     `${VALIDATION_COPY_SCOPE}.${message.slice('validation.'.length)}`,
-    Object.keys(args).length > 0 ? { lang: locale, args } : { lang: locale },
+    { lang: locale, ...(Object.keys(args).length > 0 ? { args } : {}) },
   );
 
   // A missing key makes nestjs-i18n echo the key path; surface the code's tail
   // rather than an internal i18n path so a gap is visible but not cryptic.
-  return translated.includes(`.${VALIDATION_COPY_SCOPE}.`) ||
+  if (
+    translated.includes(`.${VALIDATION_COPY_SCOPE}.`) ||
     translated.startsWith(`${VALIDATION_COPY_SCOPE}.`)
-    ? message
-    : translated;
+  ) {
+    return message;
+  }
+
+  // Last line of defence: interpolate anything the dictionary left behind using
+  // the values we derived, so a placeholder can never reach the client.
+  return interpolate(translated, args);
+}
+
+/**
+ * Resolves a localized label for a schema field path.
+ *
+ * Looks up `validation.field_label.<segment>` in the request language, falling
+ * back to the English table and then to the raw segment. Only the last path
+ * segment is used (`profile.email` → `email`), because that is the field the
+ * user sees on the form.
+ */
+export function resolveFieldLabel(
+  i18n: I18nService,
+  locale: string,
+  fieldPath: string,
+): string {
+  const last = fieldPath.split('.').filter(Boolean).pop() ?? fieldPath;
+  const key = `${VALIDATION_COPY_SCOPE}.field_label.${last}`;
+  const translated = i18n.t(key, { lang: locale });
+
+  // nestjs-i18n echoes the key path on a miss.
+  if (
+    typeof translated === 'string' &&
+    translated !== key &&
+    !translated.startsWith(`${VALIDATION_COPY_SCOPE}.`)
+  ) {
+    return translated;
+  }
+
+  return FALLBACK_FIELD_LABELS[last] ?? last;
+}
+
+/**
+ * English label for a field path.
+ *
+ * Read-only helper for callers that have no request language (none today); the
+ * response path uses {@link resolveFieldLabel} so the label follows the request.
+ */
+export function fieldLabel(fieldPath: string): string {
+  const last = fieldPath.split('.').filter(Boolean).pop() ?? fieldPath;
+  return FALLBACK_FIELD_LABELS[last] ?? last;
+}
+
+/** Replaces `{name}` placeholders with `args`, leaving unknown ones intact. */
+function interpolate(
+  template: string,
+  args: Record<string, string | number>,
+): string {
+  return template.replace(/\{(\w+)\}/gu, (match, name: string) =>
+    Object.hasOwn(args, name) ? String(args[name]) : match,
+  );
 }

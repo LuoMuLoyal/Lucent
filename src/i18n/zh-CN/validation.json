@@ -17,5 +17,24 @@
   },
   "scene": {
     "invalid": "scene 取值不合法"
+  },
+  "field_label": {
+    "email": "邮箱",
+    "password": "密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "nickname": "昵称",
+    "code": "验证码",
+    "token": "令牌",
+    "scene": "场景",
+    "refreshToken": "刷新令牌",
+    "candidateId": "药品 id",
+    "dateFrom": "开始日期",
+    "dateTo": "结束日期",
+    "callbackUri": "回调地址",
+    "identityToken": "身份令牌",
+    "authorizationCode": "授权码",
+    "givenName": "名",
+    "familyName": "姓"
   }
 }

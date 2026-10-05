@@ -258,20 +258,26 @@ export async function setupApp(
       exceptionFactory: (issues) => {
         const locale = I18nContext.current()?.lang ?? 'en';
         return new ValidationException(
-          issues.map((issue) => ({
-            path: (issue.path ?? [])
+          issues.map((issue) => {
+            const fieldPath = (issue.path ?? [])
               .map((segment) =>
                 // Standard Schema allows a bare key or a `{ key }` segment;
                 // zod emits the latter for object properties.
                 String(typeof segment === 'object' ? segment.key : segment),
               )
-              .join('.'),
-            message: translateValidationMessage(
-              app.get(I18nService),
-              locale,
-              issue.message,
-            ),
-          })),
+              .join('.');
+            return {
+              path: fieldPath,
+              // `fieldPath` lets the renderer turn `{field}` into a label; the
+              // message itself carries only the rule code.
+              message: translateValidationMessage(
+                app.get(I18nService),
+                locale,
+                issue.message,
+                { fieldPath },
+              ),
+            };
+          }),
         );
       },
     }),
