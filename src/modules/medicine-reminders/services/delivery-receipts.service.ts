@@ -125,7 +125,7 @@ export class DeliveryReceiptsService {
                   createDomainFailure({
                     kind: 'internal',
                     code: 'INTERNAL_ERROR',
-                    detail: `Local delivery receipt row missing after write: userId=${userId}, reminderId=${dto.reminderId}`,
+                    cause: `delivery_receipt_missing userId=${userId} reminderId=${dto.reminderId}`,
                   }),
                 );
               }

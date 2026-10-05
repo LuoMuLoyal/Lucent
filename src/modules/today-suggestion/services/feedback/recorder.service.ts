@@ -123,7 +123,7 @@ export class FeedbackService {
         createDomainFailure({
           kind: 'not_found',
           code: 'SUGGESTION_NOT_FOUND',
-          detail: `Suggestion ${suggestionId} not found for user ${userId}`,
+          cause: `suggestion_not_found id=${suggestionId} user=${userId}`,
         }),
       );
     }

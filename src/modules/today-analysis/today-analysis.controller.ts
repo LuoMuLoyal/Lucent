@@ -453,7 +453,7 @@ export class TodayAnalysisController {
         createDomainFailure({
           kind: 'conflict',
           code: 'RESOURCE_CONFLICT',
-          detail: `TODAY_ANALYSIS_${current.status.toUpperCase()}`,
+          args: { status: current.status },
         }),
       );
     }

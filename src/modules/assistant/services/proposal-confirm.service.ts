@@ -280,7 +280,7 @@ export class AssistantProposalConfirmService {
     return createDomainFailure({
       kind: 'not_found',
       code: 'RESOURCE_NOT_FOUND',
-      detail: 'Conversation not found.',
+      cause: 'conversation_not_found',
     });
   }
 

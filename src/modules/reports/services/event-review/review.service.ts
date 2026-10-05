@@ -402,7 +402,7 @@ export class EventReviewService {
         createDomainFailure({
           kind: 'internal',
           code: 'INTERNAL_ERROR',
-          detail: `Health event ${event.id} has no kind.`,
+          cause: `health_event_missing_kind id=${event.id}`,
         }),
       );
     }

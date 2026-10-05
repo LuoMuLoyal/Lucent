@@ -336,7 +336,7 @@ export class ClinicSummaryService {
           createDomainFailure({
             kind: 'internal',
             code: 'INTERNAL_ERROR',
-            detail: 'Event scope requires the event review service.',
+            cause: 'event_scope_unavailable',
           }),
         );
       }

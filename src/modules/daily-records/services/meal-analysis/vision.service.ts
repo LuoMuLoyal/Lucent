@@ -113,10 +113,7 @@ export class MealAnalysisVisionService {
         'Meal analysis model output did not match the contract schema',
       );
       return err(
-        unusableOutputFailure(
-          'model output did not match the contract schema',
-          parsed.error,
-        ),
+        unusableOutputFailure('model_output_schema_mismatch', parsed.error),
       );
     }
 
@@ -126,7 +123,7 @@ export class MealAnalysisVisionService {
         'Meal analysis output was empty or fully rejected by the safety filter',
       );
       return err(
-        unusableOutputFailure('model output was unusable after sanitizing'),
+        unusableOutputFailure('model_output_unusable_after_sanitizing'),
       );
     }
 
@@ -214,13 +211,20 @@ export class MealAnalysisVisionService {
   }
 }
 
-/** 输出不可用（不合契约 / 被安全过滤清空）：上游给了我们不能用的东西。 */
-function unusableOutputFailure(detail: string, cause?: unknown): DomainFailure {
+/**
+ * 输出不可用（不合契约 / 被安全过滤清空）：上游给了我们不能用的东西。
+ *
+ * `direction` 只进日志:出网 detail 由 `ProblemCatalog` 注册表按语言给出,
+ * 显式 `detail` 会覆盖它(见 `docs/TODO.md` 的文案审计与 ADR-0012)。
+ */
+function unusableOutputFailure(
+  direction: string,
+  cause?: unknown,
+): DomainFailure {
   return createDomainFailure({
     kind: 'dependency',
     code: 'DEPENDENCY_BAD_GATEWAY',
-    detail,
-    ...(cause === undefined ? {} : { cause }),
+    cause: cause === undefined ? direction : { direction, cause },
   });
 }
 
@@ -229,7 +233,6 @@ function classifyVisionFailure(error: unknown): DomainFailure {
     return createDomainFailure({
       kind: 'dependency',
       code: 'DEPENDENCY_TIMEOUT',
-      detail: 'meal analysis model call timed out',
       cause: error,
     });
   }

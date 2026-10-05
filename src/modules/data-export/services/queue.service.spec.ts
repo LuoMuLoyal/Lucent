@@ -78,6 +78,8 @@ describe('DataExportQueueService', () => {
     } as unknown as DataExportProcessorService;
     const service = new DataExportQueueService(factory, processor);
 
+    // No outbound `detail`: an explicit sentence would override the registry's
+    // bilingual copy. The direction lives in `cause` (logs only).
     await expect(
       service.enqueue({
         exportRequestId: 'export-1',
@@ -87,8 +89,21 @@ describe('DataExportQueueService', () => {
     ).rejects.toMatchObject({
       failure: {
         code: 'DEPENDENCY_UNAVAILABLE',
-        detail: 'Data export queue is not configured',
+        cause: 'export_queue_not_configured',
       },
     });
+
+    const failure = await service
+      .enqueue({
+        exportRequestId: 'export-1',
+        userId: 'user-1',
+        language: 'zh-CN',
+      })
+      .then(
+        () => null,
+        (error: unknown) =>
+          (error as { failure?: { detail?: string } }).failure,
+      );
+    expect(failure?.detail).toBeUndefined();
   });
 });

@@ -42,7 +42,7 @@ export class DataExportQueueService {
         createDomainFailure({
           kind: 'dependency',
           code: 'DEPENDENCY_UNAVAILABLE',
-          detail: 'Data export queue is not configured',
+          cause: 'export_queue_not_configured',
         }),
       );
     }

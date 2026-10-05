@@ -103,7 +103,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         createDomainFailure({
           kind: 'dependency',
           code: 'DEPENDENCY_UNAVAILABLE',
-          detail: 'Redis is not available',
           retryable: true,
         }),
       );

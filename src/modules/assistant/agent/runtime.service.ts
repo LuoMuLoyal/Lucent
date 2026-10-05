@@ -262,7 +262,9 @@ export class AssistantRuntimeService {
         createDomainFailure({
           kind: 'validation',
           code: 'VALIDATION_FAILED',
-          detail: 'No pending proposal review for this conversation.',
+          // Registry owns outbound copy (ADR-0012); keep the specific
+          // direction in `cause` for logs only.
+          cause: 'no_pending_proposal_review',
         }),
       );
     }
@@ -437,7 +439,7 @@ export class AssistantRuntimeService {
         createDomainFailure({
           kind: 'not_found',
           code: 'RESOURCE_NOT_FOUND',
-          detail: 'Conversation not found.',
+          cause: 'conversation_not_found',
         }),
       );
     }
@@ -449,7 +451,7 @@ export class AssistantRuntimeService {
         createDomainFailure({
           kind: 'validation',
           code: 'VALIDATION_FAILED',
-          detail: 'Only the last assistant message can be regenerated.',
+          cause: 'only_last_message_regenerable',
         }),
       );
     }
@@ -471,7 +473,7 @@ export class AssistantRuntimeService {
         createDomainFailure({
           kind: 'internal',
           code: 'INTERNAL_ERROR',
-          detail: 'Cannot read the conversation generation history.',
+          cause: 'generation_history_unreadable',
         }),
       );
     }
@@ -499,7 +501,7 @@ export class AssistantRuntimeService {
         createDomainFailure({
           kind: 'validation',
           code: 'VALIDATION_FAILED',
-          detail: 'Cannot locate the generation state of the last message.',
+          cause: 'last_message_generation_state_missing',
         }),
       );
     }
@@ -512,7 +514,7 @@ export class AssistantRuntimeService {
         createDomainFailure({
           kind: 'validation',
           code: 'VALIDATION_FAILED',
-          detail: 'Cannot locate the generation state of the last message.',
+          cause: 'last_message_generation_state_missing',
         }),
       );
     }
@@ -526,7 +528,7 @@ export class AssistantRuntimeService {
         createDomainFailure({
           kind: 'conflict',
           code: 'RESOURCE_CONFLICT',
-          detail: 'A regeneration is already in progress for this message.',
+          cause: 'regeneration_in_progress',
         }),
       );
     }

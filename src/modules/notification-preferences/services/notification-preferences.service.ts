@@ -149,7 +149,7 @@ export class NotificationPreferencesService {
       return createDomainFailure({
         kind: 'validation',
         code: 'VALIDATION_FAILED',
-        detail: `${field} must be between 0 and 1439.`,
+        args: { field, min: 0, max: 1439 },
       });
     }
     return null;
