@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { createDomainFailure } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
@@ -39,6 +39,10 @@ import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
 } from './summary-view.js';
+import {
+  CLINIC_SUMMARY_REASON,
+  type ClinicSummaryReason,
+} from './validation.js';
 
 const SHARE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -116,6 +120,7 @@ interface ResolvedScope {
 
 @Injectable()
 export class ClinicSummaryService {
+  private readonly logger = new Logger(ClinicSummaryService.name);
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
@@ -296,12 +301,26 @@ export class ClinicSummaryService {
 
   // ── Scope resolution ──────────────────────────────────────
 
-  private validationFailed(message: string): never {
+  /**
+   * Rejects a request with the registered bilingual validation detail.
+   *
+   * `direction` is logged, never sent: `ProblemCatalog.build` treats an
+   * explicit `detail` as an override of the registry's translated copy, so
+   * passing prose here made the client receive a hardcoded sentence in the
+   * wrong language (see `validation.ts`).
+   */
+  private validationFailed(
+    direction: ClinicSummaryReason,
+    args?: Record<string, string | number>,
+  ): never {
+    this.logger.warn(
+      `Clinic summary request rejected (${direction})${args == null ? '' : ` ${JSON.stringify(args)}`}`,
+    );
     throw new DomainFailureException(
       createDomainFailure({
         kind: 'validation',
         code: 'VALIDATION_FAILED',
-        detail: message,
+        ...(args == null ? {} : { args }),
       }),
     );
   }
@@ -342,7 +361,9 @@ export class ClinicSummaryService {
     const range = options.range ?? DEFAULT_RANGE;
     const days = RANGE_DAY_COUNTS[range];
     if (days == null) {
-      this.validationFailed(`不支持的 summary 范围: ${range}`);
+      this.validationFailed(CLINIC_SUMMARY_REASON.UNSUPPORTED_SUMMARY_RANGE, {
+        range,
+      });
     }
 
     // Custom date range. Semantics: the window covers dateFrom..dateTo
@@ -355,7 +376,7 @@ export class ClinicSummaryService {
     // content-window binding is a later task.
     if (options.dateFrom != null || options.dateTo != null) {
       if (options.dateFrom == null || options.dateTo == null) {
-        this.validationFailed('dateFrom 与 dateTo 必须同时指定');
+        this.validationFailed(CLINIC_SUMMARY_REASON.DATE_RANGE_INCOMPLETE);
       }
       const startDate = new Date(options.dateFrom);
       const endDate = new Date(options.dateTo);
@@ -363,20 +384,20 @@ export class ClinicSummaryService {
         Number.isNaN(startDate.getTime()) ||
         Number.isNaN(endDate.getTime())
       ) {
-        this.validationFailed('无效的日期范围');
+        this.validationFailed(CLINIC_SUMMARY_REASON.INVALID_DATE);
       }
       const spanDays = Math.round(
         (endDate.getTime() - startDate.getTime()) / MS_PER_DAY,
       );
       if (spanDays < 0) {
-        this.validationFailed('dateFrom 不能晚于 dateTo');
+        this.validationFailed(CLINIC_SUMMARY_REASON.DATE_RANGE_INVERTED);
       }
       // spanDays is the day DIFFERENCE; the inclusive calendar-day count is
       // spanDays + 1 (dateFrom == dateTo is a valid single-day window).
       if (spanDays + 1 > CLINIC_SUMMARY_MAX_RANGE_DAYS) {
-        this.validationFailed(
-          `日期范围不能超过 ${String(CLINIC_SUMMARY_MAX_RANGE_DAYS)} 天`,
-        );
+        this.validationFailed(CLINIC_SUMMARY_REASON.DATE_RANGE_TOO_LONG, {
+          maxDays: CLINIC_SUMMARY_MAX_RANGE_DAYS,
+        });
       }
       return {
         scopeLabel: SUMMARY_RANGE_LABELS.custom,

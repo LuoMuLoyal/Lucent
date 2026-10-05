@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   ClinicSummaryShareField,
   ProductEventName,
@@ -12,6 +12,10 @@ import { createDomainFailure } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { ProductEventsService } from '../../../product-events/index.js';
+import {
+  CLINIC_SUMMARY_REASON,
+  type ClinicSummaryReason,
+} from './validation.js';
 
 /**
  * Default lifetime of a share link, in days. Intentionally longer than the
@@ -104,6 +108,8 @@ export interface ShareListItemReadModel {
  */
 @Injectable()
 export class ShareService {
+  private readonly logger = new Logger(ShareService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly productEvents: ProductEventsService,
@@ -237,12 +243,25 @@ export class ShareService {
     return result.count > 0;
   }
 
-  private validationFailed(message: string): never {
+  /**
+   * Rejects a request with the registered bilingual validation detail.
+   *
+   * `direction` is logged, never sent: an explicit `detail` overrides the
+   * registry's translated copy, so the previous Chinese sentences reached
+   * English clients verbatim (see `validation.ts`).
+   */
+  private validationFailed(
+    direction: ClinicSummaryReason,
+    args?: Record<string, string | number>,
+  ): never {
+    this.logger.warn(
+      `Clinic summary share rejected (${direction})${args == null ? '' : ` ${JSON.stringify(args)}`}`,
+    );
     throw new DomainFailureException(
       createDomainFailure({
         kind: 'validation',
         code: 'VALIDATION_FAILED',
-        detail: message,
+        ...(args == null ? {} : { args }),
       }),
     );
   }
@@ -251,12 +270,14 @@ export class ShareService {
 
   private validateSelectedFields(fields: string[]): ClinicSummaryShareField[] {
     if (!Array.isArray(fields) || fields.length === 0) {
-      this.validationFailed('selectedFields 不能为空');
+      this.validationFailed(CLINIC_SUMMARY_REASON.SELECTED_FIELDS_REQUIRED);
     }
     const allowed = new Set(SHARE_FIELD_VALUES);
     for (const field of fields) {
       if (!allowed.has(field)) {
-        this.validationFailed(`不支持的分享字段: ${field}`);
+        this.validationFailed(CLINIC_SUMMARY_REASON.UNSUPPORTED_SHARE_FIELD, {
+          field,
+        });
       }
     }
     // Dedupe keeps the first-occurrence order.
@@ -276,15 +297,13 @@ export class ShareService {
     const dateTo = this.parseDate(input.dateTo);
 
     if (eventId && (dateFrom || dateTo)) {
-      this.validationFailed('eventId 与日期范围不能同时指定');
+      this.validationFailed(CLINIC_SUMMARY_REASON.SCOPE_CONFLICT);
     }
     if (!eventId && !(dateFrom && dateTo)) {
-      this.validationFailed(
-        '必须指定 eventId 或完整的 dateFrom/dateTo 日期范围',
-      );
+      this.validationFailed(CLINIC_SUMMARY_REASON.SCOPE_REQUIRED);
     }
     if (dateFrom && dateTo && dateFrom.getTime() > dateTo.getTime()) {
-      this.validationFailed('dateFrom 不能晚于 dateTo');
+      this.validationFailed(CLINIC_SUMMARY_REASON.DATE_RANGE_INVERTED);
     }
 
     return { eventId, dateFrom, dateTo };
@@ -294,7 +313,9 @@ export class ShareService {
     if (value == null) return null;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-      this.validationFailed(`无效的日期: ${String(value)}`);
+      this.validationFailed(CLINIC_SUMMARY_REASON.INVALID_DATE, {
+        value: String(value),
+      });
     }
     return date;
   }

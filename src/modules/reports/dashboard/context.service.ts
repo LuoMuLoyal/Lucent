@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { createDomainFailure } from '../../../common/result/index.js';
 import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
 import {
@@ -33,9 +33,15 @@ import type {
   ObservedMedicationMetric,
   ReportDashboardFacts,
 } from './metrics.types.js';
+import {
+  REPORT_QUERY_REASON,
+  type ReportQueryReason,
+} from './query-reasons.js';
 
 @Injectable()
 export class ReportsContextService {
+  private readonly logger = new Logger(ReportsContextService.name);
+
   constructor(
     private readonly userSettingsService: IUserSettingsPort,
     private readonly dailyRecordReader: DailyRecordReaderPort,
@@ -327,12 +333,19 @@ export class ReportsContextService {
     return days;
   }
 
-  private validationFailed(message: string): never {
+  /**
+   * Rejects a malformed dashboard query with the registered validation detail.
+   *
+   * `direction` is logged, never sent: an explicit `detail` overrides the
+   * problem registry's translated copy, so the previous English sentences
+   * bypassed the registry for every language.
+   */
+  private validationFailed(direction: ReportQueryReason): never {
+    this.logger.warn(`Report dashboard query rejected (${direction})`);
     throw new DomainFailureException(
       createDomainFailure({
         kind: 'validation',
         code: 'VALIDATION_FAILED',
-        detail: message,
       }),
     );
   }
@@ -351,11 +364,11 @@ export class ReportsContextService {
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.endDate) {
-        this.validationFailed('endDate is required when range is custom.');
+        this.validationFailed(REPORT_QUERY_REASON.CUSTOM_RANGE_END_REQUIRED);
       }
       const customEndDate = parseDateOnly(query.endDate);
       if (customEndDate > this.todayUtc()) {
-        this.validationFailed('endDate must not be in the future.');
+        this.validationFailed(REPORT_QUERY_REASON.CUSTOM_RANGE_END_IN_FUTURE);
       }
       return customEndDate;
     }
@@ -369,11 +382,11 @@ export class ReportsContextService {
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.startDate) {
-        this.validationFailed('startDate is required when range is custom.');
+        this.validationFailed(REPORT_QUERY_REASON.CUSTOM_RANGE_START_REQUIRED);
       }
       const startDate = parseDateOnly(query.startDate);
       if (startDate > endDate) {
-        this.validationFailed('startDate must not be later than endDate.');
+        this.validationFailed(REPORT_QUERY_REASON.CUSTOM_RANGE_START_AFTER_END);
       }
       return startDate;
     }

@@ -121,12 +121,19 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     return `${context.startDate}..${context.endDate}`;
   }
 
-  private validationFailed(message: string): never {
+  /**
+   * Rejects a malformed summary request with the registered validation detail.
+   *
+   * `direction` is logged, never sent: an explicit `detail` overrides the
+   * registry's translated copy, so the previous English sentence bypassed it
+   * for every locale.
+   */
+  private validationFailed(direction: 'custom_range_dates_required'): never {
+    this.logger.warn(`Report AI summary request rejected (${direction})`);
     throw new DomainFailureException(
       createDomainFailure({
         kind: 'validation',
         code: 'VALIDATION_FAILED',
-        detail: message,
       }),
     );
   }
@@ -139,9 +146,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     }
     if (dto.range === 'custom') {
       if (dto.startDate == null || dto.endDate == null) {
-        this.validationFailed(
-          'startDate and endDate are required for custom range summaries.',
-        );
+        this.validationFailed('custom_range_dates_required');
       }
       return {
         range: dto.range,

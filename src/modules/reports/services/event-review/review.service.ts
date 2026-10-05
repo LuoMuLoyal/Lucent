@@ -418,12 +418,19 @@ export class EventReviewService {
     };
   }
 
-  private validationFailed(message: string): never {
+  /**
+   * Rejects a malformed review request with the registered validation detail.
+   *
+   * `direction` is logged, never sent: an explicit `detail` overrides the
+   * registry's translated copy, so the previous English sentence bypassed it
+   * for every locale.
+   */
+  private validationFailed(direction: 'invalid_review_cursor'): never {
+    this.logger.warn(`Event review request rejected (${direction})`);
     throw new DomainFailureException(
       createDomainFailure({
         kind: 'validation',
         code: 'VALIDATION_FAILED',
-        detail: message,
       }),
     );
   }
@@ -440,16 +447,16 @@ export class EventReviewService {
       startedAtIso === '' ||
       id === ''
     ) {
-      this.validationFailed('Invalid review cursor.');
+      this.validationFailed('invalid_review_cursor');
     }
     // Strict ISO-8601 instant shape check before parsing: rejects date-only
     // or locale-formatted values that `new Date` would silently accept.
     if (!REVIEW_CURSOR_STARTED_AT_PATTERN.test(startedAtIso)) {
-      this.validationFailed('Invalid review cursor.');
+      this.validationFailed('invalid_review_cursor');
     }
     const startedAt = new Date(startedAtIso);
     if (Number.isNaN(startedAt.getTime())) {
-      this.validationFailed('Invalid review cursor.');
+      this.validationFailed('invalid_review_cursor');
     }
     return { startedAt, id };
   }
