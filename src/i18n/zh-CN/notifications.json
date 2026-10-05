@@ -1,5 +1,18 @@
 {
   "not_found": "未找到通知",
   "weekly_insight_title": "每周健康洞察",
-  "today_summary_title": "AI 今日总结已生成"
+  "today_summary_title": "AI 今日总结已生成",
+  "oauth_login_title": "账户登录提醒",
+  "oauth_login_content": "您的账户通过{provider}登录。如非本人操作，请尽快联系客服。",
+  "identity_linked_title": "账户绑定提醒",
+  "identity_linked_content": "您的账户已绑定{provider}身份。如非本人操作，请尽快联系客服。",
+  "provider_wechat": "微信",
+  "provider_apple": "Apple",
+  "provider_qq": "QQ",
+  "report_generated_title": "{kind}导出成功",
+  "report_generated_content": "您的{kind}已生成，可以前往报告页查看。",
+  "report_kind_default": "报告",
+  "report_kind_hospital": "校医院报告",
+  "report_kind_monthly": "月度报告",
+  "report_kind_print": "打印预览报告"
 }

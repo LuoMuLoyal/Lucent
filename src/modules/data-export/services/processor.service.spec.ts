@@ -6,6 +6,7 @@ import type { ReportExportPdfService } from './report-pdf/pdf.service.js';
 import type { NotificationsService } from '../../notifications/index.js';
 import { errAsync, okAsync } from '../../../common/result/index.js';
 import { createDomainFailure } from '../../../common/result/index.js';
+import { makeTestI18n } from '../../../common/tests/test-i18n.js';
 
 type MockPrisma = {
   dataExportRequest: {
@@ -295,6 +296,7 @@ function createProcessor() {
     storageService as unknown as DataExportStorageService,
     pdfService as unknown as ReportExportPdfService,
     notificationsService as unknown as NotificationsService,
+    makeTestI18n() as never,
   );
 
   return {

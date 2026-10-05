@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../prisma/index.js';
 import { INotificationSender } from '../../notifications/index.js';
 import { ReportsService } from '../../reports/index.js';
 import { DataExportStorageService } from './storage.service.js';
 import { ReportExportPdfService } from './report-pdf/pdf.service.js';
-import { formatDateOnly, now } from '../../../common/index.js';
+import { formatDateOnly, now, resolveLocale } from '../../../common/index.js';
 import { extractErrorInfo } from '../../../common/index.js';
 import { unwrapResult } from '../../../common/result/index.js';
 
@@ -33,6 +34,7 @@ export class DataExportProcessorService {
     private readonly storageService: DataExportStorageService,
     private readonly reportExportPdfService: ReportExportPdfService,
     private readonly notificationsService: INotificationSender,
+    private readonly i18n: I18nService,
   ) {}
 
   async process(input: DataExportProcessorInput): Promise<void> {
@@ -87,7 +89,7 @@ export class DataExportProcessorService {
         },
       });
 
-      await this.notifyExportCompleted(userId, request.kind);
+      await this.notifyExportCompleted(userId, request.kind, language);
     } catch (error) {
       const message =
         error instanceof Error && error.message.trim().length > 0
@@ -140,24 +142,41 @@ export class DataExportProcessorService {
     return `lumos-${kind}-${range}-${date}.pdf`;
   }
 
+  /**
+   * Notifies the user that an export finished.
+   *
+   * The copy is persisted with the notification, so it is rendered here in the
+   * language the export was requested in (carried through the queue job —
+   * this is a worker, so there is no request context). The kind names and the
+   * title/body come from the `notifications` dictionary; the previous
+   * hardcoded Chinese meant an English-locale user got a Chinese notice for an
+   * English export.
+   */
   private async notifyExportCompleted(
     userId: string,
     kind: string,
+    language: string,
   ): Promise<void> {
     try {
-      const kindLabels: Record<string, string> = {
-        hospital: '校医院报告',
-        monthly: '月度报告',
-        print: '打印预览报告',
-      };
-      // `NotificationsService.create` returns ResultAsync — fold it so a
-      // DomainFailure Err is treated like the previous rejection: logged and
-      // never allowed to fail the export.
+      const lang = resolveLocale(language);
+      // Unknown kinds keep a generic label rather than the raw kind id.
+      const kindLabelKey = EXPORT_KIND_LABEL_KEYS[kind];
+      const kindLabel = this.i18n.t(
+        kindLabelKey ?? 'notifications.report_kind_default',
+        { lang },
+      );
+
       await unwrapResult(
         this.notificationsService.create(userId, {
           type: 'report_generated',
-          title: `${kindLabels[kind] ?? '报告'}导出成功`,
-          content: `您的${kindLabels[kind] ?? '报告'}已生成，可以前往报告页查看。`,
+          title: this.i18n.t('notifications.report_generated_title', {
+            lang,
+            args: { kind: kindLabel },
+          }),
+          content: this.i18n.t('notifications.report_generated_content', {
+            lang,
+            args: { kind: kindLabel },
+          }),
           action: 'report',
         }),
       );
@@ -169,3 +188,10 @@ export class DataExportProcessorService {
     }
   }
 }
+
+/** Maps an export kind to its `notifications.report_kind_*` i18n key. */
+const EXPORT_KIND_LABEL_KEYS: Record<string, string> = {
+  hospital: 'notifications.report_kind_hospital',
+  monthly: 'notifications.report_kind_monthly',
+  print: 'notifications.report_kind_print',
+};

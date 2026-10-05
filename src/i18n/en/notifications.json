@@ -1,5 +1,18 @@
 {
   "not_found": "Notification not found",
   "weekly_insight_title": "Weekly health insight",
-  "today_summary_title": "Your AI summary is ready"
+  "today_summary_title": "Your AI summary is ready",
+  "oauth_login_title": "Account sign-in alert",
+  "oauth_login_content": "Your account was signed in with {provider}. If this was not you, please contact support immediately.",
+  "identity_linked_title": "Account linked",
+  "identity_linked_content": "A {provider} identity was linked to your account. If this was not you, please contact support immediately.",
+  "provider_wechat": "WeChat",
+  "provider_apple": "Apple",
+  "provider_qq": "QQ",
+  "report_generated_title": "{kind} export complete",
+  "report_generated_content": "Your {kind} is ready. Open the Report page to view it.",
+  "report_kind_default": "report",
+  "report_kind_hospital": "clinic report",
+  "report_kind_monthly": "monthly report",
+  "report_kind_print": "print preview report"
 }
