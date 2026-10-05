@@ -45,12 +45,20 @@ list，Docker 按目标平台自动选层。于是：
 
 ### 需要的 secrets
 
-| Secret                                   | 用途                                                                               |
-| ---------------------------------------- | ---------------------------------------------------------------------------------- |
-| `REGISTRY_NAMESPACE`                     | 仓库前缀，如 `docker.io/<your-user>`；两个镜像拼成 `<ns>/lucent`、`<ns>/lucent-db` |
-| `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` | 登录 registry                                                                      |
+| Secret                                   | 用途                                                                         |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| `REGISTRY_IMAGE`                         | app 镜像**完整引用**，如 `docker.io/<your-user>/lucent`；末段必须是 `lucent` |
+| `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` | 登录 registry                                                                |
 
-公开仓库代码不写死用户名——`REGISTRY_NAMESPACE` 由 secret 注入。
+`REGISTRY_NAMESPACE`（`<registry>/<owner>`）与 tag（`sha-<sha8>`）由 `validate` job 从
+`REGISTRY_IMAGE` **派生**，不是独立 secret。DB 镜像名同理派生成 `<ns>/lucent-db`，
+所以只需上面这一个镜像变量。
+
+`REGISTRY_IMAGE` 的校验规则（`validate` job，不满足直接 exit 1）：末段必须是 `lucent`；
+必须含命名空间——`docker.io/lucent` 会让 namespace 退化成 `docker.io`，派生出的 DB 镜像
+`docker.io/lucent-db` 落在 Docker Hub 官方库下、推送必被拒。
+
+公开仓库代码不写死用户名——镜像引用由 secret 注入。
 
 ## 改 `name:` 时的注意
 
