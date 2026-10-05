@@ -183,18 +183,26 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 - **镜像仓库**:发布者自有 registry,仓库引用由 GitHub secret `REGISTRY_IMAGE`
   注入(**公开仓库代码不写死用户名**)。发布 `lucent`(应用,仓库根 `Dockerfile`)与
   `lucent-db`(PostgreSQL + pgvector + 编译期产出的 zhparser 原生 `.so`)两个镜像。
-- **tag**:`sha-<git sha 前 8 位>`,如 `<registry>/lucent:sha-1a2b3c4d`。
+- **tag**:`lucent` 用 `sha-<git sha 前 8 位>`,如 `<registry>/lucent:sha-1a2b3c4d`;
+  `lucent-db` 用 `pg<major>-<YYYYMMDD>-<sha8>`(不可变)+ `pg<major>`(浮动)。
   **tag 不含架构** —— 它指向一个 **multi-arch manifest list**,Docker 按目标平台
   自动选层。所以换机器/换架构**不必改 tag**,只改 sha。
-- **发布流程**:GitHub Actions `release.yml`(`workflow_dispatch`,限 main)。
-  **每架构原生构建**(`ubuntu-latest` 出 amd64、`ubuntu-24.04-arm` 出 arm64)
-  → 各自按 digest 推送 → merge job 用 `buildx imagetools create` 合成 manifest,
-  同时打 `sha-<sha8>` 与 `latest`。**不走 QEMU**:arm64 runner 对公开仓库免费,
-  原生构建既快又避免模拟环境的工具链差异(本项目实测 QEMU 下 `prisma` 会 panic)。
+  ⚠️ DB 镜像**不**标 `sha-<sha8>`:其内容与 app 提交无关,同名 tag 在两个 workflow
+  里会指向不同 digest,回滚时极易搞混。
+- **发布流程**:两个独立 workflow,都是 `workflow_dispatch` 且限 main:
+  - `release.yml` → `lucent`(app 每次发布走它);
+  - `release-db.yml` → `lucent-db`(**仅 `docker/postgres/**` 有改动时\*\*才发,
+    构建输入只在那里,实测 40 个提交里只动过一次)。
+
+  两者**每架构原生构建**(`ubuntu-latest` 出 amd64、`ubuntu-24.04-arm` 出 arm64)
+  → 各自按 digest 推送 → merge job 用 `buildx imagetools create` 合成 manifest。
+  **不走 QEMU**:arm64 runner 对公开仓库免费,原生构建既快又避免模拟环境的工具链
+  差异(本项目实测 QEMU 下 `prisma` 会 panic)。
   模型细节见 [.github/workflows/README.md](../../.github/workflows/README.md)。
+
 - **换版本**:改服务器 `.env` 里的 `LUCENT_IMAGE` / `LUCENT_DB_IMAGE`,然后
   `docker compose pull <service> && docker compose up -d --force-recreate <service>`。
-- **回滚 = 把镜像引用改回旧 `sha-` tag 再 `up -d`**,天然可回退。schema 不回退,
+- **回滚 = 把镜像引用改回旧 tag 再 `up -d`**,天然可回退。schema 不回退,
   破坏性迁移继续遵守 expand-contract。
 - **镜像来源两条路径**:CI(`release.yml`)构建推送后拉取(常规);
   或服务器就地 `docker compose build app`(镜像仓库不可用时的替代,只适用 amd64

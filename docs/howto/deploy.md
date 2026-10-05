@@ -81,10 +81,8 @@ updated: 2026-10-02
 ```bash
 cd /opt/lucent
 
-# 1) 换镜像引用(改这一处即可;tag 是 multi-arch,不带架构后缀)
+# 1) 只换 app 镜像引用(tag 是 multi-arch,不带架构后缀)
 vim .env                     # LUCENT_IMAGE=<registry>/lucent:sha-<新短sha>
-                             # LUCENT_DB_IMAGE=<registry>/lucent-db:sha-<同一次发布的短sha>
-                             # (两者由同一次 release.yml 发布,用同一个 sha)
 
 # 2) 拉取并重建(up -d 不会拉新镜像,也不会重建容器)
 docker compose pull app
@@ -93,6 +91,20 @@ docker compose up -d --force-recreate app
 # 3) 健康门禁(entrypoint 失败则容器不启动,这一步能立刻看出)
 for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/v1/health/ready && break; sleep 2; done
 ```
+
+> **`LUCENT_DB_IMAGE` 不跟着 app 发布走。** 它由独立的 `release-db.yml` 发布,
+> tag 形如 `pg18-<YYYYMMDD>-<sha8>`(不可变)。DB 镜像的构建输入只有
+> `docker/postgres/**`,与 app 提交无关;两者合在一起会让每次 app 发布都白等两个
+> DB 构建 leg。**仅当 `docker/postgres/**` 有改动时\*\*才重新发布 DB 镜像并升级:
+>
+> ```bash
+> vim .env                     # LUCENT_DB_IMAGE=<registry>/lucent-db:pg18-<日期>-<sha8>
+> docker compose pull postgres
+> docker compose up -d --force-recreate postgres
+> ```
+>
+> ⚠️ 换 DB 镜像前先按 §五 做 `pg_dump` 快照;PostgreSQL 大版本跨版本升级不是
+> 换镜像就能完成的。
 
 - `--force-recreate` 不能省:改 `.env` 后 `up -d` 看到容器已存在就什么都不做,
   **环境变量与镜像都不会更新**。
@@ -238,7 +250,7 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 | 键                                     | 值 / 说明                                                                                                      |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `LUCENT_IMAGE`                         | `<registry>/lucent:sha-<短sha>`                                                                                |
-| `LUCENT_DB_IMAGE`                      | `<registry>/lucent-db:sha-<同一短sha>`                                                                         |
+| `LUCENT_DB_IMAGE`                      | `<registry>/lucent-db:pg18-<日期>-<sha8>`;由独立 `release-db.yml` 发布,**不跟 app 发布走**                     |
 | `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与 `DATABASE_URL`/`REDIS_URL` 内嵌口令一致**                                              |
 | `PUBLIC_BASE_URL`                      | `http://<主站IP>:3000`                                                                                         |
 | `CORS_ORIGIN`                          | 当前 `*`;收紧时改成客户端来源                                                                                  |

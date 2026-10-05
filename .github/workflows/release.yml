@@ -1,19 +1,19 @@
 name: Release
 
-# 发布 multi-arch 镜像到发布者自有 registry（手动触发）。
+# 发布 **app**（`lucent`）multi-arch 镜像到发布者自有 registry（手动触发）。
 #
 # 形态：**每架构原生构建** → 各自按 digest 推送 → merge job 合成 multi-arch
 # manifest list。不用 QEMU：`ubuntu-24.04-arm` 对公开仓库免费，原生构建既快
 # 又避免模拟环境下的工具链行为差异（本项目实测 QEMU 下 `prisma` 会 panic）。
 #
-# 发布两个镜像（都用同一套「按架构原生构建 + manifest 合并」）：
-#   - `lucent`      ← 仓库根 `Dockerfile`（应用）
-#   - `lucent-db`   ← `docker/postgres/Dockerfile`（PostgreSQL + pgvector +
-#                     编译期产出的 zhparser 原生 .so，故必须逐架构构建）
-#
 # tag 约定：**`sha-<sha8>`**（不含架构）。Docker 拉取时按目标平台自动选层，
 # 因此服务器 `.env` 里的 `LUCENT_IMAGE` 换架构不必改 —— 只改 sha。
 # 另推 `latest` 指向同一次构建。
+#
+# **DB 镜像不在这里**：`lucent-db`（PostgreSQL + pgvector + 编译期产出的
+# zhparser .so）的构建输入只有 `docker/postgres/**`，实测 40 个提交里只动过
+# 一次，而 app 几乎每次发布都要发。两者放同一个 workflow 会让每次 app 发布
+# 都白等两个 arm64/amd64 的 DB 构建。它现在在 `release-db.yml`，按需手动触发。
 #
 # 手工就地构建仍是镜像仓库不可用时的替代路径（见 docs/howto/deploy.md）。
 
@@ -33,9 +33,6 @@ env:
   # 发布者 registry 里的 app 镜像完整引用（如 `docker.io/<用户名>/lucent`），
   # 经仓库/环境级 secret 注入，不在公开仓库代码里写死具体用户名。
   # 见 docs/reference/deployment.md。
-  #
-  # DB 镜像从它派生出同命名空间的兄弟仓库（`.../lucent-db`），所以**不需要新增
-  # secret** —— 已有的 `REGISTRY_IMAGE` 就够。派生规则在 validate job 里校验。
   REGISTRY_IMAGE: ${{ secrets.REGISTRY_IMAGE }}
 
 permissions:
@@ -76,7 +73,7 @@ jobs:
           repo="${IMAGE##*/}"
           namespace="${IMAGE%/*}"
           if [ "${repo}" != "lucent" ]; then
-            echo "::error::REGISTRY_IMAGE must end in '/lucent' (got '${IMAGE}') so the DB image can be derived as '<namespace>/lucent-db'." >&2
+            echo "::error::REGISTRY_IMAGE must end in '/lucent' (got '${IMAGE}')." >&2
             exit 1
           fi
           # namespace 必须真的是「(可选 registry)/属主」，不能只有 registry。
@@ -98,10 +95,10 @@ jobs:
           fi
           echo "namespace=${namespace}" >> "$GITHUB_OUTPUT"
           echo "tag=sha-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
-          echo "Publishing ${namespace}/lucent and ${namespace}/lucent-db as sha-${GITHUB_SHA::8}"
+          echo "Publishing ${namespace}/lucent as sha-${GITHUB_SHA::8}"
 
   build:
-    name: Build ${{ matrix.image }} (${{ matrix.platform }})
+    name: Build lucent (${{ matrix.platform }})
     needs: validate
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 40
@@ -109,36 +106,16 @@ jobs:
       REGISTRY_NAMESPACE: ${{ needs.validate.outputs.namespace }}
     strategy:
       fail-fast: false
-      # 显式 include-only 矩阵：2 镜像 × 2 架构 = 4 个原生构建 leg。
-      # 不用 `image: [...]` + `include` 混写 —— 那种写法的合并语义容易踩坑。
       matrix:
         include:
           # 原生 runner per arch —— 不走 QEMU。arm64 runner 对公开仓库免费，
           # 本仓库是 public。arm64 层直接给主站（鲲鹏）用。
-          - image: lucent
-            platform: linux/amd64
+          - platform: linux/amd64
             runner: ubuntu-latest
             arch: amd64
-            context: .
-            file: ./Dockerfile
-          - image: lucent
-            platform: linux/arm64
+          - platform: linux/arm64
             runner: ubuntu-24.04-arm
             arch: arm64
-            context: .
-            file: ./Dockerfile
-          - image: lucent-db
-            platform: linux/amd64
-            runner: ubuntu-latest
-            arch: amd64
-            context: docker/postgres
-            file: docker/postgres/Dockerfile
-          - image: lucent-db
-            platform: linux/arm64
-            runner: ubuntu-24.04-arm
-            arch: arm64
-            context: docker/postgres
-            file: docker/postgres/Dockerfile
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -153,65 +130,66 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # 只按 digest 推送、不打 tag：多架构 manifest 由 merge job 统一合成。
-      # 缓存按「镜像 + 平台」分 scope，避免各 leg 互相驱逐缓存。
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v7
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
+          context: .
+          file: ./Dockerfile
           platforms: ${{ matrix.platform }}
           provenance: false
           sbom: false
-          cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=lucent-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=lucent-${{ matrix.arch }}
           # 只按 digest 推送（`outputs` 里的 push 参数负责推送；不再单设
           # `push: true`，二者同时给会冲突）。多架构 manifest 由 merge 合成。
-          outputs: type=image,name=${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY_NAMESPACE }}/lucent,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "/tmp/digests/${{ matrix.image }}"
-          touch "/tmp/digests/${{ matrix.image }}/${DIGEST#sha256:}"
+          mkdir -p "/tmp/digests/lucent"
+          touch "/tmp/digests/lucent/${DIGEST#sha256:}"
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
 
-      # artifact 名带上镜像名，merge job 才能按镜像分别 glob，不混层。
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.image }}-${{ matrix.arch }}
-          path: /tmp/digests/${{ matrix.image }}/*
+          name: digests-lucent-${{ matrix.arch }}
+          path: /tmp/digests/lucent/*
           if-no-files-found: error
           retention-days: 1
 
   merge:
-    name: Merge manifests (${{ matrix.image }})
+    name: Merge manifest (lucent)
     needs: [validate, build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       REGISTRY_NAMESPACE: ${{ needs.validate.outputs.namespace }}
       IMAGE_TAG: ${{ needs.validate.outputs.tag }}
-      # ⚠️ 显式列出架构，不要用 `digests-<image>-*` 通配：`digests-lucent-`
-      #    是 `digests-lucent-db-` 的**前缀**，会把 DB 层的 digest 混进 app 的
-      #    manifest 里（本地 dry-run 实测过）。逐架构取目录可彻底避免。
       ARCHES: amd64 arm64
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [lucent, lucent-db]
     steps:
-      # 下载**全部** digest artifact（每个只有几字节）。不用 `pattern` 过滤：
-      # artifact 名 `digests-lucent-*` 会连 `digests-lucent-db-*` 一起匹配，
-      # 过滤既不可靠也没必要 —— 下面的 manifest 步骤按 `digests-<image>-<arch>`
-      # 精确取目录，选错的层进不来。
-      - name: Download digests
+      # ⚠️ 必须按 `name` 逐个精确下载，**不能**省掉 `name` 去下载全部 artifact：
+      #    同一次 run 里 `docker/build-push-action` 还会上传 buildx 缓存
+      #    （名为 `<owner>~<repo>~<id>.dockerbuild`，每个 100–260 KB）。
+      #    实测下载它们会在重试 5 次后失败 —— 整个 merge job 因此挂掉
+      #    （2026-10-05 run 37295603463 的实际故障）。
+      #    也不能用 `pattern: digests-lucent-*`：它是 `digests-lucent-db-*`
+      #    的前缀，会把 DB 的层混进 app 的 manifest。
+      - name: Download digests (amd64)
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/digests
+          name: digests-lucent-amd64
+          path: /tmp/digests/lucent-amd64
+
+      - name: Download digests (arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: digests-lucent-arm64
+          path: /tmp/digests/lucent-arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -222,7 +200,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 用该镜像各架构的 digest 合成 manifest list，一次打两个 tag：
+      # 用各架构的 digest 合成 manifest list，一次打两个 tag：
       # `sha-<sha8>`（不可变回滚锚点）+ `latest`。
       - name: Create and push manifest list
         shell: bash
@@ -231,9 +209,9 @@ jobs:
           shopt -s nullglob
           refs=()
           for arch in ${ARCHES}; do
-            dir="/tmp/digests/digests-${{ matrix.image }}-${arch}"
+            dir="/tmp/digests/lucent-${arch}"
             if [ ! -d "${dir}" ]; then
-              echo "::error::missing digest artifact for ${{ matrix.image }} ${arch} (${dir})" >&2
+              echo "::error::missing digest artifact for lucent ${arch} (${dir})" >&2
               exit 1
             fi
             # `nullglob` 必须有：空目录下 `("${dir}"/*)` 不展开时字面保留 `*`，
@@ -243,14 +221,15 @@ jobs:
               echo "::error::expected exactly 1 digest in ${dir}, found ${#digest_files[@]}" >&2
               exit 1
             fi
-            refs+=( "${REGISTRY_NAMESPACE}/${{ matrix.image }}@sha256:$(basename "${digest_files[0]}")" )
+            # digest 文件名就是 `sha256:` 后面的 hex（build job 里 cut 出来的）。
+            refs+=( "${REGISTRY_NAMESPACE}/lucent@sha256:$(basename "${digest_files[0]}")" )
           done
-          printf 'merging %s arch digest(s) into %s/%s:%s\n' \
-            "${#refs[@]}" "${REGISTRY_NAMESPACE}" "${{ matrix.image }}" "${IMAGE_TAG}"
+          printf 'merging %s arch digest(s) into %s/lucent:%s\n' \
+            "${#refs[@]}" "${REGISTRY_NAMESPACE}" "${IMAGE_TAG}"
           printf '  %s\n' "${refs[@]}"
           docker buildx imagetools create \
-            -t "${REGISTRY_NAMESPACE}/${{ matrix.image }}:${IMAGE_TAG}" \
-            -t "${REGISTRY_NAMESPACE}/${{ matrix.image }}:latest" \
+            -t "${REGISTRY_NAMESPACE}/lucent:${IMAGE_TAG}" \
+            -t "${REGISTRY_NAMESPACE}/lucent:latest" \
             "${refs[@]}"
 
       - name: Inspect the published manifest
@@ -258,4 +237,4 @@ jobs:
         run: |
           set -euo pipefail
           docker buildx imagetools inspect \
-            "${REGISTRY_NAMESPACE}/${{ matrix.image }}:${IMAGE_TAG}"
+            "${REGISTRY_NAMESPACE}/lucent:${IMAGE_TAG}"

@@ -1,0 +1,231 @@
+name: Release DB
+
+# 发布 **`lucent-db`** multi-arch 镜像（PostgreSQL + pgvector + 编译期产出的
+# zhparser 原生 `.so`）到发布者自有 registry（手动触发）。
+#
+# 为什么与 `release.yml` 分开：这个镜像的构建输入只有 `docker/postgres/**`，
+# 实测 40 个提交里只动过一次，而 app 几乎每次发布都要发。放在同一个
+# workflow 里会让每次 app 发布都白等两个 DB 构建 leg（arm64 runner 还更慢）。
+#
+# ⚠️ 它**不能**用 `sha-<git sha8>` 跟 app 对齐 tag：DB 镜像的内容与 app 的
+#    提交无关，同一个 `sha-` tag 在两个 workflow 里会指向不同 digest，回滚时
+#    极易搞混。这里用**内容无关的 `pg<主版本>` 系列 tag**（如 `pg18`）+ 不
+#    可变的时间戳 tag，服务器 `.env` 里显式钉住。
+#
+# tag 约定：`pg<major>-<YYYYMMDD>-<sha8>`（不可变）+ `pg<major>`（浮动，
+# 指向该主版本最近一次构建）。服务器应钉前者，回滚 = 改回上一个不可变 tag。
+
+on:
+  workflow_dispatch:
+    inputs:
+      pg_major:
+        description: 'PostgreSQL 主版本（tag 前缀，如 18）'
+        required: true
+        default: '18'
+        type: string
+      reason:
+        description: '发布原因（留档用，不影响构建）'
+        required: false
+        type: string
+
+concurrency:
+  group: lucent-release-db
+  cancel-in-progress: false
+
+env:
+  # app 镜像完整引用（如 `docker.io/<用户名>/lucent`）；DB 镜像从它派生同
+  # 命名空间的兄弟仓库 `.../lucent-db`，所以复用同一个 secret。
+  REGISTRY_IMAGE: ${{ secrets.REGISTRY_IMAGE }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate registry configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      namespace: ${{ steps.derive.outputs.namespace }}
+      tag: ${{ steps.derive.outputs.tag }}
+    steps:
+      - name: Require main branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "::error::Release DB must be dispatched from main (got '${{ github.ref_name }}')." >&2
+            exit 1
+          fi
+
+      - name: Derive namespace and tag
+        id: derive
+        shell: bash
+        env:
+          IMAGE: ${{ secrets.REGISTRY_IMAGE }}
+          PG_MAJOR: ${{ inputs.pg_major }}
+        run: |
+          set -euo pipefail
+          if [ -z "${IMAGE}" ]; then
+            echo "::error::REGISTRY_IMAGE secret is not configured. Set it in GitHub → Settings → Secrets and variables (e.g. docker.io/<your-user>/lucent)." >&2
+            exit 1
+          fi
+          if ! printf '%s' "${PG_MAJOR}" | grep -qE '^[0-9]+$'; then
+            echo "::error::pg_major must be numeric (got '${PG_MAJOR}')." >&2
+            exit 1
+          fi
+          repo="${IMAGE##*/}"
+          namespace="${IMAGE%/*}"
+          if [ "${repo}" != "lucent" ]; then
+            echo "::error::REGISTRY_IMAGE must end in '/lucent' (got '${IMAGE}') so the DB image can be derived as '<namespace>/lucent-db'." >&2
+            exit 1
+          fi
+          # namespace 必须真的是「(可选 registry)/属主」，不能只有 registry
+          # （`docker.io/lucent-db` 是 Docker Hub 官方库名，推送必被拒）。
+          first="${namespace%%/*}"
+          case "${first}" in
+            *.*|*:*)
+              if [ "${namespace}" = "${first}" ]; then
+                echo "::error::REGISTRY_IMAGE '${IMAGE}' has a registry ('${first}') but no owner." >&2
+                exit 1
+              fi
+              ;;
+          esac
+          if [ "${namespace}" = "${IMAGE}" ]; then
+            echo "::error::REGISTRY_IMAGE must include a namespace (got '${IMAGE}')." >&2
+            exit 1
+          fi
+          # 用 UTC 日期做不可变 tag 的可读部分（`$(date +%Y%m%d)`，不依赖 runner TZ）。
+          echo "namespace=${namespace}" >> "$GITHUB_OUTPUT"
+          echo "tag=pg${PG_MAJOR}-$(date -u +%Y%m%d)-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          echo "floating=pg${PG_MAJOR}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${namespace}/lucent-db (pg${PG_MAJOR}) from ${GITHUB_SHA::8}"
+
+  build:
+    name: Build lucent-db (${{ matrix.platform }})
+    needs: validate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    env:
+      REGISTRY_NAMESPACE: ${{ needs.validate.outputs.namespace }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: docker/postgres
+          file: docker/postgres/Dockerfile
+          platforms: ${{ matrix.platform }}
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=lucent-db-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=lucent-db-${{ matrix.arch }}
+          outputs: type=image,name=${{ env.REGISTRY_NAMESPACE }}/lucent-db,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "/tmp/digests/lucent-db"
+          touch "/tmp/digests/lucent-db/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-lucent-db-${{ matrix.arch }}
+          path: /tmp/digests/lucent-db/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge manifest (lucent-db)
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REGISTRY_NAMESPACE: ${{ needs.validate.outputs.namespace }}
+      IMAGE_TAG: ${{ needs.validate.outputs.tag }}
+      FLOATING_TAG: ${{ needs.validate.outputs.floating }}
+      ARCHES: amd64 arm64
+    steps:
+      # ⚠️ 按 `name` 逐个精确下载 —— 省掉 `name` 会连 `docker/build-push-action`
+      #    自动上传的 buildx 缓存 artifact 一起拉，实测重试 5 次后失败并拖垮
+      #    整个 merge job（2026-10-05 run 37295603463）。
+      - name: Download digests (amd64)
+        uses: actions/download-artifact@v4
+        with:
+          name: digests-lucent-db-amd64
+          path: /tmp/digests/lucent-db-amd64
+
+      - name: Download digests (arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: digests-lucent-db-arm64
+          path: /tmp/digests/lucent-db-arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create and push manifest list
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          refs=()
+          for arch in ${ARCHES}; do
+            dir="/tmp/digests/lucent-db-${arch}"
+            if [ ! -d "${dir}" ]; then
+              echo "::error::missing digest artifact for lucent-db ${arch} (${dir})" >&2
+              exit 1
+            fi
+            digest_files=( "${dir}"/* )
+            if [ "${#digest_files[@]}" -ne 1 ]; then
+              echo "::error::expected exactly 1 digest in ${dir}, found ${#digest_files[@]}" >&2
+              exit 1
+            fi
+            refs+=( "${REGISTRY_NAMESPACE}/lucent-db@sha256:$(basename "${digest_files[0]}")" )
+          done
+          printf 'merging %s arch digest(s) into %s/lucent-db (%s + %s)\n' \
+            "${#refs[@]}" "${REGISTRY_NAMESPACE}" "${IMAGE_TAG}" "${FLOATING_TAG}"
+          printf '  %s\n' "${refs[@]}"
+          docker buildx imagetools create \
+            -t "${REGISTRY_NAMESPACE}/lucent-db:${IMAGE_TAG}" \
+            -t "${REGISTRY_NAMESPACE}/lucent-db:${FLOATING_TAG}" \
+            "${refs[@]}"
+
+      - name: Inspect the published manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect \
+            "${REGISTRY_NAMESPACE}/lucent-db:${IMAGE_TAG}"
