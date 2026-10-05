@@ -1,18 +1,28 @@
+import type { I18nService } from 'nestjs-i18n';
 import type { MailQueueService } from './mail-queue.service.js';
 import { MailService } from './mail.service.js';
 import {
   renderVerificationCodeEmail,
+  resolveEmailLocale,
   verificationCodeSubject,
 } from './templates.js';
+import { makeTestI18n } from '../common/tests/test-i18n.js';
+
+/** Translator backed by the shipped `mail.json` dictionaries. */
+const i18n = makeTestI18n() as unknown as I18nService;
+
+const TEST_VERIFICATION_CODE = '123456';
 
 describe('MailService', () => {
-  const TEST_VERIFICATION_CODE = '123456';
-
-  it('should enqueue generic mail', async () => {
-    const queue = {
+  function buildQueue() {
+    return {
       enqueue: vi.fn().mockResolvedValue(undefined),
     } as unknown as vi.Mocked<MailQueueService>;
-    const service = new MailService(queue);
+  }
+
+  it('should enqueue generic mail', async () => {
+    const queue = buildQueue();
+    const service = new MailService(queue, i18n);
 
     await service.send('user@example.com', 'Subject', '<p>Body</p>');
 
@@ -24,10 +34,8 @@ describe('MailService', () => {
   });
 
   it('should enqueue verification code mail (default en)', async () => {
-    const queue = {
-      enqueue: vi.fn().mockResolvedValue(undefined),
-    } as unknown as vi.Mocked<MailQueueService>;
-    const service = new MailService(queue);
+    const queue = buildQueue();
+    const service = new MailService(queue, i18n);
 
     await service.sendVerificationCode(
       'user@example.com',
@@ -36,16 +44,14 @@ describe('MailService', () => {
 
     expect(queue.enqueue).toHaveBeenCalledWith({
       to: 'user@example.com',
-      subject: verificationCodeSubject(),
-      html: renderVerificationCodeEmail(TEST_VERIFICATION_CODE),
+      subject: verificationCodeSubject(i18n),
+      html: renderVerificationCodeEmail(i18n, TEST_VERIFICATION_CODE),
     });
   });
 
   it('should pass the locale through to the template', async () => {
-    const queue = {
-      enqueue: vi.fn().mockResolvedValue(undefined),
-    } as unknown as vi.Mocked<MailQueueService>;
-    const service = new MailService(queue);
+    const queue = buildQueue();
+    const service = new MailService(queue, i18n);
 
     await service.sendVerificationCode(
       'user@example.com',
@@ -55,13 +61,18 @@ describe('MailService', () => {
 
     expect(queue.enqueue).toHaveBeenCalledWith({
       to: 'user@example.com',
-      subject: verificationCodeSubject('zh-CN'),
-      html: renderVerificationCodeEmail(TEST_VERIFICATION_CODE, 5, 'zh-CN'),
+      subject: verificationCodeSubject(i18n, 'zh-CN'),
+      html: renderVerificationCodeEmail(
+        i18n,
+        TEST_VERIFICATION_CODE,
+        5,
+        'zh-CN',
+      ),
     });
   });
 
   it('should render the English verification code email (default)', () => {
-    const html = renderVerificationCodeEmail(TEST_VERIFICATION_CODE);
+    const html = renderVerificationCodeEmail(i18n, TEST_VERIFICATION_CODE);
 
     // Contains the verification code
     expect(html).toContain(TEST_VERIFICATION_CODE);
@@ -89,6 +100,7 @@ describe('MailService', () => {
 
   it('should render the Chinese verification code email when locale is zh-CN', () => {
     const html = renderVerificationCodeEmail(
+      i18n,
       TEST_VERIFICATION_CODE,
       5,
       'zh-CN',
@@ -112,17 +124,50 @@ describe('MailService', () => {
     expect(html).not.toContain('Do not share this code');
   });
 
-  it('should treat the bare zh locale as Chinese', () => {
-    const html = renderVerificationCodeEmail(TEST_VERIFICATION_CODE, 5, 'zh');
-
-    expect(html).toContain('您的验证码是');
-    expect(html).not.toContain('Your verification code is');
-  });
-
   it('should fall back to English for unsupported locales', () => {
-    const html = renderVerificationCodeEmail(TEST_VERIFICATION_CODE, 5, 'fr');
+    const html = renderVerificationCodeEmail(
+      i18n,
+      TEST_VERIFICATION_CODE,
+      5,
+      'fr',
+    );
 
     expect(html).toContain('Your verification code is');
     expect(html).not.toContain('您的验证码是');
+  });
+});
+
+/**
+ * The locale resolver used to accept only `zh-CN`/`zh`, so every other Chinese
+ * tag fell through to English — while the rest of the product maps `zh-*` to
+ * Chinese via `resolveLocale`. One request could therefore produce an English
+ * email and a Chinese in-app message.
+ */
+describe('resolveEmailLocale', () => {
+  it.each(['zh-CN', 'zh', 'zh-Hans', 'zh-TW', 'zh_CN', 'ZH-cn'])(
+    'treats %s as Chinese',
+    (tag) => {
+      expect(resolveEmailLocale(tag)).toBe('zh-CN');
+    },
+  );
+
+  it.each(['en', 'en-US', 'fr', '', undefined])(
+    'falls back to English for %s',
+    (tag) => {
+      expect(resolveEmailLocale(tag)).toBe('en');
+    },
+  );
+
+  it('renders Chinese for a zh-Hans client', () => {
+    // The concrete regression: this used to render the English email.
+    const html = renderVerificationCodeEmail(
+      i18n,
+      TEST_VERIFICATION_CODE,
+      5,
+      'zh-Hans',
+    );
+
+    expect(html).toContain('您的验证码是');
+    expect(html).not.toContain('Your verification code is');
   });
 });

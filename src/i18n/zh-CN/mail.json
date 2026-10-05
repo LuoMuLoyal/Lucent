@@ -1,0 +1,10 @@
+{
+  "brand_tagline": "您的智能健康管理伙伴",
+  "footer_auto_note": "这是一封自动发送的邮件，请勿直接回复。",
+  "verification_subject": "邮箱验证码",
+  "verification_greeting": "您好！您正在进行邮箱验证。",
+  "verification_code_label": "您的验证码是：",
+  "verification_expiry_note": "验证码 {minutes} 分钟内有效",
+  "verification_share_note": "请勿将验证码泄露给他人",
+  "verification_ignore_note": "如果您没有发起此操作，请忽略此邮件，您的账户安全不会受到影响。"
+}

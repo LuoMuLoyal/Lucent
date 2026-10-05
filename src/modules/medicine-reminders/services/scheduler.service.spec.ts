@@ -241,7 +241,7 @@ describe('ReminderSchedulerService', () => {
       expect.objectContaining({
         type: 'medicine_reminder',
         title: 'Breakfast dose',
-        content: '该吃药了：Breakfast dose',
+        content: 'Time to take your medicine: Breakfast dose',
       }),
       expect.objectContaining({
         source: 'medicine_reminder_reminder-1',
@@ -259,8 +259,8 @@ describe('ReminderSchedulerService', () => {
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({
-        title: '用药提醒',
-        content: '该吃药了：用药提醒',
+        title: 'Medication reminder',
+        content: 'Time to take your medicine: Medication reminder',
       }),
       expect.anything(),
     );
@@ -296,7 +296,7 @@ describe('ReminderSchedulerService', () => {
     );
   });
 
-  it('falls back to zh-CN when profile locale is null', async () => {
+  it('falls back to English when profile locale is null', async () => {
     prisma.userMedicineReminder.findMany.mockResolvedValue([
       buildReminderRow({
         label: null,
@@ -306,25 +306,27 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
+    // 未设语言时兑 en（共享 resolveLocale）;此前这里单独兜 zh-CN,使「默认语言」
+    // 在仓库里有两个方向相反的兑底。
     expect(i18n.t).toHaveBeenCalledWith(
       'medicine-reminders.reminder_fallback_label',
-      { lang: 'zh-CN' },
+      { lang: 'en' },
     );
     expect(i18n.t).toHaveBeenCalledWith(
       'medicine-reminders.reminder_due_content',
-      { lang: 'zh-CN', args: { label: '用药提醒' } },
+      { lang: 'en', args: { label: 'Medication reminder' } },
     );
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({
-        title: '用药提醒',
-        content: '该吃药了：用药提醒',
+        title: 'Medication reminder',
+        content: 'Time to take your medicine: Medication reminder',
       }),
       expect.anything(),
     );
   });
 
-  it('falls back to zh-CN when profile locale is an empty string', async () => {
+  it('falls back to English when profile locale is an empty string', async () => {
     prisma.userMedicineReminder.findMany.mockResolvedValue([
       buildReminderRow({
         label: null,
@@ -334,19 +336,20 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
+    // 空串与 null 同义(客户端「跟随系统」上传空串),走同一个兑底。
     expect(i18n.t).toHaveBeenCalledWith(
       'medicine-reminders.reminder_fallback_label',
-      { lang: 'zh-CN' },
+      { lang: 'en' },
     );
     expect(i18n.t).toHaveBeenCalledWith(
       'medicine-reminders.reminder_due_content',
-      { lang: 'zh-CN', args: { label: '用药提醒' } },
+      { lang: 'en', args: { label: 'Medication reminder' } },
     );
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({
-        title: '用药提醒',
-        content: '该吃药了：用药提醒',
+        title: 'Medication reminder',
+        content: 'Time to take your medicine: Medication reminder',
       }),
       expect.anything(),
     );
@@ -361,7 +364,7 @@ describe('ReminderSchedulerService', () => {
 
     expect(i18n.t).toHaveBeenCalledWith(
       'medicine-reminders.reminder_due_content',
-      { lang: 'zh-CN', args: { label: 'Breakfast dose' } },
+      { lang: 'en', args: { label: 'Breakfast dose' } },
     );
   });
 
@@ -562,7 +565,7 @@ describe('ReminderSchedulerService', () => {
       'user-1',
       expect.objectContaining({
         title: 'Morning dose',
-        body: '该吃药了：Morning dose',
+        body: 'Time to take your medicine: Morning dose',
         data: { reminderId: 'reminder-1', action: 'medicine_reminder' },
       }),
     );

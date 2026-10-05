@@ -250,12 +250,10 @@ export class ReminderSchedulerService {
       }
 
       const localDate = formatLocalDate(scheduledFor, reminder.timezone);
-      // 用户未设置 locale 或为空串时显式回退 zh-CN（保持现状中文文案）；
-      // resolveLocale 对 null 回退 en，空串同 null 兜底 zh-CN 保持现状。
-      const lang =
-        reminder.locale == null || reminder.locale.trim() === ''
-          ? 'zh-CN'
-          : resolveLocale(reminder.locale);
+      // 统一走共享 resolveLocale:用户未设语言(null/空串)时兑 en,与邮件、
+      // 建议卡等路径一致。此前这里单独兜 zh-CN,使「默认语言」在仓库里有两个
+      // 方向相反的兑底,同一个用户可能收到中文提醒 + 英文邮件。
+      const lang = resolveLocale(reminder.locale ?? undefined);
       const fallbackLabel = this.i18n.t(
         'medicine-reminders.reminder_fallback_label',
         { lang },

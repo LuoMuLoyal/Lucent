@@ -7,13 +7,18 @@
  * Emails are rendered in a single language determined by the request locale
  * (`Accept-Language`), passed through the send/mail queue as an ISO locale
  * string. English is the fallback when the locale is unsupported.
+ *
+ * **Copy lives in `src/i18n/{zh-CN,en}/mail.json`**, not here: these functions
+ * keep only the HTML skeleton. They are plain functions (not DI providers), so
+ * the translator is passed in by `MailService` — the same shape the assistant
+ * presenters use.
  */
+
+import { resolveLocale } from '../common/index.js';
 
 // ── Brand constants ──────────────────────────────────────────────────
 
 export const BRAND_NAME = 'Luminous';
-const BRAND_TAGLINE_ZH = '您的智能健康管理伙伴';
-const BRAND_TAGLINE_EN = 'Your smart health companion';
 const BRAND_PRIMARY = '#1447E6';
 const BRAND_PRIMARY_DARK = '#0B2FBE';
 const BRAND_PRIMARY_LIGHT = '#EFF6FF';
@@ -23,14 +28,51 @@ const BRAND_BG = '#F8FAFC';
 const BRAND_BORDER = '#E2E8F0';
 const BRAND_WHITE = '#FFFFFF';
 
-/** Supported email locales; anything else falls back to English. */
-type EmailLocale = 'zh-CN' | 'en';
+/** i18n namespace holding email copy. */
+export const MAIL_COPY_SCOPE = 'mail';
 
-function resolveLocale(locale: string | undefined): EmailLocale {
-  if (locale === 'zh-CN' || locale === 'zh') {
-    return 'zh-CN';
-  }
-  return 'en';
+/** Email locales the templates can render. */
+export type EmailLocale = 'zh-CN' | 'en';
+
+/**
+ * The slice of `I18nService` these templates need.
+ *
+ * Structural rather than a `Pick`: the generic overloads on the real service
+ * make a plain test double unassignable.
+ */
+export interface MailTranslator {
+  t(
+    key: string,
+    options?: { lang?: string; args?: Record<string, string | number> },
+  ): string;
+}
+
+/** Resolves the email language, delegating to the shared locale normalizer. */
+export function resolveEmailLocale(locale: string | undefined): EmailLocale {
+  return resolveLocale(locale) as EmailLocale;
+}
+
+/**
+ * Binds the mail namespace for one language.
+ *
+ * A missing key is surfaced as `[[mail.<key>]]`: `nestjs-i18n` echoes the key
+ * path on a miss, and an email is not something QA can re-render, so an
+ * obvious marker beats silently shipping `mail.footer_auto_note`.
+ */
+export function createMailTranslator(
+  i18n: MailTranslator,
+  locale: EmailLocale,
+): (key: string, args?: Record<string, string | number>) => string {
+  return (key, args) => {
+    const fullKey = `${MAIL_COPY_SCOPE}.${key}`;
+    const translated = i18n.t(fullKey, {
+      lang: locale,
+      ...(args == null ? {} : { args }),
+    });
+    return typeof translated === 'string' && translated !== fullKey
+      ? translated
+      : `[[${fullKey}]]`;
+  };
 }
 
 // ── Email shell ──────────────────────────────────────────────────────
@@ -40,16 +82,16 @@ function resolveLocale(locale: string | undefined): EmailLocale {
  *
  * Uses table-based layout for Outlook compatibility. All styles are inline.
  */
-function emailShell(innerContent: string, locale: EmailLocale): string {
-  const tagline = locale === 'zh-CN' ? BRAND_TAGLINE_ZH : BRAND_TAGLINE_EN;
-  const footerNote =
-    locale === 'zh-CN'
-      ? '这是一封自动发送的邮件，请勿直接回复。'
-      : 'This is an automated email, please do not reply.';
-  const htmlLang = locale === 'zh-CN' ? 'zh-CN' : 'en';
+function emailShell(
+  innerContent: string,
+  locale: EmailLocale,
+  t: (key: string, args?: Record<string, string | number>) => string,
+): string {
+  const tagline = t('brand_tagline');
+  const footerNote = t('footer_auto_note');
 
   return `<!DOCTYPE html>
-<html lang="${htmlLang}">
+<html lang="${locale}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -101,47 +143,12 @@ function emailShell(innerContent: string, locale: EmailLocale): string {
 // ── Verification code email ────────────────────────────────────────────
 
 /** Locale-aware subject line for the verification code email. */
-export function verificationCodeSubject(locale?: string): string {
-  const resolved = resolveLocale(locale);
-  return resolved === 'zh-CN'
-    ? `${BRAND_NAME} - 邮箱验证码`
-    : `${BRAND_NAME} - Email Verification Code`;
-}
-
-/** Locale-aware greeting line for the verification code email. */
-function verificationGreeting(locale: EmailLocale): string {
-  return locale === 'zh-CN'
-    ? '您好！您正在进行邮箱验证。'
-    : 'Hello! You are verifying your email address.';
-}
-
-/** Locale-aware "your code is" label for the verification code email. */
-function verificationCodeLabel(locale: EmailLocale): string {
-  return locale === 'zh-CN' ? '您的验证码是：' : 'Your verification code is:';
-}
-
-/** Locale-aware expiry hint for the verification code email. */
-function verificationExpiryNote(
-  locale: EmailLocale,
-  ttlMinutes: number,
+export function verificationCodeSubject(
+  i18n: MailTranslator,
+  locale?: string,
 ): string {
-  return locale === 'zh-CN'
-    ? `验证码 ${String(ttlMinutes)} 分钟内有效`
-    : `The code expires in ${String(ttlMinutes)} minutes`;
-}
-
-/** Locale-aware "do not share" hint for the verification code email. */
-function verificationShareNote(locale: EmailLocale): string {
-  return locale === 'zh-CN'
-    ? '请勿将验证码泄露给他人'
-    : 'Do not share this code with anyone';
-}
-
-/** Locale-aware "ignore if not you" note for the verification code email. */
-function verificationIgnoreNote(locale: EmailLocale): string {
-  return locale === 'zh-CN'
-    ? '如果您没有发起此操作，请忽略此邮件，您的账户安全不会受到影响。'
-    : 'If you did not request this, please ignore this email. Your account security will not be affected.';
+  const resolved = resolveEmailLocale(locale);
+  return `${BRAND_NAME} - ${createMailTranslator(i18n, resolved)('verification_subject')}`;
 }
 
 /**
@@ -151,23 +158,26 @@ function verificationIgnoreNote(locale: EmailLocale): string {
  * email matches the language the user is using in the product. English is the
  * fallback for unsupported locales.
  *
- * @param code - The verification code (typically 6 digits)
- * @param ttlMinutes - Code validity in minutes (default: 5)
- * @param locale - Request locale (default: en)
+ * @param i18n       Translator supplying the copy.
+ * @param code       The verification code (typically 6 digits)
+ * @param ttlMinutes Code validity in minutes (default: 5)
+ * @param locale     Request locale (default: en)
  */
 export function renderVerificationCodeEmail(
+  i18n: MailTranslator,
   code: string,
   ttlMinutes = 5,
   locale?: string,
 ): string {
-  const lang = resolveLocale(locale);
+  const lang = resolveEmailLocale(locale);
+  const t = createMailTranslator(i18n, lang);
   const inner = `
               <p style="margin:0 0 24px 0;color:${BRAND_TEXT};font-size:16px;line-height:1.7;">
-                ${verificationGreeting(lang)}
+                ${t('verification_greeting')}
               </p>
 
               <p style="margin:0 0 8px 0;color:${BRAND_TEXT_MUTED};font-size:14px;line-height:1.6;">
-                ${verificationCodeLabel(lang)}
+                ${t('verification_code_label')}
               </p>
 
               <!-- Code box -->
@@ -186,16 +196,16 @@ export function renderVerificationCodeEmail(
                 <tr>
                   <td style="background-color:#FEFCE8;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;">
                     <p style="margin:0;color:#92400E;font-size:13px;line-height:1.6;">
-                      &bull; ${verificationExpiryNote(lang, ttlMinutes)}<br>
-                      &bull; ${verificationShareNote(lang)}
+                      &bull; ${t('verification_expiry_note', { minutes: ttlMinutes })}<br>
+                      &bull; ${t('verification_share_note')}
                     </p>
                   </td>
                 </tr>
               </table>
 
               <p style="margin:0;color:${BRAND_TEXT_MUTED};font-size:13px;line-height:1.6;">
-                ${verificationIgnoreNote(lang)}
+                ${t('verification_ignore_note')}
               </p>`;
 
-  return emailShell(inner, lang);
+  return emailShell(inner, lang, t);
 }
