@@ -1,8 +1,9 @@
 import { PDFDocument } from 'pdf-lib';
 import { ReportExportPdfService } from './pdf.service.js';
+import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 describe('ReportExportPdfService', () => {
-  const service = new ReportExportPdfService();
+  const service = new ReportExportPdfService(makeTestI18n() as never);
 
   // 慢测试：多页医院 PDF 渲染在 CI/低配机器上可超 30s，放宽到 120s
   it('builds a multi-page hospital pdf with metadata', async () => {

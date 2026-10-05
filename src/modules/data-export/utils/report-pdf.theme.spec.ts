@@ -4,141 +4,135 @@ import {
   metricLabel,
   statusLabel,
 } from './report-pdf.theme.js';
+import { createPdfTranslator } from './pdf-copy.js';
+import { makeTestI18n } from '../../../common/tests/test-i18n.js';
+
+/**
+ * Labels resolve through the `data-export` dictionary, so these assertions
+ * exercise the real shipped copy rather than inline ternaries. A missing key
+ * would surface as `[[data-export.…]]` and fail here.
+ */
+const zh = createPdfTranslator(makeTestI18n(), 'zh-CN');
+const en = createPdfTranslator(makeTestI18n(), 'en');
 
 describe('report-pdf theme helpers', () => {
   describe('kindLabel', () => {
     it('returns Chinese label for hospital kind', () => {
-      expect(kindLabel('hospital', true)).toBe('导出类型：医疗就诊报告');
+      expect(kindLabel('hospital', zh)).toBe('导出类型：医疗就诊报告');
     });
 
     it('returns English label for hospital kind', () => {
-      expect(kindLabel('hospital', false)).toBe('Export type: Hospital report');
+      expect(kindLabel('hospital', en)).toBe('Export type: Hospital report');
     });
 
     it('returns Chinese label for monthly kind', () => {
-      expect(kindLabel('monthly', true)).toBe('导出类型：月度报告');
+      expect(kindLabel('monthly', zh)).toBe('导出类型：月度报告');
     });
 
     it('returns English label for monthly kind', () => {
-      expect(kindLabel('monthly', false)).toBe('Export type: Monthly report');
+      expect(kindLabel('monthly', en)).toBe('Export type: Monthly report');
     });
 
     it('returns Chinese label for print kind', () => {
-      expect(kindLabel('print', true)).toBe('导出类型：打印报告');
+      expect(kindLabel('print', zh)).toBe('导出类型：打印报告');
     });
 
     it('returns English label for print kind', () => {
-      expect(kindLabel('print', false)).toBe('Export type: Print report');
+      expect(kindLabel('print', en)).toBe('Export type: Print report');
     });
   });
 
   describe('statusPalette', () => {
-    it('returns palette for good status', () => {
-      const palette = statusPalette('good');
-      expect(palette.fill).toBeDefined();
-      expect(palette.border).toBeDefined();
-      expect(palette.accent).toBeDefined();
-      expect(palette.text).toBeDefined();
+    it('returns a palette for each known status', () => {
+      for (const status of [
+        'good',
+        'stable',
+        'needs_attention',
+        'insufficient_data',
+      ]) {
+        const palette = statusPalette(status);
+        expect(palette.fill, status).toBeDefined();
+        expect(palette.border, status).toBeDefined();
+        expect(palette.accent, status).toBeDefined();
+        expect(palette.text, status).toBeDefined();
+      }
     });
 
-    it('returns palette for stable status', () => {
-      const palette = statusPalette('stable');
-      expect(palette.fill).toBeDefined();
-      expect(palette.border).toBeDefined();
-    });
-
-    it('returns palette for needs_attention status', () => {
-      const palette = statusPalette('needs_attention');
-      expect(palette.fill).toBeDefined();
-      expect(palette.border).toBeDefined();
-    });
-
-    it('returns palette for insufficient_data status', () => {
-      const palette = statusPalette('insufficient_data');
-      expect(palette.fill).toBeDefined();
-      expect(palette.border).toBeDefined();
-    });
-
-    it('returns default palette for unknown status', () => {
-      const palette = statusPalette('unknown_status');
-      const expectedDefault = statusPalette('insufficient_data');
-      expect(palette.fill).toEqual(expectedDefault.fill);
-      expect(palette.border).toEqual(expectedDefault.border);
-    });
-
-    it('returns different palettes for good vs needs_attention', () => {
-      const good = statusPalette('good');
-      const needsAttention = statusPalette('needs_attention');
-      expect(good.fill).not.toEqual(needsAttention.fill);
+    it('falls back to the neutral palette for an unknown status', () => {
+      expect(statusPalette('unknown').accent).toEqual(
+        statusPalette('insufficient_data').accent,
+      );
     });
   });
 
   describe('metricLabel', () => {
-    it('returns Chinese label for medication', () => {
-      expect(metricLabel('medication', true)).toBe('服药完成度');
+    it('returns Chinese label for medication metric', () => {
+      expect(metricLabel('medication', zh)).toBe('服药完成度');
     });
 
-    it('returns English label for medication', () => {
-      expect(metricLabel('medication', false)).toBe('Medication adherence');
+    it('returns English label for medication metric', () => {
+      expect(metricLabel('medication', en)).toBe('Medication adherence');
     });
 
-    it('returns Chinese label for water', () => {
-      expect(metricLabel('water', true)).toBe('饮水');
+    it('returns Chinese label for water metric', () => {
+      expect(metricLabel('water', zh)).toBe('饮水');
     });
 
-    it('returns English label for water', () => {
-      expect(metricLabel('water', false)).toBe('Hydration');
+    it('returns English label for water metric', () => {
+      expect(metricLabel('water', en)).toBe('Hydration');
     });
 
-    it('returns Chinese label for sleep', () => {
-      expect(metricLabel('sleep', true)).toBe('睡眠');
+    it('returns Chinese label for sleep metric', () => {
+      expect(metricLabel('sleep', zh)).toBe('睡眠');
     });
 
-    it('returns English label for sleep', () => {
-      expect(metricLabel('sleep', false)).toBe('Sleep');
+    it('returns English label for sleep metric', () => {
+      expect(metricLabel('sleep', en)).toBe('Sleep');
     });
 
-    it('returns the raw kind for unknown metric', () => {
-      expect(metricLabel('exercise', true)).toBe('exercise');
-      expect(metricLabel('exercise', false)).toBe('exercise');
+    it('passes an unknown metric through verbatim', () => {
+      // Unrecognised kinds are schema drift; showing the raw value is more
+      // diagnosable than a generic label.
+      expect(metricLabel('exercise', zh)).toBe('exercise');
+      expect(metricLabel('exercise', en)).toBe('exercise');
     });
   });
 
   describe('statusLabel', () => {
-    it('returns Chinese label for good', () => {
-      expect(statusLabel('good', true)).toBe('良好');
+    it('returns Chinese label for good status', () => {
+      expect(statusLabel('good', zh)).toBe('良好');
     });
 
-    it('returns English label for good', () => {
-      expect(statusLabel('good', false)).toBe('Good');
+    it('returns English label for good status', () => {
+      expect(statusLabel('good', en)).toBe('Good');
     });
 
-    it('returns Chinese label for stable', () => {
-      expect(statusLabel('stable', true)).toBe('稳定');
+    it('returns Chinese label for stable status', () => {
+      expect(statusLabel('stable', zh)).toBe('稳定');
     });
 
-    it('returns English label for stable', () => {
-      expect(statusLabel('stable', false)).toBe('Stable');
+    it('returns English label for stable status', () => {
+      expect(statusLabel('stable', en)).toBe('Stable');
     });
 
-    it('returns Chinese label for needs_attention', () => {
-      expect(statusLabel('needs_attention', true)).toBe('需关注');
+    it('returns Chinese label for needs_attention status', () => {
+      expect(statusLabel('needs_attention', zh)).toBe('需关注');
     });
 
-    it('returns English label for needs_attention', () => {
-      expect(statusLabel('needs_attention', false)).toBe('Needs attention');
+    it('returns English label for needs_attention status', () => {
+      expect(statusLabel('needs_attention', en)).toBe('Needs attention');
     });
 
-    it('returns Chinese label for insufficient_data', () => {
-      expect(statusLabel('insufficient_data', true)).toBe('数据不足');
+    it('returns Chinese label for insufficient_data status', () => {
+      expect(statusLabel('insufficient_data', zh)).toBe('数据不足');
     });
 
-    it('returns English label for insufficient_data', () => {
-      expect(statusLabel('insufficient_data', false)).toBe('Insufficient data');
+    it('returns English label for insufficient_data status', () => {
+      expect(statusLabel('insufficient_data', en)).toBe('Insufficient data');
     });
 
-    it('returns the raw status for unknown value', () => {
-      expect(statusLabel('custom_status', true)).toBe('custom_status');
+    it('passes an unknown status through verbatim', () => {
+      expect(statusLabel('custom_status', zh)).toBe('custom_status');
     });
   });
 });

@@ -1,7 +1,9 @@
 import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
+import { resolveLocale } from '../../../../common/index.js';
 import type { ReportDashboardDataDto } from '../../../reports/index.js';
 import {
   kindLabel,
@@ -9,6 +11,10 @@ import {
   statusPalette,
 } from '../../utils/report-pdf.theme.js';
 import { CJK_FONT_PATH } from '../../pdf-fonts.js';
+import {
+  createPdfTranslator,
+  type PdfTranslator,
+} from '../../utils/pdf-copy.js';
 import {
   CONTENT_WIDTH,
   MARGIN_X,
@@ -36,67 +42,62 @@ type ReportPdfKind = 'hospital' | 'monthly' | 'print';
 
 @Injectable()
 export class ReportExportPdfService {
+  constructor(private readonly i18n: I18nService) {}
+
+  /**
+   * Binds the PDF copy namespace for one locale.
+   *
+   * The locale is normalized once here so every downstream renderer shares one
+   * language, and a third language needs no per-call-site change.
+   */
+  private translatorFor(locale: string): PdfTranslator {
+    return createPdfTranslator(this.i18n, resolveLocale(locale));
+  }
+
   async buildHospitalPdf(input: {
     locale: string;
     report: ReportDashboardDataDto;
   }): Promise<Buffer> {
-    const isZh = input.locale.toLowerCase().startsWith('zh');
-    return this.buildPdf(
-      'hospital',
-      isZh ? 'Lumos 医疗就诊报告' : 'Lumos Hospital Report',
-      input.report,
-      isZh,
-    );
+    const t = this.translatorFor(input.locale);
+    return this.buildPdf('hospital', t('title.hospital'), input.report, t);
   }
 
   async buildMonthlyPdf(input: {
     locale: string;
     report: ReportDashboardDataDto;
   }): Promise<Buffer> {
-    const isZh = input.locale.toLowerCase().startsWith('zh');
-    return this.buildPdf(
-      'monthly',
-      isZh ? 'Lumos 月度报告' : 'Lumos Monthly Report',
-      input.report,
-      isZh,
-    );
+    const t = this.translatorFor(input.locale);
+    return this.buildPdf('monthly', t('title.monthly'), input.report, t);
   }
 
   async buildPrintPdf(input: {
     locale: string;
     report: ReportDashboardDataDto;
   }): Promise<Buffer> {
-    const isZh = input.locale.toLowerCase().startsWith('zh');
-    return this.buildPdf(
-      'print',
-      isZh ? 'Lumos 打印报告' : 'Lumos Print Report',
-      input.report,
-      isZh,
-    );
+    const t = this.translatorFor(input.locale);
+    return this.buildPdf('print', t('title.print'), input.report, t);
   }
 
   private async buildPdf(
     kind: ReportPdfKind,
     title: string,
     report: ReportDashboardDataDto,
-    isZh: boolean,
+    t: PdfTranslator,
   ): Promise<Buffer> {
     const pdf = await PDFDocument.create({ updateMetadata: false });
     pdf.registerFontkit(fontkit);
     const fontBytes = await readFile(CJK_FONT_PATH);
     const cjkFont = await pdf.embedFont(fontBytes, { subset: false });
-    this.applyMetadata(pdf, title, kind, report, isZh);
+    this.applyMetadata(pdf, title, kind, report, t);
 
-    const headerSubtitle = isZh
-      ? `统计范围：${report.startDate} ~ ${report.endDate}  ·  生成时间：${report.generatedAt}`
-      : `Range: ${report.startDate} ~ ${report.endDate}  ·  Generated at: ${report.generatedAt}`;
-    const footerNote = isZh
-      ? '说明：本报告用于自我管理与就诊辅助，不替代医生诊断。'
-      : 'Note: This report supports self-management and visits, and does not replace medical diagnosis.';
-    const pageNumberLabel = isZh
-      ? '第 {{page}} / {{total}} 页'
-      : 'Page {{page}} / {{total}}';
-    const kindLabelText = kindLabel(kind, isZh);
+    const headerSubtitle = t('header.range_and_generated', {
+      start: report.startDate,
+      end: report.endDate,
+      generatedAt: report.generatedAt,
+    });
+    const footerNote = t('footer_note');
+    const pageNumberLabel = t('page_number');
+    const kindLabelText = kindLabel(kind, t);
     const context = this.createPageContext({
       pdf,
       cjkFont,
@@ -107,10 +108,10 @@ export class ReportExportPdfService {
       kindLabel: kindLabelText,
     });
 
-    const summaryLabel = isZh ? '概览' : 'Overview';
-    const metricsLabel = isZh ? '关键指标' : 'Key Metrics';
-    const findingsLabel = isZh ? '发现' : 'Findings';
-    const patternsLabel = isZh ? '模式' : 'Patterns';
+    const summaryLabel = t('section.overview');
+    const metricsLabel = t('section.metrics');
+    const findingsLabel = t('section.findings');
+    const patternsLabel = t('section.patterns');
 
     ensureSpace(context, 1);
     context.page.drawText(kindLabelText, {
@@ -124,7 +125,7 @@ export class ReportExportPdfService {
 
     ensureSpace(context, 1);
     context.page.drawText(
-      `${isZh ? '生成时间' : 'Generated at'}: ${report.generatedAt}`,
+      `${t('header.generated_at')}: ${report.generatedAt}`,
       {
         x: MARGIN_X,
         y: context.cursorY,
@@ -137,38 +138,21 @@ export class ReportExportPdfService {
 
     drawSectionTitle(context, summaryLabel);
     context.cursorY -= 2;
-    drawWrappedText(
-      context,
-      isZh
-        ? '本报告由 Lumos 自动生成，用于就诊时供医生参考，不替代专业诊断。'
-        : 'This report is auto-generated by Lumos for doctor reference during visits and does not replace professional diagnosis.',
-      9,
-      cjkFont,
-      CONTENT_WIDTH,
-    );
+    drawWrappedText(context, t('overview_body'), 9, cjkFont, CONTENT_WIDTH);
     context.cursorY -= 10;
 
     drawSectionTitle(context, metricsLabel);
-    if (report.metrics.length > 0)
-      drawMetricsGrid(context, report.metrics, isZh);
+    if (report.metrics.length > 0) drawMetricsGrid(context, report.metrics, t);
     context.cursorY -= 8;
 
-    const trendsLabel = isZh ? '每日趋势' : 'Daily Trends';
+    const trendsLabel = t('section.trends');
     drawSectionTitle(context, trendsLabel);
-    drawTrendTable(context, report.trends, isZh);
+    drawTrendTable(context, report.trends, t);
     context.cursorY -= 8;
 
     drawSectionTitle(context, findingsLabel);
     if (report.findings.length === 0) {
-      drawWrappedText(
-        context,
-        isZh
-          ? '当前没有额外重点发现。'
-          : 'No additional findings for this range.',
-        11,
-        cjkFont,
-        500,
-      );
+      drawWrappedText(context, t('empty.findings'), 11, cjkFont, 500);
     } else {
       for (const finding of report.findings) {
         drawInsightBlock(context, {
@@ -189,21 +173,10 @@ export class ReportExportPdfService {
       (p) => p.status !== 'needs_attention',
     );
     if (attentionPatterns.length === 0 && otherPatterns.length === 0) {
-      drawWrappedText(
-        context,
-        isZh
-          ? '当前没有额外模式信息。'
-          : 'No additional patterns for this range.',
-        11,
-        cjkFont,
-        500,
-      );
+      drawWrappedText(context, t('empty.patterns'), 11, cjkFont, 500);
     }
     if (attentionPatterns.length > 0) {
-      drawSubsectionTitle(
-        context,
-        isZh ? '需优先关注' : 'Needs Attention First',
-      );
+      drawSubsectionTitle(context, t('subsection.needs_attention'));
       for (const pattern of attentionPatterns) {
         const palette = statusPalette(pattern.status);
         drawInsightBlock(context, {
@@ -211,14 +184,14 @@ export class ReportExportPdfService {
           body: pattern.body,
           accentColor: palette.accent,
           backgroundColor: palette.fill,
-          badgeText: statusLabel(pattern.status, isZh),
+          badgeText: statusLabel(pattern.status, t),
           badgeColor: palette.text,
           sparkline: pattern.sparkline,
         });
       }
     }
     if (otherPatterns.length > 0) {
-      drawSubsectionTitle(context, isZh ? '其余模式' : 'Other Patterns');
+      drawSubsectionTitle(context, t('subsection.other_patterns'));
       for (const pattern of otherPatterns) {
         const palette = statusPalette(pattern.status);
         drawInsightBlock(context, {
@@ -226,7 +199,7 @@ export class ReportExportPdfService {
           body: pattern.body,
           accentColor: palette.accent,
           backgroundColor: palette.fill,
-          badgeText: statusLabel(pattern.status, isZh),
+          badgeText: statusLabel(pattern.status, t),
           badgeColor: palette.text,
           sparkline: pattern.sparkline,
         });
@@ -242,12 +215,13 @@ export class ReportExportPdfService {
     title: string,
     kind: ReportPdfKind,
     report: ReportDashboardDataDto,
-    isZh: boolean,
+    t: PdfTranslator,
   ): void {
-    const kindLabelText = kindLabel(kind, isZh);
-    const subject = isZh
-      ? `${kindLabelText}，统计范围 ${report.startDate} ~ ${report.endDate}`
-      : `${kindLabelText}, range ${report.startDate} ~ ${report.endDate}`;
+    const subject = t('metadata.subject', {
+      kind: kindLabel(kind, t),
+      start: report.startDate,
+      end: report.endDate,
+    });
     const generatedAt = new Date(report.generatedAt);
     pdf.setTitle(title, { showInWindowTitleBar: true });
     pdf.setAuthor('Lumos / Lucent');

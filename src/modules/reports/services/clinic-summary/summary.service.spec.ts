@@ -976,7 +976,7 @@ describe('ClinicSummaryService', () => {
       // Use the real ClinicSummaryPdfService (wired to the summary service)
       // so exportPdf → buildPdf records the view model passed in; route
       // buildPdf through the mock so the PDF input is captured, not rendered.
-      const realPdfService = new ClinicSummaryPdfService(service);
+      const realPdfService = new ClinicSummaryPdfService(service, i18nMock);
       realPdfService.buildPdf = pdfService.buildPdf;
       const options = {
         range: 'last_7_days',

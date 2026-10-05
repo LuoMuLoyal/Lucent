@@ -1,5 +1,6 @@
 import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
@@ -33,10 +34,17 @@ import {
   drawSleepSection,
   drawNotesSection,
 } from './record-drawers.js';
+import {
+  createClinicSummaryPdfTranslator,
+  type ClinicSummaryTranslator,
+} from './pdf-copy.js';
 
 @Injectable()
 export class ClinicSummaryPdfService {
-  constructor(private readonly summaryService: ClinicSummaryService) {}
+  constructor(
+    private readonly summaryService: ClinicSummaryService,
+    private readonly i18n: I18nService,
+  ) {}
 
   /**
    * Export the caller's clinic summary as PDF. The summary view is built by
@@ -68,29 +76,26 @@ export class ClinicSummaryPdfService {
   }
 
   async buildPdf(summary: ClinicSummaryDto, locale: string): Promise<Buffer> {
-    const isZh = locale.toLowerCase().startsWith('zh');
+    const t = createClinicSummaryPdfTranslator(this.i18n, locale);
 
     const pdf = await PDFDocument.create({ updateMetadata: false });
     pdf.registerFontkit(fontkit);
     const fontBytes = await readFile(CJK_FONT_PATH);
     const cjkFont = await pdf.embedFont(fontBytes, { subset: false });
 
-    const title = isZh ? 'Lumos 就诊摘要' : 'Lumos Clinic Summary';
-    this.applyMetadata(pdf, title, summary, isZh);
+    const title = t('title');
+    this.applyMetadata(pdf, title, summary, t);
 
-    const headerSubtitle = isZh
-      ? `生成时间：${summary.generatedAt}  ·  数据范围：${summary.dataRange}`
-      : `Generated at: ${summary.generatedAt}  ·  Data range: ${summary.dataRange}`;
+    const headerSubtitle = t('header', {
+      generatedAt: summary.generatedAt,
+      dataRange: summary.dataRange,
+    });
     // Footer disclaimer: data comes from the user's records, may be
     // incomplete, and is not a substitute for diagnosis. It never claims a
     // doctor reviewed the summary.
-    const footerNote = isZh
-      ? '资料来自用户记录，可能不完整，仅供就诊参考，不能代替专业医疗诊断。'
-      : "Data comes from the user's records, may be incomplete, and is not a substitute for professional medical diagnosis.";
-    const pageNumberLabel = isZh
-      ? '第 {{page}} / {{total}} 页'
-      : 'Page {{page}} / {{total}}';
-    const kindLabel = isZh ? '就诊摘要' : 'Clinic Summary';
+    const footerNote = t('footer_note');
+    const pageNumberLabel = t('page_number');
+    const kindLabel = t('kind');
 
     const context: PageContext = {
       pdf,
@@ -109,57 +114,57 @@ export class ClinicSummaryPdfService {
     // shared selected-field view model, so deselected sections arrive as
     // absent keys and must not produce content (or crash on `.length`).
     if (summary.profile != null) {
-      drawSectionTitle(context, isZh ? '个人信息' : 'Personal Information');
-      drawProfileTable(context, summary.profile, isZh, cjkFont);
+      drawSectionTitle(context, t('section.profile'));
+      drawProfileTable(context, summary.profile, t, cjkFont);
       context.cursorY -= 12;
     }
 
     if (summary.allergies != null) {
-      drawSectionTitle(context, isZh ? '过敏史' : 'Allergies');
-      drawAllergiesSection(context, summary.allergies, isZh, cjkFont);
+      drawSectionTitle(context, t('section.allergies'));
+      drawAllergiesSection(context, summary.allergies, t, cjkFont);
       context.cursorY -= 8;
     }
 
     if (summary.conditions != null) {
-      drawSectionTitle(context, isZh ? '既往病史' : 'Medical Conditions');
-      drawConditionsSection(context, summary.conditions, isZh, cjkFont);
+      drawSectionTitle(context, t('section.conditions'));
+      drawConditionsSection(context, summary.conditions, t, cjkFont);
       context.cursorY -= 8;
     }
 
     if (summary.currentMedicines != null) {
-      drawSectionTitle(context, isZh ? '当前用药' : 'Current Medicines');
-      drawMedicinesSection(context, summary.currentMedicines, isZh, cjkFont);
+      drawSectionTitle(context, t('section.medicines'));
+      drawMedicinesSection(context, summary.currentMedicines, t, cjkFont);
       context.cursorY -= 8;
     }
 
     if (summary.findings != null && summary.findings.length > 0) {
-      drawSectionTitle(context, isZh ? '要点发现' : 'Key Findings');
-      drawFindingsSection(context, summary.findings, isZh, cjkFont);
+      drawSectionTitle(context, t('section.findings'));
+      drawFindingsSection(context, summary.findings, t, cjkFont);
       context.cursorY -= 8;
     }
 
     if (summary.waterEntries != null && summary.waterEntries.length > 0) {
-      drawSectionTitle(context, isZh ? '饮水记录' : 'Water Intake');
-      drawWaterSection(context, summary.waterEntries, isZh, cjkFont);
+      drawSectionTitle(context, t('section.water'));
+      drawWaterSection(context, summary.waterEntries, t, cjkFont);
       context.cursorY -= 8;
     }
 
     if (summary.sleepEntries != null && summary.sleepEntries.length > 0) {
-      drawSectionTitle(context, isZh ? '睡眠记录' : 'Sleep');
-      drawSleepSection(context, summary.sleepEntries, isZh, cjkFont);
+      drawSectionTitle(context, t('section.sleep'));
+      drawSleepSection(context, summary.sleepEntries, t, cjkFont);
       context.cursorY -= 8;
     }
 
     if (summary.noteEntries != null && summary.noteEntries.length > 0) {
-      drawSectionTitle(context, isZh ? '备注' : 'Notes');
-      drawNotesSection(context, summary.noteEntries, isZh, cjkFont);
+      drawSectionTitle(context, t('section.notes'));
+      drawNotesSection(context, summary.noteEntries, t, cjkFont);
       context.cursorY -= 8;
     }
 
     // ── Disclaimer ─────────────────────────────────────────
-    const disclaimerText = isZh
-      ? `免责声明：${summary.disclaimer}`
-      : `Disclaimer: ${summary.disclaimer}`;
+    const disclaimerText = t('disclaimer_line', {
+      disclaimer: summary.disclaimer,
+    });
     context.cursorY -= 6;
     const disclaimerLines = wrapText(disclaimerText, cjkFont, 9, CONTENT_WIDTH);
     ensureSpace(context, disclaimerLines.length, 4);
@@ -183,11 +188,9 @@ export class ClinicSummaryPdfService {
     pdf: PDFDocument,
     title: string,
     summary: ClinicSummaryDto,
-    isZh: boolean,
+    t: ClinicSummaryTranslator,
   ): void {
-    const subject = isZh
-      ? `就诊摘要，生成时间 ${summary.generatedAt}`
-      : `Clinic Summary, generated at ${summary.generatedAt}`;
+    const subject = t('metadata_subject', { dataRange: summary.dataRange });
     const generatedAt = new Date(summary.generatedAt);
     pdf.setTitle(title, { showInWindowTitleBar: true });
     pdf.setAuthor('Lumos / Lucent');

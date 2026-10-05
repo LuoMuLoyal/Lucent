@@ -1,14 +1,18 @@
 import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
 import { ClinicSummaryPdfService } from './pdf.service.js';
+import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 describe('ClinicSummaryPdfService', () => {
   let service: ClinicSummaryPdfService;
 
   beforeEach(() => {
-    service = new ClinicSummaryPdfService({
-      buildClinicSummary: vi.fn(),
-      getSharedSummary: vi.fn(),
-    } as never);
+    service = new ClinicSummaryPdfService(
+      {
+        buildClinicSummary: vi.fn(),
+        getSharedSummary: vi.fn(),
+      } as never,
+      makeTestI18n() as never,
+    );
   });
 
   const makeSummary = (

@@ -2,6 +2,7 @@ import { rgb } from 'pdf-lib';
 import { MARGIN_X } from '../../../data-export/index.js';
 import type { EmbeddedFont, PageContext } from '../../../data-export/index.js';
 import { ensureSpace } from '../../../data-export/index.js';
+import type { ClinicSummaryTranslator } from './pdf-copy.js';
 import type {
   ClinicSummaryProfileDto,
   ClinicSummaryAllergyDto,
@@ -17,7 +18,7 @@ export const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
 export function drawFindingsSection(
   context: PageContext,
   findings: string[],
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
   // Findings are structured fact/change codes reused from the event review
@@ -27,11 +28,7 @@ export function drawFindingsSection(
   // raw code — it is the one finding whose meaning must be readable by a
   // doctor without the client.
   const codeLabel = (code: string): string =>
-    code === INSUFFICIENT_COVERAGE_CODE
-      ? isZh
-        ? '资料不足'
-        : 'Insufficient data'
-      : code;
+    code === INSUFFICIENT_COVERAGE_CODE ? t('value.insufficient_data') : code;
   for (const code of findings) {
     ensureSpace(context, 1);
     const rowY = context.cursorY;
@@ -44,9 +41,7 @@ export function drawFindingsSection(
     });
     context.cursorY -= 16;
   }
-  const note = isZh
-    ? '以上要点来自用户记录的结构化事实与变化代码。'
-    : 'These items are structured facts and change codes from the user records.';
+  const note = t('findings_note');
   ensureSpace(context, 1);
   context.page.drawText(note, {
     x: MARGIN_X,
@@ -63,21 +58,19 @@ export function drawFindingsSection(
 export function drawProfileTable(
   context: PageContext,
   profile: ClinicSummaryProfileDto,
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
   const p = profile;
   const rows: [string, string][] = [
-    [isZh ? '昵称' : 'Nickname', p.nickname],
+    [t('field.nickname'), p.nickname],
     [
-      isZh ? '年龄' : 'Age',
+      t('field.age'),
       p.age != null
-        ? `${String(p.age)} ${isZh ? '岁' : 'years'}`
-        : isZh
-          ? '未提供'
-          : 'N/A',
+        ? t('value.age_years', { age: p.age })
+        : t('value.not_provided'),
     ],
-    [isZh ? '性别' : 'Sex', p.sexAtBirth ?? (isZh ? '未提供' : 'N/A')],
+    [t('field.sex'), p.sexAtBirth ?? t('value.not_provided')],
   ];
   drawKeyValueTable(context, rows, font);
 }
@@ -87,11 +80,11 @@ export function drawProfileTable(
 export function drawAllergiesSection(
   context: PageContext,
   allergies: ClinicSummaryAllergyDto[],
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
   if (allergies.length === 0) {
-    const text = isZh ? '无已知过敏' : 'No known allergies';
+    const text = t('empty.no_known_allergies');
     ensureSpace(context, 1);
     context.page.drawText(text, {
       x: MARGIN_X,
@@ -104,9 +97,9 @@ export function drawAllergiesSection(
     return;
   }
 
-  const headerLabel = isZh ? '名称' : 'Name';
-  const headerReaction = isZh ? '反应' : 'Reaction';
-  const headerSeverity = isZh ? '严重程度' : 'Severity';
+  const headerLabel = t('table.name');
+  const headerReaction = t('table.reaction');
+  const headerSeverity = t('table.severity');
   const labelW = 140;
   const reactionW = 180;
 
@@ -146,14 +139,14 @@ export function drawAllergiesSection(
       font,
       color: rgb(0.14, 0.19, 0.26),
     });
-    context.page.drawText(a.reaction ?? (isZh ? '-' : '-'), {
+    context.page.drawText(a.reaction ?? t('value.placeholder'), {
       x: MARGIN_X + labelW,
       y: rowY,
       size: 11,
       font,
       color: rgb(0.22, 0.27, 0.33),
     });
-    context.page.drawText(a.severity ?? (isZh ? '-' : '-'), {
+    context.page.drawText(a.severity ?? t('value.placeholder'), {
       x: MARGIN_X + labelW + reactionW,
       y: rowY,
       size: 11,
@@ -169,11 +162,11 @@ export function drawAllergiesSection(
 export function drawConditionsSection(
   context: PageContext,
   conditions: ClinicSummaryConditionDto[],
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
   if (conditions.length === 0) {
-    const text = isZh ? '无记录' : 'No recorded conditions';
+    const text = t('empty.no_recorded_conditions');
     ensureSpace(context, 1);
     context.page.drawText(text, {
       x: MARGIN_X,
@@ -186,9 +179,9 @@ export function drawConditionsSection(
     return;
   }
 
-  const headerLabel = isZh ? '名称' : 'Name';
-  const headerStatus = isZh ? '状态' : 'Status';
-  const headerYear = isZh ? '确诊年份' : 'Diagnosed';
+  const headerLabel = t('table.name');
+  const headerStatus = t('table.status');
+  const headerYear = t('table.diagnosed_year');
   const labelW = 160;
   const statusW = 140;
 
@@ -251,11 +244,11 @@ export function drawConditionsSection(
 export function drawMedicinesSection(
   context: PageContext,
   medicines: ClinicSummaryMedicineDto[],
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
   if (medicines.length === 0) {
-    const text = isZh ? '无当前用药' : 'No current medicines';
+    const text = t('empty.no_current_medicines');
     ensureSpace(context, 1);
     context.page.drawText(text, {
       x: MARGIN_X,
@@ -268,8 +261,8 @@ export function drawMedicinesSection(
     return;
   }
 
-  const headerName = isZh ? '药品名称' : 'Medicine';
-  const headerDose = isZh ? '剂量' : 'Dosage';
+  const headerName = t('table.medicine_name');
+  const headerDose = t('table.dosage');
   const nameW = 250;
 
   ensureSpace(context, 1, 6);

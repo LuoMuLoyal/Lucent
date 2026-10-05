@@ -2,6 +2,7 @@ import { rgb } from 'pdf-lib';
 import { CONTENT_WIDTH, MARGIN_X } from '../../../data-export/index.js';
 import type { EmbeddedFont, PageContext } from '../../../data-export/index.js';
 import { ensureSpace, wrapText } from '../../../data-export/index.js';
+import type { ClinicSummaryTranslator } from './pdf-copy.js';
 import type {
   ClinicSummaryWaterEntryDto,
   ClinicSummarySleepEntryDto,
@@ -13,11 +14,11 @@ import type {
 export function drawWaterSection(
   context: PageContext,
   entries: ClinicSummaryWaterEntryDto[],
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
-  const dateLabel = isZh ? '日期' : 'Date';
-  const mlLabel = isZh ? '饮水量(ml)' : 'Intake (ml)';
+  const dateLabel = t('table.date');
+  const mlLabel = t('table.water_intake_ml');
   const dateW = 160;
 
   ensureSpace(context, 1, 6);
@@ -64,11 +65,11 @@ export function drawWaterSection(
 export function drawSleepSection(
   context: PageContext,
   entries: ClinicSummarySleepEntryDto[],
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
-  const dateLabel = isZh ? '日期' : 'Date';
-  const durLabel = isZh ? '时长(分钟)' : 'Duration (min)';
+  const dateLabel = t('table.date');
+  const durLabel = t('table.sleep_duration_min');
   const dateW = 160;
 
   ensureSpace(context, 1, 6);
@@ -115,12 +116,12 @@ export function drawSleepSection(
 export function drawNotesSection(
   context: PageContext,
   entries: ClinicSummaryNoteEntryDto[],
-  isZh: boolean,
+  t: ClinicSummaryTranslator,
   font: EmbeddedFont,
 ): void {
-  const dateLabel = isZh ? '日期' : 'Date';
-  const kindLabel = isZh ? '类型' : 'Kind';
-  const textLabel = isZh ? '备注' : 'Note';
+  const dateLabel = t('table.date');
+  const kindLabel = t('table.kind');
+  const textLabel = t('table.note');
   const dateW = 120;
   const kindW = 100;
 

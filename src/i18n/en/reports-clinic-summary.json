@@ -2,5 +2,55 @@
   "disclaimer": "This summary is generated from self-reported health data and is for reference only. It cannot replace professional medical diagnosis. Refer to the actual medication instructions for details.",
   "anonymous_name": "Anonymous",
   "share_link_expired": "Share link expired or invalid.",
-  "share_not_found": "Share record not found or already revoked."
+  "share_not_found": "Share record not found or already revoked.",
+  "pdf": {
+    "title": "Lumos Clinic Summary",
+    "kind": "Clinic Summary",
+    "header": "Generated at: {generatedAt}  ·  Data range: {dataRange}",
+    "footer_note": "Data comes from the user's records, may be incomplete, and is not a substitute for professional medical diagnosis.",
+    "page_number": "Page {{page}} / {{total}}",
+    "metadata_subject": "Clinic summary, data range {dataRange}",
+    "section": {
+      "profile": "Personal Information",
+      "allergies": "Allergies",
+      "conditions": "Medical Conditions",
+      "medicines": "Current Medicines",
+      "findings": "Key Findings",
+      "water": "Water",
+      "sleep": "Sleep",
+      "notes": "Notes"
+    },
+    "field": {
+      "nickname": "Nickname",
+      "age": "Age",
+      "sex": "Sex"
+    },
+    "value": {
+      "age_years": "{age} years",
+      "not_provided": "N/A",
+      "placeholder": "-",
+      "insufficient_data": "Insufficient data"
+    },
+    "table": {
+      "name": "Name",
+      "reaction": "Reaction",
+      "severity": "Severity",
+      "status": "Status",
+      "diagnosed_year": "Diagnosed",
+      "medicine_name": "Medicine",
+      "dosage": "Dosage",
+      "date": "Date",
+      "water_intake_ml": "Intake (ml)",
+      "sleep_duration_min": "Duration (min)",
+      "kind": "Kind",
+      "note": "Note"
+    },
+    "empty": {
+      "no_known_allergies": "No known allergies",
+      "no_recorded_conditions": "No recorded conditions",
+      "no_current_medicines": "No current medicines"
+    },
+    "findings_note": "These items are structured facts and change codes from the user records.",
+    "disclaimer_line": "Disclaimer: {disclaimer}"
+  }
 }

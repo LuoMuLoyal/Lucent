@@ -2,5 +2,55 @@
   "disclaimer": "此摘要基于用户自述健康数据生成，仅供参考，不能替代专业医疗诊断。用药详情以实际药品说明书为准。",
   "anonymous_name": "匿名用户",
   "share_link_expired": "分享链接已过期或无效。",
-  "share_not_found": "分享记录不存在或已被撤销。"
+  "share_not_found": "分享记录不存在或已被撤销。",
+  "pdf": {
+    "title": "Lumos 就诊摘要",
+    "kind": "就诊摘要",
+    "header": "生成时间：{generatedAt}  ·  数据范围：{dataRange}",
+    "footer_note": "资料来自用户记录，可能不完整，仅供就诊参考，不能代替专业医疗诊断。",
+    "page_number": "第 {{page}} / {{total}} 页",
+    "metadata_subject": "就诊摘要，数据范围 {dataRange}",
+    "section": {
+      "profile": "个人信息",
+      "allergies": "过敏史",
+      "conditions": "既往病史",
+      "medicines": "当前用药",
+      "findings": "要点发现",
+      "water": "饮水记录",
+      "sleep": "睡眠记录",
+      "notes": "备注"
+    },
+    "field": {
+      "nickname": "昵称",
+      "age": "年龄",
+      "sex": "性别"
+    },
+    "value": {
+      "age_years": "{age} 岁",
+      "not_provided": "未提供",
+      "placeholder": "-",
+      "insufficient_data": "资料不足"
+    },
+    "table": {
+      "name": "名称",
+      "reaction": "反应",
+      "severity": "严重程度",
+      "status": "状态",
+      "diagnosed_year": "确诊年份",
+      "medicine_name": "药品名称",
+      "dosage": "剂量",
+      "date": "日期",
+      "water_intake_ml": "饮水量(ml)",
+      "sleep_duration_min": "时长(分钟)",
+      "kind": "类型",
+      "note": "备注"
+    },
+    "empty": {
+      "no_known_allergies": "无已知过敏",
+      "no_recorded_conditions": "无记录",
+      "no_current_medicines": "无当前用药"
+    },
+    "findings_note": "以上要点来自用户记录的结构化事实与变化代码。",
+    "disclaimer_line": "免责声明：{disclaimer}"
+  }
 }

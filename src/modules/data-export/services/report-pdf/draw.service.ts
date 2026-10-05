@@ -17,6 +17,7 @@ import type {
 } from '../../constants/report-pdf.constants.js';
 import { statusLabel, statusPalette } from '../../utils/report-pdf.theme.js';
 import { metricLabel } from '../../utils/report-pdf.theme.js';
+import type { PdfTranslator } from '../../utils/pdf-copy.js';
 import type {
   ReportMetricDto,
   ReportTrendDto,
@@ -114,7 +115,7 @@ function truncateSparkline(
 export function drawMetricsGrid(
   context: PageContext,
   metrics: ReportMetricDto[],
-  isZh: boolean,
+  t: PdfTranslator,
 ): void {
   const cols = 2;
   const cardWidth = (CONTENT_WIDTH - 8) / cols;
@@ -128,15 +129,7 @@ export function drawMetricsGrid(
       const metric = row[j];
       if (!metric) continue;
       const x = MARGIN_X + j * (cardWidth + 8);
-      drawCompactMetricCard(
-        context,
-        metric,
-        isZh,
-        x,
-        boxY,
-        cardWidth,
-        cardHeight,
-      );
+      drawCompactMetricCard(context, metric, t, x, boxY, cardWidth, cardHeight);
     }
     context.cursorY = boxY - 8;
   }
@@ -145,15 +138,15 @@ export function drawMetricsGrid(
 function drawCompactMetricCard(
   context: PageContext,
   metric: ReportMetricDto,
-  isZh: boolean,
+  t: PdfTranslator,
   x: number,
   y: number,
   width: number,
   height: number,
 ): void {
   const palette = statusPalette(metric.status);
-  const label = metricLabel(metric.kind, isZh);
-  const statusText = statusLabel(metric.status, isZh);
+  const label = metricLabel(metric.kind, t);
+  const statusText = statusLabel(metric.status, t);
   const valueText = `${metric.value}${metric.unit}`;
   context.page.drawRectangle({
     x,
@@ -185,7 +178,7 @@ function drawCompactMetricCard(
     font: context.cjkFont,
     color: palette.text,
   });
-  const deltaLabel = deltaText(metric, isZh);
+  const deltaLabel = deltaText(metric, t);
   context.page.drawText(deltaLabel, {
     x: x + 10,
     y: y + height - 50,
@@ -207,8 +200,10 @@ function drawCompactMetricCard(
   });
 }
 
-function deltaText(metric: ReportMetricDto, isZh: boolean): string {
-  const prefix = isZh ? 'Δ:' : 'Δ:';
+function deltaText(metric: ReportMetricDto, _t: PdfTranslator): string {
+  // 'Δ:' is language-neutral, so no dictionary entry is needed; the
+  // translator stays in the signature for a uniform call shape.
+  const prefix = 'Δ:';
   if (metric.delta === '--') return `${prefix} --`;
   const arrow =
     metric.direction === 'up' ? '↑' : metric.direction === 'down' ? '↓' : '→';
@@ -340,7 +335,7 @@ export function wrapText(
 export function drawTrendTable(
   context: PageContext,
   trends: ReportTrendDto[],
-  isZh: boolean,
+  t: PdfTranslator,
 ): void {
   if (trends.length === 0) return;
   const maxLen = Math.max(...trends.map((t) => t.values.length), 0);
@@ -361,7 +356,7 @@ export function drawTrendTable(
     headerHeight,
     rgb(0.94, 0.96, 0.98),
   );
-  const dateLabel = isZh ? '日期' : 'Day';
+  const dateLabel = t('table.day');
   context.page.drawText(dateLabel, {
     x: MARGIN_X + 4,
     y: headerY - 13,
@@ -372,7 +367,7 @@ export function drawTrendTable(
   for (let ci = 0; ci < trends.length; ci += 1) {
     const trend = trends[ci];
     if (!trend) continue;
-    const label = `${metricLabel(trend.kind, isZh)}(${trend.unit})`;
+    const label = `${metricLabel(trend.kind, t)}(${trend.unit})`;
     const colX = MARGIN_X + dayColWidth + ci * metricColWidth;
     context.page.drawText(label, {
       x: colX + 4,
@@ -397,7 +392,7 @@ export function drawTrendTable(
         rgb(0.97, 0.98, 0.99),
       );
     }
-    const dayNum = isZh ? `第${String(row + 1)}天` : `Day ${String(row + 1)}`;
+    const dayNum = t('table.day_n', { n: row + 1 });
     context.page.drawText(dayNum, {
       x: MARGIN_X + 4,
       y: bgY + 3,
@@ -412,7 +407,7 @@ export function drawTrendTable(
       const value = trend.values[row];
       const valueText =
         value == null
-          ? '--'
+          ? t('table.no_value')
           : Number.isInteger(value)
             ? String(value)
             : value.toFixed(1);

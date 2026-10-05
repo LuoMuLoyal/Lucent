@@ -1,16 +1,26 @@
 import { rgb } from 'pdf-lib';
 import type { ReportPdfKind } from '../constants/report-pdf.constants.js';
+import type { PdfTranslator } from './pdf-copy.js';
 
 type PdfColor = ReturnType<typeof rgb>;
 
-export function kindLabel(kind: ReportPdfKind, isZh: boolean): string {
+/**
+ * Label resolvers for the export PDF.
+ *
+ * These take a locale-bound translator rather than an `isZh` boolean: a boolean
+ * cannot express a third language, and the previous inline ternaries kept the
+ * copy out of the i18n dictionaries (see `pdf-copy.ts`).
+ *
+ * An unknown kind/metric/status falls back to the raw value, matching the
+ * previous `default:` branches — an unrecognised value is a schema drift, and
+ * showing it verbatim is more diagnosable than a generic label.
+ */
+export function kindLabel(kind: ReportPdfKind, t: PdfTranslator): string {
   switch (kind) {
     case 'hospital':
-      return isZh ? '导出类型：医疗就诊报告' : 'Export type: Hospital report';
     case 'monthly':
-      return isZh ? '导出类型：月度报告' : 'Export type: Monthly report';
     case 'print':
-      return isZh ? '导出类型：打印报告' : 'Export type: Print report';
+      return t(`kind.${kind}`);
   }
 }
 
@@ -59,29 +69,24 @@ export function statusPalette(status: string): {
   }
 }
 
-export function metricLabel(kind: string, isZh: boolean): string {
+export function metricLabel(kind: string, t: PdfTranslator): string {
   switch (kind) {
     case 'medication':
-      return isZh ? '服药完成度' : 'Medication adherence';
     case 'water':
-      return isZh ? '饮水' : 'Hydration';
     case 'sleep':
-      return isZh ? '睡眠' : 'Sleep';
+      return t(`metric.${kind}`);
     default:
       return kind;
   }
 }
 
-export function statusLabel(status: string, isZh: boolean): string {
+export function statusLabel(status: string, t: PdfTranslator): string {
   switch (status) {
     case 'good':
-      return isZh ? '良好' : 'Good';
     case 'stable':
-      return isZh ? '稳定' : 'Stable';
     case 'needs_attention':
-      return isZh ? '需关注' : 'Needs attention';
     case 'insufficient_data':
-      return isZh ? '数据不足' : 'Insufficient data';
+      return t(`status.${status}`);
     default:
       return status;
   }
