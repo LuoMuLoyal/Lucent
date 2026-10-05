@@ -1,0 +1,21 @@
+{
+  "field": {
+    "required": "{field} is required",
+    "too_long": "{field} must be at most {limit} characters",
+    "invalid": "{field} has an invalid format"
+  },
+  "password": {
+    "too_short": "Password must be at least {limit} characters",
+    "too_long": "Password must be at most {limit} characters",
+    "too_weak": "Password must contain uppercase, lowercase, and numeric characters"
+  },
+  "code": {
+    "invalid_length": "Verification code must be {limit} digits"
+  },
+  "email": {
+    "invalid": "Enter a valid email address"
+  },
+  "scene": {
+    "invalid": "Invalid verification scene"
+  }
+}

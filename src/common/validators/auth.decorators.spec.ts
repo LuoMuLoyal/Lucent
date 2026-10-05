@@ -9,6 +9,12 @@ import {
   emailAddressSchema,
 } from './auth.decorators.js';
 
+/**
+ * These schemas emit **stable codes**, not sentences: a schema is constructed
+ * at module load, so prose here could not follow `Accept-Language`.
+ * `validation-copy.spec.ts` covers the rendering; this spec covers which code
+ * each rule produces.
+ */
 describe('auth decorators constants', () => {
   it('exports correct password length limits', () => {
     expect(PASSWORD_MIN_LENGTH).toBe(8);
@@ -27,46 +33,49 @@ describe('auth decorators constants', () => {
   });
 });
 
+/** Reads the first issue message, failing loudly when the parse succeeded. */
+function firstIssueMessage(result: {
+  success: boolean;
+  error?: { issues: Array<{ message: string }> };
+}): string {
+  const message = result.error?.issues[0]?.message;
+  if (message == null) throw new Error('expected a schema issue');
+  return message;
+}
+
 describe('strongPasswordSchema', () => {
   it('passes for a valid password', () => {
     expect(strongPasswordSchema().safeParse('ValidPass123').success).toBe(true);
   });
 
   it('fails for password shorter than minimum length', () => {
-    expect(strongPasswordSchema().safeParse('Ab1').success).toBe(false);
+    const result = strongPasswordSchema().safeParse('Ab1');
+    expect(result.success).toBe(false);
+    expect(firstIssueMessage(result)).toBe('validation.password.too_short');
   });
 
   it('fails for password exceeding maximum length', () => {
-    expect(
-      strongPasswordSchema().safeParse(`Aa1${'x'.repeat(PASSWORD_MAX_LENGTH)}`)
-        .success,
-    ).toBe(false);
-  });
-
-  it('fails for password without uppercase letter', () => {
-    expect(strongPasswordSchema().safeParse('validpass123').success).toBe(
-      false,
+    const result = strongPasswordSchema().safeParse(
+      `Aa1${'x'.repeat(PASSWORD_MAX_LENGTH)}`,
     );
+    expect(result.success).toBe(false);
+    expect(firstIssueMessage(result)).toBe('validation.password.too_long');
   });
 
-  it('fails for password without lowercase letter', () => {
-    expect(strongPasswordSchema().safeParse('VALIDPASS123').success).toBe(
-      false,
-    );
+  it('reports too_weak for a password missing the required character classes', () => {
+    for (const password of ['validpass123', 'VALIDPASS123', 'ValidPassword']) {
+      const result = strongPasswordSchema().safeParse(password);
+      expect(result.success, password).toBe(false);
+      expect(firstIssueMessage(result), password).toBe(
+        'validation.password.too_weak',
+      );
+    }
   });
 
-  it('fails for password without digit', () => {
-    expect(strongPasswordSchema().safeParse('ValidPassword').success).toBe(
-      false,
-    );
-  });
-
-  it('fails for empty password', () => {
+  it('reports the required code for an empty password', () => {
     const result = strongPasswordSchema().safeParse('');
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('密码不能为空');
-    }
+    expect(firstIssueMessage(result)).toBe('validation.field.required');
   });
 
   it('allows undefined when wrapped optional', () => {
@@ -74,14 +83,13 @@ describe('strongPasswordSchema', () => {
     expect(schema.safeParse(undefined).success).toBe(true);
   });
 
-  it('uses custom message prefix in error messages', () => {
-    const result = strongPasswordSchema({ messagePrefix: '新密码' }).safeParse(
-      'short',
-    );
+  it('lets a caller override the required code', () => {
+    // Confirmation fields need their own copy ("passwords do not match").
+    const result = strongPasswordSchema({
+      notEmptyMessage: 'validation.field.required',
+    }).safeParse('');
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toContain('新密码');
-    }
+    expect(firstIssueMessage(result)).toBe('validation.field.required');
   });
 });
 
@@ -91,19 +99,19 @@ describe('verificationCodeSchema', () => {
   });
 
   it('fails for code shorter than 6 chars', () => {
-    expect(verificationCodeSchema().safeParse('12345').success).toBe(false);
+    const result = verificationCodeSchema().safeParse('12345');
+    expect(result.success).toBe(false);
+    expect(firstIssueMessage(result)).toBe('validation.code.invalid_length');
   });
 
   it('fails for code longer than 6 chars', () => {
     expect(verificationCodeSchema().safeParse('1234567').success).toBe(false);
   });
 
-  it('fails for empty code', () => {
+  it('reports the required code for an empty code', () => {
     const result = verificationCodeSchema().safeParse('');
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('验证码不能为空');
-    }
+    expect(firstIssueMessage(result)).toBe('validation.field.required');
   });
 
   it('allows undefined when wrapped optional', () => {
@@ -129,20 +137,16 @@ describe('emailAddressSchema', () => {
     );
   });
 
-  it('fails for invalid email format', () => {
+  it('reports email.invalid for a malformed address', () => {
     const result = emailAddressSchema().safeParse('not-an-email');
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('邮箱格式不正确');
-    }
+    expect(firstIssueMessage(result)).toBe('validation.email.invalid');
   });
 
-  it('fails for empty email', () => {
+  it('reports the required code for an empty email', () => {
     const result = emailAddressSchema().safeParse('');
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('邮箱不能为空');
-    }
+    expect(firstIssueMessage(result)).toBe('validation.field.required');
   });
 
   it('allows undefined when wrapped optional', () => {

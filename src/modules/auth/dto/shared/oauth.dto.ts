@@ -21,7 +21,7 @@ export const oauthAuthorizeSchema = z
   .object({
     callbackUri: z
       .string()
-      .max(2048, 'callbackUri 不能超过 2048 个字符')
+      .max(2048, 'validation.field.too_long')
       .describe(
         '授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。',
       )
@@ -38,7 +38,7 @@ export const qqOAuthAuthorizeSchema = z
   .object({
     callbackUri: z
       .string()
-      .max(2048, 'callbackUri 不能超过 2048 个字符')
+      .max(2048, 'validation.field.too_long')
       .describe('QQ 授权完成后的客户端回跳地址')
       .optional(),
   })
@@ -53,7 +53,7 @@ export const googleOAuthAuthorizeSchema = z
   .object({
     callbackUri: z
       .string()
-      .max(2048, 'callbackUri 不能超过 2048 个字符')
+      .max(2048, 'validation.field.too_long')
       .describe('Google 授权完成后的客户端回跳地址')
       .optional(),
   })
@@ -71,11 +71,11 @@ export type GoogleOAuthAuthorizeDto = z.infer<
 const oauthCodeState = z.object({
   code: z
     .string()
-    .max(512, 'code 不能超过 512 个字符')
+    .max(512, 'validation.field.too_long')
     .describe('OAuth 授权码'),
   state: z
     .string()
-    .max(512, 'state 不能超过 512 个字符')
+    .max(512, 'validation.field.too_long')
     .describe('授权时生成的 state'),
 });
 
@@ -93,7 +93,7 @@ export const oauthCodeCallbackSchema = z
   .object({
     code: z
       .string()
-      .max(512, 'code 不能超过 512 个字符')
+      .max(512, 'validation.field.too_long')
       .describe('OAuth 授权码'),
   })
   .strict();
@@ -106,21 +106,21 @@ export const appleOAuthCallbackSchema = z
   .object({
     identityToken: z
       .string()
-      .max(4096, 'identityToken 不能超过 4096 个字符')
+      .max(4096, 'validation.field.too_long')
       .describe('Apple 登录返回的 identityToken (JWT)'),
     authorizationCode: z
       .string()
-      .max(1024, 'authorizationCode 不能超过 1024 个字符')
+      .max(1024, 'validation.field.too_long')
       .describe('Apple 登录返回的 authorizationCode（可选）')
       .optional(),
     givenName: z
       .string()
-      .max(256, 'givenName 不能超过 256 个字符')
+      .max(256, 'validation.field.too_long')
       .describe('Apple 返回的 givenName（首次登录时返回）')
       .optional(),
     familyName: z
       .string()
-      .max(256, 'familyName 不能超过 256 个字符')
+      .max(256, 'validation.field.too_long')
       .describe('Apple 返回的 familyName（首次登录时返回）')
       .optional(),
   })

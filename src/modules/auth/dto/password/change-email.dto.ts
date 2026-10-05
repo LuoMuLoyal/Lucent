@@ -21,8 +21,8 @@ export const changeEmailSchema = z
     }).describe('新邮箱'),
     code: verificationCodeSchema().describe('验证码'),
     password: z
-      .string({ error: '当前密码不能为空' })
-      .min(1, '当前密码不能为空')
+      .string({ error: 'validation.field.required' })
+      .min(1, 'validation.field.required')
       .describe('当前密码（敏感操作再认证用）'),
   })
   .strict();

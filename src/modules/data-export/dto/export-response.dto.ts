@@ -43,7 +43,7 @@ export const createDataExportRequestSchema = z
       .optional(),
     password: z
       .string()
-      .min(1, '当前密码不能为空')
+      .min(1, 'validation.field.required')
       .describe('当前密码（敏感操作再认证用）'),
   })
   .strict();

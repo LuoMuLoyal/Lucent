@@ -4,7 +4,13 @@ import { BadRequestException } from '@nestjs/common';
 export interface ValidationIssue {
   /** Dotted path of the offending field, `''` for whole-body issues. */
   path: string;
-  /** Schema-authored message (already localized where the schema says so). */
+  /**
+   * Rendered message in the request language.
+   *
+   * Schemas author a stable code (`validation.field.required`); the pipe's
+   * `exceptionFactory` resolves it via `translateValidationMessage` before the
+   * issue reaches this exception, because this class has no request context.
+   */
   message: string;
 }
 

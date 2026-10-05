@@ -13,8 +13,8 @@ import { verificationCodeSchema } from '../../../../common/validators/auth.decor
 export const deleteAccountSchema = z
   .object({
     password: z
-      .string({ error: '密码不能为空' })
-      .min(1, '密码不能为空')
+      .string({ error: 'validation.field.required' })
+      .min(1, 'validation.field.required')
       .describe('当前密码（有密码的用户使用此方式确认注销）')
       .optional(),
     code: verificationCodeSchema({ exactLength: false })

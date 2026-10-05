@@ -25,7 +25,7 @@ export const sendVerificationCodeSchema = z
   .object({
     email: emailAddressSchema().describe('邮箱地址'),
     scene: z.enum(VERIFICATION_SCENES, {
-      message: 'scene 取值不合法',
+      message: 'validation.scene.invalid',
     }),
   })
   .strict();

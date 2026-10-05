@@ -3,6 +3,13 @@ import { z } from 'zod';
 // Shared rule constants and zod fragments for auth request fields. The
 // former class-validator decorators (IsStrongPassword/IsEmailAddress) were
 // removed with the request-side zod migration — no remaining consumer.
+//
+// Schema messages are **stable codes** (`validation.password.too_short`),
+// rendered in the request language by `translateValidationMessage` at the
+// validation boundary. A schema is constructed at module load, so prose here
+// could not follow `Accept-Language`: the previous Chinese sentences reached
+// English users verbatim. `field` is interpolated, so one code covers every
+// password field.
 
 export const PASSWORD_MIN_LENGTH: number = 8;
 export const PASSWORD_MAX_LENGTH: number = 32;
@@ -10,7 +17,12 @@ export const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
 export const VERIFICATION_CODE_LENGTH = 6;
 
 export interface StrongPasswordSchemaOptions {
+  /**
+   * Field label interpolated into generic messages. Kept for callers whose
+   * copy differs from the password-specific codes.
+   */
   messagePrefix?: string;
+  /** Overrides the "required" message code (e.g. for a confirmation field). */
   notEmptyMessage?: string;
 }
 
@@ -20,26 +32,14 @@ export interface StrongPasswordSchemaOptions {
 export function strongPasswordSchema(
   options: StrongPasswordSchemaOptions = {},
 ): z.ZodString {
-  const {
-    messagePrefix = '密码',
-    notEmptyMessage = `${messagePrefix}不能为空`,
-  } = options;
+  const { notEmptyMessage = 'validation.field.required' } = options;
 
   return z
     .string({ error: notEmptyMessage })
     .min(1, notEmptyMessage)
-    .min(
-      PASSWORD_MIN_LENGTH,
-      `${messagePrefix}至少 ${String(PASSWORD_MIN_LENGTH)} 个字符`,
-    )
-    .max(
-      PASSWORD_MAX_LENGTH,
-      `${messagePrefix}最多 ${String(PASSWORD_MAX_LENGTH)} 个字符`,
-    )
-    .regex(
-      PASSWORD_PATTERN,
-      `${messagePrefix}必须包含大写字母、小写字母和数字`,
-    );
+    .min(PASSWORD_MIN_LENGTH, 'validation.password.too_short')
+    .max(PASSWORD_MAX_LENGTH, 'validation.password.too_long')
+    .regex(PASSWORD_PATTERN, 'validation.password.too_weak');
 }
 
 export interface VerificationCodeSchemaOptions {
@@ -54,13 +54,15 @@ export function verificationCodeSchema(
 ): z.ZodString {
   const { exactLength = true } = options;
 
-  const base = z.string({ error: '验证码不能为空' }).min(1, '验证码不能为空');
+  const base = z
+    .string({ error: 'validation.field.required' })
+    .min(1, 'validation.field.required');
   if (!exactLength) {
     return base;
   }
   return base.length(
     VERIFICATION_CODE_LENGTH,
-    `验证码为 ${String(VERIFICATION_CODE_LENGTH)} 位`,
+    'validation.code.invalid_length',
   );
 }
 
@@ -73,8 +75,10 @@ export interface EmailAddressSchemaOptions {
  * 邮箱地址字段:非空且格式正确。
  */
 export function emailAddressSchema(options: EmailAddressSchemaOptions = {}) {
-  const { message = '邮箱格式不正确', notEmptyMessage = '邮箱不能为空' } =
-    options;
+  const {
+    message = 'validation.email.invalid',
+    notEmptyMessage = 'validation.field.required',
+  } = options;
 
   return z
     .string({ error: notEmptyMessage })

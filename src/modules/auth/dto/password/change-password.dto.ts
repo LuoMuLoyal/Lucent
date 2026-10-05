@@ -12,8 +12,8 @@ import { strongPasswordSchema } from '../../../../common/validators/auth.decorat
 export const changePasswordSchema = z
   .object({
     password: z
-      .string({ error: '当前密码不能为空' })
-      .min(1, '当前密码不能为空')
+      .string({ error: 'validation.field.required' })
+      .min(1, 'validation.field.required')
       .describe('当前密码（敏感操作再认证用）'),
     newPassword: strongPasswordSchema({
       notEmptyMessage: '新密码不能为空',

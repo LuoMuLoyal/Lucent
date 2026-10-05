@@ -19,7 +19,10 @@ import {
  */
 export const prepareFullstackRecordLaneSchema = z
   .object({
-    email: z.string().min(1, '邮箱不能为空').pipe(z.email('邮箱格式不正确')),
+    email: z
+      .string()
+      .min(1, 'validation.field.required')
+      .pipe(z.email('validation.email.invalid')),
     password: z
       .string()
       .min(PASSWORD_MIN_LENGTH, '密码至少 8 个字符')
@@ -27,12 +30,12 @@ export const prepareFullstackRecordLaneSchema = z
       .regex(PASSWORD_PATTERN, '密码必须包含大写字母、小写字母和数字'),
     date: z
       .string()
-      .min(1, '日期不能为空')
+      .min(1, 'validation.field.required')
       .regex(/^\d{4}-\d{2}-\d{2}$/, '日期必须是 YYYY-MM-DD'),
     nickname: z
       .string()
-      .min(1, '昵称至少 1 个字符')
-      .max(20, '昵称最多 20 个字符')
+      .min(1, 'validation.field.required')
+      .max(20, 'validation.field.too_long')
       .optional(),
   })
   .strict();

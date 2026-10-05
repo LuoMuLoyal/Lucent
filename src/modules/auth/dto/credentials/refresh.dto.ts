@@ -10,8 +10,8 @@ import { z } from 'zod';
 export const refreshSchema = z
   .object({
     refreshToken: z
-      .string({ error: 'refreshToken 不能为空' })
-      .min(1, 'refreshToken 不能为空')
+      .string({ error: 'validation.field.required' })
+      .min(1, 'validation.field.required')
       .describe('刷新令牌'),
   })
   .strict();

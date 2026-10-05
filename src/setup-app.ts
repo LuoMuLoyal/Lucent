@@ -18,12 +18,14 @@ import fastifyHelmet from '@fastify/helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import type { Logger as WinstonLogger } from 'winston';
 import { safeCompare } from './common/index.js';
 import { ProblemDetailsDto, SseProblemDetailsDto } from './common/index.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
 import { ValidationException } from './common/filters/validation-exception.js';
+import { translateValidationMessage } from './common/validators/validation-copy.js';
 import { SlowRequestInterceptor } from './common/index.js';
 import type { FastifyRequestWithMetrics } from './common/types/metrics.types.js';
 import { getActiveTraceIds } from './common/logger/trace-context.utils.js';
@@ -247,9 +249,15 @@ export async function setupApp(
     // `resolveErrors` cannot turn back into field-level detail. Keep the
     // structured issues instead, so a `.strict()` rejection names the
     // offending key rather than reporting an actionable-less "Bad Request".
+    //
+    // Messages are schema-authored **codes** (`validation.password.too_short`)
+    // rendered here, at the one place a request language is available — a
+    // schema is built at module load, so prose in it cannot follow
+    // `Accept-Language`. Unknown text passes through untouched.
     new StandardSchemaValidationPipe({
-      exceptionFactory: (issues) =>
-        new ValidationException(
+      exceptionFactory: (issues) => {
+        const locale = I18nContext.current()?.lang ?? 'en';
+        return new ValidationException(
           issues.map((issue) => ({
             path: (issue.path ?? [])
               .map((segment) =>
@@ -258,9 +266,14 @@ export async function setupApp(
                 String(typeof segment === 'object' ? segment.key : segment),
               )
               .join('.'),
-            message: issue.message,
+            message: translateValidationMessage(
+              app.get(I18nService),
+              locale,
+              issue.message,
+            ),
           })),
-        ),
+        );
+      },
     }),
   );
   app.useGlobalInterceptors(

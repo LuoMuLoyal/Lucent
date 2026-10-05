@@ -9,7 +9,7 @@ export const riskCheckCandidateSchema = z
     source: z.enum(['cn', 'drugbank']).describe('候选药品所在的可信药品库来源'),
     id: z
       .string()
-      .min(1, '候选药品 id 不能为空')
+      .min(1, 'validation.field.required')
       .describe('候选药品在可信药品库中的 id'),
   })
   .strict();

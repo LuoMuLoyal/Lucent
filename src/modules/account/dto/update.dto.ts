@@ -15,7 +15,7 @@ export const updateAccountSchema = z
   .object({
     nickname: z
       .string()
-      .max(20, '昵称最多 20 个字符')
+      .max(20, 'validation.field.too_long')
       .describe('Display nickname. Send an empty string to clear it.')
       .optional(),
     avatar: z

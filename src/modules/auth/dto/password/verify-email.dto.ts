@@ -11,8 +11,8 @@ import { z } from 'zod';
 export const verifyEmailSchema = z
   .object({
     token: z
-      .string({ error: 'token 不能为空' })
-      .min(1, 'token 不能为空')
+      .string({ error: 'validation.field.required' })
+      .min(1, 'validation.field.required')
       .describe('Lucent 签发的邮件验证 token'),
   })
   .strict();

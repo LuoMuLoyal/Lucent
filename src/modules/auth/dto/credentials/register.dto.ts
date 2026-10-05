@@ -26,8 +26,8 @@ export const registerSchema = z
     code: verificationCodeSchema({ exactLength: false }).describe('邮箱验证码'),
     nickname: z
       .string()
-      .min(1, '昵称至少 1 个字符')
-      .max(20, '昵称最多 20 个字符')
+      .min(1, 'validation.field.required')
+      .max(20, 'validation.field.too_long')
       .describe('昵称')
       .optional(),
   })
