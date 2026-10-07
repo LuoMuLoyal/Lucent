@@ -2,6 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { AdminRole } from '#generated/prisma/client.js';
 import type { UserPayload } from '../../auth/index.js';
 import type { AdminAccessService } from '../services/access.service.js';
+import type { AdminConsoleService } from '../services/console.service.js';
 import { AdminController } from './admin.controller.js';
 
 const user: UserPayload = {
@@ -24,7 +25,10 @@ describe('AdminController', () => {
     const adminAccess = {
       getIdentity: vi.fn().mockResolvedValue(identity),
     } as unknown as AdminAccessService;
-    const controller = new AdminController(adminAccess);
+    const controller = new AdminController(
+      adminAccess,
+      {} as unknown as AdminConsoleService,
+    );
 
     await expect(controller.getMe(user)).resolves.toEqual(identity);
     expect(adminAccess.getIdentity).toHaveBeenCalledWith(user.sub);
@@ -34,7 +38,10 @@ describe('AdminController', () => {
     const adminAccess = {
       getIdentity: vi.fn().mockResolvedValue(null),
     } as unknown as AdminAccessService;
-    const controller = new AdminController(adminAccess);
+    const controller = new AdminController(
+      adminAccess,
+      {} as unknown as AdminConsoleService,
+    );
 
     await expect(controller.getMe(user)).rejects.toBeInstanceOf(
       ForbiddenException,

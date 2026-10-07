@@ -21,6 +21,30 @@ export interface AuditLogEntry {
   userAgent?: string;
 }
 
+export interface AuditLogListQuery {
+  page: number;
+  limit: number;
+  userId?: string;
+  action?: string;
+  resourceType?: string;
+}
+
+export interface AuditLogListItem {
+  id: string;
+  userId: string;
+  action: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  createdAt: string;
+}
+
+export interface AuditLogListResult {
+  items: AuditLogListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 /**
  * Writes security-sensitive operation records to the `audit_logs` table.
  *
@@ -63,6 +87,47 @@ export class AuditLogService {
         },
       }),
     ).map(() => undefined);
+  }
+
+  async listEntries(query: AuditLogListQuery): Promise<AuditLogListResult> {
+    const where = {
+      ...(query.userId === undefined ? {} : { userId: query.userId }),
+      ...(query.action === undefined ? {} : { action: query.action }),
+      ...(query.resourceType === undefined
+        ? {}
+        : { resourceType: query.resourceType }),
+    };
+    const [entries, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        select: {
+          id: true,
+          userId: true,
+          action: true,
+          resourceType: true,
+          resourceId: true,
+          createdAt: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return {
+      items: entries.map((entry) => ({
+        id: entry.id,
+        userId: entry.userId,
+        action: entry.action,
+        resourceType: entry.resourceType,
+        resourceId: entry.resourceId,
+        createdAt: entry.createdAt.toISOString(),
+      })),
+      total,
+      page: query.page,
+      limit: query.limit,
+    };
   }
 
   /**

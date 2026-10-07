@@ -13,9 +13,9 @@ owner: backend
 
 ## 边界
 
-- 管:`audit_logs` 表的写入——`log()` 显式等待、`logFireAndForget()` 不阻塞
-  请求路径。
-- 不管:审计数据的查询/展示端点(当前不存在);业务操作本身的鉴权与执行
+- 管:`audit_logs` 表的写入与只读分页;`log()` 显式等待、`logFireAndForget()` 不阻塞
+  请求路径。只读列表投影不包含 `metadata`、IP 或 user-agent。
+- 不管:管理端点自身的鉴权与 UI 展示(由 admin 模块负责);业务操作本身的执行
   (由调用方模块负责)。
 
 ## 依赖方向
@@ -26,9 +26,9 @@ owner: backend
 
 ## 内部结构
 
-- `services/audit-log.service.ts` — `AuditLogService`:审计条目写入;已知
-  Prisma 错误映射为 DomainFailure,fire-and-forget 失败仅记 warn 日志与失败
-  指标,绝不向业务调用方传播异常。
+- `services/audit-log.service.ts` — `AuditLogService`:审计条目写入与分页读取;已知
+  Prisma 写入错误映射为 DomainFailure,fire-and-forget 失败仅记 warn 日志与失败
+  指标,列表读取不返回自由 metadata、IP 或 user-agent。
 
 ## 测试承接
 

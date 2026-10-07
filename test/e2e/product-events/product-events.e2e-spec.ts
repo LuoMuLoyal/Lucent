@@ -81,6 +81,8 @@ describe('Product Events API (e2e)', () => {
   let accessToken: string;
   let admin: TestUser;
   let adminToken: string;
+  let editor: TestUser;
+  let editorToken: string;
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -104,6 +106,17 @@ describe('Product Events API (e2e)', () => {
       ctx.configService,
       admin.id,
       admin.email,
+    );
+
+    editor = await createTestUser(ctx.prisma, undefined, 'AdminEditor');
+    await ctx.prisma.adminUser.create({
+      data: { userId: editor.id, role: AdminRole.EDITOR },
+    });
+    editorToken = await createAccessToken(
+      ctx.jwtService,
+      ctx.configService,
+      editor.id,
+      editor.email,
     );
   });
 
@@ -314,6 +327,97 @@ describe('Product Events API (e2e)', () => {
         permissions: expect.arrayContaining(['admin:manage', 'metrics:read']),
       });
       expect(response.body).not.toHaveProperty('password');
+    });
+  });
+
+  describe('admin console read APIs', () => {
+    it('returns aggregate dashboard metrics to a metrics reader', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/admin/metrics/overview')
+        .set('Authorization', bearer(adminToken))
+        .expect(200);
+
+      expect(response.body.users).toEqual(
+        expect.objectContaining({
+          total: expect.any(Number),
+          active: expect.any(Number),
+          suspended: expect.any(Number),
+          newLast30Days: expect.any(Number),
+        }),
+      );
+      expect(response.body).not.toHaveProperty('userIds');
+    });
+
+    it('denies metric access to a content-only editor', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/admin/metrics/overview')
+        .set('Authorization', bearer(editorToken))
+        .expect(403);
+    });
+
+    it('lists bounded user account summaries without profile health data', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/admin/users')
+        .set('Authorization', bearer(adminToken))
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        page: 1,
+        limit: 25,
+        items: expect.arrayContaining([
+          expect.objectContaining({ id: user.id, email: user.email }),
+        ]),
+      });
+      expect(response.body.items[0]).not.toHaveProperty('profile');
+    });
+
+    it('rejects user list limits above the server maximum', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/admin/users')
+        .query({ limit: 101 })
+        .set('Authorization', bearer(adminToken))
+        .expect(400);
+    });
+
+    it('denies user lookup to a content-only editor', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/admin/users')
+        .set('Authorization', bearer(editorToken))
+        .expect(403);
+    });
+
+    it('returns 404 for an unknown user ID', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/admin/users/00000000-0000-4000-8000-000000000000')
+        .set('Authorization', bearer(adminToken))
+        .expect(404);
+    });
+
+    it('lists audit summaries without sensitive request metadata', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/admin/audit-logs')
+        .set('Authorization', bearer(adminToken))
+        .expect(200);
+
+      expect(response.body).toMatchObject({ page: 1, limit: 25 });
+      expect(JSON.stringify(response.body)).not.toContain('userAgent');
+      expect(JSON.stringify(response.body)).not.toContain('ipAddress');
+      expect(JSON.stringify(response.body)).not.toContain('metadata');
+    });
+
+    it('rejects audit list limits above the server maximum', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/admin/audit-logs')
+        .query({ limit: 101 })
+        .set('Authorization', bearer(adminToken))
+        .expect(400);
+    });
+
+    it('denies audit access to a content-only editor', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/admin/audit-logs')
+        .set('Authorization', bearer(editorToken))
+        .expect(403);
     });
   });
 

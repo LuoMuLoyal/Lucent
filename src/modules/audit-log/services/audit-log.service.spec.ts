@@ -21,6 +21,8 @@ function buildPrisma() {
   return {
     auditLog: {
       create: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
     },
   };
 }
@@ -40,6 +42,63 @@ describe('AuditLogService', () => {
     prisma = buildPrisma();
     metrics = buildMetrics();
     service = new AuditLogService(prisma as unknown as PrismaService, metrics);
+  });
+
+  it('lists paginated entries without metadata, IP, or user-agent fields', async () => {
+    const createdAt = new Date('2026-10-01T12:00:00.000Z');
+    prisma.auditLog.findMany.mockResolvedValue([
+      {
+        id: 'audit-1',
+        userId: 'user-1',
+        action: 'admin.user.read',
+        resourceType: 'user',
+        resourceId: 'target-1',
+        createdAt,
+      },
+    ]);
+    prisma.auditLog.count.mockResolvedValue(1);
+
+    await expect(
+      service.listEntries({
+        page: 2,
+        limit: 10,
+        userId: 'user-1',
+        action: 'admin.user.read',
+        resourceType: 'user',
+      }),
+    ).resolves.toEqual({
+      items: [
+        {
+          id: 'audit-1',
+          userId: 'user-1',
+          action: 'admin.user.read',
+          resourceType: 'user',
+          resourceId: 'target-1',
+          createdAt: createdAt.toISOString(),
+        },
+      ],
+      total: 1,
+      page: 2,
+      limit: 10,
+    });
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        action: 'admin.user.read',
+        resourceType: 'user',
+      },
+      select: {
+        id: true,
+        userId: true,
+        action: true,
+        resourceType: true,
+        resourceId: true,
+        createdAt: true,
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 10,
+      take: 10,
+    });
   });
 
   // ── log() ────────────────────────────────────────────────────────
