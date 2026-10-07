@@ -1,5 +1,9 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { AdminRole, PrismaClient, UserStatus } from '#generated/prisma/client.js';
+import {
+  AdminRole,
+  PrismaClient,
+  UserStatus,
+} from '../../generated/prisma/client.js';
 import { loadEnvironment } from '../shared/env.ts';
 
 loadEnvironment();
