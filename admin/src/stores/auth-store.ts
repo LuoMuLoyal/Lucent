@@ -1,13 +1,14 @@
 import { create } from 'zustand'
-import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
 
-const ACCESS_TOKEN = 'thisisjustarandomstring'
+const REFRESH_TOKEN = 'lucent_admin_refresh_token'
 
-interface AuthUser {
-  accountNo: string
+export interface AuthUser {
+  id: string
   email: string
-  role: string[]
-  exp: number
+  nickname: string | null
+  avatar: string | null
+  role: string
+  permissions: string[]
 }
 
 interface AuthState {
@@ -15,37 +16,56 @@ interface AuthState {
     user: AuthUser | null
     setUser: (user: AuthUser | null) => void
     accessToken: string
+    refreshToken: string
     setAccessToken: (accessToken: string) => void
+    setTokens: (accessToken: string, refreshToken: string) => void
     resetAccessToken: () => void
     reset: () => void
   }
 }
 
 export const useAuthStore = create<AuthState>()((set) => {
-  const cookieState = getCookie(ACCESS_TOKEN)
-  const initToken = cookieState ? JSON.parse(cookieState) : ''
+  const refreshToken =
+    typeof sessionStorage === 'undefined'
+      ? ''
+      : (sessionStorage.getItem(REFRESH_TOKEN) ?? '')
+
   return {
     auth: {
       user: null,
       setUser: (user) =>
         set((state) => ({ ...state, auth: { ...state.auth, user } })),
-      accessToken: initToken,
+      accessToken: '',
+      refreshToken,
       setAccessToken: (accessToken) =>
+        set((state) => ({
+          ...state,
+          auth: { ...state.auth, accessToken },
+        })),
+      setTokens: (accessToken, refreshToken) =>
         set((state) => {
-          setCookie(ACCESS_TOKEN, JSON.stringify(accessToken))
-          return { ...state, auth: { ...state.auth, accessToken } }
-        }),
-      resetAccessToken: () =>
-        set((state) => {
-          removeCookie(ACCESS_TOKEN)
-          return { ...state, auth: { ...state.auth, accessToken: '' } }
-        }),
-      reset: () =>
-        set((state) => {
-          removeCookie(ACCESS_TOKEN)
+          sessionStorage.setItem(REFRESH_TOKEN, refreshToken)
           return {
             ...state,
-            auth: { ...state.auth, user: null, accessToken: '' },
+            auth: { ...state.auth, accessToken, refreshToken },
+          }
+        }),
+      resetAccessToken: () =>
+        set((state) => ({
+          ...state,
+          auth: { ...state.auth, accessToken: '' },
+        })),
+      reset: () =>
+        set((state) => {
+          sessionStorage.removeItem(REFRESH_TOKEN)
+          return {
+            ...state,
+            auth: {
+              ...state.auth,
+              user: null,
+              accessToken: '',
+              refreshToken: '',
+            },
           }
         }),
     },

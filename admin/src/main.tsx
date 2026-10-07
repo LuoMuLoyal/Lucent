@@ -7,6 +7,10 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { accessControlProvider } from '@/providers/access-control-provider'
+import { authProvider } from '@/providers/auth-provider'
+import { dataProvider } from '@/providers/data-provider'
+import { Refine } from '@refinedev/core'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -97,7 +101,34 @@ if (!rootElement.innerHTML) {
         <ThemeProvider>
           <FontProvider>
             <DirectionProvider>
-              <RouterProvider router={router} />
+              <Refine
+                authProvider={authProvider}
+                accessControlProvider={accessControlProvider}
+                dataProvider={dataProvider}
+                resources={[
+                  { name: 'metrics', list: '/' },
+                  { name: 'users', list: '/users', show: '/users/:id' },
+                  { name: 'audit-logs', list: '/audit-logs' },
+                  {
+                    name: 'legal-documents',
+                    list: '/content/legal-documents',
+                    edit: '/content/legal-documents/:id',
+                  },
+                  {
+                    name: 'safety-tips',
+                    list: '/content/safety-tips',
+                    create: '/content/safety-tips/new',
+                    edit: '/content/safety-tips/:id',
+                  },
+                ]}
+                options={{
+                  disableTelemetry: true,
+                  syncWithLocation: false,
+                  warnWhenUnsavedChanges: true,
+                }}
+              >
+                <RouterProvider router={router} />
+              </Refine>
             </DirectionProvider>
           </FontProvider>
         </ThemeProvider>

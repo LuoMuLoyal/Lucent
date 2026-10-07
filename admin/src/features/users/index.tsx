@@ -1,45 +1,123 @@
-import { getRouteApi } from '@tanstack/react-router'
+import { useList } from '@refinedev/core'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { UsersDialogs } from './components/users-dialogs'
-import { UsersPrimaryButtons } from './components/users-primary-buttons'
-import { UsersProvider } from './components/users-provider'
-import { UsersTable } from './components/users-table'
-import { users } from './data/users'
 
-const route = getRouteApi('/_authenticated/users/')
+interface AdminUser {
+  id: string
+  email: string
+  nickname: string | null
+  status: string
+  emailVerified: boolean
+  createdAt: string
+  lastLoginAt: string | null
+  adminRole: string | null
+}
 
 export function Users() {
-  const search = route.useSearch()
-  const navigate = route.useNavigate()
+  const { result, query } = useList<AdminUser>({
+    resource: 'users',
+    pagination: { currentPage: 1, pageSize: 50 },
+    queryOptions: { retry: false },
+  })
+  const users = result.data ?? []
 
   return (
-    <UsersProvider>
+    <>
       <Header fixed>
-        <Search className='me-auto' />
+        <div className='me-auto text-sm font-medium'>Lucent Admin</div>
         <ThemeSwitch />
         <ConfigDrawer />
         <ProfileDropdown />
       </Header>
-
-      <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
+      <Main className='flex flex-1 flex-col gap-5'>
         <div className='flex flex-wrap items-end justify-between gap-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>User List</h2>
-            <p className='text-muted-foreground'>
-              Manage your users and their roles here.
-            </p>
+            <h1 className='text-2xl font-bold tracking-tight'>Users</h1>
+            <p className='text-sm text-muted-foreground'>Account summaries</p>
           </div>
-          <UsersPrimaryButtons />
+          <Button variant='outline' onClick={() => void query.refetch()}>
+            Refresh
+          </Button>
         </div>
-        <UsersTable data={users} search={search} navigate={navigate} />
-      </Main>
 
-      <UsersDialogs />
-    </UsersProvider>
+        <div className='overflow-hidden rounded-md border'>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Verified</TableHead>
+                <TableHead>Admin role</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Last login</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {query.isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className='h-24'>
+                    <Skeleton className='mx-auto h-5 w-2/3' />
+                  </TableCell>
+                </TableRow>
+              ) : query.isError ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className='h-24 text-center text-destructive'
+                  >
+                    Unable to load users.
+                  </TableCell>
+                </TableRow>
+              ) : users.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className='h-24 text-center text-muted-foreground'
+                  >
+                    No users found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className='font-medium'>{user.email}</TableCell>
+                    <TableCell>{user.nickname ?? '—'}</TableCell>
+                    <TableCell>{user.status}</TableCell>
+                    <TableCell>{user.emailVerified ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>{user.adminRole ?? '—'}</TableCell>
+                    <TableCell>
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {user.lastLoginAt
+                        ? new Date(user.lastLoginAt).toLocaleString()
+                        : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <p className='text-xs text-muted-foreground'>
+          {(result.total ?? users.length).toLocaleString()} accounts · first 50
+          shown
+        </p>
+      </Main>
+    </>
   )
 }

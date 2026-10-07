@@ -74,33 +74,28 @@ If you want to update components using the Shadcn CLI (e.g., `npx shadcn@latest 
 
 **Icons:** [Lucide Icons](https://lucide.dev/icons/), [Tabler Icons](https://tabler.io/icons) (Brand icons only)
 
-**Auth (partial):** [Clerk](https://go.clerk.com/GttUAaK)
+**Auth:** Lucent JWT session with server-side AdminRole permissions
 
-## Run Locally
+## Development
 
-Clone the project
+Run commands from `Lucent/admin`; this project is intentionally independent of the backend pnpm workspace.
 
-```bash
-  git clone https://github.com/satnaing/shadcn-admin.git
+```powershell
+pnpm install --frozen-lockfile
+$env:VITE_API_BASE_URL = 'http://localhost:3000/api/v1'
+pnpm dev
 ```
 
-Go to the project directory
+`VITE_API_BASE_URL` defaults to `/api/v1`, which is appropriate when the panel and API are served from the same origin. For local development, point it at the running Lucent API and allow the Vite origin in the backend CORS configuration.
 
-```bash
-  cd shadcn-admin
+Build and lint from the same directory:
+
+```powershell
+pnpm build
+pnpm lint
 ```
 
-Install dependencies
-
-```bash
-  pnpm install
-```
-
-Start the server
-
-```bash
-  pnpm run dev
-```
+The panel authenticates against Lucent `POST /api/v1/auth/login` and `GET /api/v1/admin/me`. Access tokens stay in memory; refresh tokens are scoped to the current tab session. Admin permissions are enforced by Lucent on every API request. The frontend hides unavailable navigation, but it is not an authorization boundary.
 
 ## Sponsoring this project ❤️
 

@@ -1,5 +1,6 @@
 import z from 'zod'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useAuthStore } from '@/stores/auth-store'
 import { Users } from '@/features/users'
 import { roles } from '@/features/users/data/data'
 
@@ -27,6 +28,12 @@ const usersSearchSchema = z.object({
 })
 
 export const Route = createFileRoute('/_authenticated/users/')({
+  beforeLoad: () => {
+    const permissions = useAuthStore.getState().auth.user?.permissions ?? []
+    if (!permissions.includes('users:read')) {
+      throw redirect({ to: '/403' })
+    }
+  },
   validateSearch: usersSearchSchema,
   component: Users,
 })
