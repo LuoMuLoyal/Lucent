@@ -5,3 +5,5 @@ export { AdminPermissionGuard } from './guards/admin-permission.guard.js';
 export { RequirePermission } from './decorators/require-permission.decorator.js';
 export { ADMIN_PERMISSIONS, ADMIN_ROLE_PERMISSIONS } from './constants/permissions.js';
 export type { AdminPermission } from './constants/permissions.js';
+export { adminIdentityResponseSchema } from './dto/admin-identity.dto.js';
+export type { AdminIdentityDto } from './dto/admin-identity.dto.js';

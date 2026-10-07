@@ -39,7 +39,7 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 - 记录与建议:[daily-records](../src/modules/daily-records/README.md)、[assistant](../src/modules/assistant/README.md)、[today-suggestion](../src/modules/today-suggestion/README.md)、[today-analysis](../src/modules/today-analysis/README.md)、[reports](../src/modules/reports/README.md)、[health-events](../src/modules/health-events/README.md)、[data-export](../src/modules/data-export/README.md)
 - 药品域:[medicines](../src/modules/medicines/README.md)、[medicine-dose-logs](../src/modules/medicine-dose-logs/README.md)、[medicine-reminders](../src/modules/medicine-reminders/README.md)
 - 通知:[notifications](../src/modules/notifications/README.md)、[notification-preferences](../src/modules/notification-preferences/README.md)
-- 基础设施与支撑:[app-info](../src/modules/app-info/README.md)、[environment](../src/modules/environment/README.md)、[files](../src/modules/files/README.md)、[legal-documents](../src/modules/legal-documents/README.md)、[product-events](../src/modules/product-events/README.md)、[testing-support](../src/modules/testing-support/README.md)、[data-retention](../src/modules/data-retention/README.md)、[src/common](../src/common/README.md)
+- 基础设施与支撑:[admin](../src/modules/admin/README.md)、[app-info](../src/modules/app-info/README.md)、[environment](../src/modules/environment/README.md)、[files](../src/modules/files/README.md)、[legal-documents](../src/modules/legal-documents/README.md)、[product-events](../src/modules/product-events/README.md)、[testing-support](../src/modules/testing-support/README.md)、[data-retention](../src/modules/data-retention/README.md)、[src/common](../src/common/README.md)
 
 ## 生成物
 

@@ -22,7 +22,7 @@ owner: backend
 - `EDITOR`：仅内容读取与写入。
 - `VIEWER`：指标、用户、审计、内容与运维只读。
 
-权限在 `constants/permissions.ts` 固定；当前阶段未新增管理 API 路由。
+权限在 `constants/permissions.ts` 固定；`GET /api/v1/admin/me` 返回身份资料、角色和服务器派生的权限集合。
 
 ## 显式初始化
 
@@ -37,4 +37,4 @@ owner: backend
 
 ## 测试承接
 
-`guards/admin.guard.spec.ts`、`guards/admin-permission.guard.spec.ts`、`constants/permissions.spec.ts`。
+`controllers/admin.controller.spec.ts`、`services/access.service.spec.ts`、`dto/admin-identity.dto.spec.ts`、`guards/admin.guard.spec.ts`、`guards/admin-permission.guard.spec.ts` 与 `constants/permissions.spec.ts`。

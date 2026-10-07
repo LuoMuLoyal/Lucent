@@ -20,6 +20,7 @@ import { isRunningFromSource } from './config/env/runtime-signal.js';
 import { EnvKey } from './config/env/env-keys.enum.js';
 import { validatedEnvSchema } from './config/env/environment.validation.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { AdminModule } from './modules/admin/admin.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { PrismaModule } from './prisma/index.js';
 import { CacheConfigService } from './config/services/cache.config.js';
@@ -122,6 +123,7 @@ const isTestRuntime =
     DataRetentionModule,
     MailModule,
     AuthModule,
+    AdminModule,
     AccountModule,
     MedicinesModule,
     UserHealthContextModule,

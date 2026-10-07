@@ -20,7 +20,7 @@ barrel 消费;**禁止 import `src/modules/*`**——依赖方向只允许 modul
 
 ## 内部结构(按现有子目录)
 
-- `api/` — RFC 9457 Problem Details 构建与问题目录,及 SSE 端点工具、连接
+- `api/` — RFC 9457 Problem Details 构建与问题目录、OpenAPI 响应 schema 注册，以及 SSE 端点工具、连接
   注册表与 SSE 版错误映射。
 - `constants/` — MIME 白名单、测试常量、用户设置键。
 - `events/` — 跨模块领域事件目录与 payload 类型(模块间解耦的信号通道)。

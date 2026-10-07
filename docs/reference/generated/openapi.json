@@ -1021,6 +1021,51 @@
         "tags": ["Product Events"]
       }
     },
+    "/api/v1/admin/me": {
+      "get": {
+        "operationId": "getAdminIdentity",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current administrator identity.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminIdentity"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated user does not have an AdminUser role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get the current administrator identity and permissions",
+        "tags": ["Admin"]
+      }
+    },
     "/api/v1/user/medicine-reminders": {
       "get": {
         "operationId": "listMedicineReminders",
@@ -7264,6 +7309,55 @@
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
+        "additionalProperties": false
+      },
+      "AdminIdentity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "metrics:read",
+                "users:read",
+                "audit:read",
+                "content:read",
+                "content:write",
+                "ops:read",
+                "admin:manage"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "avatar",
+          "role",
+          "permissions"
+        ],
         "additionalProperties": false
       },
       "FunnelResponse": {

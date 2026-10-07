@@ -16,6 +16,8 @@ export type {
   ProblemCatalogOptions,
   ProblemCode,
 } from './api/problem-catalog.js';
+export { registerResponseSchema } from './api/response-schema.registry.js';
+export type { ResponseSchemaRegistration } from './api/response-schema.registry.js';
 export { SseProblemDetailsMapper } from './api/sse/sse-problem-details.js';
 export type { SseProblemDetailsOptions } from './api/sse/sse-problem-details.js';
 export type {

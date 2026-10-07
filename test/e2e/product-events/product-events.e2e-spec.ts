@@ -23,6 +23,7 @@ import type {
 
 const PRODUCT_EVENTS_PATH = '/api/v1/user/product-events';
 const FUNNEL_PATH = `${PRODUCT_EVENTS_PATH}/funnel`;
+const ADMIN_ME_PATH = '/api/v1/admin/me';
 
 // Dedicated window for the funnel e2e tests — no other test in this file
 // seeds events on these dates, so the aggregated counts stay exact.
@@ -286,6 +287,34 @@ describe('Product Events API (e2e)', () => {
       .send({ events: [] });
 
     expect([400, 429]).toContain(res.statusCode);
+  });
+
+  describe('admin identity', () => {
+    it('returns 401 for an unauthenticated request', async () => {
+      await request(app.getHttpServer()).get(ADMIN_ME_PATH).expect(401);
+    });
+
+    it('returns 403 for a regular user', async () => {
+      await request(app.getHttpServer())
+        .get(ADMIN_ME_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(403);
+    });
+
+    it('returns the admin role and server-derived permissions', async () => {
+      const response = await request(app.getHttpServer())
+        .get(ADMIN_ME_PATH)
+        .set('Authorization', bearer(adminToken))
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        id: admin.id,
+        email: admin.email,
+        role: AdminRole.SUPER_ADMIN,
+        permissions: expect.arrayContaining(['admin:manage', 'metrics:read']),
+      });
+      expect(response.body).not.toHaveProperty('password');
+    });
   });
 
   describe('funnel aggregation (admin)', () => {
