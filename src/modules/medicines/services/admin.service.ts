@@ -16,6 +16,26 @@ type SafetyTipAdminPatch = {
   [Key in keyof SafetyTipAdminInput]?: SafetyTipAdminInput[Key] | undefined;
 };
 
+interface SafetyTipAdminRow {
+  id: string;
+  contentZh: string;
+  contentEn: string;
+  category: string;
+  sortOrder: number;
+  isActive: boolean;
+  updatedAt: Date;
+}
+
+/**
+ * The administration response schema types `updatedAt` as an ISO string, and
+ * the serializer rejects a raw `Date` — so Prisma rows are converted here
+ * rather than at the controller. The converted shape is also what goes into
+ * audit metadata: Prisma's JSON column rejects a `Date`.
+ */
+function toAdminSafetyTip(row: SafetyTipAdminRow) {
+  return { ...row, updatedAt: row.updatedAt.toISOString() };
+}
+
 @Injectable()
 export class SafetyTipsAdminService {
   constructor(
@@ -24,8 +44,8 @@ export class SafetyTipsAdminService {
     private readonly cacheAdmin: MedicinesCacheAdminService,
   ) {}
 
-  list() {
-    return this.prisma.medicineSafetyTip.findMany({
+  async list() {
+    const rows = await this.prisma.medicineSafetyTip.findMany({
       select: {
         id: true,
         contentZh: true,
@@ -37,6 +57,7 @@ export class SafetyTipsAdminService {
       },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
+    return rows.map(toAdminSafetyTip);
   }
 
   async create(actorUserId: string, input: SafetyTipAdminInput) {
@@ -52,17 +73,18 @@ export class SafetyTipsAdminService {
         updatedAt: true,
       },
     });
+    const tip = toAdminSafetyTip(created);
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
         action: 'admin.content.safety_tip.create',
         resourceType: 'medicine_safety_tip',
-        resourceId: created.id,
-        metadata: { before: null, after: created },
+        resourceId: tip.id,
+        metadata: { before: null, after: tip },
       }),
     );
     await this.cacheAdmin.invalidateAll();
-    return created;
+    return tip;
   }
 
   async update(actorUserId: string, id: string, input: SafetyTipAdminPatch) {
@@ -93,17 +115,18 @@ export class SafetyTipsAdminService {
         updatedAt: true,
       },
     });
+    const tip = toAdminSafetyTip(updated);
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
         action: 'admin.content.safety_tip.update',
         resourceType: 'medicine_safety_tip',
         resourceId: id,
-        metadata: { before, after: updated },
+        metadata: { before, after: tip },
       }),
     );
     await this.cacheAdmin.invalidateAll();
-    return updated;
+    return tip;
   }
 
   async remove(actorUserId: string, id: string) {

@@ -13,6 +13,25 @@ export interface LegalDocumentAdminUpdate {
   isActive?: boolean | undefined;
 }
 
+interface LegalDocumentAdminRow {
+  docType: string;
+  titleZh: string;
+  titleEn: string;
+  contentZh: string;
+  contentEn: string;
+  isActive: boolean;
+  updatedAt: Date;
+}
+
+/**
+ * The administration response schema types `updatedAt` as an ISO string, and
+ * the serializer rejects a raw `Date` — so Prisma rows are converted here
+ * rather than at the controller.
+ */
+function toAdminDocument(row: LegalDocumentAdminRow) {
+  return { ...row, updatedAt: row.updatedAt.toISOString() };
+}
+
 @Injectable()
 export class LegalDocumentsAdminService {
   constructor(
@@ -22,7 +41,7 @@ export class LegalDocumentsAdminService {
   ) {}
 
   async list() {
-    return this.prisma.legalDocument.findMany({
+    const rows = await this.prisma.legalDocument.findMany({
       select: {
         docType: true,
         titleZh: true,
@@ -34,6 +53,7 @@ export class LegalDocumentsAdminService {
       },
       orderBy: { docType: 'asc' },
     });
+    return rows.map(toAdminDocument);
   }
 
   async update(
@@ -91,6 +111,6 @@ export class LegalDocumentsAdminService {
     };
     await this.documents.invalidateDocumentCache(docType);
     await unwrapResult(this.auditLog.log(entry));
-    return updated;
+    return toAdminDocument(updated);
   }
 }

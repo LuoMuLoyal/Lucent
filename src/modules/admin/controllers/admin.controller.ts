@@ -152,14 +152,14 @@ export class AdminController {
   @Get('content/legal-documents')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:read')
-  @SerializeOptions({ schema: adminLegalDocumentListSchema })
+  // NOTE: JSON array body. The global serializer validates array items one by
+  // one, so the ITEM schema belongs here — handing it the array schema makes
+  // every item fail validation and the request answer 500. The array schema is
+  // still what OpenAPI documents, via the registerResponseSchema call below.
+  @SerializeOptions({ schema: adminLegalDocumentSchema })
   @ApiOperation({ summary: 'List legal documents for administration' })
   async listLegalDocuments() {
-    const documents = await this.legalDocuments.list();
-    return documents.map((document) => ({
-      ...document,
-      updatedAt: document.updatedAt.toISOString(),
-    }));
+    return this.legalDocuments.list();
   }
 
   @Put('content/legal-documents/:docType')
@@ -181,17 +181,18 @@ export class AdminController {
         message: 'Legal document not found',
       });
     }
-    return { ...document, updatedAt: document.updatedAt.toISOString() };
+    return document;
   }
 
   @Get('content/safety-tips')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:read')
-  @SerializeOptions({ schema: adminSafetyTipListSchema })
+  // NOTE: JSON array body — item schema for outbound validation, array schema
+  // for OpenAPI. See the legal-documents list above.
+  @SerializeOptions({ schema: adminSafetyTipSchema })
   @ApiOperation({ summary: 'List medication safety tips for administration' })
   async listSafetyTips() {
-    const tips = await this.safetyTips.list();
-    return tips.map((tip) => ({ ...tip, updatedAt: tip.updatedAt.toISOString() }));
+    return this.safetyTips.list();
   }
 
   @Post('content/safety-tips')
@@ -204,7 +205,7 @@ export class AdminController {
     @Body({ schema: adminSafetyTipCreateSchema }) input: AdminSafetyTipCreateDto,
   ) {
     const tip = await this.safetyTips.create(user.sub, input);
-    return { ...tip, updatedAt: tip.updatedAt.toISOString() };
+    return tip;
   }
 
   @Put('content/safety-tips/:id')
@@ -224,7 +225,7 @@ export class AdminController {
         message: 'Safety tip not found',
       });
     }
-    return { ...tip, updatedAt: tip.updatedAt.toISOString() };
+    return tip;
   }
 
   @Delete('content/safety-tips/:id')
