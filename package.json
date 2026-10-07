@@ -122,7 +122,7 @@
     "jsonwebtoken": "^9.0.3",
     "keyv": "^5.6.0",
     "langchain": "1.5.11",
-    "nest-winston": "^1.10.2",
+    "nest-winston": "^2.0.0",
     "nestjs-i18n": "^10.8.4",
     "neverthrow": "8.2.0",
     "nodemailer": "^10.0.10",
