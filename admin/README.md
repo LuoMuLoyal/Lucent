@@ -108,7 +108,9 @@ The SPA is served by the Lucent backend at `/admin` from the same origin as the 
 
 ## Screens
 
-Only screens backed by a real Lucent endpoint are routed: overview metrics, users, audit logs, legal documents, and safety tips. Navigation and the command palette hide entries the signed-in administrator lacks permission for.
+Screens backed by a Lucent endpoint are overview metrics, users, audit logs, legal documents, and safety tips. These are the ones in the sidebar and command palette, and their entries are hidden when the signed-in administrator lacks the permission.
+
+The upstream template pages (`apps`, `chats`, `tasks`, `settings/*`, `help-center`, the Clerk demo group, and the template `sign-up` / `otp` / `forgot-password` / `sign-in-2` forms) are kept and still routed for reference and reuse. They render template or placeholder data, have no Lucent API behind them, and are deliberately absent from the navigation. They are not an authentication path into the console: the console session comes only from Lucent `POST /api/v1/auth/login`, and every admin API decides authorization server-side.
 
 ## Sponsoring this project ❤️
 
