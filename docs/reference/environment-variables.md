@@ -27,7 +27,8 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 
 - Development DB:`postgres/postgres@127.0.0.1:15432/lucent`;Test/e2e DB:
   `lucent/lucent_dev@127.0.0.1:5432/lucent`;Redis:`redis://127.0.0.1:6379`
-- Global prefix `/api`,URI 版本默认 `1`;管理面板 `GET /admin`
+- Global prefix `/api`,URI 版本默认 `1`;管理控制台 `/admin`(SPA,由后端同源挂载),
+  AdminJS 自动生成面板已移至 `/adminjs`
 - 健康探针:`GET /api/v1/health`(readiness 别名,关键依赖不可用返回 503)、
   `/api/v1/health/live`(纯进程存活)、`/api/v1/health/ready`、`/api/v1/health/deep`(诊断)
 - 启动顺序:`pnpm dev:stack` → `pnpm db:migrate` → `pnpm start:dev`
@@ -77,13 +78,18 @@ METRICS_PASSWORD
 生产(`compose.yaml`,服务器 `/opt/lucent/.env`)下 `DATABASE_URL` / `REDIS_URL` 由
 `compose.yaml` 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
 
-`ADMIN_ENABLED`(`'true'` / `'false'`,默认开启)控制 AdminJS 面板是否注册:
-设为 `'false'` 时启动阶段完全跳过面板——不加载 `adminjs` / `@adminjs/fastify` /
-`@sergiyiva/adminjs-prisma`,也不做 Prisma DMMF 自省与 resource 构建,可省下一块
-启动内存(内存受限的主机用得上:`.env` 里写 `ADMIN_ENABLED=false`)。
+`ADMIN_ENABLED`(`'true'` / `'false'`,默认开启)控制 AdminJS 自动生成面板(现挂在
+`/adminjs`)是否注册:设为 `'false'` 时启动阶段完全跳过面板——不加载 `adminjs` /
+`@adminjs/fastify` / `@sergiyiva/adminjs-prisma`,也不做 Prisma DMMF 自省与 resource
+构建,可省下一块启动内存(内存受限的主机用得上:`.env` 里写 `ADMIN_ENABLED=false`)。
 只认字面量 `'false'`,其它值/未设置都保持开启;关闭面板**不影响** `ADMIN_EMAIL` /
 `ADMIN_PASSWORD` / `ADMIN_COOKIE_SECRET` 的必填性(它们同时被 AdminJS 登录与
 `AdminGuard` 的管理员断言复用)。
+
+`ADMIN_CONSOLE_ENABLED`(`'true'` / `'false'`,默认 `'true'`)控制管理控制台 SPA 是否由
+后端同源挂载在 `/admin`;设为 `'false'` 时后端不注册任何静态路由,须由外部 Web 服务器
+托管构建产物。`ADMIN_CONSOLE_DIR` 覆盖构建产物目录,留空按仓库内 `admin/dist` 解析,
+容器内为 `/app/admin/dist`。构建产物缺失时后端只记一条 warn 并跳过挂载,不影响其它路由。
 
 主站上 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入(容器名寻址,不写回环),

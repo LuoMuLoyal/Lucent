@@ -8,6 +8,10 @@ import { playwright } from '@vitest/browser-playwright'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // The SPA is served by the Lucent backend at /admin; asset URLs and the
+  // TanStack Router basepath (src/main.tsx) must agree with
+  // ADMIN_CONSOLE_ROOT_PATH in Lucent/src/admin-console/constants.
+  base: '/admin/',
   plugins: [
     tanstackRouter({
       target: 'react',

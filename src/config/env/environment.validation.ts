@@ -166,6 +166,11 @@ const envSchema = z.object({
   // adminjs / @adminjs/fastify / @sergiyiva/adminjs-prisma,也不做 Prisma DMMF
   // 自省与 resource 构建——内存受限的 staging 用得上。ADMIN_* 凭据仍为必填。
   [EnvKey.ADMIN_ENABLED]: z.enum(['true', 'false']).optional(),
+  // 管理控制台 SPA:由后端同源挂载在 /admin。默认开启;设为 'false' 时不注册任何
+  // 静态路由(完全托付给外部 Web 服务器)。ADMIN_CONSOLE_DIR 用于指向仓库外的
+  // 构建产物,未设置时按仓库内 admin/dist 解析。
+  [EnvKey.ADMIN_CONSOLE_ENABLED]: z.enum(['true', 'false']).default('true'),
+  [EnvKey.ADMIN_CONSOLE_DIR]: optionalString,
 
   // ── AI provider (secrets in .env; base URL/model also via env) ────
   // The base URLs use `optionalEmptyUri`: every env file ships the whole AI

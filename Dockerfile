@@ -67,6 +67,24 @@ RUN set -eux; \
       [ -e "$link" ] || rm -f "$link"; \
     done
 
+# ── Stage 2b: admin console ────────────────────────────────────
+# The administration SPA is an independent pnpm project (Lucent/admin) with its
+# own lockfile; it is built here and copied into the runtime image at
+# /app/admin/dist, which is the default ADMIN_CONSOLE_DIR resolved by
+# src/admin-console/setup.ts.
+FROM node:26.9-alpine AS admin-console
+# See the deps stage: corepack is not bundled with Node 26.
+RUN npm install --global corepack@latest && corepack enable
+WORKDIR /app/admin
+COPY admin/package.json admin/pnpm-lock.yaml admin/pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=pnpm-admin,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
+COPY admin/tsconfig.json admin/tsconfig.app.json admin/tsconfig.node.json \
+     admin/vite.config.ts admin/index.html ./
+COPY admin/src ./src
+COPY admin/public ./public
+RUN pnpm build
+
 # ── Stage 3: production ────────────────────────────────────────
 FROM node:26.9-alpine AS production
 RUN apk add --no-cache tini curl
@@ -83,6 +101,8 @@ RUN chown lucent:lucent /app
 COPY --chown=lucent:lucent --from=builder /app/node_modules ./node_modules
 # 编译产物（含 dist/i18n/ 翻译文件）
 COPY --chown=lucent:lucent --from=builder /app/dist ./dist
+# 管理控制台 SPA（后端在 /admin 同源挂载;默认目录即 /app/admin/dist）
+COPY --chown=lucent:lucent --from=admin-console /app/admin/dist ./admin/dist
 # Prisma 生成的客户端（schema.prisma output = ../generated/prisma，即仓库根 generated/）
 # package.json imports 字段 "#generated/*": "./generated/*" 依赖此路径
 COPY --chown=lucent:lucent --from=builder /app/generated/prisma ./generated/prisma

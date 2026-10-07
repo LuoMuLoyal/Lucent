@@ -1,6 +1,12 @@
 import type { AdminResourceConfig } from '../types/admin.types.js';
 
-export const ADMIN_ROOT_PATH = '/admin';
+/**
+ * Legacy AdminJS panel mount point. `/admin` now serves the administration SPA
+ * (`src/admin-console/`), so the auto-generated panel is kept aside at
+ * `/adminjs` until it is retired.
+ */
+export const ADMIN_ROOT_PATH = '/adminjs';
+
 export const SCHEMA_DIR = 'prisma';
 export const SCHEMA_MAIN_FILE = 'schema.prisma';
 export const ADMIN_EMAIL_KEY = 'ADMIN_EMAIL';

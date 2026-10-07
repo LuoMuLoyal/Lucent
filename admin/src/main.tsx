@@ -79,6 +79,8 @@ const queryClient = new QueryClient({
 // Create a new router instance
 const router = createRouter({
   routeTree,
+  // Served from /admin by the Lucent backend (see admin/vite.config.ts `base`).
+  basepath: '/admin',
   context: { queryClient },
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,

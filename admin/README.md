@@ -97,6 +97,19 @@ pnpm lint
 
 The panel authenticates against Lucent `POST /api/v1/auth/login` and `GET /api/v1/admin/me`. Access tokens stay in memory; refresh tokens are scoped to the current tab session. Admin permissions are enforced by Lucent on every API request. The frontend hides unavailable navigation, but it is not an authorization boundary.
 
+## Production Mount Point
+
+The SPA is served by the Lucent backend at `/admin` from the same origin as the API. Two settings must stay aligned with `ADMIN_CONSOLE_ROOT_PATH` in `Lucent/src/admin-console/constants/console.constants.ts`:
+
+- `base: '/admin/'` in `vite.config.ts` — makes Vite emit `/admin/assets/*` URLs.
+- `basepath: '/admin'` on the router in `src/main.tsx` — makes client-side links resolve under the mount point.
+
+`Lucent/Dockerfile` builds this project in its own stage and copies `admin/dist` into the image; `ADMIN_CONSOLE_DIR` overrides the directory the backend reads.
+
+## Screens
+
+Only screens backed by a real Lucent endpoint are routed: overview metrics, users, audit logs, legal documents, and safety tips. Navigation and the command palette hide entries the signed-in administrator lacks permission for.
+
 ## Sponsoring this project ❤️
 
 If you find this project helpful or use this in your own work, consider [sponsoring me](https://github.com/sponsors/satnaing) to support development and maintenance. You can [buy me a coffee](https://buymeacoffee.com/satnaing) as well. Don’t worry, every penny helps. Thank you! 🙏

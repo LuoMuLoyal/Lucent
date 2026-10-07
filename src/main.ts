@@ -9,6 +9,7 @@ import { setupApp } from './setup-app.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { EnvKey } from './config/env/env-keys.enum.js';
 import { registerAdminPanel } from './admin/setup.js';
+import { registerAdminConsole } from './admin-console/setup.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -33,6 +34,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   await setupApp(app, configService);
+  await registerAdminConsole(app, configService);
   await registerAdminPanel(app, configService);
   app.enableShutdownHooks();
 

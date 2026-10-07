@@ -29,7 +29,9 @@ remaining-work ledger in [docs/TODO.md](docs/TODO.md) plus [plans/](plans/).
   deterministically into a Neo4j graph (no LLM extraction); `reason_over_ontology` performs
   typed multi-hop queries where each conclusion carries a PROV-O citation back to its source row
 - **Data Export** — BullMQ async PDF export with inline fallback
-- **Admin Panel** — embedded AdminJS at `/admin` with auto-discovered Prisma resources
+- **Admin Console** — React SPA at `/admin` (independent `admin/` project), backed by
+  the permission-guarded `/api/v1/admin/*` endpoints
+- **Legacy AdminJS Panel** — auto-generated CRUD at `/adminjs`, pending removal
 
 ## Quick Start
 
@@ -170,11 +172,19 @@ which repairs a dedicated password-login test user, resets that user's AI
 summary toggle to enabled, and clears that user's daily records for one target
 date before the Flutter lane starts.
 
-The embedded AdminJS panel is available at `/admin`. Resources are auto-discovered
-from `prisma/schema.prisma`, and all registered models support full CRUD by
-default. Customizations for core models live in `src/admin/setup.ts`.
-In local development the template credentials are `admin@lucent.local` /
-`admin12345`; override `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and
+The administration console is a React SPA served by the backend at `/admin`
+(same origin as the API, so no CORS exception is needed). Its build lives in the
+independent `admin/` pnpm project: run `pnpm install && pnpm build` there, or let
+the Docker image build it. `ADMIN_CONSOLE_ENABLED=false` hands static hosting to
+an external web server, and `ADMIN_CONSOLE_DIR` points at a build outside the
+repo. Console sign-in uses a real Lucent account that holds an `AdminUser` grant
+(`pnpm admin:seed <email> <role>`); every administration endpoint re-checks the
+role and permission server-side.
+
+The legacy auto-generated AdminJS panel (full CRUD over `prisma/schema.prisma`,
+customizations in `src/admin/setup.ts`) now lives at `/adminjs` and is kept only
+until it is retired. In local development its template credentials are
+`admin@lucent.local` / `admin12345`; override `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and
 `ADMIN_COOKIE_SECRET` in your local env file before exposing it.
 
 JWT access and refresh secrets also come from the env file now; the dev/test
