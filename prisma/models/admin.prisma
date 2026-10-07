@@ -1,0 +1,9 @@
+model AdminUser {
+  userId    String    @id @map("user_id")
+  role      AdminRole @default(VIEWER)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_users")
+}

@@ -51,6 +51,7 @@
     "test:runtime:start": "node scripts/dev/start-test-runtime.ts",
     "test:runtime:stop": "node scripts/dev/stop-test-runtime.ts",
     "prisma:generate": "pnpm exec prisma generate && node prisma/fix-generated-prisma-internal.ts",
+    "admin:seed": "node scripts/admin/seed-admin.ts",
     "db:migrate:dev": "cross-env NODE_ENV=development pnpm exec prisma migrate deploy",
     "db:migrate:test": "cross-env NODE_ENV=test pnpm exec prisma migrate deploy",
     "db:migrate": "pnpm prisma:generate && pnpm db:migrate:dev && pnpm db:migrate:test",

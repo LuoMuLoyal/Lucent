@@ -24,7 +24,7 @@ import type { CreateProductEventBatchDto } from './dto/create-product-event.dto.
 import { productFunnelQuerySchema } from './dto/funnel-query.dto.js';
 import type { FunnelQueryDto } from './dto/funnel-query.dto.js';
 import { funnelResponseSchema } from './dto/funnel-response.dto.js';
-import { AdminGuard } from './guards/admin.guard.js';
+import { AdminGuard } from '../admin/index.js';
 import { ProductEventsService } from './services/events.service.js';
 import { ProductFunnelService } from './services/funnel.service.js';
 
@@ -74,7 +74,7 @@ export class ProductEventsController {
   @ApiOperation({
     summary: 'Admin-only daily product funnel aggregation',
     description:
-      'Internal admin surface (JWT email must match ADMIN_EMAIL; regular users get 403). Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.',
+      'Internal admin surface: a valid JWT must belong to a user with an AdminUser role; regular users get 403. Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.',
   })
   @ApiResponse({
     status: 200,
@@ -86,7 +86,7 @@ export class ProductEventsController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Authenticated but not the internal admin (ADMIN_EMAIL).',
+    description: 'Authenticated user without an AdminUser role.',
   })
   @ApiResponse({
     status: 400,

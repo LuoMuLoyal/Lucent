@@ -28,7 +28,7 @@ owner: backend
   clientEventId 跳过)与服务端事件记录(`appVersion: 'server'`)。
 - `services/funnel.service.ts` — `ProductFunnelService`:漏斗窗口统计,样本
   过小时抑制逐日明细以保护个体隐私。
-- `guards/admin.guard.ts` — 管理端点守卫。
+- `@UseGuards(AdminGuard)` 使用 `modules/admin` 的 `AdminUser` 身份判定。
 
 ## 测试承接
 

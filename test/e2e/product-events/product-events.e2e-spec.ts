@@ -1,5 +1,6 @@
 import request from 'supertest';
 import {
+  AdminRole,
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
@@ -93,14 +94,15 @@ describe('Product Events API (e2e)', () => {
       user.email,
     );
 
-    const adminEmail = ctx.configService.get<string>('ADMIN_EMAIL');
-    expect(adminEmail).toBeTruthy();
-    admin = await createTestUser(ctx.prisma, adminEmail, 'FunnelAdmin');
+    admin = await createTestUser(ctx.prisma, undefined, 'FunnelAdmin');
+    await ctx.prisma.adminUser.create({
+      data: { userId: admin.id, role: AdminRole.SUPER_ADMIN },
+    });
     adminToken = await createAccessToken(
       ctx.jwtService,
       ctx.configService,
       admin.id,
-      adminEmail as string,
+      admin.email,
     );
   });
 

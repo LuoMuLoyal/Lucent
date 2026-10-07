@@ -16,6 +16,7 @@ export default tseslint.config(
       'eslint-plugins/**/*.ts',
       'commitlint.config.ts',
       'scripts/**/*.ts',
+      'admin/**',
       // deploy/ 下是 PM2 / Traefik 的运行配置(cjs + yml),不在
       // tsconfig.typecheck.json 的 include 内;若不忽略,编辑器与直接调用
       // eslint 会因 parserOptions.project 报 "does not include this file"。

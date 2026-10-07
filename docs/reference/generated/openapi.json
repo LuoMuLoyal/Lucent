@@ -960,7 +960,7 @@
     },
     "/api/v1/user/product-events/funnel": {
       "get": {
-        "description": "Internal admin surface (JWT email must match ADMIN_EMAIL; regular users get 403). Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
+        "description": "Internal admin surface: a valid JWT must belong to a user with an AdminUser role; regular users get 403. Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
         "operationId": "getFunnel",
         "parameters": [
           {
@@ -1009,7 +1009,7 @@
             "description": "Missing or invalid access token."
           },
           "403": {
-            "description": "Authenticated but not the internal admin (ADMIN_EMAIL)."
+            "description": "Authenticated user without an AdminUser role."
           }
         },
         "security": [

@@ -1,4 +1,3 @@
-import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
   ProductEventName,
@@ -9,6 +8,7 @@ import {
 import { errAsync, okAsync } from '../../common/result/index.js';
 import type { DomainFailure } from '../../common/result/index.js';
 import type { UserPayload } from '../auth/index.js';
+import { AdminAccessService } from '../admin/index.js';
 import {
   MAX_PRODUCT_EVENTS_PER_REQUEST,
   createProductEventBatchSchema,
@@ -73,11 +73,9 @@ describe('ProductEventsController', () => {
           provide: ProductFunnelService,
           useValue: { getFunnel: vi.fn() },
         },
-        // The controller's @UseGuards(AdminGuard) is instantiated by the
-        // testing module; AdminGuard needs ConfigService to resolve.
         {
-          provide: ConfigService,
-          useValue: { get: vi.fn() },
+          provide: AdminAccessService,
+          useValue: { getRole: vi.fn(), can: vi.fn() },
         },
       ],
     }).compile();
