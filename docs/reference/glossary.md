@@ -24,7 +24,6 @@ updated: 2026-09-15
   消费方才回读 `payload.mealAnalysis`。
 - **Clinic Summary** — 后端脱敏的医生分享摘要，含 Redis 24h 分享链接与 PDF。
 - **Data Export** — 报告/摘要 PDF 导出请求，支持 BullMQ 异步与内联 fallback。
-- **AdminJS** — 自动生成 CRUD 面板，挂在 `/adminjs`，待退役；基于 Prisma schema 生成资源。
 - **管理控制台（Admin Console）** — `admin/` 独立 pnpm 项目构建的 React SPA，由后端同源挂载在
   `/admin`；身份与权限取自 `AdminUser` 角色矩阵，每个 `/api/v1/admin/*` 端点服务端复核。
 - **Forui** — Luminous Flutter UI 库，项目根主题来源。

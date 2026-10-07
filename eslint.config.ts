@@ -113,15 +113,6 @@ export default tseslint.config(
     },
   },
   {
-    // AdminJS packages 是 ESM-only, 必须用动态 import 加载。
-    // SWC 会将标准 import() 编译为 require(), 导致 ESM interop 失败。
-    // 用 new Function 绕过 SWC 的 transform, 保留运行时的 import()。
-    files: ['src/admin/setup.ts'],
-    rules: {
-      '@typescript-eslint/no-implied-eval': 'off',
-    },
-  },
-  {
     // NestJS @OnEvent 装饰器使用 string event name，无法将 payload 类型映射到方法参数。
     // ESLint 将参数推断为 any，触发 no-unsafe-* 规则。
     // 这是框架固有限制，listener 方法参数已使用明确的 payload 类型注解。
@@ -138,7 +129,6 @@ export default tseslint.config(
     // 暂时关闭规则。每修复一个文件就从此列表中删除对应条目。
     // TODO: 清理完毕后删除整个 override 块。
     files: [
-      'src/admin/services/resource-config.service.ts',
       'src/app.service.ts',
       'src/common/api/problem-catalog.ts',
       'src/common/helpers/format/json.utils.ts',

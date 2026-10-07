@@ -158,14 +158,7 @@ const envSchema = z.object({
   [EnvKey.JWT_ISSUER]: z.string().default('lucent-api'),
   [EnvKey.JWT_AUDIENCE]: z.string().default('luminous-app'),
 
-  // ── Admin (sensitive, in .env) ───────────────────────────────────
-  [EnvKey.ADMIN_EMAIL]: z.email(),
-  [EnvKey.ADMIN_PASSWORD]: z.string().min(8),
-  [EnvKey.ADMIN_COOKIE_SECRET]: z.string().min(32),
-  // 面板开关:仅字面量 'false' 关闭,默认开启(保持既有行为)。关闭后启动时不加载
-  // adminjs / @adminjs/fastify / @sergiyiva/adminjs-prisma,也不做 Prisma DMMF
-  // 自省与 resource 构建——内存受限的 staging 用得上。ADMIN_* 凭据仍为必填。
-  [EnvKey.ADMIN_ENABLED]: z.enum(['true', 'false']).optional(),
+  // ── Admin console (static SPA mount) ─────────────────────────────
   // 管理控制台 SPA:由后端同源挂载在 /admin。默认开启;设为 'false' 时不注册任何
   // 静态路由(完全托付给外部 Web 服务器)。ADMIN_CONSOLE_DIR 用于指向仓库外的
   // 构建产物,未设置时按仓库内 admin/dist 解析。
@@ -574,9 +567,6 @@ function assertProductionEnvironment(
     EnvKey.REDIS_URL,
     EnvKey.JWT_ACCESS_SECRET,
     EnvKey.JWT_REFRESH_SECRET,
-    EnvKey.ADMIN_EMAIL,
-    EnvKey.ADMIN_PASSWORD,
-    EnvKey.ADMIN_COOKIE_SECRET,
   ].filter((key) => !config[key]);
 
   if (missingKeys.length > 0) {

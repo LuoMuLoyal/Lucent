@@ -401,9 +401,6 @@ async function main() {
   // placeholders for required environment variables when they are absent.
   setIfMissing('JWT_ACCESS_SECRET', 'jwt-access-export-only-placeholder-000');
   setIfMissing('JWT_REFRESH_SECRET', 'jwt-refresh-export-only-placeholder-00');
-  setIfMissing('ADMIN_EMAIL', 'admin@example.com');
-  setIfMissing('ADMIN_PASSWORD', 'admin-export-only-placeholder-00');
-  setIfMissing('ADMIN_COOKIE_SECRET', 'admin-cookie-export-only-placeholder-0');
 
   const repoRoot = path.resolve(thisDir, '..', '..');
 

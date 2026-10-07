@@ -91,8 +91,8 @@ RUN apk add --no-cache tini curl
 WORKDIR /app
 # 创建非 root 用户
 RUN addgroup -S lucent && adduser -S lucent -G lucent
-# AdminJS.initialize 会在工作目录下 mkdir '.adminjs'（自定义组件 bundle），
-# 因此 /app 目录本身必须归 lucent。只改这一个目录的属主（元数据层，几十字节），
+# 保持 /app 归 lucent：运行时可能在工作目录下写入生成物（如临时字体/缓存文件）。
+# 只改这一个目录的属主（元数据层，几十字节），
 # 不做 `chown -R`——那会把整份 node_modules 复制成一个新层。
 RUN chown lucent:lucent /app
 # 生产依赖（已 prune + 瘦身）

@@ -91,10 +91,9 @@ export async function setupApp(
   const fastify = app.getHttpAdapter().getInstance();
 
   // ── JSON body parser ───────────────────────────────────────────
-  // NestJS's default body parser is disabled (bodyParser: false in
-  // main.ts) because AdminJS's @fastify/formbody registers the
-  // urlencoded parser and NestJS's built-in would conflict with it.
-  // We register the JSON parser manually here.
+  // NestJS's default body parser is disabled (bodyParser: false in main.ts) so
+  // the empty-payload and malformed-JSON handling below stays the single
+  // content-type parser for application/json.
   fastify.addContentTypeParser(
     'application/json',
     { parseAs: 'string' },

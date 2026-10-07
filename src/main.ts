@@ -8,7 +8,6 @@ import { AppModule } from './app.module.js';
 import { setupApp } from './setup-app.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { EnvKey } from './config/env/env-keys.enum.js';
-import { registerAdminPanel } from './admin/setup.js';
 import { registerAdminConsole } from './admin-console/setup.js';
 
 async function bootstrap() {
@@ -17,10 +16,9 @@ async function bootstrap() {
     new FastifyAdapter({
       trustProxy: process.env[EnvKey.TRUST_PROXY] === 'true',
     }),
-    // bodyParser: false — AdminJS's @fastify/formbody registers the
-    // urlencoded content-type parser; NestJS's default parser would
-    // duplicate it and crash with "Content type parser already present".
-    // JSON parsing is registered manually in setupApp().
+    // bodyParser: false — the JSON content-type parser is registered manually
+    // in setupApp() so an absent body is accepted and malformed JSON maps to a
+    // 400 Problem Details response instead of a 500.
     //
     // routeConflictPolicy (v12): fail fast on duplicate route declarations
     // and warn when a route silently shadows a more specific one.
@@ -35,7 +33,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   await setupApp(app, configService);
   await registerAdminConsole(app, configService);
-  await registerAdminPanel(app, configService);
   app.enableShutdownHooks();
 
   const host = configService.getOrThrow<string>(`${ConfigKey.App}.host`);

@@ -31,7 +31,6 @@ remaining-work ledger in [docs/TODO.md](docs/TODO.md) plus [plans/](plans/).
 - **Data Export** — BullMQ async PDF export with inline fallback
 - **Admin Console** — React SPA at `/admin` (independent `admin/` project), backed by
   the permission-guarded `/api/v1/admin/*` endpoints
-- **Legacy AdminJS Panel** — auto-generated CRUD at `/adminjs`, pending removal
 
 ## Quick Start
 
@@ -181,11 +180,9 @@ repo. Console sign-in uses a real Lucent account that holds an `AdminUser` grant
 (`pnpm admin:seed <email> <role>`); every administration endpoint re-checks the
 role and permission server-side.
 
-The legacy auto-generated AdminJS panel (full CRUD over `prisma/schema.prisma`,
-customizations in `src/admin/setup.ts`) now lives at `/adminjs` and is kept only
-until it is retired. In local development its template credentials are
-`admin@lucent.local` / `admin12345`; override `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and
-`ADMIN_COOKIE_SECRET` in your local env file before exposing it.
+The auto-generated AdminJS panel was retired together with its `ADMIN_*`
+credentials: there is no second administration identity, and the API answers only
+to JWT-authenticated `AdminUser` grants.
 
 JWT access and refresh secrets also come from the env file now; the dev/test
 templates already include local values.

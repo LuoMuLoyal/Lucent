@@ -13,18 +13,11 @@ describe('validateEnvironment', () => {
   const localJwtAccessSecret = 'local-access-secret-min-32-characters-long';
   const localJwtRefreshSecret = 'local-refresh-secret-min-32-characters-long';
   const prodJwtAccessSecret = 'prod-access-secret-min-32-characters-long';
-  const prodJwtRefreshSecret = 'prod-refresh-secret-min-32-characters-long';
-  const adminEmail = 'admin@example.com';
-  const adminPassword = 'admin12345';
-  const adminCookieSecret = 'dev_lucent_admin_cookie_secret_32_chars';
 
   const baseValidEnv = {
     [EnvKey.NODE_ENV]: NodeEnvironment.Development,
     [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
     [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
-    [EnvKey.ADMIN_EMAIL]: adminEmail,
-    [EnvKey.ADMIN_PASSWORD]: adminPassword,
-    [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
   };
 
   it('keeps explicit local config values outside production', () => {
@@ -33,21 +26,28 @@ describe('validateEnvironment', () => {
       [EnvKey.DATABASE_URL]: localDatabaseUrl,
     });
 
-    expect(config[EnvKey.ADMIN_EMAIL]).toBe(adminEmail);
-    expect(config[EnvKey.ADMIN_PASSWORD]).toBe(adminPassword);
-    expect(config[EnvKey.ADMIN_COOKIE_SECRET]).toBe(adminCookieSecret);
+    expect(config[EnvKey.DATABASE_URL]).toBe(localDatabaseUrl);
+    expect(config[EnvKey.JWT_ACCESS_SECRET]).toBe(localJwtAccessSecret);
   });
 
-  it('requires admin credentials in production', () => {
+  it('requires infrastructure secrets in production', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Production,
         [EnvKey.DATABASE_URL]: prodDatabaseUrl,
         [EnvKey.REDIS_URL]: redisUrl,
         [EnvKey.JWT_ACCESS_SECRET]: prodJwtAccessSecret,
-        [EnvKey.JWT_REFRESH_SECRET]: prodJwtRefreshSecret,
       }),
-    ).toThrow('ADMIN_EMAIL');
+    ).toThrow('JWT_REFRESH_SECRET');
+  });
+
+  it('defaults the admin console mount to enabled', () => {
+    const config = validateEnvironment({
+      ...baseValidEnv,
+      [EnvKey.DATABASE_URL]: localDatabaseUrl,
+    });
+
+    expect(config[EnvKey.ADMIN_CONSOLE_ENABLED]).toBe('true');
   });
 
   it('accepts complete AI role configurations', () => {

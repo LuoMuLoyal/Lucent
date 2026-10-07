@@ -131,12 +131,6 @@
       }
     },
     {
-      "files": ["src/admin/setup.ts"],
-      "rules": {
-        "typescript/no-implied-eval": "off"
-      }
-    },
-    {
       "files": ["**/*-invalidation.listener.ts"],
       "rules": {
         "typescript/no-unsafe-argument": "off",
