@@ -43,6 +43,15 @@ export interface AssistantPolicySnapshot {
   enabledContextSources: AssistantContextSource[];
   contextPermittedToolNames: AssistantToolName[];
   executableToolNames: AssistantToolName[];
+  /**
+   * 本轮可绑定的工具集（候选集/硬上限）＝ `contextPermittedToolNames ∩ 已实现 ∩ 可用`。
+   *
+   * 比 `executableToolNames` 多一层 **sidecar 可用性**（LightRAG/Semantica 关掉时对应
+   * 工具不在集合里）。图绑定的就是它：旧实现只按 context 映射绑定，于是 sidecar 关着时
+   * 工具照样进提示词、模型调用后才撞上 "unavailable"，并把结果说成"本产品没这个能力"
+   * （2026-10-07 生产事故 C2）。
+   */
+  enabledToolNames: AssistantToolName[];
   toolCapabilities: AssistantToolCapabilitySnapshot[];
 }
 
@@ -239,6 +248,15 @@ export interface AssistantToolExecutionResult {
  * 「文本启发式猜语义」既不可靠又无法审计。多数工具没有参数，此时 `args` 为空对象。
  */
 export interface AssistantToolCall {
+  /**
+   * Provider-generated id of this tool call (`tool_calls[i].id`).
+   *
+   * ⚠️ 必须原样带到 ToolMessage 的 `tool_call_id`：严格 OpenAI 兼容服务要求
+   * `role:"tool"` 的 id 出现在上一条 assistant 的 `tool_calls` 里，自造 id（旧实现写
+   * `call_${index}`）会被 400 拒绝，而 400 不在重试白名单里 —— 表现为整轮直接失败。
+   * 只有 provider 没给 id 时才允许合成（见 `nodes.ts` 的 tools 节点）。
+   */
+  id?: string;
   name: AssistantToolName;
   args: Record<string, unknown>;
 }

@@ -55,6 +55,11 @@ export function createAgentNode(deps: {
     const toolCalls = response.tool_calls;
     if (toolCalls != null && toolCalls.length > 0) {
       const calls: AssistantToolCall[] = toolCalls.map((toolCall) => ({
+        // 原样保留 provider 的 id —— 它下面要落进 ToolMessage.tool_call_id（见
+        // `createToolsNode`），丢掉它会造出与 assistant.tool_calls 不匹配的配对。
+        ...(typeof toolCall.id === 'string' && toolCall.id.length > 0
+          ? { id: toolCall.id }
+          : {}),
         name: toolCall.name as AssistantToolName,
         args: toolCall.args,
       }));
@@ -93,14 +98,19 @@ export function createToolsNode(deps: {
     const toolCalls = state.pendingToolCalls;
     const results = await deps.executeTools(toolCalls);
 
-    const toolMessages = results.map(
-      (result, index) =>
-        new ToolMessage({
-          tool_call_id: `call_${String(index)}`,
-          content: JSON.stringify(result.data),
-          name: result.name,
-        }),
-    );
+    // 按**调用**而不是按结果遍历：每个 tool_call 都必须有一条 ToolMessage，
+    // 且 id 要对上。旧实现按结果位置自造 `call_${index}`，一旦执行层过滤掉某个调用
+    // （未获许可）就会同时造成"id 对不上"和"少一条 ToolMessage"两类 400。
+    const toolMessages = toolCalls.map((call, index) => {
+      const result = results[index];
+      return new ToolMessage({
+        tool_call_id: call.id ?? `call_${String(index)}`,
+        content: JSON.stringify(
+          result?.data ?? { reason: 'Tool result was not produced.' },
+        ),
+        name: result?.name ?? call.name,
+      });
+    });
 
     return {
       messages: toolMessages,
