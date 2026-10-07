@@ -16,6 +16,7 @@ import type {
 import {
   LIGHTRAG_DEFAULT_LIMIT,
   LIGHTRAG_DEFAULT_MODE,
+  LIGHTRAG_DEFAULT_SOURCE,
   LIGHTRAG_MAX_LIMIT,
   LIGHTRAG_QUERY_MODES,
   LIGHTRAG_REJECTED_MODES,
@@ -192,9 +193,17 @@ export class AssistantToolKnowledgeRetrievalService {
     const args = context.toolArgs ?? {};
     const rawQuery = typeof args['query'] === 'string' ? args['query'] : '';
     const query = rawQuery.trim();
-    const rawSource = typeof args['source'] === 'string' ? args['source'] : '';
+    const rawSource =
+      typeof args['source'] === 'string' ? args['source'].trim() : '';
+    // 缺失 → 默认说明书语料（见 `LIGHTRAG_DEFAULT_SOURCE` 的注释：缺参数是
+    // "模型没说话"，不是"工具不可用"）；非法值仍然拒绝，且必须留痕。
+    const sourceCandidate: string =
+      rawSource.length === 0 ? LIGHTRAG_DEFAULT_SOURCE : rawSource;
 
-    if (!isLightragSource(rawSource)) {
+    if (!isLightragSource(sourceCandidate)) {
+      this.logger.warn(
+        `${INVALID_ARGUMENT_PREFIX}: unknown source "${rawSource}"; expected one of ${LIGHTRAG_SOURCES.join(', ')}.`,
+      );
       return {
         ok: false,
         query,
@@ -207,20 +216,20 @@ export class AssistantToolKnowledgeRetrievalService {
       return {
         ok: false,
         query,
-        source: rawSource,
+        source: sourceCandidate,
         reason: `${INVALID_ARGUMENT_PREFIX}: "query" must not be empty.`,
       };
     }
 
-    const mode = this.parseMode(args['mode'], rawSource);
+    const mode = this.parseMode(args['mode'], sourceCandidate);
     if (!mode.ok) {
-      return { ok: false, query, source: rawSource, reason: mode.reason };
+      return { ok: false, query, source: sourceCandidate, reason: mode.reason };
     }
 
     return {
       ok: true,
       query,
-      source: rawSource,
+      source: sourceCandidate,
       mode: mode.mode,
       limit: normalizeLimit(args['limit']),
     };

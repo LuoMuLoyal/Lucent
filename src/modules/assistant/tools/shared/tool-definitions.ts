@@ -173,16 +173,72 @@ const RULE_REASONING_PARAMETERS = {
   additionalProperties: false,
 } as const;
 
+/**
+ * DrugBank 实体解析的参数。
+ *
+ * ⚠️ 这两个工具（本项与下面的 passage 搜索）**长期没有声明参数**，于是模型只能传空
+ * 对象、服务端只能去读 `context.userMessage`（用户原句）——而整句当 SQL 的 `contains`
+ * 模式必然 0 行。2026-10-07 生产实测："查了英文显示零个，换成英文还是零个"就是这个，
+ * 复现见 `search.service.ts` 的同名注释。参数在这里补上，工具侧再优先读 `toolArgs`。
+ *
+ * `query` 明确要求**只给药品名**：给整句会把解析重新打回 0 行。
+ */
+const DRUGBANK_ENTITY_PARAMETERS = {
+  type: 'object',
+  properties: {
+    query: {
+      type: 'string',
+      description:
+        'The drug to resolve, as a DrugBank-style name, CAS number, UNII or DrugBank id (e.g. "ibuprofen", "15687-27-1", "DB01050"). Pass the drug identifier alone — never the whole user question.',
+    },
+  },
+  required: ['query'],
+  additionalProperties: false,
+} as const;
+
+/**
+ * DrugBank 段落检索的参数。
+ *
+ * 与实体解析分开：这里 `query` 是**要检索什么内容**（可以是"与糖皮质激素的相互作用"
+ * 这种描述），而不是药品名；药品身份由 `drugbankId` / `drugName` 单独给。
+ * 旧实现把两者混成一个"用户原句"，于是作用域解析必然失败、段落检索永远返回空
+ * （工具自身的报错是 "requires one resolved DrugBank entity scope"）。
+ */
+const DRUGBANK_PASSAGE_PARAMETERS = {
+  type: 'object',
+  properties: {
+    query: {
+      type: 'string',
+      description:
+        'What to look for inside that drug\'s DrugBank passages, e.g. "drug interactions with corticosteroids" or "mechanism of action".',
+    },
+    drugbankId: {
+      type: 'string',
+      description:
+        'DrugBank id to scope the search to (e.g. "DB01050"). Prefer this after resolve_drugbank_entity returned exactly one entity, or to disambiguate several matches.',
+    },
+    drugName: {
+      type: 'string',
+      description:
+        'Drug name to scope the search to when you do not have the DrugBank id yet (e.g. "ibuprofen"). Ignored when drugbankId is given.',
+    },
+  },
+  required: ['query'],
+  additionalProperties: false,
+} as const;
+
 const TOOL_PARAMETERS: Partial<
   Record<AssistantToolName, Record<string, unknown>>
 > = {
   get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
   search_cn_medicine_knowledge: CN_MEDICINE_KNOWLEDGE_PARAMETERS,
+  resolve_drugbank_entity: DRUGBANK_ENTITY_PARAMETERS,
+  search_drugbank_passages: DRUGBANK_PASSAGE_PARAMETERS,
   reason_over_ontology: ONTOLOGY_REASONING_PARAMETERS,
   reason_over_rules: RULE_REASONING_PARAMETERS,
 };
 
-const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
+export const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
   get_today_records:
     "Retrieve the user's daily records for today, including meals, water, symptoms, and notes.",
   get_records_by_date:

@@ -34,21 +34,33 @@ export class AssistantToolDrugbankSearchService {
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
     const payload = parseSearchPayload(context.userMessage, this.logger);
-    const query = payload.query.trim();
-    const filters = payload.filters;
+    const args = context.toolArgs ?? {};
+    // 模型参数优先：`query` 是"检索什么内容"，药品身份由 `drugbankId` / `drugName` 给。
+    // 回退 `userMessage` 只为不打断未声明参数的旧路径 —— 整句既当检索词又当药品名，
+    // 作用域必然解析不出来（2026-10-07 生产实测）。
+    const query = firstNonEmptyString(args['query']) ?? payload.query.trim();
     const requestedDrugbankId =
-      typeof filters['drugbankId'] === 'string' ? filters['drugbankId'] : null;
+      firstNonEmptyString(args['drugbankId']) ??
+      firstNonEmptyString(payload.filters['drugbankId']);
 
     if (!query) {
-      return this.buildEmptyEnvelope('No DrugBank search query was provided.');
+      return this.buildEmptyEnvelope(
+        'No DrugBank search query was provided; pass a non-empty "query" argument.',
+      );
     }
 
     const resolvedDrugbankId =
-      requestedDrugbankId ?? (await this.resolveSingleDrugbankId(context));
+      requestedDrugbankId ??
+      (await this.resolveSingleDrugbankId(
+        context,
+        firstNonEmptyString(args['drugName']) ??
+          firstNonEmptyString(args['query']),
+      ));
 
     if (!resolvedDrugbankId) {
       return this.buildEmptyEnvelope(
-        'DrugBank passage search requires one resolved DrugBank entity scope.',
+        'DrugBank passage search requires one resolved DrugBank entity scope; ' +
+          'pass "drugbankId", or a "query" that resolves to exactly one drug name.',
       );
     }
 
@@ -56,8 +68,12 @@ export class AssistantToolDrugbankSearchService {
       DRUGBANK_EMBEDDINGS_TABLE,
     );
     if (!store) {
+      this.logger.warn(
+        `DrugBank passage search is unavailable: vector store "${DRUGBANK_EMBEDDINGS_TABLE}" is not configured.`,
+      );
       return this.buildEmptyEnvelope(
         'DrugBank vector search is not configured.',
+        { verifiability: 'unavailable' },
       );
     }
 
@@ -79,7 +95,7 @@ export class AssistantToolDrugbankSearchService {
     if (pageResults.length === 0) {
       return this.buildEmptyEnvelope(
         `No relevant DrugBank passages were found for "${query}".`,
-        resolvedDrugbankId,
+        { resolvedDrugbankId },
       );
     }
 
@@ -132,8 +148,19 @@ export class AssistantToolDrugbankSearchService {
 
   private async resolveSingleDrugbankId(
     context: AssistantToolExecutionContext,
+    drugName: string | null,
   ): Promise<string | null> {
-    const resolution = await this.drugbankEntityResolveService.resolve(context);
+    // 把"药品名"当 `query` 交给解析服务（它优先读 `toolArgs.query`），而不是让解析
+    // 服务去读整句用户消息 —— 后者是本条链路长期返回空的直接原因。
+    const resolveContext: AssistantToolExecutionContext =
+      drugName == null
+        ? context
+        : {
+            ...context,
+            toolArgs: { ...(context.toolArgs ?? {}), query: drugName },
+          };
+    const resolution =
+      await this.drugbankEntityResolveService.resolve(resolveContext);
     if (resolution.coverage.status !== 'complete') {
       return null;
     }
@@ -154,8 +181,12 @@ export class AssistantToolDrugbankSearchService {
 
   private buildEmptyEnvelope(
     reason: string,
-    resolvedDrugbankId: string | null = null,
+    options: {
+      resolvedDrugbankId?: string | null;
+      verifiability?: 'citable' | 'unavailable';
+    } = {},
   ): AssistantReadResultEnvelope {
+    const resolvedDrugbankId = options.resolvedDrugbankId ?? null;
     return buildReadEnvelope({
       toolName: 'search_drugbank_passages',
       query: {
@@ -175,12 +206,19 @@ export class AssistantToolDrugbankSearchService {
           hasMore: false,
           queryHash: buildVectorQueryHash('', {}),
         }),
+        // 与 `tools/retrieval/knowledge.service.ts` 同一条纪律：**服务不可用**与
+        // **没有证据**必须能被区分开。旧实现把两者都做成 `coverage.empty`，模型
+        // 读起来一模一样，于是"向量库没配好"被说成"数据里没有段落"。
+        verifiability: options.verifiability ?? 'citable',
       },
       coverage: { status: 'empty', reason },
       timeRange: { timezone: 'UTC', startDate: null, endDate: null },
       confidence: {
         level: 'low',
-        reason: 'No DrugBank scientific passage evidence was retrieved.',
+        reason:
+          options.verifiability === 'unavailable'
+            ? 'Retrieval service unavailable — no evidence was read.'
+            : 'No DrugBank scientific passage evidence was retrieved.',
       },
       ambiguities: [],
       tables: [DRUGBANK_EMBEDDINGS_TABLE],
@@ -192,4 +230,11 @@ function normalizeLimit(limit: number | undefined): number {
   if (limit == null || Number.isNaN(limit))
     return ASSISTANT_VECTOR_DEFAULT_LIMIT;
   return Math.max(1, Math.min(ASSISTANT_VECTOR_MAX_LIMIT, Math.trunc(limit)));
+}
+
+/** 取模型参数里的非空字符串；空串/空白/非字符串都当"没给"。 */
+function firstNonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : null;
 }

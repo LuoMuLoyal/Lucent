@@ -121,4 +121,60 @@ describe('AssistantToolDrugbankSearchService', () => {
 
     expect(result.coverage.status).toBe('empty');
   });
+
+  it('marks a missing vector store as unavailable rather than as no evidence', async () => {
+    mockVectorStoreFactory.getStore.mockResolvedValueOnce(null);
+    const resolveService = new AssistantToolDrugbankEntityResolveService({
+      drugbankDrug: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            drugbankId: 'DB01050',
+            name: 'Ibuprofen',
+            casNumber: '15687-27-1',
+            unii: 'WK2XYI10QM',
+          },
+        ]),
+      },
+    } as never);
+
+    const service = new AssistantToolDrugbankSearchService(
+      mockVectorStoreFactory as never,
+      resolveService,
+    );
+    const result = await service.search({
+      userId: 'user-1',
+      locale: 'en',
+      userMessage: 'Ibuprofen mechanism',
+      enabledContextSources: [],
+      memoryEnabled: false,
+    });
+
+    // 旧实现把这条也写成 coverage.empty + "no evidence"，模型读起来与"确实没查到"
+    // 完全一样，于是"向量库没配好"被说成"数据里没有"。
+    expect(result.result['verifiability']).toBe('unavailable');
+    expect(result.coverage.reason).toContain('not configured');
+    expect(result.confidence.reason).toContain('unavailable');
+  });
+
+  it('keeps an unresolved scope as empty and names the actionable argument', async () => {
+    const resolveService = new AssistantToolDrugbankEntityResolveService({
+      drugbankDrug: { findMany: vi.fn().mockResolvedValue([]) },
+    } as never);
+
+    const service = new AssistantToolDrugbankSearchService(
+      mockVectorStoreFactory as never,
+      resolveService,
+    );
+    const result = await service.search({
+      userId: 'user-1',
+      locale: 'en',
+      userMessage: 'Unknown molecule',
+      enabledContextSources: [],
+      memoryEnabled: false,
+    });
+
+    expect(result.coverage.status).toBe('empty');
+    expect(result.coverage.reason).toContain('drugbankId');
+    expect(result.result['verifiability']).toBe('citable');
+  });
 });

@@ -46,6 +46,19 @@ export const LIGHTRAG_SOURCES = ['leaflet', 'qa'] as const;
 
 export type LightragSource = (typeof LIGHTRAG_SOURCES)[number];
 
+/**
+ * `source` 缺失时的默认来源。
+ *
+ * 说明书是这一层的主语料（工具名里的 `medicine_knowledge` 指的就是它），所以
+ * "模型没给 source" 应当落到 `leaflet`，而**不是**当成非法参数拒绝。
+ *
+ * 背景（2026-10-07 生产实测）：旧实现把缺失与非法同等对待，返回
+ * `verifiability:'unavailable'` 的空信封且不打日志；模型把这句读成"检索服务不可用"，
+ * 于是对用户宣称"本次运行未开放中文说明书检索工具"，而实际链路完全正常。
+ * 缺参数是"模型没说话"，与"模型说了个我们不认识的东西"必须分开处理。
+ */
+export const LIGHTRAG_DEFAULT_SOURCE: LightragSource = 'leaflet';
+
 /** 默认检索模式：纯 chunk 向量检索，不碰图（计划 §一.3）。 */
 export const LIGHTRAG_DEFAULT_MODE: LightragQueryMode = 'naive';
 

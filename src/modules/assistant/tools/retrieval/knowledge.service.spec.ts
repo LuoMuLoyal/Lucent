@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
@@ -141,6 +142,46 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.headers).toMatchObject({ 'LIGHTRAG-WORKSPACE': 'qa' });
+  });
+
+  it('defaults a missing source to the leaflet corpus instead of failing the call', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(leafletQueryResponse());
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    // 2026-10-07 生产实测：模型漏传 source 时，旧实现返回 verifiability:'unavailable'
+    // 的空信封且不打日志，模型据此对用户宣称"中文说明书检索工具未开放"。
+    // 缺参数是"模型没说话"，必须落到说明书语料。
+    const envelope = await buildService().searchCnMedicineKnowledge(
+      buildContext({ query: '阿司匹林的禁忌' }),
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(envelope.coverage).toEqual({ status: 'complete', reason: null });
+    const result = envelope.result as { source: string };
+    expect(result.source).toBe('leaflet');
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.headers).toMatchObject({ 'LIGHTRAG-WORKSPACE': 'leaflet' });
+  });
+
+  it('rejects an unknown source, logs it, and never calls the sidecar', async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+
+    const envelope = await buildService().searchCnMedicineKnowledge(
+      buildContext({ query: '阿司匹林', source: 'drugbank' }),
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(envelope.coverage.status).toBe('empty');
+    expect(envelope.coverage.reason).toContain('"source" must be one of');
+    const result = envelope.result as { verifiability: string };
+    expect(result.verifiability).toBe('unavailable');
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('unknown source'),
+    );
   });
 
   it('flags partial coverage when a chunk cannot be traced to a leaflet', async () => {

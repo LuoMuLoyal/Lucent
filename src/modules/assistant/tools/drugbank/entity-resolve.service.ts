@@ -19,8 +19,7 @@ export class AssistantToolDrugbankEntityResolveService {
   async resolve(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const payload = parseSearchPayload(context.userMessage, this.logger);
-    const query = payload.query.trim();
+    const query = resolveEntityQuery(context, this.logger);
 
     if (!query) {
       return buildReadEnvelope({
@@ -41,6 +40,7 @@ export class AssistantToolDrugbankEntityResolveService {
     const entities = await this.prisma.drugbankDrug.findMany({
       where: {
         OR: [
+          { drugbankId: { equals: query, mode: 'insensitive' } },
           { name: { contains: query, mode: 'insensitive' } },
           { casNumber: { contains: query, mode: 'insensitive' } },
           { unii: { contains: query, mode: 'insensitive' } },
@@ -73,16 +73,32 @@ export class AssistantToolDrugbankEntityResolveService {
       });
     }
 
-    if (entities.length > 1) {
+    // 唯一化：**精确命中优先**。
+    //
+    // `contains` 会把原药与它的酯/盐一起带回来：查 "dexamethasone" 得到
+    // DB01234 / DB14649（乙酸酯）/ DB19168（棕榈酸酯）。旧实现在 `length > 1` 时直接判
+    // `partial`，于是 `search_drugbank_passages` 的 `resolveSingleDrugbankId` 永远拿不到
+    // 作用域、段落检索永远返回空 —— 生产实测的"英文也返回零个"就有这一层。
+    // 精确同名（或精确 drugbank id）是确定性判据，不算歧义；其余多命中仍然如实报 partial。
+    const exact =
+      entities.find(
+        (entity) => entity.drugbankId.toLowerCase() === query.toLowerCase(),
+      ) ??
+      entities.find(
+        (entity) => entity.name.toLowerCase() === query.toLowerCase(),
+      );
+    const entity = exact ?? (entities.length === 1 ? entities[0] : null);
+
+    if (entity == null) {
       return buildReadEnvelope({
         toolName: 'resolve_drugbank_entity',
         query: { query, matchedBy: ['name', 'searchText'] },
         result: {
-          entities: entities.map((entity) => ({
-            drugbankId: entity.drugbankId,
-            name: entity.name,
-            casNumber: entity.casNumber,
-            unii: entity.unii,
+          entities: entities.map((candidate) => ({
+            drugbankId: candidate.drugbankId,
+            name: candidate.name,
+            casNumber: candidate.casNumber,
+            unii: candidate.unii,
           })),
         },
         coverage: {
@@ -94,21 +110,7 @@ export class AssistantToolDrugbankEntityResolveService {
           level: 'low',
           reason: 'Multiple candidate DrugBank entities matched the query.',
         },
-        ambiguities: entities.map((entity) => entity.name),
-        tables: ['drugbank_drugs'],
-      });
-    }
-
-    const [entity] = entities;
-    if (entity == null) {
-      return buildReadEnvelope({
-        toolName: 'resolve_drugbank_entity',
-        query: { query },
-        result: { entities: [] },
-        coverage: { status: 'empty', reason: 'No entity resolved.' },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        confidence: { level: 'low', reason: 'No entity resolved.' },
-        ambiguities: [],
+        ambiguities: entities.map((candidate) => candidate.name),
         tables: ['drugbank_drugs'],
       });
     }
@@ -140,6 +142,29 @@ export class AssistantToolDrugbankEntityResolveService {
       tables: ['drugbank_drugs'],
     });
   }
+}
+
+/**
+ * 取"要解析哪个药"。
+ *
+ * 优先模型给的 `toolArgs.query`（参数已声明，见 `tools/shared/tool-definitions.ts` 的
+ * `DRUGBANK_ENTITY_PARAMETERS`）；缺失才回退到对 `userMessage` 的历史解析。
+ *
+ * 回退路径是本条链路的头号故障源：`userMessage` 是**用户原句**，整句当 SQL `contains`
+ * 的模式必然 0 行 —— 2026-10-07 生产实测（"查了英文显示零个，换成英文还是零个"）：
+ * 整句 0 行，而 `'%ibuprofen%'` 3 行。保留回退只是不让未声明参数的旧调用路径直接崩。
+ */
+export function resolveEntityQuery(
+  context: AssistantToolExecutionContext,
+  logger: Logger,
+): string {
+  const args = context.toolArgs ?? {};
+  const fromArgs =
+    typeof args['query'] === 'string' ? args['query'].trim() : '';
+  if (fromArgs.length > 0) {
+    return fromArgs;
+  }
+  return parseSearchPayload(context.userMessage, logger).query.trim();
 }
 
 export function parseSearchPayload(
