@@ -35,7 +35,7 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   记录；已在药箱的候选不重复加入）/ `GET risk-check`（最近记录，30 分钟缓存）。
 - `POST recognize`（同步）/ `POST recognize/async` + `GET recognize/status/:jobId`
   （AI 药盒图片识别，异步响应 `jobId|result` 互斥）。
-- `GET safety-tips` — 随机安全贴士（`@Public()`，当前无 C 端消费方，保留死代码）。
+- `GET safety-tips` — 随机安全贴士（公开读）；管理写操作通过 Admin `content:write` API 调用本模块 owner service，并审计且清理药品缓存。
 
 ## 持久表清单
 
@@ -109,11 +109,12 @@ database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>
   `redFlags`）。`medicine-reminders` 以 Prisma 外键关联 `currentMedicine`，
   不经本模块服务。
 - Barrel 导出：`DrugbankMedicinesService`、`CnMedicinesService`、
-  `MedicineRiskCheckService`。
+  `MedicineRiskCheckService`、`SafetyTipsAdminService`。
 
 ## Tests
 
 `medicines.controller.spec.ts`、`services/medicines.service.spec.ts`、
+`services/admin.service.spec.ts`、
 `adapters/cn.service.spec.ts`、`adapters/drugbank.service.spec.ts`、
 `services/risk/*.spec.ts`、`services/recognition-queue.service.spec.ts`、
 `cache/*.spec.ts`、`utils/*.spec.ts`。

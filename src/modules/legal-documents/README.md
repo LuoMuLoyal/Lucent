@@ -7,13 +7,12 @@ owner: backend
 
 ## 模块意图
 
-面向客户端的法定文档(隐私政策、用户协议等)只读服务:列出当前生效的文档
-并按 locale 取内容,供 App 内展示与合规同意流程使用。
+面向客户端的法定文档服务:公开只读当前生效文档,并由受权限保护的管理服务维护版本内容。
 
 ## 边界
 
-- 管:法定文档的公开查询(控制器标记 `@Public()`)。
-- 不管:文档内容的编写与版本管理(运营侧);用户同意记录的落库(本模块
+- 管:法定文档的公开查询(控制器标记 `@Public()`),以及被 Admin 授权后对文档元数据/内容的更新、缓存失效和审计写入。
+- 不管:管理员身份/权限与管理 API 路由(由 admin 模块负责);用户同意记录的落库(本模块
   无此模型)。
 
 ## 依赖方向
@@ -24,9 +23,11 @@ owner: backend
 ## 内部结构
 
 - `services/documents.service.ts` — `LegalDocumentsService`:按 locale 组装
-  生效文档列表与单篇内容。
+  生效文档列表与单篇内容,并负责更新后的公开读缓存失效。
+- `services/admin.service.ts` — `LegalDocumentsAdminService`:管理端列表、更新、变更摘要审计。
 
 ## 测试承接
 
 - `legal-documents.controller.spec.ts`
 - `services/documents.service.spec.ts`
+- `services/admin.service.spec.ts`

@@ -1275,6 +1275,673 @@
         "tags": ["Admin"]
       }
     },
+    "/api/v1/admin/content/legal-documents": {
+      "get": {
+        "operationId": "listAdminLegalDocuments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLegalDocumentList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List legal documents for administration",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/content/legal-documents/{docType}": {
+      "put": {
+        "operationId": "updateAdminLegalDocument",
+        "parameters": [
+          {
+            "name": "docType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminLegalDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLegalDocument"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a legal document",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/content/safety-tips": {
+      "get": {
+        "operationId": "listAdminSafetyTips",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSafetyTipList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List medication safety tips for administration",
+        "tags": ["Admin"]
+      },
+      "post": {
+        "operationId": "createAdminSafetyTip",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminSafetyTipRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSafetyTip"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a medication safety tip",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/content/safety-tips/{id}": {
+      "put": {
+        "operationId": "updateAdminSafetyTip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminSafetyTipRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSafetyTip"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a medication safety tip",
+        "tags": ["Admin"]
+      },
+      "delete": {
+        "operationId": "deleteAdminSafetyTip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Safety tip deleted."
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete a medication safety tip",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/legal-documents": {
+      "get": {
+        "operationId": "listLegalDocuments",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Content language: 'zh' or 'en'. Default: 'zh'.",
+            "schema": {
+              "type": "string",
+              "enum": ["zh", "en"],
+              "description": "Content language: 'zh' or 'en'. Default: 'zh'."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active legal documents with list-level update timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalDocumentListResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all active legal documents",
+        "tags": ["Legal Documents"]
+      }
+    },
+    "/api/v1/legal-documents/{docType}": {
+      "get": {
+        "operationId": "getLegalDocument",
+        "parameters": [
+          {
+            "name": "docType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Content language: 'zh' or 'en'. Default: 'zh'.",
+            "schema": {
+              "type": "string",
+              "enum": ["zh", "en"],
+              "description": "Content language: 'zh' or 'en'. Default: 'zh'."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Legal document detail with Markdown content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalDocumentDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document type not found or inactive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get a specific legal document by type",
+        "tags": ["Legal Documents"]
+      }
+    },
+    "/api/v1/medicines/safety-tips": {
+      "get": {
+        "operationId": "getSafetyTips",
+        "parameters": [
+          {
+            "name": "exclude",
+            "required": false,
+            "in": "query",
+            "description": "Safety tip IDs from the last response, used for deduplication",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Random medication safety tips.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSafetyTipResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get random medication safety tips",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines": {
+      "get": {
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source selector.",
+            "schema": {
+              "type": "string",
+              "description": "Knowledge source selector."
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword.",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Search keyword."
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number, 1-based.",
+            "schema": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991,
+              "description": "Page number, 1-based."
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size.",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Page size."
+            }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results from the selected knowledge source.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSearchResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Search medicines from a selected knowledge source",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/{id}": {
+      "get": {
+        "operationId": "getDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Medicine id in the selected source",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source selector.",
+            "schema": {
+              "type": "string",
+              "description": "Knowledge source selector."
+            }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicine detail from the selected knowledge source.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get medicine detail from a selected knowledge source",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/{id}/sequences": {
+      "get": {
+        "operationId": "getSequences",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Medicine id in the selected source",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source selector.",
+            "schema": {
+              "type": "string",
+              "description": "Knowledge source selector."
+            }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sequences of the drug itself and of its targets. Empty arrays when the source has none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSequenceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get medicine sequences (drug chains and target sequences)",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/risk-check": {
+      "get": {
+        "operationId": "getRiskCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Latest static and LLM medicine risk check records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get latest medicine risk check records",
+        "tags": ["Medicines"]
+      },
+      "post": {
+        "operationId": "runRiskCheck",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRiskCheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created medicine risk check record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRiskCheckRecordResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Run medicine risk check (static or LLM)",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/recognize": {
+      "post": {
+        "operationId": "recognize",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecognizeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recognized medicine fields, null when not extractable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRecognitionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "AI recognize medicine box image and extract medicine info",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/recognize/async": {
+      "post": {
+        "operationId": "enqueueMedicineRecognition",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueMedicineRecognitionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns either a queued jobId or the synchronous recognition resource when the queue is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRecognitionJob"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Enqueue async medicine box image recognition",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/recognize/status/{jobId}": {
+      "get": {
+        "operationId": "recognizeStatus",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status (pending, completed, or failed)"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Poll async medicine recognition status",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/user/medicine-reminders": {
       "get": {
         "operationId": "listMedicineReminders",
@@ -4444,389 +5111,6 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/medicines/safety-tips": {
-      "get": {
-        "operationId": "getSafetyTips",
-        "parameters": [
-          {
-            "name": "exclude",
-            "required": false,
-            "in": "query",
-            "description": "Safety tip IDs from the last response, used for deduplication",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Random medication safety tips.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineSafetyTipResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get random medication safety tips",
-        "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/medicines": {
-      "get": {
-        "operationId": "search",
-        "parameters": [
-          {
-            "name": "source",
-            "required": false,
-            "in": "query",
-            "description": "Knowledge source selector.",
-            "schema": {
-              "type": "string",
-              "description": "Knowledge source selector."
-            }
-          },
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "description": "Search keyword.",
-            "schema": {
-              "type": "string",
-              "maxLength": 200,
-              "description": "Search keyword."
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "Page number, 1-based.",
-            "schema": {
-              "default": 1,
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991,
-              "description": "Page number, 1-based."
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "description": "Page size.",
-            "schema": {
-              "default": 20,
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50,
-              "description": "Page size."
-            }
-          },
-          {
-            "name": "x-bypass-cache",
-            "required": false,
-            "in": "header",
-            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Search results from the selected knowledge source.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineSearchResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Search medicines from a selected knowledge source",
-        "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/medicines/{id}": {
-      "get": {
-        "operationId": "getDetail",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Medicine id in the selected source",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "source",
-            "required": false,
-            "in": "query",
-            "description": "Knowledge source selector.",
-            "schema": {
-              "type": "string",
-              "description": "Knowledge source selector."
-            }
-          },
-          {
-            "name": "x-bypass-cache",
-            "required": false,
-            "in": "header",
-            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Medicine detail from the selected knowledge source.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineDetailResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get medicine detail from a selected knowledge source",
-        "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/medicines/{id}/sequences": {
-      "get": {
-        "operationId": "getSequences",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Medicine id in the selected source",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "source",
-            "required": false,
-            "in": "query",
-            "description": "Knowledge source selector.",
-            "schema": {
-              "type": "string",
-              "description": "Knowledge source selector."
-            }
-          },
-          {
-            "name": "x-bypass-cache",
-            "required": false,
-            "in": "header",
-            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Sequences of the drug itself and of its targets. Empty arrays when the source has none.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineSequenceResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get medicine sequences (drug chains and target sequences)",
-        "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/medicines/risk-check": {
-      "get": {
-        "operationId": "getRiskCheck",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Latest static and LLM medicine risk check records.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get latest medicine risk check records",
-        "tags": ["Medicines"]
-      },
-      "post": {
-        "operationId": "runRiskCheck",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RunRiskCheckRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The created medicine risk check record.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineRiskCheckRecordResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Run medicine risk check (static or LLM)",
-        "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/medicines/recognize": {
-      "post": {
-        "operationId": "recognize",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecognizeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Recognized medicine fields, null when not extractable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineRecognitionResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "AI recognize medicine box image and extract medicine info",
-        "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/medicines/recognize/async": {
-      "post": {
-        "operationId": "enqueueMedicineRecognition",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EnqueueMedicineRecognitionRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Returns either a queued jobId or the synchronous recognition resource when the queue is unavailable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineRecognitionJob"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Enqueue async medicine box image recognition",
-        "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/medicines/recognize/status/{jobId}": {
-      "get": {
-        "operationId": "recognizeStatus",
-        "parameters": [
-          {
-            "name": "jobId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Job status (pending, completed, or failed)"
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Poll async medicine recognition status",
-        "tags": ["Medicines"]
-      }
-    },
     "/api/v1/user/settings": {
       "get": {
         "operationId": "getSettings",
@@ -6720,88 +7004,6 @@
         "tags": ["App Info"]
       }
     },
-    "/api/v1/legal-documents": {
-      "get": {
-        "operationId": "listLegalDocuments",
-        "parameters": [
-          {
-            "name": "lang",
-            "required": false,
-            "in": "query",
-            "description": "Content language: 'zh' or 'en'. Default: 'zh'.",
-            "schema": {
-              "type": "string",
-              "enum": ["zh", "en"],
-              "description": "Content language: 'zh' or 'en'. Default: 'zh'."
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Active legal documents with list-level update timestamp.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LegalDocumentListResponse"
-                }
-              }
-            }
-          }
-        },
-        "summary": "List all active legal documents",
-        "tags": ["Legal Documents"]
-      }
-    },
-    "/api/v1/legal-documents/{docType}": {
-      "get": {
-        "operationId": "getLegalDocument",
-        "parameters": [
-          {
-            "name": "docType",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "lang",
-            "required": false,
-            "in": "query",
-            "description": "Content language: 'zh' or 'en'. Default: 'zh'.",
-            "schema": {
-              "type": "string",
-              "enum": ["zh", "en"],
-              "description": "Content language: 'zh' or 'en'. Default: 'zh'."
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Legal document detail with Markdown content.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LegalDocumentDetailResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Document type not found or inactive.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Get a specific legal document by type",
-        "tags": ["Legal Documents"]
-      }
-    },
     "/api/v1/user/data-export-requests": {
       "post": {
         "operationId": "createRequest",
@@ -7520,6 +7722,502 @@
         "required": ["accessToken", "refreshToken", "expiresIn"],
         "additionalProperties": false
       },
+      "LegalDocumentListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegalDocumentListResponseItems"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of the most recent document update."
+          }
+        },
+        "required": ["items", "updatedAt"],
+        "additionalProperties": false
+      },
+      "LegalDocumentDetailResponse": {
+        "type": "object",
+        "properties": {
+          "docType": {
+            "type": "string",
+            "description": "Document type identifier used in URL paths."
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown content of the document."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of last update."
+          }
+        },
+        "required": ["docType", "title", "content", "updatedAt"],
+        "additionalProperties": false
+      },
+      "MedicineSafetyTipResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MedicineSafetyTipItem"
+        },
+        "description": "Random medication safety tips."
+      },
+      "MedicineSearchResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSearchResponseItems"
+            },
+            "description": "Matched medicine items."
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/MedicineSearchResponsePagination"
+          }
+        },
+        "required": ["items", "pagination"],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Medicine id in the selected source."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["drugbank", "cn"],
+            "description": "Knowledge source."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "subtitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "detail": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "drugType": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "state": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "indication": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "mechanismOfAction": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "pharmacodynamics": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "toxicity": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "metabolism": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "absorption": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "halfLife": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "proteinBinding": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "routeOfElimination": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "volumeOfDistribution": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "clearance": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "groups": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true
+                  },
+                  "atcCodes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true
+                  },
+                  "synonyms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true
+                  },
+                  "foodInteractions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true
+                  },
+                  "drugInteractions": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedicineDetailResponseDrugInteractions"
+                    },
+                    "nullable": true
+                  },
+                  "targets": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedicineDetailResponseTargets"
+                    },
+                    "nullable": true
+                  },
+                  "externalIdentifiers": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedicineDetailResponseExternalIdentifiers"
+                    },
+                    "nullable": true
+                  },
+                  "externalLinks": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedicineDetailResponseExternalLinks"
+                    },
+                    "nullable": true
+                  },
+                  "sequenceSummary": {
+                    "nullable": true,
+                    "$ref": "#/components/schemas/MedicineDetailResponseSequenceSummary"
+                  },
+                  "structure": {
+                    "nullable": true,
+                    "$ref": "#/components/schemas/MedicineDetailResponseStructure"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "drugType",
+                  "state",
+                  "description",
+                  "indication",
+                  "mechanismOfAction",
+                  "pharmacodynamics",
+                  "toxicity",
+                  "metabolism",
+                  "absorption",
+                  "halfLife",
+                  "proteinBinding",
+                  "routeOfElimination",
+                  "volumeOfDistribution",
+                  "clearance",
+                  "groups",
+                  "categories",
+                  "atcCodes",
+                  "synonyms",
+                  "foodInteractions",
+                  "drugInteractions",
+                  "targets",
+                  "externalIdentifiers",
+                  "externalLinks",
+                  "sequenceSummary",
+                  "structure"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "approvalNumber": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "manufacturer": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "packageSpec": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "brandName": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "ingredients": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "properties": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "indications": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "dosage": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "adverseReactions": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "contraindications": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "precautions": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "pharmacologyToxicology": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "pharmacokinetics": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "overdose": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "storage": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "validityPeriod": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "barcode": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "nationalDrugCode": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "sourceUrl": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "imageUrl": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "kind",
+                  "approvalNumber",
+                  "manufacturer",
+                  "packageSpec",
+                  "brandName",
+                  "ingredients",
+                  "properties",
+                  "indications",
+                  "dosage",
+                  "adverseReactions",
+                  "contraindications",
+                  "precautions",
+                  "pharmacologyToxicology",
+                  "pharmacokinetics",
+                  "overdose",
+                  "storage",
+                  "validityPeriod",
+                  "barcode",
+                  "nationalDrugCode",
+                  "sourceUrl",
+                  "imageUrl"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": ["id", "source", "name", "subtitle", "detail"],
+        "additionalProperties": false
+      },
+      "MedicineSequenceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Medicine id in the selected source."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["drugbank", "cn"],
+            "description": "Knowledge source."
+          },
+          "drug": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSequenceResponseDrug"
+            },
+            "description": "Sequences of the drug itself (biologics have one per chain)."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSequenceResponseTargets"
+            },
+            "description": "Sequences of the drug targets, protein and coding gene."
+          }
+        },
+        "required": ["id", "source", "drug", "targets"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponse": {
+        "type": "object",
+        "properties": {
+          "static": {
+            "nullable": true,
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStatic"
+          },
+          "llm": {
+            "nullable": true,
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlm"
+          }
+        },
+        "required": ["static", "llm"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponse": {
+        "type": "object",
+        "properties": {
+          "checkType": {
+            "type": "string",
+            "enum": ["static", "llm"],
+            "description": "Type of risk check."
+          },
+          "result": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResult"
+          },
+          "riskScore": {
+            "type": "number",
+            "description": "Persisted risk score (0-100)."
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"],
+            "description": "Persisted risk level."
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "Whether the record is stale."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "checkType",
+          "result",
+          "riskScore",
+          "riskLevel",
+          "stale",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineRecognitionResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvalNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "specification": {
+            "type": "string",
+            "nullable": true
+          },
+          "manufacturer": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["name", "approvalNumber", "specification", "manufacturer"],
+        "additionalProperties": false
+      },
+      "MedicineRecognitionJob": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "description": "Queued recognition job identifier.",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/MedicineRecognitionJobResult"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminMetricsOverview": {
         "type": "object",
         "properties": {
@@ -7645,6 +8343,98 @@
           }
         },
         "required": ["items", "total", "page", "limit"],
+        "additionalProperties": false
+      },
+      "AdminLegalDocumentList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AdminLegalDocumentItem"
+        }
+      },
+      "AdminLegalDocument": {
+        "type": "object",
+        "properties": {
+          "docType": {
+            "type": "string"
+          },
+          "titleZh": {
+            "type": "string"
+          },
+          "titleEn": {
+            "type": "string"
+          },
+          "contentZh": {
+            "type": "string"
+          },
+          "contentEn": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "docType",
+          "titleZh",
+          "titleEn",
+          "contentZh",
+          "contentEn",
+          "isActive",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "AdminSafetyTipList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AdminSafetyTipItem"
+        }
+      },
+      "AdminSafetyTip": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "contentZh": {
+            "type": "string"
+          },
+          "contentEn": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "contentZh",
+          "contentEn",
+          "category",
+          "sortOrder",
+          "isActive",
+          "updatedAt"
+        ],
         "additionalProperties": false
       },
       "FunnelResponse": {
@@ -8285,463 +9075,6 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false
-      },
-      "MedicineSafetyTipResponse": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/MedicineSafetyTipItem"
-        },
-        "description": "Random medication safety tips."
-      },
-      "MedicineSearchResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineSearchResponseItems"
-            },
-            "description": "Matched medicine items."
-          },
-          "pagination": {
-            "$ref": "#/components/schemas/MedicineSearchResponsePagination"
-          }
-        },
-        "required": ["items", "pagination"],
-        "additionalProperties": false
-      },
-      "MedicineDetailResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Medicine id in the selected source."
-          },
-          "source": {
-            "type": "string",
-            "enum": ["drugbank", "cn"],
-            "description": "Knowledge source."
-          },
-          "name": {
-            "type": "string",
-            "description": "Display name."
-          },
-          "subtitle": {
-            "type": "string",
-            "nullable": true
-          },
-          "detail": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "drugType": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "state": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "description": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "indication": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "mechanismOfAction": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "pharmacodynamics": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "toxicity": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "metabolism": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "absorption": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "halfLife": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "proteinBinding": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "routeOfElimination": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "volumeOfDistribution": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "clearance": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "groups": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "nullable": true
-                  },
-                  "categories": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "nullable": true
-                  },
-                  "atcCodes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "nullable": true
-                  },
-                  "synonyms": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "nullable": true
-                  },
-                  "foodInteractions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "nullable": true
-                  },
-                  "drugInteractions": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/MedicineDetailResponseDrugInteractions"
-                    },
-                    "nullable": true
-                  },
-                  "targets": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/MedicineDetailResponseTargets"
-                    },
-                    "nullable": true
-                  },
-                  "externalIdentifiers": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/MedicineDetailResponseExternalIdentifiers"
-                    },
-                    "nullable": true
-                  },
-                  "externalLinks": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/MedicineDetailResponseExternalLinks"
-                    },
-                    "nullable": true
-                  },
-                  "sequenceSummary": {
-                    "nullable": true,
-                    "$ref": "#/components/schemas/MedicineDetailResponseSequenceSummary"
-                  },
-                  "structure": {
-                    "nullable": true,
-                    "$ref": "#/components/schemas/MedicineDetailResponseStructure"
-                  }
-                },
-                "required": [
-                  "kind",
-                  "drugType",
-                  "state",
-                  "description",
-                  "indication",
-                  "mechanismOfAction",
-                  "pharmacodynamics",
-                  "toxicity",
-                  "metabolism",
-                  "absorption",
-                  "halfLife",
-                  "proteinBinding",
-                  "routeOfElimination",
-                  "volumeOfDistribution",
-                  "clearance",
-                  "groups",
-                  "categories",
-                  "atcCodes",
-                  "synonyms",
-                  "foodInteractions",
-                  "drugInteractions",
-                  "targets",
-                  "externalIdentifiers",
-                  "externalLinks",
-                  "sequenceSummary",
-                  "structure"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "approvalNumber": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "manufacturer": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "packageSpec": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "brandName": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "ingredients": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "properties": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "indications": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "dosage": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "adverseReactions": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "contraindications": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "precautions": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "pharmacologyToxicology": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "pharmacokinetics": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "overdose": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "storage": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "validityPeriod": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "barcode": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "nationalDrugCode": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "sourceUrl": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "imageUrl": {
-                    "type": "string",
-                    "nullable": true
-                  }
-                },
-                "required": [
-                  "kind",
-                  "approvalNumber",
-                  "manufacturer",
-                  "packageSpec",
-                  "brandName",
-                  "ingredients",
-                  "properties",
-                  "indications",
-                  "dosage",
-                  "adverseReactions",
-                  "contraindications",
-                  "precautions",
-                  "pharmacologyToxicology",
-                  "pharmacokinetics",
-                  "overdose",
-                  "storage",
-                  "validityPeriod",
-                  "barcode",
-                  "nationalDrugCode",
-                  "sourceUrl",
-                  "imageUrl"
-                ],
-                "additionalProperties": false
-              }
-            ]
-          }
-        },
-        "required": ["id", "source", "name", "subtitle", "detail"],
-        "additionalProperties": false
-      },
-      "MedicineSequenceResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Medicine id in the selected source."
-          },
-          "source": {
-            "type": "string",
-            "enum": ["drugbank", "cn"],
-            "description": "Knowledge source."
-          },
-          "drug": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineSequenceResponseDrug"
-            },
-            "description": "Sequences of the drug itself (biologics have one per chain)."
-          },
-          "targets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineSequenceResponseTargets"
-            },
-            "description": "Sequences of the drug targets, protein and coding gene."
-          }
-        },
-        "required": ["id", "source", "drug", "targets"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordsResponse": {
-        "type": "object",
-        "properties": {
-          "static": {
-            "nullable": true,
-            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStatic"
-          },
-          "llm": {
-            "nullable": true,
-            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlm"
-          }
-        },
-        "required": ["static", "llm"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordResponse": {
-        "type": "object",
-        "properties": {
-          "checkType": {
-            "type": "string",
-            "enum": ["static", "llm"],
-            "description": "Type of risk check."
-          },
-          "result": {
-            "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResult"
-          },
-          "riskScore": {
-            "type": "number",
-            "description": "Persisted risk score (0-100)."
-          },
-          "riskLevel": {
-            "type": "string",
-            "enum": ["safe", "caution", "risk", "danger"],
-            "description": "Persisted risk level."
-          },
-          "stale": {
-            "type": "boolean",
-            "description": "Whether the record is stale."
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "checkType",
-          "result",
-          "riskScore",
-          "riskLevel",
-          "stale",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
-      },
-      "MedicineRecognitionResponse": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "approvalNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "specification": {
-            "type": "string",
-            "nullable": true
-          },
-          "manufacturer": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["name", "approvalNumber", "specification", "manufacturer"],
-        "additionalProperties": false
-      },
-      "MedicineRecognitionJob": {
-        "type": "object",
-        "properties": {
-          "jobId": {
-            "description": "Queued recognition job identifier.",
-            "type": "string"
-          },
-          "result": {
-            "$ref": "#/components/schemas/MedicineRecognitionJobResult"
-          }
-        },
         "additionalProperties": false
       },
       "HealthContextResponse": {
@@ -9772,45 +10105,6 @@
         ],
         "additionalProperties": false
       },
-      "LegalDocumentListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LegalDocumentListResponseItems"
-            }
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp of the most recent document update."
-          }
-        },
-        "required": ["items", "updatedAt"],
-        "additionalProperties": false
-      },
-      "LegalDocumentDetailResponse": {
-        "type": "object",
-        "properties": {
-          "docType": {
-            "type": "string",
-            "description": "Document type identifier used in URL paths."
-          },
-          "title": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string",
-            "description": "Markdown content of the document."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp of last update."
-          }
-        },
-        "required": ["docType", "title", "content", "updatedAt"],
-        "additionalProperties": false
-      },
       "DataExportRequestResponse": {
         "type": "object",
         "properties": {
@@ -10546,6 +10840,141 @@
           }
         },
         "required": ["events"],
+        "additionalProperties": false
+      },
+      "UpdateAdminLegalDocumentRequest": {
+        "type": "object",
+        "properties": {
+          "titleZh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "titleEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "contentZh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500000
+          },
+          "contentEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500000
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateAdminSafetyTipRequest": {
+        "type": "object",
+        "properties": {
+          "contentZh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "contentEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "contentZh",
+          "contentEn",
+          "category",
+          "sortOrder",
+          "isActive"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateAdminSafetyTipRequest": {
+        "type": "object",
+        "properties": {
+          "contentZh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "contentEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunRiskCheckRequest": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["static", "llm"],
+            "description": "Type of risk check to run"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/RunRiskCheckRequestCandidate"
+          }
+        },
+        "required": ["type"],
+        "additionalProperties": false
+      },
+      "RecognizeRequest": {
+        "type": "object",
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri",
+            "description": "Public URL of the medicine box image"
+          }
+        },
+        "required": ["imageUrl"],
+        "additionalProperties": false
+      },
+      "EnqueueMedicineRecognitionRequest": {
+        "type": "object",
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri",
+            "description": "Public URL of the medicine box image"
+          }
+        },
+        "required": ["imageUrl"],
         "additionalProperties": false
       },
       "CreateMedicineReminderRequest": {
@@ -11386,47 +11815,6 @@
           }
         },
         "required": ["refreshToken"],
-        "additionalProperties": false
-      },
-      "RunRiskCheckRequest": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["static", "llm"],
-            "description": "Type of risk check to run"
-          },
-          "candidate": {
-            "$ref": "#/components/schemas/RunRiskCheckRequestCandidate"
-          }
-        },
-        "required": ["type"],
-        "additionalProperties": false
-      },
-      "RecognizeRequest": {
-        "type": "object",
-        "properties": {
-          "imageUrl": {
-            "type": "string",
-            "maxLength": 2048,
-            "format": "uri",
-            "description": "Public URL of the medicine box image"
-          }
-        },
-        "required": ["imageUrl"],
-        "additionalProperties": false
-      },
-      "EnqueueMedicineRecognitionRequest": {
-        "type": "object",
-        "properties": {
-          "imageUrl": {
-            "type": "string",
-            "maxLength": 2048,
-            "format": "uri",
-            "description": "Public URL of the medicine box image"
-          }
-        },
-        "required": ["imageUrl"],
         "additionalProperties": false
       },
       "UpdateSettingsRequest": {
@@ -12336,6 +12724,1035 @@
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
+        "additionalProperties": false
+      },
+      "LegalDocumentListResponseItems": {
+        "type": "object",
+        "properties": {
+          "docType": {
+            "type": "string",
+            "description": "Document type identifier used in URL paths."
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of last update."
+          }
+        },
+        "required": ["docType", "title", "updatedAt"],
+        "additionalProperties": false
+      },
+      "MedicineSearchResponseItems": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable medicine id."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["drugbank", "cn"],
+            "description": "Knowledge source."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "subtitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Compact tags for search cards."
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "matchedBy": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Which fields matched the current query."
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "name",
+          "subtitle",
+          "summary",
+          "tags",
+          "imageUrl",
+          "matchedBy"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineSearchResponsePagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "description": "Page number, 1-based."
+          },
+          "pageSize": {
+            "type": "number",
+            "description": "Page size."
+          },
+          "total": {
+            "type": "number",
+            "description": "Total result count."
+          },
+          "totalPages": {
+            "type": "number",
+            "description": "Total page count."
+          }
+        },
+        "required": ["page", "pageSize", "total", "totalPages"],
+        "additionalProperties": false,
+        "description": "Pagination metadata."
+      },
+      "MedicineDetailResponseDrugInteractions": {
+        "type": "object",
+        "properties": {
+          "drugbankId": {
+            "type": "string",
+            "description": "Interacting DrugBank drug id."
+          },
+          "description": {
+            "type": "string",
+            "description": "Interaction description."
+          }
+        },
+        "required": ["drugbankId", "description"],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseTargets": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Target display name."
+          },
+          "geneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "uniprotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "uniprotTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "species": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdbIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "knownAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "relationKind": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "geneName",
+          "uniprotId",
+          "uniprotTitle",
+          "species",
+          "pdbIds",
+          "actions",
+          "knownAction",
+          "relationKind"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseExternalIdentifiers": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "description": "Source resource label."
+          },
+          "identifier": {
+            "type": "string",
+            "description": "Identifier within that resource."
+          }
+        },
+        "required": ["resource", "identifier"],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseExternalLinks": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "description": "Source resource label."
+          },
+          "url": {
+            "type": "string",
+            "description": "Outbound URL for that resource."
+          }
+        },
+        "required": ["resource", "url"],
+        "additionalProperties": false
+      },
+      "MedicineDetailResponseSequenceSummary": {
+        "type": "object",
+        "properties": {
+          "drugChainCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of sequences belonging to the drug itself."
+          },
+          "targetSequenceCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of target sequences reachable from this drug."
+          }
+        },
+        "required": ["drugChainCount", "targetSequenceCount"],
+        "additionalProperties": false,
+        "nullable": true
+      },
+      "MedicineDetailResponseStructure": {
+        "type": "object",
+        "properties": {
+          "smiles": {
+            "type": "string",
+            "nullable": true
+          },
+          "inchiKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "inchiIdentifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "formula": {
+            "type": "string",
+            "nullable": true
+          },
+          "iupacName": {
+            "type": "string",
+            "nullable": true
+          },
+          "molecularWeight": {
+            "type": "number",
+            "nullable": true
+          },
+          "exactMass": {
+            "type": "number",
+            "nullable": true
+          },
+          "logP": {
+            "type": "number",
+            "nullable": true
+          },
+          "polarSurfaceArea": {
+            "type": "number",
+            "nullable": true
+          },
+          "polarizability": {
+            "type": "number",
+            "nullable": true
+          },
+          "refractivity": {
+            "type": "number",
+            "nullable": true
+          },
+          "alogpsLogP": {
+            "type": "number",
+            "nullable": true
+          },
+          "alogpsLogS": {
+            "type": "number",
+            "nullable": true
+          },
+          "alogpsSolubility": {
+            "type": "string",
+            "nullable": true
+          },
+          "pka": {
+            "type": "number",
+            "nullable": true
+          },
+          "pkaStrongestAcidic": {
+            "type": "number",
+            "nullable": true
+          },
+          "pkaStrongestBasic": {
+            "type": "number",
+            "nullable": true
+          },
+          "formalCharge": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "physiologicalCharge": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "neutralCharge": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "averageNeutralMicrospeciesCharge": {
+            "type": "number",
+            "nullable": true
+          },
+          "atomCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "ringCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "rotatableBondCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "acceptorCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "donorCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "ruleOfFive": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "veberRule": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "ghoseFilter": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "mddrLikeRule": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "bioavailability": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "salts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "required": [
+          "smiles",
+          "inchiKey",
+          "inchiIdentifier",
+          "formula",
+          "iupacName",
+          "molecularWeight",
+          "exactMass",
+          "logP",
+          "polarSurfaceArea",
+          "polarizability",
+          "refractivity",
+          "alogpsLogP",
+          "alogpsLogS",
+          "alogpsSolubility",
+          "pka",
+          "pkaStrongestAcidic",
+          "pkaStrongestBasic",
+          "formalCharge",
+          "physiologicalCharge",
+          "neutralCharge",
+          "averageNeutralMicrospeciesCharge",
+          "atomCount",
+          "ringCount",
+          "rotatableBondCount",
+          "acceptorCount",
+          "donorCount",
+          "ruleOfFive",
+          "veberRule",
+          "ghoseFilter",
+          "mddrLikeRule",
+          "bioavailability",
+          "salts"
+        ],
+        "additionalProperties": false,
+        "nullable": true
+      },
+      "MedicineSequenceResponseDrug": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Chain description exactly as the source header spells it, e.g. \"heavy chain\"."
+          },
+          "length": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Residue count."
+          },
+          "sequence": {
+            "type": "string",
+            "description": "Amino-acid sequence."
+          }
+        },
+        "required": ["description", "length", "sequence"],
+        "additionalProperties": false
+      },
+      "MedicineSequenceResponseTargets": {
+        "type": "object",
+        "properties": {
+          "uniprotId": {
+            "type": "string",
+            "description": "UniProt identifier of the target."
+          },
+          "targetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataset": {
+            "type": "string",
+            "description": "Which sequence this is: protein_fasta or gene_fasta."
+          },
+          "length": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Residue (protein) or base (gene) count."
+          },
+          "sequence": {
+            "type": "string",
+            "description": "Sequence content."
+          }
+        },
+        "required": [
+          "uniprotId",
+          "targetName",
+          "dataset",
+          "length",
+          "sequence"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseStatic": {
+        "type": "object",
+        "properties": {
+          "checkType": {
+            "type": "string",
+            "enum": ["static", "llm"],
+            "description": "Type of risk check."
+          },
+          "result": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResult"
+          },
+          "riskScore": {
+            "type": "number",
+            "description": "Persisted risk score (0-100)."
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"],
+            "description": "Persisted risk level."
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "Whether the record is stale."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "checkType",
+          "result",
+          "riskScore",
+          "riskLevel",
+          "stale",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "nullable": true
+      },
+      "MedicineRiskCheckRecordsResponseStaticResult": {
+        "type": "object",
+        "properties": {
+          "overallRiskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"],
+            "description": "Overall risk level."
+          },
+          "overallRiskScore": {
+            "type": "number",
+            "description": "Overall risk score (0-100)."
+          },
+          "currentMedicineCount": {
+            "type": "number",
+            "description": "Current medicine count."
+          },
+          "checkedMedicineCount": {
+            "type": "number",
+            "description": "Count actually checked."
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultFindings"
+            },
+            "description": "Detected risk findings."
+          },
+          "coverageIssues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultCoverageIssues"
+            },
+            "description": "Medicines skipped due to missing detail."
+          },
+          "redFlags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultRedFlags"
+            },
+            "description": "Raised red flags."
+          },
+          "overallRecommendation": {
+            "description": "LLM check only",
+            "type": "string"
+          }
+        },
+        "required": [
+          "overallRiskLevel",
+          "overallRiskScore",
+          "currentMedicineCount",
+          "checkedMedicineCount",
+          "findings",
+          "coverageIssues",
+          "redFlags"
+        ],
+        "additionalProperties": false,
+        "description": "Check result."
+      },
+      "MedicineRiskCheckRecordsResponseStaticResultFindings": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "interaction",
+              "duplicateIngredient",
+              "allergy",
+              "foodInteraction",
+              "longTermUse",
+              "schedulingConflict",
+              "specialGroup"
+            ],
+            "description": "Finding kind."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium", "info"],
+            "description": "Finding severity."
+          },
+          "context": {
+            "type": "string",
+            "enum": ["none", "alcohol", "caffeine"],
+            "description": "Finding context."
+          },
+          "primaryMedicineName": {
+            "type": "string",
+            "description": "Medicine the finding is about."
+          },
+          "secondaryMedicineName": {
+            "description": "Second medicine involved.",
+            "type": "string"
+          },
+          "relatedLabel": {
+            "description": "Related label (e.g. allergen).",
+            "type": "string"
+          },
+          "evidence": {
+            "description": "Supporting evidence.",
+            "type": "string"
+          },
+          "recommendation": {
+            "description": "LLM check only",
+            "type": "string"
+          }
+        },
+        "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseStaticResultCoverageIssues": {
+        "type": "object",
+        "properties": {
+          "medicineName": {
+            "type": "string",
+            "description": "Medicine name without source detail."
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["manualEntry", "missingSourceRef", "detailUnavailable"],
+            "description": "Why the medicine detail was not checked."
+          }
+        },
+        "required": ["medicineName", "reason"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseStaticResultRedFlags": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": ["severeAllergy", "informationGap"],
+            "description": "Red flag rule."
+          },
+          "primaryMedicineName": {
+            "type": "string",
+            "description": "Medicine the flag is about."
+          },
+          "relatedLabel": {
+            "description": "Related label.",
+            "type": "string"
+          }
+        },
+        "required": ["rule", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseLlm": {
+        "type": "object",
+        "properties": {
+          "checkType": {
+            "type": "string",
+            "enum": ["static", "llm"],
+            "description": "Type of risk check."
+          },
+          "result": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResult"
+          },
+          "riskScore": {
+            "type": "number",
+            "description": "Persisted risk score (0-100)."
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"],
+            "description": "Persisted risk level."
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "Whether the record is stale."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "checkType",
+          "result",
+          "riskScore",
+          "riskLevel",
+          "stale",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "nullable": true
+      },
+      "MedicineRiskCheckRecordsResponseLlmResult": {
+        "type": "object",
+        "properties": {
+          "overallRiskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"],
+            "description": "Overall risk level."
+          },
+          "overallRiskScore": {
+            "type": "number",
+            "description": "Overall risk score (0-100)."
+          },
+          "currentMedicineCount": {
+            "type": "number",
+            "description": "Current medicine count."
+          },
+          "checkedMedicineCount": {
+            "type": "number",
+            "description": "Count actually checked."
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultFindings"
+            },
+            "description": "Detected risk findings."
+          },
+          "coverageIssues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultCoverageIssues"
+            },
+            "description": "Medicines skipped due to missing detail."
+          },
+          "redFlags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultRedFlags"
+            },
+            "description": "Raised red flags."
+          },
+          "overallRecommendation": {
+            "description": "LLM check only",
+            "type": "string"
+          }
+        },
+        "required": [
+          "overallRiskLevel",
+          "overallRiskScore",
+          "currentMedicineCount",
+          "checkedMedicineCount",
+          "findings",
+          "coverageIssues",
+          "redFlags"
+        ],
+        "additionalProperties": false,
+        "description": "Check result."
+      },
+      "MedicineRiskCheckRecordsResponseLlmResultFindings": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "interaction",
+              "duplicateIngredient",
+              "allergy",
+              "foodInteraction",
+              "longTermUse",
+              "schedulingConflict",
+              "specialGroup"
+            ],
+            "description": "Finding kind."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium", "info"],
+            "description": "Finding severity."
+          },
+          "context": {
+            "type": "string",
+            "enum": ["none", "alcohol", "caffeine"],
+            "description": "Finding context."
+          },
+          "primaryMedicineName": {
+            "type": "string",
+            "description": "Medicine the finding is about."
+          },
+          "secondaryMedicineName": {
+            "description": "Second medicine involved.",
+            "type": "string"
+          },
+          "relatedLabel": {
+            "description": "Related label (e.g. allergen).",
+            "type": "string"
+          },
+          "evidence": {
+            "description": "Supporting evidence.",
+            "type": "string"
+          },
+          "recommendation": {
+            "description": "LLM check only",
+            "type": "string"
+          }
+        },
+        "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseLlmResultCoverageIssues": {
+        "type": "object",
+        "properties": {
+          "medicineName": {
+            "type": "string",
+            "description": "Medicine name without source detail."
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["manualEntry", "missingSourceRef", "detailUnavailable"],
+            "description": "Why the medicine detail was not checked."
+          }
+        },
+        "required": ["medicineName", "reason"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseLlmResultRedFlags": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": ["severeAllergy", "informationGap"],
+            "description": "Red flag rule."
+          },
+          "primaryMedicineName": {
+            "type": "string",
+            "description": "Medicine the flag is about."
+          },
+          "relatedLabel": {
+            "description": "Related label.",
+            "type": "string"
+          }
+        },
+        "required": ["rule", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponseResult": {
+        "type": "object",
+        "properties": {
+          "overallRiskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"],
+            "description": "Overall risk level."
+          },
+          "overallRiskScore": {
+            "type": "number",
+            "description": "Overall risk score (0-100)."
+          },
+          "currentMedicineCount": {
+            "type": "number",
+            "description": "Current medicine count."
+          },
+          "checkedMedicineCount": {
+            "type": "number",
+            "description": "Count actually checked."
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultFindings"
+            },
+            "description": "Detected risk findings."
+          },
+          "coverageIssues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultCoverageIssues"
+            },
+            "description": "Medicines skipped due to missing detail."
+          },
+          "redFlags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultRedFlags"
+            },
+            "description": "Raised red flags."
+          },
+          "overallRecommendation": {
+            "description": "LLM check only",
+            "type": "string"
+          }
+        },
+        "required": [
+          "overallRiskLevel",
+          "overallRiskScore",
+          "currentMedicineCount",
+          "checkedMedicineCount",
+          "findings",
+          "coverageIssues",
+          "redFlags"
+        ],
+        "additionalProperties": false,
+        "description": "Check result."
+      },
+      "MedicineRiskCheckRecordResponseResultFindings": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "interaction",
+              "duplicateIngredient",
+              "allergy",
+              "foodInteraction",
+              "longTermUse",
+              "schedulingConflict",
+              "specialGroup"
+            ],
+            "description": "Finding kind."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium", "info"],
+            "description": "Finding severity."
+          },
+          "context": {
+            "type": "string",
+            "enum": ["none", "alcohol", "caffeine"],
+            "description": "Finding context."
+          },
+          "primaryMedicineName": {
+            "type": "string",
+            "description": "Medicine the finding is about."
+          },
+          "secondaryMedicineName": {
+            "description": "Second medicine involved.",
+            "type": "string"
+          },
+          "relatedLabel": {
+            "description": "Related label (e.g. allergen).",
+            "type": "string"
+          },
+          "evidence": {
+            "description": "Supporting evidence.",
+            "type": "string"
+          },
+          "recommendation": {
+            "description": "LLM check only",
+            "type": "string"
+          }
+        },
+        "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponseResultCoverageIssues": {
+        "type": "object",
+        "properties": {
+          "medicineName": {
+            "type": "string",
+            "description": "Medicine name without source detail."
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["manualEntry", "missingSourceRef", "detailUnavailable"],
+            "description": "Why the medicine detail was not checked."
+          }
+        },
+        "required": ["medicineName", "reason"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponseResultRedFlags": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": ["severeAllergy", "informationGap"],
+            "description": "Red flag rule."
+          },
+          "primaryMedicineName": {
+            "type": "string",
+            "description": "Medicine the flag is about."
+          },
+          "relatedLabel": {
+            "description": "Related label.",
+            "type": "string"
+          }
+        },
+        "required": ["rule", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRecognitionJobResult": {
+        "description": "Inline recognition resource when queue processing is unavailable.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvalNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "specification": {
+            "type": "string",
+            "nullable": true
+          },
+          "manufacturer": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["name", "approvalNumber", "specification", "manufacturer"],
         "additionalProperties": false
       },
       "AdminMetricsOverviewUsers": {
@@ -13702,1017 +15119,6 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false
-      },
-      "MedicineSearchResponseItems": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Stable medicine id."
-          },
-          "source": {
-            "type": "string",
-            "enum": ["drugbank", "cn"],
-            "description": "Knowledge source."
-          },
-          "name": {
-            "type": "string",
-            "description": "Display name."
-          },
-          "subtitle": {
-            "type": "string",
-            "nullable": true
-          },
-          "summary": {
-            "type": "string",
-            "nullable": true
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Compact tags for search cards."
-          },
-          "imageUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "matchedBy": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Which fields matched the current query."
-          }
-        },
-        "required": [
-          "id",
-          "source",
-          "name",
-          "subtitle",
-          "summary",
-          "tags",
-          "imageUrl",
-          "matchedBy"
-        ],
-        "additionalProperties": false
-      },
-      "MedicineSearchResponsePagination": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "number",
-            "description": "Page number, 1-based."
-          },
-          "pageSize": {
-            "type": "number",
-            "description": "Page size."
-          },
-          "total": {
-            "type": "number",
-            "description": "Total result count."
-          },
-          "totalPages": {
-            "type": "number",
-            "description": "Total page count."
-          }
-        },
-        "required": ["page", "pageSize", "total", "totalPages"],
-        "additionalProperties": false,
-        "description": "Pagination metadata."
-      },
-      "MedicineDetailResponseDrugInteractions": {
-        "type": "object",
-        "properties": {
-          "drugbankId": {
-            "type": "string",
-            "description": "Interacting DrugBank drug id."
-          },
-          "description": {
-            "type": "string",
-            "description": "Interaction description."
-          }
-        },
-        "required": ["drugbankId", "description"],
-        "additionalProperties": false
-      },
-      "MedicineDetailResponseTargets": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Target display name."
-          },
-          "geneName": {
-            "type": "string",
-            "nullable": true
-          },
-          "uniprotId": {
-            "type": "string",
-            "nullable": true
-          },
-          "uniprotTitle": {
-            "type": "string",
-            "nullable": true
-          },
-          "species": {
-            "type": "string",
-            "nullable": true
-          },
-          "pdbIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "actions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "knownAction": {
-            "type": "string",
-            "nullable": true
-          },
-          "relationKind": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "name",
-          "geneName",
-          "uniprotId",
-          "uniprotTitle",
-          "species",
-          "pdbIds",
-          "actions",
-          "knownAction",
-          "relationKind"
-        ],
-        "additionalProperties": false
-      },
-      "MedicineDetailResponseExternalIdentifiers": {
-        "type": "object",
-        "properties": {
-          "resource": {
-            "type": "string",
-            "description": "Source resource label."
-          },
-          "identifier": {
-            "type": "string",
-            "description": "Identifier within that resource."
-          }
-        },
-        "required": ["resource", "identifier"],
-        "additionalProperties": false
-      },
-      "MedicineDetailResponseExternalLinks": {
-        "type": "object",
-        "properties": {
-          "resource": {
-            "type": "string",
-            "description": "Source resource label."
-          },
-          "url": {
-            "type": "string",
-            "description": "Outbound URL for that resource."
-          }
-        },
-        "required": ["resource", "url"],
-        "additionalProperties": false
-      },
-      "MedicineDetailResponseSequenceSummary": {
-        "type": "object",
-        "properties": {
-          "drugChainCount": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Number of sequences belonging to the drug itself."
-          },
-          "targetSequenceCount": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Number of target sequences reachable from this drug."
-          }
-        },
-        "required": ["drugChainCount", "targetSequenceCount"],
-        "additionalProperties": false,
-        "nullable": true
-      },
-      "MedicineDetailResponseStructure": {
-        "type": "object",
-        "properties": {
-          "smiles": {
-            "type": "string",
-            "nullable": true
-          },
-          "inchiKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "inchiIdentifier": {
-            "type": "string",
-            "nullable": true
-          },
-          "formula": {
-            "type": "string",
-            "nullable": true
-          },
-          "iupacName": {
-            "type": "string",
-            "nullable": true
-          },
-          "molecularWeight": {
-            "type": "number",
-            "nullable": true
-          },
-          "exactMass": {
-            "type": "number",
-            "nullable": true
-          },
-          "logP": {
-            "type": "number",
-            "nullable": true
-          },
-          "polarSurfaceArea": {
-            "type": "number",
-            "nullable": true
-          },
-          "polarizability": {
-            "type": "number",
-            "nullable": true
-          },
-          "refractivity": {
-            "type": "number",
-            "nullable": true
-          },
-          "alogpsLogP": {
-            "type": "number",
-            "nullable": true
-          },
-          "alogpsLogS": {
-            "type": "number",
-            "nullable": true
-          },
-          "alogpsSolubility": {
-            "type": "string",
-            "nullable": true
-          },
-          "pka": {
-            "type": "number",
-            "nullable": true
-          },
-          "pkaStrongestAcidic": {
-            "type": "number",
-            "nullable": true
-          },
-          "pkaStrongestBasic": {
-            "type": "number",
-            "nullable": true
-          },
-          "formalCharge": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "physiologicalCharge": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "neutralCharge": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "averageNeutralMicrospeciesCharge": {
-            "type": "number",
-            "nullable": true
-          },
-          "atomCount": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "ringCount": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "rotatableBondCount": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "acceptorCount": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "donorCount": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "ruleOfFive": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "veberRule": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "ghoseFilter": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "mddrLikeRule": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "bioavailability": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
-          },
-          "salts": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        },
-        "required": [
-          "smiles",
-          "inchiKey",
-          "inchiIdentifier",
-          "formula",
-          "iupacName",
-          "molecularWeight",
-          "exactMass",
-          "logP",
-          "polarSurfaceArea",
-          "polarizability",
-          "refractivity",
-          "alogpsLogP",
-          "alogpsLogS",
-          "alogpsSolubility",
-          "pka",
-          "pkaStrongestAcidic",
-          "pkaStrongestBasic",
-          "formalCharge",
-          "physiologicalCharge",
-          "neutralCharge",
-          "averageNeutralMicrospeciesCharge",
-          "atomCount",
-          "ringCount",
-          "rotatableBondCount",
-          "acceptorCount",
-          "donorCount",
-          "ruleOfFive",
-          "veberRule",
-          "ghoseFilter",
-          "mddrLikeRule",
-          "bioavailability",
-          "salts"
-        ],
-        "additionalProperties": false,
-        "nullable": true
-      },
-      "MedicineSequenceResponseDrug": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Chain description exactly as the source header spells it, e.g. \"heavy chain\"."
-          },
-          "length": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Residue count."
-          },
-          "sequence": {
-            "type": "string",
-            "description": "Amino-acid sequence."
-          }
-        },
-        "required": ["description", "length", "sequence"],
-        "additionalProperties": false
-      },
-      "MedicineSequenceResponseTargets": {
-        "type": "object",
-        "properties": {
-          "uniprotId": {
-            "type": "string",
-            "description": "UniProt identifier of the target."
-          },
-          "targetName": {
-            "type": "string",
-            "nullable": true
-          },
-          "dataset": {
-            "type": "string",
-            "description": "Which sequence this is: protein_fasta or gene_fasta."
-          },
-          "length": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Residue (protein) or base (gene) count."
-          },
-          "sequence": {
-            "type": "string",
-            "description": "Sequence content."
-          }
-        },
-        "required": [
-          "uniprotId",
-          "targetName",
-          "dataset",
-          "length",
-          "sequence"
-        ],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordsResponseStatic": {
-        "type": "object",
-        "properties": {
-          "checkType": {
-            "type": "string",
-            "enum": ["static", "llm"],
-            "description": "Type of risk check."
-          },
-          "result": {
-            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResult"
-          },
-          "riskScore": {
-            "type": "number",
-            "description": "Persisted risk score (0-100)."
-          },
-          "riskLevel": {
-            "type": "string",
-            "enum": ["safe", "caution", "risk", "danger"],
-            "description": "Persisted risk level."
-          },
-          "stale": {
-            "type": "boolean",
-            "description": "Whether the record is stale."
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "checkType",
-          "result",
-          "riskScore",
-          "riskLevel",
-          "stale",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false,
-        "nullable": true
-      },
-      "MedicineRiskCheckRecordsResponseStaticResult": {
-        "type": "object",
-        "properties": {
-          "overallRiskLevel": {
-            "type": "string",
-            "enum": ["safe", "caution", "risk", "danger"],
-            "description": "Overall risk level."
-          },
-          "overallRiskScore": {
-            "type": "number",
-            "description": "Overall risk score (0-100)."
-          },
-          "currentMedicineCount": {
-            "type": "number",
-            "description": "Current medicine count."
-          },
-          "checkedMedicineCount": {
-            "type": "number",
-            "description": "Count actually checked."
-          },
-          "findings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultFindings"
-            },
-            "description": "Detected risk findings."
-          },
-          "coverageIssues": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultCoverageIssues"
-            },
-            "description": "Medicines skipped due to missing detail."
-          },
-          "redFlags": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultRedFlags"
-            },
-            "description": "Raised red flags."
-          },
-          "overallRecommendation": {
-            "description": "LLM check only",
-            "type": "string"
-          }
-        },
-        "required": [
-          "overallRiskLevel",
-          "overallRiskScore",
-          "currentMedicineCount",
-          "checkedMedicineCount",
-          "findings",
-          "coverageIssues",
-          "redFlags"
-        ],
-        "additionalProperties": false,
-        "description": "Check result."
-      },
-      "MedicineRiskCheckRecordsResponseStaticResultFindings": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "interaction",
-              "duplicateIngredient",
-              "allergy",
-              "foodInteraction",
-              "longTermUse",
-              "schedulingConflict",
-              "specialGroup"
-            ],
-            "description": "Finding kind."
-          },
-          "severity": {
-            "type": "string",
-            "enum": ["high", "medium", "info"],
-            "description": "Finding severity."
-          },
-          "context": {
-            "type": "string",
-            "enum": ["none", "alcohol", "caffeine"],
-            "description": "Finding context."
-          },
-          "primaryMedicineName": {
-            "type": "string",
-            "description": "Medicine the finding is about."
-          },
-          "secondaryMedicineName": {
-            "description": "Second medicine involved.",
-            "type": "string"
-          },
-          "relatedLabel": {
-            "description": "Related label (e.g. allergen).",
-            "type": "string"
-          },
-          "evidence": {
-            "description": "Supporting evidence.",
-            "type": "string"
-          },
-          "recommendation": {
-            "description": "LLM check only",
-            "type": "string"
-          }
-        },
-        "required": ["type", "severity", "context", "primaryMedicineName"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordsResponseStaticResultCoverageIssues": {
-        "type": "object",
-        "properties": {
-          "medicineName": {
-            "type": "string",
-            "description": "Medicine name without source detail."
-          },
-          "reason": {
-            "type": "string",
-            "enum": ["manualEntry", "missingSourceRef", "detailUnavailable"],
-            "description": "Why the medicine detail was not checked."
-          }
-        },
-        "required": ["medicineName", "reason"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordsResponseStaticResultRedFlags": {
-        "type": "object",
-        "properties": {
-          "rule": {
-            "type": "string",
-            "enum": ["severeAllergy", "informationGap"],
-            "description": "Red flag rule."
-          },
-          "primaryMedicineName": {
-            "type": "string",
-            "description": "Medicine the flag is about."
-          },
-          "relatedLabel": {
-            "description": "Related label.",
-            "type": "string"
-          }
-        },
-        "required": ["rule", "primaryMedicineName"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordsResponseLlm": {
-        "type": "object",
-        "properties": {
-          "checkType": {
-            "type": "string",
-            "enum": ["static", "llm"],
-            "description": "Type of risk check."
-          },
-          "result": {
-            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResult"
-          },
-          "riskScore": {
-            "type": "number",
-            "description": "Persisted risk score (0-100)."
-          },
-          "riskLevel": {
-            "type": "string",
-            "enum": ["safe", "caution", "risk", "danger"],
-            "description": "Persisted risk level."
-          },
-          "stale": {
-            "type": "boolean",
-            "description": "Whether the record is stale."
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "checkType",
-          "result",
-          "riskScore",
-          "riskLevel",
-          "stale",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false,
-        "nullable": true
-      },
-      "MedicineRiskCheckRecordsResponseLlmResult": {
-        "type": "object",
-        "properties": {
-          "overallRiskLevel": {
-            "type": "string",
-            "enum": ["safe", "caution", "risk", "danger"],
-            "description": "Overall risk level."
-          },
-          "overallRiskScore": {
-            "type": "number",
-            "description": "Overall risk score (0-100)."
-          },
-          "currentMedicineCount": {
-            "type": "number",
-            "description": "Current medicine count."
-          },
-          "checkedMedicineCount": {
-            "type": "number",
-            "description": "Count actually checked."
-          },
-          "findings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultFindings"
-            },
-            "description": "Detected risk findings."
-          },
-          "coverageIssues": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultCoverageIssues"
-            },
-            "description": "Medicines skipped due to missing detail."
-          },
-          "redFlags": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultRedFlags"
-            },
-            "description": "Raised red flags."
-          },
-          "overallRecommendation": {
-            "description": "LLM check only",
-            "type": "string"
-          }
-        },
-        "required": [
-          "overallRiskLevel",
-          "overallRiskScore",
-          "currentMedicineCount",
-          "checkedMedicineCount",
-          "findings",
-          "coverageIssues",
-          "redFlags"
-        ],
-        "additionalProperties": false,
-        "description": "Check result."
-      },
-      "MedicineRiskCheckRecordsResponseLlmResultFindings": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "interaction",
-              "duplicateIngredient",
-              "allergy",
-              "foodInteraction",
-              "longTermUse",
-              "schedulingConflict",
-              "specialGroup"
-            ],
-            "description": "Finding kind."
-          },
-          "severity": {
-            "type": "string",
-            "enum": ["high", "medium", "info"],
-            "description": "Finding severity."
-          },
-          "context": {
-            "type": "string",
-            "enum": ["none", "alcohol", "caffeine"],
-            "description": "Finding context."
-          },
-          "primaryMedicineName": {
-            "type": "string",
-            "description": "Medicine the finding is about."
-          },
-          "secondaryMedicineName": {
-            "description": "Second medicine involved.",
-            "type": "string"
-          },
-          "relatedLabel": {
-            "description": "Related label (e.g. allergen).",
-            "type": "string"
-          },
-          "evidence": {
-            "description": "Supporting evidence.",
-            "type": "string"
-          },
-          "recommendation": {
-            "description": "LLM check only",
-            "type": "string"
-          }
-        },
-        "required": ["type", "severity", "context", "primaryMedicineName"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordsResponseLlmResultCoverageIssues": {
-        "type": "object",
-        "properties": {
-          "medicineName": {
-            "type": "string",
-            "description": "Medicine name without source detail."
-          },
-          "reason": {
-            "type": "string",
-            "enum": ["manualEntry", "missingSourceRef", "detailUnavailable"],
-            "description": "Why the medicine detail was not checked."
-          }
-        },
-        "required": ["medicineName", "reason"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordsResponseLlmResultRedFlags": {
-        "type": "object",
-        "properties": {
-          "rule": {
-            "type": "string",
-            "enum": ["severeAllergy", "informationGap"],
-            "description": "Red flag rule."
-          },
-          "primaryMedicineName": {
-            "type": "string",
-            "description": "Medicine the flag is about."
-          },
-          "relatedLabel": {
-            "description": "Related label.",
-            "type": "string"
-          }
-        },
-        "required": ["rule", "primaryMedicineName"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordResponseResult": {
-        "type": "object",
-        "properties": {
-          "overallRiskLevel": {
-            "type": "string",
-            "enum": ["safe", "caution", "risk", "danger"],
-            "description": "Overall risk level."
-          },
-          "overallRiskScore": {
-            "type": "number",
-            "description": "Overall risk score (0-100)."
-          },
-          "currentMedicineCount": {
-            "type": "number",
-            "description": "Current medicine count."
-          },
-          "checkedMedicineCount": {
-            "type": "number",
-            "description": "Count actually checked."
-          },
-          "findings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultFindings"
-            },
-            "description": "Detected risk findings."
-          },
-          "coverageIssues": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultCoverageIssues"
-            },
-            "description": "Medicines skipped due to missing detail."
-          },
-          "redFlags": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultRedFlags"
-            },
-            "description": "Raised red flags."
-          },
-          "overallRecommendation": {
-            "description": "LLM check only",
-            "type": "string"
-          }
-        },
-        "required": [
-          "overallRiskLevel",
-          "overallRiskScore",
-          "currentMedicineCount",
-          "checkedMedicineCount",
-          "findings",
-          "coverageIssues",
-          "redFlags"
-        ],
-        "additionalProperties": false,
-        "description": "Check result."
-      },
-      "MedicineRiskCheckRecordResponseResultFindings": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "interaction",
-              "duplicateIngredient",
-              "allergy",
-              "foodInteraction",
-              "longTermUse",
-              "schedulingConflict",
-              "specialGroup"
-            ],
-            "description": "Finding kind."
-          },
-          "severity": {
-            "type": "string",
-            "enum": ["high", "medium", "info"],
-            "description": "Finding severity."
-          },
-          "context": {
-            "type": "string",
-            "enum": ["none", "alcohol", "caffeine"],
-            "description": "Finding context."
-          },
-          "primaryMedicineName": {
-            "type": "string",
-            "description": "Medicine the finding is about."
-          },
-          "secondaryMedicineName": {
-            "description": "Second medicine involved.",
-            "type": "string"
-          },
-          "relatedLabel": {
-            "description": "Related label (e.g. allergen).",
-            "type": "string"
-          },
-          "evidence": {
-            "description": "Supporting evidence.",
-            "type": "string"
-          },
-          "recommendation": {
-            "description": "LLM check only",
-            "type": "string"
-          }
-        },
-        "required": ["type", "severity", "context", "primaryMedicineName"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordResponseResultCoverageIssues": {
-        "type": "object",
-        "properties": {
-          "medicineName": {
-            "type": "string",
-            "description": "Medicine name without source detail."
-          },
-          "reason": {
-            "type": "string",
-            "enum": ["manualEntry", "missingSourceRef", "detailUnavailable"],
-            "description": "Why the medicine detail was not checked."
-          }
-        },
-        "required": ["medicineName", "reason"],
-        "additionalProperties": false
-      },
-      "MedicineRiskCheckRecordResponseResultRedFlags": {
-        "type": "object",
-        "properties": {
-          "rule": {
-            "type": "string",
-            "enum": ["severeAllergy", "informationGap"],
-            "description": "Red flag rule."
-          },
-          "primaryMedicineName": {
-            "type": "string",
-            "description": "Medicine the flag is about."
-          },
-          "relatedLabel": {
-            "description": "Related label.",
-            "type": "string"
-          }
-        },
-        "required": ["rule", "primaryMedicineName"],
-        "additionalProperties": false
-      },
-      "MedicineRecognitionJobResult": {
-        "description": "Inline recognition resource when queue processing is unavailable.",
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "approvalNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "specification": {
-            "type": "string",
-            "nullable": true
-          },
-          "manufacturer": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["name", "approvalNumber", "specification", "manufacturer"],
         "additionalProperties": false
       },
       "HealthContextResponseSummary": {
@@ -18043,24 +18449,6 @@
         "required": ["percent"],
         "additionalProperties": false
       },
-      "LegalDocumentListResponseItems": {
-        "type": "object",
-        "properties": {
-          "docType": {
-            "type": "string",
-            "description": "Document type identifier used in URL paths."
-          },
-          "title": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp of last update."
-          }
-        },
-        "required": ["docType", "title", "updatedAt"],
-        "additionalProperties": false
-      },
       "TodayAnalysisReadResponseAnalysis": {
         "type": "object",
         "properties": {
@@ -18953,6 +19341,24 @@
         ],
         "additionalProperties": false
       },
+      "RunRiskCheckRequestCandidate": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["cn", "drugbank"],
+            "description": "候选药品所在的可信药品库来源"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "候选药品在可信药品库中的 id"
+          }
+        },
+        "required": ["source", "id"],
+        "additionalProperties": false,
+        "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库"
+      },
       "UpsertGroupRequestSlots": {
         "type": "object",
         "properties": {
@@ -18994,24 +19400,6 @@
         },
         "required": ["role", "content"],
         "additionalProperties": false
-      },
-      "RunRiskCheckRequestCandidate": {
-        "type": "object",
-        "properties": {
-          "source": {
-            "type": "string",
-            "enum": ["cn", "drugbank"],
-            "description": "候选药品所在的可信药品库来源"
-          },
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "候选药品在可信药品库中的 id"
-          }
-        },
-        "required": ["source", "id"],
-        "additionalProperties": false,
-        "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库"
       },
       "UpdateSettingsRequestAssistantContext": {
         "type": "object",
@@ -19101,6 +19489,86 @@
           }
         },
         "required": ["id", "text", "category"],
+        "additionalProperties": false
+      },
+      "AdminLegalDocumentItem": {
+        "type": "object",
+        "properties": {
+          "docType": {
+            "type": "string"
+          },
+          "titleZh": {
+            "type": "string"
+          },
+          "titleEn": {
+            "type": "string"
+          },
+          "contentZh": {
+            "type": "string"
+          },
+          "contentEn": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "docType",
+          "titleZh",
+          "titleEn",
+          "contentZh",
+          "contentEn",
+          "isActive",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "AdminSafetyTipItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "contentZh": {
+            "type": "string"
+          },
+          "contentEn": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "contentZh",
+          "contentEn",
+          "category",
+          "sortOrder",
+          "isActive",
+          "updatedAt"
+        ],
         "additionalProperties": false
       },
       "AssistantConversationSummaryItem": {

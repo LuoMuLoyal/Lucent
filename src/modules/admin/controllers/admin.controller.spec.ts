@@ -28,6 +28,8 @@ describe('AdminController', () => {
     const controller = new AdminController(
       adminAccess,
       {} as unknown as AdminConsoleService,
+      {} as never,
+      {} as never,
     );
 
     await expect(controller.getMe(user)).resolves.toEqual(identity);
@@ -41,6 +43,8 @@ describe('AdminController', () => {
     const controller = new AdminController(
       adminAccess,
       {} as unknown as AdminConsoleService,
+      {} as never,
+      {} as never,
     );
 
     await expect(controller.getMe(user)).rejects.toBeInstanceOf(

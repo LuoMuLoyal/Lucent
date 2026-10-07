@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import {
   AdminRole,
@@ -418,6 +419,100 @@ describe('Product Events API (e2e)', () => {
         .get('/api/v1/admin/audit-logs')
         .set('Authorization', bearer(editorToken))
         .expect(403);
+    });
+  });
+
+  describe('admin content write APIs', () => {
+    it('denies content writes to a regular non-admin user', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/admin/content/safety-tips')
+        .set('Authorization', bearer(accessToken))
+        .send({
+          contentZh: '测试中文建议',
+          contentEn: 'Test advice',
+          category: 'general',
+          sortOrder: 0,
+          isActive: true,
+        })
+        .expect(403);
+    });
+
+    it('audits safety-tip create, update, and delete mutations', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/admin/content/safety-tips')
+        .set('Authorization', bearer(adminToken))
+        .send({
+          contentZh: '测试中文建议',
+          contentEn: 'Test advice',
+          category: 'general',
+          sortOrder: 7,
+          isActive: true,
+        })
+        .expect(201);
+      const tipId = created.body.id as string;
+
+      await request(app.getHttpServer())
+        .put(`/api/v1/admin/content/safety-tips/${tipId}`)
+        .set('Authorization', bearer(adminToken))
+        .send({ sortOrder: 8 })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .delete(`/api/v1/admin/content/safety-tips/${tipId}`)
+        .set('Authorization', bearer(adminToken))
+        .expect(204);
+
+      const logs = await request(app.getHttpServer())
+        .get('/api/v1/admin/audit-logs')
+        .query({ actorUserId: admin.id, limit: 100 })
+        .set('Authorization', bearer(adminToken))
+        .expect(200);
+      expect(logs.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            action: 'admin.content.safety_tip.create',
+            resourceId: tipId,
+          }),
+          expect.objectContaining({
+            action: 'admin.content.safety_tip.update',
+            resourceId: tipId,
+          }),
+          expect.objectContaining({
+            action: 'admin.content.safety_tip.delete',
+            resourceId: tipId,
+          }),
+        ]),
+      );
+    });
+
+    it('updates a legal document and records its actor and resource', async () => {
+      const docType = `admin-test-${randomUUID()}`;
+      await ctx.prisma.legalDocument.create({
+        data: {
+          docType,
+          titleZh: '测试标题',
+          titleEn: 'Test title',
+          contentZh: '# 原内容',
+          contentEn: '# Original',
+          isActive: false,
+        },
+      });
+
+      await request(app.getHttpServer())
+        .put(`/api/v1/admin/content/legal-documents/${docType}`)
+        .set('Authorization', bearer(adminToken))
+        .send({ titleEn: 'Updated title' })
+        .expect(200);
+
+      const log = await ctx.prisma.auditLog.findFirst({
+        where: {
+          userId: admin.id,
+          action: 'admin.content.legal_document.update',
+          resourceId: docType,
+        },
+      });
+      expect(log).not.toBeNull();
+      await ctx.prisma.legalDocument.delete({ where: { docType } });
     });
   });
 

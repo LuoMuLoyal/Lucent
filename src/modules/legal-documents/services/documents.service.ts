@@ -145,6 +145,24 @@ export class LegalDocumentsService {
     });
   }
 
+  async invalidateDocumentCache(docType: string): Promise<void> {
+    const keys = [
+      `${LegalDocumentsService.LIST_CACHE_KEY_PREFIX}:zh`,
+      `${LegalDocumentsService.LIST_CACHE_KEY_PREFIX}:en`,
+      `${LegalDocumentsService.DETAIL_CACHE_KEY_PREFIX}:${docType}:zh`,
+      `${LegalDocumentsService.DETAIL_CACHE_KEY_PREFIX}:${docType}:en`,
+    ];
+    await Promise.all(
+      keys.map(async (key) => {
+        try {
+          await this.cache.del(key);
+        } catch (error) {
+          this.logCacheFailure(`invalidate ${key}`, error);
+        }
+      }),
+    );
+  }
+
   private resolveLang(lang: string | undefined): LegalLang {
     return lang === 'en' ? 'en' : DEFAULT_LEGAL_LANG;
   }

@@ -1,9 +1,14 @@
 import {
+  Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
+  HttpCode,
   NotFoundException,
   Param,
+  Post,
+  Put,
   Query,
   SerializeOptions,
   UseGuards,
@@ -35,6 +40,22 @@ import {
 } from '../dto/admin-users.dto.js';
 import type { AdminAuditLogListQueryDto } from '../dto/admin-audit-logs.dto.js';
 import type { AdminUserListQueryDto } from '../dto/admin-users.dto.js';
+import {
+  adminLegalDocumentListSchema,
+  adminLegalDocumentSchema,
+  adminLegalDocumentUpdateSchema,
+  adminSafetyTipCreateSchema,
+  adminSafetyTipListSchema,
+  adminSafetyTipSchema,
+  adminSafetyTipUpdateSchema,
+} from '../dto/admin-content.dto.js';
+import type {
+  AdminLegalDocumentUpdateDto,
+  AdminSafetyTipCreateDto,
+  AdminSafetyTipUpdateDto,
+} from '../dto/admin-content.dto.js';
+import { LegalDocumentsAdminService } from '../../legal-documents/index.js';
+import { SafetyTipsAdminService } from '../../medicines/index.js';
 import { adminIdentityResponseSchema } from '../dto/admin-identity.dto.js';
 import type { AdminIdentityDto } from '../dto/admin-identity.dto.js';
 
@@ -46,6 +67,8 @@ export class AdminController {
   constructor(
     private readonly adminAccess: AdminAccessService,
     private readonly adminConsole: AdminConsoleService,
+    private readonly legalDocuments: LegalDocumentsAdminService,
+    private readonly safetyTips: SafetyTipsAdminService,
   ) {}
 
   @Get('me')
@@ -125,6 +148,103 @@ export class AdminController {
   ) {
     return this.adminConsole.listAuditLogs(query);
   }
+
+  @Get('content/legal-documents')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:read')
+  @SerializeOptions({ schema: adminLegalDocumentListSchema })
+  @ApiOperation({ summary: 'List legal documents for administration' })
+  async listLegalDocuments() {
+    const documents = await this.legalDocuments.list();
+    return documents.map((document) => ({
+      ...document,
+      updatedAt: document.updatedAt.toISOString(),
+    }));
+  }
+
+  @Put('content/legal-documents/:docType')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:write')
+  @SerializeOptions({ schema: adminLegalDocumentSchema })
+  @ApiOperation({ summary: 'Update a legal document' })
+  async updateLegalDocument(
+    @CurrentUser() user: UserPayload,
+    @Param('docType', { schema: z.string().trim().min(1).max(100) })
+    docType: string,
+    @Body({ schema: adminLegalDocumentUpdateSchema })
+    input: AdminLegalDocumentUpdateDto,
+  ) {
+    const document = await this.legalDocuments.update(user.sub, docType, input);
+    if (document === null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Legal document not found',
+      });
+    }
+    return { ...document, updatedAt: document.updatedAt.toISOString() };
+  }
+
+  @Get('content/safety-tips')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:read')
+  @SerializeOptions({ schema: adminSafetyTipListSchema })
+  @ApiOperation({ summary: 'List medication safety tips for administration' })
+  async listSafetyTips() {
+    const tips = await this.safetyTips.list();
+    return tips.map((tip) => ({ ...tip, updatedAt: tip.updatedAt.toISOString() }));
+  }
+
+  @Post('content/safety-tips')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:write')
+  @SerializeOptions({ schema: adminSafetyTipSchema })
+  @ApiOperation({ summary: 'Create a medication safety tip' })
+  async createSafetyTip(
+    @CurrentUser() user: UserPayload,
+    @Body({ schema: adminSafetyTipCreateSchema }) input: AdminSafetyTipCreateDto,
+  ) {
+    const tip = await this.safetyTips.create(user.sub, input);
+    return { ...tip, updatedAt: tip.updatedAt.toISOString() };
+  }
+
+  @Put('content/safety-tips/:id')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:write')
+  @SerializeOptions({ schema: adminSafetyTipSchema })
+  @ApiOperation({ summary: 'Update a medication safety tip' })
+  async updateSafetyTip(
+    @CurrentUser() user: UserPayload,
+    @Param('id', { schema: z.uuid() }) id: string,
+    @Body({ schema: adminSafetyTipUpdateSchema }) input: AdminSafetyTipUpdateDto,
+  ) {
+    const tip = await this.safetyTips.update(user.sub, id, input);
+    if (tip === null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Safety tip not found',
+      });
+    }
+    return { ...tip, updatedAt: tip.updatedAt.toISOString() };
+  }
+
+  @Delete('content/safety-tips/:id')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:write')
+  @ApiOperation({ summary: 'Delete a medication safety tip' })
+  @ApiResponse({ status: 204, description: 'Safety tip deleted.' })
+  @HttpCode(204)
+  async deleteSafetyTip(
+    @CurrentUser() user: UserPayload,
+    @Param('id', { schema: z.uuid() }) id: string,
+  ) {
+    const deleted = await this.safetyTips.remove(user.sub, id);
+    if (!deleted) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Safety tip not found',
+      });
+    }
+  }
 }
 
 registerResponseSchema({
@@ -154,4 +274,39 @@ registerResponseSchema({
   componentName: 'AdminAuditLogListResponse',
   schema: adminAuditLogListResponseSchema,
   description: 'Paginated security audit log entries.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/content/legal-documents',
+  method: 'get',
+  componentName: 'AdminLegalDocumentList',
+  schema: adminLegalDocumentListSchema,
+  description: 'Legal document administration list.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/content/legal-documents/{docType}',
+  method: 'put',
+  componentName: 'AdminLegalDocument',
+  schema: adminLegalDocumentSchema,
+  description: 'Updated legal document.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/content/safety-tips',
+  method: 'get',
+  componentName: 'AdminSafetyTipList',
+  schema: adminSafetyTipListSchema,
+  description: 'Medication safety tips administration list.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/content/safety-tips',
+  method: 'post',
+  componentName: 'AdminSafetyTip',
+  schema: adminSafetyTipSchema,
+  description: 'Created medication safety tip.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/content/safety-tips/{id}',
+  method: 'put',
+  componentName: 'AdminSafetyTip',
+  schema: adminSafetyTipSchema,
+  description: 'Updated medication safety tip.',
 });
