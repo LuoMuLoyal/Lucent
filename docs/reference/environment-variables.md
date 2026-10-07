@@ -519,6 +519,7 @@ METRICS_USER
 METRICS_PASSWORD
 OTEL_ENABLED
 OTEL_EXPORTER_OTLP_ENDPOINT
+OTEL_METRICS_EXPORTER
 OTEL_TRACES_SAMPLER
 OTEL_TRACES_SAMPLER_ARG
 VICTORIALOGS_URL
@@ -557,6 +558,12 @@ VICTORIALOGS_URL
   **生产指向 VictoriaTraces（阿里云）时路径不是标准的 `/v1/traces`**：
   该服务的 OTLP/HTTP 端点是 `/insert/opentelemetry/v1/traces`，端口 10428：
   `http://<阿里云公网IP>:10428/insert/opentelemetry/v1/traces`。
+- `OTEL_METRICS_EXPORTER` — OTel SDK 的标准变量，**Lucent 自己不读**（不在 zod 校验层里），
+  由 `src/tracing.ts` 里的 `NodeSDK` 解析。默认值是 `otlp`，此时 SDK 会把
+  `OTEL_EXPORTER_OTLP_ENDPOINT` 当**基地址**再拼 `/v1/metrics`：生产端点已带非标准路径，
+  拼出来是 `/insert/opentelemetry/v1/traces/v1/metrics`，VictoriaTraces 每分钟回一条
+  `unsupported path`（2026-10-07 实测）。Lucent 的应用指标走 prom-client 的 `/metrics`
+  由 VictoriaMetrics 抓取，与 OTLP 指标无关 —— 所以生产填 `none`。
 - `OTEL_TRACES_SAMPLER` — trace 采样器，取 OTel 规范的标准取值：`always_on` /
   `always_off` / `traceidratio` / `parentbased_always_on` / `parentbased_always_off` /
   `parentbased_traceidratio`。`src/tracing.ts` **不传** `sampler`，NodeSDK 因此走
