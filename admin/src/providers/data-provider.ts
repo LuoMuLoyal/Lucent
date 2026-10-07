@@ -22,7 +22,21 @@ function textFilter(
       item !== null &&
       'field' in item &&
       fieldNames.includes(String(item.field)) &&
-      'value' in item
+      typeof (item as { value?: unknown }).value === 'string' &&
+      (item as { value: string }).value.length > 0
+  )
+  return typeof filter?.value === 'string' ? filter.value : undefined
+}
+
+function equalityFilter(filters: unknown, field: string): string | undefined {
+  if (!Array.isArray(filters)) return undefined
+  const filter = filters.find(
+    (item) =>
+      typeof item === 'object' &&
+      item !== null &&
+      (item as { field?: unknown }).field === field &&
+      typeof (item as { value?: unknown }).value === 'string' &&
+      (item as { value: string }).value.length > 0
   )
   return typeof filter?.value === 'string' ? filter.value : undefined
 }
@@ -41,7 +55,11 @@ export const dataProvider: DataProvider = {
     }
     if (resource === 'users') {
       const response = await api.get<ListResult<RecordData>>('/admin/users', {
-        params: { ...params, q: textFilter(filters, ['email', 'nickname']) },
+        params: {
+          ...params,
+          q: textFilter(filters, ['q', 'email', 'nickname']),
+          status: equalityFilter(filters, 'status'),
+        },
       })
       return {
         data: response.data.items as never[],

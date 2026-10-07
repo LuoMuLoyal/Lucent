@@ -22,6 +22,26 @@ vi.mock('@/context/theme-provider', () => ({
   useTheme: () => ({ setTheme: mocks.setTheme }),
 }))
 
+vi.mock('@/stores/auth-store', () => ({
+  useAuthStore: (
+    selector: (state: {
+      auth: { user: { permissions: string[] } | null }
+    }) => unknown
+  ) =>
+    selector({
+      auth: {
+        user: {
+          permissions: [
+            'metrics:read',
+            'users:read',
+            'audit:read',
+            'content:read',
+          ],
+        },
+      },
+    }),
+}))
+
 type ShortcutModifier = 'Control' | 'Meta'
 
 async function renderWithSearchProvider() {
@@ -73,7 +93,7 @@ describe('SearchProvider and CommandMenu', () => {
     await expect.element(getByText('Light')).toBeInTheDocument()
     await expect.element(getByText('Dark')).toBeInTheDocument()
     await expect.element(getByText('System')).toBeInTheDocument()
-    await expect.element(getByText('Dashboard')).toBeInTheDocument()
+    await expect.element(getByText('Overview')).toBeInTheDocument()
   })
 
   it('does not show the dialog content when search is closed', async () => {
@@ -104,28 +124,28 @@ describe('SearchProvider and CommandMenu', () => {
     }
   )
 
-  it('navigates to a top-level route and closes the palette when a nav item is selected', async () => {
+  it('navigates to a permitted administration route and closes the palette', async () => {
     const screen = await renderWithSearchProvider()
 
     await openCommandPalette(screen)
 
-    await userEvent.click(screen.getByText('Tasks'))
+    await userEvent.click(screen.getByText('Audit logs'))
 
-    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/tasks' })
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/audit-logs' })
     await expect
       .element(screen.getByPlaceholder(COMMAND_MENU_PLACEHOLDER))
       .not.toBeInTheDocument()
   })
 
-  it('navigates for nested sidebar items (group with sub-items)', async () => {
+  it('navigates to a content route from the palette', async () => {
     const screen = await renderWithSearchProvider()
     const { getByPlaceholder, getByRole } = screen
 
     await openCommandPalette(screen)
 
-    await userEvent.click(getByRole('option', { name: 'Settings Account' }))
+    await userEvent.click(getByRole('option', { name: 'Safety tips' }))
 
-    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/settings/account' })
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/content/safety-tips' })
     await expect
       .element(getByPlaceholder(COMMAND_MENU_PLACEHOLDER))
       .not.toBeInTheDocument()

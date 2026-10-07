@@ -1,4 +1,11 @@
-import { Command, LayoutDashboard, Users } from 'lucide-react'
+import {
+  Activity,
+  FileText,
+  ScrollText,
+  UserRound,
+  Utensils,
+  Command,
+} from 'lucide-react'
 import type { SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -8,8 +15,20 @@ export const sidebarData: SidebarData = {
     {
       title: 'Administration',
       items: [
-        { title: 'Overview', url: '/', icon: LayoutDashboard },
-        { title: 'Users', url: '/users', icon: Users },
+        { title: 'Overview', url: '/', icon: Activity },
+        { title: 'Users', url: '/users', icon: UserRound },
+        { title: 'Audit logs', url: '/audit-logs', icon: ScrollText },
+      ],
+    },
+    {
+      title: 'Content',
+      items: [
+        {
+          title: 'Legal documents',
+          url: '/content/legal-documents',
+          icon: FileText,
+        },
+        { title: 'Safety tips', url: '/content/safety-tips', icon: Utensils },
       ],
     },
   ],

@@ -8,6 +8,7 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { AppTitle } from './app-title'
+import { filterNavGroups } from './data/nav-access'
 import { sidebarData } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
@@ -21,11 +22,10 @@ export function AppSidebar() {
     email: identity?.email ?? '',
     avatar: identity?.avatar ?? '',
   }
-  const canReadUsers = identity?.permissions.includes('users:read') ?? false
-  const navGroups = sidebarData.navGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => item.url !== '/users' || canReadUsers),
-  }))
+  const navGroups = filterNavGroups(sidebarData.navGroups, [
+    ...(identity?.permissions ?? []),
+  ])
+
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
       <SidebarHeader>
