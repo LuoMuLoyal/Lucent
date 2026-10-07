@@ -21,12 +21,17 @@ interface AdminMetrics {
 }
 
 export function Dashboard() {
-  const { result, query } = useCustom<AdminMetrics>({
+  // Refine hands `result.data` an empty object until the query resolves, so the
+  // declared type is the partial snapshot: reading `metrics.users.total`
+  // directly throws on the first render, before the request is ever issued.
+  const { result, query } = useCustom<Partial<AdminMetrics>>({
     url: '/admin/metrics/overview',
     method: 'get',
     queryOptions: { retry: false },
   })
   const metrics = result.data
+  const users = metrics?.users
+  const generatedAt = metrics?.generatedAt
 
   return (
     <>
@@ -42,9 +47,9 @@ export function Dashboard() {
             <h1 className='text-2xl font-bold tracking-tight'>Overview</h1>
             <p className='text-sm text-muted-foreground'>Platform activity</p>
           </div>
-          {metrics && (
+          {generatedAt && (
             <p className='text-xs text-muted-foreground'>
-              Updated {new Date(metrics.generatedAt).toLocaleString()}
+              Updated {new Date(generatedAt).toLocaleString()}
             </p>
           )}
         </div>
@@ -64,19 +69,19 @@ export function Dashboard() {
           <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
             <MetricCard
               title='Total users'
-              value={metrics?.users.total}
+              value={users?.total}
               icon={UsersIcon}
               loading={query.isLoading}
             />
             <MetricCard
               title='Active users'
-              value={metrics?.users.active}
+              value={users?.active}
               icon={UserCheck}
               loading={query.isLoading}
             />
             <MetricCard
               title='New users · 30 days'
-              value={metrics?.users.newLast30Days}
+              value={users?.newLast30Days}
               icon={UserPlus}
               loading={query.isLoading}
             />
@@ -89,7 +94,7 @@ export function Dashboard() {
           </div>
         )}
 
-        {metrics && (
+        {users && (
           <Card>
             <CardHeader>
               <CardTitle className='text-base'>Account status</CardTitle>
@@ -98,13 +103,13 @@ export function Dashboard() {
               <div>
                 <p className='text-sm text-muted-foreground'>Active</p>
                 <p className='mt-1 text-xl font-semibold'>
-                  {metrics.users.active.toLocaleString()}
+                  {users.active.toLocaleString()}
                 </p>
               </div>
               <div>
                 <p className='text-sm text-muted-foreground'>Suspended</p>
                 <p className='mt-1 text-xl font-semibold'>
-                  {metrics.users.suspended.toLocaleString()}
+                  {users.suspended.toLocaleString()}
                 </p>
               </div>
             </CardContent>
