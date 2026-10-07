@@ -1,120 +1,69 @@
 import { describe, expect, it } from 'vitest';
-import { classifyIntent } from './classify.js';
+import { deriveIntent } from './classify.js';
 
-const ALLOWED = [
-  'get_today_records',
-  'get_records_by_date',
-  'get_records_by_range',
-  'get_sleep_summary_by_range',
-  'get_user_profile',
-  'get_user_settings',
-  'get_current_medicines',
-  'search_cn_medicine_products',
-  'get_cn_medicine_detail',
-  'search_cn_medicine_knowledge',
-  'resolve_drugbank_entity',
-  'get_drugbank_detail',
-  'search_drugbank_passages',
-  'reason_over_ontology',
-  'propose_create_daily_record',
-  'propose_update_daily_record',
-  'propose_delete_daily_record',
-  'propose_update_user_settings',
-] as const;
-
-describe('classifyIntent', () => {
-  it('classifies greeting / chit-chat as simple_chat', () => {
-    expect(classifyIntent('你好', ALLOWED)).toEqual({
-      intent: 'simple_chat',
-      relevantTools: [],
-    });
-    expect(classifyIntent('how are you', ALLOWED)).toEqual({
-      intent: 'simple_chat',
-      relevantTools: [],
-    });
-    expect(classifyIntent('', ALLOWED)).toEqual({
-      intent: 'simple_chat',
-      relevantTools: [],
-    });
+/**
+ * `deriveIntent` 是纯函数：把**模型选出的工具集**投影成 intent。
+ *
+ * 这里钉的是"工具集 → 意图"这层映射的既有语义（旧 `classify.spec.ts` 里凡是不依赖
+ * 关键词匹配的意图期望都搬到了这里）。"哪条消息该选哪些工具"已经归模型，不再是
+ * 单测能确定的东西 —— 那一层由 `test/fixtures/assistant-intent-eval.ts` 的评测集承接。
+ */
+describe('deriveIntent', () => {
+  it('treats an empty tool set as simple_chat', () => {
+    expect(deriveIntent([])).toBe('simple_chat');
   });
 
-  it('classifies user-data reads as read_data', () => {
-    const result = classifyIntent('最近睡眠怎么样', ALLOWED);
-    expect(result.intent).toBe('read_data');
-    expect(result.relevantTools).toContain('get_sleep_summary_by_range');
+  it('classifies personal-data reads as read_data', () => {
+    expect(deriveIntent(['get_sleep_summary_by_range'])).toBe('read_data');
+    expect(deriveIntent(['get_today_records'])).toBe('read_data');
   });
 
-  it('classifies write intents as write_proposal (aux reads merge in)', () => {
-    const result = classifyIntent('帮我记一下今天喝了 300ml 水', ALLOWED);
-    expect(result.intent).toBe('write_proposal');
-    expect(result.relevantTools).toContain('propose_create_daily_record');
-    expect(result.relevantTools).toContain('get_today_records');
+  it('classifies knowledge tools as knowledge', () => {
+    expect(deriveIntent(['search_cn_medicine_knowledge'])).toBe('knowledge');
+    expect(deriveIntent(['search_cn_medicine_products'])).toBe('knowledge');
+    expect(deriveIntent(['resolve_drugbank_entity'])).toBe('knowledge');
+    // 本体/规则推理同属知识检索：漏掉它们会把药理问题判成"读个人数据"，
+    // 于是模型只拿到个人记录工具（历史故障：模型自称"只能查用药记录"）。
+    expect(deriveIntent(['reason_over_ontology'])).toBe('knowledge');
+    expect(deriveIntent(['reason_over_rules'])).toBe('knowledge');
   });
 
-  it('classifies medicine knowledge questions as knowledge', () => {
-    const result = classifyIntent(
-      '查一下国药准字H10900089这个药的成分和厂家',
-      ALLOWED,
+  it('classifies write tools as write_proposal, even with their auxiliary read', () => {
+    // 创建草稿会附带 `get_today_records` 当上下文，那不是真正的混合意图。
+    expect(
+      deriveIntent(['propose_create_daily_record', 'get_today_records']),
+    ).toBe('write_proposal');
+    expect(deriveIntent(['propose_update_user_settings'])).toBe(
+      'write_proposal',
     );
-    expect(result.intent).toBe('knowledge');
-    expect(result.relevantTools).toEqual([
-      'search_cn_medicine_products',
-      'get_cn_medicine_detail',
-      'search_cn_medicine_knowledge',
-    ]);
   });
 
-  it('classifies read × knowledge messages as mixed', () => {
-    const result = classifyIntent(
-      '查一下我最近的记录，顺便查查这个药的说明书',
-      ALLOWED,
-    );
-    expect(result.intent).toBe('mixed');
-    expect(result.relevantTools).toContain('search_cn_medicine_knowledge');
-    expect(result.relevantTools).toContain('get_records_by_range');
+  it('classifies read × knowledge as mixed', () => {
+    expect(
+      deriveIntent(['search_cn_medicine_knowledge', 'get_records_by_range']),
+    ).toBe('mixed');
   });
 
-  // 回归：本体推理工具漏出知识集合时，命中它的消息会被判成"读个人数据"，
-  // 路由到 read 子图后模型只拿到个人记录工具（实测会自称"只能查用药记录"）。
-  //
-  // 断言只钉"工具必须被提供"：英文问题里出现 drug/medicine 会同时命中
-  // `get_current_medicines` 的 `/drug/i`，于是 intent 是 knowledge 还是 mixed
-  // 取决于这条预存在的路由特性（mixed 走通用 agent 节点，工具照样绑上）。
-  it('offers ontology reasoning for pharmacology questions', () => {
-    for (const message of [
-      'Which drugs interact with warfarin?',
-      'Which drugs share a target with clopidogrel?',
-      'Which drugs inhibit the enzyme that metabolizes warfarin?',
-    ]) {
-      const result = classifyIntent(message, ALLOWED);
-      expect(result.relevantTools, message).toContain('reason_over_ontology');
-      expect(['knowledge', 'mixed'], message).toContain(result.intent);
-    }
+  it('classifies write × knowledge as mixed', () => {
+    expect(
+      deriveIntent(['propose_update_daily_record', 'get_drugbank_detail']),
+    ).toBe('mixed');
   });
 
-  it('falls back to write_proposal when a write intent matches but tools are unavailable', () => {
-    const result = classifyIntent('把 assistant memory 关掉', [
-      'get_user_profile',
-    ]);
-    expect(result.intent).toBe('write_proposal');
-    expect(result.relevantTools).toEqual([]);
+  it('keeps write tools winning over the read bucket regardless of order', () => {
+    expect(
+      deriveIntent(['get_user_profile', 'propose_update_user_settings']),
+    ).toBe('write_proposal');
   });
 
-  it('routes a memory-capability question to settings read, not simple_chat', () => {
-    // Reported from a real device: "你拥有记忆吗" only matched the write-side
-    // memory keyword, so the read rules came back empty and the turn fell
-    // through to simple_chat — whose prompt then told the user the assistant
-    // had no data tools at all.
-    const result = classifyIntent('你拥有记忆吗', ALLOWED);
-
-    expect(result.intent).toBe('read_data');
-    expect(result.relevantTools).toContain('get_user_settings');
-  });
-
-  it('keeps a memory toggle classified as a write proposal', () => {
-    const result = classifyIntent('关闭AI记忆', ALLOWED);
-
-    expect(result.intent).toBe('write_proposal');
-    expect(result.relevantTools).toContain('propose_update_user_settings');
+  it('classifies an all-tools candidate set as mixed (the degradation shape)', () => {
+    // 降级时图会把整个候选集绑上；这条只验证该形状**能被派生**（图另外强制 mixed）。
+    expect(
+      deriveIntent([
+        'get_today_records',
+        'search_cn_medicine_knowledge',
+        'propose_create_daily_record',
+      ]),
+    ).toBe('mixed');
   });
 });

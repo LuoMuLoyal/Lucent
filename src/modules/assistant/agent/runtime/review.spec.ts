@@ -9,8 +9,23 @@ const BASE_INPUT = {
   userId: 'user-1',
   userMessage: '帮我记录今天喝水 500ml',
   locale: 'zh-CN' as const,
+  // 候选集（硬上限）与路由结果都由测试显式给出：关键词表退役后，"哪条消息选哪些工具"
+  // 属于模型行为，图只负责在路由结果之上装配（见 graph.spec.ts 的同名说明）。
+  allowedTools: [
+    'get_today_records' as const,
+    'propose_create_daily_record' as const,
+  ],
   enabledContextSources: ['health_profile' as const],
 };
+
+const fakeRouteTools = (): Promise<{
+  source: 'llm';
+  tools: ('get_today_records' | 'propose_create_daily_record')[];
+}> =>
+  Promise.resolve({
+    source: 'llm',
+    tools: ['get_today_records', 'propose_create_daily_record'],
+  });
 
 function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
   return vi.fn().mockImplementation(async (...args: unknown[]) => {
@@ -68,6 +83,7 @@ function buildGraph() {
     },
   ]);
   const graph = buildAssistantRuntimeGraph({
+    routeTools: fakeRouteTools,
     createModel: () => mockModel as never,
     executeTools: executeTools as never,
     buildSystemPrompt: () => 'system',

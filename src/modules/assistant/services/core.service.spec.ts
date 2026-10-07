@@ -42,6 +42,7 @@ const mockPolicy: AssistantPolicySnapshot = {
   enabledContextSources: ['health_profile', 'daily_records'],
   contextPermittedToolNames: ['get_today_records'],
   executableToolNames: ['get_today_records'],
+  enabledToolNames: ['get_today_records'],
   toolCapabilities: [],
 };
 

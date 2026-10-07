@@ -30,11 +30,24 @@ owner: backend
 
 ## Runtime Graph（`agent/runtime/`）
 
-`prepare_context`（system prompt + 记忆 + allowed tools）→ `classify_intent`
-（纯规则关键词路由，无 LLM）→ 5 种 intent：`simple_chat` 直达 `respond`、
-`read_data`/`write_proposal`/`knowledge` 走子图、`mixed` 走 `agent↔tools`
-循环 → `write_review`（HITL 暂停，等 confirm，依赖 checkpointer）→
-`respond` 流式输出。工具循环与检索次数受服务端上限约束（bounded）。
+`prepare_context`（取记忆块）→ `classify_intent`（**大模型选本轮工具**，见下节）
+→ 5 种 intent：`simple_chat` 直达 `respond`、`read_data`/`write_proposal`/`knowledge`
+走子图、`mixed` 走 `agent↔tools` 循环 → `write_review`（HITL 暂停，等 confirm，
+依赖 checkpointer）→ `respond` 流式输出。工具循环与检索次数受服务端上限约束（bounded）。
+
+### 工具路由（`agent/runtime/intent-classifier.service.ts`）
+
+- **意图从工具集派生，不单独判定**：模型只回答"这轮需要哪些工具"
+  （`schemas/intent-routing.schema.ts`），`deriveIntent()`（`classify.ts`）再把它投影成
+  intent。两处各算一份会出现"绑了 A、intent 说是 B"的组合。
+- **候选集是硬上限**：由 `policy.enabledToolNames` 算好传入 —— 用户 context 开关 ∩
+  已实现 ∩ **sidecar 可用**（LightRAG/Semantica 关掉时对应工具不在集合里，既不会被绑定
+  也不会写进提示词）。模型输出与候选集求交，越权/幻觉工具名丢弃并记 warn。
+- **降级 = 工具全开**：模型角色未配置、熔断、超时或结构化输出非法时，绑定**全部候选
+  工具**并派生出对应 intent（生产候选集含知识类与写入类，因此落成 `mixed` → 通用
+  `agent` 节点）。**没有关键词回退**：规则表已整体退役。
+  降级记 `assistant_intent_routing_total{source="degraded_all_tools"}`，应为 0 或极低。
+- 角色是 `language`（与 Cypher 生成同属"文本理解 → 结构化输出"），无需新增环境变量。
 
 ## Tools（`tools/`，按域分目录）
 

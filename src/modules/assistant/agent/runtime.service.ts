@@ -52,6 +52,7 @@ import {
 import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state.js';
 import type { AssistantValidationFlags } from './runtime/state.js';
 import type { AssistantPendingReview } from './runtime/state.js';
+import { AssistantIntentClassifierService } from './runtime/intent-classifier.service.js';
 import { AssistantCheckpointerService } from './checkpointer.service.js';
 import { extractMessageText } from './runtime/message-text.utils.js';
 import { AssistantConversationRepositoryPort } from '../repositories/conversation.repository.js';
@@ -101,6 +102,12 @@ export class AssistantRuntimeService {
     private readonly checkpointerService: AssistantCheckpointerService,
     private readonly conversationRepository: AssistantConversationRepositoryPort,
     private readonly streamService: AssistantStreamService,
+    /**
+     * 每轮工具选择器。生产由 Nest 注入（provider 已注册）；缺省时按图契约降级为
+     * "绑定全部候选工具 + mixed"，而不是让整轮直接失败 —— 与 `routeTools` 缺失时
+     * 的行为保持一致。
+     */
+    private readonly intentClassifier?: AssistantIntentClassifierService,
   ) {}
 
   hasChatModel(): boolean {
@@ -142,6 +149,12 @@ export class AssistantRuntimeService {
       userMessage: string;
       locale: string;
       enabledContextSources: AssistantContextSource[];
+      /**
+       * 本轮可绑定的工具集（候选集/硬上限），由 `policy.enabledToolNames` 算好传进来：
+       * 用户 context 开关 ∩ 已实现 ∩ sidecar 可用。图的 `classify_intent` 只能在这个
+       * 集合里选（降级"工具全开"也开到它为止）。
+       */
+      allowedTools: readonly AssistantToolName[];
       /** Whether cross-conversation memory is enabled for this user. */
       memoryEnabled?: boolean;
       /** Whether this turn starts a new conversation. */
@@ -177,6 +190,20 @@ export class AssistantRuntimeService {
       buildWriteSystemPrompt,
       buildKnowledgeSystemPrompt,
       buildSimpleChatSystemPrompt,
+      // 每轮工具选择：模型不可用/输出非法时由分类器内部降级为"全部候选工具"，
+      // 这里不做任何规则回退。分类器未注入时同样降级（图契约见 `routeTools`）。
+      routeTools: (routing) =>
+        this.intentClassifier == null
+          ? Promise.resolve({
+              source: 'degraded_all_tools' as const,
+              reason: 'no intent classifier is wired',
+            })
+          : this.intentClassifier.selectTools(
+              routing.userMessage,
+              routing.locale,
+              routing.enabledContextSources,
+              routing.candidateTools,
+            ),
       ...(input.buildMemoryBlock != null
         ? { buildMemoryBlock: input.buildMemoryBlock }
         : {}),
@@ -204,6 +231,7 @@ export class AssistantRuntimeService {
           userMessage: input.userMessage,
           locale: input.locale,
           enabledContextSources: input.enabledContextSources,
+          allowedTools: [...input.allowedTools],
           memoryEnabled: input.memoryEnabled ?? false,
           isNewConversation: input.isNewConversation ?? false,
         },
@@ -390,6 +418,20 @@ export class AssistantRuntimeService {
       buildWriteSystemPrompt,
       buildKnowledgeSystemPrompt,
       buildSimpleChatSystemPrompt,
+      // 每轮工具选择：模型不可用/输出非法时由分类器内部降级为"全部候选工具"，
+      // 这里不做任何规则回退。分类器未注入时同样降级（图契约见 `routeTools`）。
+      routeTools: (routing) =>
+        this.intentClassifier == null
+          ? Promise.resolve({
+              source: 'degraded_all_tools' as const,
+              reason: 'no intent classifier is wired',
+            })
+          : this.intentClassifier.selectTools(
+              routing.userMessage,
+              routing.locale,
+              routing.enabledContextSources,
+              routing.candidateTools,
+            ),
       ...(onText != null ? { onText } : {}),
       respondCache: this.respondCache,
       checkpointer,

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { IAssistantUserSettings } from '../types/ports.js';
-import { selectAllowedToolsForContextSources } from '../agent/runtime/router.js';
+import { selectAllowedToolsForContextSources } from '../agent/runtime/tool-permissions.js';
 import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
@@ -32,6 +32,14 @@ export class AssistantPolicyService {
     const executableToolNames = contextPermittedToolNames.filter((toolName) =>
       foundation.implementedToolNames.includes(toolName),
     );
+    const toolCapabilities = ASSISTANT_TOOL_NAMES.map((toolName) =>
+      this.buildToolCapability(
+        toolName,
+        foundation,
+        settings,
+        contextPermittedToolNames,
+      ),
+    );
 
     return {
       interactiveChatReady:
@@ -39,14 +47,12 @@ export class AssistantPolicyService {
       enabledContextSources,
       contextPermittedToolNames,
       executableToolNames,
-      toolCapabilities: ASSISTANT_TOOL_NAMES.map((toolName) =>
-        this.buildToolCapability(
-          toolName,
-          foundation,
-          settings,
-          contextPermittedToolNames,
-        ),
-      ),
+      // 图绑定的候选集：比 `executableToolNames` 多一层 sidecar 可用性判定，
+      // 与实际能用的工具（能力面板展示的 `enabled`）保持同一个事实源。
+      enabledToolNames: toolCapabilities
+        .filter((capability) => capability.enabled)
+        .map((capability) => capability.name),
+      toolCapabilities,
     };
   }
 

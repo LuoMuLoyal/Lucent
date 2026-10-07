@@ -70,12 +70,31 @@ export const AssistantRuntimeState = Annotation.Root({
   }),
 
   // ── prepare_context output ─────────────────────────────────────────────
-  /** True when prepare_context injected a memory block into messages. */
+  /**
+   * 跨会话记忆块（`prepare_context` 取到、`classify_intent` 拼进消息）。
+   *
+   * 记忆块的取用是异步的、且只在"新会话且开启记忆"时才做，但消息列表必须等
+   * 意图选定（system prompt 随意图变）之后才能一次性写出来 —— 见 `messages` 通道
+   * 的说明。所以两步之间用这个通道传递文本，而不是先写消息再改写。
+   */
+  memoryBlock: Annotation<string>({
+    reducer: (_left, right) => right,
+    default: () => '',
+  }),
+
+  /** True when prepare_context obtained a memory block for this turn. */
   memoryInjected: Annotation<boolean>({
     reducer: (_left, right) => right,
     default: () => false,
   }),
 
+  /**
+   * 本轮**允许**绑定的工具集（候选集/硬上限）。
+   *
+   * 由调用方在进入图之前算好：用户 context 开关 ∩ 已实现 ∩ sidecar 可用
+   * （`policy.service.ts` 的 `toolCapabilities[].enabled`）。模型选出的工具必须与它求交，
+   * 降级（模型不可用）时也**只能**开到它为止。
+   */
   allowedTools: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
@@ -88,10 +107,16 @@ export const AssistantRuntimeState = Annotation.Root({
     default: () => null,
   }),
 
-  /** Tools narrowed by the keyword router for the current message. */
+  /** 模型为本轮选出的工具（与 `allowedTools` 求交后的结果）。 */
   relevantTools: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
+  }),
+
+  /** 本轮路由来源：`llm` 正常，`degraded_all_tools` 表示降级为全开。 */
+  routingSource: Annotation<'llm' | 'degraded_all_tools'>({
+    reducer: (_left, right) => right,
+    default: () => 'llm',
   }),
 
   /** Which sub-graph is currently active (read/write/knowledge). */
@@ -113,6 +138,15 @@ export const AssistantRuntimeState = Annotation.Root({
   }),
 
   // ── LLM conversation messages ──────────────────────────────────────────
+  /**
+   * ⚠️ **append reducer**：谁写谁往后接，不能用来"改写首条 System"。
+   *
+   * 旧实现让 `prepare_context` 先写 `[System, (memory), Human]`、再让
+   * `classify_intent` 写 `[System', ...state.messages.slice(1)]` 想替换首条 —— 实际是又
+   * 追加了一遍，同一轮出现两条 System、两条用户消息（2026-10-07 定位，见计划 C7）。
+   * 现在的分工是：`prepare_context` 只准备记忆块，`classify_intent` 选定提示词后
+   * **一次性**写出完整消息列表。
+   */
   messages: Annotation<BaseMessage[]>({
     reducer: (left, right) => [...left, ...right],
     default: () => [],

@@ -24,6 +24,7 @@ import type {
   AssistantConversationMessage,
   AssistantMessageResult,
   AssistantStreamChunkEvent,
+  AssistantToolCall,
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
 } from '../types/assistant.types.js';
@@ -117,6 +118,9 @@ export class AssistantStreamOrchestratorService {
         userMessage: lastUserMessage,
         locale,
         enabledContextSources: policy.enabledContextSources,
+        // 候选集必须带上 sidecar 可用性（`enabledToolNames` 已包含），否则会像旧实现
+        // 那样把 LightRAG/Semantica 关着时的工具也绑给模型。
+        allowedTools: policy.enabledToolNames,
         memoryEnabled: settings.assistantMemoryEnabled,
         isNewConversation: this.isNewConversation(messages),
         ...(dto.conversationId != null
@@ -126,10 +130,51 @@ export class AssistantStreamOrchestratorService {
           this.assistantConversationService.buildMemoryBlock(id),
       },
       async (toolCalls) => {
-        const executable = toolCalls.filter((call) =>
-          policy.executableToolNames.includes(call.name),
+        // 每个调用都必须回一个结果：执行层少回一个，上面的 assistant.tool_calls 与下面
+        // 的 ToolMessage 就会数量/位置错位，而"id 不在 tool_calls 里"的 400 不在重试
+        // 白名单内 —— 表现为整轮直接失败。未获许可的调用回一个显式拒绝信封。
+        const permitted: AssistantToolCall[] = [];
+        const refused = new Set<number>();
+        const results: AssistantToolExecutionResult[] = [];
+        toolCalls.forEach((call, index) => {
+          if (policy.executableToolNames.includes(call.name)) {
+            permitted.push(call);
+            return;
+          }
+          refused.add(index);
+          this.logger.warn(
+            `Assistant tool "${call.name}" is not permitted in this run; returning a refusal envelope instead of dropping the call.`,
+          );
+        });
+
+        const executed = await this.assistantToolExecutor.executeMany(
+          toolContext,
+          permitted,
         );
-        return this.assistantToolExecutor.executeMany(toolContext, executable);
+
+        let cursor = 0;
+        for (const [index, call] of toolCalls.entries()) {
+          if (refused.has(index)) {
+            results.push({
+              name: call.name,
+              data: {
+                error: 'tool_not_permitted',
+                reason: `Tool "${call.name}" is not permitted in this run.`,
+              },
+            });
+            continue;
+          }
+          const executedResult = executed[cursor];
+          cursor += 1;
+          results.push(
+            executedResult ?? {
+              name: call.name,
+              data: { reason: 'Tool result was not produced.' },
+            },
+          );
+        }
+
+        return results;
       },
       onChunk,
     );

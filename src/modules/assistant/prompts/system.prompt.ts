@@ -15,6 +15,17 @@ function toolListLine(toolNames: readonly AssistantToolName[]): string {
   return `Allowed tools in this run: ${toolList}.`;
 }
 
+/**
+ * 每一轮的工具集是**消息级路由**的产物，不是"本产品能做什么"的结论。
+ *
+ * 缺了这句，模型会把本轮路由结果说成产品级能力缺失，用户读到的就是"这个助手做不到"。
+ * 2026-10-07 生产实测两例：只绑定 `get_current_medicines` 的一轮里模型自称"这次运行里
+ * 我只有一个工具可用"；另一轮里把没被绑定的 LightRAG 工具说成"本次运行未开放中文说明书
+ * 检索工具"——两者都只是那一轮的路由结果，与产品能力无关。
+ */
+const TOOL_SCOPE_LINE =
+  "The allowed-tool list above is this run's routing result, not a statement about what this product can do. Never tell the user that a capability does not exist or is not enabled in this product merely because a tool is missing from this run; say plainly that this turn was handled without those tools and invite a more specific question.";
+
 export function buildAssistantSystemPrompt(
   toolNames: readonly AssistantToolName[],
 ): string {
@@ -30,6 +41,7 @@ export function buildAssistantSystemPrompt(
     'Do not diagnose diseases or change medication plans.',
     `Allowed tools in this run: ${toolList}.`,
     toolAvailabilityLine,
+    TOOL_SCOPE_LINE,
     'Read-tool results come from a server-owned envelope with query, result, coverage, timeRange, source, confidence, and ambiguities. Respect those fields explicitly.',
     'When coverage is partial or empty, say that directly instead of smoothing it over.',
     'When ambiguities are present, prefer mentioning the resolved date/range or that the server defaulted it.',
@@ -68,6 +80,7 @@ export function buildReadSystemPrompt(
   return [
     ...BASE_SYSTEM_LINES,
     toolListLine(toolNames),
+    TOOL_SCOPE_LINE,
     'Read-tool results come from a server-owned envelope with query, result, coverage, timeRange, source, confidence, and ambiguities. Respect those fields explicitly.',
     'When coverage is partial or empty, say that directly instead of smoothing it over.',
     'When ambiguities are present, prefer mentioning the resolved date/range or that the server defaulted it.',
@@ -90,6 +103,7 @@ export function buildWriteSystemPrompt(
   return [
     ...BASE_SYSTEM_LINES,
     toolListLine(toolNames),
+    TOOL_SCOPE_LINE,
     'Proposal tools do not perform writes. They only return confirmation-required drafts. Never describe a proposal as already applied.',
     'If a proposal target was not produced, treat that as a refusal to guess the write target, not as permission to improvise one.',
     'When the user asks to record or modify data, use the proposal tools to produce a draft for user confirmation.',
@@ -108,6 +122,7 @@ export function buildKnowledgeSystemPrompt(
   return [
     ...BASE_SYSTEM_LINES,
     toolListLine(toolNames),
+    TOOL_SCOPE_LINE,
     'Use retrieval tools only when they can add source-backed evidence.',
     'Prefer Chinese package-insert evidence for product/package-insert questions.',
     'Prefer DrugBank scientific evidence for mechanism or interaction questions.',

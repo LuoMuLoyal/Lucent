@@ -52,6 +52,7 @@ import { AssistantToolKnowledgeRetrievalService } from './tools/retrieval/knowle
 import { SemanticaClientService } from './tools/ontology/semantica-client.service.js';
 
 import { OntologyCypherGeneratorService } from './tools/ontology/cypher-generator.service.js';
+import { AssistantIntentClassifierService } from './agent/runtime/intent-classifier.service.js';
 
 import { AssistantToolOntologyReasoningService } from './tools/ontology/ontology-reasoning.service.js';
 
@@ -116,6 +117,7 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
     AssistantToolKnowledgeRetrievalService,
     SemanticaClientService,
     OntologyCypherGeneratorService,
+    AssistantIntentClassifierService,
     AssistantToolOntologyReasoningService,
     AssistantToolRuleReasoningService,
     AssistantToolMedicineLookupService,

@@ -18,8 +18,9 @@ import type {
   AssistantToolExecutionResult,
 } from '../../types/assistant.types.js';
 import { AssistantRuntimeState } from './state.js';
-import { selectAllowedToolsForContextSources } from './router.js';
-import { classifyIntent, type AssistantIntent } from './classify.js';
+import { deriveIntent, type AssistantIntent } from './classify.js';
+import type { AssistantToolRoutingOutcome } from './classify.js';
+import type { AssistantContextSource } from '../../tools/shared/tool-types.js';
 import { buildRespondNode, type AssistantRespondCache } from './respond.js';
 import { createAgentNode, createToolsNode } from './nodes.js';
 import { buildReadSubGraph } from './subgraphs/read.js';
@@ -31,8 +32,9 @@ export {
   AssistantRuntimeState,
   ASSISTANT_RUNTIME_NODE_NAMES,
 } from './state.js';
-export { selectAllowedToolsForContextSources } from './router.js';
-export { classifyIntent, type AssistantIntent } from './classify.js';
+export { selectAllowedToolsForContextSources } from './tool-permissions.js';
+export { deriveIntent, type AssistantIntent } from './classify.js';
+export type { AssistantToolRoutingOutcome } from './classify.js';
 export { buildRespondNode } from './respond.js';
 export { buildReadSubGraph } from './subgraphs/read.js';
 export { buildWriteSubGraph } from './subgraphs/write.js';
@@ -94,6 +96,19 @@ export interface AssistantGraphDeps {
   onText?: AssistantTextCallback;
   executeTools: ToolExecutorFn;
   buildSystemPrompt: SystemPromptFn;
+  /**
+   * 每轮工具选择的端口（生产实现 = `AssistantIntentClassifierService`）。
+   *
+   * 缺省时节点**不抛**，而是走"绑定全部候选工具 + intent=mixed"的降级 —— 生产里
+   * 缺这根线是接线错误，指标上的 `degraded_all_tools` 会立刻暴露；测试里不注入
+   * 即为"路由不可用"的确定性场景。**没有关键词回退**：规则表已整体退役。
+   */
+  routeTools?: (input: {
+    userMessage: string;
+    locale: string;
+    enabledContextSources: readonly AssistantContextSource[];
+    candidateTools: readonly AssistantToolName[];
+  }) => Promise<AssistantToolRoutingOutcome>;
   /** Intent-specific prompt builders; fall back to buildSystemPrompt when absent. */
   buildReadSystemPrompt?: SystemPromptFn;
   buildWriteSystemPrompt?: SystemPromptFn;
@@ -114,6 +129,31 @@ export interface AssistantGraphDeps {
   checkpointer?: BaseCheckpointSaver | null;
   /** Persisted conversation id; used as the LangGraph thread id by the caller. */
   conversationId?: string;
+}
+
+/**
+ * 选本轮工具：正常走注入的模型路由端口；端口缺失时降级为**全部候选工具**。
+ *
+ * 降级不抛异常、也不回退到任何规则子集 —— 关键词机制已整体退役，唯一的兜底就是
+ * "把可用的都绑上、交给通用 agent 节点"，并让指标上的 `degraded_all_tools` 可见。
+ */
+function routeTools(
+  deps: AssistantGraphDeps,
+  state: AssistantRuntimeState,
+  candidateTools: readonly AssistantToolName[],
+): Promise<AssistantToolRoutingOutcome> {
+  if (deps.routeTools == null) {
+    return Promise.resolve({
+      source: 'degraded_all_tools',
+      reason: 'no tool router is wired',
+    });
+  }
+  return deps.routeTools({
+    userMessage: state.userMessage,
+    locale: state.locale,
+    enabledContextSources: state.enabledContextSources,
+    candidateTools,
+  });
 }
 
 /** Picks the system prompt for the classified intent, falling back to the generic builder. */
@@ -178,33 +218,21 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
   const builder = new StateGraph(AssistantRuntimeState)
     // ── prepare_context ────────────────────────────────────────────────
     .addNode('prepare_context', async (state) => {
-      const allowedTools = selectAllowedToolsForContextSources(
-        state.enabledContextSources,
-      );
-      const systemPrompt = deps.buildSystemPrompt(allowedTools);
-      const messages: BaseMessage[] = [new SystemMessage(systemPrompt)];
-      let memoryInjected = false;
-
-      // Cross-conversation memory only makes sense at the start of a new
-      // conversation. It is injected as a HumanMessage so `classify_intent`
-      // (which rewrites only the leading SystemMessage) keeps it in context.
+      // 只做"取上下文"：候选工具集由调用方算好（含 sidecar 可用性），记忆块在这里
+      // 取好但**先不写消息** —— system prompt 要等意图选定才能确定，而 `messages`
+      // 是 append reducer，先写再改会追加出第二份 System + 用户消息（计划 C7）。
+      let memoryBlock = '';
       if (
         state.memoryEnabled &&
         state.isNewConversation &&
         deps.buildMemoryBlock != null
       ) {
-        const memoryBlock = await deps.buildMemoryBlock(state.userId);
-        if (memoryBlock.length > 0) {
-          messages.push(new HumanMessage(memoryBlock));
-          memoryInjected = true;
-        }
+        memoryBlock = await deps.buildMemoryBlock(state.userId);
       }
 
-      messages.push(new HumanMessage(state.userMessage));
       return {
-        allowedTools,
-        messages,
-        memoryInjected,
+        memoryBlock,
+        memoryInjected: memoryBlock.length > 0,
         loopCount: 0,
         pendingToolCalls: [],
         toolResults: [],
@@ -215,23 +243,56 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
     })
 
     // ── classify_intent ────────────────────────────────────────────────
-    // Pure rule-based routing is deterministic and cheap to memoize; the
-    // node-level cachePolicy overrides the graph-wide `cachePolicy: false`.
+    // 模型选工具（确定性规则表已整体退役）。这一步不便宜，节点级 cachePolicy
+    // 覆盖图级 `cachePolicy: false`，同一 (用户, 消息, 候选集) 在 TTL 内复用。
+    // 失败不抛：降级为"绑定全部候选工具 + intent=mixed"，走通用 agent 节点。
     .addNode(
       'classify_intent',
-      (state: AssistantRuntimeState) => {
-        const { intent, relevantTools } = classifyIntent(
-          state.userMessage,
-          state.allowedTools,
-        );
-        const systemPrompt = selectSystemPrompt(deps, intent, relevantTools);
-        const messages = [
-          new SystemMessage(systemPrompt),
-          ...state.messages.slice(1),
-        ];
-        return { intent, relevantTools, messages };
+      async (state: AssistantRuntimeState) => {
+        const candidateTools = state.allowedTools;
+        const routing = await routeTools(deps, state, candidateTools);
+        // 降级 = 绑定**全部候选工具**（不是某个规则子集，规则表已退役）。
+        // 正常路径则把模型的选择与候选集求交：路由端口无论返回什么（模型幻觉、
+        // 提示注入、注入的测试替身），候选集都是硬上限。真源在分类器里（会记 warn），
+        // 这一层是契约自守。
+        const permitted = new Set(candidateTools);
+        const selectedTools =
+          routing.source === 'degraded_all_tools'
+            ? [...candidateTools]
+            : routing.tools.filter((tool) => permitted.has(tool));
+
+        // 意图一律从"本轮真正绑定的工具集"派生。
+        //
+        // 降级时绑定的是整个候选集，而生产里的候选集总是同时含知识类与写入类工具，
+        // 于是自然派生成 `mixed` → 通用 agent 节点（这正是降级想要的形状）；窄候选集
+        // （例如只剩写入工具）仍会走它该走的子图，而不是被强行塞进通用节点。
+        const intent: AssistantIntent =
+          selectedTools.length === 0
+            ? 'simple_chat'
+            : deriveIntent(selectedTools);
+
+        const systemPrompt = selectSystemPrompt(deps, intent, selectedTools);
+        // 一次性写出完整消息列表：此刻 `messages` 还是空的（prepare_context 没写），
+        // 所以 append 的结果就是唯一一份。
+        const messages: BaseMessage[] = [new SystemMessage(systemPrompt)];
+        if (state.memoryInjected) {
+          messages.push(new HumanMessage(state.memoryBlock));
+        }
+        messages.push(new HumanMessage(state.userMessage));
+
+        return {
+          intent,
+          relevantTools: selectedTools,
+          routingSource: routing.source,
+          messages,
+        };
       },
-      { cachePolicy: { ttl: NODE_CACHE_TTL_SECONDS } },
+      {
+        cachePolicy: { ttl: NODE_CACHE_TTL_SECONDS },
+        // 重试由 `withLlmRetry`（3 次）负责；图级默认的 maxAttempts=3 会与之相乘
+        // （最多 9 次模型调用），所以这里把本节点的重试关掉（maxAttempts: 1）。
+        retryPolicy: { maxAttempts: 1 },
+      },
     )
 
     // ── agent / tools ──────────────────────────────────────────────────

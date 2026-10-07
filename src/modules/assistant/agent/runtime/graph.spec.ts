@@ -8,7 +8,60 @@ import {
   buildAssistantRuntimeGraph,
   selectAllowedToolsForContextSources,
 } from './graph.js';
-import { selectRelevantToolsForMessage } from './router.js';
+import { ASSISTANT_TOOL_NAMES } from '../../tools/shared/tool-types.js';
+import type { AssistantToolName } from '../../tools/shared/tool-types.js';
+
+/**
+ * 测试用的"模型路由"替身。
+ *
+ * 关键词路由已整体退役（见 `plans/2026-10-07-assistant-intent-routing-and-retrieval-fixes.md`）：
+ * "哪条消息该选哪些工具"现在是**模型行为**，不再由单测钉住。这张表把每条用例赖以为
+ * 前提的路由结果显式写出来，于是这个文件测的仍然是它该测的东西 —— 图在路由结果之上的
+ * 候选集求交、意图派生、子图分支与工具循环。
+ */
+const ROUTING_TABLE: ReadonlyArray<readonly [string, AssistantToolName[]]> = [
+  ['你好', []],
+  ['帮我查一下今天的记录', ['get_today_records']],
+  [
+    '帮我记一下今天喝了 300ml 水',
+    ['get_today_records', 'propose_create_daily_record'],
+  ],
+  [
+    '帮我记录今天喝水 500ml',
+    ['get_today_records', 'propose_create_daily_record'],
+  ],
+  [
+    '这个国药准字H10900089的禁忌和不良反应是什么',
+    [
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
+      'search_cn_medicine_knowledge',
+    ],
+  ],
+  [
+    '查一下我最近的记录，顺便查查这个药的说明书',
+    ['get_records_by_range', 'search_cn_medicine_knowledge'],
+  ],
+  ['我的过敏情况', ['get_user_profile']],
+  ['我的情况怎么样', ['get_user_profile']],
+];
+
+const fakeRouteTools = (input: {
+  userMessage: string;
+  candidateTools: readonly AssistantToolName[];
+}): Promise<{
+  source: 'llm';
+  tools: AssistantToolName[];
+}> => {
+  const entry = ROUTING_TABLE.find(([message]) =>
+    input.userMessage.includes(message),
+  );
+  const requested = entry?.[1] ?? ['get_today_records'];
+  return Promise.resolve({
+    source: 'llm',
+    tools: requested.filter((tool) => input.candidateTools.includes(tool)),
+  });
+};
 
 function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
   return vi.fn().mockImplementation(async (...args: unknown[]) => {
@@ -25,103 +78,78 @@ function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
 }
 
 describe('AssistantFoundationGraph', () => {
-  it('selects relevant tools from the user message', () => {
-    expect(
-      selectRelevantToolsForMessage('最近睡眠怎么样', [
-        'get_user_profile',
-        'get_sleep_summary_by_range',
-        'get_current_medicines',
-      ]),
-    ).toEqual(['get_sleep_summary_by_range']);
+  it('binds every candidate tool when no tool router is wired (degradation)', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '好的。' }));
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(mockInvoke),
+    };
 
-    expect(
-      selectRelevantToolsForMessage(
-        '查一下国药准字H10900089这个药的成分和厂家',
-        [
-          'search_cn_medicine_products',
-          'get_cn_medicine_detail',
-          'search_cn_medicine_knowledge',
-        ],
-      ),
-    ).toEqual([
-      'search_cn_medicine_products',
-      'get_cn_medicine_detail',
-      'search_cn_medicine_knowledge',
-    ]);
+    // 不注入 `routeTools` = 路由不可用。按约定降级为"绑定全部候选工具 + mixed"，
+    // 走通用 agent 节点；**不回退到任何关键词子集**（规则表已退役）。
+    const graph = buildAssistantRuntimeGraph({
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
 
-    expect(
-      selectRelevantToolsForMessage(
-        '这个国药准字H10900089的禁忌和不良反应是什么',
-        [
-          'search_cn_medicine_products',
-          'get_cn_medicine_detail',
-          'search_cn_medicine_knowledge',
-          'resolve_drugbank_entity',
-          'get_drugbank_detail',
-          'search_drugbank_passages',
-        ],
-      ),
-    ).toEqual([
-      'search_cn_medicine_products',
-      'get_cn_medicine_detail',
+    const candidates: AssistantToolName[] = [
+      'get_today_records',
       'search_cn_medicine_knowledge',
-    ]);
+      'propose_create_daily_record',
+    ];
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: candidates,
+      enabledContextSources: ['daily_records'],
+    });
+
+    expect(result.routingSource).toBe('degraded_all_tools');
+    expect(result.intent).toBe('mixed');
+    expect(result.relevantTools).toEqual(candidates);
+    // mixed 走 agent 节点（而不是 simple_chat 的"不绑工具直接 respond"）。
+    expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
   });
 
-  it('selects point summary tools for dated history questions', () => {
-    expect(
-      selectRelevantToolsForMessage('看看 2026-06-17 的 today summary', [
-        'get_recent_today_summaries',
-        'get_today_summary_by_date',
-      ]),
-    ).toEqual(['get_today_summary_by_date']);
+  it('never binds a tool outside the candidate set', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '好的。' }));
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(mockInvoke),
+    };
 
-    expect(
-      selectRelevantToolsForMessage('帮我看上次月报总结', [
-        'get_recent_report_summaries',
-        'get_report_summary_by_range',
-      ]),
-    ).toEqual(['get_report_summary_by_range']);
+    const graph = buildAssistantRuntimeGraph({
+      // 模型想查说明书，但候选集里没有它（用户没开来源 / sidecar 不可用）。
+      routeTools: () =>
+        Promise.resolve({
+          source: 'llm' as const,
+          tools: ['search_cn_medicine_knowledge' as const],
+        }),
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
 
-    expect(
-      selectRelevantToolsForMessage('给我看看历史 Today AI 总结', [
-        'get_recent_today_summaries',
-        'get_today_summary_by_date',
-      ]),
-    ).toEqual(['get_recent_today_summaries']);
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '阿司匹林的禁忌',
+      locale: 'zh-CN',
+      allowedTools: ['get_today_records'],
+      enabledContextSources: ['daily_records'],
+    });
 
-    expect(
-      selectRelevantToolsForMessage('给我看看历史 Report AI 总结', [
-        'get_recent_report_summaries',
-        'get_report_summary_by_range',
-      ]),
-    ).toEqual(['get_recent_report_summaries']);
-  });
-
-  it('selects write-intent tools from save-style messages', () => {
-    expect(
-      selectRelevantToolsForMessage('帮我记一下今天喝了 300ml 水', [
-        'get_today_records',
-        'propose_create_daily_record',
-        'propose_update_user_settings',
-      ]),
-    ).toEqual(['get_today_records', 'propose_create_daily_record']);
-
-    expect(
-      selectRelevantToolsForMessage('把今天那条 300ml 饮水记录备注改一下', [
-        'get_today_records',
-        'propose_create_daily_record',
-        'propose_update_daily_record',
-        'propose_update_user_settings',
-      ]),
-    ).toEqual(['propose_update_daily_record']);
-
-    expect(
-      selectRelevantToolsForMessage('把 assistant memory 关掉', [
-        'propose_update_daily_record',
-        'propose_update_user_settings',
-      ]),
-    ).toEqual(['propose_update_user_settings']);
+    expect(result.relevantTools).toEqual([]);
+    expect(result.intent).toBe('simple_chat');
   });
 
   it('derives allowed tools from enabled context sources', () => {
@@ -159,6 +187,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -168,6 +197,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '帮我查一下今天的记录',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile', 'daily_records'],
     });
 
@@ -188,6 +218,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -197,6 +228,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '你好',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile', 'sleep_records'],
     });
 
@@ -249,6 +281,7 @@ describe('AssistantFoundationGraph', () => {
     ]);
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools,
       buildSystemPrompt: () => 'system prompt',
@@ -258,6 +291,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '帮我记一下今天喝了 300ml 水',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile', 'daily_records'],
     });
 
@@ -269,9 +303,10 @@ describe('AssistantFoundationGraph', () => {
       ]),
     );
     // The LLM only requested the proposal tool; the auxiliary read is bound
-    // for context but not executed.
+    // for context but not executed. The provider's `id` is carried through so
+    // the ToolMessage can echo it back (see `createToolsNode`).
     expect(executeTools).toHaveBeenCalledWith([
-      { name: 'propose_create_daily_record', args: {} },
+      { id: 'call_0', name: 'propose_create_daily_record', args: {} },
     ]);
     expect(result.finalContent).toBe('好的，这是一份待确认的饮水记录草稿。');
     expect(result.validationFlags.missingProposedActions).toBe(false);
@@ -318,6 +353,7 @@ describe('AssistantFoundationGraph', () => {
     ]);
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools,
       buildSystemPrompt: () => 'system prompt',
@@ -327,6 +363,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '这个国药准字H10900089的禁忌和不良反应是什么',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile', 'sleep_records'],
     });
 
@@ -370,6 +407,7 @@ describe('AssistantFoundationGraph', () => {
     ]);
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools,
       buildSystemPrompt: () => 'system prompt',
@@ -379,6 +417,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '查一下我最近的记录，顺便查查这个药的说明书',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: [
         'health_profile',
         'sleep_records',
@@ -390,7 +429,7 @@ describe('AssistantFoundationGraph', () => {
     // The full agent runs (not a sub-graph): tool loop executes normally.
     expect(executeTools).toHaveBeenCalledTimes(1);
     expect(executeTools).toHaveBeenCalledWith([
-      { name: 'get_records_by_range', args: {} },
+      { id: 'call_0', name: 'get_records_by_range', args: {} },
     ]);
     expect(result.finalContent).toBe('以下是记录与药品说明书的汇总。');
     expect(result.stopReason).toBe('answered');
@@ -409,6 +448,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -419,6 +459,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '你好',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
       memoryEnabled: true,
       isNewConversation: true,
@@ -450,6 +491,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -461,6 +503,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '你好',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
       memoryEnabled: false,
       isNewConversation: true,
@@ -470,6 +513,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '你好',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
       memoryEnabled: true,
       isNewConversation: false,
@@ -497,6 +541,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -508,6 +553,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '你好',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
     });
     expect(first.finalContent).toBe('你好呀！');
@@ -519,6 +565,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '你好',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
     });
     expect(second.finalContent).toBe('你好呀！');
@@ -540,6 +587,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -551,6 +599,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '你好',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
       memoryEnabled: true,
       isNewConversation: true,
@@ -589,6 +638,7 @@ describe('AssistantFoundationGraph', () => {
     ]);
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools,
       buildSystemPrompt: () => 'system prompt',
@@ -598,12 +648,13 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '我的过敏情况',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
     });
 
     expect(executeTools).toHaveBeenCalledTimes(1);
     expect(executeTools).toHaveBeenCalledWith([
-      { name: 'get_user_profile', args: {} },
+      { id: 'call_0', name: 'get_user_profile', args: {} },
     ]);
     expect(result.toolResults).toHaveLength(1);
     expect(result.finalContent).toBe('根据您的健康档案...');
@@ -638,6 +689,7 @@ describe('AssistantFoundationGraph', () => {
     ]);
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools,
       buildSystemPrompt: () => 'system prompt',
@@ -647,6 +699,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '我的情况怎么样',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
     });
 
@@ -670,6 +723,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -679,6 +733,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '帮我查一下今天的记录',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile', 'daily_records'],
     });
 
@@ -698,6 +753,7 @@ describe('AssistantFoundationGraph', () => {
     };
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
@@ -708,6 +764,7 @@ describe('AssistantFoundationGraph', () => {
         userId: 'user-1',
         userMessage: '帮我查一下今天的记录',
         locale: 'zh-CN',
+        allowedTools: [...ASSISTANT_TOOL_NAMES],
         enabledContextSources: ['health_profile', 'daily_records'],
       }),
     ).rejects.toMatchObject({ status: 400 });
@@ -753,6 +810,7 @@ describe('AssistantFoundationGraph', () => {
     ]);
 
     const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
       createModel: () => mockModel as never,
       executeTools: executeTools as never,
       buildSystemPrompt: () => 'system prompt',
@@ -762,6 +820,7 @@ describe('AssistantFoundationGraph', () => {
       userId: 'user-1',
       userMessage: '帮我记录今天喝水 500ml',
       locale: 'zh-CN',
+      allowedTools: [...ASSISTANT_TOOL_NAMES],
       enabledContextSources: ['health_profile'],
     });
 
