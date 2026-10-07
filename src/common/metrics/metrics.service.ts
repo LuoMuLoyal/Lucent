@@ -53,6 +53,12 @@ export class MetricsService implements OnApplicationBootstrap {
 
   private readonly assistantToolCitationsDropped: Counter<'reason'>;
 
+  // ── Assistant routing / tool-execution metrics ────────────────────────────
+
+  private readonly assistantIntentRouting: Counter<'source'>;
+  private readonly assistantToolExecutions: Counter<'tool' | 'outcome'>;
+  private readonly assistantToolEmpty: Counter<'reason'>;
+
   // ── Proactive suggestion metrics ─────────────────────────────────────────
 
   private readonly suggestionRecomputeEnqueues: Counter;
@@ -145,6 +151,33 @@ export class MetricsService implements OnApplicationBootstrap {
     this.assistantToolCitationsDropped = new Counter<'reason'>({
       name: 'assistant_tool_citations_dropped_total',
       help: 'Total assistant tool citation lists dropped before reaching the client',
+      labelNames: ['reason'],
+      registers: [this.registry],
+    });
+
+    // 路由来源：`llm` 是正常路径，`degraded_all_tools` 表示模型不可用/输出非法，
+    // 本轮退化成"绑定全部可用工具"。后者应当是罕见的异常态 —— 持续非 0 说明路由
+    // 角色没配好或熔断常开，属于必须告警的情况（2026-10-07 生产事故的口径）。
+    this.assistantIntentRouting = new Counter<'source'>({
+      name: 'assistant_intent_routing_total',
+      help: 'Assistant per-message tool routing outcomes by source',
+      labelNames: ['source'],
+      registers: [this.registry],
+    });
+
+    // 工具执行与"空信封"分开计：前者回答"工具跑没跑"，后者回答"跑了但没证据"。
+    // 生产事故里两者曾长时间无法区分（只能去翻 assistant_messages.used_tools）。
+    // 标签只取固定枚举，不带用户/查询内容，基数可控。
+    this.assistantToolExecutions = new Counter<'tool' | 'outcome'>({
+      name: 'assistant_tool_executions_total',
+      help: 'Assistant tool executions by tool and outcome',
+      labelNames: ['tool', 'outcome'],
+      registers: [this.registry],
+    });
+
+    this.assistantToolEmpty = new Counter<'reason'>({
+      name: 'assistant_tool_empty_total',
+      help: 'Assistant tool results that came back without evidence, by reason class',
       labelNames: ['reason'],
       registers: [this.registry],
     });
@@ -339,6 +372,31 @@ export class MetricsService implements OnApplicationBootstrap {
       return;
     }
     this.assistantToolCitationsDropped.inc({ reason });
+  }
+
+  /** 每轮消息的路由来源（正常走模型 / 降级成全开）。 */
+  recordAssistantIntentRouting(source: 'llm' | 'degraded_all_tools'): void {
+    if (!this.enabled) return;
+    this.assistantIntentRouting.inc({ source });
+  }
+
+  /** 一次工具执行的结果。`outcome` 只取固定枚举，避免标签基数失控。 */
+  recordAssistantToolExecution(
+    tool: string,
+    outcome: 'ok' | 'timeout' | 'error',
+  ): void {
+    if (!this.enabled) return;
+    this.assistantToolExecutions.inc({ tool, outcome });
+  }
+
+  /**
+   * 工具回来了但没有证据。`reason` 取固定分类而不是自由文本：
+   * `empty`（确实没查到）/ `partial`（部分覆盖）/ `unavailable`（服务不可用）。
+   * 后两者必须能分开看 —— 把"服务没配好"混进 empty 正是生产事故里最难查的一类。
+   */
+  recordAssistantToolEmpty(reason: 'empty' | 'partial' | 'unavailable'): void {
+    if (!this.enabled) return;
+    this.assistantToolEmpty.inc({ reason });
   }
 
   recordSuggestionRecomputeEnqueue(): void {

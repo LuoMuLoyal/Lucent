@@ -197,7 +197,47 @@ export class AssistantToolService {
         err instanceof Error ? err.stack : undefined,
       );
     });
-    return Promise.race([execution, timeout]);
+    return Promise.race([execution, timeout]).then(
+      (result) => {
+        this.recordToolOutcome(toolName, result);
+        return result;
+      },
+      (error: unknown) => {
+        this.metricsService.recordAssistantToolExecution(toolName, 'error');
+        throw error;
+      },
+    );
+  }
+
+  /**
+   * 工具执行与"空信封"分开计数。
+   *
+   * 2026-10-07 的生产事故里，这两件事在指标上完全无法区分（只能去翻
+   * `assistant_messages.used_tools`）：既看不出工具到底跑没跑，也看不出"服务不可用"
+   * 与"确实没查到"的差别。`reason` 取固定分类，标签基数可控。
+   */
+  private recordToolOutcome(
+    toolName: AssistantToolName,
+    result: AssistantToolExecutionResult,
+  ): void {
+    this.metricsService.recordAssistantToolExecution(
+      toolName,
+      result.timeout === true ? 'timeout' : 'ok',
+    );
+
+    const data = result.data as {
+      coverage?: { status?: unknown };
+      result?: { verifiability?: unknown };
+    };
+    const status = data.coverage?.status;
+    if (status !== 'empty' && status !== 'partial') {
+      return;
+    }
+    // 信封里 `verifiability: 'unavailable'` 表示**服务**不可用（sidecar 没配 / 连不上 /
+    // 向量库缺失），与"服务好、只是没证据"必须分开看。
+    this.metricsService.recordAssistantToolEmpty(
+      data.result?.verifiability === 'unavailable' ? 'unavailable' : status,
+    );
   }
 
   private async executeOne(

@@ -157,6 +157,9 @@ describe('AssistantToolService', () => {
     };
     const metricsService = {
       recordCacheAccess: vi.fn(),
+      // 工具执行 / 空信封指标（2026-10-07 事故后补的观测面）。
+      recordAssistantToolExecution: vi.fn(),
+      recordAssistantToolEmpty: vi.fn(),
     };
     const knowledgeRetrievalService = {
       searchCnMedicineKnowledge: vi.fn().mockResolvedValue({
