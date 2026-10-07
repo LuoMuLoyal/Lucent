@@ -13,7 +13,8 @@ const requiredPermissionByUrl: Record<string, string> = {
   '/content/safety-tips': 'content:read',
 }
 
-export function permissionForUrl(url: string): string | undefined {
+/** 内部使用：URL → 所需权限（导出面由 `filterNavGroups` 提供）。 */
+function permissionForUrl(url: string): string | undefined {
   return requiredPermissionByUrl[url]
 }
 

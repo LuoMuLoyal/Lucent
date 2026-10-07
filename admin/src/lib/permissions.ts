@@ -13,8 +13,3 @@ export function requirePermission(permission: string): void {
     throw redirect({ to: '/403' })
   }
 }
-
-export function hasPermission(permission: string): boolean {
-  const permissions = useAuthStore.getState().auth.user?.permissions ?? []
-  return permissions.includes(permission)
-}

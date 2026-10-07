@@ -7,6 +7,29 @@
 *.yml text
 *.yaml text
 
+# 强制 LF（覆盖 core.autocrlf=true 的检出转换）。
+#
+# 两处踩过的坑都源于 CRLF：
+#   1. `admin/.prettierrc` 要求 `endOfLine: "lf"`，而 Windows 检出会把 admin 下的文本转成
+#      CRLF —— `pnpm format:check` 因此把 279 个 admin 文本文件全部误报为格式错误
+#      （索引里其实一直是 LF，只有工作区字节不同）。
+#   2. 带 CRLF 的 `.sh` 在容器内执行会报 `$'\r': command not found`（部署侧已实测）。
+#
+# ⚠️ 按**扩展名**列举，不用 `admin/**`：后者会把 admin 下的 PNG 也当成文本规范化，
+#    实测直接把 favicon/screenshot 四个二进制文件改坏（`* text=auto` 的二进制探测被覆盖）。
+admin/**/*.ts text eol=lf
+admin/**/*.tsx text eol=lf
+admin/**/*.js text eol=lf
+admin/**/*.jsx text eol=lf
+admin/**/*.json text eol=lf
+admin/**/*.css text eol=lf
+admin/**/*.html text eol=lf
+admin/**/*.md text eol=lf
+admin/**/*.svg text eol=lf
+admin/**/*.yml text eol=lf
+admin/**/*.yaml text eol=lf
+*.sh text eol=lf
+
 # Mark generated API client as linguist-generated to reduce diff noise
 generated/lucent_api/** linguist-generated=true
 

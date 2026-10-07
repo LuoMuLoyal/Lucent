@@ -68,7 +68,7 @@ api.interceptors.response.use(
   }
 )
 
-export type AdminIdentity = AuthUser
+type AdminIdentity = AuthUser
 
 export async function getAdminIdentity(): Promise<AdminIdentity> {
   const { data } = await api.get<AdminIdentity>('/admin/me')
