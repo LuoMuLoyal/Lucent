@@ -141,6 +141,21 @@ describe('Lucent API (e2e)', () => {
       });
   });
 
+  it('omits the HTTPS-only security headers when no https public URL is configured', () => {
+    // The mocked ConfigService exposes no publicBaseUrl, i.e. the plain-HTTP
+    // deployment. `upgrade-insecure-requests` would rewrite /admin/assets/* to
+    // https there, so every asset fails and the console renders blank.
+    return request(app.getHttpServer())
+      .get('/api/v1/health')
+      .expect(200)
+      .expect((response) => {
+        const csp = response.headers['content-security-policy'];
+        expect(csp).toBeDefined();
+        expect(csp).not.toContain('upgrade-insecure-requests');
+        expect(response.headers['strict-transport-security']).toBeUndefined();
+      });
+  });
+
   it('/api/v1/health/ready (GET) returns 503 when a critical dependency is down', () => {
     prisma.$queryRawUnsafe.mockRejectedValue(new Error('db down'));
 
