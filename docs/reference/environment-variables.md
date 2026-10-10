@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-01
+updated: 2026-10-10
 ---
 
 # Environment Variables
@@ -79,6 +79,12 @@ METRICS_PASSWORD
 托管构建产物。`ADMIN_CONSOLE_DIR` 覆盖构建产物目录,留空按仓库内 `admin/dist` 解析,
 容器内为 `/app/admin/dist`。构建产物缺失时后端只记一条 warn 并跳过挂载,不影响其它路由。
 控制台没有独立凭据:登录使用真实 Lucent 账号,权限来自 `AdminUser` 角色矩阵。
+
+`PUBLIC_BASE_URL`(默认 `http://localhost:3000`)同时决定 **Helmet 的 HTTPS 专属响应头是否下发**:
+只有它是 `https://` 时才带 `Strict-Transport-Security` 与 CSP 的
+`upgrade-insecure-requests`。纯 HTTP 部署(如运行基线里的 `http://<主站IP>:3000`)必须
+保持 `http://`,否则浏览器会把 `/admin/assets/*.js|css` 全部改写成 `https://` 同端口,
+TLS 握手失败后管理端与 `/api/docs` 只剩空白页(回环地址被视为可信来源,本地开发复现不出)。
 
 主站上 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入(容器名寻址,不写回环),
