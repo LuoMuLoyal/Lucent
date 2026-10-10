@@ -17,6 +17,8 @@ export type {
   ProblemCode,
 } from './api/problem-catalog.js';
 export { registerResponseSchema } from './api/response-schema.registry.js';
+export { resolveHttpsHeaderPolicy } from './api/security-headers.js';
+export type { HttpsOnlyHeaderPolicy } from './api/security-headers.js';
 export type { ResponseSchemaRegistration } from './api/response-schema.registry.js';
 export { SseProblemDetailsMapper } from './api/sse/sse-problem-details.js';
 export type { SseProblemDetailsOptions } from './api/sse/sse-problem-details.js';

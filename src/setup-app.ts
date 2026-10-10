@@ -20,7 +20,7 @@ import { apiReference } from '@scalar/nestjs-api-reference';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import type { Logger as WinstonLogger } from 'winston';
-import { safeCompare } from './common/index.js';
+import { resolveHttpsHeaderPolicy, safeCompare } from './common/index.js';
 import { ProblemDetailsDto, SseProblemDetailsDto } from './common/index.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
@@ -133,20 +133,33 @@ export async function setupApp(
   // AdminJS and Scalar render inline bootstrap scripts, so CSP must allow
   // 'unsafe-inline' scripts — otherwise both admin panel and /api/docs
   // render blank (bundle scripts load, inline ones are blocked).
+  //
+  // Helmet's defaults also carry the HTTPS-only headers, which must follow the
+  // scheme the deployment is really served on: on a plain-HTTP public origin
+  // `upgrade-insecure-requests` rewrites /admin/assets/* to https, every asset
+  // fails to load, and the console renders blank (see
+  // `common/api/security-headers.ts`).
+  const appConfig = configService.get<{
+    publicBaseUrl?: string;
+    metricsUser?: string;
+    metricsPassword?: string;
+  }>(ConfigKey.App);
+  const httpsOnlyHeaders = resolveHttpsHeaderPolicy(
+    appConfig?.publicBaseUrl ?? '',
+  );
+
   await app.register(fastifyHelmet, {
+    hsts: httpsOnlyHeaders.hsts,
     contentSecurityPolicy: {
       directives: {
         'script-src': ["'self'", "'unsafe-inline'"],
+        ...httpsOnlyHeaders.cspDirectives,
       },
     },
   });
 
   // ── Prometheus metrics ──────────────────────────────────────────
   const metricsService = app.get(MetricsService);
-  const appConfig = configService.get<{
-    metricsUser?: string;
-    metricsPassword?: string;
-  }>(ConfigKey.App);
   const metricsUser = appConfig?.metricsUser;
   const metricsPassword = appConfig?.metricsPassword;
 
