@@ -446,7 +446,7 @@ groups:
             'annotations':
               {
                 'summary': '鲲鹏可用内存低于 10%。',
-                'runbook': '⚠️ 鲲鹏**没有 swap**，内存耗尽会被直接 OOM kill（PostgreSQL / LightRAG 首当其冲），不会像另两台那样先换页。这是该机第一风险。',
+                'runbook': '⚠️ 鲲鹏只有 2 GiB swap（2026-10-11 启用，vm.swappiness=10，此前为 0 表示几乎不用 swap），只能吸收短时尖峰，撑不住持续增长：内存耗尽仍会 OOM kill（PostgreSQL / LightRAG 首当其冲）。先看 node_memory_SwapFree_bytes 是否同时见底，再排查各容器内存。',
               },
             'isPaused': false,
           },
