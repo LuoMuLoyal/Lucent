@@ -39,6 +39,9 @@ export type EventReviewAction =
 /** Replaces `EventReviewSectionFactsDto`. */
 export const eventReviewSectionFactsSchema = z.object({
   code: z.string().describe('Structured fact code; localized by the client.'),
+  // Values must be non-null: the generated clients type this map with
+  // non-nullable values, so a JSON null breaks their deserializer. Producers
+  // omit absent keys — see `services/event-review/fact-arguments.ts`.
   arguments: z
     .record(z.string(), z.unknown())
     .describe('Structured fact arguments for the client localizer.'),

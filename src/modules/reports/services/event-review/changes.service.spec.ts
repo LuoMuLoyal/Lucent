@@ -73,8 +73,6 @@ describe('EventReviewChangesService', () => {
             lastDate: '2026-08-12',
             count: 3,
           },
-          water: null,
-          sleep: null,
         },
       },
     });
@@ -141,7 +139,6 @@ describe('EventReviewChangesService', () => {
       facts: {
         code: 'observed_changes',
         arguments: {
-          checkIns: null,
           water: {
             direction: 'up',
             firstValue: 800,
@@ -150,7 +147,6 @@ describe('EventReviewChangesService', () => {
             lastDate: '2026-08-12',
             observedDays: 3,
           },
-          sleep: null,
         },
       },
     });
@@ -172,8 +168,6 @@ describe('EventReviewChangesService', () => {
       facts: {
         code: 'observed_changes',
         arguments: {
-          checkIns: null,
-          water: null,
           sleep: {
             direction: 'up',
             firstValue: 6,
@@ -238,7 +232,7 @@ describe('EventReviewChangesService', () => {
     });
   });
 
-  it('keeps missing dimensions null inside an available section', () => {
+  it('omits missing dimensions from an available section', () => {
     const service = buildService();
     const input: ReviewChangeFacts = {
       checkIns: [
@@ -253,7 +247,9 @@ describe('EventReviewChangesService', () => {
     expect(section.state).toBe('available');
     expect(section.facts?.code).toBe('observed_changes');
     expect(section.facts?.arguments['checkIns']).not.toBeNull();
-    expect(section.facts?.arguments['water']).toBeNull();
-    expect(section.facts?.arguments['sleep']).toBeNull();
+    // Absent rather than null: null values break the generated clients, which
+    // type the arguments map with non-nullable values.
+    expect(section.facts?.arguments).not.toHaveProperty('water');
+    expect(section.facts?.arguments).not.toHaveProperty('sleep');
   });
 });

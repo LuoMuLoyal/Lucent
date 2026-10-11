@@ -3,6 +3,7 @@ import type {
   EventReviewEventDto,
   EventReviewSectionDto,
 } from '../../dto/event-review-response.dto.js';
+import { compactFactArguments } from './fact-arguments.js';
 
 /** Window facts the whatHappened section needs beyond the event identity. */
 export interface ReviewEventFactInput {
@@ -34,7 +35,7 @@ export class EventReviewFactsService {
       state: 'available',
       facts: {
         code: 'health_event',
-        arguments: {
+        arguments: compactFactArguments({
           kind: event.kind,
           title: event.title,
           startedAt: event.startedAt,
@@ -43,7 +44,7 @@ export class EventReviewFactsService {
           symptomRecordCount: input.symptomRecordCount,
           checkInCount: input.checkInCount,
           reasonRecordTitle: input.reasonRecordTitle,
-        },
+        }),
       },
     };
   }

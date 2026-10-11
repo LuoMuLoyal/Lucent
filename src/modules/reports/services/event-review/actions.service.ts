@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DoseLogStatus, HealthEventOutcome } from '#generated/prisma/client.js';
 import { formatDateOnly } from '../../../../common/index.js';
 import type { EventReviewSectionDto } from '../../dto/event-review-response.dto.js';
+import { compactFactArguments } from './fact-arguments.js';
 
 /** Check-in rows ordered by date ascending within the event window. */
 export interface ReviewActionCheckIn {
@@ -56,7 +57,7 @@ export class EventReviewActionsService {
       state: 'available',
       facts: {
         code: 'completed_actions',
-        arguments: { doseSlots, checkIns },
+        arguments: compactFactArguments({ doseSlots, checkIns }),
       },
     };
   }

@@ -47,11 +47,9 @@ describe('EventReviewFactsService', () => {
           kind: HealthEventKind.symptom,
           title: '头痛观察',
           startedAt: '2026-08-01T08:00:00.000Z',
-          endedAt: null,
           medicineIds: ['med-1', 'med-2'],
           symptomRecordCount: 3,
           checkInCount: 5,
-          reasonRecordTitle: null,
         },
       },
     });
@@ -78,7 +76,6 @@ describe('EventReviewFactsService', () => {
       medicineIds: ['med-1', 'med-2'],
       symptomRecordCount: 1,
       checkInCount: 2,
-      reasonRecordTitle: null,
     });
   });
 
@@ -114,17 +111,19 @@ describe('EventReviewFactsService', () => {
     expect(section.facts?.arguments['medicineIds']).toEqual(['med-1', 'med-2']);
   });
 
-  it('always emits the reasonRecordTitle argument, null or title', () => {
+  it('omits the reasonRecordTitle argument when there is no triggering record', () => {
     const service = buildService();
 
+    // Absent rather than null: null values break the generated clients, which
+    // type the arguments map with non-nullable values.
     expect(
       service.build({
         event: eventFixture(),
         symptomRecordCount: 0,
         checkInCount: 0,
         reasonRecordTitle: null,
-      }).facts?.arguments['reasonRecordTitle'],
-    ).toBeNull();
+      }).facts?.arguments,
+    ).not.toHaveProperty('reasonRecordTitle');
     expect(
       service.build({
         event: eventFixture(),
@@ -133,5 +132,18 @@ describe('EventReviewFactsService', () => {
         reasonRecordTitle: '头晕',
       }).facts?.arguments['reasonRecordTitle'],
     ).toBe('头晕');
+  });
+
+  it('omits endedAt while the event is still active', () => {
+    const service = buildService();
+
+    expect(
+      service.build({
+        event: eventFixture(),
+        symptomRecordCount: 0,
+        checkInCount: 0,
+        reasonRecordTitle: null,
+      }).facts?.arguments,
+    ).not.toHaveProperty('endedAt');
   });
 });

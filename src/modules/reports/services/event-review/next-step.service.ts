@@ -4,6 +4,7 @@ import type {
   EventReviewEventDto,
   EventReviewSectionDto,
 } from '../../dto/event-review-response.dto.js';
+import { compactFactArguments } from './fact-arguments.js';
 
 /**
  * Reviewed static red-flag rules only (medication safety module).
@@ -64,10 +65,10 @@ export class EventReviewNextStepService {
         state: 'available',
         facts: {
           code: 'active_check_in',
-          arguments: {
+          arguments: compactFactArguments({
             hasTodayCheckIn: input.hasTodayCheckIn,
             ...(redFlags.length > 0 ? { redFlags } : {}),
-          },
+          }),
         },
       };
     }
@@ -76,10 +77,10 @@ export class EventReviewNextStepService {
       state: 'available',
       facts: {
         code: 'event_ended',
-        arguments: {
+        arguments: compactFactArguments({
           outcome: input.event.outcome,
           ...(redFlags.length > 0 ? { redFlags } : {}),
-        },
+        }),
       },
     };
   }

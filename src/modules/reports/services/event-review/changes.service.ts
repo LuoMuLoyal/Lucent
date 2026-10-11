@@ -9,6 +9,7 @@ import {
 } from '../../../../common/index.js';
 import type { WaterMetricInput } from '../../../../common/index.js';
 import type { EventReviewSectionDto } from '../../dto/event-review-response.dto.js';
+import { compactFactArguments } from './fact-arguments.js';
 
 /** Check-in rows ordered by date ascending within the event window. */
 export interface ReviewChangeCheckIn {
@@ -101,7 +102,7 @@ export class EventReviewChangesService {
       state: 'available',
       facts: {
         code: 'observed_changes',
-        arguments: { checkIns, water, sleep },
+        arguments: compactFactArguments({ checkIns, water, sleep }),
       },
     };
   }

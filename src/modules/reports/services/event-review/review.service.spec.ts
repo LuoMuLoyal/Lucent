@@ -219,11 +219,9 @@ describe('EventReviewService', () => {
             kind: HealthEventKind.symptom,
             title: '头痛观察',
             startedAt: '2026-08-01T08:00:00.000Z',
-            endedAt: null,
             medicineIds: ['med-1'],
             symptomRecordCount: 1,
             checkInCount: 3,
-            reasonRecordTitle: null,
           },
         },
       });
@@ -240,8 +238,6 @@ describe('EventReviewService', () => {
               lastDate: '2026-08-13',
               count: 3,
             },
-            water: null,
-            sleep: null,
           },
         },
       });
@@ -382,8 +378,6 @@ describe('EventReviewService', () => {
               lastDate: '2026-08-10',
               count: 2,
             },
-            water: null,
-            sleep: null,
           },
         },
       });
@@ -450,11 +444,9 @@ describe('EventReviewService', () => {
             kind: HealthEventKind.symptom,
             title: '头痛观察',
             startedAt: '2026-08-01T08:00:00.000Z',
-            endedAt: null,
             medicineIds: ['med-1'],
             symptomRecordCount: 0,
             checkInCount: 0,
-            reasonRecordTitle: null,
           },
         },
       });
@@ -658,9 +650,11 @@ describe('EventReviewService', () => {
 
       const review = await service.buildForEvent(USER_ID, 'evt-active');
 
-      expect(
-        review.sections.whatHappened.facts?.arguments['reasonRecordTitle'],
-      ).toBeNull();
+      // Absent rather than null: null values break the generated clients, which
+      // type the arguments map with non-nullable values.
+      expect(review.sections.whatHappened.facts?.arguments).not.toHaveProperty(
+        'reasonRecordTitle',
+      );
     });
 
     it('keeps the review usable when the triggering record read fails', async () => {
@@ -678,9 +672,11 @@ describe('EventReviewService', () => {
       const review = await service.buildForEvent(USER_ID, 'evt-active');
 
       expect(review.event.id).toBe('evt-active');
-      expect(
-        review.sections.whatHappened.facts?.arguments['reasonRecordTitle'],
-      ).toBeNull();
+      // Absent rather than null: null values break the generated clients, which
+      // type the arguments map with non-nullable values.
+      expect(review.sections.whatHappened.facts?.arguments).not.toHaveProperty(
+        'reasonRecordTitle',
+      );
       expect(review.sections.nextStep).toEqual({
         state: 'available',
         facts: {
