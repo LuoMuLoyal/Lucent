@@ -1,7 +1,8 @@
 # ADR-0023: 三机 Compose 部署模型(跨云公网 + 安全组收口)
 
-- **Status**: accepted (supersedes 0017)
+- **Status**: accepted (supersedes 0017;决定 1/2 于 2026-10-12 修订为一机一文件)
 - **Date**: 2026-10-02
+- **Revised**: 2026-10-12
 - **Deciders**: LuoMuLoyal
 
 ## Context
@@ -25,20 +26,24 @@ Service + Coolify 自带 Traefik 接管域名与 TLS」的模型,并在其 2026-
 
 ## Decision
 
-1. **编排事实源仍是仓库**:`compose.yaml`(主站与图后端共用)、`compose.monitoring.yaml`
-   (监控栈)、`compose.dev.yaml`(本地开发)。三份都在仓库里版本化,服务器上是它们的拷贝。
+1. **编排事实源仍是仓库**:`compose.yaml`(主站)、`compose.graph.yaml`(图后端机)、
+   `compose.monitoring.yaml`(监控栈)、`compose.dev.yaml`(本地开发)。四份都在仓库里
+   版本化,服务器上是它们的拷贝。
    `compose.staging.yaml` 与 staging 专属资产随本 ADR 退役删除。
+   **`.env` 按机器拆成三份模板**:`.env.production.example`(主站)、
+   `.env.graph.example`(图后端机)、`.env.monitoring.example`(监控机),
+   服务器上各拷成自己那份 `.env`。
 
-2. **一台机器 = 一份 compose + 显式服务子集**。同一份 `compose.yaml` 在主站与图后端机
-   各部署一份,用**显式服务名**决定起哪些:
+2. **一台机器 = 一份 compose,服务集即该机的全部服务**:
 
    | 机器             | 架构    | 工作目录                 | compose                   | 起的服务                                                    |
    | ---------------- | ------- | ------------------------ | ------------------------- | ----------------------------------------------------------- |
    | 主站(华为云)     | aarch64 | `/opt/lucent`            | `compose.yaml`            | `postgres` `redis` `app` `lightrag` `node-exporter`         |
-   | 图后端机(腾讯云) | amd64   | `/opt/lucent-neo4j`      | `compose.yaml`            | `neo4j` `semantica`                                         |
+   | 图后端机(腾讯云) | amd64   | `/opt/lucent-neo4j`      | `compose.graph.yaml`      | `neo4j` `semantica`                                         |
    | 监控机(阿里云)   | amd64   | `/opt/lucent-monitoring` | `compose.monitoring.yaml` | `victoriametrics` `grafana` `victorialogs` `victoriatraces` |
 
-   `semantica` 服务带 `profiles: ['semantica']`,在主站上不启用。
+   `docker compose up -d`(不带服务名)起的就是该机应有的全部服务。
+   `semantica` 不再需要 `profiles` 门控 —— 见下文修订说明。
 
 3. **跨云通信一律走公网,方向决定安全组往哪边开**:
    - 主站 app → 图后端机 `8099`(semantica):应用主动调用 → 图后端机侧放行主站出口 IP
@@ -78,11 +83,67 @@ Service + Coolify 自带 Traefik 接管域名与 TLS」的模型,并在其 2026-
    发布模型细节见 `.github/workflows/README.md`。
 
 8. **配置是服务器上的 `.env`,不入库**。compose 的 `${VAR}` 插值与 app 的
-   `env_file` 读同一份,已 gitignore;模板是仓库内的 `.env.production.example`。
+   `env_file` 读同一份,已 gitignore;模板按机器分三份:`.env.production.example`
+   (主站)、`.env.graph.example`(图后端机)、`.env.monitoring.example`(监控机)。
    变量清单见 [environment-variables.md](../environment-variables.md)。
 
 9. **数据库迁移随容器启动自动执行**:`entrypoint.sh` 跑
    `prisma migrate deploy`,失败则容器不启动(不会带坏 schema 上线)。
+
+## Revision 2026-10-12:一机一文件(决定 1 / 2 修订)
+
+### Context
+
+原决定 2 让主站与图后端机**共用一份 `compose.yaml`**,靠"显式服务名"决定起哪些。
+这个形态有三个可测的代价:
+
+1. **图库机必须凑齐主站的口令才能启动。** compose 会对**整个文件**做插值,
+   于是只跑 `neo4j` + `semantica` 的图库机也必须有 `LUCENT_IMAGE` /
+   `LUCENT_DB_IMAGE` / `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 的值。
+   实测(用只含图库变量的 `.env` 跑 `docker compose config`):
+
+   ```
+   error while interpolating services.app.image: required variable LUCENT_IMAGE is missing a value
+   error while interpolating services.postgres.environment.POSTGRES_PASSWORD: required
+   error while interpolating services.postgres.image: required variable LUCENT_DB_IMAGE is missing
+   error while interpolating services.redis.command: required variable REDIS_PASSWORD is missing
+   ```
+
+   而 `docs/howto/deploy.md` §二 给图库机列的 `.env` 只有
+   `NEO4J_PASSWORD` / `API_TOKEN` / `SEMANTICA_IMAGE` —— **照文档照做会在插值阶段
+   直接失败**。要让它跑起来,就得把主站的生产口令复制到一台不需要它们的机器上。
+
+2. **`profiles` 是拆分缺失的症状。** `semantica` 带 `profiles: ['semantica']`
+   只是为了在同一份文件里让主站"别起它"——两个服务集挤在一起才需要这道闸。
+3. **同步单位被人为放大。** 2026-10-05 的记录:服务器上的 `compose.yaml` 是旧副本,
+   `TRUST_PROXY: 'true'` 仍在,限流可被伪造 XFF 绕过。共用文件时"同步 compose"
+   意味着同步两台机器的并集,漏一处的概率与影响面都更大。
+
+`.env` 同理:569 行的单一模板被三台机器共用,每台只用其中一部分,
+模板里被迫写满条件说明("阿里云那台只需把这些抄过去")。
+
+### Decision
+
+按**机器边界**切分,而不是按服务类型切分:
+
+- `compose.yaml` → 只描述主站:`postgres` `redis` `app` `lightrag` `node-exporter`
+- `compose.graph.yaml`(新)→ 只描述图库机:`neo4j` `semantica`
+- `compose.monitoring.yaml` 不变(本就只服务监控机)
+- `compose.dev.yaml` 不变(本就只服务本地)
+- `.env.production.example` → 主站;新增 `.env.graph.example` / `.env.monitoring.example`
+
+**判断标准从"该起哪些服务"变成"该用哪个文件"**:每台机器 `docker compose up -d`
+(不带服务名)起的就是它应有的全部服务。`profiles` 门控随拆分删除。
+
+### Consequences
+
+- 每台机器只读自己那份 `.env`,**口令不必跨机器复制**;图库机不再需要
+  `LUCENT_IMAGE` / `LUCENT_DB_IMAGE` / `POSTGRES_PASSWORD` / `REDIS_PASSWORD`。
+- 服务器上的同步单位从"两台机的并集"缩到"一台机",漏同步的影响面随之缩小。
+- 文件数从 3 个 compose + 1 个 env 模板变成 4 个 compose + 3 个 env 模板 ——
+  代价是多两个文件要维护;收益是每份文件都能**单独**用自己那台的变量解析通过。
+- **部署时要换文件**:图库机从 `cp compose.yaml` 改为 `cp compose.graph.yaml`,
+  `.env` 模板名同步换(见 docs/howto/deploy.md)。
 
 ## Options Considered
 
@@ -115,9 +176,10 @@ Service + Coolify 自带 Traefik 接管域名与 TLS」的模型,并在其 2026-
   属独立决策。
 - **跨云依赖是硬依赖**:图后端机或监控机任一不可达,英文侧 OAG / 日志 / 追踪
   相应降级(LightRAG 与主流程不受影响)。各服务的缺失语义按其自身实现。
-- **多机 `.env` 是漂移源**:三份 `.env` 各机维护,新增变量要逐台补。监控机的
+- **多机 `.env` 仍是漂移源**:三份 `.env` 各机维护,新增变量要逐台补。监控机的
   `LUCENT_PUBLIC_HOST` 与主站的 `PUBLIC_BASE_URL` 是同一事实的两处表达,
-  改 IP 时必须同步。
+  改 IP 时必须同步。按机器拆模板只消除"抄错/漏抄"这一类漂移,不消除
+  "同一事实两处表达"这一类 —— 后者由跨机地址的物理必要性决定,见决定 3。
 
 ## Relationship to ADR-0017
 

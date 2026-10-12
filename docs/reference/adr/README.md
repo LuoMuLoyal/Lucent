@@ -145,5 +145,5 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-09-29
 - [0023](0023-three-server-compose-deployment.md)
   - Title: 三机 Compose 部署模型(跨云公网 + 安全组收口)
-  - Status: accepted（supersedes 0017）
+  - Status: accepted（supersedes 0017；决定 1/2 于 2026-10-12 修订为一机一文件）
   - Date: 2026-10-02
