@@ -220,9 +220,9 @@ DeepSeek `thinking` mode automatically for these streaming tool-use flows so
 `tool_choice` requests can complete normally.
 
 Deployment runs a repo-owned compose on each host, managed with plain
-`docker compose`: `compose.yaml` is deployed twice with an explicit service subset
-(app + data + retrieval on one host, graph backend on another) and
-`compose.monitoring.yaml` runs the observability stack on a third. Access is
+`docker compose`: `compose.yaml` (app + data + retrieval on one host),
+`compose.graph.yaml` (Neo4j + semantica on a second) and
+`compose.monitoring.yaml` (the observability stack on a third). Access is
 controlled by the cloud security group's source-IP allowlist. See the deployment
 docs below.
 
@@ -274,11 +274,16 @@ building & pushing the Docker image. See
   - `scripts/dev/` for local runtime helpers
   - `scripts/contract/` for contract export helpers
   - `scripts/import/medicine/` for medicine data import helpers and Python parsers
-- `compose.yaml` (the app + data + retrieval services, and the graph backend pair),
-  `compose.monitoring.yaml` (the metrics/logs/traces stack) and `compose.dev.yaml`
-  (local dev) at the repo root hold the stack definitions; `deploy/` holds sidecar
+- `compose.yaml` (the app + data + retrieval services), `compose.graph.yaml`
+  (the graph backend pair: Neo4j + semantica), `compose.monitoring.yaml`
+  (the metrics/logs/traces stack) and `compose.dev.yaml` (local dev) at the repo
+  root hold the stack definitions — one file per host, so the service list in each
+  file is exactly that host's stack; `deploy/` holds sidecar
   configuration (LightRAG env template and prompt profiles); `monitoring/` contains
   VictoriaMetrics scrape config and Grafana provisioning/dashboards.
+  Production env templates are split the same way: `.env.production.example`
+  (main host), `.env.graph.example` (graph host), `.env.monitoring.example`
+  (monitoring host).
 - `entrypoint.sh` at the repo root is the container startup entrypoint (copied into the
   image): it runs `prisma migrate deploy` before starting the app, so migrations are
   applied automatically on container start and a failed migration aborts startup.
@@ -301,11 +306,14 @@ building & pushing the Docker image. See
   See [.github/workflows/README.md](.github/workflows/README.md) for the release model.
 - **Runtime** — three hosts, one compose per host, each managed with plain
   `docker compose up -d`; all ports are published and access is controlled by the cloud
-  security group's source-IP allowlist. `compose.yaml` is deployed twice with an explicit
-  service subset (app + postgres/redis/lightrag/node-exporter on one host; neo4j + semantica
-  on another), and `compose.monitoring.yaml` runs the metrics/logs/traces stack on a third.
-  Cross-host traffic goes over the public internet (the clouds' VPCs are not peered), so
-  inter-host addresses must be public. Releases: update the `LUCENT_IMAGE` reference in the
+  security group's source-IP allowlist. `compose.yaml` (app + postgres/redis/lightrag/
+  node-exporter) runs on one host, `compose.graph.yaml` (neo4j + semantica) on a second,
+  and `compose.monitoring.yaml` runs the metrics/logs/traces stack on a third. Each host
+  reads only its own `.env` (templates `.env.production.example` / `.env.graph.example` /
+  `.env.monitoring.example`), so a host's secrets never have to be copied to a machine
+  that does not need them. Cross-host traffic goes over the public internet (the clouds'
+  VPCs are not peered), so inter-host addresses must be public. Releases: update the
+  `LUCENT_IMAGE` reference in the
   host's `.env`, then pull and `up -d --force-recreate <service>` (the container entrypoint
   runs `prisma migrate deploy` on start); rollback is the same sequence with the previous
   `sha-` tag. Because the tag points at a multi-arch manifest, the architecture is chosen by

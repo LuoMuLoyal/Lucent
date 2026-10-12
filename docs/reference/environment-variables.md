@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-10
+updated: 2026-10-12
 ---
 
 # Environment Variables
@@ -55,6 +55,11 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 - 部署见 [deployment.md](deployment.md) 与 [../howto/deploy.md](../howto/deploy.md):
   三台机器各跑一份仓库内 compose(鲲鹏主站 / 腾讯云 Neo4j+semantica / 阿里云监控栈),
   用 `docker compose up -d` 直接管理;跨云走公网,访问控制由云安全组限源承担
+- **生产侧 env 模板按机器分三份**(ADR-0023 的 2026-10-12 修订):`.env.production.example`
+  (主站,`compose.yaml`)、`.env.graph.example`(图库机,`compose.graph.yaml`)、
+  `.env.monitoring.example`(监控机,`compose.monitoring.yaml`)。服务器上各拷成自己那份
+  `.env`。⚠️ 不要把三台的变量合到一份:compose 对整个文件插值,合表会让图库机也必须
+  凑齐主站的口令才能启动
 - 非 development 目标的 Prisma 命令须显式指定 NODE_ENV,例如
   `NODE_ENV=test pnpm exec prisma migrate deploy`
 
@@ -493,10 +498,11 @@ cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
 # SEMANTICA_BASE_URL=http://127.0.0.1:8099
 ```
 
-**Neo4j 容器由编排提供**：
+**Neo4j 容器由编排提供**（图库机 `compose.graph.yaml`；本地 dev 在
+`compose.dev.yaml` 的 `neo4j-dev`）：
 
 ```text
-NEO4J_PASSWORD  # 必填（三份编排都按 :?required 硬失败）；同时用于 NEO4J_AUTH 与健康探针
+NEO4J_PASSWORD  # 必填（按 :?required 硬失败）；同时用于 NEO4J_AUTH 与健康探针
 NEO4J_IMAGE     # 可选，默认 neo4j:5.26.31-community（钉补丁号，勿用浮动 tag）
 ```
 
@@ -509,10 +515,10 @@ Unrecognized setting`）。因此：
 > ② 只写 5.26 真实存在的内存设置（`heap.initial_size` / `heap.max_size` /
 > `pagecache.size`）。`server.memory.recovery_policy` 在 5.26 **不存在**，照抄会让库起不来。
 
-> **`semantica` 服务**（profile `semantica`）定义在三份 compose 里以保持 dev / prod 形态
-> 一致，但其镜像只在图库机上有意义（主站不启用该 profile，见
-> `docs/reference/deployment.md`）。该限制不影响 `neo4j` 服务本身：它不入门控，
-> `docker compose up neo4j` 即可单独使用。
+> **`semantica` 服务**定义在 `compose.graph.yaml`（图库机）与 `compose.dev.yaml`
+> （本地，profile 门控）里。它**不在主站的 `compose.yaml` 里** —— 分文件后主站的
+> `docker compose up -d` 看不到它，不需要再用 profile 防止误起
+> （拆分理由见 `docs/reference/deployment.md` 与 ADR-0023 的 2026-10-12 修订）。
 
 Observability:
 

@@ -21,7 +21,8 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
 
 ## 端口暴露面：安全组限源是访问控制，不是兜底
 
-`compose.yaml`（主站）与 `compose.monitoring.yaml`（监控机）把服务端口发布到宿主机，
+`compose.yaml`（主站）、`compose.graph.yaml`（图库机）与 `compose.monitoring.yaml`
+（监控机）把服务端口发布到宿主机，
 **可达范围由云安全组按来源 IP 白名单决定**。端口发布到 `0.0.0.0` 不等于对全网开放：
 把某端口限定到指定 IP 后，其可达性等同于「只有该 IP 能连」，与「仅绑回环 + SSH 隧道」
 是同一档的访问控制，区别只在审计面与多一层云厂商依赖。

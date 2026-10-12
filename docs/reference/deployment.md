@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-02
+updated: 2026-10-12
 ---
 
 # Lucent Deployment
@@ -39,6 +39,7 @@ updated: 2026-10-02
 ┌───▼──────────────────────┐  ┌─────▼────────────────────────────┐
 │ 图库机(腾讯云, amd64)     │  │ 监控机(阿里云, amd64)            │
 │  /opt/lucent-neo4j/       │  │  /opt/lucent-monitoring/         │
+│  compose.graph.yaml       │  │  compose.monitoring.yaml         │
 │   neo4j        :7474/7687 │  │   victoriametrics :8428          │
 │   semantica    :8099      │  │   grafana         :3001          │
 │                           │  │   victorialogs    :9428          │
@@ -64,12 +65,20 @@ updated: 2026-10-02
 | 机器           | 架构    | 工作目录                 | compose                   | 起的服务                                                    |
 | -------------- | ------- | ------------------------ | ------------------------- | ----------------------------------------------------------- |
 | 主站(华为云)   | aarch64 | `/opt/lucent`            | `compose.yaml`            | `postgres` `redis` `app` `lightrag` `node-exporter`         |
-| 图库机(腾讯云) | amd64   | `/opt/lucent-neo4j`      | `compose.yaml`            | `neo4j` `semantica`                                         |
+| 图库机(腾讯云) | amd64   | `/opt/lucent-neo4j`      | `compose.graph.yaml`      | `neo4j` `semantica`                                         |
 | 监控机(阿里云) | amd64   | `/opt/lucent-monitoring` | `compose.monitoring.yaml` | `victoriametrics` `grafana` `victorialogs` `victoriatraces` |
 
-**同一份 `compose.yaml` 在主站与图库机各部署一份**,用**显式服务名**决定起哪些
-(图库机执行 `docker compose up -d neo4j semantica`)。`semantica` 服务带
-`profiles: ['semantica']`,在主站上不启用。三台机器的 compose 内容均与仓库一致。
+**一台机器 = 一份 compose,该文件里的服务就是这台机器的全部服务**,所以
+`docker compose up -d`(不带服务名)即可。`semantica` 不再需要
+`profiles` 门控 —— 分文件后主站的 `up -d` 看不到它。三台机器的 compose
+内容均与仓库一致。
+
+`.env` 同样按机器拆模板:`.env.production.example`(主站)、
+`.env.graph.example`(图库机)、`.env.monitoring.example`(监控机)。
+**拆分前共用一份 compose + 一份 env 模板,图库机为了能启动还必须凑齐主站的
+`LUCENT_IMAGE` / `LUCENT_DB_IMAGE` / `POSTGRES_PASSWORD` / `REDIS_PASSWORD`**
+(compose 对整个文件插值),而那正是主站的生产口令。现在每台只读自己那份,
+口令不必跨机器复制(理由见 ADR-0023 的 2026-10-12 修订)。
 
 **为什么主站放鲲鹏**:4c/7.2 GiB 是唯一能同时扛住 Lucent + PG + Redis + LightRAG 的机器,
 且「国产 CPU + 国产 OS(Huawei Cloud EulerOS)上跑核心业务」是大赛鼓励的国产化方向。
@@ -160,14 +169,20 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 
 ## 配置与密钥
 
-**配置是服务器上的 `.env`**,不入库。compose 的 `${VAR}` 插值与 app 的
-`env_file` 读同一份文件;模板是仓库内 `.env.production.example`。
+**配置是服务器上的 `.env`**,不入库。每台机器只读**自己那一份**:compose 的
+`${VAR}` 插值与 app 的 `env_file` 都来自它。模板按机器分三份:
+
+| 模板                      | 对应 compose                      | 拷到服务器上 |
+| ------------------------- | --------------------------------- | ------------ |
+| `.env.production.example` | `compose.yaml`(主站)              | `.env`       |
+| `.env.graph.example`      | `compose.graph.yaml`(图库机)      | `.env`       |
+| `.env.monitoring.example` | `compose.monitoring.yaml`(监控机) | `.env`       |
 
 | 机器   | 配置文件                           | 关键键                                                                                                                                                                                                        |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT` |
 | 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                          |
-| 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE`                                                                                                                                                                |
+| 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE` `NEO4J_IMAGE`                                                                                                                                                  |
 | 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD` `ALERT_EMAIL_TO` `MAIL_*` `GF_SMTP_ENABLED`                                                                                   |
 
 - `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
@@ -176,7 +191,9 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 - 变量完整语义见 [environment-variables.md](environment-variables.md)。
 - `LUCENT_PUBLIC_HOST`(监控机)与主站的 `PUBLIC_BASE_URL` 是同一事实的两处表达,
   **改 IP 时必须同步**。
-- **多机 `.env` 是漂移源**:新增变量要逐台补,没有集中式配置源。
+- **多机 `.env` 仍是漂移源**:新增变量要逐台补,没有集中式配置源。按机器拆模板
+  消除的是"抄错/漏抄"这一类漂移,消除不了"同一事实两处表达"这一类 —— 后者由
+  跨机地址的物理必要性决定。
 
 ## 镜像与发布
 
@@ -243,7 +260,7 @@ SSE 连接会收到终止事件后关闭,建议低峰发布。
   无需 Node/pnpm/PM2(应用在容器里跑,不需要宿主运行时)。
 - **主站**:工作目录下有 `compose.yaml`、`.env`、
   `deploy/lightrag/.env`。
-- **图库机**:工作目录下有 `compose.yaml` 与 `.env`;Neo4j 固定内存约 852 MiB,
+- **图库机**:工作目录下有 `compose.graph.yaml` 与 `.env`;Neo4j 固定内存约 852 MiB,
   注意主机余量。
 - **监控机**:工作目录下有 `compose.monitoring.yaml`、`.env` 与 `monitoring/`
   (provisioning 与 dashboards)。首次接入步骤见 [howto/deploy.md](../howto/deploy.md)。

@@ -2,19 +2,19 @@
 status: active
 owner: backend
 quadrant: howto
-updated: 2026-10-02
+updated: 2026-10-12
 ---
 
 # How-To: 部署 Lucent
 
 部署模型与组件说明见 [reference/deployment.md](../reference/deployment.md),本文只给操作步骤。
 
-三台机器各跑一份仓库内 compose:
+三台机器各跑一份仓库内 compose,各读各的 `.env`:
 
 | 机器                  | 角色                 | 工作目录                 | compose                   | 服务                                                        |
 | --------------------- | -------------------- | ------------------------ | ------------------------- | ----------------------------------------------------------- |
 | 主站(华为云, aarch64) | Lucent + 数据 + 检索 | `/opt/lucent`            | `compose.yaml`            | `postgres` `redis` `app` `lightrag` `node-exporter`         |
-| 图库机(腾讯云, amd64) | 英文侧 OAG           | `/opt/lucent-neo4j`      | `compose.yaml`            | `neo4j` `semantica`                                         |
+| 图库机(腾讯云, amd64) | 英文侧 OAG           | `/opt/lucent-neo4j`      | `compose.graph.yaml`      | `neo4j` `semantica`                                         |
 | 监控机(阿里云, amd64) | 指标/日志/追踪       | `/opt/lucent-monitoring` | `compose.monitoring.yaml` | `victoriametrics` `grafana` `victorialogs` `victoriatraces` |
 
 > 🔒 **本文用占位符,不写真实地址。** `<主站IP>` / `<图库IP>` / `<监控IP>` 与各端口
@@ -23,6 +23,12 @@ updated: 2026-10-02
 > ⚠️ **跨云地址一律填对方公网 IP。** 三家云之间无 VPC 对等,填内网地址的失败形态是
 > **超时**(不是连接拒绝),表现为相应能力静默降级。安全组按对方**公网出口 IP** 白名单
 > (三家均 1:1 NAT,出口 IP == 公网 IP)。
+>
+> ⚠️ **compose 文件与 `.env` 模板都要按机器选,不要混用。** 主站用
+> `compose.yaml` + `.env.production.example`,图库机用 `compose.graph.yaml` +
+> `.env.graph.example`,监控机用 `compose.monitoring.yaml` +
+> `.env.monitoring.example`。给图库机拷主站的 compose/env 会在插值阶段就报错
+> (缺 `LUCENT_IMAGE` 等),详见 ADR-0023 的 2026-10-12 修订。
 
 ## 一、主站(华为云 鲲鹏)
 
@@ -137,18 +143,23 @@ docker compose ps
 
 ## 二、图库机(腾讯云 Neo4j + semantica)
 
-工作目录 `/opt/lucent-neo4j`,用**同一份 `compose.yaml`** 起两个服务。
+工作目录 `/opt/lucent-neo4j`,用 **`compose.graph.yaml`** 起两个服务。
 
 ```bash
 cd /opt/lucent-neo4j
-vim .env                     # NEO4J_PASSWORD / API_TOKEN / SEMANTICA_IMAGE
+cp /path/to/compose.graph.yaml .
+cp .env.graph.example .env && vim .env        # NEO4J_PASSWORD / SEMANTICA_IMAGE
 docker compose up -d neo4j          # 先起图库
 docker compose ps                   # 等 neo4j healthy
 docker compose up -d semantica      # 再起 sidecar
 ```
 
-> ⚠️ `API_TOKEN`(sidecar 侧)必须与主站 app 的 `SEMANTICA_API_KEY` **一致**,
-> 否则 401。`semantica` 带 `profiles: ['semantica']`,不经 profile 调用会提示服务不存在。
+> ⚠️ `semantica` 不再需要 `--profile semantica` —— 分文件后主站的
+> `docker compose up -d` 看不到它,不存在"误起"的可能。
+> 该服务原先的 profile 门控是共用一份 compose 时的产物,已随拆分删除。
+>
+> ⚠️ `API_TOKEN`(sidecar 侧的鉴权令牌,模板在 `deploy/semantica/` 目录下)
+> 必须与主站 app 的 `SEMANTICA_API_KEY` **一致**,否则 401。
 
 验证(**从主站侧**验证跨云可达才有意义):
 
@@ -245,7 +256,9 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 
 ## 四、「改哪些值」清单
 
-### 主站 `/opt/lucent/.env`
+每台机器只填自己那份模板里的键(模板名见文首表格)。
+
+### 主站 `/opt/lucent/.env`(模板 `.env.production.example`)
 
 | 键                                     | 值 / 说明                                                                                                      |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -258,7 +271,7 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 | `SEMANTICA_BASE_URL`                   | `http://<图库IP>:8099`(公网)                                                                                   |
 | `VICTORIALOGS_URL`                     | `http://<监控IP>:9428/insert/jsonline`(公网)                                                                   |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`          | `http://<监控IP>:10428/insert/opentelemetry/v1/traces`                                                         |
-| `METRICS_USER` / `METRICS_PASSWORD`    | app `/metrics` 的 Basic Auth + VM 抓取凭据                                                                     |
+| `METRICS_USER` / `METRICS_PASSWORD`    | app `/metrics` 的 Basic Auth + VM 抓取凭据;**与监控机一致**                                                    |
 | 其余密钥                               | JWT / ADMIN / 邮件 / AI / 对象存储 / 推送,见 [environment-variables.md](../reference/environment-variables.md) |
 
 ### 主站 `/opt/lucent/deploy/lightrag/.env`
@@ -271,7 +284,7 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 | `ENTITY_TYPE_PROMPT_FILE`                                     | 实体类型提示词档案(如 `lumos_medicine.yml`);改后必须重建容器                                                              |
 | `MAX_ASYNC_LLM`                                               | 并发抽取上限                                                                                                              |
 
-### 图库机 `/opt/lucent-neo4j/.env`
+### 图库机 `/opt/lucent-neo4j/.env`(模板 `.env.graph.example`)
 
 | 键                | 值 / 说明                                   |
 | ----------------- | ------------------------------------------- |
@@ -280,7 +293,10 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 | `SEMANTICA_IMAGE` | `<registry>/lucent-semantica:latest-amd64`  |
 | `NEO4J_IMAGE`     | `neo4j:5.26.31-community`                   |
 
-### 监控机 `/opt/lucent-monitoring/.env`
+> `API_TOKEN` 写在 sidecar 自己的 env_file(模板在 `deploy/semantica/` 目录下),
+> 不在本文件;本文件只有 compose 插值要用的那几项。
+
+### 监控机 `/opt/lucent-monitoring/.env`(模板 `.env.monitoring.example`)
 
 | 键                                                                  | 值 / 说明                                       |
 | ------------------------------------------------------------------- | ----------------------------------------------- |

@@ -8,7 +8,8 @@ It does not modify any upstream licence: each component remains under its own te
 upstream `LICENSE` / `NOTICE` files inside each package are authoritative.
 
 Version ranges below follow the repository manifests
-(`package.json`, `pnpm-lock.yaml`, `compose.yaml`, `compose.monitoring.yaml`). Patch-level versions
+(`package.json`, `pnpm-lock.yaml`, `compose.yaml`, `compose.graph.yaml`,
+`compose.monitoring.yaml`). Patch-level versions
 move as dependencies are updated and are deliberately not pinned here; resolve the exact version
 from the lockfile and the container image tag for any given checkout.
 
