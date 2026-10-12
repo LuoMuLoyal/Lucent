@@ -1,0 +1,149 @@
+# Lucent Compose — 图库机(腾讯云, amd64)
+# ---------------------------------------------------------------------------
+# 本文件**只描述图库机**:Neo4j 与 semantica。主站在 `compose.yaml`,
+# 监控机在 `compose.monitoring.yaml` —— 三份各跑一台,用**文件名**就能判断
+# 该起哪些服务,不需要再靠显式服务名或 profile 去挑。
+# 三台机器的角色与链路见 docs/reference/deployment.md,操作步骤见 docs/howto/deploy.md。
+#
+# 为什么单独一份(而不是与主站共用 compose.yaml):
+#   本机只起 neo4j 与 semantica,与主站的服务集完全不相交。共用一份时,
+#   compose 会对**整个文件**做插值,于是本机必须凑齐主站的
+#   LUCENT_IMAGE / LUCENT_DB_IMAGE / POSTGRES_PASSWORD / REDIS_PASSWORD
+#   才能启动 —— 而那正是主站的生产口令,被复制到一台根本不需要它们的机器上。
+#   分开后本机只读自己那份 `.env`(模板 `.env.graph.example`),
+#   同步单位也从"两台机的并集"缩到"一台机"。
+#
+# 职责边界:
+#   - app **不在**本机。Lucent 从不直连 Neo4j:所有图查询都经 semantica 的
+#     HTTP 端点(/query /reason),由主站 app 跨公网调用。
+#   - 环境变量是服务器上的 `.env`(不入库,模板 `.env.graph.example`)。
+#     compose 的 ${VAR} 插值来自它;两个服务各自的 env_file
+#     (deploy/semantica/.env)是独立文件,不与 app 的 .env 共用。
+#
+# 端口与暴露面:**端口发布到 0.0.0.0 不等于对全网开放** —— 可达范围由云安全组的
+# 来源 IP 白名单决定(把端口限定到指定 IP 后,等同于"只有该 IP 能连")。因此判断
+# 暴露面看**安全组放行了谁**,不看端口是否发布。真实 IP 与规则清单属运维信息,
+# 在服务器侧与私有笔记维护,**不入库**。原则:
+#   - 8099(semantica)放行主站出口 IP 与运维 IP;
+#   - 7687/7474(Neo4j)只放行运维 IP;
+#   - 更严的做法是开 SSH 隧道,那时端口不必对任何 IP 放行。
+#
+# ⚠️ Neo4j 端口一旦对全网可达,口令就是唯一防线(NEO4J_AUTH),而它按设计是要被
+#    同机的 semantica 读到的 —— 所以**不要放行 0.0.0.0/0**。
+
+services:
+  # ── Neo4j(英文侧 OAG 的图后端)───────────────────────────────
+  # semantica-service 经 Bolt 访问它;Lucent 从不直连。只 expose 给同网络的
+  # sidecar,不发布宿主端口、不挂 Traefik。
+  #
+  # 内存显式封顶,勿依赖默认(约 1.5 GiB)。heap 512m + pagecache 256m 是实测
+  # 基线 —— 本图 RSS 1,243 MiB。pagecache 固定上限正是选它的理由:
+  # **数据增长不会线性吃内存**。
+  #
+  # ⚠️ 除 NEO4J_AUTH 外,任何 `NEO4J_` 前缀变量都被当作配置键解析,未声明的键
+  # 会让容器**拒绝启动**(实测 `server.memory.recovery_policy` 在 5.26 不存在)。
+  neo4j:
+    image: ${NEO4J_IMAGE:-neo4j:5.26.31-community}
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+      # healthcheck 用:非 NEO4J_ 前缀,否则会被解析成 `server.password` 而报错。
+      LUCENT_NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+    expose:
+      - '7687'
+    ports:
+      # 7687 直连 Bolt(cypher-shell / Neo4j Browser 驱动),
+      # 7474 是 Browser UI,核对图谱内容最直观的两个入口。
+      # 安全组只放行运维 IP;更严的做法是开 SSH 隧道(见文件头)。
+      #
+      # ⚠️ Neo4j 端口一旦对全网可达,口令就是唯一防线(NEO4J_AUTH),
+      #    而它按设计是要被同机 sidecar 读到的 —— 不要放行 0.0.0.0/0。
+      - '7687:7687'
+      - '7474:7474'
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      # Bolt 握手不靠 HTTP,而 HTTP 端点在恢复期就已监听 —— 用后者当探针会在
+      # 数据库真正可用之前报健康。cypher-shell 会真的建会话并查询。
+      test:
+        [
+          'CMD-SHELL',
+          'cypher-shell -u neo4j -p "$$LUCENT_NEO4J_PASSWORD" "RETURN 1" >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+  # ── Semantica(英文侧 OAG sidecar)─────────────────────────────
+  # 本体推理:只读 Cypher 的校验 + 执行、SHACL 校验与规则推理。图是 DrugBank
+  # 结构化字段的确定性灌入(零 LLM 抽取),**服务不持有模型凭据** —— NL→Cypher 的
+  # 生成在 Lucent 侧用 AI_LANGUAGE_* 完成。
+  #
+  # 两侧共享一个值:API_TOKEN(sidecar 侧)/ SEMANTICA_API_KEY(app 侧),除
+  # /health 外每个端点都校验它。早期版本刻意不带凭据,因为当时只走容器网络、
+  # 不发布宿主端口;跨云部署后该前提消失(见下面的 ports 注释)。
+  #
+  # 配置来自独立文件 deploy/semantica/.env(模板见该目录 .env.example),与 app 的
+  # .env **不共用**:那是独立进程、独立镜像、独立升级周期,不该读到 JWT_* /
+  # DATABASE_URL / 微信密钥。其中 NEO4J_* 按环境填(含口令,不入库),图在
+  # Neo4j 中,**完全不进 Prisma 的 Postgres 域**。
+  #
+  # 本文件不再需要 `profiles: ['semantica']` 门控:与主站分文件后,主站的
+  # `docker compose up -d` 看不到这个服务,不存在"误起"的可能。原先加 profile
+  # 只是为了在同一份文件里区分两台机器,那个理由已随拆分消失。
+  semantica:
+    image: ${SEMANTICA_IMAGE:-lucent-semantica:latest}
+    restart: unless-stopped
+    env_file:
+      - deploy/semantica/.env
+    environment:
+      # 同一 compose 网络 → 走服务名;库独立于 lucent 的 Postgres。
+      NEO4J_URI: bolt://neo4j:7687
+    expose:
+      - '8099'
+    ports:
+      # 跨云部署的必要项 —— app 在另一台机器上,容器网络到不了这里的
+      # expose。直连还能用 curl 打 /schema、/rules 看图谱形态。
+      # 安全组只放行主站出口 IP 与运维 IP(见文件头)。
+      #
+      # 鉴权已经就位(API_TOKEN,见 deploy/semantica/.env.example),所以这是
+      # "发布端口 + bearer 鉴权"而不是"发布端口 + 裸奔"。
+      - '8099:8099'
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      # /health 真借一条 Bolt 连接读图规模,图不可达时返回 503 → 探针如实失败。
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8099/health\").read()" || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+volumes:
+  # 图数据与日志分开:日志会持续增长,备份/清理的节奏与数据不同。
+  neo4j-data:
+  neo4j-logs:
