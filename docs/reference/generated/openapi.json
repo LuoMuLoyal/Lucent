@@ -7559,11 +7559,13 @@
             "description": "Notification content body."
           },
           "action": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Action route target for the frontend.",
+            "type": "string"
           },
           "actionPayload": {
-            "nullable": true
+            "nullable": true,
+            "description": "Extra payload for the action."
           },
           "isRead": {
             "type": "boolean",
@@ -7574,8 +7576,9 @@
             "description": "ISO-8601 timestamp when the notification was created."
           },
           "readAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ISO-8601 timestamp when the notification was read.",
+            "type": "string"
           }
         },
         "required": [
@@ -7802,8 +7805,9 @@
             "description": "Display name."
           },
           "subtitle": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Short supporting subtitle.",
+            "type": "string"
           },
           "detail": {
             "oneOf": [
@@ -7811,126 +7815,150 @@
                 "type": "object",
                 "properties": {
                   "kind": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": ["drugbank"]
                   },
                   "drugType": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Drug type (e.g. small molecule).",
+                    "type": "string"
                   },
                   "state": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Physical state (e.g. solid).",
+                    "type": "string"
                   },
                   "description": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Drug description.",
+                    "type": "string"
                   },
                   "indication": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Approved indications.",
+                    "type": "string"
                   },
                   "mechanismOfAction": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Mechanism of action.",
+                    "type": "string"
                   },
                   "pharmacodynamics": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Pharmacodynamics.",
+                    "type": "string"
                   },
                   "toxicity": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Toxicity summary.",
+                    "type": "string"
                   },
                   "metabolism": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Metabolism summary.",
+                    "type": "string"
                   },
                   "absorption": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Absorption summary.",
+                    "type": "string"
                   },
                   "halfLife": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Half life.",
+                    "type": "string"
                   },
                   "proteinBinding": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Protein binding.",
+                    "type": "string"
                   },
                   "routeOfElimination": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Route of elimination.",
+                    "type": "string"
                   },
                   "volumeOfDistribution": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Volume of distribution.",
+                    "type": "string"
                   },
                   "clearance": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Clearance.",
+                    "type": "string"
                   },
                   "groups": {
+                    "nullable": true,
+                    "description": "Approval groups (e.g. approved, small molecule).",
                     "type": "array",
                     "items": {
                       "type": "string"
-                    },
-                    "nullable": true
+                    }
                   },
                   "categories": {
+                    "nullable": true,
+                    "description": "ATC-like categories.",
                     "type": "array",
                     "items": {
                       "type": "string"
-                    },
-                    "nullable": true
+                    }
                   },
                   "atcCodes": {
+                    "nullable": true,
+                    "description": "ATC codes.",
                     "type": "array",
                     "items": {
                       "type": "string"
-                    },
-                    "nullable": true
+                    }
                   },
                   "synonyms": {
+                    "nullable": true,
+                    "description": "Synonyms.",
                     "type": "array",
                     "items": {
                       "type": "string"
-                    },
-                    "nullable": true
+                    }
                   },
                   "foodInteractions": {
+                    "nullable": true,
+                    "description": "Food interactions.",
                     "type": "array",
                     "items": {
                       "type": "string"
-                    },
-                    "nullable": true
+                    }
                   },
                   "drugInteractions": {
+                    "nullable": true,
+                    "description": "DrugBank interaction entries used for interaction checking.",
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/MedicineDetailResponseDrugInteractions"
-                    },
-                    "nullable": true
+                    }
                   },
                   "targets": {
+                    "nullable": true,
+                    "description": "Proteins/genes this drug acts on, with action labels.",
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/MedicineDetailResponseTargets"
-                    },
-                    "nullable": true
+                    }
                   },
                   "externalIdentifiers": {
+                    "nullable": true,
+                    "description": "External cross-reference identifiers from the source.",
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/MedicineDetailResponseExternalIdentifiers"
-                    },
-                    "nullable": true
+                    }
                   },
                   "externalLinks": {
+                    "nullable": true,
+                    "description": "Outbound reference links from the source.",
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/MedicineDetailResponseExternalLinks"
-                    },
-                    "nullable": true
+                    }
                   },
                   "sequenceSummary": {
                     "nullable": true,
@@ -7975,87 +8003,108 @@
                 "type": "object",
                 "properties": {
                   "kind": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": ["cnProduct"]
                   },
                   "approvalNumber": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Approval number (国药准字).",
+                    "type": "string"
                   },
                   "manufacturer": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Manufacturer.",
+                    "type": "string"
                   },
                   "packageSpec": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Package specification.",
+                    "type": "string"
                   },
                   "brandName": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Brand name.",
+                    "type": "string"
                   },
                   "ingredients": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Ingredients.",
+                    "type": "string"
                   },
                   "properties": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Properties.",
+                    "type": "string"
                   },
                   "indications": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Indications.",
+                    "type": "string"
                   },
                   "dosage": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Dosage.",
+                    "type": "string"
                   },
                   "adverseReactions": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Adverse reactions.",
+                    "type": "string"
                   },
                   "contraindications": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Contraindications.",
+                    "type": "string"
                   },
                   "precautions": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Precautions.",
+                    "type": "string"
                   },
                   "pharmacologyToxicology": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Pharmacology / toxicology.",
+                    "type": "string"
                   },
                   "pharmacokinetics": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Pharmacokinetics.",
+                    "type": "string"
                   },
                   "overdose": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Overdose handling.",
+                    "type": "string"
                   },
                   "storage": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Storage conditions.",
+                    "type": "string"
                   },
                   "validityPeriod": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Validity period.",
+                    "type": "string"
                   },
                   "barcode": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Barcode.",
+                    "type": "string"
                   },
                   "nationalDrugCode": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "National drug code.",
+                    "type": "string"
                   },
                   "sourceUrl": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Source URL.",
+                    "type": "string"
                   },
                   "imageUrl": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "description": "Image URL.",
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -8161,13 +8210,13 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "description": "Created at (ISO 8601)."
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "description": "Updated at (ISO 8601)."
           }
         },
@@ -8186,20 +8235,24 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Recognized medicine name.",
+            "type": "string"
           },
           "approvalNumber": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Approval number.",
+            "type": "string"
           },
           "specification": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Package specification.",
+            "type": "string"
           },
           "manufacturer": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Manufacturer.",
+            "type": "string"
           }
         },
         "required": ["name", "approvalNumber", "specification", "manufacturer"],
@@ -8224,7 +8277,7 @@
           "generatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
           "users": {
             "$ref": "#/components/schemas/AdminMetricsOverviewUsers"
@@ -8254,12 +8307,14 @@
           },
           "page": {
             "type": "integer",
-            "exclusiveMinimum": 0,
+            "minimum": 0,
+            "exclusiveMinimum": true,
             "maximum": 9007199254740991
           },
           "limit": {
             "type": "integer",
-            "exclusiveMinimum": 0,
+            "minimum": 0,
+            "exclusiveMinimum": true,
             "maximum": 100
           }
         },
@@ -8275,11 +8330,11 @@
           "email": {
             "type": "string",
             "format": "email",
-            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "nickname": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -8291,18 +8346,18 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
           "lastLoginAt": {
+            "nullable": true,
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "nullable": true
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
           "adminRole": {
+            "nullable": true,
             "type": "string",
-            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"],
-            "nullable": true
+            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"]
           }
         },
         "required": [
@@ -8333,12 +8388,14 @@
           },
           "page": {
             "type": "integer",
-            "exclusiveMinimum": 0,
+            "minimum": 0,
+            "exclusiveMinimum": true,
             "maximum": 9007199254740991
           },
           "limit": {
             "type": "integer",
-            "exclusiveMinimum": 0,
+            "minimum": 0,
+            "exclusiveMinimum": true,
             "maximum": 100
           }
         },
@@ -8375,7 +8432,7 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
         "required": [
@@ -8423,7 +8480,7 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
         "required": [
@@ -8482,18 +8539,18 @@
             "description": "Start time in ISO 8601 format."
           },
           "endedAt": {
+            "nullable": true,
             "type": "string",
-            "description": "End time in ISO 8601 format, or null while active.",
-            "nullable": true
+            "description": "End time in ISO 8601 format, or null while active."
           },
           "outcome": {
+            "nullable": true,
             "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
+            "enum": ["improved", "unchanged", "worsened"]
           },
           "reasonRecordId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "currentMedicineIds": {
             "type": "array",
@@ -8525,6 +8582,7 @@
         "additionalProperties": false
       },
       "HealthEventNullableResponse": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "kind": {
@@ -8546,18 +8604,18 @@
             "description": "Start time in ISO 8601 format."
           },
           "endedAt": {
+            "nullable": true,
             "type": "string",
-            "description": "End time in ISO 8601 format, or null while active.",
-            "nullable": true
+            "description": "End time in ISO 8601 format, or null while active."
           },
           "outcome": {
+            "nullable": true,
             "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
+            "enum": ["improved", "unchanged", "worsened"]
           },
           "reasonRecordId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "currentMedicineIds": {
             "type": "array",
@@ -8586,8 +8644,7 @@
           "checkIn",
           "coverage"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "HealthEventListResponse": {
         "type": "object",
@@ -8676,9 +8733,9 @@
             "description": "Headers that must be sent with the PUT upload."
           },
           "publicUrl": {
+            "nullable": true,
             "type": "string",
-            "description": "Optional public/CDN URL when a public base URL is configured.",
-            "nullable": true
+            "description": "Optional public/CDN URL when a public base URL is configured."
           },
           "expiresAt": {
             "type": "string",
@@ -8749,85 +8806,85 @@
             ]
           },
           "healthEventId": {
+            "nullable": true,
             "type": "string",
-            "description": "Linked health event id.",
-            "nullable": true
+            "description": "Linked health event id."
           },
           "occurredAt": {
             "type": "string",
             "description": "Date in YYYY-MM-DD format."
           },
           "occurredTime": {
+            "nullable": true,
             "type": "string",
-            "description": "Time in HH:mm 24-hour format when available.",
-            "nullable": true
+            "description": "Time in HH:mm 24-hour format when available."
           },
           "title": {
+            "nullable": true,
             "type": "string",
-            "description": "Short label.",
-            "nullable": true
+            "description": "Short label."
           },
           "value": {
+            "nullable": true,
             "type": "string",
-            "description": "Measured value.",
-            "nullable": true
+            "description": "Measured value."
           },
           "unit": {
+            "nullable": true,
             "type": "string",
-            "description": "Unit label.",
-            "nullable": true
+            "description": "Unit label."
           },
           "note": {
+            "nullable": true,
             "type": "string",
-            "description": "Free-text note.",
-            "nullable": true
+            "description": "Free-text note."
           },
           "source": {
+            "nullable": true,
             "type": "string",
-            "description": "Source.",
-            "nullable": true
+            "description": "Source."
           },
           "payload": {
+            "nullable": true,
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }.",
-            "nullable": true
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }."
           },
           "mealAnalysisStatus": {
+            "nullable": true,
             "type": "string",
-            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\".",
-            "nullable": true
+            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\"."
           },
           "mealAnalysisUpdatedAt": {
+            "nullable": true,
             "type": "string",
-            "description": "Meal analysis updated timestamp (ISO 8601).",
-            "nullable": true
+            "description": "Meal analysis updated timestamp (ISO 8601)."
           },
           "mealAnalysisFailureReason": {
+            "nullable": true,
             "type": "string",
-            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output).",
-            "nullable": true
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output)."
           },
           "mealHeadline": {
+            "nullable": true,
             "type": "string",
-            "description": "Most important meal finding, for the list row.",
-            "nullable": true
+            "description": "Most important meal finding, for the list row."
           },
           "mealCalorieMin": {
+            "nullable": true,
             "type": "number",
-            "description": "Estimated energy interval lower bound (kcal).",
-            "nullable": true
+            "description": "Estimated energy interval lower bound (kcal)."
           },
           "mealCalorieMax": {
+            "nullable": true,
             "type": "number",
-            "description": "Estimated energy interval upper bound (kcal).",
-            "nullable": true
+            "description": "Estimated energy interval upper bound (kcal)."
           },
           "mealCalorieBucket": {
+            "nullable": true,
             "type": "string",
             "enum": ["low", "medium", "high"],
-            "description": "Coarse energy bucket derived from the interval.",
-            "nullable": true
+            "description": "Coarse energy bucket derived from the interval."
           },
           "attachments": {
             "type": "array",
@@ -8891,12 +8948,14 @@
             "description": "Reminder id."
           },
           "currentMedicineId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
           },
           "label": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Reminder label.",
+            "type": "string"
           },
           "scheduledHour": {
             "type": "number",
@@ -8907,27 +8966,31 @@
             "description": "Scheduled local minute, 0-59."
           },
           "daysOfWeek": {
+            "nullable": true,
+            "description": "Weekday numbers 0-6. Null means every day.",
             "type": "array",
             "items": {
               "type": "number"
-            },
-            "nullable": true
+            }
           },
           "startDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "type": "string"
           },
           "endDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "type": "string"
           },
           "isActive": {
             "type": "boolean",
             "description": "Whether this reminder is active."
           },
           "note": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "User note.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -9016,16 +9079,19 @@
             "description": "Dose log id."
           },
           "healthEventId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked health event id.",
+            "type": "string"
           },
           "currentMedicineId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
           },
           "reminderId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked reminder id for slot-aware logs.",
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -9037,20 +9103,24 @@
             "description": "Scheduled date in YYYY-MM-DD format."
           },
           "scheduledTime": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Scheduled slot time in HH:mm format.",
+            "type": "string"
           },
           "doseText": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Dose text.",
+            "type": "string"
           },
           "note": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Free-text note.",
+            "type": "string"
           },
           "source": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Source.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -9141,8 +9211,9 @@
             "$ref": "#/components/schemas/UserSettingsResponseAssistantContext"
           },
           "updatedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ISO-8601 timestamp of last update.",
+            "type": "string"
           },
           "passwordReauthenticationRequired": {
             "type": "boolean",
@@ -9166,6 +9237,7 @@
         "properties": {
           "phase": {
             "type": "string",
+            "enum": ["foundation"],
             "description": "Current backend rollout phase for the assistant."
           },
           "assistantEnabled": {
@@ -9197,6 +9269,7 @@
           },
           "streamingTransport": {
             "type": "string",
+            "enum": ["sse"],
             "description": "Recommended streaming transport for the current chat contract."
           },
           "markdownRenderingRecommended": {
@@ -9215,8 +9288,9 @@
             "description": "Tool-by-tool capability breakdown after combining system state and user permissions."
           },
           "updatedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ISO-8601 timestamp of the latest related settings update.",
+            "type": "string"
           }
         },
         "required": [
@@ -9244,6 +9318,7 @@
         "description": "Recent assistant conversation summaries."
       },
       "AssistantConversationData": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "id": {
@@ -9251,8 +9326,9 @@
             "description": "Stable persisted conversation identifier."
           },
           "title": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Optional server-derived conversation title.",
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -9267,8 +9343,9 @@
             "description": "Persisted messages in chronological order."
           },
           "lastMessageAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ISO-8601 timestamp of the latest conversation activity.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -9288,8 +9365,7 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "AssistantConversationResponse": {
         "type": "object",
@@ -9299,8 +9375,9 @@
             "description": "Stable persisted conversation identifier."
           },
           "title": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Optional server-derived conversation title.",
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -9315,8 +9392,9 @@
             "description": "Persisted messages in chronological order."
           },
           "lastMessageAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ISO-8601 timestamp of the latest conversation activity.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -9357,8 +9435,9 @@
             "description": "Whether the latest conversation was cleared."
           },
           "archivedConversationId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "The archived conversation id, or null when none existed.",
+            "type": "string"
           }
         },
         "required": ["cleared", "archivedConversationId"],
@@ -9692,6 +9771,7 @@
         "additionalProperties": false
       },
       "EventReviewData": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "event": {
@@ -9727,8 +9807,7 @@
           "availableActions",
           "generatedAt"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "EventReviewListResponse": {
         "type": "object",
@@ -9744,8 +9823,9 @@
             "description": "Total matching events for the filter."
           },
           "nextCursor": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Cursor for the next page (last item startedAt in ISO 8601), or null on the last page.",
+            "type": "string"
           }
         },
         "required": ["items", "total", "nextCursor"],
@@ -9805,24 +9885,24 @@
             "type": "boolean"
           },
           "sleepBedtimeMinutes": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "sleepWakeTimeMinutes": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "configured": {
             "type": "boolean",
             "description": "Whether the user has a persisted preference row."
           },
           "updatedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -9875,12 +9955,14 @@
             "description": "Latest source version observed for this date"
           },
           "computedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "When the last successful materialization completed",
+            "type": "string"
           },
           "retryAfterSeconds": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Suggested client polling delay in seconds",
+            "type": "number"
           }
         },
         "required": [
@@ -9966,28 +10048,33 @@
             "description": "User ID."
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Account email. OAuth-only accounts may not have one.",
+            "type": "string"
           },
           "nickname": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Display nickname.",
+            "type": "string"
           },
           "avatar": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Avatar URL.",
+            "type": "string"
           },
           "emailVerifiedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Account email verification time in ISO 8601.",
+            "type": "string"
           },
           "hasPassword": {
             "type": "boolean",
             "description": "Whether the account has a local password."
           },
           "lastLoginAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Last login time in ISO 8601.",
+            "type": "string"
           },
           "linkedIdentities": {
             "type": "array",
@@ -10027,8 +10114,9 @@
             "description": "New email address."
           },
           "emailVerifiedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Email verification time in ISO 8601.",
+            "type": "string"
           }
         },
         "required": ["email", "emailVerifiedAt"],
@@ -10046,8 +10134,8 @@
             "description": "ISO-8601 timestamp for the static reference data refresh."
           },
           "regionHint": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "pollen": {
             "$ref": "#/components/schemas/EnvironmentSnapshotResponsePollen"
@@ -10081,20 +10169,20 @@
         "type": "object",
         "properties": {
           "supportEmail": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "minClientVersion": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "latestVersion": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "downloadUrl": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -10139,24 +10227,24 @@
             "description": "ISO-8601 timestamp when the request was created."
           },
           "completedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "downloadUrl": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "fileName": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "fileSizeBytes": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "errorMessage": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -10175,6 +10263,7 @@
         "additionalProperties": false
       },
       "DataExportRequestData": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "id": {
@@ -10208,24 +10297,24 @@
             "description": "ISO-8601 timestamp when the request was created."
           },
           "completedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "downloadUrl": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "fileName": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "fileSizeBytes": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "errorMessage": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -10241,8 +10330,7 @@
           "fileSizeBytes",
           "errorMessage"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "CreateFileUploadResponse": {
         "type": "object",
@@ -10268,9 +10356,9 @@
             "description": "Headers that must be sent with the PUT upload."
           },
           "publicUrl": {
+            "nullable": true,
             "type": "string",
-            "description": "Optional public/CDN URL when a public base URL is configured.",
-            "nullable": true
+            "description": "Optional public/CDN URL when a public base URL is configured."
           },
           "expiresAt": {
             "type": "string",
@@ -10313,12 +10401,12 @@
             "type": "number"
           },
           "computedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "retryAfterSeconds": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           }
         },
         "required": [
@@ -10408,12 +10496,12 @@
             "type": "number"
           },
           "computedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "retryAfterSeconds": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           }
         },
         "required": [
@@ -10430,7 +10518,8 @@
         "type": "object",
         "properties": {
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": ["pending"]
           },
           "jobId": {
             "type": "string"
@@ -10443,7 +10532,8 @@
         "type": "object",
         "properties": {
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": ["ready"]
           },
           "analysis": {
             "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysis"
@@ -10537,12 +10627,12 @@
                     "type": "number"
                   },
                   "computedAt": {
-                    "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "type": "string"
                   },
                   "retryAfterSeconds": {
-                    "type": "number",
-                    "nullable": true
+                    "nullable": true,
+                    "type": "number"
                   }
                 },
                 "required": [
@@ -12575,11 +12665,13 @@
             "description": "Notification content body."
           },
           "action": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Action route target for the frontend.",
+            "type": "string"
           },
           "actionPayload": {
-            "nullable": true
+            "nullable": true,
+            "description": "Extra payload for the action."
           },
           "isRead": {
             "type": "boolean",
@@ -12610,20 +12702,23 @@
             "description": "用户 ID"
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "邮箱地址，第三方账号可能为空",
+            "type": "string"
           },
           "nickname": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "昵称",
+            "type": "string"
           },
           "emailVerified": {
             "type": "boolean",
             "description": "邮箱是否已验证"
           },
           "emailVerifiedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "邮箱验证时间 (ISO 8601)",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -12667,24 +12762,28 @@
             "description": "用户 ID"
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "邮箱地址，第三方账号可能为空",
+            "type": "string"
           },
           "nickname": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "昵称",
+            "type": "string"
           },
           "avatar": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "头像 URL",
+            "type": "string"
           },
           "emailVerified": {
             "type": "boolean",
             "description": "邮箱是否已验证"
           },
           "emailVerifiedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "邮箱验证时间 (ISO 8601)",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -12761,12 +12860,14 @@
             "description": "Display name."
           },
           "subtitle": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Short supporting subtitle.",
+            "type": "string"
           },
           "summary": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Short preview summary.",
+            "type": "string"
           },
           "tags": {
             "type": "array",
@@ -12776,8 +12877,9 @@
             "description": "Compact tags for search cards."
           },
           "imageUrl": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Optional image URL.",
+            "type": "string"
           },
           "matchedBy": {
             "type": "array",
@@ -12846,42 +12948,50 @@
             "description": "Target display name."
           },
           "geneName": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Target gene symbol.",
+            "type": "string"
           },
           "uniprotId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "UniProt identifier.",
+            "type": "string"
           },
           "uniprotTitle": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "UniProt title.",
+            "type": "string"
           },
           "species": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Target species.",
+            "type": "string"
           },
           "pdbIds": {
+            "nullable": true,
+            "description": "Known PDB structure identifiers.",
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "actions": {
+            "nullable": true,
+            "description": "Action labels (e.g. inhibitor, agonist).",
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "knownAction": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Whether the action is characterised (yes/no).",
+            "type": "string"
           },
           "relationKind": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Relationship kind (target, enzyme, carrier, transporter).",
+            "type": "string"
           }
         },
         "required": [
@@ -12928,6 +13038,8 @@
         "additionalProperties": false
       },
       "MedicineDetailResponseSequenceSummary": {
+        "nullable": true,
+        "description": "Counts of available sequences; the sequences themselves are fetched from the sequence endpoint.",
         "type": "object",
         "properties": {
           "drugChainCount": {
@@ -12944,168 +13056,201 @@
           }
         },
         "required": ["drugChainCount", "targetSequenceCount"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "MedicineDetailResponseStructure": {
+        "nullable": true,
+        "description": "Computed structure descriptors, when the source has any.",
         "type": "object",
         "properties": {
           "smiles": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Canonical SMILES.",
+            "type": "string"
           },
           "inchiKey": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "InChIKey hash.",
+            "type": "string"
           },
           "inchiIdentifier": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Full InChI string.",
+            "type": "string"
           },
           "formula": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Molecular formula.",
+            "type": "string"
           },
           "iupacName": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "IUPAC name.",
+            "type": "string"
           },
           "molecularWeight": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Average molecular weight.",
+            "type": "number"
           },
           "exactMass": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Monoisotopic exact mass.",
+            "type": "number"
           },
           "logP": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Wildman-Crippen LogP.",
+            "type": "number"
           },
           "polarSurfaceArea": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Topological polar surface area (A^2).",
+            "type": "number"
           },
           "polarizability": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Average polarizability.",
+            "type": "number"
           },
           "refractivity": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Molar refractivity.",
+            "type": "number"
           },
           "alogpsLogP": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "ALOGPS LogP.",
+            "type": "number"
           },
           "alogpsLogS": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "ALOGPS water solubility (log).",
+            "type": "number"
           },
           "alogpsSolubility": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ALOGPS water solubility with units, e.g. \"4.64e-02 g/l\".",
+            "type": "string"
           },
           "pka": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Strongest pKa.",
+            "type": "number"
           },
           "pkaStrongestAcidic": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Strongest acidic pKa.",
+            "type": "number"
           },
           "pkaStrongestBasic": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Strongest basic pKa.",
+            "type": "number"
           },
           "formalCharge": {
+            "nullable": true,
+            "description": "Formal charge.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "physiologicalCharge": {
+            "nullable": true,
+            "description": "Charge at physiological pH.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "neutralCharge": {
+            "nullable": true,
+            "description": "Charge of the neutral form.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "averageNeutralMicrospeciesCharge": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Average charge across neutral microspecies.",
+            "type": "number"
           },
           "atomCount": {
+            "nullable": true,
+            "description": "Heavy atom count.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "ringCount": {
+            "nullable": true,
+            "description": "Number of rings.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "rotatableBondCount": {
+            "nullable": true,
+            "description": "Number of rotatable bonds.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "acceptorCount": {
+            "nullable": true,
+            "description": "Hydrogen-bond acceptors.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "donorCount": {
+            "nullable": true,
+            "description": "Hydrogen-bond donors.",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "ruleOfFive": {
+            "nullable": true,
+            "description": "Lipinski rule-of-five pass (1/0).",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "veberRule": {
+            "nullable": true,
+            "description": "Veber oral bioavailability rule (1/0).",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "ghoseFilter": {
+            "nullable": true,
+            "description": "Ghose filter pass (1/0).",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "mddrLikeRule": {
+            "nullable": true,
+            "description": "MDDR-like rule pass (1/0).",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "bioavailability": {
+            "nullable": true,
+            "description": "Bioavailability score class (0/1).",
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "nullable": true
+            "maximum": 9007199254740991
           },
           "salts": {
+            "nullable": true,
+            "description": "Salt forms.",
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "required": [
@@ -13142,8 +13287,7 @@
           "bioavailability",
           "salts"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "MedicineSequenceResponseDrug": {
         "type": "object",
@@ -13174,8 +13318,9 @@
             "description": "UniProt identifier of the target."
           },
           "targetName": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Target display name.",
+            "type": "string"
           },
           "dataset": {
             "type": "string",
@@ -13202,6 +13347,8 @@
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseStatic": {
+        "nullable": true,
+        "description": "Latest static check record, null if never checked",
         "type": "object",
         "properties": {
           "checkType": {
@@ -13228,13 +13375,13 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "description": "Created at (ISO 8601)."
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "description": "Updated at (ISO 8601)."
           }
         },
@@ -13247,8 +13394,7 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseStaticResult": {
         "type": "object",
@@ -13395,6 +13541,8 @@
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseLlm": {
+        "nullable": true,
+        "description": "Latest LLM check record, null if never checked",
         "type": "object",
         "properties": {
           "checkType": {
@@ -13421,13 +13569,13 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "description": "Created at (ISO 8601)."
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "description": "Updated at (ISO 8601)."
           }
         },
@@ -13440,8 +13588,7 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseLlmResult": {
         "type": "object",
@@ -13736,20 +13883,24 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Recognized medicine name.",
+            "type": "string"
           },
           "approvalNumber": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Approval number.",
+            "type": "string"
           },
           "specification": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Package specification.",
+            "type": "string"
           },
           "manufacturer": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Manufacturer.",
+            "type": "string"
           }
         },
         "required": ["name", "approvalNumber", "specification", "manufacturer"],
@@ -13791,11 +13942,11 @@
           "email": {
             "type": "string",
             "format": "email",
-            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "nickname": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -13807,18 +13958,18 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
           "lastLoginAt": {
+            "nullable": true,
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "nullable": true
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
           "adminRole": {
+            "nullable": true,
             "type": "string",
-            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"],
-            "nullable": true
+            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"]
           }
         },
         "required": [
@@ -13846,17 +13997,17 @@
             "type": "string"
           },
           "resourceType": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "resourceId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
         "required": [
@@ -13994,6 +14145,7 @@
         "additionalProperties": false
       },
       "HealthEventResponseCheckIn": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "id": {
@@ -14027,8 +14179,7 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "HealthEventResponseCoverage": {
         "type": "object",
@@ -14040,20 +14191,21 @@
             "description": "Number of user-confirmed daily check-ins."
           },
           "firstCheckInDate": {
+            "nullable": true,
             "type": "string",
-            "description": "First check-in calendar date, or null when none exists.",
-            "nullable": true
+            "description": "First check-in calendar date, or null when none exists."
           },
           "lastCheckInDate": {
+            "nullable": true,
             "type": "string",
-            "description": "Last check-in calendar date, or null when none exists.",
-            "nullable": true
+            "description": "Last check-in calendar date, or null when none exists."
           }
         },
         "required": ["checkInCount", "firstCheckInDate", "lastCheckInDate"],
         "additionalProperties": false
       },
       "HealthEventNullableResponseCheckIn": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "id": {
@@ -14087,8 +14239,7 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "HealthEventNullableResponseCoverage": {
         "type": "object",
@@ -14100,14 +14251,14 @@
             "description": "Number of user-confirmed daily check-ins."
           },
           "firstCheckInDate": {
+            "nullable": true,
             "type": "string",
-            "description": "First check-in calendar date, or null when none exists.",
-            "nullable": true
+            "description": "First check-in calendar date, or null when none exists."
           },
           "lastCheckInDate": {
+            "nullable": true,
             "type": "string",
-            "description": "Last check-in calendar date, or null when none exists.",
-            "nullable": true
+            "description": "Last check-in calendar date, or null when none exists."
           }
         },
         "required": ["checkInCount", "firstCheckInDate", "lastCheckInDate"],
@@ -14135,18 +14286,18 @@
             "description": "Start time in ISO 8601 format."
           },
           "endedAt": {
+            "nullable": true,
             "type": "string",
-            "description": "End time in ISO 8601 format, or null while active.",
-            "nullable": true
+            "description": "End time in ISO 8601 format, or null while active."
           },
           "outcome": {
+            "nullable": true,
             "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
+            "enum": ["improved", "unchanged", "worsened"]
           },
           "reasonRecordId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "currentMedicineIds": {
             "type": "array",
@@ -14178,6 +14329,7 @@
         "additionalProperties": false
       },
       "HealthEventListResponseItemsCheckIn": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "id": {
@@ -14211,8 +14363,7 @@
           "createdAt",
           "updatedAt"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "HealthEventListResponseItemsCoverage": {
         "type": "object",
@@ -14224,14 +14375,14 @@
             "description": "Number of user-confirmed daily check-ins."
           },
           "firstCheckInDate": {
+            "nullable": true,
             "type": "string",
-            "description": "First check-in calendar date, or null when none exists.",
-            "nullable": true
+            "description": "First check-in calendar date, or null when none exists."
           },
           "lastCheckInDate": {
+            "nullable": true,
             "type": "string",
-            "description": "Last check-in calendar date, or null when none exists.",
-            "nullable": true
+            "description": "Last check-in calendar date, or null when none exists."
           }
         },
         "required": ["checkInCount", "firstCheckInDate", "lastCheckInDate"],
@@ -14258,85 +14409,85 @@
             ]
           },
           "healthEventId": {
+            "nullable": true,
             "type": "string",
-            "description": "Linked health event id.",
-            "nullable": true
+            "description": "Linked health event id."
           },
           "occurredAt": {
             "type": "string",
             "description": "Date in YYYY-MM-DD format."
           },
           "occurredTime": {
+            "nullable": true,
             "type": "string",
-            "description": "Time in HH:mm 24-hour format when available.",
-            "nullable": true
+            "description": "Time in HH:mm 24-hour format when available."
           },
           "title": {
+            "nullable": true,
             "type": "string",
-            "description": "Short label.",
-            "nullable": true
+            "description": "Short label."
           },
           "value": {
+            "nullable": true,
             "type": "string",
-            "description": "Measured value.",
-            "nullable": true
+            "description": "Measured value."
           },
           "unit": {
+            "nullable": true,
             "type": "string",
-            "description": "Unit label.",
-            "nullable": true
+            "description": "Unit label."
           },
           "note": {
+            "nullable": true,
             "type": "string",
-            "description": "Free-text note.",
-            "nullable": true
+            "description": "Free-text note."
           },
           "source": {
+            "nullable": true,
             "type": "string",
-            "description": "Source.",
-            "nullable": true
+            "description": "Source."
           },
           "payload": {
+            "nullable": true,
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }.",
-            "nullable": true
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }."
           },
           "mealAnalysisStatus": {
+            "nullable": true,
             "type": "string",
-            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\".",
-            "nullable": true
+            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\"."
           },
           "mealAnalysisUpdatedAt": {
+            "nullable": true,
             "type": "string",
-            "description": "Meal analysis updated timestamp (ISO 8601).",
-            "nullable": true
+            "description": "Meal analysis updated timestamp (ISO 8601)."
           },
           "mealAnalysisFailureReason": {
+            "nullable": true,
             "type": "string",
-            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output).",
-            "nullable": true
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output)."
           },
           "mealHeadline": {
+            "nullable": true,
             "type": "string",
-            "description": "Most important meal finding, for the list row.",
-            "nullable": true
+            "description": "Most important meal finding, for the list row."
           },
           "mealCalorieMin": {
+            "nullable": true,
             "type": "number",
-            "description": "Estimated energy interval lower bound (kcal).",
-            "nullable": true
+            "description": "Estimated energy interval lower bound (kcal)."
           },
           "mealCalorieMax": {
+            "nullable": true,
             "type": "number",
-            "description": "Estimated energy interval upper bound (kcal).",
-            "nullable": true
+            "description": "Estimated energy interval upper bound (kcal)."
           },
           "mealCalorieBucket": {
+            "nullable": true,
             "type": "string",
             "enum": ["low", "medium", "high"],
-            "description": "Coarse energy bucket derived from the interval.",
-            "nullable": true
+            "description": "Coarse energy bucket derived from the interval."
           },
           "attachments": {
             "type": "array",
@@ -14394,50 +14545,50 @@
             "description": "Object storage key."
           },
           "bucket": {
+            "nullable": true,
             "type": "string",
-            "description": "Object storage bucket.",
-            "nullable": true
+            "description": "Object storage bucket."
           },
           "provider": {
+            "nullable": true,
             "type": "string",
-            "description": "Storage provider.",
-            "nullable": true
+            "description": "Storage provider."
           },
           "fileName": {
+            "nullable": true,
             "type": "string",
-            "description": "Original file name.",
-            "nullable": true
+            "description": "Original file name."
           },
           "contentType": {
+            "nullable": true,
             "type": "string",
-            "description": "MIME content type.",
-            "nullable": true
+            "description": "MIME content type."
           },
           "sizeBytes": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "File size in bytes.",
-            "nullable": true
+            "description": "File size in bytes."
           },
           "width": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "Image width in pixels.",
-            "nullable": true
+            "description": "Image width in pixels."
           },
           "height": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "Image height in pixels.",
-            "nullable": true
+            "description": "Image height in pixels."
           },
           "publicUrl": {
+            "nullable": true,
             "type": "string",
-            "description": "Public or signed display URL.",
-            "nullable": true
+            "description": "Public or signed display URL."
           },
           "createdAt": {
             "type": "string",
@@ -14491,6 +14642,7 @@
         "additionalProperties": false
       },
       "DailyRecordSummaryResponseSummariesLatest": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "id": {
@@ -14511,85 +14663,85 @@
             ]
           },
           "healthEventId": {
+            "nullable": true,
             "type": "string",
-            "description": "Linked health event id.",
-            "nullable": true
+            "description": "Linked health event id."
           },
           "occurredAt": {
             "type": "string",
             "description": "Date in YYYY-MM-DD format."
           },
           "occurredTime": {
+            "nullable": true,
             "type": "string",
-            "description": "Time in HH:mm 24-hour format when available.",
-            "nullable": true
+            "description": "Time in HH:mm 24-hour format when available."
           },
           "title": {
+            "nullable": true,
             "type": "string",
-            "description": "Short label.",
-            "nullable": true
+            "description": "Short label."
           },
           "value": {
+            "nullable": true,
             "type": "string",
-            "description": "Measured value.",
-            "nullable": true
+            "description": "Measured value."
           },
           "unit": {
+            "nullable": true,
             "type": "string",
-            "description": "Unit label.",
-            "nullable": true
+            "description": "Unit label."
           },
           "note": {
+            "nullable": true,
             "type": "string",
-            "description": "Free-text note.",
-            "nullable": true
+            "description": "Free-text note."
           },
           "source": {
+            "nullable": true,
             "type": "string",
-            "description": "Source.",
-            "nullable": true
+            "description": "Source."
           },
           "payload": {
+            "nullable": true,
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }.",
-            "nullable": true
+            "description": "Structured payload for kind-specific data. For sleep: { startedAt, endedAt, durationMinutes, sleepType?, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }. For meal (detail reads only): { mealAnalysis: { version, analysisStatus, analyzedAt, sourceRevision, model, promptVersion, locale, failureReason, calorieRange, dishes, items, facets } }."
           },
           "mealAnalysisStatus": {
+            "nullable": true,
             "type": "string",
-            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\".",
-            "nullable": true
+            "description": "Meal analysis status: \"analyzing\", \"analyzed\", or \"analysis_failed\"."
           },
           "mealAnalysisUpdatedAt": {
+            "nullable": true,
             "type": "string",
-            "description": "Meal analysis updated timestamp (ISO 8601).",
-            "nullable": true
+            "description": "Meal analysis updated timestamp (ISO 8601)."
           },
           "mealAnalysisFailureReason": {
+            "nullable": true,
             "type": "string",
-            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output).",
-            "nullable": true
+            "description": "Stable failure reason code (image_count_invalid, vision_unavailable, model_failed, model_timeout, job_lost, invalid_output)."
           },
           "mealHeadline": {
+            "nullable": true,
             "type": "string",
-            "description": "Most important meal finding, for the list row.",
-            "nullable": true
+            "description": "Most important meal finding, for the list row."
           },
           "mealCalorieMin": {
+            "nullable": true,
             "type": "number",
-            "description": "Estimated energy interval lower bound (kcal).",
-            "nullable": true
+            "description": "Estimated energy interval lower bound (kcal)."
           },
           "mealCalorieMax": {
+            "nullable": true,
             "type": "number",
-            "description": "Estimated energy interval upper bound (kcal).",
-            "nullable": true
+            "description": "Estimated energy interval upper bound (kcal)."
           },
           "mealCalorieBucket": {
+            "nullable": true,
             "type": "string",
             "enum": ["low", "medium", "high"],
-            "description": "Coarse energy bucket derived from the interval.",
-            "nullable": true
+            "description": "Coarse energy bucket derived from the interval."
           },
           "attachments": {
             "type": "array",
@@ -14630,8 +14782,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "Most recent record of this kind.",
-        "nullable": true
+        "description": "Most recent record of this kind."
       },
       "DailyRecordSummaryResponseSummariesLatestAttachments": {
         "type": "object",
@@ -14649,50 +14800,50 @@
             "description": "Object storage key."
           },
           "bucket": {
+            "nullable": true,
             "type": "string",
-            "description": "Object storage bucket.",
-            "nullable": true
+            "description": "Object storage bucket."
           },
           "provider": {
+            "nullable": true,
             "type": "string",
-            "description": "Storage provider.",
-            "nullable": true
+            "description": "Storage provider."
           },
           "fileName": {
+            "nullable": true,
             "type": "string",
-            "description": "Original file name.",
-            "nullable": true
+            "description": "Original file name."
           },
           "contentType": {
+            "nullable": true,
             "type": "string",
-            "description": "MIME content type.",
-            "nullable": true
+            "description": "MIME content type."
           },
           "sizeBytes": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "File size in bytes.",
-            "nullable": true
+            "description": "File size in bytes."
           },
           "width": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "Image width in pixels.",
-            "nullable": true
+            "description": "Image width in pixels."
           },
           "height": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "Image height in pixels.",
-            "nullable": true
+            "description": "Image height in pixels."
           },
           "publicUrl": {
+            "nullable": true,
             "type": "string",
-            "description": "Public or signed display URL.",
-            "nullable": true
+            "description": "Public or signed display URL."
           },
           "createdAt": {
             "type": "string",
@@ -14750,30 +14901,30 @@
             "description": "Candidate occurred date in YYYY-MM-DD format."
           },
           "title": {
+            "nullable": true,
             "type": "string",
-            "description": "Short candidate title.",
-            "nullable": true
+            "description": "Short candidate title."
           },
           "value": {
+            "nullable": true,
             "type": "string",
-            "description": "Candidate measured value.",
-            "nullable": true
+            "description": "Candidate measured value."
           },
           "unit": {
+            "nullable": true,
             "type": "string",
-            "description": "Candidate unit.",
-            "nullable": true
+            "description": "Candidate unit."
           },
           "note": {
+            "nullable": true,
             "type": "string",
-            "description": "Candidate free-text note.",
-            "nullable": true
+            "description": "Candidate free-text note."
           },
           "payload": {
+            "nullable": true,
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured candidate payload. For sleep, this may include durationMinutes and optional timing hints.",
-            "nullable": true
+            "description": "Structured candidate payload. For sleep, this may include durationMinutes and optional timing hints."
           },
           "rationale": {
             "type": "string",
@@ -14808,50 +14959,50 @@
             "description": "Object storage key."
           },
           "bucket": {
+            "nullable": true,
             "type": "string",
-            "description": "Object storage bucket.",
-            "nullable": true
+            "description": "Object storage bucket."
           },
           "provider": {
+            "nullable": true,
             "type": "string",
-            "description": "Storage provider.",
-            "nullable": true
+            "description": "Storage provider."
           },
           "fileName": {
+            "nullable": true,
             "type": "string",
-            "description": "Original file name.",
-            "nullable": true
+            "description": "Original file name."
           },
           "contentType": {
+            "nullable": true,
             "type": "string",
-            "description": "MIME content type.",
-            "nullable": true
+            "description": "MIME content type."
           },
           "sizeBytes": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "File size in bytes.",
-            "nullable": true
+            "description": "File size in bytes."
           },
           "width": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "Image width in pixels.",
-            "nullable": true
+            "description": "Image width in pixels."
           },
           "height": {
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "Image height in pixels.",
-            "nullable": true
+            "description": "Image height in pixels."
           },
           "publicUrl": {
+            "nullable": true,
             "type": "string",
-            "description": "Public or signed display URL.",
-            "nullable": true
+            "description": "Public or signed display URL."
           },
           "createdAt": {
             "type": "string",
@@ -14882,12 +15033,14 @@
             "description": "Reminder id."
           },
           "currentMedicineId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
           },
           "label": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Reminder label.",
+            "type": "string"
           },
           "scheduledHour": {
             "type": "number",
@@ -14898,27 +15051,31 @@
             "description": "Scheduled local minute, 0-59."
           },
           "daysOfWeek": {
+            "nullable": true,
+            "description": "Weekday numbers 0-6. Null means every day.",
             "type": "array",
             "items": {
               "type": "number"
-            },
-            "nullable": true
+            }
           },
           "startDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "type": "string"
           },
           "endDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "type": "string"
           },
           "isActive": {
             "type": "boolean",
             "description": "Whether this reminder is active."
           },
           "note": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "User note.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -14953,12 +15110,14 @@
             "description": "Delivery log id."
           },
           "reminderId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked medicine reminder id.",
+            "type": "string"
           },
           "deviceId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Target device id.",
+            "type": "string"
           },
           "channel": {
             "type": "string",
@@ -14973,12 +15132,14 @@
             "description": "Scheduled delivery time (ISO 8601)."
           },
           "deliveredAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Actual delivery time (ISO 8601).",
+            "type": "string"
           },
           "errorMessage": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Failure reason, if any.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -15006,12 +15167,14 @@
             "description": "Delivery log id."
           },
           "reminderId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked medicine reminder id.",
+            "type": "string"
           },
           "deviceId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Target device id.",
+            "type": "string"
           },
           "channel": {
             "type": "string",
@@ -15026,12 +15189,14 @@
             "description": "Scheduled delivery time (ISO 8601)."
           },
           "deliveredAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Actual delivery time (ISO 8601).",
+            "type": "string"
           },
           "errorMessage": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Failure reason, if any.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -15060,16 +15225,19 @@
             "description": "Dose log id."
           },
           "healthEventId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked health event id.",
+            "type": "string"
           },
           "currentMedicineId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
           },
           "reminderId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked reminder id for slot-aware logs.",
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -15081,20 +15249,24 @@
             "description": "Scheduled date in YYYY-MM-DD format."
           },
           "scheduledTime": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Scheduled slot time in HH:mm format.",
+            "type": "string"
           },
           "doseText": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Dose text.",
+            "type": "string"
           },
           "note": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Free-text note.",
+            "type": "string"
           },
           "source": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Source.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -15125,8 +15297,9 @@
         "type": "object",
         "properties": {
           "age": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Age derived from birth date. Null when birth date is missing.",
+            "type": "number"
           },
           "onboardingCompleted": {
             "type": "boolean",
@@ -15166,23 +15339,29 @@
         "type": "object",
         "properties": {
           "birthDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Birth date in YYYY-MM-DD format.",
+            "type": "string"
           },
           "sexAtBirth": {
+            "nullable": true,
+            "description": "Sex assigned at birth.",
             "type": "string",
-            "enum": ["female", "male", "intersex", "unknown"],
-            "nullable": true
+            "enum": ["female", "male", "intersex", "unknown"]
           },
           "heightCm": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Height in centimeters.",
+            "type": "number"
           },
           "weightKg": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "Weight in kilograms. Extracted from extras JSONB.",
+            "type": "number"
           },
           "activityLevel": {
+            "description": "Self-reported activity level. Absent/null on older payloads and caches.",
+            "nullable": true,
             "type": "string",
             "enum": [
               "sedentary",
@@ -15190,32 +15369,36 @@
               "moderatelyActive",
               "veryActive",
               "extremelyActive"
-            ],
-            "nullable": true
+            ]
           },
           "dietaryPreferences": {
+            "description": "Dietary preferences extracted from extras JSONB. Absent/null on older payloads and caches.",
+            "nullable": true,
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "locale": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Preferred locale.",
+            "type": "string"
           },
           "timezone": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Preferred timezone.",
+            "type": "string"
           },
           "unitSystem": {
+            "nullable": true,
+            "description": "Preferred unit system.",
             "type": "string",
-            "enum": ["metric", "imperial"],
-            "nullable": true
+            "enum": ["metric", "imperial"]
           },
           "onboardingCompletedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "When the onboarding flow was completed.",
+            "type": "string"
           },
           "extras": {
             "description": "Sparse profile extensions stored in jsonb."
@@ -15251,28 +15434,32 @@
             "description": "User-visible allergy label."
           },
           "reaction": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Recorded reaction.",
+            "type": "string"
           },
           "severity": {
+            "nullable": true,
+            "description": "Severity level.",
             "type": "string",
-            "enum": ["mild", "moderate", "severe", "unknown"],
-            "nullable": true
+            "enum": ["mild", "moderate", "severe", "unknown"]
           },
           "isActive": {
             "type": "boolean",
             "description": "Whether the allergy is currently active."
           },
           "note": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "User note for the allergy.",
+            "type": "string"
           },
           "extras": {
             "description": "Sparse allergy extensions stored in jsonb."
           },
           "recordedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "When this allergy was recorded.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -15315,16 +15502,19 @@
             "description": "Condition status."
           },
           "diagnosedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Diagnosis date in YYYY-MM-DD format.",
+            "type": "string"
           },
           "resolvedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Resolved date in YYYY-MM-DD format.",
+            "type": "string"
           },
           "note": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "User note for the condition.",
+            "type": "string"
           },
           "extras": {
             "description": "Sparse condition extensions stored in jsonb."
@@ -15364,40 +15554,47 @@
             "description": "Upstream source used to anchor this medicine."
           },
           "sourceRefId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Source-specific reference id.",
+            "type": "string"
           },
           "displayName": {
             "type": "string",
             "description": "Display name shown to the user."
           },
           "strengthText": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Strength text.",
+            "type": "string"
           },
           "doseText": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Dose text.",
+            "type": "string"
           },
           "route": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Administration route.",
+            "type": "string"
           },
           "startedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Start date in YYYY-MM-DD format.",
+            "type": "string"
           },
           "endedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "End date in YYYY-MM-DD format.",
+            "type": "string"
           },
           "isCurrent": {
             "type": "boolean",
             "description": "Whether the medicine is currently active."
           },
           "note": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "User note for the medicine.",
+            "type": "string"
           },
           "sourcePayload": {
             "description": "Original source payload stored in jsonb."
@@ -15546,6 +15743,8 @@
             "description": "Whether the server has already implemented this tool beyond planning/foundation wiring."
           },
           "disabledReason": {
+            "nullable": true,
+            "description": "Why the tool is currently disabled, or null when enabled.",
             "type": "string",
             "enum": [
               "chat_disabled",
@@ -15553,8 +15752,7 @@
               "model_not_configured",
               "not_implemented",
               "retrieval_unavailable"
-            ],
-            "nullable": true
+            ]
           }
         },
         "required": [
@@ -15670,8 +15868,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -15693,8 +15891,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -15746,8 +15944,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -15769,8 +15967,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -15891,6 +16089,8 @@
         "additionalProperties": false
       },
       "ReportSummaryResponseObservedPattern": {
+        "nullable": true,
+        "description": "At most one source-backed observed pattern. Null when data is insufficient.",
         "type": "object",
         "properties": {
           "kind": {
@@ -15905,10 +16105,11 @@
           }
         },
         "required": ["kind", "text", "source"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "ReportSummaryResponseLowRiskAction": {
+        "nullable": true,
+        "description": "At most one low-risk action. Null when no action is warranted.",
         "type": "object",
         "properties": {
           "label": {
@@ -15919,8 +16120,7 @@
           }
         },
         "required": ["label", "text"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "ReportSummaryAsyncResponseDataResult": {
         "description": "Inline report summary resource when queue processing is unavailable.",
@@ -16026,6 +16226,8 @@
         "additionalProperties": false
       },
       "ReportSummaryAsyncResponseDataResultObservedPattern": {
+        "nullable": true,
+        "description": "At most one source-backed observed pattern. Null when data is insufficient.",
         "type": "object",
         "properties": {
           "kind": {
@@ -16040,10 +16242,11 @@
           }
         },
         "required": ["kind", "text", "source"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "ReportSummaryAsyncResponseDataResultLowRiskAction": {
+        "nullable": true,
+        "description": "At most one low-risk action. Null when no action is warranted.",
         "type": "object",
         "properties": {
           "label": {
@@ -16054,8 +16257,7 @@
           }
         },
         "required": ["label", "text"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "ReportSummaryStreamResponseCoverage": {
         "type": "object",
@@ -16113,6 +16315,8 @@
         "additionalProperties": false
       },
       "ReportSummaryStreamResponseObservedPattern": {
+        "nullable": true,
+        "description": "At most one source-backed observed pattern. Null when data is insufficient.",
         "type": "object",
         "properties": {
           "kind": {
@@ -16127,10 +16331,11 @@
           }
         },
         "required": ["kind", "text", "source"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "ReportSummaryStreamResponseLowRiskAction": {
+        "nullable": true,
+        "description": "At most one low-risk action. Null when no action is warranted.",
         "type": "object",
         "properties": {
           "label": {
@@ -16141,8 +16346,7 @@
           }
         },
         "required": ["label", "text"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "ClinicSummaryResponseCoverage": {
         "type": "object",
@@ -16187,16 +16391,19 @@
             "description": "Number of observations in the window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined yet.",
+            "type": "number"
           },
           "windowStart": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window start (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           },
           "windowEnd": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window end (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           }
         },
         "required": [
@@ -16235,16 +16442,19 @@
             "description": "Number of observations in the window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined yet.",
+            "type": "number"
           },
           "windowStart": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window start (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           },
           "windowEnd": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window end (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           }
         },
         "required": [
@@ -16282,16 +16492,19 @@
             "description": "Number of observations in the window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined yet.",
+            "type": "number"
           },
           "windowStart": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window start (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           },
           "windowEnd": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window end (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           }
         },
         "required": [
@@ -16330,16 +16543,19 @@
             "description": "Number of observations in the window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined yet.",
+            "type": "number"
           },
           "windowStart": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window start (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           },
           "windowEnd": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Window end (ISO 8601), or null when nothing was observed.",
+            "type": "string"
           }
         },
         "required": [
@@ -16362,12 +16578,14 @@
             "description": "Masked display name (e.g. 张**)"
           },
           "age": {
-            "type": "number",
-            "nullable": true
+            "description": "Age in years (derived from birthDate, never raw date)",
+            "nullable": true,
+            "type": "number"
           },
           "sexAtBirth": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Sex at birth",
+            "type": "string"
           }
         },
         "required": ["nickname", "sexAtBirth"],
@@ -16381,12 +16599,14 @@
             "description": "Allergy label (e.g. 青霉素)"
           },
           "reaction": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Reaction description",
+            "type": "string"
           },
           "severity": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Severity level",
+            "type": "string"
           }
         },
         "required": ["label", "reaction", "severity"],
@@ -16400,12 +16620,14 @@
             "description": "Condition label (e.g. 高血压)"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Current status",
+            "type": "string"
           },
           "diagnosedYear": {
-            "type": "number",
-            "nullable": true
+            "description": "Year of diagnosis (YYYY)",
+            "nullable": true,
+            "type": "number"
           }
         },
         "required": ["label", "status"],
@@ -16419,8 +16641,9 @@
             "description": "Generic medicine name"
           },
           "doseText": {
-            "type": "string",
-            "nullable": true
+            "description": "Dose instruction",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": ["displayName"],
@@ -16479,16 +16702,19 @@
         "type": "object",
         "properties": {
           "eventId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Event scope id",
+            "type": "string"
           },
           "dateFrom": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date-range scope start (ISO 8601), or null for an event scope",
+            "type": "string"
           },
           "dateTo": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date-range scope end (ISO 8601), or null for an event scope",
+            "type": "string"
           }
         },
         "required": ["eventId", "dateFrom", "dateTo"],
@@ -16510,20 +16736,23 @@
             "description": "Expiration time in ISO 8601 format."
           },
           "revokedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Revocation time in ISO 8601 format, or null while the share is active.",
+            "type": "string"
           },
           "accessCount": {
             "type": "number",
             "description": "Number of successful public opens."
           },
           "firstAccessedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "First access time in ISO 8601 format, or null when never opened.",
+            "type": "string"
           },
           "lastAccessedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Last access time in ISO 8601 format, or null when never opened.",
+            "type": "string"
           },
           "scope": {
             "$ref": "#/components/schemas/ClinicSummaryShareListResponseItemsScope"
@@ -16553,16 +16782,19 @@
         "type": "object",
         "properties": {
           "eventId": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Event scope id",
+            "type": "string"
           },
           "dateFrom": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date-range scope start (ISO 8601), or null for an event scope",
+            "type": "string"
           },
           "dateTo": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Date-range scope end (ISO 8601), or null for an event scope",
+            "type": "string"
           }
         },
         "required": ["eventId", "dateFrom", "dateTo"],
@@ -16590,13 +16822,14 @@
             "description": "Start time in ISO 8601 format."
           },
           "endedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "End time in ISO 8601 format, or null while active.",
+            "type": "string"
           },
           "outcome": {
+            "nullable": true,
             "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
+            "enum": ["improved", "unchanged", "worsened"]
           },
           "currentMedicineIds": {
             "type": "array",
@@ -16841,16 +17074,19 @@
             "description": "Number of user-confirmed check-ins."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation exists for check-ins.",
+            "type": "number"
           },
           "firstCheckInDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "First check-in calendar date, or null when none exists.",
+            "type": "string"
           },
           "lastCheckInDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Last check-in calendar date, or null when none exists.",
+            "type": "string"
           },
           "todayCheckIn": {
             "nullable": true,
@@ -16880,6 +17116,7 @@
         "additionalProperties": false
       },
       "EventReviewDataCoverageCheckInsTodayCheckIn": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "date": {
@@ -16896,8 +17133,7 @@
           }
         },
         "required": ["date", "outcome", "updatedAt"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "EventReviewDataCoverageDailyRecords": {
         "type": "object",
@@ -16923,8 +17159,9 @@
             "description": "Number of observations in the event window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined for this source yet.",
+            "type": "number"
           },
           "windowStart": {
             "type": "string",
@@ -16970,8 +17207,9 @@
             "description": "Number of observations in the event window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined for this source yet.",
+            "type": "number"
           },
           "windowStart": {
             "type": "string",
@@ -16997,16 +17235,19 @@
         "type": "object",
         "properties": {
           "checkIns": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Last check-in calendar date (YYYY-MM-DD), or null.",
+            "type": "string"
           },
           "dailyRecords": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Latest daily-record creation time in the event window (ISO 8601), or null.",
+            "type": "string"
           },
           "doseLogs": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Latest dose-log scheduled time in the event window (ISO 8601), or null.",
+            "type": "string"
           }
         },
         "required": ["checkIns", "dailyRecords", "doseLogs"],
@@ -17034,13 +17275,14 @@
             "description": "Start time in ISO 8601 format."
           },
           "endedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "End time in ISO 8601 format, or null while active.",
+            "type": "string"
           },
           "outcome": {
+            "nullable": true,
             "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
+            "enum": ["improved", "unchanged", "worsened"]
           },
           "currentMedicineIds": {
             "type": "array",
@@ -17083,13 +17325,14 @@
             "description": "Start time in ISO 8601 format."
           },
           "endedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "End time in ISO 8601 format, or null while active.",
+            "type": "string"
           },
           "outcome": {
+            "nullable": true,
             "type": "string",
-            "enum": ["improved", "unchanged", "worsened"],
-            "nullable": true
+            "enum": ["improved", "unchanged", "worsened"]
           },
           "currentMedicineIds": {
             "type": "array",
@@ -17334,16 +17577,19 @@
             "description": "Number of user-confirmed check-ins."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation exists for check-ins.",
+            "type": "number"
           },
           "firstCheckInDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "First check-in calendar date, or null when none exists.",
+            "type": "string"
           },
           "lastCheckInDate": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Last check-in calendar date, or null when none exists.",
+            "type": "string"
           },
           "todayCheckIn": {
             "nullable": true,
@@ -17373,6 +17619,7 @@
         "additionalProperties": false
       },
       "EventReviewResponseCoverageCheckInsTodayCheckIn": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "date": {
@@ -17389,8 +17636,7 @@
           }
         },
         "required": ["date", "outcome", "updatedAt"],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "EventReviewResponseCoverageDailyRecords": {
         "type": "object",
@@ -17416,8 +17662,9 @@
             "description": "Number of observations in the event window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined for this source yet.",
+            "type": "number"
           },
           "windowStart": {
             "type": "string",
@@ -17463,8 +17710,9 @@
             "description": "Number of observations in the event window."
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "No fixed expectation is defined for this source yet.",
+            "type": "number"
           },
           "windowStart": {
             "type": "string",
@@ -17490,16 +17738,19 @@
         "type": "object",
         "properties": {
           "checkIns": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Last check-in calendar date (YYYY-MM-DD), or null.",
+            "type": "string"
           },
           "dailyRecords": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Latest daily-record creation time in the event window (ISO 8601), or null.",
+            "type": "string"
           },
           "doseLogs": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Latest dose-log scheduled time in the event window (ISO 8601), or null.",
+            "type": "string"
           }
         },
         "required": ["checkIns", "dailyRecords", "doseLogs"],
@@ -17700,8 +17951,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -17722,8 +17973,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -17938,8 +18189,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -17960,8 +18211,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -18176,8 +18427,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -18198,8 +18449,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -18349,12 +18600,14 @@
             "description": "OAuth provider name."
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Provider email when the provider exposes one.",
+            "type": "string"
           },
           "emailVerifiedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Provider email verification time in ISO 8601.",
+            "type": "string"
           },
           "linkedAt": {
             "type": "string",
@@ -18372,16 +18625,16 @@
             "enum": ["low", "medium", "high"]
           },
           "primaryType": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           },
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "unit": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": ["level", "primaryType", "value", "unit"],
@@ -18419,8 +18672,8 @@
             ]
           },
           "primaryPollutant": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": ["aqi", "level", "primaryPollutant"],
@@ -18450,6 +18703,7 @@
         "additionalProperties": false
       },
       "TodayAnalysisReadResponseAnalysis": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "date": {
@@ -18499,8 +18753,7 @@
           "confidenceNote",
           "aiGenerated"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "TodayAnalysisReadResponseAnalysisBullets": {
         "type": "object",
@@ -18534,8 +18787,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -18556,8 +18809,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -18610,8 +18863,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -18632,8 +18885,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -18655,6 +18908,7 @@
         "additionalProperties": false
       },
       "TodayAnalysisReadDataAnalysis": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "date": {
@@ -18704,8 +18958,7 @@
           "confidenceNote",
           "aiGenerated"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "TodayAnalysisReadDataAnalysisBullets": {
         "type": "object",
@@ -18739,8 +18992,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -18761,8 +19014,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -18867,8 +19120,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -18889,8 +19142,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -18943,8 +19196,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -18965,8 +19218,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -18988,6 +19241,7 @@
         "additionalProperties": false
       },
       "TodayAnalysisAsyncResultDataAnalysis": {
+        "nullable": true,
         "type": "object",
         "properties": {
           "date": {
@@ -19037,8 +19291,7 @@
           "confidenceNote",
           "aiGenerated"
         ],
-        "additionalProperties": false,
-        "nullable": true
+        "additionalProperties": false
       },
       "TodayAnalysisAsyncResultDataAnalysisBullets": {
         "type": "object",
@@ -19072,8 +19325,8 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "state": {
             "type": "string",
@@ -19094,8 +19347,8 @@
             "type": "number"
           },
           "expectedCount": {
-            "type": "number",
-            "nullable": true
+            "nullable": true,
+            "type": "number"
           },
           "windowStart": {
             "type": "string"
@@ -19432,20 +19685,24 @@
             "description": "Session id"
           },
           "deviceType": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Device type",
+            "type": "string"
           },
           "deviceName": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Device name",
+            "type": "string"
           },
           "platform": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Platform",
+            "type": "string"
           },
           "lastUsedAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Last used at (ISO-8601)",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -19515,7 +19772,7 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
         "required": [
@@ -19557,7 +19814,7 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
         "required": [
@@ -19579,8 +19836,9 @@
             "description": "Stable persisted conversation identifier."
           },
           "title": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Optional server-derived conversation title.",
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -19588,8 +19846,9 @@
             "description": "Current conversation status."
           },
           "lastMessageAt": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ISO-8601 timestamp of the latest conversation activity.",
+            "type": "string"
           },
           "createdAt": {
             "type": "string",

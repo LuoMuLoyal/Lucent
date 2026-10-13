@@ -525,7 +525,7 @@ async function main() {
     draft.components.schemas ??= {};
     try {
       draft.components.schemas[registration.componentName] = openApiSchema(
-        z.toJSONSchema(registration.schema),
+        z.toJSONSchema(registration.schema, { target: 'openapi-3.0' }),
       );
     } catch (error) {
       // eslint-disable-next-line no-console
