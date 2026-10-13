@@ -419,8 +419,8 @@ importers:
         specifier: ^8.20.0
         version: 8.59.4(eslint@9.39.4(jiti@2.7.0)(supports-color@5.5.0))(supports-color@5.5.0)(typescript@6.0.3)
       unplugin-swc:
-        specifier: ^1.5.9
-        version: 1.5.11(@swc/core@1.15.40(@swc/helpers@0.5.23))(rolldown@1.1.5)(rollup@4.61.1)(vite@8.1.4(@types/node@26.6.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))(webpack@5.106.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(lightningcss@1.33.0)(postcss@8.5.25)(uglify-js@3.19.3))
+        specifier: ^2.0.0
+        version: 2.0.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(rolldown@1.1.5)(rollup@4.61.1)(vite@8.1.4(@types/node@26.6.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))(webpack@5.106.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(lightningcss@1.33.0)(postcss@8.5.25)(uglify-js@3.19.3))
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(@vitest/coverage-v8@4.1.10)(vite@8.1.4(@types/node@26.6.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
@@ -6292,10 +6292,6 @@ packages:
     resolution: {integrity: sha512-vzn8aSqKgytVik0iwdBEi+zevbTYZogewTUM6dtpmGwEcdzbub/TX4bCzRhebDCRC3QzXgJsLRKB2V/Oof7HXg==}
     engines: {node: '>=0.10.0'}
 
-  source-map-js@1.2.1:
-    resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
-    engines: {node: '>=0.10.0'}
-
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
@@ -6719,8 +6715,9 @@ packages:
     resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
     engines: {node: '>= 0.8'}
 
-  unplugin-swc@1.5.11:
-    resolution: {integrity: sha512-R7U4GbfrESPnYLn3nXREZrwhKQk3BAmTBoKJ5lmo7btTc/yJpNsDzavBWo+XpQTjDSIogiZEAxC5ig/vfMWxWg==}
+  unplugin-swc@2.0.0:
+    resolution: {integrity: sha512-hMdGJEtkwiJhzuXXx4Nb1XYDeD9KG4+P7KZOaErJTpZNYhTo1sbWIsXb+u410zXyaqH00veNX4UxOr6TpUwNiQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@swc/core': ^1.2.108
 
@@ -9438,7 +9435,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       estree-walker: 2.0.2
-      picomatch: 4.0.4
+      picomatch: 4.0.7
     optionalDependencies:
       rollup: 4.61.1
 
@@ -12376,7 +12373,7 @@ snapshots:
     dependencies:
       '@babel/parser': 7.29.8
       '@babel/types': 7.29.8
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   make-asynchronous@1.1.0:
     dependencies:
@@ -13487,8 +13484,6 @@ snapshots:
     dependencies:
       is-plain-obj: 1.1.0
 
-  source-map-js@1.2.1: {}
-
   source-map-js@1.2.2: {}
 
   source-map-support@0.5.21:
@@ -13874,7 +13869,7 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-swc@1.5.11(@swc/core@1.15.40(@swc/helpers@0.5.23))(rolldown@1.1.5)(rollup@4.61.1)(vite@8.1.4(@types/node@26.6.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))(webpack@5.106.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(lightningcss@1.33.0)(postcss@8.5.25)(uglify-js@3.19.3)):
+  unplugin-swc@2.0.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(rolldown@1.1.5)(rollup@4.61.1)(vite@8.1.4(@types/node@26.6.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))(webpack@5.106.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(lightningcss@1.33.0)(postcss@8.5.25)(uglify-js@3.19.3)):
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.61.1)
       '@swc/core': 1.15.40(@swc/helpers@0.5.23)
@@ -13894,7 +13889,7 @@ snapshots:
   unplugin@3.3.0(rolldown@1.1.5)(rollup@4.61.1)(vite@8.1.4(@types/node@26.6.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))(webpack@5.106.0(@swc/core@1.15.40(@swc/helpers@0.5.23))(lightningcss@1.33.0)(postcss@8.5.25)(uglify-js@3.19.3)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       rolldown: 1.1.5
