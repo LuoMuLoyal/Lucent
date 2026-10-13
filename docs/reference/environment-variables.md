@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-12
+updated: 2026-10-13
 ---
 
 # Environment Variables
@@ -89,7 +89,7 @@ METRICS_PASSWORD
 只有它是 `https://` 时才带 `Strict-Transport-Security` 与 CSP 的
 `upgrade-insecure-requests`。纯 HTTP 部署(如运行基线里的 `http://<主站IP>:3000`)必须
 保持 `http://`,否则浏览器会把 `/admin/assets/*.js|css` 全部改写成 `https://` 同端口,
-TLS 握手失败后管理端与 `/api/docs` 只剩空白页(回环地址被视为可信来源,本地开发复现不出)。
+TLS 握手失败后管理端只剩空白页(回环地址被视为可信来源,本地开发复现不出)。
 
 主站上 `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入(容器名寻址,不写回环),
@@ -663,19 +663,6 @@ MIN_CLIENT_VERSION
   back to a hardcoded support URL.
 - `MIN_CLIENT_VERSION` — minimum required client version for version-gating.
   When set, clients below this version may be prompted to update.
-
-Bundle / docs (optional):
-
-```text
-SCALAR_API_REFERENCE_VERSION
-```
-
-- `SCALAR_API_REFERENCE_VERSION` — explicit version slug for the self-hosted
-  Scalar API docs bundle (`/scalar/standalone.js?v=<version>`). When set, it
-  overrides the value read from `package.json`. Useful in serverless or
-  read-only filesystem deployments where `package.json` may not be available
-  at runtime, so the `immutable` cache header still busts when `@scalar/api-reference`
-  is upgraded.
 
 Build / export flags (internal):
 

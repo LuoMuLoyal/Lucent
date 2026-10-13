@@ -104,8 +104,6 @@
     "@prisma/client": "^7.10.0",
     "@prisma/internals": "7.10.0",
     "@prometheus-io/client": "^0.16.1",
-    "@scalar/api-reference": "^1.64.0",
-    "@scalar/nestjs-api-reference": "^1.2.6",
     "@tiptap/core": "2.27.2",
     "@tiptap/pm": "2.27.2",
     "ali-oss": "^6.23.0",

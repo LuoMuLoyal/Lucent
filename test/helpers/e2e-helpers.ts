@@ -52,7 +52,8 @@ export async function createTestApp(): Promise<E2eTestContext> {
     moduleFixture.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ trustProxy }),
       // bodyParser: false — same as main.ts; setupApp() registers the JSON
-      // parser manually to avoid conflicts with AdminJS's @fastify/formbody.
+      // content-type parser manually so an absent body is accepted and
+      // malformed JSON maps to 400 Problem Details rather than a 500.
       { bodyParser: false },
     );
   await setupApp(app, configService);

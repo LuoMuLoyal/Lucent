@@ -60,7 +60,9 @@
 update/delete`。具名例外：
 
 - `testing-support` 夹具（仅 `NODE_ENV=test` 注册 + 共享密钥守卫，跨表重置测试数据）
-- AdminJS（整个 client 交给 `@sergiyiva/adminjs-prisma`，由资源配置受控）
+- AdminJS 面板（整个 client 交给 `@sergiyiva/adminjs-prisma`，由资源配置受控）——该面板已退役，
+  此例外随之消失；现管理面为 `src/modules/admin/` 的受权限保护 API 与独立 `admin/` SPA，
+  写操作仍受本 ADR 治理。
 - `common/llm/generators/base-llm-summary.service.ts` 读 `userSetting`（现状保留，随
   `LlmCommonModule` 收敛时一并处理）（✅ `LlmCommonModule` 已于 2026-07-17 落地）
 

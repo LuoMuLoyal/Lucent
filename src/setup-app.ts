@@ -1,11 +1,7 @@
 import { performance } from 'node:perf_hooks';
-import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
   BadRequestException,
-  Logger,
   StandardSchemaSerializerInterceptor,
   StandardSchemaValidationPipe,
   VersioningType,
@@ -13,15 +9,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { FastifyRequest, FastifyReply } from 'fastify';
 import fastifyHelmet from '@fastify/helmet';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { apiReference } from '@scalar/nestjs-api-reference';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import type { Logger as WinstonLogger } from 'winston';
 import { resolveHttpsHeaderPolicy, safeCompare } from './common/index.js';
-import { ProblemDetailsDto, SseProblemDetailsDto } from './common/index.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
 import { ValidationException } from './common/filters/validation-exception.js';
@@ -33,56 +25,9 @@ import { buildAccessLogEntry } from './common/logger/access-log.utils.js';
 import { MetricsService } from './common/metrics/metrics.service.js';
 import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils.js';
 
-// ESM equivalent of `__dirname` — resolves project-root-relative files
-// regardless of the process working directory (PM2 / systemd / Docker).
-const thisDir = dirname(fileURLToPath(import.meta.url));
-
-/**
- * Resolves the URL for the self-hosted Scalar standalone bundle. The bundle
- * only changes between @scalar/api-reference versions, so the `immutable` cache
- * header on the asset route is safe ONLY if the URL changes when the dependency
- * upgrades. Embedding the resolved version in a query string busts the cache on
- * upgrade; falls back to a bare URL if the version cannot be read.
- *
- * Resolution happens inside `setupApp` rather than at module load time so that
- * serverless / read-only filesystem deployments can set the version via the
- * `SCALAR_API_REFERENCE_VERSION` environment variable instead of relying on
- * a readable `package.json` at boot.
- */
-async function resolveScalarStandaloneUrl(): Promise<string> {
-  const envVersion = process.env['SCALAR_API_REFERENCE_VERSION']?.replace(
-    /^[\^~]/,
-    '',
-  );
-  if (envVersion) {
-    return `/scalar/standalone.js?v=${envVersion}`;
-  }
-
-  try {
-    const pkg = JSON.parse(
-      await readFile(join(thisDir, '..', 'package.json'), 'utf-8'),
-    ) as { dependencies?: Record<string, string> };
-    const version = (pkg.dependencies?.['@scalar/api-reference'] ?? '').replace(
-      /^[\^~]/,
-      '',
-    );
-    return version
-      ? `/scalar/standalone.js?v=${version}`
-      : '/scalar/standalone.js';
-  } catch (error) {
-    Logger.warn(
-      `Failed to resolve @scalar/api-reference version from package.json, falling back to bare URL: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      'resolveScalarStandaloneUrl',
-    );
-    return '/scalar/standalone.js';
-  }
-}
-
 /**
  * Configures the NestJS application with global middleware, pipes, filters,
- * interceptors, API versioning, CORS, and OpenAPI documentation.
+ * interceptors, API versioning, and CORS.
  */
 export async function setupApp(
   app: NestFastifyApplication,
@@ -130,9 +75,12 @@ export async function setupApp(
   );
 
   // ── Helmet security headers ─────────────────────────────────────
-  // AdminJS and Scalar render inline bootstrap scripts, so CSP must allow
-  // 'unsafe-inline' scripts — otherwise both admin panel and /api/docs
-  // render blank (bundle scripts load, inline ones are blocked).
+  // `script-src` allows 'unsafe-inline'. The original justification (the
+  // retired AdminJS panel rendered inline bootstrap scripts) no longer
+  // applies: the current admin console is a Vite SPA whose entry is an
+  // external module script. The directive is kept as-is because relaxing it
+  // to `'self'` is a policy change that needs its own verification, not a
+  // side effect of removing dead references.
   //
   // Helmet's defaults also carry the HTTPS-only headers, which must follow the
   // scheme the deployment is really served on: on a plain-HTTP public origin
@@ -314,88 +262,4 @@ export async function setupApp(
     // OPTIONS but never arrives" symptom.
     methods: 'GET,HEAD,POST,PATCH,PUT,DELETE,OPTIONS',
   });
-
-  // ── Scalar API Reference ───────────────────────────────────────
-  const scalarStandaloneUrl = await resolveScalarStandaloneUrl();
-
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Lucent API')
-    .setDescription('Lucent backend API documentation')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Enter accessToken',
-      },
-      'access-token',
-    )
-    .build();
-
-  const document = SwaggerModule.createDocument(app, swaggerConfig, {
-    extraModels: [ProblemDetailsDto, SseProblemDetailsDto],
-  });
-
-  // `withFastify: true` would make apiReference write to the raw response
-  // (bypassing Fastify's onSend pipeline, so favicon injection below would
-  // not run). Without it, apiReference calls `res.send(html)`, which goes
-  // through the Fastify payload pipeline when given the Fastify reply.
-  // The Scalar type definition incorrectly intersects with Express Request,
-  // so we use @ts-expect-error to suppress the assignment error.
-  // @ts-expect-error — Scalar 类型定义未正确区分 Fastify/Express 集成
-  const docsHandler: (req: FastifyRequest, res: FastifyReply) => void =
-    apiReference({
-      spec: { content: document },
-      theme: 'purple',
-      _integration: 'nestjs',
-      // Self-host the Scalar standalone bundle instead of loading it from the
-      // jsdelivr CDN (unreliable in CN networks → blank page). The URL is
-      // versioned (see resolveScalarStandaloneUrl) so the immutable cache below is
-      // invalidated when the @scalar/api-reference dependency upgrades.
-      cdn: scalarStandaloneUrl,
-    });
-
-  // ── Self-hosted Scalar standalone asset (avoids unreachable CDN) ──
-  void fastify.get('/scalar/standalone.js', async (_request, reply) => {
-    try {
-      // Resolve relative to this file so it works regardless of the process
-      // working directory (PM2 / systemd / Docker). `thisDir` is the project
-      // root both in dev (src/) and after `nest build` (dist/).
-      const file = join(
-        thisDir,
-        '..',
-        'node_modules',
-        '@scalar',
-        'api-reference',
-        'dist',
-        'browser',
-        'standalone.js',
-      );
-      const content = await readFile(file);
-      // The bundle only changes between @scalar/api-reference versions, so a
-      // long-lived cache is safe.
-      reply
-        .type('application/javascript')
-        .header('Cache-Control', 'public, max-age=31536000, immutable')
-        .send(content);
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-        reply.status(404).send('Scalar bundle not found');
-        return;
-      }
-      Logger.warn(
-        `Failed to serve Scalar standalone bundle: ${err instanceof Error ? err.message : String(err)}`,
-        err instanceof Error ? err.stack : undefined,
-      );
-      reply.status(500).send('Failed to serve Scalar bundle');
-    }
-  });
-
-  void fastify.get(
-    '/api/docs',
-    (request: FastifyRequest, reply: FastifyReply) => {
-      docsHandler(request, reply);
-    },
-  );
 }

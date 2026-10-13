@@ -9,9 +9,9 @@
  * - `upgrade-insecure-requests` rewrites every a-priori-insecure subresource
  *   URL to `https://`. On a plain-HTTP public origin the browser therefore
  *   requests `/admin/assets/*.js` and `*.css` over TLS, the handshake fails,
- *   and the admin console (and the Scalar page at `/api/docs`) renders a blank
- *   page with an empty `#root`. Loopback counts as a potentially trustworthy
- *   origin and is exempt, so local development never reproduces it.
+ *   and the admin console renders a blank page with an empty `#root`. Loopback
+ *   counts as a potentially trustworthy origin and is exempt, so local
+ *   development never reproduces it.
  * - `Strict-Transport-Security` is ignored by browsers when it arrives over a
  *   non-secure transport, so emitting it on plain HTTP is noise.
  *

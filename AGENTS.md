@@ -83,7 +83,6 @@
   dart-dio bugs + validator gaps): see docs/logs/migration-log/2026-09-05.md for the
   "why not" decision record.
 - Architecture/module structure changed → `pnpm docs:compodoc`.
-- API docs UI at `/api/docs` via Scalar.
 - Medicine import strategy changed → update `src/modules/medicines/README.md`.
 - Significant architectural decision → create ADR in `docs/reference/adr/NNNN-title.md`.
 - Localized backend copy: `AcceptLanguageResolver + I18nService` by default; `@I18nLang()` only

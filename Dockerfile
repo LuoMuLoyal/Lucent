@@ -41,9 +41,9 @@ RUN --mount=type=cache,id=swc,target=/root/.swc \
 RUN pnpm prune --prod --ignore-scripts
 # ── 运行时瘦身 ─────────────────────────────────────────────────
 # 只删除运行时不会读取的文件与包；每一项都在容器内用真实请求验证过
-# （prisma migrate deploy + /api/v1/health 深探针 + /api/docs +
-#   /scalar/standalone.js + /admin），依据见
-# docs/logs/migration-log/2026-09-18.md。
+# （prisma migrate deploy + /api/v1/health 深探针 + /admin），依据见
+# docs/logs/migration-log/2026-09-18.md（原验证清单还含 /api/docs 与
+# /scalar/standalone.js，二者已随 Scalar 退役移除）。
 RUN set -eux; \
     # 1) source map：仅调试器 / --enable-source-maps 会读，生产运行不加载
     find node_modules dist -name '*.map' -type f -delete; \
@@ -57,12 +57,10 @@ RUN set -eux; \
     # 4) 字体包自带的 woff2 未被引用：pdf-fonts.ts 只 require.resolve OTF
     rm -f node_modules/.pnpm/@fontpkg+source-han-sans-sc-vf@*/node_modules/@fontpkg/source-han-sans-sc-vf/*.woff2; \
     # 5) swagger-ui-dist：@nestjs/swagger 仅在 SwaggerModule.setup() 里 require，
-    #    本项目用 Scalar 提供 /api/docs，从未调用 setup()
+    #    而本项目只用 createDocument() 导出 spec（pnpm export:openapi），
+    #    从未调用 setup()，因此这份 UI 资产运行时不会被读取。
     rm -rf node_modules/.pnpm/swagger-ui-dist@*; \
-    # 6) Scalar 文档 UI 的图标源码组件：已编译进 api-reference/dist/standalone.js
-    rm -rf node_modules/.pnpm/@scalar+icons@* \
-           node_modules/.pnpm/@phosphor-icons+core@*; \
-    # 7) 清理因删包而悬空的 pnpm 符号链接（busybox find 没有 -xtype）
+    # 6) 清理因删包而悬空的 pnpm 符号链接（busybox find 没有 -xtype）
     find node_modules -type l | while read -r link; do \
       [ -e "$link" ] || rm -f "$link"; \
     done
