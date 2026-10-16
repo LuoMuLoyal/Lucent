@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
 import { ClinicSummaryPdfService } from './pdf.service.js';
 
@@ -15,7 +16,7 @@ export interface PdfExportResult {
   pdfBase64?: string;
 }
 
-const QUEUE_NAME = 'clinic-summary-pdf';
+const QUEUE_NAME = QUEUE_NAMES.clinicSummaryPdf;
 const JOB_NAME = 'export';
 
 /**

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
 import {
   SuggestionCopyService,
@@ -9,7 +10,7 @@ import {
 } from './writer.service.js';
 import type { CopyJobData } from '../../types/copy-generation.types.js';
 
-const QUEUE_NAME = 'suggestion-copy-generation';
+const QUEUE_NAME = QUEUE_NAMES.suggestionCopyGeneration;
 const JOB_NAME = 'generate-copy';
 
 /**

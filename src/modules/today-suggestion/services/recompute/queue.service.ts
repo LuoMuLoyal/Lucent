@@ -2,11 +2,12 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import type { MaterializationReasonCode } from '../../types/materialization.types.js';
 import { SuggestionRecomputeWorkerService } from './worker.service.js';
 
-export const RECOMPUTE_QUEUE_NAME = 'suggestion-recompute';
+export const RECOMPUTE_QUEUE_NAME = QUEUE_NAMES.suggestionRecompute;
 export const RECOMPUTE_JOB_NAME = 'recompute';
 /** Coalesce related writes into one bounded recompute job. */
 export const RECOMPUTE_DEBOUNCE_MS = 1_000;

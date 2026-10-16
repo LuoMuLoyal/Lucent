@@ -1,4 +1,6 @@
-export const MEAL_ANALYSIS_QUEUE_NAME = 'lucent-meal-analysis';
+import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
+
+export const MEAL_ANALYSIS_QUEUE_NAME = QUEUE_NAMES.mealAnalysis;
 export const MEAL_ANALYSIS_JOB_NAME = 'analyze-meal-record';
 
 /** 多模态分析的作业名（与一次性分析作业共用队列，靠 worker 幂等跳过旧 revision）。 */

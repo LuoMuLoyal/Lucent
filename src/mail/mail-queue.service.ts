@@ -2,11 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { JobsOptions, Queue } from 'bullmq';
 import { BullmqQueueFactory } from '../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../common/queue/queue-names.js';
 import { ConfigKey } from '../config/env/config-keys.enum.js';
 import type { MailConfig } from '../config/services/mail.config.js';
 import { MailTransportService } from './mail-transport.service.js';
 
-const MAIL_QUEUE_NAME = 'lucent-mail';
+const MAIL_QUEUE_NAME = QUEUE_NAMES.mail;
 const SEND_MAIL_JOB = 'send-mail';
 
 interface SendMailJobData {

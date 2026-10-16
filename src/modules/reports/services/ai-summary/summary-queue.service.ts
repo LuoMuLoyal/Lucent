@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
 import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
 
@@ -14,7 +15,7 @@ interface SummaryJobData {
   language: string;
 }
 
-const QUEUE_NAME = 'report-summary';
+const QUEUE_NAME = QUEUE_NAMES.reportSummary;
 const JOB_NAME = 'generate';
 
 /**

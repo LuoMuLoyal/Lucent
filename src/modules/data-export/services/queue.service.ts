@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
 import { createDomainFailure } from '../../../common/result/index.js';
 import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
 import { DataExportProcessorService } from './processor.service.js';
@@ -11,7 +12,7 @@ interface DataExportJobData {
   language: string;
 }
 
-const QUEUE_NAME = 'data-export';
+const QUEUE_NAME = QUEUE_NAMES.dataExport;
 const JOB_NAME = 'export';
 
 @Injectable()

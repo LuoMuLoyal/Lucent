@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
 import { BaseAsyncQueueService } from '../../../common/index.js';
 import { TodayAnalysisService } from './analysis.service.js';
 import type {
@@ -20,7 +21,7 @@ export interface AnalysisJobData {
   triggerKey?: string;
 }
 
-export const TODAY_ANALYSIS_QUEUE_NAME = 'today-analysis';
+export const TODAY_ANALYSIS_QUEUE_NAME = QUEUE_NAMES.todayAnalysis;
 export const TODAY_ANALYSIS_JOB_NAME = 'generate';
 
 export function buildTodayAnalysisJobId(

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
 import { unwrapResult } from '../../../../common/result/index.js';
 import {
@@ -15,7 +16,7 @@ interface ExplanationJobData {
   language?: string;
 }
 
-const QUEUE_NAME = 'suggestion-explanation';
+const QUEUE_NAME = QUEUE_NAMES.suggestionExplanation;
 const JOB_NAME = 'explain';
 
 /**

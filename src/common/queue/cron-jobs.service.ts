@@ -1,6 +1,7 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { BullmqQueueFactory } from './queue.factory.js';
+import { QUEUE_NAMES } from './queue-names.js';
 import {
   MealAnalysisSweeperService,
   MEAL_ANALYSIS_REAP_CRON,
@@ -21,10 +22,10 @@ import {
 import { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/index.js';
 
 /** BullMQ queue name for low-frequency cron jobs (lifecycle + data-retention). */
-export const CRON_QUEUE_NAME = 'lucent-cron';
+export const CRON_QUEUE_NAME = QUEUE_NAMES.cron;
 
 /** BullMQ queue name for the high-frequency reminder-dispatch job. */
-export const REMINDER_QUEUE_NAME = 'lucent-reminder-dispatch';
+export const REMINDER_QUEUE_NAME = QUEUE_NAMES.reminderDispatch;
 
 /** Stable scheduler IDs — used by `upsertJobScheduler` for idempotent upsert. */
 const SCHEDULER_DATA_RETENTION = 'data-retention-cleanup';

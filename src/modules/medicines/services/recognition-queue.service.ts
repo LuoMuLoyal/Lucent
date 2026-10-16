@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
 import { BaseAsyncQueueService } from '../../../common/index.js';
 import { MedicinesService } from './medicines.service.js';
 
@@ -17,7 +18,7 @@ export interface MedicineRecognitionResult {
   manufacturer: string | null;
 }
 
-const QUEUE_NAME = 'medicine-recognition';
+const QUEUE_NAME = QUEUE_NAMES.medicineRecognition;
 const JOB_NAME = 'recognize';
 
 /**

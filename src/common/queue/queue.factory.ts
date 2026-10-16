@@ -62,6 +62,12 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   private readonly logger = new Logger(BullmqQueueFactory.name);
   private readonly redisUrl: string | null;
   private readonly managed: ManagedQueue[] = [];
+  /**
+   * Process-wide registry of every Queue instance this factory created, in
+   * creation order. The admin queue panel (`/admin/queues`) reads it to build
+   * the bull-board board; nothing else consumes it.
+   */
+  private readonly queues: Queue[] = [];
   /** BullMQ OTel telemetry instance, created once when OTel is enabled. */
   private readonly telemetry: Telemetry<unknown> | undefined;
 
@@ -98,6 +104,14 @@ export class BullmqQueueFactory implements OnModuleDestroy {
 
   get isAvailable(): boolean {
     return this.redisUrl != null;
+  }
+
+  /**
+   * Every Queue instance created so far, as a copy. Empty when `REDIS_URL` is
+   * not configured (queues are disabled and fall back to inline processing).
+   */
+  getQueues(): readonly Queue[] {
+    return [...this.queues];
   }
 
   createQueue<TData = unknown, TResult = void>(
@@ -175,6 +189,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       name: options.name,
       metricsInterval: this.startMetricsPolling(queue, options.name),
     });
+    this.queues.push(queue);
     this.logger.log(`Queue enabled: ${options.name}`);
 
     return { queue, worker };
