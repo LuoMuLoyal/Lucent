@@ -183,12 +183,6 @@ v2.0.0 水平扩展时需验证多实例限流计数器在 Redis 中的正确性
 `DataRetentionService` 已实现 `@Cron` 清理管道（过期会话/通知/反馈抑制）和软删除账户 30 天后硬删除。
 仍缺：账户删除流程增加匿名化数据导出 → 数据可移植性 JSON 导出（GDPR/PIPL 合规）。
 
-### OpenAPI example/nullable 语义元数据补全(zod 迁移,2026-09-03)
-
-zod `.describe` 仅产出 description;原 `@ApiProperty` 的 `example`(及个别 nullable 展示)在 zod 直出
-后丢失。对需要 example 的 query/body 字段,统一经 zod-openapi(或 schema 元数据)补 example/nullable
-语义,逐模块迁移时顺带核对,验收以 openapi.json diff 为准。
-
 ### ESM 遗留 CJS 依赖与互操作跟踪（2026-09-03，NestJS 12 升级第二步）
 
 ESM 化后遗留清单与后续跟进：
