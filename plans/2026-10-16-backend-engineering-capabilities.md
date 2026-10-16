@@ -138,19 +138,23 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 
 ---
 
-## 三、P0 — `@fastify/compress`
+## 三、P0 — `@fastify/compress`（已执行）
 
-- `pnpm add @fastify/compress`；`src/setup-app.ts` 注册：
-  `global: true`、`encodings: ['gzip', 'deflate', 'br']`（br 需 Node ≥ 11.7，本仓 Node 26 ✓）。
-- SSE 路由逐个标 `config: { compress: false }`；另在 `onUnhandledEncoding` 记 debug 日志，
-  便于排查「为何某响应没压缩」。
-- **测试**：
-  - e2e：`GET /api/v1/medicines/...` 带 `Accept-Encoding: gzip` → 断言响应被压缩且
-    `content-encoding` 头存在。
-  - e2e：assistant SSE 端点 → 断言**无** `content-encoding` 且仍逐 chunk 到达。
-  - 单测：compress 注册参数快照。
+- `pnpm add @fastify/compress`（9.2.2，peer fastify ^5 ✓）；`src/setup-app.ts` 在 helmet 之后注册：
+  `global: true`、`encodings: ['gzip', 'deflate', 'br']`。
+- SSE 路由用 `@RouteConfig({ compress: false })`（`@nestjs/platform-fastify`，映射到 Fastify
+  `routeOptions.config.compress`）排除，共 4 处：assistant `messages/stream` 与
+  `conversations/:id/regenerate`、reports `summary/generate/stream`、today-analysis `generate/stream`。
+- **更正**：首版写的 `onUnhandledEncoding` 不存在；真实选项 `onUnsupportedEncoding(encoding, request, reply)`
+  的**返回值会替换响应体**（用于自定义 406），不是观测钩子，故**不接入**调试日志（会破坏响应）。
+- **测试**（`test/e2e/core/app.e2e-spec.ts`，自足无 DB）：
+  - `GET /api/v1/test-echo/large` 带 `Accept-Encoding: gzip` → `content-encoding: gzip`，
+    解压后载荷完整；不带则无压缩。
+  - `GET /api/v1/test-echo/stream`（带 `@RouteConfig({ compress: false })`）→ 无 `content-encoding`，
+    `content-type` 为 `text/event-stream` 且事件到达。
 - **风险**：压缩启用后响应走分块传输，`content-length` 不再固定。
-  Luminous 侧 dio 不读该头（已核实无相关断言），但**任何新写的客户端断言不得依赖 `content-length`**。
+  已核实 `test/` 无任何 `content-length` 断言；Luminous 侧 dio 不读该头，
+  **任何新写的客户端断言不得依赖 `content-length`**。
 
 ---
 
