@@ -7,7 +7,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Service is ready; all critical dependencies are up.",
             "content": {
               "application/json": {
                 "schema": {
@@ -17,7 +17,7 @@
             }
           },
           "503": {
-            "description": "",
+            "description": "At least one critical dependency is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -37,7 +37,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Process is alive; downstream dependencies are not checked.",
             "content": {
               "application/json": {
                 "schema": {
@@ -57,7 +57,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "All critical dependencies (database, cache) are up.",
             "content": {
               "application/json": {
                 "schema": {
@@ -67,7 +67,7 @@
             }
           },
           "503": {
-            "description": "",
+            "description": "At least one critical dependency is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -87,7 +87,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "All probed dependencies are up, with detailed diagnostics.",
             "content": {
               "application/json": {
                 "schema": {
@@ -97,7 +97,7 @@
             }
           },
           "503": {
-            "description": "",
+            "description": "At least one probed dependency is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7197,164 +7197,6 @@
   },
   "components": {
     "schemas": {
-      "HealthProbeType": {
-        "type": "string",
-        "enum": ["live", "ready", "deep"]
-      },
-      "HealthOverallStatus": {
-        "type": "string",
-        "enum": ["ok", "error"]
-      },
-      "HealthAppInfo": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "lucent"
-          },
-          "env": {
-            "type": "string",
-            "example": "test"
-          },
-          "pid": {
-            "type": "number",
-            "example": 12345
-          },
-          "uptimeSeconds": {
-            "type": "number",
-            "example": 321.5
-          },
-          "memoryRssBytes": {
-            "type": "number",
-            "example": 98304000
-          },
-          "memoryHeapUsedBytes": {
-            "type": "number",
-            "example": 41943040
-          }
-        },
-        "required": [
-          "name",
-          "env",
-          "pid",
-          "uptimeSeconds",
-          "memoryRssBytes",
-          "memoryHeapUsedBytes"
-        ]
-      },
-      "HealthSummary": {
-        "type": "object",
-        "properties": {
-          "total": {
-            "type": "number",
-            "example": 2
-          },
-          "passed": {
-            "type": "number",
-            "example": 2
-          },
-          "failed": {
-            "type": "number",
-            "example": 0
-          }
-        },
-        "required": ["total", "passed", "failed"]
-      },
-      "HealthComponentStatus": {
-        "type": "string",
-        "enum": ["up", "down"]
-      },
-      "HealthComponent": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "database"
-          },
-          "status": {
-            "example": "up",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthComponentStatus"
-              }
-            ]
-          },
-          "critical": {
-            "type": "boolean",
-            "example": true
-          },
-          "durationMs": {
-            "type": "number",
-            "example": 4
-          },
-          "error": {
-            "type": "string",
-            "nullable": true,
-            "example": null
-          },
-          "details": {
-            "type": "object",
-            "additionalProperties": true,
-            "nullable": true,
-            "example": {
-              "backend": "redis"
-            }
-          }
-        },
-        "required": [
-          "name",
-          "status",
-          "critical",
-          "durationMs",
-          "error",
-          "details"
-        ]
-      },
-      "HealthResponse": {
-        "type": "object",
-        "properties": {
-          "probe": {
-            "example": "ready",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthProbeType"
-              }
-            ]
-          },
-          "status": {
-            "example": "ok",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthOverallStatus"
-              }
-            ]
-          },
-          "checkedAt": {
-            "type": "string",
-            "example": "2026-06-13T11:00:00.000Z"
-          },
-          "app": {
-            "$ref": "#/components/schemas/HealthAppInfo"
-          },
-          "summary": {
-            "$ref": "#/components/schemas/HealthSummary"
-          },
-          "components": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/HealthComponent"
-            }
-          }
-        },
-        "required": [
-          "probe",
-          "status",
-          "checkedAt",
-          "app",
-          "summary",
-          "components"
-        ]
-      },
       "ProblemDetailsDto": {
         "type": "object",
         "properties": {
@@ -8529,6 +8371,205 @@
           "updatedAt"
         ],
         "additionalProperties": false
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "error", "degraded", "shutting_down"]
+          },
+          "info": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": ["up", "degraded", "down"]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "durationMs": {
+                  "type": "number"
+                },
+                "driver": {
+                  "type": "string"
+                },
+                "probe": {
+                  "type": "string"
+                },
+                "backend": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "env": {
+                  "type": "string"
+                },
+                "pid": {
+                  "type": "number"
+                },
+                "uptimeSeconds": {
+                  "type": "number"
+                },
+                "memoryRssBytes": {
+                  "type": "number"
+                },
+                "memoryHeapUsedBytes": {
+                  "type": "number"
+                }
+              },
+              "required": ["status"],
+              "additionalProperties": {},
+              "example": {
+                "status": "up",
+                "durationMs": 4
+              }
+            }
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": ["up", "degraded", "down"]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "durationMs": {
+                  "type": "number"
+                },
+                "driver": {
+                  "type": "string"
+                },
+                "probe": {
+                  "type": "string"
+                },
+                "backend": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "env": {
+                  "type": "string"
+                },
+                "pid": {
+                  "type": "number"
+                },
+                "uptimeSeconds": {
+                  "type": "number"
+                },
+                "memoryRssBytes": {
+                  "type": "number"
+                },
+                "memoryHeapUsedBytes": {
+                  "type": "number"
+                }
+              },
+              "required": ["status"],
+              "additionalProperties": {},
+              "example": {
+                "status": "up",
+                "durationMs": 4
+              }
+            }
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": ["up", "degraded", "down"]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "durationMs": {
+                  "type": "number"
+                },
+                "driver": {
+                  "type": "string"
+                },
+                "probe": {
+                  "type": "string"
+                },
+                "backend": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "env": {
+                  "type": "string"
+                },
+                "pid": {
+                  "type": "number"
+                },
+                "uptimeSeconds": {
+                  "type": "number"
+                },
+                "memoryRssBytes": {
+                  "type": "number"
+                },
+                "memoryHeapUsedBytes": {
+                  "type": "number"
+                }
+              },
+              "required": ["status"],
+              "additionalProperties": {},
+              "example": {
+                "status": "up",
+                "durationMs": 4
+              }
+            }
+          }
+        },
+        "required": ["status", "info", "error", "details"],
+        "additionalProperties": false,
+        "example": {
+          "status": "ok",
+          "info": {
+            "database": {
+              "status": "up"
+            },
+            "cache": {
+              "status": "up"
+            },
+            "app": {
+              "status": "up"
+            }
+          },
+          "error": {},
+          "details": {
+            "database": {
+              "status": "up"
+            },
+            "cache": {
+              "status": "up"
+            },
+            "app": {
+              "status": "up"
+            }
+          }
+        }
       },
       "FunnelResponse": {
         "type": "object",

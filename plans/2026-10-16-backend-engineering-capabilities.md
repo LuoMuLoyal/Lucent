@@ -54,7 +54,7 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 
 - **DTO/契约**：`src/modules/**` 的 DTO 全是 zod schema（`@Body/@Query/@Param({ schema })`），
   `@ApiProperty` 已在 zod 迁移中退役。**唯一例外**是 `src/app.dto.ts`——健康探针响应仍是
-  class + `@ApiProperty`（见 §五，替换探针时一并处理）。
+  class + `@ApiProperty`（已于 §四-3 随探针替换迁移为 zod，见 §四）。
 - **导出**：`scripts/contract/export-openapi.ts` 用 schema 注册表注入响应组件；
   `ci.yml` 有 G3 step 校验 `openapi.json` 已提交（`git diff --exit-code`）。
 - **HTTP 中间件**：`src/setup-app.ts:99` 注册 `@fastify/helmet`；**无 compress**。
@@ -98,7 +98,9 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 3. **OTel 默认开启**：`OTEL_ENABLED` 未设置即启动 SDK，仅显式 `false` 才关闭。
    由 `tracing.ts` 与 zod 校验**两处默认必须一致**（见 §六-1 的硬约束）。
 4. **Terminus 替换自研探针**：用 terminus 的 indicator 承载检查逻辑。
-   响应体外壳的处理见 §五 D-1（**该决策点需维护者确认，本计划不代决**）。
+   响应体外壳已由维护者选定 **§四-1 路线 B（terminus 原生 `{ status, info, error, details }`）并执行完毕**。
+   （修订注 ⑥：实现中另发现 `check()` 会抛 `ServiceUnavailableException`，被全局
+   `ApiExceptionFilter` 改写为 Problem Details，故 `AppService` 需捕获并取回原生体。）
 5. **bull-board 能力全开**：不启用只读模式，重试/清理/暂停/添加 job 全部可用；
    对应的**变更操作必须落审计**（`AuditLogService`），见 §七。
 6. **不新增第二套鉴权**：队列面板挂 `/admin/queues`，复用既有 admin 守卫与权限模型。
@@ -158,7 +160,7 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 
 ---
 
-## 四、P1 — `@nestjs/terminus` 替换探针
+## 四、P1 — `@nestjs/terminus` 替换探针（已执行）
 
 ### 4-0 映射关系
 
@@ -170,51 +172,63 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 | `getDeepHealth()` 的 per-component `durationMs` / `details`         | terminus indicator 的原生返回（`{ database: { status, ... } }`）+ 自定义包装补 `durationMs`                                                                                                             |
 | `HealthAppInfo`（name/env/pid/uptime/memory）                       | terminus 无对应概念，**保留自研**                                                                                                                                                                       |
 
-### 4-1 D-1 响应体形状【需维护者确认，本计划不代决】
+### 4-1 D-1 响应体形状（已决：路线 B，已执行）
 
-两种路线，代价差异很大：
+维护者选定 **路线 B：采用 terminus 原生 `{ status, info, error, details }`**。
 
-| 路线                          | 响应体                                                          | 代价                                                                                                                                                                                                                                                                      |
-| ----------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A. 保留现有外壳**           | `{ probe, status, checkedAt, app, summary, components[] }` 不变 | terminus 只当 indicator 库，controller 自己组装。上表 9 类消费者**零改动**，`openapi.json` 只有内部实现变化                                                                                                                                                               |
-| **B. 采用 terminus 原生形状** | `{ status, info, error, details }`                              | 需同步改：`compose.yaml` healthcheck（仍只看状态码，实际不受影响）、`test/contract/` 4 处 schema 断言、`test/e2e/core/app.e2e-spec.ts` 5 处、`docs/howto/deploy.md`、`README.md` L237-250、`_naming-lookup.json`、重新导出 openapi.json，且 Luminous 若有消费需同步再生成 |
+- 组件名仍为 `HealthResponse`（`_naming-lookup.json` 的 `responseByOld` 未实际参与
+  导出，operationId `getHealth*` 亦不变，故无命名churn）。
+- **下游消费者复核结论**（逐项）：`compose.yaml` healthcheck 只看状态码 → 不变；
+  `docs/howto/deploy.md`、`docs/reference/deployment.md` 仅按端点名引用 → 不变；
+  `README.md` 按端点名+用途描述 → 不变；`test/performance/health.k6.ts` 断言
+  `body.status === 'ok'|'error'` → 原生形状仍成立；`lucent-bruno/common/检查可达性.yml`
+  无断言；Luminous 侧 `rg health/live|health/ready|health/deep|/api/v1/health`
+  **零命中** → 无需再生成客户端。真正需改的仅：`src/app.*`、两个 spec、
+  `test/e2e/core/app.e2e-spec.ts`、`test/contract/contract.e2e-spec.ts`、`openapi.json`。
 
-**默认按 A 写实施步骤**（对外契约不变，风险最小）。若维护者选 B，
-本计划 §4-2 之后的步骤照旧，额外增加一节「契约迁移清单」，逐项对应上表第二列。
+### 4-2 装配（已执行）
 
-### 4-2 装配
+- `pnpm add @nestjs/terminus`（12.1.0，peer 全命中）；`AppModule` 注册 `TerminusModule`，
+  providers 增加 `AppInfoHealthIndicator` / `CacheHealthIndicator` / `DatabaseHealthIndicator`。
+- **更正**：未用内置 `PrismaHealthIndicator.pingCheck`。它不返回 `driver`/`probe`
+  诊断字段，会丢失 deep 探针语义；改为自定义 `DatabaseHealthIndicator`（同样 `SELECT 1`）。
+- **新增 `CacheHealthIndicator`**（terminus 无 keyv 抽象）：保留 `REDIS_URL` 未配置时
+  memory 后端恒 `up`（非关键）、配置时 `set/get/del` 往返校验的既有语义。
+- **`/health/live`** = `check([appInfo])`，控制器不写状态码 → 恒 200（DB down 也 200）。
+- **探针缓存更正**：旧代码的 `PROBE_TTL_MS` 是缓存探测 key 的 TTL，并非「探针结果缓存」；
+  旧实现每次 `/ready` 都实查 DB。terminus 行为与旧实现一致，**无结果缓存被移除**，§4-2
+  原文「探针结果缓存保留」系对旧实现的误解。
+- **关键偏差**：terminus 的 `HealthCheckService.check()` 在 `error`/`shutting_down` 时
+  **抛出 `ServiceUnavailableException(result)`**（result 即原生体）。本仓
+  `setup-app.ts` 注册了全局 `ApiExceptionFilter`，会把该异常改写为 RFC 9457
+  Problem Details，破坏原生体。故 `AppService.run()` 捕获该异常并
+  `getResponse()` 取回原生体，再由 controller 依 `isHealthy()` 决定 200/503。
+- `src/app.service.ts` 原先在 `eslint.config.ts` 的裸 `throw new Error` 豁免名单中；
+  迁移后该文件已无裸 throw，**已从豁免名单删除**，紧邻的 cache 控制流改为直接返回
+  `indicator.down(...)`（不再抛错）。
 
-- `pnpm add @nestjs/terminus`（12.1.0，peer 全命中）
-- `AppModule` 注册 `TerminusModule`；`AppService` 改为注入 `HealthCheckService` +
-  `PrismaHealthIndicator` + 自定义 `CacheHealthIndicator`。
-- **探针授权姿态**：`arch:check` 的 AST 约定要求 controller 端点显式标注鉴权姿态。
-  现有 `@Public()` 必须保留，新增端点若拆分需同样标注——否则 `arch:check` 报 warn。
-- **保持的既有语义**（逐条写进测试，防止替换时丢失）：
-  - `/health/live` **恒 200**，DB down 也 200（`app.e2e-spec.ts:203` 已断言）。
-  - `/health` 与 `/health/ready` 在关键依赖不可用时 **503**（`isHealthy` 语义）。
-  - 探针结果**缓存**（`PROBE_TTL_MS`）保留——terminus 默认每次实查，
-    需在外层保留缓存层，否则 healthcheck 变成每秒打 DB。
-  - `deep` 比 `ready` 多 `details`（`driver`/`probe`/`backend`/`mode`）。
+### 4-3 顺带迁移 `src/app.dto.ts`（已执行）
 
-### 4-3 顺带迁移 `src/app.dto.ts`
-
-该文件是健康检查响应体（class + `@ApiProperty`），与「DTO 全 zod」的现状不一致。
-替换探针必然触碰它：**改写为 zod schema**（`healthResponseSchema` 等），用原生
-`.meta({ example })` 补元数据以过 §二-3 的契约门禁。
-
-> 更正：首版称「本仓唯一的 class + `@ApiProperty` DTO」不准确——`src/common/api/problem-details.dto.ts`、
-> `src/modules/assistant/dto/confirm-proposal.dto.ts`、`src/modules/today-suggestion/dto/feedback.dto.ts`
-> 与 `suggestion-history-query.dto.ts` 也含 `@ApiProperty`（请求/错误侧，不走 2xx 响应门禁）。
-> 本计划只迁 `app.dto.ts`，其余不动。
+- 改写为 zod：`healthIndicatorResultSchema`（`looseObject`，含 `status`/`message`/
+  `durationMs`/`driver`/`probe`/`backend`/`mode`/`name`/`env`/`pid`/`uptimeSeconds`/
+  `memoryRssBytes`/`memoryHeapUsedBytes`）、`healthIndicatorMapSchema`（`z.record`）、
+  `healthCheckResultSchema`，均以原生 `.meta({ example })` 补元数据以过 §二-3 门禁。
+- `HealthResponse` 组件改由 `registerResponseSchema` 注册；**扩展
+  `ResponseSchemaRegistration.errorStatuses?: number[]`** 并在
+  `scripts/contract/export-openapi.ts` 中据此把 503 响应也 `$ref` 到 `HealthResponse`
+  （原 class 方案靠 `@ApiResponse({ status: 503, type })` 直接生成 503 组件引用）。
 
 ### 4-4 验收
 
-- `test/e2e/core/app.e2e-spec.ts` 五条用例全绿（含 DB-down 503、live 恒 200）。
-- `test/contract/contract.e2e-spec.ts` 四个端点契约断言全绿。
-- `test/performance/health.k6.ts` 三端点可达（数量级与前值同档）。
-- 容器 healthcheck 实测：`docker inspect` 的 health 状态为 healthy；停 Redis 后
-  `/health/ready` 返回 503（手动验证一次并记入迁移日志）。
-- `pnpm export:openapi` 后的 diff 与所选路线（A/B）一致。
+- `test/e2e/core/app.e2e-spec.ts`：新增 3 处 route health 用例改写为原生形状，
+  含 DB-down（`$queryRaw` 拒绝）→ `/health/ready` 与 `/health/deep` 503 且体为原生
+  （断言无 `type` 字段，排除 Problem Details）、`/health/live` DB-down 恒 200。全绿（11 用例）。
+- `test/contract/contract.e2e-spec.ts` 四个端点契约断言改写为 `status`/`info`/`error`/`details`。
+- `test/contract/openapi-metadata.e2e-spec.ts`（§二-3 门禁）对 `HealthResponse` 仍绿。
+- `pnpm export:openapi`：`/health`、`/health/ready`、`/health/deep` 的 200 与 503 均
+  `$ref` `HealthResponse`，`/health/live` 仅 200；Paths 132、Schemas 364。
+- 本地无 Docker/Postgres/Redis：容器 healthcheck 实测、停 Redis 503、DB 依赖 e2e、
+  `health.k6.ts` 未能本地执行，交由 CI/部署环境验证（已在本计划「风险与已知限制」备注）。
 
 ---
 
