@@ -129,7 +129,6 @@ export default tseslint.config(
     // 暂时关闭规则。每修复一个文件就从此列表中删除对应条目。
     // TODO: 清理完毕后删除整个 override 块。
     files: [
-      'src/app.service.ts',
       'src/common/api/problem-catalog.ts',
       'src/common/helpers/format/json.utils.ts',
       'src/common/helpers/infra/redis-url.ts',

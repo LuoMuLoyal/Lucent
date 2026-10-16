@@ -32,6 +32,13 @@ export interface ResponseSchemaRegistration {
   schema: z.ZodType;
   /** Optional 200 description. */
   description?: string;
+  /**
+   * Additional response statuses (e.g. `503`) whose `application/json` content
+   * should also `$ref` the same component. Used when a failure response
+   * reuses the success body shape (health probes return the identical
+   * `HealthCheckResult` body with a 503 status).
+   */
+  errorStatuses?: number[];
 }
 
 export const responseSchemaRegistrations: ResponseSchemaRegistration[] = [];

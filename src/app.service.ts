@@ -1,251 +1,78 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { Cache } from 'cache-manager';
-import { randomUUID } from 'node:crypto';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
-  type HealthComponentStatus,
-  type HealthOverallStatus,
-  type HealthProbe,
-  type HealthProbeType,
-} from './app.dto.js';
-import { EnvKey } from './config/env/env-keys.enum.js';
-import { PrismaService } from './prisma/index.js';
-import { nowIsoString } from './common/index.js';
-import { extractErrorInfo } from './common/index.js';
+  HealthCheckService,
+  type HealthCheckResult,
+  type HealthIndicatorFunction,
+} from '@nestjs/terminus';
+import {
+  AppInfoHealthIndicator,
+  CacheHealthIndicator,
+  DatabaseHealthIndicator,
+} from './common/index.js';
 
-type HealthComponent = HealthProbe['components'][number];
-
-/** TTL (ms) for the health-check cache probe key. */
-const PROBE_TTL_MS = 5_000;
-
-/** Cache key prefix for the health-check probe. */
-const HEALTH_PROBE_CACHE_KEY_PREFIX = 'health:probe';
-
+/**
+ * Health-check orchestration built on `@nestjs/terminus`.
+ *
+ * - `/health` and `/health/ready` run the critical dependency indicators
+ *   (`app`, `database`, `cache`) and return 503 when any of them is down.
+ * - `/health/live` only reports process info and never depends on downstream
+ *   services, so it always answers 200.
+ * - `/health/deep` runs the same checks as `ready` with extra probe detail.
+ *
+ * terminus signals failures by throwing `ServiceUnavailableException` carrying
+ * the native `{ status, info, error, details }` body. This app installs a
+ * global `ApiExceptionFilter` that would rewrite that body into RFC 9457
+ * Problem Details, so the orchestrator unwraps the exception back into the
+ * plain result and lets the controller choose the HTTP status from
+ * `isHealthy()`.
+ */
 @Injectable()
 export class AppService {
-  private readonly logger = new Logger(AppService.name);
-
   constructor(
-    private readonly configService: ConfigService,
-    private readonly prisma: PrismaService,
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly healthCheckService: HealthCheckService,
+    private readonly appInfo: AppInfoHealthIndicator,
+    private readonly database: DatabaseHealthIndicator,
+    private readonly cache: CacheHealthIndicator,
   ) {}
 
-  async getHealth(): Promise<HealthProbe> {
+  getHealth(): Promise<HealthCheckResult> {
     return this.getReadyHealth();
   }
 
-  getLiveHealth(): HealthProbe {
-    return this.buildProbe('live', []);
+  getLiveHealth(): Promise<HealthCheckResult> {
+    return this.run([() => this.appInfo.info()]);
   }
 
-  async getReadyHealth(): Promise<HealthProbe> {
-    const components = await Promise.all([
-      this.probeDatabase(false),
-      this.probeCache(false),
+  getReadyHealth(): Promise<HealthCheckResult> {
+    return this.run([
+      () => this.appInfo.info(),
+      () => this.database.ping({ verbose: false }),
+      () => this.cache.ping({ verbose: false }),
     ]);
-
-    return this.buildProbe('ready', components);
   }
 
-  async getDeepHealth(): Promise<HealthProbe> {
-    const components = await Promise.all([
-      this.probeDatabase(true),
-      this.probeCache(true),
+  getDeepHealth(): Promise<HealthCheckResult> {
+    return this.run([
+      () => this.appInfo.info(),
+      () => this.database.ping({ verbose: true }),
+      () => this.cache.ping({ verbose: true }),
     ]);
-
-    return this.buildProbe('deep', components);
   }
 
-  isHealthy(probe: HealthProbe): boolean {
-    return probe.status === 'ok';
+  isHealthy(result: HealthCheckResult): boolean {
+    return result.status === 'ok';
   }
 
-  private buildProbe(
-    probe: HealthProbeType,
-    components: HealthComponent[],
-  ): HealthProbe {
-    const summary = this.summarize(components);
-
-    return {
-      probe,
-      status: this.computeOverallStatus(components),
-      checkedAt: nowIsoString(),
-      app: this.getAppInfo(),
-      summary,
-      components,
-    };
-  }
-
-  private computeOverallStatus(
-    components: HealthComponent[],
-  ): HealthOverallStatus {
-    const hasCriticalFailure = components.some(
-      (component) => component.critical && component.status === 'down',
-    );
-    return hasCriticalFailure ? 'error' : 'ok';
-  }
-
-  private summarize(components: HealthComponent[]): HealthProbe['summary'] {
-    const passed = components.filter(
-      (component) => component.status === 'up',
-    ).length;
-    const failed = components.length - passed;
-
-    return {
-      total: components.length,
-      passed,
-      failed,
-    };
-  }
-
-  private getAppInfo(): HealthProbe['app'] {
-    const memoryUsage = process.memoryUsage();
-
-    return {
-      name: 'lucent',
-      env: this.configService.get<string>(EnvKey.NODE_ENV) ?? 'development',
-      pid: process.pid,
-      uptimeSeconds: Number(process.uptime().toFixed(3)),
-      memoryRssBytes: memoryUsage.rss,
-      memoryHeapUsedBytes: memoryUsage.heapUsed,
-    };
-  }
-
-  private async probeDatabase(
-    includeDetails: boolean,
-  ): Promise<HealthComponent> {
-    const startedAt = Date.now();
-
+  private async run(
+    indicators: HealthIndicatorFunction[],
+  ): Promise<HealthCheckResult> {
     try {
-      await this.prisma.$queryRaw`SELECT 1`;
-      return this.buildComponent({
-        name: 'database',
-        status: 'up',
-        critical: true,
-        startedAt,
-        details: includeDetails
-          ? {
-              driver: 'prisma',
-              probe: 'SELECT 1',
-            }
-          : {
-              driver: 'prisma',
-            },
-      });
+      return await this.healthCheckService.check(indicators);
     } catch (error) {
-      const { message: reason, stack } = extractErrorInfo(error);
-      this.logger.error(`Database health probe failed: ${reason}`, stack);
-      return this.buildComponent({
-        name: 'database',
-        status: 'down',
-        critical: true,
-        startedAt,
-        error,
-        details: includeDetails
-          ? {
-              driver: 'prisma',
-              probe: 'SELECT 1',
-            }
-          : {
-              driver: 'prisma',
-            },
-      });
-    }
-  }
-
-  private async probeCache(includeDetails: boolean): Promise<HealthComponent> {
-    const startedAt = Date.now();
-    const redisUrl = this.configService.get<string>(EnvKey.REDIS_URL);
-    const backend = redisUrl ? 'redis' : 'memory';
-
-    if (!redisUrl) {
-      return this.buildComponent({
-        name: 'cache',
-        status: 'up',
-        critical: false,
-        startedAt,
-        details: includeDetails
-          ? {
-              backend,
-              mode: 'fallback',
-            }
-          : {
-              backend,
-            },
-      });
-    }
-
-    const probeKey = `${HEALTH_PROBE_CACHE_KEY_PREFIX}:${randomUUID()}`;
-
-    try {
-      await this.cache.set(probeKey, 'ok', PROBE_TTL_MS);
-      const value = await this.cache.get<string>(probeKey);
-      await this.cache.del(probeKey);
-
-      if (value !== 'ok') {
-        throw new Error('Cache round-trip returned an unexpected value');
+      if (error instanceof ServiceUnavailableException) {
+        return error.getResponse() as HealthCheckResult;
       }
-
-      return this.buildComponent({
-        name: 'cache',
-        status: 'up',
-        critical: true,
-        startedAt,
-        details: includeDetails
-          ? {
-              backend,
-              probe: 'set/get/del',
-            }
-          : {
-              backend,
-            },
-      });
-    } catch (error) {
-      const { message: reason, stack } = extractErrorInfo(error);
-      this.logger.error(`Cache health probe failed: ${reason}`, stack);
-      return this.buildComponent({
-        name: 'cache',
-        status: 'down',
-        critical: true,
-        startedAt,
-        error,
-        details: includeDetails
-          ? {
-              backend,
-              probe: 'set/get/del',
-            }
-          : {
-              backend,
-            },
-      });
+      throw error;
     }
-  }
-
-  private buildComponent(input: {
-    name: string;
-    status: HealthComponentStatus;
-    critical: boolean;
-    startedAt: number;
-    details?: Record<string, unknown>;
-    error?: unknown;
-  }): HealthComponent {
-    return {
-      name: input.name,
-      status: input.status,
-      critical: input.critical,
-      durationMs: Date.now() - input.startedAt,
-      error: input.error === undefined ? null : this.formatError(input.error),
-      details: input.details ?? null,
-    };
-  }
-
-  private formatError(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    return String(error);
   }
 }

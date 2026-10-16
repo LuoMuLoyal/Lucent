@@ -557,6 +557,19 @@ async function main() {
         $ref: `#/components/schemas/${registration.componentName}`,
       };
     }
+    // Failure responses that reuse the same body shape (e.g. health probes
+    // return the identical `HealthCheckResult` body with a 503 status).
+    for (const status of registration.errorStatuses ?? []) {
+      const errorResponse = operation?.responses?.[String(status)];
+      if (errorResponse && typeof errorResponse === 'object') {
+        errorResponse.description ??= '';
+        errorResponse.content ??= {};
+        errorResponse.content['application/json'] ??= {};
+        errorResponse.content['application/json'].schema = {
+          $ref: `#/components/schemas/${registration.componentName}`,
+        };
+      }
+    }
   }
   // Promote every inline JSON request body to a per-operation named component
   // (`<SemanticOperationId>Request`, e.g. `ChangeEmailRequest`) and point the operation at the `$ref`. Request

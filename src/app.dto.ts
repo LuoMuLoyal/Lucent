@@ -1,106 +1,80 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
 
-export const HEALTH_PROBE_TYPES = ['live', 'ready', 'deep'] as const;
-export type HealthProbeType = (typeof HEALTH_PROBE_TYPES)[number];
+/**
+ * Overall status of a health check run (terminus `HealthCheckResult.status`).
+ */
+export const HEALTH_CHECK_STATUSES = [
+  'ok',
+  'error',
+  'degraded',
+  'shutting_down',
+] as const;
 
-export const HEALTH_OVERALL_STATUSES = ['ok', 'error'] as const;
-export type HealthOverallStatus = (typeof HEALTH_OVERALL_STATUSES)[number];
+/** Per-indicator status (terminus `HealthIndicatorStatus`). */
+export const HEALTH_INDICATOR_STATUSES = ['up', 'degraded', 'down'] as const;
 
-export const HEALTH_COMPONENT_STATUSES = ['up', 'down'] as const;
-export type HealthComponentStatus = (typeof HEALTH_COMPONENT_STATUSES)[number];
-
-export class HealthAppInfo {
-  @ApiProperty({ example: 'lucent' })
-  name!: string;
-
-  @ApiProperty({ example: 'test' })
-  env!: string;
-
-  @ApiProperty({ example: 12345 })
-  pid!: number;
-
-  @ApiProperty({ example: 321.5 })
-  uptimeSeconds!: number;
-
-  @ApiProperty({ example: 98_304_000 })
-  memoryRssBytes!: number;
-
-  @ApiProperty({ example: 41_943_040 })
-  memoryHeapUsedBytes!: number;
-}
-
-export class HealthSummary {
-  @ApiProperty({ example: 2 })
-  total!: number;
-
-  @ApiProperty({ example: 2 })
-  passed!: number;
-
-  @ApiProperty({ example: 0 })
-  failed!: number;
-}
-
-export class HealthComponent {
-  @ApiProperty({ example: 'database' })
-  name!: string;
-
-  @ApiProperty({
-    enum: HEALTH_COMPONENT_STATUSES,
-    enumName: 'HealthComponentStatus',
-    example: 'up',
+/**
+ * One entry inside `info` / `error` / `details`, keyed by indicator name
+ * (`database`, `cache`, `app`). Kept loose: the diagnostic payload differs per
+ * indicator (and per `deep` vs `ready`), so only the common fields are typed
+ * and any additional key is allowed.
+ */
+export const healthIndicatorResultSchema = z
+  .looseObject({
+    status: z.enum(HEALTH_INDICATOR_STATUSES),
+    message: z.string().optional(),
+    durationMs: z.number().optional(),
+    driver: z.string().optional(),
+    probe: z.string().optional(),
+    backend: z.string().optional(),
+    mode: z.string().optional(),
+    name: z.string().optional(),
+    env: z.string().optional(),
+    pid: z.number().optional(),
+    uptimeSeconds: z.number().optional(),
+    memoryRssBytes: z.number().optional(),
+    memoryHeapUsedBytes: z.number().optional(),
   })
-  status!: HealthComponentStatus;
+  .meta({ example: { status: 'up', durationMs: 4 } });
 
-  @ApiProperty({ example: true })
-  critical!: boolean;
+/** Map of indicator name → indicator result. */
+export const healthIndicatorMapSchema = z.record(
+  z.string(),
+  healthIndicatorResultSchema,
+);
 
-  @ApiProperty({ example: 4 })
-  durationMs!: number;
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    example: null,
+/**
+ * Native terminus health-check response body, used by all four health
+ * endpoints (`/health`, `/health/live`, `/health/ready`, `/health/deep`).
+ *
+ * `info` holds the healthy indicators, `error` the failing ones, and `details`
+ * every indicator regardless of status. The 503 responses carry the same body.
+ */
+export const healthCheckResultSchema = z
+  .object({
+    status: z.enum(HEALTH_CHECK_STATUSES),
+    info: healthIndicatorMapSchema,
+    error: healthIndicatorMapSchema,
+    details: healthIndicatorMapSchema,
   })
-  error!: string | null;
+  .meta({
+    example: {
+      status: 'ok',
+      info: {
+        database: { status: 'up' },
+        cache: { status: 'up' },
+        app: { status: 'up' },
+      },
+      error: {},
+      details: {
+        database: { status: 'up' },
+        cache: { status: 'up' },
+        app: { status: 'up' },
+      },
+    },
+  });
 
-  @ApiProperty({
-    type: 'object',
-    additionalProperties: true,
-    nullable: true,
-    example: { backend: 'redis' },
-  })
-  details!: Record<string, unknown> | null;
-}
-
-export class HealthProbe {
-  @ApiProperty({
-    enum: HEALTH_PROBE_TYPES,
-    enumName: 'HealthProbeType',
-    example: 'ready',
-  })
-  probe!: HealthProbeType;
-
-  @ApiProperty({
-    enum: HEALTH_OVERALL_STATUSES,
-    enumName: 'HealthOverallStatus',
-    example: 'ok',
-  })
-  status!: HealthOverallStatus;
-
-  @ApiProperty({
-    example: '2026-06-13T11:00:00.000Z',
-  })
-  checkedAt!: string;
-
-  @ApiProperty({ type: () => HealthAppInfo })
-  app!: HealthAppInfo;
-
-  @ApiProperty({ type: () => HealthSummary })
-  summary!: HealthSummary;
-
-  @ApiProperty({ type: () => HealthComponent, isArray: true })
-  components!: HealthComponent[];
-}
-
-export class HealthResponse extends HealthProbe {}
+export type HealthIndicatorResultDto = z.infer<
+  typeof healthIndicatorResultSchema
+>;
+export type HealthCheckResultDto = z.infer<typeof healthCheckResultSchema>;

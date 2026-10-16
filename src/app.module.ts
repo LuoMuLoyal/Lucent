@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { buildThrottlerOptions } from './config/services/throttler.config.js';
+import { TerminusModule } from '@nestjs/terminus';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/index.js';
 import { appConfig } from './config/app.config.js';
@@ -59,6 +60,11 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module.js';
 import { DataRetentionModule } from './modules/data-retention/data-retention.module.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
 import { SlowRequestInterceptor } from './common/index.js';
+import {
+  AppInfoHealthIndicator,
+  CacheHealthIndicator,
+  DatabaseHealthIndicator,
+} from './common/index.js';
 
 /**
  * Root application module. Wires configuration, persistence, common
@@ -119,6 +125,7 @@ const isTestRuntime =
     CronJobsModule,
     RedisModule,
     PrismaModule,
+    TerminusModule,
     AuditLogModule,
     DataRetentionModule,
     MailModule,
@@ -172,6 +179,9 @@ const isTestRuntime =
   controllers: [AppController],
   providers: [
     AppService,
+    AppInfoHealthIndicator,
+    CacheHealthIndicator,
+    DatabaseHealthIndicator,
     ApiExceptionFilter,
     SlowRequestInterceptor,
     {
