@@ -126,3 +126,6 @@ export {
   fetchWithRetry,
   HttpStatusError,
 } from './helpers/infra/retry.utils.js';
+export { AppInfoHealthIndicator } from './health/app-info.indicator.js';
+export { CacheHealthIndicator } from './health/cache.indicator.js';
+export { DatabaseHealthIndicator } from './health/database.indicator.js';
