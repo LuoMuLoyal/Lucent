@@ -282,42 +282,45 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 
 ---
 
-## 六、P1 — bull-board 队列面板（能力全开）
+## 六、P1 — bull-board 队列面板（能力全开）· 已实施
 
-- `pnpm add @bull-board/nestjs @bull-board/fastify @bull-board/api`
-- `src/modules/admin/` 下新增 `queues-panel` 装配：`FastifyAdapter` +
-  `createBullBoard({ queues: [...], options: {} })`。
-  **不设置 `readOnlyMode`**——重试 / 提升 / 清理 / 暂停 / 恢复 / 添加 job 全部开放。
-- **队列清单来源**：`src/common/queue/queue.factory.ts` 已创建 Queue 实例，
-  在工厂里登记一个 process-wide 的 `Queue[]` 注册表供面板读取
-  （不新增 DI token，避免与现有工厂模式打架）。
-- 挂载 `/admin/queues`，复用 `src/admin-console/services/console-router.service.ts`
-  的静态挂载模式与既有 admin 守卫，**不新开端口**。
+- `pnpm add @bull-board/api @bull-board/fastify`（解析 9.10.4；未用 nestjs 适配器，不装 `@bull-board/nestjs`）。
+- 装配落在 `src/modules/admin/services/queue-panel.service.ts`：`FastifyAdapter` +
+  `createBullBoard({ queues, options })`，**不设 `readOnlyMode`**——重试 / 提升 / 清理 /
+  暂停 / 恢复 / 添加 job 全部开放。
+- **队列清单来源（已落地）**：`src/common/queue/queue.factory.ts` 增加进程内 `Queue[]`
+  注册表 + `getQueues()`（不新增 DI token）；12 个队列名收敛到
+  `src/common/queue/queue-names.ts` 的 `QUEUE_NAMES` 单一来源。
+- **挂载（与计划的偏差）**：面板经 `OnApplicationBootstrap` 注册在 Fastify 上，
+  复用 `console-router.service.ts` 的「直接挂 Fastify、绕开 `/api` 前缀与版本化」模式，
+  **不新开端口**。计划原写「复用既有 admin 守卫」，但 Nest 守卫无法包住裸 Fastify 路由，
+  改为复用守卫背后的同源设施：`JwtService`（HS512 + issuer/audience）、
+  `AdminAccessService.getRole` 与 `ADMIN_ROLE_PERMISSIONS`。
 
-### 6-1 变更操作必须落审计（能力全开的对应代价）
+### 6-1 变更落审计 + 按队列收权（已实施）
 
-面板开放写入后，「谁把某个 job 清了 / 重试了」当前无任何留痕。既有
-`AuditLogService.log({ userId, action, ... })` 是现成设施，接入方式：
+- 非 `GET` 的 `/admin/queues/api/*` 经 Fastify `onResponse` 写 `audit_logs`：
+  `action = admin.queue.<verb>`（全局暂停/恢复 → `admin.queue.pauseAll` / `resumeAll`，
+  命名常量在 `constants/queue-panel.constants.ts`），`resource_type = queue`，
+  `resource_id` 为目标队列，metadata 记 method/path/status；拒绝的写请求同样留痕。
+- **按队列收权（计划留给你定，已选做）**：每队列 `queue:<name>:read|write` 权限点
+  （由 `QUEUE_NAMES` 派生）。读用 `BullMQAdapter.setVisibilityGuard` 过滤列表/详情/worker/调度器；
+  写用 bull-board `before` 钩子：队列级变更要该队列写点，全局暂停/恢复要全队列写点。
+  `EDITOR` 无队列点 → 403；`VIEWER` 全队列只读；`ADMIN`/`SUPER_ADMIN` 全队列读写。
+- **UI 无法带 `Authorization`** 的破解：`?access_token=<jwt>` 打开一次 → 换取面板路径限定的
+  `HttpOnly` + `SameSite=Lax` 短时 cookie 并重定向去掉 URL token；同时接受 `Bearer` 头。
 
-- 在面板挂载前缀上注册 Fastify `onResponse` 钩子，**只对
-  `method !== 'GET'` 且 `url` 前缀匹配 `/admin/queues` 的请求**写入审计，
-  记录 `userId` / `action`（如 `admin.queue.retry`）/ 路径 / 状态码。
-- 用已有的 `_naming-lookup.json` 无法覆盖该项（它是 OpenAPI operationId 表），
-  审计 action 命名按既有 `admin.*` 约定新增常量。
-- **不要求 bull-board 提供事件回调**——HTTP 层钩子对内对外都成立，
-  且不依赖其内部 API 稳定性。
+### 6-2 验收（已实施）
 
-### 6-2 验收
-
-- e2e：未登录访问 `/admin/queues` → 401/403；登录后 → 200。
-- e2e：**一条变更操作**（如 pause 一个测试队列）→ 断言
-  (a) 操作成功返回；(b) `audit_log` 表新增一条 `admin.queue.*` 记录；
-  (c) `GET /api/v1/admin/audit-logs` 能查到该条。
-- 文档：`docs/reference/deployment.md` 的容器/端口表加 `/admin/queues` 行；
-  `src/modules/admin/README.md` 补面板与审计口径。
-- **风险**：面板暴露真实队列内容与 job payload。挂 `/admin` 同源由既有 admin
-  鉴权保护；若要做到按队列粒度收权，需在守卫层加权限点——**是否现在做由你定**：
-  要就在本批加，不要就登记到 `docs/TODO.md`。
+- 单测：`permissions.spec.ts`（队列点位）、`queue-panel-auth.service.spec.ts`（JWT→角色→点位）、
+  `queue-panel.utils.spec.ts`（cookie/路径解析）、`queue-panel.service.spec.ts`（真实 Fastify
+  实例断言路由/握手/写授权/审计落点）。
+- e2e：`test/e2e/admin/queue-panel.e2e-spec.ts` 断言未登录 401、非管理员 403、管理员 200；
+  一条队列变更 → 200 且 `audit_logs` 新增 `admin.queue.*` 行、可经
+  `GET /api/v1/admin/audit-logs` 查到。**CI 的 e2e job 配了 Redis 服务**（`REDIS_URL`），
+  故暂停的是真实命名队列；本地无 Redis 时退化为全局 `pause`（同一条审计路径）。
+- 文档：`docs/reference/deployment.md` 组件/端口表加管理面行；
+  `src/modules/admin/README.md` 补面板、按队列收权与审计口径。
 
 ---
 
