@@ -122,7 +122,8 @@
             "description": "Date in YYYY-MM-DD format.",
             "schema": {
               "type": "string",
-              "description": "Date in YYYY-MM-DD format."
+              "description": "Date in YYYY-MM-DD format.",
+              "example": "2026-06-04"
             }
           },
           {
@@ -140,7 +141,8 @@
                 "activity",
                 "note",
                 "sleep"
-              ]
+              ],
+              "example": "meal"
             }
           },
           {
@@ -152,7 +154,8 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 9007199254740991,
-              "description": "Page number (1-based)."
+              "description": "Page number (1-based).",
+              "example": 1
             }
           },
           {
@@ -164,7 +167,8 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "description": "Page size (1-100)."
+              "description": "Page size (1-100).",
+              "example": 20
             }
           }
         ],
@@ -1608,7 +1612,8 @@
             "description": "Knowledge source selector.",
             "schema": {
               "type": "string",
-              "description": "Knowledge source selector."
+              "description": "Knowledge source selector.",
+              "example": "drugbank"
             }
           },
           {
@@ -1619,7 +1624,8 @@
             "schema": {
               "type": "string",
               "maxLength": 200,
-              "description": "Search keyword."
+              "description": "Search keyword.",
+              "example": "aspirin"
             }
           },
           {
@@ -1632,7 +1638,8 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 9007199254740991,
-              "description": "Page number, 1-based."
+              "description": "Page number, 1-based.",
+              "example": 2
             }
           },
           {
@@ -1645,7 +1652,8 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 50,
-              "description": "Page size."
+              "description": "Page size.",
+              "example": 20
             }
           },
           {
@@ -1699,7 +1707,8 @@
             "description": "Knowledge source selector.",
             "schema": {
               "type": "string",
-              "description": "Knowledge source selector."
+              "description": "Knowledge source selector.",
+              "example": "cn"
             }
           },
           {
@@ -1753,7 +1762,8 @@
             "description": "Knowledge source selector.",
             "schema": {
               "type": "string",
-              "description": "Knowledge source selector."
+              "description": "Knowledge source selector.",
+              "example": "cn"
             }
           },
           {
@@ -7410,7 +7420,8 @@
               "delayed_until",
               "suppressed_type",
               "noted"
-            ]
+            ],
+            "example": "boosted_type"
           },
           "expiresAt": {
             "type": "string",
@@ -7522,7 +7533,8 @@
         "properties": {
           "count": {
             "type": "number",
-            "description": "Number of unread notifications."
+            "description": "Number of unread notifications.",
+            "example": 3
           }
         },
         "required": ["count"],
@@ -7625,11 +7637,13 @@
         "properties": {
           "cooldown": {
             "type": "number",
-            "description": "冷却时间（秒）"
+            "description": "冷却时间（秒）",
+            "example": 60
           },
           "message": {
             "type": "string",
-            "description": "提示消息"
+            "description": "提示消息",
+            "example": "验证码已发送，请注意查收"
           }
         },
         "required": ["cooldown", "message"],
@@ -7640,7 +7654,8 @@
         "properties": {
           "emailVerified": {
             "type": "boolean",
-            "description": "邮箱是否已验证"
+            "description": "邮箱是否已验证",
+            "example": true
           }
         },
         "required": ["emailVerified"],
@@ -7651,11 +7666,13 @@
         "properties": {
           "cooldown": {
             "type": "number",
-            "description": "冷却时间（秒）"
+            "description": "冷却时间（秒）",
+            "example": 60
           },
           "message": {
             "type": "string",
-            "description": "提示消息"
+            "description": "提示消息",
+            "example": "验证码已发送，请注意查收"
           }
         },
         "required": ["cooldown", "message"],
@@ -7666,11 +7683,13 @@
         "properties": {
           "cooldown": {
             "type": "number",
-            "description": "冷却时间（秒）"
+            "description": "冷却时间（秒）",
+            "example": 60
           },
           "message": {
             "type": "string",
-            "description": "提示消息"
+            "description": "提示消息",
+            "example": "验证码已发送，请注意查收"
           }
         },
         "required": ["cooldown", "message"],
@@ -7681,15 +7700,18 @@
         "properties": {
           "authorizeUrl": {
             "type": "string",
-            "description": "第三方授权地址"
+            "description": "第三方授权地址",
+            "example": "https://open.weixin.qq.com/connect/qrconnect?appid=wx1234567890abcdef&redirect_uri=https%3A%2F%2Flumos.app%2Fauth%2Fcallback&response_type=code&scope=snsapi_login&state=xyz"
           },
           "state": {
             "type": "string",
-            "description": "本次授权 state"
+            "description": "本次授权 state",
+            "example": "st_5f2c9a1b7e4d4f8e9a0b"
           },
           "expiresIn": {
             "type": "number",
-            "description": "state 过期时间（秒）"
+            "description": "state 过期时间（秒）",
+            "example": 600
           },
           "callbackUri": {
             "description": "客户端回跳地址。桌面端 loopback 或可信 Web 回调登录时返回。",
@@ -7711,15 +7733,18 @@
         "properties": {
           "accessToken": {
             "type": "string",
-            "description": "访问令牌"
+            "description": "访问令牌",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMSJ9"
           },
           "refreshToken": {
             "type": "string",
-            "description": "刷新令牌"
+            "description": "刷新令牌",
+            "example": "rt_9f8c7b6a5d4e3f2a1b0c9d8e7f6a5b4c"
           },
           "expiresIn": {
             "type": "number",
-            "description": "访问令牌过期时间（秒）"
+            "description": "访问令牌过期时间（秒）",
+            "example": 900
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
@@ -7736,7 +7761,8 @@
           },
           "updatedAt": {
             "type": "string",
-            "description": "ISO-8601 timestamp of the most recent document update."
+            "description": "ISO-8601 timestamp of the most recent document update.",
+            "example": "2026-06-01T09:00:00.000Z"
           }
         },
         "required": ["items", "updatedAt"],
@@ -7747,7 +7773,8 @@
         "properties": {
           "docType": {
             "type": "string",
-            "description": "Document type identifier used in URL paths."
+            "description": "Document type identifier used in URL paths.",
+            "example": "terms-of-service"
           },
           "title": {
             "type": "string"
@@ -8189,14 +8216,16 @@
           "checkType": {
             "type": "string",
             "enum": ["static", "llm"],
-            "description": "Type of risk check."
+            "description": "Type of risk check.",
+            "example": "static"
           },
           "result": {
             "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResult"
           },
           "riskScore": {
             "type": "number",
-            "description": "Persisted risk score (0-100)."
+            "description": "Persisted risk score (0-100).",
+            "example": 42
           },
           "riskLevel": {
             "type": "string",
@@ -8277,7 +8306,8 @@
           "generatedAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "example": "2026-01-15T08:30:00.000Z"
           },
           "users": {
             "$ref": "#/components/schemas/AdminMetricsOverviewUsers"
@@ -8285,7 +8315,8 @@
           "productEventsLast24Hours": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "example": 4820
           }
         },
         "required": ["generatedAt", "users", "productEventsLast24Hours"],
@@ -8412,13 +8443,16 @@
         "type": "object",
         "properties": {
           "docType": {
-            "type": "string"
+            "type": "string",
+            "example": "terms-of-service"
           },
           "titleZh": {
-            "type": "string"
+            "type": "string",
+            "example": "用户服务协议"
           },
           "titleEn": {
-            "type": "string"
+            "type": "string",
+            "example": "Terms of Service"
           },
           "contentZh": {
             "type": "string"
@@ -8458,7 +8492,8 @@
           "id": {
             "type": "string",
             "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
           },
           "contentZh": {
             "type": "string"
@@ -8467,7 +8502,8 @@
             "type": "string"
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "example": "dosage"
           },
           "sortOrder": {
             "type": "integer",
@@ -8515,7 +8551,38 @@
           }
         },
         "required": ["daily", "optional", "totals", "window"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "example": {
+          "daily": [
+            {
+              "date": "2026-01-15",
+              "eventStarted": 120,
+              "suggestionImpression": 340,
+              "suggestionActioned": 210,
+              "eventEndedOrOutcome": 95,
+              "reviewOpened": 60
+            }
+          ],
+          "optional": {
+            "visitSummaryPreviewed": 40,
+            "visitSummaryExported": 12,
+            "visitSummaryShareCreated": 8,
+            "visitSummaryShareOpened": 5
+          },
+          "totals": {
+            "eventStarted": 120,
+            "suggestionImpression": 340,
+            "suggestionActioned": 210,
+            "eventEndedOrOutcome": 95,
+            "reviewOpened": 60
+          },
+          "window": {
+            "dateFrom": "2026-01-01",
+            "dateTo": "2026-01-15",
+            "generatedAt": "2026-01-16T08:30:00.000Z",
+            "detailsSuppressed": false
+          }
+        }
       },
       "HealthEventResponse": {
         "type": "object",
@@ -9047,7 +9114,8 @@
           "state": {
             "type": "string",
             "enum": ["active", "unavailable", "disabled"],
-            "description": "Persisted local scheduling capability state."
+            "description": "Persisted local scheduling capability state.",
+            "example": "active"
           }
         },
         "required": ["state"],
@@ -9421,7 +9489,8 @@
         "properties": {
           "cleared": {
             "type": "number",
-            "description": "Number of persisted assistant memory rows deleted."
+            "description": "Number of persisted assistant memory rows deleted.",
+            "example": 3
           }
         },
         "required": ["cleared"],
@@ -9761,6 +9830,7 @@
         "properties": {
           "jobId": {
             "description": "Queued PDF export job identifier.",
+            "example": "clinic-summary-export-job-2f1c9a",
             "type": "string"
           },
           "pdfBase64": {
@@ -9986,7 +10056,8 @@
           },
           "total": {
             "type": "number",
-            "description": "Total count of matching items"
+            "description": "Total count of matching items",
+            "example": 42
           },
           "startDate": {
             "type": "string",
@@ -10005,7 +10076,8 @@
         "properties": {
           "suggestionId": {
             "type": "string",
-            "description": "The suggestion ID that was explained"
+            "description": "The suggestion ID that was explained",
+            "example": "sug_9f2c1e4a"
           },
           "reason": {
             "type": "string",
@@ -10032,6 +10104,7 @@
         "properties": {
           "jobId": {
             "description": "Queued explanation job identifier.",
+            "example": "explanation-job-7d3a5b",
             "type": "string"
           },
           "result": {
@@ -10424,7 +10497,14 @@
         "items": {
           "$ref": "#/components/schemas/TodayRecommendationItem"
         },
-        "description": "Cold-start onboarding guide cards."
+        "description": "Cold-start onboarding guide cards.",
+        "example": [
+          {
+            "id": "onboarding-hydration",
+            "text": "Keep a water bottle nearby to stay hydrated through the day.",
+            "category": "onboarding"
+          }
+        ]
       },
       "TodayAnalysisData": {
         "type": "object",
@@ -10656,7 +10736,8 @@
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["empty", "pending", "ready", "stale", "failed"]
+            "enum": ["empty", "pending", "ready", "stale", "failed"],
+            "example": "pending"
           }
         },
         "required": ["status"],
@@ -10676,64 +10757,87 @@
               "activity",
               "note",
               "sleep"
-            ]
+            ],
+            "example": "vital"
           },
           "occurredAt": {
             "type": "string",
-            "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep)."
+            "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep).",
+            "example": "2026-06-04"
           },
           "occurredTime": {
             "type": "string",
             "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
-            "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only."
+            "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only.",
+            "example": "08:30"
           },
           "title": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "Short label."
+            "description": "Short label.",
+            "example": "Morning blood pressure"
           },
           "value": {
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
-            "description": "Measured value."
+            "description": "Measured value.",
+            "example": "120/80"
           },
           "unit": {
             "type": "string",
             "minLength": 1,
             "maxLength": 50,
-            "description": "Unit label."
+            "description": "Unit label.",
+            "example": "mmHg"
           },
           "note": {
             "type": "string",
             "maxLength": 1000,
-            "description": "Free-text note."
+            "description": "Free-text note.",
+            "example": "After waking up."
           },
           "source": {
             "type": "string",
             "minLength": 1,
             "maxLength": 50,
-            "description": "Record source. Defaults to \"manual\". Use \"apple_health\" or \"health_connect\" for auto-synced records."
+            "description": "Record source. Defaults to \"manual\". Use \"apple_health\" or \"health_connect\" for auto-synced records.",
+            "example": "manual"
           },
           "healthEventId": {
             "nullable": true,
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "Optional active health event association."
+            "description": "Optional active health event association.",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
           },
           "payload": {
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string } — symptom is a catalog code and severity is the only structured severity source (title/value are display text). For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. For meal: the analysis is server-owned — the only accepted field is the dish list { mealAnalysis: { dishes: [{ name: string }] } }. Vital and activity payloads are optional for manual entry."
+            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For symptom: { symptom?: string, severity?: \"mild\"|\"moderate\"|\"severe\"|\"unknown\", customLabel?: string } — symptom is a catalog code and severity is the only structured severity source (title/value are display text). For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. For meal: the analysis is server-owned — the only accepted field is the dish list { mealAnalysis: { dishes: [{ name: string }] } }. Vital and activity payloads are optional for manual entry.",
+            "example": {
+              "vitalType": "bloodPressure",
+              "value": 120,
+              "unit": "mmHg",
+              "secondaryValue": 80,
+              "secondaryUnit": "mmHg"
+            }
           },
           "attachments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CreateDailyRecordRequestAttachments"
             },
-            "description": "Attachment metadata. File upload itself is handled separately."
+            "description": "Attachment metadata. File upload itself is handled separately.",
+            "example": [
+              {
+                "kind": "image",
+                "objectKey": "daily-records/user_1/2026-06-04/photo.jpg",
+                "contentType": "image/jpeg"
+              }
+            ]
           }
         },
         "required": ["kind", "occurredAt"],
@@ -10745,18 +10849,21 @@
           "contentType": {
             "type": "string",
             "maxLength": 100,
-            "description": "Image MIME content type."
+            "description": "Image MIME content type.",
+            "example": "image/jpeg"
           },
           "sizeBytes": {
             "type": "integer",
             "minimum": 1,
             "maximum": 50000000,
-            "description": "File size in bytes."
+            "description": "File size in bytes.",
+            "example": 245760
           },
           "fileName": {
             "type": "string",
             "maxLength": 255,
-            "description": "Original file name."
+            "description": "Original file name.",
+            "example": "photo.jpg"
           }
         },
         "required": ["contentType", "sizeBytes"],
@@ -10769,16 +10876,19 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 2000,
-            "description": "Natural-language note to be parsed into candidate daily records."
+            "description": "Natural-language note to be parsed into candidate daily records.",
+            "example": "Slept about 7 hours and had a mild headache in the afternoon."
           },
           "occurredAt": {
             "type": "string",
-            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline."
+            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline.",
+            "example": "2026-06-04"
           },
           "timezone": {
             "type": "string",
             "maxLength": 100,
-            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted."
+            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted.",
+            "example": "Asia/Shanghai"
           }
         },
         "required": ["text", "occurredAt"],
@@ -10798,64 +10908,85 @@
               "activity",
               "note",
               "sleep"
-            ]
+            ],
+            "example": "vital"
           },
           "occurredAt": {
             "type": "string",
-            "description": "Date in YYYY-MM-DD format."
+            "description": "Date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
           },
           "occurredTime": {
             "nullable": true,
             "type": "string",
             "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
-            "description": "Time in HH:mm 24-hour format. Use null to clear."
+            "description": "Time in HH:mm 24-hour format. Use null to clear.",
+            "example": "08:30"
           },
           "title": {
             "nullable": true,
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "Short label. Use null to clear."
+            "description": "Short label. Use null to clear.",
+            "example": "Morning blood pressure"
           },
           "value": {
             "nullable": true,
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
-            "description": "Measured value. Use null to clear."
+            "description": "Measured value. Use null to clear.",
+            "example": "120/80"
           },
           "unit": {
             "nullable": true,
             "type": "string",
             "minLength": 1,
             "maxLength": 50,
-            "description": "Unit label. Use null to clear."
+            "description": "Unit label. Use null to clear.",
+            "example": "mmHg"
           },
           "note": {
             "nullable": true,
             "type": "string",
             "maxLength": 1000,
-            "description": "Free-text note. Use null to clear."
+            "description": "Free-text note. Use null to clear.",
+            "example": "After waking up."
           },
           "payload": {
             "nullable": true,
             "type": "object",
             "additionalProperties": {},
-            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt. Meal accepts only the dish list { mealAnalysis: { dishes: [{ name: string }] } }: the analysis itself is server-owned, and sending attachments with exactly one image re-runs the analysis."
+            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality. endedAt must be later than startedAt. Meal accepts only the dish list { mealAnalysis: { dishes: [{ name: string }] } }: the analysis itself is server-owned, and sending attachments with exactly one image re-runs the analysis.",
+            "example": {
+              "sleepType": "nightSleep",
+              "startedAt": "2026-06-03T23:15:00.000Z",
+              "endedAt": "2026-06-04T06:45:00.000Z",
+              "durationMinutes": 450
+            }
           },
           "healthEventId": {
             "nullable": true,
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "Active health event association. Use null to clear."
+            "description": "Active health event association. Use null to clear.",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
           },
           "attachments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UpdateDailyRecordRequestAttachments"
             },
-            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear."
+            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear.",
+            "example": [
+              {
+                "kind": "image",
+                "objectKey": "daily-records/user_1/2026-06-04/photo.jpg",
+                "contentType": "image/jpeg"
+              }
+            ]
           }
         },
         "additionalProperties": false
@@ -11032,9 +11163,14 @@
           "type": {
             "type": "string",
             "enum": ["static", "llm"],
-            "description": "Type of risk check to run"
+            "description": "Type of risk check to run",
+            "example": "static"
           },
           "candidate": {
+            "example": {
+              "source": "drugbank",
+              "id": "DB01050"
+            },
             "$ref": "#/components/schemas/RunRiskCheckRequestCandidate"
           }
         },
@@ -11048,7 +11184,8 @@
             "type": "string",
             "maxLength": 2048,
             "format": "uri",
-            "description": "Public URL of the medicine box image"
+            "description": "Public URL of the medicine box image",
+            "example": "https://cdn.lumos.example/medicines/amoxicillin-box.jpg"
           }
         },
         "required": ["imageUrl"],
@@ -11061,7 +11198,8 @@
             "type": "string",
             "maxLength": 2048,
             "format": "uri",
-            "description": "Public URL of the medicine box image"
+            "description": "Public URL of the medicine box image",
+            "example": "https://cdn.lumos.example/medicines/amoxicillin-box.jpg"
           }
         },
         "required": ["imageUrl"],
@@ -11585,15 +11723,18 @@
             "items": {
               "type": "string"
             },
-            "description": "Proposal ids awaiting confirmation."
+            "description": "Proposal ids awaiting confirmation.",
+            "example": ["prop_4f8a2c9e1d"]
           },
           "decision": {
             "type": "string",
-            "enum": ["approved", "rejected"]
+            "enum": ["approved", "rejected"],
+            "example": "approved"
           },
           "note": {
             "type": "string",
-            "maxLength": 500
+            "maxLength": 500,
+            "example": "已与医生确认。"
           }
         },
         "required": ["proposalIds", "decision"],
@@ -11606,7 +11747,8 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 48,
-            "description": "New conversation title (1-48 chars). Empty or whitespace-only titles are rejected; clients keep empty names local-only."
+            "description": "New conversation title (1-48 chars). Empty or whitespace-only titles are rejected; clients keep empty names local-only.",
+            "example": "用药咨询"
           }
         },
         "required": ["title"],
@@ -11622,12 +11764,19 @@
             "items": {
               "$ref": "#/components/schemas/StreamMessagesRequestMessages"
             },
-            "description": "Conversation window ending with the latest user message to answer."
+            "description": "Conversation window ending with the latest user message to answer.",
+            "example": [
+              {
+                "role": "user",
+                "content": "我最近头痛，布洛芬一次应该吃多少？"
+              }
+            ]
           },
           "conversationId": {
             "type": "string",
             "maxLength": 64,
-            "description": "Optional persisted conversation id used as the LangGraph thread id. When absent the conversation runs statelessly (no checkpoint / no in-graph review)."
+            "description": "Optional persisted conversation id used as the LangGraph thread id. When absent the conversation runs statelessly (no checkpoint / no in-graph review).",
+            "example": "conv_9f2c1e4a7b8d4c6e"
           }
         },
         "required": ["messages"],
@@ -11945,38 +12094,44 @@
             "nullable": true,
             "type": "string",
             "maxLength": 32,
-            "description": "Preferred locale. Use null or empty string to clear and follow the client default."
+            "description": "Preferred locale. Use null or empty string to clear and follow the client default.",
+            "example": "zh-CN"
           },
           "timezone": {
             "nullable": true,
             "type": "string",
             "maxLength": 64,
-            "description": "Preferred timezone. Use null or empty string to clear."
+            "description": "Preferred timezone. Use null or empty string to clear.",
+            "example": "Asia/Shanghai"
           },
           "unitSystem": {
             "nullable": true,
             "type": "string",
             "enum": ["metric", "imperial"],
-            "description": "Preferred unit system. Use null to clear."
+            "description": "Preferred unit system. Use null to clear.",
+            "example": "metric"
           },
           "birthDate": {
             "nullable": true,
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Birth date in YYYY-MM-DD format."
+            "description": "Birth date in YYYY-MM-DD format.",
+            "example": "1990-05-20"
           },
           "sexAtBirth": {
             "nullable": true,
             "type": "string",
             "enum": ["female", "male", "intersex", "unknown"],
-            "description": "Sex assigned at birth. Use null to clear."
+            "description": "Sex assigned at birth. Use null to clear.",
+            "example": "female"
           },
           "heightCm": {
             "nullable": true,
             "type": "integer",
             "minimum": 1,
             "maximum": 300,
-            "description": "Height in centimeters. Use null to clear."
+            "description": "Height in centimeters. Use null to clear.",
+            "example": 165
           },
           "activityLevel": {
             "nullable": true,
@@ -11988,7 +12143,8 @@
               "veryActive",
               "extremelyActive"
             ],
-            "description": "Self-reported activity level. Use null to clear."
+            "description": "Self-reported activity level. Use null to clear.",
+            "example": "moderatelyActive"
           },
           "dietaryPreferences": {
             "nullable": true,
@@ -12008,18 +12164,21 @@
                 "other"
               ]
             },
-            "description": "Dietary preferences. Stored in extras JSONB. Use null to clear."
+            "description": "Dietary preferences. Stored in extras JSONB. Use null to clear.",
+            "example": ["vegetarian", "lowSalt"]
           },
           "weightKg": {
             "nullable": true,
             "type": "integer",
             "minimum": 1,
             "maximum": 500,
-            "description": "Weight in kilograms. Stored in extras JSONB. Use null to clear."
+            "description": "Weight in kilograms. Stored in extras JSONB. Use null to clear.",
+            "example": 60
           },
           "onboardingCompleted": {
             "type": "boolean",
-            "description": "Set true to complete onboarding (sets completedAt when missing). Set false to clear onboarding completion."
+            "description": "Set true to complete onboarding (sets completedAt when missing). Set false to clear onboarding completion.",
+            "example": true
           }
         },
         "additionalProperties": false
@@ -12030,32 +12189,38 @@
           "kind": {
             "type": "string",
             "enum": ["drug", "food", "environment", "other"],
-            "description": "Allergy kind."
+            "description": "Allergy kind.",
+            "example": "food"
           },
           "label": {
             "type": "string",
             "minLength": 1,
             "maxLength": 120,
-            "description": "User-visible allergy label."
+            "description": "User-visible allergy label.",
+            "example": "Peanut"
           },
           "reaction": {
             "type": "string",
             "maxLength": 1000,
-            "description": "Recorded reaction."
+            "description": "Recorded reaction.",
+            "example": "Hives and swelling"
           },
           "severity": {
             "type": "string",
             "enum": ["mild", "moderate", "severe", "unknown"],
-            "description": "Severity level. Defaults to unknown."
+            "description": "Severity level. Defaults to unknown.",
+            "example": "moderate"
           },
           "note": {
             "type": "string",
             "maxLength": 1000,
-            "description": "User note for the allergy."
+            "description": "User note for the allergy.",
+            "example": "Avoid peanuts and peanut oil."
           },
           "recordedAt": {
             "type": "string",
-            "description": "When this allergy was recorded in ISO 8601 format."
+            "description": "When this allergy was recorded in ISO 8601 format.",
+            "example": "2026-06-04T08:30:00.000Z"
           }
         },
         "required": ["kind", "label"],
@@ -12067,39 +12232,46 @@
           "kind": {
             "type": "string",
             "enum": ["drug", "food", "environment", "other"],
-            "description": "Allergy kind."
+            "description": "Allergy kind.",
+            "example": "food"
           },
           "label": {
             "type": "string",
             "maxLength": 120,
-            "description": "User-visible allergy label."
+            "description": "User-visible allergy label.",
+            "example": "Peanut"
           },
           "reaction": {
             "nullable": true,
             "type": "string",
             "maxLength": 1000,
-            "description": "Recorded reaction. Use null to clear."
+            "description": "Recorded reaction. Use null to clear.",
+            "example": "Hives and swelling"
           },
           "severity": {
             "nullable": true,
             "type": "string",
             "enum": ["mild", "moderate", "severe", "unknown"],
-            "description": "Severity level."
+            "description": "Severity level.",
+            "example": "moderate"
           },
           "note": {
             "nullable": true,
             "type": "string",
             "maxLength": 1000,
-            "description": "User note for the allergy. Use null to clear."
+            "description": "User note for the allergy. Use null to clear.",
+            "example": "Avoid peanuts and peanut oil."
           },
           "recordedAt": {
             "nullable": true,
             "type": "string",
-            "description": "When this allergy was recorded in ISO 8601 format."
+            "description": "When this allergy was recorded in ISO 8601 format.",
+            "example": "2026-06-04T08:30:00.000Z"
           },
           "isActive": {
             "type": "boolean",
-            "description": "Whether the allergy is currently active."
+            "description": "Whether the allergy is currently active.",
+            "example": true
           }
         },
         "additionalProperties": false
@@ -12111,23 +12283,27 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 120,
-            "description": "Condition label."
+            "description": "Condition label.",
+            "example": "Type 2 diabetes"
           },
           "status": {
             "type": "string",
             "enum": ["active", "resolved", "suspected"],
-            "description": "Condition status. Defaults to active."
+            "description": "Condition status. Defaults to active.",
+            "example": "active"
           },
           "diagnosedAt": {
             "nullable": true,
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Diagnosis date in YYYY-MM-DD format."
+            "description": "Diagnosis date in YYYY-MM-DD format.",
+            "example": "2024-03-15"
           },
           "note": {
             "type": "string",
             "maxLength": 1000,
-            "description": "User note for the condition."
+            "description": "User note for the condition.",
+            "example": "Managed with diet and metformin."
           }
         },
         "required": ["label"],
@@ -12139,24 +12315,28 @@
           "label": {
             "type": "string",
             "maxLength": 120,
-            "description": "Condition label."
+            "description": "Condition label.",
+            "example": "Type 2 diabetes"
           },
           "status": {
             "type": "string",
             "enum": ["active", "resolved", "suspected"],
-            "description": "Condition status."
+            "description": "Condition status.",
+            "example": "resolved"
           },
           "diagnosedAt": {
             "nullable": true,
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Diagnosis date in YYYY-MM-DD format. Use null to clear."
+            "description": "Diagnosis date in YYYY-MM-DD format. Use null to clear.",
+            "example": "2024-03-15"
           },
           "note": {
             "nullable": true,
             "type": "string",
             "maxLength": 1000,
-            "description": "User note for the condition. Use null to clear."
+            "description": "User note for the condition. Use null to clear.",
+            "example": "Blood sugar now within range."
           }
         },
         "additionalProperties": false
@@ -12167,49 +12347,58 @@
           "source": {
             "type": "string",
             "enum": ["drugbank", "cn", "manual"],
-            "description": "Upstream source used to anchor this medicine."
+            "description": "Upstream source used to anchor this medicine.",
+            "example": "cn"
           },
           "sourceRefId": {
             "type": "string",
-            "description": "Source-specific reference id. Required for drugbank and cn sources."
+            "description": "Source-specific reference id. Required for drugbank and cn sources.",
+            "example": "NMPA-H20051234"
           },
           "displayName": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "Display name shown to the user."
+            "description": "Display name shown to the user.",
+            "example": "Metformin 500 mg tablet"
           },
           "strengthText": {
             "type": "string",
             "maxLength": 200,
-            "description": "Strength text."
+            "description": "Strength text.",
+            "example": "500 mg"
           },
           "doseText": {
             "type": "string",
             "maxLength": 500,
-            "description": "Dose text."
+            "description": "Dose text.",
+            "example": "Take 1 tablet twice daily"
           },
           "route": {
             "type": "string",
             "maxLength": 100,
-            "description": "Administration route."
+            "description": "Administration route.",
+            "example": "oral"
           },
           "startedAt": {
             "nullable": true,
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Start date in YYYY-MM-DD format."
+            "description": "Start date in YYYY-MM-DD format.",
+            "example": "2024-04-01"
           },
           "endedAt": {
             "nullable": true,
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "End date in YYYY-MM-DD format."
+            "description": "End date in YYYY-MM-DD format.",
+            "example": "2024-10-01"
           },
           "note": {
             "type": "string",
             "maxLength": 1000,
-            "description": "User note for the medicine."
+            "description": "User note for the medicine.",
+            "example": "Take with meals."
           }
         },
         "required": ["source", "displayName"],
@@ -12221,58 +12410,68 @@
           "source": {
             "type": "string",
             "enum": ["drugbank", "cn", "manual"],
-            "description": "Upstream source."
+            "description": "Upstream source.",
+            "example": "cn"
           },
           "sourceRefId": {
             "nullable": true,
             "type": "string",
             "maxLength": 100,
-            "description": "Source-specific reference id."
+            "description": "Source-specific reference id.",
+            "example": "NMPA-H20051234"
           },
           "displayName": {
             "type": "string",
             "maxLength": 200,
-            "description": "Display name shown to the user."
+            "description": "Display name shown to the user.",
+            "example": "Metformin 500 mg tablet"
           },
           "strengthText": {
             "nullable": true,
             "type": "string",
             "maxLength": 200,
-            "description": "Strength text. Use null to clear."
+            "description": "Strength text. Use null to clear.",
+            "example": "500 mg"
           },
           "doseText": {
             "nullable": true,
             "type": "string",
             "maxLength": 500,
-            "description": "Dose text. Use null to clear."
+            "description": "Dose text. Use null to clear.",
+            "example": "Take 1 tablet twice daily"
           },
           "route": {
             "nullable": true,
             "type": "string",
             "maxLength": 100,
-            "description": "Administration route. Use null to clear."
+            "description": "Administration route. Use null to clear.",
+            "example": "oral"
           },
           "startedAt": {
             "nullable": true,
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Start date in YYYY-MM-DD format. Use null to clear."
+            "description": "Start date in YYYY-MM-DD format. Use null to clear.",
+            "example": "2024-04-01"
           },
           "endedAt": {
             "nullable": true,
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "End date in YYYY-MM-DD format. Use null to clear."
+            "description": "End date in YYYY-MM-DD format. Use null to clear.",
+            "example": "2024-10-01"
           },
           "note": {
             "nullable": true,
             "type": "string",
             "maxLength": 1000,
-            "description": "User note. Use null to clear."
+            "description": "User note. Use null to clear.",
+            "example": "Take with meals."
           },
           "isCurrent": {
             "type": "boolean",
-            "description": "Whether the medicine is currently active."
+            "description": "Whether the medicine is currently active.",
+            "example": true
           }
         },
         "additionalProperties": false
@@ -12740,15 +12939,18 @@
         "properties": {
           "accessToken": {
             "type": "string",
-            "description": "访问令牌"
+            "description": "访问令牌",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMSJ9"
           },
           "refreshToken": {
             "type": "string",
-            "description": "刷新令牌"
+            "description": "刷新令牌",
+            "example": "rt_9f8c7b6a5d4e3f2a1b0c9d8e7f6a5b4c"
           },
           "expiresIn": {
             "type": "number",
-            "description": "访问令牌过期时间（秒）"
+            "description": "访问令牌过期时间（秒）",
+            "example": 900
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
@@ -12811,15 +13013,18 @@
         "properties": {
           "accessToken": {
             "type": "string",
-            "description": "访问令牌"
+            "description": "访问令牌",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMSJ9"
           },
           "refreshToken": {
             "type": "string",
-            "description": "刷新令牌"
+            "description": "刷新令牌",
+            "example": "rt_9f8c7b6a5d4e3f2a1b0c9d8e7f6a5b4c"
           },
           "expiresIn": {
             "type": "number",
-            "description": "访问令牌过期时间（秒）"
+            "description": "访问令牌过期时间（秒）",
+            "example": 900
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
@@ -13354,14 +13559,16 @@
           "checkType": {
             "type": "string",
             "enum": ["static", "llm"],
-            "description": "Type of risk check."
+            "description": "Type of risk check.",
+            "example": "static"
           },
           "result": {
             "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResult"
           },
           "riskScore": {
             "type": "number",
-            "description": "Persisted risk score (0-100)."
+            "description": "Persisted risk score (0-100).",
+            "example": 42
           },
           "riskLevel": {
             "type": "string",
@@ -13548,14 +13755,16 @@
           "checkType": {
             "type": "string",
             "enum": ["static", "llm"],
-            "description": "Type of risk check."
+            "description": "Type of risk check.",
+            "example": "static"
           },
           "result": {
             "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResult"
           },
           "riskScore": {
             "type": "number",
-            "description": "Persisted risk score (0-100)."
+            "description": "Persisted risk score (0-100).",
+            "example": 42
           },
           "riskLevel": {
             "type": "string",
@@ -13912,12 +14121,14 @@
           "total": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "example": 1280
           },
           "active": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "example": 1150
           },
           "suspended": {
             "type": "integer",
@@ -14025,11 +14236,13 @@
         "properties": {
           "date": {
             "type": "string",
-            "description": "UTC calendar day (YYYY-MM-DD)."
+            "description": "UTC calendar day (YYYY-MM-DD).",
+            "example": "2026-01-15"
           },
           "eventStarted": {
             "type": "number",
-            "description": "health_event_started count."
+            "description": "health_event_started count.",
+            "example": 120
           },
           "suggestionImpression": {
             "type": "number",
@@ -14126,11 +14339,13 @@
         "properties": {
           "dateFrom": {
             "type": "string",
-            "description": "Window start (inclusive), UTC calendar day (YYYY-MM-DD)."
+            "description": "Window start (inclusive), UTC calendar day (YYYY-MM-DD).",
+            "example": "2026-01-01"
           },
           "dateTo": {
             "type": "string",
-            "description": "Window end (inclusive), UTC calendar day (YYYY-MM-DD)."
+            "description": "Window end (inclusive), UTC calendar day (YYYY-MM-DD).",
+            "example": "2026-01-15"
           },
           "generatedAt": {
             "type": "string",
@@ -14871,7 +15086,8 @@
         "properties": {
           "code": {
             "type": "string",
-            "description": "Stable symptom code; the value stored in payload `symptom`."
+            "description": "Stable symptom code; the value stored in payload `symptom`.",
+            "example": "headache"
           },
           "label": {
             "type": "string",
@@ -18566,7 +18782,8 @@
         "properties": {
           "suggestionId": {
             "type": "string",
-            "description": "The suggestion ID that was explained"
+            "description": "The suggestion ID that was explained",
+            "example": "sug_9f2c1e4a"
           },
           "reason": {
             "type": "string",
@@ -19375,63 +19592,73 @@
           "kind": {
             "type": "string",
             "enum": ["image"],
-            "description": "Attachment kind. Defaults to \"image\"."
+            "description": "Attachment kind. Defaults to \"image\".",
+            "example": "image"
           },
           "objectKey": {
             "type": "string",
             "maxLength": 500,
-            "description": "Object storage key, stable across signed URL rotations."
+            "description": "Object storage key, stable across signed URL rotations.",
+            "example": "daily-records/user_1/2026-06-04/photo.jpg"
           },
           "bucket": {
             "nullable": true,
             "type": "string",
             "maxLength": 200,
-            "description": "Object storage bucket."
+            "description": "Object storage bucket.",
+            "example": "lumos-daily-records"
           },
           "provider": {
             "nullable": true,
             "type": "string",
             "maxLength": 50,
-            "description": "Storage provider (e.g. tencent-cos, s3, ali-oss)."
+            "description": "Storage provider (e.g. tencent-cos, s3, ali-oss).",
+            "example": "tencent-cos"
           },
           "fileName": {
             "nullable": true,
             "type": "string",
             "maxLength": 255,
-            "description": "Original file name."
+            "description": "Original file name.",
+            "example": "photo.jpg"
           },
           "contentType": {
             "nullable": true,
             "type": "string",
             "maxLength": 100,
-            "description": "MIME content type."
+            "description": "MIME content type.",
+            "example": "image/jpeg"
           },
           "sizeBytes": {
             "nullable": true,
             "type": "integer",
             "minimum": 0,
             "maximum": 50000000,
-            "description": "File size in bytes."
+            "description": "File size in bytes.",
+            "example": 245760
           },
           "width": {
             "nullable": true,
             "type": "integer",
             "minimum": 0,
             "maximum": 100000,
-            "description": "Image width in pixels."
+            "description": "Image width in pixels.",
+            "example": 1920
           },
           "height": {
             "nullable": true,
             "type": "integer",
             "minimum": 0,
             "maximum": 100000,
-            "description": "Image height in pixels."
+            "description": "Image height in pixels.",
+            "example": 1080
           },
           "publicUrl": {
             "nullable": true,
             "type": "string",
             "maxLength": 2000,
-            "description": "Optional public or already-signed display URL."
+            "description": "Optional public or already-signed display URL.",
+            "example": "https://cdn.example.com/daily-records/user_1/2026-06-04/photo.jpg"
           }
         },
         "required": ["objectKey"],
@@ -19443,63 +19670,73 @@
           "kind": {
             "type": "string",
             "enum": ["image"],
-            "description": "Attachment kind. Defaults to \"image\"."
+            "description": "Attachment kind. Defaults to \"image\".",
+            "example": "image"
           },
           "objectKey": {
             "type": "string",
             "maxLength": 500,
-            "description": "Object storage key, stable across signed URL rotations."
+            "description": "Object storage key, stable across signed URL rotations.",
+            "example": "daily-records/user_1/2026-06-04/photo.jpg"
           },
           "bucket": {
             "nullable": true,
             "type": "string",
             "maxLength": 200,
-            "description": "Object storage bucket."
+            "description": "Object storage bucket.",
+            "example": "lumos-daily-records"
           },
           "provider": {
             "nullable": true,
             "type": "string",
             "maxLength": 50,
-            "description": "Storage provider (e.g. tencent-cos, s3, ali-oss)."
+            "description": "Storage provider (e.g. tencent-cos, s3, ali-oss).",
+            "example": "tencent-cos"
           },
           "fileName": {
             "nullable": true,
             "type": "string",
             "maxLength": 255,
-            "description": "Original file name."
+            "description": "Original file name.",
+            "example": "photo.jpg"
           },
           "contentType": {
             "nullable": true,
             "type": "string",
             "maxLength": 100,
-            "description": "MIME content type."
+            "description": "MIME content type.",
+            "example": "image/jpeg"
           },
           "sizeBytes": {
             "nullable": true,
             "type": "integer",
             "minimum": 0,
             "maximum": 50000000,
-            "description": "File size in bytes."
+            "description": "File size in bytes.",
+            "example": 245760
           },
           "width": {
             "nullable": true,
             "type": "integer",
             "minimum": 0,
             "maximum": 100000,
-            "description": "Image width in pixels."
+            "description": "Image width in pixels.",
+            "example": 1920
           },
           "height": {
             "nullable": true,
             "type": "integer",
             "minimum": 0,
             "maximum": 100000,
-            "description": "Image height in pixels."
+            "description": "Image height in pixels.",
+            "example": 1080
           },
           "publicUrl": {
             "nullable": true,
             "type": "string",
             "maxLength": 2000,
-            "description": "Optional public or already-signed display URL."
+            "description": "Optional public or already-signed display URL.",
+            "example": "https://cdn.example.com/daily-records/user_1/2026-06-04/photo.jpg"
           }
         },
         "required": ["objectKey"],
@@ -19600,17 +19837,23 @@
           "source": {
             "type": "string",
             "enum": ["cn", "drugbank"],
-            "description": "候选药品所在的可信药品库来源"
+            "description": "候选药品所在的可信药品库来源",
+            "example": "drugbank"
           },
           "id": {
             "type": "string",
             "minLength": 1,
-            "description": "候选药品在可信药品库中的 id"
+            "description": "候选药品在可信药品库中的 id",
+            "example": "DB01050"
           }
         },
         "required": ["source", "id"],
         "additionalProperties": false,
-        "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库"
+        "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库",
+        "example": {
+          "source": "drugbank",
+          "id": "DB01050"
+        }
       },
       "UpsertGroupRequestSlots": {
         "type": "object",
@@ -19642,13 +19885,15 @@
           "role": {
             "type": "string",
             "enum": ["user", "assistant"],
-            "description": "Client-visible conversation role. system is not accepted."
+            "description": "Client-visible conversation role. system is not accepted.",
+            "example": "user"
           },
           "content": {
             "type": "string",
             "minLength": 1,
             "maxLength": 8000,
-            "description": "Plain or Markdown-ready message content."
+            "description": "Plain or Markdown-ready message content.",
+            "example": "我最近头痛，布洛芬一次应该吃多少？"
           }
         },
         "required": ["role", "content"],
@@ -19734,7 +19979,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Safety tip id."
+            "description": "Safety tip id.",
+            "example": "tip-alcohol"
           },
           "text": {
             "type": "string",
@@ -19752,13 +19998,16 @@
         "type": "object",
         "properties": {
           "docType": {
-            "type": "string"
+            "type": "string",
+            "example": "terms-of-service"
           },
           "titleZh": {
-            "type": "string"
+            "type": "string",
+            "example": "用户服务协议"
           },
           "titleEn": {
-            "type": "string"
+            "type": "string",
+            "example": "Terms of Service"
           },
           "contentZh": {
             "type": "string"
@@ -19792,7 +20041,8 @@
           "id": {
             "type": "string",
             "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
           },
           "contentZh": {
             "type": "string"
@@ -19801,7 +20051,8 @@
             "type": "string"
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "example": "dosage"
           },
           "sortOrder": {
             "type": "integer",
@@ -19874,7 +20125,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Unique recommendation id"
+            "description": "Unique recommendation id",
+            "example": "onboarding-hydration"
           },
           "text": {
             "type": "string",
