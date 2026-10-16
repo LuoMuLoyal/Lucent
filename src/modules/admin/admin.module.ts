@@ -6,6 +6,8 @@ import { MedicinesModule } from '../medicines/medicines.module.js';
 import { AdminController } from './controllers/admin.controller.js';
 import { AdminAccessService } from './services/access.service.js';
 import { AdminConsoleService } from './services/console.service.js';
+import { QueuePanelAuthService } from './services/queue-panel-auth.service.js';
+import { QueuePanelService } from './services/queue-panel.service.js';
 import { AdminGuard } from './guards/admin.guard.js';
 import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
 
@@ -15,6 +17,8 @@ import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
   providers: [
     AdminAccessService,
     AdminConsoleService,
+    QueuePanelAuthService,
+    QueuePanelService,
     AdminGuard,
     AdminPermissionGuard,
   ],
