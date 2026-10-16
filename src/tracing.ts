@@ -5,9 +5,15 @@
  * 数据库驱动等）被加载之前完成 SDK 注册与自动插桩，否则已加载的库无法被
  * 自动插桩捕获。
  *
- * 由 OTEL_ENABLED=true 门控：默认关闭时不启动 SDK，现有开发流程与测试
- * 行为不变。启用后 HTTP/DB/Redis 请求自动产生 span，经 OTLP HTTP 上报至
+ * **默认开启**：仅当 `OTEL_ENABLED === 'false'` 时才不启动 SDK。默认值在
+ * `environment.validation.ts` 里同样是 `'true'`，两处必须一致（本模块在
+ * ConfigModule 之前运行，读裸 `process.env`，看不到 zod 默认值）。
+ *
+ * 启用后 HTTP/DB/Redis/Prisma 请求自动产生 span，经 OTLP HTTP 上报至
  * OTEL_EXPORTER_OTLP_ENDPOINT（默认 http://127.0.0.1:4318/v1/traces）。
+ * 采样由 OTel 标准环境变量 `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`
+ * 控制（NodeSDK 未显式传 `sampler` 时调用 `createSamplerFromEnv()`），
+ * 用作 Prisma query span 的体积过滤手段。
  */
 
 import { dirname, join } from 'node:path';
@@ -17,6 +23,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { getEnvFilePaths } from './config/env/env-file-paths.js';
 
 // ESM equivalent of `__dirname` — this module is the first import of
@@ -44,7 +51,13 @@ function loadTracingEnvironment(): void {
 
 loadTracingEnvironment();
 
-const enabled = process.env['OTEL_ENABLED'] === 'true';
+/**
+ * Whether the OTel SDK should start. **Default on**: only an explicit
+ * `OTEL_ENABLED=false` disables it. The matching default lives in
+ * `environment.validation.ts` (`z.enum(['true','false']).default('true')`);
+ * keep the two in lockstep.
+ */
+const enabled = process.env['OTEL_ENABLED'] !== 'false';
 
 if (enabled) {
   const sdk = new NodeSDK({
@@ -54,7 +67,14 @@ if (enabled) {
         process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] ??
         'http://127.0.0.1:4318/v1/traces',
     }),
-    instrumentations: [getNodeAutoInstrumentations()],
+    // `PrismaInstrumentation` must be registered before the Prisma Client is
+    // first instantiated — this module is main.ts's first import, so that
+    // holds. Sampler selection stays with the OTel standard env vars
+    // (`OTEL_TRACES_SAMPLER`), which NodeSDK reads via `createSamplerFromEnv()`.
+    instrumentations: [
+      getNodeAutoInstrumentations(),
+      new PrismaInstrumentation(),
+    ],
   });
 
   sdk.start();
