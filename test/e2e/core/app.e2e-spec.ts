@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FastifyAdapter, RouteConfig } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { TerminusModule } from '@nestjs/terminus';
 import type { FastifyReply } from 'fastify';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
@@ -16,6 +17,9 @@ import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.fi
 import { ProblemCatalog } from '../../../src/common/api/problem-catalog.js';
 import { MetricsService } from '../../../src/common/metrics/metrics.service.js';
 import {
+  AppInfoHealthIndicator,
+  CacheHealthIndicator,
+  DatabaseHealthIndicator,
   endSse,
   prepareSse,
   SlowRequestInterceptor,
@@ -46,9 +50,13 @@ describe('Lucent API (e2e)', () => {
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [TerminusModule],
       controllers: [AppController, TestEchoController],
       providers: [
         AppService,
+        AppInfoHealthIndicator,
+        CacheHealthIndicator,
+        DatabaseHealthIndicator,
         {
           provide: PrismaService,
           useValue: prisma,
@@ -136,15 +144,13 @@ describe('Lucent API (e2e)', () => {
       .get('/api/v1/health')
       .expect(200)
       .expect((response) => {
-        expect(response.body).toMatchObject({
-          probe: 'ready',
-          status: 'ok',
-          summary: {
-            total: 2,
-            passed: 2,
-            failed: 0,
-          },
+        expect(response.body.status).toBe('ok');
+        expect(response.body.error).toEqual({});
+        expect(response.body.info).toMatchObject({
+          database: { status: 'up' },
+          cache: { status: 'up' },
         });
+        expect(response.body.info.app.name).toBe('lucent');
       });
   });
 
@@ -164,21 +170,17 @@ describe('Lucent API (e2e)', () => {
   });
 
   it('/api/v1/health/ready (GET) returns 503 when a critical dependency is down', () => {
-    prisma.$queryRawUnsafe.mockRejectedValue(new Error('db down'));
+    prisma.$queryRaw.mockRejectedValue(new Error('db down'));
 
     return request(app.getHttpServer())
       .get('/api/v1/health/ready')
       .expect(503)
       .expect((response) => {
-        expect(response.body).toMatchObject({
-          probe: 'ready',
-          status: 'error',
-          summary: {
-            total: 2,
-            passed: 1,
-            failed: 1,
-          },
-        });
+        expect(response.body.status).toBe('error');
+        // Native terminus body, not RFC 9457 Problem Details.
+        expect(response.body.type).toBeUndefined();
+        expect(response.body.error.database.status).toBe('down');
+        expect(response.body.info.cache.status).toBe('up');
       });
   });
 
@@ -189,37 +191,24 @@ describe('Lucent API (e2e)', () => {
       .get('/api/v1/health/live')
       .expect(200)
       .expect((response) => {
-        expect(response.body).toMatchObject({
-          probe: 'live',
-          status: 'ok',
-          summary: {
-            total: 0,
-            passed: 0,
-            failed: 0,
-          },
-        });
-        // Liveness probe has no components — it only checks process health
-        const data = response.body;
-        expect(data.components).toEqual([]);
-        expect(data.app).toBeDefined();
-        expect(data.app.name).toBe('lucent');
-        expect(data.app.pid).toBe(process.pid);
+        expect(response.body.status).toBe('ok');
+        // Liveness probe has no dependency components — process info only.
+        expect(response.body.details.database).toBeUndefined();
+        expect(response.body.details.cache).toBeUndefined();
+        expect(response.body.info.app.name).toBe('lucent');
+        expect(response.body.info.app.pid).toBe(process.pid);
       });
   });
 
   it('/api/v1/health/live (GET) always returns 200 even when DB is down', () => {
-    prisma.$queryRawUnsafe.mockRejectedValue(new Error('db down'));
+    prisma.$queryRaw.mockRejectedValue(new Error('db down'));
 
     return request(app.getHttpServer())
       .get('/api/v1/health/live')
       .expect(200)
       .expect((response) => {
         expect(response.body.status).toBe('ok');
-        expect(response.body.summary).toEqual({
-          total: 0,
-          passed: 0,
-          failed: 0,
-        });
+        expect(response.body.details.database).toBeUndefined();
       });
   });
 
@@ -230,40 +219,15 @@ describe('Lucent API (e2e)', () => {
       .get('/api/v1/health/deep')
       .expect(200)
       .expect((response) => {
-        expect(response.body).toMatchObject({
-          probe: 'deep',
-          status: 'ok',
-          summary: {
-            total: 2,
-            passed: 2,
-            failed: 0,
-          },
-        });
+        expect(response.body.status).toBe('ok');
 
-        const components = response.body.components as Array<{
-          name: string;
-          status: string;
-          critical: boolean;
-          details: Record<string, unknown> | null;
-          error: string | null;
-        }>;
-        expect(components).toHaveLength(2);
-
-        // Database component should include detailed diagnostics
-        const dbComponent = components.find((c) => c.name === 'database');
-        expect(dbComponent).toBeDefined();
-        expect(dbComponent!.status).toBe('up');
-        expect(dbComponent!.critical).toBe(true);
-        expect(dbComponent!.details).toMatchObject({
+        expect(response.body.details.database).toMatchObject({
+          status: 'up',
           driver: 'prisma',
           probe: 'SELECT 1',
         });
-
-        // Cache component should include backend info
-        const cacheComponent = components.find((c) => c.name === 'cache');
-        expect(cacheComponent).toBeDefined();
-        expect(cacheComponent!.status).toBe('up');
-        expect(cacheComponent!.details).toMatchObject({
+        expect(response.body.details.cache).toMatchObject({
+          status: 'up',
           backend: 'memory',
           mode: 'fallback',
         });
@@ -271,30 +235,17 @@ describe('Lucent API (e2e)', () => {
   });
 
   it('/api/v1/health/deep (GET) returns 503 when a critical dependency is down', () => {
-    prisma.$queryRawUnsafe.mockRejectedValue(new Error('db down'));
+    prisma.$queryRaw.mockRejectedValue(new Error('db down'));
 
     return request(app.getHttpServer())
       .get('/api/v1/health/deep')
       .expect(503)
       .expect((response) => {
         expect(response.body.status).toBe('error');
-        expect(response.body.summary).toEqual({
-          total: 2,
-          passed: 1,
-          failed: 1,
-        });
-
-        const components = response.body.components as Array<{
-          name: string;
-          status: string;
-          critical: boolean;
-          details: Record<string, unknown> | null;
-          error: string | null;
-        }>;
-        const dbComponent = components.find((c) => c.name === 'database');
-        expect(dbComponent!.status).toBe('down');
-        expect(dbComponent!.error).toBeTruthy();
-        expect(dbComponent!.details).toMatchObject({
+        expect(response.body.type).toBeUndefined();
+        expect(response.body.error.database).toMatchObject({
+          status: 'down',
+          message: 'db down',
           driver: 'prisma',
           probe: 'SELECT 1',
         });

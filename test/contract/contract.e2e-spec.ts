@@ -220,10 +220,11 @@ describe('API Contract Tests (e2e)', () => {
       const schema = resolveRef(spec, '#/components/schemas/HealthResponse');
       assertRequiredProperties(env, schema, spec);
 
-      // Verify nested probe field exists
-      expect(env).toHaveProperty('probe');
-      expect(env).toHaveProperty('status');
-      expect(env).toHaveProperty('summary');
+      // Native terminus body: overall status plus the info/error/details maps.
+      expect(env).toHaveProperty('status', 'ok');
+      expect(env).toHaveProperty('info');
+      expect(env).toHaveProperty('error');
+      expect(env).toHaveProperty('details');
     });
   });
 
@@ -234,7 +235,9 @@ describe('API Contract Tests (e2e)', () => {
         .expect(200);
 
       assertDirectResourceShape(res.body);
-      expect(res.body).toHaveProperty('probe', 'live');
+      const schema = resolveRef(spec, '#/components/schemas/HealthResponse');
+      assertRequiredProperties(res.body, schema, spec);
+      expect(res.body).toHaveProperty('status', 'ok');
     });
   });
 
@@ -245,7 +248,9 @@ describe('API Contract Tests (e2e)', () => {
         .expect(200);
 
       assertDirectResourceShape(res.body);
-      expect(res.body).toHaveProperty('probe', 'ready');
+      const schema = resolveRef(spec, '#/components/schemas/HealthResponse');
+      assertRequiredProperties(res.body, schema, spec);
+      expect(res.body).toHaveProperty('status', 'ok');
     });
   });
 
@@ -495,8 +500,10 @@ describe('API Contract Tests (e2e)', () => {
         .expect(200);
 
       assertDirectResourceShape(res.body);
-      expect(res.body).toHaveProperty('probe');
+      const schema = resolveRef(spec, '#/components/schemas/HealthResponse');
+      assertRequiredProperties(res.body, schema, spec);
       expect(res.body).toHaveProperty('status');
+      expect(res.body).toHaveProperty('details');
     });
   });
 

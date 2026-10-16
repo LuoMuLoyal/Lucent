@@ -2,12 +2,17 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { TerminusModule } from '@nestjs/terminus';
 import { EnvKey } from './config/env/env-keys.enum.js';
 import { PrismaService } from './prisma/index.js';
 import { AppService } from './app.service.js';
+import {
+  AppInfoHealthIndicator,
+  CacheHealthIndicator,
+  DatabaseHealthIndicator,
+} from './common/index.js';
 
 describe('AppService', () => {
-  let service: AppService;
   let prisma: { $queryRaw: vi.Mock };
   let cache: {
     set: vi.Mock;
@@ -15,7 +20,41 @@ describe('AppService', () => {
     del: vi.Mock;
   };
 
-  beforeEach(async () => {
+  function buildModule(redisUrl?: string): Promise<TestingModule> {
+    return Test.createTestingModule({
+      imports: [TerminusModule],
+      providers: [
+        AppService,
+        AppInfoHealthIndicator,
+        CacheHealthIndicator,
+        DatabaseHealthIndicator,
+        {
+          provide: PrismaService,
+          useValue: prisma,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: cache,
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: vi.fn().mockImplementation((key: unknown) => {
+              if (key === EnvKey.NODE_ENV) {
+                return 'test';
+              }
+              if (key === EnvKey.REDIS_URL) {
+                return redisUrl;
+              }
+              return undefined;
+            }),
+          },
+        },
+      ],
+    }).compile();
+  }
+
+  beforeEach(() => {
     prisma = {
       $queryRaw: vi.fn(),
     };
@@ -24,142 +63,74 @@ describe('AppService', () => {
       get: vi.fn(),
       del: vi.fn(),
     };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AppService,
-        {
-          provide: PrismaService,
-          useValue: prisma,
-        },
-        {
-          provide: CACHE_MANAGER,
-          useValue: cache,
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn().mockImplementation((key: unknown) => {
-              if (key === EnvKey.NODE_ENV || key === 'NODE_ENV') {
-                return 'test';
-              }
-              if (key === EnvKey.REDIS_URL || key === 'REDIS_URL') {
-                return undefined;
-              }
-              return undefined;
-            }),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get(AppService);
   });
 
-  it('returns an ok liveness probe without dependency checks', () => {
-    const result = service.getLiveHealth();
+  it('returns an ok liveness probe without dependency checks', async () => {
+    const service = (await buildModule()).get(AppService);
 
-    expect(result).toMatchObject({
-      probe: 'live',
-      status: 'ok',
-      summary: {
-        total: 0,
-        passed: 0,
-        failed: 0,
-      },
-      components: [],
+    const result = await service.getLiveHealth();
+
+    expect(result.status).toBe('ok');
+    expect(result.details['app']).toMatchObject({
+      status: 'up',
+      name: 'lucent',
+      env: 'test',
     });
-    expect(result.app.name).toBe('lucent');
-    expect(result.app.env).toBe('test');
+    expect(result.details['database']).toBeUndefined();
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('returns an ok readiness probe when database and memory cache are available', async () => {
     prisma.$queryRaw.mockResolvedValue([{}]);
+    const service = (await buildModule()).get(AppService);
 
     const result = await service.getReadyHealth();
 
-    expect(result).toMatchObject({
-      probe: 'ready',
-      status: 'ok',
-      summary: {
-        total: 2,
-        passed: 2,
-        failed: 0,
-      },
+    expect(result.status).toBe('ok');
+    expect(result.error).toEqual({});
+    expect(result.details['database']).toMatchObject({
+      status: 'up',
+      driver: 'prisma',
     });
-    expect(result.components).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'database',
-          status: 'up',
-          critical: true,
-          error: null,
-          details: { driver: 'prisma' },
-        }),
-        expect.objectContaining({
-          name: 'cache',
-          status: 'up',
-          critical: false,
-          error: null,
-          details: { backend: 'memory' },
-        }),
-      ]),
-    );
+    expect(result.details['cache']).toMatchObject({
+      status: 'up',
+      backend: 'memory',
+    });
+  });
+
+  it('reports deeper diagnostics for the deep probe', async () => {
+    prisma.$queryRaw.mockResolvedValue([{}]);
+    const service = (await buildModule()).get(AppService);
+
+    const result = await service.getDeepHealth();
+
+    expect(result.status).toBe('ok');
+    expect(result.details['database']).toMatchObject({
+      status: 'up',
+      probe: 'SELECT 1',
+    });
+    expect(result.details['cache']).toMatchObject({
+      status: 'up',
+      backend: 'memory',
+      mode: 'fallback',
+    });
   });
 
   it('returns an error readiness probe when configured redis round-trip fails', async () => {
     prisma.$queryRaw.mockResolvedValue([{}]);
     cache.set.mockRejectedValue(new Error('redis unavailable'));
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AppService,
-        {
-          provide: PrismaService,
-          useValue: prisma,
-        },
-        {
-          provide: CACHE_MANAGER,
-          useValue: cache,
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn().mockImplementation((key: unknown) => {
-              if (key === EnvKey.NODE_ENV || key === 'NODE_ENV') {
-                return 'test';
-              }
-              if (key === EnvKey.REDIS_URL || key === 'REDIS_URL') {
-                return 'redis://127.0.0.1:6379/0';
-              }
-              return undefined;
-            }),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get(AppService);
+    const service = (await buildModule('redis://127.0.0.1:6379/0')).get(
+      AppService,
+    );
 
     const result = await service.getReadyHealth();
 
     expect(result.status).toBe('error');
-    expect(result.summary).toEqual({
-      total: 2,
-      passed: 1,
-      failed: 1,
+    expect(result.info?.['database']).toMatchObject({ status: 'up' });
+    expect(result.error?.['cache']).toMatchObject({
+      status: 'down',
+      message: 'redis unavailable',
+      backend: 'redis',
     });
-    expect(result.components).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'cache',
-          status: 'down',
-          critical: true,
-          error: 'redis unavailable',
-          details: { backend: 'redis' },
-        }),
-      ]),
-    );
   });
 });

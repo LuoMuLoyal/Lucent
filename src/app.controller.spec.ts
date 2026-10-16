@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { HealthCheckResult } from '@nestjs/terminus';
 import type { FastifyReply } from 'fastify';
 import { AppController } from './app.controller.js';
-import type { HealthProbe } from './app.dto.js';
 import { AppService } from './app.service.js';
 
 describe('AppController', () => {
@@ -29,114 +29,92 @@ describe('AppController', () => {
     service = module.get(AppService);
   });
 
-  it('returns 503 for unhealthy readiness alias', async () => {
-    const probe = makeProbe({ status: 'error' });
-    const response = {
-      status: vi.fn().mockReturnThis(),
-    } as unknown as FastifyReply;
-    service.getHealth.mockResolvedValue(probe);
+  it('returns 503 for an unhealthy readiness alias', async () => {
+    const result = makeResult('error');
+    const response = makeReply();
+    service.getHealth.mockResolvedValue(result);
     service.isHealthy.mockReturnValue(false);
 
-    await expect(controller.getHealth(response)).resolves.toBe(probe);
+    await expect(controller.getHealth(response)).resolves.toBe(result);
     expect(response.status).toHaveBeenCalledWith(503);
   });
 
-  it('returns 200 for healthy readiness alias', async () => {
-    const probe = makeProbe();
-    const response = {
-      status: vi.fn().mockReturnThis(),
-    } as unknown as FastifyReply;
-    service.getHealth.mockResolvedValue(probe);
+  it('returns 200 for a healthy readiness alias', async () => {
+    const result = makeResult('ok');
+    const response = makeReply();
+    service.getHealth.mockResolvedValue(result);
     service.isHealthy.mockReturnValue(true);
 
-    await expect(controller.getHealth(response)).resolves.toBe(probe);
+    await expect(controller.getHealth(response)).resolves.toBe(result);
     expect(response.status).toHaveBeenCalledWith(200);
   });
 
-  it('returns liveness probe without a reply status', () => {
-    const probe = makeProbe({ probe: 'live' });
-    service.getLiveHealth.mockReturnValue(probe);
+  it('returns the liveness result without touching the reply status', async () => {
+    const result = makeResult('ok');
+    service.getLiveHealth.mockResolvedValue(result);
 
-    expect(controller.getLiveHealth()).toBe(probe);
+    await expect(controller.getLiveHealth()).resolves.toBe(result);
   });
 
-  it('returns 200 for healthy ready probe', async () => {
-    const probe = makeProbe({ probe: 'ready' });
-    const response = {
-      status: vi.fn().mockReturnThis(),
-    } as unknown as FastifyReply;
-    service.getReadyHealth.mockResolvedValue(probe);
+  it('returns 200 for a healthy ready probe', async () => {
+    const result = makeResult('ok');
+    const response = makeReply();
+    service.getReadyHealth.mockResolvedValue(result);
     service.isHealthy.mockReturnValue(true);
 
-    await expect(controller.getReadyHealth(response)).resolves.toBe(probe);
+    await expect(controller.getReadyHealth(response)).resolves.toBe(result);
     expect(response.status).toHaveBeenCalledWith(200);
   });
 
-  it('returns 503 for unhealthy ready probe', async () => {
-    const probe = makeProbe({ status: 'error' });
-    const response = {
-      status: vi.fn().mockReturnThis(),
-    } as unknown as FastifyReply;
-    service.getReadyHealth.mockResolvedValue(probe);
+  it('returns 503 for an unhealthy ready probe', async () => {
+    const result = makeResult('error');
+    const response = makeReply();
+    service.getReadyHealth.mockResolvedValue(result);
     service.isHealthy.mockReturnValue(false);
 
-    await expect(controller.getReadyHealth(response)).resolves.toBe(probe);
+    await expect(controller.getReadyHealth(response)).resolves.toBe(result);
     expect(response.status).toHaveBeenCalledWith(503);
   });
 
-  it('returns 200 for healthy deep health probe', async () => {
-    const probe = makeProbe({ probe: 'deep' });
-    const response = {
-      status: vi.fn().mockReturnThis(),
-    } as unknown as FastifyReply;
-    service.getDeepHealth.mockResolvedValue(probe);
+  it('returns 200 for a healthy deep health probe', async () => {
+    const result = makeResult('ok');
+    const response = makeReply();
+    service.getDeepHealth.mockResolvedValue(result);
     service.isHealthy.mockReturnValue(true);
 
-    await expect(controller.getDeepHealth(response)).resolves.toBe(probe);
+    await expect(controller.getDeepHealth(response)).resolves.toBe(result);
     expect(response.status).toHaveBeenCalledWith(200);
   });
 
-  it('returns 503 for unhealthy deep health probe', async () => {
-    const probe = makeProbe({ probe: 'deep', status: 'error' });
-    const response = {
-      status: vi.fn().mockReturnThis(),
-    } as unknown as FastifyReply;
-    service.getDeepHealth.mockResolvedValue(probe);
+  it('returns 503 for an unhealthy deep health probe', async () => {
+    const result = makeResult('error');
+    const response = makeReply();
+    service.getDeepHealth.mockResolvedValue(result);
     service.isHealthy.mockReturnValue(false);
 
-    await expect(controller.getDeepHealth(response)).resolves.toBe(probe);
+    await expect(controller.getDeepHealth(response)).resolves.toBe(result);
     expect(response.status).toHaveBeenCalledWith(503);
   });
 });
 
-function makeProbe(overrides: Partial<HealthProbe> = {}): HealthProbe {
+function makeReply(): FastifyReply {
   return {
-    probe: 'ready',
-    status: 'ok',
-    checkedAt: '2026-06-13T12:00:00.000Z',
-    app: {
-      name: 'lucent',
-      env: 'test',
-      pid: 1,
-      uptimeSeconds: 1.2,
-      memoryRssBytes: 1,
-      memoryHeapUsedBytes: 1,
+    status: vi.fn().mockReturnThis(),
+  } as unknown as FastifyReply;
+}
+
+function makeResult(status: HealthCheckResult['status']): HealthCheckResult {
+  return {
+    status,
+    info:
+      status === 'ok'
+        ? { database: { status: 'up' }, cache: { status: 'up' } }
+        : { database: { status: 'up' } },
+    error:
+      status === 'ok' ? {} : { cache: { status: 'down', message: 'down' } },
+    details: {
+      database: { status: 'up', driver: 'prisma' },
+      cache: { status: status === 'ok' ? 'up' : 'down' },
     },
-    summary: {
-      total: 1,
-      passed: 1,
-      failed: 0,
-    },
-    components: [
-      {
-        name: 'database',
-        status: 'up',
-        critical: true,
-        durationMs: 1,
-        error: null,
-        details: { driver: 'prisma' },
-      },
-    ],
-    ...overrides,
   };
 }
