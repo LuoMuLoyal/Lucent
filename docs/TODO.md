@@ -119,6 +119,37 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
 
 ## 后续可做
 
+### 深链域名与 App Link 校验文件的部署（2026-10-16，Luminous 深链接入时发现）
+
+Luminous 的 App Link 走 `android:autoVerify="true"` + iOS `applinks:`，两端都要求服务端
+在域名根下提供校验文件，否则系统会拒绝 App Link、只能退回自定义 scheme：
+
+- `https://<域名>/.well-known/assetlinks.json`（Android，需 `package_name` +
+  release keystore 的 SHA-256 指纹）
+- `https://<域名>/.well-known/apple-app-site-association`（iOS，需 Team ID + Bundle ID）
+
+**域名尚未确定**：Luminous 侧把 host/scheme 全部做成了配置占位
+（`LUMINOUS_DEEP_LINK_HOST` / `LUMINOUS_DEEP_LINK_SCHEME`、Android manifestPlaceholders、
+iOS `DeepLink.xcconfig`），未硬编码任何域名。域名定下来后需在此侧部署两个校验文件，
+并把该 origin 加入 `CORS_ORIGIN`（`AuthOAuthStateService.isTrustedOrigin` 用它校验
+OAuth callbackUri）。验收：`adb shell pm get-app-links <pkg>` 显示 `verified`，
+且真机点开 `https://<域名>/login/oauth/qq?code=&state=` 能进 app。对侧登记见 Luminous
+`docs/TODO.md`。
+
+### OAuth callbackUri 放行移动端自定义 scheme（2026-10-16，Luminous 内嵌 WebView 接入时发现）
+
+`AuthOAuthStateService.normalizeCallbackUri` 目前只接受两类 `callbackUri`：loopback `http`
+带端口，或 `https` + CORS 白名单 origin + 固定 provider 回调路径（`/login/oauth/{wechat,qq,google}`）。
+Luminous 移动端新增「应用内 WebView 授权」后，两条路都能走通：loopback 模式已在桌面端验证，
+移动端也可用站点 origin 的 https 回调地址。**但两者都不是移动端最优解**——loopback 需要
+在设备上起本地 HTTP server，https 站点回调则依赖 WebView 拦截到该地址后不再真正请求。
+
+若要让移动端用自定义 scheme（如 `app-scheme://login/oauth/qq`）直接回跳，需要在
+`normalizeCallbackUri` 增加一条 scheme 白名单分支，并在 `CORS_ORIGIN` 之外引入独立的
+允许 scheme 配置项。验收：白名单内 scheme 通过、白名单外一律 `VALIDATION_FAILED`，
+且 `/login/oauth/*` 路径约束仍然生效（防开放重定向）。对侧登记见 Luminous
+`docs/TODO.md`。
+
 ### health-events ownership shim 的移除
 
 `HealthEventsOwnershipService` 为模块外消费方（reports / medicine-dose-logs /
