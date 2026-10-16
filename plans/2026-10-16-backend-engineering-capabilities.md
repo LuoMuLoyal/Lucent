@@ -232,9 +232,9 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 
 ---
 
-## 五、P1 — `@prisma/instrumentation` + OTel 默认开启
+## 五、P1 — `@prisma/instrumentation` + OTel 默认开启（已执行）
 
-### 5-1 OTel 默认开启（硬约束）
+### 5-1 OTel 默认开启（硬约束）（已执行）
 
 `src/tracing.ts` 在 `ConfigModule` **之前**执行，读裸 `process.env`，
 **看不到 zod 的默认值**。因此两处必须同时改且保持一致：
@@ -246,40 +246,39 @@ Revised: 2026-10-16（按维护者口径修正：① `@nestjs/terminus` **引入
 
 - **必须加单测**：断言「未设 `OTEL_ENABLED` 时 `tracing` 判定为启用」与
   「`=false` 时判定为关闭」。两处默认不一致会造成「文档说开着、实际没开」的分裂。
+  → 已落地：`src/tracing.spec.ts` 扩为 3 例（默认启动 + instrumentations 含 Prisma 项、
+  `=false` 不启动、env 文件先于判定加载）。
 - **开发体验**：默认开后，本地需要 collector。`compose.dev.yaml` 已有
   `jaegertracing/all-in-one`（`16686` UI + `4318` OTLP HTTP），
   与 `tracing.ts` 的默认端点 `http://127.0.0.1:4318/v1/traces` 一致 → 开发开箱可用。
-  未起 collector 时导出失败是**静默丢弃**（`environment-variables.md:567` 已声明该语义），
+  未起 collector 时导出失败是**静默丢弃**（`environment-variables.md` 已声明该语义），
   不阻断业务。
 - **生产端点非标准路径**：`compose.monitoring.yaml` 明确 VictoriaTraces 的 OTLP/HTTP 路径是
   `/insert/opentelemetry/v1/traces`（端口 `10428`），不是 `/v1/traces`。
-  `OTEL_EXPORTER_OTLP_ENDPOINT` 必须写完整路径——**部署文档需复核一遍**（该坑已在
-  `compose.monitoring.yaml` 注释里记录过，默认开启后新环境更容易踩）。
-- **采样器缺口（默认开启后变成必做）**：`docs/reference/environment-variables.md`
-  L579-585 文档化了 `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`，
-  但 `src/tracing.ts` 只设了 `resource` / `traceExporter` / `instrumentations`，
-  **未把它们接进 SDK**。需先实测 `NodeSDK` 是否自动读取这两个环境变量：
-  - 若否（预期）→ 在 `tracing.ts` 显式构造 sampler 并传入 `NodeSDK({ sampler })`；
-  - 无论结果如何，都要在 `environment-variables.md` 写明「已生效 / 未生效」，
-    不能继续留一个"文档说有、代码不读"的变量。
+  已复核：`docs/howto/deploy.md` 的 `.env` 表已写完整路径，本轮再补显式提醒行。
+- **采样器缺口（默认开启后变成必做）**：实测 `NodeSDK` 未显式传 `sampler` 时调用
+  `createSamplerFromEnv()` 读 `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`
+  （源码 `@opentelemetry/sdk-node` `sdk.js`），即**已生效**，无需改代码；
+  `environment-variables.md` 已写明「已实测生效」，并注明同时作为 Prisma span 体积过滤手段。
 
-### 5-2 Prisma 插桩
+### 5-2 Prisma 插桩（已执行）
 
-- `pnpm add @prisma/instrumentation`
+- `pnpm add @prisma/instrumentation`（实际解析 7.10.0，与 `@prisma/client` 7.10.0 对齐）。
 - `src/tracing.ts` 的 `instrumentations` 数组加入 `new PrismaInstrumentation()`。
 - **顺序约束**：必须在 Prisma Client 首次实例化前注册——`tracing.ts` 已是 `main.ts`
   第一个 import，满足。
-- **span 体积控制**：默认全记 query span，叠加默认开启会显著放大写入量
-  （VictoriaTraces 保留 **7 天**，见 `compose.monitoring.yaml:199-201`）。
-  用 `PrismaInstrumentation({ enabled })` 或 §5-1 的 sampler 做过滤，
-  **二者至少落实一个**，并在验收里给出前后 span 量对比。
+- **span 体积控制**：`PrismaInstrumentation` 无 `enabled` 选项（仅 `ignoreSpanTypes`），
+  故体积过滤由 §5-1 的采样器落实（**二者至少落实一个** → 采样器）。
+  前后 span 量对比需 collector，本地无法执行，见 §5-3。
 
 ### 5-3 验收
 
-- `OTEL_ENABLED=true`（或未设）起本地栈 + Jaeger（`16686`）→ 跑一次带 DB 读的请求，
+- `OTEL_ENABLED`（或未设）起本地栈 + Jaeger（`16686`）→ 跑一次带 DB 读的请求，
   断言 span 树里出现 `prisma:query` 子节点且 parent 是 HTTP span。
-- 未设 `OTEL_ENABLED` 时 SDK 确实启动（单测 + 一次手工确认）。
+- 未设 `OTEL_ENABLED` 时 SDK 确实启动（单测已覆盖；手工 Jaeger 确认待有 collector 的环境）。
 - span 量对比记录进迁移日志（前后各一次，同一组请求）。
+- **本地限制**：无 Docker/collector，B8（默认开启有 span）与 B9（Prisma span + 体积过滤）
+  的运行时实测交由 CI/部署环境；本轮已用单测固定「默认启动 + Prisma 插桩已装配」。
 
 ---
 

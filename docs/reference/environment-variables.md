@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-13
+updated: 2026-10-16
 ---
 
 # Environment Variables
@@ -556,15 +556,15 @@ VICTORIALOGS_URL
   `METRICS_PASSWORD`, the `/metrics` endpoint requires HTTP Basic Auth.
 - `METRICS_PASSWORD` — Basic Auth password for `/metrics`. Must be set together
   with `METRICS_USER`.
-- `OTEL_ENABLED` — set to `true` to start the OpenTelemetry SDK with automatic
-  instrumentation (HTTP/DB/Redis); all logs then carry `trace_id` / `span_id`.
-  BullMQ Worker and Cron Job spans are also created via `bullmq-otel` telemetry,
-  so async job logs carry `trace_id` too.
-  Default: `false` (SDK not started; tests and existing flows unaffected). See
-  ADR-0010 for the full tracing strategy.
+- `OTEL_ENABLED` — **默认开启**：未设置即启动 OpenTelemetry SDK，仅显式 `false` 时关闭。
+  开启后自动插桩 HTTP/DB/Redis **与 Prisma query**（`@prisma/instrumentation`）；所有日志
+  带 `trace_id` / `span_id`。BullMQ Worker 与 Cron Job span 由 `bullmq-otel` 遥测产生，
+  异步任务日志同样带 `trace_id`。默认值在 `src/tracing.ts`（在 ConfigModule 之前运行、
+  读裸 `process.env`）与校验层（`z.enum(['true','false']).default('true')`）**两处必须
+  一致**。未起 collector 时导出失败走静默丢弃路径，不阻断业务。见 ADR-0010。
 - `OTEL_EXPORTER_OTLP_ENDPOINT` — OTLP HTTP trace reporting endpoint. Default:
-  `http://127.0.0.1:4318/v1/traces` (local Jaeger all-in-one port 4318). Only
-  used when `OTEL_ENABLED=true`. 导出失败会被静默丢弃（不影响主流程）。
+  `http://127.0.0.1:4318/v1/traces` (local Jaeger all-in-one port 4318). 仅在 tracing
+  启用（`OTEL_ENABLED` 非 `false`）时使用。导出失败会被静默丢弃（不影响主流程）。
   In development, the endpoint points to the Jaeger all-in-one container
   (`compose.dev.yaml`). See ADR-0016 Decision 3 for the trace backend strategy.
   **生产指向 VictoriaTraces（阿里云）时路径不是标准的 `/v1/traces`**：
@@ -579,7 +579,9 @@ VICTORIALOGS_URL
 - `OTEL_TRACES_SAMPLER` — trace 采样器，取 OTel 规范的标准取值：`always_on` /
   `always_off` / `traceidratio` / `parentbased_always_on` / `parentbased_always_off` /
   `parentbased_traceidratio`。`src/tracing.ts` **不传** `sampler`，NodeSDK 因此走
-  `createSamplerFromEnv()` 读这两个变量 —— 所以**改采样率只需重启，不必改代码或重建镜像**。
+  `createSamplerFromEnv()` 读这两个变量（**已实测生效**，见 `src/tracing.spec.ts`）——
+  所以**改采样率只需重启，不必改代码或重建镜像**。它同时是 **Prisma query span 的体积
+  过滤手段**：Prisma 插桩默认每个 query 一个 span，默认开启后写入量放大，靠采样率收敛。
   ⚠️ 取值非法时 OTel 只打一行 `diag.error` 然后**回落默认 `always_on`**，不抛错也不阻止启动：
   配错会静默变成全量采集，改动后务必核对拼写。
 - `OTEL_TRACES_SAMPLER_ARG` — 采样率，取值 0–1，仅当 sampler 为 `traceidratio` /

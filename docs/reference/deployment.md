@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-12
+updated: 2026-10-16
 ---
 
 # Lucent Deployment
@@ -242,8 +242,9 @@ SSE 连接会收到终止事件后关闭,建议低峰发布。
 - **日志**:app 只写 stdout(容器收集)+ VictoriaLogs(`VICTORIALOGS_URL`),
   不写文件系统、不挂日志卷。字段约定见 [logging-conventions.md](logging-conventions.md)。
 - **链路追踪**:OTLP 推到监控机 `10428`,采样率由 `OTEL_TRACES_SAMPLER` /
-  `OTEL_TRACES_SAMPLER_ARG` 控制(改环境变量即可,不必重建镜像)。
-  见 ADR-0010 / ADR-0016。
+  `OTEL_TRACES_SAMPLER_ARG` 控制(改环境变量即可,不必重建镜像)。tracing **默认开启**
+  (Prisma query 也已插桩),仅 `OTEL_ENABLED=false` 关闭;端点必须写全路径
+  `/insert/opentelemetry/v1/traces`。见 ADR-0010 / ADR-0016。
 - **告警**:用 **Grafana 统一告警**(不引入 vmalert + Alertmanager)。告警规则、
   联系点与通知策略是 `monitoring/grafana/provisioning/alerting/` 下三个可入库 YAML,
   由 Grafana 在启动时装载;机密(发信账号与收件人)只经 `.env` 注入 `GF_SMTP_*` /

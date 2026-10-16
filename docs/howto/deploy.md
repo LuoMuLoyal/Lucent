@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: howto
-updated: 2026-10-12
+updated: 2026-10-16
 ---
 
 # How-To: 部署 Lucent
@@ -271,6 +271,7 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 | `SEMANTICA_BASE_URL`                   | `http://<图库IP>:8099`(公网)                                                                                   |
 | `VICTORIALOGS_URL`                     | `http://<监控IP>:9428/insert/jsonline`(公网)                                                                   |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`          | `http://<监控IP>:10428/insert/opentelemetry/v1/traces`                                                         |
+| `OTEL_ENABLED`                         | 默认开启,留空即上报;**仅填 `false` 才关闭**;路径必须写全(见上一行,非标准 `/v1/traces`)                         |
 | `METRICS_USER` / `METRICS_PASSWORD`    | app `/metrics` 的 Basic Auth + VM 抓取凭据;**与监控机一致**                                                    |
 | 其余密钥                               | JWT / ADMIN / 邮件 / AI / 对象存储 / 推送,见 [environment-variables.md](../reference/environment-variables.md) |
 
