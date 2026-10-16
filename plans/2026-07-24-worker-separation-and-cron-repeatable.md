@@ -1,8 +1,16 @@
 # BullMQ Worker 进程分离计划
 
+> **状态：暂缓，未开工（2026-10-16 复核）。**
+> 本计划自 2026-07-24 起从未实现：`src/` 与 `compose*.yaml` 中 `WORKER_MODE` 零痕迹，api/worker 未拆分。
+> 2026-08-16 功能盘点已裁决为「阶段错配、暂缓启用」——队列高峰拖慢 HTTP 在单机量级下不是已观测痛点
+> （队列并发均为 1–3，见 `Luminous/plans/2026-08-16-engineering-backend-plan.md` P2-A）。
+> **启用触发条件（非时间表）**：Grafana 里 `bullmq_waiting_jobs` 持续非零，或 p95 HTTP 延迟与队列高峰相关。
+> 同一份盘点还覆盖了 rnacos 热配置（`2026-08-02-rnacos-runtime-config-tuning.md`，同为暂缓）——
+> 两份计划与 `2026-08-22-medium-to-large-migration-inventory.md` Task 1 内容重复，**以盘点计划的触发条件为准**。
+
 ## 背景
 
-当前所有 BullMQ worker（9 个队列）都在 API 进程内运行。
+当前所有 BullMQ worker 都在 API 进程内运行。
 PDF 生成等 CPU 密集任务与 HTTP 请求处理共享同一个 event loop；LLM 类任务虽是
 I/O 密集（等待 LLM API），但高并发下同样占用内存与 event loop 调度资源，
 在队列高峰时可能拖慢 API 响应。分离的核心收益是资源隔离与独立扩缩容。
@@ -26,7 +34,9 @@ ADR-0004 已规划"未来将 worker 拆到独立进程/容器"。本计划执行
 | `clinic-summary-pdf`         | 1        | `BaseAsyncQueueService` | 是 (PDF)              | `reports/services/clinic-summary/pdf-queue.service.ts`     |
 
 > 注：`BaseAsyncQueueService` 实际有 **6** 个子类（源码注释写的 "5" 已过时，
-> Phase 5 一并修正）；ADR-0004 写的 "All 7 BullMQ queue workers" 同样过时（实际 9 个）。
+> 2026-10-01 已在源码修正）；队列权威口径为 12 条 Queue 实例：6 条继承
+> `BaseAsyncQueueService`、4 条业务直建、2 条调度队列（`2026-08-16-remediation-decision-register.md`
+> 工程与运营一节）。本计划开工前需按该口径重新核对下表。
 
 ### 基础设施
 
@@ -303,26 +313,29 @@ compose healthcheck 无 HTTP 端点可用；BullMQ job completed/failed 计数�
 
 **改动文件**：
 
-1. `docs/01-reference/deployment.md` — 更新：
+1. `docs/reference/deployment.md` — 更新：
    - compose 服务列表增加 `worker`
    - 部署流程步骤更新（先停 worker+app → migrate → 起新 app → 起 worker）
-   - .env 示例增加 `WORKER_MODE` 说明（只在 compose.yml 的 `environment` 块设置，
+   - .env 示例增加 `WORKER_MODE` 说明（只在 compose 的 `environment` 块设置，
      不在 .env 中配置）
+     注：原路径 `docs/01-reference/` 已随 2026-08-31 文档治理改为 `docs/reference/`；
+     `deploy/compose.yml` 已拆为 `compose.yaml` 等三份（ADR-0023）。
 
-2. `docs/01-reference/adr/0004-deployment-model.md` — Update：
-   - 标记 "BullMQ Worker Topology" 未来计划为已完成
-   - 顺带修正过时表述："All 7 BullMQ queue workers" → 9 个
+2. `docs/reference/adr/0004-deployment-model.md` — 该 ADR 已被 ADR-0023
+   supersedes（三机 Compose 部署模型）。按 ADR 只增不改的约定，**不修改 0004**，
+   只在新的部署文档中记录 worker 拓扑；ADR-0023 的 Status 已标注取代关系。
 
-3. `src/common/queue/base-async-queue.service.ts` — 修正注释 "5 async queue
-   services" → 6
+3. `src/common/queue/base-async-queue.service.ts` — 注释 "5 async queue
+   services" → 6（已于 2026-10-01 修正，无需再改）
 
-4. `docs/02-logs/migration-log/YYYY-MM-DD.md` — 追加迁移日志
+4. `docs/logs/migration-log/YYYY-MM-DD.md` — 追加迁移日志
 
-5. `deploy/prometheus/rules/lucent.yml` — 新增 worker 进程告警（如
-   `WorkerProcessDown`：worker 容器 down 或 3001/metrics 抓取失败）
-
-6. `deploy/grafana/dashboards/lucent-backend-overview.json` — 新增 worker
-   容器面板（可选）
+5. `monitoring/grafana/provisioning/alerting/rules.yml` — 新增 worker 进程告警（如
+   `WorkerProcessDown`：worker 容器 down 或 `/metrics` 抓取失败）。
+   注：原第 5/6 项写的 `deploy/prometheus/` / `deploy/grafana/` 路径已不存在——
+   监控资产现位于 `monitoring/`，compose 已按机器拆为 `compose.yaml`（主站）/
+   `compose.graph.yaml`（图库机）/ `compose.monitoring.yaml`（监控机）（ADR-0023，
+   2026-10-12 修订）。
 
 ---
 

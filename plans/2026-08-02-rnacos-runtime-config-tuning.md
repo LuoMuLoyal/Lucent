@@ -1,5 +1,14 @@
 # rnacos 动态运行时配置与调优实施计划
 
+> **状态：暂缓，未开工（2026-10-16 复核）。**
+> 本计划自 2026-08-02 起从未实施：仓库内 rnacos 零依赖、`RuntimeConfigService` 不存在。
+> 2026-08-16 功能盘点裁决为**降级为「环境变量 + 重启」**：要调的非敏感参数总共十几个，
+> 重启代价只有几十秒；为一个配置中心付出部署/持久化/鉴权/监控成本对单产品单环境阶段是投入错配。
+> 真正该先建的是餐食识别的**离线评测集**（标注图片 + 指标对比脚本）。
+> 详见 `Luminous/plans/2026-08-16-engineering-backend-plan.md` P2-B。
+> **启用触发条件**：离线评测流程存在，且证明参数需要以天为粒度频繁调整时再回来启用。
+> ADR-0018（config-env-only）已把「只用环境变量」固化为决策，与本计划的暂缓方向一致。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在不重启 Lucent 进程的情况下，动态调整餐食识别、队列和缓存的可调参数，并保留环境变量作为启动期兜底配置。
@@ -167,10 +176,9 @@ pnpm typecheck
 - Create: `src/config/runtime/rnacos-config-source.spec.ts`
 - Modify: `src/config/runtime/runtime-config.module.ts`
 - Modify: `src/config/runtime/runtime-config.service.ts`
-- Modify: `docker-compose.dev.yml`
+- Modify: `compose.dev.yaml`
 - Modify: `scripts/dev/up-local-stack.ts`
-- Modify: `docs/01-reference/environment.md`
-- Modify: `docs/01-reference/environment-variables.md`
+- Modify: `docs/reference/environment-variables.md`
 
 - [ ] **Step 1: 先验证 rnacos 服务端和客户端协议兼容性**
 
@@ -200,7 +208,7 @@ export interface RuntimeConfigSource {
 
 - [ ] **Step 4: 增加本地可选 rnacos 服务**
 
-在确认上游提供的镜像或二进制发布方式后，把固定版本写入 `docker-compose.dev.yml`，使用独立的 Compose profile 或等价显式开关，避免普通 `pnpm dev:stack` 在用户未需要时自动增加服务。持久化数据使用独立 volume，端口和认证信息不得硬编码到源码。
+在确认上游提供的镜像或二进制发布方式后，把固定版本写入 `compose.dev.yaml`，使用独立的 Compose profile 或等价显式开关，避免普通 `pnpm dev:stack` 在用户未需要时自动增加服务。持久化数据使用独立 volume，端口和认证信息不得硬编码到源码。
 
 - [ ] **Step 5: 验证远程更新不重启进程**
 
@@ -334,19 +342,18 @@ pnpm typecheck
 
 **Files:**
 
-- Create: `docs/01-reference/adr/0011-rnacos-runtime-config.md`
+- Create: `docs/reference/adr/0011-rnacos-runtime-config.md`
 - Modify: `src/config/runtime/runtime-config.service.ts`
 - Modify: `src/common/logger/lifecycle.service.ts`
 - Modify: `src/common/logger/lifecycle.service.spec.ts`
 - Modify: `src/common/metrics/metrics.service.ts`
 - Modify: `src/common/metrics/metrics.service.spec.ts`
-- Modify: `docs/01-reference/environment.md`
-- Modify: `docs/01-reference/environment-variables.md`
+- Modify: `docs/reference/environment-variables.md`
 - Modify: `README.md`
 - Modify: `.env.development.example`
 - Modify: `.env.test.example`
 - Modify: `.env.production.example`
-- Append: `docs/02-logs/migration-log/YYYY-MM-DD.md`
+- Append: `docs/logs/migration-log/YYYY-MM-DD.md`
 
 - [ ] **Step 1: 增加运行时配置状态日志和指标**
 
@@ -380,7 +387,7 @@ pnpm docs:links
 - Modify: `src/modules/daily-records/services/meal-analysis/matcher.service.spec.ts`
 - Modify: `src/common/queue/queue.factory.spec.ts`
 - Modify: `src/common/cache/runtime-cache-policy.service.spec.ts`
-- Modify: `docs/01-reference/adr/0011-rnacos-runtime-config.md`
+- Modify: `docs/reference/adr/0011-rnacos-runtime-config.md`
 
 - [ ] **Step 1: 运行范围测试**
 

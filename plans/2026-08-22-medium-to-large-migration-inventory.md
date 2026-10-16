@@ -6,7 +6,21 @@
 
 **Architecture:** 保留模块化单体和单仓 Prisma 迁移体系，不以拆微服务为目标。优先把配置、错误、队列、事件、持久化访问和 API 发布边界做深，让故障、变更和验证集中在少数稳定接口后面。
 
-**Tech Stack:** NestJS 11、Fastify、Prisma 7、PostgreSQL/pgvector、Redis/BullMQ、neverthrow、OpenAPI、Vitest、Docker Compose、OpenTelemetry、Prometheus。
+**Tech Stack:** NestJS 12、Fastify、Prisma 7、PostgreSQL/pgvector、Redis/BullMQ、neverthrow、OpenAPI、Vitest、Docker Compose、OpenTelemetry、Prometheus。
+
+> **状态：六项 Task 全部未开工（2026-10-16 复核）。** 其中 Task 1（Worker 分离）与 rnacos
+> 热配置已被 `Luminous/plans/2026-08-16-engineering-backend-plan.md` P2-A/P2-B 裁决为
+> **「阶段错配、暂缓启用」**，启用绑定可观测触发条件而非时间表；Task 1 开工前应先看那份裁决。
+> 其余 Task（Outbox、Prisma 所有权收口、跨仓合同门、迁移发布门、可观测性瘦身）暂无冲突裁决，
+> 按本文件顺序推进。
+>
+> 本计划与 `2026-07-24-worker-separation-and-cron-repeatable.md`、
+> `2026-08-02-rnacos-runtime-config-tuning.md` 内容重叠——后两份是执行细节，本文件是排序与
+> 暂停条件；**以本文件的顺序和裁决为准**。
+>
+> 路径口径（2026-10-16 修正）：compose 已按机器拆为 `compose.yaml` / `compose.graph.yaml` /
+> `compose.monitoring.yaml`（ADR-0023），监控资产在 `monitoring/`，文档面已从
+> `docs/01-reference/` 改为 `docs/reference/`。
 
 ---
 
@@ -16,11 +30,11 @@
 
 ### 已有独立计划，不在本计划重复拆解
 
-| 项目                   | 当前状态                                                                                                                                                   | 本计划处理方式                                                             |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| BullMQ Worker 进程分离 | 已有 [`2026-07-24-worker-separation-and-cron-repeatable.md`](2026-07-24-worker-separation-and-cron-repeatable.md)，但源码中尚未形成 `WORKER_MODE` 运行路径 | 作为 P0/P1 现有计划继续执行；本计划补充它与事件、队列运维的依赖            |
-| rnacos 运行时调参      | 已有 [`2026-08-02-rnacos-runtime-config-tuning.md`](2026-08-02-rnacos-runtime-config-tuning.md)；这是动态调参，不等于静态配置迁移                          | 与本计划的 YAML 配置加载分开，先完成静态配置边界，再决定是否引入运行时中心 |
-| 可观测性轻量化         | 已有 `docs/01-reference/observability-lightweight-research.md`，尚未改 Compose                                                                             | 按 benchmark 结果决定，不把"换监控栈"当作无证据的立即重构                  |
+| 项目                   | 当前状态                                                                                                                                                                              | 本计划处理方式                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| BullMQ Worker 进程分离 | 已有 [`2026-07-24-worker-separation-and-cron-repeatable.md`](2026-07-24-worker-separation-and-cron-repeatable.md)，但源码中尚未形成 `WORKER_MODE` 运行路径；**2026-08-16 已裁决暂缓** | 触发条件见该文件头；本计划 Task 1 只做队列运行合同那一半  |
+| rnacos 运行时调参      | 已有 [`2026-08-02-rnacos-runtime-config-tuning.md`](2026-08-02-rnacos-runtime-config-tuning.md)；这是动态调参，不等于静态配置迁移；**2026-08-16 已裁决降级为「环境变量 + 重启」**     | 与静态配置边界分开；启用前置是餐食识别离线评测集          |
+| 可观测性轻量化         | 已有 `docs/reference/observability-lightweight-research.md`，尚未改 Compose                                                                                                           | 按 benchmark 结果决定，不把"换监控栈"当作无证据的立即重构 |
 
 ### 候选迁移总表
 
@@ -47,7 +61,7 @@
 - Continue: `plans/2026-07-24-worker-separation-and-cron-repeatable.md`
 - Modify: `src/main.ts`, `src/common/queue/queue.factory.ts`, `src/common/queue/base-async-queue.service.ts`, `src/common/queue/cron-jobs.service.ts`
 - Modify: all queue services under `src/modules/**` and `src/mail/mail-queue.service.ts`
-- Modify: `deploy/compose.yml`, `deploy/deploy.ts`, `deploy/smoke.ts`, `deploy/prometheus/`
+- Modify: `compose.yaml`, `deploy/`（发布脚本与 smoke）, `monitoring/`
 - Test: queue factory/base service/worker probe tests and staging smoke checks
 
 - [ ] 先落地 `WORKER_MODE=api|worker`，验证未设置时保持当前 `full` 行为；API 进程只 enqueue/poll，Worker 进程消费和注册 repeatable cron。
@@ -86,7 +100,7 @@
 - Extend: module root barrels `src/modules/*/index.ts`
 - Modify: `src/common/helpers/prisma/`
 - Create: architecture dependency check under `scripts/` and its test
-- Update: `docs/01-reference/architecture.md`, ADR-0009, `docs/01-reference/how-to/add-new-module.md`
+- Update: `docs/reference/architecture.md`, ADR-0009, `docs/reference/how-to/add-new-module.md`
 
 - [ ] 把生产路径逐项分类为 owner write、owner read、cross-module read-model、migration/import/admin/test；不要按正则统计直接批量改名。
 - [ ] owner module 的写入统一进入 repository/service，并把事务、软删除、ownership 和并发约束放在该接口后；消费者不得拼接别人的 Prisma query DSL。
@@ -102,7 +116,7 @@
 
 - Modify: `scripts/contract/export-openapi.ts`, `package.json`, `.github/workflows/lucent-ci.yml`
 - Modify: `Luminous/scripts/bootstrap_generated_sources.dart`, `Luminous/scripts/verify_lucent_openapi_sync.dart`, `Luminous/.github/workflows/luminous-ci.yml`
-- Modify: `docs/openapi.json`, `docs/01-reference/contracts/`, `Luminous/docs/00-current/Lucent_Contract_Snapshot.md`
+- Modify: `docs/openapi.json`, `docs/reference/contracts/`, `Luminous/docs/00-current/Lucent_Contract_Snapshot.md`
 - Test: contract compatibility and generated client drift checks
 
 - [ ] 固定合同产物的来源 commit/version；每次 controller/DTO/Problem Details/SSE 改动同时导出 OpenAPI，并记录生成器版本和命令。
@@ -118,9 +132,9 @@
 **Files:**
 
 - Modify: `.github/workflows/lucent-ci.yml`
-- Modify: `deploy/deploy.ts`, `deploy/smoke.ts`, `docs/01-reference/deployment.md`
+- Modify: `deploy/`（发布与 smoke 脚本）, `docs/reference/deployment.md`
 - Create: migration validation helper and upgrade-fixture tests under `scripts/`/`test/`
-- Update: `docs/01-reference/how-to/restore-database-backup.md`, `docs/01-reference/architecture.md`
+- Update: `docs/reference/how-to/restore-database-backup.md`, `docs/reference/architecture.md`
 
 - [ ] CI 在空库和最近版本 fixture 上分别执行 `prisma migrate deploy`，并检查生成 client、schema 与 migration 是否一致。
 - [ ] 对 rename/drop/type narrowing 等破坏性变更强制采用 expand/contract：先加兼容字段/索引，回填并切读写，再在单独发布删除旧结构。
@@ -134,9 +148,9 @@
 
 **Files:**
 
-- Inspect/Modify: `deploy/compose.yml`, `deploy/prometheus/`, `deploy/grafana/`, `deploy/alertmanager/`
+- Inspect/Modify: `compose.yaml`, `monitoring/`, `monitoring/`, `monitoring/`
 - Inspect: `src/common/metrics/`, `src/tracing.ts`, `src/common/logger/`
-- Update: `docs/01-reference/observability-lightweight-research.md`, ADR-0006/0010, deployment docs
+- Update: `docs/reference/observability-lightweight-research.md`, ADR-0006/0010, deployment docs
 - Later: API version/deprecation docs and OpenAPI config after a separate ADR
 
 - [ ] 先采集同一负载下应用 P95/P99、event loop、OOM、磁盘增长、active series、scrape duration、队列积压和告警延迟。

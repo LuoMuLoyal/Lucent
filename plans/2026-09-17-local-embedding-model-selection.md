@@ -1,8 +1,20 @@
 # 本地嵌入模型选型调研（LightRAG 中文侧 + OAG 英文侧）
 
 Created: 2026-09-17
-状态：调研记录（**未决策**；缺硬件与规模输入，收敛条件见 §6）
-定位：回答"LightRAG / OAG 的向量嵌入，本地用哪个模型"。先厘清**要嵌入的不是一件事而是三条线**（§0），再给候选矩阵（§2）、服务形态（§3）、分档推荐（§4）与红线清单（§5）。**不推翻** `2026-09-16-lightrag-introduction-plan.md` 与 Semantica 英文侧 OAG 的既有决定（决策见 `docs/reference/adr/0021-semantica-english-side-oag.md`），只补它们留下的"嵌入模型"空位。
+Revised: 2026-10-16（前提已变：两处空位均已被现有方案填上，见 §0）
+状态：**大部分前提已失效，收敛为单一未决项**（2026-10-16）。原 §0 表格里标「未选模型 / 首次建设」的两条线，现在都有在跑的实现：
+
+| #   | 索引                          | 原状态（2026-09-17）                                                        | 现状（2026-10-16 核实）                                                                                                                                                                                          |
+| --- | ----------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | LightRAG `PGVectorStorage`    | 模板是 `EMBEDDING_BINDING=openai` + `EMBEDDING_DIM=1536` 占位，**未选模型** | **已定并跑通**：`deploy/lightrag/.env` 用 `text-embedding-v4`，`EMBEDDING_DIM=768` + `EMBEDDING_SEND_DIM=true`（两个变量必须同时设，见迁移日志 2026-10-02）；按说明书灌入链路已实跑。                            |
+| 2   | Lucent 自有 pgvector 表       | 三张向量表 dev 库均不存在，等于**首次建设**                                 | **已建并灌完**：`drugbank_passage_chunks` 48,475 行 / `drugbank_passage_embeddings` 48,475 行，768 维一致，HNSW 索引已建（`USING hnsw (embedding vector_cosine_ops)`），检索实测 0.7 ms（迁移日志 2026-10-02）。 |
+| 3   | Semantica 内部 `TextEmbedder` | 硬编码 `BAAI/bge-small-en-v1.5`，加载失败静默退化为 128 维哈希              | **已退役**：英文侧改走 Neo4j + OAG（ADR-0022），Semantica 的嵌入路径不再是主链；「静默降级」这条风险随之消失。                                                                                                   |
+
+**因此本调研剩下的唯一未决项**：是否/何时把嵌入从「云端 `text-embedding-v4`」迁到「本地自托管模型」。原 §6 的六项待补输入里，第 1 项（GPU/显存）与第 2 项（吞吐基准）依然是前置条件；第 3–6 项（Qwen3 维度复核、LangChain `PGVectorStore` 维度上限、Ollama 兼容层行为、中文评测集）中，第 4 项已由 768 维实建索引部分回答（768 维 HNSW 正常，>2000 维仍未验证）。
+
+**若最终裁决「保持云端」**，本文件按生命周期删除——下面 §1–§5 的候选矩阵与红线作为当时的调研记录保留，直到该裁决做出。
+
+定位（历史记录）：回答「LightRAG / OAG 的向量嵌入，本地用哪个模型」。**不推翻** `2026-09-16-lightrag-introduction-plan.md`（实施完毕文件已删）与 Semantica 英文侧 OAG 的既有决定（决策见 `docs/reference/adr/0021-semantica-english-side-oag.md`），只补它们留下的「嵌入模型」空位。
 
 证据标注沿用同目录既有约定：`[核实]` = 源码 / 官方仓库 / 官方文档 / 实测；`[二手]` = 第三方；`[研判]` = 本文判断；`[待核实]` = 本条**尚未**复核，落地前必须补。
 
@@ -10,16 +22,18 @@ Created: 2026-09-17
 
 ## 〇、要嵌入的到底是哪几条线
 
-| #   | 索引                          | 谁配置                                                                                                                                                                                               | 语料                                                                             | 现状                                                                                                      |
-| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| 1   | LightRAG `PGVectorStorage`    | sidecar 独立 env：`EMBEDDING_*`（`deploy/lightrag/.env.example`）                                                                                                                                    | 中文说明书字段（`cn_medicine_leaflets` 21,142）+ 医学问答（`medical_qa` 136 万） | 模板是 `EMBEDDING_BINDING=openai` + `EMBEDDING_DIM=1536` 占位，**未选模型**                               |
-| 2   | Lucent 自有 pgvector 表       | `AI_EMBEDDING_*` → `LlmRuntimeService.createEmbeddingModel()`（`src/llm-runtime/llm-runtime.service.ts`）经 `VectorStoreFactory`（`src/modules/assistant/tools/vector/vector-store.factory.ts`）使用 | 英文 DrugBank passage（`drugbank_passage_embeddings`）等                         | 三张向量表 dev 库**均不存在**（见 LightRAG 计划 §0 实测），等于**首次建设**                               |
-| 3   | Semantica 内部 `TextEmbedder` | 上游硬编码，无 env                                                                                                                                                                                   | 英文抽取阶段内部相似度                                                           | `[核实：semantica plan §5]` 写死 `BAAI/bge-small-en-v1.5`；加载失败**静默**退化为 128 维 SHA-256 哈希向量 |
+> 本节为 2026-09-17 的快照，**现状以文件头的状态表为准**。保留它是为了说明「本地化」这个决策当初面对的是什么。
 
-**两条必须先说清的前提**：
+| #   | 索引                          | 谁配置                                                                                                                                                                                               | 语料                                                                             | 原现状（2026-09-17）                                                          |
+| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 1   | LightRAG `PGVectorStorage`    | sidecar 独立 env：`EMBEDDING_*`（`deploy/lightrag/.env.example`）                                                                                                                                    | 中文说明书字段（`cn_medicine_leaflets` 21,142）+ 医学问答（`medical_qa` 136 万） | 模板是 `EMBEDDING_BINDING=openai` + `EMBEDDING_DIM=1536` 占位，**未选模型**   |
+| 2   | Lucent 自有 pgvector 表       | `AI_EMBEDDING_*` → `LlmRuntimeService.createEmbeddingModel()`（`src/llm-runtime/llm-runtime.service.ts`）经 `VectorStoreFactory`（`src/modules/assistant/tools/vector/vector-store.factory.ts`）使用 | 英文 DrugBank passage（`drugbank_passage_embeddings`）等                         | 三张向量表 dev 库**均不存在**，等于**首次建设**                               |
+| 3   | Semantica 内部 `TextEmbedder` | 上游硬编码，无 env                                                                                                                                                                                   | 英文抽取阶段内部相似度                                                           | 写死 `BAAI/bge-small-en-v1.5`；加载失败**静默**退化为 128 维 SHA-256 哈希向量 |
 
-1. **OAG 主链不吃嵌入。** `[核实：`docs/reference/adr/0021-semantica-english-side-oag.md` §决定 3]` 英文侧入图是"DrugBank 结构化边**确定性灌入**"，不需要 LLM 抽取，也不需要 Semantica 的嵌入器；Phase 4 推理（Rete / Datalog / SPARQL）同样与向量无关。**真正需要嵌入的只有 §0 表的第 1、2 行**，第 3 行是"顺手修掉的一条历史路径"。
-2. **LightRAG 的嵌入是一次性锁定的。** `[核实：LightRAG env.docker-compose-full @main，2026-09-17 抓取]` 上游原文 _"Embedding Configuration (Should not be changed after the first file processed)"_。换模型或换维度 = 中文侧全量重建（21k 说明书 + 上限 136 万 QA）。因此**先小样本跑通、再定模型、最后全量**，顺序不可反。
+**两条当时的前提**（第一条仍成立，第二条的结论已被 2026-10-02 的实跑取代）：
+
+1. **OAG 主链不吃嵌入。** 英文侧入图是「DrugBank 结构化边**确定性灌入**」，不需要 LLM 抽取，也不需要嵌入器；推理同样与向量无关。**真正需要嵌入的只有第 1、2 行**，第 3 行是「顺手修掉的一条历史路径」——现已随 Neo4j 迁移（ADR-0022）整体消失。
+2. **LightRAG 的嵌入是一次性锁定的。** 上游原文 _"Embedding Configuration (Should not be changed after the first file processed)"_。换模型或换维度 = 中文侧全量重建。因此**先小样本跑通、再定模型、最后全量**，顺序不可反。2026-10-02 已按该顺序走完（768 维 + `EMBEDDING_SEND_DIM=true`），**现在再改模型仍要承担全量重建代价**。
 
 ---
 
@@ -127,25 +141,31 @@ OLLAMA_EMBEDDING_NUM_CTX=8192
 
 ## 六、未决项（收敛这份调研需要补的输入）
 
-| #   | 待补                                                   | 谁给 / 怎么补     | 阻塞什么                                                                                          |
-| --- | ------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------- |
-| 1   | **部署机有没有 GPU、显存多大**                         | 人工确认          | §4 分档、§3.2 服务选型                                                                            |
-| 2   | 1k 条样本的嵌入吞吐 / 延迟基准（中文说明书 + QA 各抽） | 实测              | 136 万 QA 是否全量、`EMBEDDING_FUNC_MAX_ASYNC` / `EMBEDDING_BATCH_NUM` / `EMBEDDING_TIMEOUT` 定值 |
-| 3   | Qwen3-Embedding 全系维度与上下文逐条复核               | 模型卡 / 实测     | §2 表中 `[待核实]` 项                                                                             |
-| 4   | LangChain `PGVectorStore` 建索引的维度上限与索引类型   | 读源码 / 建表实测 | §5.2                                                                                              |
-| 5   | Ollama OpenAI 兼容层 `/v1/embeddings` 的实际行为       | 实测              | 是否只把它当 LightRAG binding 用                                                                  |
-| 6   | 中文侧小型检索评测集（说明书字段级 + QA）              | 需构造            | "bge-m3 vs Qwen3-Embedding vs bge-large-zh" 的取舍从"看榜"变成"看本库数据"                        |
+> 2026-10-16 更新：原 6 项中第 4 项已由 768 维实建索引部分回答（768 维 HNSW 正常；>2000 维仍未验证）。
+> **真正阻塞「是否本地化」这个决策的只剩第 1、2 项。**
+
+| #   | 待补                                                   | 谁给 / 怎么补  | 阻塞什么                                                                                          |
+| --- | ------------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | **部署机有没有 GPU、显存多大**                         | 人工确认       | §4 分档、§3.2 服务选型                                                                            |
+| 2   | 1k 条样本的嵌入吞吐 / 延迟基准（中文说明书 + QA 各抽） | 实测           | 136 万 QA 是否全量、`EMBEDDING_FUNC_MAX_ASYNC` / `EMBEDDING_BATCH_NUM` / `EMBEDDING_TIMEOUT` 定值 |
+| 3   | Qwen3-Embedding 全系维度与上下文逐条复核               | 模型卡 / 实测  | §2 表中 `[待核实]` 项（仅当决定本地化时才需要）                                                   |
+| 4   | ~~LangChain `PGVectorStore` 建索引的维度上限~~         | **已部分回答** | 768 维 HNSW 已实建并验证（2026-10-02）；>2000 维仍未验证                                          |
+| 5   | Ollama OpenAI 兼容层 `/v1/embeddings` 的实际行为       | 实测           | 是否只把它当 LightRAG binding 用（仅当决定本地化时才需要）                                        |
+| 6   | 中文侧小型检索评测集（说明书字段级 + QA）              | 需构造         | 「bge-m3 vs Qwen3-Embedding vs bge-large-zh」的取舍从「看榜」变成「看本库数据」                   |
+
+**裁决口径**：若第 1 项确认无 GPU、或第 2 项显示云端吞吐已够用，则裁决「保持云端 `text-embedding-v4`」，本文件按 `plans/README.md` 生命周期删除，并在 `src/modules/assistant/README.md` 记一句「嵌入保持云端及理由」。
 
 ---
 
 ## 七、与现有文档的关系
 
-| 文档                                                    | 关系                                                                                             |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `plans/2026-09-16-lightrag-introduction-plan.md`        | 本调研补它的 `EMBEDDING_*` 空位（该计划 §4.2 只定义变量名，未选模型）；§0 数据规模引自其 §0 实测 |
-| `docs/reference/adr/0021-semantica-english-side-oag.md` | 本调研 §0 第 3 行、§5.4 引自原 Semantica 计划（已删除）；**不改变**"OAG 主链不吃嵌入"的结论      |
-| `plans/2026-09-06-rag-hybrid-search-upgrade.md`         | 向量侧的选型若变更，需回看该计划的混合检索（向量 + FTS）是否需要同维度                           |
-| `deploy/lightrag/.env.example`                          | 本调研结论落地时改动的唯一 sidecar 配置入口（`EMBEDDING_*` + 本地 rerank 段）                    |
-| `docs/reference/environment-variables.md`               | LightRAG 小节与新选型无变量名冲突；`AI_EMBEDDING_MODEL` 语义描述可能需补"可指向自建端点"         |
+| 文档                                                                 | 关系                                                                                   |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `plans/2026-09-16-lightrag-introduction-plan.md`（实施完毕文件已删） | 本调研补它的 `EMBEDDING_*` 空位；该计划的 `EMBEDDING_DIM` 已定为 768 并跑通            |
+| `docs/reference/adr/0021-semantica-english-side-oag.md`              | 本调研 §0 第 3 行引自原 Semantica 计划（已删除）；**不改变**「OAG 主链不吃嵌入」的结论 |
+| `plans/2026-09-06-rag-hybrid-search-upgrade.md`                      | 向量侧维度已固定 768，该计划的 FTS 通道与维度无关                                      |
+| `docs/reference/adr/0022-graph-backend-neo4j.md`                     | AGE/图后端决策；本调研的 Semantica 嵌入一行随其退役                                    |
+| `deploy/lightrag/.env.example`                                       | sidecar 配置入口（`EMBEDDING_*`）；已含 `EMBEDDING_SEND_DIM` 说明                      |
+| `docs/reference/environment-variables.md`                            | LightRAG 小节与 `AI_EMBEDDING_*` 说明                                                  |
 
 **外网出处**（`[二手]` 来源，落地前应复核）：[LightRAG env.docker-compose-full](https://github.com/HKUDS/LightRAG/blob/main/env.docker-compose-full)、[Ollama OpenAI compatibility](https://docs.ollama.com/openai)、[ollama bge-m3](https://ollama.com/library/bge-m3)、[Qwen3-Embedding-0.6B 模型卡](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B)。

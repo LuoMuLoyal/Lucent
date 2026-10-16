@@ -1,6 +1,13 @@
 # Agentic → Proactive → 伴身演进:Lucent 后端任务清单
 
 > 2026-09-02 起。定位:把 assistant(已有的 LangGraph Agent + 工具 + proposal 门控)从"聊天窗口里的单页能力"升级为贯穿主流程的 Agentic 形态,再走向事件/时间驱动的 Proactive/Ambient 后台智能体,最终对齐"健康伴身智能体"愿景。每一步保留 human-in-the-loop——医疗场景的合规需要,也是产品差异化。
+>
+> **状态：Phase 0 起未开工（2026-10-16 复核）。** P0-1~P0-4 四项均无对应代码:
+> 独立语义搜索端点、视觉字段提取端点、共享上下文构建器、proposal 服务域化都还不存在。
+> 其中 P0-1 的"混合检索"部分已由 `2026-09-06-rag-hybrid-search-upgrade.md` 单独立项
+> (该计划 2026-10-16 已收窄为仅 DrugBank 英文通道),本计划的 P0-1 只承担"把检索能力泛化为
+> 独立搜索服务 + 端点"那一半。
+> 客户端配套清单见 `Luminous/plans/2026-09-02-agentic-proactive-evolution.md`(同样未开工)。
 
 ## 现状锚点(代码事实)
 
