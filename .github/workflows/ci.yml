@@ -218,5 +218,16 @@ jobs:
       - name: Export OpenAPI spec
         run: pnpm openapi:export
 
+      # G3: fail when the code changed but the regenerated spec was not
+      # committed. Without this, a stale openapi.json passes CI as long as the
+      # E2E contract tests can still load it — the drift only surfaces later,
+      # when a client is generated from the wrong contract.
+      - name: Verify OpenAPI spec is committed
+        run: |
+          if ! git diff --exit-code -- docs/reference/generated/openapi.json; then
+            echo "::error::openapi.json differs from the committed version — run 'pnpm export:openapi' and commit the result."
+            exit 1
+          fi
+
       - name: E2E tests
         run: pnpm test:e2e:ci

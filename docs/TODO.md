@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-04
+updated: 2026-10-16
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-10-04
+Last updated: 2026-10-16
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -116,20 +116,6 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
 `{prefix}/{userId}/…` 前缀 + 时间的生命周期回收策略交给存储后端），并在 Luminous 的
 「替换/移除」路径调用。验收：替换头像后旧对象可被回收，且用户无法借删除端点触达他人对象
 （沿用各资源端点「跨用户访问 → 404」的 e2e 约定）。对侧登记见 Luminous `docs/TODO.md`。
-
-## 文档治理观察期(2026-08-31,来源:doc-governance-overhaul 计划,文件已删)
-
-### G3:CI 增加 openapi.json 一致性 diff 校验
-
-ci.yml 现仅在 E2E 前重导出 spec 供契约测试;增加
-`git diff --exit-code docs/reference/generated/openapi.json` 步骤,使"代码已改但忘记提交
-重导出产物"在 CI 失败(README 的 CI 叙述已按此写,补齐实现)。
-
-### G4:契约-代码差异清单(Phase 0 审计遗留)
-
-逐项裁决实现或从契约/文档移除:user-settings `waterTargetCount` 契约缺失;
-environment 为简化实现(静态数据,关联 B2);`GET /environment/advice` 未实现;
-周报 push 通知通道未实现。
 
 ## 后续可做
 

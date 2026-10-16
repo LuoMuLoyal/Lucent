@@ -33,7 +33,10 @@ airQuality/temperature/humidity/updatedAt/dataSource/regionHint`。
 - Lucent 只提供数据，Luminous 负责展示，不得自行计算或另找数据源。
 - 不做实时天气 API 集成（无第三方凭据）、不做位置追踪、不做医疗建议、
   不做环境变化推送告警、不提供历史环境数据 API。
-- 契约中预留的可选 `GET /environment/advice` 端点尚未实现。
+- **`GET /environment/advice` 从未进入契约**（`openapi.json` 无该 operation），
+  也不是预留项——早前文档与 TODO 里「契约中预留的可选端点」表述有误，
+  已于 2026-10-16 更正。真实化方案见 `plans/` 通知横切计划的 F-7 一节
+  （高德天气/空气 API + Redis 缓存 + 手选城市），登记在 `docs/TODO.md` 的 B2。
 - 后续可在外部数据源接入时保持同一契约（`dataSource` 切换 `'live'`）。
 
 ## Dependencies
