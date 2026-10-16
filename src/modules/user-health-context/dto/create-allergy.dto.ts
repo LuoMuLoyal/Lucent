@@ -18,28 +18,36 @@ import {
  */
 export const createHealthContextAllergySchema = z
   .object({
-    kind: z.enum(UserAllergyKind).describe('Allergy kind.'),
+    kind: z
+      .enum(UserAllergyKind)
+      .describe('Allergy kind.')
+      .meta({ example: 'food' }),
     label: z
       .string()
       .min(1, 'label must not be empty')
       .max(120, 'label must not be longer than 120 characters')
-      .describe('User-visible allergy label.'),
+      .describe('User-visible allergy label.')
+      .meta({ example: 'Peanut' }),
     reaction: z
       .string()
       .max(1000, 'reaction must not be longer than 1000 characters')
       .describe('Recorded reaction.')
+      .meta({ example: 'Hives and swelling' })
       .optional(),
     severity: z
       .enum(UserAllergySeverity)
       .describe('Severity level. Defaults to unknown.')
+      .meta({ example: 'moderate' })
       .optional(),
     note: z
       .string()
       .max(1000, 'note must not be longer than 1000 characters')
       .describe('User note for the allergy.')
+      .meta({ example: 'Avoid peanuts and peanut oil.' })
       .optional(),
     recordedAt: isoDateOrDatetimeSchema({ allowLocal: true })
       .describe('When this allergy was recorded in ISO 8601 format.')
+      .meta({ example: '2026-06-04T08:30:00.000Z' })
       .optional(),
   })
   .strict();

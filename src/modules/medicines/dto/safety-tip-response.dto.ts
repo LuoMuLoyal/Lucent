@@ -8,7 +8,7 @@ import { z } from 'zod';
  */
 
 export const medicineSafetyTipResponseSchema = z.object({
-  id: z.string().describe('Safety tip id.'),
+  id: z.string().describe('Safety tip id.').meta({ example: 'tip-alcohol' }),
   text: z.string().describe('Localized safety tip text.'),
   category: z.string().describe('Tip category.'),
 });

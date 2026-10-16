@@ -295,7 +295,11 @@ export type ClinicSummaryResponseDto = z.infer<
 
 /** Exactly one of `jobId` and `pdfBase64` is present in the response. */
 export const clinicSummaryExportAsyncResponseSchema = z.object({
-  jobId: z.string().optional().describe('Queued PDF export job identifier.'),
+  jobId: z
+    .string()
+    .optional()
+    .describe('Queued PDF export job identifier.')
+    .meta({ example: 'clinic-summary-export-job-2f1c9a' }),
   pdfBase64: z
     .string()
     .optional()

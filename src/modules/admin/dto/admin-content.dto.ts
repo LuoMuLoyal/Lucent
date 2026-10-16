@@ -19,9 +19,9 @@ export type AdminLegalDocumentUpdateDto = z.infer<
 
 export const adminLegalDocumentSchema = z
   .object({
-    docType: z.string(),
-    titleZh: z.string(),
-    titleEn: z.string(),
+    docType: z.string().meta({ example: 'terms-of-service' }),
+    titleZh: z.string().meta({ example: '用户服务协议' }),
+    titleEn: z.string().meta({ example: 'Terms of Service' }),
     contentZh: z.string(),
     contentEn: z.string(),
     isActive: z.boolean(),
@@ -60,10 +60,10 @@ export type AdminSafetyTipUpdateDto = z.infer<
 
 export const adminSafetyTipSchema = z
   .object({
-    id: z.uuid(),
+    id: z.uuid().meta({ example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' }),
     contentZh: z.string(),
     contentEn: z.string(),
-    category: z.string(),
+    category: z.string().meta({ example: 'dosage' }),
     sortOrder: z.number().int(),
     isActive: z.boolean(),
     updatedAt: z.iso.datetime(),

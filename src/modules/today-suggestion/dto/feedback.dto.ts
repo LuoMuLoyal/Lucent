@@ -45,6 +45,7 @@ export class SuggestionFeedbackData {
   @ApiProperty({
     description: 'Effect applied by the feedback engine',
     enum: ['boosted_type', 'delayed_until', 'suppressed_type', 'noted'],
+    example: 'boosted_type',
   })
   appliedEffect!: string;
 

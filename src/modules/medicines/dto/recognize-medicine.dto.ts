@@ -16,7 +16,10 @@ export const recognizeMedicineSchema = z
     imageUrl: z
       .url({ message: 'imageUrl must be a valid URL' })
       .max(2048, 'imageUrl must be at most 2048 characters')
-      .describe('Public URL of the medicine box image'),
+      .describe('Public URL of the medicine box image')
+      .meta({
+        example: 'https://cdn.lumos.example/medicines/amoxicillin-box.jpg',
+      }),
   })
   .strict();
 

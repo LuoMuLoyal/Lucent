@@ -51,7 +51,8 @@ export const reminderDeliveryReceiptResponseSchema =
 export const localCapabilityDataSchema = z.object({
   state: z
     .enum(['active', 'unavailable', 'disabled'])
-    .describe('Persisted local scheduling capability state.'),
+    .describe('Persisted local scheduling capability state.')
+    .meta({ example: 'active' }),
 });
 
 /** 本地调度能力上报响应体：`{ state }`。 */

@@ -23,7 +23,8 @@ export const renameConversationSchema = z
       })
       .describe(
         'New conversation title (1-48 chars). Empty or whitespace-only titles are rejected; clients keep empty names local-only.',
-      ),
+      )
+      .meta({ example: '用药咨询' }),
   })
   .strict();
 

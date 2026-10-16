@@ -14,21 +14,25 @@ export const updateHealthContextConditionSchema = z
       .string()
       .max(120, 'label must not be longer than 120 characters')
       .describe('Condition label.')
+      .meta({ example: 'Type 2 diabetes' })
       .optional(),
     status: z
       .enum(UserConditionStatus)
       .describe('Condition status.')
+      .meta({ example: 'resolved' })
       .optional(),
     diagnosedAt: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'diagnosedAt must be in YYYY-MM-DD format')
       .describe('Diagnosis date in YYYY-MM-DD format. Use null to clear.')
+      .meta({ example: '2024-03-15' })
       .nullable()
       .optional(),
     note: z
       .string()
       .max(1000, 'note must not be longer than 1000 characters')
       .describe('User note for the condition. Use null to clear.')
+      .meta({ example: 'Blood sugar now within range.' })
       .nullable()
       .optional(),
   })

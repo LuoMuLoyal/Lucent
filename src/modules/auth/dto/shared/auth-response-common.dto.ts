@@ -39,9 +39,17 @@ export type UserFullDto = z.infer<typeof userFullSchema>;
 
 /** Replaces `TokensDto` — 令牌信息. */
 export const tokensSchema = z.object({
-  accessToken: z.string().describe('访问令牌'),
-  refreshToken: z.string().describe('刷新令牌'),
-  expiresIn: z.number().describe('访问令牌过期时间（秒）'),
+  accessToken: z.string().describe('访问令牌').meta({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMSJ9',
+  }),
+  refreshToken: z
+    .string()
+    .describe('刷新令牌')
+    .meta({ example: 'rt_9f8c7b6a5d4e3f2a1b0c9d8e7f6a5b4c' }),
+  expiresIn: z
+    .number()
+    .describe('访问令牌过期时间（秒）')
+    .meta({ example: 900 }),
 });
 
 /** Strongly typed token pair of the auth responses. */
@@ -49,8 +57,11 @@ export type TokensDto = z.infer<typeof tokensSchema>;
 
 /** Replaces `CooldownMessageDto` — 冷却时间 + 提示消息. */
 export const cooldownMessageSchema = z.object({
-  cooldown: z.number().describe('冷却时间（秒）'),
-  message: z.string().describe('提示消息'),
+  cooldown: z.number().describe('冷却时间（秒）').meta({ example: 60 }),
+  message: z
+    .string()
+    .describe('提示消息')
+    .meta({ example: '验证码已发送，请注意查收' }),
 });
 
 /** Strongly typed cooldown + message block of the auth responses. */

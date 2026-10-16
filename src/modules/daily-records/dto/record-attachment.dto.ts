@@ -25,25 +25,44 @@ export const dailyRecordAttachmentInputSchema = z
     kind: z
       .enum(DAILY_RECORD_ATTACHMENT_KIND_VALUES)
       .describe('Attachment kind. Defaults to "image".')
+      .meta({ example: 'image' })
       .optional(),
     objectKey: z
       .string()
       .max(500)
-      .describe('Object storage key, stable across signed URL rotations.'),
-    bucket: z.string().max(200).describe('Object storage bucket.').nullish(),
+      .describe('Object storage key, stable across signed URL rotations.')
+      .meta({ example: 'daily-records/user_1/2026-06-04/photo.jpg' }),
+    bucket: z
+      .string()
+      .max(200)
+      .describe('Object storage bucket.')
+      .meta({ example: 'lumos-daily-records' })
+      .nullish(),
     provider: z
       .string()
       .max(50)
       .describe('Storage provider (e.g. tencent-cos, s3, ali-oss).')
+      .meta({ example: 'tencent-cos' })
       .nullish(),
-    fileName: z.string().max(255).describe('Original file name.').nullish(),
-    contentType: z.string().max(100).describe('MIME content type.').nullish(),
+    fileName: z
+      .string()
+      .max(255)
+      .describe('Original file name.')
+      .meta({ example: 'photo.jpg' })
+      .nullish(),
+    contentType: z
+      .string()
+      .max(100)
+      .describe('MIME content type.')
+      .meta({ example: 'image/jpeg' })
+      .nullish(),
     sizeBytes: z
       .number()
       .int()
       .min(0)
       .max(50_000_000)
       .describe('File size in bytes.')
+      .meta({ example: 245760 })
       .nullish(),
     width: z
       .number()
@@ -51,6 +70,7 @@ export const dailyRecordAttachmentInputSchema = z
       .min(0)
       .max(100_000)
       .describe('Image width in pixels.')
+      .meta({ example: 1920 })
       .nullish(),
     height: z
       .number()
@@ -58,11 +78,16 @@ export const dailyRecordAttachmentInputSchema = z
       .min(0)
       .max(100_000)
       .describe('Image height in pixels.')
+      .meta({ example: 1080 })
       .nullish(),
     publicUrl: z
       .string()
       .max(2000)
       .describe('Optional public or already-signed display URL.')
+      .meta({
+        example:
+          'https://cdn.example.com/daily-records/user_1/2026-06-04/photo.jpg',
+      })
       .nullish(),
   })
   .strict();

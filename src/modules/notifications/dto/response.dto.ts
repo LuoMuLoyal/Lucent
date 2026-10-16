@@ -101,7 +101,10 @@ export type NotificationDetailResponseDto = NotificationDetailDto;
 
 /** Wire shape of the unread-count responses (`GET /unread-count`, mark-all-read). */
 export const unreadCountSchema = z.object({
-  count: z.number().describe('Number of unread notifications.'),
+  count: z
+    .number()
+    .describe('Number of unread notifications.')
+    .meta({ example: 3 }),
 });
 
 /** Strongly typed unread count resource. */

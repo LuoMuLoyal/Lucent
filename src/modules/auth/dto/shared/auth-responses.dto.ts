@@ -37,9 +37,15 @@ export type LoginResponseDto = z.infer<typeof loginResponseSchema>;
 
 /** Replaces the private `OAuthAuthorizeDataDto` + exported `OAuthAuthorizeResponseDto`. */
 export const oauthAuthorizeResponseSchema = z.object({
-  authorizeUrl: z.string().describe('第三方授权地址'),
-  state: z.string().describe('本次授权 state'),
-  expiresIn: z.number().describe('state 过期时间（秒）'),
+  authorizeUrl: z.string().describe('第三方授权地址').meta({
+    example:
+      'https://open.weixin.qq.com/connect/qrconnect?appid=wx1234567890abcdef&redirect_uri=https%3A%2F%2Flumos.app%2Fauth%2Fcallback&response_type=code&scope=snsapi_login&state=xyz',
+  }),
+  state: z
+    .string()
+    .describe('本次授权 state')
+    .meta({ example: 'st_5f2c9a1b7e4d4f8e9a0b' }),
+  expiresIn: z.number().describe('state 过期时间（秒）').meta({ example: 600 }),
   callbackUri: z
     .string()
     .optional()
@@ -76,7 +82,7 @@ export type SendVerificationCodeResponseDto = z.infer<
 
 /** Replaces the private `VerifyEmailDataDto` + exported `VerifyEmailResponseDto`. */
 export const verifyEmailResponseSchema = z.object({
-  emailVerified: z.boolean().describe('邮箱是否已验证'),
+  emailVerified: z.boolean().describe('邮箱是否已验证').meta({ example: true }),
 });
 
 /** Strongly typed verify-email response body. */

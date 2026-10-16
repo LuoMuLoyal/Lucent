@@ -16,12 +16,14 @@ export const assistantInputMessageSchema = z
   .object({
     role: z
       .enum(ASSISTANT_CLIENT_MESSAGE_ROLES)
-      .describe('Client-visible conversation role. system is not accepted.'),
+      .describe('Client-visible conversation role. system is not accepted.')
+      .meta({ example: 'user' }),
     content: z
       .string()
       .min(1)
       .max(8_000)
-      .describe('Plain or Markdown-ready message content.'),
+      .describe('Plain or Markdown-ready message content.')
+      .meta({ example: '我最近头痛，布洛芬一次应该吃多少？' }),
   })
   .strict();
 
@@ -49,13 +51,19 @@ export const streamAssistantMessagesSchema = z
       .max(20)
       .describe(
         'Conversation window ending with the latest user message to answer.',
-      ),
+      )
+      .meta({
+        example: [
+          { role: 'user', content: '我最近头痛，布洛芬一次应该吃多少？' },
+        ],
+      }),
     conversationId: z
       .string()
       .max(64)
       .describe(
         'Optional persisted conversation id used as the LangGraph thread id. When absent the conversation runs statelessly (no checkpoint / no in-graph review).',
       )
+      .meta({ example: 'conv_9f2c1e4a7b8d4c6e' })
       .optional(),
   })
   .strict();

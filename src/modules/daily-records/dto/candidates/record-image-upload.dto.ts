@@ -12,14 +12,24 @@ import { z } from 'zod';
  */
 export const createDailyRecordImageUploadSchema = z
   .object({
-    contentType: z.string().max(100).describe('Image MIME content type.'),
+    contentType: z
+      .string()
+      .max(100)
+      .describe('Image MIME content type.')
+      .meta({ example: 'image/jpeg' }),
     sizeBytes: z
       .number()
       .int()
       .min(1)
       .max(50_000_000)
-      .describe('File size in bytes.'),
-    fileName: z.string().max(255).describe('Original file name.').optional(),
+      .describe('File size in bytes.')
+      .meta({ example: 245760 }),
+    fileName: z
+      .string()
+      .max(255)
+      .describe('Original file name.')
+      .meta({ example: 'photo.jpg' })
+      .optional(),
   })
   .strict();
 

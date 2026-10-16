@@ -6,7 +6,10 @@ import { z } from 'zod';
  * `SuggestionExplanationDataDto` response class.
  */
 export const suggestionExplanationDataSchema = z.object({
-  suggestionId: z.string().describe('The suggestion ID that was explained'),
+  suggestionId: z
+    .string()
+    .describe('The suggestion ID that was explained')
+    .meta({ example: 'sug_9f2c1e4a' }),
   reason: z.string().describe('AI-enhanced or original reason text'),
   boundary: z
     .string()
@@ -37,7 +40,11 @@ export type SuggestionExplanationResponseDto = SuggestionExplanationDataDto;
  * inline processing returns the latter.
  */
 export const suggestionExplanationAsyncResponseSchema = z.object({
-  jobId: z.string().optional().describe('Queued explanation job identifier.'),
+  jobId: z
+    .string()
+    .optional()
+    .describe('Queued explanation job identifier.')
+    .meta({ example: 'explanation-job-7d3a5b' }),
   result: suggestionExplanationDataSchema
     .optional()
     .describe(

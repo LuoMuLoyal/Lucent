@@ -6,11 +6,15 @@ import { z } from 'zod';
  */
 export const riskCheckCandidateSchema = z
   .object({
-    source: z.enum(['cn', 'drugbank']).describe('候选药品所在的可信药品库来源'),
+    source: z
+      .enum(['cn', 'drugbank'])
+      .describe('候选药品所在的可信药品库来源')
+      .meta({ example: 'drugbank' }),
     id: z
       .string()
       .min(1, 'validation.field.required')
-      .describe('候选药品在可信药品库中的 id'),
+      .describe('候选药品在可信药品库中的 id')
+      .meta({ example: 'DB01050' }),
   })
   .strict();
 
@@ -28,9 +32,13 @@ export const riskCheckCandidateSchema = z
  */
 export const runRiskCheckSchema = z
   .object({
-    type: z.enum(['static', 'llm']).describe('Type of risk check to run'),
+    type: z
+      .enum(['static', 'llm'])
+      .describe('Type of risk check to run')
+      .meta({ example: 'static' }),
     candidate: riskCheckCandidateSchema
       .describe('加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库')
+      .meta({ example: { source: 'drugbank', id: 'DB01050' } })
       .optional(),
   })
   .strict();

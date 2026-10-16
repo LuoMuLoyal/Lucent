@@ -18,16 +18,23 @@ export const generateDailyRecordCandidatesSchema = z
       .max(2000)
       .describe(
         'Natural-language note to be parsed into candidate daily records.',
-      ),
-    occurredAt: dateOnlySchema().describe(
-      'Wake date in YYYY-MM-DD format used as the candidate record date baseline.',
-    ),
+      )
+      .meta({
+        example:
+          'Slept about 7 hours and had a mild headache in the afternoon.',
+      }),
+    occurredAt: dateOnlySchema()
+      .describe(
+        'Wake date in YYYY-MM-DD format used as the candidate record date baseline.',
+      )
+      .meta({ example: '2026-06-04' }),
     timezone: z
       .string()
       .max(100)
       .describe(
         'Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted.',
       )
+      .meta({ example: 'Asia/Shanghai' })
       .optional(),
   })
   .strict();

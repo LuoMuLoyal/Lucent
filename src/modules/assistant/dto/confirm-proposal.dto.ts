@@ -19,9 +19,10 @@ export const confirmAssistantProposalSchema = z
     proposalIds: z
       .array(z.string())
       .min(1)
-      .describe('Proposal ids awaiting confirmation.'),
-    decision: z.enum(['approved', 'rejected']),
-    note: z.string().max(500).optional(),
+      .describe('Proposal ids awaiting confirmation.')
+      .meta({ example: ['prop_4f8a2c9e1d'] }),
+    decision: z.enum(['approved', 'rejected']).meta({ example: 'approved' }),
+    note: z.string().max(500).meta({ example: '已与医生确认。' }).optional(),
   })
   .strict();
 

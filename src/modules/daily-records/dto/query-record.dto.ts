@@ -22,13 +22,16 @@ const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
  */
 export const queryDailyRecordSchema = z
   .object({
-    date: dateOnlySchema().describe('Date in YYYY-MM-DD format.'),
-    kind: z.enum(DAILY_RECORD_KIND_VALUES).optional(),
+    date: dateOnlySchema()
+      .describe('Date in YYYY-MM-DD format.')
+      .meta({ example: '2026-06-04' }),
+    kind: z.enum(DAILY_RECORD_KIND_VALUES).meta({ example: 'meal' }).optional(),
     page: z.coerce
       .number({ message: 'page must be a number' })
       .int('page must be an integer')
       .min(1, 'page must be at least 1')
       .describe('Page number (1-based).')
+      .meta({ example: 1 })
       .optional(),
     pageSize: z.coerce
       .number({ message: 'pageSize must be a number' })
@@ -36,6 +39,7 @@ export const queryDailyRecordSchema = z
       .min(1, 'pageSize must be between 1 and 100')
       .max(100, 'pageSize must be between 1 and 100')
       .describe('Page size (1-100).')
+      .meta({ example: 20 })
       .optional(),
   })
   .strict();

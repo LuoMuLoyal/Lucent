@@ -6,7 +6,10 @@ import { z } from 'zod';
  * `TodayRecommendationResponseDto` response class.
  */
 export const todayRecommendationResponseSchema = z.object({
-  id: z.string().describe('Unique recommendation id'),
+  id: z
+    .string()
+    .describe('Unique recommendation id')
+    .meta({ example: 'onboarding-hydration' }),
   text: z.string().describe('Recommendation text'),
   category: z.string().optional().describe('Recommendation category'),
 });
@@ -23,4 +26,13 @@ export type TodayRecommendationResponseDto = z.infer<
  */
 export const todayRecommendationsResponseSchema = z
   .array(todayRecommendationResponseSchema)
-  .describe('Cold-start onboarding guide cards.');
+  .describe('Cold-start onboarding guide cards.')
+  .meta({
+    example: [
+      {
+        id: 'onboarding-hydration',
+        text: 'Keep a water bottle nearby to stay hydrated through the day.',
+        category: 'onboarding',
+      },
+    ],
+  });

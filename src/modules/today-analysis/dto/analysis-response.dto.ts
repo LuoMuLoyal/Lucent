@@ -150,7 +150,9 @@ export type TodayAnalysisAsyncResultDataDto = z.infer<
  * former `TodayAnalysisAsyncStatusDataDto` response class.
  */
 export const todayAnalysisAsyncStatusDataSchema = z.object({
-  status: z.enum(['empty', 'pending', 'ready', 'stale', 'failed']),
+  status: z
+    .enum(['empty', 'pending', 'ready', 'stale', 'failed'])
+    .meta({ example: 'pending' }),
 });
 
 /** Strongly typed async job status payload. */

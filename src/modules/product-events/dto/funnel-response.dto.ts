@@ -17,8 +17,14 @@ import { z } from 'zod';
 
 /** Replaces `FunnelDailyCountsDto`. */
 export const funnelDailyCountsSchema = z.object({
-  date: z.string().describe('UTC calendar day (YYYY-MM-DD).'),
-  eventStarted: z.number().describe('health_event_started count.'),
+  date: z
+    .string()
+    .describe('UTC calendar day (YYYY-MM-DD).')
+    .meta({ example: '2026-01-15' }),
+  eventStarted: z
+    .number()
+    .describe('health_event_started count.')
+    .meta({ example: 120 }),
   suggestionImpression: z.number().describe('suggestion_impression count.'),
   suggestionActioned: z.number().describe('suggestion_actioned count.'),
   eventEndedOrOutcome: z
@@ -76,10 +82,12 @@ export type FunnelTotalsDto = z.infer<typeof funnelTotalsSchema>;
 export const funnelWindowSchema = z.object({
   dateFrom: z
     .string()
-    .describe('Window start (inclusive), UTC calendar day (YYYY-MM-DD).'),
+    .describe('Window start (inclusive), UTC calendar day (YYYY-MM-DD).')
+    .meta({ example: '2026-01-01' }),
   dateTo: z
     .string()
-    .describe('Window end (inclusive), UTC calendar day (YYYY-MM-DD).'),
+    .describe('Window end (inclusive), UTC calendar day (YYYY-MM-DD).')
+    .meta({ example: '2026-01-15' }),
   generatedAt: z.string().describe('Response generation time (ISO 8601).'),
   detailsSuppressed: z
     .boolean()
@@ -95,20 +103,54 @@ export type FunnelWindowDto = z.infer<typeof funnelWindowSchema>;
  * Full funnel aggregation payload (admin endpoint). Replaces
  * `FunnelDataDto`.
  */
-export const funnelDataSchema = z.object({
-  daily: z
-    .array(funnelDailyCountsSchema)
-    .describe(
-      'Per-UTC-day core funnel counts, ascending by date; empty when detailsSuppressed is true.',
+export const funnelDataSchema = z
+  .object({
+    daily: z
+      .array(funnelDailyCountsSchema)
+      .describe(
+        'Per-UTC-day core funnel counts, ascending by date; empty when detailsSuppressed is true.',
+      ),
+    optional: funnelOptionalCountsSchema.describe(
+      'Window totals of the optional visit-summary events.',
     ),
-  optional: funnelOptionalCountsSchema.describe(
-    'Window totals of the optional visit-summary events.',
-  ),
-  totals: funnelTotalsSchema.describe(
-    'Window totals of the core funnel (same breakdown as daily).',
-  ),
-  window: funnelWindowSchema,
-});
+    totals: funnelTotalsSchema.describe(
+      'Window totals of the core funnel (same breakdown as daily).',
+    ),
+    window: funnelWindowSchema,
+  })
+  .meta({
+    example: {
+      daily: [
+        {
+          date: '2026-01-15',
+          eventStarted: 120,
+          suggestionImpression: 340,
+          suggestionActioned: 210,
+          eventEndedOrOutcome: 95,
+          reviewOpened: 60,
+        },
+      ],
+      optional: {
+        visitSummaryPreviewed: 40,
+        visitSummaryExported: 12,
+        visitSummaryShareCreated: 8,
+        visitSummaryShareOpened: 5,
+      },
+      totals: {
+        eventStarted: 120,
+        suggestionImpression: 340,
+        suggestionActioned: 210,
+        eventEndedOrOutcome: 95,
+        reviewOpened: 60,
+      },
+      window: {
+        dateFrom: '2026-01-01',
+        dateTo: '2026-01-15',
+        generatedAt: '2026-01-16T08:30:00.000Z',
+        detailsSuppressed: false,
+      },
+    },
+  });
 
 /** Strongly typed full funnel aggregation payload. */
 export type FunnelDataDto = z.infer<typeof funnelDataSchema>;

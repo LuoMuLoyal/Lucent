@@ -106,9 +106,15 @@ export const medicineRiskCheckResponseSchema = z.object({
 });
 
 export const medicineRiskCheckRecordSchema = z.object({
-  checkType: z.enum(['static', 'llm']).describe('Type of risk check.'),
+  checkType: z
+    .enum(['static', 'llm'])
+    .describe('Type of risk check.')
+    .meta({ example: 'static' }),
   result: medicineRiskCheckResponseSchema.describe('Check result.'),
-  riskScore: z.number().describe('Persisted risk score (0-100).'),
+  riskScore: z
+    .number()
+    .describe('Persisted risk score (0-100).')
+    .meta({ example: 42 }),
   riskLevel: z.enum(MEDICINE_RISK_LEVELS).describe('Persisted risk level.'),
   stale: z.boolean().describe('Whether the record is stale.'),
   createdAt: z.iso.datetime().describe('Created at (ISO 8601).'),

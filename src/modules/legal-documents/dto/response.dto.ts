@@ -24,7 +24,10 @@ export type LegalDocumentListItemDto = z.infer<
  * Replaces the former `LegalDocumentDetailDto` response class.
  */
 export const legalDocumentDetailSchema = z.object({
-  docType: z.string().describe('Document type identifier used in URL paths.'),
+  docType: z
+    .string()
+    .describe('Document type identifier used in URL paths.')
+    .meta({ example: 'terms-of-service' }),
   title: z.string(),
   content: z.string().describe('Markdown content of the document.'),
   updatedAt: z.string().describe('ISO-8601 timestamp of last update.'),
@@ -42,7 +45,8 @@ export const legalDocumentListSchema = z.object({
   items: z.array(legalDocumentListItemSchema),
   updatedAt: z
     .string()
-    .describe('ISO-8601 timestamp of the most recent document update.'),
+    .describe('ISO-8601 timestamp of the most recent document update.')
+    .meta({ example: '2026-06-01T09:00:00.000Z' }),
 });
 
 /** Strongly typed response data for the list endpoint. */

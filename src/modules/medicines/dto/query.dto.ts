@@ -22,11 +22,20 @@ function trimOptionalString(value: unknown): string | undefined {
 
 export const medicineSearchQuerySchema = z
   .object({
-    source: z.string().describe('Knowledge source selector.').optional(),
+    source: z
+      .string()
+      .describe('Knowledge source selector.')
+      .meta({ example: 'drugbank' })
+      .optional(),
     q: z
       .preprocess(
         trimOptionalString,
-        z.string().max(200).describe('Search keyword.').optional(),
+        z
+          .string()
+          .max(200)
+          .describe('Search keyword.')
+          .meta({ example: 'aspirin' })
+          .optional(),
       )
       .optional(),
     page: z.coerce
@@ -34,6 +43,7 @@ export const medicineSearchQuerySchema = z
       .int({ message: 'page must be an integer' })
       .min(1, 'page must be at least 1')
       .describe('Page number, 1-based.')
+      .meta({ example: 2 })
       .default(1),
     pageSize: z.coerce
       .number({ message: 'pageSize must be a number' })
@@ -41,6 +51,7 @@ export const medicineSearchQuerySchema = z
       .min(1, 'pageSize must be at least 1')
       .max(50, 'pageSize must be at most 50')
       .describe('Page size.')
+      .meta({ example: 20 })
       .default(20),
   })
   .strict();
@@ -50,7 +61,11 @@ export type MedicineSearchQueryDto = z.infer<typeof medicineSearchQuerySchema>;
 
 export const medicineDetailQuerySchema = z
   .object({
-    source: z.string().describe('Knowledge source selector.').optional(),
+    source: z
+      .string()
+      .describe('Knowledge source selector.')
+      .meta({ example: 'cn' })
+      .optional(),
   })
   .strict();
 

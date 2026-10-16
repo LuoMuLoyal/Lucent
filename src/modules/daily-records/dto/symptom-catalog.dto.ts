@@ -4,7 +4,8 @@ import { z } from 'zod';
 export const symptomCatalogItemSchema = z.object({
   code: z
     .string()
-    .describe('Stable symptom code; the value stored in payload `symptom`.'),
+    .describe('Stable symptom code; the value stored in payload `symptom`.')
+    .meta({ example: 'headache' }),
   label: z.string().describe('Localized display label.'),
 });
 

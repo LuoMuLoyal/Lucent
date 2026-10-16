@@ -8,7 +8,8 @@ import { z } from 'zod';
 export const assistantClearMemoryDataSchema = z.object({
   cleared: z
     .number()
-    .describe('Number of persisted assistant memory rows deleted.'),
+    .describe('Number of persisted assistant memory rows deleted.')
+    .meta({ example: 3 }),
 });
 
 /** Strongly typed result of erasing all persisted assistant memories. */

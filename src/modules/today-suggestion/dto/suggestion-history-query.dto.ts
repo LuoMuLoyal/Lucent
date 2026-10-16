@@ -85,7 +85,10 @@ export const suggestionHistoryDataSchema = z.object({
   items: z
     .array(suggestionHistoryItemSchema)
     .describe('Suggestion history items'),
-  total: z.number().describe('Total count of matching items'),
+  total: z
+    .number()
+    .describe('Total count of matching items')
+    .meta({ example: 42 }),
   startDate: z.string().describe('Start date used for the query'),
   endDate: z.string().describe('End date used for the query'),
 });
