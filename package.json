@@ -74,6 +74,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.765.0",
     "@aws-sdk/s3-request-presigner": "^3.765.0",
+    "@fastify/compress": "^9.2.2",
     "@fastify/cors": "^11.0.0",
     "@fastify/helmet": "^13.0.0",
     "@fontpkg/source-han-sans-sc-vf": "^2.5.3",

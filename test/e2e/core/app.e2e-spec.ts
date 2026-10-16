@@ -1,19 +1,26 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { FastifyAdapter } from '@nestjs/platform-fastify';
+import { FastifyAdapter, RouteConfig } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { FastifyReply } from 'fastify';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
+import { gunzipSync } from 'node:zlib';
 import request from 'supertest';
 import { AppController } from '../../../src/app.controller.js';
 import { AppService } from '../../../src/app.service.js';
 import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter.js';
 import { ProblemCatalog } from '../../../src/common/api/problem-catalog.js';
 import { MetricsService } from '../../../src/common/metrics/metrics.service.js';
-import { SlowRequestInterceptor } from '../../../src/common/index.js';
+import {
+  endSse,
+  prepareSse,
+  SlowRequestInterceptor,
+  writeSseEvent,
+} from '../../../src/common/index.js';
 import { PrismaService } from '../../../src/prisma/index.js';
 import { setupApp } from '../../../src/setup-app.js';
 
@@ -301,6 +308,45 @@ describe('Lucent API (e2e)', () => {
       .expect({ ok: true });
   });
 
+  // ── Response compression ────────────────────────────────────────
+
+  it('gzip-compresses a large JSON response when the client negotiates it', async () => {
+    const fastify = app.getHttpAdapter().getInstance();
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/api/v1/test-echo/large',
+      headers: { 'accept-encoding': 'gzip' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-encoding']).toBe('gzip');
+    // `inject` does not decode; verify the payload survives the round-trip.
+    const decoded = JSON.parse(gunzipSync(response.rawPayload).toString());
+    expect(decoded.blob).toHaveLength(4096);
+  });
+
+  it('does not compress a large JSON response without a negotiated encoding', async () => {
+    const fastify = app.getHttpAdapter().getInstance();
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/api/v1/test-echo/large',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-encoding']).toBeUndefined();
+  });
+
+  it('leaves the SSE stream uncompressed (route opts out of compression)', async () => {
+    // superagent negotiates gzip by default; the stream must stay unbuffered.
+    const response = await request(app.getHttpServer()).get(
+      '/api/v1/test-echo/stream',
+    );
+
+    expect(response.headers['content-encoding']).toBeUndefined();
+    expect(response.headers['content-type']).toContain('text/event-stream');
+    expect(response.text).toContain('event: chunk');
+  });
+
   afterAll(async () => {
     await app.close();
   }, 30_000);
@@ -314,5 +360,18 @@ class TestEchoController {
   @Get()
   getEcho() {
     return { ok: true };
+  }
+
+  @Get('large')
+  getLarge() {
+    return { ok: true, blob: 'x'.repeat(4096) };
+  }
+
+  @Get('stream')
+  @RouteConfig({ compress: false })
+  stream(@Res() reply: FastifyReply) {
+    prepareSse(reply.raw, undefined, 'en', reply.getHeaders());
+    writeSseEvent(reply.raw, { event: 'chunk', data: { content: 'hello' } });
+    endSse(reply.raw);
   }
 }

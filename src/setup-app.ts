@@ -9,6 +9,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import fastifyCompress from '@fastify/compress';
 import fastifyHelmet from '@fastify/helmet';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nContext, I18nService } from 'nestjs-i18n';
@@ -104,6 +105,18 @@ export async function setupApp(
         ...httpsOnlyHeaders.cspDirectives,
       },
     },
+  });
+
+  // ── Response compression ────────────────────────────────────────
+  // Global gzip/deflate/brotli negotiation for JSON and text responses.
+  // SSE routes opt out with `@RouteConfig({ compress: false })`: they write
+  // the head directly on the raw response (`prepareSse`) and must stay
+  // unbuffered. The plugin skips bodies under its 1 KiB default threshold and
+  // honours the `x-no-compression` request header, so small payloads and
+  // explicitly-opted-out clients are untouched.
+  await app.register(fastifyCompress, {
+    global: true,
+    encodings: ['gzip', 'deflate', 'br'],
   });
 
   // ── Prometheus metrics ──────────────────────────────────────────

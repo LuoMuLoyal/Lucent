@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RouteConfig } from '@nestjs/platform-fastify';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import {
@@ -235,6 +236,7 @@ export class AssistantController {
   }
 
   @SkipThrottle()
+  @RouteConfig({ compress: false })
   @Post('messages/stream')
   @ApiOperation({
     summary: 'Stream authenticated user assistant response',
@@ -304,6 +306,7 @@ export class AssistantController {
     }
   }
   @SkipThrottle()
+  @RouteConfig({ compress: false })
   @Post('conversations/:conversationId/regenerate')
   @ApiOperation({
     summary:

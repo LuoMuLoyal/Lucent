@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
+import { RouteConfig } from '@nestjs/platform-fastify';
 import {
   endSse,
   prepareSse,
@@ -329,6 +330,7 @@ export class TodayAnalysisController {
   }
 
   @SkipThrottle()
+  @RouteConfig({ compress: false })
   @Post('generate/stream')
   @ApiOperation({
     summary: 'Stream authenticated user today AI analysis generation',

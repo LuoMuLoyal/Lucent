@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
+import { RouteConfig } from '@nestjs/platform-fastify';
 
 import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import {
@@ -153,6 +154,7 @@ export class ReportsController {
   }
 
   @Post('summary/generate/stream')
+  @RouteConfig({ compress: false })
   @ApiOperation({
     summary: 'Stream AI report summary generation events (SSE)',
     description:
