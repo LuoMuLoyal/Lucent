@@ -25,6 +25,8 @@ supportEmail:     string | null  // 关于页支持联系邮箱
 - 四个值在启动时从环境变量一次性读入（`SUPPORT_EMAIL`、
   `MIN_CLIENT_VERSION`、`LATEST_VERSION`、`DOWNLOAD_URL`，经 `EnvKey` 枚举
   走 ConfigService）；空值/空白归一化为 `null`。
+- 四个字段**总是存在**，未配置时是 `null` 而非缺键——客户端不必做
+  「字段可能缺席」的兜底分支。
 - 无数据库、不读 `package.json`；版本号变更是部署期配置而非运行时写入。
 - **不含**应用名/版本/构建号——客户端通过 `package_info_plus` 本地获取，
   后端刻意不镜像这些字段。
@@ -38,13 +40,16 @@ supportEmail:     string | null  // 关于页支持联系邮箱
 ## 内部结构
 
 - `app-info.controller.ts` — `@Controller('public')` + `GET app-info`。
-- `services/info.service.ts` — 构造时读取环境变量并缓存为不可变快照。
-- `dto/response.dto.ts` — `AppInfoResponseDto`（四字段均可空）。
+- `services/info.service.ts` — `AppInfoService`:构造时读取环境变量并缓存为
+  不可变快照;`getAppInfo()` 返回该快照(不重复读配置)。
+- `dto/response.dto.ts` — `appInfoResponseSchema`(四字段均可空)与
+  `AppInfoResponseDto`(`z.infer`)。
 
 ## Dependencies
 
-- 引用：ConfigService（`config/env/env-keys.enum.ts`）。
-- 被引用：`app.module` 注册；无其他模块消费其导出。
+- 引用:ConfigService(`config/env/env-keys.enum.ts` 的 `EnvKey`)。
+- 被引用:`app.module` 注册;barrel 只导出 `AppInfoModule` 与 `AppInfoService`,
+  无其他模块消费。
 
 ## Tests
 

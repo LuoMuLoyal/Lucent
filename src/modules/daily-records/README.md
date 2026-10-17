@@ -24,15 +24,25 @@ owner: backend
 成分表接地与人工确认:
 
 - 契约与规范化:`schemas/meal-analysis.schema.ts`(词表、上限、区间纠正、
-  rank 排序裁剪、失败原因码)。**结构化是真相**,文案只是它的投影。
+  rank 排序裁剪、失败原因码)。**结构化是真相**,文案只是它的投影。终态只有
+  `analyzing / analyzed / analysis_failed`;失败原因码是封闭词表
+  (`image_count_invalid`、`vision_unavailable`、`model_failed`、`model_timeout`、
+  `invalid_output`、`job_lost`),客户端按码做 l10n,不再收到英文原串。
 - 提示词:`prompts/meal-analysis.prompt.ts`;调用:`services/meal-analysis/vision.service.ts`
-  (结构化输出 + 超时;失败以原因码**返回**,不抛异常)。
+  (结构化输出 + 超时;失败以原因码**返回**,不抛异常)。依赖失败码到落库码的
+  映射在 `worker.service.ts` 的 `mealFailureReasonFor`(`DEPENDENCY_TIMEOUT` →
+  `model_timeout`,`DEPENDENCY_BAD_GATEWAY` → `invalid_output`,其余 →
+  `model_failed`)。
 - 落库:`services/meal-analysis/worker.service.ts` —— 写回前用
   `updateMany` 复检 `mealSourceRevision`(分析期间再编辑则丢弃本次结果),
   失败一律落 `analysis_failed` + 原因码。
 - 过期回收:`services/meal-analysis/sweeper.service.ts`,由 `CronJobsService`
-  每 5 分钟触发,把停留超过 `MEAL_ANALYSIS_STALE_AFTER_MS` 的 `analyzing`
-  记录落成 `model_timeout`,使详情页能重试。
+  每 5 分钟(`MEAL_ANALYSIS_REAP_CRON`)触发,把停留超过
+  `MEAL_ANALYSIS_STALE_AFTER_MS`(10 分钟)的 `analyzing` 记录落成
+  `analysis_failed(job_lost)`,使详情页能重试。**刻意不复用 `model_timeout`**:
+  `job_lost` 表示作业没跑完就丢了(崩溃/队列丢单),`model_timeout` 表示模型调用
+  自己超时——两者用户补救方式相同,但混码会让真正的模型超时告警被基础设施故障淹没。
+  单轮上限 `MEAL_ANALYSIS_REAP_BATCH_SIZE`。
 - 客户端唯一可编辑字段是菜名列表(`payload.mealAnalysis.dishes`,
   `source: 'user'`);其余字段服务端独占。改菜名不重算结论与区间。重试 =
   重新提交同一张图(PATCH 带一张 attachment,`revision` 递增后重新入队)。
@@ -49,18 +59,27 @@ owner: backend
 - imports:`ConfigModule`、`PrismaModule`、`LlmRuntimeModule`、`StorageModule`、
   `LlmCommonModule`(common barrel)、`HealthEventsModule`。
 - 被引用:exports `DailyRecordsService`、`DailyRecordCandidatesService`、
-  `DailyRecordReaderPort`、`MealAnalysisSweeperService`;barrel 消费方
-  `assistant`、`reports`、`today-analysis`、`today-suggestion`、`common/queue`。
+  `DailyRecordReaderPort`、`MealAnalysisSweeperService`、餐食回收常量
+  (`MEAL_ANALYSIS_REAP_CRON` / `MEAL_ANALYSIS_REAP_JOB_NAME`) 与
+  `parseMealRecordPayload`;barrel 消费方 `assistant`、`reports`、
+  `today-analysis`、`today-suggestion`、`common/queue`(cron-jobs 调 sweeper)。
+- 队列名不写死:本模块只从 `common/queue/queue-names.ts` 的 `QUEUE_NAMES`
+  派生出 `MEAL_ANALYSIS_QUEUE_NAME`(`constants/meal-analysis.constants.ts`),
+  新增/改名队列必须先登记进 `QUEUE_NAMES`。
 
 ## 内部结构
 
-- `services/records.service.ts` — 日报 CRUD 与领域事件发布。
+- `services/records.service.ts` — 日报 CRUD 与 `daily-record.changed` 领域事件
+  (best-effort:发射失败只记日志,不影响写入)。更新可能跨日,事件对「旧日期」与
+  「新日期」各发一条,否则目标日会继续用过期的建议缓存。
 - `services/mapper.service.ts` — DTO ↔ Prisma/领域模型映射。
 - `services/ownership.service.ts` — 记录归属校验(ADR-0009 façade)。
 - `services/image-upload.service.ts` — 记录图片直传 presigned URL。
-- `services/symptom-catalog.service.ts` — 症状目录(`GET daily-records/symptom-catalog`):
+- `services/symptom-catalog.service.ts` — 症状目录(`GET
+/api/v1/user/daily-records/symptom-catalog`):
   码与顺序来自 `constants/symptom-catalog.constants.ts`,文案按 `Accept-Language`
   取 `symptom-catalog` i18n 命名空间。客户端保留同码兜底副本。
+- `services/records-validator.service.ts` — 记录 payload 的写入前校验(按 kind)。
 - `services/candidates/` — 候选编排(orchestrator)、LLM 生成(generator)、
   多语言文案(copy)。
 - `services/meal-analysis/` — queue(BullMQ)、vision(多模态)、worker(落库)、

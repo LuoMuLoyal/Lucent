@@ -23,13 +23,15 @@ today-suggestion 互补——分析面向解读,建议面向行动。
 - imports:`LlmRuntimeModule`、`LlmCommonModule`(common)、`AssistantModule`
   (历史 AI 摘要存档)、`NotificationsModule`、`PrismaModule`、
   `DailyRecordsModule`、`MedicineDoseLogsModule`、`MedicineRemindersModule`。
-- 被引用:无(module 不导出服务;重算由 `today-suggestion.materialization.changed`
-  等领域事件经 common/events 驱动)。
+- 被引用:无(无 `index.ts` 导出面;重算由 common/events 的
+  `DAILY_RECORD_CHANGED` / `DOSE_LOG_CHANGED` / `HEALTH_EVENT_CHANGED` /
+  `TODAY_SUGGESTION_MATERIALIZATION_CHANGED` 经 `trigger.listener.ts` 驱动)。
 
 ## 内部结构
 
 - `services/analysis.service.ts` — `TodayAnalysisService`:生成入口与流式摘要。
-- `services/analysis-queue.service.ts` — BullMQ 异步队列,Redis 缺失时降级同步。
+- `services/analysis-queue.service.ts` — BullMQ 异步队列(队列名取自
+  `QUEUE_NAMES.todayAnalysis`),Redis 缺失时降级同步。
 - `services/pipeline/context.service.ts` — 汇聚日报/剂量/事件/用药上下文。
 - `services/pipeline/generator.service.ts` — LLM 结构化输出生成。
 - `services/pipeline/copy.service.ts` — 多语言文案(i18n)。

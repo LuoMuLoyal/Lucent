@@ -17,14 +17,18 @@ owner: backend
 
 ## 依赖方向
 
-- imports:无业务模块依赖(独立只读模块)。
-- 被引用:无(barrel 为空,仅由 app.module 注册)。
+- imports:`AdminModule` **不** import 本模块的 barrel,而是直引
+  `services/admin.service.ts` 的 `LegalDocumentsAdminService`(内容管理 API 的
+  写路径就是它);公共读路径无业务模块依赖。
+- 被引用:`admin`(内容管理)、app.module(公开读路由)。
 
 ## 内部结构
 
 - `services/documents.service.ts` — `LegalDocumentsService`:按 locale 组装
   生效文档列表与单篇内容,并负责更新后的公开读缓存失效。
 - `services/admin.service.ts` — `LegalDocumentsAdminService`:管理端列表、更新、变更摘要审计。
+- `index.ts` — barrel 只导出 `LegalDocumentsAdminService`(module class 仍从
+  `.module.ts` 直引),公开读的 DTO 不外露。
 
 ## 测试承接
 

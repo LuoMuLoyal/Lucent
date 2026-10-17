@@ -34,8 +34,12 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   static：解析来源详情即时静态检查，不落库不写 records 缓存，不产生最新
   记录；已在药箱的候选不重复加入）/ `GET risk-check`（最近记录，30 分钟缓存）。
 - `POST recognize`（同步）/ `POST recognize/async` + `GET recognize/status/:jobId`
-  （AI 药盒图片识别，异步响应 `jobId|result` 互斥）。
-- `GET safety-tips` — 随机安全贴士（公开读）；管理写操作通过 Admin `content:write` API 调用本模块 owner service，并审计且清理药品缓存。
+  （AI 药盒图片识别；同步端点直接返回识别资源，异步端点 `jobId|result` 互斥，
+  队列不可用时同步兜底）。识别结果四个字段恒在、取不到时为 `null`，否则生成客户端
+  会因字段缺失反序列化失败。
+- `GET safety-tips` — 随机安全贴士（公开读）；管理写操作经 Admin `content:write`
+  API（`/api/v1/admin/content/safety-tips`）调用本模块 owner service
+  `SafetyTipsAdminService`，每次都记审计（actor + 前后摘要）并失效药品缓存。
 
 ## 持久表清单
 
@@ -70,6 +74,7 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   （`file_source = leaflet:<leafletId>`）为原子单位，支持断点续传，
   完成状态以 LightRAG 的 `doc_status` 为准（本地账本仅作缓存）。
   两者写入同一 workspace，**不要对同一批说明书混用**，否则同一说明书会出现两份文档。
+  命令语义与排查见 [`docs/howto/run-medicine-import.md`](../../../docs/howto/run-medicine-import.md)。
 - **Schema 语义（V3 对齐）**：`cn_medicine_products` 是纯目录表（名称/批准文号/
   条码/价格/类别/overdose 等，无正文）；`cn_medicine_leaflets` 是权威正文
   （ingredients/indications/dosage/contraindications…）；链接表 1:1 关联，带
@@ -104,12 +109,14 @@ database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>
 
 ## Dependencies
 
-- 引用：LlmRuntime/LlmCommon（LLM 风险检查与识别）、Prisma、cache。
+- 引用：LlmRuntime/LlmCommon（LLM 风险检查与识别）、Prisma、cache、`audit-log`
+  （安全贴士管理写的审计）。
 - 被引用：`assistant`（结构化药品查询）、`reports`（event-review 只读
-  `redFlags`）。`medicine-reminders` 以 Prisma 外键关联 `currentMedicine`，
+  `redFlags`）、`admin`（内容管理 API 调用 `SafetyTipsAdminService`）。
+  `medicine-reminders` 以 Prisma 外键关联 `currentMedicine`，
   不经本模块服务。
 - Barrel 导出：`DrugbankMedicinesService`、`CnMedicinesService`、
-  `MedicineRiskCheckService`、`SafetyTipsAdminService`。
+  `MedicineRiskCheckService`、`SafetyTipsAdminService`、`MedicineSearchItemDto`。
 
 ## Tests
 

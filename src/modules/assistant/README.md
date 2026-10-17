@@ -57,7 +57,7 @@ query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查�
 含 `LightragClientService` 与 `search_cn_medicine_knowledge`）、`records`
 （档案/在服药品 + **餐食分析 digest `get_meal_analysis_digest`**）、`ontology`
 （**英文侧 OAG 本体推理**，见下节；含 `SemanticaClientService`、
-`OntologyCypherGeneratorService` 与 `reason_over_ontology`）、`proposal`
+`OntologyCypherGeneratorService` 与 `reason_over_ontology` / `reason_over_rules`）、`proposal`
 （`propose_create/update/delete_daily_record`、`propose_update_user_settings`，
 只产出带 `expiresAt` 的提案，绝不直接写 DB）。
 检索源强制分离：中文散文（说明书字段 / 医学问答）走 LightRAG；DrugBank
@@ -90,8 +90,9 @@ sidecar**，Lucent 只做参数校验与 envelope 归一：
   后者是抽取侧换成便宜模型 + 关 thinking + 开 `MAX_ASYNC_LLM` 之后的实测值）。没建图却放行图模式的
   后果**不是报错，是空结果**——图模式拿不到实体。设成空串即回到"图模式全禁"。
   超时三层嵌套，改动时要一起看：客户端 60s < `RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS`
-  65s < `ASSISTANT_NODE_TIMEOUT_MS`。依据见
-  `lightrag-eval/results/mode-comparison.md`（line 132-134 与结论 5）。
+  65s < `ASSISTANT_NODE_TIMEOUT_MS`。依据来自工作区根目录
+  `lightrag-eval/results/mode-comparison.md`（line 132-134 与结论 5，
+  Lucent 仓外资料）。
 - **服务不可用 ≠ 没有证据**：超时/5xx 写成
   `coverage.reason: '... retrieval is unavailable: ...'`，绝不静默降级成空结果。
   该状态同时经 `GET /capabilities` 暴露为
@@ -128,24 +129,39 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 建成 Neo4j 图（零 LLM 抽取），`reason_over_ontology` 在这张图上做类型化多跳推理：
 
 - **分工**：**NL→Cypher 的生成在 Lucent**（`OntologyCypherGeneratorService`，复用
-  `AI_LANGUAGE_*` 角色），sidecar（`semantica-service`）只做**只读校验 + 执行**。
-  因此 sidecar 不需要 LLM 凭据，`SEMANTICA_*` 里也没有密钥项——与 LightRAG 需要
-  密钥握手不同。
-- `SemanticaClientService` —— 纯 HTTP 客户端（`GET /schema`、`POST /query`）；把
-  sidecar 的结构化 `detail.kind`（`not_read_only` / `syntax_error` /
-  `unsupported_feature` / `timeout` …）归一出来，作为重试回路的判据。
+  `AI_LANGUAGE_*` 角色），sidecar（`semantica-service`）只做**只读校验 + 执行**。因此
+  sidecar 不持有 LLM 凭据；取而代之的是一条**共享 bearer token**：
+  `SemanticaClientService` 对每个请求（含 `GET /schema`，sidecar 把鉴权挂在路由级）
+  带 `Authorization: Bearer ${SEMANTICA_API_KEY}`，对面校验的是它自己的 `API_TOKEN`。
+  `SEMANTICA_ENABLED=true` 而密钥缺失时启动期校验即失败——否则第一次推理才会暴露，
+  而上层把 401 归一成 `unauthorized` 后呈现给模型的是"推理服务不可用"。
+- `SemanticaClientService` —— 纯 HTTP 客户端（`GET /schema`、`POST /query`、
+  `GET /rules`、`POST /reason`、`GET /health`）；把 sidecar 的结构化 `detail.kind`
+  （`not_read_only` / `syntax_error` / `unsupported_feature` / `timeout` …）归一出来，
+  作为重试回路的判据。
 - `AssistantToolOntologyReasoningService` —— `reason_over_ontology`（参数
   `question` / `limit`）。流程：读 schema → 生成 → 执行；被拒则**把 sidecar 的报错
-  回喂模型重生成**（最多 3 次，总预算 30s）。重试回路是生产必需：实测模型会产出
+  回喂模型重生成**（`SEMANTICA_MAX_GENERATION_ATTEMPTS` 3 次，
+  `SEMANTICA_REASONING_BUDGET_MS` 30s 总预算）。重试回路是生产必需：实测模型会产出
   `OPTIONAL MATCH ... AS x` 这类非法语法，回喂报错即可自纠。
+- `AssistantToolRuleReasoningService` —— `reason_over_rules`（参数
+  `intent` / `query` / `drug_names` / `atc_prefixes` / `limit`），走 sidecar 的
+  `POST /reason`。它与直读的分别不是"另一个端点"而是**另一种断言**：`reason_over_ontology`
+  读图上写了的边，它按规则推出图上没写的边（"A 抑制的酶恰好是 B 的代谢酶"）。
+  因此硬约束更严：**范围必填**（`drug_names` 或 `atc_prefixes` 至少一个，全图不动点
+  是分钟级计算，超时又会被读成"图上没有"）、规则 `intent` 取自 sidecar 的 `GET /rules`
+  而非硬编码、`query` 必须至少钉死一个常量实参（全变量模式等于索要整个结论集）。
+  每条结论带 `ruleId` 与前提引用，结论与引用各有条数/体积上限；"范围问题被拒"
+  （`isAddressableReasonRejection`）与"服务不可用"分属两种 envelope。
 - **envelope 带可复核路径**：`cypher`（实际执行的查询）+ `citations`（每条断言一条
   PROV-O 引用）+ `sourceTier: 'drugbank_structured'`；**零行 = DrugBank 没有这条
   断言**，不是"查不到"；`truncated` 标 `coverage: partial`。**引用由 sidecar 解析**：
   图上每条边带 `prov` id（指回来源表与来源行），sidecar 把它解成来源表 / 行键 /
   原文 / 哈希链位置；行回来了却一条引用都没有时 `verifiability` 是 `'uncited'`
-  （而不是 `'citable'`），并由工具**强制重写一次**要求返回 `r.prov`。SSE 把
-  `citations` 与 `executedQuery` 一起投影给客户端（`toolDetails`），来源条可点击
-  复制 id 去复核。生成侧与 prompt 侧的细节见 §"生成侧的硬约束"。
+  （而不是 `'citable'`），并由工具**强制重写一次**要求返回 `r.prov`。SSE 的
+  `toolDetails` 投影 `citations` 与 `executedQuery`（取自 `result.cypher`，
+  `reason_over_rules` 无此字段故不下发），来源条可点击复制 id 去复核。生成侧与
+  prompt 侧的细节见 §"生成侧的硬约束"。
 - **图节点超时必须高于工具预算**：`ASSISTANT_NODE_TIMEOUT_MS` = 模型超时 + 一次
   工具预算（默认 60s）。原先节点默认取 `AI_MODEL_TIMEOUT_MS`（10s），比
   `reason_over_ontology` 自己的 45s 预算还小——实测表现是慢查询被节点超时掐断、
@@ -168,22 +184,27 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   `docs/reference/environment-variables.md` 的 Semantica 小节。sidecar 尚无镜像，
   dev 走本机 `uvicorn`，容器化部署未完成。
 - **不接它的生成能力、Rete / SPARQL / 时态推理 / 决策智能**：答案出口唯一
-  （ADR-0021）。它自带的四类生成（答案 / 查询 / 本体候选 / 实体关系抽取）都不用，
+  （[ADR-0021](../../../docs/reference/adr/0021-semantica-english-side-oag.md)）。它自带的四类生成（答案 / 查询 / 本体候选 / 实体关系抽取）都不用，
   "解释"也不走 `ExplanationGenerator`（它吃不了 Datalog 的字符串输出）——我们自己的
   "规则名 + 前提引用"就是解释。Rete 需要 `Rule` 对象而非 Datalog 文本且没有
   fixpoint；SPARQL 需要三元组库（Oxigraph 在本仓只是 extra）；时态与决策记录没有
   产品场景。
 - **不引入它的嵌入 / NER / 消解 / 文档解析链路**：英文侧走确定性灌入，用不到。
-- **不把推理结论写成诊断或用药建议**：结论只作为"待复核的潜在关系"呈现
-  （`verifiability: 'derived'`），不进入任何自动建议。
+- **不把推理结论写成诊断或用药建议**：结论只作为"待复核的潜在关系"呈现，
+  不进入任何自动建议（`reason_over_rules` 的每条结论带 `ruleId` 与前提引用，
+  `derivedNote` 明确要求按"推导"而非"断言"陈述）。
 
 ### 工具参数（模型定窗）
 
 工具调用参数经 `AssistantToolCall` 从 `agent` 节点一路带到执行层
 （`AssistantToolExecutionContext.toolArgs`），**不再**从 `userMessage` 文本猜
-参数。带参数的工具目前有三个：`get_meal_analysis_digest`（`days` / `limit`）、
-`search_cn_medicine_knowledge`（`query` / `source` / `mode` / `limit`）与
-`reason_over_ontology`（`question` / `limit`）。以 `get_meal_analysis_digest` 为例：`days` / `limit`
+参数。带参数的工具目前有六个（`tools/shared/tool-definitions.ts` 的
+`TOOL_PARAMETERS`）：`get_meal_analysis_digest`（`days` / `limit`）、
+`search_cn_medicine_knowledge`（`query` / `source` / `mode` / `limit`）、
+`resolve_drugbank_entity`（`query`，只给药品名而非整句）、
+`search_drugbank_passages`（`query` + `drugbankId` / `drugName`）、
+`reason_over_ontology`（`question` / `limit`）与 `reason_over_rules`
+（`intent` / `query` / `drug_names` / `atc_prefixes` / `limit`）。以 `get_meal_analysis_digest` 为例：`days` / `limit`
 由模型给出，服务端封顶最近 `15` 天、最多 `20` 餐（封顶写进 envelope 的
 `ambiguities` + `coverage: partial`）；它读餐食投影列判定 `analyzed` 并取
 headline/区间，只为返回的 ≤`limit` 条回读 `payload.mealAnalysis` 取
@@ -208,8 +229,9 @@ UserHealthContext、DailyRecords、MedicineReminders。Port DI（ADR-0009）：
 ## Tests
 
 `assistant.controller.spec.ts`、`services/core.service.spec.ts`、
-`agent/runtime/*.spec.ts`（classify/graph/nodes/respond/review/router/
-validate/model-stream 等 + `subgraphs/*.spec.ts`）、`tools/**/*.spec.ts`
+`agent/runtime/*.spec.ts`（classify/graph/nodes/respond/review/
+validate/model-stream/`intent-classifier.service`/`intent-eval.fixture` 等 +
+`subgraphs/*.spec.ts`）、`tools/**/*.spec.ts`
 （含 `retrieval/lightrag-client.service.spec.ts` 与
 `retrieval/knowledge.service.spec.ts`：成功/超时/4xx/5xx/未配置/qa 选 mix 被拒/
 leaflet 评测前选 mix 被拒/空结果/溯源缺失标 partial）、

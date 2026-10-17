@@ -11,26 +11,32 @@ health-context 的 profile extras 属 `user-health-context`。
 
 ## Endpoints（挂 `/user` 前缀，事实源 = openapi.json）
 
-- `GET /api/v1/user/settings` — 返回 `UserSettingsDto` 资源。
+- `GET /api/v1/user/settings` — 返回 `UserSettingsDataDto` 资源。
 - `PATCH /api/v1/user/settings` — 部分更新（逐 key upsert），返回更新后
   全量资源；并发 upsert 冲突映射 409 `RESOURCE_CONFLICT`。
 
 ## 字段与默认值（`settings.constants.ts`）
 
-| 字段                                                                          | 默认      | 说明                               |
-| ----------------------------------------------------------------------------- | --------- | ---------------------------------- |
-| `aiSummariesEnabled`                                                          | `true`    | AI 生成摘要/建议开关               |
-| `dataSharingConsent`                                                          | `false`   | 匿名化研究数据共享同意             |
-| `assistantEnabled`                                                            | `true`    | 助手功能总开关                     |
-| `assistantMemoryEnabled`                                                      | `false`   | 跨对话记忆复用（与总开关刻意独立） |
-| `waterTargetCount`                                                            | `8`       | 每日饮水目标（杯数）               |
-| `assistantContext.{healthProfile,dailyRecords,sleepRecords,currentMedicines}` | 全 `true` | 助手上下文细粒度授权               |
-| `updatedAt`                                                                   | `null`    | 最近更新时间                       |
-| `passwordReauthenticationRequired`                                            | 恒 `true` | 敏感操作需密码再认证               |
+| 字段                                                                          | 默认      | 说明                                                       |
+| ----------------------------------------------------------------------------- | --------- | ---------------------------------------------------------- |
+| `aiSummariesEnabled`                                                          | `true`    | AI 生成摘要/建议开关                                       |
+| `dataSharingConsent`                                                          | `false`   | 匿名化研究数据共享同意                                     |
+| `assistantEnabled`                                                            | `true`    | 助手功能总开关                                             |
+| `assistantMemoryEnabled`                                                      | `false`   | 跨对话记忆复用（与总开关刻意独立）                         |
+| `waterTargetCount`                                                            | `8`       | 每日饮水目标（杯数）                                       |
+| `assistantContext.{healthProfile,dailyRecords,sleepRecords,currentMedicines}` | 全 `true` | 助手上下文细粒度授权                                       |
+| `updatedAt`                                                                   | `null`    | 最近更新时间                                               |
+| `passwordReauthenticationRequired`                                            | 恒 `true` | 敏感操作需密码再认证（响应字面量，不落库、`PATCH` 不可改） |
 
-存储：`UserSetting` 模型，每用户每 key 一行（`@@unique([userId, key])`），
-服务端持久 key 直接使用 `assistant*` 命名（旧 `aiChat*` 兼容 key 已不再读写）。
-读取走 10 分钟缓存，写后失效并发 `SETTINGS_CHANGED` 事件。
+存储：`UserSetting` 模型，每用户每 key 一行（`@@unique([userId, key])`）。
+key 字符串的唯一来源在 **`src/common/constants/user-setting-keys.ts`**
+（不是 `constants/settings.constants.ts`——后者只是把它们组装成
+`USER_SETTING_KEYS` / `ASSISTANT_CONTEXT_SETTING_KEYS` 两个映射并附默认值，
+因为 `common/llm` 也要读 `aiSummariesEnabled`，key 下沉到 common 才不反向依赖本模块）。
+注意 `assistantContext.{healthProfile,…}` 四个开关各自是一条**独立设置行**，
+存储 key 带 `assistantContext.` 前缀，不是一行 JSON。
+读取走 10 分钟缓存（`user-settings:{userId}`），写后失效并发 `SETTINGS_CHANGED` 事件
+（`common/events/domain-events.ts`），由 reports / today-suggestion 的监听器消费。
 
 ## Ownership 归属判定（契约表）
 
@@ -44,13 +50,20 @@ health-context 的 profile extras 属 `user-health-context`。
 | App 关于元数据                      | Server（见 app-info 模块）                |
 | 数据导出请求                        | Server（见 data-export 模块）             |
 
+客户端可经 assistant 的 settings proposal 改本模块字段，但落地仍走
+`IUserSettingsPort.updateSettings`，权限校验不在这里。
+
 ## Dependencies
 
-- 引用：Prisma、cache-manager、EventEmitter2。
-- 被引用：`assistant`（`IUserSettingsPort` 做能力发现门禁）、`reports`
-  （dashboard 经 `IUserSettingsPort` 读 `aiSummariesEnabled` 门禁）、
-  `today-suggestion`（collectors 经 `IUserSettingsPort` 读设置）。
-- Barrel 导出：`UserSettingsService`、`IUserSettingsPort`。
+- 引用：Prisma、cache-manager、EventEmitter2、`common/constants/user-setting-keys`。
+- 被引用：`assistant`（能力发现与策略门禁）、`reports`（dashboard 经
+  `IUserSettingsPort` 读 `aiSummariesEnabled`）、`today-suggestion`（collectors
+  经 `IUserSettingsPort` 读设置）。三者都只依赖 port，不依赖具体 service。
+- Barrel 导出：`UserSettingsService`、`IUserSettingsPort`、
+  `USER_SETTING_KEYS`、`USER_SETTINGS_DEFAULTS`、`listDefaultBooleanUserSettings`、
+  `userSettingsCacheKey`、类型 `AssistantContextSettingsDto`。
+  **`ASSISTANT_CONTEXT_SETTING_KEYS` / `ASSISTANT_CONTEXT_DEFAULTS` 不在 barrel 内**，
+  跨模块要用这四个开关请走 `IUserSettingsPort.getSettings().assistantContext`。
 
 ## Tests
 

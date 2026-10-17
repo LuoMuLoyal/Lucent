@@ -25,7 +25,15 @@ owner: backend
   `MedicineDoseLogsModule`、`UserSettingsModule`、`ProductEventsModule`、
   `HealthEventsModule`。
 - 被引用:barrel 导出 `LifecycleService` 与 `LIFECYCLE_REFRESH_CRON`(当前无
-  直接 barrel 消费方);today-analysis 经领域事件消费其物化变更。
+  直接 barrel 消费方);today-analysis 经领域事件
+  `TODAY_SUGGESTION_MATERIALIZATION_CHANGED` 消费其物化变更。
+- **规则码与产品事件白名单是双源**:`product-events` 的
+  `SUGGESTION_RULE_CODE_ALLOWLIST` 逐字镜像本模块 `RegistryService` 注册的
+  `ruleId`(`event_check_in_trend` 是唯一未列入的规则)。反馈落库后
+  `services/feedback/recorder.service.ts` 用 `suggestion.ruleId` 发
+  `suggestion_actioned` 服务端事件,该 code 不在白名单会被
+  `ProductEventsService.recordBatch` 判 `VALIDATION_FAILED`——新规则投入前必须
+  先补白名单。
 
 ## 内部结构
 
@@ -37,9 +45,10 @@ owner: backend
 - `services/rules/` — 规则注册表与 8 条规则(medication/lifestyle/sleep/health)，
   其中 `diet_imbalance`(lifestyle)消费 `diet_facets`：同一饮食维度在窗口内至少
   两天值得留意才给候选，`high` 侧看 fried/sugar/sodium/fat/portion/carb，
-  `low` 侧看 vegetable/fruit/protein。规则码白名单 `SUGGESTION_RULE_CODE_ALLOWLIST`
-  与客户端镜像由 `src/modules/product-events/services/events.service.spec.ts`
-  的 drift-guard 锁在一起。
+  `low` 侧看 vegetable/fruit/protein。规则在
+  `today-suggestion.module.ts` 的 `onModuleInit` 注册到 `RegistryService`
+  (重名直接抛错)，规则码与 `product-events` 白名单的漂移由
+  `src/modules/product-events/services/events.service.spec.ts` 的 drift-guard 锁住。
 - `services/arbitration/` — 打分(scoring)、抑制(suppression)、仲裁(arbiter)。
 - `services/lifecycle/` — 生命周期管理(manager)与基线判定(baseline)。
 - `services/action-label.ts` — 卡片动作/证据标签的本地化解析,`toDto`(重算内联路径)

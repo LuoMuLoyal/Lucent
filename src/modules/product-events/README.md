@@ -18,19 +18,26 @@ owner: backend
 
 ## 依赖方向
 
-- imports:`PrismaModule`。
-- 被引用:exports `ProductEventsService`;barrel 消费方 `health-events`、
-  `reports`、`today-suggestion`。
+- imports:`PrismaModule`;`AdminModule`(漏斗端点复用其 `AdminGuard`,经
+  `admin` barrel 取,不另建守卫)。
+- 被引用:exports `ProductEventsService`;消费方 `health-events`、`reports`
+  (clinic-summary 的分享/摘要)、`today-suggestion`(反馈记录)。
+  `SUGGESTION_RULE_CODE_ALLOWLIST` 由本仓唯一使用它的漂移守卫
+  `services/events.service.spec.ts` 引用,与 today-suggestion 的已注册规则集比对。
 
 ## 内部结构
 
 - `services/events.service.ts` — `ProductEventsService`:批量写入(重复
-  clientEventId 跳过)与服务端事件记录(`appVersion: 'server'`)。
+  clientEventId 跳过;`suggestionRuleCode` 只接受白名单值)与服务端事件记录
+  (`appVersion: 'server'`)。
 - `services/funnel.service.ts` — `ProductFunnelService`:漏斗窗口统计,样本
   过小时抑制逐日明细以保护个体隐私。
-- `@UseGuards(AdminGuard)` 使用 `modules/admin` 的 `AdminUser` 身份判定。
+- `product-events.controller.ts` — 上报端点另挂更严的 `@Throttle`
+  (60s/10 次):一次请求最多写 `MAX_PRODUCT_EVENTS_PER_REQUEST` 条,批量放大
+  写入,全局限流不够。
 
 ## 测试承接
 
-`product-events.controller.spec.ts`、`guards/admin.guard.spec.ts`、
-`services/events.service.spec.ts`、`services/funnel.service.spec.ts`
+`product-events.controller.spec.ts`、`services/events.service.spec.ts`
+(含规则码白名单与 today-suggestion 注册表的漂移守卫)、
+`services/funnel.service.spec.ts`
