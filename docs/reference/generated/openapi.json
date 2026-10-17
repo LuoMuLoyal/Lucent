@@ -8001,7 +8001,13 @@
                 ],
                 "additionalProperties": false
               }
-            ]
+            ],
+            "properties": {
+              "kind": {
+                "enum": ["drugbank", "cnProduct"]
+              }
+            },
+            "required": ["kind"]
           }
         },
         "required": ["id", "source", "name", "subtitle", "detail"],

@@ -372,6 +372,114 @@ function promoteInlineObjects(document: any): number {
 }
 
 /**
+ * Restate shared enum discriminators on the union node that owns them.
+ *
+ * When a union's branches each declare the same property with a *different*
+ * single-value `enum` (what zod's `discriminatedUnion` emits), the dart-dio
+ * generator flattens the union into one wrapper model and copies only the first
+ * branch's enum onto it. The wrapper then cannot represent the other branches'
+ * values at all — `MedicineDetailResponseDetail.kind` carried just `cnProduct`,
+ * so a `drugbank` payload had no legal Dart value and the hand-written
+ * dispatch could not name it.
+ *
+ * Declaring the property on the union node itself with the merged value set
+ * makes the flattened wrapper carry every legal value, while each branch keeps
+ * its own narrow enum — so per-branch precision survives (widening the branches
+ * instead would let each variant accept the others' discriminators). The wire
+ * shape is unchanged: the union already accepted exactly this value set.
+ *
+ * Returns the number of discriminators restated.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function hoistUnionDiscriminators(document: any): number {
+  let hoisted = 0;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const visit = (node: any): void => {
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item);
+      return;
+    }
+    if (node === null || typeof node !== 'object') return;
+
+    for (const branchKey of ['oneOf', 'anyOf']) {
+      const branches = node[branchKey];
+      if (
+        !Array.isArray(branches) ||
+        branches.length < 2 ||
+        !branches.every(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (branch: any) =>
+            branch &&
+            typeof branch === 'object' &&
+            !branch.$ref &&
+            branch.properties &&
+            typeof branch.properties === 'object',
+        )
+      ) {
+        continue;
+      }
+      // Properties every branch declares.
+      let shared: string[] = Object.keys(branches[0].properties);
+      for (const branch of branches.slice(1)) {
+        shared = shared.filter((prop) => prop in branch.properties);
+      }
+      for (const prop of shared) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const branchSchemas = branches.map((b: any) => b.properties[prop]);
+        if (
+          !branchSchemas.every(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (schema: any) => schema && Array.isArray(schema.enum),
+          )
+        ) {
+          continue;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const merged = [
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...new Set(branchSchemas.flatMap((schema: any) => schema.enum)),
+        ];
+        // Branches that spell the property identically need no restatement;
+        // only a genuinely wider union changes the generated wrapper.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const widestBranch = Math.max(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...branchSchemas.map((schema: any) => schema.enum.length),
+        );
+        if (merged.length <= widestBranch) continue;
+
+        // A union that forbids undeclared keys cannot also declare the
+        // discriminator without contradicting its branches; leave it alone.
+        if (node.additionalProperties === false) continue;
+        node.properties ??= {};
+        if (node.properties[prop] != null) continue;
+        // Declare the property only — no `type` — so the union node stays a
+        // pure carrier of the legal value set and the branches keep deciding
+        // the shape.
+        node.properties[prop] = { enum: merged };
+        if (
+          branches.every(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (branch: any) =>
+              Array.isArray(branch.required) && branch.required.includes(prop),
+          )
+        ) {
+          if (!Array.isArray(node.required)) node.required = [];
+          if (!node.required.includes(prop)) node.required.push(prop);
+        }
+        hoisted += 1;
+      }
+    }
+
+    for (const value of Object.values(node)) visit(value);
+  };
+
+  visit(document);
+  return hoisted;
+}
+
+/**
  * Element component name for a top-level array schema with inline object
  * items. Generic structural rule (no per-schema whitelist): strip a trailing
  * `Dto`/`Response`/`List`/`Data` word, then if the base already ends in
@@ -615,6 +723,14 @@ async function main() {
   const inlinePromoted = promoteInlineObjects(document);
   if (inlinePromoted > 0) {
     console.log(`Inline object components promoted: ${inlinePromoted}`);
+  }
+
+  // Runs last so it sees the final branch shape: a union whose branches each
+  // narrow the same discriminator to a different single value would otherwise
+  // generate a flattened client wrapper that can only express one of them.
+  const discriminatorsHoisted = hoistUnionDiscriminators(document);
+  if (discriminatorsHoisted > 0) {
+    console.log(`Union discriminators restated: ${discriminatorsHoisted}`);
   }
 
   // A registration that does not resolve to a real operation would silently
