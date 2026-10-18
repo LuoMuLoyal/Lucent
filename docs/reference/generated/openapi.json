@@ -1907,6 +1907,120 @@
         "tags": ["Admin"]
       }
     },
+    "/api/v1/admin/content/qa-chunks": {
+      "get": {
+        "operationId": "listAdminQaChunks",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 25,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "safetyLabel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated QA corpus chunks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminQaChunkListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List the assistant's open medical Q&A corpus chunks",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/content/qa-chunks/{id}": {
+      "put": {
+        "operationId": "updateAdminQaChunk",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminQaChunkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated QA corpus chunk.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminQaChunk"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a QA corpus chunk",
+        "tags": ["Admin"]
+      }
+    },
     "/api/v1/admin/data/{resource}": {
       "get": {
         "operationId": "listAdminResourceRows",
@@ -9212,6 +9326,75 @@
         ],
         "additionalProperties": false
       },
+      "AdminQaChunkListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminQaChunkListResponseItems"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 100
+          }
+        },
+        "required": ["items", "total", "page", "limit"],
+        "additionalProperties": false
+      },
+      "AdminQaChunk": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "qaId": {
+            "type": "string",
+            "example": "Q-1"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "safetyLabel": {
+            "type": "string",
+            "example": "general"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "qaId",
+          "question",
+          "answer",
+          "safetyLabel",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "AdminResourceListResponse": {
         "type": "object",
         "properties": {
@@ -12091,6 +12274,27 @@
           },
           "isActive": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateAdminQaChunkRequest": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "answer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500000
+          },
+          "safetyLabel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           }
         },
         "additionalProperties": false
@@ -15257,6 +15461,45 @@
           "resourceType",
           "resourceId",
           "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "AdminQaChunkListResponseItems": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "qaId": {
+            "type": "string",
+            "example": "Q-1"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "safetyLabel": {
+            "type": "string",
+            "example": "general"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "qaId",
+          "question",
+          "answer",
+          "safetyLabel",
+          "updatedAt"
         ],
         "additionalProperties": false
       },

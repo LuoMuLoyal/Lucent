@@ -6,6 +6,7 @@ import { responseSchemaRegistrations } from '../../../common/api/response-schema
 import type { UserPayload } from '../../auth/index.js';
 import type { AuthSessionAdminService } from '../../auth/index.js';
 import type { UserAdminService } from '../../user/index.js';
+import type { QaChunksAdminService } from '../../medicines/index.js';
 import type { AdminAccessService } from '../services/access.service.js';
 import type { AdminAdminsService } from '../services/admins.service.js';
 import type { AdminConsoleService } from '../services/console.service.js';
@@ -43,6 +44,7 @@ describe('AdminController', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
     );
 
     await expect(controller.getMe(user)).resolves.toEqual(identity);
@@ -56,6 +58,7 @@ describe('AdminController', () => {
     const controller = new AdminController(
       adminAccess,
       {} as unknown as AdminConsoleService,
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -134,6 +137,7 @@ describe('AdminController', () => {
         (deps.authSessions ?? {}) as unknown as AuthSessionAdminService,
         (deps.shares ?? {}) as unknown as AdminSharesService,
         (deps.userRelated ?? {}) as unknown as AdminUserRelatedService,
+        {} as never,
         {} as never,
         {} as never,
       );
@@ -256,6 +260,59 @@ describe('AdminController', () => {
 
       await expect(
         controller.getUserRelated('missing', { limit: 10 }),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('QA corpus chunks', () => {
+    function makeController(deps: {
+      qaChunks?: Partial<QaChunksAdminService>;
+    }): AdminController {
+      return new AdminController(
+        {} as unknown as AdminAccessService,
+        {} as unknown as AdminConsoleService,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        (deps.qaChunks ?? {}) as unknown as QaChunksAdminService,
+      );
+    }
+
+    it('pages through the corpus with the query defaults resolved', async () => {
+      const page = { items: [], total: 0, page: 1, limit: 25 };
+      const qaChunks = { list: vi.fn().mockResolvedValue(page) };
+      const controller = makeController({ qaChunks });
+
+      await expect(
+        controller.listQaChunks({ page: 1, limit: 25 }),
+      ).resolves.toBe(page);
+      expect(qaChunks.list).toHaveBeenCalledWith({ page: 1, limit: 25 });
+    });
+
+    it('returns the updated chunk', async () => {
+      const chunk = { id: 'chunk-1', safetyLabel: 'blocked' };
+      const qaChunks = { update: vi.fn().mockResolvedValue(chunk) };
+      const controller = makeController({ qaChunks });
+
+      await expect(
+        controller.updateQaChunk(user, 'chunk-1', { safetyLabel: 'blocked' }),
+      ).resolves.toBe(chunk);
+      expect(qaChunks.update).toHaveBeenCalledWith(user.sub, 'chunk-1', {
+        safetyLabel: 'blocked',
+      });
+    });
+
+    it('maps an unknown chunk to 404', async () => {
+      const controller = makeController({
+        qaChunks: { update: vi.fn().mockResolvedValue(null) },
+      });
+
+      await expect(
+        controller.updateQaChunk(user, 'missing', { question: 'changed' }),
       ).rejects.toMatchObject({ status: 404 });
     });
   });

@@ -70,3 +70,60 @@ export const adminSafetyTipSchema = z
   })
   .strict();
 export const adminSafetyTipListSchema = z.array(adminSafetyTipSchema);
+
+export const adminQaChunkListQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(25),
+    q: z.string().trim().min(1).max(200).optional(),
+    safetyLabel: z.string().trim().min(1).max(80).optional(),
+  })
+  .strict();
+
+export type AdminQaChunkListQueryDto = z.infer<
+  typeof adminQaChunkListQuerySchema
+>;
+
+const qaChunkFields = {
+  question: z.string().trim().min(1).max(5_000),
+  // The corpus is machine-translated prose with no editorial length ceiling
+  // upstream (`MIN_ANSWER_LENGTH` in the import script is a floor, not a cap);
+  // the bound here only rejects a pathological payload.
+  answer: z.string().trim().min(1).max(500_000),
+  safetyLabel: z.string().trim().min(1).max(80),
+};
+
+/**
+ * `qaId` is excluded on purpose: it is the corpus identity assigned by the
+ * import script, and the retrieval index names each document `qa:<qaId>:0`.
+ */
+export const adminQaChunkUpdateSchema = z
+  .object({
+    question: qaChunkFields.question.optional(),
+    answer: qaChunkFields.answer.optional(),
+    safetyLabel: qaChunkFields.safetyLabel.optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0);
+
+export type AdminQaChunkUpdateDto = z.infer<typeof adminQaChunkUpdateSchema>;
+
+export const adminQaChunkSchema = z
+  .object({
+    id: z.uuid().meta({ example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' }),
+    qaId: z.string().meta({ example: 'Q-1' }),
+    question: z.string(),
+    answer: z.string(),
+    safetyLabel: z.string().meta({ example: 'general' }),
+    updatedAt: z.iso.datetime(),
+  })
+  .strict();
+
+export const adminQaChunkListResponseSchema = z
+  .object({
+    items: z.array(adminQaChunkSchema),
+    total: z.number().int().nonnegative(),
+    page: z.number().int().positive(),
+    limit: z.number().int().positive().max(100),
+  })
+  .strict();

@@ -65,6 +65,10 @@ import {
   adminLegalDocumentListSchema,
   adminLegalDocumentSchema,
   adminLegalDocumentUpdateSchema,
+  adminQaChunkListQuerySchema,
+  adminQaChunkListResponseSchema,
+  adminQaChunkSchema,
+  adminQaChunkUpdateSchema,
   adminSafetyTipCreateSchema,
   adminSafetyTipListSchema,
   adminSafetyTipSchema,
@@ -72,11 +76,13 @@ import {
 } from '../dto/admin-content.dto.js';
 import type {
   AdminLegalDocumentUpdateDto,
+  AdminQaChunkListQueryDto,
+  AdminQaChunkUpdateDto,
   AdminSafetyTipCreateDto,
   AdminSafetyTipUpdateDto,
 } from '../dto/admin-content.dto.js';
 import { LegalDocumentsAdminService } from '../../legal-documents/index.js';
-import { SafetyTipsAdminService } from '../../medicines/index.js';
+import { QaChunksAdminService, SafetyTipsAdminService } from '../../medicines/index.js';
 import { adminIdentityResponseSchema } from '../dto/admin-identity.dto.js';
 import type { AdminIdentityDto } from '../dto/admin-identity.dto.js';
 
@@ -95,6 +101,7 @@ export class AdminController {
     private readonly userRelated: AdminUserRelatedService,
     private readonly legalDocuments: LegalDocumentsAdminService,
     private readonly safetyTips: SafetyTipsAdminService,
+    private readonly qaChunks: QaChunksAdminService,
   ) {}
 
   @Get('me')
@@ -511,6 +518,43 @@ export class AdminController {
     }
   }
 
+  @Get('content/qa-chunks')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:read')
+  @SerializeOptions({ schema: adminQaChunkListResponseSchema })
+  @ApiOperation({
+    summary: "List the assistant's open medical Q&A corpus chunks",
+  })
+  @ApiResponse({ status: 200, description: 'Paginated QA corpus chunks.' })
+  async listQaChunks(
+    @Query({ schema: adminQaChunkListQuerySchema })
+    query: AdminQaChunkListQueryDto,
+  ) {
+    return this.qaChunks.list(query);
+  }
+
+  @Put('content/qa-chunks/:id')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('content:write')
+  @SerializeOptions({ schema: adminQaChunkSchema })
+  @ApiOperation({ summary: 'Update a QA corpus chunk' })
+  @ApiResponse({ status: 200, description: 'Updated QA corpus chunk.' })
+  async updateQaChunk(
+    @CurrentUser() user: UserPayload,
+    @Param('id', { schema: z.uuid() }) id: string,
+    @Body({ schema: adminQaChunkUpdateSchema })
+    input: AdminQaChunkUpdateDto,
+  ) {
+    const chunk = await this.qaChunks.update(user.sub, id, input);
+    if (chunk === null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'QA corpus chunk not found',
+      });
+    }
+    return chunk;
+  }
+
   /**
    * Guards the user-lifecycle writes: an administrator may not act on their own
    * account, and SUPER_ADMIN accounts are managed through the `/admin/admins`
@@ -626,4 +670,18 @@ registerResponseSchema({
   componentName: 'AdminSafetyTip',
   schema: adminSafetyTipSchema,
   description: 'Updated medication safety tip.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/content/qa-chunks',
+  method: 'get',
+  componentName: 'AdminQaChunkListResponse',
+  schema: adminQaChunkListResponseSchema,
+  description: 'Paginated QA corpus chunks.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/content/qa-chunks/{id}',
+  method: 'put',
+  componentName: 'AdminQaChunk',
+  schema: adminQaChunkSchema,
+  description: 'Updated QA corpus chunk.',
 });

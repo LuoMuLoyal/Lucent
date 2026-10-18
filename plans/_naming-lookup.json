@@ -33,6 +33,8 @@
     "AdminController_createSafetyTip": "createAdminSafetyTip",
     "AdminController_updateSafetyTip": "updateAdminSafetyTip",
     "AdminController_deleteSafetyTip": "deleteAdminSafetyTip",
+    "AdminController_listQaChunks": "listAdminQaChunks",
+    "AdminController_updateQaChunk": "updateAdminQaChunk",
     "AdminDataController_listResourceRows": "listAdminResourceRows",
     "AdminDataController_getResourceRow": "getAdminResourceRow",
     "AdminDataController_createResourceRow": "createAdminResourceRow",

@@ -40,6 +40,11 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 - `GET safety-tips` — 随机安全贴士（公开读）；管理写操作经 Admin `content:write`
   API（`/api/v1/admin/content/safety-tips`）调用本模块 owner service
   `SafetyTipsAdminService`，每次都记审计（actor + 前后摘要）并失效药品缓存。
+- `GET/PUT /api/v1/admin/content/qa-chunks[/:id]` — 公开端无对应读取；管理面经
+  Admin `content:read`/`content:write` 调用本模块 owner service
+  `QaChunksAdminService`（列表分页/`q`/`safetyLabel` 过滤，写作审计 actor + 前后摘要）。
+  `qaId` 不可改（语料身份，检索索引文档名为 `qa:<qaId>:0`）；行只落库，
+  assistant 检索走 LightRAG `qa` workspace，需重建索引才可见；重新导入覆盖整表。
 
 ## 持久表清单
 

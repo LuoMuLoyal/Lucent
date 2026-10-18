@@ -6,7 +6,10 @@ import { MedicinesCacheAdminService } from './cache/admin.service.js';
 import { MedicinesCacheService } from './cache/store.service.js';
 import { MedicinesController } from './medicines.controller.js';
 import { MedicinesService } from './services/medicines.service.js';
-import { SafetyTipsAdminService } from './services/admin.service.js';
+import {
+  SafetyTipsAdminService,
+  QaChunksAdminService,
+} from './services/admin.service.js';
 
 import { MedicineRecognitionQueueService } from './services/recognition-queue.service.js';
 import { MedicineRiskCheckService } from './services/risk/risk-check.service.js';
@@ -24,6 +27,7 @@ import { DrugbankMedicinesService } from './adapters/drugbank.service.js';
   providers: [
     MedicinesService,
     SafetyTipsAdminService,
+    QaChunksAdminService,
     MedicineRecognitionQueueService,
     MedicineRiskCheckService,
     MedicineRiskCheckListener,
@@ -40,6 +44,7 @@ import { DrugbankMedicinesService } from './adapters/drugbank.service.js';
     CnMedicinesService,
     MedicineRiskCheckService,
     SafetyTipsAdminService,
+    QaChunksAdminService,
   ],
 })
 export class MedicinesModule {}

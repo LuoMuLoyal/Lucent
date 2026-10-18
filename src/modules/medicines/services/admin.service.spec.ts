@@ -2,7 +2,10 @@ import { okAsync } from '../../../common/result/index.js';
 import type { PrismaService } from '../../../prisma/index.js';
 import type { AuditLogService } from '../../audit-log/index.js';
 import type { MedicinesCacheAdminService } from '../cache/admin.service.js';
-import { SafetyTipsAdminService } from './admin.service.js';
+import {
+  QaChunksAdminService,
+  SafetyTipsAdminService,
+} from './admin.service.js';
 
 describe('SafetyTipsAdminService', () => {
   const created = {
@@ -111,5 +114,121 @@ describe('SafetyTipsAdminService', () => {
     ).resolves.toBeNull();
     expect(audit.log).not.toHaveBeenCalled();
     expect(cacheAdmin.invalidateAll).not.toHaveBeenCalled();
+  });
+});
+
+describe('QaChunksAdminService', () => {
+  const stored = {
+    id: 'chunk-1',
+    qaId: 'Q-1',
+    question: '高血压怎么预防？',
+    answer: '低盐饮食、规律运动、控制体重。',
+    safetyLabel: 'general',
+    updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+  };
+  const expected = { ...stored, updatedAt: '2026-10-01T00:00:00.000Z' };
+
+  function buildService() {
+    const rows = {
+      findMany: vi.fn(),
+      count: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    };
+    const prisma = { medicalQaChunk: rows } as unknown as PrismaService;
+    const audit = { log: vi.fn().mockReturnValue(okAsync(undefined)) };
+    return {
+      service: new QaChunksAdminService(
+        prisma,
+        audit as unknown as AuditLogService,
+      ),
+      rows,
+      audit,
+    };
+  }
+
+  it('serializes list timestamps and echoes the page window', async () => {
+    const { service, rows } = buildService();
+    rows.findMany.mockResolvedValue([stored]);
+    rows.count.mockResolvedValue(1);
+
+    const listed = await service.list({ page: 2, limit: 10 });
+
+    expect(listed).toEqual({
+      items: [expected],
+      total: 1,
+      page: 2,
+      limit: 10,
+    });
+    expect(rows.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 10, take: 10, where: {} }),
+    );
+  });
+
+  it('searches qaId, question and answer case-insensitively', async () => {
+    const { service, rows } = buildService();
+    rows.findMany.mockResolvedValue([]);
+    rows.count.mockResolvedValue(0);
+
+    await service.list({
+      page: 1,
+      limit: 25,
+      q: '高血压',
+      safetyLabel: 'general',
+    });
+
+    expect(rows.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          safetyLabel: 'general',
+          OR: [
+            { qaId: { contains: '高血压', mode: 'insensitive' } },
+            { question: { contains: '高血压', mode: 'insensitive' } },
+            { answer: { contains: '高血压', mode: 'insensitive' } },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('updates only the supplied fields and records before/after summaries', async () => {
+    const { service, rows, audit } = buildService();
+    rows.findUnique.mockResolvedValue(stored);
+    rows.update.mockResolvedValue({ ...stored, safetyLabel: 'blocked' });
+
+    await expect(
+      service.update('actor-1', 'chunk-1', { safetyLabel: 'blocked' }),
+    ).resolves.toEqual({ ...expected, safetyLabel: 'blocked' });
+    expect(rows.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'chunk-1' },
+        data: { safetyLabel: 'blocked' },
+      }),
+    );
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'admin.content.qa_chunk.update',
+        resourceType: 'medical_qa_chunk',
+        resourceId: 'chunk-1',
+        metadata: {
+          before: expect.objectContaining({ safetyLabel: 'general' }),
+          after: expect.objectContaining({
+            safetyLabel: 'blocked',
+            updatedAt: '2026-10-01T00:00:00.000Z',
+          }),
+        },
+      }),
+    );
+  });
+
+  it('returns null without auditing when the chunk is unknown', async () => {
+    const { service, rows, audit } = buildService();
+    rows.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.update('actor-1', 'missing', { question: 'changed' }),
+    ).resolves.toBeNull();
+    expect(rows.update).not.toHaveBeenCalled();
+    expect(audit.log).not.toHaveBeenCalled();
   });
 });
