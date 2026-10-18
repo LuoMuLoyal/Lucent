@@ -1,8 +1,21 @@
+import { getDataResource, DATA_RESOURCE_KEYS } from '@/config/data-resources'
 import type { DataProvider } from '@refinedev/core'
 import { api } from '@/lib/lucent-api'
 
 type RecordData = Record<string, unknown>
 type ListResult<T> = { items: T[]; total: number }
+
+/** True for tables served by the generic `/admin/data/:resource` layer. */
+function isDataResource(resource: string): boolean {
+  return DATA_RESOURCE_KEYS.has(resource)
+}
+
+/** The generic data layer refuses writes to import/log tables. */
+function assertWritable(resource: string): void {
+  if (getDataResource(resource)?.readOnly === true) {
+    throw new Error(`Resource ${resource} is read-only`)
+  }
+}
 
 function pageParams(pagination?: { currentPage?: number; pageSize?: number }) {
   return {
@@ -89,6 +102,22 @@ export const dataProvider: DataProvider = {
       const response = await api.get<RecordData[]>('/admin/content/safety-tips')
       return { data: response.data as never[], total: response.data.length }
     }
+    if (isDataResource(resource)) {
+      const response = await api.get<ListResult<RecordData>>(
+        `/admin/data/${resource}`,
+        {
+          params: {
+            ...params,
+            q: textFilter(filters, ['q']),
+            userId: equalityFilter(filters, 'userId'),
+          },
+        }
+      )
+      return {
+        data: response.data.items as never[],
+        total: response.data.total,
+      }
+    }
     throw new Error(`Unsupported resource: ${resource}`)
   },
   getOne: async ({ resource, id }) => {
@@ -110,35 +139,68 @@ export const dataProvider: DataProvider = {
       if (!tip) throw new Error('Safety tip not found')
       return { data: tip as never }
     }
+    if (isDataResource(resource)) {
+      const { data } = await api.get<RecordData>(
+        `/admin/data/${resource}/${id}`
+      )
+      return { data: data as never }
+    }
     throw new Error(`Unsupported resource: ${resource}`)
   },
   create: async ({ resource, variables }) => {
-    if (resource !== 'safety-tips') {
-      throw new Error(`Create is not supported for ${resource}`)
+    if (resource === 'safety-tips') {
+      const { data } = await api.post<RecordData>(
+        '/admin/content/safety-tips',
+        variables
+      )
+      return { data: data as never }
     }
-    const { data } = await api.post<RecordData>(
-      '/admin/content/safety-tips',
-      variables
-    )
-    return { data: data as never }
+    if (isDataResource(resource)) {
+      assertWritable(resource)
+      const { data } = await api.post<RecordData>(
+        `/admin/data/${resource}`,
+        variables
+      )
+      return { data: data as never }
+    }
+    throw new Error(`Create is not supported for ${resource}`)
   },
   update: async ({ resource, id, variables }) => {
-    const path =
-      resource === 'legal-documents'
-        ? `/admin/content/legal-documents/${id}`
-        : resource === 'safety-tips'
-          ? `/admin/content/safety-tips/${id}`
-          : null
-    if (!path) throw new Error(`Update is not supported for ${resource}`)
-    const { data } = await api.put<RecordData>(path, variables)
-    return { data: { ...data, id: data.id ?? id } as never }
+    if (resource === 'legal-documents') {
+      const { data } = await api.put<RecordData>(
+        `/admin/content/legal-documents/${id}`,
+        variables
+      )
+      return { data: { ...data, id: data.id ?? id } as never }
+    }
+    if (resource === 'safety-tips') {
+      const { data } = await api.put<RecordData>(
+        `/admin/content/safety-tips/${id}`,
+        variables
+      )
+      return { data: { ...data, id: data.id ?? id } as never }
+    }
+    if (isDataResource(resource)) {
+      assertWritable(resource)
+      const { data } = await api.put<RecordData>(
+        `/admin/data/${resource}/${id}`,
+        variables
+      )
+      return { data: { ...data, id: data.id ?? id } as never }
+    }
+    throw new Error(`Update is not supported for ${resource}`)
   },
   deleteOne: async ({ resource, id }) => {
-    if (resource !== 'safety-tips') {
-      throw new Error(`Delete is not supported for ${resource}`)
+    if (resource === 'safety-tips') {
+      await api.delete(`/admin/content/safety-tips/${id}`)
+      return { data: { id } as never }
     }
-    await api.delete(`/admin/content/safety-tips/${id}`)
-    return { data: { id } as never }
+    if (isDataResource(resource)) {
+      assertWritable(resource)
+      await api.delete(`/admin/data/${resource}/${id}`)
+      return { data: { id } as never }
+    }
+    throw new Error(`Delete is not supported for ${resource}`)
   },
   custom: async ({ url, method, payload, query }) => {
     const { data } = await api.request<RecordData>({

@@ -110,6 +110,7 @@ if (!rootElement.innerHTML) {
                 resources={[
                   { name: 'metrics', list: '/' },
                   { name: 'users', list: '/users', show: '/users/:id' },
+                  { name: 'data', list: '/data' },
                   { name: 'audit-logs', list: '/audit-logs' },
                   {
                     name: 'legal-documents',

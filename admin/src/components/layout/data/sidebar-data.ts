@@ -3,6 +3,7 @@ import {
   Bug,
   Command,
   Construction,
+  Database,
   FileText,
   FileX,
   HelpCircle,
@@ -35,6 +36,7 @@ export const sidebarData: SidebarData = {
       items: [
         { title: 'Overview', url: '/', icon: Activity },
         { title: 'Users', url: '/users', icon: UserRound },
+        { title: 'Data browser', url: '/data', icon: Database },
         { title: 'Audit logs', url: '/audit-logs', icon: ScrollText },
       ],
     },

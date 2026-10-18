@@ -8,6 +8,7 @@ import type { NavGroup } from '../types'
 const requiredPermissionByUrl: Record<string, string> = {
   '/': 'metrics:read',
   '/users': 'users:read',
+  '/data': 'data:read',
   '/audit-logs': 'audit:read',
   '/content/legal-documents': 'content:read',
   '/content/safety-tips': 'content:read',
