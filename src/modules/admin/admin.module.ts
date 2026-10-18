@@ -6,9 +6,11 @@ import { UserModule } from '../user/user.module.js';
 import { LegalDocumentsModule } from '../legal-documents/legal-documents.module.js';
 import { MedicinesModule } from '../medicines/medicines.module.js';
 import { AdminController } from './controllers/admin.controller.js';
+import { AdminDataController } from './controllers/data.controller.js';
 import { AdminAccessService } from './services/access.service.js';
 import { AdminAdminsService } from './services/admins.service.js';
 import { AdminConsoleService } from './services/console.service.js';
+import { AdminDataService } from './services/data.service.js';
 import { AdminSharesService } from './services/shares.service.js';
 import { QueuePanelAuthService } from './services/queue-panel-auth.service.js';
 import { QueuePanelService } from './services/queue-panel.service.js';
@@ -24,11 +26,12 @@ import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
     LegalDocumentsModule,
     MedicinesModule,
   ],
-  controllers: [AdminController],
+  controllers: [AdminController, AdminDataController],
   providers: [
     AdminAccessService,
     AdminAdminsService,
     AdminConsoleService,
+    AdminDataService,
     AdminSharesService,
     QueuePanelAuthService,
     QueuePanelService,
