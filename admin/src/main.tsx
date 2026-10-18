@@ -123,6 +123,11 @@ if (!rootElement.innerHTML) {
                     create: '/content/safety-tips/new',
                     edit: '/content/safety-tips/:id',
                   },
+                  {
+                    name: 'qa-chunks',
+                    list: '/content/qa-chunks',
+                    edit: '/content/qa-chunks/:id',
+                  },
                 ]}
                 options={{
                   disableTelemetry: true,

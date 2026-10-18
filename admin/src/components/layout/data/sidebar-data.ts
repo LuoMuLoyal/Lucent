@@ -10,6 +10,7 @@ import {
   ListTodo,
   Lock,
   MessagesSquare,
+  MessageSquareText,
   Monitor,
   Package,
   Palette,
@@ -49,6 +50,11 @@ export const sidebarData: SidebarData = {
           icon: FileText,
         },
         { title: 'Safety tips', url: '/content/safety-tips', icon: Utensils },
+        {
+          title: 'QA corpus',
+          url: '/content/qa-chunks',
+          icon: MessageSquareText,
+        },
       ],
     },
     {

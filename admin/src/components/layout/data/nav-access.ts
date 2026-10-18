@@ -12,6 +12,7 @@ const requiredPermissionByUrl: Record<string, string> = {
   '/audit-logs': 'audit:read',
   '/content/legal-documents': 'content:read',
   '/content/safety-tips': 'content:read',
+  '/content/qa-chunks': 'content:read',
 }
 
 /** 内部使用：URL → 所需权限（导出面由 `filterNavGroups` 提供）。 */

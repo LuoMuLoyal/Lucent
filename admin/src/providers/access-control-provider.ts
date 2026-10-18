@@ -18,6 +18,10 @@ const permissionsByResource: Record<string, Record<string, string>> = {
     edit: 'content:write',
     delete: 'content:write',
   },
+  'qa-chunks': {
+    list: 'content:read',
+    edit: 'content:write',
+  },
 }
 
 /**

@@ -43,6 +43,7 @@ import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_a
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedContentSafetyTipsIndexRouteImport } from './routes/_authenticated/content/safety-tips/index'
+import { Route as AuthenticatedContentQaChunksIndexRouteImport } from './routes/_authenticated/content/qa-chunks/index'
 import { Route as AuthenticatedContentLegalDocumentsIndexRouteImport } from './routes/_authenticated/content/legal-documents/index'
 
 const ClerkRouteRoute = ClerkRouteRouteImport.update({
@@ -223,6 +224,12 @@ const AuthenticatedContentSafetyTipsIndexRoute =
     path: '/content/safety-tips/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedContentQaChunksIndexRoute =
+  AuthenticatedContentQaChunksIndexRouteImport.update({
+    id: '/content/qa-chunks/',
+    path: '/content/qa-chunks/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedContentLegalDocumentsIndexRoute =
   AuthenticatedContentLegalDocumentsIndexRouteImport.update({
     id: '/content/legal-documents/',
@@ -262,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
   '/content/legal-documents/': typeof AuthenticatedContentLegalDocumentsIndexRoute
+  '/content/qa-chunks/': typeof AuthenticatedContentQaChunksIndexRoute
   '/content/safety-tips/': typeof AuthenticatedContentSafetyTipsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -295,6 +303,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
   '/content/legal-documents': typeof AuthenticatedContentLegalDocumentsIndexRoute
+  '/content/qa-chunks': typeof AuthenticatedContentQaChunksIndexRoute
   '/content/safety-tips': typeof AuthenticatedContentSafetyTipsIndexRoute
 }
 export interface FileRoutesById {
@@ -333,6 +342,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/content/legal-documents/': typeof AuthenticatedContentLegalDocumentsIndexRoute
+  '/_authenticated/content/qa-chunks/': typeof AuthenticatedContentQaChunksIndexRoute
   '/_authenticated/content/safety-tips/': typeof AuthenticatedContentSafetyTipsIndexRoute
 }
 export interface FileRouteTypes {
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/tasks/'
     | '/users/'
     | '/content/legal-documents/'
+    | '/content/qa-chunks/'
     | '/content/safety-tips/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/users'
     | '/content/legal-documents'
+    | '/content/qa-chunks'
     | '/content/safety-tips'
   id:
     | '__root__'
@@ -439,6 +451,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks/'
     | '/_authenticated/users/'
     | '/_authenticated/content/legal-documents/'
+    | '/_authenticated/content/qa-chunks/'
     | '/_authenticated/content/safety-tips/'
   fileRoutesById: FileRoutesById
 }
@@ -697,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContentSafetyTipsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/content/qa-chunks/': {
+      id: '/_authenticated/content/qa-chunks/'
+      path: '/content/qa-chunks'
+      fullPath: '/content/qa-chunks/'
+      preLoaderRoute: typeof AuthenticatedContentQaChunksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/content/legal-documents/': {
       id: '/_authenticated/content/legal-documents/'
       path: '/content/legal-documents'
@@ -743,6 +763,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedContentLegalDocumentsIndexRoute: typeof AuthenticatedContentLegalDocumentsIndexRoute
+  AuthenticatedContentQaChunksIndexRoute: typeof AuthenticatedContentQaChunksIndexRoute
   AuthenticatedContentSafetyTipsIndexRoute: typeof AuthenticatedContentSafetyTipsIndexRoute
 }
 
@@ -760,6 +781,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedContentLegalDocumentsIndexRoute:
     AuthenticatedContentLegalDocumentsIndexRoute,
+  AuthenticatedContentQaChunksIndexRoute:
+    AuthenticatedContentQaChunksIndexRoute,
   AuthenticatedContentSafetyTipsIndexRoute:
     AuthenticatedContentSafetyTipsIndexRoute,
 }

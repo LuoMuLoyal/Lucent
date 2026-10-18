@@ -102,6 +102,22 @@ export const dataProvider: DataProvider = {
       const response = await api.get<RecordData[]>('/admin/content/safety-tips')
       return { data: response.data as never[], total: response.data.length }
     }
+    if (resource === 'qa-chunks') {
+      const response = await api.get<ListResult<RecordData>>(
+        '/admin/content/qa-chunks',
+        {
+          params: {
+            ...params,
+            q: textFilter(filters, ['q']),
+            safetyLabel: equalityFilter(filters, 'safetyLabel'),
+          },
+        }
+      )
+      return {
+        data: response.data.items as never[],
+        total: response.data.total,
+      }
+    }
     if (isDataResource(resource)) {
       const response = await api.get<ListResult<RecordData>>(
         `/admin/data/${resource}`,
@@ -176,6 +192,13 @@ export const dataProvider: DataProvider = {
     if (resource === 'safety-tips') {
       const { data } = await api.put<RecordData>(
         `/admin/content/safety-tips/${id}`,
+        variables
+      )
+      return { data: { ...data, id: data.id ?? id } as never }
+    }
+    if (resource === 'qa-chunks') {
+      const { data } = await api.put<RecordData>(
+        `/admin/content/qa-chunks/${id}`,
         variables
       )
       return { data: { ...data, id: data.id ?? id } as never }
