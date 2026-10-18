@@ -18,6 +18,8 @@ const BASE_ADMIN_PERMISSIONS = [
   'content:read',
   'content:write',
   'ops:read',
+  'data:read',
+  'data:write',
   'admin:manage',
 ] as const;
 
@@ -55,6 +57,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[
     'content:read',
     'content:write',
     'ops:read',
+    'data:read',
     ...QUEUE_READ_WRITE_PERMISSIONS,
   ],
   EDITOR: ['content:read', 'content:write'],
@@ -64,6 +67,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[
     'audit:read',
     'content:read',
     'ops:read',
+    'data:read',
     ...QUEUE_READ_PERMISSIONS,
   ],
 };

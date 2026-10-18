@@ -10,11 +10,14 @@ describe('admin role permissions', () => {
   it('grants the complete permission set to SUPER_ADMIN', () => {
     expect(hasAdminPermission(AdminRole.SUPER_ADMIN, 'admin:manage')).toBe(true);
     expect(hasAdminPermission(AdminRole.SUPER_ADMIN, 'content:write')).toBe(true);
+    expect(hasAdminPermission(AdminRole.SUPER_ADMIN, 'data:write')).toBe(true);
   });
 
-  it('keeps ADMIN operations broad without granting admin management', () => {
+  it('keeps ADMIN operations broad without granting raw table writes', () => {
     expect(hasAdminPermission(AdminRole.ADMIN, 'content:write')).toBe(true);
     expect(hasAdminPermission(AdminRole.ADMIN, 'users:write')).toBe(true);
+    expect(hasAdminPermission(AdminRole.ADMIN, 'data:read')).toBe(true);
+    expect(hasAdminPermission(AdminRole.ADMIN, 'data:write')).toBe(false);
     expect(hasAdminPermission(AdminRole.ADMIN, 'admin:manage')).toBe(false);
   });
 
@@ -28,6 +31,8 @@ describe('admin role permissions', () => {
   it('keeps VIEWER read-only', () => {
     expect(hasAdminPermission(AdminRole.VIEWER, 'content:read')).toBe(true);
     expect(hasAdminPermission(AdminRole.VIEWER, 'users:read')).toBe(true);
+    expect(hasAdminPermission(AdminRole.VIEWER, 'data:read')).toBe(true);
+    expect(hasAdminPermission(AdminRole.VIEWER, 'data:write')).toBe(false);
     expect(hasAdminPermission(AdminRole.VIEWER, 'content:write')).toBe(false);
     expect(hasAdminPermission(AdminRole.VIEWER, 'users:write')).toBe(false);
   });
