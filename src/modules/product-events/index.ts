@@ -8,7 +8,9 @@ export type {
   CreateProductEventDto,
 } from './dto/create-product-event.dto.js';
 export { MAX_FUNNEL_RANGE_DAYS } from './dto/funnel-query.dto.js';
+export { productFunnelQuerySchema } from './dto/funnel-query.dto.js';
 export type { FunnelQueryDto } from './dto/funnel-query.dto.js';
+export { funnelResponseSchema } from './dto/funnel-response.dto.js';
 export type {
   FunnelDailyCountsDto,
   FunnelDataDto,

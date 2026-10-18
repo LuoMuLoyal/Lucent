@@ -9,6 +9,6 @@ import { ProductFunnelService } from './services/funnel.service.js';
   imports: [PrismaModule, AdminModule],
   controllers: [ProductEventsController],
   providers: [ProductEventsService, ProductFunnelService],
-  exports: [ProductEventsService],
+  exports: [ProductEventsService, ProductFunnelService],
 })
 export class ProductEventsModule {}

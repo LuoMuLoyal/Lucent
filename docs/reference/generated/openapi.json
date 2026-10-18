@@ -6906,6 +6906,83 @@
         "tags": ["Medicine Dose Logs"]
       }
     },
+    "/api/v1/admin/metrics/funnel": {
+      "get": {
+        "description": "Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
+        "operationId": "getAdminMetricsFunnel",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.",
+            "schema": {
+              "type": "string",
+              "description": "Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.",
+            "schema": {
+              "type": "string",
+              "description": "Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated funnel counts for the requested window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid funnel query window (dates or range).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated user without the metrics:read permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Admin-only daily product funnel aggregation",
+        "tags": ["Admin"]
+      }
+    },
     "/api/v1/account": {
       "get": {
         "operationId": "getAccount",
@@ -9430,6 +9507,60 @@
         "type": "object",
         "additionalProperties": {}
       },
+      "FunnelResponse": {
+        "type": "object",
+        "properties": {
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FunnelResponseDaily"
+            },
+            "description": "Per-UTC-day core funnel counts, ascending by date; empty when detailsSuppressed is true."
+          },
+          "optional": {
+            "$ref": "#/components/schemas/FunnelResponseOptional"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/FunnelResponseTotals"
+          },
+          "window": {
+            "$ref": "#/components/schemas/FunnelResponseWindow"
+          }
+        },
+        "required": ["daily", "optional", "totals", "window"],
+        "additionalProperties": false,
+        "example": {
+          "daily": [
+            {
+              "date": "2026-01-15",
+              "eventStarted": 120,
+              "suggestionImpression": 340,
+              "suggestionActioned": 210,
+              "eventEndedOrOutcome": 95,
+              "reviewOpened": 60
+            }
+          ],
+          "optional": {
+            "visitSummaryPreviewed": 40,
+            "visitSummaryExported": 12,
+            "visitSummaryShareCreated": 8,
+            "visitSummaryShareOpened": 5
+          },
+          "totals": {
+            "eventStarted": 120,
+            "suggestionImpression": 340,
+            "suggestionActioned": 210,
+            "eventEndedOrOutcome": 95,
+            "reviewOpened": 60
+          },
+          "window": {
+            "dateFrom": "2026-01-01",
+            "dateTo": "2026-01-15",
+            "generatedAt": "2026-01-16T08:30:00.000Z",
+            "detailsSuppressed": false
+          }
+        }
+      },
       "HealthResponse": {
         "type": "object",
         "properties": {
@@ -9626,60 +9757,6 @@
             "app": {
               "status": "up"
             }
-          }
-        }
-      },
-      "FunnelResponse": {
-        "type": "object",
-        "properties": {
-          "daily": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FunnelResponseDaily"
-            },
-            "description": "Per-UTC-day core funnel counts, ascending by date; empty when detailsSuppressed is true."
-          },
-          "optional": {
-            "$ref": "#/components/schemas/FunnelResponseOptional"
-          },
-          "totals": {
-            "$ref": "#/components/schemas/FunnelResponseTotals"
-          },
-          "window": {
-            "$ref": "#/components/schemas/FunnelResponseWindow"
-          }
-        },
-        "required": ["daily", "optional", "totals", "window"],
-        "additionalProperties": false,
-        "example": {
-          "daily": [
-            {
-              "date": "2026-01-15",
-              "eventStarted": 120,
-              "suggestionImpression": 340,
-              "suggestionActioned": 210,
-              "eventEndedOrOutcome": 95,
-              "reviewOpened": 60
-            }
-          ],
-          "optional": {
-            "visitSummaryPreviewed": 40,
-            "visitSummaryExported": 12,
-            "visitSummaryShareCreated": 8,
-            "visitSummaryShareOpened": 5
-          },
-          "totals": {
-            "eventStarted": 120,
-            "suggestionImpression": 340,
-            "suggestionActioned": 210,
-            "eventEndedOrOutcome": 95,
-            "reviewOpened": 60
-          },
-          "window": {
-            "dateFrom": "2026-01-01",
-            "dateTo": "2026-01-15",
-            "generatedAt": "2026-01-16T08:30:00.000Z",
-            "detailsSuppressed": false
           }
         }
       },

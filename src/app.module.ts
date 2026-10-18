@@ -22,6 +22,7 @@ import { EnvKey } from './config/env/env-keys.enum.js';
 import { validatedEnvSchema } from './config/env/environment.validation.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
+import { AdminMetricsModule } from './modules/admin/admin-metrics.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { PrismaModule } from './prisma/index.js';
 import { CacheConfigService } from './config/services/cache.config.js';
@@ -131,6 +132,7 @@ const isTestRuntime =
     MailModule,
     AuthModule,
     AdminModule,
+    AdminMetricsModule,
     AccountModule,
     MedicinesModule,
     UserHealthContextModule,

@@ -20,8 +20,11 @@ owner: backend
 
 - imports:`PrismaModule`;`AdminModule`(漏斗端点复用其 `AdminGuard`,经
   `admin` barrel 取,不另建守卫)。
-- 被引用:exports `ProductEventsService`;消费方 `health-events`、`reports`
-  (clinic-summary 的分享/摘要)、`today-suggestion`(反馈记录)。
+- 被引用:exports `ProductEventsService`(消费方 `health-events`、`reports`
+  (clinic-summary 的分享/摘要)、`today-suggestion`(反馈记录))与
+  `ProductFunnelService`(消费方 `admin` 的 `/admin/metrics/funnel`,经
+  `admin-metrics.module.ts` 单向 import 本模块,避免与本模块→`AdminModule`
+  的依赖成环)。
   `SUGGESTION_RULE_CODE_ALLOWLIST` 由本仓唯一使用它的漂移守卫
   `services/events.service.spec.ts` 引用,与 today-suggestion 的已注册规则集比对。
 

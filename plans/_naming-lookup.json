@@ -170,7 +170,8 @@
     "OAuthController_createGoogleAuthorizeUrl": "createGoogleAuthorizeUrl",
     "OAuthController_loginWithGoogle": "loginWithGoogle",
     "ReportsController_generateSummaryAsync": "enqueueSummaryGeneration",
-    "MedicinesController_recognizeAsync": "enqueueMedicineRecognition"
+    "MedicinesController_recognizeAsync": "enqueueMedicineRecognition",
+    "AdminMetricsController_getFunnel": "getAdminMetricsFunnel"
   },
   "requestByOpId": {
     "createMedicineReminder": "CreateMedicineReminderRequest",

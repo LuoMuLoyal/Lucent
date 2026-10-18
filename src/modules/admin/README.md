@@ -29,6 +29,7 @@ owner: backend
 ## API Surface
 
 - `GET /api/v1/admin/metrics/overview`：`metrics:read`，只返回聚合账户和产品事件计数。
+- `GET /api/v1/admin/metrics/funnel`：`metrics:read`，委托 product-events owner 服务 `ProductFunnelService` 的窗口聚合（UTC 日历日、小样本抑制、计数不含用户/健康内容），保留旧 `/api/v1/user/product-events/funnel`。该端点放在独立的 `admin-metrics.module.ts` 而非本模块：`product-events` 已 import `AdminModule`（取 `AdminGuard`），反向再 import 会成环——新模块只单向依赖两者，依赖图保持无环。
 - `GET /api/v1/admin/users`、`GET /api/v1/admin/users/:id`：`users:read`，只返回账户摘要，不包含健康资料；列表 `limit` 最大为 100。
 - `GET /api/v1/admin/users/:id/related`：`users:read`，聚合该用户在所有 user-owned 表的记录，按域分组（account/health/medication/records/events/suggestions/assistant/notifications/privacy/telemetry），每组返回各资源的预览 `items` 与 `total`；`limit`（≤50，默认 10）逐段生效，完整列表翻 `/admin/data/:resource?userId=…`；一行表（`user-profiles`/`user-notification-preferences`）按 `userId` 直取；敏感列同样剔除；未知用户 → 404。
 - `PATCH /api/v1/admin/users/:id/status`、`DELETE /api/v1/admin/users/:id`：`users:write`，停用/启用与软删；委托 `user` 模块 `UserAdminService`（状态/软删）与 `auth` 模块 `AuthSessionAdminService`（停用/删除后强制下线），审计记 actor/target 与前后态。自身账号与 `SUPER_ADMIN` 目标一律 403。
