@@ -13,6 +13,7 @@ import {
 const BASE_ADMIN_PERMISSIONS = [
   'metrics:read',
   'users:read',
+  'users:write',
   'audit:read',
   'content:read',
   'content:write',
@@ -49,6 +50,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[
   ADMIN: [
     'metrics:read',
     'users:read',
+    'users:write',
     'audit:read',
     'content:read',
     'content:write',

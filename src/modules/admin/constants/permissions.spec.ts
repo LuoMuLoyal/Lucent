@@ -14,6 +14,7 @@ describe('admin role permissions', () => {
 
   it('keeps ADMIN operations broad without granting admin management', () => {
     expect(hasAdminPermission(AdminRole.ADMIN, 'content:write')).toBe(true);
+    expect(hasAdminPermission(AdminRole.ADMIN, 'users:write')).toBe(true);
     expect(hasAdminPermission(AdminRole.ADMIN, 'admin:manage')).toBe(false);
   });
 
@@ -21,11 +22,14 @@ describe('admin role permissions', () => {
     expect(hasAdminPermission(AdminRole.EDITOR, 'content:read')).toBe(true);
     expect(hasAdminPermission(AdminRole.EDITOR, 'content:write')).toBe(true);
     expect(hasAdminPermission(AdminRole.EDITOR, 'metrics:read')).toBe(false);
+    expect(hasAdminPermission(AdminRole.EDITOR, 'users:write')).toBe(false);
   });
 
   it('keeps VIEWER read-only', () => {
     expect(hasAdminPermission(AdminRole.VIEWER, 'content:read')).toBe(true);
+    expect(hasAdminPermission(AdminRole.VIEWER, 'users:read')).toBe(true);
     expect(hasAdminPermission(AdminRole.VIEWER, 'content:write')).toBe(false);
+    expect(hasAdminPermission(AdminRole.VIEWER, 'users:write')).toBe(false);
   });
 });
 
