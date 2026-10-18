@@ -1199,6 +1199,375 @@
         ],
         "summary": "Get one user account summary",
         "tags": ["Admin"]
+      },
+      "delete": {
+        "operationId": "deleteAdminUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User soft-deleted."
+          },
+          "403": {
+            "description": "Target is the caller or a super administrator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a user account",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/users/{id}/status": {
+      "patch": {
+        "operationId": "updateAdminUserStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminUserStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user account summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserSummary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Target is the caller or a super administrator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Activate or suspend a user account",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/users/{id}/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "revokeAdminUserSession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session revoked."
+          },
+          "404": {
+            "description": "Session not found for this user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revoke one of a user's sessions",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/users/{id}/shares/{shareId}": {
+      "delete": {
+        "operationId": "revokeAdminUserShare",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "shareId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Share revoked."
+          },
+          "404": {
+            "description": "Share not found for this user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revoke one of a user's clinic-summary share links",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/admins": {
+      "get": {
+        "operationId": "listAdminGrants",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Administrator grants.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAdminListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List administrator grants",
+        "tags": ["Admin"]
+      }
+    },
+    "/api/v1/admin/admins/{userId}": {
+      "put": {
+        "operationId": "setAdminRole",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAdminRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated administrator grant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAdminSummary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Attempting to change the caller's own role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refusing to demote the last super administrator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Grant or change an administrator role",
+        "tags": ["Admin"]
+      },
+      "delete": {
+        "operationId": "removeAdminGrant",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Administrator grant removed."
+          },
+          "403": {
+            "description": "Attempting to remove the caller's own role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Grant not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refusing to remove the last super administrator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revoke an administrator role",
+        "tags": ["Admin"]
       }
     },
     "/api/v1/admin/audit-logs": {
@@ -1479,6 +1848,1475 @@
         ],
         "summary": "Delete a medication safety tip",
         "tags": ["Admin"]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered user with token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "User registration",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user with token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Login verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong credentials (unified code; account state is not revealed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "User login",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/send-verification-code": {
+      "post": {
+        "operationId": "sendVerificationCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendVerificationCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cooldown seconds until the next code can be requested.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendVerificationCodeResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many verification code requests (cooldown or client rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send email verification code",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "operationId": "verifyEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Whether the email is now verified.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyEmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Verification token is invalid or has expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Verify email",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cooldown seconds until the next reset code can be requested.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many verification code requests (cooldown or client rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Forgot password",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset. Returns a confirmation message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Verification code is invalid/expired, or the password is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Reset password",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/wechat-web/authorize": {
+      "post": {
+        "operationId": "createWechatWebAuthorizeUrl",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWechatWebAuthorizeUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth authorize URL with state and expiry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid callback URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create WeChat web OAuth authorize URL",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/wechat-web/callback": {
+      "post": {
+        "operationId": "loginWithWechatWeb",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginWithWechatWebRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user with token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OAuth state or missing/malformed callback credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OAuth identity is already linked to another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "OAuth provider rejected the exchange or returned an unusable profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "OAuth provider timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "WeChat web OAuth callback login",
+        "tags": ["Auth"]
+      },
+      "get": {
+        "operationId": "redirectWechatWebCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "description": "OAuth 授权码",
+            "schema": {
+              "type": "string",
+              "maxLength": 512,
+              "description": "OAuth 授权码"
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "description": "授权时生成的 state",
+            "schema": {
+              "type": "string",
+              "maxLength": 512,
+              "description": "授权时生成的 state"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to desktop callback URI"
+          },
+          "400": {
+            "description": "Invalid OAuth state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "WeChat web OAuth browser redirect",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/wechat-mobile/callback": {
+      "post": {
+        "operationId": "loginWithWechatMobile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginWithWechatMobileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user with token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing/malformed callback credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OAuth identity is already linked to another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "OAuth provider rejected the exchange or returned an unusable profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "OAuth provider timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "WeChat mobile OAuth callback login",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/apple/callback": {
+      "post": {
+        "operationId": "loginWithApple",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginWithAppleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user with token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid identity token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OAuth identity is already linked to another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "OAuth provider rejected the exchange or returned an unusable profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "OAuth provider timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Apple Sign-In callback",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/qq/authorize": {
+      "post": {
+        "operationId": "createQqAuthorizeUrl",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQqAuthorizeUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth authorize URL with state and expiry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid callback URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create QQ OAuth authorize URL",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/qq/callback": {
+      "post": {
+        "operationId": "loginWithQq",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginWithQqRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user with token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OAuth state or missing/malformed callback credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OAuth identity is already linked to another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "OAuth provider rejected the exchange or returned an unusable profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "OAuth provider timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "QQ OAuth callback login",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/google/authorize": {
+      "post": {
+        "operationId": "createGoogleAuthorizeUrl",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoogleAuthorizeUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth authorize URL with state and expiry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid callback URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create Google OAuth authorize URL",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/google/callback": {
+      "post": {
+        "operationId": "loginWithGoogle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginWithGoogleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user with token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OAuth state or missing/malformed callback credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "OAuth sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OAuth identity is already linked to another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "OAuth provider rejected the exchange or returned an unusable profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "OAuth provider timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Google OAuth callback login",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Logged out."
+          },
+          "401": {
+            "description": "Access token invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "User logout",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "operationId": "listSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The active sessions of the current user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List active sessions for the current user",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "revokeSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session revoked."
+          },
+          "401": {
+            "description": "Access token invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Session belongs to another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revoke a specific session",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "refreshSession",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New token pair for the current session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token invalid, expired or already consumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Refresh token",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/user/notifications": {
+      "post": {
+        "operationId": "createNotification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created notification."
+          },
+          "409": {
+            "description": "Notification already exists (RESOURCE_CONFLICT, P2002 race)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a notification (internal/test)",
+        "tags": ["Notifications"]
+      },
+      "get": {
+        "operationId": "listNotifications",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated notification list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List user notifications",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/unread-count": {
+      "get": {
+        "operationId": "getUnreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Unread notification count.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get unread notification count",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/{id}": {
+      "get": {
+        "operationId": "getNotification",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get a notification detail",
+        "tags": ["Notifications"]
+      },
+      "delete": {
+        "operationId": "remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Notification deleted."
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete a notification",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/{id}/read": {
+      "patch": {
+        "operationId": "markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark a notification as read",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/{id}/unread": {
+      "patch": {
+        "operationId": "markAsUnread",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as unread.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark a notification as unread",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/mark-all-read": {
+      "patch": {
+        "operationId": "markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Number of notifications marked as read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark all notifications as read",
+        "tags": ["Notifications"]
       }
     },
     "/api/v1/legal-documents": {
@@ -2358,301 +4196,6 @@
         ],
         "summary": "Report client local scheduling capability",
         "tags": ["Reminder Deliveries"]
-      }
-    },
-    "/api/v1/user/notifications": {
-      "post": {
-        "operationId": "createNotification",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateNotificationRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created notification."
-          },
-          "409": {
-            "description": "Notification already exists (RESOURCE_CONFLICT, P2002 race)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a notification (internal/test)",
-        "tags": ["Notifications"]
-      },
-      "get": {
-        "operationId": "listNotifications",
-        "parameters": [
-          {
-            "name": "page",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Paginated notification list.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationListResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List user notifications",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/unread-count": {
-      "get": {
-        "operationId": "getUnreadCount",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Unread notification count.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnreadCountResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get unread notification count",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/{id}": {
-      "get": {
-        "operationId": "getNotification",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Notification detail.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationDetailResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Notification not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get a notification detail",
-        "tags": ["Notifications"]
-      },
-      "delete": {
-        "operationId": "remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Notification deleted."
-          },
-          "404": {
-            "description": "Notification not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Delete a notification",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/{id}/read": {
-      "patch": {
-        "operationId": "markAsRead",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Notification marked as read.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationDetailResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Notification not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark a notification as read",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/{id}/unread": {
-      "patch": {
-        "operationId": "markAsUnread",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Notification marked as unread.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationDetailResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Notification not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark a notification as unread",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/mark-all-read": {
-      "patch": {
-        "operationId": "markAllAsRead",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Number of notifications marked as read.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnreadCountResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark all notifications as read",
-        "tags": ["Notifications"]
       }
     },
     "/api/v1/user/today/suggestions": {
@@ -3945,1180 +5488,6 @@
         ],
         "summary": "Regenerate the last assistant message of a persisted conversation (SSE)",
         "tags": ["Assistant"]
-      }
-    },
-    "/api/v1/auth/register": {
-      "post": {
-        "operationId": "register",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Registered user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Verification code expired or does not match",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "User registration",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/login": {
-      "post": {
-        "operationId": "login",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Login verification code expired or does not match",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Wrong credentials (unified code; account state is not revealed)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many failed login attempts",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "User login",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/send-verification-code": {
-      "post": {
-        "operationId": "sendVerificationCode",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SendVerificationCodeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Cooldown seconds until the next code can be requested.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SendVerificationCodeResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many verification code requests (cooldown or client rate limit)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Send email verification code",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/verify-email": {
-      "post": {
-        "operationId": "verifyEmail",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Whether the email is now verified.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerifyEmailResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Verification token is invalid or has expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Verify email",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/forgot-password": {
-      "post": {
-        "operationId": "forgotPassword",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ForgotPasswordRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Cooldown seconds until the next reset code can be requested.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForgotPasswordResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many verification code requests (cooldown or client rate limit)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Forgot password",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/reset-password": {
-      "post": {
-        "operationId": "resetPassword",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResetPasswordRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Password reset. Returns a confirmation message.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResetPasswordResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Verification code is invalid/expired, or the password is invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Reset password",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/wechat-web/authorize": {
-      "post": {
-        "operationId": "createWechatWebAuthorizeUrl",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateWechatWebAuthorizeUrlRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OAuth authorize URL with state and expiry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid callback URI",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Create WeChat web OAuth authorize URL",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/wechat-web/callback": {
-      "post": {
-        "operationId": "loginWithWechatWeb",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginWithWechatWebRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid OAuth state or missing/malformed callback credential",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "OAuth sign-in failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "OAuth identity is already linked to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "OAuth provider rejected the exchange or returned an unusable profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "OAuth provider timed out",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "WeChat web OAuth callback login",
-        "tags": ["Auth"]
-      },
-      "get": {
-        "operationId": "redirectWechatWebCallback",
-        "parameters": [
-          {
-            "name": "code",
-            "required": true,
-            "in": "query",
-            "description": "OAuth 授权码",
-            "schema": {
-              "type": "string",
-              "maxLength": 512,
-              "description": "OAuth 授权码"
-            }
-          },
-          {
-            "name": "state",
-            "required": true,
-            "in": "query",
-            "description": "授权时生成的 state",
-            "schema": {
-              "type": "string",
-              "maxLength": 512,
-              "description": "授权时生成的 state"
-            }
-          }
-        ],
-        "responses": {
-          "302": {
-            "description": "Redirect to desktop callback URI"
-          },
-          "400": {
-            "description": "Invalid OAuth state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "WeChat web OAuth browser redirect",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/wechat-mobile/callback": {
-      "post": {
-        "operationId": "loginWithWechatMobile",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginWithWechatMobileRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing/malformed callback credential",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "OAuth sign-in failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "OAuth identity is already linked to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "OAuth provider rejected the exchange or returned an unusable profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "OAuth provider timed out",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "WeChat mobile OAuth callback login",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/apple/callback": {
-      "post": {
-        "operationId": "loginWithApple",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginWithAppleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing or invalid identity token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "OAuth sign-in failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "OAuth identity is already linked to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "OAuth provider rejected the exchange or returned an unusable profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "OAuth provider timed out",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Apple Sign-In callback",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/qq/authorize": {
-      "post": {
-        "operationId": "createQqAuthorizeUrl",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateQqAuthorizeUrlRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OAuth authorize URL with state and expiry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid callback URI",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Create QQ OAuth authorize URL",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/qq/callback": {
-      "post": {
-        "operationId": "loginWithQq",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginWithQqRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid OAuth state or missing/malformed callback credential",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "OAuth sign-in failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "OAuth identity is already linked to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "OAuth provider rejected the exchange or returned an unusable profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "OAuth provider timed out",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "QQ OAuth callback login",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/google/authorize": {
-      "post": {
-        "operationId": "createGoogleAuthorizeUrl",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateGoogleAuthorizeUrlRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OAuth authorize URL with state and expiry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid callback URI",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Create Google OAuth authorize URL",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/oauth/google/callback": {
-      "post": {
-        "operationId": "loginWithGoogle",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginWithGoogleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated user with token pair.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid OAuth state or missing/malformed callback credential",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "OAuth sign-in failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "OAuth identity is already linked to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "OAuth provider rejected the exchange or returned an unusable profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "OAuth provider timed out",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Google OAuth callback login",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/logout": {
-      "post": {
-        "operationId": "logout",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LogoutRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Logged out."
-          },
-          "401": {
-            "description": "Access token invalid or expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "User logout",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/sessions": {
-      "get": {
-        "operationId": "listSessions",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "The active sessions of the current user.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionListItem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Access token invalid or expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List active sessions for the current user",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/sessions/{sessionId}": {
-      "delete": {
-        "operationId": "revokeSession",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Session revoked."
-          },
-          "401": {
-            "description": "Access token invalid or expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Session belongs to another user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Session not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Revoke a specific session",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/refresh": {
-      "post": {
-        "operationId": "refreshSession",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshSessionRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "New token pair for the current session.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Refresh token invalid, expired or already consumed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Refresh token",
-        "tags": ["Auth"]
       }
     },
     "/api/v1/user/settings": {
@@ -8251,6 +8620,69 @@
         ],
         "additionalProperties": false
       },
+      "AdminAdminListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAdminListResponseItems"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["items", "total"],
+        "additionalProperties": false
+      },
+      "AdminAdminSummary": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "nickname": {
+            "nullable": true,
+            "type": "string"
+          },
+          "userStatus": {
+            "type": "string",
+            "enum": ["active", "suspended", "deleted"]
+          },
+          "role": {
+            "type": "string",
+            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "nickname",
+          "userStatus",
+          "role",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "AdminAuditLogListResponse": {
         "type": "object",
         "properties": {
@@ -11110,6 +11542,28 @@
         "required": ["events"],
         "additionalProperties": false
       },
+      "UpdateAdminUserStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["active", "suspended"]
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "SetAdminRoleRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"]
+          }
+        },
+        "required": ["role"],
+        "additionalProperties": false
+      },
       "UpdateAdminLegalDocumentRequest": {
         "type": "object",
         "properties": {
@@ -11202,6 +11656,317 @@
             "type": "boolean"
           }
         },
+        "additionalProperties": false
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "密码（8-32位，需包含大小写字母和数字）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "邮箱验证码"
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "昵称"
+          }
+        },
+        "required": ["email", "password", "code"],
+        "additionalProperties": false
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "密码（与验证码二选一）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "description": "邮箱验证码（与密码二选一）"
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
+      "SendVerificationCodeRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "scene": {
+            "type": "string",
+            "enum": [
+              "register",
+              "login",
+              "change-email",
+              "set-password",
+              "delete-account",
+              "forgot-password"
+            ]
+          }
+        },
+        "required": ["email", "scene"],
+        "additionalProperties": false
+      },
+      "VerifyEmailRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Lucent 签发的邮件验证 token"
+          }
+        },
+        "required": ["token"],
+        "additionalProperties": false
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "description": "邮箱验证码（6 位）"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "description": "新密码（8-32位，需包含大小写字母和数字）"
+          }
+        },
+        "required": ["email", "code", "password"],
+        "additionalProperties": false
+      },
+      "CreateWechatWebAuthorizeUrlRequest": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginWithWechatWebRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "LoginWithWechatMobileRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          }
+        },
+        "required": ["code"],
+        "additionalProperties": false
+      },
+      "LoginWithAppleRequest": {
+        "type": "object",
+        "properties": {
+          "identityToken": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "Apple 登录返回的 identityToken (JWT)"
+          },
+          "authorizationCode": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Apple 登录返回的 authorizationCode（可选）"
+          },
+          "givenName": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Apple 返回的 givenName（首次登录时返回）"
+          },
+          "familyName": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Apple 返回的 familyName（首次登录时返回）"
+          }
+        },
+        "required": ["identityToken"],
+        "additionalProperties": false
+      },
+      "CreateQqAuthorizeUrlRequest": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "QQ 授权完成后的客户端回跳地址"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginWithQqRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "CreateGoogleAuthorizeUrlRequest": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Google 授权完成后的客户端回跳地址"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginWithGoogleRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"],
+        "additionalProperties": false
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "刷新令牌"
+          }
+        },
+        "required": ["refreshToken"],
+        "additionalProperties": false
+      },
+      "RefreshSessionRequest": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "刷新令牌"
+          }
+        },
+        "required": ["refreshToken"],
+        "additionalProperties": false
+      },
+      "CreateNotificationRequest": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ai_today_summary",
+              "ai_weekly_insight",
+              "ai_proactive_suggestion",
+              "medicine_missed_dose",
+              "password_changed",
+              "report_generated",
+              "medicine_reminder"
+            ],
+            "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications."
+          },
+          "title": {
+            "type": "string",
+            "description": "Notification title."
+          },
+          "content": {
+            "type": "string",
+            "description": "Notification content body."
+          },
+          "action": {
+            "description": "Action route target for the frontend.",
+            "nullable": true,
+            "type": "string"
+          },
+          "actionPayload": {
+            "description": "Extra payload for the action.",
+            "nullable": true
+          }
+        },
+        "required": ["type", "title", "content"],
         "additionalProperties": false
       },
       "RunRiskCheckRequest": {
@@ -11470,43 +12235,6 @@
           }
         },
         "required": ["state"],
-        "additionalProperties": false
-      },
-      "CreateNotificationRequest": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "ai_today_summary",
-              "ai_weekly_insight",
-              "ai_proactive_suggestion",
-              "medicine_missed_dose",
-              "password_changed",
-              "report_generated",
-              "medicine_reminder"
-            ],
-            "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications."
-          },
-          "title": {
-            "type": "string",
-            "description": "Notification title."
-          },
-          "content": {
-            "type": "string",
-            "description": "Notification content body."
-          },
-          "action": {
-            "description": "Action route target for the frontend.",
-            "nullable": true,
-            "type": "string"
-          },
-          "actionPayload": {
-            "description": "Extra payload for the action.",
-            "nullable": true
-          }
-        },
-        "required": ["type", "title", "content"],
         "additionalProperties": false
       },
       "SubmitFeedbackRequest": {
@@ -11827,280 +12555,6 @@
           }
         },
         "required": ["messages"],
-        "additionalProperties": false
-      },
-      "RegisterRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "description": "邮箱地址",
-            "type": "string",
-            "minLength": 1
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-            "description": "密码（8-32位，需包含大小写字母和数字）"
-          },
-          "code": {
-            "type": "string",
-            "minLength": 1,
-            "description": "邮箱验证码"
-          },
-          "nickname": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 20,
-            "description": "昵称"
-          }
-        },
-        "required": ["email", "password", "code"],
-        "additionalProperties": false
-      },
-      "LoginRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "description": "邮箱地址",
-            "type": "string",
-            "minLength": 1
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-            "description": "密码（与验证码二选一）"
-          },
-          "code": {
-            "type": "string",
-            "minLength": 6,
-            "maxLength": 6,
-            "description": "邮箱验证码（与密码二选一）"
-          }
-        },
-        "required": ["email"],
-        "additionalProperties": false
-      },
-      "SendVerificationCodeRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "description": "邮箱地址",
-            "type": "string",
-            "minLength": 1
-          },
-          "scene": {
-            "type": "string",
-            "enum": [
-              "register",
-              "login",
-              "change-email",
-              "set-password",
-              "delete-account",
-              "forgot-password"
-            ]
-          }
-        },
-        "required": ["email", "scene"],
-        "additionalProperties": false
-      },
-      "VerifyEmailRequest": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Lucent 签发的邮件验证 token"
-          }
-        },
-        "required": ["token"],
-        "additionalProperties": false
-      },
-      "ForgotPasswordRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "description": "邮箱地址",
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": ["email"],
-        "additionalProperties": false
-      },
-      "ResetPasswordRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "description": "邮箱地址",
-            "type": "string",
-            "minLength": 1
-          },
-          "code": {
-            "type": "string",
-            "minLength": 6,
-            "maxLength": 6,
-            "description": "邮箱验证码（6 位）"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-            "description": "新密码（8-32位，需包含大小写字母和数字）"
-          }
-        },
-        "required": ["email", "code", "password"],
-        "additionalProperties": false
-      },
-      "CreateWechatWebAuthorizeUrlRequest": {
-        "type": "object",
-        "properties": {
-          "callbackUri": {
-            "type": "string",
-            "maxLength": 2048,
-            "description": "授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。"
-          }
-        },
-        "additionalProperties": false
-      },
-      "LoginWithWechatWebRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "OAuth 授权码"
-          },
-          "state": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "授权时生成的 state"
-          }
-        },
-        "required": ["code", "state"],
-        "additionalProperties": false
-      },
-      "LoginWithWechatMobileRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "OAuth 授权码"
-          }
-        },
-        "required": ["code"],
-        "additionalProperties": false
-      },
-      "LoginWithAppleRequest": {
-        "type": "object",
-        "properties": {
-          "identityToken": {
-            "type": "string",
-            "maxLength": 4096,
-            "description": "Apple 登录返回的 identityToken (JWT)"
-          },
-          "authorizationCode": {
-            "type": "string",
-            "maxLength": 1024,
-            "description": "Apple 登录返回的 authorizationCode（可选）"
-          },
-          "givenName": {
-            "type": "string",
-            "maxLength": 256,
-            "description": "Apple 返回的 givenName（首次登录时返回）"
-          },
-          "familyName": {
-            "type": "string",
-            "maxLength": 256,
-            "description": "Apple 返回的 familyName（首次登录时返回）"
-          }
-        },
-        "required": ["identityToken"],
-        "additionalProperties": false
-      },
-      "CreateQqAuthorizeUrlRequest": {
-        "type": "object",
-        "properties": {
-          "callbackUri": {
-            "type": "string",
-            "maxLength": 2048,
-            "description": "QQ 授权完成后的客户端回跳地址"
-          }
-        },
-        "additionalProperties": false
-      },
-      "LoginWithQqRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "OAuth 授权码"
-          },
-          "state": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "授权时生成的 state"
-          }
-        },
-        "required": ["code", "state"],
-        "additionalProperties": false
-      },
-      "CreateGoogleAuthorizeUrlRequest": {
-        "type": "object",
-        "properties": {
-          "callbackUri": {
-            "type": "string",
-            "maxLength": 2048,
-            "description": "Google 授权完成后的客户端回跳地址"
-          }
-        },
-        "additionalProperties": false
-      },
-      "LoginWithGoogleRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "OAuth 授权码"
-          },
-          "state": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "授权时生成的 state"
-          }
-        },
-        "required": ["code", "state"],
-        "additionalProperties": false
-      },
-      "LogoutRequest": {
-        "type": "object",
-        "properties": {
-          "refreshToken": {
-            "type": "string",
-            "minLength": 1,
-            "description": "刷新令牌"
-          }
-        },
-        "required": ["refreshToken"],
-        "additionalProperties": false
-      },
-      "RefreshSessionRequest": {
-        "type": "object",
-        "properties": {
-          "refreshToken": {
-            "type": "string",
-            "minLength": 1,
-            "description": "刷新令牌"
-          }
-        },
-        "required": ["refreshToken"],
         "additionalProperties": false
       },
       "UpdateSettingsRequest": {
@@ -14239,6 +14693,51 @@
           "createdAt",
           "lastLoginAt",
           "adminRole"
+        ],
+        "additionalProperties": false
+      },
+      "AdminAdminListResponseItems": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "nickname": {
+            "nullable": true,
+            "type": "string"
+          },
+          "userStatus": {
+            "type": "string",
+            "enum": ["active", "suspended", "deleted"]
+          },
+          "role": {
+            "type": "string",
+            "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "nickname",
+          "userStatus",
+          "role",
+          "createdAt",
+          "updatedAt"
         ],
         "additionalProperties": false
       },

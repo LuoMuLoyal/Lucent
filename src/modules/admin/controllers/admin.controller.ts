@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
   ForbiddenException,
@@ -7,6 +8,7 @@ import {
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -15,8 +17,9 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
-import { CurrentUser } from '../../auth/index.js';
+import { AuthSessionAdminService, CurrentUser } from '../../auth/index.js';
 import type { UserPayload } from '../../auth/index.js';
+import { UserAdminService } from '../../user/index.js';
 import {
   ProblemDetailsDto,
   registerResponseSchema,
@@ -25,7 +28,9 @@ import { AdminGuard } from '../guards/admin.guard.js';
 import { AdminPermissionGuard } from '../guards/admin-permission.guard.js';
 import { RequirePermission } from '../decorators/require-permission.decorator.js';
 import { AdminAccessService } from '../services/access.service.js';
+import { AdminAdminsService } from '../services/admins.service.js';
 import { AdminConsoleService } from '../services/console.service.js';
+import { AdminSharesService } from '../services/shares.service.js';
 import {
   adminAuditLogListQuerySchema,
   adminAuditLogListResponseSchema,
@@ -36,10 +41,20 @@ import {
 import {
   adminUserListQuerySchema,
   adminUserListResponseSchema,
+  adminUserStatusUpdateSchema,
   adminUserSummarySchema,
 } from '../dto/admin-users.dto.js';
 import type { AdminAuditLogListQueryDto } from '../dto/admin-audit-logs.dto.js';
-import type { AdminUserListQueryDto } from '../dto/admin-users.dto.js';
+import type {
+  AdminUserListQueryDto,
+  AdminUserStatusUpdateDto,
+} from '../dto/admin-users.dto.js';
+import {
+  adminAdminListResponseSchema,
+  adminAdminRoleUpdateSchema,
+  adminAdminSummarySchema,
+} from '../dto/admin-admins.dto.js';
+import type { AdminAdminRoleUpdateDto } from '../dto/admin-admins.dto.js';
 import {
   adminLegalDocumentListSchema,
   adminLegalDocumentSchema,
@@ -67,6 +82,10 @@ export class AdminController {
   constructor(
     private readonly adminAccess: AdminAccessService,
     private readonly adminConsole: AdminConsoleService,
+    private readonly admins: AdminAdminsService,
+    private readonly userAdmin: UserAdminService,
+    private readonly authSessions: AuthSessionAdminService,
+    private readonly shares: AdminSharesService,
     private readonly legalDocuments: LegalDocumentsAdminService,
     private readonly safetyTips: SafetyTipsAdminService,
   ) {}
@@ -134,6 +153,223 @@ export class AdminController {
       });
     }
     return user;
+  }
+
+  @Patch('users/:id/status')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('users:write')
+  @SerializeOptions({ schema: adminUserSummarySchema })
+  @ApiOperation({ summary: 'Activate or suspend a user account' })
+  @ApiResponse({ status: 200, description: 'Updated user account summary.' })
+  @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Target is the caller or a super administrator.',
+    type: ProblemDetailsDto,
+  })
+  async updateUserStatus(
+    @CurrentUser() actor: UserPayload,
+    @Param('id', { schema: z.uuid() }) id: string,
+    @Body({ schema: adminUserStatusUpdateSchema })
+    input: AdminUserStatusUpdateDto,
+  ) {
+    await this.assertUserMutable(actor.sub, id);
+    const change = await this.userAdmin.setStatus(actor.sub, id, input.status);
+    if (change === null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+    if (input.status === 'suspended') {
+      await this.authSessions.revokeAllForUser(actor.sub, id);
+    }
+    const user = await this.adminConsole.getUser(id);
+    if (user === null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+    return user;
+  }
+
+  @Delete('users/:id')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('users:write')
+  @ApiOperation({ summary: 'Soft-delete a user account' })
+  @ApiResponse({ status: 204, description: 'User soft-deleted.' })
+  @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Target is the caller or a super administrator.',
+    type: ProblemDetailsDto,
+  })
+  @HttpCode(204)
+  async deleteUser(
+    @CurrentUser() actor: UserPayload,
+    @Param('id', { schema: z.uuid() }) id: string,
+  ) {
+    await this.assertUserMutable(actor.sub, id);
+    const deleted = await this.userAdmin.softDelete(actor.sub, id);
+    if (!deleted) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+    await this.authSessions.revokeAllForUser(actor.sub, id);
+  }
+
+  @Delete('users/:id/sessions/:sessionId')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('users:write')
+  @ApiOperation({ summary: "Revoke one of a user's sessions" })
+  @ApiResponse({ status: 204, description: 'Session revoked.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Session not found for this user.',
+    type: ProblemDetailsDto,
+  })
+  @HttpCode(204)
+  async revokeUserSession(
+    @CurrentUser() actor: UserPayload,
+    @Param('id', { schema: z.uuid() }) id: string,
+    @Param('sessionId', { schema: z.uuid() }) sessionId: string,
+  ) {
+    const revoked = await this.authSessions.revokeSessionForUser(
+      actor.sub,
+      id,
+      sessionId,
+    );
+    if (!revoked) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Session not found',
+      });
+    }
+  }
+
+  @Delete('users/:id/shares/:shareId')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('users:write')
+  @ApiOperation({ summary: "Revoke one of a user's clinic-summary share links" })
+  @ApiResponse({ status: 204, description: 'Share revoked.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Share not found for this user.',
+    type: ProblemDetailsDto,
+  })
+  @HttpCode(204)
+  async revokeUserShare(
+    @CurrentUser() actor: UserPayload,
+    @Param('id', { schema: z.uuid() }) id: string,
+    @Param('shareId', { schema: z.uuid() }) shareId: string,
+  ) {
+    const revoked = await this.shares.revoke(actor.sub, id, shareId);
+    if (!revoked) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Share not found',
+      });
+    }
+  }
+
+  @Get('admins')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('admin:manage')
+  @SerializeOptions({ schema: adminAdminListResponseSchema })
+  @ApiOperation({ summary: 'List administrator grants' })
+  @ApiResponse({ status: 200, description: 'Administrator grants.' })
+  async listAdmins() {
+    return this.admins.list();
+  }
+
+  @Put('admins/:userId')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('admin:manage')
+  @SerializeOptions({ schema: adminAdminSummarySchema })
+  @ApiOperation({ summary: 'Grant or change an administrator role' })
+  @ApiResponse({ status: 200, description: 'Updated administrator grant.' })
+  @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Attempting to change the caller\'s own role.',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Refusing to demote the last super administrator.',
+    type: ProblemDetailsDto,
+  })
+  async setAdminRole(
+    @CurrentUser() actor: UserPayload,
+    @Param('userId', { schema: z.uuid() }) userId: string,
+    @Body({ schema: adminAdminRoleUpdateSchema })
+    input: AdminAdminRoleUpdateDto,
+  ) {
+    const outcome = await this.admins.setRole(actor.sub, userId, input.role);
+    if (outcome.status === 'self') {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Cannot change your own role',
+      });
+    }
+    if (outcome.status === 'user_not_found') {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+    if (outcome.status === 'last_super_admin') {
+      throw new ConflictException({
+        code: 'RESOURCE_CONFLICT',
+        message: 'Cannot demote the last super administrator',
+      });
+    }
+    return outcome.admin;
+  }
+
+  @Delete('admins/:userId')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('admin:manage')
+  @ApiOperation({ summary: 'Revoke an administrator role' })
+  @ApiResponse({ status: 204, description: 'Administrator grant removed.' })
+  @ApiResponse({ status: 404, description: 'Grant not found.', type: ProblemDetailsDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Attempting to remove the caller\'s own role.',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Refusing to remove the last super administrator.',
+    type: ProblemDetailsDto,
+  })
+  @HttpCode(204)
+  async removeAdmin(
+    @CurrentUser() actor: UserPayload,
+    @Param('userId', { schema: z.uuid() }) userId: string,
+  ) {
+    const outcome = await this.admins.remove(actor.sub, userId);
+    if (outcome === 'self') {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Cannot remove your own admin role',
+      });
+    }
+    if (outcome === 'not_found') {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Administrator grant not found',
+      });
+    }
+    if (outcome === 'last_super_admin') {
+      throw new ConflictException({
+        code: 'RESOURCE_CONFLICT',
+        message: 'Cannot remove the last super administrator',
+      });
+    }
   }
 
   @Get('audit-logs')
@@ -246,6 +482,30 @@ export class AdminController {
       });
     }
   }
+
+  /**
+   * Guards the user-lifecycle writes: an administrator may not act on their own
+   * account, and SUPER_ADMIN accounts are managed through the `/admin/admins`
+   * role endpoints rather than through status/deletion.
+   */
+  private async assertUserMutable(
+    actorId: string,
+    targetId: string,
+  ): Promise<void> {
+    if (actorId === targetId) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Cannot perform this action on your own account',
+      });
+    }
+    if (await this.admins.isSuperAdmin(targetId)) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message:
+          'Super administrators are managed through the admin role endpoints',
+      });
+    }
+  }
 }
 
 registerResponseSchema({
@@ -268,6 +528,27 @@ registerResponseSchema({
   componentName: 'AdminUserSummary',
   schema: adminUserSummarySchema,
   description: 'User account summary.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/users/{id}/status',
+  method: 'patch',
+  componentName: 'AdminUserSummary',
+  schema: adminUserSummarySchema,
+  description: 'Updated user account summary.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/admins',
+  method: 'get',
+  componentName: 'AdminAdminListResponse',
+  schema: adminAdminListResponseSchema,
+  description: 'Administrator grants.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/admins/{userId}',
+  method: 'put',
+  componentName: 'AdminAdminSummary',
+  schema: adminAdminSummarySchema,
+  description: 'Updated administrator grant.',
 });
 registerResponseSchema({
   path: '/api/v1/admin/audit-logs',

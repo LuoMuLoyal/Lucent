@@ -17,8 +17,8 @@ owner: backend
 
 ## 角色能力
 
-- `SUPER_ADMIN`：全部权限，含 `admin:manage`。
-- `ADMIN`：指标、用户、审计、内容读写和运维读取；不含 `admin:manage`；全队列读写。
+- `SUPER_ADMIN`：全部权限，含 `data:write`、`admin:manage`。
+- `ADMIN`：指标、用户读写、审计、内容读写和运维读取；不含 `admin:manage`；全队列读写。
 - `EDITOR`：仅内容读取与写入；无队列权限点。
 - `VIEWER`：指标、用户、审计、内容与运维只读；全队列只读。
 
@@ -30,6 +30,10 @@ owner: backend
 
 - `GET /api/v1/admin/metrics/overview`：`metrics:read`，只返回聚合账户和产品事件计数。
 - `GET /api/v1/admin/users`、`GET /api/v1/admin/users/:id`：`users:read`，只返回账户摘要，不包含健康资料；列表 `limit` 最大为 100。
+- `PATCH /api/v1/admin/users/:id/status`、`DELETE /api/v1/admin/users/:id`：`users:write`，停用/启用与软删；委托 `user` 模块 `UserAdminService`（状态/软删）与 `auth` 模块 `AuthSessionAdminService`（停用/删除后强制下线），审计记 actor/target 与前后态。自身账号与 `SUPER_ADMIN` 目标一律 403。
+- `DELETE /api/v1/admin/users/:id/sessions/:sessionId`：`users:write`，撤销指定会话（强制下线）；非本人/不存在 → 404。
+- `DELETE /api/v1/admin/users/:id/shares/:shareId`：`users:write`，撤销 clinic-summary 分享链接；不存在/非本人 → 404，重复撤销幂等 204（`admin/services/shares.service.ts` 直写，见其头注释的成环说明）。
+- `GET/PUT/DELETE /api/v1/admin/admins[/:userId]`：`admin:manage`（仅 SUPER_ADMIN），列出/授予或改派/撤销管理员角色；不能改自己角色、不能撤销最后一个 `SUPER_ADMIN`。
 - `GET /api/v1/admin/audit-logs`：`audit:read`，只返回操作者与资源摘要，不返回 metadata、IP 或 user-agent；列表 `limit` 最大为 100。
 - `GET/PUT /api/v1/admin/content/legal-documents`：读写权限分别为 `content:read` / `content:write`；写路径调用 legal-documents owner service、失效公开缓存并记录 actor 与变更摘要。
 - `GET/POST/PUT/DELETE /api/v1/admin/content/safety-tips`：读写权限分别为 `content:read` / `content:write`；写路径调用 medicines owner service、失效缓存并审计 actor 与前后摘要。
@@ -49,6 +53,9 @@ bull-board 面板，直接挂在 Fastify 上（不经 Nest 控制器），与 `/
 ## 内部结构
 
 - `services/console.service.ts`：只读聚合、用户摘要和审计列表编排；由模块 barrel 导出供 API provider 调用。
+- `services/admins.service.ts`：`admin_users` 写所有者——列出/改派/撤销管理员角色，强制「不得改自己」「不得撤销最后一个 SUPER_ADMIN」两条自锁不变量。
+- `services/shares.service.ts`：撤销他人 clinic-summary 分享（直写 `user_clinic_summary_share`，绕开与 `reports` 的模块环）。
+- 用户生命周期写（停用/软删）由 `user` 模块 `UserAdminService` 提供，会话撤销由 `auth` 模块 `AuthSessionAdminService` 提供；Admin 只负责鉴权、自身/超管守卫与 API 编排。
 - 内容变更写服务由 `legal-documents` 和 `medicines` 所有者模块提供，Admin 只负责鉴权和 API 编排。
 - `guards/admin.guard.ts`：要求已登录用户具备任一管理员角色。
 - `guards/admin-permission.guard.ts`：按 `@RequirePermission()` 执行细粒度权限检查。
@@ -59,6 +66,6 @@ bull-board 面板，直接挂在 Fastify 上（不经 Nest 控制器），与 `/
 
 ## 测试承接
 
-`controllers/admin.controller.spec.ts`、`services/access.service.spec.ts`、`services/console.service.spec.ts`、`dto/admin-identity.dto.spec.ts`、`dto/admin-users.dto.spec.ts`、`dto/admin-audit-logs.dto.spec.ts`、`guards/admin.guard.spec.ts`、`guards/admin-permission.guard.spec.ts` 与 `constants/permissions.spec.ts`。内容写入审计由 `legal-documents/services/admin.service.spec.ts` 与 `medicines/services/admin.service.spec.ts` 覆盖；HTTP auth/audit 集成断言位于 `test/e2e/product-events/product-events.e2e-spec.ts`。
+`controllers/admin.controller.spec.ts`、`services/access.service.spec.ts`、`services/admins.service.spec.ts`、`services/console.service.spec.ts`、`dto/admin-identity.dto.spec.ts`、`dto/admin-users.dto.spec.ts`、`dto/admin-audit-logs.dto.spec.ts`、`guards/admin.guard.spec.ts`、`guards/admin-permission.guard.spec.ts` 与 `constants/permissions.spec.ts`。用户生命周期端点由 `test/e2e/admin/admin-management.e2e-spec.ts` 覆盖（401/403/自身与超管守卫/审计落点）；内容写入审计由 `legal-documents/services/admin.service.spec.ts` 与 `medicines/services/admin.service.spec.ts` 覆盖；HTTP auth/audit 集成断言位于 `test/e2e/product-events/product-events.e2e-spec.ts`。
 
 队列面板由 `services/queue-panel-auth.service.spec.ts`（JWT → 角色 → 权限点）与 `services/queue-panel.utils.spec.ts`（cookie/路径解析）覆盖；`services/queue-panel.service.spec.ts` 用真实 Fastify 实例断言路由、握手、写授权与审计落点；端到端 401/403/200 与「变更落 `audit_logs` 并可从 `GET /api/v1/admin/audit-logs` 查到」由 `test/e2e/admin/queue-panel.e2e-spec.ts` 承接。

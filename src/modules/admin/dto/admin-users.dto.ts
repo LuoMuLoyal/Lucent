@@ -12,6 +12,16 @@ export const adminUserListQuerySchema = z
 
 export type AdminUserListQueryDto = z.infer<typeof adminUserListQuerySchema>;
 
+export const adminUserStatusUpdateSchema = z
+  .object({
+    status: z.enum([UserStatus.active, UserStatus.suspended]),
+  })
+  .strict();
+
+export type AdminUserStatusUpdateDto = z.infer<
+  typeof adminUserStatusUpdateSchema
+>;
+
 export const adminUserSummarySchema = z
   .object({
     id: z.string(),
