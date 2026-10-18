@@ -141,7 +141,8 @@ owner: backend
 - `GET /api/v1/admin/data/:resource/:id`：单行。
 - `POST/PUT/DELETE /api/v1/admin/data/:resource[/:id]`：写，**仅 SUPER_ADMIN**（`data:write`）。
 - 资源键不在注册表 → 404；权限不足 → 403。
-- 前端：通用 `ResourceBrowser` 组件 + 资源描述；用户详情页即同一组件带 `userId` 过滤的多个 tab。
+- 前端：通用资源浏览器 `DataBrowser`（`admin/src/features/data-browser`）读 `admin/src/config/data-resources.ts`
+  的资源描述；用户详情页独立为 `admin/src/features/user-detail`（同源描述表 + 聚合端点 tab）。
 - 读用 `PrismaService`（ADR-0009 允许跨模块读）；有 owner 服务的写仍走 owner；纯通用写作为管理面受控例外，记入迁移日志。
 
 ### 2.3 管理写操作（有 owner 服务，ADMIN + SUPER_ADMIN）
@@ -193,8 +194,8 @@ owner: backend
 ### Phase 2 — 通用数据层地基 + 用户详情 + 全局资源页
 
 **2a. 资源注册表与通用端点**（见 2.2）：`resource-registry.ts` + `GET/POST/PUT/DELETE /admin/data/:resource`。
-**2b. 用户详情聚合页**：`GET /admin/users/:id` 扩展为多 tab，复用 `ResourceBrowser`。
-**2c. 全局资源页**：知识库、遥测、任务、投递、会话、分享等。
+**2b. 用户详情聚合页**：`GET /admin/users/:id/related` 返回按域分组的预览；SPA 侧以 tab 呈现。
+**2c. 全局资源页**：知识库、遥测、任务、投递、会话、分享等——由 2a 的通用浏览器覆盖，无逐表页面。
 
 ### Phase 3 — 内容与 ops 入口
 
@@ -207,7 +208,8 @@ owner: backend
 - 侧栏重组：只保留真实项；模板页（`apps`/`chats`/`tasks`/`help-center`/`clerk`/settings stubs）按 `admin/knip.config.ts` 删除或移出导航。
 - 修 `admin/index.html` head 元数据（TODO「控制台 head 仍是上游模板元数据」）。
 - 新资源接入四处：`data-provider.ts`、`access-control-provider.ts`、`nav-access.ts`+`sidebar-data.ts`、`main.tsx` resources + route；写控件按角色显隐（`access-control-provider` 按 `can()`）。
-- 补测试：真实 feature 与 providers 目前零覆盖。
+- 前端无自动化测试：`admin` 的 vitest browser 与全部 Playwright/chromium 用例已删除
+  （决策与理由见迁移日志 2026-10-18）；改动靠 `pnpm lint`/`pnpm build`/`pnpm knip`/`pnpm format:check` 加人工冒烟。
 
 ---
 
@@ -223,7 +225,7 @@ owner: backend
 ## 6. 测试
 
 - 后端：resource-registry 单测（未知资源 404、VIEWER 写 403、脱敏断言、软删过滤）；e2e 遵循既有约定——资源端点补「跨用户/越权 → 404/403」、list 补 `limit` 上限用例（`test/e2e/admin/`）。
-- 前端：`admin` vitest browser；覆盖 `ResourceBrowser`、用户详情、角色显隐写控件与 providers。
+- 前端：无自动化测试——`admin` 的 vitest browser 与 Playwright/chromium 用例已删除（2026-10-18）。
 
 ## 7. 待裁决点
 

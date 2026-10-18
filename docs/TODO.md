@@ -260,9 +260,6 @@ ESM 化后遗留清单与后续跟进：
 - **控制台 head 仍是上游模板元数据**：`admin/index.html` 的 `<title>` 是 `Shadcn Admin`，
   OG/Twitter 卡片指向 `shadcn-admin.netlify.app`，favicon 也引用上游图片。改成 Lucent 自己的
   标题与图标要动"按裁决整体保留"的模板快照，故留待后续统一处理。
-- **浏览器模式测试缺运行前置**：`admin` 的 21 个 `*.test.tsx` 跑在 `@vitest/browser-playwright`
-  里，未执行 `pnpm test:browser:install` 时 `pnpm test` 直接失败（不是代码缺陷）。CI 若要覆盖
-  这批用例，需要显式安装 Chromium。
 - **管理员播种脚本不在镜像里**：`scripts/` 不参与镜像构建，服务器上跑不了 `pnpm admin:seed`。
   首次上线是用一次性 node 脚本进 app 容器完成的（复刻 seed 的校验语义）。若要把播种做成常规
   运维动作，需把该脚本或其编译产物纳入镜像，或提供受权限保护的管理 API。
