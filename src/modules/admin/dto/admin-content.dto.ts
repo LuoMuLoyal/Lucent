@@ -71,12 +71,20 @@ export const adminSafetyTipSchema = z
   .strict();
 export const adminSafetyTipListSchema = z.array(adminSafetyTipSchema);
 
+/**
+ * Corpus QA chunks carry a safety triage label. The domain mirrors the
+ * `safety_label` CHECK constraint created by
+ * `scripts/import/medicine/import-medical-qa.ts`; `blocked` rows are skipped
+ * when the LightRAG `qa` index is rebuilt.
+ */
+const QA_SAFETY_LABELS = ['safe', 'caution', 'blocked'] as const;
+
 export const adminQaChunkListQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(25),
     q: z.string().trim().min(1).max(200).optional(),
-    safetyLabel: z.string().trim().min(1).max(80).optional(),
+    safetyLabel: z.enum(QA_SAFETY_LABELS).optional(),
   })
   .strict();
 
@@ -90,7 +98,7 @@ const qaChunkFields = {
   // upstream (`MIN_ANSWER_LENGTH` in the import script is a floor, not a cap);
   // the bound here only rejects a pathological payload.
   answer: z.string().trim().min(1).max(500_000),
-  safetyLabel: z.string().trim().min(1).max(80),
+  safetyLabel: z.enum(QA_SAFETY_LABELS),
 };
 
 /**
@@ -114,7 +122,7 @@ export const adminQaChunkSchema = z
     qaId: z.string().meta({ example: 'Q-1' }),
     question: z.string(),
     answer: z.string(),
-    safetyLabel: z.string().meta({ example: 'general' }),
+    safetyLabel: z.enum(QA_SAFETY_LABELS).meta({ example: 'safe' }),
     updatedAt: z.iso.datetime(),
   })
   .strict();

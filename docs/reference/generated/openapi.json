@@ -1949,8 +1949,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "minLength": 1,
-              "maxLength": 80
+              "enum": ["safe", "caution", "blocked"]
             }
           }
         ],
@@ -9377,7 +9376,8 @@
           },
           "safetyLabel": {
             "type": "string",
-            "example": "general"
+            "enum": ["safe", "caution", "blocked"],
+            "example": "safe"
           },
           "updatedAt": {
             "type": "string",
@@ -12293,8 +12293,7 @@
           },
           "safetyLabel": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 80
+            "enum": ["safe", "caution", "blocked"]
           }
         },
         "additionalProperties": false
@@ -15485,7 +15484,8 @@
           },
           "safetyLabel": {
             "type": "string",
-            "example": "general"
+            "enum": ["safe", "caution", "blocked"],
+            "example": "safe"
           },
           "updatedAt": {
             "type": "string",

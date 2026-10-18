@@ -38,7 +38,7 @@ owner: backend
 - `GET /api/v1/admin/audit-logs`：`audit:read`，只返回操作者与资源摘要，不返回 metadata、IP 或 user-agent；列表 `limit` 最大为 100。
 - `GET/PUT /api/v1/admin/content/legal-documents`：读写权限分别为 `content:read` / `content:write`；写路径调用 legal-documents owner service、失效公开缓存并记录 actor 与变更摘要。
 - `GET/POST/PUT/DELETE /api/v1/admin/content/safety-tips`：读写权限分别为 `content:read` / `content:write`；写路径调用 medicines owner service、失效缓存并审计 actor 与前后摘要。
-- `GET/PUT /api/v1/admin/content/qa-chunks[/:id]`：读写权限分别为 `content:read` / `content:write`；列表支持 `page`/`limit`(≤100)/`q`(跨 `qaId`/`question`/`answer`，大小写不敏感)/`safetyLabel` 过滤，写路径调用 medicines owner service 并审计 actor 与前后摘要。`qaId` 不可改（语料身份，检索索引文档名为 `qa:<qaId>:0`）；编辑只落库，assistant 检索走 LightRAG `qa` workspace，重建索引后才生效；重新导入会覆盖整表。
+- `GET/PUT /api/v1/admin/content/qa-chunks[/:id]`：读写权限分别为 `content:read` / `content:write`；列表支持 `page`/`limit`(≤100)/`q`(跨 `qaId`/`question`/`answer`，大小写不敏感)/`safetyLabel` 过滤（取值 `safe`/`caution`/`blocked`，对齐导入脚本的 `safety_label` CHECK 约束），写路径调用 medicines owner service 并审计 actor 与前后摘要。`qaId` 不可改（语料身份，检索索引文档名为 `qa:<qaId>:0`）；编辑只落库，assistant 检索走 LightRAG `qa` workspace，重建索引后才生效；重新导入会覆盖整表。
 - `GET/POST/PUT/DELETE /api/v1/admin/data/:resource[/:id]`：通用数据层。读需 `data:read`，写需 `data:write`（仅 `SUPER_ADMIN`）。`:resource` 是 `constants/resource-registry.ts` 的 kebab-case 键，未知键 → 404。列表支持 `page`/`limit`(≤100)/`q`/`userId`/`sort`/`order`；行按 `omitFields` 剔除敏感列。写入按 `writableFields` 白名单（未声明字段 → 400），`readOnly` 资源 → 403，软删表 `DELETE` 走 `deletedAt` 软删，唯一冲突 409、缺行 404。审计 `admin.data.{create,update,delete}` 只记字段名不记值。走 owner 端点写入的缓存失效不覆盖通用写路径，故 `legal-documents`/`medicine-safety-tips` 优先用 `content/*` 端点。
 
 ## 队列面板（/admin/queues）

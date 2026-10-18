@@ -123,7 +123,7 @@ describe('QaChunksAdminService', () => {
     qaId: 'Q-1',
     question: '高血压怎么预防？',
     answer: '低盐饮食、规律运动、控制体重。',
-    safetyLabel: 'general',
+    safetyLabel: 'safe',
     updatedAt: new Date('2026-10-01T00:00:00.000Z'),
   };
   const expected = { ...stored, updatedAt: '2026-10-01T00:00:00.000Z' };
@@ -174,13 +174,13 @@ describe('QaChunksAdminService', () => {
       page: 1,
       limit: 25,
       q: '高血压',
-      safetyLabel: 'general',
+      safetyLabel: 'safe',
     });
 
     expect(rows.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          safetyLabel: 'general',
+          safetyLabel: 'safe',
           OR: [
             { qaId: { contains: '高血压', mode: 'insensitive' } },
             { question: { contains: '高血压', mode: 'insensitive' } },
@@ -211,7 +211,7 @@ describe('QaChunksAdminService', () => {
         resourceType: 'medical_qa_chunk',
         resourceId: 'chunk-1',
         metadata: {
-          before: expect.objectContaining({ safetyLabel: 'general' }),
+          before: expect.objectContaining({ safetyLabel: 'safe' }),
           after: expect.objectContaining({
             safetyLabel: 'blocked',
             updatedAt: '2026-10-01T00:00:00.000Z',

@@ -67,7 +67,7 @@ describe('Admin content API (e2e)', () => {
         qaId: `E2E-${randomUUID()}`,
         question: '高血压怎么预防？',
         answer: '低盐饮食、规律运动、控制体重，并遵医嘱用药。',
-        safetyLabel: 'general',
+        safetyLabel: 'safe',
       },
     });
     chunkId = chunk.id;
@@ -112,7 +112,7 @@ describe('Admin content API (e2e)', () => {
 
     it('filters by safety label and free-text query', async () => {
       const response = await request(app.getHttpServer())
-        .get(`${QA_CHUNKS_PATH}?safetyLabel=general&q=高血压`)
+        .get(`${QA_CHUNKS_PATH}?safetyLabel=safe&q=高血压`)
         .set('Authorization', bearer(viewerToken))
         .expect(200);
 
@@ -121,8 +121,21 @@ describe('Admin content API (e2e)', () => {
       };
       expect(body.items.some((item) => item.id === chunkId)).toBe(true);
       for (const item of body.items) {
-        expect(item.safetyLabel).toBe('general');
+        expect(item.safetyLabel).toBe('safe');
       }
+    });
+
+    it('rejects a safety label outside the corpus domain', async () => {
+      await request(app.getHttpServer())
+        .get(`${QA_CHUNKS_PATH}?safetyLabel=general`)
+        .set('Authorization', bearer(editorToken))
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .put(`${QA_CHUNKS_PATH}/${chunkId}`)
+        .set('Authorization', bearer(editorToken))
+        .send({ safetyLabel: 'general' })
+        .expect(400);
     });
 
     it('lets an editor update a chunk and records the actor', async () => {
