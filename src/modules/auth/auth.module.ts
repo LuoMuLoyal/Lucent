@@ -26,6 +26,7 @@ import { AuthOAuthService } from './services/oauth/oauth.service.js';
 import { CredentialAuthService } from './services/identity/credential.service.js';
 import { PasswordManagementService } from './services/identity/password-management.service.js';
 import { AuthAccountService } from './services/account.service.js';
+import { AuthSessionAdminService } from './services/session-admin.service.js';
 import { AuthOAuthFacadeService } from './services/oauth/facade.service.js';
 import { AuthNotificationService } from './services/notification.service.js';
 import { VerificationCodeService } from './services/identity/verification-code.service.js';
@@ -60,6 +61,7 @@ import { EmailVerificationService } from './services/identity/email-verification
     },
     AuthService,
     AuthAccountService,
+    AuthSessionAdminService,
     AuthOAuthFacadeService,
     AuthNotificationService,
     AuthRateLimitService,
@@ -79,6 +81,11 @@ import { EmailVerificationService } from './services/identity/email-verification
     AuthIdentityService,
     EmailVerificationService,
   ],
-  exports: [AuthService, AuthIdentityService, PasswordReauthService],
+  exports: [
+    AuthService,
+    AuthIdentityService,
+    PasswordReauthService,
+    AuthSessionAdminService,
+  ],
 })
 export class AuthModule {}

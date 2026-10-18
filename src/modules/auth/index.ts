@@ -38,3 +38,4 @@ export { WechatMobileOAuthProvider } from './providers/wechat/wechat-mobile-oaut
 export { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.provider.js';
 export { loginFailureCacheKey } from './services/identity/rate-limit.service.js';
 export { PasswordReauthService } from './services/identity/password-reauth.service.js';
+export { AuthSessionAdminService } from './services/session-admin.service.js';

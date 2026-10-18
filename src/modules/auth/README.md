@@ -29,8 +29,9 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 - imports:`UserModule`、`NotificationsModule`、`MailModule`、Passport/Jwt;
   `AuditLogService` 与 `INotificationSender` 经 barrel 取。
 - 被引用:几乎所有模块经 barrel 取 `@Public()`/`@CurrentUser()`/`UserPayload`;
-  DI 层被 `account`、`assistant`、`data-export`、`files`、`user-settings` 导入。
-  exports:`AuthService`、`AuthIdentityService`、`PasswordReauthService`。
+  DI 层被 `account`、`assistant`、`data-export`、`files`、`user-settings`、`admin`
+  导入。exports:`AuthService`、`AuthIdentityService`、`PasswordReauthService`、
+  `AuthSessionAdminService`。
 
 ## 内部结构
 
@@ -47,6 +48,8 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
   验证码下发;消费 `AuthIdentityService`、`EmailVerificationService`、
   `PasswordReauthService` 与 `INotificationSender`。
 - `services/token.service.ts` — JWT access/refresh 生成与 session CRUD。
+- `services/session-admin.service.ts` — 管理面会话撤销(`AuthSessionAdminService`),
+  包装 `AuthTokenService.revokeAll`/`revokeById`,供 admin 强制下线并审计。
 - `services/account.service.ts` — auth 账号生命周期(改邮箱/密码等)。
 - `services/oauth/facade.service.ts` — OAuth 流程编排(state→authorize→callback)。
 - `services/oauth/oauth.service.ts` — OAuth profile → 用户链接/创建。
