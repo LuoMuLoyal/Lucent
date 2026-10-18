@@ -30,6 +30,7 @@ owner: backend
 
 - `GET /api/v1/admin/metrics/overview`：`metrics:read`，只返回聚合账户和产品事件计数。
 - `GET /api/v1/admin/users`、`GET /api/v1/admin/users/:id`：`users:read`，只返回账户摘要，不包含健康资料；列表 `limit` 最大为 100。
+- `GET /api/v1/admin/users/:id/related`：`users:read`，聚合该用户在所有 user-owned 表的记录，按域分组（account/health/medication/records/events/suggestions/assistant/notifications/privacy/telemetry），每组返回各资源的预览 `items` 与 `total`；`limit`（≤50，默认 10）逐段生效，完整列表翻 `/admin/data/:resource?userId=…`；一行表（`user-profiles`/`user-notification-preferences`）按 `userId` 直取；敏感列同样剔除；未知用户 → 404。
 - `PATCH /api/v1/admin/users/:id/status`、`DELETE /api/v1/admin/users/:id`：`users:write`，停用/启用与软删；委托 `user` 模块 `UserAdminService`（状态/软删）与 `auth` 模块 `AuthSessionAdminService`（停用/删除后强制下线），审计记 actor/target 与前后态。自身账号与 `SUPER_ADMIN` 目标一律 403。
 - `DELETE /api/v1/admin/users/:id/sessions/:sessionId`：`users:write`，撤销指定会话（强制下线）；非本人/不存在 → 404。
 - `DELETE /api/v1/admin/users/:id/shares/:shareId`：`users:write`，撤销 clinic-summary 分享链接；不存在/非本人 → 404，重复撤销幂等 204（`admin/services/shares.service.ts` 直写，见其头注释的成环说明）。
@@ -58,6 +59,7 @@ bull-board 面板，直接挂在 Fastify 上（不经 Nest 控制器），与 `/
 - `services/shares.service.ts`：撤销他人 clinic-summary 分享（直写 `user_clinic_summary_share`，绕开与 `reports` 的模块环）。
 - `constants/resource-registry.ts`：全表矩阵单一来源——51 张表各自的 kebab-case 键、Prisma 模型名、`idField`、软删/只读标志与 `searchFields`/`filterFields`/`omitFields`/`writableFields`。新增表只需在此定义。
 - `services/data.service.ts` / `controllers/data.controller.ts`：按注册表驱动通用 CRUD，经受控 `unknown` 转型访问 Prisma delegate，写路径先过白名单再落审计。
+- `services/user-related.service.ts`：`GET /admin/users/:id/related` 的聚合扇出——遍历 `ADMIN_USER_RELATED_GROUPS`，复用 `AdminDataService` 的过滤与脱敏，逐段返回预览。
 - 用户生命周期写（停用/软删）由 `user` 模块 `UserAdminService` 提供，会话撤销由 `auth` 模块 `AuthSessionAdminService` 提供；Admin 只负责鉴权、自身/超管守卫与 API 编排。
 - 内容变更写服务由 `legal-documents` 和 `medicines` 所有者模块提供，Admin 只负责鉴权和 API 编排。
 - `guards/admin.guard.ts`：要求已登录用户具备任一管理员角色。
@@ -69,6 +71,6 @@ bull-board 面板，直接挂在 Fastify 上（不经 Nest 控制器），与 `/
 
 ## 测试承接
 
-`controllers/admin.controller.spec.ts`、`services/access.service.spec.ts`、`services/admins.service.spec.ts`、`services/console.service.spec.ts`、`services/data.service.spec.ts`、`dto/admin-identity.dto.spec.ts`、`dto/admin-users.dto.spec.ts`、`dto/admin-audit-logs.dto.spec.ts`、`dto/admin-data.dto.spec.ts`、`guards/admin.guard.spec.ts`、`guards/admin-permission.guard.spec.ts`、`constants/permissions.spec.ts` 与 `constants/resource-registry.spec.ts`。通用数据端点由 `test/e2e/admin/admin-data.e2e-spec.ts` 覆盖（401/403/只读拒绝/白名单/软删/敏感列剔除/审计落点）。用户生命周期端点由 `test/e2e/admin/admin-management.e2e-spec.ts` 覆盖（401/403/自身与超管守卫/审计落点）；内容写入审计由 `legal-documents/services/admin.service.spec.ts` 与 `medicines/services/admin.service.spec.ts` 覆盖；HTTP auth/audit 集成断言位于 `test/e2e/product-events/product-events.e2e-spec.ts`。
+`controllers/admin.controller.spec.ts`、`services/access.service.spec.ts`、`services/admins.service.spec.ts`、`services/console.service.spec.ts`、`services/data.service.spec.ts`、`services/user-related.service.spec.ts`、`dto/admin-identity.dto.spec.ts`、`dto/admin-users.dto.spec.ts`、`dto/admin-audit-logs.dto.spec.ts`、`dto/admin-data.dto.spec.ts`、`guards/admin.guard.spec.ts`、`guards/admin-permission.guard.spec.ts`、`constants/permissions.spec.ts` 与 `constants/resource-registry.spec.ts`。通用数据端点由 `test/e2e/admin/admin-data.e2e-spec.ts` 覆盖（401/403/只读拒绝/白名单/软删/敏感列剔除/审计落点），用户详情聚合端点（分组/脱敏/未知用户 404）也在该文件。用户生命周期端点由 `test/e2e/admin/admin-management.e2e-spec.ts` 覆盖（401/403/自身与超管守卫/审计落点）；内容写入审计由 `legal-documents/services/admin.service.spec.ts` 与 `medicines/services/admin.service.spec.ts` 覆盖；HTTP auth/audit 集成断言位于 `test/e2e/product-events/product-events.e2e-spec.ts`。
 
 队列面板由 `services/queue-panel-auth.service.spec.ts`（JWT → 角色 → 权限点）与 `services/queue-panel.utils.spec.ts`（cookie/路径解析）覆盖；`services/queue-panel.service.spec.ts` 用真实 Fastify 实例断言路由、握手、写授权与审计落点；端到端 401/403/200 与「变更落 `audit_logs` 并可从 `GET /api/v1/admin/audit-logs` 查到」由 `test/e2e/admin/queue-panel.e2e-spec.ts` 承接。

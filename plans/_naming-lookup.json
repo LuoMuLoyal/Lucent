@@ -18,6 +18,7 @@
     "AdminController_getMetricsOverview": "getAdminMetricsOverview",
     "AdminController_listUsers": "listAdminUsers",
     "AdminController_getUser": "getAdminUser",
+    "AdminController_getUserRelated": "getAdminUserRelated",
     "AdminController_updateUserStatus": "updateAdminUserStatus",
     "AdminController_deleteUser": "deleteAdminUser",
     "AdminController_revokeUserSession": "revokeAdminUserSession",

@@ -1248,6 +1248,63 @@
         "tags": ["Admin"]
       }
     },
+    "/api/v1/admin/users/{id}/related": {
+      "get": {
+        "operationId": "getAdminUserRelated",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 10,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Related records grouped by domain.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserRelated"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List a user's related records grouped by domain",
+        "tags": ["Admin"]
+      }
+    },
     "/api/v1/admin/users/{id}/status": {
       "patch": {
         "operationId": "updateAdminUserStatus",
@@ -8949,6 +9006,22 @@
         ],
         "additionalProperties": false
       },
+      "AdminUserRelated": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminUserRelatedGroups"
+            }
+          }
+        },
+        "required": ["userId", "groups"],
+        "additionalProperties": false
+      },
       "AdminAdminListResponse": {
         "type": "object",
         "properties": {
@@ -15066,6 +15139,44 @@
           "lastLoginAt",
           "adminRole"
         ],
+        "additionalProperties": false
+      },
+      "AdminUserRelatedGroups": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminUserRelatedGroupsSections"
+            }
+          }
+        },
+        "required": ["key", "sections"],
+        "additionalProperties": false
+      },
+      "AdminUserRelatedGroupsSections": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["resource", "items", "total"],
         "additionalProperties": false
       },
       "AdminAdminListResponseItems": {

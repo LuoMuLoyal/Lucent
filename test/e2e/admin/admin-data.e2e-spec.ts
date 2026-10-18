@@ -255,4 +255,63 @@ describe('Admin data API (e2e)', () => {
         .expect(404);
     });
   });
+
+  describe('user related aggregate', () => {
+    it('returns 401 when unauthenticated', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/v1/admin/users/${settingsUser.id}/related`)
+        .expect(401);
+    });
+
+    it('returns 404 for an unknown user', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/v1/admin/users/${randomUUID()}/related`)
+        .set('Authorization', bearer(opsToken))
+        .expect(404);
+    });
+
+    it('groups related rows by domain and omits sensitive columns', async () => {
+      await ctx.prisma.userSetting.create({
+        data: { userId: settingsUser.id, key: `related-${randomUUID()}`, value: 1 },
+      });
+      await ctx.prisma.userSession.create({
+        data: {
+          userId: settingsUser.id,
+          refreshTokenHash: randomUUID(),
+          expiresAt: new Date(Date.now() + 7 * DAY_MS),
+          lastUsedAt: new Date(),
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/api/v1/admin/users/${settingsUser.id}/related?limit=5`)
+        .set('Authorization', bearer(opsToken))
+        .expect(200);
+
+      const body = response.body as {
+        userId: string;
+        groups: Array<{
+          key: string;
+          sections: Array<{
+            resource: string;
+            items: Array<Record<string, unknown>>;
+            total: number;
+          }>;
+        }>;
+      };
+      expect(body.userId).toBe(settingsUser.id);
+      expect(body.groups.map((g) => g.key)).toEqual(
+        expect.arrayContaining(['account', 'health', 'records', 'telemetry']),
+      );
+
+      const account = body.groups.find((g) => g.key === 'account');
+      const sessions = account?.sections.find(
+        (s) => s.resource === 'user-sessions',
+      );
+      expect(sessions?.total).toBeGreaterThan(0);
+      for (const item of sessions?.items ?? []) {
+        expect(item).not.toHaveProperty('refreshTokenHash');
+      }
+    });
+  });
 });

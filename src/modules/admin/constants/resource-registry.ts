@@ -761,3 +761,81 @@ export function adminResourceSortFields(
 ): readonly string[] {
   return [...new Set([...resource.filterFields, 'createdAt', resource.idField])];
 }
+
+/** A tab on the user-detail page: a named bundle of user-owned resources. */
+export interface AdminUserRelatedGroup {
+  readonly key: string;
+  readonly resources: readonly AdminResource[];
+}
+
+/**
+ * User-owned resources grouped by domain for
+ * `GET /admin/users/:id/related`. Only tables with a direct `userId` column are
+ * listed — child tables (`health-event-check-ins`, `assistant-messages`, …) are
+ * reached through their parent. Unknown keys are dropped here; the registry
+ * spec asserts every key resolves.
+ */
+const USER_RELATED_GROUP_KEYS: readonly {
+  key: string;
+  resources: readonly string[];
+}[] = [
+  {
+    key: 'account',
+    resources: ['accounts', 'user-sessions', 'user-settings', 'user-profiles'],
+  },
+  { key: 'health', resources: ['user-allergies', 'user-conditions'] },
+  {
+    key: 'medication',
+    resources: [
+      'user-current-medicines',
+      'user-medicine-reminders',
+      'user-reminder-deliveries',
+      'user-medicine-dose-logs',
+      'medicine-risk-check-records',
+    ],
+  },
+  {
+    key: 'records',
+    resources: ['user-daily-records', 'user-daily-record-attachments'],
+  },
+  { key: 'events', resources: ['health-events'] },
+  {
+    key: 'suggestions',
+    resources: [
+      'user-suggestions',
+      'user-suggestion-baselines',
+      'user-suggestion-baseline-observations',
+      'user-suggestion-materializations',
+      'user-today-analysis-materializations',
+      'user-suggestion-feedbacks',
+    ],
+  },
+  {
+    key: 'assistant',
+    resources: [
+      'assistant-conversations',
+      'assistant-messages',
+      'assistant-summary-histories',
+      'assistant-memories',
+      'assistant-regenerations',
+    ],
+  },
+  {
+    key: 'notifications',
+    resources: ['user-notification-preferences', 'user-notifications'],
+  },
+  {
+    key: 'privacy',
+    resources: ['data-export-requests', 'user-clinic-summary-shares'],
+  },
+  { key: 'telemetry', resources: ['user-product-events'] },
+];
+
+export const ADMIN_USER_RELATED_GROUPS: readonly AdminUserRelatedGroup[] =
+  USER_RELATED_GROUP_KEYS.map((group) => ({
+    key: group.key,
+    resources: group.resources.flatMap((key) => {
+      const resource = RESOURCE_BY_KEY.get(key);
+      return resource === undefined ? [] : [resource];
+    }),
+  }));

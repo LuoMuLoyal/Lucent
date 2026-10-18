@@ -1,5 +1,6 @@
 import {
   ADMIN_RESOURCES,
+  ADMIN_USER_RELATED_GROUPS,
   adminResourceSortFields,
   getAdminResource,
 } from './resource-registry.js';
@@ -63,6 +64,46 @@ describe('admin resource registry', () => {
 
   it('returns undefined for an unknown key', () => {
     expect(getAdminResource('not-a-table')).toBeUndefined();
+  });
+
+  describe('user-related groups', () => {
+    it('resolves every group reference to a registered resource', () => {
+      const keys = ADMIN_USER_RELATED_GROUPS.map((g) => g.key);
+      expect(new Set(keys).size).toBe(keys.length);
+      for (const group of ADMIN_USER_RELATED_GROUPS) {
+        expect(group.resources.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('only lists resources scoped by userId', () => {
+      for (const group of ADMIN_USER_RELATED_GROUPS) {
+        for (const resource of group.resources) {
+          const scoped =
+            resource.idField === 'userId' ||
+            resource.filterFields.includes('userId');
+          expect(scoped).toBe(true);
+        }
+      }
+    });
+
+    it('groups the expected account and telemetry tables', () => {
+      const all = ADMIN_USER_RELATED_GROUPS.flatMap((g) =>
+        g.resources.map((r) => r.key),
+      );
+      expect(all).toEqual(
+        expect.arrayContaining([
+          'accounts',
+          'user-sessions',
+          'user-profiles',
+          'user-allergies',
+          'user-daily-records',
+          'assistant-conversations',
+          'user-notification-preferences',
+          'user-product-events',
+        ]),
+      );
+      expect(new Set(all).size).toBe(all.length);
+    });
   });
 
   it('exposes createdAt, the id field and filter columns as sortable', () => {

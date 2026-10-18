@@ -2,6 +2,8 @@ import {
   adminResourceListQuerySchema,
   adminResourceListResponseSchema,
   adminResourceWriteSchema,
+  adminUserRelatedQuerySchema,
+  adminUserRelatedResponseSchema,
 } from './admin-data.dto.js';
 
 describe('admin data DTOs', () => {
@@ -52,6 +54,31 @@ describe('admin data DTOs', () => {
         a: 1,
         b: 'x',
       });
+    });
+  });
+
+  describe('adminUserRelatedQuerySchema', () => {
+    it('defaults the section limit', () => {
+      expect(adminUserRelatedQuerySchema.parse({})).toEqual({ limit: 10 });
+    });
+
+    it('rejects a limit above the cap', () => {
+      expect(() => adminUserRelatedQuerySchema.parse({ limit: 51 })).toThrow();
+    });
+  });
+
+  describe('adminUserRelatedResponseSchema', () => {
+    it('accepts grouped sections', () => {
+      const payload = {
+        userId: 'u1',
+        groups: [
+          {
+            key: 'account',
+            sections: [{ resource: 'accounts', items: [{ id: 'a1' }], total: 1 }],
+          },
+        ],
+      };
+      expect(adminUserRelatedResponseSchema.parse(payload)).toEqual(payload);
     });
   });
 

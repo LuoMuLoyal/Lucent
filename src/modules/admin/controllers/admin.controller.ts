@@ -31,6 +31,12 @@ import { AdminAccessService } from '../services/access.service.js';
 import { AdminAdminsService } from '../services/admins.service.js';
 import { AdminConsoleService } from '../services/console.service.js';
 import { AdminSharesService } from '../services/shares.service.js';
+import { AdminUserRelatedService } from '../services/user-related.service.js';
+import {
+  adminUserRelatedQuerySchema,
+  adminUserRelatedResponseSchema,
+} from '../dto/admin-data.dto.js';
+import type { AdminUserRelatedQueryDto } from '../dto/admin-data.dto.js';
 import {
   adminAuditLogListQuerySchema,
   adminAuditLogListResponseSchema,
@@ -86,6 +92,7 @@ export class AdminController {
     private readonly userAdmin: UserAdminService,
     private readonly authSessions: AuthSessionAdminService,
     private readonly shares: AdminSharesService,
+    private readonly userRelated: AdminUserRelatedService,
     private readonly legalDocuments: LegalDocumentsAdminService,
     private readonly safetyTips: SafetyTipsAdminService,
   ) {}
@@ -153,6 +160,27 @@ export class AdminController {
       });
     }
     return user;
+  }
+
+  @Get('users/:id/related')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('users:read')
+  @ApiOperation({ summary: "List a user's related records grouped by domain" })
+  @ApiResponse({ status: 200, description: 'Related records grouped by domain.' })
+  @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
+  async getUserRelated(
+    @Param('id', { schema: z.uuid() }) id: string,
+    @Query({ schema: adminUserRelatedQuerySchema })
+    query: AdminUserRelatedQueryDto,
+  ) {
+    const related = await this.userRelated.getForUser(id, query.limit);
+    if (related === null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+    return related;
   }
 
   @Patch('users/:id/status')
@@ -528,6 +556,13 @@ registerResponseSchema({
   componentName: 'AdminUserSummary',
   schema: adminUserSummarySchema,
   description: 'User account summary.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/users/{id}/related',
+  method: 'get',
+  componentName: 'AdminUserRelated',
+  schema: adminUserRelatedResponseSchema,
+  description: "A user's related records grouped by domain.",
 });
 registerResponseSchema({
   path: '/api/v1/admin/users/{id}/status',

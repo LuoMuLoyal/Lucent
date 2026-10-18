@@ -48,3 +48,44 @@ export const adminResourceListResponseSchema = z
 export type AdminResourceListResponseDto = z.infer<
   typeof adminResourceListResponseSchema
 >;
+
+/**
+ * Query schema for `GET /api/v1/admin/users/:id/related`. `limit` bounds each
+ * per-resource section (the user-detail tabs show a preview, then page through
+ * `/admin/data/:resource?userId=...` for the full list).
+ */
+export const adminUserRelatedQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(50).default(10),
+  })
+  .strict();
+
+export type AdminUserRelatedQueryDto = z.infer<
+  typeof adminUserRelatedQuerySchema
+>;
+
+export const adminUserRelatedSectionSchema = z
+  .object({
+    resource: z.string(),
+    items: z.array(adminResourceRowSchema),
+    total: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const adminUserRelatedGroupSchema = z
+  .object({
+    key: z.string(),
+    sections: z.array(adminUserRelatedSectionSchema),
+  })
+  .strict();
+
+export const adminUserRelatedResponseSchema = z
+  .object({
+    userId: z.string(),
+    groups: z.array(adminUserRelatedGroupSchema),
+  })
+  .strict();
+
+export type AdminUserRelatedResponseDto = z.infer<
+  typeof adminUserRelatedResponseSchema
+>;

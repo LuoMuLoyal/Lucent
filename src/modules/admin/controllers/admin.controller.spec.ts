@@ -10,6 +10,7 @@ import type { AdminAccessService } from '../services/access.service.js';
 import type { AdminAdminsService } from '../services/admins.service.js';
 import type { AdminConsoleService } from '../services/console.service.js';
 import type { AdminSharesService } from '../services/shares.service.js';
+import type { AdminUserRelatedService } from '../services/user-related.service.js';
 import { AdminController } from './admin.controller.js';
 
 const user: UserPayload = {
@@ -41,6 +42,7 @@ describe('AdminController', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
     );
 
     await expect(controller.getMe(user)).resolves.toEqual(identity);
@@ -54,6 +56,7 @@ describe('AdminController', () => {
     const controller = new AdminController(
       adminAccess,
       {} as unknown as AdminConsoleService,
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -120,6 +123,7 @@ describe('AdminController', () => {
       userAdmin?: Partial<UserAdminService>;
       authSessions?: Partial<AuthSessionAdminService>;
       shares?: Partial<AdminSharesService>;
+      userRelated?: Partial<AdminUserRelatedService>;
       adminConsole?: Partial<AdminConsoleService>;
     }): AdminController {
       return new AdminController(
@@ -129,6 +133,7 @@ describe('AdminController', () => {
         (deps.userAdmin ?? {}) as unknown as UserAdminService,
         (deps.authSessions ?? {}) as unknown as AuthSessionAdminService,
         (deps.shares ?? {}) as unknown as AdminSharesService,
+        (deps.userRelated ?? {}) as unknown as AdminUserRelatedService,
         {} as never,
         {} as never,
       );
@@ -231,6 +236,27 @@ describe('AdminController', () => {
       await expect(
         controller.setAdminRole(user, 'other-user', { role: AdminRole.VIEWER }),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("returns a user's related records", async () => {
+      const related = { groups: [] };
+      const controller = makeController({
+        userRelated: { getForUser: vi.fn().mockResolvedValue(related) },
+      });
+
+      await expect(
+        controller.getUserRelated('other-user', { limit: 10 }),
+      ).resolves.toBe(related);
+    });
+
+    it('maps a missing user to 404', async () => {
+      const controller = makeController({
+        userRelated: { getForUser: vi.fn().mockResolvedValue(null) },
+      });
+
+      await expect(
+        controller.getUserRelated('missing', { limit: 10 }),
+      ).rejects.toMatchObject({ status: 404 });
     });
   });
 });

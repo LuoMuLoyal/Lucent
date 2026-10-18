@@ -12,6 +12,7 @@ import { AdminAdminsService } from './services/admins.service.js';
 import { AdminConsoleService } from './services/console.service.js';
 import { AdminDataService } from './services/data.service.js';
 import { AdminSharesService } from './services/shares.service.js';
+import { AdminUserRelatedService } from './services/user-related.service.js';
 import { QueuePanelAuthService } from './services/queue-panel-auth.service.js';
 import { QueuePanelService } from './services/queue-panel.service.js';
 import { AdminGuard } from './guards/admin.guard.js';
@@ -33,6 +34,7 @@ import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
     AdminConsoleService,
     AdminDataService,
     AdminSharesService,
+    AdminUserRelatedService,
     QueuePanelAuthService,
     QueuePanelService,
     AdminGuard,
