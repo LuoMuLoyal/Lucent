@@ -21,7 +21,6 @@ const config: KnipConfig = {
   ],
   ignoreDependencies: [
     // 只被上面保留面使用。
-    '@radix-ui/react-tabs',
     'recharts',
   ],
 }

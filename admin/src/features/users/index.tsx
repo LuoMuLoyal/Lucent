@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useList, type CrudFilter } from '@refinedev/core'
 import { RefreshCw, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -162,7 +162,15 @@ export function Users() {
             ) : (
               users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className='font-medium'>{user.email}</TableCell>
+                  <TableCell className='font-medium'>
+                    <Link
+                      to='/users/$id'
+                      params={{ id: user.id }}
+                      className='hover:underline'
+                    >
+                      {user.email}
+                    </Link>
+                  </TableCell>
                   <TableCell>{user.nickname ?? '—'}</TableCell>
                   <TableCell>{user.status}</TableCell>
                   <TableCell>{user.emailVerified ? 'Yes' : 'No'}</TableCell>
