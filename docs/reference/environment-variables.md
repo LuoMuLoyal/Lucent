@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-16
+updated: 2026-10-19
 ---
 
 # Environment Variables
@@ -683,3 +683,49 @@ OPENAPI_EXPORT_SKIP_REDIS
   `redis.service.ts`. Both variables are `z.enum(['true', 'false']).optional()` in the
   env validation schema (they may be absent at runtime outside the export process).
   Typed as `EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT` / `EnvKey.OPENAPI_EXPORT_SKIP_REDIS`.
+
+### rnacos — 运行时配置中心（可选）
+
+环境变量仍是**唯一基线**：进程启动时先由 env 构建一份运行时快照，rnacos 只是叠在
+它之上的可选层。缺键、空值、校验失败、中心不可达都回落到基线，配置中心因此**不是
+启动依赖**（`RNACOS_ENABLED=false` 时零网络调用、不加载原生模块）。
+
+```text
+RNACOS_ENABLED
+RNACOS_SERVER_ADDR
+RNACOS_NAMESPACE
+RNACOS_GROUP
+RNACOS_DATA_ID
+RNACOS_USERNAME
+RNACOS_PASSWORD
+RNACOS_REQUEST_TIMEOUT_MS
+```
+
+- `RNACOS_ENABLED` — 默认 `false`。只有显式 `true` 才构造客户端。
+- `RNACOS_SERVER_ADDR` — `host:port`，**必须写 HTTP 端口（8848）**：SDK 先从它登录
+  再自行连 gRPC（`+1000`，即 9848）；写 gRPC 或控制台端口都会构造失败。
+- `RNACOS_NAMESPACE` / `RNACOS_GROUP` / `RNACOS_DATA_ID` — 默认
+  `lucent-dev` 系 / `LUCENT_RUNTIME` / `lucent-runtime-tuning.txt`。namespace 需要
+  在 rnacos 侧先建好，否则读到的只是「配置不存在」。
+- `RNACOS_USERNAME` / `RNACOS_PASSWORD` — 与应用同源的控制台凭据。**只进适配器构造
+  参数，不进快照、不进日志**（错误消息与日志里的口令、token 会被替换成 `***`）。
+- `RNACOS_REQUEST_TIMEOUT_MS` — 100–60000，默认 `5000`。绑定层没有超时参数，这里用
+  `Promise.race` 只约束首次 `getConfig` 与订阅注册（不取消底层调用），避免中心无响应
+  时拖住启动。
+
+**文档格式与可覆盖范围**：发布的文档是 `.env` 子集（键名沿用环境变量名），模板与逐键
+说明见 `docs/reference/runtime-config.example.txt`。只有白名单内的非密钥热键可被覆盖，
+白名单外的键（密钥、连接串、provider 装配开关）会让**整份文档被拒绝**，进程继续用上一
+份快照。回退靠发布新版本或删字段（删字段即回落 env 基线），**不要用「删除配置」**：
+rnacos 删除后不再推送该 dataId，需重启中心才恢复。
+
+**密钥与连接串一律不进配置中心**——它们只由 `.env` 负责，配置中心不承担密钥托管职责。
+本地起中心见 `compose.dev.yaml` 的 `rnacos` 服务（`pnpm dev:stack rnacos`，profile
+`rnacos`，需先 `export RNACOS_CONSOLE_PASSWORD`）；容器部署时 `~/nacos`（客户端磁盘
+缓存）与 `~/logs/nacos`（SDK 日志）需挂卷，并设 `NACOS_CLIENT_LOGGER_LEVEL=ERROR`。
+
+**启动耗时标定（本机 v0.8.7 + binding 0.8.0 实测）**：中心在线时构造客户端与首次加载
+都在百毫秒级；中心**不可达**时构造是阻塞调用，约 19s（无本地缓存）/ 38s（有缓存）才
+返回，随后 `getConfig` 交回磁盘旧值（快照标 `local-cache`）。`RNACOS_REQUEST_TIMEOUT_MS`
+只约束 `getConfig` 与订阅注册，**管不到构造**——所以「启用但中心不在线」会让启动明显变慢
+（进程照常起来，值仍是 env 基线或缓存旧值，不是启动失败）。

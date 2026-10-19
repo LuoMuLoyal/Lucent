@@ -41,6 +41,9 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
   故其口令也落在服务器侧的运行时 env 里，注意文件权限。
 - **`9100` node-exporter**：**绝不放行 `0.0.0.0/0`**——它没有内建鉴权。
   监控机与主站分处两机，只能经公网抓取，故安全组只放行监控机的出口 IP。
+- **`8848` / `9848` / `10848` rnacos**：控制台（`10848`）是能改运行时行为的入口，
+  开 `RNACOS_ENABLE_OPEN_API_AUTH=true` 后仍需按受信来源收口；`8848`/`9848` 只给
+  app 与运维用，同样不该对全网开放（详见 `docs/reference/deployment.md`）。
 - **监控栈 `8428` / `3001` / `9428` / `10428`**：`10428`（VictoriaTraces）无内建鉴权，
   只放行运维 IP。比放行本机 IP 更严的做法是开 SSH 隧道（端口不必对任何 IP 放行）：
   `ssh -N -L 8428:127.0.0.1:8428 -L 9428:127.0.0.1:9428 root@<监控IP>`。
@@ -49,6 +52,21 @@ today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓�
 bearer token 在跨云公网上明文过线。补齐方式是域名 + TLS 终止，属独立决策。
 
 条目完成即删行；变更本身记入当日迁移日志。
+
+## 2026-10-19 rnacos 运行时配置中心（部署侧遗留）
+
+- **rnacos 的访问日志明文记录控制台口令**：绑定 SDK 走
+  `POST /nacos/v1/auth/login?username=…&password=…`（鉴权开关关掉也一样登录），
+  rnacos 的 actix 访问日志把整条 URL 打进 stdout。本机 v0.8.7 实测：
+  `RNACOS_LOG_LEVEL`（大小写都试过）无效，镜像里也没有日志配置文件可改。
+  容器 stdout 一旦进日志栈，口令就随访问日志扩散。缓解方向（未裁决，属部署面）：
+  在采集侧过滤 `/nacos/v1/auth/login` 行，或把控制台口令与其它系统彻底解耦并定期轮换，
+  或给 rnacos 自带日志单独挂轮转与访问控制。安全组限源不消除这条。
+- **启用但中心不在线时，启动被阻塞构造拖慢**：binding 的 `new NacosConfigClient(...)`
+  是同步阻塞调用（实测无缓存约 19s、有缓存约 38s），`RNACOS_REQUEST_TIMEOUT_MS` 管不到
+  它，而它跑在 `onApplicationBootstrap` 里。待裁决方向：把首次加载挪到监听端口之后
+  （启动先走 env 基线，值到了再叠加）或放进 worker 线程隔离，二者都换来额外复杂度；
+  当前实现按「一次告警 + 沿用基线/缓存」处理，未做上述隔离。
 
 ## 2026-09-19 英文侧 OAG（Semantica）剩余项
 

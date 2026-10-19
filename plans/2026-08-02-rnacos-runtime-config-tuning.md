@@ -226,22 +226,22 @@ digest `sha256:cc8b2ba4…`，2026-08-30 构建，amd64/linux，入口 `/usr/bin
 绑定 `nacos-sdk-rust-binding-node@0.8.0`；rnacos 开 `RNACOS_ENABLE_OPEN_API_AUTH=true`，
 自定义 namespace `lucent-dev`。
 
-| #   | 验证项     | 结论                                                                                                                                                                                    |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | 端口语义   | **`serverAddr` 传 HTTP 端口 `8848`**：SDK 自己走 HTTP 登录，再连 gRPC `serverAddr + 1000`（9848）。传 `9848` 会去连控制台 10848 并构造失败；netstat 确认长连接落在 9848                 |
-| 2   | ESM 互操作 | Node 26 下 `import { NacosConfigClient } from 'nacos-sdk-rust-binding-node'` 直接可用（CJS 包被静态分析出具名导出），Windows 与 Alpine 均无需 `createRequire`                           |
-| 3   | 鉴权       | `POST /nacos/v1/auth/login` 返回 `accessToken` + `tokenTtl=3600`；密码错 → `error_code=403 unknown user!`，消息不含密码；**凭据错误时构造函数同步抛错**                                 |
-| 4   | namespace  | `POST /nacos/v1/console/namespaces` 带 `customNamespaceId=lucent-dev` 可行；绑定的 `namespace` 传 ID；`public` 并存                                                                     |
-| 5   | 订阅推送   | `addListener` 生效，事件带 `content`/`contentType`/`md5`，发布即到；`removeListener` 是 d.ts 明示的 no-op                                                                               |
-| 6   | 删除语义   | **删除配置不推送**，且该 dataId 之后不再推送（新客户端实例、重新 `addListener` 均无效），重启 rnacos 才恢复                                                                             |
-| 7   | 缺失配置   | `getConfig` 拒绝：`error_code=300 … config data not exist`（不是空串）                                                                                                                  |
-| 8   | 本地缓存   | `configLoadCacheAtStart=true` 会写 `~/nacos/config/<namespace>/`，并在 rnacos 不可达时 1ms 返回旧值（**本计划选定启用**）；`false` 则离线构造同步抛错。缓存内容无法自证来源，需另做探活 |
-| 9   | 客户端日志 | 默认 INFO 落 `~/logs/nacos/nacos-common.log.*` 与 `nacos-error.log.*`，2 分钟 56KB；需 `NACOS_CLIENT_LOGGER_LEVEL=ERROR` 并纳入轮转                                                     |
-| 10  | 预编译产物 | optionalDependencies 含 `linux-x64-musl`/`linux-arm64-musl`/`gnu`/`darwin*`/`win32*`；`--ignore-scripts` 可加载，Alpine `node:26-alpine` 实测 `getConfig` 成功                          |
-| 11  | 健康端点   | 开启 OpenAPI 鉴权后 `GET /nacos/v1/console/health/readiness` 返回 403，探活需带 token                                                                                                   |
+| #   | 验证项     | 结论                                                                                                                                                                                                                                                                                                          |
+| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 端口语义   | **`serverAddr` 传 HTTP 端口 `8848`**：SDK 自己走 HTTP 登录，再连 gRPC `serverAddr + 1000`（9848）。传 `9848` 会去连控制台 10848 并构造失败；netstat 确认长连接落在 9848                                                                                                                                       |
+| 2   | ESM 互操作 | Node 26 下 `import { NacosConfigClient } from 'nacos-sdk-rust-binding-node'` 直接可用（CJS 包被静态分析出具名导出），Windows 与 Alpine 均无需 `createRequire`                                                                                                                                                 |
+| 3   | 鉴权       | `POST /nacos/v1/auth/login` 返回 `accessToken` + `tokenTtl=3600`；密码错 → `error_code=403 unknown user!`，消息不含密码；**凭据错误时构造函数同步抛错**                                                                                                                                                       |
+| 4   | namespace  | `POST /nacos/v1/console/namespaces` 带 `customNamespaceId=lucent-dev` 可行；绑定的 `namespace` 传 ID；`public` 并存                                                                                                                                                                                           |
+| 5   | 订阅推送   | `addListener` 生效，事件带 `content`/`contentType`/`md5`，发布即到；`removeListener` 是 d.ts 明示的 no-op                                                                                                                                                                                                     |
+| 6   | 删除语义   | **删除配置不推送**，且该 dataId 之后不再推送（新客户端实例、重新 `addListener` 均无效），重启 rnacos 才恢复                                                                                                                                                                                                   |
+| 7   | 缺失配置   | `getConfig` 拒绝：`error_code=300 … config data not exist`（不是空串）                                                                                                                                                                                                                                        |
+| 8   | 本地缓存   | `configLoadCacheAtStart=true` 会写 `~/nacos/config/<namespace>/`，离线时 `getConfig` 返回磁盘旧值（**本计划选定启用**）；**但构造 `NacosConfigClient` 是阻塞调用**：rnacos 不可达时同步阻塞约 19s（无缓存）/ 38s（有缓存）才返回，`RNACOS_REQUEST_TIMEOUT_MS` 管不到它（Task 2 补测，v0.8.7 + binding 0.8.0） |
+| 9   | 客户端日志 | 默认 INFO 落 `~/logs/nacos/nacos-common.log.*` 与 `nacos-error.log.*`，2 分钟 56KB；需 `NACOS_CLIENT_LOGGER_LEVEL=ERROR` 并纳入轮转                                                                                                                                                                           |
+| 10  | 预编译产物 | optionalDependencies 含 `linux-x64-musl`/`linux-arm64-musl`/`gnu`/`darwin*`/`win32*`；`--ignore-scripts` 可加载，Alpine `node:26-alpine` 实测 `getConfig` 成功                                                                                                                                                |
+| 11  | 健康端点   | 开启 OpenAPI 鉴权后 `GET /nacos/v1/console/health/readiness` 返回 403，探活需带 token                                                                                                                                                                                                                         |
 
 **方案成立**，实现按上表修正：`RNACOS_SERVER_ADDR` 指向 HTTP 端口；构造与调用都
-包 try/catch（构造可能同步抛错）；`error_code=300` 映射为 `load() → null`；
+包 try/catch（构造可能同步抛错，且如第 8 条所述会**阻塞数十秒**）；`error_code=300` 映射为 `load() → null`；
 **删除配置不作为回退手段**（回退靠发布新版本，删除只在事故时使用并要求重启 rnacos）。
 
 **冷启动策略（2026-10-19 裁决）**：启用 `configLoadCacheAtStart: true`——进程重启
