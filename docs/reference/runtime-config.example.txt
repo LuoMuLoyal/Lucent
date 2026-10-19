@@ -1,268 +1,544 @@
 ################################################################################
-#  Lucent — 运行时调优文档模板
+#  Lucent — 运行时调优文档
 ################################################################################
-#  用途：整份粘贴进 rnacos 控制台的配置编辑器。
-#  坐标：namespace = lucent-dev / lucent-test / lucent-prod，group = LUCENT_RUNTIME，
-#        dataId = lucent-runtime-tuning.txt，类型 = text（服务端不解析）。
+#  这是**唯一**一份可以在不重启进程的前提下改掉下面这些值的文档。
 #
-#  `.env` 子集：同一个键名、同一种写法，但只允许下面这些「改了立刻生效」的键。
-#  - 空值（`KEY=`）与未出现的键同义：沿用环境变量 / 代码基线，不会被置零或置空。
-#  - 未知键、重复键、越界值、版本不符 → **整份拒绝**，进程继续用上一版快照，
-#    日志给出拒绝原因（只含键名，不含值）。要改就先在控制台改对再发布。
-#  - 删除配置不是回退手段：删除后不再推送，回退一律「发布新版本」。
-#  - 密钥与连接串永远不进这里（`DATABASE_URL`、`JWT_*_SECRET`、`*_API_KEY` 等）。
+#  坐标（rnacos 控制台三处）：
+#    namespace = lucent-dev | lucent-test | lucent-prod
+#    group     = LUCENT_RUNTIME
+#    dataId    = lucent-runtime-tuning.txt
+#    类型      = text（服务端不解析内容）
 #
-#  下面的活行就是各键的代码默认值 —— 照抄发布不会改变任何行为。
+#  格式：`.env` 的子集 —— 同一个键名、同一种写法（`KEY=value`），一行一个键。
+#  只有本文件列出的键允许出现；这份文件就是完整白名单。
+#
+#  语义（三条，必须记住）：
+#    1. 空值（`KEY=`）与「不写这个键」等价：沿用环境变量 / 代码基线，
+#       不会被置成 0 或空串。下面的活行都写成各键的代码默认值，
+#       于是照抄发布不会改变任何行为。
+#    2. 未知键、重复键、越界值、版本不符 → **整份拒绝**。进程继续用上一版
+#       快照，日志里给拒绝原因（只含键名，不含值）。改错一个键 = 整份不生效。
+#    3. **删除配置不是回退手段**：删除后该 dataId 不再推送。回退一律是
+#       「发布一个新版本」（把值改回默认，或把 `RNACOS_REVISION` 往前推）。
+#
+#  这里永远不会有：密钥、连接串、provider 开关、只在启动时读取的项
+#  （`DATABASE_URL`、`JWT_*_SECRET`、`*_API_KEY`、`AI_*_API_KEY` …）。
+#  那些仍然是 `.env` 的职责；把它们贴进来只会让整份文档被拒绝。
+#
+#  每个键上方的注释说明：它配置什么、单位与取值范围、默认值、什么时候该改。
 ################################################################################
 
 
 ################################################################################
-#  版本元数据（必须是文档的前两行；两者都不进应用快照）
+#  版本元数据
 ################################################################################
+#  这是文档自己的元信息，不进入运行时快照。
 
-# 文档版本。必须等于本服务理解的版本（当前 3），否则整份拒绝。
+# 文档格式版本。必须等于服务端理解的版本（当前为 3），否则整份拒绝。
 RNACOS_SCHEMA_VERSION=3
 
-# 发布序号，日志与版本号里形如 `<revision>#<seq>`，便于对照控制台历史。
+# 本次发布的序号。生效日志与快照版本号里形如 `<revision>#<seq>`，
+# 便于把「线上正在跑的值」对回控制台的历史记录。每次发布改一下即可。
 RNACOS_REVISION=2026-10-19.1
 
 
 ################################################################################
-#  AI：角色模型 / 地址 / 思考开关
+#  AI · 角色模型与地址
 ################################################################################
-#  是分析 / 视觉 / 语言 / 对话 / 对话压缩 五个角色，外加嵌入。
-#  留空 = 沿用 env 与该角色的代码默认（含全局 AI_THINKING 的推导）。
+#  Lucent 把模型分成六个角色，各自独立配置；同一行里的三个键（MODEL / BASE_URL /
+#  THINKING）要改就一起改。模型名与地址留空 = 沿用 env 与代码基线。
+#  ⚠️ API Key 不在这里：那仍然是 .env 的 AI_*_API_KEY。
 
+# 分析角色（体检报告、就诊摘要等长文本理解）用哪个模型。
 AI_ANALYSIS_MODEL=
+
+# 分析角色的 OpenAI 兼容接口地址（`http(s)://...`）。留空 = 用 env 的值。
 AI_ANALYSIS_BASE_URL=
+
+# 分析角色是否启用「思考」。取值 auto / enabled / disabled；留空 = 按角色
+# AI_ANALYSIS_THINKING 环境变量 → 全局 AI_THINKING → auto 的顺序推导。
 AI_ANALYSIS_THINKING=
+
+# 视觉角色（餐食图片识别）用哪个模型。留空 = 用 env 的 AI_VISION_MODEL。
 AI_VISION_MODEL=
+
+# 视觉角色的 OpenAI 兼容接口地址。留空 = 用 env 的值。
 AI_VISION_BASE_URL=
+
+# 视觉角色是否启用「思考」。取值 auto / enabled / disabled。
 AI_VISION_THINKING=
+
+# 语言角色（翻译 / 语言判定类任务）用哪个模型。
 AI_LANGUAGE_MODEL=
+
+# 语言角色的 OpenAI 兼容接口地址。
 AI_LANGUAGE_BASE_URL=
+
+# 语言角色是否启用「思考」。取值 auto / enabled / disabled。
 AI_LANGUAGE_THINKING=
+
+# 对话角色（助手主对话）用哪个模型。
 AI_CHAT_MODEL=
+
+# 对话角色的 OpenAI 兼容接口地址。
 AI_CHAT_BASE_URL=
+
+# 对话角色是否启用「思考」。取值 auto / enabled / disabled。
 AI_CHAT_THINKING=
+
+# 对话压缩角色（历史对话摘要）用哪个模型；通常选更便宜的小模型。
 AI_CHAT_COMPRESSION_MODEL=
+
+# 对话压缩角色的 OpenAI 兼容接口地址。
 AI_CHAT_COMPRESSION_BASE_URL=
+
+# 对话压缩角色是否启用「思考」。取值 auto / enabled / disabled。
 AI_CHAT_COMPRESSION_THINKING=
+
+# 向量化角色用哪个 embedding 模型。⚠️ 换模型等于换向量空间：
+# 本计划不自动重建向量表，改之前先确认库里的维度与之一致。
 AI_EMBEDDING_MODEL=
+
+# 向量化角色的 OpenAI 兼容接口地址。
 AI_EMBEDDING_BASE_URL=
-#  思考开关取值：auto / enabled / disabled。
 
 
 ################################################################################
-#  AI：采样 / 重试 / 超时
+#  AI · 采样、重试与超时
 ################################################################################
-#  温度 0-2，重试 0-5，超时 1000-300000 ms。
-#  留空 = 交给 provider 默认（视觉角色另有代码默认，见下）。
+#  温度 0-2（小数）、重试 0-5 次、超时 1000-300000 ms。
+#  留空 = 不覆盖，交给 provider 自己的默认值。
 
+# 分析角色的采样温度。留空 = provider 默认。
 AI_ANALYSIS_TEMPERATURE=
+
+# 分析角色单次调用失败后的重试次数。留空 = provider 默认。
 AI_ANALYSIS_MAX_RETRIES=
+
+# 分析角色单次调用超时（毫秒）。
 AI_ANALYSIS_TIMEOUT_MS=
-#  餐食识别：温度别调高，会开始编造份量与热量。
+
+# 视觉角色的采样温度。识别任务保持 0.1 左右；调高会开始编造份量与热量。
 AI_VISION_TEMPERATURE=0.1
+
+# 视觉角色失败后的重试次数。识别接口抖动时才有必要调高。
 AI_VISION_MAX_RETRIES=0
+
+# 视觉角色单次调用超时（毫秒）。上调前先确认队列侧的超时比它更长。
 AI_VISION_TIMEOUT_MS=20000
+
+# 语言角色的采样温度（翻译类任务通常保持低温）。
 AI_LANGUAGE_TEMPERATURE=
+
+# 语言角色失败后的重试次数。
 AI_LANGUAGE_MAX_RETRIES=
+
+# 语言角色单次调用超时（毫秒）。
 AI_LANGUAGE_TIMEOUT_MS=
+
+# 对话角色的采样温度。助手闲聊可以调高一点，事实类问答保持低温。
 AI_CHAT_TEMPERATURE=
+
+# 对话角色失败后的重试次数。
 AI_CHAT_MAX_RETRIES=
+
+# 对话角色单次调用超时（毫秒）。
 AI_CHAT_TIMEOUT_MS=
+
+# 对话压缩角色的采样温度。
 AI_CHAT_COMPRESSION_TEMPERATURE=
+
+# 对话压缩角色失败后的重试次数。
 AI_CHAT_COMPRESSION_MAX_RETRIES=
+
+# 对话压缩角色单次调用超时（毫秒）。
 AI_CHAT_COMPRESSION_TIMEOUT_MS=
 
 
 ################################################################################
-#  AI：安全策略
+#  AI · 安全策略
 ################################################################################
 
-#  禁答命中串（逗号或换行分隔，至少一条）。留空 = 用代码内置列表。
+# 安全兜底：命中这些子串的提问会被拒答（逗号或换行分隔，至少一条）。
+# 留空 = 用代码内置列表。这里是模式串，不是正则。
 AI_SAFETY_FORBIDDEN_PATTERNS=
 
 
 ################################################################################
-#  AI：提示词覆盖
+#  AI · 提示词覆盖
 ################################################################################
-#  留空 = 用代码里的 prompt（基线文本不复制到这里）。
-#  值内换行写 `\n`（只认这一个转义）；`#` 不是行内注释，可放心出现在提示词里。
-#  必须保留各键要求的占位符，否则该键被拒：
+#  留空 = 用代码里的 prompt（基线正文不复制到这里，避免两处维护）。
+#  写法：整段写成一行，换行用 `\n`（只认这一个转义）；`#` 不是行内注释，
+#  可放心出现在提示词正文里。长度上限 8000 字符。
+#  必须保留各键声明的占位符，否则该键被拒（占位符会写入调用方的动态数据）：
 #    PROMPT_ASSISTANT_SYSTEM           {{tools}} {{toolAvailability}}
-#    PROMPT_MEAL_ANALYSIS_SYSTEM/USER  {{language}}
+#    PROMPT_MEAL_ANALYSIS_SYSTEM       {{language}}
+#    PROMPT_MEAL_ANALYSIS_USER         {{language}}
 #    PROMPT_SUGGESTION_COPY            {{tone}}
-#    其余（INTENT_ROUTER / RISK_CHECK / REPORT_SUMMARY / TODAY_ANALYSIS /
-#          SUGGESTION_EXPLANATION）无占位符。
-#  日志只记 hash，不记正文。
+#    其余六个提示词无占位符。
+#  生效日志只记提示词的 hash，不记正文。
 
+# 助手主对话的 system prompt。占位符：{{tools}}、{{toolAvailability}}。
+# 调它等于调整个助手的人格与行为边界，改完先在开发环境跑一轮对话。
 PROMPT_ASSISTANT_SYSTEM=
+
+# 意图路由的 system prompt（判断用户这句话该走哪个工具 / 流程）。无占位符。
 PROMPT_INTENT_ROUTER=
+
+# 餐食分析的 system prompt。占位符：{{language}}（输出语言）。
 PROMPT_MEAL_ANALYSIS_SYSTEM=
+
+# 餐食分析的用户消息模板。占位符：{{language}}。
 PROMPT_MEAL_ANALYSIS_USER=
+
+# 风险检查（用药冲突 / 禁忌提示）的 system prompt。无占位符。
+# 涉及安全结论，非必要不要改。
 PROMPT_RISK_CHECK=
+
+# 体检报告摘要的 system prompt。无占位符。
 PROMPT_REPORT_SUMMARY=
+
+# 今日分析的 system prompt。无占位符。
 PROMPT_TODAY_ANALYSIS=
+
+# 建议文案生成的 system prompt。占位符：{{tone}}（语气/称呼风格）。
 PROMPT_SUGGESTION_COPY=
+
+# 建议解释（「为什么给我这条建议」）的 system prompt。无占位符。
 PROMPT_SUGGESTION_EXPLANATION=
 
 
 ################################################################################
-#  检索与助手预算
+#  检索 · LightRAG sidecar（中文说明书检索）
 ################################################################################
-#  两个 sidecar 的开关与地址：`enabled=false` 时相关工具返回「不可用」，不报错。
-#  超时单位 ms。
+#  两个 sidecar 都是「关掉不报错、只是工具返回不可用」的形态。
 
+# 是否启用 LightRAG 检索。false 时相关助手工具直接返回「不可用」，不发请求。
 LIGHTRAG_ENABLED=
+
+# LightRAG 服务地址（`http(s)://...`）。这里只覆盖地址，不涉及其凭据。
 LIGHTRAG_BASE_URL=
+
+# 普通检索（naive / local 等非图谱模式）的单次请求超时（毫秒，100-120000）。
 LIGHTRAG_TIMEOUT_MS=8000
+
+# 图谱模式检索的超时（毫秒）。图谱查询明显更慢，所以默认给到 60 秒。
 LIGHTRAG_GRAPH_TIMEOUT_MS=60000
-#  图谱检索的模式列表（逗号分隔）。
+
+# 图谱模式检索纳入的数据源（逗号分隔）。默认 leaflet，可加上 qa。
 LIGHTRAG_GRAPH_SOURCES=leaflet
+
+# 「说明书」通道在 LightRAG 里的 workspace 名。改它等于换数据分区，
+# 要为对应实例预先灌好同名的语料。
 LIGHTRAG_WORKSPACE_LEAFLET=leaflet
+
+# 「问答」通道在 LightRAG 里的 workspace 名。同上，改前先确认语料已灌好。
 LIGHTRAG_WORKSPACE_QA=qa
-#  单次检索返回条数上限（1-100）。
+
+# 模型单次调用可从 LightRAG 取回的证据条数上限（1-100）。
+# 它同时是工具参数的上界，调大意味着更长的上下文与更高的成本。
 LIGHTRAG_MAX_LIMIT=8
 
+
+################################################################################
+#  检索 · Semantica sidecar（英文侧本体推理）
+################################################################################
+
+# 是否启用 Semantica 本体检索。false 时相关工具返回「不可用」。
 SEMANTICA_ENABLED=
+
+# Semantica 服务地址（`http(s)://...`）。
 SEMANTICA_BASE_URL=
+
+# Semantica 请求超时（毫秒，100-120000）。
 SEMANTICA_TIMEOUT_MS=20000
+
+# 一次图谱查询最多返回的图行数（1-1000）。这是工具参数的上界。
 SEMANTICA_MAX_LIMIT=100
+
+# 推理时最多读入作用域的图边数（1-50000）。达到上限会被标记为「已截断」，
+# 推理成本随它线性增长，没有明确需求不要调大。
 SEMANTICA_REASON_MAX_LIMIT=20000
 
-#  助手工具与节点的超时预算：一般工具 < 本体工具 < 检索工具 < 整节点。
+
+################################################################################
+#  检索 · 助手使用预算
+################################################################################
+#  工具与节点的超时预算；同一类任务里越「重」的工具给得越宽：
+#  普通工具 < 本体工具 < 检索工具 < 整个节点。单位毫秒（1000-300000）。
+
+# DrugBank 说明书全文向量检索工具单次返回的条数上限（1-100）。
 ASSISTANT_VECTOR_MAX_LIMIT=8
+
+# 普通（轻量）助手工具的单次超时预算。
 ASSISTANT_TOOL_TIMEOUT_MS=20000
+
+# 本体 / 图谱类工具的单次超时预算。
 ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS=45000
+
+# 检索类工具（含 sidecar 调用）的单次超时预算。
 ASSISTANT_RETRIEVAL_TOOL_TIMEOUT_MS=65000
+
+# 单个图节点（一轮完整的工具调用 + 生成）的总超时预算。
+# 必须大于上面任一单项工具超时，否则节点会在工具返回前就被取消。
 ASSISTANT_NODE_TIMEOUT_MS=75000
+
+# 对话记忆抽取（把本轮对话里的长期事实写进记忆）的超时。
+# 默认比普通模型调用多 1 秒。
 ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS=11000
 
 
 ################################################################################
-#  餐食分析：僵尸任务清扫
+#  餐食分析 · 僵尸任务清扫
 ################################################################################
 
-#  超过这个时长仍在跑的任务被判为僵尸（60000-86400000 ms）。
+# 超过这个时长仍是「进行中」的分析任务被判为僵尸（毫秒，60000-86400000）。
+# 调小会更早释放卡住的任务，但可能误杀慢任务。
 MEAL_ANALYSIS_STALE_AFTER_MS=600000
-#  每次清扫处理多少个（1-5000）。
+
+# 每轮清扫最多处理多少个僵尸任务（1-5000）。
 MEAL_ANALYSIS_REAP_BATCH_SIZE=200
-#  清扫计划（五段 cron：分 时 日 月 周）。
+
+# 清扫计划，五段 cron（分 时 日 月 周）。默认每 5 分钟一次。
 MEAL_ANALYSIS_REAP_CRON=*/5 * * * *
 
 
 ################################################################################
-#  队列：并发与 mail 队列的重试 / 保留策略
+#  队列 · 各队列的 worker 并发
 ################################################################################
-#  并发 1-20（mail 队列 1-50）。并发改动作用于正在运行的 worker。
-#  mail 的重试与保留策略在入队时读取：已入队的任务保留它当时的策略。
+#  每个队列一项，值 = 该队列 worker 的并发数（1-20，邮件队列 1-50）。
+#  调大 = 同时处理更多任务，代价是数据库 / 外部接口的瞬时压力；
+#  调研请注意依赖服务的限流。并发改动作用于**正在运行**的 worker，无需重启。
 
+# lucent-cron（定时任务队列：周期任务的统一入口）的并发。
 QUEUE_CRON_CONCURRENCY=1
+
+# lucent-reminder-dispatch（用药提醒派发队列）的并发。
 QUEUE_REMINDER_DISPATCH_CONCURRENCY=1
+
+# lucent-meal-analysis（餐食图片识别队列）的并发。
 QUEUE_MEAL_ANALYSIS_CONCURRENCY=1
+
+# data-export（用户数据导出队列）的并发。导出在内存里打包，不宜开高。
 QUEUE_DATA_EXPORT_CONCURRENCY=1
+
+# medicine-recognition（药品识别队列）的并发。
 QUEUE_MEDICINE_RECOGNITION_CONCURRENCY=1
+
+# today-analysis（今日分析生成队列）的并发。
 QUEUE_TODAY_ANALYSIS_CONCURRENCY=1
+
+# clinic-summary-pdf（就诊摘要 PDF 渲染队列）的并发。
 QUEUE_CLINIC_SUMMARY_PDF_CONCURRENCY=1
+
+# report-summary（体检报告摘要队列）的并发。
 QUEUE_REPORT_SUMMARY_CONCURRENCY=1
+
+# suggestion-copy-generation（建议文案生成队列）的并发。
 QUEUE_SUGGESTION_COPY_GENERATION_CONCURRENCY=1
+
+# suggestion-explanation（建议解释生成队列）的并发。
 QUEUE_SUGGESTION_EXPLANATION_CONCURRENCY=1
+
+# suggestion-recompute（建议重算队列）的并发。
 QUEUE_SUGGESTION_RECOMPUTE_CONCURRENCY=1
 
+
+################################################################################
+#  队列 · 邮件发送
+################################################################################
+#  邮件队列的重试与保留策略在**入队时**读取：下线新策略只影响此后新入队的任务，
+#  已经在队列里的任务保留它们创建时的策略。
+
+# 邮件队列的 worker 并发（1-50）。SMTP 服务端通常有自己的并发限制。
 MAIL_QUEUE_WORKER_CONCURRENCY=3
+
+# 单封邮件最多尝试几次（1-20）后进失败集。
 MAIL_QUEUE_MAX_ATTEMPTS=3
-#  退避基数（100-3600000 ms）。
+
+# 重试的退避基数（毫秒，100-3600000）。BullMQ 按次数递增等待。
 MAIL_QUEUE_BACKOFF_DELAY_MS=5000
-#  已完成 / 失败的保留时长（秒）与条数上限。
+
+# 已完成任务保留多久（秒，60-31536000）。
 MAIL_QUEUE_COMPLETE_AGE_SECONDS=86400
+
+# 失败任务保留多久（秒）。留久一点便于事后排查。
 MAIL_QUEUE_FAIL_AGE_SECONDS=604800
+
+# 已完成任务最多保留多少条（1-1000000）。
 MAIL_QUEUE_COMPLETE_MAX_COUNT=1000
+
+# 失败任务最多保留多少条（1-1000000）。
 MAIL_QUEUE_FAIL_MAX_COUNT=5000
 
 
 ################################################################################
 #  缓存 TTL
 ################################################################################
-#  单位 ms（1000-2592000000）。验证码、会话、分享令牌的 TTL 不在此列：那是正确性，
-#  不是调参项。
+#  单位毫秒（1000-2592000000）。验证码、登录会话、分享令牌的 TTL **不在这里**：
+#  那些是正确性问题，不是调参项。改小 = 更快感知数据变化、更多数据库压力。
 
+# 药品搜索结果缓存 TTL（默认 5 分钟）。
 MEDICINES_SEARCH_CACHE_TTL_MS=300000
+
+# 药品详情缓存 TTL（默认 15 分钟）。
 MEDICINES_DETAIL_CACHE_TTL_MS=900000
+
+# 药品「安全贴士」缓存 TTL（默认 30 分钟）。
 MEDICINES_SAFETY_TIPS_CACHE_TTL_MS=1800000
+
+# 异步任务结果缓存 TTL（默认 30 分钟）：客户端轮询异步接口读的就是它。
+# ⚠️ 调到短于客户端可能的最慢轮询间隔，会让客户端拿不到已完成的结果。
 ASYNC_JOB_RESULT_CACHE_TTL_MS=1800000
 
 
 ################################################################################
-#  认证：验证码与令牌
+#  认证 · 验证码与令牌
 ################################################################################
-#  这些值在「签发 / 校验」时读取：改动只影响此后新签发的 artefact，
-#  已发出的令牌与已写入的验证码保持它们自己的 TTL。
+#  这些值都在「签发 / 校验」的当次读取：改动只影响此后新签发的 artefact。
+#  已经发出去的 JWT 保留它自己的过期时间，已经写入的验证码保留它自己的 TTL。
 
+# 邮箱验证码有效期（毫秒，1000-2592000000）。
 VERIFICATION_CODE_TTL_MS=300000
+
+# 同一邮箱两次发送验证码之间的冷却时间（毫秒，0-86400000）。
+# ⚠️ 调小会增加短信 / 邮件成本与被滥用的风险。
 VERIFICATION_COOLDOWN_MS=60000
+
+# 验证码发送频率限制的统计窗口（毫秒）。
 VERIFICATION_RATE_LIMIT_WINDOW_MS=600000
+
+# 单个窗口内最多发送几次验证码（1-100000）。
 VERIFICATION_RATE_LIMIT_MAX=20
-#  验证码位数（4-8）。
+
+# 验证码位数（4-8）。改动对客户端透明，但会改变用户已收到验证码的有效性。
 VERIFICATION_CODE_LENGTH=6
+
+# 第三方登录 OAuth state 的有效期（毫秒）。过期后回调会被拒绝。
 OAUTH_STATE_TTL_MS=600000
-#  语法同 .env：`15m` / `2h` / `14d` / 裸秒数。
-#  access 上限 2592000 秒（30 天），refresh 上限 7776000 秒（90 天）。
+
+# access token 有效期。语法同 .env：`15m` / `2h` / `14d` / 裸秒数。
+# 上限 2592000（30 天）。⚠️ 调大等于延长被盗令牌的可用时间。
 JWT_ACCESS_TTL=15m
+
+# refresh token 有效期，语法同上，上限 7776000 秒（90 天）。
+# 调大让用户更久不用重新登录，也让已泄露的 refresh token 更久可用。
 JWT_REFRESH_TTL=14d
 
 
 ################################################################################
-#  存储：签名有效期、上传上限与对象标识
+#  存储 · 腾讯云 COS
 ################################################################################
-#  只覆盖非密钥项：密钥、endpoint、CDN 凭据仍由 .env 负责。
-#  改 bucket / region 只影响此后签出的 URL，已存对象保持原 URL。
+#  三套对象存储各自独立。这里只覆盖非密钥项：SecretId / SecretKey / endpoint
+#  仍然在 .env。改 bucket 或 region 只影响**此后签出**的 URL，
+#  已经存好的对象保持它们原来的 URL。
 
+# 上传签名 URL 的有效期（秒，60-3600）。客户端拿到后要在它之内 PUT 完。
 TENCENT_COS_UPLOAD_EXPIRES_SECONDS=600
+
+# 单个对象上传大小上限（字节，1-50000000）。客户端据此拒绝过大的文件。
 TENCENT_COS_MAX_UPLOAD_BYTES=10485760
+
+# 下载签名 URL 的有效期（秒，60-3600）。
 TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS=600
+
+# 公开读前缀（`http(s)://...`）。配置了 CDN 时填 CDN 域名，
+# 留空 = 用对象存储自己的域名拼公开 URL。
 TENCENT_COS_PUBLIC_BASE_URL=
+
+# 桶名（bucket）。留空 = 用 .env 的值。
 TENCENT_COS_BUCKET=
+
+# 桶所在地域，例如 ap-guangzhou。
 TENCENT_COS_REGION=ap-guangzhou
 
+
+################################################################################
+#  存储 · 阿里云 OSS
+################################################################################
+
+# 上传签名 URL 的有效期（秒，60-3600）。
 ALIYUN_OSS_UPLOAD_EXPIRES_SECONDS=600
+
+# 单个对象上传大小上限（字节，1-50000000）。
 ALIYUN_OSS_MAX_UPLOAD_BYTES=10485760
+
+# 下载签名 URL 的有效期（秒，60-3600）。
 ALIYUN_OSS_DOWNLOAD_EXPIRES_SECONDS=600
+
+# 公开读前缀（`http(s)://...`）。留空 = 用 OSS 自己的域名。
 ALIYUN_OSS_PUBLIC_BASE_URL=
+
+# 桶名（bucket）。
 ALIYUN_OSS_BUCKET=
+
+# 桶所在地域，例如 oss-cn-hangzhou。
 ALIYUN_OSS_REGION=oss-cn-hangzhou
 
+
+################################################################################
+#  存储 · S3 兼容（开发环境：SeaweedFS）
+################################################################################
+
+# 上传签名 URL 的有效期（秒，60-3600）。
 STORAGE_S3_UPLOAD_EXPIRES_SECONDS=600
+
+# 单个对象上传大小上限（字节，1-50000000）。
 STORAGE_S3_MAX_UPLOAD_BYTES=10485760
+
+# 下载签名 URL 的有效期（秒，60-3600）。
 STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS=600
+
+# 公开读前缀（`http(s)://...`）。留空 = 用 S3 endpoint 拼公开 URL。
 STORAGE_S3_PUBLIC_BASE_URL=
+
+# 桶名（bucket）。
 STORAGE_S3_BUCKET=
+
+# 桶所在地域，例如 us-east-1。
 STORAGE_S3_REGION=us-east-1
 
 
 ################################################################################
-#  应用元信息（客户端「关于 / 更新」页读取）
+#  应用元信息
 ################################################################################
-#  逐请求读取，改完下一次调用即生效。留空 = 未配置，客户端按未配置处理。
+#  客户端「关于 / 更新」页逐请求读取这些值，所以改完下一次调用即生效。
+#  留空 = 未配置，客户端按「没配」处理（不会显示错误值）。
 
+# 支持邮箱：客户端「帮助与支持」的 mailto 地址。留空 = 回落内置链接。
 SUPPORT_EMAIL=
+
+# 最低可用客户端版本。低于它的客户端会被提示升级。
 MIN_CLIENT_VERSION=
+
+# 最新客户端版本号，客户端用它判断是否可更新。
 LATEST_VERSION=
+
+# 客户端下载地址（`http(s)://...`）。
 DOWNLOAD_URL=
 
 
 ################################################################################
-#  运维：日志、慢路径阈值、指标、限流
+#  运维 · 日志、慢路径、指标与限流
 ################################################################################
 
-#  取值：error / warn / info / debug / verbose。
-#  留空 = 沿用启动时按 NODE_ENV 定的级别（dev=debug、test=error、prod=info）。
+# 日志级别：error / warn / info / debug / verbose。改动立即作用于 winston
+# transport（启动时按 NODE_ENV 定的级别是它的基线：dev=debug、test=error、
+# prod=info）。排查线上问题时先调 debug，事后记得调回来。
 LOG_LEVEL=
+
+# 慢请求阈值（毫秒，10-600000）：超过它的请求会打一条慢日志。
 SLOW_REQUEST_THRESHOLD_MS=2000
+
+# 慢查询阈值（毫秒，10-600000）：超过它的 Prisma 查询会打一条慢日志。
 SLOW_QUERY_THRESHOLD_MS=500
+
+# 是否暴露 Prometheus 指标（`/metrics`）。true/false；关闭后抓取方会拿到 404。
 METRICS_ENABLED=true
-#  全局限流窗口与次数。下限被 schema 强制（ttl ≥ 1000 ms、limit ≥ 1），
-#  防止误配把整站锁死。
+
+# 全局限流的时间窗口（毫秒，1000-3600000）。与下一项一起决定「每个客户端
+# 在窗口内能发多少次请求」。⚠️ 下限被 schema 强制，防止误配把整站锁死。
 THROTTLE_TTL_MS=60000
+
+# 全局限流在窗口内允许的请求次数（1-1000）。
 THROTTLE_LIMIT=100
