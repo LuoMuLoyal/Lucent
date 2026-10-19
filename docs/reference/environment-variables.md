@@ -328,6 +328,23 @@ AI_CHAT_COMPRESSION_THINKING
   An unrecognized gateway receives nothing rather than a guessed field, because
   an unknown reasoning parameter is a request-validation error on strict
   OpenAI-compatible servers.
+
+AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
+
+- `AI_<ROLE>_MODEL` / `_BASE_URL` / `_THINKING` 与 `AI_<ROLE>_TEMPERATURE` /
+  `_MAX_RETRIES` / `_TIMEOUT_MS` 都是热键，在**每次调用时**解析，优先级为
+  **远程文档 > 调用点参数 > 环境基线**。远程值必须压过调用点，否则代码里给生成器的
+  采样常量（0.2 温度、30s 超时等）会让这些开关失效。
+- `AI_*_API_KEY` 与 `AI_EMBEDDING_DIMENSION` 不在白名单：密钥只从 `.env` 读，
+  向量维度是 schema 不变量（换维度等于换向量空间）。角色到键名的映射只在
+  `LLM_ROLE_KEYS`（`src/config/services/llm.config.ts`）声明一次，单测会校验它与
+  中心白名单、AI 字段表三者一致。
+- 提示词覆盖由 `PROMPT_*` 九个键承担，注册表是
+  `src/config/runtime/prompt-registry.ts`：发布文本必须保留该键声明的占位符
+  （`PROMPT_ASSISTANT_SYSTEM` → `{{tools}}` `{{toolAvailability}}`，
+  `PROMPT_MEAL_ANALYSIS_SYSTEM` / `_USER` → `{{language}}`，
+  `PROMPT_SUGGESTION_COPY` → `{{tone}}`），缺占位符或超过 8000 字符整份拒绝。
+  占位符用当次请求的值填充；日志只记 12 位 sha256 指纹，不记提示词正文。
 - Embedding has no chat model, so no `AI_EMBEDDING_THINKING` exists.
 
 `AI_PROVIDER` currently supports only `openai-compatible`.

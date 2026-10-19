@@ -107,7 +107,8 @@ AI_EMBEDDING_BASE_URL=
 #  AI · 采样、重试与超时
 ################################################################################
 #  温度 0-2（小数）、重试 0-5 次、超时 1000-300000 ms。
-#  留空 = 不覆盖，交给 provider 自己的默认值。
+#  留空 = 不改调用点当前行为（生成器自带 0.2 温度 / 30s 超时等常量照常生效）。
+#  发布值优先于调用点参数，再往下才是 env 基线：热更新要生效只能走这条路。
 
 # 分析角色的采样温度。留空 = provider 默认。
 AI_ANALYSIS_TEMPERATURE=
@@ -175,7 +176,7 @@ AI_SAFETY_FORBIDDEN_PATTERNS=
 #    PROMPT_MEAL_ANALYSIS_SYSTEM       {{language}}
 #    PROMPT_MEAL_ANALYSIS_USER         {{language}}
 #    PROMPT_SUGGESTION_COPY            {{tone}}
-#    其余六个提示词无占位符。
+#    其余五个提示词无占位符。
 #  生效日志只记提示词的 hash，不记正文。
 
 # 助手主对话的 system prompt。占位符：{{tools}}、{{toolAvailability}}。
