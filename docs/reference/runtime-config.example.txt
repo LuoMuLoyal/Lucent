@@ -1,0 +1,268 @@
+################################################################################
+#  Lucent — 运行时调优文档模板
+################################################################################
+#  用途：整份粘贴进 rnacos 控制台的配置编辑器。
+#  坐标：namespace = lucent-dev / lucent-test / lucent-prod，group = LUCENT_RUNTIME，
+#        dataId = lucent-runtime-tuning.txt，类型 = text（服务端不解析）。
+#
+#  `.env` 子集：同一个键名、同一种写法，但只允许下面这些「改了立刻生效」的键。
+#  - 空值（`KEY=`）与未出现的键同义：沿用环境变量 / 代码基线，不会被置零或置空。
+#  - 未知键、重复键、越界值、版本不符 → **整份拒绝**，进程继续用上一版快照，
+#    日志给出拒绝原因（只含键名，不含值）。要改就先在控制台改对再发布。
+#  - 删除配置不是回退手段：删除后不再推送，回退一律「发布新版本」。
+#  - 密钥与连接串永远不进这里（`DATABASE_URL`、`JWT_*_SECRET`、`*_API_KEY` 等）。
+#
+#  下面的活行就是各键的代码默认值 —— 照抄发布不会改变任何行为。
+################################################################################
+
+
+################################################################################
+#  版本元数据（必须是文档的前两行；两者都不进应用快照）
+################################################################################
+
+# 文档版本。必须等于本服务理解的版本（当前 3），否则整份拒绝。
+RNACOS_SCHEMA_VERSION=3
+
+# 发布序号，日志与版本号里形如 `<revision>#<seq>`，便于对照控制台历史。
+RNACOS_REVISION=2026-10-19.1
+
+
+################################################################################
+#  AI：角色模型 / 地址 / 思考开关
+################################################################################
+#  是分析 / 视觉 / 语言 / 对话 / 对话压缩 五个角色，外加嵌入。
+#  留空 = 沿用 env 与该角色的代码默认（含全局 AI_THINKING 的推导）。
+
+AI_ANALYSIS_MODEL=
+AI_ANALYSIS_BASE_URL=
+AI_ANALYSIS_THINKING=
+AI_VISION_MODEL=
+AI_VISION_BASE_URL=
+AI_VISION_THINKING=
+AI_LANGUAGE_MODEL=
+AI_LANGUAGE_BASE_URL=
+AI_LANGUAGE_THINKING=
+AI_CHAT_MODEL=
+AI_CHAT_BASE_URL=
+AI_CHAT_THINKING=
+AI_CHAT_COMPRESSION_MODEL=
+AI_CHAT_COMPRESSION_BASE_URL=
+AI_CHAT_COMPRESSION_THINKING=
+AI_EMBEDDING_MODEL=
+AI_EMBEDDING_BASE_URL=
+#  思考开关取值：auto / enabled / disabled。
+
+
+################################################################################
+#  AI：采样 / 重试 / 超时
+################################################################################
+#  温度 0-2，重试 0-5，超时 1000-300000 ms。
+#  留空 = 交给 provider 默认（视觉角色另有代码默认，见下）。
+
+AI_ANALYSIS_TEMPERATURE=
+AI_ANALYSIS_MAX_RETRIES=
+AI_ANALYSIS_TIMEOUT_MS=
+#  餐食识别：温度别调高，会开始编造份量与热量。
+AI_VISION_TEMPERATURE=0.1
+AI_VISION_MAX_RETRIES=0
+AI_VISION_TIMEOUT_MS=20000
+AI_LANGUAGE_TEMPERATURE=
+AI_LANGUAGE_MAX_RETRIES=
+AI_LANGUAGE_TIMEOUT_MS=
+AI_CHAT_TEMPERATURE=
+AI_CHAT_MAX_RETRIES=
+AI_CHAT_TIMEOUT_MS=
+AI_CHAT_COMPRESSION_TEMPERATURE=
+AI_CHAT_COMPRESSION_MAX_RETRIES=
+AI_CHAT_COMPRESSION_TIMEOUT_MS=
+
+
+################################################################################
+#  AI：安全策略
+################################################################################
+
+#  禁答命中串（逗号或换行分隔，至少一条）。留空 = 用代码内置列表。
+AI_SAFETY_FORBIDDEN_PATTERNS=
+
+
+################################################################################
+#  AI：提示词覆盖
+################################################################################
+#  留空 = 用代码里的 prompt（基线文本不复制到这里）。
+#  值内换行写 `\n`（只认这一个转义）；`#` 不是行内注释，可放心出现在提示词里。
+#  必须保留各键要求的占位符，否则该键被拒：
+#    PROMPT_ASSISTANT_SYSTEM           {{tools}} {{toolAvailability}}
+#    PROMPT_MEAL_ANALYSIS_SYSTEM/USER  {{language}}
+#    PROMPT_SUGGESTION_COPY            {{tone}}
+#    其余（INTENT_ROUTER / RISK_CHECK / REPORT_SUMMARY / TODAY_ANALYSIS /
+#          SUGGESTION_EXPLANATION）无占位符。
+#  日志只记 hash，不记正文。
+
+PROMPT_ASSISTANT_SYSTEM=
+PROMPT_INTENT_ROUTER=
+PROMPT_MEAL_ANALYSIS_SYSTEM=
+PROMPT_MEAL_ANALYSIS_USER=
+PROMPT_RISK_CHECK=
+PROMPT_REPORT_SUMMARY=
+PROMPT_TODAY_ANALYSIS=
+PROMPT_SUGGESTION_COPY=
+PROMPT_SUGGESTION_EXPLANATION=
+
+
+################################################################################
+#  检索与助手预算
+################################################################################
+#  两个 sidecar 的开关与地址：`enabled=false` 时相关工具返回「不可用」，不报错。
+#  超时单位 ms。
+
+LIGHTRAG_ENABLED=
+LIGHTRAG_BASE_URL=
+LIGHTRAG_TIMEOUT_MS=8000
+LIGHTRAG_GRAPH_TIMEOUT_MS=60000
+#  图谱检索的模式列表（逗号分隔）。
+LIGHTRAG_GRAPH_SOURCES=leaflet
+LIGHTRAG_WORKSPACE_LEAFLET=leaflet
+LIGHTRAG_WORKSPACE_QA=qa
+#  单次检索返回条数上限（1-100）。
+LIGHTRAG_MAX_LIMIT=8
+
+SEMANTICA_ENABLED=
+SEMANTICA_BASE_URL=
+SEMANTICA_TIMEOUT_MS=20000
+SEMANTICA_MAX_LIMIT=100
+SEMANTICA_REASON_MAX_LIMIT=20000
+
+#  助手工具与节点的超时预算：一般工具 < 本体工具 < 检索工具 < 整节点。
+ASSISTANT_VECTOR_MAX_LIMIT=8
+ASSISTANT_TOOL_TIMEOUT_MS=20000
+ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS=45000
+ASSISTANT_RETRIEVAL_TOOL_TIMEOUT_MS=65000
+ASSISTANT_NODE_TIMEOUT_MS=75000
+ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS=11000
+
+
+################################################################################
+#  餐食分析：僵尸任务清扫
+################################################################################
+
+#  超过这个时长仍在跑的任务被判为僵尸（60000-86400000 ms）。
+MEAL_ANALYSIS_STALE_AFTER_MS=600000
+#  每次清扫处理多少个（1-5000）。
+MEAL_ANALYSIS_REAP_BATCH_SIZE=200
+#  清扫计划（五段 cron：分 时 日 月 周）。
+MEAL_ANALYSIS_REAP_CRON=*/5 * * * *
+
+
+################################################################################
+#  队列：并发与 mail 队列的重试 / 保留策略
+################################################################################
+#  并发 1-20（mail 队列 1-50）。并发改动作用于正在运行的 worker。
+#  mail 的重试与保留策略在入队时读取：已入队的任务保留它当时的策略。
+
+QUEUE_CRON_CONCURRENCY=1
+QUEUE_REMINDER_DISPATCH_CONCURRENCY=1
+QUEUE_MEAL_ANALYSIS_CONCURRENCY=1
+QUEUE_DATA_EXPORT_CONCURRENCY=1
+QUEUE_MEDICINE_RECOGNITION_CONCURRENCY=1
+QUEUE_TODAY_ANALYSIS_CONCURRENCY=1
+QUEUE_CLINIC_SUMMARY_PDF_CONCURRENCY=1
+QUEUE_REPORT_SUMMARY_CONCURRENCY=1
+QUEUE_SUGGESTION_COPY_GENERATION_CONCURRENCY=1
+QUEUE_SUGGESTION_EXPLANATION_CONCURRENCY=1
+QUEUE_SUGGESTION_RECOMPUTE_CONCURRENCY=1
+
+MAIL_QUEUE_WORKER_CONCURRENCY=3
+MAIL_QUEUE_MAX_ATTEMPTS=3
+#  退避基数（100-3600000 ms）。
+MAIL_QUEUE_BACKOFF_DELAY_MS=5000
+#  已完成 / 失败的保留时长（秒）与条数上限。
+MAIL_QUEUE_COMPLETE_AGE_SECONDS=86400
+MAIL_QUEUE_FAIL_AGE_SECONDS=604800
+MAIL_QUEUE_COMPLETE_MAX_COUNT=1000
+MAIL_QUEUE_FAIL_MAX_COUNT=5000
+
+
+################################################################################
+#  缓存 TTL
+################################################################################
+#  单位 ms（1000-2592000000）。验证码、会话、分享令牌的 TTL 不在此列：那是正确性，
+#  不是调参项。
+
+MEDICINES_SEARCH_CACHE_TTL_MS=300000
+MEDICINES_DETAIL_CACHE_TTL_MS=900000
+MEDICINES_SAFETY_TIPS_CACHE_TTL_MS=1800000
+ASYNC_JOB_RESULT_CACHE_TTL_MS=1800000
+
+
+################################################################################
+#  认证：验证码与令牌
+################################################################################
+#  这些值在「签发 / 校验」时读取：改动只影响此后新签发的 artefact，
+#  已发出的令牌与已写入的验证码保持它们自己的 TTL。
+
+VERIFICATION_CODE_TTL_MS=300000
+VERIFICATION_COOLDOWN_MS=60000
+VERIFICATION_RATE_LIMIT_WINDOW_MS=600000
+VERIFICATION_RATE_LIMIT_MAX=20
+#  验证码位数（4-8）。
+VERIFICATION_CODE_LENGTH=6
+OAUTH_STATE_TTL_MS=600000
+#  语法同 .env：`15m` / `2h` / `14d` / 裸秒数。
+#  access 上限 2592000 秒（30 天），refresh 上限 7776000 秒（90 天）。
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL=14d
+
+
+################################################################################
+#  存储：签名有效期、上传上限与对象标识
+################################################################################
+#  只覆盖非密钥项：密钥、endpoint、CDN 凭据仍由 .env 负责。
+#  改 bucket / region 只影响此后签出的 URL，已存对象保持原 URL。
+
+TENCENT_COS_UPLOAD_EXPIRES_SECONDS=600
+TENCENT_COS_MAX_UPLOAD_BYTES=10485760
+TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS=600
+TENCENT_COS_PUBLIC_BASE_URL=
+TENCENT_COS_BUCKET=
+TENCENT_COS_REGION=ap-guangzhou
+
+ALIYUN_OSS_UPLOAD_EXPIRES_SECONDS=600
+ALIYUN_OSS_MAX_UPLOAD_BYTES=10485760
+ALIYUN_OSS_DOWNLOAD_EXPIRES_SECONDS=600
+ALIYUN_OSS_PUBLIC_BASE_URL=
+ALIYUN_OSS_BUCKET=
+ALIYUN_OSS_REGION=oss-cn-hangzhou
+
+STORAGE_S3_UPLOAD_EXPIRES_SECONDS=600
+STORAGE_S3_MAX_UPLOAD_BYTES=10485760
+STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS=600
+STORAGE_S3_PUBLIC_BASE_URL=
+STORAGE_S3_BUCKET=
+STORAGE_S3_REGION=us-east-1
+
+
+################################################################################
+#  应用元信息（客户端「关于 / 更新」页读取）
+################################################################################
+#  逐请求读取，改完下一次调用即生效。留空 = 未配置，客户端按未配置处理。
+
+SUPPORT_EMAIL=
+MIN_CLIENT_VERSION=
+LATEST_VERSION=
+DOWNLOAD_URL=
+
+
+################################################################################
+#  运维：日志、慢路径阈值、指标、限流
+################################################################################
+
+#  取值：error / warn / info / debug / verbose。
+#  留空 = 沿用启动时按 NODE_ENV 定的级别（dev=debug、test=error、prod=info）。
+LOG_LEVEL=
+SLOW_REQUEST_THRESHOLD_MS=2000
+SLOW_QUERY_THRESHOLD_MS=500
+METRICS_ENABLED=true
+#  全局限流窗口与次数。下限被 schema 强制（ttl ≥ 1000 ms、limit ≥ 1），
+#  防止误配把整站锁死。
+THROTTLE_TTL_MS=60000
+THROTTLE_LIMIT=100
