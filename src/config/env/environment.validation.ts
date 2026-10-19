@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import type { core } from 'zod';
 import { EnvKey } from './env-keys.enum.js';
+import type { RuntimeFieldSpec } from '../runtime/schema/field-spec.js';
+import {
+  RUNTIME_CONFIG_FIELDS,
+  RUNTIME_CONFIG_KEYS,
+} from '../runtime/runtime-config.schema.js';
 import {
   LIGHTRAG_DEFAULT_BASE_URL,
   LIGHTRAG_DEFAULT_GRAPH_SOURCES,
@@ -397,6 +402,23 @@ const envSchema = z.object({
   [EnvKey.METRICS_USER]: optionalString,
   [EnvKey.METRICS_PASSWORD]: optionalString,
 
+  // ── Runtime configuration center (rnacos) ────────────────────────
+  // 关闭时零网络调用、不加载原生模块;开启时由 assertRnacosEnvironment 强制
+  // SERVER_ADDR 与凭据齐全。凭据只进适配器,不进快照、不进日志(计划 §3)。
+  [EnvKey.RNACOS_ENABLED]: z.enum(['true', 'false']).default('false'),
+  [EnvKey.RNACOS_SERVER_ADDR]: optionalString,
+  [EnvKey.RNACOS_NAMESPACE]: optionalString,
+  [EnvKey.RNACOS_GROUP]: z.string().default('LUCENT_RUNTIME'),
+  [EnvKey.RNACOS_DATA_ID]: z.string().default('lucent-runtime-tuning.txt'),
+  [EnvKey.RNACOS_USERNAME]: optionalString,
+  [EnvKey.RNACOS_PASSWORD]: optionalString,
+  [EnvKey.RNACOS_REQUEST_TIMEOUT_MS]: z.coerce
+    .number()
+    .int()
+    .min(100)
+    .max(60000)
+    .default(5000),
+
   // ── Testing (sensitive, in .env) ────────────────────────────────
   [EnvKey.TESTING_SHARED_SECRET]: optionalString,
 
@@ -470,6 +492,8 @@ export const validatedEnvSchema = envSchema.check((ctx) => {
   assertLightragEnvironment(config, report);
   assertSemanticaEnvironment(config, report);
   assertAiEnvironment(config, report);
+  assertRnacosEnvironment(config, report);
+  assertRuntimeTunableEnvironment(report);
 });
 
 // ── Cross-field validation helpers ──────────────────────────────────
@@ -562,16 +586,21 @@ function assertProductionEnvironment(
     return;
   }
 
+  // `as const` keeps the element type to these four members: `EnvKey` as a
+  // whole is wider than the schema's keys (the runtime document's metadata keys
+  // are not environment variables), so an un-widened enum array would not index.
   const missingKeys = [
     EnvKey.DATABASE_URL,
     EnvKey.REDIS_URL,
     EnvKey.JWT_ACCESS_SECRET,
     EnvKey.JWT_REFRESH_SECRET,
-  ].filter((key) => !config[key]);
+  ] as const;
 
-  if (missingKeys.length > 0) {
+  const missing = missingKeys.filter((key) => !config[key]);
+
+  if (missing.length > 0) {
     report(
-      `Missing required production environment variables: ${missingKeys.join(', ')}`,
+      `Missing required production environment variables: ${missing.join(', ')}`,
     );
   }
 }
@@ -713,6 +742,70 @@ function assertAiEnvironment(
       report(
         `Incomplete AI ${group.name} configuration: ${missingKeys.join(', ')}`,
       );
+    }
+  }
+}
+
+/**
+ * rnacos 是显式开关:只有 `RNACOS_ENABLED=true` 才要求地址与凭据齐全。
+ * 关闭时残留任何值都不报错——关闭是决定,不因残留配置阻断启动。
+ *
+ * `RNACOS_SERVER_ADDR` 必须是 `host:port`,而且**写 HTTP 端口**(8848):
+ * 绑定会自己走 HTTP 登录,再连 `serverAddr + 1000` 的 gRPC 端口(2026-10-19 实测,
+ * 计划 §4 第 1 条)。这里校验格式,不校验端口值——换端口只要成对也是合法的。
+ */
+function assertRnacosEnvironment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
+  if (config[EnvKey.RNACOS_ENABLED] !== 'true') {
+    return;
+  }
+
+  const serverAddr = (config[EnvKey.RNACOS_SERVER_ADDR] ?? '').trim();
+  if (!/^[A-Za-z0-9.-]+:\d{1,5}$/u.test(serverAddr)) {
+    report(
+      `${EnvKey.RNACOS_SERVER_ADDR} must be host:port (the HTTP port, e.g. 127.0.0.1:8848)`,
+    );
+  }
+
+  const credentialKeys = [
+    EnvKey.RNACOS_USERNAME,
+    EnvKey.RNACOS_PASSWORD,
+  ] as const;
+  const missingKeys = credentialKeys.filter(
+    (key) => !(config[key] ?? '').trim(),
+  );
+  if (missingKeys.length > 0) {
+    report(`RNACOS_ENABLED is true but ${missingKeys.join(', ')} is missing`);
+  }
+}
+
+/**
+ * 校验每一个可热更新键在 `.env` 里的取值,用的是运行时文档同一份解析器
+ * (`src/config/runtime/schema/**`)——默认值与上下限只声明一次,
+ * 不存在「schema 一套、文档一套」的漂移。
+ *
+ * 读 `process.env` 而不是上面那个校验结果对象:这份白名单里只有一部分键进了
+ * `envSchema`,而 @nestjs/config 在跑校验之前已经把 `.env.*` 合并进 `process.env`。
+ */
+function assertRuntimeTunableEnvironment(
+  report: (message: string) => void,
+): void {
+  const fields = RUNTIME_CONFIG_FIELDS as Record<
+    string,
+    RuntimeFieldSpec<unknown>
+  >;
+
+  for (const key of RUNTIME_CONFIG_KEYS) {
+    const raw = process.env[key]?.trim();
+    if (raw === undefined || raw === '') {
+      continue;
+    }
+
+    const parsed = fields[key]?.parse(raw);
+    if (parsed !== undefined && !parsed.ok) {
+      report(`${key}: ${parsed.message}`);
     }
   }
 }
