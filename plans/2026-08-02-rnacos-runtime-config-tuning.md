@@ -219,62 +219,41 @@ schema 校验，由 `docs:verify` 防漂移；键增删时示例与 schema 同�
 
 ---
 
-## 4. Task 0：SDK 兼容 spike 与裁决（先做，不做完不进 Task 1）
+## 4. 兼容验证结论（2026-10-19 本地实测）
 
-**目的**：把「gRPC 绑定能否连上 rnacos」固定成文档事实，避免适配器写完才发现不兼容。
+环境：Docker 29.7.2（Windows）；镜像 `qingpan/rnacos` **v0.8.7**（`stable` 标签
+digest `sha256:cc8b2ba4…`，2026-08-30 构建，amd64/linux，入口 `/usr/bin/rnacos`）；
+绑定 `nacos-sdk-rust-binding-node@0.8.0`；rnacos 开 `RNACOS_ENABLE_OPEN_API_AUTH=true`，
+自定义 namespace `lucent-dev`。
 
-**rnacos 侧事实（2026-10-19 查上游 README）**：
+| #   | 验证项     | 结论                                                                                                                                                                                    |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 端口语义   | **`serverAddr` 传 HTTP 端口 `8848`**：SDK 自己走 HTTP 登录，再连 gRPC `serverAddr + 1000`（9848）。传 `9848` 会去连控制台 10848 并构造失败；netstat 确认长连接落在 9848                 |
+| 2   | ESM 互操作 | Node 26 下 `import { NacosConfigClient } from 'nacos-sdk-rust-binding-node'` 直接可用（CJS 包被静态分析出具名导出），Windows 与 Alpine 均无需 `createRequire`                           |
+| 3   | 鉴权       | `POST /nacos/v1/auth/login` 返回 `accessToken` + `tokenTtl=3600`；密码错 → `error_code=403 unknown user!`，消息不含密码；**凭据错误时构造函数同步抛错**                                 |
+| 4   | namespace  | `POST /nacos/v1/console/namespaces` 带 `customNamespaceId=lucent-dev` 可行；绑定的 `namespace` 传 ID；`public` 并存                                                                     |
+| 5   | 订阅推送   | `addListener` 生效，事件带 `content`/`contentType`/`md5`，发布即到；`removeListener` 是 d.ts 明示的 no-op                                                                               |
+| 6   | 删除语义   | **删除配置不推送**，且该 dataId 之后不再推送（新客户端实例、重新 `addListener` 均无效），重启 rnacos 才恢复                                                                             |
+| 7   | 缺失配置   | `getConfig` 拒绝：`error_code=300 … config data not exist`（不是空串）                                                                                                                  |
+| 8   | 本地缓存   | `configLoadCacheAtStart=true` 会写 `~/nacos/config/<namespace>/`，并在 rnacos 不可达时 1ms 返回旧值（**本计划选定启用**）；`false` 则离线构造同步抛错。缓存内容无法自证来源，需另做探活 |
+| 9   | 客户端日志 | 默认 INFO 落 `~/logs/nacos/nacos-common.log.*` 与 `nacos-error.log.*`，2 分钟 56KB；需 `NACOS_CLIENT_LOGGER_LEVEL=ERROR` 并纳入轮转                                                     |
+| 10  | 预编译产物 | optionalDependencies 含 `linux-x64-musl`/`linux-arm64-musl`/`gnu`/`darwin*`/`win32*`；`--ignore-scripts` 可加载，Alpine `node:26-alpine` 实测 `getConfig` 成功                          |
+| 11  | 健康端点   | 开启 OpenAPI 鉴权后 `GET /nacos/v1/console/health/readiness` 返回 403，探活需带 token                                                                                                   |
 
-- 镜像 `qingpan/rnacos:stable`（生产请钉具体版本号，不用 `stable`）。
-- 端口：`8848` HTTP / **`9848` gRPC** / `10848` 独立控制台；数据目录容器内 `/io`
-  （`RNACOS_DATA_DIR` 自 0.6.x 起可改）。
-- 控制台默认账号 `admin/admin`，可用 `RNACOS_INIT_ADMIN_USERNAME/PASSWORD` 改
-  （仅首次启动生效）；**不可长期留默认密码**。
-- API 鉴权默认**关闭**，需 `RNACOS_ENABLE_OPEN_API_AUTH=true` 开启；
-  `RNACOS_CONSOLE_LOGIN_ONE_HOUR_LIMIT`（默认 5 次）与 `RNACOS_API_LOGIN_TIMEOUT`
-  （默认 3600s）决定锁定与 token 有效期。
-- 支持 Nacos 1.x HTTP OpenAPI 与 **2.x/3.x gRPC**；配置历史/导入导出可用，
-  **不支持灰度发布与 tag 隔离**。
+**方案成立**，实现按上表修正：`RNACOS_SERVER_ADDR` 指向 HTTP 端口；构造与调用都
+包 try/catch（构造可能同步抛错）；`error_code=300` 映射为 `load() → null`；
+**删除配置不作为回退手段**（回退靠发布新版本，删除只在事故时使用并要求重启 rnacos）。
 
-**绑定侧事实（2026-10-19 核对 `nacos-sdk-rust-binding-node@0.8.0`）**：
+**冷启动策略（2026-10-19 裁决）**：启用 `configLoadCacheAtStart: true`——进程重启
+且 rnacos 不可用时沿用磁盘旧值，而不是回落 env。配套三条：
 
-- `nacos-sdk-rust` 是 nacos-group 官方 Rust SDK；本包是社区 NAPI 绑定
-  （`opc-source`，MIT），README 明示「nacos-sdk-nodejs 暂无 2.x gRPC，故用 addon 调 rust SDK」。
-- API：`new NacosConfigClient({ serverAddr, namespace, username, password, appName,
-configLoadCacheAtStart })`；`getConfig` / `getConfigResp` / `addListener` /
-  `removeListener` / `publishConfig` / `removeConfig`。
-- **`serverAddr` 是 `host:port` 且必须指向 gRPC 端口（9848）**，不是 HTTP 的 8848。
-- **无 `close()`/`shutdown()`**：客户端内部持有长连接直至进程退出；
-  `removeListener` 的 d.ts 注释写明实际是 no-op（「不移除也不是大问题」）。
-- `configLoadCacheAtStart` 默认 `false`；**必须保持 false**，否则会用磁盘缓存
-  覆盖 env 基线语义。
-- 预编译二进制覆盖 `x86_64-unknown-linux-musl`（Alpine 镜像可用）、`linux-gnu`、
-  `darwin`、`win32-*`；安装走 optionalDependencies，**不需要构建脚本**，
-  与 Dockerfile 的 `--ignore-scripts` 兼容。
-- 日志默认 INFO，写 `$HOME/logs/nacos/`；级别用 `NACOS_CLIENT_LOGGER_LEVEL`，
-  线程数用 `NACOS_CLIENT_COMMON_THREAD_CORES`（默认 1）。
-
-**待验证（每条给出实际命令与输出，结论追加为 Task 0 末尾的表格）**：
-
-1. **连通性**：`serverAddr` 指向 `127.0.0.1:9848` 能 `getConfig` 成功；指向 8848
-   必须失败（确认端口语义，避免部署时错配）。
-2. **ESM 互操作**：NestJS 12（ESM + SWC）下 `import { NacosConfigClient } from
-'nacos-sdk-rust-binding-node'` 的行为；原生模块通常需要
-   `createRequire(import.meta.url)`，这一层只出现在适配器内。
-3. **鉴权**：`RNACOS_ENABLE_OPEN_API_AUTH=true` 时 `username`/`password` 生效；
-   错误密码的失败形态与耗时；确认错误消息不含密码。
-4. **命名空间**：`namespace` 传 ID 还是名称；控制台建 namespace 时 ID 是否可自定义
-   （决定 §2 的 `lucent-dev` 等 ID 是否可行）。
-5. **订阅语义**：`addListener` 在 rnacos 上是否即时推送（gRPC 长连接）；断线重连后
-   是否补推；配置被删除时回调内容；**监听器不可移除**对测试与热替换的影响。
-6. **本地缓存**：`configLoadCacheAtStart=false` 时进程重启是否仍读磁盘；
-   确认不会用磁盘旧值覆盖 env 基线。
-7. **镜像内可用**：`docker build` 后的 Alpine 镜像里 `require` 该包能加载
-   `.node`（`pnpm install/prune --ignore-scripts` 不破坏 optionalDependencies）。
-
-**门禁**：七项验证结论回写本文件；绑定与 rnacos 不兼容时**停下来重新裁决**
-（换 `@grpc/grpc-js` + `@nacos-group/sdk-proto` 自建最小客户端 / 换配置中心 /
-退回纯 env），不得在适配器里偷偷改回 HTTP 轮询。**spike 通过前不写业务代码。**
+1. 缓存目录必须持久化，否则容器重建后该策略等于没生效：app 服务挂
+   `/home/lucent/nacos`（缓存，路径取决于镜像内 `HOME`，当前 `adduser -S lucent`
+   指向 `/home/lucent`）与 `/home/lucent/logs/nacos`（客户端日志）。
+2. **探活另做**：加载后立刻用短超时探测 rnacos（TCP 连 8848 或带 token 的
+   readiness）；探测失败但 `getConfig` 有内容 → 快照标记 `source: 'local-cache'`，
+   记 WARN 并置指标，避免静默使用旧值。
+3. 缓存内容同样过 Zod；校验失败即丢弃该内容并回落 env 基线，坏缓存不进内存。
 
 ## 5. Task 1：运行时配置类型、schema 与快照服务
 
@@ -341,7 +320,7 @@ export type RuntimeConfigApplyResult =
 
 ```text
 RNACOS_ENABLED=false
-RNACOS_SERVER_ADDR=127.0.0.1:9848
+RNACOS_SERVER_ADDR=127.0.0.1:8848
 RNACOS_NAMESPACE=lucent-dev
 RNACOS_GROUP=LUCENT_RUNTIME
 RNACOS_DATA_ID=lucent-runtime-tuning.txt
@@ -355,7 +334,7 @@ RNACOS_REQUEST_TIMEOUT_MS=5000
 
 凭据只进 `RuntimeConfigSource` 构造参数，**不进快照、不进日志**。`environment.validation.ts`
 里 `RNACOS_*` 全部可选，`RNACOS_ENABLED=true` 时才对 `SERVER_ADDR`（必须是
-`host:port`，且端口应等于 gRPC 端口）与凭据做跨字段校验。
+`host:port`，**写 HTTP 端口**，gRPC 由 SDK 按 `+1000` 推导）与凭据做跨字段校验。
 `RNACOS_REQUEST_TIMEOUT_MS` 只约束首次 `getConfig`（绑定无超时参数，用 `Promise.race`
 包一层，超时后保留基线；不取消底层调用）。
 
@@ -388,10 +367,12 @@ pnpm add nacos-sdk-rust-binding-node@0.8.0
 
 - [ ] **Step 2: 写适配器测试（mock 客户端，不启真实服务、不加载原生模块）**
 
-覆盖：加载成功；配置不存在（空串或抛错）→ `null`；`getConfig` 抛错 → `load()`
-拒绝且进程不崩；`addListener` 触发 `watch` 回调；`watch()` 返回的取消函数**至少**
-停止向订阅者分发（底层监听无法移除，见 Task 0 结论 5）；`close()` 只做本地清理；
-密码与 token 不出现在日志与错误 message 中；`configLoadCacheAtStart` 恒为 `false`。
+覆盖：加载成功；`error_code=300` → `null`；其它错误 → `load()` 拒绝且进程不崩；
+**构造同步抛错**（服务器不可达/凭据错误）也要被捕获成同一种失败；`addListener`
+触发 `watch` 回调；`watch()` 返回的取消函数**至少**停止向订阅者分发（底层监听
+无法移除，见 §4 第 5 条）；`close()` 只做本地清理；密码与 token 不出现在日志与
+错误 message 中；`configLoadCacheAtStart` 恒为 `true`；离线加载标记
+`source: 'local-cache'` 且不影响校验失败回退 env。
 
 - [ ] **Step 3: 实现适配器**
 
@@ -403,11 +384,13 @@ export interface RuntimeConfigSource {
 }
 ```
 
-适配器内部只做四件事：构造 `NacosConfigClient`（`serverAddr` 指向 gRPC 端口，
-凭据来自启动配置，`configLoadCacheAtStart: false`）、`getConfig` 桥接成 `load()`、
-`addListener` 桥接成 `watch()`、本地取消订阅。**ESM 互操作兜底放在这一层**
-（`createRequire`），业务代码不感知原生模块。远程源失败只记结构化告警并保留本地
-快照，**不得让 API 进程退出**；重连交给 rust SDK，不自建退避循环。
+适配器内部只做四件事：构造 `NacosConfigClient`（`serverAddr` 指 HTTP 端口 8848，
+凭据来自启动配置，`configLoadCacheAtStart: true`）、`getConfig` 桥接成 `load()`、
+`addListener` 桥接成 `watch()`、本地取消订阅。构造可能**同步**抛错，必须包在
+try/catch 里并入失败路径。加载后追加一次短超时探活并把结果写进快照元数据
+（`source: 'remote' | 'local-cache'`）。ESM 互操作在 §4 中实测可用，仍保留 `createRequire`
+兜底。远程源失败只记结构化告警并保留本地快照，**不得让 API 进程退出**；重连交给
+rust SDK，不自建退避循环；连续 `error_code=300` 视为「配置被删」告警（见 §4 第 6 条）。
 
 - [ ] **Step 4: 接入生命周期**
 
@@ -436,11 +419,23 @@ rnacos:
     RNACOS_GMT_OFFSET_HOURS: '8'
 ```
 
-数据卷加入 `volumes:` 段。`scripts/dev/up-local-stack.ts` 只在显式传入服务名时启动
+数据卷加入 `volumes:` 段。app 服务另需挂两个卷并把客户端日志压到 ERROR：
+
+```yaml
+# 与 compose 文件里现有的 app 服务合并，不替换其定义
+app:
+  volumes:
+    - 'nacos-client-cache:/home/lucent/nacos'
+    - 'nacos-client-logs:/home/lucent/logs/nacos'
+  environment:
+    NACOS_CLIENT_LOGGER_LEVEL: ERROR
+```
+
+`scripts/dev/up-local-stack.ts` 只在显式传入服务名时启动
 rnacos（默认列表继续是 postgres/redis/seaweedfs）。
 
-端口对宿主开放：`8848` HTTP、`9848` gRPC、`10848` 控制台，三个都是必需（应用走
-9848，控制台走 8848/10848）。生产 `compose.yaml` 同步加同名服务并映射同一组端口；
+端口对宿主开放：`8848` HTTP、`9848` gRPC、`10848` 控制台，三个都是必需（应用配
+8848，SDK 自行连 9848；控制台走 10848）。生产 `compose.yaml` 同步加同名服务并映射同一组端口；
 **安全组/防火墙只放行受信来源**，控制台密码不得留默认值。
 
 - [ ] **Step 6: 手工验证（开发机）**
@@ -597,13 +592,15 @@ rnacos（默认列表继续是 postgres/redis/seaweedfs）。
 - [ ] `docs:verify` 增加一项：`runtime-config.example.txt` 可被当前 schema 解析
       通过，字段集合与 schema 完全一致（只查结构，注释靠人工评审）。
 - [ ] 结构化日志：每次生效记 `revision/seq/变更字段路径`，不记值（提示词只记 hash）。
-- [ ] 管理台（可选）：只读展示当前快照版本与最近一次拒绝原因。
+- [ ] 管理台（可选）：只读展示当前快照版本、`source`（`remote`/`local-cache`）
+      与最近一次拒绝原因。
 
 ## 14. Task 10：验收
 
 - [ ] `pnpm typecheck`、`pnpm lint:check`、`pnpm format:check`、`pnpm test:ci`、
       `pnpm arch:check`、`pnpm docs:verify`、`pnpm docs:links` 全绿。
-- [ ] Task 0 的 7 项结论回写；`RNACOS_ENABLED=false` 时零网络调用、进程启动不受影响。
+- [ ] 实现与 §4 结论一致（端口、构造 try/catch、`error_code=300` → `null`、删除语义）；
+      `RNACOS_ENABLED=false` 时零网络调用、不加载原生模块。
 - [ ] 全部家族在开发环境各做一次「生效 / 非法拒绝 / 删除回退」三连验证。
 - [ ] 关闭 rnacos 后：新请求继续用最后快照，日志有告警，进程不退出。
 - [ ] 把 `JWT_ACCESS_SECRET` 写进远程文档会被整份拒绝，日志给出「不在白名单」。
@@ -627,15 +624,17 @@ rnacos（默认列表继续是 postgres/redis/seaweedfs）。
 - 不承诺「可调参 = 识别质量提升」；质量结论仍需离线标注集与 A/B。
 - 不提供配置灰度/按用户分流（rnacos 不支持 tag 隔离）。
 - rnacos 不可用且进程重启时，回落到 env 基线；配置中心不是启动依赖。
+- 不把「删除配置」当作回退手段：删除后推送不再恢复（§4 第 6 条），回退一律发布
+  新版本；`RNACOS_CLIENT_LOGGER_LEVEL` 与 `~/logs/nacos/` 的轮转由部署负责。
+- 冷启动会用磁盘缓存（§4 裁决）：接受「旧值 + 降级标记」，不保证与最近一次发布
+  一致；缓存卷未挂载时该策略静默退化为 env 基线。
 
 ## 17. 待裁决点
 
 1. **生产 rnacos 落哪台机**：推荐主站 sidecar，端口对宿主开放（防火墙仅放行
    受信来源）；备选监控机。
-2. **namespace 组织**：显式 ID（`lucent-dev/test/prod`）vs 全部放 `public` 靠
-   group 区分。取决于 Task 0 第 4 项结论。
-3. **OpenAPI 鉴权**：开发环境是否也开启（推荐开启，避免两套路径）。
-4. **提示词全量覆盖的风险**：第一版就开放 9 个 prompt，还是只开放餐食 2 个 +
+2. **OpenAPI 鉴权**：开发环境是否也开启（推荐开启，避免两套路径）。
+3. **提示词全量覆盖的风险**：第一版就开放 9 个 prompt，还是只开放餐食 2 个 +
    助手 system，其余等有需求再开。
 
 ## 18. 参考资料
