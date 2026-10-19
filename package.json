@@ -122,6 +122,7 @@
     "jsonwebtoken": "^9.0.3",
     "keyv": "^5.6.0",
     "langchain": "1.5.16",
+    "nacos-sdk-rust-binding-node": "0.8.0",
     "nest-winston": "^1.10.2",
     "nestjs-i18n": "^10.8.4",
     "neverthrow": "8.2.0",
