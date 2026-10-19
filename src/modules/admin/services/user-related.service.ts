@@ -25,7 +25,7 @@ export interface AdminUserRelatedView {
 
 /**
  * Aggregates every user-owned table for `GET /admin/users/:id/related`
- * (plan `2026-10-18-admin-management-expansion` §2.1, user-detail tabs).
+ * (see `src/modules/admin/README.md`, user-detail tabs).
  *
  * Groups and resources come from `resource-registry.ts`, so this stays a thin
  * fan-out over `AdminDataService` and inherits its sanitisation and soft-delete

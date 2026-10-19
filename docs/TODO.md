@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-16
+updated: 2026-10-19
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-10-16
+Last updated: 2026-10-19
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -118,6 +118,13 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
 （沿用各资源端点「跨用户访问 → 404」的 e2e 约定）。对侧登记见 Luminous `docs/TODO.md`。
 
 ## 后续可做
+
+### 按管理面契约重生成 Luminous 客户端（2026-10-19，管理面扩展收尾）
+
+管理面扩展新增/调整了 `/api/v1/admin/*`（QA 语料、漏斗指标、依赖状态、数据/用户/管理员 API），
+`docs/reference/generated/openapi.json` 已随代码更新，但 Luminous 侧尚未按新契约重跑其 Flutter 契约引导脚本（在 Luminous 仓库内执行）。这些端点是控制台专用，C 端目前无消费方，
+故按计划决策顺延；下次 Luminous 契约同步时一并重生成，验收:重生成后 Luminous 侧 `flutter analyze` 通过,
+且生成物与 Lucent 的 openapi 快照无差异。
 
 ### 深链域名与 App Link 校验文件的部署（2026-10-16，Luminous 深链接入时发现）
 
@@ -257,9 +264,7 @@ ESM 化后遗留清单与后续跟进：
 
 ## 管理控制台遗留（2026-10-07，控制台校验与首次上线时发现）
 
-- **控制台 head 仍是上游模板元数据**：`admin/index.html` 的 `<title>` 是 `Shadcn Admin`，
-  OG/Twitter 卡片指向 `shadcn-admin.netlify.app`，favicon 也引用上游图片。改成 Lucent 自己的
-  标题与图标要动"按裁决整体保留"的模板快照，故留待后续统一处理。
-- **管理员播种脚本不在镜像里**：`scripts/` 不参与镜像构建，服务器上跑不了 `pnpm admin:seed`。
-  首次上线是用一次性 node 脚本进 app 容器完成的（复刻 seed 的校验语义）。若要把播种做成常规
-  运维动作，需把该脚本或其编译产物纳入镜像，或提供受权限保护的管理 API。
+- **favicon 仍是上游模板图片**：`admin/index.html` 的标题与 OG/Twitter 卡片已改为 Lucent
+  自己的元数据，但四个 favicon 引用仍是模板自带的 `admin/public/images/favicon*.{svg,png}`
+  （上游 shadcn-admin 图形）。替换需要一套 Lucent 图标资产（多尺寸 + 亮/暗两版），
+  留待有正式视觉资产时统一处理。

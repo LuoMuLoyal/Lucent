@@ -48,7 +48,7 @@ export interface AdminResourcePage {
 
 /**
  * Generic read/write over any registered Prisma table for the admin console
- * (plan `2026-10-18-admin-management-expansion` §2.2).
+ * (see `src/modules/admin/README.md`).
  *
  * Cross-module reads/writes straight against Prisma are an ADR-0009 controlled
  * exception for the admin surface; the `resource-registry` is the single place

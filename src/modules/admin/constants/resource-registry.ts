@@ -1,6 +1,6 @@
 /**
  * Resource registry for the admin generic data layer
- * (`/api/v1/admin/data/:resource`, plan `2026-10-18-admin-management-expansion`).
+ * (`/api/v1/admin/data/:resource`; see `src/modules/admin/README.md`).
  *
  * One entry per Prisma model drives read/write behaviour so the ~51 tables do
  * not need a hand-written controller each. The registry is deliberately

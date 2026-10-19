@@ -42,7 +42,7 @@ const resourceParamSchema = z.string().trim().min(1).max(80);
 const rowIdParamSchema = z.string().trim().min(1).max(200);
 
 /**
- * Generic admin data API (plan `2026-10-18-admin-management-expansion` §2.2).
+ * Generic admin data API (see `src/modules/admin/README.md`).
  *
  * Drives every registered Prisma table from `resource-registry.ts` instead of
  * one controller per table. Reads need `data:read`; writes need `data:write`
