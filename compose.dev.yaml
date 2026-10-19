@@ -234,6 +234,68 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── rnacos（运行时配置中心；profile 内，默认不启动）──────────────
+  # 承载「不重启进程可调参」的叠加层：环境变量仍是唯一基线，这里只发布非密钥
+  # 热键（白名单见 docs/reference/runtime-config.example.txt）。默认服务列表不含
+  # 它 —— 需要时显式带 profile：
+  #   export RNACOS_CONSOLE_PASSWORD='...'   # 控制台口令，dev 也要显式给
+  #   pnpm dev:stack rnacos
+  #
+  # 三个端口都是必需的：8848 HTTP（应用配这个，SDK 从它登录并自行连 9848）、
+  # 9848 gRPC（长连接与推送）、10848 控制台（发配置的唯一入口）。
+  # 生产同形部署在 compose.yaml；那边端口对宿主开放范围由安全组按来源 IP 收口，
+  # 且必须开 `RNACOS_ENABLE_OPEN_API_AUTH=true`。dev 只绑回环、不开该开关，
+  # 让本地发布文档少一步登录。
+  #
+  # 首次使用要先建 namespace 再发文档（rnacos 不会替你建；空 namespace 下
+  # 客户端 getConfig 只会拿到「配置不存在」，表现为一直用 env 基线）：
+  #   curl -sS -X POST 'http://127.0.0.1:8848/nacos/v1/console/namespaces' \
+  #     -d 'customNamespaceId=lucent-dev&namespaceName=lucent-dev'
+  #   curl -sS -X POST 'http://127.0.0.1:8848/nacos/v1/cs/configs' \
+  #     --data-urlencode 'dataId=lucent-runtime-tuning.txt' \
+  #     --data-urlencode 'group=LUCENT_RUNTIME' \
+  #     --data-urlencode 'tenant=lucent-dev' \
+  #     --data-urlencode 'type=text' \
+  #     --data-urlencode 'content@docs/reference/runtime-config.example.txt'
+  # 应用侧（.env.development）：RNACOS_ENABLED=true / RNACOS_SERVER_ADDR=127.0.0.1:8848
+  # / RNACOS_NAMESPACE=lucent-dev / RNACOS_GROUP=LUCENT_RUNTIME + 控制台同源凭据。
+  # 镜像拉不动时用镜像加速地址覆盖：
+  #   export RNACOS_IMAGE=docker.m.daocloud.io/qingpan/rnacos:v0.8.7
+  #
+  # 客户端的磁盘缓存（`configLoadCacheAtStart`）与 SDK 日志落在进程的 HOME 下
+  # （`~/nacos/config/<namespace>`、`~/logs/nacos/`）；dev 直接跑在宿主上，这两处
+  # 自然持久，容器里部署时才需要挂卷（见 compose.yaml 的 app 服务）。
+  rnacos:
+    image: ${RNACOS_IMAGE:-qingpan/rnacos:v0.8.7}
+    container_name: lucent-rnacos
+    profiles: ['rnacos']
+    restart: unless-stopped
+    environment:
+      RNACOS_INIT_ADMIN_USERNAME: ${RNACOS_CONSOLE_USER:-rnacos}
+      # dev 默认值只在回环上成立；`pnpm dev:stack rnacos` 会在口令未显式给出时
+      # 直接报错，生产 compose.yaml 的同名服务**不得**带默认值。
+      RNACOS_INIT_ADMIN_PASSWORD: ${RNACOS_CONSOLE_PASSWORD:-rnacos-dev-only}
+      # 控制台与我方的时区一致，便于对着发布时间排查。
+      RNACOS_GMT_OFFSET_HOURS: '8'
+    ports:
+      - '127.0.0.1:8848:8848' # HTTP（应用配置项）
+      - '127.0.0.1:9848:9848' # gRPC（SDK 长连接与推送）
+      - '127.0.0.1:10848:10848' # 控制台（发布配置）
+    volumes:
+      - rnacos-data:/io
+    healthcheck:
+      # 镜像是 Debian 基底但无 curl/wget，用 bash 的 /dev/tcp 做纯 TCP 探活
+      # （与适配器的探活同一思路，且不受 OpenAPI 鉴权开关影响）。
+      test:
+        [
+          'CMD-SHELL',
+          "timeout 2 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8848' 2>/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   pgdata-dev:
   pgdata-test:
@@ -242,3 +304,4 @@ volumes:
   neo4j-dev-logs:
   seaweedfs-data:
   lightrag-data:
+  rnacos-data:
