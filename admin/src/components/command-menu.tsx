@@ -43,6 +43,24 @@ export function CommandMenu() {
           {navGroups.map((group) => (
             <CommandGroup key={group.title} heading={group.title}>
               {group.items.map((navItem, i) => {
+                if (navItem.external) {
+                  const target = navItem.external
+                  return (
+                    <CommandItem
+                      key={`${target}-${i}`}
+                      value={navItem.title}
+                      onSelect={() => {
+                        runCommand(() => window.open(target, '_blank'))
+                      }}
+                    >
+                      <div className='flex size-4 items-center justify-center'>
+                        <ArrowRight className='size-2 text-muted-foreground/80' />
+                      </div>
+                      {navItem.title}
+                    </CommandItem>
+                  )
+                }
+
                 if (navItem.url)
                   return (
                     <CommandItem

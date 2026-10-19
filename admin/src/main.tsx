@@ -128,6 +128,8 @@ if (!rootElement.innerHTML) {
                     list: '/content/qa-chunks',
                     edit: '/content/qa-chunks/:id',
                   },
+                  { name: 'funnel', list: '/metrics/funnel' },
+                  { name: 'dependencies', list: '/dependencies' },
                 ]}
                 options={{
                   disableTelemetry: true,

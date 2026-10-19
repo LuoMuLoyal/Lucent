@@ -29,6 +29,7 @@ import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
+import { Route as AuthenticatedDependenciesIndexRouteImport } from './routes/_authenticated/dependencies/index'
 import { Route as AuthenticatedDataIndexRouteImport } from './routes/_authenticated/data/index'
 import { Route as AuthenticatedChatsIndexRouteImport } from './routes/_authenticated/chats/index'
 import { Route as AuthenticatedAuditLogsIndexRouteImport } from './routes/_authenticated/audit-logs/index'
@@ -42,6 +43,7 @@ import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
+import { Route as AuthenticatedMetricsFunnelIndexRouteImport } from './routes/_authenticated/metrics/funnel/index'
 import { Route as AuthenticatedContentSafetyTipsIndexRouteImport } from './routes/_authenticated/content/safety-tips/index'
 import { Route as AuthenticatedContentQaChunksIndexRouteImport } from './routes/_authenticated/content/qa-chunks/index'
 import { Route as AuthenticatedContentLegalDocumentsIndexRouteImport } from './routes/_authenticated/content/legal-documents/index'
@@ -146,6 +148,12 @@ const AuthenticatedHelpCenterIndexRoute =
     path: '/help-center/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDependenciesIndexRoute =
+  AuthenticatedDependenciesIndexRouteImport.update({
+    id: '/dependencies/',
+    path: '/dependencies/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDataIndexRoute = AuthenticatedDataIndexRouteImport.update({
   id: '/data/',
   path: '/data/',
@@ -218,6 +226,12 @@ const AuthenticatedErrorsErrorRoute =
     path: '/errors/$error',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMetricsFunnelIndexRoute =
+  AuthenticatedMetricsFunnelIndexRouteImport.update({
+    id: '/metrics/funnel/',
+    path: '/metrics/funnel/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedContentSafetyTipsIndexRoute =
   AuthenticatedContentSafetyTipsIndexRouteImport.update({
     id: '/content/safety-tips/',
@@ -264,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/audit-logs/': typeof AuthenticatedAuditLogsIndexRoute
   '/chats/': typeof AuthenticatedChatsIndexRoute
   '/data/': typeof AuthenticatedDataIndexRoute
+  '/dependencies/': typeof AuthenticatedDependenciesIndexRoute
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
@@ -271,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/content/legal-documents/': typeof AuthenticatedContentLegalDocumentsIndexRoute
   '/content/qa-chunks/': typeof AuthenticatedContentQaChunksIndexRoute
   '/content/safety-tips/': typeof AuthenticatedContentSafetyTipsIndexRoute
+  '/metrics/funnel/': typeof AuthenticatedMetricsFunnelIndexRoute
 }
 export interface FileRoutesByTo {
   '/clerk': typeof ClerkAuthenticatedRouteRouteWithChildren
@@ -298,6 +314,7 @@ export interface FileRoutesByTo {
   '/audit-logs': typeof AuthenticatedAuditLogsIndexRoute
   '/chats': typeof AuthenticatedChatsIndexRoute
   '/data': typeof AuthenticatedDataIndexRoute
+  '/dependencies': typeof AuthenticatedDependenciesIndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
@@ -305,6 +322,7 @@ export interface FileRoutesByTo {
   '/content/legal-documents': typeof AuthenticatedContentLegalDocumentsIndexRoute
   '/content/qa-chunks': typeof AuthenticatedContentQaChunksIndexRoute
   '/content/safety-tips': typeof AuthenticatedContentSafetyTipsIndexRoute
+  '/metrics/funnel': typeof AuthenticatedMetricsFunnelIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -337,6 +355,7 @@ export interface FileRoutesById {
   '/_authenticated/audit-logs/': typeof AuthenticatedAuditLogsIndexRoute
   '/_authenticated/chats/': typeof AuthenticatedChatsIndexRoute
   '/_authenticated/data/': typeof AuthenticatedDataIndexRoute
+  '/_authenticated/dependencies/': typeof AuthenticatedDependenciesIndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
@@ -344,6 +363,7 @@ export interface FileRoutesById {
   '/_authenticated/content/legal-documents/': typeof AuthenticatedContentLegalDocumentsIndexRoute
   '/_authenticated/content/qa-chunks/': typeof AuthenticatedContentQaChunksIndexRoute
   '/_authenticated/content/safety-tips/': typeof AuthenticatedContentSafetyTipsIndexRoute
+  '/_authenticated/metrics/funnel/': typeof AuthenticatedMetricsFunnelIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -374,6 +394,7 @@ export interface FileRouteTypes {
     | '/audit-logs/'
     | '/chats/'
     | '/data/'
+    | '/dependencies/'
     | '/help-center/'
     | '/settings/'
     | '/tasks/'
@@ -381,6 +402,7 @@ export interface FileRouteTypes {
     | '/content/legal-documents/'
     | '/content/qa-chunks/'
     | '/content/safety-tips/'
+    | '/metrics/funnel/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/clerk'
@@ -408,6 +430,7 @@ export interface FileRouteTypes {
     | '/audit-logs'
     | '/chats'
     | '/data'
+    | '/dependencies'
     | '/help-center'
     | '/settings'
     | '/tasks'
@@ -415,6 +438,7 @@ export interface FileRouteTypes {
     | '/content/legal-documents'
     | '/content/qa-chunks'
     | '/content/safety-tips'
+    | '/metrics/funnel'
   id:
     | '__root__'
     | '/_authenticated'
@@ -446,6 +470,7 @@ export interface FileRouteTypes {
     | '/_authenticated/audit-logs/'
     | '/_authenticated/chats/'
     | '/_authenticated/data/'
+    | '/_authenticated/dependencies/'
     | '/_authenticated/help-center/'
     | '/_authenticated/settings/'
     | '/_authenticated/tasks/'
@@ -453,6 +478,7 @@ export interface FileRouteTypes {
     | '/_authenticated/content/legal-documents/'
     | '/_authenticated/content/qa-chunks/'
     | '/_authenticated/content/safety-tips/'
+    | '/_authenticated/metrics/funnel/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -612,6 +638,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpCenterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dependencies/': {
+      id: '/_authenticated/dependencies/'
+      path: '/dependencies'
+      fullPath: '/dependencies/'
+      preLoaderRoute: typeof AuthenticatedDependenciesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/data/': {
       id: '/_authenticated/data/'
       path: '/data'
@@ -703,6 +736,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedErrorsErrorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/metrics/funnel/': {
+      id: '/_authenticated/metrics/funnel/'
+      path: '/metrics/funnel'
+      fullPath: '/metrics/funnel/'
+      preLoaderRoute: typeof AuthenticatedMetricsFunnelIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/content/safety-tips/': {
       id: '/_authenticated/content/safety-tips/'
       path: '/content/safety-tips'
@@ -759,12 +799,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditLogsIndexRoute: typeof AuthenticatedAuditLogsIndexRoute
   AuthenticatedChatsIndexRoute: typeof AuthenticatedChatsIndexRoute
   AuthenticatedDataIndexRoute: typeof AuthenticatedDataIndexRoute
+  AuthenticatedDependenciesIndexRoute: typeof AuthenticatedDependenciesIndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedContentLegalDocumentsIndexRoute: typeof AuthenticatedContentLegalDocumentsIndexRoute
   AuthenticatedContentQaChunksIndexRoute: typeof AuthenticatedContentQaChunksIndexRoute
   AuthenticatedContentSafetyTipsIndexRoute: typeof AuthenticatedContentSafetyTipsIndexRoute
+  AuthenticatedMetricsFunnelIndexRoute: typeof AuthenticatedMetricsFunnelIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -776,6 +818,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuditLogsIndexRoute: AuthenticatedAuditLogsIndexRoute,
   AuthenticatedChatsIndexRoute: AuthenticatedChatsIndexRoute,
   AuthenticatedDataIndexRoute: AuthenticatedDataIndexRoute,
+  AuthenticatedDependenciesIndexRoute: AuthenticatedDependenciesIndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
@@ -785,6 +828,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedContentQaChunksIndexRoute,
   AuthenticatedContentSafetyTipsIndexRoute:
     AuthenticatedContentSafetyTipsIndexRoute,
+  AuthenticatedMetricsFunnelIndexRoute: AuthenticatedMetricsFunnelIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

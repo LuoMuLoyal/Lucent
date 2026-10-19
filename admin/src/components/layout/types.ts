@@ -16,15 +16,27 @@ type BaseNavItem = {
   title: string
   badge?: string
   icon?: React.ElementType
+  /**
+   * Absolute URL outside the SPA router (e.g. the bull-board queue panel at
+   * `/admin/queues`, which the backend serves on the same origin). Rendered as
+   * a plain anchor in a new tab instead of a router `<Link>`.
+   */
+  external?: string
 }
 
-type NavLink = BaseNavItem & {
+type NavSubItem = BaseNavItem & {
   url: LinkProps['to'] | (string & {})
-  items?: never
+  external?: never
 }
+
+type NavLink = BaseNavItem &
+  (
+    | { url: LinkProps['to'] | (string & {}); external?: never }
+    | { external: string; url?: never }
+  ) & { items?: never }
 
 type NavCollapsible = BaseNavItem & {
-  items: (BaseNavItem & { url: LinkProps['to'] | (string & {}) })[]
+  items: NavSubItem[]
   url?: never
 }
 
