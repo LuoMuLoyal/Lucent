@@ -1,4 +1,6 @@
+import { Logger } from '@nestjs/common';
 import { EnvKey } from '../env/env-keys.enum.js';
+import { fingerprintPrompt } from './prompt-registry.js';
 import type {
   RuntimeConfigDocument,
   RuntimeConfigDocumentSource,
@@ -203,6 +205,25 @@ describe('RuntimeConfigService', () => {
       service.applyDocumentFrom(`${HEADER}THROTTLE_LIMIT=120\n`, 'local-cache');
 
       expect(service.getSnapshot().source).toBe('local-cache');
+    });
+
+    it('logs prompt revisions as fingerprints, never the prompt body', () => {
+      restoreEnv = withEnv({});
+      const service = new RuntimeConfigService();
+      const body =
+        'You are a test assistant. Tools: {{tools}}. {{toolAvailability}}';
+      const debug = vi.spyOn(Logger.prototype, 'debug');
+      const result = service.applyDocument(
+        `${HEADER}PROMPT_ASSISTANT_SYSTEM=${body}`,
+      );
+      // Read the calls before restoring: mockRestore() also clears them.
+      const logged = debug.mock.calls.flat().join(' ');
+      debug.mockRestore();
+
+      expect(result.ok).toBe(true);
+      expect(logged).toContain(EnvKey.PROMPT_ASSISTANT_SYSTEM);
+      expect(logged).toContain(fingerprintPrompt(body));
+      expect(logged).not.toContain('You are a test assistant');
     });
 
     it('freezes the published snapshot, including list values', () => {

@@ -34,6 +34,7 @@ import {
   RUNTIME_CONFIG_SOURCE,
   type RuntimeConfigDocumentSource,
 } from './runtime-config-source.js';
+import { fingerprintPrompt, RUNTIME_PROMPT_KEYS } from './prompt-registry.js';
 import {
   freezeRuntimeConfigValues,
   parseRuntimeConfigDocument,
@@ -178,6 +179,7 @@ export class RuntimeConfigService
         changed.length > 0 ? changed.join(',') : 'none'
       })`,
     );
+    this.logPromptFingerprints(parsed.overrides);
     this.notify(snapshot);
     return { ok: true, version, changed };
   }
@@ -187,6 +189,26 @@ export class RuntimeConfigService
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  /**
+   * Records which prompt revisions the document put in force, as digests.
+   *
+   * An operator can tell two revisions apart from the log, while the prompt
+   * body — model instructions, possibly user-influenced wording — never reaches
+   * log storage.
+   */
+  private logPromptFingerprints(overrides: Partial<RuntimeConfigValues>): void {
+    const active: string[] = [];
+    for (const key of RUNTIME_PROMPT_KEYS) {
+      const text = overrides[key];
+      if (typeof text === 'string') {
+        active.push(`${key}=${fingerprintPrompt(text)}`);
+      }
+    }
+    if (active.length > 0) {
+      this.logger.debug(`Prompt overrides in force: ${active.join(', ')}`);
+    }
   }
 
   /**
