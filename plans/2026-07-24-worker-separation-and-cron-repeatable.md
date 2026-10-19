@@ -5,7 +5,7 @@
 > 2026-08-16 功能盘点已裁决为「阶段错配、暂缓启用」——队列高峰拖慢 HTTP 在单机量级下不是已观测痛点
 > （队列并发均为 1–3，见 `Luminous/plans/2026-08-16-engineering-backend-plan.md` P2-A）。
 > **启用触发条件（非时间表）**：Grafana 里 `bullmq_waiting_jobs` 持续非零，或 p95 HTTP 延迟与队列高峰相关。
-> 同一份盘点还覆盖了 rnacos 热配置（`2026-08-02-rnacos-runtime-config-tuning.md`，同为暂缓）——
+> 同一份盘点还覆盖了 rnacos 热配置（`2026-08-02-rnacos-runtime-config-tuning.md`，2026-10-19 已重开）——
 > 两份计划与 `2026-08-22-medium-to-large-migration-inventory.md` Task 1 内容重复，**以盘点计划的触发条件为准**。
 
 ## 背景
