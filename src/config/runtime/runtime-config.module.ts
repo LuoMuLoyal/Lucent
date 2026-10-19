@@ -1,17 +1,26 @@
 /**
  * Registers the runtime-config snapshot service globally.
  *
- * Task 1 is local-only: nothing here talks to a configuration center. The
- * optional `RuntimeConfigSource` adapter (rnacos) is added by a later task and
- * only runs when `RNACOS_ENABLED=true`.
+ * The source provider is the only network-aware piece: the factory returns the
+ * rnacos adapter when `RNACOS_ENABLED=true` and `null` otherwise, so a disabled
+ * configuration center costs nothing — no connection attempt, and no native
+ * module loaded (the adapter imports the binding lazily).
  */
 
 import { Global, Module } from '@nestjs/common';
+import { createRuntimeConfigDocumentSource } from './runtime-config-source.factory.js';
+import { RUNTIME_CONFIG_SOURCE } from './runtime-config-source.js';
 import { RuntimeConfigService } from './runtime-config.service.js';
 
 @Global()
 @Module({
-  providers: [RuntimeConfigService],
+  providers: [
+    RuntimeConfigService,
+    {
+      provide: RUNTIME_CONFIG_SOURCE,
+      useFactory: createRuntimeConfigDocumentSource,
+    },
+  ],
   exports: [RuntimeConfigService],
 })
 export class RuntimeConfigModule {}
