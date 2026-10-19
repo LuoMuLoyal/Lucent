@@ -1,6 +1,8 @@
 import { registerAs } from '@nestjs/config';
+import type { LlmRole } from '../../common/llm/llm-runtime.port.js';
 import { ConfigKey } from '../env/config-keys.enum.js';
 import { EnvKey } from '../env/env-keys.enum.js';
+import type { RuntimeConfigKey } from '../runtime/runtime-config.schema.js';
 
 function readOptionalEnv(key: EnvKey): string | null {
   const value = process.env[key]?.trim();
@@ -67,15 +69,93 @@ function readThinkingMode(key: EnvKey): ThinkingMode | null {
   return THINKING_MODES.find((mode) => mode === value) ?? null;
 }
 
-function buildRoleConfig(
-  keys: {
-    apiKey: EnvKey;
-    baseUrl: EnvKey;
-    model: EnvKey;
-    /** Role-level override; omitted for roles with no chat model. */
-    thinking?: EnvKey;
-    dimension?: EnvKey;
+/**
+ * Environment keys backing one LLM role.
+ *
+ * The runtime-tuning document deliberately reuses environment-variable names,
+ * so these are also the keys the config center may override — with two
+ * exceptions that are typed as plain {@link EnvKey} because they are *not*
+ * tuning knobs:
+ *
+ * - `apiKey` is a secret: it only ever comes from `.env`.
+ * - `dimension` is a schema invariant (pgvector column width), not a knob.
+ */
+export interface LlmRoleKeys {
+  /** Secret; read from `.env` only, never from the config center. */
+  readonly apiKey: EnvKey;
+  readonly baseUrl: RuntimeConfigKey;
+  readonly model: RuntimeConfigKey;
+  /** Role-level override; omitted for roles with no chat model. */
+  readonly thinking?: RuntimeConfigKey;
+  readonly temperature?: RuntimeConfigKey;
+  readonly maxRetries?: RuntimeConfigKey;
+  readonly timeout?: RuntimeConfigKey;
+  readonly dimension?: EnvKey;
+}
+
+/**
+ * Declares the env-key wiring for every role exactly once.
+ *
+ * `LlmRuntimeService` reads the non-secret half of this map when it resolves a
+ * model call against the runtime snapshot, so a rename here cannot silently
+ * disconnect a tuning key.
+ */
+export const LLM_ROLE_KEYS = {
+  analysis: {
+    apiKey: EnvKey.AI_ANALYSIS_API_KEY,
+    baseUrl: EnvKey.AI_ANALYSIS_BASE_URL,
+    model: EnvKey.AI_ANALYSIS_MODEL,
+    thinking: EnvKey.AI_ANALYSIS_THINKING,
+    temperature: EnvKey.AI_ANALYSIS_TEMPERATURE,
+    maxRetries: EnvKey.AI_ANALYSIS_MAX_RETRIES,
+    timeout: EnvKey.AI_ANALYSIS_TIMEOUT_MS,
   },
+  vision: {
+    apiKey: EnvKey.AI_VISION_API_KEY,
+    baseUrl: EnvKey.AI_VISION_BASE_URL,
+    model: EnvKey.AI_VISION_MODEL,
+    thinking: EnvKey.AI_VISION_THINKING,
+    temperature: EnvKey.AI_VISION_TEMPERATURE,
+    maxRetries: EnvKey.AI_VISION_MAX_RETRIES,
+    timeout: EnvKey.AI_VISION_TIMEOUT_MS,
+  },
+  language: {
+    apiKey: EnvKey.AI_LANGUAGE_API_KEY,
+    baseUrl: EnvKey.AI_LANGUAGE_BASE_URL,
+    model: EnvKey.AI_LANGUAGE_MODEL,
+    thinking: EnvKey.AI_LANGUAGE_THINKING,
+    temperature: EnvKey.AI_LANGUAGE_TEMPERATURE,
+    maxRetries: EnvKey.AI_LANGUAGE_MAX_RETRIES,
+    timeout: EnvKey.AI_LANGUAGE_TIMEOUT_MS,
+  },
+  chat: {
+    apiKey: EnvKey.AI_CHAT_API_KEY,
+    baseUrl: EnvKey.AI_CHAT_BASE_URL,
+    model: EnvKey.AI_CHAT_MODEL,
+    thinking: EnvKey.AI_CHAT_THINKING,
+    temperature: EnvKey.AI_CHAT_TEMPERATURE,
+    maxRetries: EnvKey.AI_CHAT_MAX_RETRIES,
+    timeout: EnvKey.AI_CHAT_TIMEOUT_MS,
+  },
+  chatCompression: {
+    apiKey: EnvKey.AI_CHAT_COMPRESSION_API_KEY,
+    baseUrl: EnvKey.AI_CHAT_COMPRESSION_BASE_URL,
+    model: EnvKey.AI_CHAT_COMPRESSION_MODEL,
+    thinking: EnvKey.AI_CHAT_COMPRESSION_THINKING,
+    temperature: EnvKey.AI_CHAT_COMPRESSION_TEMPERATURE,
+    maxRetries: EnvKey.AI_CHAT_COMPRESSION_MAX_RETRIES,
+    timeout: EnvKey.AI_CHAT_COMPRESSION_TIMEOUT_MS,
+  },
+  embedding: {
+    apiKey: EnvKey.AI_EMBEDDING_API_KEY,
+    baseUrl: EnvKey.AI_EMBEDDING_BASE_URL,
+    model: EnvKey.AI_EMBEDDING_MODEL,
+    dimension: EnvKey.AI_EMBEDDING_DIMENSION,
+  },
+} satisfies Record<LlmRole, LlmRoleKeys>;
+
+function buildRoleConfig(
+  keys: LlmRoleKeys,
   defaultThinking: ThinkingMode,
 ): LlmRoleConfig {
   const config: LlmRoleConfig = {
@@ -108,60 +188,12 @@ export const llmConfig = registerAs(ConfigKey.Llm, (): LlmConfig => {
   return {
     provider: readOptionalEnv(EnvKey.AI_PROVIDER),
     thinking,
-    analysis: buildRoleConfig(
-      {
-        apiKey: EnvKey.AI_ANALYSIS_API_KEY,
-        baseUrl: EnvKey.AI_ANALYSIS_BASE_URL,
-        model: EnvKey.AI_ANALYSIS_MODEL,
-        thinking: EnvKey.AI_ANALYSIS_THINKING,
-      },
-      thinking,
-    ),
-    vision: buildRoleConfig(
-      {
-        apiKey: EnvKey.AI_VISION_API_KEY,
-        baseUrl: EnvKey.AI_VISION_BASE_URL,
-        model: EnvKey.AI_VISION_MODEL,
-        thinking: EnvKey.AI_VISION_THINKING,
-      },
-      thinking,
-    ),
-    language: buildRoleConfig(
-      {
-        apiKey: EnvKey.AI_LANGUAGE_API_KEY,
-        baseUrl: EnvKey.AI_LANGUAGE_BASE_URL,
-        model: EnvKey.AI_LANGUAGE_MODEL,
-        thinking: EnvKey.AI_LANGUAGE_THINKING,
-      },
-      thinking,
-    ),
-    chat: buildRoleConfig(
-      {
-        apiKey: EnvKey.AI_CHAT_API_KEY,
-        baseUrl: EnvKey.AI_CHAT_BASE_URL,
-        model: EnvKey.AI_CHAT_MODEL,
-        thinking: EnvKey.AI_CHAT_THINKING,
-      },
-      thinking,
-    ),
-    chatCompression: buildRoleConfig(
-      {
-        apiKey: EnvKey.AI_CHAT_COMPRESSION_API_KEY,
-        baseUrl: EnvKey.AI_CHAT_COMPRESSION_BASE_URL,
-        model: EnvKey.AI_CHAT_COMPRESSION_MODEL,
-        thinking: EnvKey.AI_CHAT_COMPRESSION_THINKING,
-      },
-      thinking,
-    ),
-    embedding: buildRoleConfig(
-      {
-        apiKey: EnvKey.AI_EMBEDDING_API_KEY,
-        baseUrl: EnvKey.AI_EMBEDDING_BASE_URL,
-        model: EnvKey.AI_EMBEDDING_MODEL,
-        dimension: EnvKey.AI_EMBEDDING_DIMENSION,
-      },
-      thinking,
-    ),
+    analysis: buildRoleConfig(LLM_ROLE_KEYS.analysis, thinking),
+    vision: buildRoleConfig(LLM_ROLE_KEYS.vision, thinking),
+    language: buildRoleConfig(LLM_ROLE_KEYS.language, thinking),
+    chat: buildRoleConfig(LLM_ROLE_KEYS.chat, thinking),
+    chatCompression: buildRoleConfig(LLM_ROLE_KEYS.chatCompression, thinking),
+    embedding: buildRoleConfig(LLM_ROLE_KEYS.embedding, thinking),
     safety: {
       forbiddenPatterns: readForbiddenPatterns(),
     },

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import type {
@@ -6,7 +6,40 @@ import type {
   LlmRuntimePort,
 } from '../common/llm/llm-runtime.port.js';
 import { LlmNotConfiguredException } from '../common/llm/safety/llm-not-configured.exception.js';
-import { llmConfig, type ThinkingMode } from '../config/services/llm.config.js';
+import {
+  LLM_ROLE_KEYS,
+  llmConfig,
+  type LlmRoleKeys,
+  type ThinkingMode,
+} from '../config/services/llm.config.js';
+import { RuntimeConfigService } from '../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../config/runtime/runtime-config.types.js';
+
+/**
+ * Values the config center may override for one role; all optional, all
+ * "absent means: keep the environment baseline".
+ */
+interface RoleOverrides {
+  readonly model: string | null;
+  readonly baseUrl: string | null;
+  readonly thinking: ThinkingMode | null;
+  readonly temperature: number | null;
+  readonly maxRetries: number | null;
+  readonly timeout: number | null;
+}
+
+const NO_OVERRIDES: RoleOverrides = {
+  model: null,
+  baseUrl: null,
+  thinking: null,
+  temperature: null,
+  maxRetries: null,
+  timeout: null,
+};
+
+function isThinkingMode(value: string | null): value is ThinkingMode {
+  return value === 'auto' || value === 'enabled' || value === 'disabled';
+}
 
 /**
  * Concrete LLM runtime service.
@@ -15,6 +48,15 @@ import { llmConfig, type ThinkingMode } from '../config/services/llm.config.js';
  * the application's AI configuration. Consumers should generally use
  * `requireChatModel()` when a model is mandatory, or `hasRoleConfig()`
  * to check availability before calling `createChatModel()`.
+ *
+ * Every role is resolved at call time, not at construction: the process
+ * takes the environment as its baseline and layers the runtime-config
+ * snapshot's AI values on top (plan §7). Precedence is
+ * *snapshot > call-site option > environment* — the operator's tuning value
+ * is the one that must win, otherwise a hard-coded sampling constant in the
+ * code would make the knob ineffective. Secrets never take part: `apiKey`
+ * comes from the environment only, and the embedding dimension stays a
+ * schema invariant rather than a tunable.
  */
 @Injectable()
 export class LlmRuntimeService implements LlmRuntimePort {
@@ -23,17 +65,59 @@ export class LlmRuntimeService implements LlmRuntimePort {
   constructor(
     @Inject(llmConfig.KEY)
     private readonly config: ConfigType<typeof llmConfig>,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
+
+  // ─── Runtime overrides ───────────────────────────────────────────────────
+
+  /** Values the configuration center declares for this role, if any. */
+  private readOverrides(role: LlmRole): RoleOverrides {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    if (values == null) {
+      return NO_OVERRIDES;
+    }
+
+    const keys: LlmRoleKeys = LLM_ROLE_KEYS[role];
+    const string = (key: LlmRoleKeys['model'] | undefined): string | null => {
+      if (key == null) {
+        return null;
+      }
+      const value = values[key];
+      return typeof value === 'string' ? value : null;
+    };
+    const number = (
+      key: LlmRoleKeys['temperature'] | undefined,
+    ): number | null => {
+      if (key == null) {
+        return null;
+      }
+      const value = values[key];
+      return typeof value === 'number' ? value : null;
+    };
+
+    const thinking = string(keys.thinking);
+    return {
+      model: string(keys.model),
+      baseUrl: string(keys.baseUrl),
+      thinking: isThinkingMode(thinking) ? thinking : null,
+      temperature: number(keys.temperature),
+      maxRetries: number(keys.maxRetries),
+      timeout: number(keys.timeout),
+    };
+  }
 
   // ─── Availability ────────────────────────────────────────────────────────
 
   hasRoleConfig(role: LlmRole): boolean {
     const roleConfig = this.config[role];
+    const overrides = this.readOverrides(role);
     return (
       this.config.provider === 'openai-compatible' &&
       roleConfig.apiKey != null &&
-      roleConfig.baseUrl != null &&
-      roleConfig.model != null
+      (overrides.baseUrl ?? roleConfig.baseUrl) != null &&
+      (overrides.model ?? roleConfig.model) != null
     );
   }
 
@@ -57,8 +141,14 @@ export class LlmRuntimeService implements LlmRuntimePort {
 
   // ─── Model info ────────────────────────────────────────────────────────
 
+  /**
+   * Effective model name for the role: the runtime override when the operator
+   * published one, else the environment baseline. Reported to metrics/spans
+   * and persisted with generated content, so it always names the model that
+   * actually served the call.
+   */
   getModelName(role: LlmRole): string | null {
-    return this.config[role].model ?? null;
+    return this.readOverrides(role).model ?? this.config[role].model ?? null;
   }
 
   // ─── Chat model ──────────────────────────────────────────────────────────
@@ -69,31 +159,48 @@ export class LlmRuntimeService implements LlmRuntimePort {
       timeout?: number;
       temperature?: number;
       maxRetries?: number;
+      /** Pins the model for this call; a published override still wins. */
+      model?: string;
+      /** Pins the endpoint for this call; a published override still wins. */
+      baseUrl?: string;
     },
   ): ChatOpenAI {
     const roleConfig = this.config[role];
+    const overrides = this.readOverrides(role);
+    const model = overrides.model ?? options?.model ?? roleConfig.model ?? '';
+    const baseUrl =
+      overrides.baseUrl ?? options?.baseUrl ?? roleConfig.baseUrl ?? '';
+
     const fields: ConstructorParameters<typeof ChatOpenAI>[0] = {
-      model: roleConfig.model ?? '',
+      model,
       apiKey: roleConfig.apiKey ?? '',
       configuration: {
-        baseURL: roleConfig.baseUrl ?? '',
+        baseURL: baseUrl,
       },
     };
 
-    this.applyProviderQuirks(fields, roleConfig);
+    this.applyProviderQuirks(fields, {
+      baseUrl,
+      model,
+      thinking: overrides.thinking ?? roleConfig.thinking ?? 'auto',
+    });
 
-    if (options?.timeout !== undefined) {
-      fields.timeout = options.timeout;
+    const timeout = overrides.timeout ?? options?.timeout;
+    const temperature = overrides.temperature ?? options?.temperature;
+    const maxRetries = overrides.maxRetries ?? options?.maxRetries;
+
+    if (timeout !== undefined) {
+      fields.timeout = timeout;
     }
-    if (options?.temperature !== undefined) {
-      fields.temperature = options.temperature;
+    if (temperature !== undefined) {
+      fields.temperature = temperature;
     }
-    if (options?.maxRetries !== undefined) {
-      fields.maxRetries = options.maxRetries;
+    if (maxRetries !== undefined) {
+      fields.maxRetries = maxRetries;
     }
 
     this.logger.debug(
-      `Created ChatOpenAI for role "${role}" (model=${roleConfig.model ?? 'n/a'}, baseUrl=${roleConfig.baseUrl ?? 'n/a'})`,
+      `Created ChatOpenAI for role "${role}" (model=${model || 'n/a'}, baseUrl=${baseUrl || 'n/a'})`,
     );
 
     return new ChatOpenAI(fields);
@@ -118,6 +225,8 @@ export class LlmRuntimeService implements LlmRuntimePort {
       timeout?: number;
       temperature?: number;
       maxRetries?: number;
+      model?: string;
+      baseUrl?: string;
     },
   ): ChatOpenAI {
     if (!this.hasRoleConfig(role)) {
@@ -148,23 +257,27 @@ export class LlmRuntimeService implements LlmRuntimePort {
 
   createEmbeddingModel(): OpenAIEmbeddings | null {
     const roleConfig = this.config.embedding;
+    const overrides = this.readOverrides('embedding');
+    const model = overrides.model ?? roleConfig.model;
+    const baseUrl = overrides.baseUrl ?? roleConfig.baseUrl;
+
     if (
       this.config.provider !== 'openai-compatible' ||
       !roleConfig.apiKey ||
-      !roleConfig.baseUrl ||
-      !roleConfig.model
+      !baseUrl ||
+      !model
     ) {
       return null;
     }
 
     this.logger.debug(
-      `Created OpenAIEmbeddings (model=${roleConfig.model}, baseUrl=${roleConfig.baseUrl})`,
+      `Created OpenAIEmbeddings (model=${model}, baseUrl=${baseUrl})`,
     );
 
     return new OpenAIEmbeddings({
       apiKey: roleConfig.apiKey,
-      configuration: { baseURL: roleConfig.baseUrl },
-      model: roleConfig.model,
+      configuration: { baseURL: baseUrl },
+      model,
       ...(roleConfig.dimension != null
         ? { dimensions: roleConfig.dimension }
         : {}),
@@ -192,10 +305,8 @@ export class LlmRuntimeService implements LlmRuntimePort {
     fields: NonNullable<ConstructorParameters<typeof ChatOpenAI>[0]>,
     roleConfig: {
       baseUrl: string | null;
-      apiKey: string | null;
       model: string | null;
-      thinking?: ThinkingMode;
-      dimension?: number;
+      thinking: ThinkingMode;
     },
   ): void {
     if (this.config.provider !== 'openai-compatible') {
@@ -227,7 +338,7 @@ export class LlmRuntimeService implements LlmRuntimePort {
     roleConfig: {
       baseUrl: string | null;
       model: string | null;
-      thinking?: ThinkingMode;
+      thinking: ThinkingMode;
     },
   ): void {
     const isDeepSeek =
@@ -238,9 +349,7 @@ export class LlmRuntimeService implements LlmRuntimePort {
       roleConfig.thinking === 'enabled' || roleConfig.thinking === 'disabled';
 
     if (isDeepSeek) {
-      const mode: ThinkingMode = explicit
-        ? (roleConfig.thinking as ThinkingMode)
-        : 'disabled';
+      const mode: ThinkingMode = explicit ? roleConfig.thinking : 'disabled';
       fields.modelKwargs = {
         thinking: { type: mode === 'enabled' ? 'enabled' : 'disabled' },
       };
@@ -254,9 +363,7 @@ export class LlmRuntimeService implements LlmRuntimePort {
       if (!explicit && !legacyQwen3) {
         return;
       }
-      const mode: ThinkingMode = explicit
-        ? (roleConfig.thinking as ThinkingMode)
-        : 'disabled';
+      const mode: ThinkingMode = explicit ? roleConfig.thinking : 'disabled';
       fields.modelKwargs = { enable_thinking: mode === 'enabled' };
       this.logger.debug(
         `Applied Aliyun-compatible thinking mode: ${mode} (enable_thinking=${

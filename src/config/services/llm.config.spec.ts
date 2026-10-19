@@ -1,5 +1,10 @@
+import type { LlmRole } from '../../common/llm/llm-runtime.port.js';
 import { EnvKey } from '../env/env-keys.enum.js';
-import { llmConfig } from './llm.config.js';
+import {
+  RUNTIME_CONFIG_FIELDS,
+  RUNTIME_CONFIG_KEYS,
+} from '../runtime/runtime-config.schema.js';
+import { LLM_ROLE_KEYS, llmConfig, type LlmRoleKeys } from './llm.config.js';
 
 describe('llmConfig', () => {
   const saved: Record<string, string | undefined> = {};
@@ -301,5 +306,71 @@ describe('llmConfig', () => {
     const config = callFactory();
 
     expect(config.analysis.thinking).toBe('disabled');
+  });
+});
+
+/**
+ * The role→key map is the only place that knows which env keys back a role, and
+ * `LlmRuntimeService` reads it to resolve runtime overrides. These checks keep
+ * the map and the document whitelist from drifting apart: a key renamed on one
+ * side would otherwise stop being tunable without any test or type error.
+ */
+describe('LLM_ROLE_KEYS', () => {
+  const ROLES = Object.keys(LLM_ROLE_KEYS) as LlmRole[];
+  const TUNABLE_FIELDS = [
+    'baseUrl',
+    'model',
+    'thinking',
+    'temperature',
+    'maxRetries',
+    'timeout',
+  ] as const;
+  const runtimeKeys = new Set<string>(RUNTIME_CONFIG_KEYS);
+
+  it('points every tunable field at an AI runtime key', () => {
+    for (const role of ROLES) {
+      const keys: LlmRoleKeys = LLM_ROLE_KEYS[role];
+      for (const field of TUNABLE_FIELDS) {
+        const key = keys[field];
+        if (key == null) {
+          continue;
+        }
+        expect(runtimeKeys.has(key)).toBe(true);
+        expect(RUNTIME_CONFIG_FIELDS[key].family).toBe('ai');
+      }
+    }
+  });
+
+  it('keeps secrets and the embedding dimension out of the document', () => {
+    for (const role of ROLES) {
+      const keys: LlmRoleKeys = LLM_ROLE_KEYS[role];
+      expect(runtimeKeys.has(keys.apiKey)).toBe(false);
+      if (keys.dimension != null) {
+        expect(runtimeKeys.has(keys.dimension)).toBe(false);
+      }
+    }
+  });
+
+  it('wires every AI tuning key the document may carry', () => {
+    const wired = new Set<string>();
+    for (const role of ROLES) {
+      const keys: LlmRoleKeys = LLM_ROLE_KEYS[role];
+      for (const field of TUNABLE_FIELDS) {
+        const key = keys[field];
+        if (key != null) {
+          wired.add(key);
+        }
+      }
+    }
+
+    const uncovered = RUNTIME_CONFIG_KEYS.filter(
+      (key) =>
+        RUNTIME_CONFIG_FIELDS[key].family === 'ai' &&
+        !key.startsWith('PROMPT_') &&
+        key !== EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS &&
+        !wired.has(key),
+    );
+
+    expect(uncovered).toEqual([]);
   });
 });

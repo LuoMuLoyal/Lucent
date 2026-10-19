@@ -1,7 +1,31 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { LlmConfig } from '../config/services/llm.config.js';
 import { AI_MODEL_TIMEOUT_MS } from '../config/app-defaults.constants.js';
+import { EnvKey } from '../config/env/env-keys.enum.js';
+import type { RuntimeConfigValues } from '../config/runtime/runtime-config.schema.js';
+import type { RuntimeConfigPort } from '../config/runtime/runtime-config.types.js';
 import { LlmRuntimeService } from './llm-runtime.service.js';
+
+/** Snapshot stand-in: only the values each test declares are present. */
+function runtimeWith(values: Partial<RuntimeConfigValues>): RuntimeConfigPort {
+  const snapshot = {
+    values: values as RuntimeConfigValues,
+    version: 'test#1',
+    source: 'remote' as const,
+    revision: 'test',
+    seq: 1,
+  };
+  return {
+    getSnapshot: () => snapshot,
+    getVersion: () => snapshot.version,
+    applyDocument: () => ({ ok: true, version: snapshot.version, changed: [] }),
+    subscribe: () => () => undefined,
+  };
+}
+
+function chatFields(model: object): Record<string, unknown> {
+  return (model as { fields?: Record<string, unknown> }).fields ?? {};
+}
 
 describe('LlmRuntimeService', () => {
   const baseConfig: LlmConfig = {
@@ -467,6 +491,176 @@ describe('LlmRuntimeService', () => {
 
       expect(model).toBeDefined();
       expect(model).not.toBeNull();
+    });
+  });
+
+  // ── Runtime config overrides ───────────────────────────────────────────
+
+  describe('runtime config overrides', () => {
+    const multiRoleConfig: LlmConfig = {
+      ...baseConfig,
+      vision: {
+        apiKey: 'vision-key',
+        baseUrl: 'https://vision.test/v1',
+        model: 'vision-model',
+        thinking: 'auto',
+      },
+      language: {
+        apiKey: 'language-key',
+        baseUrl: 'https://language.test/v1',
+        model: 'language-model',
+        thinking: 'auto',
+      },
+      embedding: {
+        apiKey: 'embed-key',
+        baseUrl: 'https://embed.test/v1',
+        model: 'embed-model',
+        dimension: 768,
+      },
+    };
+
+    it('resolves the published model and endpoint for that role only', () => {
+      const service = new LlmRuntimeService(
+        multiRoleConfig,
+        runtimeWith({
+          [EnvKey.AI_VISION_MODEL]: 'vision-override',
+          [EnvKey.AI_VISION_BASE_URL]: 'https://override.test/v1',
+        }),
+      );
+
+      const vision = service.createChatModel('vision');
+
+      expect(vision.model).toBe('vision-override');
+      expect(vision.clientConfig.baseURL).toBe('https://override.test/v1');
+      expect(service.getModelName('vision')).toBe('vision-override');
+      expect(service.getModelName('language')).toBe('language-model');
+    });
+
+    it('lets the published sampling values win over call-site options', () => {
+      const service = new LlmRuntimeService(
+        multiRoleConfig,
+        runtimeWith({
+          [EnvKey.AI_ANALYSIS_TEMPERATURE]: 0.9,
+          [EnvKey.AI_ANALYSIS_TIMEOUT_MS]: 12_000,
+          [EnvKey.AI_ANALYSIS_MAX_RETRIES]: 4,
+        }),
+      );
+
+      const analysis = service.createChatModel('analysis', {
+        temperature: 0.2,
+        timeout: AI_MODEL_TIMEOUT_MS,
+        maxRetries: 0,
+      });
+
+      expect(analysis.temperature).toBe(0.9);
+      expect(analysis.timeout).toBe(12_000);
+      expect(chatFields(analysis)['maxRetries']).toBe(4);
+    });
+
+    it('keeps a role without a published value on its call-site options', () => {
+      const service = new LlmRuntimeService(
+        multiRoleConfig,
+        runtimeWith({
+          [EnvKey.AI_ANALYSIS_TEMPERATURE]: 0.9,
+        }),
+      );
+
+      const language = service.createChatModel('language', {
+        temperature: 0.2,
+        timeout: AI_MODEL_TIMEOUT_MS,
+      });
+
+      expect(language.temperature).toBe(0.2);
+      expect(language.timeout).toBe(AI_MODEL_TIMEOUT_MS);
+    });
+
+    it('leaves the provider default alone when neither source sets a value', () => {
+      const service = new LlmRuntimeService(multiRoleConfig, runtimeWith({}));
+
+      const model = service.createChatModel('analysis');
+
+      expect(model.temperature).toBeUndefined();
+      expect(model.timeout).toBeUndefined();
+    });
+
+    it('lets a published thinking mode win over the environment', () => {
+      const service = new LlmRuntimeService(
+        {
+          ...multiRoleConfig,
+          analysis: {
+            ...multiRoleConfig.analysis,
+            baseUrl: 'https://api.deepseek.com',
+            thinking: 'enabled',
+          },
+        },
+        runtimeWith({ [EnvKey.AI_ANALYSIS_THINKING]: 'disabled' }),
+      );
+
+      expect(service.createChatModel('analysis').modelKwargs).toEqual({
+        thinking: { type: 'disabled' },
+      });
+    });
+
+    it('treats a published model and endpoint as configuration', () => {
+      const service = new LlmRuntimeService(
+        {
+          ...multiRoleConfig,
+          analysis: {
+            apiKey: 'analysis-key',
+            baseUrl: null,
+            model: null,
+            thinking: 'auto',
+          },
+        },
+        runtimeWith({
+          [EnvKey.AI_ANALYSIS_MODEL]: 'published-model',
+          [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://published.test/v1',
+        }),
+      );
+
+      expect(service.hasRoleConfig('analysis')).toBe(true);
+    });
+
+    it('never treats a published value as a substitute for the api key', () => {
+      // Secrets are env-only: the document whitelist has no AI_*_API_KEY, so a
+      // role without one stays unconfigured no matter what the center says.
+      const service = new LlmRuntimeService(
+        {
+          ...multiRoleConfig,
+          analysis: {
+            apiKey: null,
+            baseUrl: null,
+            model: null,
+            thinking: 'auto',
+          },
+        },
+        runtimeWith({
+          [EnvKey.AI_ANALYSIS_MODEL]: 'published-model',
+          [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://published.test/v1',
+        }),
+      );
+
+      expect(service.hasRoleConfig('analysis')).toBe(false);
+    });
+
+    it('overrides the embedding model and endpoint but keeps the dimension', () => {
+      const service = new LlmRuntimeService(
+        multiRoleConfig,
+        runtimeWith({
+          [EnvKey.AI_EMBEDDING_MODEL]: 'embed-override',
+          [EnvKey.AI_EMBEDDING_BASE_URL]: 'https://embed-override.test/v1',
+        }),
+      );
+
+      const model = service.createEmbeddingModel();
+
+      const clientConfig = (
+        model as unknown as { clientConfig: { baseURL?: string } }
+      ).clientConfig;
+
+      expect(model?.model).toBe('embed-override');
+      expect(clientConfig.baseURL).toBe('https://embed-override.test/v1');
+      expect(service.embeddingDimension).toBe(768);
     });
   });
 });
