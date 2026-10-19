@@ -23,8 +23,12 @@ type LogLevel =
  * - Development: defaults to 'debug'
  *
  * An explicit LOG_LEVEL always wins.
+ *
+ * Exported because the runtime-config ops family derives its baseline from the
+ * same resolution: the remote snapshot starts from "what the process would have
+ * logged anyway", not from a second copy of this map.
  */
-function resolveLevel(nodeEnv: string, logLevel: string): LogLevel {
+export function resolveLevel(nodeEnv: string, logLevel: string): LogLevel {
   if (logLevel) {
     return logLevel as LogLevel;
   }
