@@ -10,13 +10,30 @@
  * previous document. The document is a complete declaration of the overrides
  * in force, so a key that disappears from it returns to its baseline value —
  * that is the rollback path for a single field (plan §15.2).
+ *
+ * When a document source is injected (`RNACOS_ENABLED=true`), bootstrap loads
+ * the document once and then subscribes to pushes. Every source failure — no
+ * document, unreachable center, bad credentials — is a warning, never a
+ * startup failure: the environment baseline always exists, so the process is
+ * never dependent on the configuration center being up (plan §16).
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  type OnApplicationBootstrap,
+  type OnModuleDestroy,
+} from '@nestjs/common';
 import {
   buildRuntimeConfigBaseline,
   BASELINE_RUNTIME_CONFIG_VERSION,
 } from './runtime-config.baseline.js';
+import {
+  RUNTIME_CONFIG_SOURCE,
+  type RuntimeConfigDocumentSource,
+} from './runtime-config-source.js';
 import {
   freezeRuntimeConfigValues,
   parseRuntimeConfigDocument,
@@ -39,14 +56,23 @@ function sameValue(left: unknown, right: unknown): boolean {
 }
 
 @Injectable()
-export class RuntimeConfigService implements RuntimeConfigPort {
+export class RuntimeConfigService
+  implements RuntimeConfigPort, OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly logger = new Logger(RuntimeConfigService.name);
   private readonly listeners = new Set<RuntimeConfigListener>();
   private readonly baseline: RuntimeConfigValues;
+  private readonly source: RuntimeConfigDocumentSource | null;
   private snapshot: RuntimeConfigSnapshot;
   private seq = 0;
+  private stopWatching: (() => void) | null = null;
 
-  constructor() {
+  constructor(
+    @Optional()
+    @Inject(RUNTIME_CONFIG_SOURCE)
+    source?: RuntimeConfigDocumentSource | null,
+  ) {
+    this.source = source ?? null;
     this.baseline = buildRuntimeConfigBaseline();
     this.snapshot = {
       values: freezeRuntimeConfigValues(this.baseline),
@@ -55,6 +81,48 @@ export class RuntimeConfigService implements RuntimeConfigPort {
       revision: null,
       seq: 0,
     };
+  }
+
+  /**
+   * Reads the published document once, then subscribes to pushes. Runs only
+   * when a source is configured — with `RNACOS_ENABLED` unset there is no
+   * source, so this is a no-op and no native module is loaded.
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    if (this.source === null) {
+      return;
+    }
+
+    const loaded = await this.source.load();
+    if (!loaded.ok) {
+      this.logger.warn(
+        `Runtime config center load failed (${loaded.reason}): ${loaded.message}`,
+      );
+    } else if (loaded.document === null) {
+      this.logger.warn(
+        'Runtime config center has no document at the configured dataId; using the environment baseline',
+      );
+    } else {
+      this.applyDocumentFrom(loaded.document.content, loaded.document.origin);
+    }
+
+    const watching = await this.source.watch((document) => {
+      this.applyDocumentFrom(document.content, document.origin);
+    });
+    if (!watching.ok) {
+      this.logger.warn(
+        `Runtime config center subscription failed (${watching.reason}): ${watching.message}`,
+      );
+      return;
+    }
+    this.stopWatching = watching.stop;
+  }
+
+  /** Stops dispatching pushes and releases the source's local state. */
+  async onModuleDestroy(): Promise<void> {
+    this.stopWatching?.();
+    this.stopWatching = null;
+    await this.source?.close();
   }
 
   getSnapshot(): RuntimeConfigSnapshot {

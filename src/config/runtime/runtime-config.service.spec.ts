@@ -1,4 +1,10 @@
 import { EnvKey } from '../env/env-keys.enum.js';
+import type {
+  RuntimeConfigDocument,
+  RuntimeConfigDocumentSource,
+  RuntimeConfigLoadOutcome,
+  RuntimeConfigWatchOutcome,
+} from './runtime-config-source.js';
 import { RuntimeConfigService } from './runtime-config.service.js';
 import type { RuntimeConfigSnapshot } from './runtime-config.types.js';
 
@@ -248,6 +254,167 @@ describe('RuntimeConfigService', () => {
 
       expect(result.ok).toBe(true);
       expect(seen).toEqual(['test.1#1']);
+    });
+  });
+
+  describe('document source lifecycle', () => {
+    interface FakeSource {
+      readonly source: RuntimeConfigDocumentSource;
+      readonly pushed: (document: RuntimeConfigDocument) => void;
+      readonly closed: () => boolean;
+      readonly stopped: () => boolean;
+      readonly watchCalls: () => number;
+    }
+
+    function fakeSource(
+      load: RuntimeConfigLoadOutcome,
+      subscription?: RuntimeConfigWatchOutcome,
+    ): FakeSource {
+      const watching: RuntimeConfigWatchOutcome = subscription ?? {
+        ok: true,
+        stop: () => undefined,
+      };
+      let onDocument: ((document: RuntimeConfigDocument) => void) | null = null;
+      let closed = false;
+      let stopped = false;
+      let watchCalls = 0;
+
+      return {
+        source: {
+          load: () => Promise.resolve(load),
+          watch: (listener) => {
+            watchCalls += 1;
+            if (!watching.ok) {
+              return Promise.resolve(watching);
+            }
+            onDocument = listener;
+            return Promise.resolve({
+              ok: true,
+              stop: () => {
+                stopped = true;
+              },
+            });
+          },
+          close: () => {
+            closed = true;
+            return Promise.resolve();
+          },
+        },
+        pushed: (document) => {
+          if (stopped) {
+            return;
+          }
+          onDocument?.(document);
+        },
+        closed: () => closed,
+        stopped: () => stopped,
+        watchCalls: () => watchCalls,
+      };
+    }
+
+    it('applies the published document and then every push', async () => {
+      restoreEnv = withEnv({});
+      const fake = fakeSource({
+        ok: true,
+        document: {
+          content: `${HEADER}THROTTLE_LIMIT=120\n`,
+          origin: 'remote',
+        },
+      });
+      const service = new RuntimeConfigService(fake.source);
+
+      await service.onApplicationBootstrap();
+      expect(service.getSnapshot().version).toBe('test.1#1');
+      expect(service.getSnapshot().source).toBe('remote');
+
+      fake.pushed({
+        content:
+          'RNACOS_SCHEMA_VERSION=3\nRNACOS_REVISION=test.2\nTHROTTLE_LIMIT=130\n',
+        origin: 'remote',
+      });
+      expect(service.getSnapshot().version).toBe('test.2#2');
+      expect(service.getSnapshot().values[EnvKey.THROTTLE_LIMIT]).toBe(130);
+    });
+
+    it('stays on the baseline when the center has no document or fails', async () => {
+      restoreEnv = withEnv({ [EnvKey.THROTTLE_LIMIT]: '250' });
+
+      const empty = new RuntimeConfigService(
+        fakeSource({ ok: true, document: null }).source,
+      );
+      await expect(empty.onApplicationBootstrap()).resolves.toBeUndefined();
+      expect(empty.getSnapshot().version).toBe('env#0');
+      expect(empty.getSnapshot().values[EnvKey.THROTTLE_LIMIT]).toBe(250);
+
+      const broken = new RuntimeConfigService(
+        fakeSource({
+          ok: false,
+          reason: 'unreachable',
+          message: 'connection refused',
+        }).source,
+      );
+      await expect(broken.onApplicationBootstrap()).resolves.toBeUndefined();
+      expect(broken.getSnapshot().source).toBe('env');
+
+      const unwatchable = new RuntimeConfigService(
+        fakeSource(
+          { ok: true, document: null },
+          { ok: false, reason: 'unreachable', message: 'stream closed' },
+        ).source,
+      );
+      await expect(
+        unwatchable.onApplicationBootstrap(),
+      ).resolves.toBeUndefined();
+      expect(unwatchable.getSnapshot().version).toBe('env#0');
+    });
+
+    it('stops dispatching and closes the source on destroy', async () => {
+      restoreEnv = withEnv({});
+      const fake = fakeSource({
+        ok: true,
+        document: {
+          content: `${HEADER}THROTTLE_LIMIT=120\n`,
+          origin: 'remote',
+        },
+      });
+      const service = new RuntimeConfigService(fake.source);
+      await service.onApplicationBootstrap();
+
+      await service.onModuleDestroy();
+      fake.pushed({
+        content:
+          'RNACOS_SCHEMA_VERSION=3\nRNACOS_REVISION=test.9\nTHROTTLE_LIMIT=999\n',
+        origin: 'remote',
+      });
+
+      expect(fake.stopped()).toBe(true);
+      expect(fake.closed()).toBe(true);
+      expect(service.getSnapshot().version).toBe('test.1#1');
+    });
+
+    it('touches nothing without a source', async () => {
+      restoreEnv = withEnv({});
+      const service = new RuntimeConfigService(null);
+
+      await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
+      await expect(service.onModuleDestroy()).resolves.toBeUndefined();
+      expect(service.getSnapshot().source).toBe('env');
+    });
+
+    it('marks a cached document as local-cache', async () => {
+      restoreEnv = withEnv({});
+      const fake = fakeSource({
+        ok: true,
+        document: {
+          content: `${HEADER}THROTTLE_LIMIT=120\n`,
+          origin: 'local-cache',
+        },
+      });
+      const service = new RuntimeConfigService(fake.source);
+
+      await service.onApplicationBootstrap();
+
+      expect(service.getSnapshot().source).toBe('local-cache');
     });
   });
 });
