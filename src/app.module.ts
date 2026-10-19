@@ -20,6 +20,7 @@ import { getEnvFilePaths } from './config/env/env-file-paths.js';
 import { isRunningFromSource } from './config/env/runtime-signal.js';
 import { EnvKey } from './config/env/env-keys.enum.js';
 import { validatedEnvSchema } from './config/env/environment.validation.js';
+import { RuntimeConfigModule } from './config/runtime/runtime-config.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AdminMetricsModule } from './modules/admin/admin-metrics.module.js';
@@ -121,6 +122,7 @@ const isTestRuntime =
     I18nModule,
     LoggerModule,
     MetricsModule,
+    RuntimeConfigModule,
     SseModule,
     BullmqModule,
     CronJobsModule,
