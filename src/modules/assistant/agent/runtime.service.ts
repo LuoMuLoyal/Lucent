@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -43,12 +44,15 @@ import { LightragClientService } from '../tools/retrieval/lightrag-client.servic
 import { SemanticaClientService } from '../tools/ontology/semantica-client.service.js';
 import { toDomainFailure } from '../services/domain-failure.js';
 import {
+  assistantSystemPromptVariables,
   buildAssistantSystemPrompt,
   buildReadSystemPrompt,
   buildWriteSystemPrompt,
   buildKnowledgeSystemPrompt,
   buildSimpleChatSystemPrompt,
 } from '../prompts/system.prompt.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import { resolveRuntimePrompt } from '../../../config/runtime/prompt-registry.js';
 import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state.js';
 import type { AssistantValidationFlags } from './runtime/state.js';
 import type { AssistantPendingReview } from './runtime/state.js';
@@ -108,7 +112,25 @@ export class AssistantRuntimeService {
      * 的行为保持一致。
      */
     private readonly intentClassifier?: AssistantIntentClassifierService,
+    @Optional()
+    private readonly runtimeConfigService?: RuntimeConfigService,
   ) {}
+
+  /**
+   * System prompt for the main agent: the published override when the operator
+   * released one, else the code prompt. Resolved per invocation so a pushed
+   * document applies to the next turn without rebuilding the graph.
+   */
+  private resolveAssistantSystemPrompt(
+    toolNames: readonly AssistantToolName[],
+  ): string {
+    return resolveRuntimePrompt(
+      this.runtimeConfigService,
+      'assistantSystem',
+      () => buildAssistantSystemPrompt(toolNames),
+      assistantSystemPromptVariables(toolNames),
+    );
+  }
 
   hasChatModel(): boolean {
     return this.llmRuntimeService.hasRoleConfig('chat');
@@ -185,7 +207,8 @@ export class AssistantRuntimeService {
         await onChunk?.({ content });
       },
       executeTools,
-      buildSystemPrompt: buildAssistantSystemPrompt,
+      buildSystemPrompt: (toolNames) =>
+        this.resolveAssistantSystemPrompt(toolNames),
       buildReadSystemPrompt,
       buildWriteSystemPrompt,
       buildKnowledgeSystemPrompt,
@@ -413,7 +436,8 @@ export class AssistantRuntimeService {
       // The resume/read path never reaches the agent↔tools loop; tools are
       // only executed by the original (now suspended) invocation.
       executeTools: () => Promise.resolve([]),
-      buildSystemPrompt: buildAssistantSystemPrompt,
+      buildSystemPrompt: (toolNames) =>
+        this.resolveAssistantSystemPrompt(toolNames),
       buildReadSystemPrompt,
       buildWriteSystemPrompt,
       buildKnowledgeSystemPrompt,

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { AIMessageChunk } from '@langchain/core/messages';
 import {
   AIMessage,
@@ -13,7 +13,12 @@ import {
   isRetryableLlmError,
 } from '../../../common/llm/retry/llm-retry.helper.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
-import { buildAssistantSystemPrompt } from '../prompts/system.prompt.js';
+import {
+  assistantSystemPromptVariables,
+  buildAssistantSystemPrompt,
+} from '../prompts/system.prompt.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import { resolveRuntimePrompt } from '../../../config/runtime/prompt-registry.js';
 import type { AssistantToolName } from '../tools/shared/tool-types.js';
 import type {
   AssistantConversationMessage,
@@ -43,6 +48,8 @@ export class AssistantStreamService {
     private readonly llmRuntimeService: LlmRuntimeService,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
+    @Optional()
+    private readonly runtimeConfigService?: RuntimeConfigService,
   ) {}
 
   /**
@@ -170,7 +177,14 @@ export class AssistantStreamService {
     _toolResults: readonly AssistantToolExecutionResult[],
   ) {
     return [
-      new SystemMessage(buildAssistantSystemPrompt(allowedTools)),
+      new SystemMessage(
+        resolveRuntimePrompt(
+          this.runtimeConfigService,
+          'assistantSystem',
+          () => buildAssistantSystemPrompt(allowedTools),
+          assistantSystemPromptVariables(allowedTools),
+        ),
+      ),
       ...messages.map((message) =>
         message.role === 'user'
           ? new HumanMessage(message.content)

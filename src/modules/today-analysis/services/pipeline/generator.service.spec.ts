@@ -3,7 +3,33 @@ import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import type { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import { buildTodayAnalysisSystemPrompt } from '../../prompts/analysis.prompt.js';
 import { TodayAnalysisGeneratorService } from './generator.service.js';
+
+const HEADER = ['RNACOS_SCHEMA_VERSION=3', 'RNACOS_REVISION=test.1', ''].join(
+  '\n',
+);
+
+function systemPrompt(service: object): string {
+  return (
+    service as unknown as { buildSystemPrompt(): string }
+  ).buildSystemPrompt();
+}
+
+function buildLlmRuntime() {
+  const invoke = vi.fn().mockResolvedValue({});
+  return {
+    invoke,
+    llmRuntimeService: {
+      hasRoleConfig: vi.fn(),
+      createChatModel: vi.fn().mockReturnValue({
+        withStructuredOutput: vi.fn().mockReturnValue({ invoke }),
+      }),
+      getModelName: vi.fn().mockReturnValue('test-model'),
+    } as unknown as LlmRuntimeService,
+  };
+}
 
 function buildMetricsService() {
   return {
@@ -89,6 +115,31 @@ describe('TodayAnalysisGeneratorService', () => {
       expect.any(HumanMessage),
     ]);
     expect(result.summary).toBe('ok');
+  });
+
+  it('uses the published prompt override, and the code prompt otherwise', () => {
+    const { llmRuntimeService } = buildLlmRuntime();
+    const plain = new TodayAnalysisGeneratorService(
+      llmRuntimeService,
+      buildMetricsService(),
+      new LlmCircuitBreakerService(),
+    );
+
+    expect(systemPrompt(plain)).toBe(buildTodayAnalysisSystemPrompt());
+
+    const runtimeConfigService = new RuntimeConfigService();
+    runtimeConfigService.applyDocument(
+      `${HEADER}PROMPT_TODAY_ANALYSIS=Published system prompt.
+`,
+    );
+    const overridden = new TodayAnalysisGeneratorService(
+      llmRuntimeService,
+      buildMetricsService(),
+      new LlmCircuitBreakerService(),
+      runtimeConfigService,
+    );
+
+    expect(systemPrompt(overridden)).toBe('Published system prompt.');
   });
 
   it('records error metric and rethrows when LLM invocation fails', async () => {

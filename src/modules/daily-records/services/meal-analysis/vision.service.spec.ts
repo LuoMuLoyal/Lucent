@@ -2,7 +2,12 @@ import { Logger } from '@nestjs/common';
 import type { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import { MEAL_ANALYSIS_VISION_TIMEOUT_MS } from '../../constants/meal-analysis.constants.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import { MealAnalysisVisionService } from './vision.service.js';
+
+const HEADER = ['RNACOS_SCHEMA_VERSION=3', 'RNACOS_REVISION=test.1', ''].join(
+  '\n',
+);
 
 const modelOutput = {
   calorieRange: { min: 520, max: 780 },
@@ -24,6 +29,7 @@ function buildService(options?: {
   modelName?: string | null;
   safe?: boolean;
   configured?: boolean;
+  runtimeConfigService?: RuntimeConfigService;
 }) {
   const invoke = options?.invoke ?? vi.fn().mockResolvedValue(modelOutput);
   const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
@@ -43,6 +49,7 @@ function buildService(options?: {
     service: new MealAnalysisVisionService(
       llmRuntimeService,
       safetyPolicyService,
+      options?.runtimeConfigService,
     ),
     invoke,
     withStructuredOutput,
@@ -90,6 +97,23 @@ describe('MealAnalysisVisionService', () => {
     expect(JSON.stringify(messages[1]?.content)).toContain(
       'https://cdn.example.com/m.jpg',
     );
+  });
+
+  it('fills a published prompt override with the request language', async () => {
+    const runtimeConfigService = new RuntimeConfigService();
+    runtimeConfigService.applyDocument(
+      `${HEADER}PROMPT_MEAL_ANALYSIS_SYSTEM=Answer in {{language}} only.
+`,
+    );
+    const { service, invoke } = buildService({ runtimeConfigService });
+
+    await service.analyze({
+      imageUrl: 'https://cdn.example.com/m.jpg',
+      locale: 'en',
+    });
+
+    const messages = invoke.mock.calls[0]?.[0] as Array<{ content: unknown }>;
+    expect(String(messages[0]?.content)).toBe('Answer in English only.');
   });
 
   it('returns the draft with the machine facets converted to a record', async () => {

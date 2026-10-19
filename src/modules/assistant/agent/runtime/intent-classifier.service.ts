@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import { resolveRuntimePrompt } from '../../../../config/runtime/prompt-registry.js';
 import {
   buildIntentRouterSystemPrompt,
   buildIntentRouterUserPrompt,
@@ -70,6 +72,8 @@ export class AssistantIntentClassifierService extends BaseLlmGeneratorService<
     llmRuntimeService: LlmRuntimeService,
     private readonly metrics: MetricsService,
     circuitBreaker: LlmCircuitBreakerService,
+    @Optional()
+    private readonly runtimeConfigService?: RuntimeConfigService,
   ) {
     super(llmRuntimeService, metrics, circuitBreaker);
   }
@@ -147,7 +151,12 @@ export class AssistantIntentClassifierService extends BaseLlmGeneratorService<
   }
 
   protected buildSystemPrompt(): string {
-    return buildIntentRouterSystemPrompt();
+    return resolveRuntimePrompt(
+      this.runtimeConfigService,
+      'intentRouter',
+      () => buildIntentRouterSystemPrompt(),
+      {},
+    );
   }
 
   protected buildUserPrompt(

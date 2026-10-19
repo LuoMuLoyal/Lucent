@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import {
@@ -13,6 +13,8 @@ import {
 } from '../../../../common/result/index.js';
 import { normalizeNullableText } from '../../../../common/index.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import { resolveRuntimePrompt } from '../../../../config/runtime/prompt-registry.js';
 import { MEAL_ANALYSIS_VISION_TIMEOUT_MS } from '../../constants/meal-analysis.constants.js';
 import {
   mealAnalysisModelOutputSchema,
@@ -53,6 +55,8 @@ export class MealAnalysisVisionService {
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
     private readonly safetyPolicyService: LlmSafetyPolicyService,
+    @Optional()
+    private readonly runtimeConfigService?: RuntimeConfigService,
   ) {}
 
   isConfigured(): boolean {
@@ -86,12 +90,24 @@ export class MealAnalysisVisionService {
     );
 
     return structured.invoke([
-      new SystemMessage(buildMealAnalysisSystemPrompt(languageLabel)),
+      new SystemMessage(
+        resolveRuntimePrompt(
+          this.runtimeConfigService,
+          'mealAnalysisSystem',
+          () => buildMealAnalysisSystemPrompt(languageLabel),
+          { language: languageLabel },
+        ),
+      ),
       new HumanMessage({
         content: [
           {
             type: 'text',
-            text: buildMealAnalysisUserPrompt(languageLabel),
+            text: resolveRuntimePrompt(
+              this.runtimeConfigService,
+              'mealAnalysisUser',
+              () => buildMealAnalysisUserPrompt(languageLabel),
+              { language: languageLabel },
+            ),
           },
           {
             type: 'image_url',

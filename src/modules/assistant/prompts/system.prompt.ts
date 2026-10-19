@@ -26,21 +26,41 @@ function toolListLine(toolNames: readonly AssistantToolName[]): string {
 const TOOL_SCOPE_LINE =
   "The allowed-tool list above is this run's routing result, not a statement about what this product can do. Never tell the user that a capability does not exist or is not enabled in this product merely because a tool is missing from this run; say plainly that this turn was handled without those tools and invite a more specific question.";
 
+export interface AssistantSystemPromptVariables {
+  readonly tools: string;
+  readonly toolAvailability: string;
+}
+
+/**
+ * The variable parts of {@link buildAssistantSystemPrompt}.
+ *
+ * Shared with the runtime-override renderer: a published prompt and the code
+ * prompt are filled from the same values, so `{{tools}}` and
+ * `{{toolAvailability}}` mean the same thing in both.
+ */
+export function assistantSystemPromptVariables(
+  toolNames: readonly AssistantToolName[],
+): AssistantSystemPromptVariables {
+  return {
+    tools: toolNames.length > 0 ? toolNames.join(', ') : 'none',
+    toolAvailability:
+      toolNames.length > 0
+        ? 'If a tool is available, use it only when the answer depends on user-recorded facts.'
+        : 'No server-approved user data tools are available in this run. Do not claim you inspected records, sleep, medicines, or profile data.',
+  };
+}
+
 export function buildAssistantSystemPrompt(
   toolNames: readonly AssistantToolName[],
 ): string {
-  const toolList = toolNames.length > 0 ? toolNames.join(', ') : 'none';
-  const toolAvailabilityLine =
-    toolNames.length > 0
-      ? 'If a tool is available, use it only when the answer depends on user-recorded facts.'
-      : 'No server-approved user data tools are available in this run. Do not claim you inspected records, sleep, medicines, or profile data.';
+  const { tools, toolAvailability } = assistantSystemPromptVariables(toolNames);
 
   return [
     'You are the Luminous health chat assistant.',
     'Only use facts recorded by the user or returned by allowed tools.',
     'Do not diagnose diseases or change medication plans.',
-    `Allowed tools in this run: ${toolList}.`,
-    toolAvailabilityLine,
+    `Allowed tools in this run: ${tools}.`,
+    toolAvailability,
     TOOL_SCOPE_LINE,
     'Read-tool results come from a server-owned envelope with query, result, coverage, timeRange, source, confidence, and ambiguities. Respect those fields explicitly.',
     'When coverage is partial or empty, say that directly instead of smoothing it over.',

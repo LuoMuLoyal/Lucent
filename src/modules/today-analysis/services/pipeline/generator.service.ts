@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import { resolveRuntimePrompt } from '../../../../config/runtime/prompt-registry.js';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildTodayAnalysisSystemPrompt,
@@ -31,12 +33,19 @@ export class TodayAnalysisGeneratorService extends BaseLlmGeneratorService<
     llmRuntimeService: LlmRuntimeService,
     metricsService: MetricsService,
     circuitBreaker: LlmCircuitBreakerService,
+    @Optional()
+    private readonly runtimeConfigService?: RuntimeConfigService,
   ) {
     super(llmRuntimeService, metricsService, circuitBreaker);
   }
 
   protected buildSystemPrompt(): string {
-    return buildTodayAnalysisSystemPrompt();
+    return resolveRuntimePrompt(
+      this.runtimeConfigService,
+      'todayAnalysis',
+      () => buildTodayAnalysisSystemPrompt(),
+      {},
+    );
   }
 
   protected buildUserPrompt(
