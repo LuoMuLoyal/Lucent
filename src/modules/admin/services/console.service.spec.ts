@@ -1,6 +1,8 @@
 import { AdminRole, UserStatus } from '#generated/prisma/client.js';
+import type { ConfigService } from '@nestjs/config';
 import type { PrismaService } from '../../../prisma/index.js';
 import type { AuditLogService } from '../../audit-log/index.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
 import { AdminConsoleService } from './console.service.js';
 
 function buildPrisma() {
@@ -23,15 +25,39 @@ function buildPrisma() {
 describe('AdminConsoleService', () => {
   let prisma: ReturnType<typeof buildPrisma>;
   let auditLogService: { listEntries: ReturnType<typeof vi.fn> };
+  let configValues: Record<string, string>;
   let service: AdminConsoleService;
 
   beforeEach(() => {
     prisma = buildPrisma();
     auditLogService = { listEntries: vi.fn() };
+    configValues = {};
+    const configService = {
+      get: (key: string) => configValues[key],
+    };
     service = new AdminConsoleService(
       prisma as unknown as PrismaService,
       auditLogService as unknown as AuditLogService,
+      configService as unknown as ConfigService,
     );
+  });
+
+  it('reports the sidecar enablement flags without endpoints or keys', () => {
+    configValues = {
+      [EnvKey.LIGHTRAG_ENABLED]: 'true',
+      [EnvKey.SEMANTICA_ENABLED]: 'false',
+    };
+
+    const status = service.getDependencies();
+
+    expect(status.lightrag.enabled).toBe(true);
+    expect(status.semantica.enabled).toBe(false);
+    expect(typeof status.generatedAt).toBe('string');
+    expect(Object.keys(status)).toEqual([
+      'lightrag',
+      'semantica',
+      'generatedAt',
+    ]);
   });
 
   it('returns aggregate metrics without user-level details', async () => {

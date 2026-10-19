@@ -44,6 +44,7 @@ import {
 import {
   adminMetricsOverviewResponseSchema,
 } from '../dto/admin-metrics.dto.js';
+import { adminDependenciesResponseSchema } from '../dto/admin-dependencies.dto.js';
 import {
   adminUserListQuerySchema,
   adminUserListResponseSchema,
@@ -137,6 +138,21 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Aggregate admin dashboard metrics.' })
   async getMetricsOverview() {
     return this.adminConsole.getOverview();
+  }
+
+  @Get('dependencies')
+  @UseGuards(AdminPermissionGuard)
+  @RequirePermission('ops:read')
+  @SerializeOptions({ schema: adminDependenciesResponseSchema })
+  @ApiOperation({
+    summary: 'Get enablement of the optional assistant sidecars',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sidecar enablement flags (flags only, no endpoints or keys).',
+  })
+  getDependencies() {
+    return this.adminConsole.getDependencies();
   }
 
   @Get('users')
@@ -586,6 +602,13 @@ registerResponseSchema({
   componentName: 'AdminMetricsOverview',
   schema: adminMetricsOverviewResponseSchema,
   description: 'Aggregate admin dashboard metrics.',
+});
+registerResponseSchema({
+  path: '/api/v1/admin/dependencies',
+  method: 'get',
+  componentName: 'AdminDependencies',
+  schema: adminDependenciesResponseSchema,
+  description: 'Sidecar enablement flags.',
 });
 registerResponseSchema({
   path: '/api/v1/admin/users',

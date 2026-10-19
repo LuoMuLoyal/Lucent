@@ -1088,6 +1088,31 @@
         "tags": ["Admin"]
       }
     },
+    "/api/v1/admin/dependencies": {
+      "get": {
+        "operationId": "getAdminDependencies",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Sidecar enablement flags (flags only, no endpoints or keys).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDependencies"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get enablement of the optional assistant sidecars",
+        "tags": ["Admin"]
+      }
+    },
     "/api/v1/admin/users": {
       "get": {
         "operationId": "listAdminUsers",
@@ -9115,6 +9140,32 @@
         "required": ["generatedAt", "users", "productEventsLast24Hours"],
         "additionalProperties": false
       },
+      "AdminDependencies": {
+        "type": "object",
+        "properties": {
+          "lightrag": {
+            "$ref": "#/components/schemas/AdminDependenciesLightrag"
+          },
+          "semantica": {
+            "$ref": "#/components/schemas/AdminDependenciesSemantica"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Response generation time (ISO 8601)."
+          }
+        },
+        "required": ["lightrag", "semantica", "generatedAt"],
+        "additionalProperties": false,
+        "example": {
+          "lightrag": {
+            "enabled": true
+          },
+          "semantica": {
+            "enabled": false
+          },
+          "generatedAt": "2026-01-16T08:30:00.000Z"
+        }
+      },
       "AdminUserListResponse": {
         "type": "object",
         "properties": {
@@ -15369,6 +15420,30 @@
         },
         "required": ["total", "active", "suspended", "newLast30Days"],
         "additionalProperties": false
+      },
+      "AdminDependenciesLightrag": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether LIGHTRAG_ENABLED is on for this process."
+          }
+        },
+        "required": ["enabled"],
+        "additionalProperties": false,
+        "description": "LightRAG retrieval sidecar."
+      },
+      "AdminDependenciesSemantica": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether SEMANTICA_ENABLED is on for this process."
+          }
+        },
+        "required": ["enabled"],
+        "additionalProperties": false,
+        "description": "Semantica ontology sidecar."
       },
       "AdminUserListResponseItems": {
         "type": "object",

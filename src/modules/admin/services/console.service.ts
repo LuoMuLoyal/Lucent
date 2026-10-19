@@ -1,8 +1,10 @@
 import { Prisma, UserStatus } from '#generated/prisma/client.js';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../prisma/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import type { AuditLogListQuery } from '../../audit-log/index.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
 import type { AdminAuditLogListQueryDto } from '../dto/admin-audit-logs.dto.js';
 import type { AdminUserListQueryDto } from '../dto/admin-users.dto.js';
 
@@ -16,6 +18,7 @@ export class AdminConsoleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
+    private readonly configService: ConfigService,
   ) {}
 
   async getOverview() {
@@ -50,6 +53,25 @@ export class AdminConsoleService {
       generatedAt: now.toISOString(),
       users: { total: active + suspended, active, suspended, newLast30Days },
       productEventsLast24Hours,
+    };
+  }
+
+  /**
+   * Enablement of the optional assistant sidecars, read from the same env
+   * flags their clients use (`LIGHTRAG_ENABLED` / `SEMANTICA_ENABLED`). Flags
+   * only — deliberately no base URLs or keys.
+   */
+  getDependencies() {
+    return {
+      lightrag: {
+        enabled:
+          this.configService.get<string>(EnvKey.LIGHTRAG_ENABLED) === 'true',
+      },
+      semantica: {
+        enabled:
+          this.configService.get<string>(EnvKey.SEMANTICA_ENABLED) === 'true',
+      },
+      generatedAt: new Date().toISOString(),
     };
   }
 
