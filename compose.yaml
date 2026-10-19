@@ -129,6 +129,15 @@ services:
       # 须在 .env 里覆盖成监控机的公网地址(http://<监控机IP>:9428/insert/jsonline)。
       # 默认值保留容器名,供单机全栈部署使用。
       VICTORIALOGS_URL: ${VICTORIALOGS_URL:-http://victorialogs:9428/insert/jsonline}
+      # 配置中心 SDK 的客户端日志:默认 INFO 明显偏吵(实测 2 分钟 56KB),压到 ERROR。
+      # 这不属于 app 的 .env 白名单,只是 SDK 自己读的环境变量,由这里注入。
+      NACOS_CLIENT_LOGGER_LEVEL: ERROR
+    volumes:
+      # 冷启动策略依赖这两处持久化:rnacos 不可达时 getConfig 会交回磁盘上的
+      # 上一份文档(~HOME/nacos/config/<namespace>);SDK 日志(~HOME/logs/nacos)
+      # 不落卷则每次重建都丢,排查时无从对照。
+      - nacos-client-cache:/home/lucent/nacos
+      - nacos-client-logs:/home/lucent/logs/nacos
     expose:
       - '3000'
     ports:
@@ -217,6 +226,58 @@ services:
         max-size: '50m'
         max-file: '5'
 
+  # ── rnacos(运行时配置中心)──────────────────────────────────────
+  # 环境变量仍是唯一基线,rnacos 只是叠在它之上的可热更新层:这里发布的文档只能是
+  # 非密钥热键(白名单见 docs/reference/runtime-config.example.txt),密钥与连接串
+  # 一律留在 .env。**不给 app 加 depends_on** —— 中心不是启动依赖,它不在线时 app
+  # 照常起来并沿用 env 基线(代价:启动会等 SDK 的阻塞构造,见
+  # docs/reference/environment-variables.md 的启动耗时标定)。
+  #
+  # 三个端口都必须发布:8848 HTTP(app 的 RNACOS_SERVER_ADDR 配这个)、9848 gRPC
+  # (SDK 从 8848 登录后自行连 +1000)、10848 控制台(发布文档的唯一入口)。
+  # ⚠️ 安全组只放行受信来源;控制台口令不允许留默认值(缺变量即拒绝启动)。
+  #
+  # 控制台不预建 namespace:首次启用前要在控制台建好与 app 的 RNACOS_NAMESPACE
+  # 同名的空间并发布文档,否则 app 只会读到「配置不存在」而一直用 env 基线。
+  rnacos:
+    image: ${RNACOS_IMAGE:?RNACOS_IMAGE is required — pin a version, e.g. qingpan/rnacos:v0.8.7}
+    restart: unless-stopped
+    environment:
+      RNACOS_INIT_ADMIN_USERNAME: ${RNACOS_CONSOLE_USER:-rnacos}
+      RNACOS_INIT_ADMIN_PASSWORD: ${RNACOS_CONSOLE_PASSWORD:?RNACOS_CONSOLE_PASSWORD is required}
+      RNACOS_GMT_OFFSET_HOURS: '8'
+      # 与 app 的 RNACOS_USERNAME / RNACOS_PASSWORD 同源。开了它之后
+      # /nacos/v1/console/health/readiness 需要 token,探针不能依赖该端点。
+      RNACOS_ENABLE_OPEN_API_AUTH: 'true'
+    volumes:
+      - rnacos-data:/io
+    ports:
+      # 可达范围由安全组按来源 IP 收口(见文件头);控制台端口尤其不能对全网开放。
+      - '8848:8848'
+      - '9848:9848'
+      - '10848:10848'
+    healthcheck:
+      # 镜像是 Debian 基底但无 curl/wget,用 bash 的 /dev/tcp 做纯 TCP 探活
+      # (与 app 侧适配器的探活同一思路,且不受 OpenAPI 鉴权开关影响)。
+      test:
+        [
+          'CMD-SHELL',
+          "timeout 2 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8848' 2>/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # ⚠️ rnacos 的访问日志会把登录请求整条 URL 打进 stdout ——
+    # `POST /nacos/v1/auth/login?username=…&password=…`,即控制台口令会出现在容器
+    # 日志里(`RNACOS_LOG_LEVEL` 无效,镜像内无日志配置文件)。因此轮转留得比其它
+    # 服务紧:口令泄露面已登记在 docs/TODO.md,采集侧过滤是待办的缓解方向。
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
   # ── node-exporter(唯一留在主站的监控组件) ────────────────────
   # VictoriaMetrics / Grafana / VictoriaLogs 在监控机那台(见
   # compose.monitoring.yaml):Grafana 查询 VM 是密集链路,若两者分处两机就会让
@@ -256,3 +317,7 @@ volumes:
   # compose.monitoring.yaml(监控机),不再属于本文件的卷。
   # neo4j-data / neo4j-logs 已随服务搬到 compose.graph.yaml(图库机)。
   lightrag-data:
+  rnacos-data:
+  # 配置中心 SDK 在 app 容器里的磁盘缓存与日志(冷启动策略依赖前者)。
+  nacos-client-cache:
+  nacos-client-logs:

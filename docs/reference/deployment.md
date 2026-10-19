@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-16
+updated: 2026-10-19
 ---
 
 # Lucent Deployment
@@ -31,6 +31,7 @@ updated: 2026-10-16
 │   postgres            :5432              │
 │   redis               :6379              │
 │   lightrag            :9621              │
+│   rnacos              :8848/9848/10848   │
 │   node-exporter       :9100              │
 └───┬───────────────────────────────┬──────┘
     │ 公网(跨云唯一通路)           │
@@ -62,11 +63,11 @@ updated: 2026-10-16
 
 ## 三台机器
 
-| 机器           | 架构    | 工作目录                 | compose                   | 起的服务                                                    |
-| -------------- | ------- | ------------------------ | ------------------------- | ----------------------------------------------------------- |
-| 主站(华为云)   | aarch64 | `/opt/lucent`            | `compose.yaml`            | `postgres` `redis` `app` `lightrag` `node-exporter`         |
-| 图库机(腾讯云) | amd64   | `/opt/lucent-neo4j`      | `compose.graph.yaml`      | `neo4j` `semantica`                                         |
-| 监控机(阿里云) | amd64   | `/opt/lucent-monitoring` | `compose.monitoring.yaml` | `victoriametrics` `grafana` `victorialogs` `victoriatraces` |
+| 机器           | 架构    | 工作目录                 | compose                   | 起的服务                                                     |
+| -------------- | ------- | ------------------------ | ------------------------- | ------------------------------------------------------------ |
+| 主站(华为云)   | aarch64 | `/opt/lucent`            | `compose.yaml`            | `postgres` `redis` `app` `lightrag` `rnacos` `node-exporter` |
+| 图库机(腾讯云) | amd64   | `/opt/lucent-neo4j`      | `compose.graph.yaml`      | `neo4j` `semantica`                                          |
+| 监控机(阿里云) | amd64   | `/opt/lucent-monitoring` | `compose.monitoring.yaml` | `victoriametrics` `grafana` `victorialogs` `victoriatraces`  |
 
 **一台机器 = 一份 compose,该文件里的服务就是这台机器的全部服务**,所以
 `docker compose up -d`(不带服务名)即可。`semantica` 不再需要
@@ -90,20 +91,21 @@ VM 与 Grafana 同机会让同一份数据在公网上往返两次并穿过窄�
 
 ## 组件与端口
 
-| 机器   | 服务              | 镜像                                       | 端口           | 说明                                                                                                                                |
-| ------ | ----------------- | ------------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 主站   | `app`             | `<registry>/lucent:sha-<sha8>`             | `3000`         | 公网入口;健康检查 `/api/v1/health`;multi-arch(tag 不含架构)                                                                         |
-| 主站   | `app`(管理面)     | 同 `lucent` 镜像                           | `3000`(同 app) | `/admin` 控制台与 `/admin/queues` 队列面板(bull-board)同源;**不新开端口**;管理员 JWT + `AdminUser` 角色鉴权,面板变更写 `audit_logs` |
-| 主站   | `postgres`        | `<registry>/lucent-db:sha-<sha8>`          | `5432`         | 卷 `postgres-data`;镜像自带 `vector` + `zhparser`;**`lucent` 与 `lightrag` 两库各需 `CREATE EXTENSION vector`**                     |
-| 主站   | `redis`           | `redis:8-alpine`                           | `6379`         | requirepass + appendonly;卷 `redis-data`                                                                                            |
-| 主站   | `lightrag`        | `ghcr.io/hkuds/lightrag:latest`            | `9621`         | 中文散文检索 sidecar;独立 `deploy/lightrag/.env`;卷 `lightrag-data`                                                                 |
-| 主站   | `node-exporter`   | `prom/node-exporter:v1.9.1`                | `9100`         | 宿主机指标;**只放行监控机出口 IP**                                                                                                  |
-| 图库机 | `neo4j`           | `neo4j:5.26.31-community`                  | `7474`/`7687`  | 固定 heap 512m + pagecache 256m                                                                                                     |
-| 图库机 | `semantica`       | `<registry>/lucent-semantica:latest-amd64` | `8099`         | 英文侧 OAG;bearer 鉴权(`API_TOKEN` / `SEMANTICA_API_KEY`)                                                                           |
-| 监控机 | `victoriametrics` | `victoria-metrics:v1.151.0`                | `8428`         | 抓主站 `3000`/`9100`                                                                                                                |
-| 监控机 | `grafana`         | `grafana:12.1.0`                           | `3001`         | provisioning/dashboards 来自 `monitoring/grafana/`                                                                                  |
-| 监控机 | `victorialogs`    | `victoria-logs:v1.51.1`                    | `9428`         | 接收 Winston JSON 日志                                                                                                              |
-| 监控机 | `victoriatraces`  | `victoria-traces:v0.12.0`                  | `10428`        | OTLP trace 入口                                                                                                                     |
+| 机器   | 服务              | 镜像                                       | 端口                  | 说明                                                                                                                                |
+| ------ | ----------------- | ------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 主站   | `app`             | `<registry>/lucent:sha-<sha8>`             | `3000`                | 公网入口;健康检查 `/api/v1/health`;multi-arch(tag 不含架构)                                                                         |
+| 主站   | `app`(管理面)     | 同 `lucent` 镜像                           | `3000`(同 app)        | `/admin` 控制台与 `/admin/queues` 队列面板(bull-board)同源;**不新开端口**;管理员 JWT + `AdminUser` 角色鉴权,面板变更写 `audit_logs` |
+| 主站   | `postgres`        | `<registry>/lucent-db:sha-<sha8>`          | `5432`                | 卷 `postgres-data`;镜像自带 `vector` + `zhparser`;**`lucent` 与 `lightrag` 两库各需 `CREATE EXTENSION vector`**                     |
+| 主站   | `redis`           | `redis:8-alpine`                           | `6379`                | requirepass + appendonly;卷 `redis-data`                                                                                            |
+| 主站   | `lightrag`        | `ghcr.io/hkuds/lightrag:latest`            | `9621`                | 中文散文检索 sidecar;独立 `deploy/lightrag/.env`;卷 `lightrag-data`                                                                 |
+| 主站   | `rnacos`          | `qingpan/rnacos:v0.8.7`(钉版本)            | `8848`/`9848`/`10848` | 运行时配置中心;卷 `rnacos-data`;文档只收非密钥热键;控制台口令必须显式给,端口只放行受信来源                                          |
+| 主站   | `node-exporter`   | `prom/node-exporter:v1.9.1`                | `9100`                | 宿主机指标;**只放行监控机出口 IP**                                                                                                  |
+| 图库机 | `neo4j`           | `neo4j:5.26.31-community`                  | `7474`/`7687`         | 固定 heap 512m + pagecache 256m                                                                                                     |
+| 图库机 | `semantica`       | `<registry>/lucent-semantica:latest-amd64` | `8099`                | 英文侧 OAG;bearer 鉴权(`API_TOKEN` / `SEMANTICA_API_KEY`)                                                                           |
+| 监控机 | `victoriametrics` | `victoria-metrics:v1.151.0`                | `8428`                | 抓主站 `3000`/`9100`                                                                                                                |
+| 监控机 | `grafana`         | `grafana:12.1.0`                           | `3001`                | provisioning/dashboards 来自 `monitoring/grafana/`                                                                                  |
+| 监控机 | `victorialogs`    | `victoria-logs:v1.51.1`                    | `9428`                | 接收 Winston JSON 日志                                                                                                              |
+| 监控机 | `victoriatraces`  | `victoria-traces:v0.12.0`                  | `10428`               | OTLP trace 入口                                                                                                                     |
 
 所有服务 `restart: unless-stopped`,主机重启后自动恢复。
 
@@ -168,6 +170,32 @@ ssh -N -L 8428:127.0.0.1:8428 -L 9428:127.0.0.1:9428 \
 app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/reason`)。
 `SEMANTICA_ENABLED=false` 时工具返回"未配置"信封,主流程不受影响。
 
+### 运行时配置中心(rnacos)
+
+**环境变量仍是唯一基线**,rnacos 只承载「不重启进程就能改」的非密钥热键(白名单与逐键
+说明见 `docs/reference/runtime-config.example.txt`)。密钥、连接串、provider
+装配开关一律留在 `.env`。因此**不给 app 加 `depends_on`**:中心不在线时 app 照常启动并
+沿用 env 基线(或客户端磁盘缓存里的上一份文档,快照会标 `local-cache`)。
+
+- **端口**:`8848` HTTP(app 的 `RNACOS_SERVER_ADDR` 配这个)、`9848` gRPC(SDK 从 8848
+  登录后自行连 `+1000`)、`10848` 控制台。三者都要发布,安全组只放行受信来源 ——
+  控制台是能改运行时行为的入口,按运维 IP 收口。
+- **首次启用**:控制台建好与 `RNACOS_NAMESPACE` 同名的空间,再发布文档。rnacos 不会
+  自动建 namespace,缺了它 app 只会读到「配置不存在」而一直用 env 基线。
+- **权限**:开 `RNACOS_ENABLE_OPEN_API_AUTH=true`,控制台口令 = app 的
+  `RNACOS_USERNAME` / `RNACOS_PASSWORD`(由 `.env` 的 `RNACOS_CONSOLE_PASSWORD` 提供,
+  缺失即拒绝启动)。口令没有加密存储这一层,谁能登录谁就能改线上参数。
+- **回退**:发布新版本(改 `RNACOS_REVISION`)或删掉某个键(回落 env 基线)。
+  **不要用控制台的「删除配置」当回退手段** —— 删除后该 dataId 不再推送,要重启中心
+  才恢复推送。
+- **持久化**:`rnacos-data`(服务端数据)与 app 侧的 `nacos-client-cache` /
+  `nacos-client-logs` 都要挂卷。前者丢了等于配置没了;后者丢了等于冷启动策略失效、
+  排查时无日志可看。
+- **启动耗时**:中心不可达时,SDK 的阻塞构造会让启动多等数十秒(实测 19–38s,
+  `RNACOS_REQUEST_TIMEOUT_MS` 管不到构造)。`RNACOS_ENABLED=false` 则完全不走这条路。
+- ⚠️ **访问日志含口令**:rnacos 把登录请求整条 URL(含 `password=`)打进 stdout,
+  容器日志会带上控制台口令。缓解方向与状态见 [TODO.md](../TODO.md)。
+
 ## 配置与密钥
 
 **配置是服务器上的 `.env`**,不入库。每台机器只读**自己那一份**:compose 的
@@ -179,12 +207,12 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 | `.env.graph.example`      | `compose.graph.yaml`(图库机)      | `.env`       |
 | `.env.monitoring.example` | `compose.monitoring.yaml`(监控机) | `.env`       |
 
-| 机器   | 配置文件                           | 关键键                                                                                                                                                                                                        |
-| ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT` |
-| 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                          |
-| 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE` `NEO4J_IMAGE`                                                                                                                                                  |
-| 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD` `ALERT_EMAIL_TO` `MAIL_*` `GF_SMTP_ENABLED`                                                                                   |
+| 机器   | 配置文件                           | 关键键                                                                                                                                                                                                                                                                                                                                                                 |
+| ------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `RNACOS_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT`;启用配置中心另加 `RNACOS_ENABLED` `RNACOS_SERVER_ADDR` `RNACOS_NAMESPACE` `RNACOS_CONSOLE_PASSWORD`(=`RNACOS_USERNAME`/`RNACOS_PASSWORD`) |
+| 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                                                                                                                                                                                   |
+| 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE` `NEO4J_IMAGE`                                                                                                                                                                                                                                                                                                           |
+| 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD` `ALERT_EMAIL_TO` `MAIL_*` `GF_SMTP_ENABLED`                                                                                                                                                                                                                                            |
 
 - `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
   `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接,不需手填;两者必须与 `.env` 里的
