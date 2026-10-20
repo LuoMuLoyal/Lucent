@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { DailyRecordKind } from '#generated/prisma/client.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { toInputJsonValue } from '../../../../common/index.js';
 import { now } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
@@ -29,10 +32,32 @@ import {
 export class MealAnalysisSweeperService {
   private readonly logger = new Logger(MealAnalysisSweeperService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {}
+
+  /**
+   * Stale window and batch size per run, read at call time so a published
+   * document changes the next reap instead of the next process.
+   */
+  private readReapSettings(): { staleAfterMs: number; batchSize: number } {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    return {
+      staleAfterMs:
+        values?.[EnvKey.MEAL_ANALYSIS_STALE_AFTER_MS] ??
+        MEAL_ANALYSIS_STALE_AFTER_MS,
+      batchSize:
+        values?.[EnvKey.MEAL_ANALYSIS_REAP_BATCH_SIZE] ??
+        MEAL_ANALYSIS_REAP_BATCH_SIZE,
+    };
+  }
 
   async reapStaleAnalyses(): Promise<number> {
-    const staleBefore = new Date(Date.now() - MEAL_ANALYSIS_STALE_AFTER_MS);
+    const { staleAfterMs, batchSize } = this.readReapSettings();
+    const staleBefore = new Date(Date.now() - staleAfterMs);
     const candidates = await this.prisma.userDailyRecord.findMany({
       where: {
         kind: DailyRecordKind.meal,
@@ -41,7 +66,7 @@ export class MealAnalysisSweeperService {
         updatedAt: { lt: staleBefore },
       },
       select: { id: true, userId: true, payload: true },
-      take: MEAL_ANALYSIS_REAP_BATCH_SIZE,
+      take: batchSize,
     });
 
     let reaped = 0;

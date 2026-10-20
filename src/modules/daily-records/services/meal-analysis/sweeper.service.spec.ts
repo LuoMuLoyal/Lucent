@@ -1,4 +1,6 @@
 import { Logger } from '@nestjs/common';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 import { MEAL_ANALYSIS_STALE_AFTER_MS } from '../../constants/meal-analysis.constants.js';
 import { MealAnalysisSweeperService } from './sweeper.service.js';
@@ -36,6 +38,45 @@ function buildPrisma(candidates: unknown[], updateCount = 1) {
 describe('MealAnalysisSweeperService', () => {
   beforeEach(() => {
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+  });
+
+  it('uses the stale window and batch size published in the snapshot', async () => {
+    const { prisma, userDailyRecord } = buildPrisma([]);
+    const runtime: RuntimeConfigPort = {
+      getSnapshot: () => ({
+        values: {
+          [EnvKey.MEAL_ANALYSIS_STALE_AFTER_MS]: 60_000,
+          [EnvKey.MEAL_ANALYSIS_REAP_BATCH_SIZE]: 7,
+        } as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
+    const service = new MealAnalysisSweeperService(prisma, runtime);
+    const startedAt = Date.now();
+
+    await service.reapStaleAnalyses();
+
+    const call = userDailyRecord.findMany.mock.calls[0]?.[0] as {
+      take: number;
+      where: { updatedAt: { lt: Date } };
+    };
+    expect(call.take).toBe(7);
+    expect(call.where.updatedAt.lt.getTime()).toBeGreaterThanOrEqual(
+      startedAt - 60_000,
+    );
+    expect(call.where.updatedAt.lt.getTime()).toBeLessThanOrEqual(
+      Date.now() - 60_000,
+    );
+    const fallback = new Date(Date.now() - MEAL_ANALYSIS_STALE_AFTER_MS);
+    expect(call.where.updatedAt.lt.getTime()).toBeGreaterThan(
+      fallback.getTime(),
+    );
   });
 
   it('marks long-running analyzing records as job_lost failures', async () => {
