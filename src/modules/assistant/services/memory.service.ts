@@ -10,10 +10,13 @@
  * All LLM/parsing failures degrade silently: extraction never throws into
  * the archive flow, and buildMemoryBlock returns '' when no memory exists.
  */
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/app-defaults.constants.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import { LlmRuntimeService } from '../../../llm-runtime/index.js';
 import type {
   DomainFailure,
@@ -78,7 +81,23 @@ export class AssistantMemoryService {
     private readonly memoryRepository: AssistantMemoryRepositoryPort,
     private readonly llmRuntimeService: LlmRuntimeService,
     private readonly conversationRepository: AssistantConversationRepositoryPort,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
+
+  /**
+   * Guard timeout for one extraction call. Read per call: the guard exists
+   * because some providers ignore the client timeout, and the operator may need
+   * to widen it for the same reason they widen the model timeout.
+   */
+  private readExtractionTimeoutMs(): number {
+    return (
+      this.runtimeConfig?.getSnapshot().values[
+        EnvKey.ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS
+      ] ?? MEMORY_EXTRACTION_TIMEOUT_MS
+    );
+  }
 
   /**
    * Extracts durable memory points from a conversation and persists them.
@@ -217,6 +236,7 @@ export class AssistantMemoryService {
       CHAT_MODEL_OPTIONS,
     );
 
+    const timeoutMs = this.readExtractionTimeoutMs();
     let rawContent: unknown;
     try {
       const response = await Promise.race([
@@ -227,16 +247,16 @@ export class AssistantMemoryService {
         new Promise<typeof MEMORY_EXTRACTION_TIMEOUT>((resolve) => {
           const timer = setTimeout(() => {
             resolve(MEMORY_EXTRACTION_TIMEOUT);
-          }, MEMORY_EXTRACTION_TIMEOUT_MS);
+          }, timeoutMs);
           timer.unref();
         }),
       ]);
       if (response === MEMORY_EXTRACTION_TIMEOUT) {
         this.logger.warn(
-          `Memory extraction timed out after ${String(MEMORY_EXTRACTION_TIMEOUT_MS)}ms.`,
+          `Memory extraction timed out after ${String(timeoutMs)}ms.`,
         );
         trace.getActiveSpan()?.addEvent('assistant.memory_extraction.timeout', {
-          timeout_ms: MEMORY_EXTRACTION_TIMEOUT_MS,
+          timeout_ms: timeoutMs,
         });
         return [];
       }

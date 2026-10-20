@@ -1,4 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { VectorStoreFactory } from '../vector/vector-store.factory.js';
 import type {
   AssistantReadResultEnvelope,
@@ -28,7 +31,22 @@ export class AssistantToolDrugbankSearchService {
   constructor(
     private readonly vectorStoreFactory: VectorStoreFactory,
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
+
+  /**
+   * Passage ceiling for this call, read from the snapshot so a published limit
+   * narrows (or widens) the next search instead of the next process.
+   */
+  private readMaxLimit(): number {
+    return (
+      this.runtimeConfig?.getSnapshot().values[
+        EnvKey.ASSISTANT_VECTOR_MAX_LIMIT
+      ] ?? ASSISTANT_VECTOR_MAX_LIMIT
+    );
+  }
 
   async search(
     context: AssistantToolExecutionContext,
@@ -77,7 +95,7 @@ export class AssistantToolDrugbankSearchService {
       );
     }
 
-    const limit = normalizeLimit(payload.limit);
+    const limit = normalizeLimit(payload.limit, this.readMaxLimit());
     const queryHash = buildVectorQueryHash(query, {
       drugbankId: resolvedDrugbankId,
     });
@@ -226,10 +244,10 @@ export class AssistantToolDrugbankSearchService {
   }
 }
 
-function normalizeLimit(limit: number | undefined): number {
+function normalizeLimit(limit: number | undefined, maxLimit: number): number {
   if (limit == null || Number.isNaN(limit))
     return ASSISTANT_VECTOR_DEFAULT_LIMIT;
-  return Math.max(1, Math.min(ASSISTANT_VECTOR_MAX_LIMIT, Math.trunc(limit)));
+  return Math.max(1, Math.min(maxLimit, Math.trunc(limit)));
 }
 
 /** 取模型参数里的非空字符串；空串/空白/非字符串都当"没给"。 */

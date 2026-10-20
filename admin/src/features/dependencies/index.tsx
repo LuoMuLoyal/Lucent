@@ -88,7 +88,8 @@ export function Dependencies() {
 
       {status && (
         <p className='text-xs text-muted-foreground'>
-          Read from the process environment at request time ·{' '}
+          Read from the runtime config snapshot at request time (environment
+          fallback) ·{' '}
           {new Date(status.generatedAt).toLocaleString()}
         </p>
       )}

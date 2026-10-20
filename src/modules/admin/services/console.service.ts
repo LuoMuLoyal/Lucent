@@ -1,6 +1,8 @@
 import { Prisma, UserStatus } from '#generated/prisma/client.js';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import { PrismaService } from '../../../prisma/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import type { AuditLogListQuery } from '../../audit-log/index.js';
@@ -19,6 +21,9 @@ export class AdminConsoleService {
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
     private readonly configService: ConfigService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
 
   async getOverview() {
@@ -57,18 +62,22 @@ export class AdminConsoleService {
   }
 
   /**
-   * Enablement of the optional assistant sidecars, read from the same env
-   * flags their clients use (`LIGHTRAG_ENABLED` / `SEMANTICA_ENABLED`). Flags
-   * only — deliberately no base URLs or keys.
+   * Enablement of the optional assistant sidecars, read from the same snapshot
+   * their clients use, with the environment as the fallback. Flags only —
+   * deliberately no base URLs or keys. Read per call so the console never
+   * reports a flag that a push has already changed.
    */
   getDependencies() {
+    const values = this.runtimeConfig?.getSnapshot().values;
     return {
       lightrag: {
         enabled:
+          values?.[EnvKey.LIGHTRAG_ENABLED] ??
           this.configService.get<string>(EnvKey.LIGHTRAG_ENABLED) === 'true',
       },
       semantica: {
         enabled:
+          values?.[EnvKey.SEMANTICA_ENABLED] ??
           this.configService.get<string>(EnvKey.SEMANTICA_ENABLED) === 'true',
       },
       generatedAt: new Date().toISOString(),

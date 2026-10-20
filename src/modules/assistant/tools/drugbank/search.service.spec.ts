@@ -1,5 +1,7 @@
 import { AssistantToolDrugbankEntityResolveService } from './entity-resolve.service.js';
 import { AssistantToolDrugbankSearchService } from './search.service.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import {
   decodeVectorCursor,
   encodeVectorCursor,
@@ -98,6 +100,47 @@ describe('AssistantToolDrugbankSearchService', () => {
 
     expect(result.result['passages']).toHaveLength(1);
     expect(result.source.tables).toContain('drugbank_drugs');
+  });
+
+  it('clamps the passage window to the limit published in the snapshot', async () => {
+    mockSimilaritySearchWithScore.mockResolvedValue([]);
+
+    const resolveService = new AssistantToolDrugbankEntityResolveService({
+      drugbankDrug: { findMany: vi.fn().mockResolvedValue([]) },
+    } as never);
+    const runtime: RuntimeConfigPort = {
+      getSnapshot: () => ({
+        values: { [EnvKey.ASSISTANT_VECTOR_MAX_LIMIT]: 1 } as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
+
+    const service = new AssistantToolDrugbankSearchService(
+      mockVectorStoreFactory as never,
+      resolveService,
+      runtime,
+    );
+    await service.search({
+      userId: 'user-1',
+      locale: 'en',
+      userMessage: '{"query":"mechanism of action","limit":4}',
+      toolArgs: { drugbankId: 'DB01050' },
+      enabledContextSources: [],
+      memoryEnabled: false,
+    });
+
+    // 一页 1 条 + 1 条探测是否还有下一页。
+    expect(mockSimilaritySearchWithScore).toHaveBeenCalledWith(
+      'mechanism of action',
+      2,
+      { drugbankId: 'DB01050' },
+    );
   });
 
   it('returns empty coverage when no resolved entity scope is supplied', async () => {

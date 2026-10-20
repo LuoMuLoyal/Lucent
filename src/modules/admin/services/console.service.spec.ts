@@ -3,6 +3,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { PrismaService } from '../../../prisma/index.js';
 import type { AuditLogService } from '../../audit-log/index.js';
 import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import { AdminConsoleService } from './console.service.js';
 
 function buildPrisma() {
@@ -26,12 +27,27 @@ describe('AdminConsoleService', () => {
   let prisma: ReturnType<typeof buildPrisma>;
   let auditLogService: { listEntries: ReturnType<typeof vi.fn> };
   let configValues: Record<string, string>;
+  /** Keys the (fake) published document declares; everything else falls back. */
+  let runtimeValues: Record<string, unknown>;
   let service: AdminConsoleService;
 
   beforeEach(() => {
     prisma = buildPrisma();
     auditLogService = { listEntries: vi.fn() };
     configValues = {};
+    runtimeValues = {};
+    const runtime: RuntimeConfigPort = {
+      getSnapshot: () => ({
+        values: runtimeValues as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
     const configService = {
       get: (key: string) => configValues[key],
     };
@@ -39,6 +55,7 @@ describe('AdminConsoleService', () => {
       prisma as unknown as PrismaService,
       auditLogService as unknown as AuditLogService,
       configService as unknown as ConfigService,
+      runtime,
     );
   });
 
@@ -58,6 +75,22 @@ describe('AdminConsoleService', () => {
       'semantica',
       'generatedAt',
     ]);
+  });
+
+  it('reports the flags published in the snapshot over the environment', () => {
+    configValues = {
+      [EnvKey.LIGHTRAG_ENABLED]: 'true',
+      [EnvKey.SEMANTICA_ENABLED]: 'true',
+    };
+    runtimeValues = {
+      [EnvKey.LIGHTRAG_ENABLED]: false,
+      [EnvKey.SEMANTICA_ENABLED]: false,
+    };
+
+    const status = service.getDependencies();
+
+    expect(status.lightrag.enabled).toBe(false);
+    expect(status.semantica.enabled).toBe(false);
   });
 
   it('returns aggregate metrics without user-level details', async () => {
