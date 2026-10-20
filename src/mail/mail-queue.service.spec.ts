@@ -3,6 +3,24 @@ import type { ConfigService } from '@nestjs/config';
 import { MailQueueService } from './mail-queue.service.js';
 import type { MailTransportService } from './mail-transport.service.js';
 import type { BullmqQueueFactory } from '../common/queue/queue.factory.js';
+import { EnvKey } from '../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../config/runtime/runtime-config.types.js';
+
+/** Snapshot stub: only the keys the test publishes, everything else falls back. */
+function runtimeWith(values: Record<string, unknown>): RuntimeConfigPort {
+  return {
+    getSnapshot: () => ({
+      values: values as never,
+      version: 'test#1',
+      source: 'remote',
+      revision: 'test',
+      seq: 1,
+    }),
+    getVersion: () => 'test#1',
+    applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+    subscribe: () => () => undefined,
+  };
+}
 
 function buildFactory(queueAvailable: boolean): BullmqQueueFactory {
   if (!queueAvailable) {
@@ -86,12 +104,70 @@ describe('MailQueueService', () => {
       html: '<p>Queued body</p>',
     });
 
-    expect(mockQueue.add).toHaveBeenCalledWith('send-mail', {
-      to: 'queue@example.com',
-      subject: 'Queued Subject',
-      html: '<p>Queued body</p>',
-    });
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      'send-mail',
+      {
+        to: 'queue@example.com',
+        subject: 'Queued Subject',
+        html: '<p>Queued body</p>',
+      },
+      {
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: { age: 3600, count: 500 },
+        removeOnFail: { age: 86400, count: 2000 },
+      },
+    );
     expect(transport.send).not.toHaveBeenCalled();
+  });
+
+  it('reads retry and retention from the snapshot when a job is enqueued', async () => {
+    const mockQueue = {
+      add: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+    const transport = {
+      send: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<MailTransportService>;
+
+    const service = new MailQueueService(
+      {
+        get: vi.fn().mockReturnValue(undefined),
+      } as unknown as ConfigService,
+      transport,
+      {
+        isAvailable: true,
+        createQueue: () => ({
+          queue: mockQueue,
+          worker: { on: vi.fn(), close: vi.fn() },
+        }),
+      } as unknown as BullmqQueueFactory,
+      runtimeWith({
+        [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]: 7,
+        [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]: 30_000,
+        [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]: 3_600,
+        [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]: 10,
+        [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]: 172_800,
+        [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]: 20,
+      }),
+    );
+
+    await service.enqueue({
+      to: 'snapshot@example.com',
+      subject: 'Snapshot',
+      html: '<p>Snapshot</p>',
+    });
+
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      'send-mail',
+      expect.objectContaining({ to: 'snapshot@example.com' }),
+      {
+        attempts: 7,
+        backoff: { type: 'exponential', delay: 30_000 },
+        removeOnComplete: { age: 3_600, count: 10 },
+        removeOnFail: { age: 172_800, count: 20 },
+      },
+    );
   });
 
   it('sends synchronously when queue.add fails (Redis configured but down)', async () => {
