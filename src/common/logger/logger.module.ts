@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
 import { createLoggerOptions } from './logger.config.js';
 import { LifecycleService } from './lifecycle.service.js';
+import { RuntimeLogLevelService } from './runtime-log-level.service.js';
 
 @Global()
 @Module({
@@ -34,7 +35,7 @@ import { LifecycleService } from './lifecycle.service.js';
       },
     }),
   ],
-  providers: [LifecycleService],
+  providers: [LifecycleService, RuntimeLogLevelService],
   exports: [WinstonModule],
 })
 export class LoggerModule {}
