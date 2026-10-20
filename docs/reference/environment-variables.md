@@ -386,6 +386,22 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
 - 验证码、登录会话、分享令牌的 TTL 不在这一族：它们由签发/校验逻辑自己持有，属于
   正确性而非调参项。
 
+认证、存储与应用元信息的运行时覆盖：
+
+- 认证家族的七个键（验证码 TTL/冷却/限流窗口与上限/码长、OAuth state TTL、JWT 两个
+  TTL）在**签发或校验的当次**读取快照：JWT 只影响新签发的令牌，已在客户端手里的
+  access/refresh token 保留自身 `exp`；验证码只影响新码，已发出的码保留原 TTL。
+  密钥（`JWT_*_SECRET`）不在白名单。
+- `VERIFICATION_CODE_LENGTH` 允许 4-8：请求侧 DTO 因此接受 4-8 位数字而非固定 6 位，
+  否则热改码长会让登录/改邮箱/重置密码的校验先拒绝用户刚收到的码。冷却时间若发布得比
+  码 TTL 长，服务端按码 TTL 夹紧。
+- 存储家族覆盖 bucket / region / `publicBaseUrl` / 签名有效期 / 上传上限；SecretId、
+  AccessKey、endpoint 仍只从 `.env` 读。改动只影响**此后签出**的 URL 与上传：已写入
+  的对象留在原 bucket，已签出的 URL 保留原有效期。S3 与 OSS 的 SDK 客户端在 bucket 或
+  region 变化时惰性重建。
+- 应用元信息四个键改为**逐请求**读取，`MIN_CLIENT_VERSION` / `DOWNLOAD_URL` 发布后
+  下一次调用即返回新值；发布空字符串视为未配置，回退 `.env`。
+
 `AI_PROVIDER` currently supports only `openai-compatible`.
 
 Each role is independent. If a role is configured, that role must provide all of
