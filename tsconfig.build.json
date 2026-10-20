@@ -7,6 +7,6 @@
     "dist",
     "deploy",
     "scripts",
-    "**/*spec.ts"
+    "**/*.spec.ts"
   ]
 }
