@@ -24,6 +24,7 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 - [reference/assistant-safety.md](reference/assistant-safety.md) — 跨模块 AI 医疗红线与安全策略
 - [reference/logging-conventions.md](reference/logging-conventions.md) — 结构化日志字段名约定（`error` / `key` / `userId` / `traceId` / `spanId` 等）
 - [explanation/architecture.md](explanation/architecture.md) — 跨模块心智模型与设计权衡(细节以 ADR 与代码为准)
+- [explanation/runtime-config-lifecycle.md](explanation/runtime-config-lifecycle.md) — 运行时配置的加载、校验、快照与回退语义
 - [howto/add-new-module.md](howto/add-new-module.md) — 新增 NestJS 模块
 - [howto/deploy.md](howto/deploy.md) — 部署操作步骤(三台机各自的首次接入 / 日常发布 / 改哪些值 / 安全组)
 - [howto/run-medicine-import.md](howto/run-medicine-import.md) — 药品数据导入
