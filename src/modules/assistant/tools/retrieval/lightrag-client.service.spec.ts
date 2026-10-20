@@ -1,5 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { LightragClientService } from './lightrag-client.service.js';
 
 describe('LightragClientService', () => {
@@ -10,7 +11,26 @@ describe('LightragClientService', () => {
     vi.restoreAllMocks();
   });
 
-  function buildService(overrides?: Record<string, unknown>) {
+  /** Snapshot stub: only the keys the test publishes, everything else falls back. */
+  function runtimeWith(values: Record<string, unknown>): RuntimeConfigPort {
+    return {
+      getSnapshot: () => ({
+        values: values as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
+  }
+
+  function buildService(
+    overrides?: Record<string, unknown>,
+    runtime?: RuntimeConfigPort,
+  ) {
     const values: Record<string, unknown> = {
       [EnvKey.LIGHTRAG_ENABLED]: 'true',
       [EnvKey.LIGHTRAG_BASE_URL]: 'http://lightrag:9621',
@@ -22,7 +42,10 @@ describe('LightragClientService', () => {
     const configService = {
       get: vi.fn((key: string) => values[key]),
     };
-    return new LightragClientService(configService as unknown as ConfigService);
+    return new LightragClientService(
+      configService as unknown as ConfigService,
+      runtime,
+    );
   }
 
   it('gives graph modes a larger timeout budget than naive', () => {
@@ -35,6 +58,65 @@ describe('LightragClientService', () => {
     expect(service.resolveTimeoutMs('global')).toBe(60_000);
     expect(service.resolveTimeoutMs('hybrid')).toBe(60_000);
     expect(service.resolveTimeoutMs('mix')).toBe(60_000);
+  });
+
+  it('lets a published document disable retrieval even when the environment enables it', async () => {
+    const service = buildService(
+      undefined,
+      runtimeWith({ [EnvKey.LIGHTRAG_ENABLED]: false }),
+    );
+
+    expect(service.isEnabled()).toBe(false);
+    await expect(
+      service.query({ workspace: 'leaflet', query: '阿司匹林禁忌', limit: 4 }),
+    ).resolves.toEqual({
+      ok: false,
+      failure: {
+        kind: 'disabled',
+        reason: 'LightRAG retrieval is not configured.',
+        status: null,
+      },
+    });
+  });
+
+  it('sends new requests to the base URL published in the snapshot', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ response: '', references: [] }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await buildService(
+      undefined,
+      runtimeWith({ [EnvKey.LIGHTRAG_BASE_URL]: 'http://lightrag-alt:9621/' }),
+    ).query({ workspace: 'leaflet', query: '阿司匹林禁忌', limit: 4 });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe('http://lightrag-alt:9621/query');
+  });
+
+  it('applies a published timeout to the request and its failure reason', async () => {
+    const timeoutError = new Error('The operation was aborted due to timeout');
+    timeoutError.name = 'TimeoutError';
+    globalThis.fetch = vi
+      .fn()
+      .mockRejectedValue(timeoutError) as unknown as typeof fetch;
+
+    const service = buildService(
+      undefined,
+      runtimeWith({ [EnvKey.LIGHTRAG_TIMEOUT_MS]: 1_234 }),
+    );
+
+    expect(service.resolveTimeoutMs('naive')).toBe(1_234);
+    await expect(
+      service.query({ workspace: 'leaflet', query: '阿司匹林禁忌', limit: 4 }),
+    ).resolves.toEqual({
+      ok: false,
+      failure: {
+        kind: 'timeout',
+        reason: 'LightRAG retrieval timed out after 1234ms.',
+        status: null,
+      },
+    });
   });
 
   function jsonResponse(body: unknown, status = 200): Response {

@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
 import { LightragClientService } from './lightrag-client.service.js';
 import { AssistantToolKnowledgeRetrievalService } from './knowledge.service.js';
@@ -14,7 +15,26 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
     vi.restoreAllMocks();
   });
 
-  function buildService(envOverrides?: Record<string, unknown>) {
+  /** Snapshot stub: only the keys the test publishes, everything else falls back. */
+  function runtimeWith(values: Record<string, unknown>): RuntimeConfigPort {
+    return {
+      getSnapshot: () => ({
+        values: values as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
+  }
+
+  function buildService(
+    envOverrides?: Record<string, unknown>,
+    runtime?: RuntimeConfigPort,
+  ) {
     const values: Record<string, unknown> = {
       [EnvKey.LIGHTRAG_ENABLED]: 'true',
       [EnvKey.LIGHTRAG_BASE_URL]: 'http://lightrag:9621',
@@ -35,11 +55,13 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
     };
     const client = new LightragClientService(
       configService as unknown as ConfigService,
+      runtime,
     );
     return new AssistantToolKnowledgeRetrievalService(
       client,
       configService as unknown as ConfigService,
       i18n as unknown as I18nService,
+      runtime,
     );
   }
 
@@ -77,6 +99,62 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
       ],
     });
   }
+
+  it('clamps the requested limit to the value published in the snapshot', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(leafletQueryResponse());
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await buildService(
+      undefined,
+      runtimeWith({ [EnvKey.LIGHTRAG_MAX_LIMIT]: 2 }),
+    ).searchCnMedicineKnowledge(
+      buildContext({ query: '阿司匹林的禁忌', source: 'leaflet', limit: 6 }),
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body['chunk_top_k']).toBe(2);
+  });
+
+  it('maps sources to the workspaces published in the snapshot', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(leafletQueryResponse());
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await buildService(
+      undefined,
+      runtimeWith({ [EnvKey.LIGHTRAG_WORKSPACE_QA]: 'qa-shadow' }),
+    ).searchCnMedicineKnowledge(
+      buildContext({ query: '高血压的预防', source: 'qa' }),
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.headers).toMatchObject({ 'LIGHTRAG-WORKSPACE': 'qa-shadow' });
+  });
+
+  it('validates graph modes against the graph coverage published in the snapshot', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(leafletQueryResponse());
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    // 环境里 leaflet 的图是建好的，但发布的文档把已建图来源改成了 qa。
+    const service = buildService(
+      undefined,
+      runtimeWith({ [EnvKey.LIGHTRAG_GRAPH_SOURCES]: ['qa'] }),
+    );
+
+    const leaflet = await service.searchCnMedicineKnowledge(
+      buildContext({
+        query: '阿司匹林的禁忌',
+        source: 'leaflet',
+        mode: 'local',
+      }),
+    );
+    expect(leaflet.coverage.reason).toContain('requires a knowledge graph');
+
+    await service.searchCnMedicineKnowledge(
+      buildContext({ query: '高血压的预防', source: 'qa', mode: 'local' }),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 
   it('returns leaflet chunks with provenance and citable verifiability', async () => {
     const fetchMock = vi.fn().mockResolvedValue(leafletQueryResponse());

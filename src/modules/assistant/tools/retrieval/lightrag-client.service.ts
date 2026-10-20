@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type {
   LightragCallFailure,
   LightragChunk,
@@ -30,6 +32,17 @@ import {
 
 /** 错误 body 只截前 300 字符进日志：日志要的是线索，不是整段 HTML。 */
 const MAX_ERROR_BODY_LOG_CHARS = 300;
+
+/**
+ * Resolved per call from the runtime snapshot, so an operator can flip the
+ * sidecar off, move it, or widen a budget without a restart.
+ */
+interface LightragSettings {
+  readonly enabled: boolean;
+  readonly baseUrl: string;
+  readonly timeoutMs: number;
+  readonly graphTimeoutMs: number;
+}
 
 /** 说明书 doc id 段数：`leaflet:<leafletId>:<sourceField>:<chunkIndex>`。 */
 const DOC_ID_LEAFLET_MIN_SEGMENTS = 4;
@@ -66,41 +79,66 @@ const WORKSPACE_HEADER_NAME = 'LIGHTRAG-WORKSPACE';
 export class LightragClientService {
   private readonly logger = new Logger(LightragClientService.name);
 
-  private readonly enabled: boolean;
-  private readonly baseUrl: string;
+  /**
+   * Secret, read from the environment only: an API key is not a tunable, so it
+   * never enters the snapshot (plan §2, "secrets never leave `.env`").
+   */
   private readonly apiKey: string | null;
-  private readonly timeoutMs: number;
-  private readonly graphTimeoutMs: number;
+  /** Logged once instead of once per call when the flag is on but the key is not. */
+  private warnedMissingKey = false;
 
-  constructor(private readonly configService: ConfigService) {
-    this.enabled =
-      this.configService.get<string>(EnvKey.LIGHTRAG_ENABLED) === 'true';
-    this.baseUrl = (
-      this.configService.get<string>(EnvKey.LIGHTRAG_BASE_URL) ??
-      LIGHTRAG_DEFAULT_BASE_URL
-    ).replace(/\/+$/, '');
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {
     const apiKey =
       this.configService.get<string>(EnvKey.LIGHTRAG_API_KEY)?.trim() ?? '';
     this.apiKey = apiKey.length > 0 ? apiKey : null;
-    this.timeoutMs =
-      this.configService.get<number>(EnvKey.LIGHTRAG_TIMEOUT_MS) ??
-      LIGHTRAG_DEFAULT_TIMEOUT_MS;
-    this.graphTimeoutMs =
-      this.configService.get<number>(EnvKey.LIGHTRAG_GRAPH_TIMEOUT_MS) ??
-      LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS;
+  }
 
-    if (this.enabled && this.apiKey == null) {
-      // 启动期 zod 交叉校验已拦过这一条；这里兜住"运行中被改了配置"的窄情形，
-      // 且不抛异常——模块构造期抛错会让整个 assistant 模块起不来。
-      this.logger.warn(
-        `${EnvKey.LIGHTRAG_ENABLED} is true but ${EnvKey.LIGHTRAG_API_KEY} is empty; retrieval calls will fail as disabled.`,
-      );
-    }
+  /**
+   * Current sidecar settings. Read per call, never cached in a field: a value
+   * copied at construction would be immune to the push that is supposed to
+   * change it. Falls back to the environment when the runtime layer is not
+   * injected (unit tests constructing this service directly).
+   */
+  private readSettings(): LightragSettings {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    return {
+      enabled:
+        values?.[EnvKey.LIGHTRAG_ENABLED] ??
+        this.configService.get<string>(EnvKey.LIGHTRAG_ENABLED) === 'true',
+      baseUrl: (
+        values?.[EnvKey.LIGHTRAG_BASE_URL] ??
+        this.configService.get<string>(EnvKey.LIGHTRAG_BASE_URL) ??
+        LIGHTRAG_DEFAULT_BASE_URL
+      ).replace(/\/+$/, ''),
+      timeoutMs:
+        values?.[EnvKey.LIGHTRAG_TIMEOUT_MS] ??
+        this.configService.get<number>(EnvKey.LIGHTRAG_TIMEOUT_MS) ??
+        LIGHTRAG_DEFAULT_TIMEOUT_MS,
+      graphTimeoutMs:
+        values?.[EnvKey.LIGHTRAG_GRAPH_TIMEOUT_MS] ??
+        this.configService.get<number>(EnvKey.LIGHTRAG_GRAPH_TIMEOUT_MS) ??
+        LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS,
+    };
   }
 
   /** sidecar 是否已启用且具备鉴权条件。 */
   isEnabled(): boolean {
-    return this.enabled && this.apiKey != null;
+    const { enabled } = this.readSettings();
+    if (enabled && this.apiKey == null && !this.warnedMissingKey) {
+      // 启动期 zod 交叉校验已拦过这一条；这里兜住"运行中被改了开关"的窄情形，
+      // 且不抛异常——构造期抛错会让整个 assistant 模块起不来。只记一次：这是
+      // 一个配置事实，不是每次检索都要复述的噪音。
+      this.warnedMissingKey = true;
+      this.logger.warn(
+        `${EnvKey.LIGHTRAG_ENABLED} is true but ${EnvKey.LIGHTRAG_API_KEY} is empty; retrieval calls will fail as disabled.`,
+      );
+    }
+    return enabled && this.apiKey != null;
   }
 
   /**
@@ -114,7 +152,8 @@ export class LightragClientService {
    * 而不是让工具层用一句笼统的 "Tool execution timed out." 盖掉。
    */
   resolveTimeoutMs(mode: LightragQueryMode): number {
-    return mode === 'naive' ? this.timeoutMs : this.graphTimeoutMs;
+    const settings = this.readSettings();
+    return mode === 'naive' ? settings.timeoutMs : settings.graphTimeoutMs;
   }
 
   /** 未启用时的统一失败结果，供工具层直接产出"未配置"信封。 */
@@ -146,11 +185,14 @@ export class LightragClientService {
       return { ok: false, failure: this.buildDisabledFailure() };
     }
 
+    const settings = this.readSettings();
     const mode = input.mode ?? LIGHTRAG_DEFAULT_MODE;
     const response = await this.request('/query', {
       method: 'POST',
+      baseUrl: settings.baseUrl,
       workspace: input.workspace,
-      timeoutMs: this.resolveTimeoutMs(mode),
+      timeoutMs:
+        mode === 'naive' ? settings.timeoutMs : settings.graphTimeoutMs,
       body: {
         query: input.query,
         mode,
@@ -190,10 +232,12 @@ export class LightragClientService {
       return { ok: false, reason: this.buildDisabledFailure().reason };
     }
 
+    const settings = this.readSettings();
     const response = await this.request('/health', {
       method: 'GET',
+      baseUrl: settings.baseUrl,
       workspace: null,
-      timeoutMs: this.timeoutMs,
+      timeoutMs: settings.timeoutMs,
       body: null,
     });
 
@@ -213,6 +257,7 @@ export class LightragClientService {
     path: string,
     options: {
       method: 'GET' | 'POST';
+      baseUrl: string;
       workspace: string | null;
       timeoutMs: number;
       body: Record<string, unknown> | null;
@@ -221,7 +266,7 @@ export class LightragClientService {
     | { ok: true; status: number; payload: unknown }
     | { ok: false; failure: LightragCallFailure }
   > {
-    const url = `${this.baseUrl}${path}`;
+    const url = `${options.baseUrl}${path}`;
     const headers: Record<string, string> = {
       [AUTH_HEADER_NAME]: this.apiKey ?? '',
     };

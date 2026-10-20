@@ -1,7 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
@@ -48,32 +50,57 @@ export class AssistantToolKnowledgeRetrievalService {
     AssistantToolKnowledgeRetrievalService.name,
   );
 
-  private readonly leafletWorkspace: string;
-  private readonly qaWorkspace: string;
-  /** 已建好知识图谱、因而可接受图模式的来源。空集 = 图模式全禁。 */
-  private readonly graphSources: ReadonlySet<LightragSource>;
-
   constructor(
     private readonly lightrag: LightragClientService,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
-  ) {
-    this.leafletWorkspace =
-      this.configService.get<string>(EnvKey.LIGHTRAG_WORKSPACE_LEAFLET) ??
-      'leaflet';
-    this.qaWorkspace =
-      this.configService.get<string>(EnvKey.LIGHTRAG_WORKSPACE_QA) ?? 'qa';
-    this.graphSources = new Set(
-      parseGraphSources(
-        this.configService.get<string>(EnvKey.LIGHTRAG_GRAPH_SOURCES),
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {}
+
+  /**
+   * Workspaces, graph coverage and the limit ceiling, resolved per call.
+   *
+   * These used to be constructor fields, which made the whole point of the
+   * allowlist moot: the snapshot could change and the tool would keep querying
+   * the old workspace. Falls back to the environment only when the runtime
+   * layer is not injected (unit tests constructing this service directly).
+   */
+  private readSettings(): {
+    readonly leafletWorkspace: string;
+    readonly qaWorkspace: string;
+    /** 已建好知识图谱、因而可接受图模式的来源。空集 = 图模式全禁。 */
+    readonly graphSources: ReadonlySet<LightragSource>;
+    readonly maxLimit: number;
+  } {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    return {
+      leafletWorkspace:
+        values?.[EnvKey.LIGHTRAG_WORKSPACE_LEAFLET] ??
+        this.configService.get<string>(EnvKey.LIGHTRAG_WORKSPACE_LEAFLET) ??
+        'leaflet',
+      qaWorkspace:
+        values?.[EnvKey.LIGHTRAG_WORKSPACE_QA] ??
+        this.configService.get<string>(EnvKey.LIGHTRAG_WORKSPACE_QA) ??
+        'qa',
+      graphSources: new Set(
+        (
+          values?.[EnvKey.LIGHTRAG_GRAPH_SOURCES] ??
+          parseGraphSources(
+            this.configService.get<string>(EnvKey.LIGHTRAG_GRAPH_SOURCES),
+          )
+        ).filter(isLightragSource),
       ),
-    );
+      maxLimit: values?.[EnvKey.LIGHTRAG_MAX_LIMIT] ?? LIGHTRAG_MAX_LIMIT,
+    };
   }
 
   async searchCnMedicineKnowledge(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const parsed = this.parseArguments(context);
+    const settings = this.readSettings();
+    const parsed = this.parseArguments(context, settings);
 
     if (!parsed.ok) {
       return this.buildEmptyEnvelope({
@@ -90,7 +117,7 @@ export class AssistantToolKnowledgeRetrievalService {
 
     const { query, source, mode, limit } = parsed;
     const workspace =
-      source === 'leaflet' ? this.leafletWorkspace : this.qaWorkspace;
+      source === 'leaflet' ? settings.leafletWorkspace : settings.qaWorkspace;
     const tables = [`${workspace}:lightrag_chunks`];
 
     const outcome = await this.lightrag.query({
@@ -176,7 +203,13 @@ export class AssistantToolKnowledgeRetrievalService {
    * 返回判别式联合而不是抛异常：非法参数是一个正常的"模型给错了"情形，应该变成
    * 一个可读的空信封让模型自我纠正，而不是把整条 graph 打挂。
    */
-  private parseArguments(context: AssistantToolExecutionContext):
+  private parseArguments(
+    context: AssistantToolExecutionContext,
+    settings: {
+      readonly graphSources: ReadonlySet<LightragSource>;
+      readonly maxLimit: number;
+    },
+  ):
     | {
         ok: true;
         query: string;
@@ -221,7 +254,11 @@ export class AssistantToolKnowledgeRetrievalService {
       };
     }
 
-    const mode = this.parseMode(args['mode'], sourceCandidate);
+    const mode = this.parseMode(
+      args['mode'],
+      sourceCandidate,
+      settings.graphSources,
+    );
     if (!mode.ok) {
       return { ok: false, query, source: sourceCandidate, reason: mode.reason };
     }
@@ -231,7 +268,7 @@ export class AssistantToolKnowledgeRetrievalService {
       query,
       source: sourceCandidate,
       mode: mode.mode,
-      limit: normalizeLimit(args['limit']),
+      limit: normalizeLimit(args['limit'], settings.maxLimit),
     };
   }
 
@@ -244,6 +281,7 @@ export class AssistantToolKnowledgeRetrievalService {
   private parseMode(
     raw: unknown,
     source: LightragSource,
+    graphSources: ReadonlySet<LightragSource>,
   ): { ok: true; mode: LightragQueryMode } | { ok: false; reason: string } {
     if (raw == null) {
       return { ok: true, mode: LIGHTRAG_DEFAULT_MODE };
@@ -269,7 +307,7 @@ export class AssistantToolKnowledgeRetrievalService {
       };
     }
 
-    if (raw !== 'naive' && !this.graphSources.has(source)) {
+    if (raw !== 'naive' && !graphSources.has(source)) {
       return {
         ok: false,
         reason: `${INVALID_ARGUMENT_PREFIX}: mode "${raw}" requires a knowledge graph, which is not built for source "${source}"; use "naive".`,
@@ -368,9 +406,9 @@ function isLightragQueryMode(value: string): value is LightragQueryMode {
   return (LIGHTRAG_QUERY_MODES as readonly string[]).includes(value);
 }
 
-function normalizeLimit(limit: unknown): number {
+function normalizeLimit(limit: unknown, maxLimit: number): number {
   if (typeof limit !== 'number' || Number.isNaN(limit)) {
     return LIGHTRAG_DEFAULT_LIMIT;
   }
-  return Math.max(1, Math.min(LIGHTRAG_MAX_LIMIT, Math.trunc(limit)));
+  return Math.max(1, Math.min(maxLimit, Math.trunc(limit)));
 }
