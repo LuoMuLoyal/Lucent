@@ -54,7 +54,15 @@ the rejection is a warning with the reason and the offending key name.
 - `env` — the baseline, version `env#0`.
 - `remote` — a document served by the center.
 - `local-cache` — the client's disk cache after a failed load. Values may be
-  older than the last publish; the snapshot says so.
+  older than the last publish; the snapshot says so. The cache is consulted
+  only when a TCP probe fails: a reachable center must answer from the server,
+  otherwise a cold start could apply a stale cached document and label it
+  `remote`.
+
+A subscription that outlives a center restart needs its own liveness signal —
+the binding surfaces no disconnect event. A lightweight probe runs every 30
+seconds: it warns once when the center goes away and logs recovery, while
+requests keep reading the last snapshot.
 
 `RNACOS_ENABLED=false` means no client, no network call, and no native module
 loaded. A center that goes down later does not stop the process: it keeps the
