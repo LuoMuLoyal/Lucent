@@ -60,6 +60,7 @@ export { S3StorageRuntime } from './storage/s3.runtime.js';
 export { AliyunOssStorageRuntime } from './storage/aliyun-oss.runtime.js';
 export { LlmCommonModule } from './llm/llm-common.module.js';
 export { SlowRequestInterceptor } from './interceptors/slow-request.interceptor.js';
+export { RuntimeThrottlerGuard } from './throttler/runtime-throttler.guard.js';
 export { SseConnectionRegistry } from './api/sse/sse-connection-registry.service.js';
 export { SseModule } from './api/sse/sse.module.js';
 export { StorageModule } from './storage/storage.module.js';

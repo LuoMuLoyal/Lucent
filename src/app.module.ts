@@ -3,7 +3,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { buildThrottlerOptions } from './config/services/throttler.config.js';
 import { TerminusModule } from '@nestjs/terminus';
 import { APP_GUARD } from '@nestjs/core';
@@ -61,7 +61,10 @@ import { AssistantModule } from './modules/assistant/assistant.module.js';
 import { AuditLogModule } from './modules/audit-log/audit-log.module.js';
 import { DataRetentionModule } from './modules/data-retention/data-retention.module.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
-import { SlowRequestInterceptor } from './common/index.js';
+import {
+  RuntimeThrottlerGuard,
+  SlowRequestInterceptor,
+} from './common/index.js';
 import {
   AppInfoHealthIndicator,
   CacheHealthIndicator,
@@ -190,7 +193,7 @@ const isTestRuntime =
     SlowRequestInterceptor,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: RuntimeThrottlerGuard,
     },
     {
       provide: APP_GUARD,

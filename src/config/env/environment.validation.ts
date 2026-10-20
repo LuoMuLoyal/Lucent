@@ -150,6 +150,20 @@ const envSchema = z.object({
     .min(10)
     .default(500),
   [EnvKey.METRICS_ENABLED]: z.enum(['true', 'false']).default('true'),
+  // Rate-limit baseline. Bounds mirror the runtime-config ops schema so a
+  // value rejected at runtime is also rejected at startup.
+  [EnvKey.THROTTLE_TTL_MS]: z.coerce
+    .number()
+    .int()
+    .min(1_000)
+    .max(3_600_000)
+    .default(60_000),
+  [EnvKey.THROTTLE_LIMIT]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(1_000)
+    .default(100),
 
   // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,

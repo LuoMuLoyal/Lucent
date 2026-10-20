@@ -95,8 +95,18 @@ export async function buildThrottlerOptions(
 ): Promise<ThrottlerModuleOptions> {
   const redisUrl = configService.get<string>(EnvKey.REDIS_URL);
 
+  // Baseline from env; the runtime-config snapshot overrides these per
+  // request via RuntimeThrottlerGuard. Literals are fallbacks for callers
+  // that build options before env validation applied defaults.
   const options: ThrottlerModuleOptions = {
-    throttlers: [{ ttl: 60_000, limit: 100 }],
+    throttlers: [
+      {
+        ttl: Number(
+          configService.get<string>(EnvKey.THROTTLE_TTL_MS) ?? 60_000,
+        ),
+        limit: Number(configService.get<string>(EnvKey.THROTTLE_LIMIT) ?? 100),
+      },
+    ],
   };
 
   if (

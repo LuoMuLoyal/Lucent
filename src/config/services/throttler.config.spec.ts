@@ -51,6 +51,25 @@ describe('ThrottlerConfigService', () => {
     return new ThrottlerConfigService(mockConfig);
   }
 
+  it('uses THROTTLE_TTL_MS and THROTTLE_LIMIT as the baseline', async () => {
+    const mockConfig = {
+      get: vi.fn((key: string) => {
+        if (key === 'REDIS_URL') return undefined;
+        if (key === 'THROTTLE_TTL_MS') return '120000';
+        if (key === 'THROTTLE_LIMIT') return '250';
+        return undefined;
+      }),
+    } as unknown as ConfigService;
+    const options = (await new ThrottlerConfigService(
+      mockConfig,
+    ).createThrottlerOptions()) as ObjectThrottlerOptions;
+
+    expect(options.throttlers[0]).toMatchObject({
+      ttl: 120_000,
+      limit: 250,
+    });
+  });
+
   beforeEach(() => {
     vi.resetAllMocks();
     mockState.shouldThrowOnConstruct = false;
