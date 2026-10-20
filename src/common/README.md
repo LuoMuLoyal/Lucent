@@ -31,13 +31,15 @@ barrel 消费;**禁止 import `src/modules/*`**——依赖方向只允许 modul
 - `health/` — terminus 健康指示器（`app` 进程信息、`database`、`cache`）。
 - `interceptors/` — 慢请求日志拦截器。
 - `llm/` — `LlmCommonModule`:基础生成器/摘要、重试、熔断与安全策略。
-- `logger/` — `LoggerModule`:结构化日志、VictoriaLogs transport、trace 上下文。
+- `logger/` — `LoggerModule`:结构化日志、VictoriaLogs transport、trace 上下文;
+  `RuntimeLogLevelService` 把配置中心发布的日志级别应用到运行中的 transport。
 - `metrics/` — `MetricsModule` 与指标采集/汇总工具。
 - `queue/` — BullMQ 队列工厂、`BaseAsyncQueueService`、CronJobs。
 - `redis/` — `RedisModule`/`RedisService`(含原子计数等原语)。
 - `result/` — Result/ResultAsync 与 DomainFailure(ADR-0012 结果边界)。
 - `services/` — `LocalizedCopyService` 抽象基类(模块 AI/提示文案的 i18n)。
 - `storage/` — `StorageModule`:对象存储运行时(Tencent COS / S3)与对象键。
+- `throttler/` — 全局限流 guard,每个请求从运行时快照读取窗口与上限。
 - `types/` — 测试 deep-mocked 与指标类型。
 - `validators/` — 强密码/验证码的 zod 规则片段（消息为稳定码，在边界处
   按请求语言渲染）、JSONB 读时 Zod 校验。

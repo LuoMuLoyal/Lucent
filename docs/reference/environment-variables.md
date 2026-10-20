@@ -402,6 +402,18 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
 - 应用元信息四个键改为**逐请求**读取，`MIN_CLIENT_VERSION` / `DOWNLOAD_URL` 发布后
   下一次调用即返回新值；发布空字符串视为未配置，回退 `.env`。
 
+运维家族的运行时覆盖：
+
+- `LOG_LEVEL` 发布后立即改写 Winston 的 `logger.level` 与每个 transport 的级别，无需
+  重启；启动时按 `NODE_ENV` 解析出的级别是基线。
+- `SLOW_REQUEST_THRESHOLD_MS` / `SLOW_QUERY_THRESHOLD_MS` 在**每次观测**读取快照：
+  改动只影响之后的请求与查询，已记录的慢日志不受影响。
+- `METRICS_ENABLED` 逐次判定：关闭后 `/metrics` 返回 404，各 `record*` 调用变成空操作；
+  重新打开时默认采集器无需再次启动（见上文 `METRICS_ENABLED`）。
+- `THROTTLE_TTL_MS` / `THROTTLE_LIMIT` 在每个请求进入限流 guard 时读取快照；Redis 里
+  已存在的计数键保留原窗口，新值从下一次计数开始生效。路由级 `@Throttle(...)` 的
+  更严格设置仍然优先。
+
 `AI_PROVIDER` currently supports only `openai-compatible`.
 
 Each role is independent. If a role is configured, that role must provide all of
@@ -598,7 +610,10 @@ Observability:
 LOG_LEVEL
 LOG_FORMAT
 SLOW_REQUEST_THRESHOLD_MS
+SLOW_QUERY_THRESHOLD_MS
 METRICS_ENABLED
+THROTTLE_TTL_MS
+THROTTLE_LIMIT
 METRICS_USER
 METRICS_PASSWORD
 OTEL_ENABLED
@@ -620,10 +635,18 @@ VICTORIALOGS_URL
   生产输出 pretty 而不是 JSON，直接影响日志采集。
 - `SLOW_REQUEST_THRESHOLD_MS` — requests exceeding this duration (in ms) trigger a `warn` log
   via `SlowRequestInterceptor`. Default: `2000`. Range: 10–300000.
+- `SLOW_QUERY_THRESHOLD_MS` — Prisma queries exceeding this duration (in ms) emit a
+  `warn` log. Default: `500`. Range: 10–600000.
 - `METRICS_ENABLED` — enable/disable Prometheus metrics collection (`prom-client`).
   Default: `true`. Set to `false` in test environment. When enabled, the `/metrics`
-  endpoint exposes Prometheus exposition format for scraping. See ADR-0006 for the
-  full observability strategy.
+  endpoint exposes Prometheus exposition format for scraping. Default collectors are
+  registered at bootstrap even when disabled, so enabling the switch later takes
+  effect on the next scrape without a restart. See ADR-0006 for the full
+  observability strategy.
+- `THROTTLE_TTL_MS` — global rate-limit window in ms. Default: `60000`.
+  Range: 1000–3600000.
+- `THROTTLE_LIMIT` — requests allowed per window per client. Default: `100`.
+  Range: 1–1000. Route-level `@Throttle(...)` overrides still win over this value.
 - `METRICS_USER` — Basic Auth username for `/metrics`. When set together with
   `METRICS_PASSWORD`, the `/metrics` endpoint requires HTTP Basic Auth.
 - `METRICS_PASSWORD` — Basic Auth password for `/metrics`. Must be set together
