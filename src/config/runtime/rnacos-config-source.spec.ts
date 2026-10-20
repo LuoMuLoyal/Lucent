@@ -71,13 +71,20 @@ function createFakeSdk(
   };
 }
 
-function createLogger(): { logger: Logger; warn: Mock; error: Mock } {
+function createLogger(): {
+  logger: Logger;
+  warn: Mock;
+  error: Mock;
+  log: Mock;
+} {
   const warn = vi.fn();
   const error = vi.fn();
+  const log = vi.fn();
   return {
-    logger: { warn, error } as unknown as Logger,
+    logger: { warn, error, log } as unknown as Logger,
     warn,
     error,
+    log,
   };
 }
 
@@ -88,6 +95,7 @@ function createSource(
       serverAddr: string,
       timeoutMs: number,
     ) => Promise<boolean>;
+    readonly probeIntervalMs?: number;
     readonly logger?: Logger;
   } = {},
 ): RnacosConfigSource {
@@ -95,6 +103,9 @@ function createSource(
     loadModule: () => Promise.resolve(sdk.module),
     probe: overrides.probe ?? ((): Promise<boolean> => Promise.resolve(true)),
     probeTimeoutMs: 20,
+    ...(overrides.probeIntervalMs === undefined
+      ? {}
+      : { probeIntervalMs: overrides.probeIntervalMs }),
     ...(overrides.logger === undefined ? {} : { logger: overrides.logger }),
   });
 }
@@ -122,11 +133,11 @@ describe('RnacosConfigSource', () => {
         username: 'nacos',
         password: 's3cr3t-password',
         appName: 'lucent',
-        configLoadCacheAtStart: true,
+        configLoadCacheAtStart: false,
       });
     });
 
-    it('marks a document read while the center is unreachable as local-cache', async () => {
+    it('enables the on-disk cache when the center is unreachable', async () => {
       const sdk = createFakeSdk({
         getConfig: () => Promise.resolve('THROTTLE_LIMIT=200\n'),
       });
@@ -143,6 +154,9 @@ describe('RnacosConfigSource', () => {
         document: { content: 'THROTTLE_LIMIT=200\n', origin: 'local-cache' },
       });
       expect(warn).toHaveBeenCalledTimes(1);
+      expect(sdk.capturedOptions()).toMatchObject({
+        configLoadCacheAtStart: true,
+      });
       expect(String(warn.mock.calls[0]?.[0])).toContain('source=local-cache');
     });
 
@@ -287,6 +301,35 @@ describe('RnacosConfigSource', () => {
       const logged = String(warn.mock.calls[0]?.[0]);
       expect(logged).not.toContain('s3cr3t-password');
       expect(logged).not.toContain('abc123');
+    });
+
+    it('warns when the center becomes unreachable and logs recovery once', async () => {
+      const sdk = createFakeSdk();
+      const { logger, warn, log } = createLogger();
+      let reachable = true;
+      const source = createSource(sdk, {
+        logger,
+        probe: () => Promise.resolve(reachable),
+        probeIntervalMs: 5,
+      });
+      const watching = await source.watch(() => undefined);
+
+      reachable = false;
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]?.[0])).toContain('unreachable');
+
+      reachable = true;
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(String(log.mock.calls[0]?.[0])).toContain('reachable again');
+
+      if (watching.ok) {
+        watching.stop();
+      }
+      reachable = false;
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      expect(warn).toHaveBeenCalledTimes(1);
     });
 
     it('reports a rejected subscription instead of throwing', async () => {

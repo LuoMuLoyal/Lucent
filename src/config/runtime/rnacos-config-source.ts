@@ -62,11 +62,15 @@ export interface RnacosConfigSourceDeps {
   readonly loadModule?: () => Promise<NacosSdkModule>;
   readonly probe?: (serverAddr: string, timeoutMs: number) => Promise<boolean>;
   readonly probeTimeoutMs?: number;
+  /** How often the subscription re-checks reachability; tests shorten it. */
+  readonly probeIntervalMs?: number;
   readonly logger?: Logger;
 }
 
 /** The readiness probe is meant to be cheap; a second is plenty. */
 const DEFAULT_PROBE_TIMEOUT_MS = 1_000;
+/** Detecting a dead center is a background concern; 30s is frequent enough. */
+const DEFAULT_PROBE_INTERVAL_MS = 30_000;
 
 /** `<host>:<port>`, the format `RNACOS_SERVER_ADDR` is validated against. */
 const ADDRESS_PATTERN = /^(?<host>.+):(?<port>\d{1,5})$/u;
@@ -177,8 +181,12 @@ export class RnacosConfigSource implements RuntimeConfigDocumentSource {
     timeoutMs: number,
   ) => Promise<boolean>;
   private readonly probeTimeoutMs: number;
+  private readonly probeIntervalMs: number;
   private client: NacosConfigClient | null = null;
-  private closed = false;
+  private heartbeat: NodeJS.Timeout | null = null;
+  private lastReachable: boolean = true;
+  private probing: boolean = false;
+  private closed: boolean = false;
 
   constructor(
     private readonly options: RnacosConnectionOptions,
@@ -188,10 +196,26 @@ export class RnacosConfigSource implements RuntimeConfigDocumentSource {
     this.loadModule = deps.loadModule ?? importNacosSdk;
     this.probe = deps.probe ?? probeTcpReachable;
     this.probeTimeoutMs = deps.probeTimeoutMs ?? DEFAULT_PROBE_TIMEOUT_MS;
+    this.probeIntervalMs = deps.probeIntervalMs ?? DEFAULT_PROBE_INTERVAL_MS;
   }
 
   async load(): Promise<RuntimeConfigLoadOutcome> {
-    const acquired = await this.acquireClient();
+    // Probe first: it decides whether the client is allowed to answer from its
+    // on-disk cache. With the cache on and the center reachable, the binding's
+    // first `getConfig` can return the cached document and only refresh in the
+    // background — a stale value labelled `remote`. Only an offline start should
+    // read the cache (plan §4 cold-start decision).
+    const reachable = await this.probe(
+      this.options.serverAddr,
+      this.probeTimeoutMs,
+    );
+    if (!reachable) {
+      this.logger.warn(
+        'rnacos did not answer the readiness probe; applying the cached document (source=local-cache)',
+      );
+    }
+
+    const acquired = await this.acquireClient(!reachable);
     if (!acquired.ok) {
       return acquired;
     }
@@ -217,16 +241,6 @@ export class RnacosConfigSource implements RuntimeConfigDocumentSource {
           this.options.requestTimeoutMs,
         )} ms`,
       };
-    }
-
-    const reachable = await this.probe(
-      this.options.serverAddr,
-      this.probeTimeoutMs,
-    );
-    if (!reachable) {
-      this.logger.warn(
-        'rnacos did not answer the readiness probe; applying the cached document (source=local-cache)',
-      );
     }
 
     return {
@@ -292,24 +306,79 @@ export class RnacosConfigSource implements RuntimeConfigDocumentSource {
       };
     }
 
+    // The binding surfaces no disconnect event: when the center goes away the
+    // stream dies silently. A cheap TCP heartbeat turns that into an operator
+    // signal while requests keep using the last snapshot.
+    this.lastReachable = true;
+    this.heartbeat = setInterval(() => {
+      void this.checkReachability();
+    }, this.probeIntervalMs);
+    this.heartbeat.unref();
+
     // The binding cannot remove a listener, so cancelling only stops the
     // dispatch into this process (plan §4.5).
     return {
       ok: true,
       stop: () => {
         stopped = true;
+        this.stopHeartbeat();
       },
     };
+  }
+
+  /** Getter form for the post-await check; a direct read stays narrowed. */
+  private isClosed(): boolean {
+    return this.closed;
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeat !== null) {
+      clearInterval(this.heartbeat);
+      this.heartbeat = null;
+    }
+  }
+
+  /**
+   * Warns once on reachable->unreachable (and logs recovery). Overlapping
+   * probes are skipped; the interval is short but the probe has its own timeout.
+   */
+  private async checkReachability(): Promise<void> {
+    if (this.probing || this.closed) {
+      return;
+    }
+    this.probing = true;
+    try {
+      const reachable = await this.probe(
+        this.options.serverAddr,
+        this.probeTimeoutMs,
+      );
+      if (this.isClosed() || reachable === this.lastReachable) {
+        return;
+      }
+      this.lastReachable = reachable;
+      if (reachable) {
+        this.logger.log(
+          'rnacos is reachable again; the next publish will be applied',
+        );
+      } else {
+        this.logger.warn(
+          'rnacos became unreachable; the process keeps the last runtime-config snapshot',
+        );
+      }
+    } finally {
+      this.probing = false;
+    }
   }
 
   /** Local cleanup only: the binding has no shutdown and no `close` option. */
   close(): Promise<void> {
     this.closed = true;
+    this.stopHeartbeat();
     this.client = null;
     return Promise.resolve();
   }
 
-  private async acquireClient(): Promise<
+  private async acquireClient(useLocalCache = false): Promise<
     | { readonly ok: true; readonly client: NacosConfigClient }
     | {
         readonly ok: false;
@@ -332,9 +401,11 @@ export class RnacosConfigSource implements RuntimeConfigDocumentSource {
         username: this.options.username,
         password: this.options.password,
         appName: 'lucent',
-        // Always on: a restart while the center is down keeps the cached
+        // Only an offline start reads the cache: it keeps the last published
         // document instead of silently reverting every tuned value (plan §4).
-        configLoadCacheAtStart: true,
+        // When the probe reached the center, the client must answer from the
+        // server so a cold start cannot apply a stale cached document.
+        configLoadCacheAtStart: useLocalCache,
       };
       this.client = new sdk.NacosConfigClient(clientOptions);
       return { ok: true, client: this.client };
