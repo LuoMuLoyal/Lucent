@@ -9,7 +9,7 @@ owner: backend
 > **标准微服务**收敛；第三轮把部署改为 **Nomad + rnacos**，并将自建 Semantica 收编为
 > **`services/ontology`**（TS + Python 的受控多语言仓库，LightRAG 仍外置）。
 >
-> 目标：在 **Kong 边缘 + RabbitMQ 事件总线** 的支撑下，按 bounded context 逐片把单包 NestJS
+> 目标：在 **Traefik 边缘 + RabbitMQ 事件总线** 的支撑下，按 bounded context 逐片把单包 NestJS
 > 单体绞杀为 **identity / health / medicine / assistant / insights / notifications / content
 > 七个领域/支撑服务 + admin BFF + 一个 Python 推理支撑服务（ontology）**。
 > 旧单体在整个迁移期持续在线。服务间
@@ -52,26 +52,26 @@ owner: backend
 
 ## 0. 决策摘要
 
-| 议题        | 裁决                                                                                                                                                              |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 切换方式    | **绞杀者渐进**：Kong 第一天挡在单体前；按路由/资源逐片切换，旧栈全程可服务                                                                                        |
-| 拓扑        | **Kong + 7 个领域/支撑服务（identity/health/medicine/assistant/insights/notifications/content）+ admin BFF + `services/ontology` 推理支撑服务**；单体是过渡期上游 |
-| 提取顺序    | content → telemetry/事件底座 → medicine → notifications → health → insights 读模型 → assistant → identity → admin → 收尾                                          |
-| 网关        | **Kong**（DB 模式）：独立 `kong` database + 独立 role；路由、按资源重写、SSE/流式透传；JWT 分阶段上移                                                             |
-| 网关管理    | **decK + Git** 管配置；不引入 Konga（第三方 UI，自己还要一个库）                                                                                                  |
-| 同步通信    | **gRPC**，契约在 `libs/contracts/proto`；未提取能力经**单体 ACL 适配器**访问                                                                                      |
-| 异步/一致性 | **RabbitMQ + 事务性 outbox + 幂等消费**；共存期由单体事件桥接；不引入 saga、不做补偿事务                                                                          |
-| 数据库      | **单 Postgres 实例、每服务独立 database**；独立 role、独立 Prisma、独立迁移；无跨库查询/FK/事务                                                                   |
-| 命名与契约  | **P0.5 一次性命名硬切**：模块/目录/文件/类/路径/operationId/DTO/错误码/事件名统一改；客户端同步发版；无 v1 别名                                                   |
-| 契约基线    | 硬切后的 OpenAPI 成为 P1–P9 的稳定基线；提取期禁止再改公开命名，内部契约可演进                                                                                    |
-| 回滚        | **读片路由回滚**；写片在首笔写入前可回滚，之后 forward-fix；旧库保留到 P9                                                                                         |
-| 仓库形态    | **pnpm workspace + Turborepo**；根只做编排，legacy 在 `apps/legacy`，新服务在 `apps/*`                                                                            |
-| 语言        | **TS 业务服务 + Python 推理服务**；Python 仅 `services/ontology`（Semantica）；LightRAG 仍外置；不引入 Go/Rust                                                    |
-| 共享层      | 只共享 `contracts` / `observability` / `api` / `config` / `testing` / `messaging` / `discovery`                                                                   |
-| 弹性        | 每服务必备：超时、重试+jitter、熔断、幂等键、DLQ、背压、优雅停机、readiness                                                                                       |
-| 服务认证    | **短期 service JWT**（`sub`=服务名、`aud`=目标、`scope`）；mTLS 后置                                                                                              |
-| ADR         | 只新增 **2 个**：绞杀者/服务边界/数据所有权、边缘/IPC/部署；其余不写 ADR                                                                                          |
-| 部署        | **Nomad 调度 + rnacos 服务发现**（3 节点起步）；本地 Compose；状态服务外置；不用 K8s/Swarm/PM2                                                                    |
+| 议题        | 裁决                                                                                                                                                                 |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 切换方式    | **绞杀者渐进**：Traefik 第一天挡在单体前；按路由/资源逐片切换，旧栈全程可服务                                                                                        |
+| 拓扑        | **Traefik + 7 个领域/支撑服务（identity/health/medicine/assistant/insights/notifications/content）+ admin BFF + `services/ontology` 推理支撑服务**；单体是过渡期上游 |
+| 提取顺序    | content → telemetry/事件底座 → medicine → notifications → health → insights 读模型 → assistant → identity → admin → 收尾                                             |
+| 网关        | **Traefik**：单二进制、无数据库；路由、`ReplacePathRegex` 重写、SSE/流式透传、限流、CORS；边缘不解析 JWT                                                             |
+| 网关管理    | **file provider（Git）+ Nomad provider**：路由/中间件在 `deploy/traefik/`，实例由 Nomad tags 发现；不用 decK/Konga                                                   |
+| 同步通信    | **gRPC**，契约在 `libs/contracts/proto`；未提取能力经**单体 ACL 适配器**访问                                                                                         |
+| 异步/一致性 | **RabbitMQ + 事务性 outbox + 幂等消费**；共存期由单体事件桥接；不引入 saga、不做补偿事务                                                                             |
+| 数据库      | **单 Postgres 实例、每服务独立 database**；独立 role、独立 Prisma、独立迁移；无跨库查询/FK/事务                                                                      |
+| 命名与契约  | **P0.5 一次性命名硬切**：模块/目录/文件/类/路径/operationId/DTO/错误码/事件名统一改；客户端同步发版；无 v1 别名                                                      |
+| 契约基线    | 硬切后的 OpenAPI 成为 P1–P9 的稳定基线；提取期禁止再改公开命名，内部契约可演进                                                                                       |
+| 回滚        | **读片路由回滚**；写片在首笔写入前可回滚，之后 forward-fix；旧库保留到 P9                                                                                            |
+| 仓库形态    | **pnpm workspace + Turborepo**；根只做编排，legacy 在 `apps/legacy`，新服务在 `apps/*`                                                                               |
+| 语言        | **TS 业务服务 + Python 推理服务**；Python 仅 `services/ontology`（Semantica）；LightRAG 仍外置；不自研 Go/Rust 服务（Traefik 为现成二进制）                          |
+| 共享层      | 只共享 `contracts` / `observability` / `api` / `config` / `testing` / `messaging` / `discovery`                                                                      |
+| 弹性        | 每服务必备：超时、重试+jitter、熔断、幂等键、DLQ、背压、优雅停机、readiness                                                                                          |
+| 服务认证    | **短期 service JWT**（`sub`=服务名、`aud`=目标、`scope`）；mTLS 后置                                                                                                 |
+| ADR         | 只新增 **2 个**：绞杀者/服务边界/数据所有权、边缘/IPC/部署；其余不写 ADR                                                                                             |
+| 部署        | **Nomad 调度**（边缘由 Traefik Nomad provider 发现）+ rnacos 内部服务发现（3 节点起步）；本地 Compose；状态服务外置；不用 K8s/Swarm/PM2                              |
 
 **成功判据**：任一时刻，站内所有公开端点都有明确 owner；切换中的资源要么在旧栈、要么在
 新服务，不存在双写。**读片**可随时路由回滚；**写片**在首笔新写入前可回滚，之后以
@@ -114,19 +114,19 @@ forward-fix 为主，旧库保留到 P9。
 调用图只作诊断，不作为合并/拆分依据。本质耦合（同一聚合/不变量/事务）不拆；
 偶然耦合（共享代码、读模型方便、历史 import）拆掉。
 
-| 服务              | 职责                                                                         | 归入的现有模块                                                                                            | 提取批次 | 实现语言    | 最终数据                  |
-| ----------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------- | ----------- | ------------------------- |
-| **Kong**          | 边缘：路由、按资源重写、SSE/流式透传、限流、CORS、分阶段 JWT 校验            | 无业务表；独立 `kong` database（路由/插件/凭据）+ 路由清单                                                | P0       | Kong + decK | `kong`（独立库）          |
-| **content**       | 内容读面：平台信息、法务文档、环境说明、文件与流式下载                       | app-info、environment、legal-documents、files                                                             | P1       | TypeScript  | `lucent_content`          |
-| **medicine**      | 药品知识：目录、说明书、风险规则、检索语料与索引重建、药品识别               | medicines（目录/数据导入/SafetyTip/RiskCheck/语料）                                                       | P3       | TypeScript  | `lucent_medicine`         |
-| **notifications** | 通知投递：偏好、模板、站内/邮件/推送、投递日志、重试                         | notifications、notification-preferences、mail                                                             | P4       | TypeScript  | `lucent_notifications`    |
-| **health**        | 健康写模型：上下文、记录、事件、剂量、提醒、保留                             | user-health-context、daily-records、health-events、medicine-dose-logs、medicine-reminders、data-retention | P5       | TypeScript  | `lucent_health`           |
-| **insights**      | 遥测 + 读模型：产品事件、今日分析/建议、报告、导出                           | product-events、today-analysis、today-suggestion、reports、data-export                                    | P2、P6   | TypeScript  | `lucent_insights`         |
-| **assistant**     | 对话式助手：会话、记忆、LLM runtime、工具路由、LightRAG/ontology 客户端、SSE | assistant、llm-runtime                                                                                    | P7       | TypeScript  | `lucent_assistant`        |
-| **identity**      | 身份与访问：auth、账户、用户、设置、RBAC、会话、审计落库                     | auth、account、user、user-settings、audit-log                                                             | P8       | TypeScript  | `lucent_identity`         |
-| **admin BFF**     | 管理台后端：聚合读、运营写入口、队列面板、`/admin` 静态资源                  | admin、admin-console                                                                                      | P9       | TypeScript  | 无业务表                  |
-| **ontology**      | 推理支撑（非 bounded context）：本体/OAG 查询与推理、PROV-O 溯源             | 自建 `semantica-service`（FastAPI）；Neo4j 外置                                                           | P7       | Python      | `lucent_ontology` + Neo4j |
-| **legacy**        | 未提取能力的宿主；过渡期唯一全量实现                                         | 剩余模块 + 对外暴露临时 ACL 适配器                                                                        | P0–P9    | TypeScript  | `lucent`（P9 归档）       |
+| 服务              | 职责                                                                         | 归入的现有模块                                                                                            | 提取批次 | 实现语言      | 最终数据                  |
+| ----------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------- | ------------- | ------------------------- |
+| **Traefik**       | 边缘：路由、按资源重写、SSE/流式透传、限流、CORS；JWT 由服务本地校验         | 无数据库；file provider（Git 路由/中间件）+ Nomad provider（实例）                                        | P0       | Go（Traefik） | 无                        |
+| **content**       | 内容读面：平台信息、法务文档、环境说明、文件与流式下载                       | app-info、environment、legal-documents、files                                                             | P1       | TypeScript    | `lucent_content`          |
+| **medicine**      | 药品知识：目录、说明书、风险规则、检索语料与索引重建、药品识别               | medicines（目录/数据导入/SafetyTip/RiskCheck/语料）                                                       | P3       | TypeScript    | `lucent_medicine`         |
+| **notifications** | 通知投递：偏好、模板、站内/邮件/推送、投递日志、重试                         | notifications、notification-preferences、mail                                                             | P4       | TypeScript    | `lucent_notifications`    |
+| **health**        | 健康写模型：上下文、记录、事件、剂量、提醒、保留                             | user-health-context、daily-records、health-events、medicine-dose-logs、medicine-reminders、data-retention | P5       | TypeScript    | `lucent_health`           |
+| **insights**      | 遥测 + 读模型：产品事件、今日分析/建议、报告、导出                           | product-events、today-analysis、today-suggestion、reports、data-export                                    | P2、P6   | TypeScript    | `lucent_insights`         |
+| **assistant**     | 对话式助手：会话、记忆、LLM runtime、工具路由、LightRAG/ontology 客户端、SSE | assistant、llm-runtime                                                                                    | P7       | TypeScript    | `lucent_assistant`        |
+| **identity**      | 身份与访问：auth、账户、用户、设置、RBAC、会话、审计落库                     | auth、account、user、user-settings、audit-log                                                             | P8       | TypeScript    | `lucent_identity`         |
+| **admin BFF**     | 管理台后端：聚合读、运营写入口、队列面板、`/admin` 静态资源                  | admin、admin-console                                                                                      | P9       | TypeScript    | 无业务表                  |
+| **ontology**      | 推理支撑（非 bounded context）：本体/OAG 查询与推理、PROV-O 溯源             | 自建 `semantica-service`（FastAPI）；Neo4j 外置                                                           | P7       | Python        | `lucent_ontology` + Neo4j |
+| **legacy**        | 未提取能力的宿主；过渡期唯一全量实现                                         | 剩余模块 + 对外暴露临时 ACL 适配器                                                                        | P0–P9    | TypeScript    | `lucent`（P9 归档）       |
 
 `ontology` **不是第 8 个领域服务**：它不拥有用户/业务数据，只拥有推理所需的本体与
 PROV-O 溯源，按「推理支撑件」对待；领域边界仍以 7 个服务为准。它也不参与
@@ -135,7 +135,7 @@ North–South 业务路由，只被 assistant（及离线重建任务）经内�
 **为什么这样排序**：
 
 - **先读后写**：P1 的 content 读面（app-info/environment/legal-documents/files）几乎无状态、
-  无跨库写，用来验证 Kong 路由、路径重写、文件流式与回滚机制。
+  无跨库写，用来验证 Traefik 路由、路径重写、文件流式与回滚机制。
 - **再做小写面**：P2 的 product-events 是 write-only、无读契约、失败可丢的遥测路径，
   用来验证 outbox/MQ/幂等，而不拿核心健康数据冒险。
 - **medicine 先于 health/insights/assistant**：药品知识是只读、无用户数据的上游；
@@ -195,15 +195,15 @@ North–South 业务路由，只被 assistant（及离线重建任务）经内�
 
 ### 2.2 绞杀者边缘
 
-Kong 从 P0 起就是唯一入口；初始 100% 流量回源到单体，行为与现在完全一致。
+Traefik 从 P0 起就是唯一入口；初始 100% 流量回源到单体，行为与现在完全一致。
 
-- **DB 模式 + 独立 `kong` 库**：在现有 Postgres 实例上新建 `kong` database 与独立 role，
-  `kong migrations bootstrap` 一次，升级时 `kong migrations up`；不复用 `lucent` 业务库。
-  数据库故障时业务本来也不可用，因此不额外为“网关控制面独立故障域”做过度设计。
-- **配置用 decK + Git**：路由/插件/凭据以 `deploy/kong/` 下的声明配置为准，CI 校验后
-  `deck sync`；不引入 Konga。Kong Admin API 只对运维网络开放。
-- **路由清单是事实源**：`deploy/kong/route-ownership.yaml` 记录
-  `public path（正则）→ owner service → 内部重写路径 → 阶段`。Kong 配置由该清单生成，
+- **无数据库、无控制面状态**：Traefik 用 **file provider + Nomad provider**，不建
+  `traefik` 库、不跑 migrations、不用 decK。路由/中间件是 `deploy/traefik/` 下的
+  Git 声明；实例列表由 Nomad provider 直接读 Nomad service registry。
+- **职责分离**：Git 拥有路由策略（routers/middlewares），Nomad 拥有实例（service tags）；
+  两侧按服务名关联，不写死节点 IP。Traefik API/dashboard 只对运维网络开放。
+- **路由清单是事实源**：`deploy/traefik/route-ownership.yaml` 记录
+  `public path（正则）→ owner service → 内部重写路径 → 阶段`。动态配置由该清单生成，
   CI 校验它覆盖 `docs/reference/generated/openapi.json` 的全部 operation，且一条路径只能有一个 owner。
 - **按资源段路由**：用户域都在 `/api/v1/user/*` 下，因此匹配第二段资源名；公开根路径按实际清单登记。
   例如：
@@ -215,23 +215,29 @@ Kong 从 P0 起就是唯一入口；初始 100% 流量回源到单体，行为�
   `^/api/v1/user/(today-analysis|today-suggestion|reports|data-export|product-events)(/|$)` → insights；
   `^/api/v1/user/(account|user|user-settings)(/|$)` → identity；
   `^/api/v1/auth(/|$)` → identity。
-  Kong 负责 rewrite 到服务内部规范路径（服务不实现公开的 `/user` 前缀）。
+  用 `ReplacePathRegex` 中间件去掉公开的 `/user` 前缀，服务只实现内部规范路径。
+- **Nomad 侧**：每个可被边缘访问的服务在 job 里声明
+  `service { name = "<svc>"; port = "<http>"; tags = ["traefik.enable=true", ...] }`；
+  Traefik 的 `loadbalancer.server.port` 由 tag 给出。健康检查仍由 Nomad 做。
 - **命名基线**：P0.5 已把公开路径、operationId、DTO 字段与内部模块/目录/文件/类名统一到新命名。
   迁移期新服务按这套基线实现，不再逐片改名；客户端只在 P0.5 同步发版一次。
 - **响应一致性**：新服务必须返回与基线一致的状态码、响应形状、Problem Details 与 SSE 事件序列。
   差异由契约测试与影子流量兜住，见 §8。
-- **分阶段上移鉴权**：
-  1. 共存初期 Kong 只做透传，JWT 仍由各应用校验（避免同时改单体）；
-  2. 所有新服务接入统一鉴权模板后，Kong 统一校验 JWT 并注入签名 actor 头；
-  3. 单体在退役前保留本地校验作为纵深防御。
+- **鉴权**：**边缘不解析 JWT**（Traefik OSS 没有 JWT 中间件，JWT 属 Hub 付费能力）。
+  identity 签发，各服务用统一模板本地验签；单体在退役前保留本地校验作为纵深防御。
+  若将来必须在边缘集中鉴权，用 `ForwardAuth` 指向 identity 的内部校验端点，
+  不引入社区 JWT 插件。
 - **灰度与影子**：
-  - 灰度：按 header（内部账号/特定 userId）→ 按百分比 upstream 权重 → 100%；
+  - 灰度：按 header（内部账号/特定 userId）→ weighted service（stable/canary）→ 100%；
+    canary 实例用独立 Nomad service 名，权重在 file provider 中声明；
   - 影子读：把选定读请求复制到新服务，比较状态码与响应（剔除时间戳、ID 排序等易变字段），
     影子流量不落业务写、不触发通知；
-  - 影子实现放 `deploy/shadow/` 的小代理，不把比较逻辑塞进 Kong。
+  - 影子实现放 `deploy/shadow/` 的小代理，不把比较逻辑塞进 Traefik。
+- **SSE/流式**：SSE 路由不挂 `Compress`/`Buffering` 中间件；入口点 `idleTimeout`
+  覆盖最长对话；文件上传不启用 buffering。
 - **ACL 适配器**：未提取能力由单体暴露 `/internal/legacy/*`（HTTP 或 gRPC），仅服务网络可达。
   新服务只依赖该适配器的接口，不依赖单体内部模块；每提取一片就删掉对应 ACL 方法。
-- **Kong 不承载业务逻辑**，不做 BFF 聚合。
+- **Traefik 不承载业务逻辑**，不做 BFF 聚合。
 
 ### 2.3 仓库布局（共存期）
 
@@ -250,7 +256,7 @@ services/
 libs/
   contracts/ observability/ api/ messaging/ config/ testing/ discovery/
 deploy/
-  kong/  shadow/  nomad/  rnacos/
+  traefik/  shadow/  nomad/  rnacos/
 scripts/contract/route-ownership.ts
 docs/
 ```
@@ -264,7 +270,7 @@ docs/
   不建 `libs/prisma-*`，避免跨服务共享数据模型。
 - **`libs/*` 用 `tsc`**（`composite: true` + project references）产出 `dist` 与 `.d.ts`。
 - **P9 收尾**：删除 `apps/legacy/`，根包保持纯 workspace 编排。
-- **admin 前端仍是独立工程链**，构建产物由 admin BFF 静态托管，Kong 路由 `/admin` 过去。
+- **admin 前端仍是独立工程链**，构建产物由 admin BFF 静态托管，Traefik 路由 `/admin` 过去。
 - **Python 只占 `services/ontology`**：自带 `pyproject.toml`、`uv.lock`、`Dockerfile`；
   根 `pyproject.toml` 只做 uv workspace 声明，不放依赖，避免变成第二份依赖清单。
 - **不共享跨语言代码**：TS 不 import Python，Python 不 import TS；唯一耦合是
@@ -272,8 +278,9 @@ docs/
 
 ### 2.4 进程间通信
 
-- **边缘（Kong）**：DB 模式 + 独立 `kong` 库，配置由 decK 从 Git 同步；按 §2.2 的路由清单转发；
-  SSE 关闭缓冲直接透传；上传/下载流不落盘。限流与 CORS 在边缘，细粒度权限在服务。
+- **边缘（Traefik）**：无数据库；routers/middlewares 由 file provider 从 Git 加载，
+  实例由 Nomad provider 发现；按 §2.2 的路由清单转发。SSE 不挂 Compress/Buffering，
+  上传/下载流不落盘。限流与 CORS 在边缘，JWT 与细粒度权限在服务。
 - **同步（gRPC）**：`@nestjs/microservices` + `Transport.GRPC`，proto 位于
   `libs/contracts/proto/*.proto`。服务间同步调用只允许**读**与**单所有者写**。
   **server-streaming** 承载 assistant 对话 SSE 与 content 文件下载流。
@@ -377,7 +384,7 @@ docs/
   旧客户端不保证可用。除这次之外，迁移期不再有面向客户端的契约变更。
 - **硬切后导出新的 OpenAPI golden snapshot**，作为 P1–P9 每片切换的契约基线；
   `scripts/contract/contract-diff.ts` 只比较新服务与这份基线。
-- 新服务在内部用规范路径，Kong 按路由清单重写到公开路径；内部重写对外不可见。
+- 新服务在内部用规范路径，Traefik 按路由清单把公开路径重写为内部规范路径；重写对外不可见。
 - `docs/reference/generated/openapi.json` 在 P0.5 重新生成一次，完工后再由合并产物覆盖。
 - gRPC proto 同步使用新命名；内部契约可独立演进，但不得反向改变公开 HTTP 命名。
 - **提取期改名禁令**：P1–P9 任何 PR 若改动公开路径、operationId 或 DTO 字段名，CI 直接阻断。
@@ -391,11 +398,11 @@ docs/
 
 - **config**：`libs/config` 只提供 env 解析/校验工具；各服务定义并校验自己的 env 子集，仍 env-only。
 - **authz**：不共享权限矩阵；`libs/contracts` 只放 role/scope 枚举与错误码，
-  具体判定在 owner 服务内。Kong 执行粗粒度，服务执行细粒度。
+  具体判定在 owner 服务内。Traefik 只做粗粒度限流/CORS，权限判定全在服务。
 - **i18n**：不共享业务文案；各服务用 `nestjs-i18n` 渲染自己的 Problem Details，
   错误码与文案键以 `libs/contracts` 为准。
 - **observability**：`libs/observability`；W3C trace context 经 gRPC metadata 与 RabbitMQ header
-  透传；每服务暴露 `/metrics`、`/health/live`、`/health/ready`；Kong 暴露边缘指标；
+  透传；每服务暴露 `/metrics`、`/health/live`、`/health/ready`；Traefik 暴露边缘指标；
   **路由清单的 owner 标签进指标**，便于按片观察错误率与延迟。
   后端**沿用现有 VictoriaMetrics 栈**（VictoriaMetrics/VictoriaLogs/VictoriaTraces 或现有 VM
   cluster 组件），OTel Collector 统一导出；不新增 Prometheus/Tempo/Loki 另一套栈。
@@ -460,8 +467,9 @@ docs/
 已在 `package.json` 依赖并由 `src/config/runtime/rnacos-config-source.ts` 使用。
 该绑定同时导出 `NacosNamingClient`（`registerInstance`/`deregisterInstance`/
 `selectOneHealthyInstance`/`subscribe`，gRPC 推送），服务发现**零新依赖**即可用。
-相比之下 Consul 需要新增一整套 server + 每节点 agent + ACL。在 Nomad 与 Kong 上的
-两处缺口用少量胶水补，仍比多运维一个系统便宜。
+相比之下 Consul 需要新增一整套 server + 每节点 agent + ACL。边缘改用 Traefik 的
+Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用侧注册补即可，
+仍比多运维一个系统便宜。
 
 - **注册中心**：复用现有 rnacos 实例升级为「注册中心 + 配置中心」。数据由 raft +
   节点文件存储（`nacos_db`），备份该目录即备份全部数据；单机等同单节点集群，
@@ -479,15 +487,14 @@ docs/
   架构（x64/arm64）带对应 `.node`；沿用现有的懒加载方式，未启用发现时（legacy/单测）
   不加载原生代码。该绑定没有真正的 `close()`/`unSubscribe()`，客户端按进程生命周期
   单例复用，注册/订阅只做一次。
-- **Kong 接入（唯一缺口）**：Kong OSS 没有原生 Nacos discovery，Nacos 也不提供 DNS/SRV。
-  P0 采用**静态 upstream + decK**：7 个服务、3 个节点，把「节点 IP + 固定端口」写进
-  `deploy/kong/` 的 Git 配置；只有增删节点才改配置。当节点频繁伸缩时，再上
-  `deploy/rnacos/` 里的同步器（订阅 Nacos → Kong Admin API 维护 upstream target），
-  不换网关。
+- **边缘发现（已解决）**：Traefik 的 Nomad provider 直接消费 Nomad service registry，
+  按 tag 拿到实例与端口；不再需要静态 upstream，也不需要「Nacos → 网关」同步器。
+  Nacos 只服务内部 gRPC 寻址，边缘与注册中心彻底解耦。
 - **gRPC 寻址**：每节点一实例 + 固定端口，`libs/discovery` 直接拿到 `ip:port`，
   不依赖 DNS/SRV，也绕开 grpc-js 对 SRV 支持有限的问题。
-- **Kong**：DB 模式，作为边缘 job 跑在入口节点，暴露 80/443；只有它有宿主端口。
-  多入口节点时前面加一层 L4 LB 或 DNS 轮询；`deck sync` 仍在 CI/发布流程里做。
+- **Traefik**：无状态边缘 job，跑在入口节点，暴露 80/443；只有它有宿主端口。
+  file provider 从 Git 部署的配置目录加载 routers/middlewares，Nomad provider 发现实例；
+  多入口节点时前面加一层 L4 LB 或 DNS 轮询；配置变更走「CI 校验 → 滚动重启边缘 job」。
 - **集群形态**：3 台小 VM（建议 4C8G 起）同时跑 Nomad server+client；本地开发用
   Compose，不要求每人装 Nomad。
 - **Nomad job**：每个服务一个 job，配 `update { canary = 1, auto_revert = true }`、
@@ -501,7 +508,7 @@ docs/
   或切回上一个镜像 tag。
 - **可观测**：OTel Collector 作为 Nomad job（或现有栈内进程）统一导出到 VictoriaMetrics 栈；
   不新增 Prometheus/Tempo/Loki。
-- **P9 后进程集合**：Kong + content + medicine + notifications + health + insights + assistant +
+- **P9 后进程集合**：Traefik + content + medicine + notifications + health + insights + assistant +
   identity + admin BFF + ontology（Python）+ RabbitMQ + Postgres + Redis + VictoriaMetrics 栈 +
   rnacos + Neo4j。ontology 用独立镜像/job，资源限制单独配。
 
@@ -531,8 +538,8 @@ docs/
 
 ## 4. 关键跨服务流走查
 
-1. **登录/刷新**：Kong → legacy（identity 提取前）/ identity（P8 后）签发；
-   提取前所有服务本地验签，提取后 Kong 验签并注入 actor 头，敏感操作查 identity 会话。
+1. **登录/刷新**：Traefik → legacy（identity 提取前）/ identity（P8 后）签发；
+   边缘只转发，所有服务本地验签；敏感操作查 identity 会话。
 2. **记录变更 → 建议重算**：health 事务写 + outbox 发 `DAILY_RECORD_CHANGED` →
    insights 幂等消费并重算；共存期若 health 未提取，由 legacy 事件桥发出。
 3. **提醒投递**：health 调度（BullMQ）→ notifications gRPC `notification.send`
@@ -540,8 +547,8 @@ docs/
    health 异步写 `UserReminderDelivery`。
 4. **assistant 工具读**：assistant 经 gRPC 读 identity 设置、health 健康上下文、
    medicine 目录/风险、insights 报告摘要；散文检索走 LightRAG 客户端；
-   SSE 由 Kong 透传 server-streaming。
-5. **admin 通用数据层**：admin UI → Kong → admin BFF（P9 前为 legacy admin）→ 各 owner 服务
+   SSE 由 Traefik 透传 server-streaming（该路由不挂 Compress/Buffering）。
+5. **admin 通用数据层**：admin UI → Traefik → admin BFF（P9 前为 legacy admin）→ 各 owner 服务
    `AdminResource` gRPC 扇出；共存期 admin 仍在单体直读（只读 legacy role）。
 6. **审计**：各服务发 `audit.recorded`；identity 消费落库。
 7. **用户删除**：identity 标记删除 + 发 `USER_DELETED`；各服务异步清理；最终一致，不等待。
@@ -558,26 +565,26 @@ docs/
 
 - 导出**现网契约快照**（供 P0.5 差异用）；建立 `route-ownership.yaml` 与 `data-ownership.yaml`，
   CI 校验路由覆盖与单 owner。
-- Kong 挡在单体前，100% 透传；补按资源段重写、SSE/文件流规则。
+- Traefik 挡在单体前，100% 透传；补按资源段重写、SSE/文件流规则。
 - 两条 ADR：**ADR-0024 绞杀者、服务边界与数据所有权**（7 个 bounded context、分片、独立 database、
-  回滚边界、旧库归档）；**ADR-0025 边缘、IPC 与部署**（Kong、gRPC、RabbitMQ/outbox、service JWT、
+  回滚边界、旧库归档）；**ADR-0025 边缘、IPC 与部署**（Traefik、gRPC、RabbitMQ/outbox、service JWT、
   Nomad + rnacos、事件桥）。
 - 七条 spike：
-  1. Kong DB 模式：独立 `kong` 库 bootstrap/migrations + decK sync + 按资源段路由/rewrite +
-     SSE/文件流 + header 灰度；
+  1. Traefik file provider + Nomad provider：路由/中间件从 Git 加载、`ReplacePathRegex` 按资源段
+     重写、SSE/文件流不挂 Compress/Buffering、header + weighted service 灰度、
+     **配置离线校验**（CI 启动 Traefik，断言日志无 error 且 `/api/http/routers` 数量匹配）；
   2. 每服务独立 database：独立 role、独立 Prisma client、独立迁移史、连接池隔离；
   3. 影子读比较与差异报告（含敏感字段脱敏）；
   4. 单片写冻结 → 跨库复制 → 路由切换 → 首笔写入前的回滚演练；
   5. RabbitMQ quorum queue + DLQ + publisher confirms + 幂等消费；
      service JWT 的签发/校验/轮换与 gRPC metadata 透传；
   6. **Nomad + rnacos**：`NacosNamingClient` 注册/注销与实例订阅（`libs/discovery` 雏形）、
-     Nomad 健康检查与 Nacos 心跳并存、**Kong → Nacos 接入定案**（静态 upstream + decK，
-     或 `deploy/rnacos/` 同步器）、canary 发布与 `nomad job revert`、迁移 batch job、
-     ACL/Variables 与 `RNACOS_*` 衔接最小可用。
+     Nomad 健康检查与 Nacos 心跳并存、**Traefik Nomad provider 实例发现与 canary 权重**、
+     canary 发布与 `nomad job revert`、迁移 batch job、ACL/Variables 与 `RNACOS_*` 衔接最小可用。
   7. **多语言构建**：Turbo 2.11 `experimentalPythonWorkspaces` + uv workspace 发现、
      `services/ontology` 的 `build/test/lint/check` 映射与缓存、`uv lock --check`、
      CI 中 `uv run pytest` fallback；确认 Turborepo 2.11+ 版本钉死。
-- 门禁：P0 全部在预发跑通；Kong 透传下契约测试与现网行为一致；不通过不进 P0.5。
+- 门禁：P0 全部在预发跑通；Traefik 透传下契约测试与现网行为一致；不通过不进 P0.5。
 
 ### P0.5 — 命名硬切（唯一一次公开契约破坏）
 
@@ -651,7 +658,8 @@ docs/
 ### P8 — identity 域
 
 - 迁 auth、account、user、user-settings、audit-log；notifications/mail 已在 P4 独立。
-- Kong 切到统一 JWT 校验；单体保留本地校验直到退役。
+- identity 成为唯一签发方；各服务切到统一本地验签模板（边缘仍不解析 JWT）；
+  单体保留本地校验直到退役。
 - 门禁：登录/刷新/吊销/MFA/权限矩阵全绿；审计链路完整；notifications 读取联系方式
   从 legacy ACL 切到 identity gRPC。
 
@@ -663,7 +671,7 @@ docs/
 
 **完成定义（DoD，缺一不可）**
 
-1. 路由清单覆盖 100% 公开 operation；Kong 后无未映射路径。
+1. 路由清单覆盖 100% 公开 operation；Traefik 后无未映射路径。
 2. 每片都有影子对比记录、soak 记录、回滚演练记录；读片可 5 分钟内切回，
    写片在首笔写入前可切回，之后按 forward-fix 记录。
 3. 公开契约以 P0.5 硬切后的新基线为准；P1–P9 零变化；Luminous 与 `admin/` 已在 P0.5
@@ -673,7 +681,7 @@ docs/
 5. 跨服务依赖只经 gRPC/RabbitMQ；零跨服务 Prisma import；每服务独立 Prisma 与迁移史。
 6. 数据对账逐片通过；outbox 无积压；DLQ 可重放；幂等重放通过；
    用户删除、保留清理、审计端到端通过。
-7. 停任一下游服务，Kong 返回明确错误而非崩溃；恢复后自愈；
+7. 停任一下游服务，Traefik 返回明确错误而非崩溃；恢复后自愈；
    超时/重试/熔断/背压/优雅停机验收用例全绿。
 8. 单体、ACL、事件桥、旧库全部删除/归档；各服务独占 database；
    根包只剩 workspace 编排。
@@ -682,8 +690,9 @@ docs/
 
 ## 6. 构建与工具链改造清单（按断裂风险排序）
 
-1. **路由所有权清单与 Kong 配置生成**：`scripts/contract/route-ownership.ts` 校验覆盖与单 owner，
-   生成 decK 可同步的 Kong 声明配置；CI 阻断未登记路由，部署前 `deck sync`。
+1. **路由所有权清单与 Traefik 配置生成**：`scripts/contract/route-ownership.ts` 校验覆盖与单 owner，
+   生成 `deploy/traefik/dynamic/` 下的 routers/middlewares；CI 阻断未登记路由，
+   并启动 Traefik 容器加载配置，断言日志无 error 且 routers/services 数量匹配。
 2. **共享契约包**：`libs/contracts`（proto、事件 schema、错误码、公开 wire schema、
    路由/数据所有权类型）先落地；**公开 HTTP DTO 仍由 owner 服务持有**，只把跨服务
    wire 契约放进去，避免共享业务 DTO。
@@ -713,10 +722,11 @@ docs/
 13. **服务模板**：一个 NestJS 服务模板，内置 §2.9 弹性契约、RabbitMQ/outbox 接入、
     service JWT 校验、OTel、健康检查、Dockerfile 与 CI lane；新服务从模板生成。
 14. **`prisma.Path/`**：空目录无引用，迁移时删除。
-15. **Nomad/rnacos 资产**：`deploy/nomad/` 每服务 jobspec、`deploy/rnacos/`（注册中心
-    配置与可选的 Kong upstream 同步器）、`libs/discovery`；CI 增加 `nomad job validate`/
-    `nomad job plan`；迁移与发布拆成独立步骤；本地 Compose 与 Nomad 的 env/端口只经
-    `libs/config` 子集映射，rnacos 连接复用现有 `RNACOS_*`，不做两套业务配置。
+15. **Nomad/rnacos 资产**：`deploy/nomad/` 每服务 jobspec、`deploy/traefik/`（静态配置 +
+    生成的路由/中间件）、`deploy/rnacos/`（注册中心配置，无网关同步器）、`libs/discovery`；
+    CI 增加 `nomad job validate`/`nomad job plan` 与 Traefik 配置加载检查；迁移与发布拆成
+    独立步骤；本地 Compose 与 Nomad 的 env/端口只经 `libs/config` 子集映射，
+    rnacos 连接复用现有 `RNACOS_*`，不做两套业务配置。
 16. **Python 资产**：根 `pyproject.toml`（只声明 uv workspace 与 `[tool.turbo].name`）、
     `uv.lock`、`services/ontology` 的 `pyproject.toml`/`Dockerfile`/`AGENTS.md`；
     CI 加 `setup-uv`（钉版本）、`uv lock --check`、独立 lane；wheel 树与模型权重不进 Git。
@@ -731,7 +741,7 @@ docs/
 3. **写冻结**：只冻结该资源（按表/路由），分钟级；公告与超时上限预先设定。
 4. **跨库复制**：从 legacy 库复制到目标 database，校验行数、关键校验和；
    重复执行幂等；大表可分批/逻辑复制。
-5. **灰度**：Nomad canary（1 个 alloc）健康后 promote；Kong 按 header 或 upstream 权重放量
+5. **灰度**：Nomad canary（1 个 alloc）健康后 promote；Traefik 按 header 或 weighted service 放量
    （白名单 → 1% → 10% → 50% → 100%）；每档看错误率、P95、对账。
 6. **切读适配器**：legacy admin 对该资源的读从旧库切到 owner 服务 gRPC；
    旧库对应表标记只读。
@@ -763,11 +773,11 @@ docs/
   的请求/响应形状；`traceparent` 跨语言透传。
 - **Nomad/rnacos**：`nomad job validate`/`plan` 无阻断差异；服务经 `libs/discovery`
   注册与订阅成功并随实例增减更新；Nomad 健康检查与 Nacos 心跳同时生效；
-  Kong 能按静态 upstream（或同步器）找到实例；canary promote 与 `nomad job revert`
+  Traefik 能经 Nomad provider 找到实例；canary promote 与 `nomad job revert`
   演练通过；迁移 batch job 失败时服务不更新。
 - **服务认证**：service JWT 的签名、`aud`/`scope` 校验、过期、轮换、错误 audience 拒绝；
   actor header 不能替代 service JWT。
-- **故障演练**：单服务重启、RabbitMQ 抖动、数据库连接中断、Kong 上游全挂、回滚演练。
+- **故障演练**：单服务重启、RabbitMQ 抖动、数据库连接中断、Traefik 上游全挂、回滚演练。
 - **不做**：进程内↔gRPC 双模长期共存测试（ACL 是临时件，P9 必删）。
 
 ---
@@ -777,7 +787,7 @@ docs/
 1. **2 个 ADR**：0024 绞杀者、服务边界与数据所有权；0025 边缘、IPC、多语言构建与部署
    （Nomad + rnacos + Turborepo/uv）。
 2. **P0.5 命名映射表**、重命名后的 OpenAPI 与重新生成的 Luminous/admin 客户端。
-3. **路由/数据所有权清单** + Kong 配置生成器。
+3. **路由/数据所有权清单** + Traefik 配置生成器。
 4. **proto** + `libs/contracts` 生成物；共享层只含
    `contracts/observability/api/messaging/config/testing/discovery` 七个包。
 5. **7 个领域/支撑服务的 Prisma schema + 独立迁移**（admin BFF 无业务库）；
@@ -801,7 +811,7 @@ docs/
 | 风险                                            | 等级 | 缓解                                                                          |
 | ----------------------------------------------- | ---- | ----------------------------------------------------------------------------- |
 | 共存期过长，新旧双栈腐化                        | 高   | 每片有 soak 上限与删除旧路的硬门禁；P9 必须删桥/ACL                           |
-| 路由清单与实际 owner 漂移                       | 高   | 清单是事实源；CI 校验 OpenAPI 覆盖与单 owner；Kong 配置由清单生成             |
+| 路由清单与实际 owner 漂移                       | 高   | 清单是事实源；CI 校验 OpenAPI 覆盖与单 owner；Traefik 配置由清单生成          |
 | 写冻结窗口出问题                                | 高   | 分钟级窗口 + 预演 + 幂等复制 + 首笔写入前回滚演练                             |
 | 跨 database 偷读                                | 高   | 独立 role + 连接串隔离 + 裸 SQL 扫描 + 对账                                   |
 | 写片切流后无法回滚                              | 高   | 明确 forward-fix 策略；旧库保留快照；高风险片先做只读写 soak                  |
@@ -810,9 +820,10 @@ docs/
 | 服务数量增加导致运维/CI/监控成本上升            | 中   | 7 个域服务分阶段提取；content 可晚提取，audit/telemetry 暂不拆                |
 | 通知供应商故障拖垮调用方                        | 中   | notifications 独立、超时/重试/DLQ、熔断与降级；health/insights 异步投递       |
 | Nomad 学习与运维成本                            | 中   | 目标是 3 节点小集群；P0 spike 打通注册/发现/发布；本地仍用 Compose            |
-| Kong 无法直接消费 Nacos（无 DNS/SRV）           | 中   | P0 用静态 upstream + decK；节点频繁伸缩时上 `deploy/rnacos/` 同步器，不换网关 |
+| Traefik OSS 无 JWT 中间件（属 Hub 付费能力）    | 中   | 边缘不解析 JWT，服务本地验签；确需集中鉴权用 ForwardAuth，不引入社区插件      |
+| Traefik 配置缺 decK 式离线校验                  | 中   | CI 启动容器加载 file provider，断言日志无 error 且路由数量匹配；生成器有单测  |
 | 状态服务放进 Nomad 导致数据/备份复杂            | 高   | Postgres/Redis/RabbitMQ/VictoriaMetrics/rnacos 外置或托管，不进普通 job       |
-| Kong upstream 与 Nacos 实例漂移                 | 中   | 静态 upstream 由 Git/CI 保证；上同步器后把订阅与健康检查纳入 CI 验收          |
+| Traefik Nomad provider 实例发现异常             | 中   | P0 spike 覆盖注册/注销/canary；依赖 Nomad service 健康检查，不另建发现链路    |
 | rnacos 注册中心尚无生产先例（现仅用于配置中心） | 中   | 复用已验证的 `nacos-sdk-rust-binding-node`；先做单节点 P0 spike，再按需扩集群 |
 | service JWT 密钥轮换/泄露                       | 高   | 非对称密钥、短 TTL、`aud`/`scope` 校验、双密钥轮换窗口、调用方 allowlist      |
 | 影子流量泄露 PII                                | 中   | 影子只读、脱敏、内部网络、采样与保留期                                        |
@@ -821,7 +832,7 @@ docs/
 | 硬切后仍有人在提取期改名                        | 高   | 命名基线 CI 检查；公开路径/operationId/DTO 字段变更直接阻断                   |
 | 契约在迁移中被动漂移                            | 高   | P0.5 golden snapshot + 每片差异测试 + 客户端 e2e                              |
 | 共享 libs 重新长成分布式单体                    | 中   | 只允许七个技术共享包；业务代码/Prisma/权限/文案一律留在服务内                 |
-| SSE/流式经 Kong                                 | 中   | P0 spike；关闭缓冲、取消传播、背压测试                                        |
+| SSE/流式经 Traefik                              | 中   | P0 spike；不挂 Compress/Buffering、取消传播、背压测试                         |
 | 工具链路径断裂                                  | 中   | P0.5 一次性迁到 apps/legacy；每片 `turbo run check`                           |
 | 双工具链（Node + Python）长期维护成本           | 中   | 只保留一个 Python 单元；CI 独立 lane + 路径过滤；依赖更新分别自动化           |
 | Turbo 多语言支持仍是 experimental               | 中   | 钉 Turbo 版本；CI 保留 `uv run pytest`/`uv build` 直跑 fallback               |
@@ -837,7 +848,7 @@ docs/
 **RabbitMQ**（跨服务，共享 `lucent` vhost + 每服务独立账号/权限）、**BullMQ 保留**（服务内任务）、
 **TS 业务服务 + Python 推理服务**（Python 仅 `services/ontology`；LightRAG 外置）、
 **Turborepo 2.11 多语言 Task Graph + uv**、**每服务独立 database**、**service JWT**、**根布局 `apps/legacy`**、
-**共享层七个包**、**Kong DB 模式 + 独立 `kong` 库（不引入 Konga，配置用 decK + Git）**、
+**共享层七个包**、**Traefik 无数据库（file provider + Nomad provider，边缘不解析 JWT）**、
 **可观测沿用 VictoriaMetrics 栈**、**部署 Nomad + rnacos（本地 Compose，状态服务外置；
 不引入 Consul）**。
 
