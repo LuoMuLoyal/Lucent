@@ -18,6 +18,8 @@ owner: backend
 - **选择器是 `source` 请求参数，不是 `Accept-Language`**（后者只管文案本地化）；
   跨源不做自动映射，无运行时桥接表（ADR-0008）。
 - 搜索/详情端点为 `@Public()` 公开读；请求头可 bypass 读缓存（单次）。
+  TTL 在写入时读运行时快照（`cache/store.service.ts`），存量的旧条目保留原寿命；
+  验证码/会话/分享令牌的 TTL 不属于这一族。
 
 ## API 形态（事实源 = openapi.json）
 

@@ -374,6 +374,18 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
   同时被替换；重排失败只告警，原计划继续触发。`MEAL_ANALYSIS_STALE_AFTER_MS` /
   `REAP_BATCH_SIZE` 在每轮清扫开始时读取。
 
+缓存家族的运行时覆盖：
+
+- 四个 TTL（`MEDICINES_SEARCH_CACHE_TTL_MS` / `MEDICINES_DETAIL_CACHE_TTL_MS` /
+  `MEDICINES_SAFETY_TIPS_CACHE_TTL_MS` / `ASYNC_JOB_RESULT_CACHE_TTL_MS`）在**写入
+  缓存时**读取快照：已写入的条目保留它自己的寿命，不会被追溯修改；只有下一次 miss
+  写入的条目用新值。想让新 TTL 立刻作用于存量数据，必须主动失效对应缓存。
+- 药品缓存服务在启动时打一行 `Medicine cache TTLs in force: ...`，发版后可用它确认
+  实际生效值；`cache.schema.ts` 的默认值与 `store.constants.ts`、`DEFAULT_RESULT_TTL_MS`
+  保持一致，单测守漂移。
+- 验证码、登录会话、分享令牌的 TTL 不在这一族：它们由签发/校验逻辑自己持有，属于
+  正确性而非调参项。
+
 `AI_PROVIDER` currently supports only `openai-compatible`.
 
 Each role is independent. If a role is configured, that role must provide all of
