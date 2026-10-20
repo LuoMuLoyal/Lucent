@@ -1,8 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { AdminRole } from '#generated/prisma/client.js';
 import { ConfigKey } from '../../../config/env/config-keys.enum.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import {
   QUEUE_NAME_LIST,
   isQueueName,
@@ -50,13 +53,30 @@ export type QueuePanelAuthResult =
 export class QueuePanelAuthService {
   private readonly logger = new Logger(QueuePanelAuthService.name);
   private readonly jwt = new JwtService();
-  private readonly jwtConfig: JwtConfigShape;
+  private readonly envJwtConfig: JwtConfigShape;
 
   constructor(
     configService: ConfigService,
     private readonly adminAccess: AdminAccessService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {
-    this.jwtConfig = configService.getOrThrow<JwtConfigShape>(ConfigKey.Jwt);
+    this.envJwtConfig =
+      configService.getOrThrow<JwtConfigShape>(ConfigKey.Jwt);
+  }
+
+  /**
+   * Signing config with `JWT_ACCESS_TTL` overlaid from the snapshot. Read per
+   * call so a published TTL changes the cookie cap for the next panel login;
+   * the secret, issuer and audience stay environment-only.
+   */
+  private get jwtConfig(): JwtConfigShape {
+    const published =
+      this.runtimeConfig?.getSnapshot().values[EnvKey.JWT_ACCESS_TTL];
+    return typeof published === 'number'
+      ? { ...this.envJwtConfig, accessTtl: published }
+      : this.envJwtConfig;
   }
 
   /** Session cookie lifetime cap, from `JWT_ACCESS_TTL`. */

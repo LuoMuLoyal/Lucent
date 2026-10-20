@@ -8,6 +8,8 @@ import type { Prisma } from '#generated/prisma/client.js';
 import { AuthTokenService } from './token.service.js';
 import { normalizeEmail } from '../../../common/index.js';
 import { PrismaService } from '../../../prisma/index.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
 import { AuthSessionRepositoryPort } from '../repositories/session.repository.js';
 import {
   createDomainFailure,
@@ -53,6 +55,8 @@ describe('AuthTokenService', () => {
   let service: AuthTokenService;
   let sessionRepo: vi.Mocked<AuthSessionRepositoryPort>;
   let prisma: { $transaction: vi.Mock };
+  let jwtService: { signAsync: vi.Mock };
+  let runtimeValues: Record<string, unknown>;
 
   const mockTx = {} as unknown as Prisma.TransactionClient;
 
@@ -65,6 +69,8 @@ describe('AuthTokenService', () => {
   beforeEach(async () => {
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
 
+    runtimeValues = {};
+    jwtService = { signAsync: vi.fn().mockResolvedValue('mock-access-token') };
     prisma = {
       $transaction: vi
         .fn()
@@ -98,9 +104,7 @@ describe('AuthTokenService', () => {
         },
         {
           provide: JwtService,
-          useValue: {
-            signAsync: vi.fn().mockResolvedValue('mock-access-token'),
-          },
+          useValue: jwtService,
         },
         {
           provide: ConfigService,
@@ -117,6 +121,12 @@ describe('AuthTokenService', () => {
           provide: PrismaService,
           useValue: prisma,
         },
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            getSnapshot: () => ({ values: runtimeValues }),
+          },
+        },
       ],
     }).compile();
 
@@ -129,6 +139,26 @@ describe('AuthTokenService', () => {
   });
 
   describe('generateTokenPair', () => {
+    it('signs with the published TTL on the next issuance', async () => {
+      runtimeValues[EnvKey.JWT_ACCESS_TTL] = 120;
+      runtimeValues[EnvKey.JWT_REFRESH_TTL] = 86_400;
+
+      const outcome = await collectResult(
+        service.generateTokenPair(mockUser as never),
+      );
+
+      expect(outcome.ok).toBe(true);
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ expiresIn: 120 }),
+      );
+      const created = (sessionRepo.createSession as vi.Mock).mock
+        .calls[0]![0] as { expiresAt: Date };
+      const deltaMs = created.expiresAt.getTime() - Date.now();
+      expect(deltaMs).toBeGreaterThan(86_000);
+      expect(deltaMs).toBeLessThanOrEqual(86_400_000);
+    });
+
     it('should create a session and return tokens', async () => {
       const outcome = await collectResult(
         service.generateTokenPair(mockUser as never),

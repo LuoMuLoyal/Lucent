@@ -1,9 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
 import { User } from '#generated/prisma/client.js';
 import { ConfigKey } from '../../../config/env/config-keys.enum.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 
 import { now } from '../../../common/index.js';
 import {
@@ -51,10 +54,26 @@ export class AuthTokenService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
 
+  /**
+   * Signing config with the TTLs overlaid from the runtime snapshot.
+   *
+   * Resolved per call: a published TTL applies to tokens issued afterwards.
+   * Tokens already signed keep the expiry baked into their `exp`; secrets stay
+   * environment-only.
+   */
   private get jwtConfig(): JwtConfigShape {
-    return this.configService.getOrThrow<JwtConfigShape>(ConfigKey.Jwt);
+    const base = this.configService.getOrThrow<JwtConfigShape>(ConfigKey.Jwt);
+    const values = this.runtimeConfig?.getSnapshot().values;
+    return {
+      ...base,
+      accessTtl: values?.[EnvKey.JWT_ACCESS_TTL] ?? base.accessTtl,
+      refreshTtl: values?.[EnvKey.JWT_REFRESH_TTL] ?? base.refreshTtl,
+    };
   }
 
   generateTokenPair(
