@@ -302,6 +302,7 @@ MEAL_ANALYSIS_STALE_AFTER_MS=600000
 MEAL_ANALYSIS_REAP_BATCH_SIZE=200
 
 # 清扫计划，五段 cron（分 时 日 月 周）。默认每 5 分钟一次。
+# 修改后按 scheduler id 原地重排，无需重启；重排失败只告警，旧计划继续运行。
 MEAL_ANALYSIS_REAP_CRON=*/5 * * * *
 
 
@@ -311,9 +312,11 @@ MEAL_ANALYSIS_REAP_CRON=*/5 * * * *
 #  每个队列一项，值 = 该队列 worker 的并发数（1-20，邮件队列 1-50）。
 #  调大 = 同时处理更多任务，代价是数据库 / 外部接口的瞬时压力；
 #  调研请注意依赖服务的限流。并发改动作用于**正在运行**的 worker，无需重启。
+#  默认值与代码声明一致：cron / report-summary / suggestion-explanation 为 2，
+#  suggestion-copy-generation 为 3，其余为 1。
 
 # lucent-cron（定时任务队列：周期任务的统一入口）的并发。
-QUEUE_CRON_CONCURRENCY=1
+QUEUE_CRON_CONCURRENCY=2
 
 # lucent-reminder-dispatch（用药提醒派发队列）的并发。
 QUEUE_REMINDER_DISPATCH_CONCURRENCY=1
@@ -334,13 +337,13 @@ QUEUE_TODAY_ANALYSIS_CONCURRENCY=1
 QUEUE_CLINIC_SUMMARY_PDF_CONCURRENCY=1
 
 # report-summary（体检报告摘要队列）的并发。
-QUEUE_REPORT_SUMMARY_CONCURRENCY=1
+QUEUE_REPORT_SUMMARY_CONCURRENCY=2
 
 # suggestion-copy-generation（建议文案生成队列）的并发。
-QUEUE_SUGGESTION_COPY_GENERATION_CONCURRENCY=1
+QUEUE_SUGGESTION_COPY_GENERATION_CONCURRENCY=3
 
 # suggestion-explanation（建议解释生成队列）的并发。
-QUEUE_SUGGESTION_EXPLANATION_CONCURRENCY=1
+QUEUE_SUGGESTION_EXPLANATION_CONCURRENCY=2
 
 # suggestion-recompute（建议重算队列）的并发。
 QUEUE_SUGGESTION_RECOMPUTE_CONCURRENCY=1

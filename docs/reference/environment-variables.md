@@ -361,6 +361,19 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
 - `LIGHTRAG_ENABLED` / `SEMANTICA_ENABLED` 也可热关：关闭后下一次检索直接返回"未配置"
   信封，`GET /admin/dependencies` 同步反映当前发布值。
 
+队列与餐食清扫家族的运行时覆盖：
+
+- 12 个队列各有一个并发键，映射在 `src/common/queue/queue-runtime.registry.ts` 的
+  `QUEUE_CONCURRENCY_KEYS`（类型上覆盖全部 `QUEUE_NAMES`，漏一个编译不过）。发布后
+  直接改写运行中 worker 的 `concurrency`，不重建 Queue/Worker、不打断在跑的任务；
+  进程重启后回到环境基线。默认值与代码声明一致：cron / report-summary /
+  suggestion-explanation 为 2，suggestion-copy-generation 为 3，其余为 1。
+- 邮件队列的 `MAIL_QUEUE_MAX_ATTEMPTS` / `BACKOFF_DELAY_MS` / 保留策略在**入队时**
+  取快照：已入队任务保留它们创建时的值，只有新任务读新发布值。
+- `MEAL_ANALYSIS_REAP_CRON` 变化时按 scheduler id 原地 `upsertJobScheduler`，旧计划
+  同时被替换；重排失败只告警，原计划继续触发。`MEAL_ANALYSIS_STALE_AFTER_MS` /
+  `REAP_BATCH_SIZE` 在每轮清扫开始时读取。
+
 `AI_PROVIDER` currently supports only `openai-compatible`.
 
 Each role is independent. If a role is configured, that role must provide all of

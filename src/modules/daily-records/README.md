@@ -38,11 +38,12 @@ owner: backend
   失败一律落 `analysis_failed` + 原因码。
 - 过期回收:`services/meal-analysis/sweeper.service.ts`,由 `CronJobsService`
   每 5 分钟(`MEAL_ANALYSIS_REAP_CRON`)触发,把停留超过
-  `MEAL_ANALYSIS_STALE_AFTER_MS`(10 分钟)的 `analyzing` 记录落成
+  `MEAL_ANALYSIS_STALE_AFTER_MS`(10 分钟,默认值;实际按次读运行时快照)的 `analyzing` 记录落成
   `analysis_failed(job_lost)`,使详情页能重试。**刻意不复用 `model_timeout`**:
   `job_lost` 表示作业没跑完就丢了(崩溃/队列丢单),`model_timeout` 表示模型调用
   自己超时——两者用户补救方式相同,但混码会让真正的模型超时告警被基础设施故障淹没。
-  单轮上限 `MEAL_ANALYSIS_REAP_BATCH_SIZE`。
+  单轮上限 `MEAL_ANALYSIS_REAP_BATCH_SIZE`(同样按次读快照)。cron 发布新值后由
+  `CronJobsService` 按 scheduler id 原地重排,失败只告警。
 - 客户端唯一可编辑字段是菜名列表(`payload.mealAnalysis.dishes`,
   `source: 'user'`);其余字段服务端独占。改菜名不重算结论与区间。重试 =
   重新提交同一张图(PATCH 带一张 attachment,`revision` 递增后重新入队)。

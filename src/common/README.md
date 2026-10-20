@@ -50,7 +50,9 @@ barrel 消费;**禁止 import `src/modules/*`**——依赖方向只允许 modul
   按配置装配其一；调用方只认接口，不认 provider。
 - `QueueModule`（`queue/`）：`BullmqQueueFactory` 持进程内队列注册表——队列名取自
   `queue-names.ts` 的 `QUEUE_NAMES`（单一来源，新增队列只改这里），`/admin/queues`
-  面板与按队列权限点都从同一注册表派生。
+  面板与按队列权限点都从同一注册表派生。`createQueue` 必须给 `runtimeKey`，
+  `QueueRuntimeRegistry` 按 `QUEUE_CONCURRENCY_KEYS` 把运行时快照里的并发写到正在
+  运行的 worker 上（只改 `worker.concurrency`，不重建 Queue/Worker）。
 - `MetricsModule`：Prometheus 注册表 + `MetricsService`；指标名与标签是告警/看板的
   稳定契约，改名前先确认真实消费方。标签只取固定枚举（"服务不可用"与"确实没查到"
   必须分属两个值，否则看板上无法区分），**绝不带 userId、日期或健康内容**——基数
