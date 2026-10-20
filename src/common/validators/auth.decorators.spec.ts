@@ -98,14 +98,23 @@ describe('verificationCodeSchema', () => {
     expect(verificationCodeSchema().safeParse('123456').success).toBe(true);
   });
 
-  it('fails for code shorter than 6 chars', () => {
-    const result = verificationCodeSchema().safeParse('12345');
+  it('accepts the full 4-8 digit range the service may issue', () => {
+    expect(verificationCodeSchema().safeParse('1234').success).toBe(true);
+    expect(verificationCodeSchema().safeParse('12345678').success).toBe(true);
+  });
+
+  it('fails for code shorter than 4 chars', () => {
+    const result = verificationCodeSchema().safeParse('123');
     expect(result.success).toBe(false);
     expect(firstIssueMessage(result)).toBe('validation.code.invalid_length');
   });
 
-  it('fails for code longer than 6 chars', () => {
-    expect(verificationCodeSchema().safeParse('1234567').success).toBe(false);
+  it('fails for code longer than 8 chars', () => {
+    expect(verificationCodeSchema().safeParse('123456789').success).toBe(false);
+  });
+
+  it('fails for non-digit characters', () => {
+    expect(verificationCodeSchema().safeParse('12a456').success).toBe(false);
   });
 
   it('reports the required code for an empty code', () => {

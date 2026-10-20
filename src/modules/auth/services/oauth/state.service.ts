@@ -10,12 +10,14 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { extractErrorInfo } from '../../../../common/index.js';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   OAUTH_PROVIDER_QQ,
@@ -36,14 +38,28 @@ export class AuthOAuthStateService {
   private static readonly CACHE_KEY_PREFIX = 'auth:oauth-state';
 
   private readonly logger = new Logger(AuthOAuthStateService.name);
-  private readonly stateTtlMs: number;
+  private readonly envStateTtlMs: number;
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly configService: ConfigService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {
-    this.stateTtlMs = Number(
+    this.envStateTtlMs = Number(
       this.configService.get<string>(EnvKey.OAUTH_STATE_TTL_MS),
+    );
+  }
+
+  /**
+   * State TTL resolved per state creation: a published value applies to the
+   * next OAuth round trip; states already handed to a provider keep theirs.
+   */
+  private get stateTtlMs(): number {
+    return (
+      this.runtimeConfig?.getSnapshot().values[EnvKey.OAUTH_STATE_TTL_MS] ??
+      this.envStateTtlMs
     );
   }
 

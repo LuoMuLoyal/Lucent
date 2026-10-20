@@ -9,6 +9,7 @@ import {
 } from './state.service.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/app-defaults.constants.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import type {
   DomainFailure,
@@ -41,9 +42,11 @@ function collectResult<T>(
 describe('AuthOAuthStateService', () => {
   let service: AuthOAuthStateService;
   let cache: vi.Mocked<Cache>;
+  let runtimeValues: Record<string, unknown>;
 
   beforeEach(async () => {
     Reflect.deleteProperty(process.env, EnvKey.OAUTH_STATE_TTL_MS);
+    runtimeValues = {};
 
     const mockConfigService = {
       get: vi.fn((key: string, fallback?: unknown) => {
@@ -70,6 +73,10 @@ describe('AuthOAuthStateService', () => {
           provide: ConfigService,
           useValue: mockConfigService,
         },
+        {
+          provide: RuntimeConfigService,
+          useValue: { getSnapshot: () => ({ values: runtimeValues }) },
+        },
       ],
     }).compile();
 
@@ -91,6 +98,23 @@ describe('AuthOAuthStateService', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('createState', () => {
+    it('uses the published state TTL on the next round trip', async () => {
+      runtimeValues[EnvKey.OAUTH_STATE_TTL_MS] = 120_000;
+
+      const outcome = await collectResult(
+        service.createState('wechat_web', 'login'),
+      );
+
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.value.ttlSec).toBe(120);
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.stringContaining('auth:oauth-state:'),
+        expect.objectContaining({ purpose: 'login' }),
+        120_000,
+      );
+    });
+
     it('should create a state entry with random token and return ttl', async () => {
       const outcome = await collectResult(
         service.createState('wechat_web', 'login'),

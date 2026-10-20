@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -13,6 +13,8 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { UserService } from '../../../user/index.js';
 
@@ -34,16 +36,32 @@ export class EmailVerificationService {
   private static readonly CACHE_KEY_PREFIX = 'email-verify';
   private static readonly TOKEN_BYTES = 32;
 
-  private readonly tokenTtlMs: number;
+  private readonly envTokenTtlMs: number;
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly configService: ConfigService,
     private readonly userService: UserService,
     private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {
-    this.tokenTtlMs = Number(
+    this.envTokenTtlMs = Number(
       this.configService.get<string>(EnvKey.VERIFICATION_CODE_TTL_MS),
+    );
+  }
+
+  /**
+   * Token TTL resolved per issue, so a published `VERIFICATION_CODE_TTL_MS`
+   * applies to the next link. Tokens already in mailboxes keep the TTL they
+   * were written with.
+   */
+  private get tokenTtlMs(): number {
+    return (
+      this.runtimeConfig?.getSnapshot().values[
+        EnvKey.VERIFICATION_CODE_TTL_MS
+      ] ?? this.envTokenTtlMs
     );
   }
 

@@ -14,7 +14,15 @@ import { z } from 'zod';
 export const PASSWORD_MIN_LENGTH: number = 8;
 export const PASSWORD_MAX_LENGTH: number = 32;
 export const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+/**
+ * Default code length. `VERIFICATION_CODE_LENGTH` is what the service issues
+ * when `VERIFICATION_CODE_LENGTH` is unpublished; the accepted range below is
+ * what the request schemas validate, because the length is a runtime-config
+ * hot key and a schema is built at module load.
+ */
 export const VERIFICATION_CODE_LENGTH = 6;
+export const VERIFICATION_CODE_MIN_LENGTH: number = 4;
+export const VERIFICATION_CODE_MAX_LENGTH: number = 8;
 
 export interface StrongPasswordSchemaOptions {
   /**
@@ -47,7 +55,8 @@ export interface VerificationCodeSchemaOptions {
 }
 
 /**
- * 邮箱验证码字段:默认为 6 位;exactLength=false 时仅要求非空。
+ * 邮箱验证码字段:默认要求 4-8 位数字(线上默认 6 位,长度本身是运行时热键);
+ * exactLength=false 时仅要求非空。
  */
 export function verificationCodeSchema(
   options: VerificationCodeSchemaOptions = {},
@@ -60,8 +69,11 @@ export function verificationCodeSchema(
   if (!exactLength) {
     return base;
   }
-  return base.length(
-    VERIFICATION_CODE_LENGTH,
+  return base.regex(
+    new RegExp(
+      `^[0-9]{${String(VERIFICATION_CODE_MIN_LENGTH)},${String(VERIFICATION_CODE_MAX_LENGTH)}}$`,
+      'u',
+    ),
     'validation.code.invalid_length',
   );
 }

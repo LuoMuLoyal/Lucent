@@ -14,6 +14,7 @@ import type {
   ResultAsync,
 } from '../../../../common/result/index.js';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import {
   DEFAULT_VERIFICATION_CODE_TTL_MS,
   DEFAULT_VERIFICATION_COOLDOWN_MS,
@@ -511,5 +512,95 @@ describe('VerificationCodeService', () => {
         createServiceWithOverrides({ rateLimitMax: 0 }),
       ).rejects.toThrow('rateLimitMax must be positive');
     });
+  });
+});
+
+describe('VerificationCodeService runtime overrides', () => {
+  function buildModule(values: Record<string, unknown>) {
+    const cache = {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+      del: vi.fn().mockResolvedValue(undefined),
+    };
+    const mail = { sendVerificationCode: vi.fn().mockResolvedValue(undefined) };
+    return Test.createTestingModule({
+      providers: [
+        VerificationCodeService,
+        { provide: CACHE_MANAGER, useValue: cache },
+        { provide: MailService, useValue: mail },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: vi.fn((key: string, fallback?: unknown) => {
+              const defaults: Record<string, string> = {
+                [EnvKey.VERIFICATION_CODE_TTL_MS]: '300000',
+                [EnvKey.VERIFICATION_COOLDOWN_MS]: '60000',
+                [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]: '600000',
+                [EnvKey.VERIFICATION_RATE_LIMIT_MAX]: '20',
+                [EnvKey.VERIFICATION_CODE_LENGTH]: '6',
+              };
+              return defaults[key] ?? fallback;
+            }),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: { isAvailable: false, atomicIncrement: vi.fn() },
+        },
+        {
+          provide: RuntimeConfigService,
+          useValue: { getSnapshot: () => ({ values }) },
+        },
+      ],
+    })
+      .compile()
+      .then((module) => ({
+        service: module.get(VerificationCodeService),
+        cache,
+        mail,
+      }));
+  }
+
+  it('uses the published TTL, cooldown and code length for the next code', async () => {
+    const { service, cache, mail } = await buildModule({
+      [EnvKey.VERIFICATION_CODE_TTL_MS]: 90_000,
+      [EnvKey.VERIFICATION_COOLDOWN_MS]: 30_000,
+      [EnvKey.VERIFICATION_CODE_LENGTH]: 8,
+    });
+
+    const result = await inspectResult(service.send('a@b.example', 'login'));
+
+    expect(result.ok).toBe(true);
+    expect(cache.set).toHaveBeenCalledWith(
+      'vcode:login:a@b.example',
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      90_000,
+    );
+    expect(cache.set).toHaveBeenCalledWith(
+      'vcode:cd:login:a@b.example',
+      '1',
+      30_000,
+    );
+    expect(mail.sendVerificationCode).toHaveBeenCalledWith(
+      'a@b.example',
+      expect.stringMatching(/^\d{8}$/),
+      undefined,
+    );
+  });
+
+  it('clamps a published cooldown longer than the code TTL', async () => {
+    const { service, cache } = await buildModule({
+      [EnvKey.VERIFICATION_CODE_TTL_MS]: 20_000,
+      [EnvKey.VERIFICATION_COOLDOWN_MS]: 60_000,
+    });
+
+    await inspectResult(service.send('a@b.example', 'login'));
+
+    expect(cache.set).toHaveBeenCalledWith(
+      'vcode:cd:login:a@b.example',
+      '1',
+      20_000,
+    );
+    expect(service.getCooldownSec()).toBe(20);
   });
 });

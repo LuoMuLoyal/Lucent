@@ -9,7 +9,8 @@ import {
 } from './validation-copy.js';
 import {
   PASSWORD_MIN_LENGTH,
-  VERIFICATION_CODE_LENGTH,
+  VERIFICATION_CODE_MAX_LENGTH,
+  VERIFICATION_CODE_MIN_LENGTH,
 } from './auth.decorators.js';
 import { makeTestI18n } from '../tests/test-i18n.js';
 
@@ -186,7 +187,9 @@ describe('translateValidationMessage', () => {
       'validation.code.invalid_length',
       { fieldPath: 'code' },
     );
-    expect(codeLength).toContain(String(VERIFICATION_CODE_LENGTH));
+    expect(codeLength).toContain(
+      `${VERIFICATION_CODE_MIN_LENGTH}-${VERIFICATION_CODE_MAX_LENGTH}`,
+    );
   });
 
   it('lets an explicit context override the derived values', () => {

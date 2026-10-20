@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +14,8 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { MailService } from '../../../../mail/mail.service.js';
 import type { VerificationScene } from '../../dto/password/send-verification-code.dto.js';
 
@@ -34,35 +36,72 @@ export class VerificationCodeService {
 
   private readonly logger = new Logger(VerificationCodeService.name);
 
-  private readonly codeTtlMs: number;
-  private readonly cooldownTtlMs: number;
-  private readonly rateLimitWindowMs: number;
-  private readonly rateLimitMaxRequests: number;
-  private readonly codeLength: number;
+  private readonly envCodeTtlMs: number;
+  private readonly envCooldownTtlMs: number;
+  private readonly envRateLimitWindowMs: number;
+  private readonly envRateLimitMaxRequests: number;
+  private readonly envCodeLength: number;
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {
-    this.codeTtlMs = Number(
+    this.envCodeTtlMs = Number(
       this.configService.get<string>(EnvKey.VERIFICATION_CODE_TTL_MS),
     );
-    this.cooldownTtlMs = Number(
+    this.envCooldownTtlMs = Number(
       this.configService.get<string>(EnvKey.VERIFICATION_COOLDOWN_MS),
     );
-    this.rateLimitWindowMs = Number(
+    this.envRateLimitWindowMs = Number(
       this.configService.get<string>(EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS),
     );
-    this.rateLimitMaxRequests = Number(
+    this.envRateLimitMaxRequests = Number(
       this.configService.get<string>(EnvKey.VERIFICATION_RATE_LIMIT_MAX),
     );
-    this.codeLength = Number(
+    this.envCodeLength = Number(
       this.configService.get<string>(EnvKey.VERIFICATION_CODE_LENGTH),
     );
 
     this.assertVerificationConfig();
+  }
+
+  /**
+   * Current anti-abuse settings. Read on every issue/verify so a published
+   * document applies to the next code; the startup assert below still guards
+   * the env baseline. A published cooldown longer than the code TTL is clamped,
+   * otherwise the last part of the cooldown would guard a code that is already
+   * gone.
+   */
+  private readSettings(): {
+    codeTtlMs: number;
+    cooldownTtlMs: number;
+    rateLimitWindowMs: number;
+    rateLimitMaxRequests: number;
+    codeLength: number;
+  } {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    const codeTtlMs =
+      values?.[EnvKey.VERIFICATION_CODE_TTL_MS] ?? this.envCodeTtlMs;
+    return {
+      codeTtlMs,
+      cooldownTtlMs: Math.min(
+        values?.[EnvKey.VERIFICATION_COOLDOWN_MS] ?? this.envCooldownTtlMs,
+        codeTtlMs,
+      ),
+      rateLimitWindowMs:
+        values?.[EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS] ??
+        this.envRateLimitWindowMs,
+      rateLimitMaxRequests:
+        values?.[EnvKey.VERIFICATION_RATE_LIMIT_MAX] ??
+        this.envRateLimitMaxRequests,
+      codeLength:
+        values?.[EnvKey.VERIFICATION_CODE_LENGTH] ?? this.envCodeLength,
+    };
   }
 
   /**
@@ -72,36 +111,39 @@ export class VerificationCodeService {
    * instead of running in a broken state.
    */
   private assertVerificationConfig(): void {
+    const codeTtlMs = this.envCodeTtlMs;
+    const cooldownTtlMs = this.envCooldownTtlMs;
+    const rateLimitMaxRequests = this.envRateLimitMaxRequests;
     const fail = (message: string): never => {
       // eslint-disable-next-line error-handling/no-bare-throw-error -- DI init: config validation is exempt
       throw new Error(message);
     };
 
-    if (this.codeTtlMs <= 0) {
+    if (codeTtlMs <= 0) {
       fail(
-        `verification.codeTtlMs must be positive (got ${String(this.codeTtlMs)})`,
+        `verification.codeTtlMs must be positive (got ${String(codeTtlMs)})`,
       );
     }
-    if (this.cooldownTtlMs <= 0) {
+    if (cooldownTtlMs <= 0) {
       fail(
-        `verification.cooldownMs must be positive (got ${String(this.cooldownTtlMs)})`,
+        `verification.cooldownMs must be positive (got ${String(cooldownTtlMs)})`,
       );
     }
-    if (this.cooldownTtlMs > this.codeTtlMs) {
+    if (cooldownTtlMs > codeTtlMs) {
       fail(
-        `verification.cooldownMs (${String(this.cooldownTtlMs)}) must not exceed codeTtlMs (${String(this.codeTtlMs)})`,
+        `verification.cooldownMs (${String(cooldownTtlMs)}) must not exceed codeTtlMs (${String(codeTtlMs)})`,
       );
     }
-    if (this.rateLimitMaxRequests <= 0) {
+    if (rateLimitMaxRequests <= 0) {
       fail(
-        `verification.rateLimitMax must be positive (got ${String(this.rateLimitMaxRequests)})`,
+        `verification.rateLimitMax must be positive (got ${String(rateLimitMaxRequests)})`,
       );
     }
   }
 
   /** Cooldown period in seconds (exposed for API response). */
   getCooldownSec(): number {
-    return Math.floor(this.cooldownTtlMs / 1000);
+    return Math.floor(this.readSettings().cooldownTtlMs / 1000);
   }
 
   /**
@@ -127,6 +169,7 @@ export class VerificationCodeService {
   assertClientRateLimit(
     clientKey = 'unknown',
   ): ResultAsync<void, DomainFailure> {
+    const settings = this.readSettings();
     const key = this.clientRateLimitKey(clientKey);
 
     // Prefer atomic Redis INCR when available — eliminates the race
@@ -134,9 +177,9 @@ export class VerificationCodeService {
     // count and bypass the limit.
     if (this.redisService.isAvailable) {
       return this.lift(
-        this.redisService.atomicIncrement(key, this.rateLimitWindowMs),
+        this.redisService.atomicIncrement(key, settings.rateLimitWindowMs),
       ).andThen((count) => {
-        if (count > this.rateLimitMaxRequests) {
+        if (count > settings.rateLimitMaxRequests) {
           return errAsync(
             createDomainFailure({
               kind: 'rate_limited',
@@ -144,7 +187,7 @@ export class VerificationCodeService {
               retryable: true,
               // Conservative estimate: the Redis window has no per-request
               // resetAt, so advertise the full window as the retry delay.
-              retryAfter: Math.ceil(this.rateLimitWindowMs / 1000),
+              retryAfter: Math.ceil(settings.rateLimitWindowMs / 1000),
             }),
           );
         }
@@ -162,13 +205,13 @@ export class VerificationCodeService {
         return this.lift(
           this.cacheSet(
             key,
-            { count: 1, resetAt: now + this.rateLimitWindowMs },
-            this.rateLimitWindowMs,
+            { count: 1, resetAt: now + settings.rateLimitWindowMs },
+            settings.rateLimitWindowMs,
           ),
         );
       }
 
-      if (bucket.count >= this.rateLimitMaxRequests) {
+      if (bucket.count >= settings.rateLimitMaxRequests) {
         return errAsync(
           createDomainFailure({
             kind: 'rate_limited',
@@ -235,6 +278,7 @@ export class VerificationCodeService {
     scene: VerificationScene,
     locale?: string,
   ): ResultAsync<void, DomainFailure> {
+    const settings = this.readSettings();
     const cooldownKey = this.cooldownKey(scene, email);
 
     return this.lift(this.cacheGet(cooldownKey)).andThen((inCooldown) => {
@@ -249,7 +293,7 @@ export class VerificationCodeService {
         );
       }
 
-      const code = this.generateCode();
+      const code = this.generateCode(settings.codeLength);
       const codeKey = this.codeKey(scene, email);
 
       // Store code hash in cache (never store plaintext codes)
@@ -257,11 +301,11 @@ export class VerificationCodeService {
         this.cacheSet(
           codeKey,
           this.hashCode(code, scene, email),
-          this.codeTtlMs,
+          settings.codeTtlMs,
         ),
       )
         .andThen(() =>
-          this.lift(this.cacheSet(cooldownKey, '1', this.cooldownTtlMs)),
+          this.lift(this.cacheSet(cooldownKey, '1', settings.cooldownTtlMs)),
         )
         .andThen(() =>
           this.lift(this.mailService.sendVerificationCode(email, code, locale)),
@@ -285,9 +329,9 @@ export class VerificationCodeService {
     });
   }
 
-  private generateCode(): string {
-    const num = randomInt(0, 10 ** this.codeLength);
-    return num.toString().padStart(this.codeLength, '0');
+  private generateCode(length: number): string {
+    const num = randomInt(0, 10 ** length);
+    return num.toString().padStart(length, '0');
   }
 
   private hashCode(code: string, scene: string, email: string): string {

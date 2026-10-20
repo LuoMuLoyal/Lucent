@@ -25,7 +25,8 @@ import type { I18nService } from 'nestjs-i18n';
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
-  VERIFICATION_CODE_LENGTH,
+  VERIFICATION_CODE_MAX_LENGTH,
+  VERIFICATION_CODE_MIN_LENGTH,
 } from './auth.decorators.js';
 
 /** i18n namespace holding validation copy. */
@@ -39,11 +40,11 @@ export const VALIDATION_COPY_SCOPE = 'validation';
  * means one place to update when a limit moves, instead of every call site
  * remembering to pass it.
  */
-const CODE_LIMITS: Record<string, number> = {
+const CODE_LIMITS: Record<string, number | string> = {
   'validation.field.too_long': 20,
   'validation.password.too_short': PASSWORD_MIN_LENGTH,
   'validation.password.too_long': PASSWORD_MAX_LENGTH,
-  'validation.code.invalid_length': VERIFICATION_CODE_LENGTH,
+  'validation.code.invalid_length': `${String(VERIFICATION_CODE_MIN_LENGTH)}-${String(VERIFICATION_CODE_MAX_LENGTH)}`,
 };
 
 /**
