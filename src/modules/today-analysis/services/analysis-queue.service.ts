@@ -56,7 +56,7 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
   ) {
-    super(TODAY_ANALYSIS_QUEUE_NAME, factory, cache, 1, async (job) =>
+    super(TODAY_ANALYSIS_QUEUE_NAME, factory, cache, async (job) =>
       this.processJob(
         job,
         (data) =>

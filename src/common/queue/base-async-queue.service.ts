@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import type { Queue, Job } from 'bullmq';
+import type { QueueName } from './queue-names.js';
 import { BullmqQueueFactory } from './queue.factory.js';
 
 /** Default TTL for cached job results (30 minutes). */
@@ -22,9 +23,8 @@ export interface AsyncJobResult<T> {
  * Configuration passed to {@link BaseAsyncQueueService} by subclasses.
  */
 export interface QueueConfig<TData, TResult> {
-  name: string;
+  name: QueueName;
   jobName: string;
-  workerConcurrency: number;
   processor: (job: {
     id: string | undefined;
     name: string;
@@ -53,10 +53,9 @@ export abstract class BaseAsyncQueueService<TData, TResult> {
   protected readonly queue: Queue<TData, AsyncJobResult<TResult>> | null;
 
   constructor(
-    private readonly queueName: string,
+    private readonly queueName: QueueName,
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) protected readonly cache: Cache,
-    concurrency: number,
     processor: (job: {
       id: string | undefined;
       data: TData;
@@ -65,7 +64,7 @@ export abstract class BaseAsyncQueueService<TData, TResult> {
     this.logger = new Logger(this.constructor.name);
     const handle = factory.createQueue<TData, AsyncJobResult<TResult>>({
       name: queueName,
-      workerConcurrency: concurrency,
+      runtimeKey: queueName,
       processor,
     });
     this.queue = handle.queue;

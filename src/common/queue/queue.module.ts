@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { BullmqQueueFactory } from './queue.factory.js';
+import { QueueRuntimeRegistry } from './queue-runtime.registry.js';
 
 /**
  * Global module that provides the shared {@link BullmqQueueFactory}.
@@ -9,7 +10,7 @@ import { BullmqQueueFactory } from './queue.factory.js';
  */
 @Global()
 @Module({
-  providers: [BullmqQueueFactory],
-  exports: [BullmqQueueFactory],
+  providers: [BullmqQueueFactory, QueueRuntimeRegistry],
+  exports: [BullmqQueueFactory, QueueRuntimeRegistry],
 })
 export class BullmqModule {}

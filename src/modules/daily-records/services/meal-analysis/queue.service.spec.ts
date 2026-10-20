@@ -32,7 +32,7 @@ describe('MealAnalysisQueueService', () => {
       expect(factory.createQueue).toHaveBeenCalledWith(
         expect.objectContaining({
           name: expect.any(String),
-          workerConcurrency: 1,
+          runtimeKey: expect.any(String),
         }),
       );
     });

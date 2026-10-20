@@ -28,7 +28,7 @@ export const queueRuntimeFields = {
     family: 'queue',
     min: MIN_CONCURRENCY,
     max: MAX_CONCURRENCY,
-    defaultValue: 1,
+    defaultValue: 2,
   }),
   [EnvKey.QUEUE_REMINDER_DISPATCH_CONCURRENCY]: numberField({
     family: 'queue',
@@ -70,19 +70,19 @@ export const queueRuntimeFields = {
     family: 'queue',
     min: MIN_CONCURRENCY,
     max: MAX_CONCURRENCY,
-    defaultValue: 1,
+    defaultValue: 2,
   }),
   [EnvKey.QUEUE_SUGGESTION_COPY_GENERATION_CONCURRENCY]: numberField({
     family: 'queue',
     min: MIN_CONCURRENCY,
     max: MAX_CONCURRENCY,
-    defaultValue: 1,
+    defaultValue: 3,
   }),
   [EnvKey.QUEUE_SUGGESTION_EXPLANATION_CONCURRENCY]: numberField({
     family: 'queue',
     min: MIN_CONCURRENCY,
     max: MAX_CONCURRENCY,
-    defaultValue: 1,
+    defaultValue: 2,
   }),
   [EnvKey.QUEUE_SUGGESTION_RECOMPUTE_CONCURRENCY]: numberField({
     family: 'queue',

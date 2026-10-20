@@ -6,6 +6,10 @@ import {
   QUEUE_METRICS_POLL_INTERVAL_MS,
 } from './queue.factory.js';
 import type { MetricsService } from '../metrics/metrics.service.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
+import { QueueRuntimeRegistry } from './queue-runtime.registry.js';
+import { QUEUE_NAMES } from './queue-names.js';
 describe('BullmqQueueFactory', () => {
   let configService: vi.Mocked<ConfigService>;
   let metricsService: vi.Mocked<MetricsService>;
@@ -29,13 +33,21 @@ describe('BullmqQueueFactory', () => {
   describe('isAvailable', () => {
     it('returns false when REDIS_URL is not set', () => {
       configService.get.mockReturnValue(undefined);
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        new QueueRuntimeRegistry(),
+      );
       expect(factory.isAvailable).toBe(false);
     });
 
     it('returns false when REDIS_URL is empty string', () => {
       configService.get.mockReturnValue('  ');
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        new QueueRuntimeRegistry(),
+      );
       expect(factory.isAvailable).toBe(false);
     });
 
@@ -43,7 +55,11 @@ describe('BullmqQueueFactory', () => {
       configService.get.mockImplementation((key: string) =>
         key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
       );
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        new QueueRuntimeRegistry(),
+      );
       expect(factory.isAvailable).toBe(true);
     });
   });
@@ -51,10 +67,15 @@ describe('BullmqQueueFactory', () => {
   describe('createQueue', () => {
     it('returns null queue and worker when Redis is not configured', () => {
       configService.get.mockReturnValue(undefined);
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        new QueueRuntimeRegistry(),
+      );
 
       const result = factory.createQueue({
         name: 'test-queue',
+        runtimeKey: QUEUE_NAMES.cron,
         processor: vi.fn(),
       });
 
@@ -66,16 +87,56 @@ describe('BullmqQueueFactory', () => {
       configService.get.mockImplementation((key: string) =>
         key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
       );
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        new QueueRuntimeRegistry(),
+      );
 
       const result = factory.createQueue({
         name: 'test-queue',
+        runtimeKey: QUEUE_NAMES.cron,
         processor: vi.fn(),
       });
 
       expect(result.queue).not.toBeNull();
       expect(result.worker).not.toBeNull();
       expect(result.queue?.name).toBe('test-queue');
+
+      await factory.onModuleDestroy();
+    });
+
+    it('prefers the snapshot concurrency over the construction-time option', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
+      );
+      const runtime: RuntimeConfigPort = {
+        getSnapshot: () => ({
+          values: { [EnvKey.QUEUE_CRON_CONCURRENCY]: 4 } as never,
+          version: 'test#1',
+          source: 'remote',
+          revision: 'test',
+          seq: 1,
+        }),
+        getVersion: () => 'test#1',
+        applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+        subscribe: () => () => undefined,
+      };
+      const registry = new QueueRuntimeRegistry(runtime);
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        registry,
+      );
+
+      const { worker } = factory.createQueue({
+        name: 'test-queue',
+        runtimeKey: QUEUE_NAMES.cron,
+        workerConcurrency: 5,
+        processor: vi.fn(),
+      });
+
+      expect(worker?.concurrency).toBe(4);
 
       await factory.onModuleDestroy();
     });
@@ -86,10 +147,16 @@ describe('BullmqQueueFactory', () => {
       configService.get.mockImplementation((key: string) =>
         key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
       );
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const registry = new QueueRuntimeRegistry();
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        registry,
+      );
 
       const { queue, worker } = factory.createQueue({
         name: 'test-queue',
+        runtimeKey: QUEUE_NAMES.cron,
         processor: vi.fn(),
       });
 
@@ -116,10 +183,16 @@ describe('BullmqQueueFactory', () => {
       configService.get.mockImplementation((key: string) =>
         key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
       );
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const registry = new QueueRuntimeRegistry();
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        registry,
+      );
 
       const { queue, worker } = factory.createQueue({
         name: 'test-queue',
+        runtimeKey: QUEUE_NAMES.cron,
         processor: vi.fn(),
       });
       const getJobCountsSpy = vi
@@ -147,10 +220,16 @@ describe('BullmqQueueFactory', () => {
       configService.get.mockImplementation((key: string) =>
         key === 'REDIS_URL' ? 'redis://127.0.0.1:6379' : undefined,
       );
-      const factory = new BullmqQueueFactory(configService, metricsService);
+      const registry = new QueueRuntimeRegistry();
+      const factory = new BullmqQueueFactory(
+        configService,
+        metricsService,
+        registry,
+      );
 
       const { queue, worker } = factory.createQueue({
         name: 'test-queue',
+        runtimeKey: QUEUE_NAMES.cron,
         processor: vi.fn(),
       });
       const getJobCountsSpy = vi

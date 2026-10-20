@@ -25,7 +25,7 @@ export class DataExportQueueService {
   ) {
     const handle = factory.createQueue<DataExportJobData>({
       name: QUEUE_NAME,
-      workerConcurrency: 1,
+      runtimeKey: QUEUE_NAME,
       processor: async (job) => {
         await this.processor.process(job.data);
       },

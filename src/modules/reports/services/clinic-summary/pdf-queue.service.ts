@@ -42,7 +42,7 @@ export class ClinicSummaryPdfQueueService extends BaseAsyncQueueService<
     @Inject(ClinicSummaryPdfService)
     clinicSummaryPdfService: ClinicSummaryPdfService,
   ) {
-    super(QUEUE_NAME, factory, cache, 1, async (job) =>
+    super(QUEUE_NAME, factory, cache, async (job) =>
       this.processJob(
         job,
         async (data) => ({

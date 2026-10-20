@@ -11,6 +11,8 @@ import { BullMQOtel } from 'bullmq-otel';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
 import { parseRedisUrl } from '../helpers/infra/redis-url.js';
 import { MetricsService } from '../metrics/metrics.service.js';
+import { QueueRuntimeRegistry } from './queue-runtime.registry.js';
+import type { QueueName } from './queue-names.js';
 
 /** Common defaults shared across all BullMQ queues. */
 export const DEFAULT_QUEUE_OPTIONS: JobsOptions = {
@@ -31,7 +33,13 @@ export const QUEUE_METRICS_POLL_INTERVAL_MS = 30_000;
 
 export interface QueueCreateOptions<TData, TResult> {
   name: string;
+  /**
+   * Queue the worker's concurrency knob belongs to. Required so that publishing
+   * a concurrency value always lands on the worker it was meant for.
+   */
+  runtimeKey: QueueName;
   defaultJobOptions?: JobsOptions;
+  /** Construction-time concurrency; the snapshot value wins when present. */
   workerConcurrency?: number;
   processor: (job: {
     id: string | undefined;
@@ -44,6 +52,7 @@ interface ManagedQueue {
   queue: Queue;
   worker: Worker;
   name: string;
+  runtimeKey: QueueName;
   metricsInterval: ReturnType<typeof setInterval>;
 }
 
@@ -74,6 +83,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
+    private readonly runtimeRegistry: QueueRuntimeRegistry,
   ) {
     const url = this.configService.get<string>(EnvKey.REDIS_URL);
     const skipRedis =
@@ -155,7 +165,10 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       },
       {
         connection: workerConnection,
-        concurrency: options.workerConcurrency ?? 1,
+        concurrency: this.runtimeRegistry.readConcurrency(
+          options.runtimeKey,
+          options.workerConcurrency ?? 1,
+        ),
         ...this.telemetryOptions,
         ...DEFAULT_WORKER_RETENTION,
       },
@@ -183,10 +196,12 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       );
     });
 
+    this.runtimeRegistry.register(options.runtimeKey, worker);
     this.managed.push({
       queue,
       worker,
       name: options.name,
+      runtimeKey: options.runtimeKey,
       metricsInterval: this.startMetricsPolling(queue, options.name),
     });
     this.queues.push(queue);
@@ -199,6 +214,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     await Promise.all(
       this.managed.map(async (m) => {
         clearInterval(m.metricsInterval);
+        this.runtimeRegistry.unregister(m.runtimeKey);
         // 强制关闭 worker:不等待当前 job 完成/重试,否则一个卡在 backoff
         // 重试循环的 job 会无限阻塞优雅停机(app.close 挂起,CI 里 reports
         // 套件 afterAll 实测卡 120s+)。停机语义 = 尽快释放连接。

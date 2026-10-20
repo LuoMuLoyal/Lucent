@@ -1,6 +1,7 @@
 import type { Cache } from 'cache-manager';
 import type { Job } from 'bullmq';
 import type { BullmqQueueFactory } from './queue.factory.js';
+import { QUEUE_NAMES } from './queue-names.js';
 import {
   BaseAsyncQueueService,
   DEFAULT_RESULT_TTL_MS,
@@ -74,7 +75,7 @@ class TestQueueService extends BaseAsyncQueueService<TestJobData, TestResult> {
     cache: Cache,
     executeMock?: ReturnType<typeof vi.fn>,
   ) {
-    super('test-queue', factory, cache, 2, async (job) =>
+    super(QUEUE_NAMES.mealAnalysis, factory, cache, async (job) =>
       this.processJob(job, (data) => this.execute(data), 'Test job failed'),
     );
     this.executeMock = executeMock ?? vi.fn();
@@ -151,7 +152,7 @@ describe('BaseAsyncQueueService', () => {
       const service = new TestQueueService(factory, cache);
 
       expect(service.testResultKey('job-123')).toBe(
-        'async-job:test-queue:job-123',
+        'async-job:lucent-meal-analysis:job-123',
       );
     });
   });
@@ -170,7 +171,7 @@ describe('BaseAsyncQueueService', () => {
       await service.testStoreResult('job-1', result);
 
       expect(set).toHaveBeenCalledWith(
-        'async-job:test-queue:job-1',
+        'async-job:lucent-meal-analysis:job-1',
         result,
         DEFAULT_RESULT_TTL_MS,
       );
@@ -189,7 +190,7 @@ describe('BaseAsyncQueueService', () => {
       await service.testStoreResult('job-2', result, 5000);
 
       expect(set).toHaveBeenCalledWith(
-        'async-job:test-queue:job-2',
+        'async-job:lucent-meal-analysis:job-2',
         result,
         5000,
       );
@@ -212,7 +213,7 @@ describe('BaseAsyncQueueService', () => {
       expect(result).toEqual({ status: 'completed', result: { doubled: 10 } });
       expect(executeMock).toHaveBeenCalledWith({ userId: 'u1', value: 5 });
       expect(set).toHaveBeenCalledWith(
-        'async-job:test-queue:job-success',
+        'async-job:lucent-meal-analysis:job-success',
         { status: 'completed', result: { doubled: 10 } },
         DEFAULT_RESULT_TTL_MS,
       );
@@ -232,7 +233,7 @@ describe('BaseAsyncQueueService', () => {
 
       expect(result).toEqual({ status: 'failed', error: 'kaboom' });
       expect(set).toHaveBeenCalledWith(
-        'async-job:test-queue:job-fail',
+        'async-job:lucent-meal-analysis:job-fail',
         { status: 'failed', error: 'kaboom' },
         DEFAULT_RESULT_TTL_MS,
       );

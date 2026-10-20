@@ -38,7 +38,7 @@ export class RecomputeQueueService {
   ) {
     const handle = factory.createQueue<RecomputeJobData>({
       name: RECOMPUTE_QUEUE_NAME,
-      workerConcurrency: 1,
+      runtimeKey: RECOMPUTE_QUEUE_NAME,
       processor: async (job) => this.worker.process(job.data),
     });
     this.queue = handle.queue;

@@ -24,7 +24,7 @@ export class MealAnalysisQueueService {
   ) {
     const handle = factory.createQueue<MealAnalysisJobData>({
       name: MEAL_ANALYSIS_QUEUE_NAME,
-      workerConcurrency: 1,
+      runtimeKey: MEAL_ANALYSIS_QUEUE_NAME,
       processor: async (job) => {
         await this.mealAnalysisWorkerService.process(job.data);
       },

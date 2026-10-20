@@ -1,5 +1,15 @@
-import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 import { BullmqQueueFactory } from './queue.factory.js';
 import { QUEUE_NAMES } from './queue-names.js';
 import {
@@ -54,10 +64,13 @@ const JOB_WEEKLY_INSIGHT = 'weekly-insight';
  * share [`CRON_QUEUE_NAME`] with `workerConcurrency: 2`.
  */
 @Injectable()
-export class CronJobsService implements OnModuleInit {
+export class CronJobsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CronJobsService.name);
   private cronQueue: Queue | null = null;
   private reminderQueue: Queue | null = null;
+  /** Cron pattern currently registered for the meal-analysis reaper. */
+  private mealReapCron: string | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly factory: BullmqQueueFactory,
@@ -66,6 +79,9 @@ export class CronJobsService implements OnModuleInit {
     private readonly reminderSchedulerService: ReminderSchedulerService,
     private readonly weeklyInsightSchedulerService: WeeklyInsightSchedulerService,
     private readonly mealAnalysisSweeperService: MealAnalysisSweeperService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -77,6 +93,7 @@ export class CronJobsService implements OnModuleInit {
     // Low-frequency queue: data-retention (daily) + lifecycle (every 5 min)
     const cronHandle = this.factory.createQueue({
       name: CRON_QUEUE_NAME,
+      runtimeKey: CRON_QUEUE_NAME,
       workerConcurrency: 2,
       processor: async (job) => {
         switch (job.name) {
@@ -101,6 +118,7 @@ export class CronJobsService implements OnModuleInit {
     // High-frequency queue: reminder-dispatch (every minute)
     const reminderHandle = this.factory.createQueue({
       name: REMINDER_QUEUE_NAME,
+      runtimeKey: REMINDER_QUEUE_NAME,
       processor: async (job) => {
         switch (job.name) {
           case JOB_REMINDER:
@@ -116,6 +134,20 @@ export class CronJobsService implements OnModuleInit {
     this.reminderQueue = reminderHandle.queue;
 
     await this.registerSchedulers();
+
+    this.unsubscribe =
+      this.runtimeConfig?.subscribe((snapshot) => {
+        const pattern = snapshot.values[EnvKey.MEAL_ANALYSIS_REAP_CRON];
+        if (typeof pattern !== 'string' || pattern === this.mealReapCron) {
+          return;
+        }
+        void this.reapplyMealReapCron(pattern);
+      }) ?? null;
+  }
+
+  onModuleDestroy(): void {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
   }
 
   /**
@@ -131,6 +163,7 @@ export class CronJobsService implements OnModuleInit {
    */
   private async registerSchedulers(): Promise<void> {
     const registrations: Promise<unknown>[] = [];
+    this.mealReapCron = this.readMealReapCron();
 
     if (this.cronQueue != null) {
       const cronQueue = this.cronQueue;
@@ -156,7 +189,7 @@ export class CronJobsService implements OnModuleInit {
         ),
         cronQueue.upsertJobScheduler(
           SCHEDULER_MEAL_ANALYSIS_REAP,
-          { pattern: MEAL_ANALYSIS_REAP_CRON, tz: 'UTC' },
+          { pattern: this.mealReapCron, tz: 'UTC' },
           { name: MEAL_ANALYSIS_REAP_JOB_NAME, data: {} },
         ),
       );
@@ -179,6 +212,43 @@ export class CronJobsService implements OnModuleInit {
       this.logger.error(
         'Failed to register cron repeatable jobs; scheduled tasks will not run until next restart',
         error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  /** Published cron when present, otherwise the code baseline. */
+  private readMealReapCron(): string {
+    const pattern =
+      this.runtimeConfig?.getSnapshot().values[EnvKey.MEAL_ANALYSIS_REAP_CRON];
+    return typeof pattern === 'string' ? pattern : MEAL_ANALYSIS_REAP_CRON;
+  }
+
+  /**
+   * Re-upserts the reaper's repeatable job with the published pattern. BullMQ
+   * keys repeatable jobs by scheduler id, so this replaces the rule in place
+   * instead of leaving the previous schedule running.
+   *
+   * A failure here is a warning: the old rule keeps firing, and the next
+   * snapshot push retries the same call.
+   */
+  private async reapplyMealReapCron(pattern: string): Promise<void> {
+    const queue = this.cronQueue;
+    if (queue == null) {
+      return;
+    }
+    try {
+      await queue.upsertJobScheduler(
+        SCHEDULER_MEAL_ANALYSIS_REAP,
+        { pattern, tz: 'UTC' },
+        { name: MEAL_ANALYSIS_REAP_JOB_NAME, data: {} },
+      );
+      this.mealReapCron = pattern;
+      this.logger.log(`Meal-analysis reaper rescheduled: ${pattern}`);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to reschedule the meal-analysis reaper to "${pattern}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   }

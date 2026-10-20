@@ -36,7 +36,7 @@ export class SuggestionCopyQueueService extends BaseAsyncQueueService<
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(SuggestionCopyService) copyService: SuggestionCopyService,
   ) {
-    super(QUEUE_NAME, factory, cache, 3, async (job) =>
+    super(QUEUE_NAME, factory, cache, async (job) =>
       this.processJob(
         job,
         (data) => this.copyService.generateViaLlm(data),

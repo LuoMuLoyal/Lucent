@@ -40,7 +40,7 @@ export class ReportSummaryQueueService extends BaseAsyncQueueService<
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(ReportsAiSummaryService) summaryService: ReportsAiSummaryService,
   ) {
-    super(QUEUE_NAME, factory, cache, 2, async (job) =>
+    super(QUEUE_NAME, factory, cache, async (job) =>
       this.processJob(
         job,
         (data) =>

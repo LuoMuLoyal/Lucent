@@ -43,7 +43,7 @@ export class MedicineRecognitionQueueService extends BaseAsyncQueueService<
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(MedicinesService) medicinesService: MedicinesService,
   ) {
-    super(QUEUE_NAME, factory, cache, 1, async (job) =>
+    super(QUEUE_NAME, factory, cache, async (job) =>
       this.processJob(
         job,
         (data) => this.medicinesService.recognizeMedicine(data.imageUrl),

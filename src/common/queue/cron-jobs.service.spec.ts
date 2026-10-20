@@ -1,4 +1,6 @@
 import { Logger } from '@nestjs/common';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 import type { BullmqQueueFactory } from './queue.factory.js';
 import type { MealAnalysisSweeperService } from '../../modules/daily-records/index.js';
 import type { DataRetentionService } from '../../modules/data-retention/index.js';
@@ -70,6 +72,40 @@ function buildFactory(
       createQueue,
     } as unknown as BullmqQueueFactory,
     captured,
+  };
+}
+
+function runtimeWith() {
+  const listeners = new Set<
+    (next: ReturnType<RuntimeConfigPort['getSnapshot']>) => void
+  >();
+  const snapshot = (values: Record<string, unknown>) => ({
+    values: values as never,
+    version: 'test#1',
+    source: 'remote' as const,
+    revision: 'test',
+    seq: 1,
+  });
+  let current = snapshot({});
+  const port: RuntimeConfigPort = {
+    getSnapshot: () => current,
+    getVersion: () => current.version,
+    applyDocument: () => ({ ok: true, version: current.version, changed: [] }),
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+  return {
+    port,
+    publish(values: Record<string, unknown>): void {
+      current = snapshot(values);
+      for (const listener of listeners) {
+        listener(current);
+      }
+    },
   };
 }
 
@@ -391,6 +427,100 @@ describe('CronJobsService', () => {
         data: {},
       });
       expect(dataRetentionService.cleanupExpiredData).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('runtime config', () => {
+    it('re-upserts the reaper scheduler when the published cron changes', async () => {
+      const built = buildFactory(true);
+      factory = built.factory;
+      const svcs = buildServices();
+      const runtime = runtimeWith();
+
+      service = new CronJobsService(
+        factory,
+        svcs.dataRetentionService,
+        svcs.lifecycleService,
+        svcs.reminderSchedulerService,
+        svcs.weeklyInsightSchedulerService,
+        svcs.mealAnalysisSweeperService,
+        runtime.port,
+      );
+      await service.onModuleInit();
+
+      const cronQueue = built.captured.find(
+        (queue) => queue.name === CRON_QUEUE_NAME,
+      );
+      cronQueue?.upsertJobScheduler.mockClear();
+
+      runtime.publish({ [EnvKey.MEAL_ANALYSIS_REAP_CRON]: '*/15 * * * *' });
+
+      expect(cronQueue?.upsertJobScheduler).toHaveBeenCalledWith(
+        'meal-analysis-reap',
+        { pattern: '*/15 * * * *', tz: 'UTC' },
+        { name: 'reap-stale-meal-analyses', data: {} },
+      );
+      service.onModuleDestroy();
+    });
+
+    it('does not touch the scheduler when the pattern is unchanged', async () => {
+      const built = buildFactory(true);
+      factory = built.factory;
+      const svcs = buildServices();
+      const runtime = runtimeWith();
+
+      service = new CronJobsService(
+        factory,
+        svcs.dataRetentionService,
+        svcs.lifecycleService,
+        svcs.reminderSchedulerService,
+        svcs.weeklyInsightSchedulerService,
+        svcs.mealAnalysisSweeperService,
+        runtime.port,
+      );
+      // 已注册的模式来自基线；再发布同一个值不应重排。
+      await service.onModuleInit();
+      const cronQueue = built.captured.find(
+        (queue) => queue.name === CRON_QUEUE_NAME,
+      );
+      cronQueue?.upsertJobScheduler.mockClear();
+
+      runtime.publish({ [EnvKey.QUEUE_CRON_CONCURRENCY]: 4 });
+
+      expect(cronQueue?.upsertJobScheduler).not.toHaveBeenCalled();
+      service.onModuleDestroy();
+    });
+
+    it('warns instead of throwing when the reschedule fails', async () => {
+      const built = buildFactory(true);
+      factory = built.factory;
+      const svcs = buildServices();
+      const runtime = runtimeWith();
+
+      service = new CronJobsService(
+        factory,
+        svcs.dataRetentionService,
+        svcs.lifecycleService,
+        svcs.reminderSchedulerService,
+        svcs.weeklyInsightSchedulerService,
+        svcs.mealAnalysisSweeperService,
+        runtime.port,
+      );
+      await service.onModuleInit();
+      const cronQueue = built.captured.find(
+        (queue) => queue.name === CRON_QUEUE_NAME,
+      );
+      cronQueue?.upsertJobScheduler.mockRejectedValueOnce(
+        new Error('Redis connection lost'),
+      );
+
+      runtime.publish({ [EnvKey.MEAL_ANALYSIS_REAP_CRON]: '0 * * * *' });
+      await Promise.resolve();
+
+      expect(vi.mocked(Logger.prototype.warn)).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to reschedule'),
+      );
+      service.onModuleDestroy();
     });
   });
 
