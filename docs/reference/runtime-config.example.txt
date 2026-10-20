@@ -281,8 +281,9 @@ ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS=45000
 ASSISTANT_RETRIEVAL_TOOL_TIMEOUT_MS=65000
 
 # 单个图节点（一轮完整的工具调用 + 生成）的总超时预算。
-# 必须大于上面任一单项工具超时，否则节点会在工具返回前就被取消。
-ASSISTANT_NODE_TIMEOUT_MS=75000
+# 必须大于上面任一单项工具超时，否则节点会在工具返回前就被取消；
+# 调大工具超时时要同步调大本键（默认 = 模型超时 + 最大工具预算 + 5 秒）。
+ASSISTANT_NODE_TIMEOUT_MS=80000
 
 # 对话记忆抽取（把本轮对话里的长期事实写进记忆）的超时。
 # 默认比普通模型调用多 1 秒。

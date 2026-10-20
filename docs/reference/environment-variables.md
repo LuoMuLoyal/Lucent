@@ -347,6 +347,20 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
   占位符用当次请求的值填充；日志只记 12 位 sha256 指纹，不记提示词正文。
 - Embedding has no chat model, so no `AI_EMBEDDING_THINKING` exists.
 
+检索与助手预算家族的运行时覆盖：
+
+- 19 个 `LIGHTRAG_*` / `SEMANTICA_*` / `ASSISTANT_*` 预算键同样是热键，在**每次调用时**
+  解析，远程文档优先于调用点参数与代码常量。两个 sidecar 的 `*_API_KEY` 不在白名单，
+  密钥仍只从 `.env` 读。
+- 工具参数 schema 与执行侧夹紧读同一份快照：`buildToolDefinitions(names, budgets)` 每次
+  构建时按当前预算生成 `maximum` 与描述里的 `(1-N)`，模型看到的窗口与服务端实际接受的
+  窗口因此一致；发布更小的上限后，下一次请求即可生效。
+- `ASSISTANT_NODE_TIMEOUT_MS`（默认 80s）是单个 agent 节点的整体上限，须大于该节点可能
+  触发的最大工具预算（默认 65s）加模型超时（10s）。调大任一工具超时要同步调大本键，
+  否则节点先取消，得到的是节点级失败而非工具级信封。
+- `LIGHTRAG_ENABLED` / `SEMANTICA_ENABLED` 也可热关：关闭后下一次检索直接返回"未配置"
+  信封，`GET /admin/dependencies` 同步反映当前发布值。
+
 `AI_PROVIDER` currently supports only `openai-compatible`.
 
 Each role is independent. If a role is configured, that role must provide all of

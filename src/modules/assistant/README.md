@@ -85,6 +85,8 @@ sidecar**，Lucent 只做参数校验与 envelope 归一：
   （`local`/`global`/`hybrid`/`mix`）**只对已建图的来源开放**，白名单来自
   `LIGHTRAG_GRAPH_SOURCES`（默认 `leaflet`）；`bypass` 与未知 mode 直接拒绝；
   `verifiability` 按 `source` 服务端写入（`qa` = `open_corpus`，`leaflet` = `citable`）。
+  参数 schema 的 `limit` 上界与执行侧夹紧读同一份运行时快照（`LIGHTRAG_MAX_LIMIT`），
+  每次构建工具定义时重算。
 - **图模式的启用开关是运维事实，不是代码分支**：`LIGHTRAG_GRAPH_SOURCES` 表达的是
   "**这些来源的图已经建好了**"（建图是独立长任务，约 $0.057/doc、约 11.5 s/chunk ——
   后者是抽取侧换成便宜模型 + 关 thinking + 开 `MAX_ASYNC_LLM` 之后的实测值）。没建图却放行图模式的
@@ -162,8 +164,10 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   `toolDetails` 投影 `citations` 与 `executedQuery`（取自 `result.cypher`，
   `reason_over_rules` 无此字段故不下发），来源条可点击复制 id 去复核。生成侧与
   prompt 侧的细节见 §"生成侧的硬约束"。
-- **图节点超时必须高于工具预算**：`ASSISTANT_NODE_TIMEOUT_MS` = 模型超时 + 一次
-  工具预算（默认 60s）。原先节点默认取 `AI_MODEL_TIMEOUT_MS`（10s），比
+- **图节点超时必须高于工具预算**：`ASSISTANT_NODE_TIMEOUT_MS` = 模型超时（10s）+ 最大
+  单次工具预算（默认 65s）+ 余量，当前默认 80s；工具超时与节点超时都从运行时快照按次
+  读取（`readToolLimitBudgets()` / `readNodeTimeoutMs()`），调大工具预算要同步调大本键。
+  原先节点默认取 `AI_MODEL_TIMEOUT_MS`（10s），比
   `reason_over_ontology` 自己的 45s 预算还小——实测表现是慢查询被节点超时掐断、
   LangGraph 重试三次，客户端只拿到每次尝试的半截答案，最后以
   `Node "agent" exceeded its run timeout` 结束。
