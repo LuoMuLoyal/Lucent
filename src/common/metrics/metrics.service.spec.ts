@@ -2,6 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { MetricsService } from './metrics.service.js';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 
 describe('MetricsService', () => {
   let service: MetricsService;
@@ -61,6 +62,37 @@ describe('MetricsService', () => {
     it('returns false in test environment regardless of METRICS_ENABLED', () => {
       const svc = createService('test', 'true');
       expect(svc.is_enabled()).toBe(false);
+    });
+  });
+
+  describe('is_enabled with runtime-config', () => {
+    it('follows the published value without restart', () => {
+      const config = {
+        get: vi.fn((key: string, fallback?: unknown) => {
+          if (key === (EnvKey.NODE_ENV as string)) return 'development';
+          if (key === (EnvKey.METRICS_ENABLED as string)) return 'true';
+          return fallback;
+        }),
+      } as unknown as ConfigService;
+      let enabled = false;
+      const runtimeConfig: RuntimeConfigPort = {
+        getSnapshot: () =>
+          ({
+            values: { [EnvKey.METRICS_ENABLED]: enabled },
+            version: 'test#1',
+            source: 'remote',
+            revision: 'test',
+            seq: 1,
+          }) as unknown as ReturnType<RuntimeConfigPort['getSnapshot']>,
+        getVersion: () => 'test#1',
+        applyDocument: vi.fn(),
+        subscribe: () => vi.fn(),
+      };
+      const svc = new MetricsService(config, runtimeConfig);
+
+      expect(svc.is_enabled()).toBe(false);
+      enabled = true;
+      expect(svc.is_enabled()).toBe(true);
     });
   });
 

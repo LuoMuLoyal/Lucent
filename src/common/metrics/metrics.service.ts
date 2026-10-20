@@ -1,4 +1,9 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Optional,
+  type OnApplicationBootstrap,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   collectDefaultMetrics,
@@ -8,6 +13,8 @@ import {
   Registry,
 } from '@prometheus-io/client';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 
 /**
  * Centralised Prometheus metrics registry for the Lucent backend.
@@ -25,7 +32,7 @@ import { EnvKey } from '../../config/env/env-keys.enum.js';
 @Injectable()
 export class MetricsService implements OnApplicationBootstrap {
   private readonly registry: Registry;
-  private readonly enabled: boolean;
+  private readonly envEnabled: boolean;
 
   // ── HTTP metrics ──────────────────────────────────────────────────────────
 
@@ -76,12 +83,17 @@ export class MetricsService implements OnApplicationBootstrap {
 
   private readonly auditLogWriteFailures: Counter<'action'>;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {
     this.registry = new Registry();
 
     const nodeEnv =
       this.configService.get<string>(EnvKey.NODE_ENV) ?? 'development';
-    this.enabled =
+    this.envEnabled =
       this.configService.get<string>(EnvKey.METRICS_ENABLED) !== 'false' &&
       nodeEnv !== 'test';
 
@@ -242,17 +254,25 @@ export class MetricsService implements OnApplicationBootstrap {
     });
   }
 
+  /**
+   * Always registers the default collectors: the switch can be turned on later
+   * via the configuration center, and registering them lazily at that point
+   * would need a second bootstrap pass. The switch gates recording and the
+   * `/metrics` endpoint instead.
+   */
   onApplicationBootstrap(): void {
-    if (!this.enabled) {
-      return;
-    }
-
     collectDefaultMetrics({ register: this.registry });
   }
 
-  /** Returns true when metrics collection is active. */
+  /**
+   * Returns true when metrics collection is active. The published value is
+   * read per call (an in-memory snapshot lookup, no network); a change takes
+   * effect on the next recorded metric and on the next `/metrics` scrape.
+   */
   is_enabled(): boolean {
-    return this.enabled;
+    const published =
+      this.runtimeConfig?.getSnapshot().values[EnvKey.METRICS_ENABLED];
+    return typeof published === 'boolean' ? published : this.envEnabled;
   }
 
   /** Returns the Prometheus exposition-format text. */
@@ -277,7 +297,7 @@ export class MetricsService implements OnApplicationBootstrap {
     status: number,
     durationSeconds: number,
   ): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     const labels = { method, route, status: String(status) };
@@ -290,7 +310,7 @@ export class MetricsService implements OnApplicationBootstrap {
    * Called from queue service event listeners.
    */
   recordBullmqJob(queue: string, status: 'completed' | 'failed'): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     this.bullmqJobsTotal.inc({ queue, status });
@@ -301,7 +321,7 @@ export class MetricsService implements OnApplicationBootstrap {
    * Called from queue service event listeners.
    */
   setBullmqActiveJobs(queue: string, count: number): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     this.bullmqActiveJobs.set({ queue }, count);
@@ -312,7 +332,7 @@ export class MetricsService implements OnApplicationBootstrap {
    * Called from queue service event listeners.
    */
   setBullmqWaitingJobs(queue: string, count: number): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     this.bullmqWaitingJobs.set({ queue }, count);
@@ -328,7 +348,7 @@ export class MetricsService implements OnApplicationBootstrap {
     status: 'success' | 'error',
     durationSeconds: number,
   ): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     this.llmCallDuration.observe({ role, model, status }, durationSeconds);
@@ -344,7 +364,7 @@ export class MetricsService implements OnApplicationBootstrap {
     type: 'prompt' | 'completion',
     count: number,
   ): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     this.llmTokensUsed.inc({ role, model, type }, count);
@@ -355,7 +375,7 @@ export class MetricsService implements OnApplicationBootstrap {
    * Used to observe cache hit rates for the LangGraph runtime.
    */
   recordCacheAccess(kind: 'node' | 'tool' | 'response', hit: boolean): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     this.assistantCacheAccesses.inc({ kind, hit: String(hit) });
@@ -368,7 +388,7 @@ export class MetricsService implements OnApplicationBootstrap {
    * 不知道为什么"，只能在日志里翻。
    */
   recordToolCitationsDropped(reason: string): void {
-    if (!this.enabled) {
+    if (!this.is_enabled()) {
       return;
     }
     this.assistantToolCitationsDropped.inc({ reason });
@@ -376,7 +396,7 @@ export class MetricsService implements OnApplicationBootstrap {
 
   /** 每轮消息的路由来源（正常走模型 / 降级成全开）。 */
   recordAssistantIntentRouting(source: 'llm' | 'degraded_all_tools'): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.assistantIntentRouting.inc({ source });
   }
 
@@ -385,7 +405,7 @@ export class MetricsService implements OnApplicationBootstrap {
     tool: string,
     outcome: 'ok' | 'timeout' | 'error',
   ): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.assistantToolExecutions.inc({ tool, outcome });
   }
 
@@ -395,17 +415,17 @@ export class MetricsService implements OnApplicationBootstrap {
    * 后两者必须能分开看 —— 把"服务没配好"混进 empty 正是生产事故里最难查的一类。
    */
   recordAssistantToolEmpty(reason: 'empty' | 'partial' | 'unavailable'): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.assistantToolEmpty.inc({ reason });
   }
 
   recordSuggestionRecomputeEnqueue(): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.suggestionRecomputeEnqueues.inc();
   }
 
   recordSuggestionRecomputeDedupe(): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.suggestionRecomputeDedupes.inc();
   }
 
@@ -413,22 +433,22 @@ export class MetricsService implements OnApplicationBootstrap {
     status: 'success' | 'failed',
     durationSeconds: number,
   ): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.suggestionRecomputeDuration.observe({ status }, durationSeconds);
   }
 
   recordSuggestionMaterializationReady(): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.suggestionMaterializationReady.inc();
   }
 
   recordSuggestionMaterializationFailed(): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.suggestionMaterializationFailed.inc();
   }
 
   recordSuggestionStaleAge(ageSeconds: number): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.suggestionStaleAge.observe(ageSeconds);
   }
 
@@ -438,7 +458,7 @@ export class MetricsService implements OnApplicationBootstrap {
    * path in `ProductEventsService.emitServerEvent`.
    */
   recordProductEventEmissionFailure(eventName: string): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.productEventEmissionFailures.inc({ event: eventName });
   }
 
@@ -448,7 +468,7 @@ export class MetricsService implements OnApplicationBootstrap {
    * `AuditLogService.logFireAndForget`.
    */
   recordAuditLogWriteFailure(action: string): void {
-    if (!this.enabled) return;
+    if (!this.is_enabled()) return;
     this.auditLogWriteFailures.inc({ action });
   }
 }
