@@ -1,7 +1,10 @@
 import { ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { AssistantToolName } from '../../tools/shared/tool-types.js';
-import { buildToolDefinitions } from '../../tools/shared/tool-definitions.js';
+import {
+  buildToolDefinitions,
+  type ToolLimitBudgets,
+} from '../../tools/shared/tool-definitions.js';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types.js';
 import type { AssistantToolCall } from '../../types/assistant.types.js';
 import type { AssistantRuntimeState } from './state.js';
@@ -22,6 +25,8 @@ export type RuntimeNode = (
 export function createAgentNode(deps: {
   createModel: () => BaseChatModel;
   onText?: (text: string) => void | Promise<void>;
+  /** Advertised tool maxima for this turn; code baselines when absent. */
+  toolBudgets?: () => ToolLimitBudgets;
 }): RuntimeNode {
   return async (state) => {
     if (state.relevantTools.length === 0) {
@@ -33,7 +38,10 @@ export function createAgentNode(deps: {
     }
 
     const model = deps.createModel();
-    const toolDefs = buildToolDefinitions(state.relevantTools);
+    const toolDefs = buildToolDefinitions(
+      state.relevantTools,
+      deps.toolBudgets?.(),
+    );
     const boundModel = model.bindTools?.(toolDefs);
 
     if (boundModel == null || typeof boundModel.stream !== 'function') {

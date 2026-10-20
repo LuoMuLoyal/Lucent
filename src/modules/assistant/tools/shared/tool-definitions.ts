@@ -37,6 +37,27 @@ interface ToolDefinition {
   };
 }
 
+/**
+ * Upper bounds advertised to the model, resolved from the runtime snapshot.
+ *
+ * The schema maximum is part of the contract: if it says 8 while the server
+ * would accept 100, the model never asks for more than 8 and the operator's
+ * change has no effect. The advertised value and the server-side clamp
+ * therefore read the same snapshot key.
+ */
+export interface ToolLimitBudgets {
+  readonly lightragMaxLimit: number;
+  readonly semanticaMaxLimit: number;
+  readonly semanticaReasonMaxLimit: number;
+}
+
+/** Code baselines; mirrored by the runtime schema, used when no snapshot exists. */
+export const CODE_TOOL_LIMIT_BUDGETS: ToolLimitBudgets = {
+  lightragMaxLimit: LIGHTRAG_MAX_LIMIT,
+  semanticaMaxLimit: SEMANTICA_MAX_LIMIT,
+  semanticaReasonMaxLimit: SEMANTICA_REASON_MAX_LIMIT,
+};
+
 const noParams = {
   type: 'object',
   properties: {},
@@ -71,7 +92,7 @@ const MEAL_DIGEST_PARAMETERS = {
   additionalProperties: false,
 } as const;
 
-const CN_MEDICINE_KNOWLEDGE_PARAMETERS = {
+const buildCnMedicineKnowledgeParameters = (budgets: ToolLimitBudgets) => ({
   type: 'object',
   properties: {
     query: {
@@ -93,13 +114,13 @@ const CN_MEDICINE_KNOWLEDGE_PARAMETERS = {
     limit: {
       type: 'integer',
       minimum: 1,
-      maximum: LIGHTRAG_MAX_LIMIT,
-      description: `Maximum number of evidence chunks to return (1-${String(LIGHTRAG_MAX_LIMIT)}). Defaults to ${String(LIGHTRAG_DEFAULT_LIMIT)}.`,
+      maximum: budgets.lightragMaxLimit,
+      description: `Maximum number of evidence chunks to return (1-${String(budgets.lightragMaxLimit)}). Defaults to ${String(LIGHTRAG_DEFAULT_LIMIT)}.`,
     },
   },
   required: ['query', 'source'],
   additionalProperties: false,
-} as const;
+});
 
 /**
  * 本体推理工具的参数。
@@ -107,7 +128,7 @@ const CN_MEDICINE_KNOWLEDGE_PARAMETERS = {
  * `question` 是模型真正要表达的东西（一次一个药理问题），服务端不做文本启发式
  * 猜测；`limit` 的上界与服务端强制的上界是同一个常量，模型问不到会被静默裁剪的窗口。
  */
-const ONTOLOGY_REASONING_PARAMETERS = {
+const buildOntologyReasoningParameters = (budgets: ToolLimitBudgets) => ({
   type: 'object',
   properties: {
     question: {
@@ -118,13 +139,13 @@ const ONTOLOGY_REASONING_PARAMETERS = {
     limit: {
       type: 'integer',
       minimum: 1,
-      maximum: SEMANTICA_MAX_LIMIT,
-      description: `Maximum number of graph rows to return (1-${String(SEMANTICA_MAX_LIMIT)}). Defaults to ${String(SEMANTICA_DEFAULT_LIMIT)}.`,
+      maximum: budgets.semanticaMaxLimit,
+      description: `Maximum number of graph rows to return (1-${String(budgets.semanticaMaxLimit)}). Defaults to ${String(SEMANTICA_DEFAULT_LIMIT)}.`,
     },
   },
   required: ['question'],
   additionalProperties: false,
-} as const;
+});
 
 /**
  * 规则推理工具的参数。
@@ -137,7 +158,7 @@ const ONTOLOGY_REASONING_PARAMETERS = {
  * `intent` 也 required：规则库里有哪几条规则由 sidecar 说了算，模型从
  * `list_reasoning_rules` 拿，不靠猜也不写死在提示词里。
  */
-const RULE_REASONING_PARAMETERS = {
+const buildRuleReasoningParameters = (budgets: ToolLimitBudgets) => ({
   type: 'object',
   properties: {
     intent: {
@@ -165,13 +186,13 @@ const RULE_REASONING_PARAMETERS = {
     limit: {
       type: 'integer',
       minimum: 1,
-      maximum: SEMANTICA_REASON_MAX_LIMIT,
-      description: `Maximum number of graph edges to read into the scope (1-${String(SEMANTICA_REASON_MAX_LIMIT)}). Defaults to ${String(SEMANTICA_REASON_DEFAULT_LIMIT)}. A scope that hits this bound is reported as truncated — raise it only when you need the wider subgraph, because the reasoning cost grows with it.`,
+      maximum: budgets.semanticaReasonMaxLimit,
+      description: `Maximum number of graph edges to read into the scope (1-${String(budgets.semanticaReasonMaxLimit)}). Defaults to ${String(SEMANTICA_REASON_DEFAULT_LIMIT)}. A scope that hits this bound is reported as truncated — raise it only when you need the wider subgraph, because the reasoning cost grows with it.`,
     },
   },
   required: ['intent', 'query'],
   additionalProperties: false,
-} as const;
+});
 
 /**
  * DrugBank 实体解析的参数。
@@ -227,16 +248,25 @@ const DRUGBANK_PASSAGE_PARAMETERS = {
   additionalProperties: false,
 } as const;
 
-const TOOL_PARAMETERS: Partial<
-  Record<AssistantToolName, Record<string, unknown>>
-> = {
-  get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
-  search_cn_medicine_knowledge: CN_MEDICINE_KNOWLEDGE_PARAMETERS,
-  resolve_drugbank_entity: DRUGBANK_ENTITY_PARAMETERS,
-  search_drugbank_passages: DRUGBANK_PASSAGE_PARAMETERS,
-  reason_over_ontology: ONTOLOGY_REASONING_PARAMETERS,
-  reason_over_rules: RULE_REASONING_PARAMETERS,
-};
+/**
+ * Parameter schemas for the tools that take arguments.
+ *
+ * Built per call rather than once at module load: the advertised maxima are
+ * tunables, and a module-level object would freeze whatever the first import
+ * happened to see.
+ */
+function buildToolParameters(
+  budgets: ToolLimitBudgets,
+): Partial<Record<AssistantToolName, Record<string, unknown>>> {
+  return {
+    get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
+    search_cn_medicine_knowledge: buildCnMedicineKnowledgeParameters(budgets),
+    resolve_drugbank_entity: DRUGBANK_ENTITY_PARAMETERS,
+    search_drugbank_passages: DRUGBANK_PASSAGE_PARAMETERS,
+    reason_over_ontology: buildOntologyReasoningParameters(budgets),
+    reason_over_rules: buildRuleReasoningParameters(budgets),
+  };
+}
 
 export const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
   get_today_records:
@@ -295,13 +325,15 @@ export const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
  */
 export function buildToolDefinitions(
   toolNames: readonly AssistantToolName[],
+  budgets: ToolLimitBudgets = CODE_TOOL_LIMIT_BUDGETS,
 ): ToolDefinition[] {
+  const parameters = buildToolParameters(budgets);
   return toolNames.map((name) => ({
     type: 'function',
     function: {
       name,
       description: TOOL_DESCRIPTIONS[name],
-      parameters: TOOL_PARAMETERS[name] ?? noParams,
+      parameters: parameters[name] ?? noParams,
     },
   }));
 }

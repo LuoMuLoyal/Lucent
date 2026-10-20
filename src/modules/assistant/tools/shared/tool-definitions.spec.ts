@@ -1,4 +1,7 @@
-import { buildToolDefinitions } from './tool-definitions.js';
+import {
+  buildToolDefinitions,
+  CODE_TOOL_LIMIT_BUDGETS,
+} from './tool-definitions.js';
 import { ASSISTANT_TOOL_NAMES } from './tool-types.js';
 import {
   MAX_MEAL_DIGEST_DAYS,
@@ -97,6 +100,49 @@ describe('buildToolDefinitions', () => {
       type: 'object',
       properties: {},
     });
+  });
+
+  it('advertises the limits handed in instead of the code baselines', () => {
+    const budgets = {
+      ...CODE_TOOL_LIMIT_BUDGETS,
+      lightragMaxLimit: 3,
+      semanticaMaxLimit: 42,
+      semanticaReasonMaxLimit: 500,
+    };
+
+    const [knowledge, ontology, rules] = buildToolDefinitions(
+      [
+        'search_cn_medicine_knowledge',
+        'reason_over_ontology',
+        'reason_over_rules',
+      ],
+      budgets,
+    );
+
+    const limitOf = (def: typeof knowledge) =>
+      (
+        def!.function.parameters as {
+          properties: Record<string, { maximum: number; description: string }>;
+        }
+      ).properties['limit'];
+
+    // 上界同时进 schema 与描述：只改一处会让模型读到的上限和服务端夹紧的
+    // 上限对不上（模型永远按较小的那个请求）。
+    expect(limitOf(knowledge)).toMatchObject({ maximum: 3 });
+    expect(limitOf(knowledge)?.description).toContain('(1-3)');
+    expect(limitOf(ontology)).toMatchObject({ maximum: 42 });
+    expect(limitOf(rules)).toMatchObject({ maximum: 500 });
+  });
+
+  it('keeps the code baselines when no budgets are passed', () => {
+    const [def] = buildToolDefinitions(['search_cn_medicine_knowledge']);
+
+    const parameters = def!.function.parameters as {
+      properties: Record<string, { maximum: number }>;
+    };
+    expect(parameters.properties['limit']?.maximum).toBe(
+      CODE_TOOL_LIMIT_BUDGETS.lightragMaxLimit,
+    );
   });
 
   it('preserves order of input tool names', () => {

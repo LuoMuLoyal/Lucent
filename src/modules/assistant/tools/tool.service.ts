@@ -1,6 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import type {
   AssistantToolCall,
   AssistantToolExecutionContext,
@@ -56,21 +59,37 @@ const READ_TOOL_NAMES = new Set<AssistantToolName>(ASSISTANT_READ_TOOL_NAMES);
 /**
  * 单工具超时覆盖：默认 {@link TOOL_EXECUTION_TIMEOUT_MS}，只有需要在一次调用里
  * 跑多轮模型往返的工具才例外（`reason_over_ontology`，见该常量的说明）。
+ *
+ * 每项同时给出快照键与代码基线：快照里没有覆盖时用基线，键只在白名单里出现
+ * 一次，新增工具时不会漏接。
  */
-const TOOL_TIMEOUT_OVERRIDES: Partial<Record<AssistantToolName, number>> = {
-  reason_over_ontology: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+/** The three budget keys a tool can be bound to (kept narrow so reads stay `number`). */
+type ToolTimeoutKey =
+  | typeof EnvKey.ASSISTANT_TOOL_TIMEOUT_MS
+  | typeof EnvKey.ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS
+  | typeof EnvKey.ASSISTANT_RETRIEVAL_TOOL_TIMEOUT_MS;
+
+const TOOL_TIMEOUT_OVERRIDES: Partial<
+  Record<AssistantToolName, { key: ToolTimeoutKey; fallback: number }>
+> = {
+  reason_over_ontology: {
+    key: EnvKey.ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS,
+    fallback: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  },
   // 规则推理不走模型往返（规则与查询都是显式给的），但它在服务端要做一次不动点
   // ——比一次 Cypher 读图贵得多。用同一个覆盖值，是因为瓶颈从"生成"换成了"推导"，
   // 量级相同；默认的 15s 对两者都太短。
-  reason_over_rules: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  reason_over_rules: {
+    key: EnvKey.ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS,
+    fallback: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
+  },
   // 中文散文检索：`naive` 只要 352ms，但图模式要现调 LLM 抽关键词再遍历图，
   // 实测 16–29 秒。工具级预算必须容得下最慢的那条路，否则"能用的模式"会被判死。
-  search_cn_medicine_knowledge: RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
+  search_cn_medicine_knowledge: {
+    key: EnvKey.ASSISTANT_RETRIEVAL_TOOL_TIMEOUT_MS,
+    fallback: RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
+  },
 };
-
-function resolveToolTimeoutMs(toolName: AssistantToolName): number {
-  return TOOL_TIMEOUT_OVERRIDES[toolName] ?? TOOL_EXECUTION_TIMEOUT_MS;
-}
 
 @Injectable()
 export class AssistantToolService {
@@ -87,7 +106,28 @@ export class AssistantToolService {
     private readonly proposalService: AssistantToolProposalService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly metricsService: MetricsService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
+
+  /**
+   * Tool budget for this call, resolved from the snapshot.
+   *
+   * Read per call so a widened budget applies to the next tool call instead of
+   * the next process; the fallbacks are the same numbers the schema declares,
+   * and only matter when the runtime layer is not injected (unit tests).
+   */
+  private resolveToolTimeoutMs(toolName: AssistantToolName): number {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    const override = TOOL_TIMEOUT_OVERRIDES[toolName];
+    if (override != null) {
+      return values?.[override.key] ?? override.fallback;
+    }
+    return (
+      values?.[EnvKey.ASSISTANT_TOOL_TIMEOUT_MS] ?? TOOL_EXECUTION_TIMEOUT_MS
+    );
+  }
 
   /**
    * Executes the requested tools and returns results in the input order.
@@ -164,7 +204,7 @@ export class AssistantToolService {
     toolName: AssistantToolName,
   ): Promise<AssistantToolExecutionResult> {
     const startedAt = performance.now();
-    const timeoutMs = resolveToolTimeoutMs(toolName);
+    const timeoutMs = this.resolveToolTimeoutMs(toolName);
     let timedOut = false;
     const execution = this.executeOne(context, toolName);
     const timeout = new Promise<AssistantToolExecutionResult>((resolve) => {

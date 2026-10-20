@@ -17,6 +17,7 @@ import type {
   AssistantToolCall,
   AssistantToolExecutionResult,
 } from '../../types/assistant.types.js';
+import type { ToolLimitBudgets } from '../../tools/shared/tool-definitions.js';
 import { AssistantRuntimeState } from './state.js';
 import { deriveIntent, type AssistantIntent } from './classify.js';
 import type { AssistantToolRoutingOutcome } from './classify.js';
@@ -96,6 +97,18 @@ export interface AssistantGraphDeps {
   onText?: AssistantTextCallback;
   executeTools: ToolExecutorFn;
   buildSystemPrompt: SystemPromptFn;
+  /**
+   * Advertised tool limits for this build. Read at graph build time (which
+   * happens per conversation turn), so a published change applies to the next
+   * turn without rebuilding anything process-wide.
+   */
+  toolBudgets?: () => ToolLimitBudgets;
+  /**
+   * Per-node run timeout. Defaults to {@link ASSISTANT_NODE_TIMEOUT_MS}; the
+   * resolver exists because the node budget has to stay above the tool budgets,
+   * and those are tunable.
+   */
+  nodeTimeoutMs?: () => number;
   /**
    * 每轮工具选择的端口（生产实现 = `AssistantIntentClassifierService`）。
    *
@@ -361,7 +374,7 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
         retryOn: isRetryableLlmError,
         maxAttempts: 3,
       },
-      timeout: ASSISTANT_NODE_TIMEOUT_MS,
+      timeout: deps.nodeTimeoutMs?.() ?? ASSISTANT_NODE_TIMEOUT_MS,
       cachePolicy: false,
     });
 

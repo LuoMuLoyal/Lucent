@@ -5,6 +5,8 @@ import type {
 } from '../types/assistant.types.js';
 import type { AssistantToolName } from './shared/tool-types.js';
 import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-resolve.service.js';
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service.js';
 import type { AssistantToolMedicineLookupService } from './medicine/lookup.service.js';
@@ -43,7 +45,23 @@ describe('AssistantToolService', () => {
     return names.map((name) => ({ name, args: {} }));
   }
 
-  function buildExecutor() {
+  /** Snapshot stub: only the keys the test publishes, everything else falls back. */
+  function runtimeWith(values: Record<string, unknown>): RuntimeConfigPort {
+    return {
+      getSnapshot: () => ({
+        values: values as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
+  }
+
+  function buildExecutor(runtime?: RuntimeConfigPort) {
     const aiSummaryHistoryService = {
       getLatestTodaySummaryByDate: vi.fn(),
       getLatestReportSummaryByRange: vi.fn(),
@@ -193,6 +211,7 @@ describe('AssistantToolService', () => {
       proposalService,
       cache as never,
       metricsService as never,
+      runtime,
     );
 
     return {
@@ -611,6 +630,31 @@ describe('AssistantToolService', () => {
       },
     });
     expect(results[0]?.proposedActions).toBeUndefined();
+  });
+
+  it('bounds tools by the timeout published in the snapshot', async () => {
+    const { service, deps } = buildExecutor(
+      runtimeWith({ [EnvKey.ASSISTANT_TOOL_TIMEOUT_MS]: 5_000 }),
+    );
+    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+      new Promise(() => {
+        // never settles
+      }),
+    );
+
+    const pending = service.executeMany(
+      buildContext(),
+      toolCalls('get_today_summary_by_date'),
+    );
+
+    // 5s 就到点；若仍按代码基线 20s，这一步拿到的是挂起的 promise。
+    await vi.advanceTimersByTimeAsync(5_000);
+    const results = await pending;
+
+    expect(results[0]).toMatchObject({
+      name: 'get_today_summary_by_date',
+      timeout: true,
+    });
   });
 
   it('logs the duration when a timed-out tool rejects late', async () => {

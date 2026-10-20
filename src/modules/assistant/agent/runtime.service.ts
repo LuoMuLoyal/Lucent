@@ -53,6 +53,11 @@ import {
 } from '../prompts/system.prompt.js';
 import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
 import { resolveRuntimePrompt } from '../../../config/runtime/prompt-registry.js';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import {
+  CODE_TOOL_LIMIT_BUDGETS,
+  type ToolLimitBudgets,
+} from '../tools/shared/tool-definitions.js';
 import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state.js';
 import type { AssistantValidationFlags } from './runtime/state.js';
 import type { AssistantPendingReview } from './runtime/state.js';
@@ -63,6 +68,7 @@ import { AssistantConversationRepositoryPort } from '../repositories/conversatio
 import { AssistantStreamService } from './stream.service.js';
 
 import {
+  ASSISTANT_NODE_TIMEOUT_MS,
   buildAssistantRuntimeGraph,
   type ToolExecutorFn,
 } from './runtime/graph.js';
@@ -115,6 +121,38 @@ export class AssistantRuntimeService {
     @Optional()
     private readonly runtimeConfigService?: RuntimeConfigService,
   ) {}
+
+  /**
+   * Tool maxima advertised to the model for this turn. Read from the snapshot
+   * so a published limit also widens (or narrows) what the model may ask for;
+   * the server-side clamps read the same keys.
+   */
+  private readToolLimitBudgets(): ToolLimitBudgets {
+    const values = this.runtimeConfigService?.getSnapshot().values;
+    return {
+      lightragMaxLimit:
+        values?.[EnvKey.LIGHTRAG_MAX_LIMIT] ??
+        CODE_TOOL_LIMIT_BUDGETS.lightragMaxLimit,
+      semanticaMaxLimit:
+        values?.[EnvKey.SEMANTICA_MAX_LIMIT] ??
+        CODE_TOOL_LIMIT_BUDGETS.semanticaMaxLimit,
+      semanticaReasonMaxLimit:
+        values?.[EnvKey.SEMANTICA_REASON_MAX_LIMIT] ??
+        CODE_TOOL_LIMIT_BUDGETS.semanticaReasonMaxLimit,
+    };
+  }
+
+  /**
+   * Node run timeout for this graph build. The snapshot key is authoritative;
+   * the code constant is the default the schema mirrors.
+   */
+  private readNodeTimeoutMs(): number {
+    return (
+      this.runtimeConfigService?.getSnapshot().values[
+        EnvKey.ASSISTANT_NODE_TIMEOUT_MS
+      ] ?? ASSISTANT_NODE_TIMEOUT_MS
+    );
+  }
 
   /**
    * System prompt for the main agent: the published override when the operator
@@ -207,6 +245,8 @@ export class AssistantRuntimeService {
         await onChunk?.({ content });
       },
       executeTools,
+      toolBudgets: () => this.readToolLimitBudgets(),
+      nodeTimeoutMs: () => this.readNodeTimeoutMs(),
       buildSystemPrompt: (toolNames) =>
         this.resolveAssistantSystemPrompt(toolNames),
       buildReadSystemPrompt,
@@ -436,6 +476,8 @@ export class AssistantRuntimeService {
       // The resume/read path never reaches the agent↔tools loop; tools are
       // only executed by the original (now suspended) invocation.
       executeTools: () => Promise.resolve([]),
+      toolBudgets: () => this.readToolLimitBudgets(),
+      nodeTimeoutMs: () => this.readNodeTimeoutMs(),
       buildSystemPrompt: (toolNames) =>
         this.resolveAssistantSystemPrompt(toolNames),
       buildReadSystemPrompt,

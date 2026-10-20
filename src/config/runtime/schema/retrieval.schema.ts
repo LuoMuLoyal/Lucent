@@ -124,11 +124,15 @@ export const retrievalRuntimeFields = {
     max: MAX_TOOL_BUDGET_MS,
     defaultValue: 65_000,
   }),
+  // Baseline = AI_MODEL_TIMEOUT_MS (10s) + the widest tool budget (65s) + 5s,
+  // i.e. the value `graph.ts` derives. It must stay above every tool budget:
+  // a node that cancels first turns a tool's structured timeout into an opaque
+  // `Node "agent" exceeded its run timeout`.
   [EnvKey.ASSISTANT_NODE_TIMEOUT_MS]: numberField({
     family: 'retrieval',
     min: MIN_TOOL_BUDGET_MS,
     max: MAX_TOOL_BUDGET_MS,
-    defaultValue: 75_000,
+    defaultValue: 80_000,
   }),
   [EnvKey.ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS]: numberField({
     family: 'retrieval',
