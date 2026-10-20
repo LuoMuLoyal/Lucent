@@ -33,6 +33,7 @@ import {
   STALE_DOC_THRESHOLD_DAYS,
   withoutFrozenDocs,
 } from './coverage.ts';
+import { collectRuntimeConfigExampleProblems } from './runtime-config-example.ts';
 
 function run(cmd: string, cwd?: string): string {
   return execSync(cmd, {
@@ -162,7 +163,7 @@ function getLastModifiedMap(
   return map;
 }
 
-function runVerify(repoRoot: string): void {
+async function runVerify(repoRoot: string): Promise<void> {
   const availableDocs = collectAvailableDocs(repoRoot);
   const logFiles = collectLogFiles(repoRoot);
   // Authoring-time semantics apply to today's log wherever it lives
@@ -222,6 +223,9 @@ function runVerify(repoRoot: string): void {
   }
 
   problems.push(...collectLogOverwriteProblems(repoRoot));
+  // The runtime-config template is the operator-facing whitelist; keep its key
+  // set and parseability in lockstep with the schema.
+  problems.push(...(await collectRuntimeConfigExampleProblems(repoRoot)));
 
   if (problems.length > 0) {
     console.error(
@@ -230,7 +234,7 @@ function runVerify(repoRoot: string): void {
     process.exit(1);
   }
   console.log(
-    'Doc verification passed (H1 structure, front-matter, freshness, module README coverage).',
+    'Doc verification passed (H1 structure, front-matter, freshness, module README coverage, runtime-config template).',
   );
 }
 
@@ -267,7 +271,7 @@ Options:
   --help              Show this help text.
 `;
 
-function main(): void {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.showHelp) {
     console.log(USAGE);
@@ -279,7 +283,7 @@ function main(): void {
   const repoRoot = resolveRepoRoot(args.verify);
 
   if (args.verify) {
-    runVerify(repoRoot);
+    await runVerify(repoRoot);
     return;
   }
 
@@ -288,4 +292,4 @@ function main(): void {
   );
 }
 
-main();
+await main();
