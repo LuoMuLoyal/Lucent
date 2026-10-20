@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   CreateBucketCommand,
@@ -9,7 +9,11 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigKey } from '../../config/env/config-keys.enum.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 import type { S3StorageConfig } from '../../config/services/s3-storage.config.js';
+import { pickNumber, pickString } from './storage-tunables.js';
 import { DomainFailureException } from '../result/domain-failure.exception.js';
 import { createDomainFailure } from '../result/domain-failure.js';
 import {
@@ -40,20 +44,78 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
   private readonly logger = new Logger(S3StorageRuntime.name);
 
   private readonly config: S3StorageConfig;
-  private readonly internalClient: S3Client;
-  private readonly clientClient: S3Client;
-  private readonly externalClient: S3Client | null;
-  private bucketEnsured = false;
+  private internalClient: S3Client;
+  private clientClient: S3Client;
+  private externalClient: S3Client | null;
+  private clientRegion: string;
+  private ensuredBucket: string | null = null;
   private bucketEnsurePromise: Promise<void> | null = null;
 
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {
     super();
     this.config = configService.getOrThrow<S3StorageConfig>(
       ConfigKey.S3Storage,
     );
 
+    this.clientRegion = this.config.region;
+    ({
+      internalClient: this.internalClient,
+      clientClient: this.clientClient,
+      externalClient: this.externalClient,
+    } = this.buildClients(this.config.region));
+  }
+
+  /**
+   * Current settings: bucket, public base, expiry and upload limit come from
+   * the snapshot on every call; region is overlaid too, but changing it
+   * rebuilds the SDK clients lazily. A bucket/region change affects **new**
+   * signed URLs and uploads only — objects already written stay in the old
+   * bucket. Credentials and endpoints stay environment-only.
+   */
+  private settings(): ObjectStorageConfig {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    const bucket = pickString(
+      values?.[EnvKey.STORAGE_S3_BUCKET],
+      this.config.bucket,
+    );
+    return {
+      provider: this.provider,
+      bucket,
+      region: pickString(
+        values?.[EnvKey.STORAGE_S3_REGION],
+        this.config.region,
+      ),
+      publicBaseUrl: pickString(
+        values?.[EnvKey.STORAGE_S3_PUBLIC_BASE_URL],
+        this.config.publicBaseUrl,
+      ),
+      uploadExpiresSeconds: pickNumber(
+        values?.[EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS],
+        this.config.uploadExpiresSeconds,
+      ),
+      maxUploadBytes: pickNumber(
+        values?.[EnvKey.STORAGE_S3_MAX_UPLOAD_BYTES],
+        this.config.maxUploadBytes,
+      ),
+      downloadExpiresSeconds: pickNumber(
+        values?.[EnvKey.STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS],
+        this.config.downloadExpiresSeconds,
+      ),
+    };
+  }
+
+  private buildClients(region: string): {
+    internalClient: S3Client;
+    clientClient: S3Client;
+    externalClient: S3Client | null;
+  } {
     const baseConfig = {
-      region: this.config.region,
+      region,
       credentials: {
         accessKeyId: this.config.accessKey,
         secretAccessKey: this.config.secretKey,
@@ -61,33 +123,46 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
       forcePathStyle: true,
     };
 
-    this.internalClient = new S3Client({
-      ...baseConfig,
-      endpoint: this.config.endpoint,
-    });
+    return {
+      internalClient: new S3Client({
+        ...baseConfig,
+        endpoint: this.config.endpoint,
+      }),
+      clientClient: new S3Client({
+        ...baseConfig,
+        endpoint: this.config.clientEndpoint || this.config.endpoint,
+      }),
+      externalClient: this.config.externalEndpoint
+        ? new S3Client({
+            ...baseConfig,
+            endpoint: this.config.externalEndpoint,
+          })
+        : null,
+    };
+  }
 
-    this.clientClient = new S3Client({
-      ...baseConfig,
-      endpoint: this.config.clientEndpoint || this.config.endpoint,
-    });
-
-    this.externalClient = this.config.externalEndpoint
-      ? new S3Client({
-          ...baseConfig,
-          endpoint: this.config.externalEndpoint,
-        })
-      : null;
+  /** Rebuilds the clients when a published region differs from the active one. */
+  private ensureRegion(region: string): void {
+    if (region === this.clientRegion) {
+      return;
+    }
+    const clients = this.buildClients(region);
+    this.internalClient = clients.internalClient;
+    this.clientClient = clients.clientClient;
+    this.externalClient = clients.externalClient;
+    this.clientRegion = region;
+    this.ensuredBucket = null;
+    this.bucketEnsurePromise = null;
   }
 
   getConfig(): ObjectStorageConfig {
+    const settings = this.settings();
     return {
-      provider: this.provider,
-      bucket: this.config.bucket,
-      region: this.config.region,
-      publicBaseUrl: this.resolvePublicBaseUrl(),
-      uploadExpiresSeconds: this.config.uploadExpiresSeconds,
-      maxUploadBytes: this.config.maxUploadBytes,
-      downloadExpiresSeconds: this.config.downloadExpiresSeconds,
+      ...settings,
+      publicBaseUrl: this.resolvePublicBaseUrl(
+        settings.bucket,
+        settings.publicBaseUrl,
+      ),
     };
   }
 
@@ -110,15 +185,15 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
    * Idempotent: a base that already carries the bucket (the workaround
    * previously recorded in the TODO) is left untouched.
    */
-  private resolvePublicBaseUrl(): string {
-    const base = this.config.publicBaseUrl.trim();
-    if (!base || !this.config.bucket) return base;
+  private resolvePublicBaseUrl(bucket: string, publicBaseUrl: string): string {
+    const base = publicBaseUrl.trim();
+    if (!base || !bucket) return base;
 
     const trimmed = base.replace(/\/+$/, '');
     // Already bucket-qualified? Compare the final path segment.
-    if (trimmed.endsWith(`/${this.config.bucket}`)) return trimmed;
+    if (trimmed.endsWith(`/${bucket}`)) return trimmed;
 
-    return `${trimmed}/${this.config.bucket}`;
+    return `${trimmed}/${bucket}`;
   }
 
   isConfigured(): boolean {
@@ -126,23 +201,27 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
       this.config.endpoint &&
       this.config.accessKey &&
       this.config.secretKey &&
-      this.config.bucket,
+      this.settings().bucket,
     );
   }
 
   async createSignedPutUrl(input: SignedPutUrlInput): Promise<string> {
+    const settings = this.settings();
+    this.ensureRegion(settings.region);
     return getSignedUrl(
       this.clientClient,
       new PutObjectCommand({
-        Bucket: this.config.bucket,
+        Bucket: settings.bucket,
         Key: input.objectKey,
         ContentType: input.contentType,
       }),
-      { expiresIn: this.config.uploadExpiresSeconds },
+      { expiresIn: settings.uploadExpiresSeconds },
     );
   }
 
   async createSignedGetUrl(input: SignedGetUrlInput): Promise<string> {
+    const settings = this.settings();
+    this.ensureRegion(settings.region);
     if (input.audience === 'external') {
       if (this.externalClient == null) {
         throw new DomainFailureException(
@@ -158,28 +237,30 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
       return getSignedUrl(
         this.externalClient,
         new GetObjectCommand({
-          Bucket: this.config.bucket,
+          Bucket: settings.bucket,
           Key: input.objectKey,
         }),
-        { expiresIn: this.config.downloadExpiresSeconds },
+        { expiresIn: settings.downloadExpiresSeconds },
       );
     }
 
     return getSignedUrl(
       this.clientClient,
       new GetObjectCommand({
-        Bucket: this.config.bucket,
+        Bucket: settings.bucket,
         Key: input.objectKey,
       }),
-      { expiresIn: this.config.downloadExpiresSeconds },
+      { expiresIn: settings.downloadExpiresSeconds },
     );
   }
 
   async uploadBuffer(input: UploadBufferInput): Promise<void> {
-    await this.ensureBucket();
+    const settings = this.settings();
+    this.ensureRegion(settings.region);
+    await this.ensureBucket(settings.bucket);
     await this.internalClient.send(
       new PutObjectCommand({
-        Bucket: this.config.bucket,
+        Bucket: settings.bucket,
         Key: input.objectKey,
         Body: input.body,
         ContentType: input.contentType,
@@ -193,37 +274,38 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
    * runtime instance.  Only `HeadBucket` not-found (404) triggers
    * `CreateBucket`; auth, network and 5xx errors propagate.
    */
-  async ensureBucket(): Promise<void> {
-    if (this.bucketEnsured) {
+  async ensureBucket(bucket: string = this.settings().bucket): Promise<void> {
+    if (this.ensuredBucket === bucket) {
       return;
     }
-    if (!this.bucketEnsurePromise) {
-      this.bucketEnsurePromise = this.doEnsureBucket();
+    const pending = this.bucketEnsurePromise;
+    if (pending != null) {
+      await pending;
+      if (this.ensuredBucket === bucket) {
+        return;
+      }
     }
+    this.bucketEnsurePromise = this.doEnsureBucket(bucket);
     await this.bucketEnsurePromise;
   }
 
-  private async doEnsureBucket(): Promise<void> {
+  private async doEnsureBucket(bucket: string): Promise<void> {
     try {
-      await this.internalClient.send(
-        new HeadBucketCommand({ Bucket: this.config.bucket }),
-      );
-      this.logger.log(`Bucket "${this.config.bucket}" already exists.`);
+      await this.internalClient.send(new HeadBucketCommand({ Bucket: bucket }));
+      this.logger.log(`Bucket "${bucket}" already exists.`);
     } catch (err: unknown) {
       if (isNotFoundError(err)) {
-        this.logger.log(
-          `Bucket "${this.config.bucket}" not found, creating...`,
-        );
+        this.logger.log(`Bucket "${bucket}" not found, creating...`);
         await this.internalClient.send(
-          new CreateBucketCommand({ Bucket: this.config.bucket }),
+          new CreateBucketCommand({ Bucket: bucket }),
         );
-        this.logger.log(`Bucket "${this.config.bucket}" created.`);
+        this.logger.log(`Bucket "${bucket}" created.`);
       } else {
         throw err;
       }
     }
 
-    this.bucketEnsured = true;
+    this.ensuredBucket = bucket;
   }
 }
 
