@@ -1,8 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import { BaseAsyncQueueService } from '../../../common/index.js';
 import { TodayAnalysisService } from './analysis.service.js';
 import type {
@@ -55,25 +57,33 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    runtimeConfig?: RuntimeConfigPort,
   ) {
-    super(TODAY_ANALYSIS_QUEUE_NAME, factory, cache, async (job) =>
-      this.processJob(
-        job,
-        (data) =>
-          data.sourceVersion == null
-            ? this.analysisService.generate(
-                data.userId,
-                data.dto,
-                data.language,
-              )
-            : this.analysisService.generateForVersion(
-                data.userId,
-                data.dto,
-                data.language,
-                data.sourceVersion,
-              ),
-        'Today analysis job failed',
-      ),
+    super(
+      TODAY_ANALYSIS_QUEUE_NAME,
+      factory,
+      cache,
+      async (job) =>
+        this.processJob(
+          job,
+          (data) =>
+            data.sourceVersion == null
+              ? this.analysisService.generate(
+                  data.userId,
+                  data.dto,
+                  data.language,
+                )
+              : this.analysisService.generateForVersion(
+                  data.userId,
+                  data.dto,
+                  data.language,
+                  data.sourceVersion,
+                ),
+          'Today analysis job failed',
+        ),
+      runtimeConfig,
     );
     this.analysisService = analysisService;
   }

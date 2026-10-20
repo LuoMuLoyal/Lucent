@@ -7,6 +7,8 @@ import {
   DEFAULT_RESULT_TTL_MS,
   type AsyncJobResult,
 } from './base-async-queue.service.js';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 
 // ── Test doubles ─────────────────────────────────────────────────────
 
@@ -74,9 +76,15 @@ class TestQueueService extends BaseAsyncQueueService<TestJobData, TestResult> {
     factory: BullmqQueueFactory,
     cache: Cache,
     executeMock?: ReturnType<typeof vi.fn>,
+    runtimeConfig?: RuntimeConfigPort,
   ) {
-    super(QUEUE_NAMES.mealAnalysis, factory, cache, async (job) =>
-      this.processJob(job, (data) => this.execute(data), 'Test job failed'),
+    super(
+      QUEUE_NAMES.mealAnalysis,
+      factory,
+      cache,
+      async (job) =>
+        this.processJob(job, (data) => this.execute(data), 'Test job failed'),
+      runtimeConfig,
     );
     this.executeMock = executeMock ?? vi.fn();
   }
@@ -193,6 +201,55 @@ describe('BaseAsyncQueueService', () => {
         'async-job:lucent-meal-analysis:job-2',
         result,
         5000,
+      );
+    });
+
+    it('reads the result TTL from the snapshot on every write', async () => {
+      const { factory } = buildFactory(false);
+      const { cache, set } = buildCache();
+      const values: Record<string, unknown> = {
+        [EnvKey.ASYNC_JOB_RESULT_CACHE_TTL_MS]: 42_000,
+      };
+      const service = new TestQueueService(factory, cache, undefined, {
+        getSnapshot: () => ({ values }),
+      } as unknown as RuntimeConfigPort);
+      const result: AsyncJobResult<TestResult> = {
+        status: 'completed',
+        result: { doubled: 1 },
+      };
+
+      await service.testStoreResult('job-3', result);
+      expect(set).toHaveBeenLastCalledWith(
+        'async-job:lucent-meal-analysis:job-3',
+        result,
+        42_000,
+      );
+
+      values[EnvKey.ASYNC_JOB_RESULT_CACHE_TTL_MS] = 60_000;
+      await service.testStoreResult('job-4', result);
+      expect(set).toHaveBeenLastCalledWith(
+        'async-job:lucent-meal-analysis:job-4',
+        result,
+        60_000,
+      );
+    });
+
+    it('falls back to the code default when the snapshot has no value', async () => {
+      const { factory } = buildFactory(false);
+      const { cache, set } = buildCache();
+      const service = new TestQueueService(factory, cache, undefined, {
+        getSnapshot: () => ({ values: {} }),
+      } as unknown as RuntimeConfigPort);
+      const result: AsyncJobResult<TestResult> = {
+        status: 'completed',
+        result: { doubled: 2 },
+      };
+
+      await service.testStoreResult('job-5', result);
+      expect(set).toHaveBeenLastCalledWith(
+        'async-job:lucent-meal-analysis:job-5',
+        result,
+        DEFAULT_RESULT_TTL_MS,
       );
     });
   });

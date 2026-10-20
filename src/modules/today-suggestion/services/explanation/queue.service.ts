@@ -1,8 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
 import { unwrapResult } from '../../../../common/result/index.js';
 import {
@@ -40,20 +42,28 @@ export class ExplanationQueueService extends BaseAsyncQueueService<
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(ExplanationService) explanationService: ExplanationService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    runtimeConfig?: RuntimeConfigPort,
   ) {
-    super(QUEUE_NAME, factory, cache, async (job) =>
-      this.processJob(
-        job,
-        (data) =>
-          unwrapResult(
-            this.explanationService.explain(
-              data.userId,
-              data.suggestionId,
-              data.language,
+    super(
+      QUEUE_NAME,
+      factory,
+      cache,
+      async (job) =>
+        this.processJob(
+          job,
+          (data) =>
+            unwrapResult(
+              this.explanationService.explain(
+                data.userId,
+                data.suggestionId,
+                data.language,
+              ),
             ),
-          ),
-        'Suggestion explanation job failed',
-      ),
+          'Suggestion explanation job failed',
+        ),
+      runtimeConfig,
     );
     this.explanationService = explanationService;
   }

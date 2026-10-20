@@ -1,8 +1,11 @@
 import { Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject } from '@nestjs/common';
+import { Inject, Optional } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import type { Queue, Job } from 'bullmq';
+import { EnvKey } from '../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 import type { QueueName } from './queue-names.js';
 import { BullmqQueueFactory } from './queue.factory.js';
 
@@ -60,6 +63,9 @@ export abstract class BaseAsyncQueueService<TData, TResult> {
       id: string | undefined;
       data: TData;
     }) => Promise<AsyncJobResult<TResult>>,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {
     this.logger = new Logger(this.constructor.name);
     const handle = factory.createQueue<TData, AsyncJobResult<TResult>>({
@@ -84,10 +90,21 @@ export abstract class BaseAsyncQueueService<TData, TResult> {
   protected async storeResult(
     jobId: string,
     result: AsyncJobResult<TResult>,
-    ttlMs: number = DEFAULT_RESULT_TTL_MS,
+    ttlMs?: number,
   ): Promise<void> {
-    await this.cache.set(this.resultKey(jobId), result, ttlMs);
+    // TTL 在写入时解析：已缓存的结果保留写入时的寿命，新结果按当前快照存。
+    const ttl = ttlMs ?? this.resultTtlMs();
+    await this.cache.set(this.resultKey(jobId), result, ttl);
     this.logger.debug(`Cache set: job result (jobId=${jobId})`);
+  }
+
+  /** Async-job result TTL from the snapshot, falling back to the code default. */
+  private resultTtlMs(): number {
+    const value =
+      this.runtimeConfig?.getSnapshot().values[
+        EnvKey.ASYNC_JOB_RESULT_CACHE_TTL_MS
+      ];
+    return typeof value === 'number' ? value : DEFAULT_RESULT_TTL_MS;
   }
 
   /**

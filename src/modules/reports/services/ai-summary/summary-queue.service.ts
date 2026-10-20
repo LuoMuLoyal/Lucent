@@ -1,8 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
 import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
 
@@ -39,14 +41,22 @@ export class ReportSummaryQueueService extends BaseAsyncQueueService<
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(ReportsAiSummaryService) summaryService: ReportsAiSummaryService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    runtimeConfig?: RuntimeConfigPort,
   ) {
-    super(QUEUE_NAME, factory, cache, async (job) =>
-      this.processJob(
-        job,
-        (data) =>
-          this.summaryService.generate(data.userId, data.dto, data.language),
-        'Report summary job failed',
-      ),
+    super(
+      QUEUE_NAME,
+      factory,
+      cache,
+      async (job) =>
+        this.processJob(
+          job,
+          (data) =>
+            this.summaryService.generate(data.userId, data.dto, data.language),
+          'Report summary job failed',
+        ),
+      runtimeConfig,
     );
     this.summaryService = summaryService;
   }

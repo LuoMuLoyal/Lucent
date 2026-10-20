@@ -1,8 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
 import { ClinicSummaryPdfService } from './pdf.service.js';
 
@@ -41,20 +43,28 @@ export class ClinicSummaryPdfQueueService extends BaseAsyncQueueService<
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(ClinicSummaryPdfService)
     clinicSummaryPdfService: ClinicSummaryPdfService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    runtimeConfig?: RuntimeConfigPort,
   ) {
-    super(QUEUE_NAME, factory, cache, async (job) =>
-      this.processJob(
-        job,
-        async (data) => ({
-          pdfBase64: (
-            await this.clinicSummaryPdfService.exportPdf(
-              data.userId,
-              data.locale,
-            )
-          ).toString('base64'),
-        }),
-        'Clinic summary PDF export job failed',
-      ),
+    super(
+      QUEUE_NAME,
+      factory,
+      cache,
+      async (job) =>
+        this.processJob(
+          job,
+          async (data) => ({
+            pdfBase64: (
+              await this.clinicSummaryPdfService.exportPdf(
+                data.userId,
+                data.locale,
+              )
+            ).toString('base64'),
+          }),
+          'Clinic summary PDF export job failed',
+        ),
+      runtimeConfig,
     );
     this.clinicSummaryPdfService = clinicSummaryPdfService;
   }
