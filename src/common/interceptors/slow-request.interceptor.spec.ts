@@ -8,6 +8,7 @@ import type { ConfigService } from '@nestjs/config';
 import { of } from 'rxjs';
 import { SlowRequestInterceptor } from './slow-request.interceptor.js';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 
 describe('SlowRequestInterceptor', () => {
   let interceptor: SlowRequestInterceptor;
@@ -144,6 +145,50 @@ describe('SlowRequestInterceptor', () => {
           },
           error: (e: unknown) => {
             reject(e as Error);
+          },
+        });
+    }));
+
+  it('reads the runtime-config threshold per request', () =>
+    new Promise<void>((resolve) => {
+      const mockConfigService = {
+        get: vi.fn((key: string) => {
+          if (key === (EnvKey.SLOW_REQUEST_THRESHOLD_MS as string)) {
+            return '2000';
+          }
+          return undefined;
+        }),
+      } as unknown as ConfigService;
+      let threshold = 2000;
+      const runtimeConfig: RuntimeConfigPort = {
+        getSnapshot: () =>
+          ({
+            values: { [EnvKey.SLOW_REQUEST_THRESHOLD_MS]: threshold },
+            version: 'test#1',
+            source: 'remote',
+            revision: 'test',
+            seq: 1,
+          }) as unknown as ReturnType<RuntimeConfigPort['getSnapshot']>,
+        getVersion: () => 'test#1',
+        applyDocument: vi.fn(),
+        subscribe: () => vi.fn(),
+      };
+      interceptor = new SlowRequestInterceptor(
+        mockConfigService,
+        new Reflector(),
+        runtimeConfig,
+      );
+
+      threshold = 0;
+
+      interceptor
+        .intercept(createMockContext(), createMockCallHandler())
+        .subscribe({
+          next: () => {
+            expect(loggerWarn).toHaveBeenCalledTimes(1);
+            const msg = loggerWarn.mock.calls[0]![0] as string;
+            expect(msg).toContain('threshold 0ms');
+            resolve();
           },
         });
     }));

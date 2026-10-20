@@ -3,6 +3,7 @@ import {
   Injectable,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -10,6 +11,8 @@ import type { Logger as WinstonLogger } from 'winston';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '#generated/prisma/client.js';
 import { EnvKey } from '../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../config/runtime/runtime-config.types.js';
 import { getActiveTraceId } from '../common/logger/trace-context.utils.js';
 import {
   applySoftDeleteExtension,
@@ -43,12 +46,15 @@ export class PrismaService
 {
   private readonly _extended: ExtendedPrismaClient;
   private readonly _winstonLogger: WinstonLogger;
-  private readonly _slowQueryThresholdMs: number;
+  private readonly _envSlowQueryThresholdMs: number;
   private readonly _configService: ConfigService;
 
   constructor(
     configService: ConfigService,
     @Inject(WINSTON_MODULE_PROVIDER) winstonLogger: WinstonLogger,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {
     const connectionString = configService.get<string>(EnvKey.DATABASE_URL);
     if (connectionString === undefined) {
@@ -69,7 +75,7 @@ export class PrismaService
 
     this._winstonLogger = winstonLogger;
     this._configService = configService;
-    this._slowQueryThresholdMs = Number(
+    this._envSlowQueryThresholdMs = Number(
       configService.get<string>(EnvKey.SLOW_QUERY_THRESHOLD_MS),
     );
 
@@ -87,7 +93,7 @@ export class PrismaService
         cb: (e: Prisma.QueryEvent) => void,
       ) => void
     )('query', (e) => {
-      if (e.duration >= this._slowQueryThresholdMs) {
+      if (e.duration >= this.slowQueryThresholdMs) {
         this._winstonLogger.warn('Slow query detected', {
           durationMs: e.duration,
           query: e.query,
@@ -101,6 +107,19 @@ export class PrismaService
     // `$extends` returns a lightweight wrapper over the same connection;
     // it does NOT open a second pool.
     this._extended = applySoftDeleteExtension(this);
+  }
+
+  /**
+   * Slow-query threshold: the snapshot value when published, otherwise the
+   * environment baseline. Read per query event, so a publish applies to the
+   * next query without restarting the pool.
+   */
+  private get slowQueryThresholdMs(): number {
+    return (
+      this.runtimeConfig?.getSnapshot().values[
+        EnvKey.SLOW_QUERY_THRESHOLD_MS
+      ] ?? this._envSlowQueryThresholdMs
+    );
   }
 
   /**
