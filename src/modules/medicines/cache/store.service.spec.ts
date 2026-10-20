@@ -2,6 +2,9 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import { MedicinesCacheService } from './store.service.js';
 
 describe('MedicinesCacheService', () => {
@@ -258,5 +261,70 @@ describe('MedicinesCacheService', () => {
         load,
       ),
     ).resolves.toBe(loadedValue);
+  });
+
+  describe('runtime TTL overrides', () => {
+    it('writes new entries with the published TTLs and keeps existing ones', async () => {
+      const values: Record<string, unknown> = {
+        [EnvKey.MEDICINES_SEARCH_CACHE_TTL_MS]: 60_000,
+        [EnvKey.MEDICINES_DETAIL_CACHE_TTL_MS]: 120_000,
+        [EnvKey.MEDICINES_SAFETY_TIPS_CACHE_TTL_MS]: 240_000,
+      };
+      const runtime = {
+        getSnapshot: () => ({ values }),
+      } as unknown as RuntimeConfigPort;
+
+      const module = await Test.createTestingModule({
+        providers: [
+          MedicinesCacheService,
+          {
+            provide: CACHE_MANAGER,
+            useValue: { get: vi.fn(), set: vi.fn() },
+          },
+          { provide: RuntimeConfigService, useValue: runtime },
+        ],
+      }).compile();
+      const overridden = module.get(MedicinesCacheService);
+      const overriddenCache = module.get<vi.Mocked<Cache>>(CACHE_MANAGER);
+
+      const searchResult = {
+        items: [{ id: 'DB01050' }],
+        pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+      };
+      overriddenCache.get.mockResolvedValue(undefined);
+      overriddenCache.set.mockResolvedValue(undefined);
+
+      await overridden.getOrSetSearch(
+        { source: 'drugbank', q: 'ibuprofen', page: 1, pageSize: 10 },
+        false,
+        vi.fn().mockResolvedValue(searchResult),
+      );
+      expect(overriddenCache.set).toHaveBeenLastCalledWith(
+        'medicines:search:drugbank:ibuprofen:1:10',
+        searchResult,
+        60_000,
+      );
+
+      const tips = { items: ['drink water'] };
+      await overridden.getOrSetSafetyTips(vi.fn().mockResolvedValue(tips));
+      expect(overriddenCache.set).toHaveBeenLastCalledWith(
+        'medicines:safety-tips:all',
+        tips,
+        240_000,
+      );
+
+      // A publish only affects future writes: an entry cached under the old TTL
+      // is still served from Redis.
+      overriddenCache.get.mockResolvedValue(searchResult);
+      overriddenCache.set.mockClear();
+      const loadAgain = vi.fn();
+      await overridden.getOrSetSearch(
+        { source: 'drugbank', q: 'ibuprofen', page: 1, pageSize: 10 },
+        false,
+        loadAgain,
+      );
+      expect(loadAgain).not.toHaveBeenCalled();
+      expect(overriddenCache.set).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,6 +1,15 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleInit,
+} from '@nestjs/common';
 import type { Cache } from 'cache-manager';
+import { EnvKey } from '../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
 import type { MedicineDetailDataDto } from '../dto/detail.dto.js';
 import type { MedicineSequenceDataDto } from '../dto/sequence.dto.js';
 
@@ -21,11 +30,49 @@ interface SearchCacheKeyInput {
   pageSize: number;
 }
 
+/**
+ * Read-through cache for the medicine knowledge endpoints.
+ *
+ * TTLs are resolved when an entry is written, never when it is read: a
+ * published document changes how long the *next* miss is stored, while entries
+ * already in Redis keep the TTL they were written with. Verification codes,
+ * sessions and share tokens are not part of this family — their lifetimes are
+ * correctness, not tuning.
+ */
 @Injectable()
-export class MedicinesCacheService {
+export class MedicinesCacheService implements OnModuleInit {
   private readonly logger = new Logger(MedicinesCacheService.name);
 
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {}
+
+  /** Logs the TTLs in force so an operator can confirm a release from the logs. */
+  onModuleInit(): void {
+    const ttls = this.readTtls();
+    this.logger.log(
+      `Medicine cache TTLs in force: search=${String(ttls.search)}ms, detail=${String(ttls.detail)}ms, safetyTips=${String(ttls.safetyTips)}ms`,
+    );
+  }
+
+  /** Snapshot values, falling back to the code baselines when unpublished. */
+  private readTtls(): { search: number; detail: number; safetyTips: number } {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    return {
+      search:
+        values?.[EnvKey.MEDICINES_SEARCH_CACHE_TTL_MS] ??
+        MEDICINES_SEARCH_CACHE_TTL_MS,
+      detail:
+        values?.[EnvKey.MEDICINES_DETAIL_CACHE_TTL_MS] ??
+        MEDICINES_DETAIL_CACHE_TTL_MS,
+      safetyTips:
+        values?.[EnvKey.MEDICINES_SAFETY_TIPS_CACHE_TTL_MS] ??
+        MEDICINES_SAFETY_TIPS_TTL_MS,
+    };
+  }
 
   async getOrSetSearch(
     input: SearchCacheKeyInput,
@@ -33,7 +80,7 @@ export class MedicinesCacheService {
     load: () => Promise<MedicineSearchResult>,
   ): Promise<MedicineSearchResult> {
     const key = this.buildSearchKey(input);
-    return this.getOrSet(key, MEDICINES_SEARCH_CACHE_TTL_MS, bypass, load);
+    return this.getOrSet(key, this.readTtls().search, bypass, load);
   }
 
   async getOrSetDetail(
@@ -43,12 +90,12 @@ export class MedicinesCacheService {
     load: () => Promise<MedicineDetailDataDto | null>,
   ): Promise<MedicineDetailDataDto | null> {
     const key = this.buildDetailKey(source, id);
-    return this.getOrSet(key, MEDICINES_DETAIL_CACHE_TTL_MS, bypass, load);
+    return this.getOrSet(key, this.readTtls().detail, bypass, load);
   }
 
   async getOrSetSafetyTips<T>(load: () => Promise<T>): Promise<T> {
     const key = `${MEDICINES_CACHE_KEY_PREFIX}:safety-tips:all`;
-    return this.getOrSet(key, MEDICINES_SAFETY_TIPS_TTL_MS, false, load);
+    return this.getOrSet(key, this.readTtls().safetyTips, false, load);
   }
 
   /**
@@ -62,7 +109,7 @@ export class MedicinesCacheService {
     load: () => Promise<MedicineSequenceDataDto | null>,
   ): Promise<MedicineSequenceDataDto | null> {
     const key = `${this.buildDetailKey(source, id)}:sequences`;
-    return this.getOrSet(key, MEDICINES_DETAIL_CACHE_TTL_MS, bypass, load);
+    return this.getOrSet(key, this.readTtls().detail, bypass, load);
   }
 
   private async getOrSet<T>(
