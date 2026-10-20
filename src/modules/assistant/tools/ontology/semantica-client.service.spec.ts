@@ -1,5 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { SemanticaClientService } from './semantica-client.service.js';
 
 describe('SemanticaClientService', () => {
@@ -13,7 +14,26 @@ describe('SemanticaClientService', () => {
     vi.restoreAllMocks();
   });
 
-  function buildService(overrides?: Record<string, unknown>) {
+  /** Snapshot stub: only the keys the test publishes, everything else falls back. */
+  function runtimeWith(values: Record<string, unknown>): RuntimeConfigPort {
+    return {
+      getSnapshot: () => ({
+        values: values as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
+  }
+
+  function buildService(
+    overrides?: Record<string, unknown>,
+    runtime?: RuntimeConfigPort,
+  ) {
     const values: Record<string, unknown> = {
       [EnvKey.SEMANTICA_ENABLED]: 'true',
       [EnvKey.SEMANTICA_BASE_URL]: 'http://semantica:8099',
@@ -26,6 +46,7 @@ describe('SemanticaClientService', () => {
     };
     return new SemanticaClientService(
       configService as unknown as ConfigService,
+      runtime,
     );
   }
 
@@ -195,6 +216,36 @@ describe('SemanticaClientService', () => {
     });
 
     expect(outcome.ok ? null : outcome.failure.kind).toBe('timeout');
+  });
+
+  it('lets the snapshot move the endpoint and disable the sidecar', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        graph: 'neo4j',
+        node_count: 1,
+        relationship_count: 1,
+        labels: [],
+        relationship_types: [],
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    const moved = buildService(
+      undefined,
+      runtimeWith({
+        [EnvKey.SEMANTICA_BASE_URL]: 'http://semantica-alt:8099/',
+      }),
+    );
+    await moved.schema();
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe('http://semantica-alt:8099/schema');
+
+    const disabled = buildService(
+      undefined,
+      runtimeWith({ [EnvKey.SEMANTICA_ENABLED]: false }),
+    );
+    expect(disabled.isEnabled()).toBe(false);
   });
 
   it('classifies a refused connection as unreachable', async () => {

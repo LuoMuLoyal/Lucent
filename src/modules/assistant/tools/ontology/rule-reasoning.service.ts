@@ -1,4 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type {
   AssistantReadConfidence,
   AssistantReadCoverage,
@@ -91,12 +94,29 @@ const SCOPE_REJECTION_PREFIX =
 export class AssistantToolRuleReasoningService {
   private readonly logger = new Logger(AssistantToolRuleReasoningService.name);
 
-  constructor(private readonly semantica: SemanticaClientService) {}
+  constructor(
+    private readonly semantica: SemanticaClientService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {}
+
+  /**
+   * Edge ceiling for this call. Read per call: widening it only when the wider
+   * subgraph is actually needed is the point of making it tunable.
+   */
+  private readMaxLimit(): number {
+    return (
+      this.runtimeConfig?.getSnapshot().values[
+        EnvKey.SEMANTICA_REASON_MAX_LIMIT
+      ] ?? SEMANTICA_REASON_MAX_LIMIT
+    );
+  }
 
   async reasonOverRules(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const parsed = parseArguments(context.toolArgs);
+    const parsed = parseArguments(context.toolArgs, this.readMaxLimit());
 
     if (!parsed.ok) {
       return this.buildEnvelope({
@@ -552,13 +572,13 @@ type ParsedArguments =
  * 让它们可选再在服务端兜底成"全图"，等于把一个必然超时的请求伪装成一次正常
  * 调用——而超时下来会被读成"图上没有"。
  */
-function parseArguments(raw: unknown): ParsedArguments {
+function parseArguments(raw: unknown, maxLimit: number): ParsedArguments {
   const args = readArgumentsRecord(raw);
   const intent = readNonEmptyString(args['intent']);
   const query = readNonEmptyString(args['query']);
   const drugNames = readStringList(args['drug_names']);
   const atcPrefixes = readStringList(args['atc_prefixes']);
-  const limit = readLimit(args['limit']);
+  const limit = readLimit(args['limit'], maxLimit);
 
   const base = { intent, query, limit, drugNames, atcPrefixes };
 
@@ -640,12 +660,12 @@ function readStringList(value: unknown): string[] {
     .filter((item) => item.length > 0);
 }
 
-function readLimit(value: unknown): number {
+function readLimit(value: unknown, maxLimit: number): number {
   if (typeof value !== 'number' || !Number.isInteger(value)) {
     return SEMANTICA_REASON_DEFAULT_LIMIT;
   }
   if (value < 1) {
     return SEMANTICA_REASON_DEFAULT_LIMIT;
   }
-  return Math.min(value, SEMANTICA_REASON_MAX_LIMIT);
+  return Math.min(value, maxLimit);
 }

@@ -1,3 +1,5 @@
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
 import type { OntologyCypherGeneratorService } from './cypher-generator.service.js';
 import type { OntologyCypherContext } from './cypher.schema.js';
@@ -87,8 +89,25 @@ describe('AssistantToolOntologyReasoningService', () => {
     };
   }
 
+  /** Snapshot stub: only the keys the test publishes, everything else falls back. */
+  function runtimeWith(values: Record<string, unknown>): RuntimeConfigPort {
+    return {
+      getSnapshot: () => ({
+        values: values as never,
+        version: 'test#1',
+        source: 'remote',
+        revision: 'test',
+        seq: 1,
+      }),
+      getVersion: () => 'test#1',
+      applyDocument: () => ({ ok: true, version: 'test#1', changed: [] }),
+      subscribe: () => () => undefined,
+    };
+  }
+
   function buildService(options?: {
     enabled?: boolean;
+    maxLimit?: number;
     schemaOutcome?:
       | { ok: true; value: SemanticaGraphSchema }
       | { ok: false; failure: SemanticaCallFailure };
@@ -122,7 +141,13 @@ describe('AssistantToolOntologyReasoningService', () => {
     } as unknown as OntologyCypherGeneratorService;
 
     return {
-      service: new AssistantToolOntologyReasoningService(client, generator),
+      service: new AssistantToolOntologyReasoningService(
+        client,
+        generator,
+        options?.maxLimit == null
+          ? undefined
+          : runtimeWith({ [EnvKey.SEMANTICA_MAX_LIMIT]: options.maxLimit }),
+      ),
       schema,
       query,
       generate,
@@ -431,6 +456,25 @@ describe('AssistantToolOntologyReasoningService', () => {
     expect(envelope.ambiguities).toEqual([
       expect.stringContaining('Requested 200 rows'),
     ]);
+  });
+
+  it('clamps to the row ceiling published in the snapshot', async () => {
+    const query = vi.fn().mockResolvedValue({ ok: true, value: OK_ROWS });
+    const generate = vi.fn().mockResolvedValue({
+      cypher: 'MATCH (d:Drug) RETURN d.name AS name',
+      params: {},
+    });
+
+    const { service } = buildService({ query, generate, maxLimit: 5 });
+    const envelope = await service.reasonOverOntology(
+      buildContext({ question: 'What is ibuprofen?', limit: 200 }),
+    );
+
+    expect(envelope.query).toMatchObject({
+      limit: 5,
+      requestedLimit: 200,
+      limitCapped: true,
+    });
   });
 
   it('does not claim a cap when the model never asked for a limit', async () => {

@@ -1,4 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type {
   AssistantReadConfidence,
   AssistantReadCoverage,
@@ -106,12 +109,26 @@ export class AssistantToolOntologyReasoningService {
   constructor(
     private readonly semantica: SemanticaClientService,
     private readonly cypherGenerator: OntologyCypherGeneratorService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
+
+  /**
+   * Row ceiling for this call. Read per call so a lowered limit also narrows the
+   * rows the model receives on the next question, not only after a restart.
+   */
+  private readMaxLimit(): number {
+    return (
+      this.runtimeConfig?.getSnapshot().values[EnvKey.SEMANTICA_MAX_LIMIT] ??
+      SEMANTICA_MAX_LIMIT
+    );
+  }
 
   async reasonOverOntology(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const parsed = parseArguments(context.toolArgs);
+    const parsed = parseArguments(context.toolArgs, this.readMaxLimit());
 
     if (!parsed.ok) {
       return this.buildEnvelope({
@@ -530,7 +547,10 @@ type OntologyLimitResolution = {
  * 返回判别式联合而不是抛异常：非法参数是正常的"模型给错了"情形，应该变成
  * 一个可读的空信封让模型自我纠正，而不是把整条 graph 打挂。
  */
-function parseArguments(toolArgs: Record<string, unknown> | undefined):
+function parseArguments(
+  toolArgs: Record<string, unknown> | undefined,
+  maxLimit: number,
+):
   | { ok: true; question: string; limitInfo: OntologyLimitResolution }
   | {
       ok: false;
@@ -542,7 +562,7 @@ function parseArguments(toolArgs: Record<string, unknown> | undefined):
   const rawQuestion =
     typeof args['question'] === 'string' ? args['question'] : '';
   const question = rawQuestion.trim();
-  const limitInfo = normalizeLimit(args['limit']);
+  const limitInfo = normalizeLimit(args['limit'], maxLimit);
 
   if (question.length === 0) {
     return {
@@ -556,7 +576,10 @@ function parseArguments(toolArgs: Record<string, unknown> | undefined):
   return { ok: true, question, limitInfo };
 }
 
-function normalizeLimit(limit: unknown): OntologyLimitResolution {
+function normalizeLimit(
+  limit: unknown,
+  maxLimit: number,
+): OntologyLimitResolution {
   if (typeof limit !== 'number' || Number.isNaN(limit)) {
     return {
       limit: SEMANTICA_DEFAULT_LIMIT,
@@ -565,7 +588,7 @@ function normalizeLimit(limit: unknown): OntologyLimitResolution {
     };
   }
   const requested = Math.trunc(limit);
-  const resolved = Math.max(1, Math.min(SEMANTICA_MAX_LIMIT, requested));
+  const resolved = Math.max(1, Math.min(maxLimit, requested));
   return {
     limit: resolved,
     requestedLimit: requested,

@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type {
   SemanticaCallFailure,
   SemanticaCitation,
@@ -50,29 +52,53 @@ const MAX_ERROR_BODY_LOG_CHARS = 300;
 export class SemanticaClientService {
   private readonly logger = new Logger(SemanticaClientService.name);
 
-  private readonly enabled: boolean;
-  private readonly baseUrl: string;
-  private readonly timeoutMs: number;
+  /**
+   * Secret, read from the environment only: an API key is not a tunable, so it
+   * never enters the snapshot (plan §2, "secrets never leave `.env`").
+   */
   private readonly apiKey: string;
 
-  constructor(private readonly configService: ConfigService) {
-    this.enabled =
-      this.configService.get<string>(EnvKey.SEMANTICA_ENABLED) === 'true';
-    this.baseUrl = (
-      this.configService.get<string>(EnvKey.SEMANTICA_BASE_URL) ??
-      SEMANTICA_DEFAULT_BASE_URL
-    ).replace(/\/+$/, '');
-    this.timeoutMs =
-      this.configService.get<number>(EnvKey.SEMANTICA_TIMEOUT_MS) ??
-      SEMANTICA_DEFAULT_TIMEOUT_MS;
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional()
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfig?: RuntimeConfigPort,
+  ) {
     // 缺失即空串：启动期校验已保证 enabled 时它非空，这里不重复抛错。
     this.apiKey =
       this.configService.get<string>(EnvKey.SEMANTICA_API_KEY) ?? '';
   }
 
+  /**
+   * Current sidecar settings, resolved per call rather than cached in a field:
+   * a cached value would ignore the push that is meant to change it. Falls
+   * back to the environment when the runtime layer is not injected.
+   */
+  private readSettings(): {
+    readonly enabled: boolean;
+    readonly baseUrl: string;
+    readonly timeoutMs: number;
+  } {
+    const values = this.runtimeConfig?.getSnapshot().values;
+    return {
+      enabled:
+        values?.[EnvKey.SEMANTICA_ENABLED] ??
+        this.configService.get<string>(EnvKey.SEMANTICA_ENABLED) === 'true',
+      baseUrl: (
+        values?.[EnvKey.SEMANTICA_BASE_URL] ??
+        this.configService.get<string>(EnvKey.SEMANTICA_BASE_URL) ??
+        SEMANTICA_DEFAULT_BASE_URL
+      ).replace(/\/+$/, ''),
+      timeoutMs:
+        values?.[EnvKey.SEMANTICA_TIMEOUT_MS] ??
+        this.configService.get<number>(EnvKey.SEMANTICA_TIMEOUT_MS) ??
+        SEMANTICA_DEFAULT_TIMEOUT_MS,
+    };
+  }
+
   /** sidecar 是否已启用。 */
   isEnabled(): boolean {
-    return this.enabled;
+    return this.readSettings().enabled;
   }
 
   /** 未启用时的统一失败结果，供工具层直接产出"未配置"信封。 */
@@ -292,7 +318,8 @@ export class SemanticaClientService {
     | { ok: true; status: number; payload: unknown }
     | { ok: false; status: number; failure: SemanticaCallFailure }
   > {
-    const url = `${this.baseUrl}${path}`;
+    const settings = this.readSettings();
+    const url = `${settings.baseUrl}${path}`;
     // 每个请求都带凭据，包括 GET：sidecar 把鉴权挂在路由级，连 /schema 也要令牌。
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
@@ -308,7 +335,7 @@ export class SemanticaClientService {
         headers,
         // exactOptionalPropertyTypes: `undefined` 不能赋给 BodyInit | null，显式用 null。
         body: options.body == null ? null : JSON.stringify(options.body),
-        signal: AbortSignal.timeout(this.timeoutMs),
+        signal: AbortSignal.timeout(settings.timeoutMs),
       });
     } catch (error) {
       this.logger.warn(
@@ -319,7 +346,7 @@ export class SemanticaClientService {
       return {
         ok: false,
         status: 0,
-        failure: this.classifyNetworkError(error),
+        failure: this.classifyNetworkError(error, settings.timeoutMs),
       };
     }
 
@@ -367,7 +394,10 @@ export class SemanticaClientService {
     };
   }
 
-  private classifyNetworkError(error: unknown): SemanticaCallFailure {
+  private classifyNetworkError(
+    error: unknown,
+    timeoutMs: number,
+  ): SemanticaCallFailure {
     const isTimeout =
       error instanceof Error &&
       (error.name === 'TimeoutError' || error.name === 'AbortError');
@@ -375,7 +405,7 @@ export class SemanticaClientService {
     return isTimeout
       ? {
           kind: 'timeout',
-          reason: `Ontology reasoning timed out after ${String(this.timeoutMs)}ms.`,
+          reason: `Ontology reasoning timed out after ${String(timeoutMs)}ms.`,
           status: null,
           errorKind: null,
           detail: null,
