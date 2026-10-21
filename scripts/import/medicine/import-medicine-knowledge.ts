@@ -593,6 +593,199 @@ const COMMANDS = {
       'alogps_logs',
     ],
   },
+
+  // Patent records. One row per (drug, patent number, country): a drug carries
+  // several patents and the same patent number recurs across jurisdictions.
+  // `--limit` counts drugs, not rows.
+  'drugbank-patents': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_patents.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_patents',
+    sourceName: 'drugbank_patents_parquet',
+    tableName: 'drugbank_patents',
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'patent_number',
+      'country',
+      'approved_on',
+      'expires_on',
+      'pediatric_extension',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'drugbank_id',
+      'patent_number',
+      'country',
+      'approved_on',
+      'expires_on',
+      'pediatric_extension',
+    ],
+  },
+
+  // Measured properties. One row per (drug, kind, source) — provenance kept.
+  'drugbank-experimental-properties': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_properties.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_experimental_properties',
+    sourceName: 'drugbank_experimental_properties_parquet',
+    tableName: 'drugbank_properties',
+    parserArgs: ['--column', 'experimental_properties'],
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+  },
+
+  // Model-predicted properties (ALOGPS / ChemAxon). Same table, flagged computed.
+  'drugbank-calculated-properties': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_properties.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_calculated_properties',
+    sourceName: 'drugbank_calculated_properties_parquet',
+    tableName: 'drugbank_properties',
+    parserArgs: ['--column', 'calculated_properties', '--computed'],
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+  },
+
+  // Jsonb blocks on the drug row: pathways / reactions / SNP effects. The
+  // parser emits one record per drug; the upsert targets `drugbank_drugs`.
+  'drugbank-pathways': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_pathways',
+    sourceName: 'drugbank_pathways_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'pathways'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'pathways'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'pathways'],
+  },
+  'drugbank-reactions': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_reactions',
+    sourceName: 'drugbank_reactions_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'reactions'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'reactions'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'reactions'],
+  },
+  'drugbank-snp-effects': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_snp_effects',
+    sourceName: 'drugbank_snp_effects_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'snp_effects'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'snp_effects'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'snp_effects'],
+  },
+  'drugbank-snp-adverse-effects': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_snp_adverse_effects',
+    sourceName: 'drugbank_snp_adverse_effects_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'snp_adverse_drug_reactions'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'snp_adverse_effects'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'snp_adverse_effects'],
+  },
+
+  // Morgan fingerprints for similarity search. Requires RDKit in the Python env.
+  // Set DRUGBANK_ONLY_IDS to a newline-delimited ID list to restrict output to
+  // drugs already loaded: the SDF covers only molecules that have a structure,
+  // so limiting by position would select a different drug set than the parent
+  // import and break the foreign key.
+  'drugbank-fingerprints': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_fingerprints.py'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'structures.sdf'),
+    sourceKey: 'drugbank_fingerprints',
+    sourceName: 'drugbank_fingerprints_sdf',
+    tableName: 'drugbank_fingerprints',
+    parserArgs: ['--only-ids', '${DRUGBANK_ONLY_IDS}'],
+    columns: [
+      'drugbank_id',
+      'import_run_id',
+      'fingerprint',
+      'bit_count',
+      'radius',
+      'n_bits',
+    ],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: [
+      'import_run_id',
+      'fingerprint',
+      'bit_count',
+      'radius',
+      'n_bits',
+    ],
+  },
 };
 
 function printUsage() {
@@ -611,11 +804,20 @@ Commands:
   drugbank-target-genes
   drugbank-drug-sequences
   drugbank-structures
+  drugbank-patents
+  drugbank-experimental-properties
+  drugbank-calculated-properties
+  drugbank-pathways
+  drugbank-reactions
+  drugbank-snp-effects
+  drugbank-snp-adverse-effects
+  drugbank-fingerprints
 
 Options:
   --source <path>       Override the default source file path.
   --batch-size <n>      Number of records per upsert batch. Default: 100
   --limit <n>           Parse only the first N records (useful for smoke tests).
+                        For the one-to-many commands this counts *drugs*, not rows.
   --source-version <v>  Store the export/version string in drug_source_imports.
   --with-hash           Compute SHA-256 for the source file and store it in drug_source_imports.
 `);
