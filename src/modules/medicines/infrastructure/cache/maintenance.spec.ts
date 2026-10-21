@@ -5,7 +5,7 @@ import type { Cache } from 'cache-manager';
 import type { CacheManagerStore } from 'cache-manager';
 import Keyv from 'keyv';
 import { KeyvAdapter } from 'cache-manager';
-import { MedicinesCacheAdminService } from './rebuild_index.js';
+import { MedicinesCacheMaintenanceService } from './maintenance.js';
 
 function createCacheStoreMock(overrides?: {
   keys?: () => Promise<string[]>;
@@ -29,14 +29,14 @@ function createCacheStoreMock(overrides?: {
   return store;
 }
 
-describe('MedicinesCacheAdminService', () => {
-  let service: MedicinesCacheAdminService;
+describe('MedicinesCacheMaintenanceService', () => {
+  let service: MedicinesCacheMaintenanceService;
   let cache: vi.Mocked<Cache>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        MedicinesCacheAdminService,
+        MedicinesCacheMaintenanceService,
         {
           provide: CACHE_MANAGER,
           useValue: {
@@ -47,7 +47,7 @@ describe('MedicinesCacheAdminService', () => {
       ],
     }).compile();
 
-    service = module.get(MedicinesCacheAdminService);
+    service = module.get(MedicinesCacheMaintenanceService);
     cache = module.get(CACHE_MANAGER);
   });
 

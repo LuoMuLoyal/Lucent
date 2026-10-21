@@ -30,4 +30,5 @@ export const medicineRiskLlmSchema = z.object({
   overallRecommendation: z.string().trim().min(1).max(500),
 });
 
-export type MedicineRiskLlmOutput = z.infer<typeof medicineRiskLlmSchema>;
+/** Re-exported so the type keeps flowing from the application port contract. */
+export type { MedicineRiskLlmOutput } from '../../../application/ports/risk_llm.js';

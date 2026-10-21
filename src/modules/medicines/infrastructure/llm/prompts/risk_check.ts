@@ -1,41 +1,9 @@
-import type { PromptCopy } from '../../../../../common/index.js';
+import type {
+  MedicineRiskLlmContext,
+  MedicineRiskLlmPromptCopy,
+} from '../../../application/ports/risk_llm.js';
 
-export type MedicineRiskLlmPromptCopy = PromptCopy;
-
-export interface MedicineRiskLlmContext {
-  medicines: Array<{
-    name: string;
-    source: 'drugbank' | 'cn';
-    ingredients?: string;
-    contraindications?: string;
-    precautions?: string;
-    foodInteractions?: string[];
-    drugInteractions?: Array<{ target: string; description: string }>;
-    startedAt?: string;
-  }>;
-  allergies: Array<{
-    label: string;
-    severity: string;
-    reaction?: string;
-  }>;
-  conditions: Array<{
-    label: string;
-    status: string;
-  }>;
-  reminders: Array<{
-    medicineName: string;
-    scheduledHour: number;
-    scheduledMinute: number;
-    daysOfWeek?: number[];
-    startDate?: string;
-    endDate?: string;
-  }>;
-  staticFindings: Array<{
-    type: string;
-    severity: string;
-    description: string;
-  }>;
-}
+export type { MedicineRiskLlmContext, MedicineRiskLlmPromptCopy };
 
 export function buildMedicineRiskSystemPrompt(): string {
   return [

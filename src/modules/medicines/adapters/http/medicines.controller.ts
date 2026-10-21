@@ -58,7 +58,7 @@ import {
   medicineRiskCheckRecordsResponseSchema,
 } from './dto/risk_check.response.js';
 import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
-import { MEDICINES_BYPASS_CACHE_HEADER } from '../../infrastructure/cache/store.constants.js';
+import { MEDICINES_BYPASS_CACHE_HEADER } from '../../application/ports/cache.js';
 import { MedicinesService } from '../../application/use_cases/medicines.js';
 
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';

@@ -8,20 +8,24 @@ import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildMedicineRiskSystemPrompt,
   buildMedicineRiskUserPrompt,
-  type MedicineRiskLlmContext,
-  type MedicineRiskLlmPromptCopy,
 } from './prompts/risk_check.js';
 import {
-  medicineRiskLlmSchema,
+  type MedicineRiskLlmContext,
   type MedicineRiskLlmOutput,
-} from './schemas/risk_check.js';
+  type MedicineRiskLlmPort,
+  type MedicineRiskLlmPromptCopy,
+} from '../../application/ports/risk_llm.js';
+import { medicineRiskLlmSchema } from './schemas/risk_check.js';
 
 @Injectable()
-export class MedicineRiskLlmGeneratorService extends BaseLlmGeneratorService<
-  MedicineRiskLlmContext,
-  MedicineRiskLlmPromptCopy,
-  MedicineRiskLlmOutput
-> {
+export class MedicineRiskLlmGeneratorService
+  extends BaseLlmGeneratorService<
+    MedicineRiskLlmContext,
+    MedicineRiskLlmPromptCopy,
+    MedicineRiskLlmOutput
+  >
+  implements MedicineRiskLlmPort
+{
   protected readonly schema = medicineRiskLlmSchema;
   protected readonly modelRole = 'analysis';
   protected readonly options = {
