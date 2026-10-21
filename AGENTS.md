@@ -52,6 +52,10 @@
   `application/**` 禁 import 任何模块 `infrastructure/`、`adapters/` 与 Prisma 直连；
   `adapters/**` 禁 import `infrastructure/**`；`infrastructure/**` 禁 import `adapters/**`；
   跨模块 import 任何模块的 `domain|application|adapters|infrastructure/` 一律禁止（只走根 barrel）。
+- **基线门禁**（`scripts/arch/arch-check-with-baseline.ts`，ADR-0024 Phase 0）：arch:check
+  由「全 warn 放行」改为对账基线——三类观察（依赖图 / eslint.arch / AST 姿态）汇总为
+  `tool|rule|file` 条目，新条目即 exit 1，基线只允许递减；修复后跑
+  `pnpm arch:baseline:update` 缩小基线；逐规则裁决期限记在基线的 `ruleExpiry`。
 - **代码模式**（`eslint.arch.config.ts`，独立 flat config，与主 lint 互不影响）：
   service 层裸 `throw new Error`（ADR-0012 例外见下节）、`no-magic-numbers` 白名单、
   测试文件 `: any`。原 W1（空 catch）已转 error 并迁入 `eslint.config.ts`。
