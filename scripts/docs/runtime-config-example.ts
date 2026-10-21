@@ -107,7 +107,7 @@ export async function collectRuntimeConfigExampleProblems(
 
   const problems = diffRuntimeConfigExampleKeys(raw, expectedKeys);
   const parsed = schema.parseRuntimeConfigDocument(raw);
-  if (!parsed.ok) {
+  if (parsed.ok === false) {
     problems.push(
       `${RUNTIME_CONFIG_EXAMPLE_PATH}: rejected by the document schema (${parsed.reason}): ${parsed.message}`,
     );
