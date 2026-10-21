@@ -47,7 +47,11 @@
 - **依赖图**（dependency-cruiser，`.dependency-cruiser.cjs`）：模块间只准 barrel import
   （module 类直引对方 `.module.ts` 豁免）；跨模块 import 其他模块 `repositories/`、`dto/` 禁止；
   `src/common/**` 禁止 import `src/modules/**`；业务模块禁止直连 `ioredis`/`keyv`（走公共缓存封装）；
-  controller 禁止 import `@prisma/client` 与 `src/prisma/**`。
+  controller 禁止 import `@prisma/client` 与 `src/prisma/**`。DDD 分层护栏（ADR-0024，
+  迁移到四层骨架的模块生效）：`domain/**` 只准 import 同 `domain/` 树内文件；
+  `application/**` 禁 import 任何模块 `infrastructure/`、`adapters/` 与 Prisma 直连；
+  `adapters/**` 禁 import `infrastructure/**`；`infrastructure/**` 禁 import `adapters/**`；
+  跨模块 import 任何模块的 `domain|application|adapters|infrastructure/` 一律禁止（只走根 barrel）。
 - **代码模式**（`eslint.arch.config.ts`，独立 flat config，与主 lint 互不影响）：
   service 层裸 `throw new Error`（ADR-0012 例外见下节）、`no-magic-numbers` 白名单、
   测试文件 `: any`。原 W1（空 catch）已转 error 并迁入 `eslint.config.ts`。

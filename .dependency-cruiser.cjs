@@ -31,7 +31,10 @@ module.exports = {
       from: { path: '^src/modules/([^/]+)/' },
       to: {
         path: '^src/modules/(?!$1/)[^/]+/',
-        pathNot: ['^src/modules/[^/]+/index\\.ts$', '^src/modules/[^/]+/[^/]+\\.module\\.ts$'],
+        pathNot: [
+          '^src/modules/[^/]+/index\\.ts$',
+          '^src/modules/[^/]+/[^/]+\\.module\\.ts$',
+        ],
       },
     },
 
@@ -79,8 +82,7 @@ module.exports = {
         '(use the src/common redis/cache/queue wrappers).',
       from: { path: '^src/modules/' },
       to: {
-        path:
-          '^node_modules/(?:ioredis|keyv)/|^node_modules/\\.pnpm/[^/]+/node_modules/(?:ioredis|keyv)/',
+        path: '^node_modules/(?:ioredis|keyv)/|^node_modules/\\.pnpm/[^/]+/node_modules/(?:ioredis|keyv)/',
       },
     },
 
@@ -96,8 +98,108 @@ module.exports = {
         '**/*.controller.ts must not import @prisma/client or src/prisma/**.',
       from: { path: '\\.controller\\.ts$' },
       to: {
-        path:
-          '^node_modules/@prisma/client/|^node_modules/\\.pnpm/[^/]+/node_modules/@prisma/client/|^src/prisma/',
+        path: '^node_modules/@prisma/client/|^node_modules/\\.pnpm/[^/]+/node_modules/@prisma/client/|^src/prisma/',
+      },
+    },
+
+    /*
+     * D1 - domain layer purity (ADR-0024): files under any module's domain/
+     * may only depend on other files in the same domain/ tree. No src/common,
+     * no application/adapters/infrastructure, no other modules.
+     */
+    {
+      name: 'ddd-domain-purity',
+      severity: 'warn',
+      comment:
+        'src/modules/**/domain/** may only import from other files inside ' +
+        'the same domain/ tree (pure domain: no framework, no I/O).',
+      from: { path: '^src/modules/[^/]+/domain/' },
+      to: {
+        path: '^src/',
+        pathNot: ['^src/modules/[^/]+/domain/'],
+      },
+    },
+
+    /*
+     * D2 - application layer must not reach the delivery or persistence
+     * layers directly; it depends on domain and its own ports only.
+     * (Infrastructure implementations inject into application via DI tokens,
+     * so the edge direction application -> infrastructure is never needed.)
+     */
+    {
+      name: 'ddd-application-no-infra-or-adapters',
+      severity: 'warn',
+      comment:
+        "src/modules/**/application/** must not import from any module's " +
+        'infrastructure/ or adapters/ trees.',
+      from: { path: '^src/modules/[^/]+/application/' },
+      to: {
+        path: '^src/modules/[^/]+/(?:infrastructure|adapters)/',
+      },
+    },
+
+    /*
+     * D3 - adapters must not import infrastructure implementations directly;
+     * delivery code talks to application use cases / read models.
+     */
+    {
+      name: 'ddd-adapters-no-infrastructure',
+      severity: 'warn',
+      comment:
+        "src/modules/**/adapters/** must not import from any module's " +
+        'infrastructure/ tree.',
+      from: { path: '^src/modules/[^/]+/adapters/' },
+      to: {
+        path: '^src/modules/[^/]+/infrastructure/',
+      },
+    },
+
+    /*
+     * D4 - infrastructure implements ports; it must not import delivery code.
+     */
+    {
+      name: 'ddd-infrastructure-no-adapters',
+      severity: 'warn',
+      comment:
+        "src/modules/**/infrastructure/** must not import from any module's " +
+        'adapters/ tree.',
+      from: { path: '^src/modules/[^/]+/infrastructure/' },
+      to: {
+        path: '^src/modules/[^/]+/adapters/',
+      },
+    },
+
+    /*
+     * D5 - application layer must not touch Prisma directly; persistence goes
+     * through repository implementations injected from infrastructure/.
+     */
+    {
+      name: 'ddd-application-no-direct-prisma',
+      severity: 'warn',
+      comment:
+        'src/modules/**/application/** must not import @prisma/client or ' +
+        'src/prisma/** (use repository implementations).',
+      from: { path: '^src/modules/[^/]+/application/' },
+      to: {
+        path: '^node_modules/@prisma/client/|^node_modules/\\.pnpm/[^/]+/node_modules/@prisma/client/|^src/prisma/',
+      },
+    },
+
+    /*
+     * D6 - cross-context imports may never target another module's DDD layer
+     * trees at all; they go through the owning module's root barrel or the
+     * reader ports / domain events defined on top of it.
+     */
+    {
+      name: 'modules-cross-boundary-ddd-internals-forbidden',
+      severity: 'warn',
+      comment:
+        'Cross-module imports (A != B) may never target src/modules/<B>/' +
+        '(domain|application|adapters|infrastructure)/** even when inside ' +
+        'the same repo — go through the owning module barrel or its ports.',
+      from: { path: '^src/modules/([^/]+)/' },
+      to: {
+        path: '^src/modules/(?!$1/)[^/]+/(?:domain|application|adapters|infrastructure)/',
       },
     },
 
