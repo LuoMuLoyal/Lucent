@@ -1,4 +1,20 @@
-import type { MedicineDetailDataDto } from '../../adapters/http/dto/detail.js';
+// ─── Detail structural contract ─────────────────────────────────────────────
+
+/**
+ * The slice of the medicine detail payload the domain consumes. Structural
+ * only: the HTTP zod schemas (`adapters/http/dto`) remain the single source
+ * of the wire shape, and the persistence layer produces this object
+ * compositionally — the domain never imports adapter types.
+ */
+export type MedicineDetailPayload = Record<string, unknown>;
+
+export interface MedicineDetailDataLike {
+  id: string;
+  source: string;
+  name: string;
+  subtitle: string | null;
+  detail: MedicineDetailPayload;
+}
 
 // ─── Canonical ingredient variant map ──────────────────────────────────────
 
@@ -135,7 +151,7 @@ export interface MedicineDetailWrapper {
     displayName: string;
     startedAt: Date | null;
   };
-  detail: MedicineDetailDataDto;
+  detail: MedicineDetailDataLike;
 }
 
 export function getDisplayName(medicine: MedicineDetailWrapper): string {
@@ -144,7 +160,7 @@ export function getDisplayName(medicine: MedicineDetailWrapper): string {
 }
 
 export function getDetailJson(
-  detail: MedicineDetailDataDto,
+  detail: MedicineDetailDataLike,
 ): Record<string, unknown> {
   return detail.detail;
 }

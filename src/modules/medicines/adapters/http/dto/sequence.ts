@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { MEDICINE_KNOWLEDGE_SOURCES } from '../../../dto/source.dto.js';
+import { MEDICINE_KNOWLEDGE_SOURCES } from '../../../domain/medicine/medicine_source.js';
 
 /**
  * Sequence payloads of `GET /medicines/:id/sequences`.

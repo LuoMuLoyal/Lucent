@@ -15,7 +15,7 @@ import { PrismaService } from '../../../../prisma/index.js';
 import {
   DEFAULT_MEDICINE_SOURCE,
   type MedicineKnowledgeSource,
-} from '../../dto/source.dto.js';
+} from '../../domain/medicine/medicine_source.js';
 
 import type { MedicineSafetyTipResponseDto } from '../../adapters/http/dto/safety_tip.js';
 import type { MedicineRecognitionResponseDto } from '../../adapters/http/dto/recognition.response.js';

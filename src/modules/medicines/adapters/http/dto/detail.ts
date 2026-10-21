@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { sequenceSummarySchema } from './sequence.js';
 import { medicineStructureSchema } from './structure.js';
-import { MEDICINE_KNOWLEDGE_SOURCES } from '../../../dto/source.dto.js';
+import { MEDICINE_KNOWLEDGE_SOURCES } from '../../../domain/medicine/medicine_source.js';
 
 /**
  * zod 4 Standard Schemas for the medicine detail response bodies

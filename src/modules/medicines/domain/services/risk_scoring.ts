@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type {
-  MedicineRiskFindingDto,
-  MedicineRiskCoverageIssueDto,
-  MedicineRedFlagDto,
+  MedicineRiskFinding,
+  MedicineRiskCoverageIssue,
+  MedicineRedFlag,
   MedicineRiskSeverity,
   MedicineRiskLevel,
-} from '../../adapters/http/dto/risk_check.response.js';
+} from './risk_model.js';
 import {
   type MedicineDetailWrapper,
   getAllSourceIngredientTokens,
@@ -30,9 +30,9 @@ import {
 // ─── Risk Score calculation ─────────────────────────────────────────────────
 
 function calculateRiskScore(
-  findings: MedicineRiskFindingDto[],
-  coverageIssues: MedicineRiskCoverageIssueDto[],
-  redFlags: MedicineRedFlagDto[],
+  findings: MedicineRiskFinding[],
+  coverageIssues: MedicineRiskCoverageIssue[],
+  redFlags: MedicineRedFlag[],
 ): number {
   let score = 0;
   for (const f of findings) {
@@ -77,13 +77,13 @@ export class RiskDetectionService {
       displayName: string;
     }>,
   ): {
-    findings: MedicineRiskFindingDto[];
-    coverageIssues: MedicineRiskCoverageIssueDto[];
-    redFlags: MedicineRedFlagDto[];
+    findings: MedicineRiskFinding[];
+    coverageIssues: MedicineRiskCoverageIssue[];
+    redFlags: MedicineRedFlag[];
     riskScore: number;
     riskLevel: MedicineRiskLevel;
   } {
-    const findings: MedicineRiskFindingDto[] = [];
+    const findings: MedicineRiskFinding[] = [];
 
     for (const medicine of details) {
       findings.push(
@@ -126,7 +126,7 @@ export class RiskDetectionService {
   private allergyFindings(
     activeAllergies: AllergyRecord[],
     medicine: MedicineDetailWrapper,
-  ): MedicineRiskFindingDto[] {
+  ): MedicineRiskFinding[] {
     if (activeAllergies.length === 0) return [];
 
     const ingredientTokens = getAllSourceIngredientTokens(medicine);
@@ -140,7 +140,7 @@ export class RiskDetectionService {
     ];
     const normalizedHaystack = normalizeToken(haystacks.join(' '));
 
-    const findings: MedicineRiskFindingDto[] = [];
+    const findings: MedicineRiskFinding[] = [];
     for (const allergyItem of activeAllergies) {
       const rawLabel = allergyItem.label.trim();
       if (rawLabel === '') continue;
@@ -197,8 +197,8 @@ export class RiskDetectionService {
 
   private foodInteractionFindings(
     medicine: MedicineDetailWrapper,
-  ): MedicineRiskFindingDto[] {
-    const findings: MedicineRiskFindingDto[] = [];
+  ): MedicineRiskFinding[] {
+    const findings: MedicineRiskFinding[] = [];
     const json = getDetailJson(medicine.detail);
     const interactions =
       (json['foodInteractions'] as unknown[] | undefined) ?? [];
@@ -242,7 +242,7 @@ export class RiskDetectionService {
   private pairInteractionFinding(
     current: MedicineDetailWrapper,
     other: MedicineDetailWrapper,
-  ): MedicineRiskFindingDto | null {
+  ): MedicineRiskFinding | null {
     const currentTargets = getDrugbankInteractionTargets(current);
     const otherIds = getDrugbankIds(other);
     const overlappingIds = [...currentTargets].filter((id) => otherIds.has(id));
@@ -312,7 +312,7 @@ export class RiskDetectionService {
   private duplicateIngredientFinding(
     current: MedicineDetailWrapper,
     other: MedicineDetailWrapper,
-  ): MedicineRiskFindingDto | null {
+  ): MedicineRiskFinding | null {
     const currentTokens = getCanonicalIngredientKeys(current);
     const otherTokens = getCanonicalIngredientKeys(other);
     if (currentTokens.size === 0 || otherTokens.size === 0) return null;
@@ -339,7 +339,7 @@ export class RiskDetectionService {
     source: string;
     sourceRefId: string | null;
     displayName: string;
-  }): MedicineRiskCoverageIssueDto {
+  }): MedicineRiskCoverageIssue {
     if (item.source === 'manual') {
       return {
         medicineName: item.displayName,
@@ -362,10 +362,10 @@ export class RiskDetectionService {
 
   private evaluateRedFlags(
     activeAllergies: AllergyRecord[],
-    findings: MedicineRiskFindingDto[],
-    coverageIssues: MedicineRiskCoverageIssueDto[],
-  ): MedicineRedFlagDto[] {
-    const alerts: MedicineRedFlagDto[] = [];
+    findings: MedicineRiskFinding[],
+    coverageIssues: MedicineRiskCoverageIssue[],
+  ): MedicineRedFlag[] {
+    const alerts: MedicineRedFlag[] = [];
 
     // Rule 1: Severe allergy match
     const severeAllergens = new Set(

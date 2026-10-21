@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+import type {
+  MedicineRiskCheckRecord,
+  MedicineRiskCheckResult,
+  MedicineRiskCoverageIssue,
+  MedicineRiskFinding,
+  MedicineRedFlag,
+} from '../../../domain/services/risk_model.js';
+
 /**
  * zod 4 Standard Schemas for the medicine risk-check responses
  * (`GET`/`POST /medicines/risk-check`).
@@ -18,45 +26,14 @@ import { z } from 'zod';
  * the JSON `result` column unchanged).
  */
 
-export type MedicineRiskLevel = 'safe' | 'caution' | 'risk' | 'danger';
-const MEDICINE_RISK_LEVELS = ['safe', 'caution', 'risk', 'danger'] as const;
-
-export type MedicineRiskFindingType =
-  | 'interaction'
-  | 'duplicateIngredient'
-  | 'allergy'
-  | 'foodInteraction'
-  | 'longTermUse'
-  | 'schedulingConflict'
-  | 'specialGroup';
-const MEDICINE_RISK_FINDING_TYPES = [
-  'interaction',
-  'duplicateIngredient',
-  'allergy',
-  'foodInteraction',
-  'longTermUse',
-  'schedulingConflict',
-  'specialGroup',
-] as const;
-
-export type MedicineRiskSeverity = 'high' | 'medium' | 'info';
-const MEDICINE_RISK_SEVERITIES = ['high', 'medium', 'info'] as const;
-
-export type MedicineRiskFindingContext = 'none' | 'alcohol' | 'caffeine';
-const MEDICINE_RISK_FINDING_CONTEXTS = ['none', 'alcohol', 'caffeine'] as const;
-
-export type MedicineRiskCoverageReason =
-  | 'manualEntry'
-  | 'missingSourceRef'
-  | 'detailUnavailable';
-const MEDICINE_RISK_COVERAGE_REASONS = [
-  'manualEntry',
-  'missingSourceRef',
-  'detailUnavailable',
-] as const;
-
-export type MedicineRedFlagRule = 'severeAllergy' | 'informationGap';
-const MEDICINE_RED_FLAG_RULES = ['severeAllergy', 'informationGap'] as const;
+import {
+  MEDICINE_RISK_COVERAGE_REASONS,
+  MEDICINE_RISK_FINDING_CONTEXTS,
+  MEDICINE_RISK_FINDING_TYPES,
+  MEDICINE_RISK_LEVELS,
+  MEDICINE_RISK_SEVERITIES,
+  MEDICINE_RED_FLAG_RULES,
+} from '../../../domain/services/risk_model.js';
 
 export const medicineRiskFindingSchema = z.object({
   type: z.enum(MEDICINE_RISK_FINDING_TYPES).describe('Finding kind.'),
@@ -138,34 +115,31 @@ export const medicineRiskCheckRecordsResponseSchema =
 export const medicineRiskCheckRecordResponseSchema =
   medicineRiskCheckRecordSchema;
 
-/** Strongly typed check result payload. */
-export type MedicineRiskCheckResponseDto = z.infer<
-  typeof medicineRiskCheckResponseSchema
->;
+/**
+ * Type exports keep their former names, now derived from the domain risk
+ * model (`domain/services/risk_model.ts`) instead of `z.infer` — the zod
+ * schemas above are built on the same domain unions, so the wire contract
+ * and the domain contract cannot drift.
+ */
+export type {
+  MedicineRiskLevel,
+  MedicineRiskFindingType,
+  MedicineRiskSeverity,
+  MedicineRiskFindingContext,
+  MedicineRiskCoverageReason,
+  MedicineRedFlagRule,
+  MedicineRiskCheckResult,
+  MedicineRiskCheckRecord,
+} from '../../../domain/services/risk_model.js';
 
-/** Strongly typed single persisted record. */
-export type MedicineRiskCheckRecordDto = z.infer<
-  typeof medicineRiskCheckRecordSchema
->;
-
-/** Strongly typed static/llm record pair. */
-export type MedicineRiskCheckRecordsDto = z.infer<
-  typeof medicineRiskCheckRecordsSchema
->;
-
-/** Strongly typed single finding. */
-export type MedicineRiskFindingDto = z.infer<typeof medicineRiskFindingSchema>;
-
-/** Strongly typed coverage issue. */
-export type MedicineRiskCoverageIssueDto = z.infer<
-  typeof medicineRiskCoverageIssueSchema
->;
-
-/** Strongly typed red flag. */
-export type MedicineRedFlagDto = z.infer<typeof medicineRedFlagSchema>;
-
-/** Envelope wrapper for `GET /risk-check` (list of records). */
+export type MedicineRiskFindingDto = MedicineRiskFinding;
+export type MedicineRiskCoverageIssueDto = MedicineRiskCoverageIssue;
+export type MedicineRedFlagDto = MedicineRedFlag;
+export type MedicineRiskCheckResponseDto = MedicineRiskCheckResult;
+export type MedicineRiskCheckRecordDto = MedicineRiskCheckRecord;
+export type MedicineRiskCheckRecordsDto = {
+  static: MedicineRiskCheckRecordDto | null;
+  llm: MedicineRiskCheckRecordDto | null;
+};
 export type MedicineRiskCheckRecordsResponseDto = MedicineRiskCheckRecordsDto;
-
-/** Envelope wrapper for `POST /risk-check` (single record). */
 export type MedicineRiskCheckRecordResponseDto = MedicineRiskCheckRecordDto;

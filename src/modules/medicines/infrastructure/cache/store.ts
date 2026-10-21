@@ -13,7 +13,7 @@ import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-confi
 import type { MedicineDetailDataDto } from '../../adapters/http/dto/detail.js';
 import type { MedicineSequenceDataDto } from '../../adapters/http/dto/sequence.js';
 
-import type { MedicineKnowledgeSource } from '../../dto/source.dto.js';
+import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine_source.js';
 
 import type { MedicineSearchResult } from '../../adapters/http/dto/search.js';
 import {
