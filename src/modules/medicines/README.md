@@ -8,6 +8,19 @@ owner: backend
 药品知识库查询（中/英双源分离）、AI 药盒图片识别、用药风险检查。
 数据事实源是导入后的 PostgreSQL 持久表；导入策略变更须同步更新本文件。
 
+## 限界上下文（ADR-0024 目标形态）
+
+本模块承载两个上下文（同模块、各自聚合）：**Medicine Catalog** 与
+**Medication Safety**。按 ADR-0024 计划的聚合边界（迁移到四层骨架时生效，
+当前仍是 service 形态）：
+
+- Catalog 聚合根：`Medicine`（双源）、`ImportBatch`（导入对账）、
+  `SafetyTip`（安全提示内容）。搜索/详情/序列是 **MedicineFact 只读投影**，
+  为读模型，不承担不变量。
+- Safety 聚合根：`RiskAssessment`（一次请求一次评估，结果不可改写）。
+- 领域事件（计划）：`medicine_imported`、`risk_assessment_completed` 等，
+  经 outbox 发布；目录事实以 `MedicineFact` 契约面向下游发布。
+
 ## 知识源与 source 参数
 
 - `source=drugbank` → 查 `drugbank_drugs`（英文科学实体：机制/药理/靶点/

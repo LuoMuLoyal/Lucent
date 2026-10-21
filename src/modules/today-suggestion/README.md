@@ -11,6 +11,17 @@ owner: backend
 候选,再抑制/仲裁/生命周期管理后物化为建议卡片,必要时升级为推送通知。
 采用 write-time materialization——数据变更时异步重算,GET 只读物化结果。
 
+## 限界上下文(ADR-0024 目标形态)
+
+本模块承载 **Daily Guidance** 上下文(上下文名 `today-suggestion`)。按
+ADR-0024 计划中的聚合边界(迁移到四层骨架时生效,当前仍是 rule 引擎形态):
+
+- 聚合根:`DailySuggestion`(每用户每日一份,生命周期只前进)、
+  `SuggestionFeedback`、`RuleDefinition`(版本化,`ruleId` 唯一)。
+- `Signal`/`SignalSnapshot` 是读模型,不是聚合——不反向写源上下文。
+- 领域事件(计划):`daily_suggestion_delivered`、`suggestion_suppressed`
+  等,经 outbox 发布;消费上游事件触发重算。
+
 ## 边界
 
 - 管:信号采集、规则引擎(`SuggestionRule`)、仲裁打分、反馈抑制、建议

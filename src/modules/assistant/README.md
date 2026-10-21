@@ -9,6 +9,19 @@ owner: backend
 检索（RAG）、日报/设置写入提案（HITL 确认）、跨对话记忆与对话持久化。
 历史契约细节见 `docs/archive/01-reference/contracts/assistant-contract.md` 与 `assistant-capabilities.md`。
 
+## 限界上下文（ADR-0024 目标形态）
+
+本模块承载 **AI Assistant** 上下文（上下文名 `assistant`）。按 ADR-0024
+计划的聚合边界（迁移到四层骨架时生效，当前仍是 service/graph 形态）：
+
+- 聚合根：`Conversation`（含有序消息，顺序单调）、`Memory`（每用户一份，
+  清空幂等）、`Proposal`（pending 才可确认，确认恰好一次）、`Summary`
+  （按对话版本保存，不反向修改消息）。
+- 提案的目标动作（`ProposedAction`）经 command/proposal 契约写入目标上下文，
+  不直接操作他上下文表。
+- 领域事件（计划）：`proposal_confirmed`、`conversation_archived` 等，
+  经 outbox 发布。
+
 ## Endpoints（挂 `/user` 前缀，事实源 = openapi.json）
 
 - `GET capabilities` — 能力/权限发现：settings 门禁 + 服务端状态合成
