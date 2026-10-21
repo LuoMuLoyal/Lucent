@@ -34,11 +34,12 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
-> 更新于 2026-10-19。每份计划的状态以文件自身头部的状态段为准；此处只列当前仍在驱动工作、
+> 更新于 2026-10-21。每份计划的状态以文件自身头部的状态段为准；此处只列当前仍在驱动工作、
 > 或已裁决暂缓但保留触发条件的计划。
 
 | 计划                                                                                                                       | 状态                                   | 备注                                                                                                                                                                                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`2026-10-21-ddd-refactor-backend.md`](2026-10-21-ddd-refactor-backend.md)                                                 | **未开工**                             | 标准 DDD 首批：Identity & Access / Medicine Catalog / Daily Guidance / AI Assistant；先落 ADR-0024、上下文映射与聚合边界，再按上下文迁移；公开 OpenAPI 零 diff                                                                                                                            |
 | [`2026-10-18-nestjs-microservices-monorepo.md`](2026-10-18-nestjs-microservices-monorepo.md)                               | **未开工，待裁决**                     | 绞杀者渐进：Traefik 边缘逐片切出 identity/health/medicine/assistant/insights/notifications/content + admin BFF；P0.5 命名硬切一次；TS + Python（仅 `services/ontology`）、Turborepo 多语言任务图、RabbitMQ、每服务独立 database、service JWT、`apps/legacy` 标准布局；Nomad + rnacos 部署 |
 | [`2026-10-07-assistant-intent-routing-and-retrieval-fixes.md`](2026-10-07-assistant-intent-routing-and-retrieval-fixes.md) | P0–P2 已落地，**只剩运维项**           | F3 图谱重导（`export_subgraph.py` 参数化 → 按生产库重导 → 灌 Neo4j）+ 发新镜像部署                                                                                                                                                                                                        |
 | [`2026-09-17-local-embedding-model-selection.md`](2026-09-17-local-embedding-model-selection.md)                           | **收敛为单一未决项**                   | 三条嵌入线都已被现有方案填上；只剩「是否迁本地自托管」，前置是 GPU 与吞吐基准                                                                                                                                                                                                             |

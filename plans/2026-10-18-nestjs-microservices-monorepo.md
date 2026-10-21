@@ -566,8 +566,8 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 - 导出**现网契约快照**（供 P0.5 差异用）；建立 `route-ownership.yaml` 与 `data-ownership.yaml`，
   CI 校验路由覆盖与单 owner。
 - Traefik 挡在单体前，100% 透传；补按资源段重写、SSE/文件流规则。
-- 两条 ADR：**ADR-0024 绞杀者、服务边界与数据所有权**（7 个 bounded context、分片、独立 database、
-  回滚边界、旧库归档）；**ADR-0025 边缘、IPC 与部署**（Traefik、gRPC、RabbitMQ/outbox、service JWT、
+- 两条 ADR：**ADR-0025 绞杀者、服务边界与数据所有权**（7 个 bounded context、分片、独立 database、
+  回滚边界、旧库归档）；**ADR-0026 边缘、IPC 与部署**（Traefik、gRPC、RabbitMQ/outbox、service JWT、
   Nomad + rnacos、事件桥）。
 - 七条 spike：
   1. Traefik file provider + Nomad provider：路由/中间件从 Git 加载、`ReplacePathRegex` 按资源段
@@ -784,7 +784,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 ## 9. 交付物
 
-1. **2 个 ADR**：0024 绞杀者、服务边界与数据所有权；0025 边缘、IPC、多语言构建与部署
+1. **2 个 ADR**：0025 绞杀者、服务边界与数据所有权；0026 边缘、IPC、多语言构建与部署
    （Nomad + rnacos + Turborepo/uv）。
 2. **P0.5 命名映射表**、重命名后的 OpenAPI 与重新生成的 Luminous/admin 客户端。
 3. **路由/数据所有权清单** + Traefik 配置生成器。
