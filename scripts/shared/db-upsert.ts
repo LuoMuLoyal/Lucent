@@ -186,7 +186,25 @@ function createParserArgs(config, sourcePath, options) {
     parserArgs.push('--source-dataset', config.sourceDataset);
   }
 
+  // Extra parser flags declared by the dataset (e.g. `--column` for the parsers
+  // that read several columns of the same parquet file). A flag value written
+  // as `${NAME}` is substituted from the environment — used for values that only
+  // exist at run time, such as an allow-list file path.
+  if (Array.isArray(config.parserArgs)) {
+    parserArgs.push(...config.parserArgs.map(substituteEnv));
+  }
+
   return parserArgs;
+}
+
+function substituteEnv(value) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  return value.replace(/\$\{([A-Z0-9_]+)\}/g, (match, name) => {
+    const replacement = process.env[name];
+    return replacement === undefined ? match : replacement;
+  });
 }
 
 function collectRejectionSample(samples, rejection) {
@@ -243,7 +261,11 @@ function parseArgs(argv) {
 async function streamParseAndUpsert(config, sourcePath, options, flushBatch) {
   const parserArgs = createParserArgs(config, sourcePath, options);
 
-  const child = spawn('python', parserArgs, {
+  // `PYTHON_BIN` lets a run point at the interpreter that actually holds the
+  // parser dependencies (the project venv, rather than whatever `python` PATH
+  // resolves to). Defaults to `python` so existing invocations are unchanged.
+  const pythonBin = process.env.PYTHON_BIN?.trim() || 'python';
+  const child = spawn(pythonBin, parserArgs, {
     cwd: REPO_ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
