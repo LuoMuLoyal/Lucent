@@ -33,6 +33,7 @@ import { I18nModule } from './i18n/i18n.module.js';
 import { LoggerModule } from './common/logger/logger.module.js';
 import { MetricsModule } from './common/metrics/metrics.module.js';
 import { SseModule } from './common/index.js';
+import { DomainEventsModule } from './common/events/domain-events.module.js';
 import { BullmqModule } from './common/queue/queue.module.js';
 import { CronJobsModule } from './common/queue/cron-jobs.module.js';
 import { RedisModule } from './common/redis/redis.module.js';
@@ -125,6 +126,7 @@ const isTestRuntime =
     I18nModule,
     LoggerModule,
     MetricsModule,
+    DomainEventsModule,
     RuntimeConfigModule,
     SseModule,
     BullmqModule,
