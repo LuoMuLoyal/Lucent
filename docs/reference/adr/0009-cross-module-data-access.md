@@ -1,6 +1,6 @@
 # ADR-0009: 跨模块数据访问治理
 
-- **Status**: accepted
+- **Status**: accepted（「读模型 / 纯 CRUD 模块可跳过 port」豁免由 ADR-0024 取代；其余规则仍有效）
 - **Date**: 2026-07-17
 - **Deciders**: LuoMuLoyal
 

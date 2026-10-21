@@ -790,7 +790,7 @@ Daily Guidance 的查询侧（`get_today_suggestion`、`get_suggestion_history`�
 
 1. **Phase 0：战略设计与护栏**
    - 落 ADR-0024（限界上下文、聚合边界、上下文映射、分层代码组织）；ADR-0009 仅更新 Status。
-   - 建 `docs/reference/context-map.md` 与 `docs/reference/ubiquitous-language.md`，作为跨上下文契约。
+   - 建 `docs/reference/context-map.md` 并把 DDD 领域术语并入 `docs/reference/glossary.md`（术语单一来源），作为跨上下文契约。
    - 修订 `AGENTS.md`：Module Subdirectory Whitelist 加入 `domain/`、`application/`、`adapters/`、`infrastructure/`；File Naming Rules 改为按目录语义去重；Barrel Exports 明确 domain/application 子目录不设 barrel。
    - 更新 `docs/explanation/architecture.md` 与各模块 `README.md` 的上下文/聚合说明。
    - 扩 dependency-cruiser：domain 禁框架/IO；application 禁 Prisma/HTTP；adapters 禁 infrastructure；跨上下文禁内部路径；禁止跨上下文关联查询。
@@ -823,7 +823,7 @@ pnpm docs:links
 
 ## 七、验收标准
 
-- 每个限界上下文有明确的聚合根、不变量、领域事件与上下文映射；`context-map.md` 与代码目录一致。
+- 每个限界上下文有明确的聚合根、不变量、领域事件与上下文映射；`context-map.md` 与 `glossary.md` 领域术语和代码目录一致。
 - 每个聚合根一个 repository；没有内部实体 repository、通用 repository、读模型 repository。
 - 聚合不变量有单元测试；应用服务测试只验证编排与事务边界，不重复测规则。
 - 跨上下文写只经命令/提案；跨上下文读只经 reader port 或领域事件；`dependency-cruiser` 零新增违规。

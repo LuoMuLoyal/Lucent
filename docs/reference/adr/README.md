@@ -89,7 +89,7 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-07-15
 - [0009](0009-cross-module-data-access.md)
   - Title: 跨模块数据访问治理（表归属 + 读/写规则 + 提供方 reader port）
-  - Status: accepted
+  - Status: accepted（「读模型 / 纯 CRUD 豁免」由 ADR-0024 取代，其余规则仍有效）
   - Date: 2026-07-17
 - [0010](0010-otel-tracing.md)
   - Title: Full-Stack Tracing — OpenTelemetry + Jaeger, Retire requestId
@@ -147,3 +147,7 @@ What becomes easier or harder as a result of this decision?
   - Title: 三机 Compose 部署模型(跨云公网 + 安全组收口)
   - Status: accepted（supersedes 0017；决定 1/2 于 2026-10-12 修订为一机一文件）
   - Date: 2026-10-02
+- [0024](0024-ddd-bounded-contexts-and-aggregates.md)
+  - Title: 采用标准 DDD 的限界上下文与聚合边界
+  - Status: accepted（取代 ADR-0009 的「读模型 / 纯 CRUD 豁免」；其余规则仍有效）
+  - Date: 2026-10-21

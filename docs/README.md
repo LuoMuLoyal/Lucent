@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: index
-updated: 2026-09-15
+updated: 2026-10-21
 ---
 
 # Lucent Docs
@@ -17,7 +17,8 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 
 ## 存活文档
 
-- [reference/glossary.md](reference/glossary.md) — 术语单一来源
+- [reference/glossary.md](reference/glossary.md) — 术语单一来源(含 DDD 领域上下文术语)
+- [reference/context-map.md](reference/context-map.md) — 限界上下文清单、上下游关系与集成契约(ADR-0024)
 - [reference/environment-variables.md](reference/environment-variables.md) — 环境变量完整参考;本地环境与运行时基线也在此文件
 - [reference/deployment.md](reference/deployment.md) — 部署模型参考(三机各跑仓库 compose:鲲鹏主站、腾讯云 Neo4j+semantica、阿里云监控栈;跨云公网 + 安全组收口)
 - [reference/data-retention.md](reference/data-retention.md) — 数据保留、清理管道与账户删除级联

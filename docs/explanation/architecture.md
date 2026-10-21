@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-31
+updated: 2026-10-21
 ---
 
 # Lucent Architecture
@@ -24,15 +24,30 @@ Problem Details 形状与 trace 关联。
 
 ## 分层与模块纪律
 
-统一分层 controller → service → Prisma(repositories);模块内按职责建子目录,跨模块只准引用
-对方模块根 `index.ts` barrel,禁止深路径 import。依赖方向自外向内:业务模块 → `src/common`
-与根级基础设施(`mail/`、`prisma/`、`config/`、`i18n/`),`common` 不得反向 import 业务模块。
-跨模块写经属主模块导出的 service;跨模块读经属主定义的 reader port(事实 DTO,软删除过滤
-`nonDeleted` 内建于读实现);读模型模块(today-analysis、today-suggestion、reports)按
-ADR-0009 豁免窄 port,聚合查询封装在模块内部 `repositories/`。目录与 barrel 规则由根
+模块按 **DDD 限界上下文** 组织，代码分层采用四层骨架（目标形态，迁移见
+[ADR-0024](../reference/adr/0024-ddd-bounded-contexts-and-aggregates.md) 与首批计划）：
+
+```text
+domain/          聚合根、实体、值对象、领域事件、repository port、领域服务
+application/     use case、领域事件处理器、读模型、出站 port
+adapters/        HTTP controller、SSE、队列消费者、入站事件、ACL、框架适配
+infrastructure/  Prisma、Redis、LLM、检索、OAuth、通知等实现
+```
+
+依赖只能向内：`adapters → application → domain`；`infrastructure` 实现
+`domain`/`application` 的 port。不变量放聚合根方法内；一个事务只改一个聚合；应用服务
+只编排「加载 → 行为 → 保存 → 经 outbox 发布事件」。读模型（搜索、详情、工作台、
+时间线、建议卡片）由查询侧直接组装，不建 repository、不承担不变量。跨模块仍只准引用
+对方模块根 `index.ts` barrel，禁止深路径 import；跨上下文读经 reader port 或领域
+事件，跨上下文写经命令/提案。迁移期旧 `controller → service → Prisma` 形态继续按依赖
+纪律运行，首批上下文迁完后删除旧目录，不做长期双轨。
+
+上下文与发布语言见 [context-map.md](../reference/context-map.md)、
+[glossary.md](../reference/glossary.md)；目录与 barrel 规则由根
 AGENTS.md 与架构测试承接。
 
-相关 ADR:[ADR-0009](../reference/adr/0009-cross-module-data-access.md)
+相关 ADR:[ADR-0009](../reference/adr/0009-cross-module-data-access.md)、
+[ADR-0024](../reference/adr/0024-ddd-bounded-contexts-and-aggregates.md)
 
 ## AI 管道分层
 
@@ -61,6 +76,9 @@ spec 承接(触发条件、过滤与副作用断言);完整事件/订阅矩阵�
 不在文档维护全表。
 
 相关 ADR:暂无;事件契约由 `src/common/events/domain-events.ts` 与各 listener spec 承接。
+跨上下文事件的发布方式在 DDD 迁移后改为事务内 outbox(见
+[ADR-0024](../reference/adr/0024-ddd-bounded-contexts-and-aggregates.md)),迁移完成前保持
+进程内 `emitAsync` 语义。
 
 ## 可观测性
 

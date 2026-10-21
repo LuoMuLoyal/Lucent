@@ -133,6 +133,20 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
 6. **Class names are unaffected** — NestJS DI resolves by class name, not file name.
 7. **Spec files follow their source** — co-located, renamed in lockstep.
 8. **Domain sub-directories** when `services/` or `tools/` exceeds 8 files spanning 2+ areas.
+9. **DDD four-layer dirs use directory semantics, not type suffixes** (target form per
+   [ADR-0024](docs/reference/adr/0024-ddd-bounded-contexts-and-aggregates.md); legacy
+   `services/`/`repositories/` keep `.service.ts`/`.repository.ts` until migrated).
+   - `domain/<aggregate>/` holds the aggregate root, entities, value objects and the
+     repository port (`account.ts`, `email.ts`, `accounts.ts` — no `account.entity.ts`).
+   - `domain/<aggregate>/events/` holds domain events with past-tense names
+     (`account_registered.ts` — no `*.event.ts`).
+   - `application/use_cases/` uses bare business names (`register_account.ts` — no
+     `register.use-case.ts`); `application/handlers/` uses `on_<event>.ts`; read models
+     use bare names under `application/read_models/`.
+   - `adapters/http/dto/` files drop the `.dto.ts` suffix: `login.ts`, not `login.dto.ts`.
+   - `infrastructure/persistence/` files name the implementation, not the repo type:
+     `accounts.ts` (class `PrismaAccounts`), not `account.repository.impl.ts`.
+   - Any directory exceeding 10 files is split by subdomain; no sub-directory barrels.
 
 ## Barrel Exports
 
@@ -141,6 +155,8 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
   types, decorators, guards). Use `export { X } from './path'` — never `export *`.
 - No sub-directory barrels (`services/index.ts`, `dto/index.ts`, etc.) —
   sub-directories are internal namespaces, not export surfaces.
+- `domain/` and `application/` never get barrels, even in layers
+  migrated to [ADR-0024](docs/reference/adr/0024-ddd-bounded-contexts-and-aggregates.md).
 - Cross-module imports go through the module root barrel:
   - ❌ `import { XxxService } from '../auth/services/account.service';`
   - ✅ `import { XxxService } from '../auth';`
@@ -161,6 +177,13 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
 
 **Special** (root-level only): `migrations/`, `config/`, `common/`, `prisma/`, `i18n/`.
 
+**DDD four-layer dirs** (per [ADR-0024](docs/reference/adr/0024-ddd-bounded-contexts-and-aggregates.md)):
+`domain/`, `application/`, `adapters/`, `infrastructure/`. Inside `domain/`, sub-directories
+are aggregate roots (`account/`, `session/`) plus `services/`, `policies/`; inside
+`application/`: `use_cases/`, `handlers/`, `read_models/`, `ports/`; inside `adapters/`:
+`http/`, `events/`, `queue/`, `acl/`, `agent/`; inside `infrastructure/`: `persistence/`,
+`cache/`, `messaging/`, `llm/`, `retrieval/`, `ontology/`, `oauth/`, `crypto/`.
+
 ## Root `common/` Conventions
 
 - No scattered files at `common/` root — every file lives in a role-based sub-directory.
@@ -177,3 +200,8 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
 - Cross-module data access governed by [ADR-0009](docs/reference/adr/0009-cross-module-data-access.md):
   cross-module writes via owning module's exported service; cross-module reads on soft-delete
   models use shared `nonDeleted` helper.
+- DDD layer discipline per [ADR-0024](docs/reference/adr/0024-ddd-bounded-contexts-and-aggregates.md):
+  business rules live in `domain/` aggregates, not services; one transaction touches one
+  aggregate; read models never get repositories; cross-context reads go through reader
+  ports or domain events, cross-context writes through commands/proposals — never direct
+  Prisma joins into another context's tables.
