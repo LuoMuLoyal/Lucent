@@ -8,11 +8,10 @@ owner: backend
 药品知识库查询（中/英双源分离）、AI 药盒图片识别、用药风险检查。
 数据事实源是导入后的 PostgreSQL 持久表；导入策略变更须同步更新本文件。
 
-## 限界上下文（ADR-0024 目标形态）
+## 限界上下文（ADR-0024 四层骨架）
 
 本模块承载两个上下文（同模块、各自聚合）：**Medicine Catalog** 与
-**Medication Safety**。按 ADR-0024 计划的聚合边界（迁移到四层骨架时生效，
-当前仍是 service 形态）：
+**Medication Safety**。代码已按 ADR-0024 迁入四层骨架：
 
 - Catalog 聚合根：`Medicine`（双源）、`ImportBatch`（导入对账）、
   `SafetyTip`（安全提示内容）。搜索/详情/序列是 **MedicineFact 只读投影**，
@@ -20,6 +19,24 @@ owner: backend
 - Safety 聚合根：`RiskAssessment`（一次请求一次评估，结果不可改写）。
 - 领域事件（计划）：`medicine_imported`、`risk_assessment_completed` 等，
   经 outbox 发布；目录事实以 `MedicineFact` 契约面向下游发布。
+
+### 层内布局
+
+- `domain/` — `medicine/medicine_source.ts`（来源枚举与默认源）、
+  `services/{risk_model,risk_scoring,allergy_severity,ingredient_canonicalization}.ts`。
+  纯领域，不 import 上层。
+- `application/ports/` — 每个外部依赖一个端口（`knowledge` / `cache` /
+  `cache_maintenance` / `risk_records` / `risk_llm` / `safety_tips` / `qa_chunks`），
+  同时导出 `const XXX = 'XXX'` 的 DI token。application 层不 import
+  `infrastructure/`、`adapters/` 或 Prisma。
+- `application/use_cases/` — `medicines`（搜索/详情/识别/贴士）、`check_risk`、
+  `import_catalog`、`rebuild_index`（薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
+- `adapters/http/` — controller + zod DTO，`presenters/medicine.ts` 承载
+  `utils/data-format.ts` 迁来的展示格式化。
+- `infrastructure/` — `persistence/`（cn、drugbank、risk_records、safety_tips、
+  qa_chunks）、`cache/`（store、maintenance）、`llm/`（risk_check + prompts + schemas）。
+- 端口在 `medicines.module.ts` 用 `{ provide: TOKEN, useExisting: Impl }` 绑定；
+  新增实现只改 module 一处。
 
 ## 知识源与 source 参数
 
@@ -31,7 +48,7 @@ owner: backend
 - **选择器是 `source` 请求参数，不是 `Accept-Language`**（后者只管文案本地化）；
   跨源不做自动映射，无运行时桥接表（ADR-0008）。
 - 搜索/详情端点为 `@Public()` 公开读；请求头可 bypass 读缓存（单次）。
-  TTL 在写入时读运行时快照（`cache/store.service.ts`），存量的旧条目保留原寿命；
+  TTL 在写入时读运行时快照（`infrastructure/cache/store.ts`），存量的旧条目保留原寿命；
   验证码/会话/分享令牌的 TTL 不属于这一族。
 
 ## API 形态（事实源 = openapi.json）
@@ -136,12 +153,17 @@ database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>
   `medicine-reminders` 以 Prisma 外键关联 `currentMedicine`，
   不经本模块服务。
 - Barrel 导出：`DrugbankMedicinesService`、`CnMedicinesService`、
-  `MedicineRiskCheckService`、`SafetyTipsAdminService`、`MedicineSearchItemDto`。
+  `MedicineRiskCheckService`、`SafetyTipsAdminService`、`QaChunksAdminService`，
+  以及类型 `MedicineSearchItemLike` / `MedicineSearchResultLike`。
 
 ## Tests
 
-`medicines.controller.spec.ts`、`services/medicines.service.spec.ts`、
-`services/admin.service.spec.ts`、
-`adapters/cn.service.spec.ts`、`adapters/drugbank.service.spec.ts`、
-`services/risk/*.spec.ts`、`services/recognition-queue.service.spec.ts`、
-`cache/*.spec.ts`、`utils/*.spec.ts`。
+`adapters/http/medicines.controller.spec.ts`、
+`application/use_cases/{medicines,check_risk,import_catalog}.spec.ts`、
+`adapters/{events,queue}/*.spec.ts`、`domain/services/*.spec.ts`、
+`infrastructure/persistence/*.spec.ts`、`infrastructure/cache/*.spec.ts`、
+`infrastructure/llm/**/*.spec.ts`、`adapters/http/presenters/medicine.spec.ts`。
+
+用例测试只对着端口断言（不 mock Prisma）：查询形状与 ISO 序列化由
+`infrastructure/persistence/*.spec.ts` 覆盖，用例测试覆盖审计、缓存失效、
+缺失行与分页回显。

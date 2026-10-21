@@ -193,7 +193,8 @@ daily-records）保留 legacy `Promise<T>` 契约，内部用 `unwrapResult` 折
 （死代码保留：i18n、cache、安全过滤等基础设施已搭好）。若未来做随机安全贴士，
 应在移动端药品详情页内以审核内容卡片形式重做。代码侧仅留单行
 `// Dead-code endpoint (no C-end consumer); see docs/TODO.md.` 引用
-（`medicines.controller.ts` 与 `services/medicines.service.ts` 各一处）。
+（`adapters/http/medicines.controller.ts` 与
+`application/use_cases/medicines.ts` 各一处）。
 
 ### B7：餐食分析 v1 历史记录的展示回填（P3，2026-09-15 五日审查 P3）
 

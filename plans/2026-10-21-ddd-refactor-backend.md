@@ -1,7 +1,7 @@
 # 后端 DDD 重构计划：Identity & Access / Medicine Catalog / AI Assistant / Daily Guidance
 
 Created: 2026-10-21
-状态: 未开工
+状态: **战略设计与 `medicines` 骨架、端口化已完成**——四层骨架、端口化与用例拆分已落地，聚合、领域事件、repository 与 `medical_qa_chunks` 移出尚未做；`auth` / `today-suggestion` / `assistant` 未开工
 范围: Lucent 首批 4 个模块；不包含微服务拆分、不改公开 API
 关系: 与 `2026-10-18-nestjs-microservices-monorepo.md` 互补；本计划先做单体内的限界上下文与聚合边界，后续服务拆分沿用同一张上下文映射
 前置: 先落 ADR-0024（DDD 限界上下文、聚合边界、上下文映射与分层代码组织），由它取代 ADR-0009 中「读模型 / 纯 CRUD 模块可跳过 port」的豁免；ADR-0009 正文不改，仅更新 Status。
@@ -788,7 +788,7 @@ Daily Guidance 的查询侧（`get_today_suggestion`、`get_suggestion_history`�
 
 每个上下文独立成一个 PR 批次，批次内不做行为变更；公开 OpenAPI 必须零 diff。
 
-1. **Phase 0：战略设计与护栏**
+1. **战略设计与护栏**
    - 落 ADR-0024（限界上下文、聚合边界、上下文映射、分层代码组织）；ADR-0009 仅更新 Status。
    - 建 `docs/reference/context-map.md` 并把 DDD 领域术语并入 `docs/reference/glossary.md`（术语单一来源），作为跨上下文契约。
    - 修订 `AGENTS.md`：Module Subdirectory Whitelist 加入 `domain/`、`application/`、`adapters/`、`infrastructure/`；File Naming Rules 改为按目录语义去重；Barrel Exports 明确 domain/application 子目录不设 barrel。
@@ -796,16 +796,16 @@ Daily Guidance 的查询侧（`get_today_suggestion`、`get_suggestion_history`�
    - 扩 dependency-cruiser：domain 禁框架/IO；application 禁 Prisma/HTTP；adapters 禁 infrastructure；跨上下文禁内部路径；禁止跨上下文关联查询。
    - 新增 outbox 表（如 `domain_events`，只增不改现有表）与发布 worker；事件带 `eventId`、`eventType`、`version`、`occurredAt`。
    - 生成基线例外清单（文件 + 规则 + 到期日），CI 只允许递减。
-2. **Phase 1：`medicines` — Medicine Catalog + Medication Safety**
+2. **`medicines` — Medicine Catalog + Medication Safety**
    - 先划 `Medicine`、`ImportBatch`、`SafetyTip`、`RiskAssessment` 聚合，再建 repository 与事件；搜索/详情/风险读模型走查询侧。
    - 把风险规则拆成 `domain/policies` + `domain/services`；LLM/识别/导入落 infrastructure；`medical_qa_chunks` 移出本上下文。
-3. **Phase 2：`auth` — Identity & Access**
+3. **`auth` — Identity & Access**
    - 先划 `Account`、`Session`、`VerificationChallenge` 聚合与不变量；再拆 use case；OAuth/Argon2/JWT/限流落 infrastructure + port。
    - 反枚举、依赖故障不折进认证失败、refresh 轮换、停用即时失效全部进聚合/领域服务测试。
-4. **Phase 3：`today-suggestion` — Daily Guidance**
+4. **`today-suggestion` — Daily Guidance**
    - 先划 `DailySuggestion`、`SuggestionFeedback`、`RuleDefinition` 聚合；规则/评分/抑制/仲裁进 domain；collectors 变 ACL。
    - 查询侧只读物化读模型；重算侧用 outbox 发布 `SuggestionGenerated` / `SuggestionRecomputed`；通知只发 `SuggestionEscalated`。
-5. **Phase 4：`assistant` — AI Assistant**
+5. **`assistant` — AI Assistant**
    - 先划 `Conversation`、`Memory`、`Proposal`、`Summary` 聚合；LangGraph 落 adapter，工具变 ACL，LLM/检索/本体落 infrastructure。
    - 写入提案必须经 `Proposal` 聚合与用户确认；确认后由目标上下文 use case 执行，不直接写对方表。
 
