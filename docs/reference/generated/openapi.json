@@ -12481,8 +12481,8 @@
           },
           "code": {
             "type": "string",
-            "minLength": 6,
-            "maxLength": 6,
+            "minLength": 1,
+            "pattern": "^[0-9]{4,8}$",
             "description": "邮箱验证码（与密码二选一）"
           }
         },
@@ -12546,8 +12546,8 @@
           },
           "code": {
             "type": "string",
-            "minLength": 6,
-            "maxLength": 6,
+            "minLength": 1,
+            "pattern": "^[0-9]{4,8}$",
             "description": "邮箱验证码（6 位）"
           },
           "password": {
@@ -13952,8 +13952,8 @@
           },
           "code": {
             "type": "string",
-            "minLength": 6,
-            "maxLength": 6,
+            "minLength": 1,
+            "pattern": "^[0-9]{4,8}$",
             "description": "验证码"
           },
           "password": {
