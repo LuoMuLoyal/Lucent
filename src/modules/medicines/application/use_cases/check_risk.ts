@@ -3,12 +3,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { LlmNotConfiguredException } from '../../../../common/llm/safety/llm-not-configured.exception.js';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../../prisma/index.js';
 import { MedicinesService } from './medicines.js';
-import { MedicineRiskLlmGeneratorService } from '../../infrastructure/llm/risk_check.js';
 import { RiskDetectionService } from '../../domain/services/risk_scoring.js';
-import { RiskContextBuilderService } from '../../adapters/acl/drug_source.js';
-import { nonDeleted, toInputJsonValue } from '../../../../common/index.js';
+import { toInputJsonValue } from '../../../../common/index.js';
 import {
   createDomainFailure,
   DomainFailureException,
@@ -18,16 +15,38 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
+import {
+  MEDICINE_RISK_RECORDS,
+  type MedicineRiskRecordsPort,
+  type MedicineRiskCheckRecordRow,
+  type MedicineRiskCheckType,
+} from '../ports/risk_records.js';
+import {
+  MEDICINE_RISK_LLM_GENERATOR,
+  type MedicineRiskLlmContext,
+  type MedicineRiskLlmOutput,
+  type MedicineRiskLlmPort,
+} from '../ports/risk_llm.js';
 import type { RiskCheckCandidateDto } from '../../adapters/http/dto/risk_check.js';
 import type {
-  MedicineRiskCheckRecordDto,
-  MedicineRiskCheckResponseDto,
+  MedicineRiskCheckResult,
+  MedicineRiskCheckRecord,
   MedicineRiskLevel,
-} from '../../adapters/http/dto/risk_check.response.js';
-import type { MedicineDetailDataDto } from '../../adapters/http/dto/detail.js';
-import type { MedicineDetailWrapper } from '../../domain/services/ingredient_canonicalization.js';
+} from '../../domain/services/risk_model.js';
+import {
+  asNonEmptyString,
+  getDetailJson,
+  type MedicineDetailDataLike,
+  type MedicineDetailWrapper,
+} from '../../domain/services/ingredient_canonicalization.js';
 import type { AllergyRecord } from '../../domain/services/allergy_severity.js';
-import type { MedicineRiskLlmOutput } from '../../infrastructure/llm/schemas/risk_check.js';
+import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine_source.js';
+import { formatDateOnly } from '../../../../common/index.js';
+
+/** Narrows a box-item `source` string to the knowledge sources this module has. */
+function asKnowledgeSource(source: string): MedicineKnowledgeSource | null {
+  return source === 'cn' || source === 'drugbank' ? source : null;
+}
 
 const RISK_CHECK_CACHE_KEY_PREFIX = 'medicines:risk-check';
 const RISK_CHECK_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -39,16 +58,24 @@ const RISK_CHECK_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
  */
 const RISK_CHECK_MAX_RELATED_RECORDS = 100;
 
+/**
+ * The LLM context historically included *all* active rows for a user, unlike
+ * the static evaluation path (bounded by RISK_CHECK_MAX_RELATED_RECORDS) — the
+ * repository accepts an explicit limit, so "all" is passed as the max safe int.
+ */
+const LLM_CONTEXT_ROW_LIMIT = Number.MAX_SAFE_INTEGER;
+
 @Injectable()
 export class MedicineRiskCheckService {
   private readonly logger = new Logger(MedicineRiskCheckService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(MEDICINE_RISK_RECORDS)
+    private readonly riskRecords: MedicineRiskRecordsPort,
     private readonly medicinesService: MedicinesService,
-    private readonly llmGenerator: MedicineRiskLlmGeneratorService,
+    @Inject(MEDICINE_RISK_LLM_GENERATOR)
+    private readonly llmGenerator: MedicineRiskLlmPort,
     private readonly riskDetection: RiskDetectionService,
-    private readonly riskContextBuilder: RiskContextBuilderService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly i18n: I18nService,
   ) {}
@@ -56,20 +83,20 @@ export class MedicineRiskCheckService {
   // ── Public API ──────────────────────────────────────────────────────────
 
   async getRecords(userId: string): Promise<{
-    static: MedicineRiskCheckRecordDto | null;
-    llm: MedicineRiskCheckRecordDto | null;
+    static: MedicineRiskCheckRecord | null;
+    llm: MedicineRiskCheckRecord | null;
   }> {
     const cacheKey = this.buildRecordsCacheKey(userId);
     let cached:
       | {
-          static: MedicineRiskCheckRecordDto | null;
-          llm: MedicineRiskCheckRecordDto | null;
+          static: MedicineRiskCheckRecord | null;
+          llm: MedicineRiskCheckRecord | null;
         }
       | undefined;
     try {
       cached = await this.cache.get<{
-        static: MedicineRiskCheckRecordDto | null;
-        llm: MedicineRiskCheckRecordDto | null;
+        static: MedicineRiskCheckRecord | null;
+        llm: MedicineRiskCheckRecord | null;
       }>(cacheKey);
     } catch (error) {
       // Cache get failure is non-fatal: treat as a cache miss and fall
@@ -83,9 +110,7 @@ export class MedicineRiskCheckService {
       return cached;
     }
 
-    const records = await this.prisma.medicineRiskCheckRecord.findMany({
-      where: { userId },
-    });
+    const records = await this.riskRecords.listRecords(userId);
 
     const result = {
       static: records.find((r) => r.checkType === 'static') ?? null,
@@ -111,7 +136,7 @@ export class MedicineRiskCheckService {
   runStaticCheck(
     userId: string,
     candidate?: RiskCheckCandidateDto,
-  ): ResultAsync<MedicineRiskCheckRecordDto, DomainFailure> {
+  ): ResultAsync<MedicineRiskCheckRecord, DomainFailure> {
     return fromPromise(this.doRunStaticCheck(userId, candidate), (error) =>
       this.toDomainFailure(error),
     );
@@ -120,7 +145,7 @@ export class MedicineRiskCheckService {
   private async doRunStaticCheck(
     userId: string,
     candidate?: RiskCheckCandidateDto,
-  ): Promise<MedicineRiskCheckRecordDto> {
+  ): Promise<MedicineRiskCheckRecord> {
     const response = await this.evaluateStaticCheck(userId, candidate);
 
     if (candidate != null) {
@@ -142,7 +167,7 @@ export class MedicineRiskCheckService {
 
   runLlmCheck(
     userId: string,
-  ): ResultAsync<MedicineRiskCheckRecordDto, DomainFailure> {
+  ): ResultAsync<MedicineRiskCheckRecord, DomainFailure> {
     return fromPromise(this.doRunLlmCheck(userId), (error) =>
       this.toDomainFailure(error),
     );
@@ -150,7 +175,7 @@ export class MedicineRiskCheckService {
 
   private async doRunLlmCheck(
     userId: string,
-  ): Promise<MedicineRiskCheckRecordDto> {
+  ): Promise<MedicineRiskCheckRecord> {
     if (!this.llmGenerator.hasAnalysisModel()) {
       // 出网 detail 交给注册表的双语文案；这里不传 detail，避免覆盖它
       // （problem-catalog 的 `options.detail ?? translate(...)` 语义）。
@@ -170,10 +195,7 @@ export class MedicineRiskCheckService {
     const staticResult = await this.evaluateStaticCheck(userId);
 
     // 2. Build LLM context
-    const llmContext = await this.riskContextBuilder.buildLlmContext(
-      userId,
-      staticResult,
-    );
+    const llmContext = await this.buildLlmContext(userId, staticResult);
 
     // 3. Call LLM generator
     const llmOutput = await this.llmGenerator.generate(llmContext, {
@@ -191,10 +213,7 @@ export class MedicineRiskCheckService {
   }
 
   async markStale(userId: string): Promise<void> {
-    await this.prisma.medicineRiskCheckRecord.updateMany({
-      where: { userId },
-      data: { stale: true },
-    });
+    await this.riskRecords.markAllStale(userId);
     // Delete Redis cache for records — next GET will re-read from DB
     await this.invalidateRecordsCache(userId);
   }
@@ -204,28 +223,12 @@ export class MedicineRiskCheckService {
   private async evaluateStaticCheck(
     userId: string,
     candidate?: RiskCheckCandidateDto,
-  ): Promise<MedicineRiskCheckResponseDto> {
-    // 1. Get health context directly from DB
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, ...nonDeleted },
-      include: {
-        allergies: {
-          where: { isActive: true },
-          orderBy: { updatedAt: 'desc' },
-          take: RISK_CHECK_MAX_RELATED_RECORDS,
-        },
-        conditions: {
-          where: { status: 'active' },
-          orderBy: { updatedAt: 'desc' },
-          take: RISK_CHECK_MAX_RELATED_RECORDS,
-        },
-        currentMedicines: {
-          where: { isCurrent: true },
-          orderBy: { updatedAt: 'desc' },
-          take: RISK_CHECK_MAX_RELATED_RECORDS,
-        },
-      },
-    });
+  ): Promise<MedicineRiskCheckResult> {
+    // 1. Get health context through the records port (bound to Prisma).
+    const user = await this.riskRecords.loadHealthContext(
+      userId,
+      RISK_CHECK_MAX_RELATED_RECORDS,
+    );
 
     if (user == null) {
       return {
@@ -314,7 +317,7 @@ export class MedicineRiskCheckService {
           (item.sourceRefId ?? '').trim() === candidateSourceRefId,
       );
       if (!alreadyInBox) {
-        let detail: MedicineDetailDataDto;
+        let detail: MedicineDetailDataLike;
         try {
           detail = await unwrapResult(
             this.medicinesService.getDetailWithCache(
@@ -388,12 +391,163 @@ export class MedicineRiskCheckService {
     };
   }
 
+  // ── LLM context assembly ─────────────────────────────────────────────────
+  //
+  // Formerly `RiskContextBuilderService` (adapters/acl); assembly lives here
+  // because every input is either application-internal state or a port fetch.
+
+  private async buildLlmContext(
+    userId: string,
+    staticResult: MedicineRiskCheckResult,
+  ): Promise<MedicineRiskLlmContext> {
+    const [user, reminders] = await Promise.all([
+      this.riskRecords.loadHealthContext(userId, LLM_CONTEXT_ROW_LIMIT),
+      this.riskRecords.listReminders(userId),
+    ]);
+
+    const medicines: MedicineRiskLlmContext['medicines'] = [];
+    if (user != null) {
+      const eligibleItems = user.currentMedicines.flatMap((item) => {
+        const source = item.source;
+        const sourceRefId = item.sourceRefId?.trim();
+        const knowledgeSource = asKnowledgeSource(source);
+        if (
+          knowledgeSource != null &&
+          sourceRefId != null &&
+          sourceRefId !== ''
+        ) {
+          return [{ item, source: knowledgeSource, sourceRefId }];
+        }
+        return [];
+      });
+
+      const llmDetailResults = await Promise.allSettled(
+        eligibleItems.map(async ({ item, source, sourceRefId }) => {
+          const detail = await unwrapResult(
+            this.medicinesService.getDetailWithCache(
+              sourceRefId,
+              { source },
+              false,
+            ),
+          );
+          return { item, detail, source };
+        }),
+      );
+
+      for (const result of llmDetailResults) {
+        if (result.status === 'rejected') {
+          this.logger.warn(
+            `LLM context: failed to fetch detail: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`,
+          );
+          continue;
+        }
+        const { item, detail, source } = result.value;
+        const json = getDetailJson(detail);
+        const drugInteractions = Array.isArray(json['drugInteractions'])
+          ? (json['drugInteractions'] as Array<Record<string, unknown>>)
+              .filter(
+                (d) =>
+                  typeof d['drugbankId'] === 'string' &&
+                  typeof d['description'] === 'string',
+              )
+              .map((d) => ({
+                target: String(d['drugbankId']),
+                description: String(d['description']),
+              }))
+          : [];
+        const ingredients = asNonEmptyString(json['ingredients']);
+        const contraindications = asNonEmptyString(json['contraindications']);
+        const precautions = asNonEmptyString(json['precautions']);
+        const foodInteractions = Array.isArray(json['foodInteractions'])
+          ? (json['foodInteractions'] as unknown[]).filter(
+              (v): v is string => typeof v === 'string',
+            )
+          : null;
+        const startedAt = item.startedAt
+          ? formatDateOnly(item.startedAt)
+          : null;
+        medicines.push({
+          name: item.displayName.trim() !== '' ? item.displayName : detail.name,
+          source,
+          ...(ingredients != null ? { ingredients } : {}),
+          ...(contraindications != null ? { contraindications } : {}),
+          ...(precautions != null ? { precautions } : {}),
+          ...(foodInteractions != null ? { foodInteractions } : {}),
+          ...(drugInteractions.length > 0 ? { drugInteractions } : {}),
+          ...(startedAt != null ? { startedAt } : {}),
+        });
+      }
+    }
+
+    const allergies: MedicineRiskLlmContext['allergies'] =
+      user?.allergies.map((a) => {
+        const reaction = a.reaction;
+        return {
+          label: a.label,
+          severity: a.severity ?? 'unknown',
+          ...(reaction != null ? { reaction } : {}),
+        };
+      }) ?? [];
+
+    const conditions: MedicineRiskLlmContext['conditions'] =
+      user?.conditions.map((c) => ({
+        label: c.label,
+        status: c.status,
+      })) ?? [];
+
+    const reminderMedicines = user?.currentMedicines ?? [];
+    const remindersCtx: MedicineRiskLlmContext['reminders'] = reminders
+      .map((r) => {
+        const medicine = reminderMedicines.find(
+          (m) => m.id === r.currentMedicineId,
+        );
+        if (medicine == null) return null;
+        const daysOfWeek = Array.isArray(r.daysOfWeek)
+          ? (r.daysOfWeek as unknown[]).filter(
+              (d): d is number => typeof d === 'number',
+            )
+          : undefined;
+        const startDate = r.startDate ? formatDateOnly(r.startDate) : null;
+        const endDate = r.endDate ? formatDateOnly(r.endDate) : null;
+        return {
+          medicineName: medicine.displayName,
+          scheduledHour: r.scheduledHour,
+          scheduledMinute: r.scheduledMinute,
+          ...(daysOfWeek != null && daysOfWeek.length > 0
+            ? { daysOfWeek }
+            : {}),
+          ...(startDate != null ? { startDate } : {}),
+          ...(endDate != null ? { endDate } : {}),
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null);
+
+    const staticFindings = staticResult.findings.map((f) => ({
+      type: f.type,
+      severity: f.severity,
+      description: [
+        f.primaryMedicineName,
+        f.secondaryMedicineName != null ? ` + ${f.secondaryMedicineName}` : '',
+        f.relatedLabel != null ? ` (allergen: ${f.relatedLabel})` : '',
+        f.evidence != null ? ` — ${f.evidence}` : '',
+      ].join(''),
+    }));
+
+    return {
+      medicines,
+      allergies,
+      conditions,
+      reminders: remindersCtx,
+      staticFindings,
+    };
+  }
+
   // ── LLM output mapping ──────────────────────────────────────────────────
 
   private mapLlmOutput(
     llmOutput: MedicineRiskLlmOutput,
-    staticResult: MedicineRiskCheckResponseDto,
-  ): MedicineRiskCheckResponseDto {
+    staticResult: MedicineRiskCheckResult,
+  ): MedicineRiskCheckResult {
     const findings = llmOutput.findings.map((f) => ({
       type: f.type,
       severity: f.severity,
@@ -417,32 +571,20 @@ export class MedicineRiskCheckService {
       ...(llmOutput.overallRecommendation !== ''
         ? { overallRecommendation: llmOutput.overallRecommendation }
         : {}),
-    };
+    } satisfies MedicineRiskCheckResult;
   }
 
   // ── DB persistence ──────────────────────────────────────────────────────
 
   private async persistRecord(
     userId: string,
-    checkType: 'static' | 'llm',
-    response: MedicineRiskCheckResponseDto,
-  ): Promise<MedicineRiskCheckRecordDto> {
-    const record = await this.prisma.medicineRiskCheckRecord.upsert({
-      where: { userId_checkType: { userId, checkType } },
-      create: {
-        userId,
-        checkType,
-        result: toInputJsonValue(response),
-        riskScore: response.overallRiskScore,
-        riskLevel: response.overallRiskLevel,
-        stale: false,
-      },
-      update: {
-        result: toInputJsonValue(response),
-        riskScore: response.overallRiskScore,
-        riskLevel: response.overallRiskLevel,
-        stale: false,
-      },
+    checkType: MedicineRiskCheckType,
+    response: MedicineRiskCheckResult,
+  ): Promise<MedicineRiskCheckRecord> {
+    const record = await this.riskRecords.upsertRecord(userId, checkType, {
+      result: toInputJsonValue(response),
+      riskScore: response.overallRiskScore,
+      riskLevel: response.overallRiskLevel,
     });
 
     // Invalidate cache — DB already has correct data
@@ -453,18 +595,10 @@ export class MedicineRiskCheckService {
 
   // ── Mapping ──────────────────────────────────────────────────────────────
 
-  private toDto(record: {
-    checkType: string;
-    result: unknown;
-    riskScore: number;
-    riskLevel: string;
-    stale: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-  }): MedicineRiskCheckRecordDto {
+  private toDto(record: MedicineRiskCheckRecordRow): MedicineRiskCheckRecord {
     return {
-      checkType: record.checkType as 'static' | 'llm',
-      result: record.result as MedicineRiskCheckResponseDto,
+      checkType: record.checkType,
+      result: record.result as MedicineRiskCheckResult,
       riskScore: record.riskScore,
       riskLevel: record.riskLevel as MedicineRiskLevel,
       stale: record.stale,

@@ -1,13 +1,19 @@
-import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 
 import { MedicinesService } from './medicines.js';
-import { MedicinesCacheService } from '../../infrastructure/cache/store.js';
-import { CnMedicinesService } from '../../infrastructure/persistence/cn.js';
-import { DrugbankMedicinesService } from '../../infrastructure/persistence/drugbank.js';
-import { PrismaService } from '../../../../prisma/index.js';
+import {
+  CN_MEDICINES_READER,
+  DRUGBANK_MEDICINES_READER,
+  MEDICINES_KNOWLEDGE_CACHE,
+  type MedicinesSourceReader,
+  type MedicinesKnowledgeCachePort,
+} from '../ports/knowledge.js';
+import {
+  MEDICINE_SAFETY_TIPS_SOURCE,
+  type MedicineSafetyTipsSourcePort,
+} from '../ports/safety_tips.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import {
   DomainFailureException,
@@ -16,17 +22,17 @@ import {
 
 describe('MedicinesService', () => {
   let service: MedicinesService;
-  let drugbankMedicinesService: vi.Mocked<DrugbankMedicinesService>;
-  let cnMedicinesService: vi.Mocked<CnMedicinesService>;
-  let medicinesCacheService: vi.Mocked<MedicinesCacheService>;
-  let prismaService: DeepMocked<PrismaService>;
+  let drugbankMedicinesService: vi.Mocked<MedicinesSourceReader>;
+  let cnMedicinesService: vi.Mocked<MedicinesSourceReader>;
+  let medicinesCacheService: vi.Mocked<MedicinesKnowledgeCachePort>;
+  let safetyTipsSource: vi.Mocked<MedicineSafetyTipsSourcePort>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MedicinesService,
         {
-          provide: DrugbankMedicinesService,
+          provide: DRUGBANK_MEDICINES_READER,
           useValue: {
             search: vi.fn(),
             getDetail: vi.fn(),
@@ -34,7 +40,7 @@ describe('MedicinesService', () => {
           },
         },
         {
-          provide: CnMedicinesService,
+          provide: CN_MEDICINES_READER,
           useValue: {
             search: vi.fn(),
             getDetail: vi.fn(),
@@ -42,26 +48,23 @@ describe('MedicinesService', () => {
           },
         },
         {
-          provide: MedicinesCacheService,
+          provide: MEDICINES_KNOWLEDGE_CACHE,
           useValue: {
             getOrSetSearch: vi.fn(),
             getOrSetDetail: vi.fn(),
             getOrSetSequences: vi.fn(),
-            getOrSetSafetyTips: vi.fn(),
+          },
+        },
+        {
+          provide: MEDICINE_SAFETY_TIPS_SOURCE,
+          useValue: {
+            listActiveCached: vi.fn(),
           },
         },
         {
           provide: I18nService,
           useValue: {
             t: vi.fn((key: string) => key),
-          },
-        },
-        {
-          provide: PrismaService,
-          useValue: {
-            medicineSafetyTip: {
-              findMany: vi.fn(),
-            },
           },
         },
         {
@@ -76,14 +79,14 @@ describe('MedicinesService', () => {
     }).compile();
 
     service = module.get(MedicinesService);
-    drugbankMedicinesService = module.get(DrugbankMedicinesService);
-    cnMedicinesService = module.get(CnMedicinesService);
-    medicinesCacheService = module.get(MedicinesCacheService);
-    prismaService = module.get(PrismaService);
+    drugbankMedicinesService = module.get(DRUGBANK_MEDICINES_READER);
+    cnMedicinesService = module.get(CN_MEDICINES_READER);
+    medicinesCacheService = module.get(MEDICINES_KNOWLEDGE_CACHE);
+    safetyTipsSource = module.get(MEDICINE_SAFETY_TIPS_SOURCE);
   });
 
-  const getSafetyTipsFindManyMock = () =>
-    prismaService.medicineSafetyTip.findMany as vi.Mock;
+  const getSafetyTipsListMock = () =>
+    safetyTipsSource.listActiveCached as vi.Mock;
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -412,26 +415,17 @@ describe('MedicinesService', () => {
     ];
 
     it('returns up to 4 random active tips in Chinese', async () => {
-      getSafetyTipsFindManyMock().mockResolvedValue(tips);
-      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
-        async (load) => load(),
-      );
+      getSafetyTipsListMock().mockResolvedValue(tips);
 
       const result = await service.getRandomSafetyTips([], 'zh-CN');
 
       expect(result).toHaveLength(4);
       expect(result[0]?.text).toMatch(/^中文/);
-      expect(getSafetyTipsFindManyMock()).toHaveBeenCalledWith({
-        where: { isActive: true },
-      });
+      expect(getSafetyTipsListMock()).toHaveBeenCalled();
     });
 
     it('returns tips in English when language does not start with zh', async () => {
-      getSafetyTipsFindManyMock().mockResolvedValue(tips);
-      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
-        async (load) => load(),
-      );
-
+      getSafetyTipsListMock().mockResolvedValue(tips);
       const result = await service.getRandomSafetyTips([], 'en');
 
       expect(result).toHaveLength(4);
@@ -439,11 +433,7 @@ describe('MedicinesService', () => {
     });
 
     it('excludes previously returned tip ids', async () => {
-      getSafetyTipsFindManyMock().mockResolvedValue(tips);
-      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
-        async (load) => load(),
-      );
-
+      getSafetyTipsListMock().mockResolvedValue(tips);
       const result = await service.getRandomSafetyTips([
         'id-1',
         'id-2',
@@ -460,11 +450,7 @@ describe('MedicinesService', () => {
     });
 
     it('returns remaining tips when excluded ids leave fewer than 4', async () => {
-      getSafetyTipsFindManyMock().mockResolvedValue(tips);
-      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
-        async (load) => load(),
-      );
-
+      getSafetyTipsListMock().mockResolvedValue(tips);
       const result = await service.getRandomSafetyTips([
         'id-1',
         'id-2',
@@ -483,11 +469,7 @@ describe('MedicinesService', () => {
     });
 
     it('returns empty array when no active tips exist', async () => {
-      getSafetyTipsFindManyMock().mockResolvedValue([]);
-      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
-        async (load) => load(),
-      );
-
+      getSafetyTipsListMock().mockResolvedValue([]);
       const result = await service.getRandomSafetyTips([]);
 
       expect(result).toHaveLength(0);

@@ -152,7 +152,7 @@ describe('DrugbankMedicinesService', () => {
       expect(result!.id).toBe('DB00945');
       expect(result!.source).toBe('drugbank');
       expect(result!.name).toBe('Aspirin');
-      expect(result!.detail.kind).toBe('drugbank');
+      expect(result!.detail['kind']).toBe('drugbank');
     });
 
     it('converts JSONB fields to string arrays', async () => {

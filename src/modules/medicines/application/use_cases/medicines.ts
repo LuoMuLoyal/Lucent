@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
 
@@ -11,28 +11,33 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { PrismaService } from '../../../../prisma/index.js';
+import {
+  CN_MEDICINES_READER,
+  DRUGBANK_MEDICINES_READER,
+  MEDICINES_KNOWLEDGE_CACHE,
+  type MedicineDetailDataLike,
+  type MedicineSearchCriteria,
+  type MedicineSearchResultLike,
+  type MedicinesKnowledgeCachePort,
+  type MedicinesSourceReader,
+} from '../ports/knowledge.js';
+import {
+  MEDICINE_SAFETY_TIPS_SOURCE,
+  type MedicineSafetyTipItem,
+  type MedicineSafetyTipsSourcePort,
+} from '../ports/safety_tips.js';
 import {
   DEFAULT_MEDICINE_SOURCE,
   type MedicineKnowledgeSource,
 } from '../../domain/medicine/medicine_source.js';
-
-import type { MedicineSafetyTipResponseDto } from '../../adapters/http/dto/safety_tip.js';
-import type { MedicineRecognitionResponseDto } from '../../adapters/http/dto/recognition.response.js';
-
-import type { MedicineDetailDataDto } from '../../adapters/http/dto/detail.js';
-import type { MedicineSequenceDataDto } from '../../adapters/http/dto/sequence.js';
-
-import type {
-  MedicineDetailQueryDto,
-  MedicineSearchQueryDto,
-} from '../../adapters/http/dto/source.js';
-
-import type { MedicineSearchResult } from '../../adapters/http/dto/search.js';
-import { MedicinesCacheService } from '../../infrastructure/cache/store.js';
-import { CnMedicinesService } from '../../infrastructure/persistence/cn.js';
-import { DrugbankMedicinesService } from '../../infrastructure/persistence/drugbank.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
+
+export type MedicineRecognitionFields = {
+  name: string | null;
+  approvalNumber: string | null;
+  specification: string | null;
+  manufacturer: string | null;
+};
 
 @Injectable()
 export class MedicinesService {
@@ -41,17 +46,21 @@ export class MedicinesService {
   private readonly logger = new Logger(MedicinesService.name);
 
   constructor(
-    private readonly drugbankMedicinesService: DrugbankMedicinesService,
-    private readonly cnMedicinesService: CnMedicinesService,
-    private readonly medicinesCacheService: MedicinesCacheService,
+    @Inject(DRUGBANK_MEDICINES_READER)
+    private readonly drugbankMedicinesService: MedicinesSourceReader<MedicineDetailDataLike>,
+    @Inject(CN_MEDICINES_READER)
+    private readonly cnMedicinesService: MedicinesSourceReader<MedicineDetailDataLike>,
+    @Inject(MEDICINES_KNOWLEDGE_CACHE)
+    private readonly medicinesCacheService: MedicinesKnowledgeCachePort,
+    @Inject(MEDICINE_SAFETY_TIPS_SOURCE)
+    private readonly safetyTipsSource: MedicineSafetyTipsSourcePort,
     private readonly i18n: I18nService,
-    private readonly prisma: PrismaService,
     private readonly llmRuntime: LlmRuntimeService,
   ) {}
 
   async recognizeMedicine(
     imageUrl: string,
-  ): Promise<MedicineRecognitionResponseDto> {
+  ): Promise<MedicineRecognitionFields> {
     const model = this.llmRuntime.createChatModel('chat', {
       temperature: 0.1,
     });
@@ -77,12 +86,7 @@ export class MedicinesService {
     const parsed = safeParseLlmJson(text, {
       logger: this.logger,
       context: 'medicine recognition',
-    }) as {
-      name: string | null;
-      approvalNumber: string | null;
-      specification: string | null;
-      manufacturer: string | null;
-    } | null;
+    }) as MedicineRecognitionFields | null;
 
     return (
       parsed ?? {
@@ -94,18 +98,26 @@ export class MedicinesService {
     );
   }
 
-  search(
-    query: MedicineSearchQueryDto,
-  ): ResultAsync<MedicineSearchResult, DomainFailure> {
+  search(query: {
+    q?: string | undefined;
+    page: number;
+    pageSize: number;
+    source?: string | undefined;
+  }): ResultAsync<MedicineSearchResultLike, DomainFailure> {
     return this.searchWithCache(query, false);
   }
 
   searchWithCache(
-    query: MedicineSearchQueryDto,
+    query: {
+      q?: string | undefined;
+      page: number;
+      pageSize: number;
+      source?: string | undefined;
+    },
     bypassCache: boolean,
-  ): ResultAsync<MedicineSearchResult, DomainFailure> {
+  ): ResultAsync<MedicineSearchResultLike, DomainFailure> {
     return this.resolveSource(query.source).andThen((source) => {
-      const criteria = {
+      const criteria: MedicineSearchCriteria = {
         q: query.q?.trim() ?? '',
         page: query.page,
         pageSize: query.pageSize,
@@ -135,16 +147,16 @@ export class MedicinesService {
 
   getDetail(
     id: string,
-    query: MedicineDetailQueryDto,
-  ): ResultAsync<MedicineDetailDataDto, DomainFailure> {
+    query: { source?: string | undefined },
+  ): ResultAsync<MedicineDetailDataLike, DomainFailure> {
     return this.getDetailWithCache(id, query, false);
   }
 
   getDetailWithCache(
     id: string,
-    query: MedicineDetailQueryDto,
+    query: { source?: string | undefined },
     bypassCache: boolean,
-  ): ResultAsync<MedicineDetailDataDto, DomainFailure> {
+  ): ResultAsync<MedicineDetailDataLike, DomainFailure> {
     return this.resolveSource(query.source).andThen((source) => {
       const normalizedId = id.trim();
 
@@ -177,9 +189,9 @@ export class MedicinesService {
    */
   getSequences(
     id: string,
-    query: MedicineDetailQueryDto,
+    query: { source?: string | undefined },
     bypassCache: boolean,
-  ): ResultAsync<MedicineSequenceDataDto, DomainFailure> {
+  ): ResultAsync<unknown, DomainFailure> {
     return this.resolveSource(query.source).andThen((source) => {
       const normalizedId = id.trim();
 
@@ -191,9 +203,7 @@ export class MedicinesService {
           () =>
             source === 'drugbank'
               ? this.drugbankMedicinesService.getSequences(normalizedId)
-              : Promise.resolve(
-                  this.cnMedicinesService.getSequences(normalizedId),
-                ),
+              : this.cnMedicinesService.getSequences(normalizedId),
         ),
         (error) =>
           createDomainFailure({
@@ -209,16 +219,11 @@ export class MedicinesService {
   async getRandomSafetyTips(
     excludeIds: string[],
     lang?: string,
-  ): Promise<MedicineSafetyTipResponseDto[]> {
+  ): Promise<MedicineSafetyTipItem[]> {
     const normalizedLang = (lang ?? 'en').toLowerCase();
     const useChinese = normalizedLang.startsWith('zh');
 
-    const allActiveTips = await this.medicinesCacheService.getOrSetSafetyTips(
-      () =>
-        this.prisma.medicineSafetyTip.findMany({
-          where: { isActive: true },
-        }),
-    );
+    const allActiveTips = await this.safetyTipsSource.listActiveCached();
 
     if (allActiveTips.length === 0) {
       return [];

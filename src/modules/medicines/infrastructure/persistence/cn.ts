@@ -2,16 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client.js';
 import type { CnMedicineProduct } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import type {
-  CnMedicineDetailDto,
-  MedicineDetailDataDto,
-} from '../../adapters/http/dto/detail.js';
-import type { MedicineSequenceDataDto } from '../../adapters/http/dto/sequence.js';
-
-import type {
-  MedicineSearchItemDto,
-  MedicineSearchResult,
-} from '../../adapters/http/dto/search.js';
 import {
   composeSubtitle,
   detectMatchedBy,
@@ -20,20 +10,21 @@ import {
   truncateText,
   uniqueNonEmptyStrings,
 } from '../../adapters/http/presenters/medicine.js';
-
-interface MedicineSearchCriteria {
-  q: string;
-  page: number;
-  pageSize: number;
-}
+import type { MedicinesSourceReader } from '../../application/ports/knowledge.js';
+import type {
+  MedicineSearchCriteria,
+  MedicineSearchResultLike,
+  MedicineDetailData,
+  MedicineSequenceData,
+} from '../../application/ports/knowledge.js';
 
 @Injectable()
-export class CnMedicinesService {
+export class CnMedicinesService implements MedicinesSourceReader<MedicineDetailData> {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(
     criteria: MedicineSearchCriteria,
-  ): Promise<MedicineSearchResult> {
+  ): Promise<MedicineSearchResultLike> {
     const where = this.buildWhere(criteria.q);
     const skip = (criteria.page - 1) * criteria.pageSize;
 
@@ -63,16 +54,16 @@ export class CnMedicinesService {
    * dispatch path as `getDetail` / `search`, so the sequences cache key for CN
    * is consistent even when the source one day starts carrying sequences.
    */
-  getSequences(id: string): MedicineSequenceDataDto | null {
-    return {
+  getSequences(id: string): Promise<MedicineSequenceData | null> {
+    return Promise.resolve({
       id,
       source: 'cn',
       drug: [],
       targets: [],
-    };
+    });
   }
 
-  async getDetail(id: string): Promise<MedicineDetailDataDto | null> {
+  async getDetail(id: string): Promise<MedicineDetailData | null> {
     const row = await this.prisma.cnMedicineProduct.findUnique({
       where: { id },
       include: {
@@ -91,7 +82,7 @@ export class CnMedicinesService {
     // leaflet reached via the 1:1 link.
     const leaflet = row.leafletLinks[0]?.leaflet ?? null;
 
-    const detail: CnMedicineDetailDto = {
+    const detail = {
       kind: 'cnProduct',
       approvalNumber: row.approvalNumber,
       manufacturer: row.manufacturer,
@@ -145,10 +136,7 @@ export class CnMedicinesService {
     };
   }
 
-  private toSearchItem(
-    row: CnMedicineProduct,
-    query: string,
-  ): MedicineSearchItemDto {
+  private toSearchItem(row: CnMedicineProduct, query: string) {
     return {
       id: row.id,
       source: 'cn',

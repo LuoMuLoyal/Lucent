@@ -10,12 +10,8 @@ import type { Cache } from 'cache-manager';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
-import type { MedicineDetailDataDto } from '../../adapters/http/dto/detail.js';
-import type { MedicineSequenceDataDto } from '../../adapters/http/dto/sequence.js';
-
+import type { MedicinesKnowledgeCachePort } from '../../application/ports/knowledge.js';
 import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine_source.js';
-
-import type { MedicineSearchResult } from '../../adapters/http/dto/search.js';
 import {
   MEDICINES_CACHE_KEY_PREFIX,
   MEDICINES_DETAIL_CACHE_TTL_MS,
@@ -40,7 +36,9 @@ interface SearchCacheKeyInput {
  * correctness, not tuning.
  */
 @Injectable()
-export class MedicinesCacheService implements OnModuleInit {
+export class MedicinesCacheService
+  implements MedicinesKnowledgeCachePort, OnModuleInit
+{
   private readonly logger = new Logger(MedicinesCacheService.name);
 
   constructor(
@@ -74,21 +72,21 @@ export class MedicinesCacheService implements OnModuleInit {
     };
   }
 
-  async getOrSetSearch(
+  async getOrSetSearch<R>(
     input: SearchCacheKeyInput,
     bypass: boolean,
-    load: () => Promise<MedicineSearchResult>,
-  ): Promise<MedicineSearchResult> {
+    load: () => Promise<R>,
+  ): Promise<R> {
     const key = this.buildSearchKey(input);
     return this.getOrSet(key, this.readTtls().search, bypass, load);
   }
 
-  async getOrSetDetail(
+  async getOrSetDetail<R>(
     source: MedicineKnowledgeSource,
     id: string,
     bypass: boolean,
-    load: () => Promise<MedicineDetailDataDto | null>,
-  ): Promise<MedicineDetailDataDto | null> {
+    load: () => Promise<R | null>,
+  ): Promise<R | null> {
     const key = this.buildDetailKey(source, id);
     return this.getOrSet(key, this.readTtls().detail, bypass, load);
   }
@@ -102,12 +100,12 @@ export class MedicinesCacheService implements OnModuleInit {
    * Sequences reuse the detail TTL: they are imported and invalidated together
    * with the rest of the DrugBank knowledge base.
    */
-  async getOrSetSequences(
+  async getOrSetSequences<R>(
     source: MedicineKnowledgeSource,
     id: string,
     bypass: boolean,
-    load: () => Promise<MedicineSequenceDataDto | null>,
-  ): Promise<MedicineSequenceDataDto | null> {
+    load: () => Promise<R | null>,
+  ): Promise<R | null> {
     const key = `${this.buildDetailKey(source, id)}:sequences`;
     return this.getOrSet(key, this.readTtls().detail, bypass, load);
   }

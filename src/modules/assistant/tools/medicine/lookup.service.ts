@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { AssistantReadResultEnvelope } from '../../types/assistant.types.js';
 import type { AssistantToolExecutionContext } from '../../types/assistant.types.js';
-import type { MedicineSearchItemDto } from '../../../medicines/index.js';
+import type { MedicineSearchItemLike } from '../../../medicines/index.js';
 import { CnMedicinesService } from '../../../medicines/index.js';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters.js';
 import { AssistantDrugbankLookupService } from './drugbank-lookup.service.js';
@@ -245,7 +245,7 @@ function normalizeLimit(limit: number | undefined): number {
   return Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.trunc(limit)));
 }
 
-function toCandidates(items: MedicineSearchItemDto[]) {
+function toCandidates(items: MedicineSearchItemLike[]) {
   return items.map((item) => ({
     id: item.id,
     source: item.source,
@@ -255,6 +255,6 @@ function toCandidates(items: MedicineSearchItemDto[]) {
   }));
 }
 
-function extractCandidateNames(items: MedicineSearchItemDto[]): string[] {
+function extractCandidateNames(items: MedicineSearchItemLike[]): string[] {
   return items.map((item) => item.name);
 }

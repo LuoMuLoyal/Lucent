@@ -7,21 +7,6 @@ import type {
   DrugbankTarget,
 } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import type {
-  DrugbankMedicineDetailDto,
-  DrugbankTargetDto,
-  MedicineDetailDataDto,
-} from '../../adapters/http/dto/detail.js';
-
-import type {
-  MedicineSearchItemDto,
-  MedicineSearchResult,
-} from '../../adapters/http/dto/search.js';
-import type {
-  MedicineSequenceDataDto,
-  SequenceSummaryDto,
-} from '../../adapters/http/dto/sequence.js';
-import type { MedicineStructureDto } from '../../adapters/http/dto/structure.js';
 import {
   composeSubtitle,
   detectMatchedBy,
@@ -35,6 +20,13 @@ import {
   truncateText,
   uniqueNonEmptyStrings,
 } from '../../adapters/http/presenters/medicine.js';
+import {
+  type MedicinesSourceReader,
+  type MedicineSearchCriteria,
+  type MedicineSearchResultLike,
+  type MedicineDetailData,
+  type MedicineSequenceData,
+} from '../../application/ports/knowledge.js';
 
 /** A drug→target edge with its target row eagerly loaded. */
 type DrugbankDrugTargetWithTarget = DrugbankDrugTarget & {
@@ -53,19 +45,13 @@ function isCsvRelation(relationKind: string | null): boolean {
   return relationKind !== null && CSV_RELATION_KINDS.has(relationKind);
 }
 
-interface MedicineSearchCriteria {
-  q: string;
-  page: number;
-  pageSize: number;
-}
-
 @Injectable()
-export class DrugbankMedicinesService {
+export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineDetailData> {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(
     criteria: MedicineSearchCriteria,
-  ): Promise<MedicineSearchResult> {
+  ): Promise<MedicineSearchResultLike> {
     const where = this.buildWhere(criteria.q);
     const skip = (criteria.page - 1) * criteria.pageSize;
 
@@ -85,7 +71,7 @@ export class DrugbankMedicinesService {
     };
   }
 
-  async getDetail(id: string): Promise<MedicineDetailDataDto | null> {
+  async getDetail(id: string): Promise<MedicineDetailData | null> {
     const row = await this.prisma.drugbankDrug.findUnique({
       where: { drugbankId: id },
       include: {
@@ -106,7 +92,7 @@ export class DrugbankMedicinesService {
       row.targetRelations,
     );
 
-    const detail: DrugbankMedicineDetailDto = {
+    const detail = {
       kind: 'drugbank',
       drugType: row.drugType,
       state: row.state,
@@ -154,7 +140,7 @@ export class DrugbankMedicinesService {
    * tens of thousands of characters here (Imatinib's 28 targets average ~1130 aa
    * of protein each), which has no business riding along with every page load.
    */
-  async getSequences(id: string): Promise<MedicineSequenceDataDto | null> {
+  async getSequences(id: string): Promise<MedicineSequenceData | null> {
     const row = await this.prisma.drugbankDrug.findUnique({
       where: { drugbankId: id },
       select: {
@@ -208,9 +194,7 @@ export class DrugbankMedicinesService {
    * Returns null when the drug has no structure row at all, so the client can
    * tell "no descriptors" apart from "descriptors that happen to be blank".
    */
-  private toStructure(
-    structure: DrugbankStructure | null,
-  ): MedicineStructureDto | null {
+  private toStructure(structure: DrugbankStructure | null) {
     if (!structure) {
       return null;
     }
@@ -261,7 +245,7 @@ export class DrugbankMedicinesService {
   private async countSequences(
     drugbankId: string,
     targetRelations: DrugbankDrugTargetWithTarget[],
-  ): Promise<SequenceSummaryDto | null> {
+  ) {
     const uniprotIds = this.resolveTargetUniprotIds(targetRelations);
 
     const [drugChainCount, targetSequenceCount] = await Promise.all([
@@ -332,10 +316,7 @@ export class DrugbankMedicinesService {
     };
   }
 
-  private toSearchItem(
-    row: DrugbankDrug,
-    query: string,
-  ): MedicineSearchItemDto {
+  private toSearchItem(row: DrugbankDrug, query: string) {
     const tags = uniqueNonEmptyStrings(
       [
         ...toStringList(row.groups),
@@ -390,9 +371,7 @@ export class DrugbankMedicinesService {
    * drug→target pair, the CSV row is a strictly poorer duplicate and is
    * dropped; CSV rows describing pairs the XML does not mention are kept.
    */
-  private toTargets(
-    relations: DrugbankDrugTargetWithTarget[],
-  ): DrugbankTargetDto[] | null {
+  private toTargets(relations: DrugbankDrugTargetWithTarget[]) {
     if (relations.length === 0) {
       return null;
     }

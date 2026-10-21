@@ -1,80 +1,40 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client.js';
-import { PrismaService } from '../../../../prisma/index.js';
+import { Inject, Injectable } from '@nestjs/common';
 import { unwrapResult } from '../../../../common/result/index.js';
-import { MedicinesCacheAdminService } from './rebuild_index.js';
 import { AuditLogService } from '../../../audit-log/index.js';
+import {
+  MEDICINE_SAFETY_TIP_REPOSITORY,
+  type MedicineSafetyTipAdminInput,
+  type MedicineSafetyTipAdminPatch,
+  type MedicineSafetyTipRepositoryPort,
+} from '../ports/safety_tips.js';
+import {
+  MEDICINE_QA_CHUNK_REPOSITORY,
+  type QaChunkAdminInput,
+  type QaChunkAdminListQuery,
+  type QaChunkAdminPatch,
+  type QaChunkRepositoryPort,
+} from '../ports/qa_chunks.js';
+import { MEDICINES_CACHE_MAINTENANCE } from '../ports/cache_maintenance.js';
+import type { MedicinesCacheMaintenancePort } from '../ports/cache_maintenance.js';
 
-export interface SafetyTipAdminInput {
-  contentZh: string;
-  contentEn: string;
-  category: string;
-  sortOrder: number;
-  isActive: boolean;
-}
-
-type SafetyTipAdminPatch = {
-  [Key in keyof SafetyTipAdminInput]?: SafetyTipAdminInput[Key] | undefined;
-};
-
-interface SafetyTipAdminRow {
-  id: string;
-  contentZh: string;
-  contentEn: string;
-  category: string;
-  sortOrder: number;
-  isActive: boolean;
-  updatedAt: Date;
-}
-
-/**
- * The administration response schema types `updatedAt` as an ISO string, and
- * the serializer rejects a raw `Date` — so Prisma rows are converted here
- * rather than at the controller. The converted shape is also what goes into
- * audit metadata: Prisma's JSON column rejects a `Date`.
- */
-function toAdminSafetyTip(row: SafetyTipAdminRow) {
-  return { ...row, updatedAt: row.updatedAt.toISOString() };
-}
+export type { MedicineSafetyTipAdminInput, MedicineSafetyTipAdminPatch };
 
 @Injectable()
 export class SafetyTipsAdminService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
-    private readonly cacheAdmin: MedicinesCacheAdminService,
+    @Inject(MEDICINE_SAFETY_TIP_REPOSITORY)
+    private readonly safetyTipRepository: MedicineSafetyTipRepositoryPort,
+    @Inject(MEDICINES_CACHE_MAINTENANCE)
+    private readonly cacheMaintenance: MedicinesCacheMaintenancePort,
   ) {}
 
   async list() {
-    const rows = await this.prisma.medicineSafetyTip.findMany({
-      select: {
-        id: true,
-        contentZh: true,
-        contentEn: true,
-        category: true,
-        sortOrder: true,
-        isActive: true,
-        updatedAt: true,
-      },
-      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-    });
-    return rows.map(toAdminSafetyTip);
+    return this.safetyTipRepository.listAll();
   }
 
-  async create(actorUserId: string, input: SafetyTipAdminInput) {
-    const created = await this.prisma.medicineSafetyTip.create({
-      data: input,
-      select: {
-        id: true,
-        contentZh: true,
-        contentEn: true,
-        category: true,
-        sortOrder: true,
-        isActive: true,
-        updatedAt: true,
-      },
-    });
-    const tip = toAdminSafetyTip(created);
+  async create(actorUserId: string, input: MedicineSafetyTipAdminInput) {
+    const tip = await this.safetyTipRepository.create(input);
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
@@ -84,39 +44,19 @@ export class SafetyTipsAdminService {
         metadata: { before: null, after: tip },
       }),
     );
-    await this.cacheAdmin.invalidateAll();
+    await this.cacheMaintenance.invalidateAll();
     return tip;
   }
 
-  async update(actorUserId: string, id: string, input: SafetyTipAdminPatch) {
-    const before = await this.prisma.medicineSafetyTip.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        contentZh: true,
-        contentEn: true,
-        category: true,
-        sortOrder: true,
-        isActive: true,
-      },
-    });
+  async update(
+    actorUserId: string,
+    id: string,
+    input: MedicineSafetyTipAdminPatch,
+  ) {
+    const before = await this.safetyTipRepository.findEditable(id);
     if (before === null) return null;
-    const updated = await this.prisma.medicineSafetyTip.update({
-      where: { id },
-      data: Object.fromEntries(
-        Object.entries(input).filter(([, value]) => value !== undefined),
-      ),
-      select: {
-        id: true,
-        contentZh: true,
-        contentEn: true,
-        category: true,
-        sortOrder: true,
-        isActive: true,
-        updatedAt: true,
-      },
-    });
-    const tip = toAdminSafetyTip(updated);
+    const tip = await this.safetyTipRepository.update(id, input);
+    if (tip === null) return null;
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
@@ -126,24 +66,14 @@ export class SafetyTipsAdminService {
         metadata: { before, after: tip },
       }),
     );
-    await this.cacheAdmin.invalidateAll();
+    await this.cacheMaintenance.invalidateAll();
     return tip;
   }
 
   async remove(actorUserId: string, id: string) {
-    const before = await this.prisma.medicineSafetyTip.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        contentZh: true,
-        contentEn: true,
-        category: true,
-        sortOrder: true,
-        isActive: true,
-      },
-    });
+    const before = await this.safetyTipRepository.findEditable(id);
     if (before === null) return false;
-    await this.prisma.medicineSafetyTip.delete({ where: { id } });
+    await this.safetyTipRepository.remove(id);
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
@@ -153,63 +83,9 @@ export class SafetyTipsAdminService {
         metadata: { before, after: null },
       }),
     );
-    await this.cacheAdmin.invalidateAll();
+    await this.cacheMaintenance.invalidateAll();
     return true;
   }
-}
-
-/** Editorial fields of one QA corpus row that the admin surface may change. */
-export interface QaChunkAdminInput {
-  question: string;
-  answer: string;
-  safetyLabel: string;
-}
-
-export type QaChunkAdminPatch = {
-  [Key in keyof QaChunkAdminInput]?: QaChunkAdminInput[Key] | undefined;
-};
-
-export interface QaChunkAdminListQuery {
-  page: number;
-  limit: number;
-  q?: string | undefined;
-  safetyLabel?: string | undefined;
-}
-
-interface QaChunkAdminRow {
-  id: string;
-  qaId: string;
-  question: string;
-  answer: string;
-  safetyLabel: string;
-  updatedAt: Date;
-}
-
-/**
- * `qaId` is the corpus identity (`qa:<qaId>:0` in the retrieval index) and is
- * assigned by the import script, so it is neither listed as editable here nor
- * part of `QaChunkAdminPatch`; the generic `data:write` layer still allows a
- * super administrator to change it.
- */
-const QA_CHUNK_ADMIN_SELECT = {
-  id: true,
-  qaId: true,
-  question: true,
-  answer: true,
-  safetyLabel: true,
-  updatedAt: true,
-} satisfies Prisma.MedicalQaChunkSelect;
-
-const QA_CHUNK_ADMIN_BEFORE_SELECT = {
-  id: true,
-  qaId: true,
-  question: true,
-  answer: true,
-  safetyLabel: true,
-} satisfies Prisma.MedicalQaChunkSelect;
-
-function toAdminQaChunk(row: QaChunkAdminRow) {
-  return { ...row, updatedAt: row.updatedAt.toISOString() };
 }
 
 /**
@@ -226,34 +102,15 @@ function toAdminQaChunk(row: QaChunkAdminRow) {
 @Injectable()
 export class QaChunksAdminService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
+    @Inject(MEDICINE_QA_CHUNK_REPOSITORY)
+    private readonly qaChunkRepository: QaChunkRepositoryPort,
   ) {}
 
   async list(query: QaChunkAdminListQuery) {
-    const where: Prisma.MedicalQaChunkWhereInput = {};
-    if (query.safetyLabel !== undefined) {
-      where.safetyLabel = query.safetyLabel;
-    }
-    if (query.q !== undefined) {
-      where.OR = [
-        { qaId: { contains: query.q, mode: 'insensitive' } },
-        { question: { contains: query.q, mode: 'insensitive' } },
-        { answer: { contains: query.q, mode: 'insensitive' } },
-      ];
-    }
-    const [rows, total] = await Promise.all([
-      this.prisma.medicalQaChunk.findMany({
-        where,
-        select: QA_CHUNK_ADMIN_SELECT,
-        orderBy: [{ qaId: 'asc' }],
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
-      }),
-      this.prisma.medicalQaChunk.count({ where }),
-    ]);
+    const { items, total } = await this.qaChunkRepository.list(query);
     return {
-      items: rows.map(toAdminQaChunk),
+      items,
       total,
       page: query.page,
       limit: query.limit,
@@ -261,19 +118,10 @@ export class QaChunksAdminService {
   }
 
   async update(actorUserId: string, id: string, input: QaChunkAdminPatch) {
-    const before = await this.prisma.medicalQaChunk.findUnique({
-      where: { id },
-      select: QA_CHUNK_ADMIN_BEFORE_SELECT,
-    });
+    const before = await this.qaChunkRepository.findEditable(id);
     if (before === null) return null;
-    const updated = await this.prisma.medicalQaChunk.update({
-      where: { id },
-      data: Object.fromEntries(
-        Object.entries(input).filter(([, value]) => value !== undefined),
-      ),
-      select: QA_CHUNK_ADMIN_SELECT,
-    });
-    const chunk = toAdminQaChunk(updated);
+    const chunk = await this.qaChunkRepository.update(id, input);
+    if (chunk === null) return null;
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
@@ -286,3 +134,6 @@ export class QaChunksAdminService {
     return chunk;
   }
 }
+
+/** Re-exported for the admin console surface — see `ports/qa_chunks.ts`. */
+export type { QaChunkAdminInput, QaChunkAdminListQuery, QaChunkAdminPatch };

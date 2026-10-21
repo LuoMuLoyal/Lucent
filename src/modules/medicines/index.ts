@@ -1,4 +1,7 @@
-export type { MedicineSearchItemDto } from './adapters/http/dto/search.js';
+export type {
+  MedicineSearchItemLike,
+  MedicineSearchResultLike,
+} from './application/ports/knowledge.js';
 export { CnMedicinesService } from './infrastructure/persistence/cn.js';
 export { DrugbankMedicinesService } from './infrastructure/persistence/drugbank.js';
 export { MedicineRiskCheckService } from './application/use_cases/check_risk.js';

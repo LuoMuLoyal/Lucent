@@ -168,7 +168,7 @@ describe('CnMedicinesService', () => {
       expect(result!.id).toBe('med-1');
       expect(result!.source).toBe('cn');
       expect(result!.name).toBe('阿司匹林');
-      expect(result!.detail.kind).toBe('cnProduct');
+      expect(result!.detail['kind']).toBe('cnProduct');
       // body text comes from the linked leaflet, not the product row
       const detail = result!.detail as CnMedicineDetailDto;
       expect(detail.ingredients).toBe('阿司匹林');
@@ -179,8 +179,8 @@ describe('CnMedicinesService', () => {
   });
 
   describe('getSequences', () => {
-    it('returns an empty sequence set for any CN product', () => {
-      const result = service.getSequences('med-1');
+    it('returns an empty sequence set for any CN product', async () => {
+      const result = await service.getSequences('med-1');
 
       expect(result).toEqual({
         id: 'med-1',
