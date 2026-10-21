@@ -26,6 +26,9 @@ model DrugSourceImport {
   drugbankTargetSeqs    DrugbankTargetSequence[]
   drugbankDrugSeqs      DrugbankDrugSequence[]
   drugbankStructures    DrugbankStructure[]
+  drugbankPatents       DrugbankPatent[]
+  drugbankProperties    DrugbankProperty[]
+  drugbankFingerprints  DrugbankFingerprint[]
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
@@ -198,6 +201,17 @@ model DrugbankDrug {
   drugInteractions     Json?                  @map("drug_interactions") @db.JsonB
   externalIdentifiers  Json?                  @map("external_identifiers") @db.JsonB
   externalLinks        Json?                  @map("external_links") @db.JsonB
+  /// SMPDB pathways. Kept as JSON because coverage is ~3% of drugs and the only
+  /// read pattern is "fetch the whole block for one drug" — see PRODUCT §3.
+  pathways             Json?                  @db.JsonB
+  /// Stepwise metabolic reaction chains. JSON because the chains are variable
+  /// length and their intermediate products are DBMET metabolic entities, not
+  /// drugs, so normalising them would require a second entity table.
+  reactions            Json?                  @db.JsonB
+  /// Pharmacogenomic variant effects (rsID, gene, allele, PubMed). JSON because
+  /// only 80 drugs carry this data; it is display-only, never an analysis input.
+  snpEffects           Json?                  @map("snp_effects") @db.JsonB
+  snpAdverseEffects    Json?                  @map("snp_adverse_effects") @db.JsonB
   searchText           String?                @map("search_text")
   createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -207,6 +221,9 @@ model DrugbankDrug {
   passageChunks        DrugbankPassageChunk[]
   sequences            DrugbankDrugSequence[]
   structure            DrugbankStructure?
+  patents              DrugbankPatent[]
+  properties           DrugbankProperty[]
+  fingerprint          DrugbankFingerprint?
 
   @@index([name])
   @@index([casNumber])
@@ -427,4 +444,83 @@ model DrugbankStructure {
 
   @@index([inchiKey])
   @@map("drugbank_structures")
+}
+
+/// One patent record attached to a drug. Modelled as a table rather than JSON
+/// because patent-expiry analysis filters and sorts on `expiresOn`; a JSON
+/// column would force a sequential scan plus per-row parsing.
+///
+/// `expiresOn` is the **patent** expiry as captured by DrugBank, not a
+/// freedom-to-operate determination: process patents, data exclusivity and
+/// indication patents are not represented here.
+model DrugbankPatent {
+  id                       String            @id @default(uuid())
+  importRunId              String?           @map("import_run_id")
+  drugbankId               String            @map("drugbank_id")
+  patentNumber             String            @map("patent_number")
+  country                  String?
+  approvedOn               DateTime?         @map("approved_on") @db.Date
+  expiresOn                DateTime?         @map("expires_on") @db.Date
+  pediatricExtension       Boolean?          @map("pediatric_extension")
+  createdAt                DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun                DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug                     DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, patentNumber, country])
+  @@index([expiresOn])
+  @@index([drugbankId])
+  @@map("drugbank_patents")
+}
+
+/// Experimental or computed property of a drug. One row per (kind, source)
+/// because the source file reports the same property several times with
+/// different values and attributions — collapsing to one column would discard
+/// the provenance, which is what makes the value citable.
+///
+/// `valueText` keeps the verbatim string (`"65 °C"`, `"Soluble"`).
+/// `valueNum` is populated only when that string parses cleanly, so numeric
+/// comparisons are possible without ever overwriting the original text.
+model DrugbankProperty {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  kind        String
+  valueText   String            @map("value_text")
+  valueNum    Float?            @map("value_num")
+  unit        String?
+  source      String?
+  isExperimental Boolean        @default(true) @map("is_experimental")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, kind, source])
+  @@index([kind, valueNum])
+  @@index([drugbankId])
+  @@map("drugbank_properties")
+}
+
+/// Binary molecular fingerprint used for similarity search.
+///
+/// Stored as a hex string of 2048 bits (Morgan, radius 2). Similarity is
+/// Tanimoto computed in SQL over the bit strings; no vector index is involved
+/// because pgvector's distance operators (cosine/L2/inner product/Hamming) do
+/// not express Tanimoto, and the corpus (≈15k molecules) is small enough that a
+/// sequential scan is fast.
+model DrugbankFingerprint {
+  drugbankId  String            @id @map("drugbank_id")
+  importRunId String?           @map("import_run_id")
+  /// 2048-bit Morgan fingerprint, 512 hex characters.
+  fingerprint String
+  bitCount    Int               @map("bit_count")
+  radius      Int               @default(2)
+  nBits       Int               @default(2048) @map("n_bits")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@map("drugbank_fingerprints")
 }
