@@ -1,8 +1,8 @@
-export type { MedicineSearchItemDto } from './dto/search.dto.js';
-export { CnMedicinesService } from './adapters/cn.service.js';
-export { DrugbankMedicinesService } from './adapters/drugbank.service.js';
-export { MedicineRiskCheckService } from './services/risk/risk-check.service.js';
+export type { MedicineSearchItemDto } from './adapters/http/dto/search.js';
+export { CnMedicinesService } from './infrastructure/persistence/cn.js';
+export { DrugbankMedicinesService } from './infrastructure/persistence/drugbank.js';
+export { MedicineRiskCheckService } from './application/use_cases/check_risk.js';
 export {
   SafetyTipsAdminService,
   QaChunksAdminService,
-} from './services/admin.service.js';
+} from './application/use_cases/import_catalog.js';

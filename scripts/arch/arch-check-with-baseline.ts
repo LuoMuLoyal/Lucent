@@ -62,10 +62,13 @@ function collectDepcruise(): Violation[] {
   );
   const parsed = JSON.parse(raw) as {
     violations?: { rule?: { name?: string }; from?: string }[];
-    summary?: { ruleSeverities?: Record<string, string> };
+    summary?: {
+      violations?: { rule?: { name?: string }; from?: string }[];
+    };
   };
+  const violations = parsed.violations ?? parsed.summary?.violations ?? [];
   const out: Violation[] = [];
-  for (const violation of parsed.violations ?? []) {
+  for (const violation of violations) {
     const rule = violation.rule?.name ?? 'unknown-rule';
     const from = (violation.from ?? '').replace(/\\/g, '/');
     out.push({ key: `depcruise|${rule}|${from}` });

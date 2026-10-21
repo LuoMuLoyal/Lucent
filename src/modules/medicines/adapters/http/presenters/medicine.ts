@@ -1,0 +1,223 @@
+import type { Prisma } from '#generated/prisma/client.js';
+import type {
+  DrugbankDrugInteractionDto,
+  DrugbankExternalIdentifierDto,
+  DrugbankExternalLinkDto,
+} from '../dto/detail.js';
+
+const DEFAULT_SUMMARY_LENGTH = 180;
+
+/**
+ * Like `toStringList`, but returns `null` instead of `[]` when the source is
+ * empty. The detail contract distinguishes "absent" from "empty list" for
+ * optional arrays.
+ */
+export function toStringListOrNull(
+  value: Prisma.JsonValue | null | undefined,
+): string[] | null {
+  const list = toStringList(value);
+  return list.length > 0 ? list : null;
+}
+
+export function toStringList(
+  value: Prisma.JsonValue | null | undefined,
+): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (typeof item === 'string') {
+      const normalized = item.trim();
+      return normalized ? [normalized] : [];
+    }
+
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const candidate = [
+        item['name'],
+        item['title'],
+        item['code'],
+        item['id'],
+      ].find((entry) => typeof entry === 'string');
+
+      if (typeof candidate === 'string') {
+        const normalized = candidate.trim();
+        return normalized ? [normalized] : [];
+      }
+    }
+
+    return [];
+  });
+}
+
+export function uniqueNonEmptyStrings(
+  values: Array<string | null | undefined>,
+  limit?: number,
+): string[] {
+  const unique = new Set<string>();
+
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized) {
+      continue;
+    }
+
+    unique.add(normalized);
+    if (limit !== undefined && unique.size >= limit) {
+      break;
+    }
+  }
+
+  return [...unique];
+}
+
+export function composeSubtitle(
+  ...parts: Array<string | null | undefined>
+): string | null {
+  const normalized = uniqueNonEmptyStrings(parts);
+  return normalized.length > 0 ? normalized.join(' / ') : null;
+}
+
+export function firstNonEmpty(
+  ...values: Array<string | null | undefined>
+): string | null {
+  return uniqueNonEmptyStrings(values, 1)[0] ?? null;
+}
+
+export function truncateText(
+  value: string | null | undefined,
+  maxLength = DEFAULT_SUMMARY_LENGTH,
+): string | null {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+export function detectMatchedBy(
+  query: string,
+  candidates: Array<{ key: string; value: string | null | undefined }>,
+): string[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  return candidates.flatMap(({ key, value }) => {
+    const normalizedValue = value?.trim().toLowerCase();
+    return normalizedValue?.includes(normalizedQuery) ? [key] : [];
+  });
+}
+
+export function toPagination(
+  page: number,
+  pageSize: number,
+  total: number,
+): { page: number; pageSize: number; total: number; totalPages: number } {
+  return {
+    page,
+    pageSize,
+    total,
+    totalPages: total === 0 ? 0 : Math.ceil(total / pageSize),
+  };
+}
+
+export function toDrugbankDrugInteractions(
+  value: Prisma.JsonValue | null | undefined,
+): DrugbankDrugInteractionDto[] | null {
+  return toTypedJsonArray(value, (item): DrugbankDrugInteractionDto | null => {
+    if (
+      item &&
+      typeof item === 'object' &&
+      !Array.isArray(item) &&
+      typeof item['drugbankId'] === 'string' &&
+      typeof item['description'] === 'string'
+    ) {
+      return {
+        drugbankId: item['drugbankId'],
+        description: item['description'],
+      };
+    }
+    return null;
+  });
+}
+
+/**
+ * Maps the raw `external_identifiers` JSON column to the wire shape.
+ *
+ * The source stores `[{ resource, identifier }]`; entries missing either half
+ * are dropped rather than surfacing a half-populated row.
+ */
+export function toDrugbankExternalIdentifiers(
+  value: Prisma.JsonValue | null | undefined,
+): DrugbankExternalIdentifierDto[] | null {
+  return toTypedJsonArray(
+    value,
+    (item): DrugbankExternalIdentifierDto | null => {
+      if (
+        item &&
+        typeof item === 'object' &&
+        !Array.isArray(item) &&
+        typeof item['resource'] === 'string' &&
+        typeof item['identifier'] === 'string'
+      ) {
+        return {
+          resource: item['resource'],
+          identifier: item['identifier'],
+        };
+      }
+      return null;
+    },
+  );
+}
+
+/** Maps the raw `external_links` JSON column to the wire shape. */
+export function toDrugbankExternalLinks(
+  value: Prisma.JsonValue | null | undefined,
+): DrugbankExternalLinkDto[] | null {
+  return toTypedJsonArray(value, (item): DrugbankExternalLinkDto | null => {
+    if (
+      item &&
+      typeof item === 'object' &&
+      !Array.isArray(item) &&
+      typeof item['resource'] === 'string' &&
+      typeof item['url'] === 'string'
+    ) {
+      return { resource: item['resource'], url: item['url'] };
+    }
+    return null;
+  });
+}
+
+/**
+ * Filters a raw JSON array through a per-entry guard, returning `null` when
+ * the source is absent or nothing survives the guard.
+ *
+ * The three DrugBank typed-array columns (`drug_interactions`,
+ * `external_identifiers`, `external_links`) all follow the same shape:
+ * guard each entry, drop the ones that fail, keep the rest.
+ */
+function toTypedJsonArray<T>(
+  value: Prisma.JsonValue | null | undefined,
+  guard: (raw: Prisma.JsonValue) => T | null,
+): T[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const typed: T[] = [];
+  for (const item of value) {
+    const mapped = guard(item);
+    if (mapped !== null) {
+      typed.push(mapped);
+    }
+  }
+
+  return typed.length > 0 ? typed : null;
+}
