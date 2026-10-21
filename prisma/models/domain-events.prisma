@@ -1,0 +1,20 @@
+// Domain: cross-context domain events outbox (ADR-0024)
+// Consumers only mark delivery; rows are append-only and pruned by retention.
+
+model DomainEvent {
+  id             String    @id @default(uuid())
+  context        String
+  aggregateType  String    @map("aggregate_type")
+  aggregateId    String    @map("aggregate_id")
+  eventName      String    @map("event_name")
+  payloadVersion Int       @default(1) @map("payload_version")
+  payload        Json      @map("payload") @db.JsonB
+  metadata       Json?     @db.JsonB
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz(3)
+  attempts       Int       @default(0)
+  lastError      String?   @map("last_error")
+  occurredAt     DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(3)
+
+  @@index([publishedAt, occurredAt])
+  @@map("domain_events")
+}
