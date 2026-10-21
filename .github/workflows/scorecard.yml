@@ -1,0 +1,74 @@
+name: Scorecard
+
+# 供应链安全评分：OpenSSF Scorecard 按十余项指标审计仓库的供应链卫生
+# （分支保护、依赖更新、代码审查、CI 测试、dangerous workflow 等），
+# 结果以 SARIF 上传到 Security 页，并可对外发布评分徽章。
+#
+# ## 为什么值得跑
+#
+# 它不查代码，查的是**工程习惯**。典型发现：workflow 用了未固定版本的 action、
+# 主分支没有保护规则、发布流程没有签名、依赖更新没开——这些单看代码都正常，
+# 但正是供应链攻击最常利用的入口。
+#
+# ## 与 CodeQL / OSV 的分工
+#
+#   - CodeQL：源码里的数据流漏洞
+#   - OSV：依赖里的已知漏洞
+#   - Scorecard：仓库配置与流程的反模式
+# 三者不重叠。
+#
+# ## publish_results 的含义
+#
+# 开启后结果会发布到 OpenSSF 的公开 API 并生成徽章，也会让分数对公众可见。
+# 本仓是 public，接受这一点（对使用者是加分项）。若将来转私有需关掉。
+
+on:
+  branch_protection_rule:
+  schedule:
+    # 每周六 01:30 UTC
+    - cron: '30 1 * * 6'
+  push:
+    branches: [main, develop]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      # 上传 SARIF 到 Security > Code scanning
+      security-events: write
+      # 发布结果与徽章需要 OIDC
+      id-token: write
+      contents: read
+      # 检测 workflow 用到的 action 需要读 actions
+      actions: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # 不保留凭据：Scorecard 会检查这一点，留着反而扣分
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scorecard-sarif
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code-scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif

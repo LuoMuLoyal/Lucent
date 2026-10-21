@@ -41,6 +41,26 @@ Only the latest release line receives security fixes. Pre-release versions
 | latest  | ✅        |
 | `*-dev` | ❌        |
 
+## Automated Security Checks
+
+This repository runs the following automated checks. They are listed here so that a
+failing check is understood rather than silenced.
+
+| Check       | Workflow                            | What it covers                                                                                               | Blocking                               |
+| ----------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| CodeQL      | `.github/workflows/codeql.yml`      | Data-flow analysis of the TypeScript source: injection, path traversal, auth defects, unsafe deserialization | No — reports to Security tab           |
+| OSV-Scanner | `.github/workflows/osv-scanner.yml` | Known vulnerabilities in the dependency tree, including transitive packages                                  | No — PR scan reports new findings only |
+| Scorecard   | `.github/workflows/scorecard.yml`   | Supply-chain hygiene: branch protection, pinned actions, review requirements                                 | No — score only                        |
+| Trivy       | `.github/workflows/docker.yml`      | HIGH/CRITICAL CVEs in the built container image, both architectures                                          | No — report only                       |
+| Dependabot  | `.github/dependabot.yml`            | Dependency updates (monthly, grouped)                                                                        | Opens PRs                              |
+
+None of these gate merges yet. A first-time scan surfaces the entire accumulated
+backlog, and a check that fails on day one gets ignored rather than fixed. The plan is
+to observe, clear or consciously waive the findings, then turn each into a gate — the
+same observe-then-tighten pattern used for the architecture baseline
+(`pnpm arch:check`). See `.github/workflows/README.md` for the division of labour
+between these workflows.
+
 ## Security Features
 
 Lucent implements the following security measures:
