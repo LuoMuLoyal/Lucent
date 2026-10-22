@@ -9251,7 +9251,8 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string"
+            "type": "string",
+            "example": "usr_9f2c1e4a7b8d4c6e"
           },
           "groups": {
             "type": "array",
@@ -9530,25 +9531,32 @@
             "type": "array",
             "items": {
               "type": "object",
-              "additionalProperties": {}
+              "additionalProperties": {},
+              "example": {
+                "id": "usr_9f2c1e4a7b8d4c6e",
+                "email": "a@example.com"
+              }
             }
           },
           "total": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "example": 1
           },
           "page": {
             "type": "integer",
             "minimum": 0,
             "exclusiveMinimum": true,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "example": 1
           },
           "limit": {
             "type": "integer",
             "minimum": 0,
             "exclusiveMinimum": true,
-            "maximum": 100
+            "maximum": 100,
+            "example": 25
           }
         },
         "required": ["items", "total", "page", "limit"],
@@ -9556,7 +9564,11 @@
       },
       "AdminResourceRow": {
         "type": "object",
-        "additionalProperties": {}
+        "additionalProperties": {},
+        "example": {
+          "id": "usr_9f2c1e4a7b8d4c6e",
+          "email": "a@example.com"
+        }
       },
       "FunnelResponse": {
         "type": "object",
@@ -15522,7 +15534,11 @@
             "type": "array",
             "items": {
               "type": "object",
-              "additionalProperties": {}
+              "additionalProperties": {},
+              "example": {
+                "id": "usr_9f2c1e4a7b8d4c6e",
+                "email": "a@example.com"
+              }
             }
           },
           "total": {

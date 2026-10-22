@@ -33,15 +33,24 @@ export const adminResourceWriteSchema = z.record(z.string(), z.unknown());
 
 export type AdminResourceWriteDto = z.infer<typeof adminResourceWriteSchema>;
 
-/** A single resource row — columns vary per resource, so the shape is open. */
-export const adminResourceRowSchema = z.record(z.string(), z.unknown());
+/**
+ * A single resource row — columns vary per resource, so the shape is open.
+ *
+ * The `example` is not decoration: the OpenAPI contract test requires every 2xx
+ * body schema to carry an example or an explicit `nullable`, and an open record
+ * has neither any described property nor a `$ref` to borrow metadata from.
+ * The values mirror `users` so the generated docs stay concrete.
+ */
+export const adminResourceRowSchema = z
+  .record(z.string(), z.unknown())
+  .meta({ example: { id: 'usr_9f2c1e4a7b8d4c6e', email: 'a@example.com' } });
 
 export const adminResourceListResponseSchema = z
   .object({
     items: z.array(adminResourceRowSchema),
-    total: z.number().int().nonnegative(),
-    page: z.number().int().positive(),
-    limit: z.number().int().positive().max(100),
+    total: z.number().int().nonnegative().meta({ example: 1 }),
+    page: z.number().int().positive().meta({ example: 1 }),
+    limit: z.number().int().positive().max(100).meta({ example: 25 }),
   })
   .strict();
 
@@ -81,7 +90,7 @@ export const adminUserRelatedGroupSchema = z
 
 export const adminUserRelatedResponseSchema = z
   .object({
-    userId: z.string(),
+    userId: z.string().meta({ example: 'usr_9f2c1e4a7b8d4c6e' }),
     groups: z.array(adminUserRelatedGroupSchema),
   })
   .strict();
