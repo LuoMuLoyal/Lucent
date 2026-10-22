@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -20,6 +21,7 @@ import { registerResponseSchema } from '../../../common/api/response-schema.regi
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import { AuthService } from '../services/auth.service.js';
+import { TurnstileService } from '../services/identity/turnstile.service.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';
 
 import { registerSchema } from '../dto/credentials/register.dto.js';
@@ -34,6 +36,7 @@ import { forgotPasswordSchema } from '../dto/password/forgot-password.dto.js';
 import type { ForgotPasswordDto } from '../dto/password/forgot-password.dto.js';
 import { resetPasswordSchema } from '../dto/password/reset-password.dto.js';
 import type { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
+import { captchaSchema } from '../dto/shared/captcha.dto.js';
 
 import {
   forgotPasswordResponseSchema,
@@ -55,6 +58,7 @@ export class LocalController {
     private readonly authService: AuthService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly auditLogService: AuditLogService,
+    private readonly turnstileService: TurnstileService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -140,6 +144,24 @@ export class LocalController {
       this.authService.login(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
+  }
+
+  // ── GET /api/v1/auth/captcha ────────────────────────────────
+
+  @Get('captcha')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Public human-verification widget configuration' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Whether the challenge is enforced and the public site key to render it with.',
+  })
+  @SerializeOptions({ schema: captchaSchema })
+  getCaptcha() {
+    return {
+      enabled: this.turnstileService.enabled,
+      siteKey: this.turnstileService.siteKey,
+    };
   }
 
   // ── POST /api/v1/auth/send-verification-code ────────────────
@@ -307,6 +329,14 @@ registerResponseSchema({
   componentName: 'LoginResponse',
   schema: loginResponseSchema,
   description: 'Authenticated user with token pair.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/auth/captcha',
+  method: 'get',
+  componentName: 'CaptchaResponse',
+  schema: captchaSchema,
+  description: 'Whether the challenge is enforced and the public site key.',
 });
 
 registerResponseSchema({

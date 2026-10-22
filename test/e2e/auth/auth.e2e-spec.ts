@@ -58,6 +58,7 @@ interface RegisterLoginData {
 // ── Constants ─────────────────────────────────────────────────
 
 const AUTH_PATH = {
+  captcha: '/api/v1/auth/captcha',
   register: '/api/v1/auth/register',
   login: '/api/v1/auth/login',
   logout: '/api/v1/auth/logout',
@@ -261,6 +262,40 @@ describe('Auth API (e2e)', () => {
 
       const body = res.body as Record<string, unknown>;
       expect(body['code']).toBe('VALIDATION_FAILED');
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════
+  // 1b. GET /api/v1/auth/captcha
+  // ════════════════════════════════════════════════════════════
+
+  describe('GET /api/v1/auth/captcha', () => {
+    it('should report the challenge as disabled when no credentials are configured', async () => {
+      // The e2e environment leaves TURNSTILE_* empty, which is also the local
+      // dev default. This is what keeps the whole suite runnable without a
+      // Cloudflare account — assert it so the default cannot silently flip.
+      const res = await request(app.getHttpServer())
+        .get(AUTH_PATH.captcha)
+        .expect(200);
+
+      const body = res.body as { enabled: boolean; siteKey: string };
+      expect(body.enabled).toBe(false);
+      expect(body.siteKey).toBe('');
+    });
+
+    it('should reject unknown properties in the response contract', async () => {
+      const res = await request(app.getHttpServer())
+        .get(AUTH_PATH.captcha)
+        .expect(200);
+
+      const body = res.body as Record<string, unknown>;
+      expect(Object.keys(body).sort()).toEqual(['enabled', 'siteKey']);
+    });
+
+    it('should require no authentication', async () => {
+      // Registration needs the site key *before* the user has any token, so
+      // this endpoint must stay public.
+      await request(app.getHttpServer()).get(AUTH_PATH.captcha).expect(200);
     });
   });
 
