@@ -30,6 +30,12 @@ export const VERIFICATION_CODE_LENGTH = 6;
 export const VERIFICATION_CODE_MIN_LENGTH: number = 4;
 export const VERIFICATION_CODE_MAX_LENGTH: number = 8;
 
+/**
+ * Turnstile 响应令牌长度上限。Cloudflare 的令牌约 2 KB,这里只是防止客户端
+ * 发送无界字符串。
+ */
+export const CAPTCHA_TOKEN_MAX_LENGTH: number = 4096;
+
 export interface StrongPasswordSchemaOptions {
   /**
    * Field label interpolated into generic messages. Kept for callers whose
@@ -95,6 +101,21 @@ export function verificationCodeSchema(
     ),
     'validation.code.invalid_length',
   );
+}
+
+/**
+ * 人机验证令牌字段(Cloudflare Turnstile 的 `cf-turnstile-response`)。
+ *
+ * schema 层只约束取值范围,**不**约束是否必填:是否强制由运行时决定——
+ * 未配置凭据时整体关闭;登录侧仅在失败次数越过阈值后才要求。缺令牌时由
+ * 校验服务返回 `AUTH_CAPTCHA_REQUIRED`,schema 不参与该判断。
+ */
+export function captchaTokenSchema() {
+  return z
+    .string()
+    .min(1, 'validation.field.required')
+    .max(CAPTCHA_TOKEN_MAX_LENGTH, 'validation.field.too_long')
+    .optional();
 }
 
 export interface EmailAddressSchemaOptions {

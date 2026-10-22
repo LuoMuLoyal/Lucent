@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  captchaTokenSchema,
   emailAddressSchema,
   strongPasswordSchema,
   verificationCodeSchema,
@@ -17,6 +18,8 @@ import {
  *   those accounts must reset through "forgot password";
  * - `@IsVerificationCode({ optional: true })` → `verificationCodeSchema().optional()`
  *   (default: exactly `VERIFICATION_CODE_LENGTH` characters when present);
+ * - `captchaTokenSchema()` 在此保持可选：是否强制由运行时决定（未配置即整体
+ *   关闭；登录侧仅在失败次数越过阈值后要求），schema 不参与该判断；
  * - the global `forbidNonWhitelisted` posture is preserved with `.strict()`.
  */
 export const loginSchema = z
@@ -28,6 +31,7 @@ export const loginSchema = z
     code: verificationCodeSchema()
       .describe('邮箱验证码（与密码二选一）')
       .optional(),
+    captchaToken: captchaTokenSchema().describe('人机验证令牌'),
   })
   .strict();
 

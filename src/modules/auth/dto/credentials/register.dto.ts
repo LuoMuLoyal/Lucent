@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  captchaTokenSchema,
   emailAddressSchema,
   strongPasswordSchema,
   verificationCodeSchema,
@@ -23,6 +24,7 @@ export const registerSchema = z
     password:
       strongPasswordSchema().describe('密码（至少8位，需通过强度校验）'),
     code: verificationCodeSchema({ exactLength: false }).describe('邮箱验证码'),
+    captchaToken: captchaTokenSchema().describe('人机验证令牌'),
     nickname: z
       .string()
       .min(1, 'validation.field.required')
