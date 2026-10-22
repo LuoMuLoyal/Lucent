@@ -2504,6 +2504,26 @@
         "tags": ["Auth"]
       }
     },
+    "/api/v1/auth/captcha": {
+      "get": {
+        "operationId": "LocalController_getCaptcha",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Whether the challenge is enforced and the public site key to render it with.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptchaResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Public human-verification widget configuration",
+        "tags": ["Auth"]
+      }
+    },
     "/api/v1/auth/send-verification-code": {
       "post": {
         "operationId": "sendVerificationCode",
@@ -8444,6 +8464,21 @@
         "required": ["user", "tokens"],
         "additionalProperties": false
       },
+      "CaptchaResponse": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "是否启用"
+          },
+          "siteKey": {
+            "type": "string",
+            "description": "站点密钥"
+          }
+        },
+        "required": ["enabled", "siteKey"],
+        "additionalProperties": false
+      },
       "SendVerificationCodeResponse": {
         "type": "object",
         "properties": {
@@ -12465,6 +12500,12 @@
             "minLength": 1,
             "description": "邮箱验证码"
           },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
           "nickname": {
             "type": "string",
             "minLength": 1,
@@ -12494,6 +12535,12 @@
             "minLength": 1,
             "pattern": "^[0-9]{4,8}$",
             "description": "邮箱验证码（与密码二选一）"
+          },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
           }
         },
         "required": ["email"],
