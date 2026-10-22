@@ -20,9 +20,8 @@ import {
 export const registerSchema = z
   .object({
     email: emailAddressSchema().describe('邮箱地址'),
-    password: strongPasswordSchema().describe(
-      '密码（8-32位，需包含大小写字母和数字）',
-    ),
+    password:
+      strongPasswordSchema().describe('密码（至少8位，需通过强度校验）'),
     code: verificationCodeSchema({ exactLength: false }).describe('邮箱验证码'),
     nickname: z
       .string()

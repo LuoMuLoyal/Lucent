@@ -11,8 +11,10 @@ import {
  * Migration notes (class-validator → zod):
  * - `@IsEmailAddress()` → `emailAddressSchema()` (zod email format + not-empty
  *   messages reused from the original validator);
- * - `@IsStrongPassword({ optional: true })` → `strongPasswordSchema().optional()`
- *   (strong password rules live in `common/validators/auth.decorators.ts`);
+ * - `@IsStrongPassword({ optional: true })` → `strongPasswordSchema().optional()`.
+ *   Login applies the same strength rules as password setup. Stored passwords
+ *   that no longer score high enough are rejected rather than grandfathered in;
+ *   those accounts must reset through "forgot password";
  * - `@IsVerificationCode({ optional: true })` → `verificationCodeSchema().optional()`
  *   (default: exactly `VERIFICATION_CODE_LENGTH` characters when present);
  * - the global `forbidNonWhitelisted` posture is preserved with `.strict()`.
