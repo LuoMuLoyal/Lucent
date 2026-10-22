@@ -38,6 +38,7 @@ import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { AuthIdentityService } from './services/identity/identity.service.js';
 import { EmailVerificationService } from './services/identity/email-verification.service.js';
+import { TurnstileService } from './services/identity/turnstile.service.js';
 
 @Module({
   imports: [
@@ -80,12 +81,14 @@ import { EmailVerificationService } from './services/identity/email-verification
     GoogleOAuthProvider,
     AuthIdentityService,
     EmailVerificationService,
+    TurnstileService,
   ],
   exports: [
     AuthService,
     AuthIdentityService,
     PasswordReauthService,
     AuthSessionAdminService,
+    TurnstileService,
   ],
 })
 export class AuthModule {}

@@ -36,6 +36,11 @@ export type { SetPasswordDto } from './dto/password/set-password.dto.js';
 export { setPasswordSchema } from './dto/password/set-password.dto.js';
 export { WechatMobileOAuthProvider } from './providers/wechat/wechat-mobile-oauth.provider.js';
 export { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.provider.js';
-export { loginFailureCacheKey } from './services/identity/rate-limit.service.js';
+export {
+  CAPTCHA_THRESHOLD,
+  loginFailureCacheKey,
+} from './services/identity/rate-limit.service.js';
+export type { CaptchaDto } from './dto/shared/captcha.dto.js';
+export { captchaSchema } from './dto/shared/captcha.dto.js';
 export { PasswordReauthService } from './services/identity/password-reauth.service.js';
 export { AuthSessionAdminService } from './services/session-admin.service.js';

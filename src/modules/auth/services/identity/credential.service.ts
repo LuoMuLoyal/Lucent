@@ -22,6 +22,7 @@ import {
 } from '../token.service.js';
 import { credentialsInvalidFailure } from './credential-failure.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
+import { TurnstileService } from './turnstile.service.js';
 import { VerificationCodeService } from './verification-code.service.js';
 
 /**
@@ -44,6 +45,7 @@ export class CredentialAuthService {
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
     private readonly authIdentityService: AuthIdentityService,
+    private readonly turnstileService: TurnstileService,
   ) {}
 
   // ── Registration ─────────────────────────────────────────────
@@ -55,12 +57,18 @@ export class CredentialAuthService {
     const email = normalizeEmail(dto.email);
     const name = dto.nickname?.trim() || email.split('@')[0] || 'User';
 
+    // Human verification comes first: registration is the cheapest path to a
+    // bot account, so a request that never proved it came from a browser must
+    // not spend an Argon2 hash or a verification code.
     // Anti-enumeration: the verification code is validated before the
     // email-existence check, so probing the endpoint cannot distinguish an
     // already-registered email from a wrong code (both look identical unless
     // a valid code is supplied).
-    return this.verificationCodeService
-      .verify(email, dto.code, 'register')
+    return this.turnstileService
+      .verify(dto.captchaToken, context?.ipAddress)
+      .andThen(() =>
+        this.verificationCodeService.verify(email, dto.code, 'register'),
+      )
       .andThen(() =>
         fromPromise(
           this.authIdentityService.hashPassword(dto.password),
@@ -110,6 +118,18 @@ export class CredentialAuthService {
 
     return this.authRateLimitService
       .checkLoginRateLimit(email)
+      .andThen(() =>
+        this.authRateLimitService
+          .isCaptchaRequired(email)
+          .andThen((required) =>
+            required
+              ? this.turnstileService.verify(
+                  dto.captchaToken,
+                  context?.ipAddress,
+                )
+              : okAsync(undefined),
+          ),
+      )
       .andThen(() => this.lift(this.userService.findByEmail(email)))
       .andThen((user) => this.verifyLoginCredentials(email, dto, user))
       .andThen((user) =>

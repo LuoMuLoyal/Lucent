@@ -6,6 +6,7 @@ import { UserService } from '../../../user/index.js';
 import { VerificationCodeService } from './verification-code.service.js';
 import { AuthTokenService } from '../token.service.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
+import { TurnstileService } from './turnstile.service.js';
 import { AuthIdentityService } from './identity.service.js';
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
@@ -86,6 +87,7 @@ describe('CredentialAuthService', () => {
   let authTokenService: vi.Mocked<AuthTokenService>;
   let authRateLimitService: vi.Mocked<AuthRateLimitService>;
   let identityService: vi.Mocked<AuthIdentityService>;
+  let turnstileService: vi.Mocked<TurnstileService>;
 
   let hashPasswordMock: vi.Mock;
   let verifyPasswordForUserMock: vi.Mock;
@@ -124,6 +126,7 @@ describe('CredentialAuthService', () => {
           provide: AuthRateLimitService,
           useValue: {
             checkLoginRateLimit: vi.fn(),
+            isCaptchaRequired: vi.fn(),
             recordLoginFailure: vi.fn(),
             clearLoginFailures: vi.fn(),
             checkReauthRateLimit: vi.fn(),
@@ -143,6 +146,14 @@ describe('CredentialAuthService', () => {
             authenticateByEmail: vi.fn(),
           },
         },
+        {
+          provide: TurnstileService,
+          useValue: {
+            verify: vi.fn(),
+            enabled: false,
+            siteKey: '',
+          },
+        },
       ],
     }).compile();
 
@@ -152,6 +163,7 @@ describe('CredentialAuthService', () => {
     authTokenService = module.get(AuthTokenService);
     authRateLimitService = module.get(AuthRateLimitService);
     identityService = module.get(AuthIdentityService);
+    turnstileService = module.get(TurnstileService);
 
     // Default mock responses
     userService.findByEmail.mockResolvedValue(null);
@@ -168,6 +180,8 @@ describe('CredentialAuthService', () => {
     );
     authRateLimitService.recordLoginFailure.mockReturnValue(okAsync(undefined));
     authRateLimitService.clearLoginFailures.mockReturnValue(okAsync(undefined));
+    authRateLimitService.isCaptchaRequired.mockReturnValue(okAsync(false));
+    turnstileService.verify.mockReturnValue(okAsync(undefined));
 
     hashPasswordMock = identityService.hashPassword as unknown as vi.Mock;
     verifyPasswordForUserMock =
