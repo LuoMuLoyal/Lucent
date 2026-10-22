@@ -12457,9 +12457,8 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-            "description": "密码（8-32位，需包含大小写字母和数字）"
+            "maxLength": 128,
+            "description": "密码（至少8位，需通过强度校验）"
           },
           "code": {
             "type": "string",
@@ -12487,8 +12486,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "密码（与验证码二选一）"
           },
           "code": {
@@ -12565,8 +12563,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "新密码（8-32位，需包含大小写字母和数字）"
           }
         },
@@ -13927,8 +13924,7 @@
           "newPassword": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "新密码（8-32位，需包含大小写字母和数字）"
           }
         },
@@ -13946,8 +13942,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "新密码（8-32位，需包含大小写字母和数字）"
           }
         },
