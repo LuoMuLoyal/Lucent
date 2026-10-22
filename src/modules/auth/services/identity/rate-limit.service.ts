@@ -12,6 +12,12 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 
+/**
+ * 失败多少次后开始要求人机验证。刻意远低于 `LOGIN_RATE_LIMIT_MAX`:
+ * 验证是廉价闸门、锁号是最后手段,而正常用户很少连错三次密码。
+ */
+export const CAPTCHA_THRESHOLD = 3;
+
 const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX = 10;
 const LOGIN_RATE_LIMIT_LOCKOUT = 60 * 60 * 1000;
@@ -114,6 +120,23 @@ export class AuthRateLimitService {
 
   clearLoginFailures(email: string): ResultAsync<void, DomainFailure> {
     return this.lift(this.cacheDel(loginFailureCacheKey(email)));
+  }
+
+  /**
+   * 该邮箱在评估凭据之前是否必须先过人机验证。
+   *
+   * 读的就是限流器写的同一个失败桶,两个机制因此不会各算一套。缓存读失败返回
+   * `false`(放行):丢缓存不能把所有人锁在门外,且 10 次后的锁号仍然生效。
+   */
+  isCaptchaRequired(email: string): ResultAsync<boolean, DomainFailure> {
+    const key = loginFailureCacheKey(email);
+
+    return this.lift(this.cacheGet(key)).map((value) => {
+      const entry = value as LoginFailureBucket | undefined;
+      if (!this.isValidLoginFailureBucket(entry)) return false;
+      if (entry.resetAt <= Date.now()) return false;
+      return entry.count >= CAPTCHA_THRESHOLD;
+    });
   }
 
   /**

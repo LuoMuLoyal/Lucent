@@ -2,7 +2,10 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 
-import { AuthRateLimitService } from './rate-limit.service.js';
+import {
+  AuthRateLimitService,
+  CAPTCHA_THRESHOLD,
+} from './rate-limit.service.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type {
   DomainFailure,
@@ -312,6 +315,96 @@ describe('AuthRateLimitService', () => {
 
       await expect(
         service.clearLoginFailures('test@example.com').match(
+          (value) => value,
+          (failure) => failure,
+        ),
+      ).rejects.toBe(error);
+    });
+  });
+
+  describe('isCaptchaRequired', () => {
+    const now = Date.now();
+
+    it('should not require a challenge when there are no failures', async () => {
+      cache.get.mockResolvedValue(undefined);
+
+      const required = await service
+        .isCaptchaRequired('test@example.com')
+        .match(
+          (value) => value,
+          () => true,
+        );
+
+      expect(required).toBe(false);
+    });
+
+    it('should not require a challenge below CAPTCHA_THRESHOLD', async () => {
+      cache.get.mockResolvedValue({
+        count: CAPTCHA_THRESHOLD - 1,
+        resetAt: now + 60_000,
+      });
+
+      const required = await service
+        .isCaptchaRequired('test@example.com')
+        .match(
+          (value) => value,
+          () => true,
+        );
+
+      expect(required).toBe(false);
+    });
+
+    it('should require a challenge once the threshold is reached', async () => {
+      cache.get.mockResolvedValue({
+        count: CAPTCHA_THRESHOLD,
+        resetAt: now + 60_000,
+      });
+
+      const required = await service
+        .isCaptchaRequired('test@example.com')
+        .match(
+          (value) => value,
+          () => true,
+        );
+
+      expect(required).toBe(true);
+    });
+
+    it('should forget failures whose window has expired', async () => {
+      cache.get.mockResolvedValue({
+        count: CAPTCHA_THRESHOLD + 5,
+        resetAt: now - 1000,
+      });
+
+      const required = await service
+        .isCaptchaRequired('test@example.com')
+        .match(
+          (value) => value,
+          () => true,
+        );
+
+      expect(required).toBe(false);
+    });
+
+    it('should ignore a malformed bucket rather than demanding a challenge', async () => {
+      cache.get.mockResolvedValue({ garbage: true });
+
+      const required = await service
+        .isCaptchaRequired('test@example.com')
+        .match(
+          (value) => value,
+          () => true,
+        );
+
+      expect(required).toBe(false);
+    });
+
+    it('should fail open when the cache is unreadable', async () => {
+      const error = new Error('cache unavailable');
+      cache.get.mockRejectedValue(error);
+
+      await expect(
+        service.isCaptchaRequired('test@example.com').match(
           (value) => value,
           (failure) => failure,
         ),
