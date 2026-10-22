@@ -6,6 +6,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 import { MetricsService } from '../../../src/common/metrics/metrics.service.js';
 import { BullmqQueueFactory } from '../../../src/common/queue/queue.factory.js';
+import { QueueRuntimeRegistry } from '../../../src/common/queue/queue-runtime.registry.js';
 import {
   CRON_QUEUE_NAME,
   CronJobsService,
@@ -48,6 +49,10 @@ const SCHEDULER_IDS = [
 
 describe('startup and shutdown ordering (e2e)', () => {
   let moduleRef: TestingModule;
+  // `compile()` can reject, and `afterAll` runs even then. A separate flag keeps
+  // the cleanup from closing a module that was never built — without typing
+  // `moduleRef` as optional, which would put a guard on every later use.
+  let moduleReady = false;
   let redisUrl: string;
   // The module is compiled once in beforeAll and closed exactly once: the SSE
   // test below owns the shutdown (it closes the module to observe the
@@ -65,6 +70,11 @@ describe('startup and shutdown ordering (e2e)', () => {
       providers: [
         RedisService,
         BullmqQueueFactory,
+        // `BullmqQueueFactory` takes the registry as its third constructor
+        // argument. The registry's own `RuntimeConfigService` dependency is
+        // `@Optional()`, so an unconfigured instance is enough here: this suite
+        // pins Redis/cron readiness, not concurrency tuning.
+        QueueRuntimeRegistry,
         CronJobsService,
         SseConnectionRegistry,
         SseProblemDetailsMapper,
@@ -108,10 +118,15 @@ describe('startup and shutdown ordering (e2e)', () => {
         },
       ],
     }).compile();
+    moduleReady = true;
   });
 
   afterAll(async () => {
-    if (!moduleClosed) {
+    // `beforeAll` may have failed before `compile()` resolved (e.g. DI graph
+    // rejected by a missing provider). Guard on the flag so the real setup
+    // error surfaces instead of being masked by a secondary
+    // "Cannot read properties of undefined (reading 'close')".
+    if (moduleReady && !moduleClosed) {
       await moduleRef.close();
     }
   });

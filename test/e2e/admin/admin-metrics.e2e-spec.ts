@@ -166,7 +166,12 @@ describe('Admin metrics API (e2e)', () => {
         .set('Authorization', bearer(opsToken))
         .expect(200);
 
+      // The fixture seeds 4 core events, below `MIN_FUNNEL_GROUP_SIZE` (10), so
+      // the small-sample guard must suppress per-day detail: `daily` comes back
+      // empty and `detailsSuppressed` is true. Totals stay visible — they are
+      // the part an operator needs even when the sample is too small to slice.
       expect(response.body).toMatchObject({
+        daily: [],
         totals: {
           eventStarted: 2,
           suggestionImpression: 1,
@@ -177,19 +182,9 @@ describe('Admin metrics API (e2e)', () => {
         window: {
           dateFrom: WINDOW_DATE,
           dateTo: WINDOW_DATE,
-          detailsSuppressed: false,
+          detailsSuppressed: true,
         },
       });
-      expect(response.body.daily).toEqual([
-        {
-          date: WINDOW_DATE,
-          eventStarted: 2,
-          suggestionImpression: 1,
-          suggestionActioned: 0,
-          eventEndedOrOutcome: 0,
-          reviewOpened: 1,
-        },
-      ]);
       // Counts only: no user identity, health content or rule codes.
       const json = JSON.stringify(response.body);
       expect(json).not.toContain('userId');

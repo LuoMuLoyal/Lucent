@@ -202,14 +202,22 @@ describe('Admin data API (e2e)', () => {
     it('records an audit entry for a write', async () => {
       const key = `audit-${randomUUID()}`;
 
-      await request(app.getHttpServer())
+      const created = await request(app.getHttpServer())
         .post(`${DATA_PATH}/user-settings`)
         .set('Authorization', bearer(superToken))
         .send({ userId: settingsUser.id, key, value: 1 })
         .expect(201);
 
+      // Scope the lookup to the row just created: `resourceId` is the only
+      // stable handle in the audit entry (metadata carries field names, never
+      // values), and an unscoped `findFirst` would match entries written by
+      // earlier runs or by the sibling CRUD test.
       const audit = await ctx.prisma.auditLog.findFirst({
-        where: { action: 'admin.data.create', resourceType: 'user-settings' },
+        where: {
+          action: 'admin.data.create',
+          resourceType: 'user-settings',
+          resourceId: created.body.id as string,
+        },
       });
       expect(audit?.userId).toBe(superAdmin.id);
     });
