@@ -274,5 +274,13 @@ export async function setupApp(
     // after a successful preflight — the classic "DELETE returns 204 in
     // OPTIONS but never arrives" symptom.
     methods: 'GET,HEAD,POST,PATCH,PUT,DELETE,OPTIONS',
+    // HttpOnly session cookies (see `common/api/session-cookie.ts`) must be
+    // sent on cross-origin requests from Lumine's web and desktop hosts. The
+    // browser only forwards them when the server answers the preflight with
+    // `Access-Control-Allow-Credentials: true`, so WILDCARD ORIGIN IS NOT
+    // ACCEPTABLE here — `corsOrigin` must list explicit origins (or `true`,
+    // which reflects the request origin). `CORS_ORIGIN=*` combined with
+    // credentials is rejected by browsers by design.
+    credentials: true,
   });
 }

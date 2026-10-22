@@ -3568,6 +3568,222 @@
         "tags": ["Auth"]
       }
     },
+    "/api/v1/auth/session/register": {
+      "post": {
+        "operationId": "registerSession",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered user. Tokens are set as HttpOnly cookies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Register (httpOnly cookie session)",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/session/login": {
+      "post": {
+        "operationId": "loginSession",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user. Tokens are set as HttpOnly cookies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Login verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong credentials (unified code; account state is not revealed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Login (httpOnly cookie session)",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/session/refresh": {
+      "post": {
+        "operationId": "refreshCookieSession",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Rotated session; new tokens are set as HttpOnly cookies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token missing, invalid, expired or already consumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rotate the cookie session",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/session/logout": {
+      "post": {
+        "operationId": "logoutSession",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Logged out; cookies cleared."
+          },
+          "401": {
+            "description": "Access token invalid or expired (sent as a cookie)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Logout (clears the cookie session)",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The authenticated user."
+          },
+          "401": {
+            "description": "Access token invalid or expired (sent as a cookie)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Current user (cookie session)",
+        "tags": ["Auth"]
+      }
+    },
     "/api/v1/user/notifications": {
       "post": {
         "operationId": "createNotification",
@@ -8597,6 +8813,21 @@
         "required": ["accessToken", "refreshToken", "expiresIn"],
         "additionalProperties": false
       },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionResponseUser"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "访问令牌过期时间（秒）",
+            "example": 900
+          }
+        },
+        "required": ["user", "expiresIn"],
+        "additionalProperties": false
+      },
       "LegalDocumentListResponse": {
         "type": "object",
         "properties": {
@@ -12764,6 +12995,71 @@
         "required": ["refreshToken"],
         "additionalProperties": false
       },
+      "RegisterSessionRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "密码（至少8位，需通过强度校验）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "邮箱验证码"
+          },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "昵称"
+          }
+        },
+        "required": ["email", "password", "code"],
+        "additionalProperties": false
+      },
+      "LoginSessionRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "密码（与验证码二选一）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[0-9]{4,8}$",
+            "description": "邮箱验证码（与密码二选一）"
+          },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
       "CreateNotificationRequest": {
         "type": "object",
         "properties": {
@@ -14359,6 +14655,57 @@
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
+        "additionalProperties": false
+      },
+      "SessionResponseUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "用户 ID"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱地址"
+          },
+          "nickname": {
+            "nullable": true,
+            "description": "昵称",
+            "type": "string"
+          },
+          "avatar": {
+            "nullable": true,
+            "description": "头像 URL",
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "邮箱是否已验证"
+          },
+          "emailVerifiedAt": {
+            "nullable": true,
+            "description": "邮箱验证时间 (ISO 8601)",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "创建时间 (ISO 8601)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "更新时间 (ISO 8601)"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "avatar",
+          "emailVerified",
+          "emailVerifiedAt",
+          "createdAt",
+          "updatedAt"
+        ],
         "additionalProperties": false
       },
       "LegalDocumentListResponseItems": {

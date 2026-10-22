@@ -10,7 +10,12 @@ import {
   SerializeOptions,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import {
@@ -242,6 +247,7 @@ export class CookieController {
   // ── POST /api/v1/auth/session/logout ────────────────────────
 
   @Post('session/logout')
+  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Logout (clears the cookie session)' })
   @ApiResponse({ status: 204, description: 'Logged out; cookies cleared.' })
@@ -282,6 +288,7 @@ export class CookieController {
   // ── GET /api/v1/auth/me ─────────────────────────────────────
 
   @Get('me')
+  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Current user (cookie session)' })
   @ApiResponse({ status: 200, description: 'The authenticated user.' })
