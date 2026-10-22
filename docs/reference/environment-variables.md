@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-19
+updated: 2026-10-22
 ---
 
 # Environment Variables
@@ -124,6 +124,22 @@ tag 形如 `sha-<短sha>`,指向 multi-arch manifest,故不含架构、跨机器
 
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
 traffic. If you do expose browser clients from another origin, set it explicitly.
+
+**Cookie sessions require explicit origins.** The CORS layer answers with
+`Access-Control-Allow-Credentials: true` so that httpOnly session cookies
+(`lucent_session` / `lucent_refresh`, set by `/auth/session/*`) are sent on
+cross-origin requests. Browsers reject credentialed responses from a wildcard
+origin, so when a cookie-session client is involved `CORS_ORIGIN` must list
+concrete origins — the web host plus the desktop dev origin:
+
+```
+CORS_ORIGIN=https://devluo.com,http://localhost:1420
+```
+
+Leaving it empty (or unset) while a browser client exists produces requests
+that never reach the server: the preflight fails and **nothing appears in the
+Lucent logs**, because the request was never sent. That is the single most
+time-consuming failure mode to diagnose here.
 
 JWT and admin secrets are required in every runtime now; keep them in the env
 files, not in code defaults. The checked-in dev/test templates already provide
