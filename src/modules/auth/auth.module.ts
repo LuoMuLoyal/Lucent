@@ -18,6 +18,7 @@ import { AuthService } from './services/auth.service.js';
 import { LocalController } from './controllers/local.controller.js';
 import { OAuthController } from './controllers/oauth.controller.js';
 import { SessionController } from './controllers/session.controller.js';
+import { CookieController } from './controllers/cookie.controller.js';
 import { AuthRateLimitService } from './services/identity/rate-limit.service.js';
 import { PasswordReauthService } from './services/identity/password-reauth.service.js';
 import { AuthTokenService } from './services/token.service.js';
@@ -36,6 +37,7 @@ import { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
 import { GoogleOAuthProvider } from './providers/google-oauth.provider.js';
 import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
+import { AccessTokenReader } from './strategies/access-token.js';
 import { AuthIdentityService } from './services/identity/identity.service.js';
 import { EmailVerificationService } from './services/identity/email-verification.service.js';
 import { TurnstileService } from './services/identity/turnstile.service.js';
@@ -48,7 +50,12 @@ import { TurnstileService } from './services/identity/turnstile.service.js';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}), // actual secret is configured per-sign in AuthService
   ],
-  controllers: [LocalController, OAuthController, SessionController],
+  controllers: [
+    LocalController,
+    OAuthController,
+    SessionController,
+    CookieController,
+  ],
   providers: [
     AuthSessionRepository,
     {
@@ -73,6 +80,7 @@ import { TurnstileService } from './services/identity/turnstile.service.js';
     CredentialAuthService,
     PasswordManagementService,
     JwtAccessStrategy,
+    AccessTokenReader,
     VerificationCodeService,
     WechatMobileOAuthProvider,
     WechatWebOAuthProvider,

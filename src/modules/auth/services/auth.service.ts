@@ -5,6 +5,8 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../common/result/index.js';
+import { createDomainFailure } from '../../../common/result/index.js';
+import { DomainFailureException } from '../../../common/result/unwrap-result.js';
 import type { DeleteAccountDto } from '../dto/shared/delete-account.dto.js';
 import type { ChangeEmailDto } from '../dto/password/change-email.dto.js';
 import type { ChangePasswordDto } from '../dto/password/change-password.dto.js';
@@ -133,6 +135,24 @@ export class AuthService {
     context?: AuthRequestContext,
   ): ResultAsync<TokenPair, DomainFailure> {
     return this.authTokenService.refresh(refreshToken, context);
+  }
+
+  /**
+   * The `AUTH_REFRESH_TOKEN_INVALID` transport failure, for callers that must
+   * reject a session **without** going through a token rotation (e.g. the
+   * cookie session endpoint when the refresh cookie is missing).
+   *
+   * Exposing this instead of letting controllers build their own failure keeps
+   * the Bearer and cookie paths on one error vocabulary: same `code`, same 401,
+   * so clients branch on a single value.
+   */
+  refreshTokenInvalidException(): DomainFailureException {
+    return new DomainFailureException(
+      createDomainFailure({
+        kind: 'authentication',
+        code: 'AUTH_REFRESH_TOKEN_INVALID',
+      }),
+    );
   }
 
   logout(
