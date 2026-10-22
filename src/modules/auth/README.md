@@ -54,7 +54,10 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
   (=`apple`/`google`)在此定义,是"受信提供商可自动关联账号"的唯一来源;
   `AuthOAuthService` 也引用它来拒绝这些提供商的显式链接。
 - `services/identity/password-reauth.service.ts` — 敏感操作前密码重验(非 token)。
-- `services/identity/rate-limit.service.ts` — 登录失败限流(基于 Redis)。
+- `services/identity/rate-limit.service.ts` — 登录失败限流(基于 Redis);`isCaptchaRequired`
+  读同一失败桶,达到 `CAPTCHA_THRESHOLD` 后要求人机验证.
+- `services/identity/turnstile.service.ts` — Cloudflare Turnstile 校验。无凭据即关闭
+  (本地与 e2e 默认);云侧不可达时放行(fail open),明确拒绝时返回 `AUTH_CAPTCHA_INVALID`。
 - `services/identity/verification-code.service.ts` — 邮箱验证码生成与校验。
 - `services/identity/password-management.service.ts` — 改/设/重置密码、改邮箱、
   验证码下发;消费 `AuthIdentityService`、`EmailVerificationService`、
@@ -94,10 +97,16 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
   拒绝口令短语。
 - 密码**重验**端点(删号、数据导出)不受强度规则约束,只校验非空:那里比对的是
   已存密码,不是新设密码。
+- **人机验证是按需施加的,不是常开的**:注册每次都验证;登录只在同一邮箱失败
+  `CAPTCHA_THRESHOLD`(3)次后验证,正常用户不会遇到。开关由 `TURNSTILE_*` 是否
+  同时配置决定,缺一即视为关闭——生产未配置不会把用户锁在门外,但也没有任何防护。
+  校验放在凭据比对**之前**:不能让一个未证明来源的请求消耗 Argon2 与验证码配额。
+  Cloudflare 不可达时放行并 `warn`:验证服务故障不能升级成登录故障。
 
 ## 测试承接
 
 `services/**/*.spec.ts`、`providers/**/*.spec.ts`、
 `repositories/*.spec.ts`、`guards/jwt-auth.guard.spec.ts`、
 `strategies/jwt-access.strategy.spec.ts`、`decorators/*.spec.ts`;
-密码强度评分见 `src/common/validators/password-strength.spec.ts`
+密码强度评分见 `src/common/validators/password-strength.spec.ts`;`turnstile.service.spec.ts` 覆盖关闭/放行/拒绝/故障四种分支,
+`rate-limit.service.spec.ts` 覆盖 `isCaptchaRequired` 阈值与窗口过期

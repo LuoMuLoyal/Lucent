@@ -162,6 +162,23 @@ at startup but does not block application launch. QQ and Google each use
 the standard OAuth 2.0 authorization-code flow; WeChat additionally supports a
 mobile SDK path.
 
+Cloudflare Turnstile (human verification on register / login / verification-code
+requests):
+
+```text
+TURNSTILE_SECRET_KEY
+TURNSTILE_SITE_KEY
+```
+
+Both are optional, and the feature is off unless **both** are set — an empty
+secret makes the guard treat every request as human, which is the local-dev and
+e2e default. TURNSTILE_SECRET_KEY is server-only; TURNSTILE_SITE_KEY is public
+by design and is served to clients through GET /api/v1/auth/captcha, so
+clients never hardcode it. Verification queries
+https://challenges.cloudflare.com/turnstile/v0/siteverify; a network failure
+there fails **open** (logged, request allowed) so a Cloudflare outage cannot lock
+users out of sign-in.
+
 JPush notification delivery:
 
 ```text
