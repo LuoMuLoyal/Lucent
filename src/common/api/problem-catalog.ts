@@ -71,6 +71,18 @@ const definitions = {
     detailKey: 'common.problem_auth_verification_code_cooldown_detail',
     retryable: true,
   },
+  AUTH_CAPTCHA_REQUIRED: {
+    status: 403,
+    titleKey: 'common.problem_auth_captcha_required_title',
+    detailKey: 'common.problem_auth_captcha_required_detail',
+    retryable: true,
+  },
+  AUTH_CAPTCHA_INVALID: {
+    status: 403,
+    titleKey: 'common.problem_auth_captcha_invalid_title',
+    detailKey: 'common.problem_auth_captcha_invalid_detail',
+    retryable: true,
+  },
   AUTH_OAUTH_STATE_INVALID: {
     status: 400,
     titleKey: 'common.problem_auth_oauth_state_invalid_title',

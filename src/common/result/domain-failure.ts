@@ -64,6 +64,8 @@ const DOMAIN_FAILURE_KIND_BY_CODE: Record<
   AUTH_VERIFICATION_CODE_MISMATCH: 'authentication',
   AUTH_VERIFICATION_CODE_COOLDOWN: 'rate_limited',
   AUTH_VERIFICATION_CODE_RATE_LIMITED: 'rate_limited',
+  AUTH_CAPTCHA_REQUIRED: 'authorization',
+  AUTH_CAPTCHA_INVALID: 'authorization',
   AUTH_OAUTH_STATE_INVALID: 'authentication',
   AUTH_OAUTH_FAILED: 'authentication',
   AUTH_SESSION_NOT_FOUND: 'authentication',
