@@ -28,7 +28,9 @@ on:
     # 每周六 01:30 UTC
     - cron: '30 1 * * 6'
   push:
-    branches: [main, develop]
+    # 只限默认分支：scorecard-action 不接受非默认分支，在 develop 上运行会以
+    # `validating options: only default branch is supported` 直接失败。
+    branches: [main]
 
 permissions: read-all
 
