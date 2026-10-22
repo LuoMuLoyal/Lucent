@@ -13,7 +13,7 @@ import type {
 } from '../../helpers/e2e-helpers.js';
 
 const EXPORT_PATH = '/api/v1/user/data-export-requests';
-const TEST_PASSWORD = 'Test@123456';
+const TEST_PASSWORD = 'LucentE2e!2345';
 
 describe('Data Export API (e2e)', () => {
   let ctx: E2eTestContext;

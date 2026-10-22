@@ -19,7 +19,7 @@ const REFRESH_PATH = '/api/v1/auth/refresh';
 const REGISTER_PATH = '/api/v1/auth/register';
 const SEND_CODE_PATH = '/api/v1/auth/send-verification-code';
 
-const TEST_PASSWORD = 'Test@123456';
+const TEST_PASSWORD = 'LucentE2e!2345';
 
 interface SessionDto {
   id: string;

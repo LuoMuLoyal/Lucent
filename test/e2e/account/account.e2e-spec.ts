@@ -32,7 +32,7 @@ const SEND_VERIFICATION_CODE_PATH = '/api/v1/auth/send-verification-code';
 const LOGIN_PATH = '/api/v1/auth/login';
 
 const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
-const TEST_PASSWORD = 'Test@123456';
+const TEST_PASSWORD = 'LucentE2e!2345';
 
 interface AccountDto {
   id: string;

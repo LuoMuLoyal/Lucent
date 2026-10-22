@@ -81,7 +81,7 @@ const AUTH_SCENE = {
 type AuthScene = (typeof AUTH_SCENE)[keyof typeof AUTH_SCENE];
 
 const TEST_EMAIL_DOMAIN = 'example.com';
-const TEST_PASSWORD = 'Test@123456';
+const TEST_PASSWORD = 'LucentE2e!2345';
 const WRONG_LOGIN_PASSWORD = 'WrongPassword123!';
 const WRONG_OLD_PASSWORD = 'WrongOldPass1!';
 const WRONG_DELETE_PASSWORD = 'WrongPassword!';

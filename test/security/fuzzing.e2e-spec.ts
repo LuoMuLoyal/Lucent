@@ -73,7 +73,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           email: "'; DROP TABLE users; --",
-          password: 'Test@123456',
+          password: 'LucentE2e!2345',
           nickname: 'SQLInjector',
         })
         .expect(400);
@@ -86,7 +86,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           email: { $gt: '' },
-          password: 'Test@123456',
+          password: 'LucentE2e!2345',
         })
         .expect(400);
 
@@ -99,7 +99,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           email: 'test@example.com',
-          password: 'Test@123456',
+          password: 'LucentE2e!2345',
           nickname: hugeString,
         })
         .expect(400);
@@ -112,7 +112,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           email: 'test\u0000admin@example.com',
-          password: 'Test@123456',
+          password: 'LucentE2e!2345',
         })
         .expect(400);
 
@@ -124,7 +124,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({
           email: 'traversal@example.com',
-          password: 'Test@123456',
+          password: 'LucentE2e!2345',
           nickname: '../../../etc/passwd',
         });
 
@@ -162,7 +162,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .post('/api/v1/auth/login')
         .send({
           email: 'nonexistent_user_xyz@example.com',
-          password: 'Test@123456',
+          password: 'LucentE2e!2345',
         })
         .expect(401);
 

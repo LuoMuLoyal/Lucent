@@ -134,7 +134,7 @@ export async function createTestUser(
   prisma: PrismaService,
   email?: string,
   nickname?: string,
-  password = 'Test@123456',
+  password = 'LucentE2e!2345',
 ): Promise<TestUser> {
   const userEmail = email ?? uniqueEmail();
   const user = await prisma.user.create({
@@ -169,7 +169,7 @@ export async function createTestUser(
 export async function registerTestUser(
   ctx: E2eTestContext,
   email?: string,
-  password = 'Test@123456',
+  password = 'LucentE2e!2345',
   nickname = 'RegisteredUser',
 ): Promise<RegisteredTestUser> {
   const userEmail = email ?? uniqueEmail('registered');

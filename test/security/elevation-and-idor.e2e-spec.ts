@@ -24,7 +24,7 @@ import type {
  * 2. IDOR for medicine dose logs — cross-user isolation.
  * 3. Mass assignment — extra fields in PATCH body are ignored.
  */
-const ALICE_PASSWORD = 'Test@123456';
+const ALICE_PASSWORD = 'LucentE2e!2345';
 
 describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
   let ctx: E2eTestContext;
