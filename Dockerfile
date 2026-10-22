@@ -2,11 +2,11 @@
 
 # ── Stage 1: deps ──────────────────────────────────────────────
 FROM node:26.11-alpine AS deps
-# Node 26 no longer bundles corepack (the `corepack` API doc was dropped after
-# v25), so a bare `corepack enable` exits 127 with "not found". Install it from
-# npm first. The pnpm version itself still comes from
-# package.json#packageManager, same as CI's pnpm/action-setup.
-RUN npm install --global corepack@latest && corepack enable
+# 直接装 pnpm，不经 corepack。corepack 会在每条 `pnpm ...` 时临时去 registry
+# 下载 pnpm 二进制，arm64 走 @pnpm/exe.linux-arm64-musl，30 秒超时就整个 build
+# 失败（`Could not download the pnpm 12.0.0 binary: timed out after 30s`）。
+# 显式安装走 npm 自身的重试与缓存，且只装一次。版本与 package.json#packageManager 一致。
+RUN npm install --global pnpm@12.0.0
 WORKDIR /app
 # pnpm-workspace.yaml 携带 overrides（stack-trace 固定版本）等工作区配置；
 # 缺失会导致 pnpm install --frozen-lockfile 报 ERR_PNPM_LOCKFILE_CONFIG_MISMATCH。
@@ -16,8 +16,8 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 
 # ── Stage 2: builder ───────────────────────────────────────────
 FROM node:26.11-alpine AS builder
-# See the deps stage: corepack is not bundled with Node 26.
-RUN npm install --global corepack@latest && corepack enable
+# See the deps stage: pnpm is installed directly rather than through corepack.
+RUN npm install --global pnpm@12.0.0
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -71,8 +71,8 @@ RUN set -eux; \
 # /app/admin/dist, which is the default ADMIN_CONSOLE_DIR resolved by
 # src/admin-console/setup.ts.
 FROM node:26.11-alpine AS admin-console
-# See the deps stage: corepack is not bundled with Node 26.
-RUN npm install --global corepack@latest && corepack enable
+# See the deps stage: pnpm is installed directly rather than through corepack.
+RUN npm install --global pnpm@12.0.0
 WORKDIR /app/admin
 COPY admin/package.json admin/pnpm-lock.yaml admin/pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-admin,target=/root/.local/share/pnpm/store \
