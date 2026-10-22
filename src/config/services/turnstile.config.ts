@@ -8,7 +8,7 @@ import { EnvKey } from '../env/env-keys.enum.js';
  *
  * `secretKey` stays server-side and is never exposed to clients; `siteKey` is
  * public by design (the widget needs it) and is served through the
- * `GET /auth/captcha-config` endpoint so a client never hardcodes it.
+ * `GET /auth/captcha` endpoint so a client never hardcodes it.
  *
  * An empty `secretKey` means verification is disabled — the guard treats every
  * request as human. That is the local-dev and e2e default; production sets it.
