@@ -87,9 +87,17 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
   userId(`auth:reauth-failure:*`)分桶,缓存故障保留原始异常。
 - `JwtAccessStrategy` 拒绝 `status !== 'active'` 的 token,用户被停用后旧
   access token 立即失效。
+- **强度规则作用于所有密码字段,登录也不例外**:注册/改密/重置/登录统一用
+  `strongPasswordSchema`(长度 + zxcvbn 评分,见
+  `src/common/validators/password-strength.ts`)。存量弱密码不做兼容,不再能登录,
+  需走「忘记密码」重设。字符类正则(大小写数字)已废弃:它放过 `Password1`、
+  拒绝口令短语。
+- 密码**重验**端点(删号、数据导出)不受强度规则约束,只校验非空:那里比对的是
+  已存密码,不是新设密码。
 
 ## 测试承接
 
 `services/**/*.spec.ts`、`providers/**/*.spec.ts`、
 `repositories/*.spec.ts`、`guards/jwt-auth.guard.spec.ts`、
-`strategies/jwt-access.strategy.spec.ts`、`decorators/*.spec.ts`
+`strategies/jwt-access.strategy.spec.ts`、`decorators/*.spec.ts`;
+密码强度评分见 `src/common/validators/password-strength.spec.ts`
