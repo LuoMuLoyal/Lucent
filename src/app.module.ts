@@ -12,6 +12,7 @@ import { appConfig } from './config/app.config.js';
 import { llmConfig } from './config/services/llm.config.js';
 import { jwtConfig } from './config/services/jwt.config.js';
 import { oauthConfig } from './config/services/oauth.config.js';
+import { turnstileConfig } from './config/services/turnstile.config.js';
 import { tencentCosConfig } from './config/services/tencent-cos.config.js';
 import { s3StorageConfig } from './config/services/s3-storage.config.js';
 import { aliyunOssConfig } from './config/services/aliyun-oss.config.js';
@@ -97,6 +98,7 @@ const isTestRuntime =
         llmConfig,
         jwtConfig,
         oauthConfig,
+        turnstileConfig,
         tencentCosConfig,
         s3StorageConfig,
         aliyunOssConfig,

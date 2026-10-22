@@ -287,6 +287,13 @@ const envSchema = z.object({
   [EnvKey.GOOGLE_CLIENT_SECRET]: optionalString,
   [EnvKey.GOOGLE_REDIRECT_URI]: optionalUri,
 
+  // ── Cloudflare Turnstile (human verification) ───────────────────
+  // Empty = challenge disabled and every request passes. That default keeps
+  // local dev and the e2e suite runnable without Cloudflare credentials;
+  // production is expected to set both keys.
+  [EnvKey.TURNSTILE_SECRET_KEY]: optionalString,
+  [EnvKey.TURNSTILE_SITE_KEY]: optionalString,
+
   // ── Tencent COS (secrets in .env; region/expiry non-sensitive defaults) ──
   [EnvKey.TENCENT_COS_SECRET_ID]: optionalString,
   [EnvKey.TENCENT_COS_SECRET_KEY]: optionalString,
