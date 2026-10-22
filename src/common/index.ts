@@ -19,6 +19,16 @@ export type {
 export { registerResponseSchema } from './api/response-schema.registry.js';
 export { resolveHttpsHeaderPolicy } from './api/security-headers.js';
 export type { HttpsOnlyHeaderPolicy } from './api/security-headers.js';
+export {
+  buildExpiredSessionCookie,
+  buildSessionCookie,
+  readCookie,
+  REFRESH_COOKIE_NAME,
+  resolveSessionCookiePolicy,
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_PATH,
+} from './api/session-cookie.js';
+export type { SessionCookiePolicy } from './api/session-cookie.js';
 export type { ResponseSchemaRegistration } from './api/response-schema.registry.js';
 export { SseProblemDetailsMapper } from './api/sse/sse-problem-details.js';
 export type { SseProblemDetailsOptions } from './api/sse/sse-problem-details.js';
