@@ -96,14 +96,12 @@ describe('TurnstileService', () => {
   });
 
   it('rejects AUTH_CAPTCHA_INVALID when Cloudflare says the token is bad', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({
-          success: false,
-          'error-codes': ['invalid-input-response'],
-        }),
-      );
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        success: false,
+        'error-codes': ['invalid-input-response'],
+      }),
+    );
     const service = makeService(enabledConfig, fetchImpl as never);
 
     const result = await service.verify('bad-token');
