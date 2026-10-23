@@ -1,10 +1,8 @@
 import {
-  buildSessionCookie,
   isReadMethod,
   isSafeCookieValue,
   pathnameOf,
   readBearerToken,
-  readCookie,
   readQueryString,
   resolveQueueMutation,
   stripQueryParam,
@@ -39,19 +37,6 @@ describe('queue panel request utils', () => {
     });
   });
 
-  describe('readCookie', () => {
-    it('picks one cookie out of the header', () => {
-      const header = 'theme=dark; lucent_admin_queues=a.b.c; locale=zh';
-      expect(readCookie(header, 'lucent_admin_queues')).toBe('a.b.c');
-    });
-
-    it('returns null when absent or empty', () => {
-      expect(readCookie(undefined, 'x')).toBeNull();
-      expect(readCookie('theme=dark', 'x')).toBeNull();
-      expect(readCookie('x=; theme=dark', 'x')).toBeNull();
-    });
-  });
-
   describe('readQueryString', () => {
     it('reads a string parameter', () => {
       expect(readQueryString({ access_token: 'abc' }, 'access_token')).toBe(
@@ -76,33 +61,6 @@ describe('queue panel request utils', () => {
       expect(isSafeCookieValue('')).toBe(false);
       expect(isSafeCookieValue('a;b')).toBe(false);
       expect(isSafeCookieValue('a b')).toBe(false);
-    });
-  });
-
-  describe('buildSessionCookie', () => {
-    it('scopes the cookie to the panel with Lax + HttpOnly', () => {
-      const cookie = buildSessionCookie({
-        name: 'lucent_admin_queues',
-        value: 'tok',
-        path: '/admin/queues',
-        maxAgeSeconds: 900,
-        secure: false,
-      });
-      expect(cookie).toBe(
-        'lucent_admin_queues=tok; Path=/admin/queues; HttpOnly; SameSite=Lax; Max-Age=900',
-      );
-    });
-
-    it('adds Secure over https and floors the max age', () => {
-      const cookie = buildSessionCookie({
-        name: 'c',
-        value: 't',
-        path: '/p',
-        maxAgeSeconds: -5,
-        secure: true,
-      });
-      expect(cookie).toContain('Secure');
-      expect(cookie).toContain('Max-Age=0');
     });
   });
 

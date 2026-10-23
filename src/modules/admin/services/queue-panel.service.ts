@@ -24,12 +24,10 @@ import {
   type QueuePanelPrincipal,
 } from './queue-panel-auth.service.js';
 import {
-  buildSessionCookie,
   isReadMethod,
   isSafeCookieValue,
   pathnameOf,
   readBearerToken,
-  readCookie,
   readQueryString,
   resolveQueueMutation,
   stripQueryParam,
@@ -150,7 +148,7 @@ export class QueuePanelService implements OnApplicationBootstrap {
 
     const token =
       readBearerToken(request.headers.authorization) ??
-      readCookie(request.headers.cookie, QUEUE_PANEL_COOKIE_NAME);
+      request.cookies[QUEUE_PANEL_COOKIE_NAME] ?? null;
     const result =
       token === null
         ? ({ status: 'unauthorized' } as const)
@@ -191,16 +189,15 @@ export class QueuePanelService implements OnApplicationBootstrap {
       return false;
     }
 
-    reply.header(
-      'set-cookie',
-      buildSessionCookie({
-        name: QUEUE_PANEL_COOKIE_NAME,
-        value: queryToken,
-        path: QUEUE_PANEL_PATH,
-        maxAgeSeconds: this.cookieMaxAgeSeconds(result.principal),
-        secure: request.protocol === 'https',
-      }),
-    );
+    reply.setCookie(QUEUE_PANEL_COOKIE_NAME, queryToken, {
+      path: QUEUE_PANEL_PATH,
+      maxAge: this.cookieMaxAgeSeconds(result.principal),
+      secure: request.protocol === 'https',
+      httpOnly: true,
+      // Lax：跨站 POST 从不携带它，于是 cookie 鉴权的变更接口天然免疫 CSRF，
+      // 不需要额外的 token 头。
+      sameSite: 'lax',
+    });
     return true;
   }
 

@@ -55,27 +55,6 @@ export function readBearerToken(header: string | undefined): string | null {
   return match?.[1]?.trim() || null;
 }
 
-/** Reads one cookie value from a raw `Cookie` header. */
-export function readCookie(
-  cookieHeader: string | undefined,
-  name: string,
-): string | null {
-  if (cookieHeader === undefined) {
-    return null;
-  }
-  for (const part of cookieHeader.split(';')) {
-    const separator = part.indexOf('=');
-    if (separator === -1) {
-      continue;
-    }
-    if (part.slice(0, separator).trim() === name) {
-      const value = part.slice(separator + 1).trim();
-      return value.length > 0 ? value : null;
-    }
-  }
-  return null;
-}
-
 /** Reads a single string-valued query parameter from a Fastify query object. */
 export function readQueryString(
   query: unknown,
@@ -93,30 +72,6 @@ export function isSafeCookieValue(value: string): boolean {
   return value.length > 0 && !UNSAFE_COOKIE_VALUE.test(value);
 }
 
-/**
- * Builds the panel session cookie. `HttpOnly` keeps the JWT out of reach of
- * the page's scripts; `SameSite=Lax` means cross-site POSTs never carry it, so
- * the cookie-authenticated mutations stay CSRF-safe without a token header.
- */
-export function buildSessionCookie(options: {
-  name: string;
-  value: string;
-  path: string;
-  maxAgeSeconds: number;
-  secure: boolean;
-}): string {
-  const parts = [
-    `${options.name}=${options.value}`,
-    `Path=${options.path}`,
-    'HttpOnly',
-    'SameSite=Lax',
-    `Max-Age=${String(Math.max(0, Math.floor(options.maxAgeSeconds)))}`,
-  ];
-  if (options.secure) {
-    parts.push('Secure');
-  }
-  return parts.join('; ');
-}
 
 /** Removes one query parameter from a request URL, preserving the rest. */
 export function stripQueryParam(url: string, name: string): string {

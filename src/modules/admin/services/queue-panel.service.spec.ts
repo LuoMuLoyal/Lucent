@@ -1,6 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import Fastify, { type FastifyInstance } from 'fastify';
+import fastifyCookie from '@fastify/cookie';
 import type { HttpAdapterHost } from '@nestjs/core';
 import { AdminRole } from '#generated/prisma/client.js';
 import type { Mock } from 'vitest';
@@ -46,6 +47,9 @@ async function createPanel(
   roles: Record<string, AdminRole>,
 ): Promise<PanelHarness> {
   const app = Fastify({ logger: false });
+  // 生产里 cookie 支持由 setup-app.ts 注册。这个夹具自建的是独立 Fastify
+  // 实例，没有插件时 `request.cookies` / `reply.setCookie` 都不存在，会 500。
+  await app.register(fastifyCookie);
   const logFireAndForget = vi.fn();
 
   const auth = new QueuePanelAuthService(

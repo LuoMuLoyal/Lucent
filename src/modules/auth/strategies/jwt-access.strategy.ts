@@ -6,7 +6,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { FastifyRequest } from 'fastify';
 
 import { ConfigKey } from '../../../config/env/config-keys.enum.js';
-import { readCookie, SESSION_COOKIE_NAME } from '../../../common/index.js';
+import { SESSION_COOKIE_NAME } from '../../../common/index.js';
 import { createDomainFailure } from '../../../common/result/index.js';
 import { DomainFailureException } from '../../../common/result/unwrap-result.js';
 import { UserPayload } from '../services/auth.service.js';
@@ -36,7 +36,7 @@ function extractAccessToken(request: FastifyRequest): string | null {
   const header = ExtractJwt.fromAuthHeaderAsBearerToken()(request);
   if (header) return header;
 
-  return readCookie(request.headers.cookie, SESSION_COOKIE_NAME) ?? null;
+  return request.cookies[SESSION_COOKIE_NAME] ?? null;
 }
 
 /**

@@ -19,15 +19,13 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import {
-  buildExpiredSessionCookie,
-  buildSessionCookie,
   calculateExpiresIn,
   extractAuthRequestContext,
   ProblemDetailsDto,
-  readCookie,
   REFRESH_COOKIE_NAME,
   resolveSessionCookiePolicy,
   SESSION_COOKIE_NAME,
+  sessionCookieOptions,
 } from '../../../common/index.js';
 import { ConfigKey } from '../../../config/env/config-keys.enum.js';
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
@@ -210,10 +208,7 @@ export class CookieController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SessionResponseDto> {
-    const refreshToken = readCookie(
-      request.headers.cookie,
-      REFRESH_COOKIE_NAME,
-    );
+    const refreshToken = request.cookies[REFRESH_COOKIE_NAME];
 
     if (refreshToken === undefined) {
       // 缺失与无效对外一致：都是 401。这里不必查库。
@@ -261,10 +256,7 @@ export class CookieController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
-    const refreshToken = readCookie(
-      request.headers.cookie,
-      REFRESH_COOKIE_NAME,
-    );
+    const refreshToken = request.cookies[REFRESH_COOKIE_NAME];
 
     try {
       if (refreshToken !== undefined) {
@@ -309,10 +301,10 @@ export class CookieController {
   // ── 私有：cookie 投放 / 清理 / 错误 ─────────────────────────
 
   /**
-   * 把 token 对写进 `Set-Cookie`。
+   * 把 token 对写进两个 cookie。
    *
-   * 两个 cookie 的 `Max-Age` 分别取各自 TTL：access 短、refresh 长。
-   * 响应体的 `expiresIn` 就是 access 的剩余秒数，前端据此安排静默刷新。
+   * `maxAge` 分别取各自 TTL：access 短、refresh 长。响应体的 `expiresIn`
+   * 就是 access 的剩余秒数，前端据此安排静默刷新。
    */
   private issueSessionCookies(
     reply: FastifyReply,
@@ -323,32 +315,29 @@ export class CookieController {
       refreshTokenExpiresAt: string;
     },
   ): void {
-    const policy = this.cookiePolicy();
+    const options = sessionCookieOptions(this.cookiePolicy());
 
-    reply.header('Set-Cookie', [
-      buildSessionCookie(
-        SESSION_COOKIE_NAME,
-        tokens.accessToken,
-        calculateExpiresIn(tokens.accessTokenExpiresAt),
-        policy,
-      ),
-      buildSessionCookie(
-        REFRESH_COOKIE_NAME,
-        tokens.refreshToken,
-        calculateExpiresIn(tokens.refreshTokenExpiresAt),
-        policy,
-      ),
-    ]);
+    reply.setCookie(SESSION_COOKIE_NAME, tokens.accessToken, {
+      ...options,
+      maxAge: calculateExpiresIn(tokens.accessTokenExpiresAt),
+    });
+    reply.setCookie(REFRESH_COOKIE_NAME, tokens.refreshToken, {
+      ...options,
+      maxAge: calculateExpiresIn(tokens.refreshTokenExpiresAt),
+    });
   }
 
-  /** 清掉两个 cookie。属性必须与投放时一致，否则浏览器认为是另一个 cookie。 */
+  /**
+   * 清掉两个 cookie。
+   *
+   * 用**同一份** {@link sessionCookieOptions}：`clearCookie` 靠同名同 path/domain
+   * 才能删掉，属性对不上就会留下一个删不掉的 cookie。
+   */
   private clearSessionCookies(reply: FastifyReply): void {
-    const policy = this.cookiePolicy();
+    const options = sessionCookieOptions(this.cookiePolicy());
 
-    reply.header('Set-Cookie', [
-      buildExpiredSessionCookie(SESSION_COOKIE_NAME, policy),
-      buildExpiredSessionCookie(REFRESH_COOKIE_NAME, policy),
-    ]);
+    reply.clearCookie(SESSION_COOKIE_NAME, options);
+    reply.clearCookie(REFRESH_COOKIE_NAME, options);
   }
 
   private cookiePolicy() {

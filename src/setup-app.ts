@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyCompress from '@fastify/compress';
+import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nContext, I18nService } from 'nestjs-i18n';
@@ -118,6 +119,20 @@ export async function setupApp(
     global: true,
     encodings: ['gzip', 'deflate', 'br'],
   });
+
+  // ── Cookies ─────────────────────────────────────────────────────
+  // `@fastify/cookie` gives `reply.setCookie` / `reply.clearCookie` and a
+  // parsed `request.cookies` map. Using it (rather than hand-building
+  // `Set-Cookie` strings) keeps one implementation for every cookie the
+  // service issues, and makes the "cleared attribute must match the issued
+  // attribute or the browser keeps the cookie" rule the plugin's job instead
+  // of a comment's.
+  //
+  // `secret` stays unset on purpose: every cookie here carries a value that
+  // is already tamper-proof on its own (a signed JWT, or a random refresh
+  // token that is looked up by hash). Enabling `sign`/`unsign` would add a
+  // second, redundant integrity layer and another secret to rotate.
+  await app.register(fastifyCookie);
 
   // ── Prometheus metrics ──────────────────────────────────────────
   const metricsService = app.get(MetricsService);
