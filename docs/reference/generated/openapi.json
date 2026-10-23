@@ -3762,7 +3762,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The authenticated user."
+            "description": "The authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionUser"
+                }
+              }
+            }
           },
           "401": {
             "description": "Access token invalid or expired (sent as a cookie)",
@@ -8685,11 +8692,13 @@
         "properties": {
           "enabled": {
             "type": "boolean",
-            "description": "是否启用"
+            "description": "是否启用",
+            "example": false
           },
           "siteKey": {
             "type": "string",
-            "description": "站点密钥"
+            "description": "站点密钥",
+            "example": "0x4AAAAAAA_example_site_key"
           }
         },
         "required": ["enabled", "siteKey"],
@@ -8811,6 +8820,57 @@
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
+        "additionalProperties": false
+      },
+      "SessionUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "用户 ID"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱地址"
+          },
+          "nickname": {
+            "nullable": true,
+            "description": "昵称",
+            "type": "string"
+          },
+          "avatar": {
+            "nullable": true,
+            "description": "头像 URL",
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "邮箱是否已验证"
+          },
+          "emailVerifiedAt": {
+            "nullable": true,
+            "description": "邮箱验证时间 (ISO 8601)",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "创建时间 (ISO 8601)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "更新时间 (ISO 8601)"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "avatar",
+          "emailVerified",
+          "emailVerifiedAt",
+          "createdAt",
+          "updatedAt"
+        ],
         "additionalProperties": false
       },
       "SessionResponse": {

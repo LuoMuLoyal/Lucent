@@ -292,6 +292,14 @@ export class CookieSessionController {
 // NOTE: 注册响应组件（OpenAPI）。Bearer 那条路为 `/auth/login` 注册过
 // `LoginResponse`，这里用 `SessionResponse` 区分，避免组件被覆盖。
 registerResponseSchema({
+  path: '/api/v1/auth/me',
+  method: 'get',
+  componentName: 'SessionUser',
+  schema: sessionUserSchema,
+  description: 'The authenticated user.',
+});
+
+registerResponseSchema({
   path: '/api/v1/auth/session/login',
   method: 'post',
   componentName: 'SessionResponse',
