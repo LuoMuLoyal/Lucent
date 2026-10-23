@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { User } from '#generated/prisma/client.js';
 import { ConfigKey } from '../../../config/env/config-keys.enum.js';
 import { EnvKey } from '../../../config/env/env-keys.enum.js';
@@ -28,6 +28,7 @@ import type {
 import {
   AuthSessionRepositoryPort,
   type SessionContextData,
+  type SessionWithUser,
 } from '../repositories/session.repository.js';
 
 export type {
@@ -35,6 +36,15 @@ export type {
   TokenPair,
   UserPayload,
 } from '../types/auth-request.js';
+
+/**
+ * How long after a rotation a replayed refresh token is assumed to be a
+ * concurrent request from the same client rather than theft.
+ *
+ * Keep this small: it delays (but does not prevent) reuse detection for tokens
+ * stolen in the same instant as the legitimate rotation.
+ */
+export const REFRESH_REUSE_GRACE_MS = 10_000;
 
 interface JwtConfigShape {
   accessSecret: string;
@@ -76,9 +86,20 @@ export class AuthTokenService {
     };
   }
 
+  /**
+   * Issues a token pair and the session record that backs it.
+   *
+   * @param user the authenticated user.
+   * @param context request metadata recorded on the session row.
+   * @param familyId token family to join. Omit on a fresh login: the new session
+   *   becomes its own family root (its id **is** the family id). Rotations pass
+   *   the family of the session they replace, which is what makes reuse
+   *   detection able to revoke the whole chain.
+   */
   generateTokenPair(
     user: User,
     context?: AuthRequestContext,
+    familyId?: string,
   ): ResultAsync<TokenPair, DomainFailure> {
     const config = this.jwtConfig;
     const payload: UserPayload = {
@@ -101,13 +122,16 @@ export class AuthTokenService {
     // The previous order (sign JWT first, then create session) could leave the
     // user with a valid accessToken but no session record, making refresh
     // impossible and forcing a full re-login.
+    const sessionId = randomUUID();
     const sessionInput: Parameters<
       AuthSessionRepositoryPort['createSession']
     >[0] = {
+      id: sessionId,
       userId: user.id,
       refreshTokenHash,
       expiresAt: new Date(now + refreshTokenExpiresInMs),
       lastUsedAt: new Date(now),
+      familyId: familyId ?? sessionId,
     };
     const contextData = this.getSessionContextData(context);
     if (contextData != null) {
@@ -185,9 +209,10 @@ export class AuthTokenService {
     return this.sessionRepository
       .findSessionByRefreshTokenHash(refreshTokenHash)
       .orElse((error) => {
-        // Session not found — the token never existed or was already removed.
-        // Log for observability (digest only, never the raw token) and
-        // propagate the failure unchanged; other failures are untouched.
+        // Session not found — the token never existed, expired, or its row was
+        // removed by the retention job. Log for observability (digest only,
+        // never the raw token) and propagate the failure unchanged; other
+        // failures are untouched.
         if (error.code === 'AUTH_REFRESH_TOKEN_INVALID') {
           this.logRefreshTokenInvalid(refreshTokenHash, 'not-found');
         }
@@ -203,31 +228,134 @@ export class AuthTokenService {
           return errAsync(this.refreshTokenInvalidFailure());
         }
 
-        // Atomically claim the session by deleting it before generating new
-        // tokens. This prevents the race condition where two concurrent refresh
-        // requests both pass validation and each create a new session. Only the
-        // first caller claims the session; subsequent callers find it gone and
-        // fail. If token generation fails after claiming, the user must
-        // re-authenticate, which is preferable to session duplication.
+        // Already rotated: this exact refresh token was exchanged before.
+        // Either two callers raced (benign) or someone is replaying a stolen
+        // token (theft). `classifyReuse` decides, and in the theft case it
+        // revokes the whole family.
+        if (record.rotatedAt !== null) {
+          return this.classifyReuse(record, refreshTokenHash);
+        }
+
+        // Atomically claim the row by stamping `rotatedAt`. Only one caller can
+        // win; the losers re-read the row and go through the same reuse
+        // classification (they lost a race, or they are replaying).
         return this.sessionRepository
           .claimSessionForRefresh(record.id)
           .orElse((error) => {
-            if (error.code === 'AUTH_REFRESH_TOKEN_INVALID') {
-              this.logRefreshTokenInvalid(
-                refreshTokenHash,
-                'already-claimed-or-expired',
-                record.userId,
-              );
+            if (error.code !== 'AUTH_REFRESH_TOKEN_INVALID') {
+              return errAsync(error);
             }
-            return errAsync(error);
+
+            return (
+              this.sessionRepository
+                .findSessionById(record.id)
+                // The row can disappear between the claim attempt and this read
+                // (retention job, concurrent family revocation). For a refresh
+                // caller that is simply "this token is no longer usable" — never
+                // leak the internal AUTH_SESSION_NOT_FOUND code here.
+                .orElse((readError) => {
+                  this.logger.warn(
+                    'Session vanished while resolving a lost refresh claim',
+                    {
+                      code: 'AUTH_REFRESH_TOKEN_INVALID',
+                      reason: 'vanished-during-claim',
+                      userId: record.userId,
+                      readErrorCode: readError.code,
+                    },
+                  );
+                  return errAsync(this.refreshTokenInvalidFailure());
+                })
+                .andThen((claimed) =>
+                  claimed.rotatedAt === null
+                    ? errAsync(this.refreshTokenInvalidFailure())
+                    : this.classifyReuse(
+                        {
+                          ...record,
+                          rotatedAt: claimed.rotatedAt,
+                          revokedAt: claimed.revokedAt,
+                        },
+                        refreshTokenHash,
+                      ),
+                )
+            );
           })
           .andThen(() =>
-            this.generateTokenPair(record.user, context).map((tokens) => ({
-              user: record.user,
-              tokens,
-            })),
+            // The rotation joins the same family so a later replay of any token
+            // in this chain can still revoke every descendant.
+            this.generateTokenPair(record.user, context, record.familyId).map(
+              (tokens) => ({
+                user: record.user,
+                tokens,
+              }),
+            ),
           );
       });
+  }
+
+  /**
+   * Decides what an already-rotated refresh token means.
+   *
+   * ## Two very different situations look identical
+   *
+   * - **Benign race**: the same client fired two refreshes at once (two tabs,
+   *   or a client without single-flight). The loser must simply fail, and the
+   *   winner's session must survive.
+   * - **Replay**: a stolen token is being used after the legitimate client
+   *   already rotated it. RFC 9700 §4.13.2 says this must be treated as a
+   *   compromise and the whole token family revoked.
+   *
+   * The only signal available is **how long ago** the rotation happened, hence
+   * {@link REFRESH_REUSE_GRACE_MS}. Inside the window we assume a race and only
+   * fail the request; outside it we assume theft and revoke the family.
+   *
+   * ## Why a grace window is a deliberate trade
+   *
+   * Without it, two tabs refreshing simultaneously would revoke each other's
+   * session and log the user out — a self-inflicted outage. Without the window's
+   * **upper bound**, a replayed token would never be flagged. The window is
+   * therefore kept short and is the same trade Auth0 documents as "reuse
+   * interval".
+   */
+  private classifyReuse(
+    record: SessionWithUser,
+    refreshTokenHash: string,
+  ): ResultAsync<never, DomainFailure> {
+    const rotatedAgoMs =
+      record.rotatedAt === null
+        ? 0
+        : now().getTime() - record.rotatedAt.getTime();
+
+    if (record.rotatedAt !== null && rotatedAgoMs <= REFRESH_REUSE_GRACE_MS) {
+      this.logger.warn('Refresh token replayed inside the concurrency grace', {
+        code: 'AUTH_REFRESH_TOKEN_INVALID',
+        reason: 'concurrent-refresh',
+        userId: record.userId,
+        familyId: record.familyId,
+        rotatedAgoMs,
+        refreshTokenHash: `${refreshTokenHash.slice(0, 12)}…`,
+      });
+      return errAsync(this.refreshTokenInvalidFailure());
+    }
+
+    // Replay outside the grace window: treat as theft. Revoking the family kills
+    // both the legitimate chain and anything the thief obtained from it.
+    return this.sessionRepository
+      .revokeSessionFamily(record.userId, record.familyId)
+      .map((revoked) => {
+        this.logger.error(
+          'Refresh token reuse detected, session family revoked',
+          {
+            code: 'AUTH_REFRESH_TOKEN_INVALID',
+            reason: 'reuse-detected',
+            userId: record.userId,
+            familyId: record.familyId,
+            revokedSessions: revoked,
+            rotatedAgoMs,
+            refreshTokenHash: `${refreshTokenHash.slice(0, 12)}…`,
+          },
+        );
+      })
+      .andThen(() => errAsync(this.refreshTokenInvalidFailure()));
   }
 
   revoke(

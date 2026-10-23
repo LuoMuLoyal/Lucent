@@ -82,6 +82,10 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
   验证码下发;消费 `AuthIdentityService`、`EmailVerificationService`、
   `PasswordReauthService` 与 `INotificationSender`。
 - `services/token.service.ts` — JWT access/refresh 生成与 session CRUD。
+  轮换是**一次性**的(`rotatedAt` 标记,行保留为 tombstone),并按 token family 做
+  重放检测:同一 refresh token 再次出现时,宽限窗口内视为并发竞态只拒绝,
+  窗口外视为盗用并**撤销整族**(RFC 9700 §4.13.2)。`familyId` 让轮换出来的新会话
+  仍属于同一条链,因此撤销能覆盖盗用者可能拿到的全部会话。
 - `services/session-admin.service.ts` — 管理面会话撤销(`AuthSessionAdminService`),
   包装 `AuthTokenService.revokeAll`/`revokeById`,供 admin 强制下线并审计。
 - `services/account.service.ts` — auth 账号生命周期(改邮箱/密码等)。

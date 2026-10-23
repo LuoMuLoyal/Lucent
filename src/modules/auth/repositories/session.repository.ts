@@ -26,6 +26,10 @@ export interface SessionWithUser {
   refreshTokenHash: string;
   expiresAt: Date;
   revokedAt: Date | null;
+  /** Token family root; shared by every session produced by rotations. */
+  familyId: string;
+  /** When this refresh token was exchanged away (`null` = still usable). */
+  rotatedAt: Date | null;
   user: User;
 }
 
@@ -42,10 +46,14 @@ export interface SessionListRow {
 
 export abstract class AuthSessionRepositoryPort {
   abstract createSession(input: {
+    /** Caller-supplied id: a brand-new family uses its own id as `familyId`. */
+    id: string;
     userId: string;
     refreshTokenHash: string;
     expiresAt: Date;
     lastUsedAt: Date;
+    /** Token family root. A fresh login starts a family; a rotation joins one. */
+    familyId: string;
     context?: SessionContextData;
   }): Promise<void>;
 
@@ -56,15 +64,30 @@ export abstract class AuthSessionRepositoryPort {
   abstract deleteSessionById(id: string): Promise<void>;
 
   /**
-   * Atomically claims a session for token refresh by deleting it only if it is
-   * still valid (not revoked, not expired). Resolves ok only if the session was
-   * claimed; a session that was already claimed/revoked/expired maps to
-   * `AUTH_REFRESH_TOKEN_INVALID`.
+   * Atomically claims a session for token refresh by stamping `rotatedAt` only
+   * if it is still usable (not rotated, not revoked, not expired). Resolves ok
+   * only if this caller won the claim; a loser gets
+   * `AUTH_REFRESH_TOKEN_INVALID` and the caller decides whether that was a
+   * benign race or a replay (see `AuthTokenService.rotateSession`).
    *
-   * This prevents the race condition where two concurrent refresh requests
-   * both pass validation and each generate a new session.
+   * The row is **kept** rather than deleted: a deleted row would make an
+   * already-rotated token indistinguishable from an unknown one, which is
+   * exactly the signal reuse detection needs.
    */
   abstract claimSessionForRefresh(id: string): ResultAsync<void, DomainFailure>;
+
+  /**
+   * Revokes every still-active session in one token family and reports how many
+   * were revoked.
+   *
+   * Called when an already-rotated refresh token is replayed outside the
+   * concurrency grace window: two parties hold the same chain, so the whole
+   * chain — including whatever a thief obtained — is terminated.
+   */
+  abstract revokeSessionFamily(
+    userId: string,
+    familyId: string,
+  ): ResultAsync<number, DomainFailure>;
 
   abstract deleteSessionsByUserIdAndHash(
     userId: string,
@@ -93,16 +116,20 @@ export class AuthSessionRepository implements AuthSessionRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   async createSession(input: {
+    id: string;
     userId: string;
     refreshTokenHash: string;
     expiresAt: Date;
     lastUsedAt: Date;
+    familyId: string;
     context?: SessionContextData;
   }): Promise<void> {
     const data: Prisma.UserSessionCreateInput = {
+      id: input.id,
       refreshTokenHash: input.refreshTokenHash,
       expiresAt: input.expiresAt,
       lastUsedAt: input.lastUsedAt,
+      familyId: input.familyId,
       ...(input.context?.ipAddress !== undefined && {
         ipAddress: input.context.ipAddress,
       }),
@@ -136,14 +163,33 @@ export class AuthSessionRepository implements AuthSessionRepositoryPort {
 
   claimSessionForRefresh(id: string): ResultAsync<void, DomainFailure> {
     return fromPrismaResult(
-      this.prisma.userSession.deleteMany({
-        where: { id, revokedAt: null, expiresAt: { gt: now() } },
+      this.prisma.userSession.updateMany({
+        // `rotatedAt: null` is the atomic guard: only one caller can flip it.
+        where: {
+          id,
+          rotatedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: now() },
+        },
+        data: { rotatedAt: now() },
       }),
     ).andThen((result) =>
       result.count > 0
         ? okAsync(undefined)
         : errAsync(this.refreshTokenInvalidFailure()),
     );
+  }
+
+  revokeSessionFamily(
+    userId: string,
+    familyId: string,
+  ): ResultAsync<number, DomainFailure> {
+    return fromPrismaResult(
+      this.prisma.userSession.updateMany({
+        where: { userId, familyId, revokedAt: null },
+        data: { revokedAt: now() },
+      }),
+    ).map((result) => result.count);
   }
 
   deleteSessionsByUserIdAndHash(
@@ -195,7 +241,13 @@ export class AuthSessionRepository implements AuthSessionRepositoryPort {
   ): ResultAsync<SessionListRow[], DomainFailure> {
     return fromPrismaResult(
       this.prisma.userSession.findMany({
-        where: { userId, revokedAt: null, expiresAt: { gt: now() } },
+        // Rotated rows are tombstones for reuse detection, not live sessions.
+        where: {
+          userId,
+          revokedAt: null,
+          rotatedAt: null,
+          expiresAt: { gt: now() },
+        },
         orderBy: { lastUsedAt: 'desc' },
         select: {
           id: true,

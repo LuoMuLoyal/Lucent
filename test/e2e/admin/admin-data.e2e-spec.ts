@@ -135,6 +135,7 @@ describe('Admin data API (e2e)', () => {
     it('omits sensitive columns from rows', async () => {
       await ctx.prisma.userSession.create({
         data: {
+          familyId: randomUUID(),
           userId: settingsUser.id,
           refreshTokenHash: randomUUID(),
           expiresAt: new Date(Date.now() + 7 * DAY_MS),
@@ -284,6 +285,7 @@ describe('Admin data API (e2e)', () => {
       });
       await ctx.prisma.userSession.create({
         data: {
+          familyId: randomUUID(),
           userId: settingsUser.id,
           refreshTokenHash: randomUUID(),
           expiresAt: new Date(Date.now() + 7 * DAY_MS),

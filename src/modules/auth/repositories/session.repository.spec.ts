@@ -33,6 +33,7 @@ describe('AuthSessionRepository', () => {
         delete: vi.fn(),
         deleteMany: vi.fn(),
         update: vi.fn(),
+        updateMany: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 
@@ -44,7 +45,9 @@ describe('AuthSessionRepository', () => {
       prisma.userSession.create.mockResolvedValue(undefined as never);
 
       await repository.createSession({
+        id: 'session-new',
         userId: 'user-1',
+        familyId: 'family-new',
         refreshTokenHash: 'hash-123',
         expiresAt: new Date('2026-07-11T00:00:00.000Z'),
         lastUsedAt: new Date('2026-07-10T12:00:00.000Z'),
@@ -62,7 +65,9 @@ describe('AuthSessionRepository', () => {
       prisma.userSession.create.mockResolvedValue(undefined as never);
 
       await repository.createSession({
+        id: 'session-new',
         userId: 'user-1',
+        familyId: 'family-new',
         refreshTokenHash: 'hash',
         expiresAt: new Date(),
         lastUsedAt: new Date(),
@@ -77,7 +82,9 @@ describe('AuthSessionRepository', () => {
       prisma.userSession.create.mockResolvedValue(undefined as never);
 
       await repository.createSession({
+        id: 'session-new',
         userId: 'user-1',
+        familyId: 'family-new',
         refreshTokenHash: 'hash',
         expiresAt: new Date(),
         lastUsedAt: new Date(),
@@ -92,7 +99,9 @@ describe('AuthSessionRepository', () => {
       prisma.userSession.create.mockResolvedValue(undefined as never);
 
       await repository.createSession({
+        id: 'session-new',
         userId: 'user-1',
+        familyId: 'family-new',
         refreshTokenHash: 'hash',
         expiresAt: new Date(),
         lastUsedAt: new Date(),
@@ -159,25 +168,30 @@ describe('AuthSessionRepository', () => {
   });
 
   describe('claimSessionForRefresh', () => {
-    it('resolves ok when session is successfully claimed', async () => {
-      prisma.userSession.deleteMany.mockResolvedValue({ count: 1 } as never);
+    it('stamps rotatedAt instead of deleting the row', async () => {
+      prisma.userSession.updateMany.mockResolvedValue({ count: 1 } as never);
 
       const outcome = await collectResult(
         repository.claimSessionForRefresh('session-1'),
       );
 
       expect(outcome).toEqual({ ok: true, value: undefined });
-      expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
+      // The row must survive: a deleted row would make an already-rotated token
+      // indistinguishable from an unknown one, defeating reuse detection.
+      expect(prisma.userSession.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.userSession.updateMany).toHaveBeenCalledWith({
         where: {
           id: 'session-1',
+          rotatedAt: null,
           revokedAt: null,
           expiresAt: { gt: expect.any(Date) },
         },
+        data: { rotatedAt: expect.any(Date) },
       });
     });
 
-    it('maps an already-claimed session to AUTH_REFRESH_TOKEN_INVALID', async () => {
-      prisma.userSession.deleteMany.mockResolvedValue({ count: 0 } as never);
+    it('maps a lost claim race to AUTH_REFRESH_TOKEN_INVALID', async () => {
+      prisma.userSession.updateMany.mockResolvedValue({ count: 0 } as never);
 
       const outcome = await collectResult(
         repository.claimSessionForRefresh('session-1'),
@@ -192,13 +206,29 @@ describe('AuthSessionRepository', () => {
     });
 
     it('rethrows unknown database errors instead of mapping them', async () => {
-      prisma.userSession.deleteMany.mockRejectedValue(
+      prisma.userSession.updateMany.mockRejectedValue(
         new Error('db connection lost'),
       );
 
       await expect(
         collectResult(repository.claimSessionForRefresh('session-1')),
       ).rejects.toThrow('db connection lost');
+    });
+  });
+
+  describe('revokeSessionFamily', () => {
+    it('revokes every still-active session in the family and returns the count', async () => {
+      prisma.userSession.updateMany.mockResolvedValue({ count: 3 } as never);
+
+      const outcome = await collectResult(
+        repository.revokeSessionFamily('user-1', 'family-1'),
+      );
+
+      expect(outcome).toEqual({ ok: true, value: 3 });
+      expect(prisma.userSession.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', familyId: 'family-1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
     });
   });
 

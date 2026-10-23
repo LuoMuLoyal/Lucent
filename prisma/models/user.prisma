@@ -135,10 +135,19 @@ model UserSession {
   lastUsedAt       DateTime?              @map("last_used_at") @db.Timestamptz(3)
   expiresAt        DateTime               @map("expires_at") @db.Timestamptz(3)
   revokedAt        DateTime?             @map("revoked_at") @db.Timestamptz(3)
+  /// Token family root: every session produced by successive rotations shares
+  /// it. Reuse of an already-rotated refresh token is treated as theft and
+  /// revokes the whole family (see AuthTokenService.rotateSession).
+  familyId         String                 @map("family_id")
+  /// When this row's refresh token was rotated away (`null` = still usable).
+  /// Rotated rows are kept as tombstones so a replay can be detected; the
+  /// existing retention job deletes them once `expiresAt` passes.
+  rotatedAt        DateTime?              @map("rotated_at") @db.Timestamptz(3)
   createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user             User                   @relation("lucentSessions", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([familyId])
   @@index([userId, revokedAt])
   @@index([userId, expiresAt])
   @@index([expiresAt])

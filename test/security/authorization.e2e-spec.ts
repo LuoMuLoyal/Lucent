@@ -14,6 +14,7 @@ import type {
   E2eApp,
   TestUser,
 } from '../helpers/e2e-helpers.js';
+import { randomUUID } from 'node:crypto';
 import { UserStatus } from '#generated/prisma/client.js';
 
 /**
@@ -322,6 +323,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       // Alice logs in to create a session
       await ctx.prisma.userSession.create({
         data: {
+          familyId: randomUUID(),
           userId: alice.id,
           refreshTokenHash: 'alice-test-refresh-token-hash',
           userAgent: 'test',

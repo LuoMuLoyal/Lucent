@@ -68,6 +68,7 @@ describe('AuthTokenService', () => {
 
   beforeEach(async () => {
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
     runtimeValues = {};
     jwtService = { signAsync: vi.fn().mockResolvedValue('mock-access-token') };
@@ -92,6 +93,7 @@ describe('AuthTokenService', () => {
       deleteSessionsByUserId: vi.fn().mockReturnValue(okAsync(undefined)),
       findSessionById: vi.fn().mockReturnValue(errAsync(sessionNotFound())),
       revokeSessionById: vi.fn().mockReturnValue(okAsync(undefined)),
+      revokeSessionFamily: vi.fn().mockReturnValue(okAsync(0)),
       listActiveSessions: vi.fn().mockReturnValue(okAsync([])),
     };
 
@@ -241,6 +243,8 @@ describe('AuthTokenService', () => {
           refreshTokenHash: hash(oldToken),
           expiresAt: new Date(Date.now() + 86400000),
           revokedAt: null,
+          familyId: 'family-1',
+          rotatedAt: null,
           userId: 'user-1',
           user: mockUser as never,
         }),
@@ -257,20 +261,21 @@ describe('AuthTokenService', () => {
       );
     });
 
-    it('should fail when session was already claimed by a concurrent refresh', async () => {
-      const oldToken = 'concurrent-refresh-token';
+    it('rejects a replay inside the grace window without revoking the family', async () => {
+      // Two tabs refreshing at once: the loser must fail, but revoking the
+      // family here would log the user out of both.
+      const oldToken = 'racy-refresh-token';
       sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
         okAsync({
           id: 'session-2',
           refreshTokenHash: hash(oldToken),
           expiresAt: new Date(Date.now() + 86400000),
           revokedAt: null,
+          familyId: 'family-1',
+          rotatedAt: new Date(Date.now() - 2_000),
           userId: 'user-1',
           user: mockUser as never,
         }),
-      );
-      sessionRepo.claimSessionForRefresh.mockReturnValueOnce(
-        errAsync(refreshTokenInvalid()),
       );
 
       const outcome = await collectResult(service.refresh(oldToken));
@@ -281,18 +286,122 @@ describe('AuthTokenService', () => {
           code: 'AUTH_REFRESH_TOKEN_INVALID',
         }),
       });
-      expect(sessionRepo.claimSessionForRefresh).toHaveBeenCalledWith(
-        'session-2',
-      );
+      expect(sessionRepo.revokeSessionFamily).not.toHaveBeenCalled();
       expect(Logger.prototype.warn).toHaveBeenCalledWith(
-        'Refresh token invalid',
+        'Refresh token replayed inside the concurrency grace',
         expect.objectContaining({
           code: 'AUTH_REFRESH_TOKEN_INVALID',
-          reason: 'already-claimed-or-expired',
+          reason: 'concurrent-refresh',
           userId: 'user-1',
-          refreshTokenHash: `${hash(oldToken).slice(0, 12)}…`,
+          familyId: 'family-1',
         }),
       );
+    });
+
+    it('revokes the whole family when a rotated token is replayed after the grace window', async () => {
+      // Outside the grace window the only consistent explanation is theft:
+      // RFC 9700 requires the token family to be revoked.
+      const oldToken = 'stolen-refresh-token';
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-3',
+          refreshTokenHash: hash(oldToken),
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: null,
+          familyId: 'family-9',
+          rotatedAt: new Date(Date.now() - 120_000),
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
+      );
+      sessionRepo.revokeSessionFamily.mockReturnValueOnce(okAsync(2));
+
+      const outcome = await collectResult(service.refresh(oldToken));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+      expect(sessionRepo.revokeSessionFamily).toHaveBeenCalledWith(
+        'user-1',
+        'family-9',
+      );
+      expect(sessionRepo.claimSessionForRefresh).not.toHaveBeenCalled();
+      expect(Logger.prototype.error).toHaveBeenCalledWith(
+        'Refresh token reuse detected, session family revoked',
+        expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+          reason: 'reuse-detected',
+          familyId: 'family-9',
+          revokedSessions: 2,
+        }),
+      );
+    });
+
+    it('maps a lost claim whose row vanished to AUTH_REFRESH_TOKEN_INVALID', async () => {
+      const oldToken = 'vanished-refresh-token';
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-4',
+          refreshTokenHash: hash(oldToken),
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: null,
+          familyId: 'family-1',
+          rotatedAt: null,
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
+      );
+      sessionRepo.claimSessionForRefresh.mockReturnValueOnce(
+        errAsync(refreshTokenInvalid()),
+      );
+      sessionRepo.findSessionById.mockReturnValueOnce(
+        errAsync(sessionNotFound()),
+      );
+
+      const outcome = await collectResult(service.refresh(oldToken));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_REFRESH_TOKEN_INVALID',
+        }),
+      });
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Session vanished while resolving a lost refresh claim',
+        expect.objectContaining({ reason: 'vanished-during-claim' }),
+      );
+    });
+
+    it('rotates into the same token family', async () => {
+      const oldToken = 'family-refresh-token';
+      sessionRepo.findSessionByRefreshTokenHash.mockReturnValueOnce(
+        okAsync({
+          id: 'session-5',
+          refreshTokenHash: hash(oldToken),
+          expiresAt: new Date(Date.now() + 86400000),
+          revokedAt: null,
+          familyId: 'family-keep',
+          rotatedAt: null,
+          userId: 'user-1',
+          user: mockUser as never,
+        }),
+      );
+
+      await collectResult(service.refresh(oldToken));
+
+      expect(sessionRepo.createSession).toHaveBeenCalledWith(
+        expect.objectContaining({ familyId: 'family-keep' }),
+      );
+    });
+
+    it('starts a new family for a fresh login', async () => {
+      await collectResult(service.generateTokenPair(mockUser as never));
+
+      const created = sessionRepo.createSession.mock.calls[0]?.[0];
+      expect(created?.familyId).toBe(created?.id);
     });
 
     it('should fail for missing session', async () => {
@@ -321,6 +430,8 @@ describe('AuthTokenService', () => {
           refreshTokenHash: hash('revoked-token'),
           expiresAt: new Date(Date.now() + 86400000),
           revokedAt: new Date(),
+          familyId: 'family-1',
+          rotatedAt: null,
           userId: 'user-1',
           user: mockUser as never,
         }),
@@ -353,6 +464,8 @@ describe('AuthTokenService', () => {
           refreshTokenHash: hash('expired-token'),
           expiresAt: new Date(Date.now() - 1000),
           revokedAt: null,
+          familyId: 'family-1',
+          rotatedAt: null,
           userId: 'user-1',
           user: mockUser as never,
         }),
@@ -385,6 +498,8 @@ describe('AuthTokenService', () => {
           refreshTokenHash: hash('token'),
           expiresAt: new Date(Date.now() + 86400000),
           revokedAt: null,
+          familyId: 'family-1',
+          rotatedAt: null,
           userId: 'user-1',
           user: mockUser as never,
         }),

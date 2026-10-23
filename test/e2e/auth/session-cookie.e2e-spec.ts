@@ -46,6 +46,11 @@ interface SessionResponseBody {
   expiresIn: number;
 }
 
+/** 与 `AuthTokenService.hashRefreshToken` 同算法：sha256(token) 的 hex。 */
+function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 /** 从 supertest 的响应里取全部 Set-Cookie 行。 */
 function setCookies(response: SupertestResponse): string[] {
   const raw = response.headers['set-cookie'];
@@ -274,6 +279,90 @@ describe('Cookie Session API (e2e)', () => {
         .post(SESSION_REFRESH_PATH)
         .set('Cookie', oldRefresh)
         .expect(401);
+    });
+
+    it('宽限窗口内的重放只拒绝，不销毁整族', async () => {
+      // 两个标签页同时刷新时，输的一方必须失败，但不能把赢的一方也踢下线。
+      const { email, code } = await seedVerifiedEmail();
+      const registered = await registerSession(email, code);
+      const oldRefresh = cookiePair(registered, 'lucent_refresh')!;
+
+      const rotated = await request(app.getHttpServer())
+        .post(SESSION_REFRESH_PATH)
+        .set('Cookie', oldRefresh)
+        .expect(200);
+
+      // 立刻重放：处在宽限窗口内。
+      await request(app.getHttpServer())
+        .post(SESSION_REFRESH_PATH)
+        .set('Cookie', oldRefresh)
+        .expect(401);
+
+      // 赢家的新 refresh cookie 仍然有效。
+      await request(app.getHttpServer())
+        .post(SESSION_REFRESH_PATH)
+        .set('Cookie', cookiePair(rotated, 'lucent_refresh')!)
+        .expect(200);
+    });
+
+    it('宽限窗口外的重放判定为盗用，撤销整族', async () => {
+      const { email, code } = await seedVerifiedEmail();
+      const registered = await registerSession(email, code);
+      const oldRefresh = cookiePair(registered, 'lucent_refresh')!;
+
+      const rotated = await request(app.getHttpServer())
+        .post(SESSION_REFRESH_PATH)
+        .set('Cookie', oldRefresh)
+        .expect(200);
+      const newRefresh = cookiePair(rotated, 'lucent_refresh')!;
+
+      // 把旧行的 rotatedAt 推到宽限窗口之外——模拟「token 被偷后过了一阵才重放」。
+      await ctx.prisma.userSession.updateMany({
+        where: {
+          refreshTokenHash: hashRefreshToken(oldRefresh.split('=')[1]!),
+        },
+        data: { rotatedAt: new Date(Date.now() - 5 * 60 * 1000) },
+      });
+
+      await request(app.getHttpServer())
+        .post(SESSION_REFRESH_PATH)
+        .set('Cookie', oldRefresh)
+        .expect(401);
+
+      // 关键断言：整族已被撤销，合法的新 refresh token 也必须失效。
+      await request(app.getHttpServer())
+        .post(SESSION_REFRESH_PATH)
+        .set('Cookie', newRefresh)
+        .expect(401);
+    });
+
+    it('轮换产生的会话行保留在同族里，且不出现在活跃会话列表', async () => {
+      const { email, code } = await seedVerifiedEmail();
+      const registered = await registerSession(email, code);
+      const accessCookie = cookiePair(registered, 'lucent_session')!;
+
+      await request(app.getHttpServer())
+        .post(SESSION_REFRESH_PATH)
+        .set('Cookie', cookiePair(registered, 'lucent_refresh')!)
+        .expect(200);
+
+      const sessions = await ctx.prisma.userSession.findMany({
+        where: { user: { email } },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      // 两次签发 = 两行：一行已轮换（tombstone），一行活跃。
+      expect(sessions).toHaveLength(2);
+      expect(new Set(sessions.map((s) => s.familyId)).size).toBe(1);
+      expect(sessions.filter((s) => s.rotatedAt !== null)).toHaveLength(1);
+
+      const listed = await request(app.getHttpServer())
+        .get('/api/v1/auth/sessions')
+        .set('Cookie', accessCookie)
+        .expect(200);
+
+      // tombstone 不是活跃会话。
+      expect(listed.body as unknown[]).toHaveLength(1);
     });
   });
 
