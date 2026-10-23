@@ -152,10 +152,34 @@ export class AuthTokenService {
       }));
   }
 
+  /**
+   * Rotates a refresh token and returns **whose** session it was.
+   *
+   * The cookie-session adapter needs the user to build the response body after
+   * rotation. Returning it from here is exact: the session record already holds
+   * the user, so no second lookup and no JWT decoding is required.
+   * `refresh()` below stays as the token-only view for the Bearer callers.
+   */
+  refreshWithUser(
+    refreshToken: string,
+    context?: AuthRequestContext,
+  ): ResultAsync<{ user: User; tokens: TokenPair }, DomainFailure> {
+    return this.rotateSession(refreshToken, context);
+  }
+
   refresh(
     refreshToken: string,
     context?: AuthRequestContext,
   ): ResultAsync<TokenPair, DomainFailure> {
+    return this.rotateSession(refreshToken, context).map(
+      (rotated) => rotated.tokens,
+    );
+  }
+
+  private rotateSession(
+    refreshToken: string,
+    context?: AuthRequestContext,
+  ): ResultAsync<{ user: User; tokens: TokenPair }, DomainFailure> {
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
 
     return this.sessionRepository
@@ -197,7 +221,12 @@ export class AuthTokenService {
             }
             return errAsync(error);
           })
-          .andThen(() => this.generateTokenPair(record.user, context));
+          .andThen(() =>
+            this.generateTokenPair(record.user, context).map((tokens) => ({
+              user: record.user,
+              tokens,
+            })),
+          );
       });
   }
 

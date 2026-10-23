@@ -138,6 +138,21 @@ export class AuthService {
   }
 
   /**
+   * Rotates a refresh token **and** reports whose session it was.
+   *
+   * The cookie-session flow needs the user after rotation to build the response
+   * body. The session record already carries it, so this avoids a second
+   * lookup — and avoids decoding the freshly signed access JWT just to read
+   * `sub` back out.
+   */
+  refreshWithUser(
+    refreshToken: string,
+    context?: AuthRequestContext,
+  ): ResultAsync<{ user: User; tokens: TokenPair }, DomainFailure> {
+    return this.authTokenService.refreshWithUser(refreshToken, context);
+  }
+
+  /**
    * The `AUTH_REFRESH_TOKEN_INVALID` transport failure, for callers that must
    * reject a session **without** going through a token rotation (e.g. the
    * cookie session endpoint when the refresh cookie is missing).

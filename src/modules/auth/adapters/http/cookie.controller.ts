@@ -19,42 +19,38 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import {
-  calculateExpiresIn,
   extractAuthRequestContext,
   ProblemDetailsDto,
+} from '../../../../common/index.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import { CookieSessionUseCase } from '../../application/use_cases/cookie_session.js';
+import {
   REFRESH_COOKIE_NAME,
   resolveSessionCookiePolicy,
-  SESSION_COOKIE_NAME,
-  sessionCookieOptions,
-} from '../../../common/index.js';
-import { ConfigKey } from '../../../config/env/config-keys.enum.js';
-import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../../common/result/index.js';
-import { AuditLogService } from '../../audit-log/index.js';
-import { AuthService } from '../services/auth.service.js';
-import { AuthAccountService } from '../services/account.service.js';
-import { AccessTokenReader } from '../strategies/access-token.js';
-import { CurrentUser } from '../decorators/current-user.decorator.js';
-import { Public } from '../decorators/public.decorator.js';
-import type { UserPayload } from '../types/auth-request.js';
-
+} from '../../domain/session/cookie_policy.js';
+import { CurrentUser } from '../../decorators/current-user.decorator.js';
+import { Public } from '../../decorators/public.decorator.js';
+import type { UserPayload } from '../../types/auth-request.js';
+import { clearSessionCookies, writeSessionCookies } from './session_cookies.js';
 import {
   sessionLoginSchema,
   sessionRegisterSchema,
-  type SessionLoginDto,
-  type SessionRegisterDto,
-} from '../dto/credentials/session.dto.js';
-import {
   sessionResponseSchema,
   sessionUserSchema,
+  type SessionLoginDto,
+  type SessionRegisterDto,
   type SessionResponseDto,
   type SessionUserDto,
-} from '../dto/shared/session.dto.js';
-
+} from './dto/session.js';
 import {
-  buildSessionResponse,
+  toCookieTokens,
+  toSessionResponse,
   toSessionUser,
-} from './session-response.helper.js';
+} from './presenters/session.js';
 
 /**
  * HttpOnly cookie 会话端点 —— 面向**浏览器里跑的客户端**。
@@ -66,7 +62,13 @@ import {
  *
  * 那两条是 **Bearer** 契约：token 在响应体里，由客户端自己保管——手机端
  * （Luminous）用的就是它，**不动**。这里提供同一套凭据校验的另一条出口：
- * **token 只进 `Set-Cookie`**。两者共用 `AuthService`，差别只在签发后的落点。
+ * **token 只进 `Set-Cookie`**。
+ *
+ * ## 分层位置
+ *
+ * 本文件只做 HTTP：解析请求、调用例、把结果投影成响应、投 cookie。
+ * 凭据校验在 `AuthService`，cookie 属性在 `domain/session/cookie_policy.ts`，
+ * 序列化在 `session_cookies.ts`。这里没有第二个判断点。
  *
  * ## 端点
  *
@@ -81,16 +83,14 @@ import {
  * ## 为什么 refresh 是公开的
  *
  * access token 过期后请求必须还能刷新，所以它不能要求 access 凭据。
- * 安全性来自 refresh cookie 的 `HttpOnly` + 轮换：`AuthTokenService.refresh`
- * 会先原子认领旧会话，重复使用立即失效。
+ * 安全性来自 refresh cookie 的 `HttpOnly` + 轮换：`AuthTokenService` 会先原子
+ * 认领旧会话，重复使用立即失效。
  */
 @ApiTags('Auth')
 @Controller('auth')
-export class CookieController {
+export class CookieSessionController {
   constructor(
-    private readonly authService: AuthService,
-    private readonly authAccountService: AuthAccountService,
-    private readonly accessTokenReader: AccessTokenReader,
+    private readonly useCase: CookieSessionUseCase,
     private readonly auditLogService: AuditLogService,
     private readonly configService: ConfigService,
   ) {}
@@ -127,20 +127,19 @@ export class CookieController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SessionResponseDto> {
-    const result = await unwrapResult(
-      this.authService.register(dto, extractAuthRequestContext(request)),
-    );
+    const context = extractAuthRequestContext(request);
+    const result = await unwrapResult(this.useCase.register(dto, context));
 
     this.auditLogService.logFireAndForget({
-      ...extractAuthRequestContext(request),
+      ...context,
       userId: result.user.id,
       action: 'user.register',
       resourceType: 'user',
       resourceId: result.user.id,
     });
 
-    this.issueSessionCookies(reply, result);
-    return buildSessionResponse(result.user, result);
+    writeSessionCookies(reply, toCookieTokens(result.tokens), this.policy());
+    return toSessionResponse(result.user, result.tokens.accessTokenExpiresAt);
   }
 
   // ── POST /api/v1/auth/session/login ─────────────────────────
@@ -181,11 +180,11 @@ export class CookieController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SessionResponseDto> {
     const result = await unwrapResult(
-      this.authService.login(dto, extractAuthRequestContext(request)),
+      this.useCase.login(dto, extractAuthRequestContext(request)),
     );
 
-    this.issueSessionCookies(reply, result);
-    return buildSessionResponse(result.user, result);
+    writeSessionCookies(reply, toCookieTokens(result.tokens), this.policy());
+    return toSessionResponse(result.user, result.tokens.accessTokenExpiresAt);
   }
 
   // ── POST /api/v1/auth/session/refresh ───────────────────────
@@ -212,31 +211,16 @@ export class CookieController {
 
     if (refreshToken === undefined) {
       // 缺失与无效对外一致：都是 401。这里不必查库。
-      this.clearSessionCookies(reply);
-      throw this.refreshFailure();
+      clearSessionCookies(reply, this.policy());
+      throw new DomainFailureException(this.useCase.refreshFailure());
     }
 
     const rotated = await unwrapResult(
-      this.authService.refresh(
-        refreshToken,
-        extractAuthRequestContext(request),
-      ),
+      this.useCase.rotate(refreshToken, extractAuthRequestContext(request)),
     );
 
-    // 轮换后的新 access token 是 JWT，解出 `sub` 就是会话归属。
-    // （refresh token 是随机串、不是 JWT，不能拿它解。）
-    const payload = this.accessTokenReader.read(rotated.accessToken);
-    if (payload === null) {
-      this.clearSessionCookies(reply);
-      throw this.refreshFailure();
-    }
-
-    const user = await unwrapResult(
-      this.authAccountService.getActiveUser(payload.sub),
-    );
-
-    this.issueSessionCookies(reply, rotated);
-    return buildSessionResponse(user, rotated);
+    writeSessionCookies(reply, toCookieTokens(rotated.tokens), this.policy());
+    return toSessionResponse(rotated.user, rotated.tokens.accessTokenExpiresAt);
   }
 
   // ── POST /api/v1/auth/session/logout ────────────────────────
@@ -260,12 +244,12 @@ export class CookieController {
 
     try {
       if (refreshToken !== undefined) {
-        await unwrapResult(this.authService.logout(user.sub, refreshToken));
+        await this.useCase.revoke(user.sub, refreshToken);
       }
     } finally {
       // 无论吊销是否成功，cookie 都必须清掉——否则用户会卡在
       // 「服务端已无会话、浏览器还在反复带旧 cookie」的状态。
-      this.clearSessionCookies(reply);
+      clearSessionCookies(reply, this.policy());
     }
 
     this.auditLogService.logFireAndForget({
@@ -291,71 +275,17 @@ export class CookieController {
   })
   @SerializeOptions({ schema: sessionUserSchema })
   async me(@CurrentUser() user: UserPayload): Promise<SessionUserDto> {
-    const account = await unwrapResult(
-      this.authAccountService.getActiveUser(user.sub),
-    );
+    const account = await unwrapResult(this.useCase.currentUser(user.sub));
 
     return toSessionUser(account);
   }
 
-  // ── 私有：cookie 投放 / 清理 / 错误 ─────────────────────────
-
-  /**
-   * 把 token 对写进两个 cookie。
-   *
-   * `maxAge` 分别取各自 TTL：access 短、refresh 长。响应体的 `expiresIn`
-   * 就是 access 的剩余秒数，前端据此安排静默刷新。
-   */
-  private issueSessionCookies(
-    reply: FastifyReply,
-    tokens: {
-      accessToken: string;
-      refreshToken: string;
-      accessTokenExpiresAt: string;
-      refreshTokenExpiresAt: string;
-    },
-  ): void {
-    const options = sessionCookieOptions(this.cookiePolicy());
-
-    reply.setCookie(SESSION_COOKIE_NAME, tokens.accessToken, {
-      ...options,
-      maxAge: calculateExpiresIn(tokens.accessTokenExpiresAt),
-    });
-    reply.setCookie(REFRESH_COOKIE_NAME, tokens.refreshToken, {
-      ...options,
-      maxAge: calculateExpiresIn(tokens.refreshTokenExpiresAt),
-    });
-  }
-
-  /**
-   * 清掉两个 cookie。
-   *
-   * 用**同一份** {@link sessionCookieOptions}：`clearCookie` 靠同名同 path/domain
-   * 才能删掉，属性对不上就会留下一个删不掉的 cookie。
-   */
-  private clearSessionCookies(reply: FastifyReply): void {
-    const options = sessionCookieOptions(this.cookiePolicy());
-
-    reply.clearCookie(SESSION_COOKIE_NAME, options);
-    reply.clearCookie(REFRESH_COOKIE_NAME, options);
-  }
-
-  private cookiePolicy() {
+  /** 部署形态 → cookie 属性。每次请求读取，便于运行期调整部署配置。 */
+  private policy() {
     return resolveSessionCookiePolicy(
       this.configService.get<{ publicBaseUrl?: string }>(ConfigKey.App)
         ?.publicBaseUrl,
     );
-  }
-
-  /**
-   * 构造 `AUTH_REFRESH_TOKEN_INVALID`。
-   *
-   * 走 `AuthService.refresh` 会真的查一次库；这里只需要那个失败对象本身，
-   * 所以直接取服务暴露的失败构造器——保证错误码与 Bearer 那条路
-   * **完全一致**（同一个 code、同一个 401），不引入第二套错误词汇。
-   */
-  private refreshFailure() {
-    return this.authService.refreshTokenInvalidException();
   }
 }
 
