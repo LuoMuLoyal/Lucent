@@ -29,6 +29,25 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 - 领域事件(计划):`account_registered`、`identity_linked`、
   `session_revoked`、`password_reset` 等,经 outbox 发布给下游上下文。
 
+### 四层迁移进度
+
+`auth` 是 ADR-0024 的第二批。目前**只有 httpOnly cookie 会话这一条垂直切片**
+迁到了四层,其余(Bearer 登录/注册、OAuth、密码管理、验证码、限流)仍在
+`services/`。批次内公开 API 零变化。
+
+已迁移的切片:
+
+| 层                       | 位置                                                                                    | 职责                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `domain/session/`        | `cookie_policy.ts`                                                                      | `SessionCookiePolicy` 值对象与属性推导(纯逻辑,零 import)           |
+| `application/use_cases/` | `cookie_session.ts`                                                                     | 五个用例的编排;输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
+| `adapters/http/`         | `cookie.controller.ts`、`dto/session.ts`、`presenters/session.ts`、`session_cookies.ts` | 请求解析、契约校验、响应投影、`Set-Cookie` 序列化                  |
+| `infrastructure/`        | (本切片无)                                                                              | cookie 是 HTTP 投递关注点,不是持久化或外部系统                     |
+
+约束:`application/` 不得 import `adapters/`——`pnpm arch:check` 的
+`ddd-application-no-infra-or-adapters` 会拦。新增用例的输入类型定义在
+应用层,不要复用 zod 输出类型。
+
 ## 边界
 
 - 管:凭据认证、JWT 会话、OAuth 链接、邮箱验证码、登录限流、敏感操作密码
