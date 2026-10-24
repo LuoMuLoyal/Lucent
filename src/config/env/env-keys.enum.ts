@@ -162,6 +162,19 @@ export enum EnvKey {
   SEMANTICA_TIMEOUT_MS = 'SEMANTICA_TIMEOUT_MS',
   SEMANTICA_API_KEY = 'SEMANTICA_API_KEY',
 
+  // ── Neo4j 直连(业务只读查询)──────────────────────────────────
+  // 与 semantica 的关系:semantica 仍负责 agent 生成 Cypher 与 /reason 规则推理;
+  // 这里只给**业务只读查询**(用药关系、机理链)用,见
+  // plans/2026-10-24-medication-intelligence-plan.md §4.1。
+  //
+  // 口令从 `.env` 读,不进运行时快照、不进日志;URI 或口令缺失即视为未启用
+  // (端点回 notConfigured),而不是启动失败——CI 与本地大多没有图库。
+  NEO4J_URI = 'NEO4J_URI',
+  NEO4J_USER = 'NEO4J_USER',
+  NEO4J_PASSWORD = 'NEO4J_PASSWORD',
+  NEO4J_DATABASE = 'NEO4J_DATABASE',
+  NEO4J_TX_TIMEOUT_MS = 'NEO4J_TX_TIMEOUT_MS',
+
   // ── Runtime configuration center (rnacos) ───────────────────────
   // 进程引导期键:只从 `.env` / `process.env` 读取,永远不进远程文档
   // (计划 §3 的「进程引导」行)。凭据只进适配器构造参数,不进快照、不进日志。

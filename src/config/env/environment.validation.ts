@@ -419,6 +419,21 @@ const envSchema = z.object({
   // 没有默认密钥,所以只在 SEMANTICA_ENABLED=true 时强制(见下方 superRefine)。
   [EnvKey.SEMANTICA_API_KEY]: optionalString,
 
+  // ── Neo4j 直连(业务只读图查询)────────────────────────────────
+  // 全部可选:缺失即「未启用」,端点回 notConfigured 而不是启动失败。
+  // CI 与本地大多没有图库,不能因为图不可达就起不来服务。
+  // 口令与 SEMANTICA_API_KEY 同档:只从 `.env` 读,不进运行时快照。
+  [EnvKey.NEO4J_URI]: optionalString,
+  [EnvKey.NEO4J_USER]: optionalString,
+  [EnvKey.NEO4J_PASSWORD]: optionalString,
+  [EnvKey.NEO4J_DATABASE]: optionalString,
+  [EnvKey.NEO4J_TX_TIMEOUT_MS]: z.coerce
+    .number()
+    .int()
+    .min(500)
+    .max(60000)
+    .optional(),
+
   // ── Metrics auth (sensitive, in .env) ────────────────────────────
   [EnvKey.METRICS_USER]: optionalString,
   [EnvKey.METRICS_PASSWORD]: optionalString,

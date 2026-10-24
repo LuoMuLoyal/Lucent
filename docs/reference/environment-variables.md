@@ -592,6 +592,34 @@ SEMANTICA_API_KEY    # 与 sidecar 的 API_TOKEN 必须一致；仅 ENABLED=true
 成 `kind: 'unauthorized'` 后呈现的是"推理服务不可用"——一个配置错误被伪装成基础设施故障。
 关闭状态下即便残留了 base URL / key 也不报错。
 
+### Neo4j 直连 — 业务只读图查询
+
+```text
+NEO4J_URI           # 例如 bolt://127.0.0.1:7687；缺失即视为「未启用」
+NEO4J_USER          # 默认 neo4j
+NEO4J_PASSWORD      # 仅有 .env；缺失即视为「未启用」
+NEO4J_DATABASE      # 默认 neo4j
+NEO4J_TX_TIMEOUT_MS # 默认 8000；同时用作 driver 的 connectionTimeout
+```
+
+**和 semantica 是两条路径，不是二选一。** semantica 继续负责 agent 生成 Cypher 与
+`/reason` 规则推理；这组键服务的是**业务只读图查询**（`/medicines/relations/*` 的 9 个
+多跳查询）。选择直连的理由是超时预算：sidecar 的对端 `statement_timeout` 是 15 秒，
+多跳机制查询容易逼近它，而直连可以自己设事务超时。
+
+**全部可选，缺失即「未启用」。** `NEO4J_URI` 或 `NEO4J_PASSWORD` 任一为空都不算启用：
+端点返回 `status: "notConfigured"` 而不是启动失败——CI 与大多数本地环境没有图库，
+不能因为图不可达就起不来服务。口令只从 `.env` 读，不进运行时快照、不进日志。
+
+**失败是可区分的状态，不是空结果。** 9 个端点统一返回
+`{ status: 'ok' | 'notConfigured' | 'unavailable' | 'timeout', ... }`：
+`ok` + 空数组表示「图上确实没有」，其余表示「我们无法回答」。客户端必须把这两类
+分开显示——把知识缺口渲染成「无风险」是用药场景里最危险的静默降级。
+
+**无向匹配是排查时的第一个坑。** `INTERACTS_WITH` 在 Neo4j 里只存了单向的 2,534 条边；
+反向边原本由 semantica 的 `graph/orientation.py` 在**出图时**合成，直连走不到那条路径。
+所以涉及相互作用的查询必须写 `-[r]-`；写成 `->` 会返回 0 条且看起来完全正常。
+
 服务**不可达**（配了 key 但对方没起来）仍属运行时问题：表现为工具返回"推理不可用"信封，
 而不是进程起不来。
 
