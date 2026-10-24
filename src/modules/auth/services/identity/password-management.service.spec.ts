@@ -5,7 +5,7 @@ import { I18nService } from 'nestjs-i18n';
 import { PasswordManagementService } from './password-management.service.js';
 import { UserService } from '../../../user/index.js';
 import { VerificationCodeService } from './verification-code.service.js';
-import { AuthTokenService } from '../token.service.js';
+import { SessionTokens } from '../../application/services/session-tokens.js';
 import { PasswordReauthService } from './password-reauth.service.js';
 import { INotificationSender } from '../../../notifications/index.js';
 import { AuthIdentityService } from './identity.service.js';
@@ -72,7 +72,7 @@ describe('PasswordManagementService', () => {
   let service: PasswordManagementService;
   let userService: vi.Mocked<UserService>;
   let verificationCodeService: vi.Mocked<VerificationCodeService>;
-  let authTokenService: vi.Mocked<AuthTokenService>;
+  let sessionTokens: vi.Mocked<SessionTokens>;
   let passwordReauthService: vi.Mocked<PasswordReauthService>;
   let notificationsService: vi.Mocked<INotificationSender>;
   let identityService: vi.Mocked<AuthIdentityService>;
@@ -103,7 +103,7 @@ describe('PasswordManagementService', () => {
           },
         },
         {
-          provide: AuthTokenService,
+          provide: SessionTokens,
           useValue: {
             revokeAll: vi.fn().mockReturnValue(okAsync(undefined)),
           },
@@ -149,7 +149,7 @@ describe('PasswordManagementService', () => {
     service = module.get(PasswordManagementService);
     userService = module.get(UserService);
     verificationCodeService = module.get(VerificationCodeService);
-    authTokenService = module.get(AuthTokenService);
+    sessionTokens = module.get(SessionTokens);
     passwordReauthService = module.get(PasswordReauthService);
     notificationsService = module.get(INotificationSender);
     identityService = module.get(AuthIdentityService);
@@ -159,7 +159,7 @@ describe('PasswordManagementService', () => {
     userService.findByEmail.mockResolvedValue(null);
     userService.findById.mockResolvedValue(mockUser);
     userService.update.mockReturnValue(okAsync(mockUser));
-    authTokenService.revokeAll.mockReturnValue(okAsync(undefined));
+    sessionTokens.revokeAll.mockReturnValue(okAsync(undefined));
     verificationCodeService.verify.mockReturnValue(okAsync(undefined));
     verificationCodeService.send.mockReturnValue(okAsync(undefined));
     notificationsService.create.mockReturnValue(okAsync(mockNotification));
@@ -204,7 +204,7 @@ describe('PasswordManagementService', () => {
         'user-1',
         '$argon2id$new-hash',
       );
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-1');
+      expect(sessionTokens.revokeAll).toHaveBeenCalledWith('user-1');
       expect(notificationsService.create).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({ type: 'password_changed' }),
@@ -226,7 +226,7 @@ describe('PasswordManagementService', () => {
 
       expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
       expect(hashPasswordMock).not.toHaveBeenCalled();
-      expect(authTokenService.revokeAll).not.toHaveBeenCalled();
+      expect(sessionTokens.revokeAll).not.toHaveBeenCalled();
     });
 
     it('should propagate a password-reauth failure instead of changing password', async () => {
@@ -250,7 +250,7 @@ describe('PasswordManagementService', () => {
         ok: false,
         error: expect.objectContaining({ code: 'RATE_LIMITED' }),
       });
-      expect(authTokenService.revokeAll).not.toHaveBeenCalled();
+      expect(sessionTokens.revokeAll).not.toHaveBeenCalled();
     });
 
     it('should reject OAuth-only user without credential account', async () => {
@@ -355,7 +355,7 @@ describe('PasswordManagementService', () => {
         'user-1',
         '$argon2id$new-hash',
       );
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-1');
+      expect(sessionTokens.revokeAll).toHaveBeenCalledWith('user-1');
       expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
@@ -776,7 +776,7 @@ describe('PasswordManagementService', () => {
         'user-1',
         '$argon2id$new-hash',
       );
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-1');
+      expect(sessionTokens.revokeAll).toHaveBeenCalledWith('user-1');
       expect(outcome).toEqual({ ok: true, value: undefined });
     });
 
@@ -825,7 +825,7 @@ describe('PasswordManagementService', () => {
         }),
       });
       expect(upsertCredentialAccountMock).not.toHaveBeenCalled();
-      expect(authTokenService.revokeAll).not.toHaveBeenCalled();
+      expect(sessionTokens.revokeAll).not.toHaveBeenCalled();
     });
 
     it('should reject with AUTH_PASSWORD_NOT_SET when the account has no credential', async () => {
@@ -846,7 +846,7 @@ describe('PasswordManagementService', () => {
         }),
       });
       expect(upsertCredentialAccountMock).not.toHaveBeenCalled();
-      expect(authTokenService.revokeAll).not.toHaveBeenCalled();
+      expect(sessionTokens.revokeAll).not.toHaveBeenCalled();
     });
 
     it('should map infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {

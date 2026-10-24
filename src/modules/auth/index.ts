@@ -1,5 +1,5 @@
 export type { OAuthProfile } from './types/oauth.types.js';
-export type { UserPayload } from './services/token.service.js';
+export type { UserPayload } from './types/auth-request.js';
 export { ARGON2_OPTIONS } from './config/argon2-options.js';
 export { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
 export {

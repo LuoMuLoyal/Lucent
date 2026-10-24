@@ -4,7 +4,7 @@ import {
   toEmailVerified,
 } from '../../../common/index.js';
 import type { User } from '#generated/prisma/client.js';
-import type { TokenPair } from '../services/token.service.js';
+import type { TokenPair } from '../application/services/session-tokens.js';
 
 /**
  * Shared auth resource returned by register, login, OAuth callback, and refresh

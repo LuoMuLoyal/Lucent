@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Req,
   Res,
@@ -26,6 +27,7 @@ import { registerResponseSchema } from '../../../../common/api/response-schema.r
 import { unwrapResult } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import { AuditLogService } from '../../../audit-log/index.js';
+import { UserService } from '../../../user/index.js';
 import { CookieSessionUseCase } from '../../application/use_cases/cookie-session.js';
 import {
   REFRESH_COOKIE_NAME,
@@ -43,7 +45,11 @@ import {
   type SessionRegisterDto,
   type SessionResponseDto,
 } from './dto/session.js';
-import { toCookieTokens, toSessionResponse } from './presenters/session.js';
+import {
+  loadSessionUser,
+  toCookieTokens,
+  toSessionResponse,
+} from './presenters/session.js';
 
 /**
  * HttpOnly cookie 会话端点 —— 面向**浏览器里跑的客户端**。
@@ -95,8 +101,11 @@ import { toCookieTokens, toSessionResponse } from './presenters/session.js';
 @ApiTags('Auth')
 @Controller('auth')
 export class CookieSessionController {
+  private readonly logger = new Logger(CookieSessionController.name);
+
   constructor(
     private readonly useCase: CookieSessionUseCase,
+    private readonly userService: UserService,
     private readonly auditLogService: AuditLogService,
     private readonly configService: ConfigService,
   ) {}
@@ -234,10 +243,20 @@ export class CookieSessionController {
       this.useCase.rotate(refreshToken, extractAuthRequestContext(request)),
     );
 
-    writeSessionCookies(reply, toCookieTokens(rotated.tokens), this.policy());
-    return toSessionResponse(rotated.user, rotated.tokens.accessTokenExpiresAt);
-  }
+    const user = await loadSessionUser(this.userService, rotated.userId);
+    if (user === null) {
+      // 会话行还在、人却没了：只可能是数据完整性问题。清 cookie 并按
+      // 「会话无效」拒绝，绝不让一个指向不存在用户的 cookie 继续可用。
+      this.logger.error(
+        `Rotated session points at a missing user: userId=${rotated.userId}`,
+      );
+      clearSessionCookies(reply, this.policy());
+      throw new DomainFailureException(this.useCase.refreshFailure());
+    }
 
+    writeSessionCookies(reply, toCookieTokens(rotated.tokens), this.policy());
+    return toSessionResponse(user, rotated.tokens.accessTokenExpiresAt);
+  }
   // ── POST /api/v1/auth/sessions/logout ────────────────────────
 
   @Post('sessions/logout')

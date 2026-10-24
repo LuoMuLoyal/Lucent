@@ -27,7 +27,7 @@ import { registerResponseSchema } from '../../../common/api/response-schema.regi
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import { AuthService } from '../services/auth.service.js';
-import { AuthTokenService } from '../services/token.service.js';
+import { SessionTokens } from '../application/services/session-tokens.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { Public } from '../decorators/public.decorator.js';
 import type { UserPayload } from '../types/auth-request.js';
@@ -48,7 +48,7 @@ import {
 export class SessionController {
   constructor(
     private readonly authService: AuthService,
-    private readonly authTokenService: AuthTokenService,
+    private readonly sessionTokens: SessionTokens,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -106,9 +106,7 @@ export class SessionController {
   // class name — Luminous re-generation shape needs gate review).
   @SerializeOptions({ schema: sessionListItemSchema })
   async listDevices(@CurrentUser() user: UserPayload) {
-    const sessions = await unwrapResult(
-      this.authTokenService.listSessions(user.sub),
-    );
+    const sessions = await unwrapResult(this.sessionTokens.list(user.sub));
     return sessions;
   }
 
@@ -150,7 +148,7 @@ export class SessionController {
     @Param('sessionId') sessionId: string,
     @Req() request: FastifyRequest,
   ) {
-    await unwrapResult(this.authTokenService.revokeById(user.sub, sessionId));
+    await unwrapResult(this.sessionTokens.revokeById(user.sub, sessionId));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,

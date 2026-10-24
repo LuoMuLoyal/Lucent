@@ -16,10 +16,11 @@ import { AuthIdentityService } from './identity.service.js';
 import type { RegisterDto } from '../../dto/credentials/register.dto.js';
 import type { LoginDto } from '../../dto/credentials/login.dto.js';
 import {
-  AuthTokenService,
-  type AuthRequestContext,
+  SessionTokens,
   type TokenPair,
-} from '../token.service.js';
+} from '../../application/services/session-tokens.js';
+import type { RequestOrigin } from '../../application/ports/request-origin.js';
+import { toSessionSubject } from '../../application/services/session-subject.js';
 import { credentialsInvalidFailure } from './credential-failure.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
 import { TurnstileService } from './turnstile.service.js';
@@ -42,7 +43,7 @@ export class CredentialAuthService {
   constructor(
     private readonly userService: UserService,
     private readonly verificationCodeService: VerificationCodeService,
-    private readonly authTokenService: AuthTokenService,
+    private readonly sessionTokens: SessionTokens,
     private readonly authRateLimitService: AuthRateLimitService,
     private readonly authIdentityService: AuthIdentityService,
     private readonly turnstileService: TurnstileService,
@@ -52,7 +53,7 @@ export class CredentialAuthService {
 
   register(
     dto: RegisterDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     const email = normalizeEmail(dto.email);
     const name = dto.nickname?.trim() || email.split('@')[0] || 'User';
@@ -101,8 +102,8 @@ export class CredentialAuthService {
             emailVerifiedAt: now(),
           })
           .andThen((updatedUser) =>
-            this.authTokenService
-              .generateTokenPair(updatedUser, context)
+            this.sessionTokens
+              .issue(toSessionSubject(updatedUser), context)
               .map((tokens) => ({ user: updatedUser, ...tokens })),
           );
       });
@@ -112,7 +113,7 @@ export class CredentialAuthService {
 
   login(
     dto: LoginDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     const email = normalizeEmail(dto.email);
 
@@ -142,8 +143,8 @@ export class CredentialAuthService {
             }),
           )
           .andThen((updatedUser) =>
-            this.authTokenService
-              .generateTokenPair(updatedUser, context)
+            this.sessionTokens
+              .issue(toSessionSubject(updatedUser), context)
               .map((tokens) => ({ user: updatedUser, ...tokens })),
           ),
       );

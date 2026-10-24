@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { CredentialAuthService } from './credential.service.js';
 import { UserService } from '../../../user/index.js';
 import { VerificationCodeService } from './verification-code.service.js';
-import { AuthTokenService } from '../token.service.js';
+import { SessionTokens } from '../../application/services/session-tokens.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
 import { TurnstileService } from './turnstile.service.js';
 import { AuthIdentityService } from './identity.service.js';
@@ -84,7 +84,7 @@ describe('CredentialAuthService', () => {
   let service: CredentialAuthService;
   let userService: vi.Mocked<UserService>;
   let verificationCodeService: vi.Mocked<VerificationCodeService>;
-  let authTokenService: vi.Mocked<AuthTokenService>;
+  let sessionTokens: vi.Mocked<SessionTokens>;
   let authRateLimitService: vi.Mocked<AuthRateLimitService>;
   let identityService: vi.Mocked<AuthIdentityService>;
   let turnstileService: vi.Mocked<TurnstileService>;
@@ -116,9 +116,9 @@ describe('CredentialAuthService', () => {
           },
         },
         {
-          provide: AuthTokenService,
+          provide: SessionTokens,
           useValue: {
-            generateTokenPair: vi.fn(),
+            issue: vi.fn(),
             revokeAll: vi.fn(),
           },
         },
@@ -160,7 +160,7 @@ describe('CredentialAuthService', () => {
     service = module.get(CredentialAuthService);
     userService = module.get(UserService);
     verificationCodeService = module.get(VerificationCodeService);
-    authTokenService = module.get(AuthTokenService);
+    sessionTokens = module.get(SessionTokens);
     authRateLimitService = module.get(AuthRateLimitService);
     identityService = module.get(AuthIdentityService);
     turnstileService = module.get(TurnstileService);
@@ -171,8 +171,8 @@ describe('CredentialAuthService', () => {
     userService.create.mockReturnValue(okAsync(mockUser));
     userService.update.mockReturnValue(okAsync(mockUser));
     userService.updateByEmail.mockResolvedValue(mockUser);
-    authTokenService.generateTokenPair.mockReturnValue(okAsync(mockTokenPair));
-    authTokenService.revokeAll.mockReturnValue(okAsync(undefined));
+    sessionTokens.issue.mockReturnValue(okAsync(mockTokenPair));
+    sessionTokens.revokeAll.mockReturnValue(okAsync(undefined));
     verificationCodeService.verify.mockReturnValue(okAsync(undefined));
     verificationCodeService.send.mockReturnValue(okAsync(undefined));
     authRateLimitService.checkLoginRateLimit.mockReturnValue(
@@ -224,8 +224,12 @@ describe('CredentialAuthService', () => {
         emailVerified: true,
         emailVerifiedAt: expect.any(Date),
       });
-      expect(authTokenService.generateTokenPair).toHaveBeenCalledWith(
-        mockUser,
+      expect(sessionTokens.issue).toHaveBeenCalledWith(
+        {
+          userId: mockUser.id,
+          email: mockUser.email,
+          status: mockUser.status,
+        },
         undefined,
       );
       expect(outcome).toEqual({
@@ -296,8 +300,12 @@ describe('CredentialAuthService', () => {
       const context = { ipAddress: '1.2.3.4', userAgent: 'Test/1.0' };
       await collectResult(service.register(buildRegisterDto(), context));
 
-      expect(authTokenService.generateTokenPair).toHaveBeenCalledWith(
-        mockUser,
+      expect(sessionTokens.issue).toHaveBeenCalledWith(
+        {
+          userId: mockUser.id,
+          email: mockUser.email,
+          status: mockUser.status,
+        },
         context,
       );
     });

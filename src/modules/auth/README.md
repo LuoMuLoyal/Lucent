@@ -37,16 +37,22 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 
 已迁移的切片:
 
-| 层                       | 位置                                                                                    | 职责                                                               |
-| ------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `domain/session/`        | `cookie-policy.ts`                                                                      | `SessionCookiePolicy` 值对象与属性推导(纯逻辑,零 import)           |
-| `application/use_cases/` | `cookie-session.ts`                                                                     | 五个用例的编排;输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
-| `adapters/http/`         | `cookie.controller.ts`、`dto/session.ts`、`presenters/session.ts`、`session-cookies.ts` | 请求解析、契约校验、响应投影、`Set-Cookie` 序列化                  |
-| `infrastructure/`        | (本切片无)                                                                              | cookie 是 HTTP 投递关注点,不是持久化或外部系统                     |
+| 层                       | 位置                                                                                             | 职责                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `domain/session/`        | `cookie-policy.ts`、`refresh-token.ts`、`session.ts`、`sessions.ts`                              | cookie 投放策略、refresh 指纹与重放分类、会话聚合与仓储端口（纯逻辑）    |
+| `application/use_cases/` | `cookie-session.ts`                                                                              | cookie 会话五步编排；输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
+| `application/services/`  | `session-tokens.ts`、`session-subject.ts`                                                        | 签发/轮换/吊销的编排；用户实体 → token payload 的唯一映射                |
+| `application/ports/`     | `access-tokens.ts`、`session-lifetime.ts`、`request-origin.ts`                                   | 签发、TTL、请求元数据的出站端口                                          |
+| `adapters/http/`         | `cookie.controller.ts`、`dto/session.ts`、`presenters/session.ts`、`session-cookies.ts`          | 请求解析、契约校验、响应投影、`Set-Cookie` 序列化                        |
+| `infrastructure/`        | `persistence/sessions.ts`、`security/jwt-access-tokens.ts`、`config/runtime-session-lifetime.ts` | Prisma 会话仓储、JWT 签发、运行期 TTL                                    |
 
 约束:`application/` 不得 import `adapters/`——`pnpm arch:check` 的
 `ddd-application-no-infra-or-adapters` 会拦。新增用例的输入类型定义在
-应用层,不要复用 zod 输出类型。
+应用层,不要复用 zod 输出类型。`domain/` 与 `application/` 都不设 barrel。
+
+S1（会话）已迁完:`services/token.service.ts` 与 `repositories/session.repository.ts`
+已删除。轮换判定（宽限窗口内是竞态、窗口外是盗用）从流程里搬进了
+`domain/session/session.ts`，因此可以脱离 Prisma 与 DI 容器单测。
 
 ## 端点命名
 
@@ -102,11 +108,12 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
 - `services/identity/password-management.service.ts` — 改/设/重置密码、改邮箱、
   验证码下发;消费 `AuthIdentityService`、`EmailVerificationService`、
   `PasswordReauthService` 与 `INotificationSender`。
-- `services/token.service.ts` — JWT access/refresh 生成与 session CRUD。
-  轮换是**一次性**的(`rotatedAt` 标记,行保留为 tombstone),并按 token family 做
-  重放检测:同一 refresh token 再次出现时,宽限窗口内视为并发竞态只拒绝,
-  窗口外视为盗用并**撤销整族**(RFC 9700 §4.13.2)。`familyId` 让轮换出来的新会话
-  仍属于同一条链,因此撤销能覆盖盗用者可能拿到的全部会话。
+- `services/token.service.ts` — 已删除（S1 迁入 `domain/session/` +
+  `application/services/session-tokens.ts` + `infrastructure/persistence/sessions.ts`）。
+  轮换是**一次性**的（`rotatedAt` 标记，行保留为 tombstone），并按 token family 做
+  重放检测：同一 refresh token 再次出现时，宽限窗口内视为并发竞态只拒绝，
+  窗口外视为盗用并**撤销整族**（RFC 9700 §4.13.2）。`familyId` 让轮换出来的新会话
+  仍属于同一条链，因此撤销能覆盖盗用者可能拿到的全部会话。
 - `services/session-admin.service.ts` — 管理面会话撤销(`AuthSessionAdminService`),
   包装 `AuthTokenService.revokeAll`/`revokeById`,供 admin 强制下线并审计。
 - `services/account.service.ts` — auth 账号生命周期(改邮箱/密码等)。
@@ -117,7 +124,8 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
 - `services/identity/email-verification.service.ts` — 邮箱验证 token 签发与消费。
 - `providers/` — 5 个 OAuth 提供商(`wechat_web`/`wechat_mobile`/`apple`/
   `google`/`qq`,见 `types/oauth.types.ts`);Apple/Google 为受信提供商(自动关联账号)。
-- `repositories/` — session/account 仓储(port + Prisma 实现)。
+- `repositories/` — account 仓储(port + Prisma 实现);session 仓储已迁入
+  `domain/session/sessions.ts`（端口）+ `infrastructure/persistence/sessions.ts`（实现）。
 - `guards/jwt-auth.guard.ts`、`strategies/jwt-access.strategy.ts`、`decorators/`。
 
 ## 不变量与陷阱
@@ -149,8 +157,13 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
 
 ## 测试承接
 
-`services/**/*.spec.ts`、`providers/**/*.spec.ts`、
-`repositories/*.spec.ts`、`guards/jwt-auth.guard.spec.ts`、
+`domain/**/*.spec.ts`、`application/**/*.spec.ts`、`services/**/*.spec.ts`、
+`providers/**/*.spec.ts`、`repositories/*.spec.ts`、`guards/jwt-auth.guard.spec.ts`、
 `strategies/jwt-access.strategy.spec.ts`、`decorators/*.spec.ts`;
 密码强度评分见 `src/common/validators/password-strength.spec.ts`;`turnstile.service.spec.ts` 覆盖关闭/放行/拒绝/故障四种分支,
 `rate-limit.service.spec.ts` 覆盖 `isCaptchaRequired` 阈值与窗口过期
+
+安全不变量必须有**脱离 Prisma mock 与 DI 容器**的纯单测（领域层直接 new 出来测）:
+反枚举桶、依赖故障不折进该桶、refresh 一次性轮换与族重放、停用即时失效、
+人机验证先于凭据比对。会话那条见 `domain/session/session.spec.ts`（判定）与
+`application/services/session-tokens.spec.ts`（编排顺序）。

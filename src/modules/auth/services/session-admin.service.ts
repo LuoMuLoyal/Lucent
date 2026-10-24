@@ -1,23 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
-import { AuthTokenService } from './token.service.js';
+import { SessionTokens } from '../application/services/session-tokens.js';
 
 /**
  * Administrative session-revocation surface used by the admin console. Wraps
- * `AuthTokenService` so the `auth` module remains the single writer for session
+ * `SessionTokens` so the `auth` module remains the single writer for session
  * rows, and records an audit entry for `users:write` admin actions.
  */
 @Injectable()
 export class AuthSessionAdminService {
   constructor(
-    private readonly tokenService: AuthTokenService,
+    private readonly sessionTokens: SessionTokens,
     private readonly auditLog: AuditLogService,
   ) {}
 
   /** Revokes every session belonging to the user. Idempotent. */
   async revokeAllForUser(actorUserId: string, userId: string): Promise<void> {
-    await unwrapResult(this.tokenService.revokeAll(userId));
+    await unwrapResult(this.sessionTokens.revokeAll(userId));
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
@@ -38,10 +38,12 @@ export class AuthSessionAdminService {
     userId: string,
     sessionId: string,
   ): Promise<boolean> {
-    const revoked = await this.tokenService.revokeById(userId, sessionId).match(
-      () => true,
-      () => false,
-    );
+    const revoked = await this.sessionTokens
+      .revokeById(userId, sessionId)
+      .match(
+        () => true,
+        () => false,
+      );
     if (!revoked) return false;
 
     await unwrapResult(

@@ -5,10 +5,14 @@ import { PassportModule } from '@nestjs/passport';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { UserModule } from '../user/user.module.js';
 import { MailModule } from '../../mail/mail.module.js';
-import {
-  AuthSessionRepository,
-  AuthSessionRepositoryPort,
-} from './repositories/session.repository.js';
+
+import { Sessions } from './domain/session/sessions.js';
+import { PrismaSessions } from './infrastructure/persistence/sessions.js';
+import { AccessTokens } from './application/ports/access-tokens.js';
+import { JwtAccessTokens } from './infrastructure/security/jwt-access-tokens.js';
+import { SessionLifetime } from './application/ports/session-lifetime.js';
+import { RuntimeSessionLifetime } from './infrastructure/config/runtime-session-lifetime.js';
+import { SessionTokens } from './application/services/session-tokens.js';
 
 import {
   AuthAccountRepository,
@@ -21,7 +25,6 @@ import { SessionController } from './controllers/session.controller.js';
 import { CookieSessionController } from './adapters/http/cookie.controller.js';
 import { AuthRateLimitService } from './services/identity/rate-limit.service.js';
 import { PasswordReauthService } from './services/identity/password-reauth.service.js';
-import { AuthTokenService } from './services/token.service.js';
 import { AuthOAuthStateService } from './services/oauth/state.service.js';
 import { AuthOAuthService } from './services/oauth/oauth.service.js';
 import { CredentialAuthService } from './services/identity/credential.service.js';
@@ -48,7 +51,7 @@ import { TurnstileService } from './services/identity/turnstile.service.js';
     NotificationsModule,
     MailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({}), // actual secret is configured per-sign in AuthService
+    JwtModule.register({}), // actual secret is configured per-sign in JwtAccessTokens
   ],
   controllers: [
     LocalController,
@@ -57,11 +60,16 @@ import { TurnstileService } from './services/identity/turnstile.service.js';
     CookieSessionController,
   ],
   providers: [
-    AuthSessionRepository,
-    {
-      provide: AuthSessionRepositoryPort,
-      useExisting: AuthSessionRepository,
-    },
+    // ── 会话聚合（ADR-0024 四层） ──────────────────────────────
+    // 端口 → 实现用 useExisting 绑定，adapter 与 use case 都按抽象类注入。
+    PrismaSessions,
+    { provide: Sessions, useExisting: PrismaSessions },
+    JwtAccessTokens,
+    { provide: AccessTokens, useExisting: JwtAccessTokens },
+    RuntimeSessionLifetime,
+    { provide: SessionLifetime, useExisting: RuntimeSessionLifetime },
+    SessionTokens,
+
     AuthAccountRepository,
     {
       provide: AuthAccountRepositoryPort,
@@ -74,7 +82,6 @@ import { TurnstileService } from './services/identity/turnstile.service.js';
     AuthNotificationService,
     AuthRateLimitService,
     PasswordReauthService,
-    AuthTokenService,
     AuthOAuthStateService,
     AuthOAuthService,
     CredentialAuthService,

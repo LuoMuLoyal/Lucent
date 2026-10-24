@@ -36,8 +36,12 @@ import {
   AuthOAuthStateService,
   type OAuthStateEntry,
 } from './state.service.js';
-import { AuthTokenService, type TokenPair } from '../token.service.js';
-import type { AuthRequestContext } from '../../types/auth-request.js';
+import {
+  SessionTokens,
+  type TokenPair,
+} from '../../application/services/session-tokens.js';
+import { toSessionSubject } from '../../application/services/session-subject.js';
+import type { RequestOrigin } from '../../application/ports/request-origin.js';
 
 @Injectable()
 export class AuthOAuthFacadeService {
@@ -51,7 +55,7 @@ export class AuthOAuthFacadeService {
     private readonly googleOAuthProvider: GoogleOAuthProvider,
     private readonly appleOAuthProvider: AppleOAuthProvider,
     private readonly authOAuthStateService: AuthOAuthStateService,
-    private readonly authTokenService: AuthTokenService,
+    private readonly sessionTokens: SessionTokens,
     private readonly authOAuthService: AuthOAuthService,
     private readonly authNotificationService: AuthNotificationService,
   ) {}
@@ -100,7 +104,7 @@ export class AuthOAuthFacadeService {
 
   loginWithWechatWeb(
     dto: OAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthStateService
       .consume(OAUTH_PROVIDER_WECHAT_WEB, dto.state, 'login')
@@ -112,7 +116,7 @@ export class AuthOAuthFacadeService {
 
   loginWithWechatMobile(
     dto: OAuthCodeCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.wechatMobileOAuthProvider
       .fetchProfile({ code: dto.code })
@@ -121,7 +125,7 @@ export class AuthOAuthFacadeService {
 
   loginWithApple(
     dto: AppleOAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.appleOAuthProvider
       .fetchProfile({
@@ -159,7 +163,7 @@ export class AuthOAuthFacadeService {
 
   loginWithQq(
     dto: QqOAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthStateService
       .consume(OAUTH_PROVIDER_QQ, dto.state, 'login')
@@ -191,7 +195,7 @@ export class AuthOAuthFacadeService {
 
   loginWithGoogle(
     dto: GoogleOAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthStateService
       .consume(OAUTH_PROVIDER_GOOGLE, dto.state, 'login')
@@ -258,7 +262,7 @@ export class AuthOAuthFacadeService {
 
   private loginWithOAuthProfile(
     profile: OAuthProfile,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthService
       .findOrCreateOAuthUser(profile)
@@ -266,8 +270,8 @@ export class AuthOAuthFacadeService {
         this.authOAuthService.updateOAuthLoginUser(user, profile),
       )
       .andThen((updatedUser) =>
-        this.authTokenService
-          .generateTokenPair(updatedUser, context)
+        this.sessionTokens
+          .issue(toSessionSubject(updatedUser), context)
           .map((tokens) => {
             this.authNotificationService
               .notifyOAuthLogin(updatedUser.id, profile)

@@ -27,15 +27,16 @@ import type { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
 import type { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto.js';
 import type { SetPasswordDto } from '../dto/password/set-password.dto.js';
 import type { VerifyEmailDto } from '../dto/password/verify-email.dto.js';
-import { AuthRequestContext, TokenPair } from '../types/auth-request.js';
+import type { TokenPair } from '../types/auth-request.js';
 import { OAuthAuthorizeResult } from '../types/oauth.types.js';
 import { AuthAccountService } from './account.service.js';
 import { AuthOAuthFacadeService } from './oauth/facade.service.js';
-import { AuthTokenService } from './token.service.js';
+import { SessionTokens } from '../application/services/session-tokens.js';
+import type { RequestOrigin } from '../application/ports/request-origin.js';
 import { CredentialAuthService } from './identity/credential.service.js';
 import { PasswordManagementService } from './identity/password-management.service.js';
 
-export type { AuthRequestContext, UserPayload } from '../types/auth-request.js';
+export type { UserPayload } from '../types/auth-request.js';
 
 /**
  * Central authentication facade that orchestrates credential flows,
@@ -45,7 +46,7 @@ export type { AuthRequestContext, UserPayload } from '../types/auth-request.js';
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly authTokenService: AuthTokenService,
+    private readonly sessionTokens: SessionTokens,
     private readonly credentialAuthService: CredentialAuthService,
     private readonly passwordManagementService: PasswordManagementService,
     private readonly authAccountService: AuthAccountService,
@@ -56,14 +57,14 @@ export class AuthService {
 
   register(
     dto: RegisterDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.credentialAuthService.register(dto, context);
   }
 
   login(
     dto: LoginDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.credentialAuthService.login(dto, context);
   }
@@ -125,31 +126,36 @@ export class AuthService {
 
   /**
    * Rotates a refresh token. Only truly invalid, expired or already-consumed
-   * refresh tokens map to `AUTH_REFRESH_TOKEN_INVALID` (signalled by the token
-   * service / session repository as a DomainFailure). Database, signing and
-   * configuration failures are re-thrown and keep their real exception
-   * semantics — they are never misreported as an invalid token.
+   * refresh tokens map to `AUTH_REFRESH_TOKEN_INVALID` (signalled by the
+   * session aggregate as a DomainFailure). Database, signing and configuration
+   * failures keep their real semantics — they are never misreported as an
+   * invalid token.
    */
   refresh(
     refreshToken: string,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<TokenPair, DomainFailure> {
-    return this.authTokenService.refresh(refreshToken, context);
+    return this.sessionTokens
+      .rotate(refreshToken, context)
+      .map((r) => r.tokens);
   }
 
   /**
    * Rotates a refresh token **and** reports whose session it was.
    *
-   * The cookie-session flow needs the user after rotation to build the response
-   * body. The session record already carries it, so this avoids a second
+   * The cookie-session flow needs the user id after rotation to build the
+   * response body. The session row already carries it, so this avoids a second
    * lookup — and avoids decoding the freshly signed access JWT just to read
    * `sub` back out.
    */
   refreshWithUser(
     refreshToken: string,
-    context?: AuthRequestContext,
-  ): ResultAsync<{ user: User; tokens: TokenPair }, DomainFailure> {
-    return this.authTokenService.refreshWithUser(refreshToken, context);
+    context?: RequestOrigin,
+  ): ResultAsync<
+    { userId: string; status: string; tokens: TokenPair },
+    DomainFailure
+  > {
+    return this.sessionTokens.rotate(refreshToken, context);
   }
 
   /**
@@ -174,11 +180,11 @@ export class AuthService {
     userId: string,
     refreshToken: string,
   ): ResultAsync<void, DomainFailure> {
-    return this.authTokenService.revoke(userId, refreshToken);
+    return this.sessionTokens.revoke(userId, refreshToken);
   }
 
   logoutAll(userId: string): ResultAsync<void, DomainFailure> {
-    return this.authTokenService.revokeAll(userId);
+    return this.sessionTokens.revokeAll(userId);
   }
 
   // ── Account Management ───────────────────────────────────────
@@ -220,21 +226,21 @@ export class AuthService {
 
   loginWithWechatWeb(
     dto: OAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithWechatWeb(dto, context);
   }
 
   loginWithWechatMobile(
     dto: OAuthCodeCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithWechatMobile(dto, context);
   }
 
   loginWithApple(
     dto: AppleOAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithApple(dto, context);
   }
@@ -247,7 +253,7 @@ export class AuthService {
 
   loginWithQq(
     dto: QqOAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithQq(dto, context);
   }
@@ -260,7 +266,7 @@ export class AuthService {
 
   loginWithGoogle(
     dto: GoogleOAuthCallbackDto,
-    context?: AuthRequestContext,
+    context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthFacadeService.loginWithGoogle(dto, context);
   }

@@ -24,7 +24,7 @@ import type { SetPasswordDto } from '../../dto/password/set-password.dto.js';
 import type { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.js';
 import type { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
 import type { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
-import { AuthTokenService } from '../token.service.js';
+import { SessionTokens } from '../../application/services/session-tokens.js';
 import { PasswordReauthService } from './password-reauth.service.js';
 
 /**
@@ -44,7 +44,7 @@ export class PasswordManagementService {
   constructor(
     private readonly userService: UserService,
     private readonly verificationCodeService: VerificationCodeService,
-    private readonly authTokenService: AuthTokenService,
+    private readonly sessionTokens: SessionTokens,
     private readonly passwordReauthService: PasswordReauthService,
     private readonly notificationsService: INotificationSender,
     private readonly authIdentityService: AuthIdentityService,
@@ -78,7 +78,7 @@ export class PasswordManagementService {
               hashedPassword,
             ),
           )
-          .andThen(() => this.authTokenService.revokeAll(userId))
+          .andThen(() => this.sessionTokens.revokeAll(userId))
           .andThen(() => {
             // Fire-and-forget: the notification is best-effort and must never
             // fail the password change after the DB write already committed.
@@ -125,7 +125,7 @@ export class PasswordManagementService {
               hashedPassword,
             ),
           )
-          .andThen(() => this.authTokenService.revokeAll(userId))
+          .andThen(() => this.sessionTokens.revokeAll(userId))
           .andThen(() => {
             void this._notifyPasswordChanged(userId);
             return okAsync(undefined);
@@ -260,7 +260,7 @@ export class PasswordManagementService {
                 hashedPassword,
               ),
             )
-            .andThen(() => this.authTokenService.revokeAll(userId))
+            .andThen(() => this.sessionTokens.revokeAll(userId))
             .andThen(() => {
               void this._notifyPasswordChanged(userId);
               return okAsync(undefined);

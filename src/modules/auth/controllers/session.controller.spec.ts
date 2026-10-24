@@ -2,7 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
 import { SessionController } from './session.controller.js';
 import { AuthService } from '../services/auth.service.js';
-import { AuthTokenService } from '../services/token.service.js';
+import { SessionTokens } from '../application/services/session-tokens.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import { DomainFailureException } from '../../../common/result/unwrap-result.js';
 import {
@@ -34,7 +34,7 @@ const mockRefreshResult = {
 describe('SessionController', () => {
   let controller: SessionController;
   let authService: vi.Mocked<AuthService>;
-  let authTokenService: vi.Mocked<AuthTokenService>;
+  let sessionTokens: vi.Mocked<SessionTokens>;
   let auditLogService: vi.Mocked<AuditLogService>;
 
   beforeEach(async () => {
@@ -49,9 +49,9 @@ describe('SessionController', () => {
           },
         },
         {
-          provide: AuthTokenService,
+          provide: SessionTokens,
           useValue: {
-            listSessions: vi.fn().mockReturnValue(okAsync([])),
+            list: vi.fn().mockReturnValue(okAsync([])),
             revokeById: vi.fn().mockReturnValue(okAsync(undefined)),
           },
         },
@@ -66,7 +66,7 @@ describe('SessionController', () => {
 
     controller = module.get(SessionController);
     authService = module.get(AuthService);
-    authTokenService = module.get(AuthTokenService);
+    sessionTokens = module.get(SessionTokens);
     auditLogService = module.get(AuditLogService);
   });
 
@@ -114,11 +114,11 @@ describe('SessionController', () => {
           createdAt: '2026-07-10T00:00:00Z',
         },
       ];
-      authTokenService.listSessions.mockReturnValue(okAsync(sessions as never));
+      sessionTokens.list.mockReturnValue(okAsync(sessions as never));
 
       const result = await controller.listDevices(mockUser);
 
-      expect(authTokenService.listSessions).toHaveBeenCalledWith('user-1');
+      expect(sessionTokens.list).toHaveBeenCalledWith('user-1');
       expect(result).toEqual(sessions);
     });
   });
@@ -129,10 +129,7 @@ describe('SessionController', () => {
         controller.revokeDevice(mockUser, 'sess-1', mockRequest),
       ).resolves.toBeUndefined();
 
-      expect(authTokenService.revokeById).toHaveBeenCalledWith(
-        'user-1',
-        'sess-1',
-      );
+      expect(sessionTokens.revokeById).toHaveBeenCalledWith('user-1', 'sess-1');
       expect(auditLogService.logFireAndForget).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-1',
@@ -144,7 +141,7 @@ describe('SessionController', () => {
     });
 
     it('does not write audit log when revocation fails (403 path)', async () => {
-      authTokenService.revokeById.mockReturnValue(
+      sessionTokens.revokeById.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authorization',
@@ -160,7 +157,7 @@ describe('SessionController', () => {
     });
 
     it('rethrows DomainFailureException for a missing session (404 path)', async () => {
-      authTokenService.revokeById.mockReturnValue(
+      sessionTokens.revokeById.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',

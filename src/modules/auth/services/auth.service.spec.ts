@@ -8,13 +8,12 @@ import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 
 import { AuthService } from './auth.service.js';
-import { AuthSessionRepositoryPort } from '../repositories/session.repository.js';
 
 import { AuthAccountRepositoryPort } from '../repositories/account.repository.js';
 import { UserService } from '../../user/index.js';
 import { VerificationCodeService } from './identity/verification-code.service.js';
 import { AuthRateLimitService } from './identity/rate-limit.service.js';
-import { AuthTokenService } from './token.service.js';
+import { SessionTokens } from '../application/services/session-tokens.js';
 import { AuthOAuthStateService } from './oauth/state.service.js';
 import { AuthOAuthService } from './oauth/oauth.service.js';
 import { CredentialAuthService } from './identity/credential.service.js';
@@ -91,7 +90,7 @@ const mockTokenPair = {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let authTokenService: vi.Mocked<AuthTokenService>;
+  let sessionTokens: vi.Mocked<SessionTokens>;
   let authAccountService: vi.Mocked<AuthAccountService>;
   let authOAuthFacadeService: vi.Mocked<AuthOAuthFacadeService>;
   let credentialAuthService: vi.Mocked<CredentialAuthService>;
@@ -102,10 +101,6 @@ describe('AuthService', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        {
-          provide: AuthSessionRepositoryPort,
-          useValue: {},
-        },
         {
           provide: AuthAccountRepositoryPort,
           useValue: {},
@@ -180,10 +175,10 @@ describe('AuthService', () => {
           },
         },
         {
-          provide: AuthTokenService,
+          provide: SessionTokens,
           useValue: {
-            generateTokenPair: vi.fn().mockReturnValue(okAsync(mockTokenPair)),
-            refresh: vi.fn().mockReturnValue(
+            issue: vi.fn().mockReturnValue(okAsync(mockTokenPair)),
+            rotate: vi.fn().mockReturnValue(
               errAsync(
                 createDomainFailure({
                   kind: 'authentication',
@@ -194,8 +189,7 @@ describe('AuthService', () => {
             revoke: vi.fn().mockReturnValue(okAsync(undefined)),
             revokeAll: vi.fn().mockReturnValue(okAsync(undefined)),
             revokeById: vi.fn(),
-            listSessions: vi.fn(),
-            hashRefreshToken: vi.fn(),
+            list: vi.fn(),
           },
         },
         {
@@ -334,7 +328,7 @@ describe('AuthService', () => {
 
     module = moduleFixture;
     service = module.get(AuthService);
-    authTokenService = module.get(AuthTokenService);
+    sessionTokens = module.get(SessionTokens);
     authAccountService = module.get(AuthAccountService);
     authOAuthFacadeService = module.get(AuthOAuthFacadeService);
     credentialAuthService = module.get(CredentialAuthService);
@@ -353,15 +347,19 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('should rotate refresh token and return a new pair', async () => {
-      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
-        okAsync(mockTokenPair),
+      (sessionTokens.rotate as vi.Mock).mockReturnValueOnce(
+        okAsync({
+          userId: 'user-uuid-1',
+          status: 'active',
+          tokens: mockTokenPair,
+        }),
       );
 
       const outcome = await collectResult(
         service.refresh('valid-token', mockRequestContext),
       );
 
-      expect(authTokenService.refresh).toHaveBeenCalledWith(
+      expect(sessionTokens.rotate).toHaveBeenCalledWith(
         'valid-token',
         mockRequestContext,
       );
@@ -380,7 +378,7 @@ describe('AuthService', () => {
     });
 
     it('should return AUTH_REFRESH_TOKEN_INVALID for an expired refresh token', async () => {
-      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
+      (sessionTokens.rotate as vi.Mock).mockReturnValueOnce(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -400,7 +398,7 @@ describe('AuthService', () => {
     });
 
     it('should not mask infrastructure failures as refresh-token-invalid', async () => {
-      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
+      (sessionTokens.rotate as vi.Mock).mockReturnValueOnce(
         fromPromise(
           Promise.reject(new Error('db connection lost')),
           (error) => {
@@ -415,7 +413,7 @@ describe('AuthService', () => {
     });
 
     it('should not mask signing failures as refresh-token-invalid', async () => {
-      (authTokenService.refresh as vi.Mock).mockReturnValueOnce(
+      (sessionTokens.rotate as vi.Mock).mockReturnValueOnce(
         fromPromise(
           Promise.reject(new InternalServerErrorException('signing failed')),
           (error) => {
@@ -435,13 +433,13 @@ describe('AuthService', () => {
   // ══════════════════════════════════════════════════════════════
 
   describe('logout', () => {
-    it('should delegate to authTokenService.revoke', async () => {
+    it('should delegate to SessionTokens.revoke', async () => {
       const outcome = await collectResult(
         service.logout('user-uuid-1', 'some-refresh-token'),
       );
 
       expect(outcome).toEqual({ ok: true, value: undefined });
-      expect(authTokenService.revoke).toHaveBeenCalledWith(
+      expect(sessionTokens.revoke).toHaveBeenCalledWith(
         'user-uuid-1',
         'some-refresh-token',
       );
@@ -449,11 +447,11 @@ describe('AuthService', () => {
   });
 
   describe('logoutAll', () => {
-    it('should delegate to authTokenService.revokeAll', async () => {
+    it('should delegate to SessionTokens.revokeAll', async () => {
       const outcome = await collectResult(service.logoutAll('user-uuid-1'));
 
       expect(outcome).toEqual({ ok: true, value: undefined });
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
+      expect(sessionTokens.revokeAll).toHaveBeenCalledWith('user-uuid-1');
     });
   });
 

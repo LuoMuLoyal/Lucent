@@ -4,7 +4,7 @@ import type { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mo
 import type { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
 import type { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
 import type { AuthOAuthStateService } from './state.service.js';
-import type { AuthTokenService } from '../token.service.js';
+import type { SessionTokens } from '../../application/services/session-tokens.js';
 import type { AuthOAuthService } from './oauth.service.js';
 import type { AuthNotificationService } from '../notification.service.js';
 import type { OAuthProfile } from '../../types/oauth.types.js';
@@ -74,7 +74,7 @@ describe('AuthOAuthFacadeService', () => {
   let qqProvider: vi.Mocked<QqOAuthProvider>;
   let googleProvider: vi.Mocked<GoogleOAuthProvider>;
   let stateService: vi.Mocked<AuthOAuthStateService>;
-  let tokenService: vi.Mocked<AuthTokenService>;
+  let tokenService: vi.Mocked<SessionTokens>;
   let oauthService: vi.Mocked<AuthOAuthService>;
   let notificationService: vi.Mocked<AuthNotificationService>;
   let appleProvider: vi.Mocked<AppleOAuthProvider>;
@@ -135,8 +135,8 @@ describe('AuthOAuthFacadeService', () => {
       buildRedirectUrl: vi.fn().mockReturnValue(ok('https://app/callback')),
     } as unknown as vi.Mocked<AuthOAuthStateService>;
     tokenService = {
-      generateTokenPair: vi.fn().mockReturnValue(okAsync(mockTokens)),
-    } as unknown as vi.Mocked<AuthTokenService>;
+      issue: vi.fn().mockReturnValue(okAsync(mockTokens)),
+    } as unknown as vi.Mocked<SessionTokens>;
     oauthService = {
       findOrCreateOAuthUser: vi.fn().mockReturnValue(okAsync(mockUser)),
       updateOAuthLoginUser: vi.fn().mockReturnValue(okAsync(mockUser)),
@@ -283,7 +283,7 @@ describe('AuthOAuthFacadeService', () => {
       expect(oauthService.findOrCreateOAuthUser).toHaveBeenCalledWith(
         mockProfile,
       );
-      expect(tokenService.generateTokenPair).toHaveBeenCalled();
+      expect(tokenService.issue).toHaveBeenCalled();
       expect(outcome).toEqual({
         ok: true,
         value: expect.objectContaining({

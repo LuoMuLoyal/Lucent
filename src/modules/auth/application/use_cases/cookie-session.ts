@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import type { User } from '#generated/prisma/client.js';
 import { unwrapResult } from '../../../../common/result/index.js';
 
 import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { AuthRequestContext, TokenPair } from '../../types/auth-request.js';
+import type { RequestOrigin } from '../ports/request-origin.js';
+import { SessionTokens, type TokenPair } from '../services/session-tokens.js';
 import { AuthService } from '../../services/auth.service.js';
 
 /**
@@ -35,14 +35,27 @@ export interface RegisterCommand {
 }
 
 /**
- * 凭据流程的返回值：用户 + 一对 token，其中 token 仍是扁平字段。
- * 这是既有 `AuthService` 的形状，本用例把它收敛成 `{ user, tokens }`。
+ * 会话响应用到的用户字段子集（HTTP 投影只需要这些）。
+ *
+ * 比 `User` 实体窄：投递层不该能读到 `deletedAt`、`status` 这类不进响应体的
+ * 列，也就不必为它们在本层建依赖。
  */
-type CredentialsResult = { user: User } & TokenPair;
+export interface SessionUser {
+  id: string;
+  email: string | null;
+  nickname: string | null;
+  avatar: string | null;
+  emailVerifiedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** 凭据流程的返回值：用户 + 一对 token，其中 token 仍是扁平字段。 */
+type CredentialsResult = { user: SessionUser } & TokenPair;
 
 /** 扁平 token 字段 → `TokenPair`，丢掉 `user`。 */
 function splitCredentials(result: CredentialsResult): {
-  user: User;
+  user: SessionUser;
   tokens: TokenPair;
 } {
   return {
@@ -63,26 +76,28 @@ function splitCredentials(result: CredentialsResult): {
  *
  * 它只做**编排**：调用凭据校验（`AuthService`）→ 拿到用户与 token 对 →
  * 交给投递层去下发 cookie。它不校验密码、不判断验证码、不构造 HTTP 响应，
- * 也不碰 `Set-Cookie` —— 那些分别属于既有领域服务与 HTTP adapter。
+ * 也不碰 `Set-Cookie` —— 那些分别属于领域服务与 HTTP adapter。
  *
  * 所以这个类读起来应该是几个「一条直线」的方法，而不是第二套认证逻辑。
  *
  * ## 为什么把 token 对原样返回
  *
- * 只有投递层知道 cookie 该怎么投（属性由 `domain/session/cookie_policy.ts`
+ * 只有投递层知道 cookie 该怎么投（属性由 `domain/session/cookie-policy.ts`
  * 决定）。用例层返回 `{ user, tokens }`，adapter 把 `tokens` 写进 cookie、
  * 把 `user` 投影成响应体 —— token 因此**没有任何一条路径**能进响应体。
  *
- * ## 待办：本模块的完整 DDD 化
+ * ## 轮换为什么直接走 `SessionTokens`
  *
- * `AuthService` 仍是本模块的 legacy 服务（ADR-0024 把 `auth` 列为第二批迁移）。
- * 本用例直接依赖它，是本批次**已知的过渡状态**：等 `auth` 整体迁移时，
- * 这里换成 application port，凭据校验下沉到 `domain/`。
- * 现在强行包一层 port 只会把「尚未拆分的边界」伪装成已经拆好。
+ * 轮换除了签新 token 还要判断「这条 refresh token 还能不能用」，判定在
+ * `domain/session/session.ts`，编排在 `application/services/session-tokens.ts`。
+ * 本用例不需要再包一层——它只把结果交给投递层。
  */
 @Injectable()
 export class CookieSessionUseCase {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessionTokens: SessionTokens,
+  ) {}
 
   /**
    * 登录并返回会话所需的用户与 token。
@@ -93,35 +108,35 @@ export class CookieSessionUseCase {
    */
   login(
     command: LoginCommand,
-    context?: AuthRequestContext,
-  ): ResultAsync<{ user: User; tokens: TokenPair }, DomainFailure> {
+    context?: RequestOrigin,
+  ): ResultAsync<{ user: SessionUser; tokens: TokenPair }, DomainFailure> {
     return this.authService.login(command, context).map(splitCredentials);
   }
 
   /** 注册并直接建立会话（服务端注册即登录，客户端不必再调一次登录）。 */
   register(
     command: RegisterCommand,
-    context?: AuthRequestContext,
-  ): ResultAsync<{ user: User; tokens: TokenPair }, DomainFailure> {
+    context?: RequestOrigin,
+  ): ResultAsync<{ user: SessionUser; tokens: TokenPair }, DomainFailure> {
     return this.authService.register(command, context).map(splitCredentials);
   }
 
   /**
    * 轮换会话。
    *
-   * 返回**新的一对** token 与它所属的用户：`AuthTokenService` 在轮换时
-   * 已经持有会话记录，所以这里不需要再解一次 JWT 或再查一次库。
+   * 会话行里已经有归属人，所以不需要再解一次 JWT 或再查一次库。
+   * 投递层拿到 `userId` 后自己决定要不要补一次用户查询来拼响应体。
    */
   rotate(
     refreshToken: string,
-    context?: AuthRequestContext,
-  ): ResultAsync<{ user: User; tokens: TokenPair }, DomainFailure> {
-    return this.authService.refreshWithUser(refreshToken, context);
+    context?: RequestOrigin,
+  ): ResultAsync<{ userId: string; tokens: TokenPair }, DomainFailure> {
+    return this.sessionTokens.rotate(refreshToken, context);
   }
 
   /** 吊销指定 refresh token 对应的会话。 */
   async revoke(userId: string, refreshToken: string): Promise<void> {
-    await unwrapResult(this.authService.logout(userId, refreshToken));
+    await unwrapResult(this.sessionTokens.revoke(userId, refreshToken));
   }
 
   /**
