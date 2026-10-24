@@ -147,9 +147,11 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 成分」隐形，而分析结论的可靠性正取决于可解析比例。解析不出成分的条目（手动录入、
 CN 源查不到详情）计入前者、不计入后者，**不让整体失败**。
 
-**未接入的部分**：健康事件关联暂未查询（`CurrentMedicineRow` 里没有该字段，改它会
-牵动风险检查的既有行为），因此 `sourceOverlaps` 目前只有 `unattributed` 一个分组。
-跟进项见 `docs/TODO.md`。
+`healthEventIds` 来自 `CurrentMedicineRow`——`HealthEventMedicine` 是多对多，在
+`loadHealthContext` 的 `currentMedicines` include 里一次带出，不额外往返。没有关联事件的
+条目归入 `unattributed`。**两组同时存在是正常的**：已归类的说明这个药由某条病程解释，
+`unattributed` 的那些往往是自己加购或长期服用的，反而更值得关注——没有任何一个医生
+在统筹它们。
 
 ## 半衰期解析与漏服判定（领域逻辑，**尚未接进提示链路**）
 

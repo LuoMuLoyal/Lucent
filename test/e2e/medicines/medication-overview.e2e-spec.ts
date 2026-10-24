@@ -8,7 +8,7 @@ import request from 'supertest';
 import { AppModule } from '../../../src/app.module.js';
 import { setupApp } from '../../../src/setup-app.js';
 import { PrismaService } from '../../../src/prisma/index.js';
-import { MedicineSource } from '#generated/prisma/client.js';
+import { HealthEventKind, MedicineSource } from '#generated/prisma/client.js';
 import { ConfigKey } from '../../../src/config/env/config-keys.enum.js';
 import {
   bearer,
@@ -192,6 +192,44 @@ describe('Medication Overview API (e2e)', () => {
     expect(body.sourceOverlaps[0]?.displayNames).not.toContain(
       'Other user medicine',
     );
+  });
+
+  it('groups medicines by the health event that links them', async () => {
+    // 有事件关联的条目按事件分组；这是全景区别于条目列表的关键——
+    // 它回答「这几个药是同一个病程开的，还是不同时期自己加的」。
+    const event = await prisma.healthEvent.create({
+      data: {
+        userId: user.id,
+        title: 'Flu',
+        kind: HealthEventKind.symptom,
+        startedAt: new Date('2026-10-01'),
+      },
+    });
+    const linked = await prisma.userCurrentMedicine.create({
+      data: {
+        userId: user.id,
+        source: MedicineSource.manual,
+        displayName: 'Linked medicine',
+        isCurrent: true,
+      },
+    });
+    await prisma.healthEventMedicine.create({
+      data: { eventId: event.id, currentMedicineId: linked.id },
+    });
+
+    const { body } = await get();
+
+    const linkedGroup = body.sourceOverlaps.find(
+      (group) => group.source === event.id,
+    );
+    expect(linkedGroup).toMatchObject({
+      medicineCount: 1,
+      displayNames: ['Linked medicine'],
+    });
+    // 未关联的那条仍在 unattributed 里。
+    expect(
+      body.sourceOverlaps.some((group) => group.source === 'unattributed'),
+    ).toBe(true);
   });
 
   it('ignores medicines that are no longer current', async () => {

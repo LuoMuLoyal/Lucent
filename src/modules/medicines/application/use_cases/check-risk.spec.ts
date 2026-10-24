@@ -193,6 +193,7 @@ describe('MedicineRiskCheckService', () => {
           sourceRefId: 'cn-1',
           displayName: '对乙酰氨基酚',
           startedAt: new Date('2026-06-01T00:00:00.000Z'),
+          healthEventIds: [],
         },
         {
           id: 'm2',
@@ -200,6 +201,7 @@ describe('MedicineRiskCheckService', () => {
           sourceRefId: 'local-1',
           displayName: '自制药',
           startedAt: new Date('2026-06-01T00:00:00.000Z'),
+          healthEventIds: [],
         },
         {
           id: 'm3',
@@ -207,6 +209,7 @@ describe('MedicineRiskCheckService', () => {
           sourceRefId: '',
           displayName: '无引用药',
           startedAt: new Date('2026-06-01T00:00:00.000Z'),
+          healthEventIds: [],
         },
       ],
     });
@@ -257,6 +260,7 @@ describe('MedicineRiskCheckService', () => {
           sourceRefId: 'db-1',
           displayName: 'DrugA',
           startedAt: new Date('2026-06-01T00:00:00.000Z'),
+          healthEventIds: [],
         },
       ],
     });
@@ -313,6 +317,7 @@ describe('MedicineRiskCheckService', () => {
           sourceRefId: 'cn-1',
           displayName: '对乙酰氨基酚',
           startedAt: new Date('2026-06-01T00:00:00.000Z'),
+          healthEventIds: [],
         },
       ],
     });
@@ -397,6 +402,7 @@ describe('MedicineRiskCheckService', () => {
           sourceRefId: ' cn-1 ',
           displayName: '对乙酰氨基酚',
           startedAt: new Date('2026-06-01T00:00:00.000Z'),
+          healthEventIds: [],
         },
       ],
     });
@@ -653,6 +659,7 @@ describe('MedicineRiskCheckService', () => {
           sourceRefId: 'cn-1',
           displayName: '对乙酰氨基酚',
           startedAt: new Date('2026-06-01T00:00:00.000Z'),
+          healthEventIds: [],
         },
       ],
     });

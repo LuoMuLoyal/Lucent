@@ -104,10 +104,7 @@ export class MedicationOverviewService {
         drugbankId: wrapper === null ? null : firstDrugbankId(wrapper),
         ingredientKeys:
           wrapper === null ? [] : [...getCanonicalIngredientKeys(wrapper)],
-        // 健康事件关联不在 `CurrentMedicineRow` 里（那个 port 属风险检查，
-        // 改它会牵动既有行为）。全景暂时只区分「已归类」与「未归类」，
-        // 具体事件分组见 `docs/TODO.md` 的用药全景跟进项。
-        healthEventIds: [],
+        healthEventIds: item.healthEventIds,
       };
     });
 

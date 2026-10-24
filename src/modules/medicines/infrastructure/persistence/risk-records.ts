@@ -105,6 +105,8 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
           where: { isCurrent: true },
           orderBy: { updatedAt: 'desc' },
           take: limit,
+          // 用药全景需要健康事件关联（多对多）。一次查出来，避免第二次往返。
+          include: { healthEventMedicines: { select: { eventId: true } } },
         },
       },
     });
@@ -130,6 +132,7 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
         sourceRefId: m.sourceRefId,
         displayName: m.displayName,
         startedAt: m.startedAt,
+        healthEventIds: m.healthEventMedicines.map((link) => link.eventId),
       })),
     };
   }

@@ -39,6 +39,14 @@ export interface CurrentMedicineRow {
   sourceRefId: string | null;
   displayName: string;
   startedAt: Date | null;
+  /**
+   * 关联的健康事件 id。
+   *
+   * 是**数组**：`HealthEventMedicine` 是 `@@unique([eventId, currentMedicineId])`，
+   * 一个药可以同时挂在多条病程下。用药全景用它区分「同一个病程里开的」与
+   * 「不同时期自己加的」——后者更值得提示，因为没有任何一个医生在统筹。
+   */
+  healthEventIds: string[];
 }
 
 export interface UserHealthContext {
