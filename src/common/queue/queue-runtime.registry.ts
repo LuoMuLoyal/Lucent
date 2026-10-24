@@ -48,6 +48,11 @@ export const QUEUE_CONCURRENCY_KEYS = {
     EnvKey.QUEUE_SUGGESTION_EXPLANATION_CONCURRENCY,
   [QUEUE_NAMES.suggestionRecompute]:
     EnvKey.QUEUE_SUGGESTION_RECOMPUTE_CONCURRENCY,
+  [QUEUE_NAMES.eventFanout]: EnvKey.QUEUE_EVENT_FANOUT_CONCURRENCY,
+  [QUEUE_NAMES.reportCacheInvalidation]:
+    EnvKey.QUEUE_REPORT_CACHE_INVALIDATION_CONCURRENCY,
+  [QUEUE_NAMES.medicineRiskRefresh]:
+    EnvKey.QUEUE_MEDICINE_RISK_REFRESH_CONCURRENCY,
 } as const satisfies Record<QueueName, EnvKey>;
 
 @Injectable()

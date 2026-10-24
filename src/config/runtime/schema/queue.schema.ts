@@ -90,6 +90,24 @@ export const queueRuntimeFields = {
     max: MAX_CONCURRENCY,
     defaultValue: 1,
   }),
+  [EnvKey.QUEUE_EVENT_FANOUT_CONCURRENCY]: numberField({
+    family: 'queue',
+    min: MIN_CONCURRENCY,
+    max: MAX_CONCURRENCY,
+    defaultValue: 2,
+  }),
+  [EnvKey.QUEUE_REPORT_CACHE_INVALIDATION_CONCURRENCY]: numberField({
+    family: 'queue',
+    min: MIN_CONCURRENCY,
+    max: MAX_CONCURRENCY,
+    defaultValue: 2,
+  }),
+  [EnvKey.QUEUE_MEDICINE_RISK_REFRESH_CONCURRENCY]: numberField({
+    family: 'queue',
+    min: MIN_CONCURRENCY,
+    max: MAX_CONCURRENCY,
+    defaultValue: 2,
+  }),
 
   [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]: numberField({
     family: 'queue',
