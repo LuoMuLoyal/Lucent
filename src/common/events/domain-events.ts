@@ -16,6 +16,7 @@ import type {
   DailyRecordKind,
   HealthEventKind,
 } from '#generated/prisma/client.js';
+import type { RiskLevel } from '../risk/risk-level.js';
 
 /** Emitted when a daily record is created, updated, or soft-deleted. */
 export const DAILY_RECORD_CHANGED = 'daily-record.changed';
@@ -95,15 +96,17 @@ export interface TodaySuggestionMaterializationChangedPayload {
   triggerKey?: string;
 }
 
-/** Agreed severity ladder of a persisted risk assessment, least severe first. */
-export type RiskSeverity = 'none' | 'low' | 'moderate' | 'high';
-
 export interface RiskAssessmentCompletedPayload {
   userId: string;
   /** Medicines the assessment was computed over. */
   medicineIds: string[];
-  /** Highest severity among the findings of this assessment. */
-  severity: RiskSeverity;
+  /**
+   * Aggregate risk level of this assessment — the same ladder the aggregate
+   * persists (`MedicineRiskLevel`), not a per-finding severity. Findings carry
+   * their own three-step severity; collapsing those into a four-step level
+   * here would lose information.
+   */
+  riskLevel: RiskLevel;
   /** Number of findings above the informational level. */
   findingCount: number;
   /** The persisted assessment aggregate. */
