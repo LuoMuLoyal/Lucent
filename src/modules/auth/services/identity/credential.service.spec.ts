@@ -456,6 +456,106 @@ describe('CredentialAuthService', () => {
       expect(userService.findByEmail).toHaveBeenCalledWith('test@example.com');
     });
 
+    it('folds a mismatched login code into AUTH_WRONG_PASSWORD and counts it', async () => {
+      // Anti-enumeration: the code path may not reveal that the account
+      // exists. It used to propagate AUTH_VERIFICATION_CODE_MISMATCH and skip
+      // recordLoginFailure entirely — an unthrottled oracle.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+    });
+
+    it('folds an expired login code into the same bucket as a mismatch', async () => {
+      // "Expired" and "mismatch" carry the same signal to an attacker
+      // ("this address exists and once asked for a code"), so they must not
+      // be separable either.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+    });
+
+    it('keeps a cache failure on the code path as a dependency failure', async () => {
+      // Invariant #2 on the code path: a cache outage must not be reported as
+      // "wrong code", or the user retries a code that was never the problem.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+            detail: 'verification cache down',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          kind: 'dependency',
+        }),
+      });
+      expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
+    });
+
+    it('answers a wrong login code and an unknown account identically', async () => {
+      // The observable proof of anti-enumeration, asserted in one test so the
+      // two paths cannot drift apart silently.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          }),
+        ),
+      );
+
+      const registered = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      userService.findByEmail.mockResolvedValue(null);
+      const unknown = await collectResult(
+        service.login(
+          buildLoginDto({ email: 'nobody@example.com', code: '000000' }),
+        ),
+      );
+
+      expect(registered).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(unknown).toEqual({ ok: false, error: wrongPasswordFailure });
+    });
+
     it('should surface the login rate-limit failure without recording another failure', async () => {
       authRateLimitService.checkLoginRateLimit.mockReturnValue(
         errAsync(

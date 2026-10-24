@@ -366,6 +366,75 @@ describe('Auth API (e2e)', () => {
       const data = expectData(body);
       expect(data.user.email).toBe(email);
     });
+
+    it('should fold a wrong login code into the anti-enumeration bucket', async () => {
+      // A wrong verification code must be indistinguishable from a wrong
+      // password: the response may not reveal whether the account exists.
+      // Before this was enforced, the code path returned
+      // AUTH_VERIFICATION_CODE_MISMATCH verbatim **and skipped rate
+      // limiting**, which made POST /auth/login an unthrottled oracle.
+      const { email } = await registerUser();
+
+      const res = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, code: INVALID_VERIFICATION_CODE })
+        .expect(401);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
+    });
+
+    it('should answer identically for an unknown account with a wrong code', async () => {
+      // The observable proof of anti-enumeration: a registered account and an
+      // unknown one must produce byte-identical status + code for the same
+      // request shape. Asserting them in one test is deliberate — two separate
+      // tests could drift apart without either failing.
+      const { email: registeredEmail } = await registerUser();
+      const unknownEmail = uniqueEmail('auth-unknown');
+
+      const registered = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email: registeredEmail, code: INVALID_VERIFICATION_CODE })
+        .expect(401);
+
+      const unknown = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email: unknownEmail, code: INVALID_VERIFICATION_CODE })
+        .expect(401);
+
+      const registeredBody = registered.body as Record<string, unknown>;
+      const unknownBody = unknown.body as Record<string, unknown>;
+
+      expect(registeredBody['code']).toBe('AUTH_WRONG_PASSWORD');
+      expect(unknownBody['code']).toBe('AUTH_WRONG_PASSWORD');
+      expect(registeredBody['code']).toBe(unknownBody['code']);
+      expect(registeredBody['status']).toBe(unknownBody['status']);
+      expect(registeredBody['title']).toBe(unknownBody['title']);
+    });
+
+    it('should count a wrong login code against the login rate limit', async () => {
+      // The code path used to return before recordLoginFailure, so this
+      // counter never moved and the oracle was unthrottled. Drive the same
+      // email past LOGIN_RATE_LIMIT_MAX (10) and require the lockout.
+      const { email } = await registerUser();
+
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const res = await request(app.getHttpServer())
+          .post(AUTH_PATH.login)
+          .send({ email, code: INVALID_VERIFICATION_CODE })
+          .expect(401);
+        const body = res.body as Record<string, unknown>;
+        expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
+      }
+
+      const locked = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, code: INVALID_VERIFICATION_CODE })
+        .expect(429);
+
+      const lockedBody = locked.body as Record<string, unknown>;
+      expect(lockedBody['code']).toBe('AUTH_LOGIN_RATE_LIMITED');
+    });
   });
 
   // ════════════════════════════════════════════════════════════

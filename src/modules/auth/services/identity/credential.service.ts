@@ -154,10 +154,29 @@ export class CredentialAuthService {
 
   /**
    * Validates the provided password (or verification code) for a login
-   * attempt. Every failure path returns the same generic
-   * `AUTH_WRONG_PASSWORD` code so the response never reveals whether the
-   * account exists, whether it has a password, or whether the credentials
-   * were wrong; each failure also records the attempt for rate limiting.
+   * attempt.
+   *
+   * ## Anti-enumeration (invariant #1)
+   *
+   * **Every** credential failure returns the same generic
+   * `AUTH_WRONG_PASSWORD` code, so the response never reveals whether the
+   * account exists, whether it has a password, or whether the supplied code
+   * was wrong; each failure also records the attempt for rate limiting.
+   *
+   * The verification-code path is part of that fold, and this is the subtle
+   * one: it used to propagate `AUTH_VERIFICATION_CODE_MISMATCH` /
+   * `AUTH_VERIFICATION_CODE_EXPIRED` verbatim **and skip rate limiting**,
+   * which made `POST /auth/login` an unthrottled oracle — an attacker could
+   * send `{ email, code: '000000' }` and read account existence off the
+   * error code, with no lockout ever engaging. Both code failures now fold
+   * into the same bucket and count against the same limiter.
+   *
+   * ## Dependency failures are a separate branch (invariant #2)
+   *
+   * Internal/dependency failures (Argon2, DB, cache) are propagated
+   * unchanged so they are never misreported as wrong credentials — telling a
+   * user their password is wrong because the database is down sends them to
+   * reset a password that was never the problem.
    */
   private verifyLoginCredentials(
     email: string,
@@ -196,9 +215,20 @@ export class CredentialAuthService {
         });
     }
 
+    // Verification-code path. Both "code mismatch" and "code expired" fold
+    // into the same anti-enumeration bucket as a wrong password, and both are
+    // counted against the login limiter — see the docstring above for why the
+    // distinction must not be observable. Dependency failures (cache down)
+    // still propagate unchanged.
     return this.verificationCodeService
       .verify(email, dto.code as string, 'login')
-      .map(() => user);
+      .map(() => user)
+      .orElse((error) => {
+        if (error.kind === 'internal' || error.kind === 'dependency') {
+          return errAsync(error);
+        }
+        return this.recordLoginFailure(email);
+      });
   }
 
   /**

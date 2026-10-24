@@ -135,9 +135,17 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
   不暴露账号是否存在、是否有密码、验证码是否正确。注册先校验验证码再看邮箱
   是否已注册(邮箱已存在与验证码错误同码),登录的"用户不存在/无密码/密码错"
   也折叠成同一码并计入限流。
+  **登录的验证码失败同样折进该桶并计入限流**:`AUTH_VERIFICATION_CODE_MISMATCH`
+  与 `AUTH_VERIFICATION_CODE_EXPIRED` 曾经原样返回且**跳过 `recordLoginFailure`**,
+  于是 `POST /auth/login` 成了一个不限速的账号存在性预言机(发
+  `{email, code:'000000'}` 看错误码即可判断邮箱是否注册,且永不触发锁号)。
+  现已折叠;`AUTH_VERIFICATION_CODE_*` 只剩发码冷却/限流与邮箱验证 token
+  这几条**不泄露账号存在性**的出口。注册路径不受影响(必须先拿到有效码才能
+  走到邮箱检查,不构成预言机)。
 - **依赖故障绝不能折进反枚举桶**:Argon2/DB/签 token/缓存异常由调用方映射为
   `DEPENDENCY_UNAVAILABLE`(或超时码)原样上抛。这条分界是安全保证而非风格:
-  把宕机报成"密码错"会引导用户重置一个并没有问题的密码。
+  把宕机报成"密码错"会引导用户重置一个并没有问题的密码。登录的验证码路径
+  同样遵守——缓存故障不得报成"验证码错"。
 - 限流按邮箱(`auth:login-failure:*`,窗口 15 分钟、10 次后锁 1 小时)与
   userId(`auth:reauth-failure:*`)分桶,缓存故障保留原始异常。
 - `JwtAccessStrategy` 拒绝 `status !== 'active'` 的 token,用户被停用后旧
