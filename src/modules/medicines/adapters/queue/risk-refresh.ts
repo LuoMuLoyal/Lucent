@@ -110,13 +110,19 @@ export class MedicineRiskRefreshQueueService implements OnModuleInit {
   /**
    * Enqueues the debounced check under a per-user job id.
    *
-   * A job already waiting under that id is **left alone**, deliberately. The
-   * alternative — `changeDelay` on every event, as `RecomputeQueueService`
-   * does — keeps pushing the window back, so a user whose changes keep arriving
-   * less than 5 seconds apart would never reach a check. Keeping the original
-   * deadline bounds the staleness instead: the check runs 5 seconds after the
-   * *first* change in the burst, and if more changes arrive afterwards they
-   * schedule the next one.
+   * A job already waiting under that id is **left alone**, deliberately: the
+   * check runs 5 seconds after the *first* change in a burst, and a later
+   * change schedules the next one. Pushing the deadline back on every event —
+   * which is what the `setTimeout` this replaces did, and what
+   * `RecomputeQueueService` still does — means a user who edits medication more
+   * often than once per window never reaches a check at all.
+   *
+   * **This is deliberately the opposite of `RecomputeQueueService`'s policy, and
+   * the difference is a cost/latency trade-off, not an inconsistency.** A risk
+   * check is cheap (static rules only) and time-sensitive, so bounding staleness
+   * wins. A suggestion recompute is expensive (rule engine + LLM copy), so
+   * waiting for the user to finish typing before computing once is the better
+   * trade. Do not "unify" them without re-deciding that trade-off.
    */
   private async enqueueRefresh(
     userId: string,

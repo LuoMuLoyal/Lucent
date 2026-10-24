@@ -5,6 +5,7 @@ import { MedicineRemindersOwnershipService } from './services/ownership.service.
 import { MedicineRemindersMapperService } from './services/mapper.service.js';
 import { MedicineRemindersService } from './services/reminders.service.js';
 import { ReminderSchedulerService } from './services/scheduler.service.js';
+import { ReminderDispatchQueueService } from './services/dispatch-queue.service.js';
 import { DeliveryReceiptsService } from './services/delivery-receipts.service.js';
 import { ReminderDeliveriesController } from './reminder-deliveries.controller.js';
 import {
@@ -30,6 +31,7 @@ import {
     MedicineRemindersMapperService,
     MedicineRemindersService,
     ReminderSchedulerService,
+    ReminderDispatchQueueService,
     DeliveryReceiptsService,
   ],
   exports: [

@@ -25,29 +25,20 @@ import {
   LifecycleService,
   LIFECYCLE_REFRESH_CRON,
 } from '../../modules/today-suggestion/index.js';
-import {
-  ReminderSchedulerService,
-  REMINDER_SCHEDULER_CRON,
-} from '../../modules/medicine-reminders/index.js';
 import { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/index.js';
 
 /** BullMQ queue name for low-frequency cron jobs (lifecycle + data-retention). */
 export const CRON_QUEUE_NAME = QUEUE_NAMES.cron;
 
-/** BullMQ queue name for the high-frequency reminder-dispatch job. */
-export const REMINDER_QUEUE_NAME = QUEUE_NAMES.reminderDispatch;
-
 /** Stable scheduler IDs — used by `upsertJobScheduler` for idempotent upsert. */
 const SCHEDULER_DATA_RETENTION = 'data-retention-cleanup';
 const SCHEDULER_LIFECYCLE = 'lifecycle-refresh';
-const SCHEDULER_REMINDER = 'reminder-dispatch';
 const SCHEDULER_WEEKLY_INSIGHT = 'weekly-insight';
 const SCHEDULER_MEAL_ANALYSIS_REAP = 'meal-analysis-reap';
 
 /** Job names — the worker processor dispatches on these. */
 const JOB_DATA_RETENTION = 'data-retention-cleanup';
 const JOB_LIFECYCLE = 'lifecycle-refresh';
-const JOB_REMINDER = 'reminder-dispatch';
 const JOB_WEEKLY_INSIGHT = 'weekly-insight';
 
 /**
@@ -58,16 +49,17 @@ const JOB_WEEKLY_INSIGHT = 'weekly-insight';
  * future multi-worker deployment, BullMQ's distributed dedup ensures each
  * repeatable job fires exactly once per cycle regardless of worker count.
  *
- * **Queue separation**: `reminder-dispatch` (every minute) runs on a dedicated
- * queue [`REMINDER_QUEUE_NAME`] so that a slow dispatch cycle cannot block
- * `lifecycle-refresh` or `data-retention-cleanup`. The low-frequency jobs
- * share [`CRON_QUEUE_NAME`] with `workerConcurrency: 2`.
+ * **Only low-frequency jobs live here.** `reminder-dispatch` (every minute)
+ * moved to its owning module
+ * (`medicine-reminders/services/dispatch-queue.service.ts`) under ADR-0025:
+ * it needs its own queue so a slow dispatch cannot delay `lifecycle-refresh`
+ * or `data-retention-cleanup`, and keeping a business call in this leaf layer
+ * forced `common/` to import a business module.
  */
 @Injectable()
 export class CronJobsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CronJobsService.name);
   private cronQueue: Queue | null = null;
-  private reminderQueue: Queue | null = null;
   /** Cron pattern currently registered for the meal-analysis reaper. */
   private mealReapCron: string | null = null;
   private unsubscribe: (() => void) | null = null;
@@ -76,7 +68,6 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
     private readonly factory: BullmqQueueFactory,
     private readonly dataRetentionService: DataRetentionService,
     private readonly lifecycleService: LifecycleService,
-    private readonly reminderSchedulerService: ReminderSchedulerService,
     private readonly weeklyInsightSchedulerService: WeeklyInsightSchedulerService,
     private readonly mealAnalysisSweeperService: MealAnalysisSweeperService,
     @Optional()
@@ -115,23 +106,7 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    // High-frequency queue: reminder-dispatch (every minute)
-    const reminderHandle = this.factory.createQueue({
-      name: REMINDER_QUEUE_NAME,
-      runtimeKey: REMINDER_QUEUE_NAME,
-      processor: async (job) => {
-        switch (job.name) {
-          case JOB_REMINDER:
-            await this.reminderSchedulerService.dispatchDueReminders();
-            return;
-          default:
-            this.logger.warn(`Unknown reminder job name: ${job.name}`);
-        }
-      },
-    });
-
     this.cronQueue = cronHandle.queue;
-    this.reminderQueue = reminderHandle.queue;
 
     await this.registerSchedulers();
 
@@ -167,11 +142,13 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
 
     if (this.cronQueue != null) {
       const cronQueue = this.cronQueue;
-      // Clean up stale scheduler left behind by the 2026-07-29 queue split.
-      // `reminder-dispatch` was moved to REMINDER_QUEUE_NAME, but BullMQ
-      // repeatable schedulers persist in Redis until explicitly removed.
+      // Clean up the stale `reminder-dispatch` scheduler left behind by the
+      // 2026-07-29 queue split. BullMQ repeatable schedulers persist in Redis
+      // until explicitly removed, so the old rule on this queue would keep
+      // firing `reminder-dispatch` here even though the job now belongs to
+      // `medicine-reminders` (ADR-0025) and registers its own scheduler.
       registrations.push(
-        cronQueue.removeJobScheduler(SCHEDULER_REMINDER),
+        cronQueue.removeJobScheduler('reminder-dispatch'),
         cronQueue.upsertJobScheduler(
           SCHEDULER_DATA_RETENTION,
           { pattern: DATA_RETENTION_CRON, tz: 'UTC' },
@@ -191,16 +168,6 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
           SCHEDULER_MEAL_ANALYSIS_REAP,
           { pattern: this.mealReapCron, tz: 'UTC' },
           { name: MEAL_ANALYSIS_REAP_JOB_NAME, data: {} },
-        ),
-      );
-    }
-
-    if (this.reminderQueue != null) {
-      registrations.push(
-        this.reminderQueue.upsertJobScheduler(
-          SCHEDULER_REMINDER,
-          { pattern: REMINDER_SCHEDULER_CRON, tz: 'UTC' },
-          { name: JOB_REMINDER, data: {} },
         ),
       );
     }

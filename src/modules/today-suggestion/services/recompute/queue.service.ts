@@ -106,6 +106,14 @@ export class RecomputeQueueService {
           // A job found under a recompute id is a recompute job by
           // construction: `event-trigger` jobs use the fan-out's own
           // `eventId:job:queue` id, which never collides with this one.
+          //
+          // A waiting job is **rescheduled** (`changeDelay` below), so a burst
+          // keeps pushing the window back and one recompute covers the whole
+          // burst. That is deliberate here and deliberately *not* what
+          // `MedicineRiskRefreshQueueService` does: a recompute is expensive
+          // (rule engine + LLM copy), so waiting for the user to finish typing
+          // is the better trade; a risk check is cheap and time-sensitive, so
+          // there it bounds staleness instead. Two policies, one reason each.
           const existingRecompute = existing as unknown as {
             data: RecomputeJobData;
             updateData: (data: RecomputeJobData) => Promise<void>;

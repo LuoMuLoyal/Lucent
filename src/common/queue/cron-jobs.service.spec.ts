@@ -5,13 +5,8 @@ import type { BullmqQueueFactory } from './queue.factory.js';
 import type { MealAnalysisSweeperService } from '../../modules/daily-records/index.js';
 import type { DataRetentionService } from '../../modules/data-retention/index.js';
 import type { LifecycleService } from '../../modules/today-suggestion/index.js';
-import type { ReminderSchedulerService } from '../../modules/medicine-reminders/index.js';
 import type { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/index.js';
-import {
-  CronJobsService,
-  CRON_QUEUE_NAME,
-  REMINDER_QUEUE_NAME,
-} from './cron-jobs.service.js';
+import { CronJobsService, CRON_QUEUE_NAME } from './cron-jobs.service.js';
 
 type ProcessorFn = (job: {
   id: string | undefined;
@@ -117,9 +112,6 @@ function buildServices() {
     lifecycleService: {
       refreshLifecycleStates: vi.fn().mockResolvedValue(undefined),
     } as unknown as LifecycleService,
-    reminderSchedulerService: {
-      dispatchDueReminders: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ReminderSchedulerService,
     weeklyInsightSchedulerService: {
       runTick: vi.fn().mockResolvedValue(undefined),
     } as unknown as WeeklyInsightSchedulerService,
@@ -134,7 +126,6 @@ describe('CronJobsService', () => {
   let captured: CapturedQueue[];
   let dataRetentionService: DataRetentionService;
   let lifecycleService: LifecycleService;
-  let reminderSchedulerService: ReminderSchedulerService;
   let weeklyInsightSchedulerService: WeeklyInsightSchedulerService;
   let mealAnalysisSweeperService: MealAnalysisSweeperService;
   let service: CronJobsService;
@@ -153,7 +144,6 @@ describe('CronJobsService', () => {
       const svcs = buildServices();
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
-      reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
@@ -161,7 +151,6 @@ describe('CronJobsService', () => {
         factory,
         dataRetentionService,
         lifecycleService,
-        reminderSchedulerService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,
       );
@@ -180,7 +169,6 @@ describe('CronJobsService', () => {
       const svcs = buildServices();
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
-      reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
@@ -188,7 +176,6 @@ describe('CronJobsService', () => {
         factory,
         dataRetentionService,
         lifecycleService,
-        reminderSchedulerService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,
       );
@@ -196,20 +183,16 @@ describe('CronJobsService', () => {
       await service.onModuleInit();
     });
 
-    it('creates two queues with correct names', () => {
-      expect(captured).toHaveLength(2);
-      expect(captured.map((c) => c.name)).toContain(CRON_QUEUE_NAME);
-      expect(captured.map((c) => c.name)).toContain(REMINDER_QUEUE_NAME);
+    it('creates only the low-frequency cron queue', () => {
+      // `reminder-dispatch` moved to its owning module (ADR-0025); this layer
+      // must not create it, or `common/` would again import a business module.
+      expect(captured).toHaveLength(1);
+      expect(captured.map((c) => c.name)).toEqual([CRON_QUEUE_NAME]);
     });
 
     it('sets workerConcurrency on the cron queue', () => {
       const cronQ = captured.find((c) => c.name === CRON_QUEUE_NAME);
       expect(cronQ?.workerConcurrency).toBe(2);
-    });
-
-    it('does not set workerConcurrency on the reminder queue', () => {
-      const reminderQ = captured.find((c) => c.name === REMINDER_QUEUE_NAME);
-      expect(reminderQ?.workerConcurrency).toBeUndefined();
     });
 
     it('registers data-retention scheduler on cron queue', () => {
@@ -248,16 +231,7 @@ describe('CronJobsService', () => {
       );
     });
 
-    it('registers reminder scheduler on reminder queue', () => {
-      const reminderQ = captured.find((c) => c.name === REMINDER_QUEUE_NAME);
-      expect(reminderQ?.upsertJobScheduler).toHaveBeenCalledWith(
-        'reminder-dispatch',
-        expect.objectContaining({ tz: 'UTC' }),
-        expect.objectContaining({ name: 'reminder-dispatch' }),
-      );
-    });
-
-    it('does not register reminder scheduler on cron queue', () => {
+    it('does not register the reminder scheduler on the cron queue', () => {
       const cronQ = captured.find((c) => c.name === CRON_QUEUE_NAME);
       expect(cronQ?.upsertJobScheduler).not.toHaveBeenCalledWith(
         'reminder-dispatch',
@@ -266,16 +240,13 @@ describe('CronJobsService', () => {
       );
     });
 
-    it('removes stale reminder-dispatch scheduler from cron queue', () => {
+    it('removes the stale reminder-dispatch scheduler from the cron queue', () => {
+      // BullMQ keeps repeatable schedulers in Redis until removed, so the rule
+      // left on this queue by the pre-ADR-0025 layout would keep firing here.
       const cronQ = captured.find((c) => c.name === CRON_QUEUE_NAME);
       expect(cronQ?.removeJobScheduler).toHaveBeenCalledWith(
         'reminder-dispatch',
       );
-    });
-
-    it('does not register data-retention or lifecycle on reminder queue', () => {
-      const reminderQ = captured.find((c) => c.name === REMINDER_QUEUE_NAME);
-      expect(reminderQ?.upsertJobScheduler).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -289,7 +260,6 @@ describe('CronJobsService', () => {
       const svcs = buildServices();
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
-      reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
@@ -297,7 +267,6 @@ describe('CronJobsService', () => {
         factory,
         dataRetentionService,
         lifecycleService,
-        reminderSchedulerService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,
       );
@@ -338,14 +307,16 @@ describe('CronJobsService', () => {
     });
 
     it('does not dispatch reminder-dispatch', async () => {
+      // The job belongs to `medicine-reminders` now; this processor must not
+      // reach for it, and the module no longer injects the reminder service.
       await cronProcessor({
         id: '4',
         name: 'reminder-dispatch',
         data: {},
       });
-      expect(
-        reminderSchedulerService.dispatchDueReminders,
-      ).not.toHaveBeenCalled();
+      expect(vi.mocked(Logger.prototype.warn)).toHaveBeenCalledWith(
+        expect.stringContaining('reminder-dispatch'),
+      );
     });
 
     it('dispatches weekly-insight to WeeklyInsightSchedulerService', async () => {
@@ -369,67 +340,6 @@ describe('CronJobsService', () => {
     });
   });
 
-  describe('reminder queue processor', () => {
-    let reminderProcessor: ProcessorFn;
-
-    beforeEach(async () => {
-      const built = buildFactory(true);
-      factory = built.factory;
-      captured = built.captured;
-      const svcs = buildServices();
-      dataRetentionService = svcs.dataRetentionService;
-      lifecycleService = svcs.lifecycleService;
-      reminderSchedulerService = svcs.reminderSchedulerService;
-      weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
-      mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
-
-      service = new CronJobsService(
-        factory,
-        dataRetentionService,
-        lifecycleService,
-        reminderSchedulerService,
-        weeklyInsightSchedulerService,
-        mealAnalysisSweeperService,
-      );
-
-      await service.onModuleInit();
-      reminderProcessor = captured.find(
-        (c) => c.name === REMINDER_QUEUE_NAME,
-      )!.processor;
-    });
-
-    it('dispatches reminder-dispatch to ReminderSchedulerService', async () => {
-      await reminderProcessor({
-        id: '1',
-        name: 'reminder-dispatch',
-        data: {},
-      });
-      expect(
-        reminderSchedulerService.dispatchDueReminders,
-      ).toHaveBeenCalledOnce();
-    });
-
-    it('logs warning for unknown job name', async () => {
-      await reminderProcessor({
-        id: '2',
-        name: 'unknown-job',
-        data: {},
-      });
-      expect(vi.mocked(Logger.prototype.warn)).toHaveBeenCalledWith(
-        expect.stringContaining('unknown-job'),
-      );
-    });
-
-    it('does not dispatch data-retention-cleanup', async () => {
-      await reminderProcessor({
-        id: '3',
-        name: 'data-retention-cleanup',
-        data: {},
-      });
-      expect(dataRetentionService.cleanupExpiredData).not.toHaveBeenCalled();
-    });
-  });
-
   describe('runtime config', () => {
     it('re-upserts the reaper scheduler when the published cron changes', async () => {
       const built = buildFactory(true);
@@ -441,7 +351,6 @@ describe('CronJobsService', () => {
         factory,
         svcs.dataRetentionService,
         svcs.lifecycleService,
-        svcs.reminderSchedulerService,
         svcs.weeklyInsightSchedulerService,
         svcs.mealAnalysisSweeperService,
         runtime.port,
@@ -473,7 +382,6 @@ describe('CronJobsService', () => {
         factory,
         svcs.dataRetentionService,
         svcs.lifecycleService,
-        svcs.reminderSchedulerService,
         svcs.weeklyInsightSchedulerService,
         svcs.mealAnalysisSweeperService,
         runtime.port,
@@ -501,7 +409,6 @@ describe('CronJobsService', () => {
         factory,
         svcs.dataRetentionService,
         svcs.lifecycleService,
-        svcs.reminderSchedulerService,
         svcs.weeklyInsightSchedulerService,
         svcs.mealAnalysisSweeperService,
         runtime.port,
@@ -531,7 +438,6 @@ describe('CronJobsService', () => {
       const svcs = buildServices();
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
-      reminderSchedulerService = svcs.reminderSchedulerService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
@@ -539,7 +445,6 @@ describe('CronJobsService', () => {
         factory,
         dataRetentionService,
         lifecycleService,
-        reminderSchedulerService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,
       );

@@ -10,7 +10,6 @@ import { QueueRuntimeRegistry } from '../../../src/common/queue/queue-runtime.re
 import {
   CRON_QUEUE_NAME,
   CronJobsService,
-  REMINDER_QUEUE_NAME,
 } from '../../../src/common/queue/cron-jobs.service.js';
 import { RedisService } from '../../../src/common/redis/redis.service.js';
 import { SseConnectionRegistry } from '../../../src/common/api/sse/sse-connection-registry.service.js';
@@ -20,6 +19,10 @@ import { DataRetentionService } from '../../../src/modules/data-retention/index.
 import { MealAnalysisSweeperService } from '../../../src/modules/daily-records/index.js';
 import { LifecycleService } from '../../../src/modules/today-suggestion/index.js';
 import { ReminderSchedulerService } from '../../../src/modules/medicine-reminders/index.js';
+import {
+  REMINDER_QUEUE_NAME,
+  ReminderDispatchQueueService,
+} from '../../../src/modules/medicine-reminders/services/dispatch-queue.service.js';
 import { WeeklyInsightSchedulerService } from '../../../src/modules/notification-preferences/index.js';
 import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
 
@@ -39,13 +42,22 @@ import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
  *    via `beforeApplicationShutdown`, before module destroy hooks run.
  */
 
-const SCHEDULER_IDS = [
+/**
+ * Scheduler ids this suite expects in Redis after init.
+ *
+ * `reminder-dispatch` is registered by its owning module
+ * (`ReminderDispatchQueueService`) since ADR-0025, so the two services are
+ * provided separately below and their schedulers read from separate queues.
+ */
+const CRON_SCHEDULER_IDS = [
   'data-retention-cleanup',
   'lifecycle-refresh',
-  'reminder-dispatch',
   'weekly-insight',
   'meal-analysis-reap',
 ];
+
+/** Scheduler ids registered on the dedicated reminder-dispatch queue. */
+const REMINDER_SCHEDULER_IDS = ['reminder-dispatch'];
 
 describe('startup and shutdown ordering (e2e)', () => {
   let moduleRef: TestingModule;
@@ -76,6 +88,8 @@ describe('startup and shutdown ordering (e2e)', () => {
         // pins Redis/cron readiness, not concurrency tuning.
         QueueRuntimeRegistry,
         CronJobsService,
+        // Owns the `reminder-dispatch` queue and its scheduler since ADR-0025.
+        ReminderDispatchQueueService,
         SseConnectionRegistry,
         SseProblemDetailsMapper,
         MetricsService,
@@ -157,12 +171,18 @@ describe('startup and shutdown ordering (e2e)', () => {
     try {
       const cronSchedulers = await cronQueue.getJobSchedulers();
       const reminderSchedulers = await reminderQueue.getJobSchedulers();
-      const registered = [...cronSchedulers, ...reminderSchedulers].map(
-        (s) => s.key,
-      );
-      for (const id of SCHEDULER_IDS) {
-        expect(registered).toContain(id);
+      const cronRegistered = cronSchedulers.map((s) => s.key);
+      const reminderRegistered = reminderSchedulers.map((s) => s.key);
+      for (const id of CRON_SCHEDULER_IDS) {
+        expect(cronRegistered).toContain(id);
       }
+      for (const id of REMINDER_SCHEDULER_IDS) {
+        expect(reminderRegistered).toContain(id);
+      }
+      // The reminder scheduler must no longer be registered on the shared cron
+      // queue: BullMQ keeps stale schedulers in Redis until removed, and the
+      // pre-ADR-0025 layout left one there.
+      expect(cronRegistered).not.toContain('reminder-dispatch');
     } finally {
       await cronQueue.close();
       await reminderQueue.close();
