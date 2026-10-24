@@ -6,6 +6,7 @@ import { MedicinesCacheAdminService } from './application/use_cases/rebuild-inde
 import { MedicinesCacheService } from './infrastructure/cache/store.js';
 import { MedicinesCacheMaintenanceService } from './infrastructure/cache/maintenance.js';
 import { MedicinesController } from './adapters/http/medicines.controller.js';
+import { MedicinesRelationsController } from './adapters/http/medicines-relations.controller.js';
 import { MedicinesService } from './application/use_cases/medicines.js';
 import {
   SafetyTipsAdminService,
@@ -37,10 +38,13 @@ import { MEDICINE_QA_CHUNK_REPOSITORY } from './application/ports/qa-chunks.js';
 import { MEDICINE_RISK_RECORDS } from './application/ports/risk-records.js';
 import { MEDICINE_RISK_LLM_GENERATOR } from './application/ports/risk-llm.js';
 import { MEDICINES_CACHE_MAINTENANCE } from './application/ports/cache-maintenance.js';
+import { MEDICINES_GRAPH_READER } from './domain/relations/relations.js';
+import { MedicineGraphExecutor } from './infrastructure/graph/executor.js';
+import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
 
 @Module({
   imports: [LlmRuntimeModule, LlmCommonModule],
-  controllers: [MedicinesController],
+  controllers: [MedicinesController, MedicinesRelationsController],
   providers: [
     MedicinesService,
     SafetyTipsAdminService,
@@ -59,6 +63,9 @@ import { MEDICINES_CACHE_MAINTENANCE } from './application/ports/cache-maintenan
     MedicineSafetyTipsRepository,
     MedicalQaChunksRepository,
     MedicineRiskRecordsStore,
+    MedicineGraphExecutor,
+    Neo4jGraphReader,
+    { provide: MEDICINES_GRAPH_READER, useExisting: Neo4jGraphReader },
     { provide: MEDICINES_KNOWLEDGE_CACHE, useExisting: MedicinesCacheService },
     { provide: CN_MEDICINES_READER, useExisting: CnMedicinesService },
     {

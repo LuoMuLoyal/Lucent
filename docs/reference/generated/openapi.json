@@ -4522,6 +4522,254 @@
         "tags": ["Medicines"]
       }
     },
+    "/api/v1/medicines/relations/mechanism-paths": {
+      "get": {
+        "operationId": "listMechanismPaths",
+        "parameters": [
+          {
+            "name": "drugbankIds",
+            "required": true,
+            "in": "query",
+            "description": "Comma-separated DrugBank ids (2-10)",
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated DrugBank ids (2-10), e.g. DB00682,DB00004"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mechanism paths, or a status explaining why none."
+          }
+        },
+        "summary": "Metabolic mechanism paths between drugs (INHIBITS/INDUCES x SUBSTRATE_OF)",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/shared-targets": {
+      "get": {
+        "operationId": "listSharedTargets",
+        "parameters": [
+          {
+            "name": "drugbankIds",
+            "required": true,
+            "in": "query",
+            "description": "Comma-separated DrugBank ids (2-10)",
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated DrugBank ids (2-10), e.g. DB00682,DB00004"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shared targets, or a status explaining why none."
+          }
+        },
+        "summary": "Targets shared by a set of drugs",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/cascade-paths": {
+      "get": {
+        "operationId": "listCascadePaths",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "Starting DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cascade chains, or a status explaining why none."
+          }
+        },
+        "summary": "Four-hop metabolic cascade starting from one drug",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/substitutes": {
+      "get": {
+        "operationId": "listSubstituteCandidates",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "DrugBank id being replaced",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          },
+          {
+            "name": "enzymeGene",
+            "required": true,
+            "in": "query",
+            "description": "Enzyme to avoid, e.g. CYP2C9",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "description": "Gene symbol, e.g. CYP2C9"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Structural candidates with their shared target."
+          }
+        },
+        "summary": "Structural candidates that do not use a given enzyme (not a prescription)",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/actions": {
+      "get": {
+        "operationId": "listDrugActions",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Target action spectrum of the drug."
+          }
+        },
+        "summary": "What targets one drug acts on",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/shortest-route": {
+      "get": {
+        "operationId": "listShortestRoutes",
+        "parameters": [
+          {
+            "name": "fromDrugbankId",
+            "required": true,
+            "in": "query",
+            "description": "Source DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          },
+          {
+            "name": "toDrugbankId",
+            "required": true,
+            "in": "query",
+            "description": "Target DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shortest routes, with nodes and edge types."
+          }
+        },
+        "summary": "Shortest propagation route between two drugs",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/target-drugs": {
+      "get": {
+        "operationId": "listTargetDrugs",
+        "parameters": [
+          {
+            "name": "geneName",
+            "required": true,
+            "in": "query",
+            "description": "Target gene symbol, e.g. CYP2C9",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "description": "Gene symbol, e.g. CYP2C9"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Drugs acting on the target, with relation type."
+          }
+        },
+        "summary": "All drugs acting on one target gene",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/transport-routes": {
+      "get": {
+        "operationId": "listTransportRoutes",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporter routes, with edge direction."
+          }
+        },
+        "summary": "Transporter routes (efflux/uptake) for one drug",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/enzyme-duel": {
+      "get": {
+        "operationId": "listEnzymeDuels",
+        "parameters": [
+          {
+            "name": "drugbankIds",
+            "required": true,
+            "in": "query",
+            "description": "Comma-separated DrugBank ids (2-10)",
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated DrugBank ids (2-10), e.g. DB00682,DB00004"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inducer/substrate pairs sharing one enzyme."
+          }
+        },
+        "summary": "Induction vs substrate pairs: opposite effect on exposure",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/user/medicine-reminders": {
       "get": {
         "operationId": "listMedicineReminders",

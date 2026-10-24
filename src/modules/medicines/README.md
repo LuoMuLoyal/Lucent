@@ -78,6 +78,43 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   `qaId` 不可改（语料身份，检索索引文档名为 `qa:<qaId>:0`）；行只落库，
   assistant 检索走 LightRAG `qa` workspace，需重建索引才可见；重新导入覆盖整表。
 
+### 图关系查询（`/api/v1/medicines/relations/*`）
+
+9 个多跳图查询，数据来自 **Neo4j**（与 Prisma 的药品知识表是两套数据，不要混淆）。
+普通过滤、排序、正则扫描表达不了的图语义都在这里：二跳机理链、4 跳级联、
+最短路径、反模式排除。
+
+| 端点                                           | 回答什么                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| `mechanism-paths?drugbankIds=`                 | 两药经同一酶形成的通路（`INHIBITS`/`INDUCES` × `SUBSTRATE_OF`） |
+| `shared-targets?drugbankIds=`                  | 这组药共同作用的靶点                                            |
+| `cascade-paths?drugbankId=`                    | 4 跳级联：A 抑制酶1 → C → 酶2 ← B                               |
+| `substitutes?drugbankId=&enzymeGene=`          | 不走该酶、共享靶点的**候选**（结构事实，非处方建议）            |
+| `actions?drugbankId=`                          | 单药作用谱                                                      |
+| `shortest-route?fromDrugbankId=&toDrugbankId=` | 两药最短传播路径                                                |
+| `target-drugs?geneName=`                       | 某靶点上的全部药物                                              |
+| `transport-routes?drugbankId=`                 | 转运体外排/摄取（带边方向）                                     |
+| `enzyme-duel?drugbankIds=`                     | 酶诱导 × 底物：浓度方向相反的间接相互作用                       |
+
+**统一信封**：`{ status, ... }`，`status ∈ ok | notConfigured | unavailable | timeout`。
+`ok` + 空数组 = 「图上确实没有」；其余 = 「我们无法回答」。**不要把两者合成空结果**——
+用药场景里，把知识缺口渲染成「无风险」是最危险的静默降级。
+
+**安全边界**：Cypher 固定在 `infrastructure/graph/schema.ts`，端点只收 DrugBank id /
+基因名这类**参数**，没有任何接受 Cypher 或 GraphQL 的字段。schema **不出现在路由上**，
+只在服务端内部经 OGM 执行。
+
+**实现分层**：`domain/relations/`（类型与 port，零依赖）→ `infrastructure/graph/schema.ts`
+（图模型 + `@cypher`）→ `executor.ts`（OGM 单例、变量注入、失败分类）→ `reader.ts`
+（领域参数 → 受控查询）。
+
+**两个排查要点**：
+
+1. **`@cypher` 列表字段必须 `RETURN { ... } AS result` + `columnName: "result"`**。
+   写成多列 + `columnName: "第一列"` 时查询**不报错但每行都是 null**。
+2. **`INTERACTS_WITH` 在库中单向**（2,534 条），反向边由 semantica 出图时合成，
+   直连走不到。涉及相互作用必须用无向匹配 `-[r]-`。
+
 ## 持久表清单
 
 `cn_medicine_products`、`cn_medicine_leaflets`、
