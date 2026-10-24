@@ -1,10 +1,6 @@
 import { createPublicKey } from 'node:crypto';
 
-import {
-  extractErrorInfo,
-  fetchWithRetry,
-  toInputJsonValue,
-} from '../../../common/index.js';
+import { extractErrorInfo, fetchWithRetry } from '../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -28,6 +24,7 @@ import {
   type OAuthProfile,
 } from '../types/oauth.types.js';
 import type { OAuthProvider } from './oauth-provider.interface.js';
+import { toRawProfile } from '../infrastructure/oauth/raw-profile.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
@@ -149,7 +146,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
           emailVerifiedAt: userInfo.email_verified === true ? new Date() : null,
           nickname: userInfo.name ?? null,
           avatar: userInfo.picture ?? null,
-          rawProfile: toInputJsonValue({
+          rawProfile: toRawProfile({
             sub: userInfo.sub,
             email: userInfo.email ?? null,
             name: userInfo.name ?? null,
@@ -184,7 +181,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
           emailVerifiedAt: userInfo.email_verified === true ? new Date() : null,
           nickname: userInfo.name ?? null,
           avatar: userInfo.picture ?? null,
-          rawProfile: toInputJsonValue({
+          rawProfile: toRawProfile({
             sub: userInfo.sub,
             email: userInfo.email ?? null,
             name: userInfo.name ?? null,

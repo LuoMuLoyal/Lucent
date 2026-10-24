@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import {
-  toInputJsonValue,
   withRetry,
   extractErrorInfo,
   HttpStatusError,
@@ -25,6 +24,7 @@ import {
   type OAuthProfile,
 } from '../types/oauth.types.js';
 import type { OAuthProvider } from './oauth-provider.interface.js';
+import { toRawProfile } from '../infrastructure/oauth/raw-profile.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
@@ -101,7 +101,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
           (givenName ?? familyName)
             ? [givenName, familyName].filter(Boolean).join(' ') || null
             : null,
-        rawProfile: toInputJsonValue({
+        rawProfile: toRawProfile({
           sub: appleUserId,
           email: payload.email ?? null,
           ...(payload.is_private_email !== undefined && {

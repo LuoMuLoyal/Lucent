@@ -21,8 +21,8 @@ import type {
 import { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
 import { AppleOAuthProvider } from '../../providers/apple-oauth.provider.js';
 import { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
-import { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider.js';
-import { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider.js';
+import { WechatMobileOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-mobile.js';
+import { WechatWebOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-web.js';
 import {
   OAUTH_PROVIDER_GOOGLE,
   OAUTH_PROVIDER_QQ,

@@ -1,6 +1,6 @@
 import type { UserService } from '../../../user/index.js';
-import type { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider.js';
-import type { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider.js';
+import type { WechatWebOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-web.js';
+import type { WechatMobileOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-mobile.js';
 import type { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
 import type { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
 import type { AuthOAuthStateService } from './state.service.js';

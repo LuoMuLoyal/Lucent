@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { normalizeEmail, fromPrismaResult } from '../../../../common/index.js';
+import {
+  normalizeEmail,
+  fromPrismaResult,
+  toInputJsonValue,
+} from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -200,7 +204,10 @@ export class AuthOAuthService {
         providerEmailVerifiedAt: profile.emailVerifiedAt,
       }),
       ...(profile.rawProfile !== undefined && {
-        rawProfile: profile.rawProfile,
+        // **持久化关切在此处收口**：`OAuthProfile.rawProfile` 是可 JSON 序列化的
+        // 普通对象（不带 ORM 类型），要不要落库、落成什么形状由这里决定。
+        // 领域/应用层因此不必认识 `Prisma.InputJsonValue`。
+        rawProfile: toInputJsonValue(profile.rawProfile),
       }),
     };
   }

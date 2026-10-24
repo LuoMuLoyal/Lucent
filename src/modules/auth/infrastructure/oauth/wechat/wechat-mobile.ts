@@ -3,7 +3,7 @@ import {
   errAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result/index.js';
+} from '../../../../../common/result/index.js';
 import {
   Injectable,
   Logger,
@@ -11,26 +11,32 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
-import type { OAuthConfig } from '../../../../config/services/oauth.config.js';
+import { ConfigKey } from '../../../../../config/env/config-keys.enum.js';
+import type { OAuthConfig } from '../../../../../config/services/oauth.config.js';
 import {
   WechatBaseOAuthProvider,
   WECHAT_ACCESS_TOKEN_URL,
   WECHAT_USERINFO_URL,
   type WechatAccessTokenSuccess,
   type WechatUserInfoSuccess,
-} from './wechat-base-oauth.provider.js';
-import {
-  OAUTH_PROVIDER_WECHAT_MOBILE,
-  type OAuthProfile,
-} from '../../types/oauth.types.js';
-import type { OAuthProvider } from '../oauth-provider.interface.js';
-import { dependencyBadGateway } from '../../infrastructure/oauth/dependency-failure.js';
+} from './wechat-base.js';
+import { OAUTH_PROVIDER_WECHAT_MOBILE } from '../../../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../../../application/ports/oauth-provider.js';
+import { dependencyBadGateway } from '../dependency-failure.js';
 
+/**
+ * 微信移动端登录（原生 SDK 拿到 code，服务端换 token）。
+ *
+ * 没有 `buildAuthorizeUrl`：移动端用微信原生 UI 授权，不走服务端拼跳转 URL。
+ * 端口里该方法是可选的，正是为这种提供商留的。
+ *
+ * 归一化规则与 `wechat-web.ts` 相同（`openid` → `providerUserId`、
+ * `unionid` → `unionId`、`headimgurl` → `avatar`、`email` 恒为 `null`）。
+ */
 @Injectable()
 export class WechatMobileOAuthProvider
   extends WechatBaseOAuthProvider
-  implements OAuthProvider, OnModuleInit
+  implements OnModuleInit
 {
   readonly provider = OAUTH_PROVIDER_WECHAT_MOBILE;
   protected readonly logger = new Logger(WechatMobileOAuthProvider.name);
@@ -41,7 +47,7 @@ export class WechatMobileOAuthProvider
 
   fetchProfile(
     credential: Record<string, unknown>,
-  ): ResultAsync<OAuthProfile, DomainFailure> {
+  ): ResultAsync<OAuthProviderProfile, DomainFailure> {
     const code = credential['code'] as string;
     if (!code) {
       return errAsync(this.validationFailure());
@@ -70,7 +76,7 @@ export class WechatMobileOAuthProvider
 
       return this.fetchWechat<WechatUserInfoSuccess>(
         `${WECHAT_USERINFO_URL}?${userInfoParams.toString()}`,
-      ).map((userInfo): OAuthProfile => {
+      ).map((userInfo): OAuthProviderProfile => {
         const rawToken = {
           openid: token.openid,
           scope: token.scope,

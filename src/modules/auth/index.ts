@@ -34,8 +34,8 @@ export { Public } from './decorators/public.decorator.js';
 export { QqOAuthProvider } from './providers/qq-oauth.provider.js';
 export type { SetPasswordDto } from './dto/password/set-password.dto.js';
 export { setPasswordSchema } from './dto/password/set-password.dto.js';
-export { WechatMobileOAuthProvider } from './providers/wechat/wechat-mobile-oauth.provider.js';
-export { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.provider.js';
+export { WechatMobileOAuthProvider } from './infrastructure/oauth/wechat/wechat-mobile.js';
+export { WechatWebOAuthProvider } from './infrastructure/oauth/wechat/wechat-web.js';
 export {
   CAPTCHA_THRESHOLD,
   loginFailureCacheKey,

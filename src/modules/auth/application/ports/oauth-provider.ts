@@ -27,11 +27,12 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
+import type { OAuthProviderName } from '../../types/oauth.types.js';
 
 /** 一个提供商归一化后的身份。字段名由本系统定义。 */
 export interface OAuthProviderProfile {
   /** 提供商标识。 */
-  provider: string;
+  provider: OAuthProviderName;
   /** 提供商侧的用户 id。 */
   providerUserId: string;
   /** 跨应用统一 id（微信 `unionid`）。 */
@@ -64,7 +65,7 @@ export interface OAuthProviderProfile {
  */
 export interface OAuthProvider {
   /** 提供商标识。 */
-  readonly provider: string;
+  readonly provider: OAuthProviderName;
 
   /**
    * 构造授权跳转 URL。使用原生 UI 的提供商（Apple、微信移动端）不实现。

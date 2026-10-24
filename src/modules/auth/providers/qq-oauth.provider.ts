@@ -1,8 +1,4 @@
-import {
-  extractErrorInfo,
-  fetchWithRetry,
-  toInputJsonValue,
-} from '../../../common/index.js';
+import { extractErrorInfo, fetchWithRetry } from '../../../common/index.js';
 import {
   createDomainFailure,
   err,
@@ -25,6 +21,7 @@ import { ConfigKey } from '../../../config/env/config-keys.enum.js';
 import type { OAuthConfig } from '../../../config/services/oauth.config.js';
 import { OAUTH_PROVIDER_QQ, type OAuthProfile } from '../types/oauth.types.js';
 import type { OAuthProvider } from './oauth-provider.interface.js';
+import { toRawProfile } from '../infrastructure/oauth/raw-profile.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
@@ -120,7 +117,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
               userInfo.figureurl_qq_1 ??
               userInfo.figureurl ??
               null,
-            rawProfile: toInputJsonValue({
+            rawProfile: toRawProfile({
               openid,
               nickname: userInfo.nickname ?? null,
               gender: userInfo.gender ?? null,

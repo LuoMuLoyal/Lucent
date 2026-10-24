@@ -3,7 +3,7 @@ import {
   errAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../../common/result/index.js';
+} from '../../../../../common/result/index.js';
 import {
   Injectable,
   Logger,
@@ -11,32 +11,46 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import { ConfigKey } from '../../../../../config/env/config-keys.enum.js';
 import type {
   OAuthConfig,
   OAuthProviderConfig,
-} from '../../../../config/services/oauth.config.js';
+} from '../../../../../config/services/oauth.config.js';
 import {
   WechatBaseOAuthProvider,
   WECHAT_ACCESS_TOKEN_URL,
   WECHAT_USERINFO_URL,
   type WechatAccessTokenSuccess,
   type WechatUserInfoSuccess,
-} from './wechat-base-oauth.provider.js';
-import {
-  OAUTH_PROVIDER_WECHAT_WEB,
-  type OAuthProfile,
-} from '../../types/oauth.types.js';
-import type { OAuthProvider } from '../oauth-provider.interface.js';
-import { dependencyBadGateway } from '../../infrastructure/oauth/dependency-failure.js';
+} from './wechat-base.js';
+import { OAUTH_PROVIDER_WECHAT_WEB } from '../../../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../../../application/ports/oauth-provider.js';
+import { dependencyBadGateway } from '../dependency-failure.js';
 
 const WECHAT_AUTHORIZE_URL = 'https://open.weixin.qq.com/connect/qrconnect';
 const WECHAT_SCOPE = 'snsapi_login';
 
+/**
+ * 微信网页扫码登录。
+ *
+ * ## 归一化：微信的字段名 → 端口字段名
+ *
+ * | 微信 | `OAuthProviderProfile` |
+ * | --- | --- |
+ * | `openid` | `providerUserId` |
+ * | `unionid` | `unionId` |
+ * | `nickname` | `nickname` |
+ * | `headimgurl` | `avatar` |
+ * | （无邮箱） | `email: null` |
+ *
+ * `email` 恒为 `null`：微信不披露邮箱。所以这个提供商**永远不参与按邮箱自动
+ * 关联**——即便它哪天出现在受信名单里，`canAutoLinkByEmail` 也会因为没有邮箱
+ * 而返回 `false`（`domain/account/oauth-identity.ts`）。
+ */
 @Injectable()
 export class WechatWebOAuthProvider
   extends WechatBaseOAuthProvider
-  implements OAuthProvider, OnModuleInit
+  implements OnModuleInit
 {
   readonly provider = OAUTH_PROVIDER_WECHAT_WEB;
   protected readonly logger = new Logger(WechatWebOAuthProvider.name);
@@ -68,7 +82,7 @@ export class WechatWebOAuthProvider
 
   fetchProfile(
     credential: Record<string, unknown>,
-  ): ResultAsync<OAuthProfile, DomainFailure> {
+  ): ResultAsync<OAuthProviderProfile, DomainFailure> {
     const code = credential['code'] as string;
     if (!code) {
       return errAsync(this.validationFailure());
@@ -98,7 +112,7 @@ export class WechatWebOAuthProvider
 
       return this.fetchWechat<WechatUserInfoSuccess>(
         `${WECHAT_USERINFO_URL}?${userInfoParams.toString()}`,
-      ).map((userInfo): OAuthProfile => {
+      ).map((userInfo): OAuthProviderProfile => {
         const rawToken = {
           openid: token.openid,
           scope: token.scope,
@@ -131,6 +145,17 @@ export class WechatWebOAuthProvider
     }
   }
 
+  /**
+   * 读配置，缺 appId/appSecret 即抛 `ServiceUnavailableException`。
+   *
+   * **配置错误是抛而不是返回 DomainFailure**：端口契约里写明「配置错误与编程
+   * 错误抛出，不折进 Result」。配置缺失是部署问题，不该表现成一个业务失败。
+   *
+   * `redirectUri` **不在这里校验**：它只被 `buildAuthorizeUrl` 需要，而
+   * `fetchProfile`（回调路径）不需要。原实现在 `fetchProfile` 里也只校验
+   * appId/appSecret——这里保持同样的严格度，避免把「未配置回调地址」升级成
+   * 「连 code 换 token 都不可用」。
+   */
   private getConfig(): OAuthProviderConfig {
     const wechat = this.readRawConfig();
 
