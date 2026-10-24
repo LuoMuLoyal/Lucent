@@ -43,4 +43,5 @@ export {
 export type { CaptchaDto } from './dto/shared/captcha.dto.js';
 export { captchaSchema } from './dto/shared/captcha.dto.js';
 export { PasswordReauthService } from './services/identity/password-reauth.service.js';
+export { HumanVerification } from './application/ports/human-verification.js';
 export { AuthSessionAdminService } from './services/session-admin.service.js';

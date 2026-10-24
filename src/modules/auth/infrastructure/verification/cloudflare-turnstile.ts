@@ -11,6 +11,7 @@ import {
 } from '../../../../common/result/index.js';
 import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
 import type { TurnstileConfig } from '../../../../config/services/turnstile.config.js';
+import { HumanVerification } from '../../application/ports/human-verification.js';
 
 /** Cloudflare's verification endpoint. */
 const SITEVERIFY_URL =
@@ -40,22 +41,19 @@ interface SiteverifyResponse {
 type Verdict = 'passed' | 'rejected' | 'unknown';
 
 /**
- * Verifies Cloudflare Turnstile challenges.
+ * Cloudflare Turnstile 的人机验证实现。
  *
- * Failure policy, in order of importance:
+ * 失败策略见 `application/ports/human-verification.ts` 的文件头——**三条分支的
+ * 优先级不得改动**，尤其「拿不到答案就放行」：把它改成 fail-close 等于把
+ * Cloudflare 的可用性变成自家登录可用性的上限。
  *
- * - **Fail open when we have no answer.** If Cloudflare is unreachable, slow or
- *   returning non-2xx, the request is allowed and the problem is logged. A
- *   verification outage must not become a sign-in outage; the rate limiter and
- *   the password rules still stand between an attacker and an account.
- * - **Fail closed on a negative answer.** A well-formed `success: false` is a
- *   real rejection and surfaces as `AUTH_CAPTCHA_INVALID`.
- * - **Disabled means allowed.** With no credentials configured (local dev, e2e)
- *   every token passes, so tests need no Cloudflare account.
+ * `askCloudflare` 刻意**永不抛出**：它把每种失败模式都归约成 `Verdict`，
+ * 于是「网络挂了」与「Cloudflare 说不」在调用方是两种可区分的结论，
+ * 而不是一个笼统的异常。
  */
 @Injectable()
-export class TurnstileService {
-  private readonly logger = new Logger(TurnstileService.name);
+export class CloudflareTurnstile extends HumanVerification {
+  private readonly logger = new Logger(CloudflareTurnstile.name);
   private readonly config: TurnstileConfig;
   private readonly fetchImpl: typeof fetch;
 
@@ -66,6 +64,7 @@ export class TurnstileService {
     // provider, which it would otherwise do for any constructor parameter.
     @Optional() @Inject(TURNSTILE_FETCH) fetchImpl?: typeof fetch,
   ) {
+    super();
     this.config =
       configService.get<TurnstileConfig>(ConfigKey.Turnstile) ??
       ({

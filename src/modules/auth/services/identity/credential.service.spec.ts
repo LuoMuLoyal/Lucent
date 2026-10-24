@@ -6,7 +6,7 @@ import { UserService } from '../../../user/index.js';
 import { VerificationCodeService } from './verification-code.service.js';
 import { SessionTokens } from '../../application/services/session-tokens.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
-import { TurnstileService } from './turnstile.service.js';
+import { HumanVerification } from '../../application/ports/human-verification.js';
 import { AuthIdentityService } from '../../application/services/identity.js';
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
@@ -87,7 +87,7 @@ describe('CredentialAuthService', () => {
   let sessionTokens: vi.Mocked<SessionTokens>;
   let authRateLimitService: vi.Mocked<AuthRateLimitService>;
   let identityService: vi.Mocked<AuthIdentityService>;
-  let turnstileService: vi.Mocked<TurnstileService>;
+  let turnstileService: vi.Mocked<HumanVerification>;
 
   let hashPasswordMock: vi.Mock;
   let verifyPasswordForUserMock: vi.Mock;
@@ -149,7 +149,7 @@ describe('CredentialAuthService', () => {
           },
         },
         {
-          provide: TurnstileService,
+          provide: HumanVerification,
           useValue: {
             verify: vi.fn(),
             enabled: false,
@@ -165,7 +165,7 @@ describe('CredentialAuthService', () => {
     sessionTokens = module.get(SessionTokens);
     authRateLimitService = module.get(AuthRateLimitService);
     identityService = module.get(AuthIdentityService);
-    turnstileService = module.get(TurnstileService);
+    turnstileService = module.get(HumanVerification);
 
     // Default mock responses
     userService.findByEmail.mockResolvedValue(null);

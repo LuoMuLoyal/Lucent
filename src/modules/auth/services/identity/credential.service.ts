@@ -36,7 +36,7 @@ import type { RequestOrigin } from '../../application/ports/request-origin.js';
 import { toSessionSubject } from '../../application/services/session-subject.js';
 
 import { AuthRateLimitService } from './rate-limit.service.js';
-import { TurnstileService } from './turnstile.service.js';
+import { HumanVerification } from '../../application/ports/human-verification.js';
 import { VerificationCodeService } from './verification-code.service.js';
 
 /**
@@ -59,7 +59,7 @@ export class CredentialAuthService {
     private readonly sessionTokens: SessionTokens,
     private readonly authRateLimitService: AuthRateLimitService,
     private readonly authIdentityService: AuthIdentityService,
-    private readonly turnstileService: TurnstileService,
+    private readonly turnstileService: HumanVerification,
   ) {}
 
   // ── Registration ─────────────────────────────────────────────

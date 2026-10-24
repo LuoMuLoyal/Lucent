@@ -1,34 +1,28 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
+  mapUnknownToDependencyFailure,
   okAsync,
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
+import { FailureCounters } from '../../application/ports/failure-counters.js';
+import {
+  bucketTtlMs,
+  CAPTCHA_THRESHOLD,
+  evaluateBucket,
+  isCaptchaRequired,
+  recordFailure,
+  type FailureBucket,
+} from '../../domain/policies/login-failures.js';
 
-/**
- * 失败多少次后开始要求人机验证。刻意远低于 `LOGIN_RATE_LIMIT_MAX`:
- * 验证是廉价闸门、锁号是最后手段,而正常用户很少连错三次密码。
- */
-export const CAPTCHA_THRESHOLD = 3;
+export { CAPTCHA_THRESHOLD };
 
-const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
-const LOGIN_RATE_LIMIT_MAX = 10;
-const LOGIN_RATE_LIMIT_LOCKOUT = 60 * 60 * 1000;
-
-export interface LoginFailureBucket {
-  count: number;
-  resetAt: number;
-  lockedUntil?: number;
-}
-
-/** Builds the cache key for a login failure bucket. */
+/** Builds the cache key for a login failure bucket (by email). */
 export function loginFailureCacheKey(email: string): string {
   const digest = createHash('sha256').update(email).digest('hex');
   return `auth:login-failure:${digest}`;
@@ -39,237 +33,163 @@ export function reauthFailureCacheKey(userId: string): string {
   return `auth:reauth-failure:${userId}`;
 }
 
+/**
+ * 登录失败限流与「何时要求人机验证」的**应用服务**。
+ *
+ * ## 它只做「读写 + 映射」，判定全在策略里
+ *
+ * 桶的转移规则（窗口、阈值、锁号）在
+ * `domain/policies/login-failures.ts`——那里是纯函数，可以精确单测窗口边界。
+ * 本类负责：拼 key、从端口读写、把结论折成 `DomainFailure`。
+ *
+ * ## 两条路径共用同一套机制
+ *
+ * - **登录失败**按邮箱分桶（`loginFailureCacheKey`），失败返回
+ *   `AUTH_LOGIN_RATE_LIMITED`（带 `retryAfter` 与动态 `minutes`）。
+ * - **密码重验失败**按 userId 分桶（`reauthFailureCacheKey`），失败返回通用
+ *   `RATE_LIMITED`（带 `retryAfter`）。
+ *
+ * 阈值相同、错误码不同：重验是**已认证用户**的敏感操作，客户端需要区分
+ * 「登录被限流」与「重验被限流」以便给出不同提示。
+ *
+ * ## 缓存故障保留原始异常（不变量 #2）
+ *
+ * 读失败**不**返回「没有失败记录」——那等于限流静默失效。异常原样上抛，
+ * 由调用方映射成 `DEPENDENCY_UNAVAILABLE`。
+ */
 @Injectable()
 export class AuthRateLimitService {
-  private readonly logger = new Logger(AuthRateLimitService.name);
-
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+  constructor(private readonly counters: FailureCounters) {}
 
   /**
    * 检查登录限流。账户处于锁定窗口时返回
-   * AUTH_LOGIN_RATE_LIMITED（携带 retryAfter 与动态 minutes）；
-   * 窗口过期或缓存格式损坏时删除旧条目并放行。
-   * 缓存故障保留原始异常向边界抛出，不得静默吞掉。
+   * `AUTH_LOGIN_RATE_LIMITED`（携带 `retryAfter` 与动态 `minutes`）。
    */
   checkLoginRateLimit(email: string): ResultAsync<void, DomainFailure> {
-    const key = loginFailureCacheKey(email);
-
-    return this.lift(this.cacheGet(key)).andThen((value) => {
-      const entry = value as LoginFailureBucket | undefined;
-      if (!entry) return okAsync(undefined);
-
-      if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
-        const lockedMs = entry.lockedUntil - Date.now();
-        return errAsync(
-          createDomainFailure({
-            kind: 'rate_limited',
-            code: 'AUTH_LOGIN_RATE_LIMITED',
-            retryable: true,
-            retryAfter: Math.ceil(lockedMs / 1000),
-            args: { minutes: Math.ceil(lockedMs / 60_000) },
-          }),
-        );
-      }
-
-      if (
-        !this.isValidLoginFailureBucket(entry) ||
-        entry.resetAt <= Date.now()
-      ) {
-        return this.lift(this.cacheDel(key));
-      }
-
-      return okAsync(undefined);
-    });
+    return this.evaluate(loginFailureCacheKey(email)).andThen((verdict) =>
+      verdict.kind === 'locked'
+        ? errAsync(
+            createDomainFailure({
+              kind: 'rate_limited',
+              code: 'AUTH_LOGIN_RATE_LIMITED',
+              retryable: true,
+              retryAfter: verdict.retryAfterSeconds,
+              args: { minutes: verdict.minutes },
+            }),
+          )
+        : okAsync(undefined),
+    );
   }
 
+  /**
+   * 记一次登录失败。
+   *
+   * **无论客户端看到什么码，这里都要计数**——反枚举意味着客户端只看到
+   * 统一的凭据失败，但限流必须知道真实失败次数。
+   */
   recordLoginFailure(email: string): ResultAsync<void, DomainFailure> {
-    const key = loginFailureCacheKey(email);
-    const now = Date.now();
-
-    return this.lift(this.cacheGet(key)).andThen((value) => {
-      const entry = value as LoginFailureBucket | undefined;
-
-      if (
-        !this.isValidLoginFailureBucket(entry) ||
-        entry.resetAt <= now ||
-        entry.lockedUntil !== undefined
-      ) {
-        return this.lift(
-          this.cacheSet(
-            key,
-            { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
-            LOGIN_RATE_LIMIT_WINDOW,
-          ),
-        );
-      }
-
-      const next: LoginFailureBucket = {
-        count: entry.count + 1,
-        resetAt: entry.resetAt,
-        ...(entry.count + 1 >= LOGIN_RATE_LIMIT_MAX && {
-          lockedUntil: now + LOGIN_RATE_LIMIT_LOCKOUT,
-        }),
-      };
-      const ttl = Math.max(
-        next.resetAt - now,
-        (next.lockedUntil ?? next.resetAt) - now,
-      );
-      return this.lift(this.cacheSet(key, next, ttl));
-    });
+    return this.record(loginFailureCacheKey(email));
   }
 
+  /** 登录成功或验证通过后清零。 */
   clearLoginFailures(email: string): ResultAsync<void, DomainFailure> {
-    return this.lift(this.cacheDel(loginFailureCacheKey(email)));
+    return this.clear(loginFailureCacheKey(email));
   }
 
   /**
    * 该邮箱在评估凭据之前是否必须先过人机验证。
    *
-   * 读的就是限流器写的同一个失败桶,两个机制因此不会各算一套。缓存读失败返回
-   * `false`(放行):丢缓存不能把所有人锁在门外,且 10 次后的锁号仍然生效。
+   * 读的就是限流器写的**同一个失败桶**，两个机制因此不会各算一套。
    */
   isCaptchaRequired(email: string): ResultAsync<boolean, DomainFailure> {
     const key = loginFailureCacheKey(email);
-
-    return this.lift(this.cacheGet(key)).map((value) => {
-      const entry = value as LoginFailureBucket | undefined;
-      if (!this.isValidLoginFailureBucket(entry)) return false;
-      if (entry.resetAt <= Date.now()) return false;
-      return entry.count >= CAPTCHA_THRESHOLD;
-    });
+    return fromPromise(this.counters.read(key), (error) =>
+      mapUnknownToDependencyFailure(error, 'Failed to read login failures'),
+    ).map((raw) => isCaptchaRequired(toBucket(raw), Date.now()));
   }
 
   /**
-   * 检查密码再认证限流。逻辑与登录限流一致，但按 userId 分桶并返回通用
-   * `RATE_LIMITED`（携带 retryAfter）。
+   * 检查密码再认证限流。按 userId 分桶，返回通用 `RATE_LIMITED`。
    */
   checkReauthRateLimit(userId: string): ResultAsync<void, DomainFailure> {
-    const key = reauthFailureCacheKey(userId);
-
-    return this.lift(this.cacheGet(key)).andThen((value) => {
-      const entry = value as LoginFailureBucket | undefined;
-      if (!entry) return okAsync(undefined);
-
-      if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
-        const lockedMs = entry.lockedUntil - Date.now();
-        return errAsync(
-          createDomainFailure({
-            kind: 'rate_limited',
-            code: 'RATE_LIMITED',
-            retryable: true,
-            retryAfter: Math.ceil(lockedMs / 1000),
-          }),
-        );
-      }
-
-      if (
-        !this.isValidLoginFailureBucket(entry) ||
-        entry.resetAt <= Date.now()
-      ) {
-        return this.lift(this.cacheDel(key));
-      }
-
-      return okAsync(undefined);
-    });
+    return this.evaluate(reauthFailureCacheKey(userId)).andThen((verdict) =>
+      verdict.kind === 'locked'
+        ? errAsync(
+            createDomainFailure({
+              kind: 'rate_limited',
+              code: 'RATE_LIMITED',
+              retryable: true,
+              retryAfter: verdict.retryAfterSeconds,
+            }),
+          )
+        : okAsync(undefined),
+    );
   }
 
   recordReauthFailure(userId: string): ResultAsync<void, DomainFailure> {
-    const key = reauthFailureCacheKey(userId);
-    const now = Date.now();
-
-    return this.lift(this.cacheGet(key)).andThen((value) => {
-      const entry = value as LoginFailureBucket | undefined;
-
-      if (
-        !this.isValidLoginFailureBucket(entry) ||
-        entry.resetAt <= now ||
-        entry.lockedUntil !== undefined
-      ) {
-        return this.lift(
-          this.cacheSet(
-            key,
-            { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
-            LOGIN_RATE_LIMIT_WINDOW,
-          ),
-        );
-      }
-
-      const next: LoginFailureBucket = {
-        count: entry.count + 1,
-        resetAt: entry.resetAt,
-        ...(entry.count + 1 >= LOGIN_RATE_LIMIT_MAX && {
-          lockedUntil: now + LOGIN_RATE_LIMIT_LOCKOUT,
-        }),
-      };
-      const ttl = Math.max(
-        next.resetAt - now,
-        (next.lockedUntil ?? next.resetAt) - now,
-      );
-      return this.lift(this.cacheSet(key, next, ttl));
-    });
+    return this.record(reauthFailureCacheKey(userId));
   }
 
   clearReauthFailures(userId: string): ResultAsync<void, DomainFailure> {
-    return this.lift(this.cacheDel(reauthFailureCacheKey(userId)));
+    return this.clear(reauthFailureCacheKey(userId));
   }
 
-  /**
-   * 将缓存 IO 提升为 ResultAsync。缓存故障保留原始异常向边界抛出，
-   * 不得把基础设施故障伪装成业务失败。
-   */
-  private lift<T>(promise: Promise<T>): ResultAsync<T, DomainFailure> {
-    return fromPromise(promise, (error) => {
-      throw error;
+  // ── 内部步骤 ─────────────────────────────────────────────────
+
+  /** 读桶 → 策略判定。锁号结论由调用方折成各自的错误码。 */
+  private evaluate(
+    key: string,
+  ): ResultAsync<ReturnType<typeof evaluateBucket>, DomainFailure> {
+    return fromPromise(this.counters.read(key), (error) =>
+      mapUnknownToDependencyFailure(error, 'Failed to read failure bucket'),
+    ).map((raw) => evaluateBucket(toBucket(raw), Date.now()));
+  }
+
+  /** 读桶 → 记一次失败 → 按策略给的 TTL 写回。 */
+  private record(key: string): ResultAsync<void, DomainFailure> {
+    const now = Date.now();
+    return fromPromise(this.counters.read(key), (error) =>
+      mapUnknownToDependencyFailure(error, 'Failed to read failure bucket'),
+    ).andThen((raw) => {
+      const next = recordFailure(toBucket(raw), now);
+      return fromPromise(
+        this.counters.write(key, next, bucketTtlMs(next, now)),
+        (error) =>
+          mapUnknownToDependencyFailure(error, 'Failed to record failure'),
+      );
     });
   }
 
-  private async cacheGet(key: string): Promise<unknown> {
-    try {
-      return await this.cache.get(key);
-    } catch (error) {
-      this.logger.warn(
-        `Login rate-limit cache get failed (key=${key}): ${String(error)}`,
-      );
-      throw error;
-    }
-  }
-
-  private async cacheSet(
-    key: string,
-    value: unknown,
-    ttl: number,
-  ): Promise<void> {
-    try {
-      await this.cache.set(key, value, ttl);
-    } catch (error) {
-      this.logger.warn(
-        `Login rate-limit cache set failed (key=${key}): ${String(error)}`,
-      );
-      throw error;
-    }
-  }
-
-  private async cacheDel(key: string): Promise<void> {
-    try {
-      await this.cache.del(key);
-    } catch (error) {
-      this.logger.warn(
-        `Login rate-limit cache delete failed (key=${key}): ${String(error)}`,
-      );
-      throw error;
-    }
-  }
-
-  private isValidLoginFailureBucket(
-    bucket: unknown,
-  ): bucket is LoginFailureBucket {
-    if (typeof bucket !== 'object' || bucket === null) return false;
-    const candidate = bucket as Partial<LoginFailureBucket>;
-    return (
-      typeof candidate.count === 'number' &&
-      typeof candidate.resetAt === 'number' &&
-      (candidate.lockedUntil === undefined ||
-        typeof candidate.lockedUntil === 'number')
+  private clear(key: string): ResultAsync<void, DomainFailure> {
+    return fromPromise(this.counters.clear(key), (error) =>
+      mapUnknownToDependencyFailure(error, 'Failed to clear failures'),
     );
   }
+}
+
+/**
+ * 缓存里的原始值 → 策略可判定的桶。
+ *
+ * 形状不可信时返回 `undefined`（等同「没有桶」）——**这与「缓存故障」不同**：
+ * 故障在端口层就抛出了，到这里说明读到了值，只是格式不对（旧版本写入、
+ * 人工改过）。格式错当没有记录处理，不让它把窗口无限续期。
+ */
+function toBucket(raw: unknown): FailureBucket | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const candidate = raw as Partial<FailureBucket>;
+  if (typeof candidate.count !== 'number') return undefined;
+  if (typeof candidate.resetAt !== 'number') return undefined;
+  if (
+    candidate.lockedUntil !== undefined &&
+    typeof candidate.lockedUntil !== 'number'
+  ) {
+    return undefined;
+  }
+  return {
+    count: candidate.count,
+    resetAt: candidate.resetAt,
+    ...(candidate.lockedUntil === undefined
+      ? {}
+      : { lockedUntil: candidate.lockedUntil }),
+  };
 }

@@ -47,7 +47,10 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { CookieSessionUseCase } from './application/use_cases/cookie-session.js';
 import { AuthIdentityService } from './application/services/identity.js';
 import { EmailVerificationService } from './services/identity/email-verification.service.js';
-import { TurnstileService } from './services/identity/turnstile.service.js';
+import { HumanVerification } from './application/ports/human-verification.js';
+import { CloudflareTurnstile } from './infrastructure/verification/cloudflare-turnstile.js';
+import { FailureCounters } from './application/ports/failure-counters.js';
+import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js';
 
 @Module({
   imports: [
@@ -104,14 +107,17 @@ import { TurnstileService } from './services/identity/turnstile.service.js';
     GoogleOAuthProvider,
     AuthIdentityService,
     EmailVerificationService,
-    TurnstileService,
+    CloudflareTurnstile,
+    { provide: HumanVerification, useExisting: CloudflareTurnstile },
+    CacheFailureCounters,
+    { provide: FailureCounters, useExisting: CacheFailureCounters },
   ],
   exports: [
     AuthService,
     AuthIdentityService,
     PasswordReauthService,
     AuthSessionAdminService,
-    TurnstileService,
+    HumanVerification,
   ],
 })
 export class AuthModule {}

@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { ConfigService } from '@nestjs/config';
 
 import type { TurnstileConfig } from '../../../../config/services/turnstile.config.js';
-import { TurnstileService } from './turnstile.service.js';
+import { CloudflareTurnstile } from './cloudflare-turnstile.js';
 
 const enabledConfig: TurnstileConfig = {
   secretKey: 'secret-key',
@@ -19,13 +19,13 @@ const disabledConfig: TurnstileConfig = {
 function makeService(
   config: TurnstileConfig,
   fetchImpl: typeof fetch,
-): TurnstileService {
+): CloudflareTurnstile {
   const configService = {
     get: vi.fn((key: string) => (key === 'turnstile' ? config : undefined)),
   } as unknown as ConfigService;
   // Construct by hand: the second parameter is an optional DI seam, and a test
   // module would only ever get the real global fetch.
-  return new TurnstileService(configService, fetchImpl);
+  return new CloudflareTurnstile(configService, fetchImpl);
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -36,7 +36,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as Response;
 }
 
-describe('TurnstileService', () => {
+describe('CloudflareTurnstile', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });

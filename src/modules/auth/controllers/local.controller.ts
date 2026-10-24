@@ -21,7 +21,7 @@ import { registerResponseSchema } from '../../../common/api/response-schema.regi
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import { AuthService } from '../services/auth.service.js';
-import { TurnstileService } from '../services/identity/turnstile.service.js';
+import { HumanVerification } from '../application/ports/human-verification.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';
 
 import { registerSchema } from '../dto/credentials/register.dto.js';
@@ -58,7 +58,7 @@ export class LocalController {
     private readonly authService: AuthService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly auditLogService: AuditLogService,
-    private readonly turnstileService: TurnstileService,
+    private readonly turnstileService: HumanVerification,
     private readonly i18n: I18nService,
   ) {}
 

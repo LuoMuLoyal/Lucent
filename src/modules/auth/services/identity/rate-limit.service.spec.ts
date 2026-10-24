@@ -1,414 +1,326 @@
-import type { TestingModule } from '@nestjs/testing';
-import { Test } from '@nestjs/testing';
-import type { Cache } from 'cache-manager';
+import { Logger } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+
+import { AuthRateLimitService } from './rate-limit.service.js';
+import { FailureCounters } from '../../application/ports/failure-counters.js';
 import {
-  AuthRateLimitService,
   CAPTCHA_THRESHOLD,
-} from './rate-limit.service.js';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type {
-  DomainFailure,
-  ResultAsync,
-} from '../../../../common/result/index.js';
+  LOGIN_FAILURE_LOCKOUT_MS,
+  LOGIN_FAILURE_MAX,
+  LOGIN_FAILURE_WINDOW_MS,
+  type FailureBucket,
+} from '../../domain/policies/login-failures.js';
 
-async function inspectResult<T>(
-  result: ResultAsync<T, DomainFailure>,
-): Promise<{ ok: true; value: T } | { ok: false; error: DomainFailure }> {
-  return result.match(
-    (value) => ({ ok: true as const, value }),
-    (error) => ({ ok: false as const, error }),
-  );
+/**
+ * 限流应用服务的单测。
+ *
+ * ## 这里测什么，不测什么
+ *
+ * 桶的转移规则（窗口、阈值、锁号）由
+ * `domain/policies/login-failures.spec.ts` 纯单测钉住。本文件测**编排**：
+ * key 怎么拼、读写顺序、结论怎么折成错误码、缓存故障是否保留原样。
+ *
+ * 用**手写替身**而不是 `vi.mock`：替身 `extends FailureCounters`，
+ * 接口一变替身编译就断。
+ */
+
+class FakeCounters extends FailureCounters {
+  readonly store = new Map<string, unknown>();
+  readonly reads: string[] = [];
+  readonly writes: { key: string; value: unknown; ttlMs: number }[] = [];
+  readonly clears: string[] = [];
+  /** 让 `read` 失败，验证缓存故障不被伪装成「没有记录」。 */
+  readError: unknown = null;
+
+  read(key: string): Promise<unknown> {
+    this.reads.push(key);
+    if (this.readError !== null) {
+      return Promise.reject(
+        this.readError instanceof Error
+          ? this.readError
+          : new Error('read failed'),
+      );
+    }
+    return Promise.resolve(this.store.get(key) ?? null);
+  }
+
+  write(key: string, value: unknown, ttlMs: number): Promise<void> {
+    this.writes.push({ key, value, ttlMs });
+    this.store.set(key, value);
+    return Promise.resolve();
+  }
+
+  clear(key: string): Promise<void> {
+    this.clears.push(key);
+    this.store.delete(key);
+    return Promise.resolve();
+  }
 }
 
-// ── Suite ─────────────────────────────────────────────────────
+function hashEmail(email: string): string {
+  return createHash('sha256').update(email).digest('hex');
+}
 
 describe('AuthRateLimitService', () => {
+  let counters: FakeCounters;
   let service: AuthRateLimitService;
-  let cache: vi.Mocked<Cache>;
+  const email = 'who@example.com';
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuthRateLimitService,
-        {
-          provide: CACHE_MANAGER,
-          useValue: {
-            get: vi.fn(),
-            set: vi.fn(),
-            del: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get(AuthRateLimitService);
-    cache = module.get(CACHE_MANAGER);
-
-    cache.get.mockResolvedValue(null);
+  beforeEach(() => {
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    counters = new FakeCounters();
+    service = new AuthRateLimitService(counters);
   });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-    vi.restoreAllMocks();
-  });
-
-  // ════════════════════════════════════════════════════════════
-  // checkLoginRateLimit
-  // ════════════════════════════════════════════════════════════
 
   describe('checkLoginRateLimit', () => {
-    it('should allow login when no previous failures', async () => {
-      const result = await inspectResult(
-        service.checkLoginRateLimit('test@example.com'),
+    it('没有记录 → 放行', async () => {
+      const outcome = await service.checkLoginRateLimit(email).match(
+        () => 'ok',
+        (e) => e.code,
       );
-
-      expect(result.ok).toBe(true);
+      expect(outcome).toBe('ok');
     });
 
-    it('should allow login when count is below threshold', async () => {
-      cache.get.mockResolvedValue({
-        count: 5,
-        resetAt: Date.now() + 600_000,
+    it('锁号期内 → AUTH_LOGIN_RATE_LIMITED，带 retryAfter 与 minutes', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: LOGIN_FAILURE_MAX,
+        resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
+        lockedUntil: Date.now() + 90_000,
       });
 
-      const result = await inspectResult(
-        service.checkLoginRateLimit('test@example.com'),
+      const failure = await service.checkLoginRateLimit(email).match(
+        () => null,
+        (e) => e,
       );
 
-      expect(result.ok).toBe(true);
+      expect(failure?.code).toBe('AUTH_LOGIN_RATE_LIMITED');
+      expect(failure?.kind).toBe('rate_limited');
+      expect(failure?.retryable).toBe(true);
+      expect(failure?.retryAfter).toBeGreaterThan(0);
+      expect(failure?.args?.['minutes']).toBeGreaterThan(0);
     });
 
-    it('should return AUTH_LOGIN_RATE_LIMITED when account is in lockout period', async () => {
-      cache.get.mockResolvedValue({
-        count: 5,
-        resetAt: Date.now() + 600_000,
-        lockedUntil: Date.now() + 1_800_000,
+    it('窗口过期（未锁号）→ 放行', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: LOGIN_FAILURE_MAX,
+        resetAt: Date.now() - 1,
       });
 
-      const result = await inspectResult(
-        service.checkLoginRateLimit('test@example.com'),
+      const outcome = await service.checkLoginRateLimit(email).match(
+        () => 'ok',
+        (e) => e.code,
       );
-
-      expect(result).toMatchObject({
-        ok: false,
-        error: {
-          kind: 'rate_limited',
-          code: 'AUTH_LOGIN_RATE_LIMITED',
-          retryable: true,
-          retryAfter: 1800,
-          args: { minutes: 30 },
-        },
-      });
+      expect(outcome).toBe('ok');
     });
 
-    it('should allow login when lockout period has expired and delete the entry', async () => {
-      cache.get.mockResolvedValue({
-        count: 10,
-        resetAt: Date.now() - 600_000,
-        lockedUntil: Date.now() - 1000,
+    it('形状损坏的桶 → 放行（不让它把窗口无限续期）', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        garbage: true,
       });
 
-      const result = await inspectResult(
-        service.checkLoginRateLimit('test@example.com'),
+      const outcome = await service.checkLoginRateLimit(email).match(
+        () => 'ok',
+        (e) => e.code,
       );
-
-      expect(result.ok).toBe(true);
-      // Should delete the expired entry
-      expect(cache.del).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-      );
+      expect(outcome).toBe('ok');
     });
 
-    it('should delete expired bucket and allow login', async () => {
-      cache.get.mockResolvedValue({
-        count: 3,
-        resetAt: Date.now() - 1000,
-      });
+    it('**缓存故障原样上抛**，不伪装成「没有记录」', async () => {
+      // 返回「没有记录」等于限流静默失效——把依赖故障说成正常状态。
+      counters.readError = new Error('cache down');
 
-      const result = await inspectResult(
-        service.checkLoginRateLimit('test@example.com'),
+      const failure = await service.checkLoginRateLimit(email).match(
+        () => null,
+        (e) => e,
       );
 
-      expect(result.ok).toBe(true);
-      expect(cache.del).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-      );
+      expect(failure?.code).toBe('DEPENDENCY_UNAVAILABLE');
+      expect(failure?.kind).toBe('dependency');
     });
 
-    it('should delete corrupted bucket and allow login', async () => {
-      cache.get.mockResolvedValue({
-        wrong: 'shape',
-      });
-
-      const result = await inspectResult(
-        service.checkLoginRateLimit('test@example.com'),
-      );
-
-      expect(result.ok).toBe(true);
-      expect(cache.del).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-      );
-    });
-
-    it('should rethrow cache failures instead of silently allowing login', async () => {
-      const error = new Error('cache unavailable');
-      cache.get.mockRejectedValue(error);
-
-      await expect(
-        service.checkLoginRateLimit('test@example.com').match(
-          (value) => value,
-          (failure) => failure,
-        ),
-      ).rejects.toBe(error);
+    it('按邮箱的 sha256 分桶（不落明文邮箱）', async () => {
+      await service.checkLoginRateLimit(email);
+      expect(counters.reads[0]).toBe(`auth:login-failure:${hashEmail(email)}`);
+      expect(counters.reads[0]).not.toContain('@');
     });
   });
-
-  // ════════════════════════════════════════════════════════════
-  // recordLoginFailure
-  // ════════════════════════════════════════════════════════════
 
   describe('recordLoginFailure', () => {
-    it('should create initial failure bucket on first failure', async () => {
-      const result = await inspectResult(
-        service.recordLoginFailure('test@example.com'),
-      );
+    it('首次失败 → 开新桶计数 1，TTL 为窗口', async () => {
+      await service.recordLoginFailure(email);
 
-      expect(result.ok).toBe(true);
-      expect(cache.set).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-        expect.objectContaining({ count: 1 }),
-        expect.any(Number),
-      );
+      expect(counters.writes).toHaveLength(1);
+      const written = counters.writes[0]!;
+      expect(written.key).toBe(`auth:login-failure:${hashEmail(email)}`);
+      expect(written.value).toMatchObject({ count: 1 });
+      expect(written.ttlMs).toBeGreaterThan(LOGIN_FAILURE_WINDOW_MS - 5_000);
     });
 
-    it('should increment existing failure count', async () => {
-      const existing = { count: 3, resetAt: Date.now() + 600_000 };
-      cache.get.mockResolvedValue(existing);
-
-      const result = await inspectResult(
-        service.recordLoginFailure('test@example.com'),
-      );
-
-      expect(result.ok).toBe(true);
-      expect(cache.set).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-        expect.objectContaining({ count: 4 }),
-        expect.any(Number),
-      );
-    });
-
-    it('should set lockout when count reaches max', async () => {
-      const existing = { count: 9, resetAt: Date.now() + 600_000 };
-      cache.get.mockResolvedValue(existing);
-
-      const result = await inspectResult(
-        service.recordLoginFailure('test@example.com'),
-      );
-
-      expect(result.ok).toBe(true);
-      expect(cache.set).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-        expect.objectContaining({
-          count: 10,
-          lockedUntil: expect.any(Number),
-        }),
-        expect.any(Number),
-      );
-    });
-
-    it('should reset to count 1 when bucket has expired', async () => {
-      cache.get.mockResolvedValue({
-        count: 8,
-        resetAt: Date.now() - 1000,
+    it('累加已有计数', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: 4,
+        resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
       });
 
-      const result = await inspectResult(
-        service.recordLoginFailure('test@example.com'),
-      );
+      await service.recordLoginFailure(email);
 
-      expect(result.ok).toBe(true);
-      expect(cache.set).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-        expect.objectContaining({ count: 1 }),
-        expect.any(Number),
-      );
+      expect(counters.writes[0]?.value).toMatchObject({ count: 5 });
     });
 
-    it('should reset to count 1 when bucket has lockedUntil set (already locked)', async () => {
-      cache.get.mockResolvedValue({
-        count: 10,
-        resetAt: Date.now() + 600_000,
-        lockedUntil: Date.now() + 1_800_000,
+    it('达到上限 → 设置 lockedUntil，且 TTL 覆盖锁号（比窗口长）', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: LOGIN_FAILURE_MAX - 1,
+        resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
       });
 
-      const result = await inspectResult(
-        service.recordLoginFailure('test@example.com'),
-      );
+      await service.recordLoginFailure(email);
 
-      expect(result.ok).toBe(true);
-      expect(cache.set).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-        expect.objectContaining({ count: 1 }),
-        expect.any(Number),
+      const written = counters.writes[0]!;
+      expect(written.value).toMatchObject({ count: LOGIN_FAILURE_MAX });
+      expect((written.value as FailureBucket).lockedUntil).toBeGreaterThan(
+        Date.now(),
+      );
+      // 锁号（1h）比窗口（15min）长，TTL 必须取较大值。
+      expect(written.ttlMs).toBeGreaterThan(LOGIN_FAILURE_WINDOW_MS);
+      expect(written.ttlMs).toBeLessThanOrEqual(
+        LOGIN_FAILURE_LOCKOUT_MS + 5_000,
       );
     });
 
-    it('should reset to count 1 when cache returns invalid bucket shape', async () => {
-      cache.get.mockResolvedValue({
-        wrong: 'shape',
+    it('窗口过期 → 重新开桶', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: 9,
+        resetAt: Date.now() - 1,
       });
 
-      const result = await inspectResult(
-        service.recordLoginFailure('test@example.com'),
-      );
-
-      expect(result.ok).toBe(true);
-      expect(cache.set).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-        expect.objectContaining({ count: 1 }),
-        expect.any(Number),
-      );
+      await service.recordLoginFailure(email);
+      expect(counters.writes[0]?.value).toMatchObject({ count: 1 });
     });
 
-    it('should rethrow cache failures instead of silently swallowing them', async () => {
-      const error = new Error('cache unavailable');
-      cache.get.mockRejectedValue(error);
+    it('已在锁号期 → 重开桶但不延长锁号', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: LOGIN_FAILURE_MAX,
+        resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
+        lockedUntil: Date.now() + 60_000,
+      });
 
-      await expect(
-        service.recordLoginFailure('test@example.com').match(
-          (value) => value,
-          (failure) => failure,
-        ),
-      ).rejects.toBe(error);
+      await service.recordLoginFailure(email);
+
+      const value = counters.writes[0]?.value as FailureBucket;
+      expect(value.count).toBe(1);
+      expect(value.lockedUntil).toBeUndefined();
+    });
+
+    it('缓存读故障原样上抛', async () => {
+      counters.readError = new Error('cache down');
+
+      const failure = await service.recordLoginFailure(email).match(
+        () => null,
+        (e) => e,
+      );
+      expect(failure?.code).toBe('DEPENDENCY_UNAVAILABLE');
     });
   });
-
-  // ════════════════════════════════════════════════════════════
-  // clearLoginFailures
-  // ════════════════════════════════════════════════════════════
 
   describe('clearLoginFailures', () => {
-    it('should delete failure cache entry on successful login', async () => {
-      const result = await inspectResult(
-        service.clearLoginFailures('test@example.com'),
-      );
-
-      expect(result.ok).toBe(true);
-      expect(cache.del).toHaveBeenCalledWith(
-        expect.stringContaining('login-failure'),
-      );
-    });
-
-    it('should hash the email in the cache key', async () => {
-      await inspectResult(service.clearLoginFailures('test@example.com'));
-
-      const key = (cache.del as vi.Mock).mock.calls[0]![0] as string;
-      // Key should contain a SHA-256 hex digest, not the raw email
-      expect(key).not.toContain('test@example.com');
-      expect(key).toMatch(/auth:login-failure:[0-9a-f]{64}$/);
-    });
-
-    it('should rethrow cache failures instead of silently swallowing them', async () => {
-      const error = new Error('cache unavailable');
-      cache.del.mockRejectedValue(error);
-
-      await expect(
-        service.clearLoginFailures('test@example.com').match(
-          (value) => value,
-          (failure) => failure,
-        ),
-      ).rejects.toBe(error);
+    it('删除该邮箱的桶', async () => {
+      await service.clearLoginFailures(email);
+      expect(counters.clears).toEqual([
+        `auth:login-failure:${hashEmail(email)}`,
+      ]);
     });
   });
 
-  describe('isCaptchaRequired', () => {
-    const now = Date.now();
-
-    it('should not require a challenge when there are no failures', async () => {
-      cache.get.mockResolvedValue(undefined);
-
-      const required = await service
-        .isCaptchaRequired('test@example.com')
-        .match(
-          (value) => value,
-          () => true,
-        );
-
-      expect(required).toBe(false);
-    });
-
-    it('should not require a challenge below CAPTCHA_THRESHOLD', async () => {
-      cache.get.mockResolvedValue({
-        count: CAPTCHA_THRESHOLD - 1,
-        resetAt: now + 60_000,
-      });
-
-      const required = await service
-        .isCaptchaRequired('test@example.com')
-        .match(
-          (value) => value,
-          () => true,
-        );
-
-      expect(required).toBe(false);
-    });
-
-    it('should require a challenge once the threshold is reached', async () => {
-      cache.get.mockResolvedValue({
+  describe('isCaptchaRequired — 与限流读同一个桶', () => {
+    it('达到阈值 → 要求', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
         count: CAPTCHA_THRESHOLD,
-        resetAt: now + 60_000,
+        resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
       });
 
-      const required = await service
-        .isCaptchaRequired('test@example.com')
-        .match(
-          (value) => value,
-          () => true,
-        );
-
+      const required = await service.isCaptchaRequired(email).match(
+        (v) => v,
+        () => null,
+      );
       expect(required).toBe(true);
     });
 
-    it('should forget failures whose window has expired', async () => {
-      cache.get.mockResolvedValue({
-        count: CAPTCHA_THRESHOLD + 5,
-        resetAt: now - 1000,
+    it('阈值之下 → 不要求', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: CAPTCHA_THRESHOLD - 1,
+        resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
       });
 
-      const required = await service
-        .isCaptchaRequired('test@example.com')
-        .match(
-          (value) => value,
-          () => true,
-        );
-
+      const required = await service.isCaptchaRequired(email).match(
+        (v) => v,
+        () => null,
+      );
       expect(required).toBe(false);
     });
 
-    it('should ignore a malformed bucket rather than demanding a challenge', async () => {
-      cache.get.mockResolvedValue({ garbage: true });
+    it('窗口过期 → 不要求（用户隔很久再来不该付验证成本）', async () => {
+      counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
+        count: CAPTCHA_THRESHOLD,
+        resetAt: Date.now() - 1,
+      });
 
-      const required = await service
-        .isCaptchaRequired('test@example.com')
-        .match(
-          (value) => value,
-          () => true,
-        );
-
+      const required = await service.isCaptchaRequired(email).match(
+        (v) => v,
+        () => null,
+      );
       expect(required).toBe(false);
     });
 
-    it('should fail open when the cache is unreadable', async () => {
-      const error = new Error('cache unavailable');
-      cache.get.mockRejectedValue(error);
+    it('读的是与限流相同的 key', async () => {
+      await service.isCaptchaRequired(email);
+      expect(counters.reads[0]).toBe(`auth:login-failure:${hashEmail(email)}`);
+    });
 
-      await expect(
-        service.isCaptchaRequired('test@example.com').match(
-          (value) => value,
-          (failure) => failure,
-        ),
-      ).rejects.toBe(error);
+    it('读故障时上抛依赖故障（由调用方决定放行）', async () => {
+      counters.readError = new Error('cache down');
+
+      const failure = await service.isCaptchaRequired(email).match(
+        () => null,
+        (e) => e,
+      );
+      expect(failure?.code).toBe('DEPENDENCY_UNAVAILABLE');
+    });
+  });
+
+  describe('密码重验路径（按 userId 分桶）', () => {
+    it('锁号期内 → 通用 RATE_LIMITED（不是 AUTH_LOGIN_RATE_LIMITED）', async () => {
+      counters.store.set('auth:reauth-failure:user-1', {
+        count: LOGIN_FAILURE_MAX,
+        resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
+        lockedUntil: Date.now() + 60_000,
+      });
+
+      const failure = await service.checkReauthRateLimit('user-1').match(
+        () => null,
+        (e) => e,
+      );
+
+      expect(failure?.code).toBe('RATE_LIMITED');
+      expect(failure?.kind).toBe('rate_limited');
+      expect(failure?.retryAfter).toBeGreaterThan(0);
+    });
+
+    it('记失败与清零走 userId 的 key', async () => {
+      await service.recordReauthFailure('user-1');
+      await service.clearReauthFailures('user-1');
+
+      expect(counters.writes[0]?.key).toBe('auth:reauth-failure:user-1');
+      expect(counters.clears).toEqual(['auth:reauth-failure:user-1']);
+    });
+
+    it('两条路径的 key 不互相污染', async () => {
+      await service.recordLoginFailure(email);
+      await service.recordReauthFailure('user-1');
+
+      expect(counters.writes[0]?.key).not.toBe(counters.writes[1]?.key);
+      expect(counters.store.size).toBe(2);
     });
   });
 });

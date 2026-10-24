@@ -4,7 +4,7 @@ import { I18nService } from 'nestjs-i18n';
 import { LocalController } from './local.controller.js';
 import { AuthService } from '../services/auth.service.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';
-import { TurnstileService } from '../services/identity/turnstile.service.js';
+import { HumanVerification } from '../application/ports/human-verification.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import {
   createDomainFailure,
@@ -74,7 +74,7 @@ describe('LocalController', () => {
           },
         },
         {
-          provide: TurnstileService,
+          provide: HumanVerification,
           useValue: {
             verify: vi.fn(),
             enabled: false,
