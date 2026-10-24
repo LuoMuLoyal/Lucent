@@ -109,6 +109,7 @@
     "MedicinesRelationsController_targetDrugs": "listTargetDrugs",
     "MedicinesRelationsController_transportRoutes": "listTransportRoutes",
     "MedicinesRelationsController_enzymeDuel": "listEnzymeDuels",
+    "MedicationOverviewController_getOverview": "getMedicationOverview",
     "MedicinesController_getRiskCheck": "getRiskCheck",
     "MedicinesController_runRiskCheck": "runRiskCheck",
     "MedicinesController_recognize": "recognize",

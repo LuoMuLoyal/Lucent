@@ -7,6 +7,8 @@ import { MedicinesCacheService } from './infrastructure/cache/store.js';
 import { MedicinesCacheMaintenanceService } from './infrastructure/cache/maintenance.js';
 import { MedicinesController } from './adapters/http/medicines.controller.js';
 import { MedicinesRelationsController } from './adapters/http/medicines-relations.controller.js';
+import { MedicationOverviewController } from './adapters/http/medication-overview.controller.js';
+import { MedicationOverviewService } from './application/use_cases/medication-overview.js';
 import { MedicinesService } from './application/use_cases/medicines.js';
 import {
   SafetyTipsAdminService,
@@ -44,7 +46,11 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
 
 @Module({
   imports: [LlmRuntimeModule, LlmCommonModule],
-  controllers: [MedicinesController, MedicinesRelationsController],
+  controllers: [
+    MedicinesController,
+    MedicinesRelationsController,
+    MedicationOverviewController,
+  ],
   providers: [
     MedicinesService,
     SafetyTipsAdminService,
@@ -63,6 +69,7 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     MedicineSafetyTipsRepository,
     MedicalQaChunksRepository,
     MedicineRiskRecordsStore,
+    MedicationOverviewService,
     MedicineGraphExecutor,
     Neo4jGraphReader,
     { provide: MEDICINES_GRAPH_READER, useExisting: Neo4jGraphReader },

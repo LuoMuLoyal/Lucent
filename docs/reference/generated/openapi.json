@@ -4770,6 +4770,27 @@
         "tags": ["Medicines"]
       }
     },
+    "/api/v1/medicines/medication-overview": {
+      "get": {
+        "operationId": "getMedicationOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Duplicate ingredients and source grouping for the current medicines. Empty aggregates when the user has no medicines — that is an answer, not an error."
+          },
+          "401": {
+            "description": "Access token invalid or expired"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Describe the caller's current medication combination",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/user/medicine-reminders": {
       "get": {
         "operationId": "listMedicineReminders",

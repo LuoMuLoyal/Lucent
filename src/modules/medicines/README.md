@@ -124,6 +124,33 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 2. **`INTERACTS_WITH` 在库中单向**（2,534 条），反向边由 semantica 出图时合成，
    直连走不到。涉及相互作用必须用无向匹配 `-[r]-`。
 
+## 用药全景（`GET /api/v1/medicines/medication-overview`）
+
+回答「**我实际在吃什么组合**」，而 `/risk-check` 回答「这一组药有没有冲突」。
+两者的数据源相同（当前在服药品），但结论性质不同：前者是**描述**（同一成分几份、
+条目按来源如何归类），后者是**判定**（风险等级）。所以这个响应里没有「风险等级」字段。
+
+**需要登录**：与其余 `/medicines/*` 不同——那些是公共药品知识，这里涉及用户自己的
+用药集合，`userId` 只从 token 取、不接受参数。
+
+**两个聚合**（`domain/services/medication-overview.ts`，纯函数）：
+
+- `duplicates`：按**成分键**而非药名分组。按药名比对永远发现不了「芬必得」与
+  「布洛芬缓释胶囊」是同一成分——而患者自己加购时最常见的重复正是这个场景。
+  严重度：同成分 ≥3 条，或跨 CN/DrugBank 两源，判 `high`；2 条判 `medium`。
+- `sourceOverlaps`：按健康事件分组，无关联的归入 `unattributed`。
+  `HealthEventMedicine` 是**多对多**（`@@unique([eventId, currentMedicineId])`），
+  所以输入的 `healthEventIds` 是数组——用单值会把「一个药同时挂在两条病程下」这个
+  信号掩盖掉。
+
+**`totalMedicines` 与 `resolvableMedicines` 都要给**：只看总数会让「有 3 个药没解析出
+成分」隐形，而分析结论的可靠性正取决于可解析比例。解析不出成分的条目（手动录入、
+CN 源查不到详情）计入前者、不计入后者，**不让整体失败**。
+
+**未接入的部分**：健康事件关联暂未查询（`CurrentMedicineRow` 里没有该字段，改它会
+牵动风险检查的既有行为），因此 `sourceOverlaps` 目前只有 `unattributed` 一个分组。
+跟进项见 `docs/TODO.md`。
+
 ## 半衰期解析与漏服判定（领域逻辑，**尚未接进提示链路**）
 
 `domain/services/half-life.ts` 把 DrugBank 的 `half_life` **叙述文本**解析成小时区间，
