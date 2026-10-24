@@ -17,7 +17,6 @@
     "depcruise|modules-no-direct-redis-clients|src/modules/medicines/infrastructure/cache/maintenance.spec.ts",
     "depcruise|no-circular|src/common/result/index.ts",
     "depcruise|no-circular|src/modules/assistant/agent/runtime/graph.ts",
-    "depcruise|no-circular|src/modules/today-suggestion/services/recompute/queue.service.ts",
     "eslint|@typescript-eslint/no-explicit-any|src/common/interceptors/slow-request.interceptor.spec.ts",
     "eslint|@typescript-eslint/no-explicit-any|src/common/logger/lifecycle.service.spec.ts",
     "eslint|@typescript-eslint/no-explicit-any|src/modules/auth/controllers/auth-response.helper.spec.ts",

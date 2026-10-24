@@ -47,7 +47,10 @@ import {
   REMINDER_CHANGED,
   SETTINGS_CHANGED,
 } from './domain-events.js';
-import { REPORT_CACHE_INVALIDATION_JOB } from './jobs.js';
+import {
+  REPORT_CACHE_INVALIDATION_JOB,
+  SUGGESTION_EVENT_TRIGGER_JOB,
+} from './jobs.js';
 
 /** One consumer of one event: the queue to enqueue into and the job name. */
 export interface EventSubscription {
@@ -66,14 +69,19 @@ export interface EventSubscription {
 export const EVENT_SUBSCRIPTIONS: Readonly<
   Record<string, readonly EventSubscription[]>
 > = {
-  // `reports` migrated first (ADR-0025): every event that used to invalidate
-  // the dashboard through an in-process `@OnEvent` now does it through the
-  // `report-cache-invalidation` queue. The other consumers of these same events
-  // still run in process until their own row lands.
+  // `reports` and `today-suggestion` have migrated (ADR-0025). Every event that
+  // used to invalidate the dashboard or trigger a suggestion recompute through
+  // an in-process `@OnEvent` now does it through a queue. The remaining
+  // consumers of these same events still run in process until their own row
+  // lands, which is why a producer both appends and emits during the migration.
   [DAILY_RECORD_CHANGED]: [
     {
       queue: QUEUE_NAMES.reportCacheInvalidation,
       job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+    {
+      queue: QUEUE_NAMES.suggestionRecompute,
+      job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
   ],
   [DOSE_LOG_CHANGED]: [
@@ -81,11 +89,19 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       queue: QUEUE_NAMES.reportCacheInvalidation,
       job: REPORT_CACHE_INVALIDATION_JOB,
     },
+    {
+      queue: QUEUE_NAMES.suggestionRecompute,
+      job: SUGGESTION_EVENT_TRIGGER_JOB,
+    },
   ],
   [REMINDER_CHANGED]: [
     {
       queue: QUEUE_NAMES.reportCacheInvalidation,
       job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+    {
+      queue: QUEUE_NAMES.suggestionRecompute,
+      job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
   ],
   [HEALTH_CONTEXT_CHANGED]: [
@@ -93,17 +109,29 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       queue: QUEUE_NAMES.reportCacheInvalidation,
       job: REPORT_CACHE_INVALIDATION_JOB,
     },
+    {
+      queue: QUEUE_NAMES.suggestionRecompute,
+      job: SUGGESTION_EVENT_TRIGGER_JOB,
+    },
   ],
   [SETTINGS_CHANGED]: [
     {
       queue: QUEUE_NAMES.reportCacheInvalidation,
       job: REPORT_CACHE_INVALIDATION_JOB,
     },
+    {
+      queue: QUEUE_NAMES.suggestionRecompute,
+      job: SUGGESTION_EVENT_TRIGGER_JOB,
+    },
   ],
   [HEALTH_EVENT_CHANGED]: [
     {
       queue: QUEUE_NAMES.reportCacheInvalidation,
       job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+    {
+      queue: QUEUE_NAMES.suggestionRecompute,
+      job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
   ],
 };

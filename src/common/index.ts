@@ -155,4 +155,5 @@ export type { EventOrigin } from './events/event-origins.js';
 export {
   EVENT_JOB_NAMES,
   REPORT_CACHE_INVALIDATION_JOB,
+  SUGGESTION_EVENT_TRIGGER_JOB,
 } from './events/jobs.js';

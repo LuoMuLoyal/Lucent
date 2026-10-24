@@ -8,7 +8,7 @@ import { MaterializationStore } from '../materialization/store.service.js';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
 import { BaselineService } from '../lifecycle/baseline.service.js';
 import { SUGGESTION_DEFAULT_LOCALE } from '../../constants/locale.constants.js';
-import type { RecomputeJobData } from './queue.service.js';
+import type { RecomputeJobData } from './recompute-job.types.js';
 
 const MAX_RECOMPUTE_VERSION_FOLLOW_UPS = 3;
 

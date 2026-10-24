@@ -17,7 +17,6 @@ import { SuggestionPresentationService } from './services/presentation.service.j
 import { ArbitrationService } from './services/arbitration/arbiter.service.js';
 import { ScoringService } from './services/arbitration/scoring.service.js';
 import { SuppressionService } from './services/arbitration/suppression.service.js';
-import { SuggestionCacheInvalidationListener } from './services/cache/suggestion-cache-invalidation.listener.js';
 import { SuggestionCacheService } from './services/cache/suggestion-cache.service.js';
 import { MedicationCollectorService } from './services/collectors/medication.service.js';
 import { MedicationTimeResolverService } from './services/collectors/medication-time-resolver.service.js';
@@ -48,7 +47,7 @@ import { SleepShortfallRuleService } from './services/rules/sleep/sleep-shortfal
 import { WaterShortfallRuleService } from './services/rules/lifestyle/water-shortfall.service.js';
 import { MaterializationStore } from './services/materialization/store.service.js';
 import { RecomputeQueueService } from './services/recompute/queue.service.js';
-import { RecomputeTriggerListener } from './services/recompute/trigger.listener.js';
+import { RecomputeEventTriggerService } from './services/recompute/event-trigger.service.js';
 import { SuggestionRecomputeWorkerService } from './services/recompute/worker.service.js';
 import { SuggestionService } from './services/suggestion.service.js';
 import type { SuggestionRule } from './types/rule.types.js';
@@ -103,12 +102,11 @@ import type { SuggestionRule } from './types/rule.types.js';
     FeedbackStatsService,
     // Cache
     SuggestionCacheService,
-    SuggestionCacheInvalidationListener,
     // Recompute trigger and materialization state
     MaterializationStore,
     SuggestionRecomputeWorkerService,
     RecomputeQueueService,
-    RecomputeTriggerListener,
+    RecomputeEventTriggerService,
     // Notification escalation
     EscalationService,
     // AI explanation

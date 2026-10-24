@@ -4,6 +4,8 @@ import {
   RecomputeQueueService,
   type RecomputeJobData,
 } from './queue.service.js';
+import { EventConsumerRegistry } from '../../../../common/index.js';
+import type { RecomputeEventTriggerService } from './event-trigger.service.js';
 
 function buildFactory(queue: { add: vi.Mock; getJob: vi.Mock }): {
   createQueue: vi.Mock;
@@ -28,6 +30,8 @@ function data(overrides: Partial<RecomputeJobData> = {}): RecomputeJobData {
 
 describe('RecomputeQueueService', () => {
   const worker = { process: vi.fn().mockResolvedValue(undefined) };
+  const eventTrigger = { resolve: vi.fn().mockResolvedValue(null) };
+  const consumers = new EventConsumerRegistry();
   const metrics = {
     recordSuggestionRecomputeEnqueue: vi.fn(),
     recordSuggestionRecomputeDedupe: vi.fn(),
@@ -46,6 +50,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       factory as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
     );
 
     expect(service.isConfigured).toBe(false);
@@ -59,6 +65,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       buildFactory(queue) as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
     );
 
     await service.enqueue(data());
@@ -91,6 +99,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       buildFactory(queue) as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
     );
 
     await service.enqueue(first);
@@ -127,6 +137,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       buildFactory(queue) as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
       metrics as never,
     );
 
@@ -159,6 +171,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       buildFactory(queue) as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
     );
 
     await service.enqueue(data({ sourceVersion: 2 }));
@@ -182,6 +196,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       factory as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
     );
     expect(service.isConfigured).toBe(true);
     const options = factory.createQueue.mock.calls[0]?.[0] as {
@@ -200,6 +216,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       factory as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
     );
 
     await service.enqueue(data());
@@ -215,6 +233,8 @@ describe('RecomputeQueueService', () => {
     const service = new RecomputeQueueService(
       buildFactory(queue) as never,
       worker as never,
+      eventTrigger as unknown as RecomputeEventTriggerService,
+      consumers,
     );
 
     await service.enqueue(data());
