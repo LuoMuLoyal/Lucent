@@ -48,6 +48,27 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 `ddd-application-no-infra-or-adapters` 会拦。新增用例的输入类型定义在
 应用层,不要复用 zod 输出类型。
 
+## 端点命名
+
+两条令牌投递出口,路径只在用途上区分,不靠单复数暗示:
+
+| 出口                | 路径                                                  | token 落点      |
+| ------------------- | ----------------------------------------------------- | --------------- |
+| Bearer(手机端)      | `POST /auth/{login,register,logout,refresh}`          | 响应体          |
+| cookie(浏览器/桌面) | `POST /auth/sessions/{login,register,logout,refresh}` | 仅 `Set-Cookie` |
+
+设备/登录会话清单与吊销在 `/auth/devices`(`GET`、`DELETE /:sessionId`),
+与管理面 `/admin/users/:id/sessions/:sessionId` 分开:前者是用户自助,后者是运营。
+
+**没有 `/auth/me`**:账户资料的唯一读入口是 `GET /account`(account 模块,
+含 `hasPassword`/`linkedIdentities`/`lastLoginAt`)。登录/注册/刷新的响应里仍带
+`user` 块,那是会话建立的产物;会话恢复要读账户资料,而不是把登录快照当权威。
+
+operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
+`registerWithCookie` / `refreshWithCookie` / `logoutWithCookie` /
+`listDevices` / `revokeDevice`),不靠方法名推导——`sessions` 与 `session`
+只差一个字母时的歧义就是靠这个消掉的。
+
 ## 边界
 
 - 管:凭据认证、JWT 会话、OAuth 链接、邮箱验证码、登录限流、敏感操作密码

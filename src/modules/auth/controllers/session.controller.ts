@@ -77,15 +77,18 @@ export class SessionController {
     return;
   }
 
-  // ── GET /api/v1/auth/sessions ──────────────────────────────
+  // ── GET /api/v1/auth/devices ──────────────────────────────
 
-  @Get('sessions')
+  @Get('devices')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'List active sessions for the current user' })
+  @ApiOperation({
+    summary: 'List signed-in devices for the current user',
+    operationId: 'listDevices',
+  })
   @ApiResponse({
     status: 200,
-    description: 'The active sessions of the current user.',
+    description: 'The signed-in devices of the current user.',
   })
   @ApiResponse({
     status: 401,
@@ -102,22 +105,25 @@ export class SessionController {
   // registration below uses the array schema (component keeps the former
   // class name — Luminous re-generation shape needs gate review).
   @SerializeOptions({ schema: sessionListItemSchema })
-  async listSessions(@CurrentUser() user: UserPayload) {
+  async listDevices(@CurrentUser() user: UserPayload) {
     const sessions = await unwrapResult(
       this.authTokenService.listSessions(user.sub),
     );
     return sessions;
   }
 
-  // ── DELETE /api/v1/auth/sessions/:sessionId ────────────────
+  // ── DELETE /api/v1/auth/devices/:sessionId ────────────────
 
-  @Delete('sessions/:sessionId')
+  @Delete('devices/:sessionId')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiOperation({
+    summary: 'Revoke a signed-in device',
+    operationId: 'revokeDevice',
+  })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
-    description: 'Session revoked.',
+    description: 'Device revoked.',
   })
   @ApiResponse({
     status: 403,
@@ -139,7 +145,7 @@ export class SessionController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
-  async revokeSession(
+  async revokeDevice(
     @CurrentUser() user: UserPayload,
     @Param('sessionId') sessionId: string,
     @Req() request: FastifyRequest,
@@ -193,11 +199,11 @@ export class SessionController {
 // NOTE: array body — the component schema is the full response array; the
 // endpoint handler validates per item with the item schema (see above).
 registerResponseSchema({
-  path: '/api/v1/auth/sessions',
+  path: '/api/v1/auth/devices',
   method: 'get',
   componentName: 'SessionListItem',
   schema: sessionListSchema,
-  description: 'The active sessions of the current user.',
+  description: 'The signed-in devices of the current user.',
 });
 
 registerResponseSchema({

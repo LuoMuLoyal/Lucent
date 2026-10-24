@@ -13,7 +13,7 @@ const ACCESS_TTL_EXAMPLE_SECONDS = 900;
 const NICKNAME_MAX_LENGTH = 20;
 
 /**
- * HTTP 契约：httpOnly cookie 会话（`/auth/session/*` 与 `/auth/me`）。
+ * HTTP 契约：httpOnly cookie 会话（`/auth/sessions/*`）。账户资料读走 `GET /account`。
  *
  * ## 与 Bearer 契约的关系
  *
@@ -68,7 +68,17 @@ export const sessionRegisterSchema = z
 
 export type SessionRegisterDto = z.infer<typeof sessionRegisterSchema>;
 
-/** 会话用户资料。字段与登录响应的用户块对齐，但不含任何 token。 */
+/**
+ * 会话建立时返回的用户资料块。
+ *
+ * 账户资料的**唯一读入口**是 `GET /account`；这里的 `user` 只是「会话建立」
+ * 的产物。两处不合并字段——`hasPassword` 要额外查一次 `account` 表，
+ * 登录响应不该为一个布尔位多打一次库。
+ *
+ * 字段是 `AccountDto` 的**子集**（`email` / `nickname` / `avatar` /
+ * `emailVerifiedAt` / `createdAt` / `updatedAt`），外加 `emailVerified`
+ * 这个供登录态直接判断的布尔位。
+ */
 export const sessionUserSchema = z.object({
   id: z.string().describe('用户 ID'),
   email: z.string().describe('邮箱地址'),

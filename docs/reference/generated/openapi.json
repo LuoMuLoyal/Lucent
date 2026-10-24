@@ -3416,13 +3416,13 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/sessions": {
+    "/api/v1/auth/devices": {
       "get": {
-        "operationId": "listSessions",
+        "operationId": "listDevices",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The active sessions of the current user.",
+            "description": "The signed-in devices of the current user.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3457,13 +3457,13 @@
             "access-token": []
           }
         ],
-        "summary": "List active sessions for the current user",
+        "summary": "List signed-in devices for the current user",
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/sessions/{sessionId}": {
+    "/api/v1/auth/devices/{sessionId}": {
       "delete": {
-        "operationId": "revokeSession",
+        "operationId": "revokeDevice",
         "parameters": [
           {
             "name": "sessionId",
@@ -3476,7 +3476,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Session revoked."
+            "description": "Device revoked."
           },
           "401": {
             "description": "Access token invalid or expired",
@@ -3524,7 +3524,7 @@
             "access-token": []
           }
         ],
-        "summary": "Revoke a specific session",
+        "summary": "Revoke a signed-in device",
         "tags": ["Auth"]
       }
     },
@@ -3568,16 +3568,16 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/session/register": {
+    "/api/v1/auth/sessions/register": {
       "post": {
-        "operationId": "registerSession",
+        "operationId": "registerWithCookie",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterSessionRequest"
+                "$ref": "#/components/schemas/RegisterWithCookieRequest"
               }
             }
           }
@@ -3628,16 +3628,16 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/session/login": {
+    "/api/v1/auth/sessions/login": {
       "post": {
-        "operationId": "loginSession",
+        "operationId": "loginWithCookie",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginSessionRequest"
+                "$ref": "#/components/schemas/LoginWithCookieRequest"
               }
             }
           }
@@ -3698,9 +3698,9 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/session/refresh": {
+    "/api/v1/auth/sessions/refresh": {
       "post": {
-        "operationId": "refreshCookieSession",
+        "operationId": "refreshWithCookie",
         "parameters": [],
         "responses": {
           "200": {
@@ -3728,9 +3728,9 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/session/logout": {
+    "/api/v1/auth/sessions/logout": {
       "post": {
-        "operationId": "logoutSession",
+        "operationId": "logoutWithCookie",
         "parameters": [],
         "responses": {
           "204": {
@@ -3753,41 +3753,6 @@
           }
         ],
         "summary": "Logout (clears the cookie session)",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/me": {
-      "get": {
-        "operationId": "getMe",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "The authenticated user.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionUser"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Access token invalid or expired (sent as a cookie)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Current user (cookie session)",
         "tags": ["Auth"]
       }
     },
@@ -8822,57 +8787,6 @@
         "required": ["accessToken", "refreshToken", "expiresIn"],
         "additionalProperties": false
       },
-      "SessionUser": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "用户 ID"
-          },
-          "email": {
-            "type": "string",
-            "description": "邮箱地址"
-          },
-          "nickname": {
-            "nullable": true,
-            "description": "昵称",
-            "type": "string"
-          },
-          "avatar": {
-            "nullable": true,
-            "description": "头像 URL",
-            "type": "string"
-          },
-          "emailVerified": {
-            "type": "boolean",
-            "description": "邮箱是否已验证"
-          },
-          "emailVerifiedAt": {
-            "nullable": true,
-            "description": "邮箱验证时间 (ISO 8601)",
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "创建时间 (ISO 8601)"
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "更新时间 (ISO 8601)"
-          }
-        },
-        "required": [
-          "id",
-          "email",
-          "nickname",
-          "avatar",
-          "emailVerified",
-          "emailVerifiedAt",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
-      },
       "SessionResponse": {
         "type": "object",
         "properties": {
@@ -13055,7 +12969,7 @@
         "required": ["refreshToken"],
         "additionalProperties": false
       },
-      "RegisterSessionRequest": {
+      "RegisterWithCookieRequest": {
         "type": "object",
         "properties": {
           "email": {
@@ -13090,7 +13004,7 @@
         "required": ["email", "password", "code"],
         "additionalProperties": false
       },
-      "LoginSessionRequest": {
+      "LoginWithCookieRequest": {
         "type": "object",
         "properties": {
           "email": {

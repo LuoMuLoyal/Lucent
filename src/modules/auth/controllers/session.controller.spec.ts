@@ -104,7 +104,7 @@ describe('SessionController', () => {
     });
   });
 
-  describe('GET /auth/sessions', () => {
+  describe('GET /auth/devices', () => {
     it('returns sessions list resource', async () => {
       const sessions = [
         {
@@ -116,17 +116,17 @@ describe('SessionController', () => {
       ];
       authTokenService.listSessions.mockReturnValue(okAsync(sessions as never));
 
-      const result = await controller.listSessions(mockUser);
+      const result = await controller.listDevices(mockUser);
 
       expect(authTokenService.listSessions).toHaveBeenCalledWith('user-1');
       expect(result).toEqual(sessions);
     });
   });
 
-  describe('DELETE /auth/sessions/:sessionId', () => {
+  describe('DELETE /auth/devices/:sessionId', () => {
     it('revokes session, writes audit log, and returns no content (204)', async () => {
       await expect(
-        controller.revokeSession(mockUser, 'sess-1', mockRequest),
+        controller.revokeDevice(mockUser, 'sess-1', mockRequest),
       ).resolves.toBeUndefined();
 
       expect(authTokenService.revokeById).toHaveBeenCalledWith(
@@ -154,7 +154,7 @@ describe('SessionController', () => {
       );
 
       await expect(
-        controller.revokeSession(mockUser, 'sess-1', mockRequest),
+        controller.revokeDevice(mockUser, 'sess-1', mockRequest),
       ).rejects.toBeInstanceOf(DomainFailureException);
       expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
     });
@@ -170,7 +170,7 @@ describe('SessionController', () => {
       );
 
       await expect(
-        controller.revokeSession(mockUser, 'missing', mockRequest),
+        controller.revokeDevice(mockUser, 'missing', mockRequest),
       ).rejects.toBeInstanceOf(DomainFailureException);
       expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
     });

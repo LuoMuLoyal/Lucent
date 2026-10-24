@@ -27,7 +27,13 @@ type UserSource = Pick<
   | 'updatedAt'
 >;
 
-/** 用户资料块。`/auth/me` 与登录/注册/刷新共用，避免两处字段漂移。 */
+/**
+ * 用户资料块。登录/注册/刷新共用，避免两处字段漂移。
+ *
+ * 账户资料的**读入口**是 `GET /account`（含 `hasPassword` / `linkedIdentities`）；
+ * 这里只给「会话建立」需要的身份与展示字段，不额外查库——登录响应不该为了
+ * 一个布尔位多打一次 `account` 表。
+ */
 export function toSessionUser(user: UserSource): SessionUserDto {
   return {
     id: user.id,

@@ -124,11 +124,6 @@ export class CookieSessionUseCase {
     await unwrapResult(this.authService.logout(userId, refreshToken));
   }
 
-  /** 读取当前登录用户。会话已失效时失败码与 Bearer 那条路一致。 */
-  currentUser(userId: string): ResultAsync<User, DomainFailure> {
-    return this.authService.getActiveUser(userId);
-  }
-
   /**
    * 「会话失效」的统一失败，供投递层在**没有 refresh cookie**时直接拒绝。
    *

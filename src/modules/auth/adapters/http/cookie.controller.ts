@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -40,17 +39,11 @@ import {
   sessionLoginSchema,
   sessionRegisterSchema,
   sessionResponseSchema,
-  sessionUserSchema,
   type SessionLoginDto,
   type SessionRegisterDto,
   type SessionResponseDto,
-  type SessionUserDto,
 } from './dto/session.js';
-import {
-  toCookieTokens,
-  toSessionResponse,
-  toSessionUser,
-} from './presenters/session.js';
+import { toCookieTokens, toSessionResponse } from './presenters/session.js';
 
 /**
  * HttpOnly cookie 会话端点 —— 面向**浏览器里跑的客户端**。
@@ -74,11 +67,24 @@ import {
  *
  * | 方法 | 路径 | 鉴权 | 作用 |
  * | --- | --- | --- | --- |
- * | POST | `/auth/session/register` | 公开 | 注册并建立会话 |
- * | POST | `/auth/session/login` | 公开 | 登录并建立会话 |
- * | POST | `/auth/session/refresh` | 公开（凭 refresh cookie） | 轮换会话 |
- * | POST | `/auth/session/logout` | 需 access 凭据 | 吊销会话并清 cookie |
- * | GET | `/auth/me` | 需 access 凭据 | 读取当前用户 |
+ * | POST | `/auth/sessions/register` | 公开 | 注册并建立会话 |
+ * | POST | `/auth/sessions/login` | 公开 | 登录并建立会话 |
+ * | POST | `/auth/sessions/refresh` | 公开（凭 refresh cookie） | 轮换会话 |
+ * | POST | `/auth/sessions/logout` | 需 access 凭据 | 吊销会话并清 cookie |
+ *
+ * ## 路径为什么是复数 `/auth/sessions/*`
+ *
+ * 这些动作作用在**会话资源**上，而不是某个具名会话：`sessions/refresh` 换一个成员，
+ * `sessions/logout` 删掉当前成员。单数 `/auth/session/*` 读起来像「某一个会话」，
+ * 会和设备/会话列表的语义混在一起。
+ *
+ * ## 为什么这里没有「读取当前用户」的端点
+ *
+ * 账户资料只有一个读入口：`GET /account`（`AccountController`）。同一个资源两个
+ * 入口会让客户端只能靠约定记住「读自己用 me、改自己用 account」，而两份响应形状
+ * 本来就不一致（`SessionUser` 有 `emailVerified`，`AccountDto` 有
+ * `hasPassword`/`linkedIdentities`）。登录/注册/刷新的响应里仍带 `user` 块，
+ * 那是**会话建立的产物**，不是第二个读账户的入口。
  *
  * ## 为什么 refresh 是公开的
  *
@@ -95,12 +101,15 @@ export class CookieSessionController {
     private readonly configService: ConfigService,
   ) {}
 
-  // ── POST /api/v1/auth/session/register ──────────────────────
+  // ── POST /api/v1/auth/sessions/register ──────────────────────
 
   @Public()
-  @Post('session/register')
+  @Post('sessions/register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register (httpOnly cookie session)' })
+  @ApiOperation({
+    summary: 'Register (httpOnly cookie session)',
+    operationId: 'registerWithCookie',
+  })
   @ApiResponse({
     status: 201,
     description: 'Registered user. Tokens are set as HttpOnly cookies.',
@@ -142,12 +151,15 @@ export class CookieSessionController {
     return toSessionResponse(result.user, result.tokens.accessTokenExpiresAt);
   }
 
-  // ── POST /api/v1/auth/session/login ─────────────────────────
+  // ── POST /api/v1/auth/sessions/login ─────────────────────────
 
   @Public()
-  @Post('session/login')
+  @Post('sessions/login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login (httpOnly cookie session)' })
+  @ApiOperation({
+    summary: 'Login (httpOnly cookie session)',
+    operationId: 'loginWithCookie',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user. Tokens are set as HttpOnly cookies.',
@@ -187,12 +199,15 @@ export class CookieSessionController {
     return toSessionResponse(result.user, result.tokens.accessTokenExpiresAt);
   }
 
-  // ── POST /api/v1/auth/session/refresh ───────────────────────
+  // ── POST /api/v1/auth/sessions/refresh ───────────────────────
 
   @Public()
-  @Post('session/refresh')
+  @Post('sessions/refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Rotate the cookie session' })
+  @ApiOperation({
+    summary: 'Rotate the cookie session',
+    operationId: 'refreshWithCookie',
+  })
   @ApiResponse({
     status: 200,
     description: 'Rotated session; new tokens are set as HttpOnly cookies.',
@@ -223,12 +238,15 @@ export class CookieSessionController {
     return toSessionResponse(rotated.user, rotated.tokens.accessTokenExpiresAt);
   }
 
-  // ── POST /api/v1/auth/session/logout ────────────────────────
+  // ── POST /api/v1/auth/sessions/logout ────────────────────────
 
-  @Post('session/logout')
+  @Post('sessions/logout')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Logout (clears the cookie session)' })
+  @ApiOperation({
+    summary: 'Logout (clears the cookie session)',
+    operationId: 'logoutWithCookie',
+  })
   @ApiResponse({ status: 204, description: 'Logged out; cookies cleared.' })
   @ApiResponse({
     status: 401,
@@ -261,25 +279,6 @@ export class CookieSessionController {
     });
   }
 
-  // ── GET /api/v1/auth/me ─────────────────────────────────────
-
-  @Get('me')
-  @ApiBearerAuth('access-token')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Current user (cookie session)' })
-  @ApiResponse({ status: 200, description: 'The authenticated user.' })
-  @ApiResponse({
-    status: 401,
-    description: 'Access token invalid or expired (sent as a cookie)',
-    type: ProblemDetailsDto,
-  })
-  @SerializeOptions({ schema: sessionUserSchema })
-  async me(@CurrentUser() user: UserPayload): Promise<SessionUserDto> {
-    const account = await unwrapResult(this.useCase.currentUser(user.sub));
-
-    return toSessionUser(account);
-  }
-
   /** 部署形态 → cookie 属性。每次请求读取，便于运行期调整部署配置。 */
   private policy() {
     return resolveSessionCookiePolicy(
@@ -292,15 +291,7 @@ export class CookieSessionController {
 // NOTE: 注册响应组件（OpenAPI）。Bearer 那条路为 `/auth/login` 注册过
 // `LoginResponse`，这里用 `SessionResponse` 区分，避免组件被覆盖。
 registerResponseSchema({
-  path: '/api/v1/auth/me',
-  method: 'get',
-  componentName: 'SessionUser',
-  schema: sessionUserSchema,
-  description: 'The authenticated user.',
-});
-
-registerResponseSchema({
-  path: '/api/v1/auth/session/login',
+  path: '/api/v1/auth/sessions/login',
   method: 'post',
   componentName: 'SessionResponse',
   schema: sessionResponseSchema,
@@ -308,7 +299,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/auth/session/register',
+  path: '/api/v1/auth/sessions/register',
   method: 'post',
   componentName: 'SessionResponse',
   schema: sessionResponseSchema,
@@ -316,7 +307,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/auth/session/refresh',
+  path: '/api/v1/auth/sessions/refresh',
   method: 'post',
   componentName: 'SessionResponse',
   schema: sessionResponseSchema,
