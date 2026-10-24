@@ -31,7 +31,7 @@ export {
 export type { OAuthAuthorizeResponseDto } from './dto/shared/auth-responses.dto.js';
 export { oauthAuthorizeResponseSchema } from './dto/shared/auth-responses.dto.js';
 export { Public } from './decorators/public.decorator.js';
-export { QqOAuthProvider } from './providers/qq-oauth.provider.js';
+export { QqOAuthProvider } from './infrastructure/oauth/qq.js';
 export type { SetPasswordDto } from './dto/password/set-password.dto.js';
 export { setPasswordSchema } from './dto/password/set-password.dto.js';
 export { WechatMobileOAuthProvider } from './infrastructure/oauth/wechat/wechat-mobile.js';

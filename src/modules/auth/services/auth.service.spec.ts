@@ -25,7 +25,7 @@ import { UserStatus } from '#generated/prisma/client.js';
 import { WechatMobileOAuthProvider } from '../infrastructure/oauth/wechat/wechat-mobile.js';
 import { WechatWebOAuthProvider } from '../infrastructure/oauth/wechat/wechat-web.js';
 import { AppleOAuthProvider } from '../providers/apple-oauth.provider.js';
-import { QqOAuthProvider } from '../providers/qq-oauth.provider.js';
+import { QqOAuthProvider } from '../infrastructure/oauth/qq.js';
 import { NotificationsService } from '../../notifications/index.js';
 import {
   createDomainFailure,

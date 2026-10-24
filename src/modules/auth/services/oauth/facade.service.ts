@@ -20,7 +20,7 @@ import type {
 } from '../../dto/shared/oauth.dto.js';
 import { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
 import { AppleOAuthProvider } from '../../providers/apple-oauth.provider.js';
-import { QqOAuthProvider } from '../../providers/qq-oauth.provider.js';
+import { QqOAuthProvider } from '../../infrastructure/oauth/qq.js';
 import { WechatMobileOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-mobile.js';
 import { WechatWebOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-web.js';
 import {

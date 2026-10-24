@@ -42,7 +42,7 @@ import { WechatMobileOAuthProvider } from './infrastructure/oauth/wechat/wechat-
 import { WechatWebOAuthProvider } from './infrastructure/oauth/wechat/wechat-web.js';
 import { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
 import { GoogleOAuthProvider } from './providers/google-oauth.provider.js';
-import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
+import { QqOAuthProvider } from './infrastructure/oauth/qq.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { CookieSessionUseCase } from './application/use_cases/cookie-session.js';
 import { AuthIdentityService } from './application/services/identity.js';

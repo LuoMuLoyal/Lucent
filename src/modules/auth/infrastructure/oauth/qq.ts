@@ -1,4 +1,4 @@
-import { extractErrorInfo, fetchWithRetry } from '../../../common/index.js';
+import { extractErrorInfo, fetchWithRetry } from '../../../../common/index.js';
 import {
   createDomainFailure,
   err,
@@ -9,7 +9,7 @@ import {
   type DomainFailure,
   type Result,
   type ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 import {
   Injectable,
   Logger,
@@ -17,15 +17,16 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../config/env/config-keys.enum.js';
-import type { OAuthConfig } from '../../../config/services/oauth.config.js';
-import { OAUTH_PROVIDER_QQ, type OAuthProfile } from '../types/oauth.types.js';
-import type { OAuthProvider } from './oauth-provider.interface.js';
-import { toRawProfile } from '../infrastructure/oauth/raw-profile.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { OAuthConfig } from '../../../../config/services/oauth.config.js';
+import { OAUTH_PROVIDER_QQ } from '../../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
+import type { OAuthProvider } from '../../application/ports/oauth-provider.js';
+import { toRawProfile } from './raw-profile.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from '../infrastructure/oauth/dependency-failure.js';
+} from './dependency-failure.js';
 
 const QQ_AUTHORIZE_URL = 'https://graph.qq.com/oauth2.0/authorize';
 const QQ_ACCESS_TOKEN_URL = 'https://graph.qq.com/oauth2.0/token';
@@ -93,7 +94,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
 
   fetchProfile(
     credential: Record<string, unknown>,
-  ): ResultAsync<OAuthProfile, DomainFailure> {
+  ): ResultAsync<OAuthProviderProfile, DomainFailure> {
     const code = credential['code'] as string;
     if (!code) {
       return errAsync(this.validationFailure());
@@ -107,7 +108,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
       this.fetchOpenId(token.access_token).andThen((openid) =>
         // Step 3: get user info
         this.fetchUserInfo(token.access_token, openid, config.appId).map(
-          (userInfo): OAuthProfile => ({
+          (userInfo): OAuthProviderProfile => ({
             provider: OAUTH_PROVIDER_QQ,
             providerUserId: openid,
             email: null,
