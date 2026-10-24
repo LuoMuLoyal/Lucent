@@ -234,14 +234,38 @@ headline/区间，只为返回的 ≤`limit` 条回读 `payload.mealAnalysis` �
 删除对话不删除记忆，`DELETE memory` 是设置页全量清除入口。assistant 对话与
 历史 Today/Report AI 摘要是两回事。
 
+## 医学问答语料的编辑面（`application/` + `infrastructure/persistence/qa-chunks.ts`）
+
+`medical_qa_chunks` 是**本上下文自己的检索事实源**——assistant 回答所依据的
+LightRAG `qa` workspace 由这些行构建，所以编辑权归这里，不再挂在 `medicines`。
+
+- `application/ports/qa-chunks.ts` — `ASSISTANT_QA_CHUNK_REPOSITORY` token 与
+  `QaChunkRepositoryPort`（`list` / `findEditable` / `update`）。
+- `infrastructure/persistence/qa-chunks.ts` — `AssistantQaChunksRepository`
+  （Prisma 实现；`qaId` 是语料身份、由导入脚本赋值，不在可编辑字段里）。
+- `application/use_cases/qa-chunks-admin.ts` — `QaChunksAdminService`，
+  列表分页 / `q` / `safetyLabel` 过滤，写作记审计 actor + 前后摘要。
+
+**写路径在模块之外**：`scripts/import/medicine/import-medical-qa.ts`（裸 `pg`，
+不经 Nest DI）灌入语料，`rebuild-lightrag-index.ts --workspace=qa` 建索引。
+因此**编辑只落库、不即时生效**——要等重建索引才进检索；且下一次重新导入会覆盖整行。
+`safetyLabel = 'blocked'` 的行在建索引时被跳过，这是这条语料的**安全刹车**。
+
+**`AssistantContentModule`（`assistant-content.module.ts`）** 单独承载这个编辑面，
+不从 `AssistantModule` 导出。原因是模块依赖环：`AssistantModule` →
+`DailyRecordsModule` → `HealthEventsModule` → `ProductEventsModule` → `AdminModule`，
+而 admin 控制台是这个编辑面的唯一消费方；把它注册进 `AssistantModule` 会让
+`admin` 依赖一条绕回 `admin` 的图。窄模块只声明编辑面，admin 因此能拿到能力而不牵入
+assistant 的运行时图（`PrismaModule` 与 `AuditLogModule` 都是 `@Global`，无需 `imports`）。
+
 ## Dependencies
 
 Imports：Auth、LlmCommon、LlmRuntime、Medicines、UserSettings、
 UserHealthContext、DailyRecords、MedicineReminders。Port DI（ADR-0009）：
 `MEDICINE_REMINDER_READER`、`DAILY_RECORD_READER`、
 `DAILY_RECORD_CANDIDATE_GENERATOR`，以及类令牌 `DailyRecordReaderPort`
-（餐食 digest 的范围读）。Barrel 仅导出
-`HistoricalAiSummaryService`（reports 消费）。
+（餐食 digest 的范围读）。Barrel 导出 `HistoricalAiSummaryService`（reports 消费）
+与 `QaChunksAdminService`（admin 内容管理消费）。
 
 ## Tests
 
@@ -252,4 +276,5 @@ validate/model-stream/`intent-classifier.service`/`intent-eval.fixture` 等 +
 （含 `retrieval/lightrag-client.service.spec.ts` 与
 `retrieval/knowledge.service.spec.ts`：成功/超时/4xx/5xx/未配置/qa 选 mix 被拒/
 leaflet 评测前选 mix 被拒/空结果/溯源缺失标 partial）、
-`repositories/conversation.repository.spec.ts`、`services/policy.service.spec.ts`。
+`repositories/conversation.repository.spec.ts`、`services/policy.service.spec.ts`、
+`application/use_cases/qa-chunks-admin.spec.ts`。

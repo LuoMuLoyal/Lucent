@@ -14,7 +14,6 @@ import { MedicineSearchReadModel } from './application/read_models/medicine-card
 import { MedicineDetailReadModel } from './application/read_models/medicine-detail.js';
 import { MedicineSequenceReadModel } from './application/read_models/medicine-sequence.js';
 import { SafetyTipsAdminService } from './application/use_cases/safety-tips-admin.js';
-import { QaChunksAdminService } from './application/use_cases/qa-chunks-admin.js';
 
 import { MedicineRecognitionQueueService } from './adapters/queue/recognition.js';
 import { MedicineRiskCheckService } from './application/use_cases/check-risk.js';
@@ -26,7 +25,6 @@ import { CnMedicinesService } from './infrastructure/persistence/cn.js';
 import { DrugbankMedicinesService } from './infrastructure/persistence/drugbank.js';
 import { MedicineSafetyTipsRepository } from './infrastructure/persistence/safety-tips.js';
 import { MedicineSafetyTipsStore } from './infrastructure/persistence/safety-tips.js';
-import { MedicalQaChunksRepository } from './infrastructure/persistence/qa-chunks.js';
 import { MedicineRiskRecordsStore } from './infrastructure/persistence/risk-records.js';
 import {
   MEDICINES_KNOWLEDGE_CACHE,
@@ -37,7 +35,6 @@ import {
   MEDICINE_SAFETY_TIPS_SOURCE,
   MEDICINE_SAFETY_TIP_REPOSITORY,
 } from './application/ports/safety-tips.js';
-import { MEDICINE_QA_CHUNK_REPOSITORY } from './application/ports/qa-chunks.js';
 import { MEDICINE_RISK_RECORDS } from './application/ports/risk-records.js';
 import { MEDICINE_RISK_LLM_GENERATOR } from './application/ports/risk-llm.js';
 import { MEDICINES_CACHE_MAINTENANCE } from './application/ports/cache-maintenance.js';
@@ -58,7 +55,6 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     MedicineDetailReadModel,
     MedicineSequenceReadModel,
     SafetyTipsAdminService,
-    QaChunksAdminService,
     MedicineRecognitionQueueService,
     MedicineRiskCheckService,
     MedicineRiskRefreshQueueService,
@@ -71,7 +67,6 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     MedicinesCacheMaintenanceService,
     MedicineSafetyTipsStore,
     MedicineSafetyTipsRepository,
-    MedicalQaChunksRepository,
     MedicineRiskRecordsStore,
     MedicationOverviewService,
     MedicineGraphExecutor,
@@ -95,10 +90,6 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
       provide: MEDICINE_SAFETY_TIP_REPOSITORY,
       useExisting: MedicineSafetyTipsRepository,
     },
-    {
-      provide: MEDICINE_QA_CHUNK_REPOSITORY,
-      useExisting: MedicalQaChunksRepository,
-    },
     { provide: MEDICINE_RISK_RECORDS, useExisting: MedicineRiskRecordsStore },
     {
       provide: MEDICINE_RISK_LLM_GENERATOR,
@@ -110,7 +101,6 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     CnMedicinesService,
     MedicineRiskCheckService,
     SafetyTipsAdminService,
-    QaChunksAdminService,
   ],
 })
 export class MedicinesModule {}

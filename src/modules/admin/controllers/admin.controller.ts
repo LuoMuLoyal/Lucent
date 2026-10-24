@@ -83,7 +83,8 @@ import type {
   AdminSafetyTipUpdateDto,
 } from '../dto/admin-content.dto.js';
 import { LegalDocumentsAdminService } from '../../legal-documents/index.js';
-import { QaChunksAdminService, SafetyTipsAdminService } from '../../medicines/index.js';
+import { SafetyTipsAdminService } from '../../medicines/index.js';
+import { QaChunksAdminService } from '../../assistant/index.js';
 import { adminIdentityResponseSchema } from '../dto/admin-identity.dto.js';
 import type { AdminIdentityDto } from '../dto/admin-identity.dto.js';
 

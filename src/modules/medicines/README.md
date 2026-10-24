@@ -28,7 +28,7 @@ owner: backend
   纯领域，不 import 上层。
 - `application/ports/` — 每个外部依赖一个端口（`knowledge` / `knowledge-view` /
   `cache` / `cache-maintenance` / `risk-records` / `risk-llm` / `risk-check` /
-  `safety-tips` / `qa-chunks`），同时导出 `const XXX = 'XXX'` 的 DI token。
+  `safety-tips`），同时导出 `const XXX = 'XXX'` 的 DI token。
   application 层不 import `infrastructure/`、`adapters/` 或 Prisma。
   `knowledge-view.ts` 是**投影形状**（卡片 / 判别联合详情 / 序列）的唯一定义处：
   持久层生产它、HTTP zod schema 与它结构兼容，两侧都只向内指。
@@ -38,13 +38,12 @@ owner: backend
   `medicine-card.format.ts` 是三个投影共用的纯格式化函数（持久层也要用，
   故不能留在 `adapters/`）。
 - `application/use_cases/` — 只剩**有副作用**的用例：`medicines`（识别 + 安全贴士）、
-  `check-risk`、`safety-tips-admin`（安全贴士内容管理）、`qa-chunks-admin`
-  （问答语料管理）、`medication-overview`、`rebuild-index`（薄门面，
-  委托 `MEDICINES_CACHE_MAINTENANCE`）。
+  `check-risk`、`safety-tips-admin`（安全贴士内容管理）、`medication-overview`、
+  `rebuild-index`（薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
 - `adapters/http/` — controller + zod DTO，`presenters/medicine.ts` 承载
   `utils/data-format.ts` 迁来的展示格式化。
-- `infrastructure/` — `persistence/`（cn、drugbank、risk-records、safety-tips、
-  qa-chunks）、`cache/`（store、maintenance）、`llm/`（risk-check + prompts + schemas）。
+- `infrastructure/` — `persistence/`（cn、drugbank、risk-records、safety-tips）、
+  `cache/`（store、maintenance）、`llm/`（risk-check + prompts + schemas）。
 - 端口在 `medicines.module.ts` 用 `{ provide: TOKEN, useExisting: Impl }` 绑定；
   新增实现只改 module 一处。
 
@@ -90,11 +89,11 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 - `GET safety-tips` — 随机安全贴士（公开读）；管理写操作经 Admin `content:write`
   API（`/api/v1/admin/content/safety-tips`）调用本模块 owner service
   `SafetyTipsAdminService`，每次都记审计（actor + 前后摘要）并失效药品缓存。
-- `GET/PUT /api/v1/admin/content/qa-chunks[/:id]` — 公开端无对应读取；管理面经
-  Admin `content:read`/`content:write` 调用本模块 owner service
-  `QaChunksAdminService`（列表分页/`q`/`safetyLabel` 过滤，写作审计 actor + 前后摘要）。
-  `qaId` 不可改（语料身份，检索索引文档名为 `qa:<qaId>:0`）；行只落库，
-  assistant 检索走 LightRAG `qa` workspace，需重建索引才可见；重新导入覆盖整表。
+- `GET/PUT /api/v1/admin/content/qa-chunks[/:id]` — **端点路径不变，但 owner 已改**：
+  问答语料 `medical_qa_chunks` 是 assistant 的检索事实源（LightRAG `qa` workspace
+  由这些行构建），编辑面归 assistant 的 `QaChunksAdminService`。本模块不再持有
+  这张表、也不再提供它的 port 或 repository。端点路径保持稳定是因为 admin 面板
+  链接与已生成的客户端依赖它——改 owner 不改 URL。
 
 ### 图关系查询（`/api/v1/medicines/relations/*`）
 
@@ -199,7 +198,6 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 `drugbank_drug_targets`、`drugbank_target_sequences`（靶点蛋白/编码基因序列）、
 `drugbank_drug_sequences`（生物药各链序列）、`drugbank_structures`（计算结构描述符，
 一药一行）、`drugbank_passage_chunks`（DrugBank RAG）、
-`medical_qa_chunks`（assistant-only 语料，属 assistant 模块检索）、
 `drug_source_imports`（导入元数据：来源/版本/哈希/行数/拒绝样本）。
 
 ## 导入策略（契约要点）
@@ -272,7 +270,7 @@ database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>
   `medicine-reminders` 以 Prisma 外键关联 `currentMedicine`，
   不经本模块服务。
 - Barrel 导出：`DrugbankMedicinesService`、`CnMedicinesService`、
-  `MedicineRiskCheckService`、`SafetyTipsAdminService`、`QaChunksAdminService`，
+  `MedicineRiskCheckService`、`SafetyTipsAdminService`，
   以及类型 `MedicineSearchItemLike` / `MedicineSearchResultLike`。
 
 ## Tests

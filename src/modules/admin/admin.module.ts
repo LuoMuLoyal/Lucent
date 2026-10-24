@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { UserModule } from '../user/user.module.js';
 import { LegalDocumentsModule } from '../legal-documents/legal-documents.module.js';
 import { MedicinesModule } from '../medicines/medicines.module.js';
+import { AssistantContentModule } from '../assistant/assistant-content.module.js';
 import { AdminController } from './controllers/admin.controller.js';
 import { AdminDataController } from './controllers/data.controller.js';
 import { AdminAccessService } from './services/access.service.js';
@@ -26,6 +27,7 @@ import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
     UserModule,
     LegalDocumentsModule,
     MedicinesModule,
+    AssistantContentModule,
   ],
   controllers: [AdminController, AdminDataController],
   providers: [

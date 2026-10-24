@@ -45,8 +45,16 @@ function toAdminQaChunk(row: QaChunkRawRow): QaChunkAdminRow {
   return { ...row, updatedAt: row.updatedAt.toISOString() };
 }
 
+/**
+ * Prisma-backed implementation of the QA-corpus admin port
+ * (`application/ports/qa-chunks.ts`).
+ *
+ * Only the editorial surface lives here: listing with filters and updating the
+ * editable columns. The corpus itself is loaded by the import script, and
+ * retrieval reads it through the LightRAG index, not through this repository.
+ */
 @Injectable()
-export class MedicalQaChunksRepository implements QaChunkRepositoryPort {
+export class AssistantQaChunksRepository implements QaChunkRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: QaChunkAdminListQuery): Promise<{

@@ -10,11 +10,12 @@ import { QaChunksAdminService } from './qa-chunks-admin.js';
 /**
  * Orchestration tests for the QA-corpus content-admin use case.
  *
- * The service depends on a repository port, so these tests speak to the port
- * and only assert the use-case responsibilities: the page window echoed back,
- * filter pass-through, and the audit journaling of before/after summaries. The
- * Prisma query shapes and ISO serialisation live in
- * `infrastructure/persistence/qa-chunks.spec.ts`, where that mapping happens.
+ * The corpus is the assistant's own retrieval source, so the editorial
+ * surface is tested here rather than in the module that merely exposes the
+ * admin endpoint. The service depends on a repository port, so these tests
+ * speak to the port and only assert the use-case responsibilities: the page
+ * window echoed back, filter pass-through, and the audit journaling of
+ * before/after summaries.
  */
 describe('QaChunksAdminService', () => {
   const chunkRow: QaChunkAdminRow = {

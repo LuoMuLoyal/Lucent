@@ -2,29 +2,38 @@ import { Inject, Injectable } from '@nestjs/common';
 import { unwrapResult } from '../../../../common/result/index.js';
 import { AuditLogService } from '../../../audit-log/index.js';
 import {
-  MEDICINE_QA_CHUNK_REPOSITORY,
+  ASSISTANT_QA_CHUNK_REPOSITORY,
   type QaChunkAdminInput,
   type QaChunkAdminListQuery,
   type QaChunkAdminPatch,
   type QaChunkRepositoryPort,
 } from '../ports/qa-chunks.js';
 
+export type { QaChunkAdminInput, QaChunkAdminListQuery, QaChunkAdminPatch };
+
 /**
  * Owner service for the assistant's open medical Q&A corpus
  * (`medical_qa_chunks`), exposed to the admin console through the
  * `content:read`/`content:write` surface.
  *
- * Two operational caveats the console surfaces but cannot enforce here:
- * the corpus is retrieved through the LightRAG `qa` workspace built by
- * `scripts/import/medicine/rebuild-lightrag-index.ts`, so an edit only reaches
- * retrieval after a rebuild; and a re-import of the source corpus overwrites
- * the row. Rows whose `safetyLabel` is `blocked` are skipped at index time.
+ * The corpus is this context's own retrieval source: the assistant answers
+ * from the LightRAG `qa` workspace, which is built from these rows. Two
+ * operational caveats the console surfaces but cannot enforce here:
+ *
+ * - an edit only reaches retrieval after `rebuild-lightrag-index.ts
+ *   --workspace=qa` re-indexes it — rows are the fact source, the index is a
+ *   projection;
+ * - a re-import of the source corpus (`import-medical-qa.ts`) overwrites the
+ *   row entirely, so an edit made before the next import does not survive it.
+ *
+ * Rows whose `safetyLabel` is `blocked` are skipped at index time, which makes
+ * that field the safety brake on this corpus.
  */
 @Injectable()
 export class QaChunksAdminService {
   constructor(
     private readonly auditLog: AuditLogService,
-    @Inject(MEDICINE_QA_CHUNK_REPOSITORY)
+    @Inject(ASSISTANT_QA_CHUNK_REPOSITORY)
     private readonly qaChunkRepository: QaChunkRepositoryPort,
   ) {}
 
@@ -55,6 +64,3 @@ export class QaChunksAdminService {
     return chunk;
   }
 }
-
-/** Re-exported for the admin console surface — see `ports/qa-chunks.ts`. */
-export type { QaChunkAdminInput, QaChunkAdminListQuery, QaChunkAdminPatch };

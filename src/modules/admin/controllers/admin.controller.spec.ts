@@ -6,7 +6,7 @@ import { responseSchemaRegistrations } from '../../../common/api/response-schema
 import type { UserPayload } from '../../auth/index.js';
 import type { AuthSessionAdminService } from '../../auth/index.js';
 import type { UserAdminService } from '../../user/index.js';
-import type { QaChunksAdminService } from '../../medicines/index.js';
+import type { QaChunksAdminService } from '../../assistant/index.js';
 import type { AdminAccessService } from '../services/access.service.js';
 import type { AdminAdminsService } from '../services/admins.service.js';
 import type { AdminConsoleService } from '../services/console.service.js';
