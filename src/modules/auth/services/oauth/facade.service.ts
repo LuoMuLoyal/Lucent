@@ -18,7 +18,7 @@ import type {
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
 } from '../../dto/shared/oauth.dto.js';
-import { GoogleOAuthProvider } from '../../providers/google-oauth.provider.js';
+import { GoogleOAuthProvider } from '../../infrastructure/oauth/google.js';
 import { AppleOAuthProvider } from '../../providers/apple-oauth.provider.js';
 import { QqOAuthProvider } from '../../infrastructure/oauth/qq.js';
 import { WechatMobileOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-mobile.js';

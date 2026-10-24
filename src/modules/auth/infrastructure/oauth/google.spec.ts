@@ -1,14 +1,14 @@
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
-import { GoogleOAuthProvider } from './google-oauth.provider.js';
+import { GoogleOAuthProvider } from './google.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 
-import * as commonUtils from '../../../common/index.js';
+import * as commonUtils from '../../../../common/index.js';
 
-vi.mock('../../../common', async (importOriginal) => {
+vi.mock('../../../../common', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,

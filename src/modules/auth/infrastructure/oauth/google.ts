@@ -1,6 +1,6 @@
 import { createPublicKey } from 'node:crypto';
 
-import { extractErrorInfo, fetchWithRetry } from '../../../common/index.js';
+import { extractErrorInfo, fetchWithRetry } from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -8,7 +8,7 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 import {
   Injectable,
   Logger,
@@ -17,18 +17,18 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigKey } from '../../../config/env/config-keys.enum.js';
-import type { OAuthConfig } from '../../../config/services/oauth.config.js';
-import {
-  OAUTH_PROVIDER_GOOGLE,
-  type OAuthProfile,
-} from '../types/oauth.types.js';
-import type { OAuthProvider } from './oauth-provider.interface.js';
-import { toRawProfile } from '../infrastructure/oauth/raw-profile.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { OAuthConfig } from '../../../../config/services/oauth.config.js';
+import { OAUTH_PROVIDER_GOOGLE } from '../../types/oauth.types.js';
+import type {
+  OAuthProvider,
+  OAuthProviderProfile,
+} from '../../application/ports/oauth-provider.js';
+import { toRawProfile } from './raw-profile.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from '../infrastructure/oauth/dependency-failure.js';
+} from './dependency-failure.js';
 
 const GOOGLE_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -127,7 +127,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
 
   fetchProfile(
     credential: Record<string, unknown>,
-  ): ResultAsync<OAuthProfile, DomainFailure> {
+  ): ResultAsync<OAuthProviderProfile, DomainFailure> {
     const code = credential['code'] as string;
     if (!code) {
       return errAsync(this.validationFailure());
@@ -139,7 +139,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
     return this.fetchAccessToken(code, config).andThen((token) =>
       // Step 2: get user info (GET with Bearer token)
       this.fetchUserInfo(token.access_token).map(
-        (userInfo): OAuthProfile => ({
+        (userInfo): OAuthProviderProfile => ({
           provider: OAUTH_PROVIDER_GOOGLE,
           providerUserId: userInfo.sub,
           email: userInfo.email ?? null,
@@ -171,10 +171,10 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
   fetchProfileFromIdToken(
     idToken: string,
     accessToken: string,
-  ): ResultAsync<OAuthProfile, DomainFailure> {
+  ): ResultAsync<OAuthProviderProfile, DomainFailure> {
     return this.verifyIdToken(idToken).andThen(() =>
       this.fetchUserInfo(accessToken).map(
-        (userInfo): OAuthProfile => ({
+        (userInfo): OAuthProviderProfile => ({
           provider: OAUTH_PROVIDER_GOOGLE,
           providerUserId: userInfo.sub,
           email: userInfo.email ?? null,
