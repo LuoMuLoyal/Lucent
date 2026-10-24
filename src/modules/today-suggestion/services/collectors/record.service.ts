@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   parseDateOnly,
   now,
@@ -16,16 +16,17 @@ import {
   parseMealRecordPayload,
 } from '../../../daily-records/index.js';
 
-import type {
-  DailyRecordFact,
-  MealAnalysisFacetLevel,
-  MealAnalysisItemKind,
-} from '../../../daily-records/index.js';
+import type { DailyRecordFact } from '../../../daily-records/index.js';
 import type { SuggestionSignal } from '../../types/signal.types.js';
 import { TriggerType } from '../../types/suggestion.types.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { TREND_LOOKBACK_DAYS } from '../../domain/rule/thresholds.js';
 import { symptomSeverityScore } from '../../domain/rule/symptom-severity.js';
+import {
+  asDietFacetKind,
+  type DietFacetKind,
+  type DietFacetLevel,
+} from '../../domain/signal/diet-facet.js';
 import { SleepTrendBuilderService } from './sleep-trend-builder.service.js';
 
 /**
@@ -33,9 +34,9 @@ import { SleepTrendBuilderService } from './sleep-trend-builder.service.js';
  * 只影响「这一天该维度算不算值得留意」，不参与任何数值计算。
  */
 function mergeFacetLevel(
-  current: MealAnalysisFacetLevel | undefined,
-  next: MealAnalysisFacetLevel,
-): MealAnalysisFacetLevel {
+  current: DietFacetLevel | undefined,
+  next: DietFacetLevel,
+): DietFacetLevel {
   if (current == null || current === next) return next;
   if (current === 'ok') return next;
   if (next === 'ok') return current;
@@ -48,6 +49,8 @@ function mergeFacetLevel(
  */
 @Injectable()
 export class RecordCollectorService {
+  private readonly logger = new Logger(RecordCollectorService.name);
+
   constructor(
     private readonly userSettingsService: IUserSettingsPort,
     private readonly dailyRecordReader: DailyRecordReaderPort,
@@ -360,19 +363,26 @@ export class RecordCollectorService {
    * 同一天有多餐时合并同一维度的档位：取离 `ok` 最远的一档，`low` 与 `high` 并列时取
    * `high`——宁可提示「这天有一餐偏油炸」，也不因为平均而把值得留意的一餐抹平。
    * 只读餐食分析里已经收敛过的封闭词表，不做任何文本判断。
+   *
+   * **这是本上下文的 ACL**：上游 `MealAnalysisItemKind` 有 11 个 kind，这里只投影
+   * 本上下文认识的 {@link DietFacetKind}（9 个），`balance`/`other` 不进入信号。
+   * 遇到不认识的 key **不静默跳过**——按日期汇总成一条 debug 日志。静默过滤意味着
+   * 上游改了 kind 名我们永远不知道；而日志按日期去重，不会一餐一条刷屏。
    */
   private buildDailyFacets(records: DailyRecordFact[]): Array<{
     date: string;
     analyzedMeals: number;
-    facets: Partial<Record<MealAnalysisItemKind, MealAnalysisFacetLevel>>;
+    facets: Partial<Record<DietFacetKind, DietFacetLevel>>;
   }> {
     const byDate = new Map<
       string,
       {
         analyzedMeals: number;
-        facets: Partial<Record<MealAnalysisItemKind, MealAnalysisFacetLevel>>;
+        facets: Partial<Record<DietFacetKind, DietFacetLevel>>;
       }
     >();
+    /** Unknown upstream keys seen per date, reported once per evaluation. */
+    const unknownKindsByDate = new Map<string, Set<string>>();
 
     for (const record of records) {
       const facets = parseMealRecordPayload(record.payload).mealAnalysis
@@ -382,14 +392,24 @@ export class RecordCollectorService {
       const dateKey = record.occurredAt.toISOString().slice(0, 10);
       const entry = byDate.get(dateKey) ?? { analyzedMeals: 0, facets: {} };
       entry.analyzedMeals += 1;
-      for (const [kind, level] of Object.entries(facets)) {
-        const current = entry.facets[kind as MealAnalysisItemKind];
-        entry.facets[kind as MealAnalysisItemKind] = mergeFacetLevel(
-          current,
-          level,
-        );
+      for (const [rawKind, level] of Object.entries(facets)) {
+        const kind = asDietFacetKind(rawKind);
+        if (kind == null) {
+          const seen = unknownKindsByDate.get(dateKey) ?? new Set<string>();
+          seen.add(rawKind);
+          unknownKindsByDate.set(dateKey, seen);
+          continue;
+        }
+        entry.facets[kind] = mergeFacetLevel(entry.facets[kind], level);
       }
       byDate.set(dateKey, entry);
+    }
+
+    for (const [date, kinds] of unknownKindsByDate) {
+      this.logger.debug(
+        `Diet facets for ${date} included ${String(kinds.size)} kind(s) this context does not consume ` +
+          `(${[...kinds].sort().join(', ')}); they were dropped from the diet_facets signal`,
+      );
     }
 
     return Array.from(byDate.entries())

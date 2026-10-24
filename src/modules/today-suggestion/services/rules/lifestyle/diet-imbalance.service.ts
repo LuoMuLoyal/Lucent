@@ -13,12 +13,12 @@ import {
   DIET_IMBALANCE_BASE_SCORE,
   DIET_IMBALANCE_MIN_DAYS,
 } from '../../../domain/rule/thresholds.js';
-import type { MealAnalysisItemKind } from '../../../../daily-records/index.js';
+import type { DietFacetKind } from '../../../domain/signal/diet-facet.js';
 
 interface DailyDietFacets {
   date: string;
   analyzedMeals: number;
-  facets: Partial<Record<MealAnalysisItemKind, 'low' | 'ok' | 'high'>>;
+  facets: Partial<Record<DietFacetKind, 'low' | 'ok' | 'high'>>;
 }
 
 /**
@@ -27,7 +27,7 @@ interface DailyDietFacets {
  * `balance` / `other` 不进这个表：它们不是可执行的饮食维度（说不出「平衡偏多」该改什么），
  * 也不是本规则的判断依据——结论文案里可以出现，规则不消费。
  */
-const HIGH_WATCH_KINDS: ReadonlySet<MealAnalysisItemKind> = new Set([
+const HIGH_WATCH_KINDS: ReadonlySet<DietFacetKind> = new Set([
   'fried',
   'sugar',
   'sodium',
@@ -35,7 +35,7 @@ const HIGH_WATCH_KINDS: ReadonlySet<MealAnalysisItemKind> = new Set([
   'portion',
   'carb',
 ]);
-const LOW_WATCH_KINDS: ReadonlySet<MealAnalysisItemKind> = new Set([
+const LOW_WATCH_KINDS: ReadonlySet<DietFacetKind> = new Set([
   'vegetable',
   'fruit',
   'protein',
@@ -48,7 +48,7 @@ const LOW_WATCH_KINDS: ReadonlySet<MealAnalysisItemKind> = new Set([
  * 顺序即优先级：靠前的先被选中。**不参与**「是否触发」的判断——触发只看出现天数，
  * 见 `match` 里的 `days >= DIET_IMBALANCE_MIN_DAYS` 过滤。
  */
-const WATCH_KIND_TIE_BREAK_ORDER: readonly MealAnalysisItemKind[] = [
+const WATCH_KIND_TIE_BREAK_ORDER: readonly DietFacetKind[] = [
   'fried',
   'sugar',
   'sodium',
@@ -108,7 +108,7 @@ export class DietImbalanceRuleService implements SuggestionRule {
     }
 
     // 每个维度出现在多少天：按「天」计数而非按餐，避免一天多餐把结论推偏。
-    const watchDays = new Map<MealAnalysisItemKind, number>();
+    const watchDays = new Map<DietFacetKind, number>();
     for (const day of dailyFacets) {
       for (const kind of this.watchKindsIn(day)) {
         watchDays.set(kind, (watchDays.get(kind) ?? 0) + 1);
@@ -169,10 +169,10 @@ export class DietImbalanceRuleService implements SuggestionRule {
     };
   }
 
-  private watchKindsIn(day: DailyDietFacets): MealAnalysisItemKind[] {
-    const kinds: MealAnalysisItemKind[] = [];
+  private watchKindsIn(day: DailyDietFacets): DietFacetKind[] {
+    const kinds: DietFacetKind[] = [];
     for (const [kind, level] of Object.entries(day.facets) as Array<
-      [MealAnalysisItemKind, 'low' | 'ok' | 'high']
+      [DietFacetKind, 'low' | 'ok' | 'high']
     >) {
       if (level === 'high' && HIGH_WATCH_KINDS.has(kind)) {
         kinds.push(kind);
@@ -189,7 +189,7 @@ export class DietImbalanceRuleService implements SuggestionRule {
    * 不在表里的维度排到最后：`watchKindsIn` 只产出表内维度，这里兜底是为了让
    * 将来新增维度忘记录入顺序时**排后面**，而不是静默排到最前。
    */
-  private tieBreakRankOf(kind: MealAnalysisItemKind): number {
+  private tieBreakRankOf(kind: DietFacetKind): number {
     const index = WATCH_KIND_TIE_BREAK_ORDER.indexOf(kind);
     return index === -1 ? WATCH_KIND_TIE_BREAK_ORDER.length : index;
   }

@@ -473,6 +473,43 @@ describe('RecordCollectorService', () => {
       expect(signals.find((s) => s.kind === 'diet_facets')).toBeUndefined();
     });
 
+    it('projects only the facet kinds this context consumes', async () => {
+      // Upstream publishes 11 kinds; this context consumes 9. `balance` and
+      // `other` are not actionable diet dimensions, so they must not reach the
+      // signal — a type that can hold them would invite a future rule to write
+      // handling for values no data path produces.
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({
+              fried: 'high',
+              balance: 'low',
+              other: 'high',
+              vegetable: 'low',
+            }),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+      const diet = signals.find((s) => s.kind === 'diet_facets');
+      const dailyFacets = diet!.payload['dailyFacets'] as Array<{
+        facets: Record<string, string>;
+      }>;
+
+      expect(dailyFacets[0]!.facets).toEqual({
+        fried: 'high',
+        vegetable: 'low',
+      });
+      expect(dailyFacets[0]!.facets).not.toHaveProperty('balance');
+      expect(dailyFacets[0]!.facets).not.toHaveProperty('other');
+    });
+
     it('emits a mood_trend signal for mood records', async () => {
       (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
