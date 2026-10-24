@@ -28,7 +28,7 @@ import type { OAuthProvider } from './oauth-provider.interface.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from './dependency-failure.utils.js';
+} from '../infrastructure/oauth/dependency-failure.js';
 import { now } from '../../../common/index.js';
 
 interface AppleJwk {

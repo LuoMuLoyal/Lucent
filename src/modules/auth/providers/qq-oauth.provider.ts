@@ -28,7 +28,7 @@ import type { OAuthProvider } from './oauth-provider.interface.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from './dependency-failure.utils.js';
+} from '../infrastructure/oauth/dependency-failure.js';
 
 const QQ_AUTHORIZE_URL = 'https://graph.qq.com/oauth2.0/authorize';
 const QQ_ACCESS_TOKEN_URL = 'https://graph.qq.com/oauth2.0/token';

@@ -31,7 +31,7 @@ import type { OAuthProvider } from './oauth-provider.interface.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from './dependency-failure.utils.js';
+} from '../infrastructure/oauth/dependency-failure.js';
 
 const GOOGLE_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';

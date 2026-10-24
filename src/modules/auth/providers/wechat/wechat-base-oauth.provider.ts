@@ -15,7 +15,7 @@ import type { Prisma } from '#generated/prisma/client.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from '../dependency-failure.utils.js';
+} from '../../infrastructure/oauth/dependency-failure.js';
 
 export const WECHAT_ACCESS_TOKEN_URL =
   'https://api.weixin.qq.com/sns/oauth2/access_token';

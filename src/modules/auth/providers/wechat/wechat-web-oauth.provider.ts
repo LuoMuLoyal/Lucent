@@ -28,7 +28,7 @@ import {
   type OAuthProfile,
 } from '../../types/oauth.types.js';
 import type { OAuthProvider } from '../oauth-provider.interface.js';
-import { dependencyBadGateway } from '../dependency-failure.utils.js';
+import { dependencyBadGateway } from '../../infrastructure/oauth/dependency-failure.js';
 
 const WECHAT_AUTHORIZE_URL = 'https://open.weixin.qq.com/connect/qrconnect';
 const WECHAT_SCOPE = 'snsapi_login';

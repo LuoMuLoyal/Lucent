@@ -25,7 +25,7 @@ import {
   type OAuthProfile,
 } from '../../types/oauth.types.js';
 import type { OAuthProvider } from '../oauth-provider.interface.js';
-import { dependencyBadGateway } from '../dependency-failure.utils.js';
+import { dependencyBadGateway } from '../../infrastructure/oauth/dependency-failure.js';
 
 @Injectable()
 export class WechatMobileOAuthProvider
