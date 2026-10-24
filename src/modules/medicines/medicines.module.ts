@@ -13,10 +13,8 @@ import { MedicinesService } from './application/use_cases/medicines.js';
 import { MedicineSearchReadModel } from './application/read_models/medicine-card.js';
 import { MedicineDetailReadModel } from './application/read_models/medicine-detail.js';
 import { MedicineSequenceReadModel } from './application/read_models/medicine-sequence.js';
-import {
-  SafetyTipsAdminService,
-  QaChunksAdminService,
-} from './application/use_cases/import-catalog.js';
+import { SafetyTipsAdminService } from './application/use_cases/safety-tips-admin.js';
+import { QaChunksAdminService } from './application/use_cases/qa-chunks-admin.js';
 
 import { MedicineRecognitionQueueService } from './adapters/queue/recognition.js';
 import { MedicineRiskCheckService } from './application/use_cases/check-risk.js';

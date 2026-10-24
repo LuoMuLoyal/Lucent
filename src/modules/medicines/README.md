@@ -38,8 +38,9 @@ owner: backend
   `medicine-card.format.ts` 是三个投影共用的纯格式化函数（持久层也要用，
   故不能留在 `adapters/`）。
 - `application/use_cases/` — 只剩**有副作用**的用例：`medicines`（识别 + 安全贴士）、
-  `check-risk`、`import-catalog`、`medication-overview`、`rebuild-index`
-  （薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
+  `check-risk`、`safety-tips-admin`（安全贴士内容管理）、`qa-chunks-admin`
+  （问答语料管理）、`medication-overview`、`rebuild-index`（薄门面，
+  委托 `MEDICINES_CACHE_MAINTENANCE`）。
 - `adapters/http/` — controller + zod DTO，`presenters/medicine.ts` 承载
   `utils/data-format.ts` 迁来的展示格式化。
 - `infrastructure/` — `persistence/`（cn、drugbank、risk-records、safety-tips、
@@ -202,6 +203,12 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 `drug_source_imports`（导入元数据：来源/版本/哈希/行数/拒绝样本）。
 
 ## 导入策略（契约要点）
+
+> **药品目录导入不在本模块内。** 没有 `ImportCatalogService` 这类 Nest 服务——
+> 导入全部由 `scripts/import/medicine/**` 下的脚本以**裸 `pg` 连接**执行，不经
+> Nest DI、不经本模块的服务层，也不会有请求触发它。模块内的 `use_cases/` 只有
+> 运行时查询、识别、风险检查与内容管理。误以为存在"导入用例"会让人去模块里找
+> 写入路径，而那里没有。
 
 - 入口 `pnpm import:medicine:all`：drugbank-drugs → links → targets-all →
   targets-active → target-proteins → target-genes → drug-structures →
