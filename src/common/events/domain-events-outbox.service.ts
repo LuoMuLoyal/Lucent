@@ -22,10 +22,10 @@
  * worst, deliver one event twice.
  */
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '#generated/prisma/client.js';
+import { DomainEventFanOutService } from './domain-events-fanout.service.js';
 import {
   OUTBOX_MAX_ATTEMPTS,
   OUTBOX_POLL_INTERVAL_MS,
@@ -83,7 +83,7 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    private readonly fanOutService: DomainEventFanOutService,
   ) {}
 
   /**
@@ -196,8 +196,8 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Claims, emits, and settles exactly one row inside one transaction. The
-   * row lock spans the emit, so concurrent pollers skip the claimed row.
+   * Claims, fans out, and settles exactly one row inside one transaction. The
+   * row lock spans the fan-out, so concurrent pollers skip the claimed row.
    * Returns `null` when nothing is claimable.
    */
   private async dispatchOne(): Promise<{
@@ -219,9 +219,9 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
       const parkedBefore = row.attempts + 1 >= OUTBOX_MAX_ATTEMPTS;
       try {
         // A row that already fanned out but did not settle (crash between the
-        // two writes) is only settled here — never emitted a second time.
+        // two writes) is only settled here — never delivered a second time.
         if (row.dispatched_at == null) {
-          await this.emitRow(row);
+          await this.fanOut(row);
         }
       } catch (error) {
         this.logger.warn(
@@ -241,21 +241,21 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Re-dispatches the stored payload to the in-process event bus. */
-  private async emitRow(row: OutboxRow): Promise<void> {
-    const payload =
-      row.payload !== null &&
-      typeof row.payload === 'object' &&
-      !Array.isArray(row.payload)
-        ? (row.payload as Record<string, unknown>)
-        : {};
-    await this.eventEmitter.emitAsync(row.event_name, {
-      ...payload,
-      eventId: row.id,
-      eventType: row.event_name,
-      version: row.payload_version,
-      occurredAt: row.occurred_at.toISOString(),
+  /**
+   * Hands the row to the fan-out service. A failed delivery throws so the
+   * caller records `attempts` / `lastError` and retries on the next poll.
+   */
+  private async fanOut(row: OutboxRow): Promise<void> {
+    const outcome = await this.fanOutService.fanOut({
+      id: row.id,
+      eventName: row.event_name,
+      payloadVersion: row.payload_version,
+      occurredAt: row.occurred_at,
+      payload: asPayloadObject(row.payload),
     });
+    if (outcome.kind === 'failed') {
+      throw outcome.error;
+    }
   }
 
   private async recordFailure(
@@ -286,6 +286,13 @@ function outboxErrorMessage(error: unknown): string {
 /** Ensures the column value is JSON-safe (prisma Json accepts plain objects). */
 function asJson(value: Record<string, unknown>): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+/** Reads the stored JSON payload back as a plain object (never null/array). */
+function asPayloadObject(value: Prisma.JsonValue): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value
+    : {};
 }
 
 /** True when `error` is Prisma's unique-constraint violation (P2002). */

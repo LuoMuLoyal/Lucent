@@ -130,3 +130,22 @@ export {
 export { AppInfoHealthIndicator } from './health/app-info.indicator.js';
 export { CacheHealthIndicator } from './health/cache.indicator.js';
 export { DatabaseHealthIndicator } from './health/database.indicator.js';
+export { DomainEventsModule } from './events/domain-events.module.js';
+export { DomainEventOutboxService } from './events/domain-events-outbox.service.js';
+export type { DomainEventAppendInput } from './events/domain-events-outbox.service.js';
+export {
+  AggregateDeliveryError,
+  DeliveryFailureError,
+  DomainEventFanOutService,
+  EventConsumerRegistry,
+} from './events/domain-events-fanout.service.js';
+export type {
+  DomainEventJobData,
+  FanOutOutcome,
+  InlineEventConsumer,
+} from './events/domain-events-fanout.service.js';
+export {
+  EVENT_SUBSCRIPTIONS,
+  subscriptionsFor,
+} from './events/subscriptions.js';
+export type { EventSubscription } from './events/subscriptions.js';

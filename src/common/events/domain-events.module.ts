@@ -1,17 +1,35 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/index.js';
+import {
+  DomainEventFanOutService,
+  EventConsumerRegistry,
+} from './domain-events-fanout.service.js';
 import { DomainEventOutboxService } from './domain-events-outbox.service.js';
 
 /**
- * Outbox glue for cross-context domain events (ADR-0024). The global
- * `EventEmitterModule` (registered in `app.module.ts`) already provides the
- * `EventEmitter2` instance; this module adds Prisma access and exports the
- * append/publish service. Modules append synchronously inside their write
- * transaction, the publisher drains and re-dispatches.
+ * Outbox glue for cross-context domain events (ADR-0025).
+ *
+ * Producers append inside their write transaction through
+ * `DomainEventOutboxService`; the publisher claims rows and `DomainEventFanOutService`
+ * turns each one into the jobs listed in `subscriptions.ts`. Module-owned queue
+ * services register their inline handler in `EventConsumerRegistry` for the
+ * no-Redis case, so `common/` still has no import of any business module.
+ *
+ * `BullmqModule` is global, so the fan-out service resolves
+ * `BullmqQueueFactory` without an explicit import here.
  */
+@Global()
 @Module({
   imports: [PrismaModule],
-  providers: [DomainEventOutboxService],
-  exports: [DomainEventOutboxService],
+  providers: [
+    DomainEventOutboxService,
+    DomainEventFanOutService,
+    EventConsumerRegistry,
+  ],
+  exports: [
+    DomainEventOutboxService,
+    DomainEventFanOutService,
+    EventConsumerRegistry,
+  ],
 })
 export class DomainEventsModule {}

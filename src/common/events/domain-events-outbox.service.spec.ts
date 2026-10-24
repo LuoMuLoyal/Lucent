@@ -1,4 +1,4 @@
-import type { EventEmitter2 } from '@nestjs/event-emitter';
+import type { DomainEventFanOutService } from './domain-events-fanout.service.js';
 import { Prisma } from '#generated/prisma/client.js';
 import {
   DomainEventOutboxService,
@@ -41,7 +41,7 @@ describe('DomainEventOutboxService', () => {
     $queryRaw: vi.Mock;
     domainEvent: { create: vi.Mock; findUnique: vi.Mock };
   };
-  let eventEmitter: { emitAsync: vi.Mock };
+  let fanOut: { fanOut: vi.Mock };
   let service: DomainEventOutboxService;
 
   const makeTx = (claims: unknown[]) => {
@@ -58,7 +58,9 @@ describe('DomainEventOutboxService', () => {
   };
 
   beforeEach(() => {
-    eventEmitter = { emitAsync: vi.fn().mockResolvedValue(undefined) };
+    fanOut = {
+      fanOut: vi.fn().mockResolvedValue({ kind: 'delivered', jobs: 1 }),
+    };
     prisma = {
       $transaction: vi.fn(),
       $queryRaw: vi.fn().mockResolvedValue([]),
@@ -69,7 +71,7 @@ describe('DomainEventOutboxService', () => {
     };
     service = new DomainEventOutboxService(
       prisma as unknown as PrismaService,
-      eventEmitter as unknown as EventEmitter2,
+      fanOut as unknown as DomainEventFanOutService,
     );
   });
 
@@ -186,12 +188,15 @@ describe('DomainEventOutboxService', () => {
       useTx(tx);
       const outcome = await service.publishPending();
       expect(outcome).toEqual({ delivered: 1, failed: 0, parked: 0 });
-      const emitPayload: Record<string, unknown> = eventEmitter.emitAsync.mock
-        .calls[0]?.[1] as Record<string, unknown>;
-      expect(emitPayload['eventId']).toBe('evt-1');
-      expect(emitPayload['eventType']).toBe('user_registered');
-      expect(emitPayload['userId']).toBe('u1');
-      expect(typeof emitPayload['occurredAt']).toBe('string');
+      const claimed: { id: string; eventName: string; payload: unknown } =
+        fanOut.fanOut.mock.calls[0]?.[0] as {
+          id: string;
+          eventName: string;
+          payload: unknown;
+        };
+      expect(claimed.id).toBe('evt-1');
+      expect(claimed.eventName).toBe('user_registered');
+      expect(claimed.payload).toEqual({ userId: 'u1' });
       const settle = tx.domainEvent.update.mock.calls[0]?.[0] as {
         where: { id: string };
         data: { publishedAt: unknown };
@@ -211,22 +216,25 @@ describe('DomainEventOutboxService', () => {
       expect(settle.data.publishedAt).toBeInstanceOf(Date);
     });
 
-    it('settles an already-dispatched row without emitting it again', async () => {
+    it('settles an already-dispatched row without fanning it out again', async () => {
       const tx = makeTx([
         makeRow({ dispatched_at: new Date('2026-10-21T00:00:05Z') }),
       ]);
       useTx(tx);
       const outcome = await service.publishPending();
       expect(outcome).toEqual({ delivered: 1, failed: 0, parked: 0 });
-      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(fanOut.fanOut).not.toHaveBeenCalled();
       const settle = tx.domainEvent.update.mock.calls[0]?.[0] as {
         data: { publishedAt: unknown };
       };
       expect(settle.data.publishedAt).toBeInstanceOf(Date);
     });
 
-    it('records a failure and increments attempts when emitAsync rejects', async () => {
-      eventEmitter.emitAsync.mockRejectedValue(new Error('subscriber boom'));
+    it('records a failure and increments attempts when fan-out fails', async () => {
+      fanOut.fanOut.mockResolvedValue({
+        kind: 'failed',
+        error: new Error('subscriber boom'),
+      });
       const tx = makeTx([makeRow({ id: 'evt-2', attempts: 0 })]);
       useTx(tx);
       const outcome = await service.publishPending();
@@ -238,6 +246,27 @@ describe('DomainEventOutboxService', () => {
       expect(fail.where.id).toBe('evt-2');
       expect(fail.data.attempts).toEqual({ increment: 1 });
       expect(fail.data.lastError).toContain('subscriber boom');
+    });
+
+    it('records a failure when the fan-out service throws', async () => {
+      fanOut.fanOut.mockRejectedValue(new Error('redis down'));
+      const tx = makeTx([makeRow({ id: 'evt-3', attempts: 0 })]);
+      useTx(tx);
+      const outcome = await service.publishPending();
+      expect(outcome).toEqual({ delivered: 0, failed: 1, parked: 0 });
+      const fail = tx.domainEvent.update.mock.calls[0]?.[0] as {
+        data: { lastError: string };
+      };
+      expect(fail.data.lastError).toContain('redis down');
+    });
+
+    it('settles a row with no subscribers', async () => {
+      fanOut.fanOut.mockResolvedValue({ kind: 'no-subscribers' });
+      const tx = makeTx([makeRow({})]);
+      useTx(tx);
+      const outcome = await service.publishPending();
+      expect(outcome).toEqual({ delivered: 1, failed: 0, parked: 0 });
+      expect(tx.domainEvent.update).toHaveBeenCalled();
     });
 
     it('returns no-op when nothing is claimable', async () => {
