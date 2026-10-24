@@ -8,7 +8,7 @@ import {
   withRetry,
   extractErrorInfo,
   HttpStatusError,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -16,20 +16,20 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
-import { ConfigKey } from '../../../config/env/config-keys.enum.js';
-import type { OAuthConfig } from '../../../config/services/oauth.config.js';
-import {
-  OAUTH_PROVIDER_APPLE,
-  type OAuthProfile,
-} from '../types/oauth.types.js';
-import type { OAuthProvider } from './oauth-provider.interface.js';
-import { toRawProfile } from '../infrastructure/oauth/raw-profile.js';
+} from '../../../../common/result/index.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { OAuthConfig } from '../../../../config/services/oauth.config.js';
+import { OAUTH_PROVIDER_APPLE } from '../../types/oauth.types.js';
+import type {
+  OAuthProvider,
+  OAuthProviderProfile,
+} from '../../application/ports/oauth-provider.js';
+import { toRawProfile } from './raw-profile.js';
 import {
   classifyFetchError,
   dependencyBadGateway,
-} from '../infrastructure/oauth/dependency-failure.js';
-import { now } from '../../../common/index.js';
+} from './dependency-failure.js';
+import { now } from '../../../../common/index.js';
 
 interface AppleJwk {
   kty: string;
@@ -78,7 +78,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
 
   fetchProfile(
     credential: Record<string, unknown>,
-  ): ResultAsync<OAuthProfile, DomainFailure> {
+  ): ResultAsync<OAuthProviderProfile, DomainFailure> {
     const identityToken = credential['identityToken'] as string | undefined;
     if (!identityToken) {
       return errAsync(this.validationFailure());

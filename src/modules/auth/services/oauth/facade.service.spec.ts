@@ -8,7 +8,7 @@ import type { SessionTokens } from '../../application/services/session-tokens.js
 import type { AuthOAuthService } from './oauth.service.js';
 import type { AuthNotificationService } from '../notification.service.js';
 import type { OAuthProfile } from '../../types/oauth.types.js';
-import type { AppleOAuthProvider } from '../../providers/apple-oauth.provider.js';
+import type { AppleOAuthProvider } from '../../infrastructure/oauth/apple.js';
 import { AuthOAuthFacadeService } from './facade.service.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import {
