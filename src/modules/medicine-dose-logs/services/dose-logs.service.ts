@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DomainEventPublisher } from '../../../common/index.js';
 import {
   formatDateOnly,
   nonDeleted,
@@ -43,7 +43,7 @@ export class MedicineDoseLogsService {
 
   constructor(
     private readonly repository: MedicineDoseLogRepositoryPort,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly publisher: DomainEventPublisher,
     private readonly healthEventsOwnership: HealthEventsOwnershipService,
   ) {}
 
@@ -234,14 +234,14 @@ export class MedicineDoseLogsService {
     doseLogId?: string,
   ): Promise<void> {
     try {
-      await this.eventEmitter.emitAsync(DOSE_LOG_CHANGED, {
+      await this.publisher.publish(DOSE_LOG_CHANGED, {
         userId,
         date: formatDateOnly(scheduledFor),
         ...(doseLogId != null ? { doseLogId } : {}),
       } satisfies DoseLogChangedPayload);
     } catch (error) {
       // best-effort
-      this.logger.warn('Failed to emit dose-log.changed event', {
+      this.logger.warn('Failed to publish dose-log.changed event', {
         userId,
         error,
       });

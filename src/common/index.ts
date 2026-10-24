@@ -149,3 +149,10 @@ export {
   subscriptionsFor,
 } from './events/subscriptions.js';
 export type { EventSubscription } from './events/subscriptions.js';
+export { DomainEventPublisher } from './events/domain-event-publisher.service.js';
+export { EVENT_ORIGINS, eventOriginFor } from './events/event-origins.js';
+export type { EventOrigin } from './events/event-origins.js';
+export {
+  EVENT_JOB_NAMES,
+  REPORT_CACHE_INVALIDATION_JOB,
+} from './events/jobs.js';

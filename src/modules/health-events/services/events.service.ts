@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   HealthEventKind,
   HealthEventOutcome,
@@ -10,6 +9,7 @@ import {
 } from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
+  DomainEventPublisher,
   formatDateOnlyInTimezone,
   now,
 } from '../../../common/index.js';
@@ -84,7 +84,7 @@ export function parseHealthEventOutcome(
 export class EventsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly publisher: DomainEventPublisher,
     private readonly productEvents: ProductEventsService,
   ) {}
 
@@ -167,7 +167,7 @@ export class EventsService {
           })
             .andThen((timezone) =>
               fromPromise(
-                this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+                this.publisher.publish(HEALTH_EVENT_CHANGED, {
                   userId,
                   eventId: created.id,
                   date: formatDateOnlyInTimezone(
@@ -316,7 +316,7 @@ export class EventsService {
             }
             return (
               fromPromise(
-                this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+                this.publisher.publish(HEALTH_EVENT_CHANGED, {
                   userId,
                   eventId,
                   date: formatDateOnlyInTimezone(

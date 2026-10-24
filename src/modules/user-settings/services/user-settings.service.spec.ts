@@ -50,7 +50,7 @@ function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
 describe('UserSettingsService', () => {
   it('returns defaults when the user has no stored settings', async () => {
     const service = new UserSettingsService(createPrisma(), createMockCache(), {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+      publish: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     await expect(service.getSettings('user-1')).resolves.toEqual({
@@ -103,7 +103,7 @@ describe('UserSettingsService', () => {
     });
 
     const service = new UserSettingsService(prisma, createMockCache(), {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+      publish: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     await expect(service.getSettings('user-1')).resolves.toEqual({
@@ -130,7 +130,7 @@ describe('UserSettingsService', () => {
     });
 
     const service = new UserSettingsService(prisma, createMockCache(), {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+      publish: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     await unwrapOk(
@@ -206,7 +206,7 @@ describe('UserSettingsService', () => {
     });
 
     const service = new UserSettingsService(prisma, createMockCache(), {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+      publish: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     await unwrapOk(service.updateSettings('user-1', {}));
@@ -221,7 +221,7 @@ describe('UserSettingsService', () => {
     });
 
     const service = new UserSettingsService(prisma, createMockCache(), {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+      publish: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     await unwrapOk(service.updateSettings('user-1', { waterTargetCount: 12 }));
@@ -248,7 +248,7 @@ describe('UserSettingsService', () => {
     });
 
     const service = new UserSettingsService(prisma, createMockCache(), {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+      publish: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     const outcome = await service
@@ -271,7 +271,7 @@ describe('UserSettingsService', () => {
     });
 
     const service = new UserSettingsService(prisma, createMockCache(), {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+      publish: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     await expect(

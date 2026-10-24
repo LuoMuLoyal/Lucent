@@ -3,6 +3,7 @@ import {
   QUEUE_NAME_LIST,
   isQueueName,
 } from '../queue/queue-names.js';
+import { EVENT_JOB_NAMES } from './jobs.js';
 import { EVENT_SUBSCRIPTIONS, subscriptionsFor } from './subscriptions.js';
 
 const EVENT_NAMES: readonly string[] = Object.keys(EVENT_SUBSCRIPTIONS);
@@ -20,6 +21,20 @@ describe('EVENT_SUBSCRIPTIONS', () => {
     for (const subs of Object.values(EVENT_SUBSCRIPTIONS)) {
       for (const sub of subs) {
         expect(isQueueName(sub.queue), sub.queue).toBe(true);
+      }
+    }
+  });
+
+  it('only names jobs a declared consumer dispatches on', () => {
+    // The drift this catches: a typo in `job` makes the fan-out enqueue a job
+    // name no worker awaits. BullMQ accepts it silently and the event is never
+    // handled, so nothing else in the system would report the mistake.
+    for (const [name, subs] of Object.entries(EVENT_SUBSCRIPTIONS)) {
+      for (const sub of subs) {
+        expect(
+          EVENT_JOB_NAMES,
+          `${name} -> ${sub.queue}#${sub.job} is not a declared job name`,
+        ).toContain(sub.job);
       }
     }
   });
@@ -50,24 +65,32 @@ describe('EVENT_SUBSCRIPTIONS', () => {
     }
   });
 
-  it('leaves every fan-out queue either claimed or absent from the table', () => {
-    // A queue name registered for fan-out must never be declared with zero
-    // consumers, and must not appear in the table without a real subscriber.
+  it('declares every job name it can reach', () => {
+    // `EVENT_JOB_NAMES` is the registry the guard above checks against; an
+    // empty registry would make that guard vacuous.
+    const used = new Set(
+      Object.values(EVENT_SUBSCRIPTIONS)
+        .flat()
+        .map((sub) => sub.job),
+    );
+    for (const job of used) {
+      expect(EVENT_JOB_NAMES).toContain(job);
+    }
+  });
+
+  it('keeps every subscribed queue among the registered names', () => {
     const subscribed = new Set(
       Object.values(EVENT_SUBSCRIPTIONS)
         .flat()
         .map((sub) => sub.queue),
     );
-    for (const name of QUEUE_NAME_LIST) {
-      if (subscribed.has(name)) {
-        expect(EVENT_NAMES.length).toBeGreaterThan(0);
-      }
+    for (const name of subscribed) {
+      expect(QUEUE_NAME_LIST).toContain(name);
     }
   });
 
   describe('subscriptionsFor', () => {
     it('returns an empty list for an event nobody listens to', () => {
-      expect(subscriptionsFor('daily-record.changed')).toEqual([]);
       expect(subscriptionsFor('risk-assessment.completed')).toEqual([]);
     });
 
@@ -75,15 +98,10 @@ describe('EVENT_SUBSCRIPTIONS', () => {
       expect(subscriptionsFor('nope.not.a.real.event')).toEqual([]);
     });
 
-    it('returns the declared rows once a consumer is registered', () => {
-      const event = Object.keys(EVENT_SUBSCRIPTIONS)[0];
-      if (event == null) {
-        // The table starts empty; this invariant only becomes meaningful once
-        // the first consumer lands. Until then, everything resolves to [].
-        expect(subscriptionsFor('missing')).toEqual([]);
-        return;
+    it('returns the declared rows for a subscribed event', () => {
+      for (const name of EVENT_NAMES) {
+        expect(subscriptionsFor(name)).toEqual(EVENT_SUBSCRIPTIONS[name]);
       }
-      expect(subscriptionsFor(event)).toEqual(EVENT_SUBSCRIPTIONS[event]);
     });
   });
 });

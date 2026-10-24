@@ -38,7 +38,16 @@
  * settles the row.
  */
 
-import type { QueueName } from '../queue/queue-names.js';
+import { QUEUE_NAMES, type QueueName } from '../queue/queue-names.js';
+import {
+  DAILY_RECORD_CHANGED,
+  DOSE_LOG_CHANGED,
+  HEALTH_CONTEXT_CHANGED,
+  HEALTH_EVENT_CHANGED,
+  REMINDER_CHANGED,
+  SETTINGS_CHANGED,
+} from './domain-events.js';
+import { REPORT_CACHE_INVALIDATION_JOB } from './jobs.js';
 
 /** One consumer of one event: the queue to enqueue into and the job name. */
 export interface EventSubscription {
@@ -56,7 +65,48 @@ export interface EventSubscription {
  */
 export const EVENT_SUBSCRIPTIONS: Readonly<
   Record<string, readonly EventSubscription[]>
-> = {};
+> = {
+  // `reports` migrated first (ADR-0025): every event that used to invalidate
+  // the dashboard through an in-process `@OnEvent` now does it through the
+  // `report-cache-invalidation` queue. The other consumers of these same events
+  // still run in process until their own row lands.
+  [DAILY_RECORD_CHANGED]: [
+    {
+      queue: QUEUE_NAMES.reportCacheInvalidation,
+      job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+  ],
+  [DOSE_LOG_CHANGED]: [
+    {
+      queue: QUEUE_NAMES.reportCacheInvalidation,
+      job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+  ],
+  [REMINDER_CHANGED]: [
+    {
+      queue: QUEUE_NAMES.reportCacheInvalidation,
+      job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+  ],
+  [HEALTH_CONTEXT_CHANGED]: [
+    {
+      queue: QUEUE_NAMES.reportCacheInvalidation,
+      job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+  ],
+  [SETTINGS_CHANGED]: [
+    {
+      queue: QUEUE_NAMES.reportCacheInvalidation,
+      job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+  ],
+  [HEALTH_EVENT_CHANGED]: [
+    {
+      queue: QUEUE_NAMES.reportCacheInvalidation,
+      job: REPORT_CACHE_INVALIDATION_JOB,
+    },
+  ],
+};
 
 /** Subscription list for `eventName`; empty when nobody listens. */
 export function subscriptionsFor(

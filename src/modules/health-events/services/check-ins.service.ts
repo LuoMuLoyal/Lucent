@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   HealthEventKind,
   HealthEventStatus,
@@ -8,6 +7,7 @@ import {
 } from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
+  DomainEventPublisher,
   formatDateOnly,
   formatDateOnlyInTimezone,
   now,
@@ -41,7 +41,7 @@ export type UpsertCheckInInput = EndHealthEventInput;
 export class CheckInsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly publisher: DomainEventPublisher,
     private readonly productEvents: ProductEventsService,
   ) {}
 
@@ -99,7 +99,7 @@ export class CheckInsService {
           }
           return (
             fromPromise(
-              this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+              this.publisher.publish(HEALTH_EVENT_CHANGED, {
                 userId,
                 eventId,
                 date,

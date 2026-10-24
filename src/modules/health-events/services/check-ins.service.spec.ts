@@ -6,7 +6,7 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client.js';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
+import type { DomainEventPublisher } from '../../../common/index.js';
 import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
@@ -32,10 +32,10 @@ async function collectResult<T>(
   );
 }
 
-function buildEventEmitter() {
+function buildPublisher() {
   return {
-    emitAsync: vi.fn().mockResolvedValue([]),
-  } as unknown as EventEmitter2;
+    publish: vi.fn().mockResolvedValue(undefined),
+  } as unknown as DomainEventPublisher;
 }
 
 function buildProductEvents() {
@@ -103,7 +103,7 @@ describe('CheckInsService', () => {
     const repository = buildRepository();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       buildProductEvents(),
     );
 
@@ -142,7 +142,7 @@ describe('CheckInsService', () => {
     repository.findUserTimezone.mockResolvedValue(null);
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       buildProductEvents(),
     );
 
@@ -165,7 +165,7 @@ describe('CheckInsService', () => {
     const repository = buildRepository();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       buildProductEvents(),
     );
 
@@ -185,7 +185,7 @@ describe('CheckInsService', () => {
     repository.findById.mockResolvedValue(event({ userId: 'user-2' }));
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       buildProductEvents(),
     );
 
@@ -207,7 +207,7 @@ describe('CheckInsService', () => {
     repository.findById.mockResolvedValue(null);
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       buildProductEvents(),
     );
 
@@ -235,7 +235,7 @@ describe('CheckInsService', () => {
     );
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       buildProductEvents(),
     );
 
@@ -256,7 +256,7 @@ describe('CheckInsService', () => {
     const repository = buildRepository();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       buildProductEvents(),
     );
 
@@ -275,10 +275,10 @@ describe('CheckInsService', () => {
 
   it('emits once after a check-in is persisted', async () => {
     const repository = buildRepository();
-    const eventEmitter = buildEventEmitter();
+    const publisher = buildPublisher();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      eventEmitter,
+      publisher,
       buildProductEvents(),
     );
 
@@ -288,22 +288,19 @@ describe('CheckInsService', () => {
       }),
     );
 
-    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
-      'health-event.changed',
-      {
-        userId: USER_ID,
-        eventId: EVENT_ID,
-        date: '2026-07-20',
-        change: 'check-in',
-        kind: HealthEventKind.symptom,
-      },
-    );
+    expect(publisher.publish).toHaveBeenCalledTimes(1);
+    expect(publisher.publish).toHaveBeenCalledWith('health-event.changed', {
+      userId: USER_ID,
+      eventId: EVENT_ID,
+      date: '2026-07-20',
+      change: 'check-in',
+      kind: HealthEventKind.symptom,
+    });
   });
 
   it('does not emit when a check-in write fails', async () => {
     const repository = buildRepository();
-    const eventEmitter = buildEventEmitter();
+    const publisher = buildPublisher();
     repository.upsertCheckIn.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;
@@ -311,7 +308,7 @@ describe('CheckInsService', () => {
     );
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      eventEmitter,
+      publisher,
       buildProductEvents(),
     );
 
@@ -320,7 +317,7 @@ describe('CheckInsService', () => {
         outcome: HealthEventOutcome.improved,
       }),
     ).rejects.toThrow('write failed');
-    expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+    expect(publisher.publish).not.toHaveBeenCalled();
   });
 
   it('emits health_event_outcome_confirmed with the check-in outcome after the upsert succeeds', async () => {
@@ -328,7 +325,7 @@ describe('CheckInsService', () => {
     const productEvents = buildProductEvents();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       productEvents,
     );
 
@@ -358,7 +355,7 @@ describe('CheckInsService', () => {
     );
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       productEvents,
     );
 

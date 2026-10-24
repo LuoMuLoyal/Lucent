@@ -1,7 +1,11 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '#generated/prisma/client.js';
-import { fromPrismaResult, nonDeleted, now } from '../../../common/index.js';
+import {
+  DomainEventPublisher,
+  fromPrismaResult,
+  nonDeleted,
+  now,
+} from '../../../common/index.js';
 import {
   createDomainFailure,
   err,
@@ -35,7 +39,7 @@ export class MedicineRemindersService {
     private readonly repository: MedicineReminderRepositoryPort,
     private readonly ownershipService: MedicineRemindersOwnershipService,
     private readonly mapperService: MedicineRemindersMapperService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly publisher: DomainEventPublisher,
   ) {}
 
   async list(userId: string, activeOnly = false) {
@@ -230,7 +234,7 @@ export class MedicineRemindersService {
 
   private async emitReminderChanged(userId: string): Promise<void> {
     try {
-      await this.eventEmitter.emitAsync(REMINDER_CHANGED, {
+      await this.publisher.publish(REMINDER_CHANGED, {
         userId,
       } satisfies ReminderChangedPayload);
     } catch (error) {

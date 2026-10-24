@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   createDomainFailure,
   errAsync,
@@ -8,6 +7,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../common/result/index.js';
+import { DomainEventPublisher } from '../../../common/index.js';
 import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
 import type { CreateCurrentMedicineDto } from '../dto/create-current-medicine.dto.js';
 import type { CreateHealthContextAllergyDto } from '../dto/create-allergy.dto.js';
@@ -38,7 +38,7 @@ export class UserHealthContextService {
     private readonly allergyWriteService: UserHealthContextAllergyWriteService,
     private readonly conditionWriteService: UserHealthContextConditionWriteService,
     private readonly medicineWriteService: UserHealthContextMedicineWriteService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly publisher: DomainEventPublisher,
   ) {}
 
   getForUser(
@@ -181,14 +181,14 @@ export class UserHealthContextService {
 
   private async emitHealthContextChanged(userId: string): Promise<void> {
     try {
-      await this.eventEmitter.emitAsync(HEALTH_CONTEXT_CHANGED, {
+      await this.publisher.publish(HEALTH_CONTEXT_CHANGED, {
         userId,
       } satisfies HealthContextChangedPayload);
     } catch (error) {
       // Best-effort domain event: cache/suggestion consumers tolerate a
       // dropped event, but the failure must stay observable (structured
       // log) instead of failing the user-facing write.
-      this.logger.warn('Failed to emit health-context.changed event', {
+      this.logger.warn('Failed to publish health-context.changed event', {
         userId,
         error,
       });

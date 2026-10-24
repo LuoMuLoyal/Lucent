@@ -17,7 +17,7 @@ import { MealAnalysisQueueService } from './meal-analysis/queue.service.js';
 import { DailyRecordsValidatorService } from './records-validator.service.js';
 import { MealPayloadWriterService } from './meal-payload-writer.service.js';
 import type { DailyRecordShape } from '../types/record.types.js';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DomainEventPublisher } from '../../../common/index.js';
 
 const mockUserId = 'user-uuid-1';
 
@@ -123,7 +123,7 @@ describe('DailyRecordsService', () => {
   let healthEventsOwnershipService: {
     ensureActiveOwnedByUser: vi.Mock;
   };
-  let eventEmitter: { emitAsync: vi.Mock };
+  let publisher: { publish: vi.Mock };
   let mealPayloadWriterService: MealPayloadWriterService;
   let validatorService: DailyRecordsValidatorService;
 
@@ -137,8 +137,8 @@ describe('DailyRecordsService', () => {
         status: 'active',
       }),
     };
-    eventEmitter = {
-      emitAsync: vi.fn().mockResolvedValue(undefined),
+    publisher = {
+      publish: vi.fn().mockResolvedValue(undefined),
     };
 
     mealPayloadWriterService = new MealPayloadWriterService(
@@ -201,8 +201,8 @@ describe('DailyRecordsService', () => {
           useValue: repositoryMock,
         },
         {
-          provide: EventEmitter2,
-          useValue: eventEmitter,
+          provide: DomainEventPublisher,
+          useValue: publisher,
         },
       ],
     }).compile();
@@ -1196,7 +1196,7 @@ describe('DailyRecordsService', () => {
       }),
     );
 
-    expect(eventEmitter.emitAsync).toHaveBeenNthCalledWith(
+    expect(publisher.publish).toHaveBeenNthCalledWith(
       1,
       'daily-record.changed',
       {
@@ -1206,7 +1206,7 @@ describe('DailyRecordsService', () => {
         recordId: 'r-symptom',
       },
     );
-    expect(eventEmitter.emitAsync).toHaveBeenNthCalledWith(
+    expect(publisher.publish).toHaveBeenNthCalledWith(
       2,
       'daily-record.changed',
       {
@@ -1262,7 +1262,7 @@ describe('DailyRecordsService', () => {
 
       await unwrapOk(service.update(mockUserId, 'r-water', dto));
 
-      expect(eventEmitter.emitAsync).not.toHaveBeenCalledWith(
+      expect(publisher.publish).not.toHaveBeenCalledWith(
         'daily-record.changed',
         expect.objectContaining({ kind: DailyRecordKind.symptom }),
       );
@@ -1311,8 +1311,8 @@ describe('DailyRecordsService', () => {
       }),
     );
 
-    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(2);
-    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+    expect(publisher.publish).toHaveBeenCalledTimes(2);
+    expect(publisher.publish).toHaveBeenCalledWith(
       'daily-record.changed',
       expect.objectContaining({
         date: '2026-06-05',

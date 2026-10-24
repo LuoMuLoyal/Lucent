@@ -1,7 +1,7 @@
 import { nonDeleted } from '../../../common/index.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DomainEventPublisher } from '../../../common/index.js';
 import { type Mocked } from 'vitest';
 import {
   ActivityLevel,
@@ -117,8 +117,8 @@ describe('UserHealthContextService', () => {
           },
         },
         {
-          provide: EventEmitter2,
-          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
+          provide: DomainEventPublisher,
+          useValue: { publish: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

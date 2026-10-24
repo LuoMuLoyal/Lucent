@@ -1,10 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma/index.js';
 import { fromPromise, okAsync } from '../../../common/result/index.js';
-import { fromPrismaResult } from '../../../common/index.js';
+import {
+  DomainEventPublisher,
+  fromPrismaResult,
+} from '../../../common/index.js';
 import type {
   DomainFailure,
   ResultAsync,
@@ -42,7 +44,7 @@ export class UserSettingsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly publisher: DomainEventPublisher,
   ) {}
 
   async invalidateUserCache(userId: string): Promise<void> {
@@ -233,11 +235,11 @@ export class UserSettingsService {
 
   private async emitSettingsChanged(userId: string): Promise<void> {
     try {
-      await this.eventEmitter.emitAsync(SETTINGS_CHANGED, {
+      await this.publisher.publish(SETTINGS_CHANGED, {
         userId,
       } satisfies SettingsChangedPayload);
     } catch (error) {
-      this.logger.warn('Failed to emit settings.changed event', {
+      this.logger.warn('Failed to publish settings.changed event', {
         userId,
         error,
       });

@@ -12,7 +12,7 @@ import { MedicineReminderRepositoryPort } from '../repositories/reminder.reposit
 import { MedicineRemindersOwnershipService } from './ownership.service.js';
 import { MedicineRemindersMapperService } from './mapper.service.js';
 import { MedicineRemindersService } from './reminders.service.js';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DomainEventPublisher } from '../../../common/index.js';
 import { REMINDER_CHANGED } from '../../../common/events/domain-events.js';
 
 const now = new Date('2026-06-08T12:00:00.000Z');
@@ -63,7 +63,7 @@ describe('MedicineRemindersService', () => {
   let service: MedicineRemindersService;
 
   let repository: Mocked<MedicineReminderRepositoryPort>;
-  let eventEmitter: Mocked<EventEmitter2>;
+  let publisher: Mocked<DomainEventPublisher>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -88,8 +88,8 @@ describe('MedicineRemindersService', () => {
           },
         },
         {
-          provide: EventEmitter2,
-          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
+          provide: DomainEventPublisher,
+          useValue: { publish: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();
@@ -98,9 +98,9 @@ describe('MedicineRemindersService', () => {
     repository = module.get(
       MedicineReminderRepositoryPort,
     ) as unknown as Mocked<MedicineReminderRepositoryPort>;
-    eventEmitter = module.get(
-      EventEmitter2,
-    ) as unknown as Mocked<EventEmitter2>;
+    publisher = module.get(
+      DomainEventPublisher,
+    ) as unknown as Mocked<DomainEventPublisher>;
   });
 
   it('should create a reminder with normalized text and weekdays', async () => {
@@ -504,8 +504,8 @@ describe('MedicineRemindersService', () => {
       });
 
       expect(repository.transaction).toHaveBeenCalledTimes(1);
-      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(REMINDER_CHANGED, {
+      expect(publisher.publish).toHaveBeenCalledTimes(1);
+      expect(publisher.publish).toHaveBeenCalledWith(REMINDER_CHANGED, {
         userId: 'user-1',
       });
 
@@ -536,7 +536,7 @@ describe('MedicineRemindersService', () => {
         error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
       });
       expect(tx.userMedicineReminder.updateMany).not.toHaveBeenCalled();
-      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(publisher.publish).not.toHaveBeenCalled();
     });
 
     it('should reject empty slots with VALIDATION_FAILED', async () => {
@@ -552,7 +552,7 @@ describe('MedicineRemindersService', () => {
         error: { kind: 'validation', code: 'VALIDATION_FAILED' },
       });
       expect(repository.transaction).not.toHaveBeenCalled();
-      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(publisher.publish).not.toHaveBeenCalled();
     });
 
     it('should reject duplicate slot ids with VALIDATION_FAILED', async () => {
@@ -576,7 +576,7 @@ describe('MedicineRemindersService', () => {
         error: { kind: 'validation', code: 'VALIDATION_FAILED' },
       });
       expect(repository.transaction).not.toHaveBeenCalled();
-      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(publisher.publish).not.toHaveBeenCalled();
     });
 
     it('should emit REMINDER_CHANGED exactly once after commit', async () => {
@@ -604,8 +604,8 @@ describe('MedicineRemindersService', () => {
         }),
       );
 
-      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(REMINDER_CHANGED, {
+      expect(publisher.publish).toHaveBeenCalledTimes(1);
+      expect(publisher.publish).toHaveBeenCalledWith(REMINDER_CHANGED, {
         userId: 'user-1',
       });
     });
@@ -638,7 +638,7 @@ describe('MedicineRemindersService', () => {
       expect(repository.transaction).toHaveBeenCalledTimes(1);
       expect(tx.userMedicineReminder.updateMany).toHaveBeenCalled();
       expect(tx.userMedicineReminder.create).toHaveBeenCalled();
-      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(publisher.publish).not.toHaveBeenCalled();
     });
 
     it('should map a P2002 race inside the transaction to RESOURCE_CONFLICT', async () => {
@@ -664,7 +664,7 @@ describe('MedicineRemindersService', () => {
         ok: false,
         error: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
       });
-      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(publisher.publish).not.toHaveBeenCalled();
     });
   });
 });

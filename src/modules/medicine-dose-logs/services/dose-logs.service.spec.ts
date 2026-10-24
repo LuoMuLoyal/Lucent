@@ -13,7 +13,7 @@ import type {
 } from '../../../common/result/index.js';
 import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository.js';
 import { MedicineDoseLogsService } from './dose-logs.service.js';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DomainEventPublisher } from '../../../common/index.js';
 import { HealthEventsOwnershipService } from '../../health-events/index.js';
 import type { CreateDoseLogDto } from '../dto/create-dose-log.dto.js';
 import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto.js';
@@ -73,8 +73,8 @@ describe('MedicineDoseLogsService', () => {
       providers: [
         MedicineDoseLogsService,
         {
-          provide: EventEmitter2,
-          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
+          provide: DomainEventPublisher,
+          useValue: { publish: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: MedicineDoseLogRepositoryPort,

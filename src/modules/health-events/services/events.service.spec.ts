@@ -6,7 +6,7 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client.js';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
+import type { DomainEventPublisher } from '../../../common/index.js';
 import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
@@ -31,10 +31,10 @@ async function collectResult<T>(
   );
 }
 
-function buildEventEmitter() {
+function buildPublisher() {
   return {
-    emitAsync: vi.fn().mockResolvedValue([]),
-  } as unknown as EventEmitter2;
+    publish: vi.fn().mockResolvedValue(undefined),
+  } as unknown as DomainEventPublisher;
 }
 
 function buildProductEvents() {
@@ -86,7 +86,7 @@ function buildRepository() {
 function buildService(repository: ReturnType<typeof buildRepository>) {
   return new EventsService(
     repository as unknown as HealthEventRepositoryPort,
-    buildEventEmitter(),
+    buildPublisher(),
     buildProductEvents(),
   );
 }
@@ -120,26 +120,23 @@ describe('EventsService', () => {
 
   it('emits once after creating an event', async () => {
     const repository = buildRepository();
-    const eventEmitter = buildEventEmitter();
+    const publisher = buildPublisher();
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      eventEmitter,
+      publisher,
       buildProductEvents(),
     );
 
     await collectResult(service.create(USER_ID, { title: 'Headache' }));
 
-    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
-      'health-event.changed',
-      {
-        userId: USER_ID,
-        eventId: EVENT_ID,
-        date: '2026-07-20',
-        change: 'create',
-        kind: HealthEventKind.symptom,
-      },
-    );
+    expect(publisher.publish).toHaveBeenCalledTimes(1);
+    expect(publisher.publish).toHaveBeenCalledWith('health-event.changed', {
+      userId: USER_ID,
+      eventId: EVENT_ID,
+      date: '2026-07-20',
+      change: 'create',
+      kind: HealthEventKind.symptom,
+    });
   });
 
   it('rejects creating a second active event for the same user with RECORD_ALREADY_EXISTS', async () => {
@@ -245,10 +242,10 @@ describe('EventsService', () => {
 
   it('ends an owned active event only after explicit outcome confirmation', async () => {
     const repository = buildRepository();
-    const eventEmitter = buildEventEmitter();
+    const publisher = buildPublisher();
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      eventEmitter,
+      publisher,
       buildProductEvents(),
     );
 
@@ -268,8 +265,8 @@ describe('EventsService', () => {
         endedAt: expect.any(Date),
       }),
     );
-    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+    expect(publisher.publish).toHaveBeenCalledTimes(1);
+    expect(publisher.publish).toHaveBeenCalledWith(
       'health-event.changed',
       expect.objectContaining({
         userId: USER_ID,
@@ -282,7 +279,7 @@ describe('EventsService', () => {
 
   it('does not emit when creating an event fails to persist', async () => {
     const repository = buildRepository();
-    const eventEmitter = buildEventEmitter();
+    const publisher = buildPublisher();
     repository.create.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;
@@ -290,19 +287,19 @@ describe('EventsService', () => {
     );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      eventEmitter,
+      publisher,
       buildProductEvents(),
     );
 
     await expect(
       service.create(USER_ID, { title: 'Headache' }),
     ).rejects.toThrow('write failed');
-    expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+    expect(publisher.publish).not.toHaveBeenCalled();
   });
 
   it('does not emit when ending an event fails to persist', async () => {
     const repository = buildRepository();
-    const eventEmitter = buildEventEmitter();
+    const publisher = buildPublisher();
     repository.update.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;
@@ -310,7 +307,7 @@ describe('EventsService', () => {
     );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      eventEmitter,
+      publisher,
       buildProductEvents(),
     );
 
@@ -319,7 +316,7 @@ describe('EventsService', () => {
         outcome: HealthEventOutcome.improved,
       }),
     ).rejects.toThrow('write failed');
-    expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+    expect(publisher.publish).not.toHaveBeenCalled();
   });
 
   it("does not end another user's event", async () => {
@@ -367,7 +364,7 @@ describe('EventsService', () => {
     repository.create.mockReturnValue(okAsync(event({ startedAt })));
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       productEvents,
     );
 
@@ -398,7 +395,7 @@ describe('EventsService', () => {
     );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       productEvents,
     );
 
@@ -429,7 +426,7 @@ describe('EventsService', () => {
     );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       productEvents,
     );
 
@@ -449,7 +446,7 @@ describe('EventsService', () => {
     );
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
-      buildEventEmitter(),
+      buildPublisher(),
       productEvents,
     );
 

@@ -30,7 +30,7 @@ import { ReportsContextService } from './dashboard/context.service.js';
 import { ReportsPresenterService } from './dashboard/presenter.service.js';
 
 import { ReportsService } from './dashboard/dashboard.service.js';
-import { ReportsCacheInvalidationListener } from './dashboard/cache-invalidation.listener.js';
+import { ReportsCacheInvalidationQueueService } from './dashboard/cache-invalidation.queue.service.js';
 import { EventReviewService } from './services/event-review/review.service.js';
 import { EventReviewFactsService } from './services/event-review/facts.service.js';
 import { EventReviewChangesService } from './services/event-review/changes.service.js';
@@ -77,7 +77,7 @@ import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
     EventReviewChangesService,
     EventReviewActionsService,
     EventReviewNextStepService,
-    ReportsCacheInvalidationListener,
+    ReportsCacheInvalidationQueueService,
     { provide: IReportSummaryReader, useExisting: ReportsAiSummaryService },
   ],
   exports: [

@@ -1,10 +1,10 @@
 import {
+  DomainEventPublisher,
   fromPrismaResult,
   normalizeNullableText,
 } from '../../../common/index.js';
 import { parseDateOnly, now, formatDateOnly } from '../../../common/index.js';
 import { Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   createDomainFailure,
   errAsync,
@@ -45,7 +45,7 @@ export class DailyRecordsService {
     private readonly mapperService: DailyRecordsMapperService,
     private readonly mealPayloadWriterService: MealPayloadWriterService,
     private readonly validatorService: DailyRecordsValidatorService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly publisher: DomainEventPublisher,
   ) {}
 
   async list(
@@ -433,7 +433,7 @@ export class DailyRecordsService {
         typeof occurredAt === 'string'
           ? formatDateOnly(parseDateOnly(occurredAt))
           : formatDateOnly(occurredAt);
-      await this.eventEmitter.emitAsync(DAILY_RECORD_CHANGED, {
+      await this.publisher.publish(DAILY_RECORD_CHANGED, {
         userId,
         date: dateStr,
         ...(kind != null ? { kind } : {}),
@@ -489,7 +489,7 @@ export class DailyRecordsService {
       }
 
       for (const event of events.values()) {
-        await this.eventEmitter.emitAsync(DAILY_RECORD_CHANGED, event);
+        await this.publisher.publish(DAILY_RECORD_CHANGED, event);
       }
     } catch (error) {
       // cache invalidation is best-effort
