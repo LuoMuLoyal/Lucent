@@ -1,5 +1,7 @@
-// Domain: cross-context domain events outbox (ADR-0024)
-// Consumers only mark delivery; rows are append-only and pruned by retention.
+// Domain: cross-context domain events outbox (ADR-0024, refined by ADR-0025)
+// Producers append inside their write transaction; the publisher fans each row
+// out to the subscriber queues in `src/common/events/subscriptions.ts`.
+// Rows are append-only: delivery only advances the two timestamps.
 
 model DomainEvent {
   id             String    @id @default(uuid())
@@ -10,11 +12,17 @@ model DomainEvent {
   payloadVersion Int       @default(1) @map("payload_version")
   payload        Json      @map("payload") @db.JsonB
   metadata       Json?     @db.JsonB
+  /// Idempotency key of one aggregate change; a duplicate append is a no-op.
+  dedupeKey      String?   @map("dedupe_key")
+  /// Fan-out finished: every subscription has a job in its queue.
+  dispatchedAt   DateTime? @map("dispatched_at") @db.Timestamptz(3)
+  /// Settled: fan-out done and no consumer is left to deliver to.
   publishedAt    DateTime? @map("published_at") @db.Timestamptz(3)
   attempts       Int       @default(0)
   lastError      String?   @map("last_error")
   occurredAt     DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(3)
 
+  @@unique([dedupeKey])
   @@index([publishedAt, occurredAt])
   @@map("domain_events")
 }

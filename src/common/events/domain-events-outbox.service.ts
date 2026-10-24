@@ -1,11 +1,19 @@
 /**
- * Outbox publisher for cross-context domain events (ADR-0024).
+ * Outbox publisher for cross-context domain events (ADR-0024, refined by ADR-0025).
  *
  * Producers append events to `domain_events` inside the same transaction as
  * the aggregate write; this service polls the outbox, re-dispatches events to
  * the in-process event bus, and marks delivery. Rows are append-only in
  * semantics — delivery failure only bumps `attempts` / stores `lastError`, the
  * row itself is never mutated into a different event.
+ *
+ * Two timestamps, two meanings:
+ *
+ * - `dispatchedAt` — fan-out finished (every subscriber has its job). A row
+ *   past this point is never re-emitted by the poller.
+ * - `publishedAt` — settled. `publishedAt IS NULL` stays the claim predicate,
+ *   so a crash between `dispatchedAt` and `publishedAt` re-claims the row and
+ *   settles it without delivering a second time.
  *
  * One row is claimed, emitted, and settled inside a single transaction that
  * holds the row lock (`FOR UPDATE SKIP LOCKED`), so multiple app instances can
@@ -34,7 +42,11 @@ type OutboxRow = {
   payload: Prisma.JsonValue;
   occurred_at: Date;
   attempts: number;
+  dispatched_at: Date | null;
 };
+
+/** Prisma's unique-constraint violation code. */
+const PRISMA_UNIQUE_VIOLATION = 'P2002';
 
 export interface DomainEventAppendInput {
   /** Owning bounded context, e.g. `auth` or `medicines`. */
@@ -46,6 +58,15 @@ export interface DomainEventAppendInput {
   /** Already checked minimal payload (never raw domain content). */
   payload: Record<string, unknown>;
   payloadVersion?: number;
+  /**
+   * Idempotency key for one aggregate change, e.g.
+   * `daily-record.changed:user-1:2026-10-24:abc`. Appending an existing key is
+   * a no-op that returns the existing row id, so a retried request or a
+   * duplicate flush cannot fan out twice. The key is scoped by
+   * `<event-name>:` so two contexts can reuse the same aggregate-local id
+   * without colliding on the unique index.
+   */
+  dedupeKey?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -68,25 +89,59 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
   /**
    * Persists a domain event. May be called with the caller's Prisma client
    * (transactional with the aggregate write) or without (standalone).
+   *
+   * With a `dedupeKey`, an existing row wins and its id is returned: the
+   * unique index makes the check atomic across instances (a concurrent insert
+   * loses the race with P2002 and falls back to the winner's row).
    */
   async append(
     input: DomainEventAppendInput,
     tx?: Prisma.TransactionClient,
   ): Promise<string> {
     const client = tx ?? this.prisma;
-    const row = await client.domainEvent.create({
-      data: {
-        context: input.context,
-        aggregateType: input.aggregateType,
-        aggregateId: input.aggregateId,
-        eventName: input.eventName,
-        payloadVersion: input.payloadVersion ?? 1,
-        payload: asJson(input.payload),
-        metadata: input.metadata ? asJson(input.metadata) : Prisma.DbNull,
-      },
+    const create = async (): Promise<string> => {
+      const row = await client.domainEvent.create({
+        data: {
+          context: input.context,
+          aggregateType: input.aggregateType,
+          aggregateId: input.aggregateId,
+          eventName: input.eventName,
+          payloadVersion: input.payloadVersion ?? 1,
+          payload: asJson(input.payload),
+          metadata: input.metadata ? asJson(input.metadata) : Prisma.DbNull,
+          ...(input.dedupeKey != null ? { dedupeKey: input.dedupeKey } : {}),
+        },
+        select: { id: true },
+      });
+      return row.id;
+    };
+
+    const dedupeKey = input.dedupeKey;
+    if (dedupeKey == null) {
+      return create();
+    }
+    const existing = await client.domainEvent.findUnique({
+      where: { dedupeKey },
       select: { id: true },
     });
-    return row.id;
+    if (existing != null) {
+      return existing.id;
+    }
+    try {
+      return await create();
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
+      const winner = await client.domainEvent.findUnique({
+        where: { dedupeKey },
+        select: { id: true },
+      });
+      if (winner != null) {
+        return winner.id;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -151,7 +206,7 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
   } | null> {
     return this.prisma.$transaction(async (tx) => {
       const [row] = await tx.$queryRaw<OutboxRow[]>(Prisma.sql`
-        SELECT id, event_name, payload, payload_version, occurred_at, attempts
+        SELECT id, event_name, payload, payload_version, occurred_at, attempts, dispatched_at
         FROM "domain_events"
         WHERE published_at IS NULL AND attempts < ${OUTBOX_MAX_ATTEMPTS}
         ORDER BY occurred_at
@@ -163,7 +218,11 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
       }
       const parkedBefore = row.attempts + 1 >= OUTBOX_MAX_ATTEMPTS;
       try {
-        await this.emitRow(row);
+        // A row that already fanned out but did not settle (crash between the
+        // two writes) is only settled here — never emitted a second time.
+        if (row.dispatched_at == null) {
+          await this.emitRow(row);
+        }
       } catch (error) {
         this.logger.warn(
           `Outbox delivery failed: ${row.event_name} (${row.id}), attempt ${String(
@@ -173,9 +232,10 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
         await this.recordFailure(tx, row, error);
         return { success: false, parked: parkedBefore };
       }
+      const now = new Date();
       await tx.domainEvent.update({
         where: { id: row.id },
-        data: { publishedAt: new Date() },
+        data: { dispatchedAt: now, publishedAt: now },
       });
       return { success: true, parked: false };
     });
@@ -226,4 +286,12 @@ function outboxErrorMessage(error: unknown): string {
 /** Ensures the column value is JSON-safe (prisma Json accepts plain objects). */
 function asJson(value: Record<string, unknown>): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+/** True when `error` is Prisma's unique-constraint violation (P2002). */
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === PRISMA_UNIQUE_VIOLATION
+  );
 }
