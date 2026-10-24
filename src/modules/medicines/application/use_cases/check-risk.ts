@@ -27,7 +27,7 @@ import {
   type MedicineRiskLlmOutput,
   type MedicineRiskLlmPort,
 } from '../ports/risk-llm.js';
-import type { RiskCheckCandidateDto } from '../../adapters/http/dto/risk-check.js';
+import type { RiskCheckCandidateDto } from '../ports/risk-check.js';
 import type {
   MedicineRiskCheckResult,
   MedicineRiskCheckRecord,

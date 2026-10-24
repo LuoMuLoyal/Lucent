@@ -19,14 +19,17 @@ import {
   toStringListOrNull,
   truncateText,
   uniqueNonEmptyStrings,
-} from '../../adapters/http/presenters/medicine.js';
-import {
-  type MedicinesSourceReader,
-  type MedicineSearchCriteria,
-  type MedicineSearchResultLike,
-  type MedicineDetailData,
-  type MedicineSequenceData,
+} from '../../application/read_models/medicine-card.format.js';
+import type {
+  MedicinesSourceReader,
+  MedicineSearchCriteria,
+  MedicineSearchResultLike,
 } from '../../application/ports/knowledge.js';
+import type {
+  DrugbankMedicineDetail,
+  MedicineDetailView,
+  MedicineSequenceView,
+} from '../../application/ports/knowledge-view.js';
 
 /** A drug→target edge with its target row eagerly loaded. */
 type DrugbankDrugTargetWithTarget = DrugbankDrugTarget & {
@@ -46,7 +49,7 @@ function isCsvRelation(relationKind: string | null): boolean {
 }
 
 @Injectable()
-export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineDetailData> {
+export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineDetailView> {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(
@@ -71,7 +74,7 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
     };
   }
 
-  async getDetail(id: string): Promise<MedicineDetailData | null> {
+  async getDetail(id: string): Promise<MedicineDetailView | null> {
     const row = await this.prisma.drugbankDrug.findUnique({
       where: { drugbankId: id },
       include: {
@@ -92,7 +95,7 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
       row.targetRelations,
     );
 
-    const detail = {
+    const detail: DrugbankMedicineDetail = {
       kind: 'drugbank',
       drugType: row.drugType,
       state: row.state,
@@ -140,7 +143,7 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
    * tens of thousands of characters here (Imatinib's 28 targets average ~1130 aa
    * of protein each), which has no business riding along with every page load.
    */
-  async getSequences(id: string): Promise<MedicineSequenceData | null> {
+  async getSequences(id: string): Promise<MedicineSequenceView | null> {
     const row = await this.prisma.drugbankDrug.findUnique({
       where: { drugbankId: id },
       select: {
@@ -329,7 +332,7 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
     const synonymList = toStringList(row.synonyms);
     return {
       id: row.drugbankId,
-      source: 'drugbank',
+      source: 'drugbank' as const,
       name: row.name,
       subtitle: this.toSubtitle(row),
       summary: truncateText(firstNonEmpty(row.description, row.indication)),

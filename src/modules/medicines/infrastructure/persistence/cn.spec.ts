@@ -1,6 +1,6 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
 
-import type { CnMedicineDetailDto } from '../../adapters/http/dto/detail.js';
+import type { CnMedicineDetail } from '../../application/ports/knowledge-view.js';
 import { CnMedicinesService } from './cn.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
@@ -170,7 +170,7 @@ describe('CnMedicinesService', () => {
       expect(result!.name).toBe('阿司匹林');
       expect(result!.detail['kind']).toBe('cnProduct');
       // body text comes from the linked leaflet, not the product row
-      const detail = result!.detail as CnMedicineDetailDto;
+      const detail = result!.detail as CnMedicineDetail;
       expect(detail.ingredients).toBe('阿司匹林');
       expect(detail.properties).toBe('白色片剂');
       expect(detail.indications).toBe('用于镇痛');

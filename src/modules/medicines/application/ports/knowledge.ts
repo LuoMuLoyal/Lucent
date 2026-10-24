@@ -6,7 +6,11 @@
  * implementations in `medicines.module.ts`.
  */
 
-import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine-source.js';
+import type {
+  MedicineCard,
+  MedicinePage,
+  MedicineSequenceView,
+} from './knowledge-view.js';
 import type { MedicineDetailDataLike } from '../../domain/services/ingredient-canonicalization.js';
 
 export const MEDICINES_KNOWLEDGE_CACHE = 'MEDICINES_KNOWLEDGE_CACHE';
@@ -19,12 +23,7 @@ export type { MedicineDetailDataLike };
 export type MedicineDetailData = MedicineDetailDataLike;
 
 /** Sequences of one medicine, as built by the Knowledge persistence layer. */
-export type MedicineSequenceData = {
-  id: string;
-  source: MedicineKnowledgeSource;
-  drug: unknown[];
-  targets: unknown[];
-};
+export type MedicineSequenceData = MedicineSequenceView;
 
 export type MedicineSearchCriteria = {
   q: string;
@@ -36,29 +35,16 @@ export type MedicineSearchCriteria = {
  * Search result shape as returned by both knowledge readers.
  *
  * The item shape mirrors the wire contract validated by
- * `adapters/http/dto/search.ts`; it is declared here because the application
- * layer (and cross-context reader callers) must not import adapter DTOs. The
- * zod schema remains the single source of truth for what goes over HTTP.
+ * `adapters/http/dto/search.ts`; it is declared in `knowledge-view.ts` because
+ * the application layer, the persistence layer and cross-context reader
+ * callers must all agree on it without importing adapter DTOs. The zod schema
+ * remains the single source of truth for what goes over HTTP.
  */
-export type MedicineSearchItemLike = {
-  id: string;
-  source: string;
-  name: string;
-  subtitle: string | null;
-  summary: string | null;
-  tags: string[];
-  imageUrl: string | null;
-  matchedBy: string[];
-};
+export type MedicineSearchItemLike = MedicineCard;
 
 export type MedicineSearchResultLike = {
   items: MedicineSearchItemLike[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination: MedicinePage;
 };
 
 /**
@@ -69,7 +55,7 @@ export type MedicineSearchResultLike = {
 export interface MedicinesSourceReader<D = unknown> {
   search(criteria: MedicineSearchCriteria): Promise<MedicineSearchResultLike>;
   getDetail(id: string): Promise<D | null>;
-  getSequences(id: string): Promise<unknown>;
+  getSequences(id: string): Promise<MedicineSequenceView | null>;
 }
 
 /** Read-through cache facade over the knowledge endpoints. */

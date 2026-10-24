@@ -1,5 +1,6 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
 
+import type { DrugbankMedicineDetail } from '../../application/ports/knowledge-view.js';
 import { DrugbankMedicinesService } from './drugbank.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
@@ -460,9 +461,7 @@ describe('DrugbankMedicinesService', () => {
       );
 
       const result = await service.getDetail('DB00945');
-      const detail = result?.detail as {
-        structure: Record<string, unknown>;
-      };
+      const detail = result?.detail as DrugbankMedicineDetail;
 
       expect(detail.structure).toEqual({
         smiles: 'CC(=O)Oc1ccccc1C(=O)O',
