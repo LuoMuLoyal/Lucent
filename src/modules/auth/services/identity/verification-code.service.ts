@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
 import { RedisService } from '../../../../common/index.js';
 import {
@@ -18,6 +18,16 @@ import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.
 import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { MailService } from '../../../../mail/mail.service.js';
 import type { VerificationScene } from '../../dto/password/send-verification-code.dto.js';
+import {
+  MAX_CHALLENGE_ATTEMPTS,
+  VerificationChallenge,
+  type ChallengeState,
+  type ChallengeVerdict,
+} from '../../domain/challenge/challenge.js';
+import {
+  deriveCodeHash,
+  generateCode,
+} from '../../domain/challenge/verification-code.js';
 
 interface RateLimitBucket {
   count: number;
@@ -235,8 +245,35 @@ export class VerificationCodeService {
   /**
    * 校验验证码。成功后自动删除（一次性）。
    *
-   * 过期返回 AUTH_VERIFICATION_CODE_EXPIRED，不匹配返回
-   * AUTH_VERIFICATION_CODE_MISMATCH；校验成功返回 ok(undefined)。
+   * ## 判定在聚合里，这里只做「读 → 判定 → 写回」
+   *
+   * 四条不变量（单次消费、过期不可用、尝试次数上限、指纹绑定场景与邮箱）都在
+   * `domain/challenge/challenge.ts` 的 `VerificationChallenge`。本方法负责把它
+   * 接上缓存：读条目 → `from()` 重建聚合 → `verify()` 判定 → 按 `nextState`
+   * 写回（成功时删除、失败时递增计数、猜爆时写回上限）。
+   *
+   * ## 尝试次数上限是本次新增的（行为变更）
+   *
+   * 迁移前**没有失败计数**：`verify` 比对不匹配就返回错误，该码仍然有效，
+   * 可以无限次尝试。风险最大的是 `forgot-password → reset-password`——猜中码
+   * 等于直接改密码，而该路径没有按邮箱的尝试计数。现在连续猜错
+   * `MAX_CHALLENGE_ATTEMPTS`(5) 次即作废该码。
+   *
+   * ## 错误码为什么仍是 EXPIRED / MISMATCH
+   *
+   * 聚合的 verdict 有 `mismatch` / `exhausted` / `expired` / `absent` 四种，
+   * 但对外只映射两个既有码：
+   *
+   * | verdict | 错误码 |
+   * | --- | --- |
+   * | `mismatch` | `AUTH_VERIFICATION_CODE_MISMATCH` |
+   * | `exhausted` | `AUTH_VERIFICATION_CODE_EXPIRED` |
+   * | `expired` / `absent` | `AUTH_VERIFICATION_CODE_EXPIRED` |
+   *
+   * **`exhausted` 映射成 EXPIRED 而不是新码**：它对外就是「这个码不能用了，
+   * 重新获取」。新造一个码会告诉攻击者「你把这码猜爆了」——那是进度反馈。
+   * 缓存层保留条目（不删除）让运维能在日志里区分「猜爆」与「过期」，
+   * 而这两者对用户和攻击者都是同一件事。
    */
   verify(
     email: string,
@@ -246,29 +283,64 @@ export class VerificationCodeService {
     const codeKey = this.codeKey(scene, email);
 
     return this.lift(this.cacheGet(codeKey)).andThen((value) => {
-      const storedHash = value as string | undefined;
+      const state = value as ChallengeState | undefined;
 
-      if (!storedHash) {
-        return errAsync(
-          createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
-          }),
-        );
+      if (state === undefined) {
+        return errAsync(this.codeExpiredFailure());
       }
 
-      if (!this.safeCompareCode(code, storedHash, scene, email)) {
-        return errAsync(
-          createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
-          }),
-        );
+      const result = VerificationChallenge.from(state).verify(code);
+
+      if (result.verdict.kind === 'accepted') {
+        // 单次消费：成功即删除条目。
+        return this.lift(this.cacheDel(codeKey)).map(() => undefined);
       }
 
-      // Delete after successful verification (one-time use)
-      return this.lift(this.cacheDel(codeKey)).map(() => undefined);
+      if (result.verdict.kind === 'exhausted') {
+        this.logger.warn('Verification challenge exhausted', {
+          scene,
+          attempts: MAX_CHALLENGE_ATTEMPTS,
+        });
+      }
+
+      // 写回递增后的计数；猜爆时它已到上限，后续校验一律 exhausted。
+      // TTL 用剩余 TTL 而不是原始 TTL：写回不该延长码的寿命。
+      return this.lift(
+        this.cacheSet(codeKey, result.nextState, this.remainingTtlMs(state)),
+      ).andThen(() => errAsync(this.codeFailureFor(result.verdict)));
     });
+  }
+
+  /** 聚合 verdict → 对外错误码。见 {@link verify} 的表格。 */
+  private codeFailureFor(verdict: ChallengeVerdict): DomainFailure {
+    return createDomainFailure({
+      kind: 'authentication',
+      code:
+        verdict.kind === 'mismatch'
+          ? 'AUTH_VERIFICATION_CODE_MISMATCH'
+          : 'AUTH_VERIFICATION_CODE_EXPIRED',
+    });
+  }
+
+  private codeExpiredFailure(): DomainFailure {
+    return createDomainFailure({
+      kind: 'authentication',
+      code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+    });
+  }
+
+  /**
+   * 写回时的 TTL：从签发时刻算起的剩余寿命。
+   *
+   * 用剩余值而不是完整 TTL，是为了让「猜错 4 次」不延长码的有效期——
+   * 否则攻击者可以靠不断猜错把码永远留住。
+   */
+  private remainingTtlMs(state: ChallengeState): number {
+    const elapsed = Date.now() - state.issuedAt.getTime();
+    const remaining = this.readSettings().codeTtlMs - elapsed;
+    // 下限 1ms：`cache.set` 传 0/负数在各后端行为不一致（有的当立即过期，
+    // 有的当永不过期）。给一个极小的正值，语义是「马上过期」。
+    return Math.max(1, remaining);
   }
 
   // ── Private Helpers ──────────────────────────────────────────
@@ -293,17 +365,21 @@ export class VerificationCodeService {
         );
       }
 
-      const code = this.generateCode(settings.codeLength);
+      const code = generateCode(settings.codeLength);
       const codeKey = this.codeKey(scene, email);
 
+      // 存**聚合状态**而不是裸指纹：`attempts` 与码必须同时成立，放在同一个
+      // 缓存条目里，作废与清零就是同一个原子操作（见 challenge.ts 头注释）。
+      const issuedState: ChallengeState = {
+        scene,
+        email,
+        codeHash: deriveCodeHash(code, scene, email),
+        attempts: 0,
+        issuedAt: new Date(),
+      };
+
       // Store code hash in cache (never store plaintext codes)
-      return this.lift(
-        this.cacheSet(
-          codeKey,
-          this.hashCode(code, scene, email),
-          settings.codeTtlMs,
-        ),
-      )
+      return this.lift(this.cacheSet(codeKey, issuedState, settings.codeTtlMs))
         .andThen(() =>
           this.lift(this.cacheSet(cooldownKey, '1', settings.cooldownTtlMs)),
         )
@@ -327,29 +403,6 @@ export class VerificationCodeService {
     return fromPromise(promise, (error) => {
       throw error;
     });
-  }
-
-  private generateCode(length: number): string {
-    const num = randomInt(0, 10 ** length);
-    return num.toString().padStart(length, '0');
-  }
-
-  private hashCode(code: string, scene: string, email: string): string {
-    return createHash('sha256')
-      .update(`${scene}:${email}:${code}`)
-      .digest('hex');
-  }
-
-  private safeCompareCode(
-    code: string,
-    storedHash: string,
-    scene: string,
-    email: string,
-  ): boolean {
-    const inputHash = this.hashCode(code, scene, email);
-    const a = Buffer.from(inputHash);
-    const b = Buffer.from(storedHash);
-    return a.length === b.length && timingSafeEqual(a, b);
   }
 
   private codeKey(scene: string, email: string): string {

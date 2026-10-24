@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { Logger } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
@@ -118,10 +119,16 @@ describe('VerificationCodeService', () => {
       );
 
       expect(result.ok).toBe(true);
-      // Should set code hash in cache (5 min TTL)
+      // 缓存里存的是**聚合状态**（含 attempts），不是裸指纹：ttempts 与码
+      // 必须同时成立，放在同一条目里才能原子地作废与清零。
       expect(cache.set).toHaveBeenCalledWith(
         'vcode:register:test@example.com',
-        expect.stringMatching(/^[a-f0-9]{64}$/), // SHA256 hex digest
+        expect.objectContaining({
+          scene: 'register',
+          email: 'test@example.com',
+          codeHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+          attempts: 0,
+        }),
         DEFAULT_VERIFICATION_CODE_TTL_MS,
       );
 
@@ -256,11 +263,17 @@ describe('VerificationCodeService', () => {
 
   describe('verify', () => {
     it('should return ok(undefined) for correct code and delete from cache', async () => {
-      // Simulate a stored hash for code '123456' with scene+email salt
-      const storedHash = createHash('sha256')
-        .update('register:test@example.com:123456')
-        .digest('hex');
-      (cache.get as vi.Mock).mockResolvedValue(storedHash);
+      // 模拟一条已签发的挑战状态（含 attempts），指纹按 scene+email 派生。
+      const storedState = {
+        scene: 'register',
+        email: 'test@example.com',
+        codeHash: createHash('sha256')
+          .update('register:test@example.com:123456')
+          .digest('hex'),
+        attempts: 0,
+        issuedAt: new Date(),
+      };
+      (cache.get as vi.Mock).mockResolvedValue(storedState);
       (cache.del as vi.Mock).mockResolvedValue(undefined);
 
       const result = await inspectResult(
@@ -290,11 +303,17 @@ describe('VerificationCodeService', () => {
     });
 
     it('should return AUTH_VERIFICATION_CODE_MISMATCH for wrong code', async () => {
-      // Simulate a stored hash for a DIFFERENT code
-      const wrongHash = createHash('sha256')
-        .update('register:test@example.com:654321')
-        .digest('hex');
-      (cache.get as vi.Mock).mockResolvedValue(wrongHash);
+      // 存的是**另一个码**的挑战状态。
+      const wrongState = {
+        scene: 'register',
+        email: 'test@example.com',
+        codeHash: createHash('sha256')
+          .update('register:test@example.com:654321')
+          .digest('hex'),
+        attempts: 0,
+        issuedAt: new Date(),
+      };
+      (cache.get as vi.Mock).mockResolvedValue(wrongState);
 
       const result = await inspectResult(
         service.verify('test@example.com', '123456', 'register'),
@@ -320,15 +339,140 @@ describe('VerificationCodeService', () => {
         ),
       ).rejects.toBe(error);
     });
+
+    // ── 尝试次数上限（本次新增的不变量） ──────────────────────
+
+    /** 构造一条 `attempts` 为指定值的挑战状态。 */
+    function challengeState(attempts: number, code = '654321') {
+      return {
+        scene: 'register',
+        email: 'test@example.com',
+        codeHash: createHash('sha256')
+          .update(`register:test@example.com:${code}`)
+          .digest('hex'),
+        attempts,
+        issuedAt: new Date(),
+      };
+    }
+
+    it('错码时把递增后的计数写回缓存，且不删除条目', async () => {
+      (cache.get as vi.Mock).mockResolvedValue(challengeState(0));
+
+      const result = await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_VERIFICATION_CODE_MISMATCH' },
+      });
+      expect(cache.del).not.toHaveBeenCalled();
+      expect(cache.set).toHaveBeenCalledWith(
+        'vcode:register:test@example.com',
+        expect.objectContaining({ attempts: 1 }),
+        expect.any(Number),
+      );
+    });
+
+    it('写回用剩余 TTL，不延长码的寿命', async () => {
+      // 否则攻击者可以靠不断猜错把码永远留住。
+      const stale = challengeState(0);
+      stale.issuedAt = new Date(Date.now() - 200_000); // 已过去 200s，TTL 300s
+      (cache.get as vi.Mock).mockResolvedValue(stale);
+
+      await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      const ttl = (cache.set as vi.Mock).mock.calls[0]?.[2] as number;
+      expect(ttl).toBeGreaterThan(0);
+      expect(ttl).toBeLessThanOrEqual(100_000);
+    });
+
+    it('第 5 次错码 → AUTH_VERIFICATION_CODE_EXPIRED（不新造错误码）', async () => {
+      // 用 EXPIRED 而不是新码：新码会告诉攻击者「你把这码猜爆了」。
+      (cache.get as vi.Mock).mockResolvedValue(challengeState(4));
+
+      const result = await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_VERIFICATION_CODE_EXPIRED' },
+      });
+      expect(cache.set).toHaveBeenCalledWith(
+        'vcode:register:test@example.com',
+        expect.objectContaining({ attempts: 5 }),
+        expect.any(Number),
+      );
+    });
+
+    it('【核心】猜爆之后，正确的码也不再通过', async () => {
+      // 本次行为变更的核心断言。若实现成「作废但仍比对」，攻击者猜满后
+      // 仍能靠命中通过，上限就白做了。
+      (cache.get as vi.Mock).mockResolvedValue(challengeState(5, '123456'));
+
+      const result = await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_VERIFICATION_CODE_EXPIRED' },
+      });
+      expect(cache.del).not.toHaveBeenCalled();
+    });
+
+    it('猜爆时记 warn（运维可观测），但不泄露剩余次数', async () => {
+      const warn = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      (cache.get as vi.Mock).mockResolvedValue(challengeState(4));
+
+      await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(warn).toHaveBeenCalledWith(
+        'Verification challenge exhausted',
+        expect.objectContaining({ scene: 'register' }),
+      );
+      // 日志里不能出现剩余次数。
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(
+        'remainingAttempts',
+      );
+    });
+
+    it('未到上限时不记 warn', async () => {
+      const warn = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      (cache.get as vi.Mock).mockResolvedValue(challengeState(0));
+
+      await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(warn).not.toHaveBeenCalledWith(
+        'Verification challenge exhausted',
+        expect.anything(),
+      );
+    });
   });
 
   describe('cache key format', () => {
     it('should use correct cache key format for code', async () => {
-      // Simulate a stored hash for code '111111' with scene+email salt
-      const storedHash = createHash('sha256')
-        .update('login:user@test.com:111111')
-        .digest('hex');
-      (cache.get as vi.Mock).mockResolvedValue(storedHash);
+      const storedState = {
+        scene: 'login',
+        email: 'user@test.com',
+        codeHash: createHash('sha256')
+          .update('login:user@test.com:111111')
+          .digest('hex'),
+        attempts: 0,
+        issuedAt: new Date(),
+      };
+      (cache.get as vi.Mock).mockResolvedValue(storedState);
       (cache.del as vi.Mock).mockResolvedValue(undefined);
 
       const result = await inspectResult(
@@ -573,7 +717,10 @@ describe('VerificationCodeService runtime overrides', () => {
     expect(result.ok).toBe(true);
     expect(cache.set).toHaveBeenCalledWith(
       'vcode:login:a@b.example',
-      expect.stringMatching(/^[a-f0-9]{64}$/),
+      expect.objectContaining({
+        codeHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        attempts: 0,
+      }),
       90_000,
     );
     expect(cache.set).toHaveBeenCalledWith(

@@ -690,6 +690,65 @@ describe('Auth API (e2e)', () => {
         .send({ email, password: newPassword })
         .expect(200);
     });
+
+    it('should invalidate the code after 5 wrong attempts, even for the right code', async () => {
+      // 尝试次数上限（本次新增）。这条路径的风险最高：猜中验证码 = 直接改密码，
+      // 而它没有按邮箱的尝试计数（只有全局 per-IP 限流）。
+      const { email } = await registerUser();
+
+      await forgotPasswordRequest(email);
+      const code = await issueVerificationCode(
+        AUTH_SCENE.forgotPassword,
+        email,
+      );
+
+      // 前 4 次错码 → MISMATCH（码仍有效）。
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const res = await request(app.getHttpServer())
+          .post(AUTH_PATH.resetPassword)
+          .send({
+            email,
+            code: INVALID_VERIFICATION_CODE,
+            password: RESET_PASSWORD,
+          })
+          .expect(400);
+        const body = res.body as Record<string, unknown>;
+        expect(body['code']).toBe('AUTH_VERIFICATION_CODE_MISMATCH');
+      }
+
+      // 第 5 次错码 → 达到上限，映射成 EXPIRED（不新造错误码，否则等于
+      // 告诉攻击者「你把这码猜爆了」）。
+      const fifth = await request(app.getHttpServer())
+        .post(AUTH_PATH.resetPassword)
+        .send({
+          email,
+          code: INVALID_VERIFICATION_CODE,
+          password: RESET_PASSWORD,
+        })
+        .expect(400);
+      expect((fifth.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_VERIFICATION_CODE_EXPIRED',
+      );
+
+      // 【核心断言】猜爆之后，**正确的码**也不再通过。
+      const withRightCode = await request(app.getHttpServer())
+        .post(AUTH_PATH.resetPassword)
+        .send({ email, code, password: RESET_PASSWORD })
+        .expect(400);
+      expect((withRightCode.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_VERIFICATION_CODE_EXPIRED',
+      );
+
+      // 密码没有被改掉：旧密码仍可登录，新密码不行。
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, password: TEST_PASSWORD })
+        .expect(200);
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, password: RESET_PASSWORD })
+        .expect(401);
+    });
   });
 
   // ════════════════════════════════════════════════════════════

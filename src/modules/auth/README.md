@@ -40,6 +40,7 @@ OAuth、验证码、限流待迁。批次内公开 API 除注明的一处安全�
 | 层                       | 位置                                                                                                                                                       | 职责                                                                     |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `domain/session/`        | `cookie-policy.ts`、`refresh-token.ts`、`session.ts`、`sessions.ts`                                                                                        | cookie 投放策略、refresh 指纹与重放分类、会话聚合与仓储端口（纯逻辑）    |
+| `domain/challenge/`      | `challenge.ts`、`verification-code.ts`                                                                                                                     | 验证码挑战聚合（单次消费 / 过期 / 尝试上限）与码的生成比对（纯逻辑）     |
 | `domain/account/`        | `account.ts`、`email.ts`、`account-status.ts`、`password-hash.ts`、`credential-verdict.ts`、`identity-providers.ts`、`accounts.ts`、`transaction-scope.ts` | 账户聚合、值对象、**凭据判定（纯函数）**、本地凭据仓储端口               |
 | `application/use_cases/` | `cookie-session.ts`                                                                                                                                        | cookie 会话五步编排；输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
 | `application/services/`  | `session-tokens.ts`、`session-subject.ts`、`identity.ts`、`credential-failures.ts`                                                                         | 签发/轮换/吊销的编排；身份读写；**领域结论 → 错误码的唯一映射**          |
@@ -133,7 +134,25 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
   读同一失败桶,达到 `CAPTCHA_THRESHOLD` 后要求人机验证.
 - `services/identity/turnstile.service.ts` — Cloudflare Turnstile 校验。无凭据即关闭
   (本地与 e2e 默认);云侧不可达时放行(fail open),明确拒绝时返回 `AUTH_CAPTCHA_INVALID`。
-- `services/identity/verification-code.service.ts` — 邮箱验证码生成与校验。
+- `services/identity/verification-code.service.ts` — 邮箱验证码的**编排**：
+  读缓存 → 重建聚合 → 判定 → 按 `nextState` 写回。四条不变量（单次消费、
+  过期不可用、**尝试次数上限**、指纹绑定场景与邮箱）都在
+  `domain/challenge/challenge.ts`。
+  - **尝试次数上限是新增的行为变更**（迁移前没有失败计数）：连续猜错
+    `MAX_CHALLENGE_ATTEMPTS`(5) 次即作废该码。风险最高的是
+    `forgot-password → reset-password`——猜中码等于**直接改密码**，而该路径
+    原本只有全局 per-IP 限流、没有按邮箱的计数。
+  - **作废码而不是锁定邮箱**：锁定邮箱会让攻击者能用你的邮箱制造锁定，
+    把防爆破变成 DoS 手段；作废码没有这个反噬，用户重新获取即可。
+  - 猜爆后对外映射成 `AUTH_VERIFICATION_CODE_EXPIRED`（**不新造错误码**——
+    新码会告诉攻击者「你把这码猜爆了」，那是进度反馈）。缓存层保留条目让运维
+    能在日志里区分「猜爆」与「过期」，而两者对用户和攻击者都是同一件事。
+  - **两层各有自己的 reason 词汇**：聚合的 `ChallengeVerdict` 有
+    `mismatch`/`exhausted`/`expired`/`absent`，而凭据判定的
+    `CredentialDecision` 只有 `codeValid: boolean`。交界处投影一次
+    （全部失败 → `codeValid: false`）。理由：聚合内部需要区分，但凭据判定的
+    职责是「有效吗」不是「为什么无效」——那个词汇一旦上浮就有被记进日志或
+    指标标签的可能，是另一条泄露通道。
 - `services/identity/password-management.service.ts` — 改/设/重置密码、改邮箱、
   验证码下发;消费 `AuthIdentityService`、`EmailVerificationService`、
   `PasswordReauthService` 与 `INotificationSender`。
@@ -150,7 +169,14 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
 - `services/oauth/oauth.service.ts` — OAuth profile → 用户链接/创建。
 - `services/oauth/state.service.ts` — OAuth state 生成与 CSRF 校验。
 - `services/notification.service.ts` — 安全通知(登录提醒、身份绑定)。
-- `services/identity/email-verification.service.ts` — 邮箱验证 token 签发与消费。
+- `services/identity/email-verification.service.ts` — 邮箱验证 **token** 的签发与消费。
+  **注意：`issue()` 目前无调用方，`POST /auth/verify-email` 因此不可达**（注册流程
+  已用验证码自动验证邮箱）。是否补上「发送验证链接」的调用方还是删除端点，待产品
+  确认；**S3 未迁移它**（不为不可达代码建聚合）。详见 `docs/TODO.md`。
+  它与 `verification-code` **不是同一个聚合**：码的聚合标识是外部给定的
+  `(scene, email)`（键是身份、值是凭据），token 的标识是自己生成的随机串
+  （键是凭据、值是身份）——**聚合根没有统一标识**，合并会得到一个标识语义在
+  两种形态间摇摆的聚合。
 - `providers/` — 5 个 OAuth 提供商(`wechat_web`/`wechat_mobile`/`apple`/
   `google`/`qq`,见 `types/oauth.types.ts`);Apple/Google 为受信提供商(自动关联账号)。
 - `repositories/` — account 仓储(port + Prisma 实现);session 仓储已迁入
