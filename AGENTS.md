@@ -24,7 +24,9 @@
   - 归档：`git mv` 到 `docs/archive/<YYYY-MM>/`（当月一个文件夹，文件名不变）。
 - **生成物**：`docs/reference/generated/openapi.json` 与 `docs/reference/generated/compodoc/`
   由 `pnpm export:openapi` / `pnpm docs:compodoc` 产出，**禁止手改**。
-- **ADR**（`docs/reference/adr/NNNN-title.md`）只增不改：新决策→新文件。
+- **ADR**（`docs/reference/adr/NNNN-title.md`）只增不改：**新决策**→新文件。
+  例外：**措辞更正**（示例写错、与实作不一致、拼写/路径漂移）允许就地改，但必须在
+  同一条决策下注明「YYYY-MM-DD 修订：改了什么、为什么」，历史决策内容不得改写。
 - **硬生命周期**：`docs/TODO.md` 是唯一 TODO 台账——延后项带上下文追加，完成即删行；
   计划执行完毕整体删除 `plans/*.md`；完成项一律直接删除，不留任何标记。
 - **Front-matter**：`docs/reference/*.md` 与 `docs/howto/*.md` 必须带
@@ -147,14 +149,24 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
    - `domain/<aggregate>/` holds the aggregate root, entities, value objects and the
      repository port (`account.ts`, `email.ts`, `accounts.ts` — no `account.entity.ts`).
    - `domain/<aggregate>/events/` holds domain events with past-tense names
-     (`account_registered.ts` — no `*.event.ts`).
-   - `application/use_cases/` uses bare business names (`register_account.ts` — no
-     `register.use-case.ts`); `application/handlers/` uses `on_<event>.ts`; read models
+     (`account-registered.ts` — no `*.event.ts`).
+   - `application/use_cases/` uses bare business names (`register-account.ts` — no
+     `register.use-case.ts`); `application/handlers/` uses `on-<event>.ts`; read models
      use bare names under `application/read_models/`.
    - `adapters/http/dto/` files drop the `.dto.ts` suffix: `login.ts`, not `login.dto.ts`.
    - `infrastructure/persistence/` files name the implementation, not the repo type:
      `accounts.ts` (class `PrismaAccounts`), not `account.repository.impl.ts`.
    - Any directory exceeding 10 files is split by subdomain; no sub-directory barrels.
+10. **Word separator is always kebab-case (`-`), in every directory.**
+    - ✅ `risk-scoring.ts`, `cookie-policy.ts`, `risk-assessment-requested.ts`
+    - ❌ `risk_scoring.ts`, `cookiePolicy.ts`, `riskassessmentsrequested.ts`
+    - Applies to test files too (`risk-scoring.spec.ts`).
+    - **Not** about the class/identifier inside: `PrismaAccounts` stays, `MEDICINES_CACHE_MAINTENANCE`
+      stays (it is a DI token, not a file name). Audit **action** strings
+      (`admin.content.safety_tip.create`) are wire-format values, not file names — do not rename them.
+    - Why: the repo had 359 kebab files and 35 snake files; the snake ones were all inside the
+      DDD layers, i.e. the convention had split in two. One separator is cheaper than a rule
+      that depends on which directory you are in.
 
 ## Barrel Exports
 

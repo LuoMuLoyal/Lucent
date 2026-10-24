@@ -10,17 +10,17 @@ import type {
   MedicineSafetyTipAdminRow,
   MedicineSafetyTipEditableRow,
   MedicineSafetyTipRepositoryPort,
-} from '../ports/safety_tips.js';
-import type { MedicinesCacheMaintenancePort } from '../ports/cache_maintenance.js';
+} from '../ports/safety-tips.js';
+import type { MedicinesCacheMaintenancePort } from '../ports/cache-maintenance.js';
 import type {
   QaChunkAdminRow,
   QaChunkEditableRow,
   QaChunkRepositoryPort,
-} from '../ports/qa_chunks.js';
+} from '../ports/qa-chunks.js';
 import {
   QaChunksAdminService,
   SafetyTipsAdminService,
-} from './import_catalog.js';
+} from './import-catalog.js';
 
 /**
  * Orchestration tests for the content-admin use cases.

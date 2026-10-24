@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   MEDICINES_CACHE_MAINTENANCE,
   type MedicinesCacheMaintenancePort,
-} from '../ports/cache_maintenance.js';
+} from '../ports/cache-maintenance.js';
 
 /**
  * Application-level cache invalidation use case. The cache internals it used

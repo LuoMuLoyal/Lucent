@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LlmCommonModule } from '../../common/index.js';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
-import { MedicinesCacheAdminService } from './application/use_cases/rebuild_index.js';
+import { MedicinesCacheAdminService } from './application/use_cases/rebuild-index.js';
 
 import { MedicinesCacheService } from './infrastructure/cache/store.js';
 import { MedicinesCacheMaintenanceService } from './infrastructure/cache/maintenance.js';
@@ -10,20 +10,20 @@ import { MedicinesService } from './application/use_cases/medicines.js';
 import {
   SafetyTipsAdminService,
   QaChunksAdminService,
-} from './application/use_cases/import_catalog.js';
+} from './application/use_cases/import-catalog.js';
 
 import { MedicineRecognitionQueueService } from './adapters/queue/recognition.js';
-import { MedicineRiskCheckService } from './application/use_cases/check_risk.js';
-import { MedicineRiskCheckListener } from './adapters/events/risk_assessment_requested.js';
-import { MedicineRiskLlmGeneratorService } from './infrastructure/llm/risk_check.js';
-import { RiskDetectionService } from './domain/services/risk_scoring.js';
+import { MedicineRiskCheckService } from './application/use_cases/check-risk.js';
+import { MedicineRiskCheckListener } from './adapters/events/risk-assessment-requested.js';
+import { MedicineRiskLlmGeneratorService } from './infrastructure/llm/risk-check.js';
+import { RiskDetectionService } from './domain/services/risk-scoring.js';
 import { CnMedicinesService } from './infrastructure/persistence/cn.js';
 
 import { DrugbankMedicinesService } from './infrastructure/persistence/drugbank.js';
-import { MedicineSafetyTipsRepository } from './infrastructure/persistence/safety_tips.js';
-import { MedicineSafetyTipsStore } from './infrastructure/persistence/safety_tips.js';
-import { MedicalQaChunksRepository } from './infrastructure/persistence/qa_chunks.js';
-import { MedicineRiskRecordsStore } from './infrastructure/persistence/risk_records.js';
+import { MedicineSafetyTipsRepository } from './infrastructure/persistence/safety-tips.js';
+import { MedicineSafetyTipsStore } from './infrastructure/persistence/safety-tips.js';
+import { MedicalQaChunksRepository } from './infrastructure/persistence/qa-chunks.js';
+import { MedicineRiskRecordsStore } from './infrastructure/persistence/risk-records.js';
 import {
   MEDICINES_KNOWLEDGE_CACHE,
   CN_MEDICINES_READER,
@@ -32,11 +32,11 @@ import {
 import {
   MEDICINE_SAFETY_TIPS_SOURCE,
   MEDICINE_SAFETY_TIP_REPOSITORY,
-} from './application/ports/safety_tips.js';
-import { MEDICINE_QA_CHUNK_REPOSITORY } from './application/ports/qa_chunks.js';
-import { MEDICINE_RISK_RECORDS } from './application/ports/risk_records.js';
-import { MEDICINE_RISK_LLM_GENERATOR } from './application/ports/risk_llm.js';
-import { MEDICINES_CACHE_MAINTENANCE } from './application/ports/cache_maintenance.js';
+} from './application/ports/safety-tips.js';
+import { MEDICINE_QA_CHUNK_REPOSITORY } from './application/ports/qa-chunks.js';
+import { MEDICINE_RISK_RECORDS } from './application/ports/risk-records.js';
+import { MEDICINE_RISK_LLM_GENERATOR } from './application/ports/risk-llm.js';
+import { MEDICINES_CACHE_MAINTENANCE } from './application/ports/cache-maintenance.js';
 
 @Module({
   imports: [LlmRuntimeModule, LlmCommonModule],

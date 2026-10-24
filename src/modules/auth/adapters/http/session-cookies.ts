@@ -6,7 +6,7 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_PATH,
   type SessionCookiePolicy,
-} from '../../domain/session/cookie_policy.js';
+} from '../../domain/session/cookie-policy.js';
 
 /**
  * `Set-Cookie` 的**序列化** —— HTTP 投递层。

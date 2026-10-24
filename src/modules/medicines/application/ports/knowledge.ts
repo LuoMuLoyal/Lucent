@@ -6,8 +6,8 @@
  * implementations in `medicines.module.ts`.
  */
 
-import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine_source.js';
-import type { MedicineDetailDataLike } from '../../domain/services/ingredient_canonicalization.js';
+import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine-source.js';
+import type { MedicineDetailDataLike } from '../../domain/services/ingredient-canonicalization.js';
 
 export const MEDICINES_KNOWLEDGE_CACHE = 'MEDICINES_KNOWLEDGE_CACHE';
 export const CN_MEDICINES_READER = 'CN_MEDICINES_READER';

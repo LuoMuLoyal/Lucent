@@ -8,14 +8,14 @@ import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildMedicineRiskSystemPrompt,
   buildMedicineRiskUserPrompt,
-} from './prompts/risk_check.js';
+} from './prompts/risk-check.js';
 import {
   type MedicineRiskLlmContext,
   type MedicineRiskLlmOutput,
   type MedicineRiskLlmPort,
   type MedicineRiskLlmPromptCopy,
-} from '../../application/ports/risk_llm.js';
-import { medicineRiskLlmSchema } from './schemas/risk_check.js';
+} from '../../application/ports/risk-llm.js';
+import { medicineRiskLlmSchema } from './schemas/risk-check.js';
 
 @Injectable()
 export class MedicineRiskLlmGeneratorService

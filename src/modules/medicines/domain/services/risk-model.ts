@@ -1,6 +1,6 @@
 /**
  * Medicine risk model — pure domain vocabulary for the static and LLM risk
- * assessments. The HTTP zod schemas (`adapters/http/dto/risk_check.response`)
+ * assessments. The HTTP zod schemas (`adapters/http/dto/risk-check.response`)
  * build their wire schemas on these unions, and `MedicineRiskCheckRecord` /
  * `MedicineRiskCheckResult` are the shapes the risk-check use case returns.
  */

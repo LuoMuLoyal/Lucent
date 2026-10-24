@@ -1,19 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import { MedicineRiskCheckService } from './check_risk.js';
+import { MedicineRiskCheckService } from './check-risk.js';
 import type { MedicinesService } from './medicines.js';
 import type {
   MedicineRiskCheckRecordRow,
   MedicineReminderRow,
   MedicineRiskRecordsPort,
   UserHealthContext,
-} from '../ports/risk_records.js';
+} from '../ports/risk-records.js';
 import type {
   MedicineRiskLlmContext,
   MedicineRiskLlmPort,
-} from '../ports/risk_llm.js';
-import type { RiskDetectionService } from '../../domain/services/risk_scoring.js';
+} from '../ports/risk-llm.js';
+import type { RiskDetectionService } from '../../domain/services/risk-scoring.js';
 import type { I18nService } from 'nestjs-i18n';
 import {
   okAsync,

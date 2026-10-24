@@ -3,7 +3,7 @@
  *
  * Editorial surface over the assistant's `medical_qa_chunks` corpus for the
  * content admin console. Implemented in
- * `infrastructure/persistence/qa_chunks.ts`.
+ * `infrastructure/persistence/qa-chunks.ts`.
  */
 
 export const MEDICINE_QA_CHUNK_REPOSITORY = 'MEDICINE_QA_CHUNK_REPOSITORY';

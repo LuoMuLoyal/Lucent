@@ -9,7 +9,7 @@ import {
   type MedicineSafetyTipRepositoryPort,
   type MedicineSafetyTipsSourcePort,
   type MedicineSafetyTipRow,
-} from '../../application/ports/safety_tips.js';
+} from '../../application/ports/safety-tips.js';
 
 const SAFETY_TIP_ADMIN_SELECT = {
   id: true,

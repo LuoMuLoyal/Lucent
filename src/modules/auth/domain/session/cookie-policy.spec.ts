@@ -5,7 +5,7 @@ import {
   resolveSessionCookiePolicy,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_PATH,
-} from './cookie_policy.js';
+} from './cookie-policy.js';
 
 describe('resolveSessionCookiePolicy', () => {
   it('https 公网地址下发 Secure + SameSite=None', () => {

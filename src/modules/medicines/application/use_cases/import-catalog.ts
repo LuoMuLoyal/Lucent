@@ -6,16 +6,16 @@ import {
   type MedicineSafetyTipAdminInput,
   type MedicineSafetyTipAdminPatch,
   type MedicineSafetyTipRepositoryPort,
-} from '../ports/safety_tips.js';
+} from '../ports/safety-tips.js';
 import {
   MEDICINE_QA_CHUNK_REPOSITORY,
   type QaChunkAdminInput,
   type QaChunkAdminListQuery,
   type QaChunkAdminPatch,
   type QaChunkRepositoryPort,
-} from '../ports/qa_chunks.js';
-import { MEDICINES_CACHE_MAINTENANCE } from '../ports/cache_maintenance.js';
-import type { MedicinesCacheMaintenancePort } from '../ports/cache_maintenance.js';
+} from '../ports/qa-chunks.js';
+import { MEDICINES_CACHE_MAINTENANCE } from '../ports/cache-maintenance.js';
+import type { MedicinesCacheMaintenancePort } from '../ports/cache-maintenance.js';
 
 export type { MedicineSafetyTipAdminInput, MedicineSafetyTipAdminPatch };
 
@@ -135,5 +135,5 @@ export class QaChunksAdminService {
   }
 }
 
-/** Re-exported for the admin console surface — see `ports/qa_chunks.ts`. */
+/** Re-exported for the admin console surface — see `ports/qa-chunks.ts`. */
 export type { QaChunkAdminInput, QaChunkAdminListQuery, QaChunkAdminPatch };

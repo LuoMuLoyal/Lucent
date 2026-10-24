@@ -13,7 +13,7 @@ import {
 import {
   MEDICINE_SAFETY_TIPS_SOURCE,
   type MedicineSafetyTipsSourcePort,
-} from '../ports/safety_tips.js';
+} from '../ports/safety-tips.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import {
   DomainFailureException,

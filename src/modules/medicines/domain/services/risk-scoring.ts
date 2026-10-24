@@ -5,7 +5,7 @@ import type {
   MedicineRedFlag,
   MedicineRiskSeverity,
   MedicineRiskLevel,
-} from './risk_model.js';
+} from './risk-model.js';
 import {
   type MedicineDetailWrapper,
   getAllSourceIngredientTokens,
@@ -20,12 +20,12 @@ import {
   asNonEmptyString,
   firstNonEmpty,
   duplicateIngredientEvidence,
-} from './ingredient_canonicalization.js';
+} from './ingredient-canonicalization.js';
 import {
   type AllergyRecord,
   inferredAllergySeverity,
   isSevereAllergy,
-} from './allergy_severity.js';
+} from './allergy-severity.js';
 
 // ─── Risk Score calculation ─────────────────────────────────────────────────
 

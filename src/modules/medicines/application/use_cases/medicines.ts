@@ -25,11 +25,11 @@ import {
   MEDICINE_SAFETY_TIPS_SOURCE,
   type MedicineSafetyTipItem,
   type MedicineSafetyTipsSourcePort,
-} from '../ports/safety_tips.js';
+} from '../ports/safety-tips.js';
 import {
   DEFAULT_MEDICINE_SOURCE,
   type MedicineKnowledgeSource,
-} from '../../domain/medicine/medicine_source.js';
+} from '../../domain/medicine/medicine-source.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 
 export type MedicineRecognitionFields = {

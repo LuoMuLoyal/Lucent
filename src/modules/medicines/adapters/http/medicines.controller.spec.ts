@@ -3,8 +3,8 @@ import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller.js';
 import { MedicinesService } from '../../application/use_cases/medicines.js';
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';
-import { MedicineRiskCheckService } from '../../application/use_cases/check_risk.js';
-import { runRiskCheckSchema } from './dto/risk_check.js';
+import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
+import { runRiskCheckSchema } from './dto/risk-check.js';
 import { recognizeMedicineSchema } from './dto/recognition.js';
 import { medicineSearchQuerySchema } from './dto/source.js';
 import {

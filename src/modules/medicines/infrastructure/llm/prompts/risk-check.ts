@@ -1,7 +1,7 @@
 import type {
   MedicineRiskLlmContext,
   MedicineRiskLlmPromptCopy,
-} from '../../../application/ports/risk_llm.js';
+} from '../../../application/ports/risk-llm.js';
 
 export type { MedicineRiskLlmContext, MedicineRiskLlmPromptCopy };
 

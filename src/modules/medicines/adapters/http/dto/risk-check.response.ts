@@ -6,7 +6,7 @@ import type {
   MedicineRiskCoverageIssue,
   MedicineRiskFinding,
   MedicineRedFlag,
-} from '../../../domain/services/risk_model.js';
+} from '../../../domain/services/risk-model.js';
 
 /**
  * zod 4 Standard Schemas for the medicine risk-check responses
@@ -33,7 +33,7 @@ import {
   MEDICINE_RISK_LEVELS,
   MEDICINE_RISK_SEVERITIES,
   MEDICINE_RED_FLAG_RULES,
-} from '../../../domain/services/risk_model.js';
+} from '../../../domain/services/risk-model.js';
 
 export const medicineRiskFindingSchema = z.object({
   type: z.enum(MEDICINE_RISK_FINDING_TYPES).describe('Finding kind.'),
@@ -130,7 +130,7 @@ export type {
   MedicineRedFlagRule,
   MedicineRiskCheckResult,
   MedicineRiskCheckRecord,
-} from '../../../domain/services/risk_model.js';
+} from '../../../domain/services/risk-model.js';
 
 export type MedicineRiskFindingDto = MedicineRiskFinding;
 export type MedicineRiskCoverageIssueDto = MedicineRiskCoverageIssue;

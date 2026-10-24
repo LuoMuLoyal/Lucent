@@ -6,7 +6,7 @@ import {
   type QaChunkAdminPatch,
   type QaChunkAdminRow,
   type QaChunkRepositoryPort,
-} from '../../application/ports/qa_chunks.js';
+} from '../../application/ports/qa-chunks.js';
 
 /** Editorial fields of one QA corpus row that the admin surface may change. */
 type QaChunkRawRow = {

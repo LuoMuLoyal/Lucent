@@ -14,7 +14,7 @@ import {
   getDrugbankSynonymTokens,
   normalizeToken,
   type MedicineDetailWrapper,
-} from './ingredient_canonicalization.js';
+} from './ingredient-canonicalization.js';
 
 function wrapper(
   overrides: {

@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import type { MedicinesCacheMaintenancePort } from '../../application/ports/cache_maintenance.js';
+import type { MedicinesCacheMaintenancePort } from '../../application/ports/cache-maintenance.js';
 import { MEDICINES_CACHE_KEY_PREFIX } from './store.constants.js';
 
 /** Raw key names of one store, plus the namespace prefix they carry (if any). */

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-21",
+  "updatedAt": "2026-10-24",
   "ruleExpiry": {
     "no-magic-numbers": "2027-01-21",
     "no-restricted-syntax": "2027-01-21"
@@ -8,7 +8,7 @@
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.module.ts",
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.service.spec.ts",
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.service.ts",
-    "depcruise|ddd-application-no-infra-or-adapters|src/modules/medicines/application/use_cases/check_risk.ts",
+    "depcruise|ddd-application-no-infra-or-adapters|src/modules/medicines/application/use_cases/check-risk.ts",
     "depcruise|ddd-infrastructure-no-adapters|src/modules/medicines/infrastructure/persistence/cn.spec.ts",
     "depcruise|ddd-infrastructure-no-adapters|src/modules/medicines/infrastructure/persistence/cn.ts",
     "depcruise|ddd-infrastructure-no-adapters|src/modules/medicines/infrastructure/persistence/drugbank.ts",
@@ -130,10 +130,10 @@
     "eslint|no-magic-numbers|src/modules/medicine-reminders/services/scheduler.service.ts",
     "eslint|no-magic-numbers|src/modules/medicines/adapters/http/dto/recognition.ts",
     "eslint|no-magic-numbers|src/modules/medicines/adapters/http/dto/source.ts",
-    "eslint|no-magic-numbers|src/modules/medicines/application/use_cases/check_risk.ts",
-    "eslint|no-magic-numbers|src/modules/medicines/domain/services/risk_scoring.ts",
+    "eslint|no-magic-numbers|src/modules/medicines/application/use_cases/check-risk.ts",
+    "eslint|no-magic-numbers|src/modules/medicines/domain/services/risk-scoring.ts",
     "eslint|no-magic-numbers|src/modules/medicines/infrastructure/cache/store.constants.ts",
-    "eslint|no-magic-numbers|src/modules/medicines/infrastructure/llm/schemas/risk_check.ts",
+    "eslint|no-magic-numbers|src/modules/medicines/infrastructure/llm/schemas/risk-check.ts",
     "eslint|no-magic-numbers|src/modules/medicines/infrastructure/persistence/cn.ts",
     "eslint|no-magic-numbers|src/modules/medicines/infrastructure/persistence/drugbank.ts",
     "eslint|no-magic-numbers|src/modules/notification-preferences/dto/update.dto.ts",

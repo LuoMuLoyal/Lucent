@@ -4,7 +4,7 @@
  * Reads and writes the `medicine_risk_check_record` rows plus the user health
  * snapshot (allergies / conditions / current medicines) and medicine reminder
  * rows the risk-check use case needs. Implemented against Prisma in
- * `infrastructure/persistence/risk_records.ts`.
+ * `infrastructure/persistence/risk-records.ts`.
  */
 
 export const MEDICINE_RISK_RECORDS = 'MEDICINE_RISK_RECORDS';

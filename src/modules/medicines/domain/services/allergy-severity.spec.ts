@@ -3,7 +3,7 @@ import {
   inferredAllergySeverity,
   isSevereAllergy,
   type AllergyRecord,
-} from './allergy_severity.js';
+} from './allergy-severity.js';
 
 function allergy(overrides: Partial<AllergyRecord> = {}): AllergyRecord {
   return {

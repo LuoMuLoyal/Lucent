@@ -26,15 +26,15 @@ import { registerResponseSchema } from '../../../../common/api/response-schema.r
 import { unwrapResult } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import { AuditLogService } from '../../../audit-log/index.js';
-import { CookieSessionUseCase } from '../../application/use_cases/cookie_session.js';
+import { CookieSessionUseCase } from '../../application/use_cases/cookie-session.js';
 import {
   REFRESH_COOKIE_NAME,
   resolveSessionCookiePolicy,
-} from '../../domain/session/cookie_policy.js';
+} from '../../domain/session/cookie-policy.js';
 import { CurrentUser } from '../../decorators/current-user.decorator.js';
 import { Public } from '../../decorators/public.decorator.js';
 import type { UserPayload } from '../../types/auth-request.js';
-import { clearSessionCookies, writeSessionCookies } from './session_cookies.js';
+import { clearSessionCookies, writeSessionCookies } from './session-cookies.js';
 import {
   sessionLoginSchema,
   sessionRegisterSchema,

@@ -39,9 +39,9 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 
 | 层                       | 位置                                                                                    | 职责                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `domain/session/`        | `cookie_policy.ts`                                                                      | `SessionCookiePolicy` 值对象与属性推导(纯逻辑,零 import)           |
-| `application/use_cases/` | `cookie_session.ts`                                                                     | 五个用例的编排;输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
-| `adapters/http/`         | `cookie.controller.ts`、`dto/session.ts`、`presenters/session.ts`、`session_cookies.ts` | 请求解析、契约校验、响应投影、`Set-Cookie` 序列化                  |
+| `domain/session/`        | `cookie-policy.ts`                                                                      | `SessionCookiePolicy` 值对象与属性推导(纯逻辑,零 import)           |
+| `application/use_cases/` | `cookie-session.ts`                                                                     | 五个用例的编排;输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
+| `adapters/http/`         | `cookie.controller.ts`、`dto/session.ts`、`presenters/session.ts`、`session-cookies.ts` | 请求解析、契约校验、响应投影、`Set-Cookie` 序列化                  |
 | `infrastructure/`        | (本切片无)                                                                              | cookie 是 HTTP 投递关注点,不是持久化或外部系统                     |
 
 约束:`application/` 不得 import `adapters/`——`pnpm arch:check` 的

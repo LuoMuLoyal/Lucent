@@ -7,7 +7,7 @@ import {
   type MedicineReminderRow,
   type MedicineRiskRecordsPort,
   type UserHealthContext,
-} from '../../application/ports/risk_records.js';
+} from '../../application/ports/risk-records.js';
 
 /** Prisma's `check_type` column is a free string; the port narrows it. */
 function asCheckType(value: string): MedicineRiskCheckType {
@@ -38,7 +38,7 @@ function toRecordRow(row: PrismaRiskCheckRecord): MedicineRiskCheckRecordRow {
 
 /**
  * Prisma-backed implementation of the medicine risk-records port
- * (`application/ports/risk_records.ts`): risk-check record CRUD plus the user
+ * (`application/ports/risk-records.ts`): risk-check record CRUD plus the user
  * health snapshot and reminder rows the risk-check use case consumes.
  */
 @Injectable()

@@ -37,7 +37,7 @@ import { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
 import { GoogleOAuthProvider } from './providers/google-oauth.provider.js';
 import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
-import { CookieSessionUseCase } from './application/use_cases/cookie_session.js';
+import { CookieSessionUseCase } from './application/use_cases/cookie-session.js';
 import { AuthIdentityService } from './services/identity/identity.service.js';
 import { EmailVerificationService } from './services/identity/email-verification.service.js';
 import { TurnstileService } from './services/identity/turnstile.service.js';

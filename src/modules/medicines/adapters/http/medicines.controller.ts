@@ -45,24 +45,24 @@ import { medicineSequenceDataSchema } from './dto/sequence.js';
 import {
   medicineSafetyTipResponseSchema,
   medicineSafetyTipsResponseSchema,
-} from './dto/safety_tip.js';
+} from './dto/safety-tip.js';
 
 import { recognizeMedicineSchema } from './dto/recognition.js';
 import type { RecognizeMedicineDto } from './dto/recognition.js';
 import { medicineRecognitionAsyncResponseSchema } from './dto/recognition.response.js';
 import { medicineRecognitionResponseSchema } from './dto/recognition.response.js';
-import { runRiskCheckSchema } from './dto/risk_check.js';
-import type { RunRiskCheckDto } from './dto/risk_check.js';
+import { runRiskCheckSchema } from './dto/risk-check.js';
+import type { RunRiskCheckDto } from './dto/risk-check.js';
 import {
   medicineRiskCheckRecordResponseSchema,
   medicineRiskCheckRecordsResponseSchema,
-} from './dto/risk_check.response.js';
+} from './dto/risk-check.response.js';
 import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
 import { MEDICINES_BYPASS_CACHE_HEADER } from '../../application/ports/cache.js';
 import { MedicinesService } from '../../application/use_cases/medicines.js';
 
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';
-import { MedicineRiskCheckService } from '../../application/use_cases/check_risk.js';
+import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
 import {
   createDomainFailure,
   DomainFailureException,

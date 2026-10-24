@@ -4,7 +4,7 @@ import { LlmNotConfiguredException } from '../../../../common/llm/safety/llm-not
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { MedicinesService } from './medicines.js';
-import { RiskDetectionService } from '../../domain/services/risk_scoring.js';
+import { RiskDetectionService } from '../../domain/services/risk-scoring.js';
 import { toInputJsonValue } from '../../../../common/index.js';
 import {
   createDomainFailure,
@@ -20,27 +20,27 @@ import {
   type MedicineRiskRecordsPort,
   type MedicineRiskCheckRecordRow,
   type MedicineRiskCheckType,
-} from '../ports/risk_records.js';
+} from '../ports/risk-records.js';
 import {
   MEDICINE_RISK_LLM_GENERATOR,
   type MedicineRiskLlmContext,
   type MedicineRiskLlmOutput,
   type MedicineRiskLlmPort,
-} from '../ports/risk_llm.js';
-import type { RiskCheckCandidateDto } from '../../adapters/http/dto/risk_check.js';
+} from '../ports/risk-llm.js';
+import type { RiskCheckCandidateDto } from '../../adapters/http/dto/risk-check.js';
 import type {
   MedicineRiskCheckResult,
   MedicineRiskCheckRecord,
   MedicineRiskLevel,
-} from '../../domain/services/risk_model.js';
+} from '../../domain/services/risk-model.js';
 import {
   asNonEmptyString,
   getDetailJson,
   type MedicineDetailDataLike,
   type MedicineDetailWrapper,
-} from '../../domain/services/ingredient_canonicalization.js';
-import type { AllergyRecord } from '../../domain/services/allergy_severity.js';
-import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine_source.js';
+} from '../../domain/services/ingredient-canonicalization.js';
+import type { AllergyRecord } from '../../domain/services/allergy-severity.js';
+import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine-source.js';
 import { formatDateOnly } from '../../../../common/index.js';
 
 /** Narrows a box-item `source` string to the knowledge sources this module has. */

@@ -3,7 +3,7 @@ import {
   buildMedicineRiskSystemPrompt,
   buildMedicineRiskUserPrompt,
   type MedicineRiskLlmContext,
-} from './risk_check.js';
+} from './risk-check.js';
 
 const ctx: MedicineRiskLlmContext = {
   medicines: [

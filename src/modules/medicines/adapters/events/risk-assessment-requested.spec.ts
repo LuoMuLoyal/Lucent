@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MedicineRiskCheckListener } from './risk_assessment_requested.js';
-import { type MedicineRiskCheckService } from '../../application/use_cases/check_risk.js';
+import { MedicineRiskCheckListener } from './risk-assessment-requested.js';
+import { type MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
 import {
   okAsync,
   errAsync,

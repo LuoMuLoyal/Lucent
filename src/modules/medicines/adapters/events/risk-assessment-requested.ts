@@ -6,7 +6,7 @@ import {
   type HealthContextChangedPayload,
   type ReminderChangedPayload,
 } from '../../../../common/events/domain-events.js';
-import { MedicineRiskCheckService } from '../../application/use_cases/check_risk.js';
+import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
 
 /**
  * Subscribes to domain events and triggers risk check updates.

@@ -5,7 +5,7 @@ import {
   toEmailVerified,
 } from '../../../../../common/index.js';
 import type { SessionResponseDto, SessionUserDto } from '../dto/session.js';
-import type { SessionCookieTokens } from '../session_cookies.js';
+import type { SessionCookieTokens } from '../session-cookies.js';
 
 /**
  * 领域/持久化形状 → HTTP 响应形状。

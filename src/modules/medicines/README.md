@@ -22,19 +22,19 @@ owner: backend
 
 ### 层内布局
 
-- `domain/` — `medicine/medicine_source.ts`（来源枚举与默认源）、
-  `services/{risk_model,risk_scoring,allergy_severity,ingredient_canonicalization}.ts`。
+- `domain/` — `medicine/medicine-source.ts`（来源枚举与默认源）、
+  `services/{risk-model,risk-scoring,allergy-severity,ingredient-canonicalization}.ts`。
   纯领域，不 import 上层。
 - `application/ports/` — 每个外部依赖一个端口（`knowledge` / `cache` /
-  `cache_maintenance` / `risk_records` / `risk_llm` / `safety_tips` / `qa_chunks`），
+  `cache-maintenance` / `risk-records` / `risk-llm` / `safety-tips` / `qa-chunks`），
   同时导出 `const XXX = 'XXX'` 的 DI token。application 层不 import
   `infrastructure/`、`adapters/` 或 Prisma。
-- `application/use_cases/` — `medicines`（搜索/详情/识别/贴士）、`check_risk`、
-  `import_catalog`、`rebuild_index`（薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
+- `application/use_cases/` — `medicines`（搜索/详情/识别/贴士）、`check-risk`、
+  `import-catalog`、`rebuild-index`（薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
 - `adapters/http/` — controller + zod DTO，`presenters/medicine.ts` 承载
   `utils/data-format.ts` 迁来的展示格式化。
-- `infrastructure/` — `persistence/`（cn、drugbank、risk_records、safety_tips、
-  qa_chunks）、`cache/`（store、maintenance）、`llm/`（risk_check + prompts + schemas）。
+- `infrastructure/` — `persistence/`（cn、drugbank、risk-records、safety-tips、
+  qa-chunks）、`cache/`（store、maintenance）、`llm/`（risk-check + prompts + schemas）。
 - 端口在 `medicines.module.ts` 用 `{ provide: TOKEN, useExisting: Impl }` 绑定；
   新增实现只改 module 一处。
 

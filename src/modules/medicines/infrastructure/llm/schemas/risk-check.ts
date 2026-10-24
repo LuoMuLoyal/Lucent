@@ -31,4 +31,4 @@ export const medicineRiskLlmSchema = z.object({
 });
 
 /** Re-exported so the type keeps flowing from the application port contract. */
-export type { MedicineRiskLlmOutput } from '../../../application/ports/risk_llm.js';
+export type { MedicineRiskLlmOutput } from '../../../application/ports/risk-llm.js';
