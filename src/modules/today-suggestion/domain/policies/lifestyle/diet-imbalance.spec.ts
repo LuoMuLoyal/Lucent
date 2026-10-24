@@ -1,9 +1,9 @@
-import { DietImbalanceRuleService } from './diet-imbalance.service.js';
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import { DietImbalanceRuleService } from './diet-imbalance.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 import {
   TriggerType,
   SuggestionType,
-} from '../../../types/suggestion.types.js';
+} from '../../suggestion/suggestion.types.js';
 import { buildContext } from '../test-helpers.js';
 
 describe('DietImbalanceRuleService', () => {

@@ -1,5 +1,5 @@
-import { DeterioratingTrendRuleService } from './deteriorating-trend.service.js';
-import { SuggestionType } from '../../../types/suggestion.types.js';
+import { DeterioratingTrendRuleService } from './deteriorating-trend.js';
+import { SuggestionType } from '../../suggestion/suggestion.types.js';
 import { buildContext, buildSignal } from '../test-helpers.js';
 
 /** 一条症状趋势条目（payload 码来自客户端 `payload.symptom` / `payload.severity`）。 */

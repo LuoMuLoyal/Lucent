@@ -21,16 +21,16 @@
  * code is missing there fails `recordBatch` with `VALIDATION_FAILED`.
  */
 
-import type { SuggestionRule } from '../../types/rule.types.js';
+import type { SuggestionRule } from './rule-definition.js';
 
-import { CoverageRuleService } from './medication/coverage.service.js';
-import { MissedDoseRuleService } from './medication/missed-dose.service.js';
-import { DietImbalanceRuleService } from './lifestyle/diet-imbalance.service.js';
-import { DeterioratingTrendRuleService } from './lifestyle/deteriorating-trend.service.js';
-import { WaterShortfallRuleService } from './lifestyle/water-shortfall.service.js';
-import { MoodSleepRuleService } from './sleep/mood-sleep.service.js';
-import { SleepShortfallRuleService } from './sleep/sleep-shortfall.service.js';
-import { EventCheckInTrendRuleService } from './health/event-check-in-trend.service.js';
+import { CoverageRuleService } from '../policies/medication/coverage.js';
+import { MissedDoseRuleService } from '../policies/medication/missed-dose.js';
+import { DietImbalanceRuleService } from '../policies/lifestyle/diet-imbalance.js';
+import { DeterioratingTrendRuleService } from '../policies/lifestyle/deteriorating-trend.js';
+import { WaterShortfallRuleService } from '../policies/lifestyle/water-shortfall.js';
+import { MoodSleepRuleService } from '../policies/sleep/mood-sleep.js';
+import { SleepShortfallRuleService } from '../policies/sleep/sleep-shortfall.js';
+import { EventCheckInTrendRuleService } from '../policies/health/event-check-in-trend.js';
 
 /**
  * Every rule the engine evaluates, in registration order.

@@ -1,18 +1,21 @@
 import { randomUUID } from 'node:crypto';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
+import type {
+  SuggestionRule,
+  RuleContext,
+} from '../../rule/rule-definition.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
+} from '../../suggestion/suggestion.types.js';
 import {
   COVERAGE_BASE_SCORE,
   COVERAGE_EMPTY_TODAY_SCORE_OFFSET,
-} from '../../../domain/rule/thresholds.js';
+} from '../../rule/thresholds.js';
 
 /**
  * Rule: coverage_explanation

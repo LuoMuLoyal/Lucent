@@ -1,9 +1,9 @@
-import { EventCheckInTrendRuleService } from './event-check-in-trend.service.js';
+import { EventCheckInTrendRuleService } from './event-check-in-trend.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
+} from '../../suggestion/suggestion.types.js';
 import { buildContext, buildSignal } from '../test-helpers.js';
 
 function buildPayload(

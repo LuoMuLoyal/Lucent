@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
+import type {
+  SuggestionRule,
+  RuleContext,
+} from '../../rule/rule-definition.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
-import { DATE_ONLY_LENGTH } from '../../../domain/rule/thresholds.js';
+} from '../../suggestion/suggestion.types.js';
+import { DATE_ONLY_LENGTH } from '../../rule/thresholds.js';
 
 interface EventCheckIn {
   date: string;

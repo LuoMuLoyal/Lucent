@@ -1,22 +1,25 @@
 import { randomUUID } from 'node:crypto';
-import type { SignalObservedMetric } from '../../../domain/signal/observed-metric.js';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
+import type { SignalObservedMetric } from '../../signal/observed-metric.js';
+import type {
+  SuggestionRule,
+  RuleContext,
+} from '../../rule/rule-definition.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
-import { BaselineDimension } from '../../../types/baseline.types.js';
+} from '../../suggestion/suggestion.types.js';
+import { BaselineDimension } from '../../baseline/baseline.js';
 import {
   WATER_SHORTFALL_THRESHOLD,
   WATER_SHORTFALL_BASE_SCORE,
   WATER_SHORTFALL_MIN_DAYS,
   PERCENT_SCALE,
-} from '../../../domain/rule/thresholds.js';
+} from '../../rule/thresholds.js';
 
 /**
  * Rule: water_behind_target

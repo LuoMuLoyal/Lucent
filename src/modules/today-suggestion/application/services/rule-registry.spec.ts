@@ -1,5 +1,5 @@
-import { RegistryService } from './registry.service.js';
-import { MissedDoseRuleService } from './medication/missed-dose.service.js';
+import { RegistryService } from './rule-registry.js';
+import { MissedDoseRuleService } from '../../domain/policies/medication/missed-dose.js';
 
 describe('RegistryService', () => {
   it('should register and retrieve rules', () => {

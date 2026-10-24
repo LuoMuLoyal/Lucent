@@ -1,4 +1,4 @@
-import { SleepShortfallRuleService } from './sleep-shortfall.service.js';
+import { SleepShortfallRuleService } from './sleep-shortfall.js';
 import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('SleepShortfallRuleService', () => {

@@ -35,14 +35,14 @@ import { FeedbackService } from './services/feedback/recorder.service.js';
 import { BaselineService } from './services/lifecycle/baseline.service.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
 import { EscalationService } from './services/notification/escalation.service.js';
-import { RegistryService } from './services/rules/registry.service.js';
-import { RuleVersionRegistry } from './services/rules/rule-version-registry.service.js';
+import { RegistryService } from './application/services/rule-registry.js';
+import { RuleVersionRegistry } from './application/services/rule-version-registry.js';
 import { MaterializationStore } from './services/materialization/store.service.js';
 import { RecomputeQueueService } from './services/recompute/queue.service.js';
 import { RecomputeEventTriggerService } from './services/recompute/event-trigger.service.js';
 import { SuggestionRecomputeWorkerService } from './services/recompute/worker.service.js';
 import { SuggestionService } from './services/suggestion.service.js';
-import { buildSuggestionRules } from './services/rules/rule-catalog.js';
+import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
 
 /**
  * Today Suggestion module — the backend suggestion engine.

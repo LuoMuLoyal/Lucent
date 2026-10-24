@@ -1,22 +1,25 @@
 import { randomUUID } from 'node:crypto';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
+import type {
+  SuggestionRule,
+  RuleContext,
+} from '../../rule/rule-definition.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
-import { BaselineDimension } from '../../../types/baseline.types.js';
-import { symptomSeverityScore } from '../../../domain/rule/symptom-severity.js';
+} from '../../suggestion/suggestion.types.js';
+import { BaselineDimension } from '../../baseline/baseline.js';
+import { symptomSeverityScore } from '../../rule/symptom-severity.js';
 import {
   TREND_MIN_CONSECUTIVE_DAYS,
   TREND_MIN_RECORDS,
   DETERIORATING_TREND_BASE_SCORE,
   DETERIORATING_TREND_HIGH_CONFIDENCE_DAYS,
-} from '../../../domain/rule/thresholds.js';
+} from '../../rule/thresholds.js';
 
 interface SymptomEntry {
   date: string;

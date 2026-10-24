@@ -1,9 +1,9 @@
-import { TriggerType } from '../../types/suggestion.types.js';
-import type { SuggestionSignal } from '../../types/signal.types.js';
+import { TriggerType } from '../suggestion/suggestion.types.js';
+import type { SuggestionSignal } from '../signal/signal.js';
 
-import type { RuleContext } from '../../types/rule.types.js';
+import type { RuleContext } from '../rule/rule-definition.js';
 
-import type { BaselineDimension } from '../../types/baseline.types.js';
+import type { BaselineDimension } from '../baseline/baseline.js';
 
 export function buildContext(
   overrides: Partial<RuleContext> = {},

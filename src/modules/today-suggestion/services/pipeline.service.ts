@@ -5,7 +5,7 @@ import { MedicationCollectorService } from './collectors/medication.service.js';
 import { RecordCollectorService } from './collectors/record.service.js';
 import { ProfileCollectorService } from './collectors/profile.service.js';
 import { HealthEventCollectorService } from './collectors/health-event.service.js';
-import { RegistryService } from './rules/registry.service.js';
+import { RegistryService } from '../application/services/rule-registry.js';
 import { SuppressionService } from './arbitration/suppression.service.js';
 import {
   ArbitrationService,

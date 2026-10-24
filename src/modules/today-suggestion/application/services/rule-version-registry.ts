@@ -1,5 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { SuggestionRule } from '../../types/rule.types.js';
+import type { SuggestionRule } from '../../domain/rule/rule-definition.js';
+
+/** Bounds of a distribution ratio: 0 = all old version, 1 = all new. */
+const MIN_DISTRIBUTION = 0;
+const MAX_DISTRIBUTION = 1;
+
+/** Percent scale for rendering a 0–1 ratio in the debug line. */
+const PERCENT_SCALE = 100;
+
+/**
+ * FNV-1a hash parameters (32-bit).
+ *
+ * The offset basis and prime are part of the algorithm's definition, not
+ * tunable values — renaming them keeps the rule about magic numbers happy
+ * without implying they can be adjusted.
+ */
+const FNV_OFFSET_BASIS = 0x811c9dc5;
+const FNV_PRIME = 0x01000193;
+/** 2^32, used to normalise the unsigned hash into [0, 1). */
+const UINT32_RANGE = 0x100000000;
 
 /**
  * Manages A/B rule version selection.
@@ -50,10 +69,13 @@ export class RuleVersionRegistry {
    * ratio=0.1 means 10% get the new version.
    */
   setDistribution(ruleId: string, ratio: number): void {
-    const clamped = Math.max(0, Math.min(1, ratio));
+    const clamped = Math.max(
+      MIN_DISTRIBUTION,
+      Math.min(MAX_DISTRIBUTION, ratio),
+    );
     this.distribution.set(ruleId, clamped);
     this.logger.debug(
-      `Set distribution for ${ruleId}: ${String(clamped * 100)}% new version`,
+      `Set distribution for ${ruleId}: ${String(clamped * PERCENT_SCALE)}% new version`,
     );
   }
 
@@ -147,12 +169,12 @@ export class RuleVersionRegistry {
    * Uses FNV-1a for simplicity and speed.
    */
   private hashUserId(input: string): number {
-    let hash = 0x811c9dc5;
+    let hash = FNV_OFFSET_BASIS;
     for (let i = 0; i < input.length; i++) {
       hash ^= input.codePointAt(i) ?? 0;
-      hash = Math.imul(hash, 0x01000193);
+      hash = Math.imul(hash, FNV_PRIME);
     }
     // Convert to unsigned and normalize to [0, 1)
-    return (hash >>> 0) / 0x100000000;
+    return (hash >>> 0) / UINT32_RANGE;
   }
 }

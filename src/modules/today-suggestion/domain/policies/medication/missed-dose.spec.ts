@@ -1,9 +1,9 @@
-import { MissedDoseRuleService } from './missed-dose.service.js';
+import { MissedDoseRuleService } from './missed-dose.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
+} from '../../suggestion/suggestion.types.js';
 import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('MissedDoseRuleService', () => {

@@ -1,22 +1,25 @@
 import { randomUUID } from 'node:crypto';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
+import type {
+  SuggestionRule,
+  RuleContext,
+} from '../../rule/rule-definition.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
-import { BaselineDimension } from '../../../types/baseline.types.js';
+} from '../../suggestion/suggestion.types.js';
+import { BaselineDimension } from '../../baseline/baseline.js';
 import {
   MOOD_SLEEP_BASE_SCORE,
   MOOD_SLEEP_MIN_DAYS,
   MOOD_LOW_THRESHOLD,
   SLEEP_SHORTFALL_MINUTES,
   MINUTES_PER_HOUR,
-} from '../../../domain/rule/thresholds.js';
+} from '../../rule/thresholds.js';
 
 interface DailyMood {
   date: string;

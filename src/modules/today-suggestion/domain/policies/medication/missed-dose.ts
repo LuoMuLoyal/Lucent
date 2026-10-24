@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
+import type {
+  SuggestionRule,
+  RuleContext,
+} from '../../rule/rule-definition.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types.js';
-import type { RuleDiagnostic } from '../../../domain/suggestion/suggestion-candidate.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
+import type { RuleDiagnostic } from '../../suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
+} from '../../suggestion/suggestion.types.js';
 import {
   MISSED_DOSE_GRACE_MINUTES,
   MISSED_DOSE_BASE_SCORE,
@@ -17,7 +20,7 @@ import {
   MAX_HOUR_OF_DAY,
   MAX_MINUTE_OF_HOUR,
   MINUTES_PER_HOUR,
-} from '../../../domain/rule/thresholds.js';
+} from '../../rule/thresholds.js';
 
 /**
  * Rule: missed_dose_pending

@@ -1,19 +1,22 @@
 import { randomUUID } from 'node:crypto';
-import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
+import type {
+  SuggestionRule,
+  RuleContext,
+} from '../../rule/rule-definition.js';
 
-import type { SuggestionSignal } from '../../../types/signal.types.js';
+import type { SuggestionSignal } from '../../signal/signal.js';
 
-import type { SuggestionCandidate } from '../../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
+} from '../../suggestion/suggestion.types.js';
 import {
   DIET_IMBALANCE_BASE_SCORE,
   DIET_IMBALANCE_MIN_DAYS,
-} from '../../../domain/rule/thresholds.js';
-import type { DietFacetKind } from '../../../domain/signal/diet-facet.js';
+} from '../../rule/thresholds.js';
+import type { DietFacetKind } from '../../signal/diet-facet.js';
 
 interface DailyDietFacets {
   date: string;

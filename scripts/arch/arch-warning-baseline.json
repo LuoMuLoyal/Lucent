@@ -9,7 +9,6 @@
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.service.spec.ts",
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.service.ts",
     "depcruise|modules-cross-boundary-must-use-barrel|src/modules/legal-documents/services/admin.service.ts",
-    "depcruise|modules-cross-boundary-must-use-barrel|src/modules/product-events/services/events.service.spec.ts",
     "depcruise|modules-no-direct-redis-clients|src/modules/medicines/infrastructure/cache/maintenance.spec.ts",
     "depcruise|no-circular|src/common/result/index.ts",
     "depcruise|no-circular|src/modules/assistant/agent/runtime/graph.ts",
@@ -175,7 +174,6 @@
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/lifecycle/manager.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/materialization/store.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/recompute/worker.service.ts",
-    "eslint|no-magic-numbers|src/modules/today-suggestion/services/rules/rule-version-registry.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/suggestion.service.ts",
     "eslint|no-magic-numbers|src/modules/user-health-context/dto/create-allergy.dto.ts",
     "eslint|no-magic-numbers|src/modules/user-health-context/dto/create-condition.dto.ts",
@@ -194,7 +192,6 @@
     "eslint|no-restricted-syntax|src/modules/data-export/services/processor.service.ts",
     "eslint|no-restricted-syntax|src/modules/today-analysis/services/pipeline/trigger-evaluator.service.ts",
     "eslint|no-restricted-syntax|src/modules/today-suggestion/services/recompute/worker.service.ts",
-    "eslint|no-restricted-syntax|src/modules/today-suggestion/services/rules/registry.service.ts",
     "eslint|no-restricted-syntax|src/prisma/prisma.service.ts"
   ]
 }

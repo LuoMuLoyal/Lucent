@@ -1,8 +1,8 @@
-import { MoodSleepRuleService } from './mood-sleep.service.js';
+import { MoodSleepRuleService } from './mood-sleep.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../../types/suggestion.types.js';
+} from '../../suggestion/suggestion.types.js';
 import { buildContext, buildSignal } from '../test-helpers.js';
 
 describe('MoodSleepRuleService', () => {
