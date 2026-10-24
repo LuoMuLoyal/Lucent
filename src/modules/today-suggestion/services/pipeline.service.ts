@@ -111,6 +111,15 @@ export class SuggestionPipelineService {
       try {
         const candidate = rule.match(allSignals, context);
         if (candidate != null) {
+          // Rules report what they could not express as structured facts
+          // (`RuleDiagnostic`); deciding whether that deserves a log line is the
+          // caller's job, which is what keeps the rule layer framework-free.
+          for (const diagnostic of candidate.diagnostics ?? []) {
+            this.logger.warn(
+              `Rule ${rule.ruleId} dropped route param "${diagnostic.param}" ` +
+                `(received ${diagnostic.receivedType}); the action route is incomplete`,
+            );
+          }
           candidates.push(candidate);
         }
       } catch (error) {

@@ -30,6 +30,24 @@ export interface CopyGenerationMetadata {
 }
 
 /**
+ * A fact a rule could not express inside the candidate, reported so the
+ * **caller** can decide whether and how to log it.
+ *
+ * The domain layer returns facts, never log lines and never a logger: a rule
+ * that took a `logger` would depend on a framework, and one that returned a
+ * preformatted message would be deciding presentation for its caller. This is
+ * the escape hatch that keeps the rule layer framework-free while leaving
+ * "something upstream looks wrong" observable.
+ */
+export type RuleDiagnostic = {
+  readonly kind: 'discardedRouteParam';
+  /** The route query parameter that was omitted from the action route. */
+  readonly param: string;
+  /** `typeof` the rejected value, so the caller can tell what actually arrived. */
+  readonly receivedType: string;
+};
+
+/**
  * A candidate suggestion produced by a rule.
  * The arbitration layer filters, scores, and truncates candidates
  * into the final response.
@@ -53,4 +71,11 @@ export interface SuggestionCandidate {
   subtype?: string;
   /** Metadata for AI copy generation. Rules should provide this. */
   copyGeneration: CopyGenerationMetadata;
+  /**
+   * Non-fatal problems the rule hit while building this candidate.
+   *
+   * Purely for the caller's observability — nothing here affects the card the
+   * user sees. Omitted when the rule had nothing to report.
+   */
+  diagnostics?: readonly RuleDiagnostic[];
 }

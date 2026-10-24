@@ -1,10 +1,10 @@
-import { Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
 import type { SuggestionSignal } from '../../../types/signal.types.js';
 
 import type { SuggestionCandidate } from '../../../types/candidate.types.js';
+import type { RuleDiagnostic } from '../../../domain/suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   TriggerType,
@@ -94,6 +94,7 @@ export class MissedDoseRuleService implements SuggestionRule {
     const timeLabel = `${String(scheduledHour).padStart(2, '0')}:${String(scheduledMinute).padStart(2, '0')}`;
     const hoursOverdue = Math.floor(overdueMinutes / MINUTES_PER_HOUR);
     const minsRemainder = overdueMinutes % MINUTES_PER_HOUR;
+    const skipRoute = buildSkipRoute(signal);
 
     return {
       candidateId: randomUUID(),
@@ -124,7 +125,7 @@ export class MissedDoseRuleService implements SuggestionRule {
         {
           actionId: 'skip_dose',
           label: 'skip_dose',
-          route: buildSkipRoute(signal),
+          route: skipRoute.route,
           authRequired: true,
         },
       ],
@@ -144,37 +145,48 @@ export class MissedDoseRuleService implements SuggestionRule {
           confirmationStatus: 'unconfirmed',
         },
       },
+      ...(skipRoute.diagnostics.length > 0
+        ? { diagnostics: skipRoute.diagnostics }
+        : {}),
     };
   }
 }
 
-const logger = new Logger(MissedDoseRuleService.name);
-
-function buildSkipRoute(signal: SuggestionSignal): string {
+/**
+ * Builds the `skip_dose` route from whatever the signal actually carries.
+ *
+ * Returns the route **and** a list of parameters that had to be dropped: a
+ * malformed `scheduledFor` / `scheduledTime` means the skip action would land
+ * on the wrong dose, so the caller needs to know it happened. The rule reports
+ * the fact rather than logging it — see `RuleDiagnostic`.
+ */
+function buildSkipRoute(signal: SuggestionSignal): {
+  route: string;
+  diagnostics: RuleDiagnostic[];
+} {
   const params = new URLSearchParams();
   params.set('action', 'skip');
 
-  appendStringParam(params, 'currentMedicineId', signal.payload['medicineId']);
-  appendStringParam(params, 'reminderId', signal.payload['reminderId']);
-  appendStringParam(params, 'scheduledFor', signal.payload['scheduledFor']);
-  appendStringParam(params, 'scheduledTime', signal.payload['scheduledTime']);
+  const diagnostics: RuleDiagnostic[] = [];
+  const append = (key: string, value: unknown): void => {
+    if (typeof value === 'string' && value.length > 0) {
+      params.set(key, value);
+      return;
+    }
+    // Absent is normal (the field is optional); present-but-wrong is a bug.
+    if (value !== undefined && value !== null) {
+      diagnostics.push({
+        kind: 'discardedRouteParam',
+        param: key,
+        receivedType: typeof value,
+      });
+    }
+  };
 
-  return `/medicine?${params.toString()}`;
-}
+  append('currentMedicineId', signal.payload['medicineId']);
+  append('reminderId', signal.payload['reminderId']);
+  append('scheduledFor', signal.payload['scheduledFor']);
+  append('scheduledTime', signal.payload['scheduledTime']);
 
-function appendStringParam(
-  params: URLSearchParams,
-  key: string,
-  value: unknown,
-): void {
-  if (typeof value === 'string' && value.length > 0) {
-    params.set(key, value);
-    return;
-  }
-
-  if (value !== undefined && value !== null) {
-    logger.warn(
-      `Omitting "${key}" from skip_dose route: expected a non-empty string, received ${typeof value}`,
-    );
-  }
+  return { route: `/medicine?${params.toString()}`, diagnostics };
 }

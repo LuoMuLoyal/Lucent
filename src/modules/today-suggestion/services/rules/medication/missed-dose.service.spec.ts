@@ -107,6 +107,78 @@ describe('MissedDoseRuleService', () => {
     expect(routeUrl.searchParams.get('scheduledTime')).toBeNull();
   });
 
+  it('reports a malformed route param as a diagnostic instead of logging it', () => {
+    // The rule cannot log (domain layer is framework-free), so a bad payload
+    // must surface as a structured fact the caller can act on. A silently
+    // dropped `scheduledFor` would make the skip action target the wrong dose.
+    const signals = [
+      buildSignal({
+        kind: 'overdueUnconfirmed',
+        payload: {
+          medicineId: 'med-1',
+          medicineName: 'Test Medicine',
+          scheduledFor: 20260709,
+          scheduledHour: 8,
+          scheduledMinute: 0,
+          overdueMinutes: 60,
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+    expect(candidate).not.toBeNull();
+    expect(candidate!.diagnostics).toEqual([
+      {
+        kind: 'discardedRouteParam',
+        param: 'scheduledFor',
+        receivedType: 'number',
+      },
+    ]);
+  });
+
+  it('omits diagnostics entirely when every param is well formed', () => {
+    const signals = [
+      buildSignal({
+        kind: 'overdueUnconfirmed',
+        payload: {
+          medicineId: 'med-1',
+          medicineName: 'Test Medicine',
+          reminderId: 'rem-1',
+          scheduledFor: '2026-07-09',
+          scheduledTime: '08:00',
+          scheduledHour: 8,
+          scheduledMinute: 0,
+          overdueMinutes: 60,
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+    expect(candidate).not.toBeNull();
+    expect(candidate!.diagnostics).toBeUndefined();
+  });
+
+  it('treats an absent optional param as normal, not as a diagnostic', () => {
+    // Absent is a legitimate state (the field is optional); only a
+    // present-but-wrong value is a bug worth reporting.
+    const signals = [
+      buildSignal({
+        kind: 'overdueUnconfirmed',
+        payload: {
+          medicineId: 'med-1',
+          medicineName: 'Test Medicine',
+          scheduledFor: '2026-07-09',
+          scheduledHour: 8,
+          scheduledMinute: 0,
+          overdueMinutes: 60,
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+    expect(candidate!.diagnostics).toBeUndefined();
+  });
+
   it('should not include currentMedicineId when payload lacks medicineId', () => {
     const signals = [
       buildSignal({
