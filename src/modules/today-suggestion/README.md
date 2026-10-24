@@ -48,6 +48,13 @@ ADR-0024 计划中的聚合边界(迁移到四层骨架时生效,当前仍是 ru
 
 ## 内部结构
 
+> **迁移进行中**：类型词汇正从 `types/` 下沉到 `domain/`（ADR-0024），
+> 之后规则才能移入 `domain/policies/`（规则目前 import 的 `types/` 与
+> `constants/` 都在 domain 树外）。`types/*.ts` 里可能残留**临时 re-export
+> shim**——它们是转发层、真源在 `domain/`，迁移完成后删除，见文件头注释。
+
+- `domain/suggestion/suggestion.types.ts` — 建议卡的领域词汇（类型/触发方式/
+  生命周期/置信度），规则与策略据此判定。
 - `services/suggestion.service.ts` — 编排入口(含 recompute)。
 - `services/pipeline.service.ts` / `presentation.service.ts` — 管线编排与 DTO 呈现。
 - `services/collectors/` — 4 个信号采集器(用药/日报/档案/健康事件)。日报采集器
