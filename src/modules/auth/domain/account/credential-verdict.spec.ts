@@ -26,7 +26,7 @@ function facts(overrides: Partial<CredentialFacts> = {}): CredentialFacts {
     storedPassword: 'set',
     presented: 'password',
     passwordMatches: null,
-    codeOutcome: null,
+    codeValid: null,
     dependencyFailure: null,
     ...overrides,
   };
@@ -73,12 +73,8 @@ const REJECTION_CASES = [
     facts: facts({ passwordMatches: false }),
   },
   {
-    reason: 'code-mismatch',
-    facts: facts({ presented: 'code', codeOutcome: 'mismatch' }),
-  },
-  {
-    reason: 'code-expired',
-    facts: facts({ presented: 'code', codeOutcome: 'expired' }),
+    reason: 'credential-code-mismatch',
+    facts: facts({ presented: 'code', codeValid: false }),
   },
   {
     reason: 'ambiguous-credential',
@@ -114,16 +110,27 @@ describe('decideCredential — 不变量 #1：反枚举', () => {
     });
   });
 
-  it('验证码不匹配 → rejected(code-mismatch)', () => {
+  it('验证码无效（错或过期）→ rejected(credential-code-mismatch)', () => {
     expect(
-      decideCredential(facts({ presented: 'code', codeOutcome: 'mismatch' })),
-    ).toEqual({ kind: 'rejected', reason: 'code-mismatch' });
+      decideCredential(facts({ presented: 'code', codeValid: false })),
+    ).toEqual({ kind: 'rejected', reason: 'credential-code-mismatch' });
   });
 
-  it('验证码过期 → rejected(code-expired)', () => {
+  it('未执行校验（codeValid 为 null）也按无效处理', () => {
+    // 防御性：事实组合不该出现，但若出现，拒绝方向是对的。
     expect(
-      decideCredential(facts({ presented: 'code', codeOutcome: 'expired' })),
-    ).toEqual({ kind: 'rejected', reason: 'code-expired' });
+      decideCredential(facts({ presented: 'code', codeValid: null })),
+    ).toEqual({ kind: 'rejected', reason: 'credential-code-mismatch' });
+  });
+
+  it('领域层不区分「码错」与「码过期」（侧信道）', () => {
+    // 领域结论里**没有** expired 这个 reason：区分一旦存在，就会有人把它记进
+    // 日志或指标，从而以另一种渠道泄露「该邮箱近期请求过验证码」。
+    // 这里断言 reason 的取值域里不含任何过期语义。
+    const decision = decideCredential(
+      facts({ presented: 'code', codeValid: false }),
+    );
+    expect(JSON.stringify(decision)).not.toContain('expired');
   });
 
   it('密码与验证码都给 / 都不给 → rejected(ambiguous-credential)', () => {
@@ -137,7 +144,7 @@ describe('decideCredential — 不变量 #1：反枚举', () => {
     });
   });
 
-  it('【核心】六种拒绝原因对外是完全同一个可观察结果', () => {
+  it('【核心】五种拒绝原因对外是完全同一个可观察结果', () => {
     // 这是反枚举的**唯一真实断言**：不只是「都落在 rejected 里」，
     // 而是经过应用层映射后 status 与 code 逐字相同。
     const projected = REJECTION_CASES.map(({ reason, facts: caseFacts }) => {
@@ -225,7 +232,7 @@ describe('decideCredential — 不变量 #2：依赖故障不折进反枚举桶'
     const decision = decideCredential(
       facts({
         presented: 'code',
-        codeOutcome: 'expired',
+        codeValid: false,
         dependencyFailure: 'password-lookup',
       }),
     );
@@ -243,7 +250,7 @@ describe('decideCredential — 接受路径', () => {
 
   it('验证码有效 → accepted', () => {
     expect(
-      decideCredential(facts({ presented: 'code', codeOutcome: 'valid' })),
+      decideCredential(facts({ presented: 'code', codeValid: true })),
     ).toEqual({ kind: 'accepted' });
   });
 
@@ -264,8 +271,7 @@ describe('countsAsLoginFailure', () => {
       'unknown-account',
       'no-password',
       'password-mismatch',
-      'code-mismatch',
-      'code-expired',
+      'credential-code-mismatch',
       'ambiguous-credential',
     ] as const) {
       expect(countsAsLoginFailure({ kind: 'rejected', reason })).toBe(true);

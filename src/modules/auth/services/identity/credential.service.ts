@@ -39,9 +39,6 @@ import { AuthRateLimitService } from './rate-limit.service.js';
 import { TurnstileService } from './turnstile.service.js';
 import { VerificationCodeService } from './verification-code.service.js';
 
-/** 验证码校验的三种结果（领域事实，不是错误码）。 */
-type CodeOutcome = 'valid' | 'mismatch' | 'expired';
-
 /**
  * Handles email/password credential flows: registration and login.
  *
@@ -217,7 +214,7 @@ export class CredentialAuthService {
           storedPassword: 'none',
           presented,
           passwordMatches: null,
-          codeOutcome: null,
+          codeValid: null,
           dependencyFailure: null,
         }),
       );
@@ -232,7 +229,7 @@ export class CredentialAuthService {
           storedPassword: 'none',
           presented,
           passwordMatches: null,
-          codeOutcome: null,
+          codeValid: null,
           dependencyFailure: null,
         }),
       );
@@ -262,7 +259,7 @@ export class CredentialAuthService {
             storedPassword: check.hasPassword ? 'set' : 'none',
             presented: 'password',
             passwordMatches: check.passwordMatches,
-            codeOutcome: null,
+            codeValid: null,
             dependencyFailure: null,
           }),
         ),
@@ -270,7 +267,15 @@ export class CredentialAuthService {
       .map(() => user);
   }
 
-  /** 验证码路径：把校验结果折成领域事实，交给纯函数判定。 */
+  /**
+   * 验证码路径：把校验结果折成领域事实，交给纯函数判定。
+   *
+   * **这里不区分「码错」与「码过期」**：校验器会给出两种错误码，但折成领域
+   * 事实时只留「有效 / 无效」。理由见 `CredentialRejectionReason` 的注释——
+   * 一旦区分流进领域结论，就会有人把它记进日志或指标，从而以另一种渠道泄露
+   * 「该邮箱近期请求过验证码」。用户侧不需要这个区分（两种情况的行动都是
+   * 「重新获取」），客户端也看不到（都折进 `AUTH_WRONG_PASSWORD`）。
+   */
   private verifyByCode(
     email: string,
     user: User,
@@ -278,22 +283,17 @@ export class CredentialAuthService {
   ): ResultAsync<User, DomainFailure> {
     return this.verificationCodeService
       .verify(email, code, 'login')
-      .map((): CodeOutcome => 'valid')
-      .orElse((error): ResultAsync<CodeOutcome, DomainFailure> => {
+      .map((): boolean => true)
+      .orElse((error): ResultAsync<boolean, DomainFailure> => {
         // 依赖故障（缓存/Redis 不可用）原样上抛（#2）：不能报成「验证码错」，
         // 否则用户会去重试一个本来没问题的码。
         if (error.kind === 'internal' || error.kind === 'dependency') {
           return errAsync(error);
         }
-        // 码错与码过期折进同一桶（#1）：两者对攻击者的信息价值相同
-        // （「该邮箱存在且近期请求过验证码」），且用户的操作都是「重新获取」。
-        return okAsync(
-          error.code === 'AUTH_VERIFICATION_CODE_EXPIRED'
-            ? 'expired'
-            : 'mismatch',
-        );
+        // 码错与码过期合流（#1）。领域层不保留「为什么无效」。
+        return okAsync(false);
       })
-      .andThen((codeOutcome) =>
+      .andThen((codeValid) =>
         this.settle(
           email,
           decideCredential({
@@ -301,7 +301,7 @@ export class CredentialAuthService {
             storedPassword: 'none',
             presented: 'code',
             passwordMatches: null,
-            codeOutcome,
+            codeValid,
             dependencyFailure: null,
           }),
         ),

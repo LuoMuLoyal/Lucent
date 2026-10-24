@@ -30,7 +30,7 @@ function facts(overrides: Partial<CredentialFacts> = {}): CredentialFacts {
     storedPassword: 'set',
     presented: 'password',
     passwordMatches: null,
-    codeOutcome: null,
+    codeValid: null,
     dependencyFailure: null,
     ...overrides,
   };
@@ -42,8 +42,7 @@ describe('toCredentialFailure', () => {
       { kind: 'rejected', reason: 'unknown-account' },
       { kind: 'rejected', reason: 'no-password' },
       { kind: 'rejected', reason: 'password-mismatch' },
-      { kind: 'rejected', reason: 'code-mismatch' },
-      { kind: 'rejected', reason: 'code-expired' },
+      { kind: 'rejected', reason: 'credential-code-mismatch' },
       { kind: 'rejected', reason: 'ambiguous-credential' },
     ];
 
@@ -62,8 +61,7 @@ describe('toCredentialFailure', () => {
       'unknown-account',
       'no-password',
       'password-mismatch',
-      'code-mismatch',
-      'code-expired',
+      'credential-code-mismatch',
       'ambiguous-credential',
     ] as const) {
       const failure = toCredentialFailure({ kind: 'rejected', reason });

@@ -43,22 +43,32 @@ export type CredentialStage =
 /**
  * 凭据被拒绝的原因。
  *
- * **只用于日志与限流分桶，绝不出现在响应里**——所有 reason 对外都是同一个
- * `AUTH_WRONG_PASSWORD`。理由：
+ * **只用于限流分桶，绝不出现在响应里，也不该进日志或指标。** 所有 reason 对外
+ * 都是同一个 `AUTH_WRONG_PASSWORD`。理由：
  *
  * - `unknown-account` / `no-password` / `password-mismatch` 之间的区分会直接
  *   暴露账号是否存在、是否为 OAuth-only 账号；
- * - `code-mismatch` / `code-expired` 的区分会暴露「该邮箱近期请求过验证码」；
+ * - `credential-code-mismatch` 会暴露「该邮箱近期请求过验证码」；
  * - `ambiguous-credential` 覆盖「同时给了密码和验证码」「两个都没给」——
- *   它是**请求形状错误**，但对外同样不能有独立响应，否则等于告诉攻击者
- *   「你这样发我能识别出是畸形请求」，而正常用户不会走到这里。
+ *   它是**请求形状错误**，但对外同样不能有独立响应。
+ *
+ * ## 为什么「码错」与「码过期」合并成一个 reason
+ *
+ * 领域层的职责是回答「这个凭据有效吗」，答案只有有效或无效。**「为什么无效」
+ * 在反枚举语境下必须被丢弃**；在领域层保留区分等于给下游留了一个可能被误用的
+ * 口子：将来有人加日志、加指标、加审计，看到 `code-expired` 会自然地把它记进
+ * 日志或指标标签——而 **reason 一旦进了日志/指标，它就以另一种渠道泄露了**
+ * （攻击者拿不到 HTTP 响应，但能从运维看板的分布上推出来）。
+ *
+ * 所以过期与不匹配在这里合流。若某个 UseCase 确实需要向用户提示「码过期了请
+ * 重新获取」，那是**该 UseCase 的 UX 决定**，应在把校验结果折成领域事实**之前**
+ * 取用，而不是让这个词汇流进领域结论。
  */
 export type CredentialRejectionReason =
   | 'unknown-account'
   | 'no-password'
   | 'password-mismatch'
-  | 'code-mismatch'
-  | 'code-expired'
+  | 'credential-code-mismatch'
   | 'ambiguous-credential';
 
 /**
@@ -91,8 +101,13 @@ export interface CredentialFacts {
   /**
    * 验证码校验结果（仅在 `presented === 'code'` 时有意义）。
    * `null` = 未执行校验。
+   *
+   * **只有「有效 / 无效」两态，不区分「码错」与「码过期」**：领域层不需要那个
+   * 区分（见 `CredentialRejectionReason` 的注释），而把校验器的三态直接透传上来
+   * 会让「为什么无效」这个词汇有机会流进领域结论、进而流进日志。
+   * 需要区分的地方（如果真有）在调用方折成事实**之前**取用。
    */
-  codeOutcome: 'valid' | 'mismatch' | 'expired' | null;
+  codeValid: boolean | null;
   /**
    * 依赖故障。非 `null` 时**短路一切**：判定直接返回
    * `dependency-failed`，绝不会落到 `rejected`。
@@ -144,14 +159,12 @@ export function decideCredential(facts: CredentialFacts): CredentialDecision {
 
   // 4a. 验证码路径。
   if (facts.presented === 'code') {
-    if (facts.codeOutcome === 'valid') {
+    if (facts.codeValid === true) {
       return { kind: 'accepted' };
     }
-    if (facts.codeOutcome === 'expired') {
-      return { kind: 'rejected', reason: 'code-expired' };
-    }
-    // `mismatch` 或未执行（`null`）都按不匹配处理——都不可对外区分。
-    return { kind: 'rejected', reason: 'code-mismatch' };
+    // 不匹配、过期、未执行（`null`）在这里**合流**：领域层不保留「为什么无效」
+    // 的区分，理由见 CredentialRejectionReason 的注释（侧信道）。
+    return { kind: 'rejected', reason: 'credential-code-mismatch' };
   }
 
   // 4b. 密码路径。
