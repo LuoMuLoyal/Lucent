@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { ObservedMetric } from '../../../../../common/index.js';
+import type { SignalObservedMetric } from '../../../domain/signal/observed-metric.js';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
 import type { SuggestionSignal } from '../../../types/signal.types.js';
@@ -52,7 +52,7 @@ export class WaterShortfallRuleService implements SuggestionRule {
     }
 
     const observedMetric = waterCountSignal.payload['observedMetric'] as
-      | ObservedMetric<number>
+      | SignalObservedMetric<number>
       | undefined;
     const observedValue = observedMetric?.value;
     if (

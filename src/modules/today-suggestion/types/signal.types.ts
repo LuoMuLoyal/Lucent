@@ -1,53 +1,23 @@
-import type { TriggerType } from './suggestion.types.js';
-import type { ObservedMetric } from '../../../common/index.js';
-
-/** Signal source categories. */
-export type SignalSource =
-  | 'medication'
-  | 'record'
-  | 'risk_check'
-  | 'profile'
-  | 'environment'
-  | 'health_event';
-
 /**
- * A single unit of raw evidence collected from the database.
- * The rule engine consumes signals to produce candidates.
+ * ⚠️ **TEMPORARY re-export shim — delete this file.**
+ *
+ * The signal vocabulary now lives in `domain/signal/signal.ts` (ADR-0024). This
+ * file exists only so the existing import sites did not have to change in the
+ * same commit as the move — that keeps each migration step independently
+ * compilable and revertible.
+ *
+ * **It is a forwarding layer, not a second definition.** There is exactly one
+ * source of truth; nothing here declares a type.
+ *
+ * **How to delete it:** point every remaining importer at
+ * `../domain/signal/signal.js` and remove this file. The compiler will list any
+ * site you missed. It must not survive as a permanent indirection.
  */
-export interface SuggestionSignal {
-  signalId: string;
-  source: SignalSource;
-  kind: string;
-  recordedAt: Date;
-  payload: Record<string, unknown> & {
-    observedMetric?: ObservedMetric<unknown> | Record<string, unknown>;
-  };
-  userId: string;
-  triggerType: TriggerType;
-}
 
-/** Aggregated signals for one user on one date. */
-export interface SignalBundle {
-  userId: string;
-  date: string;
-  signals: SuggestionSignal[];
-}
-
-/** Evidence item shown on a suggestion card. */
-export interface EvidenceItem {
-  kind: 'record' | 'reminder' | 'risk_check' | 'trend' | 'profile' | 'baseline';
-  label: string;
-  value: string;
-  /** Optional interpolation args for localizing dynamic values. */
-  args?: Record<string, string | number>;
-  recordId?: string;
-  medicineId?: string;
-}
-
-/** Action that the user can take from a suggestion card. */
-export interface SuggestionAction {
-  actionId: string;
-  label: string;
-  route: string;
-  authRequired: boolean;
-}
+export type {
+  SignalSource,
+  SuggestionSignal,
+  SignalBundle,
+  EvidenceItem,
+  SuggestionAction,
+} from '../domain/signal/signal.js';
