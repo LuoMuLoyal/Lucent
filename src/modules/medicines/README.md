@@ -23,7 +23,8 @@ owner: backend
 ### 层内布局
 
 - `domain/` — `medicine/medicine-source.ts`（来源枚举与默认源）、
-  `services/{risk-model,risk-scoring,allergy-severity,ingredient-canonicalization}.ts`。
+  `relations/{relation,relations}.ts`（图关系类型与 `GraphReader` port）、
+  `services/{risk-model,risk-scoring,risk-mechanism,allergy-severity,ingredient-canonicalization,half-life,half-life-gap}.ts`。
   纯领域，不 import 上层。
 - `application/ports/` — 每个外部依赖一个端口（`knowledge` / `cache` /
   `cache-maintenance` / `risk-records` / `risk-llm` / `safety-tips` / `qa-chunks`），
@@ -65,6 +66,14 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 - `POST risk-check`（static/LLM 用药风险检查；`candidate` 预检仅支持
   static：解析来源详情即时静态检查，不落库不写 records 缓存，不产生最新
   记录；已在药箱的候选不重复加入）/ `GET risk-check`（最近记录，30 分钟缓存）。
+
+  **交互类 finding 会带 `mechanism`**：图证据说明冲突经哪个酶/靶点/转运体发生
+  （`domain/services/risk-mechanism.ts`）。机制是**增强不是阻塞**——图不可用时每条
+  finding 带 `mechanism: { status: 'unavailable' }`，风险检查照常出结果。只认当前
+  finding 涉及的两个药；机制查询用一次多药查询取回，不是每条 finding 打一次。
+  `status` 的五态里 `notFound`（图上确实没有）与 `unavailable`/`timeout`/`notConfigured`
+  （我们无法回答）**必须分开**，合并会让界面把知识缺口显示成「机制上没问题」。
+
 - `POST recognize`（同步）/ `POST recognize/async` + `GET recognize/status/:jobId`
   （AI 药盒图片识别；同步端点直接返回识别资源，异步端点 `jobId|result` 互斥，
   队列不可用时同步兜底）。识别结果四个字段恒在、取不到时为 `null`，否则生成客户端
@@ -114,6 +123,35 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
    写成多列 + `columnName: "第一列"` 时查询**不报错但每行都是 null**。
 2. **`INTERACTS_WITH` 在库中单向**（2,534 条），反向边由 semantica 出图时合成，
    直连走不到。涉及相互作用必须用无向匹配 `-[r]-`。
+
+## 半衰期解析与漏服判定（领域逻辑，**尚未接进提示链路**）
+
+`domain/services/half-life.ts` 把 DrugBank 的 `half_life` **叙述文本**解析成小时区间，
+`half-life-gap.ts` 基于该区间判断「漏服缺口是否值得提示」。
+
+**为什么需要它**：固定时长的漏服规则在两类药上说反话——半衰期 3 小时的药漏 6 小时
+（两个半衰期，浓度掉到 25%）该提醒；半衰期 102 小时的依那西普漏 6 小时浓度几乎没动，
+提醒只制造焦虑。
+
+**解析**：覆盖 `4-5 hours` / `8.4-19.3 hrs` / `112 minutes` / `3 days` / `25 ± 10 hours`
+（按中心±偏差展开）/ `>20 hours`（标记 `openEnded`）/ `three hours` / 整段叙述
+（取第一次出现的值）。在 dev 库 78 条非空 `half_life` 上覆盖 **76 条**；剩下 2 条是
+语义上就没有半衰期的（文本被截断、明确「不被吸收」），返回 `null` 是正确行为。
+解析失败**不回落到默认值**——那等于给一个我们自己编的生理参数。
+
+**判定口径**：
+
+- 阈值取**上界的一半**（偏晚触发）。区间宽的药（`8.4-19.3 hrs`）用下界口径阈值 4.2 小时、
+  缺口 5 小时就弹；用上界口径阈值 9.65 小时、不弹。**误报代价更高**——每天多弹几次会让
+  用户失去对提醒系统的信任。代价是短半衰期且区间宽的药提醒明显延后，这是有意取舍。
+- 每日上限按**自然日**而非滚动 24 小时（与日历一致，避免同一天弹两次、跨零点又放行）。
+- 已确认、尚未到时的记录一律不提示；无可用半衰期时返回 `noData`，调用方应保持原逻辑。
+
+**未接入**：`today-suggestion` 的 `missed_dose_pending` 仍按固定时长运行。接入需要
+「每药每日已提示」的持久化（领域函数接受 `lastNotifiedAt`，但没有地方存它）与
+`UserCurrentMedicine → half_life` 的关联。见 `docs/TODO.md`「半衰期感知的漏服提示接入」。
+⚠️ 该 TODO 还记着一个前提：dev 库只有 78 条药有 `half_life`，不先补数据则接入后
+绝大多数药会落到 `noData`。
 
 ## 持久表清单
 

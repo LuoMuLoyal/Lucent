@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-19
+updated: 2026-10-24
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-10-19
+Last updated: 2026-10-24
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -280,6 +280,49 @@ ESM 化后遗留清单与后续跟进：
 - `@SerializeOptions` 未被 Swagger 自省,响应组件靠 export 期注册表注入;注册路径必须与导出
   operation 逐字一致(含 RouterModule 前缀与 `{…}` 参数),不一致导出会显式报错——新增模块照此约定。
 - SSE/text 流端点不注册响应组件(非 JSON 200),如需结构化 `event: error` 语义遵循 ADR-0012/0017。
+
+### 半衰期感知的漏服提示接入（2026-10-24，领域逻辑已就绪，链路未接）
+
+`domain/services/half-life.ts` 与 `half-life-gap.ts` 已落地并测试（解析在真实数据上覆盖
+76/78 条），但**尚未接进提示链路**：`today-suggestion` 的 `missed_dose_pending` 规则
+仍按「到点没吃就提醒」的固定时长逻辑运行。
+
+**为什么值得接**：同一条固定时长规则在两类药上说反话——半衰期 3 小时的药漏 6 小时
+（两个半衰期，浓度掉到 25%）该提醒；半衰期 102 小时的依那西普（Etanercept）漏 6 小时
+浓度几乎没动，提醒只制造焦虑。判定依据应是「缺口占半衰期的比例」。
+
+**接入需要三件事**：
+
+1. `missed_dose_pending` 规则读药品的 `half_life` 并经 `evaluateHalfLifeGap` 判定
+   （返回 `noData` 时保持原有逻辑，不要变激进或变保守）；
+2. 新增「每药每日已提示」的持久化（迁移 + 表），用于 `half-life-gap.ts` 的每日上限——
+   当前领域函数接受 `lastNotifiedAt` 参数，但没有任何地方存它；
+3. 药品与 `half_life` 的关联：`UserCurrentMedicine` → DrugBank 详情。
+   ⚠️ 前提：本机 dev 的 `drugbank_drugs` 只有 78 条有 `half_life`（全表 100 条药），
+   见下方「Prisma 药品知识库回填」——不先补数据，接入后绝大多数药会落到 `noData`。
+
+**验收**：半衰期 3 小时的药漏 2 个半衰期会提示、同一药一天只提示一次；半衰期 102 小时的
+药同样缺口不提示；`half_life` 缺失的药行为与接入前完全一致。
+
+### Prisma 药品知识库回填（2026-10-24，独立工作，不阻塞图查询）
+
+本机 dev 库（`127.0.0.1:15432/lucent`）实测与应有规模差距很大：
+`drugbank_drugs` 100/19,842、`drugbank_targets` 0、`drugbank_drug_targets` 0、
+`drugbank_structures` 0、`cn_medicine_products` 0、`medical_qa_chunks` 0。
+
+**这不影响图查询**：关系数据在 Neo4j（3,278 节点 / 211,630 边，`lucent-neo4j` 容器 +
+`lucent-neo4j-data` 卷），语义上覆盖了靶点/酶/转运体关系。受影响的只有 **Lucent 自己的
+药品详情接口**（`GET /api/v1/medicines/:id` 的 `targets`/`structure` 等字段）与上面那条
+半衰期接入。
+
+**待查**：是尚未导入，还是导入过但这份 dev 库被重建过。两种情况处置不同——后者要先
+定位数据丢在哪一环，否则导入完还会再丢。源数据在
+`DrugDataBase/derived/drugbank/drugbank_drugs.parquet`（124.8 MB），导入脚本
+`scripts/import/medicine/import-medicine-knowledge.ts` 在。
+
+**顺带修正**：`Luminary/apps/lumine/PRODUCT.md` §二 称 `enzymes`（1,871 条）「已导入」，
+但 `prisma/models/medicine-knowledge.prisma` 里**没有 enzymes 列**——这类关系只存在于
+Neo4j。该文档需更正，避免下一个人按它去找字段。
 
 ## 管理控制台遗留（2026-10-07，控制台校验与首次上线时发现）
 
