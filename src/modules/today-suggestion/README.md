@@ -57,6 +57,10 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
 
 ## 内部结构
 
+> **类型词汇已全部下沉 `domain/`**：`types/` 里只剩 `materialization.types.ts` 与
+> `copy-generation.types.ts` 两个队列载荷类型；曾用于过渡的 re-export shim
+> **已全部删除**，全模块直接 import `domain/` 下的真源。
+
 - `domain/policies/{medication,lifestyle,sleep,health}/` — **8 条规则**（纯函数）。
   每条规则只依赖 `domain/` 内的类型与阈值，**零框架依赖**（无 `@Injectable()`、
   无 `Logger`）。规则类由 `domain/rule/rule-catalog.ts` 的 `buildSuggestionRules()`

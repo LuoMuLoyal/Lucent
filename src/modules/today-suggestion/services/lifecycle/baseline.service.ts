@@ -5,9 +5,9 @@ import { parseDateOnly } from '../../../../common/index.js';
 import {
   BaselineDimension,
   BASELINE_MIN_DAYS,
-} from '../../types/baseline.types.js';
-import type { BaselineRecord } from '../../types/baseline.types.js';
-import type { SuggestionSignal } from '../../types/signal.types.js';
+} from '../../domain/baseline/baseline.js';
+import type { BaselineRecord } from '../../domain/baseline/baseline.js';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
 
 /**
  * Tracks cold-start baselines per user per dimension.

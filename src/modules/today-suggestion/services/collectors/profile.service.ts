@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/index.js';
 import { parseDateOnly } from '../../../../common/index.js';
-import type { SuggestionSignal } from '../../types/signal.types.js';
-import { TriggerType } from '../../types/suggestion.types.js';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
+import { TriggerType } from '../../domain/suggestion/suggestion.types.js';
 
 /**
  * Collects health-profile signals: allergies, conditions,

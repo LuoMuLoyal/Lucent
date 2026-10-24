@@ -4,11 +4,11 @@ import { INotificationSender } from '../../../notifications/index.js';
 import { PushDeliveryService } from '../../../notifications/index.js';
 import { NotificationPreferencesService } from '../../../notification-preferences/index.js';
 import { now } from '../../../../common/index.js';
-import type { SuggestionCandidate } from '../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import {
   SuggestionConfidence,
   TriggerType,
-} from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
 
 /** Minimum priority score for a candidate to be eligible for notification escalation. */
 const ESCALATION_MIN_PRIORITY_SCORE = 700;

@@ -6,7 +6,7 @@ import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
 import type {
   ExplanationContext,
   ExplanationPromptCopy,

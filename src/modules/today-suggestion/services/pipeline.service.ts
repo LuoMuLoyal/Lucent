@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { SuggestionCandidate } from '../types/candidate.types.js';
-import type { RuleContext } from '../types/rule.types.js';
+import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
+import type { RuleContext } from '../domain/rule/rule-definition.js';
 import { MedicationCollectorService } from './collectors/medication.service.js';
 import { RecordCollectorService } from './collectors/record.service.js';
 import { ProfileCollectorService } from './collectors/profile.service.js';
@@ -13,7 +13,7 @@ import {
 } from './arbitration/arbiter.service.js';
 import { BaselineService } from './lifecycle/baseline.service.js';
 import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
-import type { SuggestionSignal } from '../types/signal.types.js';
+import type { SuggestionSignal } from '../domain/signal/signal.js';
 
 /**
  * Output of the suggestion pipeline: arbitration result + degraded flag.

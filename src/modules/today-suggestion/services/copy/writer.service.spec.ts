@@ -6,7 +6,7 @@ import { SuggestionCopyService } from './writer.service.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
 import type { CopyJobData } from '../../types/copy-generation.types.js';
 
 function buildRequest(overrides: Partial<CopyJobData> = {}): CopyJobData {

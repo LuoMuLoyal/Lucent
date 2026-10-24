@@ -7,7 +7,7 @@ import { FeedbackService } from './recorder.service.js';
 import {
   SuggestionType,
   SuggestionFeedback,
-} from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
 import {
   FEEDBACK_LATER_DURATION_MS,
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,

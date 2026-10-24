@@ -5,8 +5,8 @@ import {
   formatDateOnly,
   resolveLocale,
 } from '../../../common/index.js';
-import type { SuggestionCandidate } from '../types/candidate.types.js';
-import { SuggestionLifecycleState } from '../types/suggestion.types.js';
+import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
+import { SuggestionLifecycleState } from '../domain/suggestion/suggestion.types.js';
 import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto.js';
 import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto.js';
 import { SuggestionPipelineService } from './pipeline.service.js';
@@ -16,7 +16,7 @@ import { EscalationService } from './notification/escalation.service.js';
 import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
 import { MaterializationStore } from './materialization/store.service.js';
 import type { MaterializationStatusView } from '../types/materialization.types.js';
-import type { SuggestionSignal } from '../types/signal.types.js';
+import type { SuggestionSignal } from '../domain/signal/signal.js';
 import { SUGGESTION_DEFAULT_LOCALE } from '../constants/locale.constants.js';
 
 export interface SuggestionRecomputeOptions {

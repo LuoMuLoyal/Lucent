@@ -2,8 +2,8 @@ import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 import type { Prisma } from '#generated/prisma/client.js';
 import { BaselineService } from './baseline.service.js';
-import { BaselineDimension } from '../../types/baseline.types.js';
-import { TriggerType } from '../../types/suggestion.types.js';
+import { BaselineDimension } from '../../domain/baseline/baseline.js';
+import { TriggerType } from '../../domain/suggestion/suggestion.types.js';
 
 describe('BaselineService', () => {
   let service: BaselineService;

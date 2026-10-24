@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { z } from 'zod';
-import { SuggestionFeedback } from '../types/suggestion.types.js';
+import { SuggestionFeedback } from '../domain/suggestion/suggestion.types.js';
 
 const FEEDBACK_VALUES = [
   'accepted',

@@ -4,13 +4,13 @@ import {
   SuggestionCopyService,
   type CopyGenerationResult,
 } from './copy/writer.service.js';
-import type { SuggestionCandidate } from '../types/candidate.types.js';
+import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   SuggestionConfidence,
   SuggestionLifecycleState,
   SuggestionFeedback,
-} from '../types/suggestion.types.js';
+} from '../domain/suggestion/suggestion.types.js';
 import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto.js';
 
 const mockCopyResult: CopyGenerationResult = {

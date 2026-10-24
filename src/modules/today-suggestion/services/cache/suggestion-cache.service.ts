@@ -1,8 +1,8 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import type { SuggestionSignal } from '../../types/signal.types.js';
-import type { BaselineDimension } from '../../types/baseline.types.js';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
+import type { BaselineDimension } from '../../domain/baseline/baseline.js';
 import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto.js';
 import type { GeneratedCopy } from '../../schemas/copy.schema.js';
 import {

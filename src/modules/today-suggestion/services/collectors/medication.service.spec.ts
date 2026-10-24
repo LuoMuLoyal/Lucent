@@ -4,7 +4,7 @@ import type { PrismaService } from '../../../../prisma/index.js';
 import type { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
 import { MedicationCollectorService } from './medication.service.js';
 import { MedicationTimeResolverService } from './medication-time-resolver.service.js';
-import { TriggerType } from '../../types/suggestion.types.js';
+import { TriggerType } from '../../domain/suggestion/suggestion.types.js';
 
 describe('MedicationCollectorService', () => {
   let service: MedicationCollectorService;

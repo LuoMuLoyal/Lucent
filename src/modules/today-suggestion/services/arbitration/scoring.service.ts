@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { SuggestionCandidate } from '../../types/candidate.types.js';
-import { SuggestionConfidence } from '../../types/suggestion.types.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
+import { SuggestionConfidence } from '../../domain/suggestion/suggestion.types.js';
 
 /** Confidence → numeric weight for scoring. */
 const CONFIDENCE_WEIGHT: Record<SuggestionConfidence, number> = {

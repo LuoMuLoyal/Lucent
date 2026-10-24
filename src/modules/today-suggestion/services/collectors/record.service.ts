@@ -17,8 +17,8 @@ import {
 } from '../../../daily-records/index.js';
 
 import type { DailyRecordFact } from '../../../daily-records/index.js';
-import type { SuggestionSignal } from '../../types/signal.types.js';
-import { TriggerType } from '../../types/suggestion.types.js';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
+import { TriggerType } from '../../domain/suggestion/suggestion.types.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { TREND_LOOKBACK_DAYS } from '../../domain/rule/thresholds.js';
 import { symptomSeverityScore } from '../../domain/rule/symptom-severity.js';

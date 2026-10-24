@@ -5,7 +5,7 @@ import type { MetricsService } from '../../../../common/metrics/metrics.service.
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
 import type {
   CopyGenerationContext,
   CopyPromptCopy,

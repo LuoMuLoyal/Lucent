@@ -1,12 +1,12 @@
 import { SuggestionPipelineService } from './pipeline.service.js';
-import type { SuggestionSignal } from '../types/signal.types.js';
-import type { SuggestionCandidate } from '../types/candidate.types.js';
-import type { SuggestionRule } from '../types/rule.types.js';
-import { BaselineDimension } from '../types/baseline.types.js';
+import type { SuggestionSignal } from '../domain/signal/signal.js';
+import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
+import type { SuggestionRule } from '../domain/rule/rule-definition.js';
+import { BaselineDimension } from '../domain/baseline/baseline.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../types/suggestion.types.js';
+} from '../domain/suggestion/suggestion.types.js';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},

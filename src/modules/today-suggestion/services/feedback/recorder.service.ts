@@ -18,8 +18,8 @@ import { DomainFailureException } from '../../../../common/result/domain-failure
 import {
   SuggestionFeedback,
   SuggestionLifecycleState,
-} from '../../types/suggestion.types.js';
-import type { SuggestionType } from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
+import type { SuggestionType } from '../../domain/suggestion/suggestion.types.js';
 import type { Prisma } from '#generated/prisma/client.js';
 import {
   FEEDBACK_LATER_DURATION_MS,

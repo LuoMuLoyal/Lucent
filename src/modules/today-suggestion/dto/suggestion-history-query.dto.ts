@@ -5,7 +5,7 @@ import {
   SuggestionLifecycleState,
   SuggestionType,
   TriggerType,
-} from '../types/suggestion.types.js';
+} from '../domain/suggestion/suggestion.types.js';
 
 /**
  * Standard Schema (zod 4) for a single suggestion history item returned by

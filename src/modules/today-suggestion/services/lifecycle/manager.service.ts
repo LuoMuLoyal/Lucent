@@ -4,14 +4,14 @@ import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma/index.js';
 import { now, nowIsoString, formatDateOnly } from '../../../../common/index.js';
-import type { SuggestionCandidate } from '../../types/candidate.types.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
 
-import type { SuggestionAction } from '../../types/signal.types.js';
+import type { SuggestionAction } from '../../domain/signal/signal.js';
 import {
   SuggestionFeedback,
   SuggestionLifecycleState,
-} from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
 import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto.js';
 import type { Prisma } from '#generated/prisma/client.js';
 import {

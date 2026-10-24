@@ -6,7 +6,7 @@ import type { CopyJobData } from '../../types/copy-generation.types.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../types/suggestion.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;

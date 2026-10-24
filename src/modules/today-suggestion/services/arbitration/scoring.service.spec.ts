@@ -2,8 +2,8 @@ import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../types/suggestion.types.js';
-import type { SuggestionCandidate } from '../../types/candidate.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import { ScoringService } from './scoring.service.js';
 
 function buildCandidate(

@@ -4,8 +4,8 @@ import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../types/suggestion.types.js';
-import type { SuggestionCandidate } from '../../types/candidate.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},

@@ -6,8 +6,8 @@ import {
   type HealthEventRecord,
 } from '../../../health-events/index.js';
 
-import type { SuggestionSignal } from '../../types/signal.types.js';
-import { TriggerType } from '../../types/suggestion.types.js';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
+import { TriggerType } from '../../domain/suggestion/suggestion.types.js';
 import { now, parseDateOnly } from '../../../../common/index.js';
 
 /**

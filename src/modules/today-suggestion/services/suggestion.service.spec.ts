@@ -1,11 +1,11 @@
 import { SuggestionService } from './suggestion.service.js';
 import type { ArbitrationResult } from './arbitration/arbiter.service.js';
 import type { CopyGenerationResult } from './copy/writer.service.js';
-import type { SuggestionCandidate } from '../types/candidate.types.js';
+import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
   SuggestionLifecycleState,
-} from '../types/suggestion.types.js';
+} from '../domain/suggestion/suggestion.types.js';
 import type { SuggestionItemDto } from '../dto/suggestion-response.dto.js';
 import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto.js';
 import { SuggestionCacheService } from './cache/suggestion-cache.service.js';

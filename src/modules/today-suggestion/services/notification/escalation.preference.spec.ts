@@ -4,8 +4,8 @@ import {
   SuggestionConfidence,
   SuggestionType,
   TriggerType,
-} from '../../types/suggestion.types.js';
-import type { SuggestionCandidate } from '../../types/candidate.types.js';
+} from '../../domain/suggestion/suggestion.types.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 
 function candidate(ruleId: string): SuggestionCandidate {
   return {
