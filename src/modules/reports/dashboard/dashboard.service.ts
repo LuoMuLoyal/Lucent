@@ -13,6 +13,18 @@ import { ReportsContextService } from './context.service.js';
 export class ReportsService {
   private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private static readonly CACHE_KEY_PREFIX = 'reports:dashboard';
+  /**
+   * Per-user cache generation, part of every dashboard cache key.
+   *
+   * Invalidation bumps this instead of enumerating and deleting keys. The TTL
+   * is deliberately far longer than {@link CACHE_TTL_MS}: a version that
+   * expired while dashboard entries were still alive would let a reader fall
+   * back to an older generation and serve a stale dashboard — the exact bug
+   * this replaces. When it does expire, restarting from 0 is safe: every entry
+   * of the previous generation is already past its own 5-minute TTL, so there
+   * is nothing left to reach.
+   */
+  private static readonly CACHE_VERSION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
   private readonly logger = new Logger(ReportsService.name);
 
@@ -28,7 +40,8 @@ export class ReportsService {
     locale: string,
   ): Promise<ReportDashboardDataDto> {
     const range = query.range ?? 'last_7_days';
-    const cacheKey = `${ReportsService.CACHE_KEY_PREFIX}:${userId}:${range}:${query.startDate ?? 'auto'}:${query.endDate ?? 'auto'}:${locale}`;
+    const version = await this.readCacheVersion(userId);
+    const cacheKey = `${ReportsService.CACHE_KEY_PREFIX}:${userId}:v${String(version)}:${range}:${query.startDate ?? 'auto'}:${query.endDate ?? 'auto'}:${locale}`;
 
     let cached: ReportDashboardDataDto | undefined;
     try {
@@ -79,52 +92,62 @@ export class ReportsService {
   }
 
   /**
-   * Invalidates all dashboard cache entries for a user by enumerating
-   * cache keys with the user's segment and deleting matching ones.
+   * Invalidates every cached dashboard for `userId` by advancing the user's
+   * cache generation.
    *
-   * Cache is an accelerator (DB is source of truth), so failures are
-   * logged as warnings and do not throw — TTL expiry is the safety net.
+   * The previous implementation walked `cache.stores` looking for a `keys()`
+   * method. Neither shape that exists at runtime has one — `cache.stores` holds
+   * `Keyv` instances (no `keys()`), and the underlying store is reachable only
+   * via `store.store` — so the loop hit `continue` on every store and deleted
+   * nothing, silently, with no log line. Entries then lived until the 5-minute
+   * TTL. A generation counter removes the enumeration entirely: old entries
+   * become unreachable because no reader computes their key any more, and they
+   * expire on their own TTL.
+   *
+   * **Failure behaviour is explicit, unlike the method this replaces.** The
+   * version bump is the single fallible step, and it throws rather than
+   * degrading quietly: a silent failure here means stale dashboards, so the
+   * caller must see it. (The old comment claimed failures were "logged as
+   * warnings", but the path that actually mattered logged nothing.) Callers on
+   * the queue treat the throw as a job failure and retry; the request path
+   * never calls this method.
    */
   async invalidateUserDashboard(userId: string): Promise<void> {
-    const userSegment = `${ReportsService.CACHE_KEY_PREFIX}:${userId}:`;
-    try {
-      const stores = this.cache.stores as
-        | Array<{ keys?: () => Promise<string[]> }>
-        | undefined;
-      if (!stores || stores.length === 0) return;
+    const key = ReportsService.cacheVersionKey(userId);
+    const current = await this.readCacheVersion(userId);
+    const next = current + 1;
+    await this.cache.set(key, next, ReportsService.CACHE_VERSION_TTL_MS);
+    this.logger.debug(
+      `Reports dashboard cache invalidated (userId=${userId}, generation=${String(current)} -> ${String(next)})`,
+    );
+  }
 
-      for (const store of stores) {
-        if (!store.keys) continue;
-        let keys: string[];
-        try {
-          keys = await store.keys();
-        } catch (error) {
-          const { traceId, spanId } = getActiveTraceIds();
-          this.logger.warn(
-            { error, userSegment, traceId, spanId },
-            'Reports dashboard cache key enumeration failed',
-          );
-          continue;
-        }
-        const matching = keys.filter((key) => key.includes(userSegment));
-        await Promise.all(
-          matching.map((key) =>
-            this.cache.del(key).catch((error: unknown) => {
-              const { traceId, spanId } = getActiveTraceIds();
-              this.logger.warn(
-                { error, key, traceId, spanId },
-                'Reports dashboard cache del failed',
-              );
-            }),
-          ),
-        );
-      }
+  /** Cache key holding the current generation for `userId`. */
+  private static cacheVersionKey(userId: string): string {
+    return `${ReportsService.CACHE_KEY_PREFIX}:version:${userId}`;
+  }
+
+  /**
+   * Current cache generation for `userId`, or 0 when unset/unreadable.
+   *
+   * A read failure degrades to 0 rather than throwing: this runs on the read
+   * path, where the DB is the source of truth and a cache problem must not
+   * become a 5xx. Worst case the reader computes a key from generation 0 and
+   * misses the cache once — the same fail-open shape as `get`/`set` above.
+   */
+  private async readCacheVersion(userId: string): Promise<number> {
+    try {
+      const stored = await this.cache.get<number>(
+        ReportsService.cacheVersionKey(userId),
+      );
+      return typeof stored === 'number' && Number.isFinite(stored) ? stored : 0;
     } catch (error) {
       const { traceId, spanId } = getActiveTraceIds();
       this.logger.warn(
         { error, userId, traceId, spanId },
-        'Reports dashboard cache invalidation failed',
+        'Reports dashboard cache version read failed — treating as generation 0',
       );
+      return 0;
     }
   }
 }
