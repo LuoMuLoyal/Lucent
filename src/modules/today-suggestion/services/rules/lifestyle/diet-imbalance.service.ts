@@ -12,7 +12,7 @@ import {
 import {
   DIET_IMBALANCE_BASE_SCORE,
   DIET_IMBALANCE_MIN_DAYS,
-} from '../../../constants/thresholds.constants.js';
+} from '../../../domain/rule/thresholds.js';
 import type { MealAnalysisItemKind } from '../../../../daily-records/index.js';
 
 interface DailyDietFacets {

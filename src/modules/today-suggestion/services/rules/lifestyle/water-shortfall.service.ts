@@ -16,7 +16,7 @@ import {
   WATER_SHORTFALL_BASE_SCORE,
   WATER_SHORTFALL_MIN_DAYS,
   PERCENT_SCALE,
-} from '../../../constants/thresholds.constants.js';
+} from '../../../domain/rule/thresholds.js';
 
 /**
  * Rule: water_behind_target

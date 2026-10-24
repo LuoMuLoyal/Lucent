@@ -8,7 +8,7 @@ import {
 import { DoseLogStatus, type Prisma } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
-import { MISSED_DOSE_GRACE_MINUTES } from '../../constants/thresholds.constants.js';
+import { MISSED_DOSE_GRACE_MINUTES } from '../../domain/rule/thresholds.js';
 import type { SuggestionSignal } from '../../types/signal.types.js';
 import { TriggerType } from '../../types/suggestion.types.js';
 import { MedicationTimeResolverService } from './medication-time-resolver.service.js';

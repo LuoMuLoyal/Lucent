@@ -15,7 +15,7 @@ import {
   SLEEP_SHORTFALL_MINUTES,
   SLEEP_SHORTFALL_MIN_DAYS,
   MINUTES_PER_HOUR,
-} from '../../../constants/thresholds.constants.js';
+} from '../../../domain/rule/thresholds.js';
 
 /**
  * Rule: sleep_shortfall

@@ -17,7 +17,7 @@ import {
   MAX_HOUR_OF_DAY,
   MAX_MINUTE_OF_HOUR,
   MINUTES_PER_HOUR,
-} from '../../../constants/thresholds.constants.js';
+} from '../../../domain/rule/thresholds.js';
 
 /**
  * Rule: missed_dose_pending

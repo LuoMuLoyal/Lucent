@@ -10,13 +10,13 @@ import {
   SuggestionConfidence,
 } from '../../../types/suggestion.types.js';
 import { BaselineDimension } from '../../../types/baseline.types.js';
-import { symptomSeverityScore } from '../../../constants/symptom-severity.constants.js';
+import { symptomSeverityScore } from '../../../domain/rule/symptom-severity.js';
 import {
   TREND_MIN_CONSECUTIVE_DAYS,
   TREND_MIN_RECORDS,
   DETERIORATING_TREND_BASE_SCORE,
   DETERIORATING_TREND_HIGH_CONFIDENCE_DAYS,
-} from '../../../constants/thresholds.constants.js';
+} from '../../../domain/rule/thresholds.js';
 
 interface SymptomEntry {
   date: string;

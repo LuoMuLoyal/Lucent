@@ -9,7 +9,7 @@ import {
   TriggerType,
   SuggestionConfidence,
 } from '../../../types/suggestion.types.js';
-import { DATE_ONLY_LENGTH } from '../../../constants/thresholds.constants.js';
+import { DATE_ONLY_LENGTH } from '../../../domain/rule/thresholds.js';
 
 interface EventCheckIn {
   date: string;

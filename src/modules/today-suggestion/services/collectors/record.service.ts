@@ -24,8 +24,8 @@ import type {
 import type { SuggestionSignal } from '../../types/signal.types.js';
 import { TriggerType } from '../../types/suggestion.types.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
-import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants.js';
-import { symptomSeverityScore } from '../../constants/symptom-severity.constants.js';
+import { TREND_LOOKBACK_DAYS } from '../../domain/rule/thresholds.js';
+import { symptomSeverityScore } from '../../domain/rule/symptom-severity.js';
 import { SleepTrendBuilderService } from './sleep-trend-builder.service.js';
 
 /**

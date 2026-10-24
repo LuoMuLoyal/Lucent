@@ -12,7 +12,7 @@ import {
 import {
   COVERAGE_BASE_SCORE,
   COVERAGE_EMPTY_TODAY_SCORE_OFFSET,
-} from '../../../constants/thresholds.constants.js';
+} from '../../../domain/rule/thresholds.js';
 
 /**
  * Rule: coverage_explanation

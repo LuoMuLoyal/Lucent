@@ -16,7 +16,7 @@ import {
   MOOD_LOW_THRESHOLD,
   SLEEP_SHORTFALL_MINUTES,
   MINUTES_PER_HOUR,
-} from '../../../constants/thresholds.constants.js';
+} from '../../../domain/rule/thresholds.js';
 
 interface DailyMood {
   date: string;
