@@ -6,6 +6,7 @@ import type {
   MedicineRiskSeverity,
   MedicineRiskLevel,
 } from './risk-model.js';
+import { deriveRiskScore, levelForScore } from '../safety/risk-assessment.js';
 import {
   type MedicineDetailWrapper,
   getAllSourceIngredientTokens,
@@ -28,32 +29,12 @@ import {
 } from './allergy-severity.js';
 
 // ─── Risk Score calculation ─────────────────────────────────────────────────
-
-function calculateRiskScore(
-  findings: MedicineRiskFinding[],
-  coverageIssues: MedicineRiskCoverageIssue[],
-  redFlags: MedicineRedFlag[],
-): number {
-  let score = 0;
-  for (const f of findings) {
-    if (f.severity === 'high') score += 30;
-    else if (f.severity === 'medium') score += 15;
-    else score += 5;
-  }
-  score += coverageIssues.length * 3;
-  for (const rf of redFlags) {
-    if (rf.rule === 'severeAllergy') score += 40;
-    else score += 10;
-  }
-  return Math.min(100, score);
-}
-
-function scoreToLevel(score: number): MedicineRiskLevel {
-  if (score <= 10) return 'safe';
-  if (score <= 40) return 'caution';
-  if (score <= 70) return 'risk';
-  return 'danger';
-}
+//
+// The weights and band thresholds live in the `RiskAssessment` aggregate
+// (`domain/safety/risk-assessment.ts`), which owns the score as an invariant.
+// Detection calls them rather than carrying its own copy: two copies of the
+// same formula would let a stored score disagree with the findings stored
+// beside it.
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 
@@ -115,8 +96,8 @@ export class RiskDetectionService {
       coverageIssues,
     );
 
-    const riskScore = calculateRiskScore(findings, coverageIssues, redFlags);
-    const riskLevel = scoreToLevel(riskScore);
+    const riskScore = deriveRiskScore(findings, coverageIssues, redFlags);
+    const riskLevel = levelForScore(riskScore);
 
     return { findings, coverageIssues, redFlags, riskScore, riskLevel };
   }

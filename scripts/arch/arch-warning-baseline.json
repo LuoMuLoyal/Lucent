@@ -125,7 +125,6 @@
     "eslint|no-magic-numbers|src/modules/medicines/adapters/http/dto/recognition.ts",
     "eslint|no-magic-numbers|src/modules/medicines/adapters/http/dto/source.ts",
     "eslint|no-magic-numbers|src/modules/medicines/application/use_cases/check-risk.ts",
-    "eslint|no-magic-numbers|src/modules/medicines/domain/services/risk-scoring.ts",
     "eslint|no-magic-numbers|src/modules/medicines/infrastructure/cache/store.constants.ts",
     "eslint|no-magic-numbers|src/modules/medicines/infrastructure/llm/schemas/risk-check.ts",
     "eslint|no-magic-numbers|src/modules/medicines/infrastructure/persistence/cn.ts",

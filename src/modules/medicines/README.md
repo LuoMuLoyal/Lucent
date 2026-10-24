@@ -16,7 +16,14 @@ owner: backend
 - Catalog 聚合根：`Medicine`（双源）、`ImportBatch`（导入对账）、
   `SafetyTip`（安全提示内容）。搜索/详情/序列是 **MedicineFact 只读投影**，
   为读模型，不承担不变量。
-- Safety 聚合根：`RiskAssessment`（一次请求一次评估，结果不可改写）。
+- Safety 聚合根：`RiskAssessment`（`domain/safety/`，一次请求一次评估，完成后不可
+  改写）。它的两条真不变量：**静态评估的分数必须由 findings 派生**（调用方给不了
+  分，分数与 findings 因此无法漂移）、**覆盖恒等式
+  `currentMedicineCount === checkedMedicineCount + coverageIssues.length`**
+  （查不到详情的药必须显式计入 coverage，不能静默消失）。两条都有脱离 Prisma 的
+  纯单测（`domain/safety/risk-assessment.spec.ts`）。
+  「一次请求一次评估」是应用层职责、「落库后无 update 路径」是持久化层职责——
+  它们不是聚合不变量，别塞进聚合。
 - 领域事件（计划）：`medicine_imported`、`risk_assessment_completed` 等，
   经 outbox 发布；目录事实以 `MedicineFact` 契约面向下游发布。
 
@@ -24,6 +31,8 @@ owner: backend
 
 - `domain/` — `medicine/medicine-source.ts`（来源枚举与默认源）、
   `relations/{relation,relations}.ts`（图关系类型与 `GraphReader` port）、
+  `safety/{risk-assessment,risk-finding,risk-assessments}.ts`（Medication Safety
+  聚合与它的 repository port）、
   `services/{risk-model,risk-scoring,risk-mechanism,allergy-severity,ingredient-canonicalization,half-life,half-life-gap}.ts`。
   纯领域，不 import 上层。
 - `application/ports/` — 每个外部依赖一个端口（`knowledge` / `knowledge-view` /
@@ -276,10 +285,11 @@ database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>
 ## Tests
 
 `adapters/http/medicines.controller.spec.ts`、
-`application/use_cases/{medicines,check_risk,import_catalog}.spec.ts`、
-`adapters/{events,queue}/*.spec.ts`、`domain/services/*.spec.ts`、
+`application/use_cases/{medicines,check-risk,safety-tips-admin}.spec.ts`、
+`application/read_models/medicine-card.format.spec.ts`、
+`adapters/{events,queue}/*.spec.ts`、`domain/{services,relations,safety}/*.spec.ts`、
 `infrastructure/persistence/*.spec.ts`、`infrastructure/cache/*.spec.ts`、
-`infrastructure/llm/**/*.spec.ts`、`adapters/http/presenters/medicine.spec.ts`。
+`infrastructure/graph/*.spec.ts`、`infrastructure/llm/**/*.spec.ts`。
 
 用例测试只对着端口断言（不 mock Prisma）：查询形状与 ISO 序列化由
 `infrastructure/persistence/*.spec.ts` 覆盖，用例测试覆盖审计、缓存失效、
