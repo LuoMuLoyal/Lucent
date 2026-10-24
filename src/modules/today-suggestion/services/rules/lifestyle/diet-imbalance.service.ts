@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
@@ -72,7 +71,6 @@ const WATCH_KIND_TIE_BREAK_ORDER: readonly MealAnalysisItemKind[] = [
  * 为什么不需要基线：`facets` 是模型对「这一餐」的直接判断（油炸偏多、蔬菜偏少），
  * 不是需要跟个人历史比较才成立的偏差；低置信 + 不做医疗断言已经足够克制。
  */
-@Injectable()
 export class DietImbalanceRuleService implements SuggestionRule {
   readonly ruleId = 'diet_imbalance';
   readonly ruleVersion = '1.0.0';

@@ -35,22 +35,14 @@ import { FeedbackService } from './services/feedback/recorder.service.js';
 import { BaselineService } from './services/lifecycle/baseline.service.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
 import { EscalationService } from './services/notification/escalation.service.js';
-import { DietImbalanceRuleService } from './services/rules/lifestyle/diet-imbalance.service.js';
-import { CoverageRuleService } from './services/rules/medication/coverage.service.js';
-import { EventCheckInTrendRuleService } from './services/rules/health/event-check-in-trend.service.js';
-import { DeterioratingTrendRuleService } from './services/rules/lifestyle/deteriorating-trend.service.js';
-import { MissedDoseRuleService } from './services/rules/medication/missed-dose.service.js';
-import { MoodSleepRuleService } from './services/rules/sleep/mood-sleep.service.js';
 import { RegistryService } from './services/rules/registry.service.js';
 import { RuleVersionRegistry } from './services/rules/rule-version-registry.service.js';
-import { SleepShortfallRuleService } from './services/rules/sleep/sleep-shortfall.service.js';
-import { WaterShortfallRuleService } from './services/rules/lifestyle/water-shortfall.service.js';
 import { MaterializationStore } from './services/materialization/store.service.js';
 import { RecomputeQueueService } from './services/recompute/queue.service.js';
 import { RecomputeEventTriggerService } from './services/recompute/event-trigger.service.js';
 import { SuggestionRecomputeWorkerService } from './services/recompute/worker.service.js';
 import { SuggestionService } from './services/suggestion.service.js';
-import type { SuggestionRule } from './types/rule.types.js';
+import { buildSuggestionRules } from './services/rules/rule-catalog.js';
 
 /**
  * Today Suggestion module — the backend suggestion engine.
@@ -79,17 +71,9 @@ import type { SuggestionRule } from './types/rule.types.js';
     RecordCollectorService,
     ProfileCollectorService,
     HealthEventCollectorService,
-    // Rules (injectable, registered in registry at startup)
+    // Rule registries (stateful; the rules themselves are plain objects)
     RegistryService,
     RuleVersionRegistry,
-    MissedDoseRuleService,
-    WaterShortfallRuleService,
-    SleepShortfallRuleService,
-    DeterioratingTrendRuleService,
-    DietImbalanceRuleService,
-    MoodSleepRuleService,
-    CoverageRuleService,
-    EventCheckInTrendRuleService,
     // Arbitration
     ArbitrationService,
     ScoringService,
@@ -131,31 +115,10 @@ import type { SuggestionRule } from './types/rule.types.js';
   ],
 })
 export class TodaySuggestionModule implements OnModuleInit {
-  constructor(
-    private readonly registry: RegistryService,
-    private readonly missedDoseRule: MissedDoseRuleService,
-    private readonly waterShortfallRule: WaterShortfallRuleService,
-    private readonly sleepShortfallRule: SleepShortfallRuleService,
-    private readonly deterioratingTrendRule: DeterioratingTrendRuleService,
-    private readonly dietImbalanceRule: DietImbalanceRuleService,
-    private readonly moodSleepRule: MoodSleepRuleService,
-    private readonly coverageRule: CoverageRuleService,
-    private readonly eventCheckInTrendRule: EventCheckInTrendRuleService,
-  ) {}
+  constructor(private readonly registry: RegistryService) {}
 
   onModuleInit() {
-    const rules: SuggestionRule[] = [
-      this.missedDoseRule,
-      this.waterShortfallRule,
-      this.sleepShortfallRule,
-      this.deterioratingTrendRule,
-      this.dietImbalanceRule,
-      this.moodSleepRule,
-      this.coverageRule,
-      this.eventCheckInTrendRule,
-    ];
-
-    for (const rule of rules) {
+    for (const rule of buildSuggestionRules()) {
       this.registry.register(rule);
     }
   }

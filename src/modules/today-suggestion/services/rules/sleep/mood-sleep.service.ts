@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
@@ -15,6 +14,8 @@ import {
   MOOD_SLEEP_BASE_SCORE,
   MOOD_SLEEP_MIN_DAYS,
   MOOD_LOW_THRESHOLD,
+  SLEEP_SHORTFALL_MINUTES,
+  MINUTES_PER_HOUR,
 } from '../../../constants/thresholds.constants.js';
 
 interface DailyMood {
@@ -46,7 +47,6 @@ interface DailyDuration {
  * 3. Most recent sleep duration is below 6 hours
  * 4. Mood and sleep dates overlap
  */
-@Injectable()
 export class MoodSleepRuleService implements SuggestionRule {
   readonly ruleId = 'mood_sleep_correlation';
   readonly ruleVersion = '1.0.0';
@@ -100,13 +100,13 @@ export class MoodSleepRuleService implements SuggestionRule {
       return null;
     }
 
-    // Check most recent sleep is below 6 hours
+    // Check most recent sleep is below the short-sleep threshold
     const sortedDurations = [...dailyDurations].sort((a, b) =>
       a.date.localeCompare(b.date),
     );
     const latestDuration =
       sortedDurations[sortedDurations.length - 1]?.durationMinutes;
-    if (latestDuration == null || latestDuration >= 360) {
+    if (latestDuration == null || latestDuration >= SLEEP_SHORTFALL_MINUTES) {
       return null;
     }
 
@@ -120,8 +120,8 @@ export class MoodSleepRuleService implements SuggestionRule {
       return null;
     }
 
-    const hours = Math.floor(latestDuration / 60);
-    const mins = latestDuration % 60;
+    const hours = Math.floor(latestDuration / MINUTES_PER_HOUR);
+    const mins = latestDuration % MINUTES_PER_HOUR;
     const avgMood = (
       sortedMoods.reduce((sum, m) => sum + m.moodScore, 0) / sortedMoods.length
     ).toFixed(1);

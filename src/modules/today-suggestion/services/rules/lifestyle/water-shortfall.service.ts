@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { ObservedMetric } from '../../../../../common/index.js';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
@@ -16,6 +15,7 @@ import {
   WATER_SHORTFALL_THRESHOLD,
   WATER_SHORTFALL_BASE_SCORE,
   WATER_SHORTFALL_MIN_DAYS,
+  PERCENT_SCALE,
 } from '../../../constants/thresholds.constants.js';
 
 /**
@@ -27,7 +27,6 @@ import {
  * AND it is afternoon or later AND the user has at least 2 days
  * of recent water records (baseline check).
  */
-@Injectable()
 export class WaterShortfallRuleService implements SuggestionRule {
   readonly ruleId = 'water_behind_target';
   readonly ruleVersion = '1.0.0';
@@ -127,7 +126,7 @@ export class WaterShortfallRuleService implements SuggestionRule {
         params: {
           observedMl: observedValue,
           targetMl,
-          completionRate: Math.round(completionRate * 100),
+          completionRate: Math.round(completionRate * PERCENT_SCALE),
           consecutiveDays,
         },
       },

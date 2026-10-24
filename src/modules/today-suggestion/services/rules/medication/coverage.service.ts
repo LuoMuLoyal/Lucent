@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
@@ -10,7 +9,10 @@ import {
   TriggerType,
   SuggestionConfidence,
 } from '../../../types/suggestion.types.js';
-import { COVERAGE_BASE_SCORE } from '../../../constants/thresholds.constants.js';
+import {
+  COVERAGE_BASE_SCORE,
+  COVERAGE_EMPTY_TODAY_SCORE_OFFSET,
+} from '../../../constants/thresholds.constants.js';
 
 /**
  * Rule: coverage_explanation
@@ -21,7 +23,6 @@ import { COVERAGE_BASE_SCORE } from '../../../constants/thresholds.constants.js'
  * (missing birthDate, sexAtBirth, or heightCm) OR
  * when there are zero records today.
  */
-@Injectable()
 export class CoverageRuleService implements SuggestionRule {
   readonly ruleId = 'coverage_explanation';
   readonly ruleVersion = '1.0.0';
@@ -108,7 +109,8 @@ export class CoverageRuleService implements SuggestionRule {
             route: '/record',
             authRequired: true,
           },
-          priorityScore: COVERAGE_BASE_SCORE - 50,
+          priorityScore:
+            COVERAGE_BASE_SCORE - COVERAGE_EMPTY_TODAY_SCORE_OFFSET,
           confidence: SuggestionConfidence.HIGH,
           notificationEligible: false,
           subtype: 'empty_today',

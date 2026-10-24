@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
@@ -10,6 +9,7 @@ import {
   TriggerType,
   SuggestionConfidence,
 } from '../../../types/suggestion.types.js';
+import { DATE_ONLY_LENGTH } from '../../../constants/thresholds.constants.js';
 
 interface EventCheckIn {
   date: string;
@@ -41,7 +41,6 @@ const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
  * The resulting candidate is high-confidence, high-priority, and eligible for
  * notification escalation via EscalationService.
  */
-@Injectable()
 export class EventCheckInTrendRuleService implements SuggestionRule {
   readonly ruleId = 'event_check_in_trend';
   readonly ruleVersion = '1.0.0';
@@ -137,7 +136,7 @@ export class EventCheckInTrendRuleService implements SuggestionRule {
     for (let offset = 0; offset < LOOKBACK_DAYS; offset++) {
       const current = new Date(day);
       current.setUTCDate(current.getUTCDate() - offset);
-      window.push(current.toISOString().slice(0, 10));
+      window.push(current.toISOString().slice(0, DATE_ONLY_LENGTH));
     }
     return window;
   }

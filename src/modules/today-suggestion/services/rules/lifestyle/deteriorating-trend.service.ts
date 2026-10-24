@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
@@ -16,6 +15,7 @@ import {
   TREND_MIN_CONSECUTIVE_DAYS,
   TREND_MIN_RECORDS,
   DETERIORATING_TREND_BASE_SCORE,
+  DETERIORATING_TREND_HIGH_CONFIDENCE_DAYS,
 } from '../../../constants/thresholds.constants.js';
 
 interface SymptomEntry {
@@ -41,7 +41,6 @@ interface SymptomEntry {
  * 不再从 `value` / `note` 的文本里猜数字或关键词——那条启发式对客户端实际写入的
  * 本地化文案（"轻度" / "Mild"）从不命中，导致规则长期恒不触发。
  */
-@Injectable()
 export class DeterioratingTrendRuleService implements SuggestionRule {
   readonly ruleId = 'deteriorating_symptom';
   readonly ruleVersion = '1.0.0';
@@ -132,7 +131,7 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
         },
         priorityScore: DETERIORATING_TREND_BASE_SCORE,
         confidence:
-          daysCount >= 4
+          daysCount >= DETERIORATING_TREND_HIGH_CONFIDENCE_DAYS
             ? SuggestionConfidence.HIGH
             : SuggestionConfidence.MEDIUM,
         notificationEligible: false,
@@ -144,7 +143,10 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
             daysCount,
             latestValue,
             totalRecords,
-            confidence: daysCount >= 4 ? 'high' : 'medium',
+            confidence:
+              daysCount >= DETERIORATING_TREND_HIGH_CONFIDENCE_DAYS
+                ? 'high'
+                : 'medium',
           },
         },
       };

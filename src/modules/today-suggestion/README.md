@@ -56,10 +56,27 @@ ADR-0024 计划中的聚合边界(迁移到四层骨架时生效,当前仍是 ru
 - `services/rules/` — 规则注册表与 8 条规则(medication/lifestyle/sleep/health)，
   其中 `diet_imbalance`(lifestyle)消费 `diet_facets`：同一饮食维度在窗口内至少
   两天值得留意才给候选，`high` 侧看 fried/sugar/sodium/fat/portion/carb，
-  `low` 侧看 vegetable/fruit/protein。规则在
-  `today-suggestion.module.ts` 的 `onModuleInit` 注册到 `RegistryService`
-  (重名直接抛错)，规则码与 `product-events` 白名单的漂移由
-  `src/modules/product-events/services/events.service.spec.ts` 的 drift-guard 锁住。
+  `low` 侧看 vegetable/fruit/protein。
+  **规则是纯对象，不是 Nest provider**：8 条规则由 `services/rules/rule-catalog.ts`
+  的 `buildSuggestionRules()` 构造，`today-suggestion.module.ts` 的 `onModuleInit`
+  把它们注册进 `RegistryService`(重名直接抛错)。规则类**没有 `@Injectable()` 也
+  没有构造依赖**——这是刻意的，且两道防线都**实测过**：
+  1. **给规则加构造依赖 → 编译期失败**。规则只由 `rule-catalog.ts` 的
+     `new XxxRuleService()` 构造，多一个必填参数即 `TS2554`（实测：catalog 与
+     `product-events` 的 drift-guard spec 同时报错）。
+  2. **绕过目录去注入规则 → 启动时失败**。规则不再是 provider，任何
+     `private readonly rule: XxxRuleService` 都会让 Nest 在模块初始化时抛
+     `Nest can't resolve dependencies of ...`（实测）。
+
+  第 2 条是**启动时**、不是编译期——DI 注入本身是合法 TS，类型系统拦不住；
+  要变成编译期得把规则改成对象字面量而非 class，当前没这么做（8 条规则带
+  `BaselineDimension` 等实例字段，class 更贴合）。
+  `randomUUID()` 留在规则内(候选 id 不落库、只活在一次请求里)，不注入 id 生成器
+  ——注入会给纯函数加构造依赖，恰好破坏这条性质。
+  规则码与 `product-events` 白名单的漂移由
+  `src/modules/product-events/services/events.service.spec.ts` 的 drift-guard 锁住；
+  目录本身(8 条都在、无重名)由 `services/rules/rule-catalog.spec.ts` 锁住。
+
 - `services/arbitration/` — 打分(scoring)、抑制(suppression)、仲裁(arbiter)。
 - `services/lifecycle/` — 生命周期管理(manager)与基线判定(baseline)。
 - `services/action-label.ts` — 卡片动作/证据标签的本地化解析,`toDto`(重算内联路径)
@@ -78,3 +95,7 @@ ADR-0024 计划中的聚合边界(迁移到四层骨架时生效,当前仍是 ru
 
 `today-suggestion.controller.spec.ts`、`schemas/explanation.schema.spec.ts`、
 `services/**/*.spec.ts`(arbitration/rules/collectors/lifecycle/recompute 逐文件覆盖)
+
+规则 spec **不需要 DI 容器**：10 个规则 spec 全部 `new XxxRuleService()` 直接构造。
+规则没有构造参数，所以「去 `@Injectable()`」是消除框架依赖 + 阻止未来注入，
+不是「让规则变得可测」——它们本来就可测。

@@ -7,6 +7,28 @@ export const MISSED_DOSE_BASE_SCORE = 800;
 /** Score increment per overdue 10 minutes. */
 export const MISSED_DOSE_OVERDUE_DIVISOR = 10;
 
+/**
+ * Upper bounds of a wall-clock time, used to reject malformed `scheduledHour` /
+ * `scheduledMinute` payload values before a rule formats them into a label.
+ *
+ * A 25:00 label rendered from a bad payload would look like a real schedule
+ * time, so the rule drops the signal instead.
+ */
+export const MAX_HOUR_OF_DAY = 23;
+export const MAX_MINUTE_OF_HOUR = 59;
+
+/** Minutes in an hour — the divisor for every "Xh Ym" label in this module. */
+export const MINUTES_PER_HOUR = 60;
+
+/** Percent scale for rendering a 0–1 ratio in copy params. */
+export const PERCENT_SCALE = 100;
+
+/**
+ * Length of a `YYYY-MM-DD` date prefix, for slicing an ISO timestamp down to
+ * its date part.
+ */
+export const DATE_ONLY_LENGTH = 10;
+
 /** Fraction of daily water target below which a behavior-advice card fires. */
 export const WATER_SHORTFALL_THRESHOLD = 0.5;
 
@@ -28,10 +50,23 @@ export const TREND_MIN_RECORDS = 3;
 /** Base priority score for a deteriorating-trend candidate. */
 export const DETERIORATING_TREND_BASE_SCORE = 700;
 
+/**
+ * Days of sustained worsening at which the trend card is shown with high
+ * confidence rather than medium.
+ */
+export const DETERIORATING_TREND_HIGH_CONFIDENCE_DAYS = 4;
+
 /** Base priority score for a sleep-shortfall candidate. */
 export const SLEEP_SHORTFALL_BASE_SCORE = 450;
 
-/** Sleep duration below which a shortfall card fires (minutes). */
+/**
+ * Sleep duration below which sleep counts as short (minutes).
+ *
+ * Shared deliberately by `sleep_shortfall` (which advises on it) and
+ * `mood_sleep` (which correlates it with mood): both ask about the same
+ * product notion of "short sleep", so one number keeps them from drifting
+ * apart and disagreeing about what short means.
+ */
 export const SLEEP_SHORTFALL_MINUTES = 360; // 6 hours
 
 /** Minimum consecutive sleep records before sleep-shortfall fires. */
@@ -39,6 +74,13 @@ export const SLEEP_SHORTFALL_MIN_DAYS = 2;
 
 /** Base priority score for a coverage-explanation candidate. */
 export const COVERAGE_BASE_SCORE = 200;
+
+/**
+ * How far below {@link COVERAGE_BASE_SCORE} the "nothing recorded today" card
+ * scores: it is the weakest coverage signal, so it must not outrank the
+ * missing-profile and empty-medication-box variants.
+ */
+export const COVERAGE_EMPTY_TODAY_SCORE_OFFSET = 50;
 
 /** Base priority score for a diet-imbalance candidate. */
 export const DIET_IMBALANCE_BASE_SCORE = 500;

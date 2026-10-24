@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
@@ -14,6 +14,9 @@ import {
   MISSED_DOSE_GRACE_MINUTES,
   MISSED_DOSE_BASE_SCORE,
   MISSED_DOSE_OVERDUE_DIVISOR,
+  MAX_HOUR_OF_DAY,
+  MAX_MINUTE_OF_HOUR,
+  MINUTES_PER_HOUR,
 } from '../../../constants/thresholds.constants.js';
 
 /**
@@ -24,7 +27,6 @@ import {
  * Fires when a medicine reminder is past its grace period and remains
  * unconfirmed. It does not infer a missed dose from a generic pending signal.
  */
-@Injectable()
 export class MissedDoseRuleService implements SuggestionRule {
   readonly ruleId = 'missed_dose_pending';
   readonly ruleVersion = '1.0.0';
@@ -67,10 +69,10 @@ export class MissedDoseRuleService implements SuggestionRule {
           typeof medicineName === 'string' &&
           Number.isInteger(scheduledHour) &&
           scheduledHour >= 0 &&
-          scheduledHour <= 23 &&
+          scheduledHour <= MAX_HOUR_OF_DAY &&
           Number.isInteger(scheduledMinute) &&
           scheduledMinute >= 0 &&
-          scheduledMinute <= 59
+          scheduledMinute <= MAX_MINUTE_OF_HOUR
         );
       })
       .sort((a, b) => {
@@ -90,8 +92,8 @@ export class MissedDoseRuleService implements SuggestionRule {
     const overdueMinutes = signal.payload['overdueMinutes'] as number;
 
     const timeLabel = `${String(scheduledHour).padStart(2, '0')}:${String(scheduledMinute).padStart(2, '0')}`;
-    const hoursOverdue = Math.floor(overdueMinutes / 60);
-    const minsRemainder = overdueMinutes % 60;
+    const hoursOverdue = Math.floor(overdueMinutes / MINUTES_PER_HOUR);
+    const minsRemainder = overdueMinutes % MINUTES_PER_HOUR;
 
     return {
       candidateId: randomUUID(),

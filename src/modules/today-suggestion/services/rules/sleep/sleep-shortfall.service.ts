@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types.js';
 
@@ -15,6 +14,7 @@ import {
   SLEEP_SHORTFALL_BASE_SCORE,
   SLEEP_SHORTFALL_MINUTES,
   SLEEP_SHORTFALL_MIN_DAYS,
+  MINUTES_PER_HOUR,
 } from '../../../constants/thresholds.constants.js';
 
 /**
@@ -25,7 +25,6 @@ import {
  * Fires when the most recent sleep record shows a duration
  * below 6 hours AND the user has at least 2 days of sleep records.
  */
-@Injectable()
 export class SleepShortfallRuleService implements SuggestionRule {
   readonly ruleId = 'sleep_shortfall';
   readonly ruleVersion = '1.0.0';
@@ -69,8 +68,8 @@ export class SleepShortfallRuleService implements SuggestionRule {
       return null;
     }
 
-    const hours = Math.floor(durationMinutes / 60);
-    const mins = durationMinutes % 60;
+    const hours = Math.floor(durationMinutes / MINUTES_PER_HOUR);
+    const mins = durationMinutes % MINUTES_PER_HOUR;
 
     return {
       candidateId: randomUUID(),
