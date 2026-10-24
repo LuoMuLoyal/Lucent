@@ -304,20 +304,6 @@ ESM 化后遗留清单与后续跟进：
 **验收**：半衰期 3 小时的药漏 2 个半衰期会提示、同一药一天只提示一次；半衰期 102 小时的
 药同样缺口不提示；`half_life` 缺失的药行为与接入前完全一致。
 
-### 用药全景接健康事件关联（2026-10-24，当前只有 unattributed 一组）
-
-`GET /api/v1/medicines/medication-overview` 的 `sourceOverlaps` 目前把所有条目都归进
-`unattributed`：`MedicineRiskRecordsPort.loadHealthContext` 返回的 `CurrentMedicineRow`
-没有健康事件字段，而这个 port 同时服务风险检查，加字段会牵动既有行为。
-
-**接入方式**：给 `CurrentMedicineRow` 加 `healthEventIds: string[]`（源自
-`HealthEventMedicine`，多对多），在 `loadHealthContext` 的 `currentMedicines` include 里
-带上 `healthEventMedicines`。领域层已经按数组建模，不需要改
-`domain/services/medication-overview.ts`。
-
-**验收**：一个药挂在两条病程下时，在两个分组里都出现；没有事件的条目仍归
-`unattributed`。
-
 ### Prisma 药品知识库回填（2026-10-24，独立工作，不阻塞图查询）
 
 本机 dev 库（`127.0.0.1:15432/lucent`）实测与应有规模差距很大：
