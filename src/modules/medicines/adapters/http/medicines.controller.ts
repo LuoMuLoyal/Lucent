@@ -60,6 +60,9 @@ import {
 import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
 import { MEDICINES_BYPASS_CACHE_HEADER } from '../../application/ports/cache.js';
 import { MedicinesService } from '../../application/use_cases/medicines.js';
+import { MedicineSearchReadModel } from '../../application/read_models/medicine-card.js';
+import { MedicineDetailReadModel } from '../../application/read_models/medicine-detail.js';
+import { MedicineSequenceReadModel } from '../../application/read_models/medicine-sequence.js';
 
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';
 import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
@@ -74,6 +77,9 @@ import {
 @Controller('medicines')
 export class MedicinesController {
   constructor(
+    private readonly searchReadModel: MedicineSearchReadModel,
+    private readonly detailReadModel: MedicineDetailReadModel,
+    private readonly sequenceReadModel: MedicineSequenceReadModel,
     private readonly medicinesService: MedicinesService,
     private readonly recognitionQueueService: MedicineRecognitionQueueService,
     private readonly riskCheckService: MedicineRiskCheckService,
@@ -131,7 +137,7 @@ export class MedicinesController {
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     const result = await unwrapResult(
-      this.medicinesService.searchWithCache(
+      this.searchReadModel.searchWithCache(
         query,
         this.shouldBypassCache(bypassCacheHeader),
       ),
@@ -167,7 +173,7 @@ export class MedicinesController {
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     const result = await unwrapResult(
-      this.medicinesService.getDetailWithCache(
+      this.detailReadModel.getWithCache(
         id,
         query,
         this.shouldBypassCache(bypassCacheHeader),
@@ -201,7 +207,7 @@ export class MedicinesController {
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     return unwrapResult(
-      this.medicinesService.getSequences(
+      this.sequenceReadModel.get(
         id,
         query,
         this.shouldBypassCache(bypassCacheHeader),

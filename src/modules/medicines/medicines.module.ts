@@ -10,6 +10,9 @@ import { MedicinesRelationsController } from './adapters/http/medicines-relation
 import { MedicationOverviewController } from './adapters/http/medication-overview.controller.js';
 import { MedicationOverviewService } from './application/use_cases/medication-overview.js';
 import { MedicinesService } from './application/use_cases/medicines.js';
+import { MedicineSearchReadModel } from './application/read_models/medicine-card.js';
+import { MedicineDetailReadModel } from './application/read_models/medicine-detail.js';
+import { MedicineSequenceReadModel } from './application/read_models/medicine-sequence.js';
 import {
   SafetyTipsAdminService,
   QaChunksAdminService,
@@ -53,6 +56,9 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
   ],
   providers: [
     MedicinesService,
+    MedicineSearchReadModel,
+    MedicineDetailReadModel,
+    MedicineSequenceReadModel,
     SafetyTipsAdminService,
     QaChunksAdminService,
     MedicineRecognitionQueueService,

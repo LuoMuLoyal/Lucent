@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { MedicineRiskCheckService } from './check-risk.js';
-import type { MedicinesService } from './medicines.js';
+import type { MedicineDetailReadModel } from '../read_models/medicine-detail.js';
 import type {
   MedicineRiskCheckRecordRow,
   MedicineReminderRow,
@@ -39,8 +39,8 @@ function build() {
     listReminders: vi.fn(),
   } as unknown as MedicineRiskRecordsPort;
   const medicinesService = {
-    getDetailWithCache: vi.fn(),
-  } as unknown as MedicinesService;
+    getWithCache: vi.fn(),
+  } as unknown as MedicineDetailReadModel;
   const llmGenerator = {
     hasAnalysisModel: vi.fn(() => true),
     generate: vi.fn(),
@@ -213,7 +213,7 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     });
-    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+    vi.mocked(medicinesService.getWithCache).mockReturnValue(
       okAsync({
         id: 'detail-cn-1',
         name: '对乙酰氨基酚',
@@ -225,7 +225,7 @@ describe('MedicineRiskCheckService', () => {
     const result = await unwrap(svc.runStaticCheck('u1'));
 
     // m1 走 detail 获取;m2/m3 无合法 sourceRefId,落入 uncovered
-    expect(medicinesService.getDetailWithCache).toHaveBeenCalledTimes(1);
+    expect(medicinesService.getWithCache).toHaveBeenCalledTimes(1);
     expect(riskDetection.evaluateStaticRisk).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({
@@ -264,7 +264,7 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     });
-    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+    vi.mocked(medicinesService.getWithCache).mockReturnValue(
       errAsync(
         createDomainFailure({
           kind: 'internal',
@@ -321,13 +321,12 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     });
-    vi.mocked(medicinesService.getDetailWithCache).mockImplementation(
-      (id: string) =>
-        okAsync(
-          (id === 'cn-1'
-            ? { id: 'cn-1', name: '对乙酰氨基酚', source: 'cn' }
-            : { id, name: `候选药品-${id}`, source: 'cn' }) as never,
-        ),
+    vi.mocked(medicinesService.getWithCache).mockImplementation((id: string) =>
+      okAsync(
+        (id === 'cn-1'
+          ? { id: 'cn-1', name: '对乙酰氨基酚', source: 'cn' }
+          : { id, name: `候选药品-${id}`, source: 'cn' }) as never,
+      ),
     );
     vi.mocked(riskDetection.evaluateStaticRisk).mockReturnValue({
       findings: [
@@ -353,7 +352,7 @@ describe('MedicineRiskCheckService', () => {
       }),
     );
 
-    expect(medicinesService.getDetailWithCache).toHaveBeenCalledWith(
+    expect(medicinesService.getWithCache).toHaveBeenCalledWith(
       'cn-2',
       { source: 'cn' },
       false,
@@ -406,7 +405,7 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     });
-    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+    vi.mocked(medicinesService.getWithCache).mockReturnValue(
       okAsync({
         id: 'cn-1',
         name: '对乙酰氨基酚',
@@ -422,7 +421,7 @@ describe('MedicineRiskCheckService', () => {
     );
 
     // 药箱已有同 source + sourceRefId（trim 后比较），候选不再单独加入
-    expect(medicinesService.getDetailWithCache).toHaveBeenCalledTimes(1);
+    expect(medicinesService.getWithCache).toHaveBeenCalledTimes(1);
     const [detailsArg] = vi.mocked(riskDetection.evaluateStaticRisk).mock
       .calls[0]!;
     expect(detailsArg).toHaveLength(1);
@@ -435,7 +434,7 @@ describe('MedicineRiskCheckService', () => {
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
       emptyHealthContext,
     );
-    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+    vi.mocked(medicinesService.getWithCache).mockReturnValue(
       errAsync(
         createDomainFailure({
           kind: 'not_found',
@@ -457,7 +456,7 @@ describe('MedicineRiskCheckService', () => {
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
       emptyHealthContext,
     );
-    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+    vi.mocked(medicinesService.getWithCache).mockReturnValue(
       errAsync(
         createDomainFailure({
           kind: 'internal',
@@ -663,13 +662,14 @@ describe('MedicineRiskCheckService', () => {
         },
       ],
     });
-    vi.mocked(medicinesService.getDetailWithCache).mockReturnValue(
+    vi.mocked(medicinesService.getWithCache).mockReturnValue(
       okAsync({
         id: 'cn-1',
         source: 'cn',
         name: '对乙酰氨基酚',
         subtitle: null,
         detail: {
+          kind: 'cnProduct',
           ingredients: '对乙酰氨基酚',
           contraindications: '严重肝肾功能不全',
           precautions: '不宜长期服用',
@@ -678,7 +678,7 @@ describe('MedicineRiskCheckService', () => {
             { drugbankId: 'DB00001', description: 'CYP 抑制' },
           ],
         },
-      }),
+      } as never),
     );
     const reminders: MedicineReminderRow[] = [
       {

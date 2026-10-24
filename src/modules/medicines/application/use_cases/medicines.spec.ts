@@ -3,6 +3,9 @@ import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 
 import { MedicinesService } from './medicines.js';
+import { MedicineSearchReadModel } from '../read_models/medicine-card.js';
+import { MedicineDetailReadModel } from '../read_models/medicine-detail.js';
+import { MedicineSequenceReadModel } from '../read_models/medicine-sequence.js';
 import {
   CN_MEDICINES_READER,
   DRUGBANK_MEDICINES_READER,
@@ -20,8 +23,16 @@ import {
   unwrapResult,
 } from '../../../../common/result/index.js';
 
-describe('MedicinesService', () => {
+/**
+ * The three query paths (search / detail / sequences) live in their own read
+ * models; this suite keeps them together because they share one collaborator
+ * wiring — the ports are the same three objects across all of them.
+ */
+describe('medicines read models + side-effecting use cases', () => {
   let service: MedicinesService;
+  let search: MedicineSearchReadModel;
+  let detail: MedicineDetailReadModel;
+  let sequences: MedicineSequenceReadModel;
   let drugbankMedicinesService: vi.Mocked<MedicinesSourceReader>;
   let cnMedicinesService: vi.Mocked<MedicinesSourceReader>;
   let medicinesCacheService: vi.Mocked<MedicinesKnowledgeCachePort>;
@@ -31,6 +42,9 @@ describe('MedicinesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MedicinesService,
+        MedicineSearchReadModel,
+        MedicineDetailReadModel,
+        MedicineSequenceReadModel,
         {
           provide: DRUGBANK_MEDICINES_READER,
           useValue: {
@@ -79,6 +93,9 @@ describe('MedicinesService', () => {
     }).compile();
 
     service = module.get(MedicinesService);
+    search = module.get(MedicineSearchReadModel);
+    detail = module.get(MedicineDetailReadModel);
+    sequences = module.get(MedicineSequenceReadModel);
     drugbankMedicinesService = module.get(DRUGBANK_MEDICINES_READER);
     cnMedicinesService = module.get(CN_MEDICINES_READER);
     medicinesCacheService = module.get(MEDICINES_KNOWLEDGE_CACHE);
@@ -103,7 +120,7 @@ describe('MedicinesService', () => {
     );
 
     const result = await unwrapResult(
-      service.search({
+      search.search({
         q: ' ibuprofen ',
         page: 1,
         pageSize: 20,
@@ -140,7 +157,7 @@ describe('MedicinesService', () => {
     );
 
     await unwrapResult(
-      service.search({
+      search.search({
         source: 'cn',
         q: '布洛芬',
         page: 2,
@@ -169,7 +186,7 @@ describe('MedicinesService', () => {
   it('should reject unsupported source values', async () => {
     await expect(
       unwrapResult(
-        service.search({
+        search.search({
           source: 'raw-db',
           q: 'ibuprofen',
           page: 1,
@@ -180,7 +197,7 @@ describe('MedicinesService', () => {
 
     await expect(
       unwrapResult(
-        service.search({
+        search.search({
           source: 'raw-db',
           q: 'ibuprofen',
           page: 1,
@@ -203,11 +220,11 @@ describe('MedicinesService', () => {
     );
 
     await expect(
-      unwrapResult(service.getDetail('DB00001', { source: 'drugbank' })),
+      unwrapResult(detail.get('DB00001', { source: 'drugbank' })),
     ).rejects.toThrow(DomainFailureException);
 
     await expect(
-      unwrapResult(service.getDetail('DB00001', { source: 'drugbank' })),
+      unwrapResult(detail.get('DB00001', { source: 'drugbank' })),
     ).rejects.toMatchObject({
       failure: {
         kind: 'not_found',
@@ -258,7 +275,7 @@ describe('MedicinesService', () => {
     );
 
     const result = await unwrapResult(
-      service.getDetail(' DB01050 ', { source: 'drugbank' }),
+      detail.get(' DB01050 ', { source: 'drugbank' }),
     );
     expect(result).toEqual(expectedDetail);
 
@@ -271,23 +288,23 @@ describe('MedicinesService', () => {
     expect(drugbankMedicinesService.getDetail).toHaveBeenCalledWith('DB01050');
   });
 
-  describe('getSequences', () => {
+  describe('sequences read model', () => {
     it('routes drugbank sequences through the cache service and drugbank adapter', async () => {
-      const sequences = {
+      const sequencesResult = {
         id: 'DB00002',
         source: 'drugbank' as const,
         drug: [{ description: 'heavy chain', length: 449, sequence: 'QVQLK' }],
         targets: [],
       };
-      drugbankMedicinesService.getSequences.mockResolvedValue(sequences);
+      drugbankMedicinesService.getSequences.mockResolvedValue(sequencesResult);
       medicinesCacheService.getOrSetSequences.mockImplementation(
         async (_source, _id, _bypass, load) => load(),
       );
 
       const result = await unwrapResult(
-        service.getSequences(' DB00002 ', { source: 'drugbank' }, false),
+        sequences.get(' DB00002 ', { source: 'drugbank' }, false),
       );
-      expect(result).toEqual(sequences);
+      expect(result).toEqual(sequencesResult);
 
       expect(medicinesCacheService.getOrSetSequences).toHaveBeenCalledWith(
         'drugbank',
@@ -302,21 +319,21 @@ describe('MedicinesService', () => {
     });
 
     it('routes cn sequences through the cache service and cn adapter (empty set)', async () => {
-      const sequences = {
+      const sequencesResult = {
         id: 'cn-1',
         source: 'cn' as const,
         drug: [],
         targets: [],
       };
-      cnMedicinesService.getSequences.mockResolvedValue(sequences);
+      cnMedicinesService.getSequences.mockResolvedValue(sequencesResult);
       medicinesCacheService.getOrSetSequences.mockImplementation(
         async (_source, _id, _bypass, load) => load(),
       );
 
       const result = await unwrapResult(
-        service.getSequences('cn-1', { source: 'cn' }, false),
+        sequences.get('cn-1', { source: 'cn' }, false),
       );
-      expect(result).toEqual(sequences);
+      expect(result).toEqual(sequencesResult);
 
       // The CN source goes through the same cache + adapter dispatch path as
       // drugbank, so its sequences cache key is populated and consistent.
@@ -337,9 +354,7 @@ describe('MedicinesService', () => {
       );
 
       await expect(
-        unwrapResult(
-          service.getSequences('DB00000', { source: 'drugbank' }, false),
-        ),
+        unwrapResult(sequences.get('DB00000', { source: 'drugbank' }, false)),
       ).rejects.toMatchObject({
         failure: {
           kind: 'not_found',

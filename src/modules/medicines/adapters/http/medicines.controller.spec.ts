@@ -2,6 +2,9 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller.js';
 import { MedicinesService } from '../../application/use_cases/medicines.js';
+import { MedicineSearchReadModel } from '../../application/read_models/medicine-card.js';
+import { MedicineDetailReadModel } from '../../application/read_models/medicine-detail.js';
+import { MedicineSequenceReadModel } from '../../application/read_models/medicine-sequence.js';
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';
 import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
 import { runRiskCheckSchema } from './dto/risk-check.js';
@@ -16,6 +19,9 @@ import { I18nService } from 'nestjs-i18n';
 describe('MedicinesController', () => {
   let controller: MedicinesController;
   let service: vi.Mocked<MedicinesService>;
+  let search: { searchWithCache: ReturnType<typeof vi.fn> };
+  let detail: { getWithCache: ReturnType<typeof vi.fn> };
+  let sequences: { get: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -24,12 +30,21 @@ describe('MedicinesController', () => {
         {
           provide: MedicinesService,
           useValue: {
-            searchWithCache: vi.fn(),
-            getDetailWithCache: vi.fn(),
-            getSequences: vi.fn(),
             getRandomSafetyTips: vi.fn(),
             recognizeMedicine: vi.fn(),
           },
+        },
+        {
+          provide: MedicineSearchReadModel,
+          useValue: { searchWithCache: vi.fn(), search: vi.fn() },
+        },
+        {
+          provide: MedicineDetailReadModel,
+          useValue: { getWithCache: vi.fn(), get: vi.fn() },
+        },
+        {
+          provide: MedicineSequenceReadModel,
+          useValue: { get: vi.fn() },
         },
         {
           provide: MedicineRecognitionQueueService,
@@ -58,6 +73,9 @@ describe('MedicinesController', () => {
 
     controller = module.get(MedicinesController);
     service = module.get(MedicinesService);
+    search = module.get(MedicineSearchReadModel);
+    detail = module.get(MedicineDetailReadModel);
+    sequences = module.get(MedicineSequenceReadModel);
   });
 
   describe('getSafetyTips', () => {
@@ -113,7 +131,7 @@ describe('MedicinesController', () => {
         ],
         pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
       };
-      service.searchWithCache.mockReturnValue(okAsync(searchResult));
+      search.searchWithCache.mockReturnValue(okAsync(searchResult));
 
       const result = await controller.search(
         { source: 'drugbank', q: 'ibu', page: 1, pageSize: 20 } as never,
@@ -124,14 +142,14 @@ describe('MedicinesController', () => {
         items: searchResult.items,
         pagination: searchResult.pagination,
       });
-      expect(service.searchWithCache).toHaveBeenCalledWith(
+      expect(search.searchWithCache).toHaveBeenCalledWith(
         { source: 'drugbank', q: 'ibu', page: 1, pageSize: 20 },
         false,
       );
     });
 
     it('bypasses cache when header is set to true', async () => {
-      service.searchWithCache.mockReturnValue(
+      search.searchWithCache.mockReturnValue(
         okAsync({
           items: [],
           pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
@@ -143,22 +161,58 @@ describe('MedicinesController', () => {
         'true',
       );
 
-      expect(service.searchWithCache).toHaveBeenCalledWith(
+      expect(search.searchWithCache).toHaveBeenCalledWith(
         { source: 'drugbank', q: 'test', page: 1, pageSize: 20 },
         true,
       );
     });
   });
 
+  describe('getDetail', () => {
+    it('returns the detail resource from the read model', async () => {
+      const detailResource = {
+        id: 'DB01050',
+        source: 'drugbank' as const,
+        name: 'Ibuprofen',
+        subtitle: null,
+        detail: { kind: 'drugbank' as const },
+      };
+      detail.getWithCache.mockReturnValue(okAsync(detailResource));
+
+      const result = await controller.getDetail(
+        'DB01050',
+        { source: 'drugbank' },
+        undefined,
+      );
+
+      expect(result).toEqual(detailResource);
+      expect(detail.getWithCache).toHaveBeenCalledWith(
+        'DB01050',
+        { source: 'drugbank' },
+        false,
+      );
+    });
+
+    it('honours the cache-bypass header on the detail path', async () => {
+      detail.getWithCache.mockReturnValue(
+        okAsync({ id: 'cn-1', source: 'cn' as const, name: '阿司匹林' }),
+      );
+
+      await controller.getDetail('cn-1', {}, '1');
+
+      expect(detail.getWithCache).toHaveBeenCalledWith('cn-1', {}, true);
+    });
+  });
+
   describe('getSequences', () => {
     it('returns the sequence resource from the service', async () => {
-      const sequences = {
+      const sequenceResource = {
         id: 'DB00002',
         source: 'drugbank' as const,
         drug: [{ description: 'heavy chain', length: 449, sequence: 'QVQLK' }],
         targets: [],
       };
-      service.getSequences.mockReturnValue(okAsync(sequences));
+      sequences.get.mockReturnValue(okAsync(sequenceResource));
 
       const result = await controller.getSequences(
         'DB00002',
@@ -166,8 +220,8 @@ describe('MedicinesController', () => {
         undefined,
       );
 
-      expect(result).toEqual(sequences);
-      expect(service.getSequences).toHaveBeenCalledWith(
+      expect(result).toEqual(sequenceResource);
+      expect(sequences.get).toHaveBeenCalledWith(
         'DB00002',
         { source: 'drugbank' },
         false,
@@ -175,13 +229,13 @@ describe('MedicinesController', () => {
     });
 
     it('honours the cache-bypass header', async () => {
-      service.getSequences.mockReturnValue(
+      sequences.get.mockReturnValue(
         okAsync({ id: 'DB00002', source: 'drugbank', drug: [], targets: [] }),
       );
 
       await controller.getSequences('DB00002', {}, 'no-cache');
 
-      expect(service.getSequences).toHaveBeenCalledWith('DB00002', {}, true);
+      expect(sequences.get).toHaveBeenCalledWith('DB00002', {}, true);
     });
   });
 

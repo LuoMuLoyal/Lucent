@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { LlmNotConfiguredException } from '../../../../common/llm/safety/llm-not-configured.exception.js';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
-import { MedicinesService } from './medicines.js';
+import { MedicineDetailReadModel } from '../read_models/medicine-detail.js';
 import { RiskDetectionService } from '../../domain/services/risk-scoring.js';
 import { toInputJsonValue } from '../../../../common/index.js';
 import {
@@ -82,7 +82,7 @@ export class MedicineRiskCheckService {
   constructor(
     @Inject(MEDICINE_RISK_RECORDS)
     private readonly riskRecords: MedicineRiskRecordsPort,
-    private readonly medicinesService: MedicinesService,
+    private readonly medicines: MedicineDetailReadModel,
     @Inject(MEDICINE_RISK_LLM_GENERATOR)
     private readonly llmGenerator: MedicineRiskLlmPort,
     private readonly riskDetection: RiskDetectionService,
@@ -279,11 +279,7 @@ export class MedicineRiskCheckService {
     const detailResults = await Promise.allSettled(
       eligibleMedicines.map(async ({ item, source, sourceRefId }) => {
         const detail = await unwrapResult(
-          this.medicinesService.getDetailWithCache(
-            sourceRefId,
-            { source },
-            false,
-          ),
+          this.medicines.getWithCache(sourceRefId, { source }, false),
         );
         return {
           item: {
@@ -332,7 +328,7 @@ export class MedicineRiskCheckService {
         let detail: MedicineDetailDataLike;
         try {
           detail = await unwrapResult(
-            this.medicinesService.getDetailWithCache(
+            this.medicines.getWithCache(
               candidateSourceRefId,
               { source: candidate.source },
               false,
@@ -502,11 +498,7 @@ export class MedicineRiskCheckService {
       const llmDetailResults = await Promise.allSettled(
         eligibleItems.map(async ({ item, source, sourceRefId }) => {
           const detail = await unwrapResult(
-            this.medicinesService.getDetailWithCache(
-              sourceRefId,
-              { source },
-              false,
-            ),
+            this.medicines.getWithCache(sourceRefId, { source }, false),
           );
           return { item, detail, source };
         }),

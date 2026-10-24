@@ -26,12 +26,20 @@ owner: backend
   `relations/{relation,relations}.ts`（图关系类型与 `GraphReader` port）、
   `services/{risk-model,risk-scoring,risk-mechanism,allergy-severity,ingredient-canonicalization,half-life,half-life-gap}.ts`。
   纯领域，不 import 上层。
-- `application/ports/` — 每个外部依赖一个端口（`knowledge` / `cache` /
-  `cache-maintenance` / `risk-records` / `risk-llm` / `safety-tips` / `qa-chunks`），
-  同时导出 `const XXX = 'XXX'` 的 DI token。application 层不 import
-  `infrastructure/`、`adapters/` 或 Prisma。
-- `application/use_cases/` — `medicines`（搜索/详情/识别/贴士）、`check-risk`、
-  `import-catalog`、`rebuild-index`（薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
+- `application/ports/` — 每个外部依赖一个端口（`knowledge` / `knowledge-view` /
+  `cache` / `cache-maintenance` / `risk-records` / `risk-llm` / `risk-check` /
+  `safety-tips` / `qa-chunks`），同时导出 `const XXX = 'XXX'` 的 DI token。
+  application 层不 import `infrastructure/`、`adapters/` 或 Prisma。
+  `knowledge-view.ts` 是**投影形状**（卡片 / 判别联合详情 / 序列）的唯一定义处：
+  持久层生产它、HTTP zod schema 与它结构兼容，两侧都只向内指。
+- `application/read_models/` — 查询侧三件套：`medicine-card`（搜索卡片页）、
+  `medicine-detail`（判别联合详情 + `source` 参数解析与 not_found 映射）、
+  `medicine-sequence`（序列正文）。读模型不建 repository、不承担不变量；
+  `medicine-card.format.ts` 是三个投影共用的纯格式化函数（持久层也要用，
+  故不能留在 `adapters/`）。
+- `application/use_cases/` — 只剩**有副作用**的用例：`medicines`（识别 + 安全贴士）、
+  `check-risk`、`import-catalog`、`medication-overview`、`rebuild-index`
+  （薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
 - `adapters/http/` — controller + zod DTO，`presenters/medicine.ts` 承载
   `utils/data-format.ts` 迁来的展示格式化。
 - `infrastructure/` — `persistence/`（cn、drugbank、risk-records、safety-tips、

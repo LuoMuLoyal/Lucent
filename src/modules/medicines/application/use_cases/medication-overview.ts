@@ -15,7 +15,7 @@ import {
   MEDICINE_RISK_RECORDS,
   type MedicineRiskRecordsPort,
 } from '../ports/risk-records.js';
-import { MedicinesService } from './medicines.js';
+import { MedicineDetailReadModel } from '../read_models/medicine-detail.js';
 
 /** 一次全景分析最多纳入的药数。与风险检查的上限保持一致。 */
 const OVERVIEW_MAX_MEDICINES = 100;
@@ -42,7 +42,7 @@ export class MedicationOverviewService {
   constructor(
     @Inject(MEDICINE_RISK_RECORDS)
     private readonly riskRecords: MedicineRiskRecordsPort,
-    private readonly medicinesService: MedicinesService,
+    private readonly medicines: MedicineDetailReadModel,
   ) {}
 
   /**
@@ -76,11 +76,7 @@ export class MedicationOverviewService {
         }
         const source = item.source;
         const detail = await unwrapResult(
-          this.medicinesService.getDetailWithCache(
-            sourceRefId,
-            { source },
-            false,
-          ),
+          this.medicines.getWithCache(sourceRefId, { source }, false),
         );
         return {
           item: {
