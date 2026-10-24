@@ -17,7 +17,7 @@ import {
 
 import { MedicineRecognitionQueueService } from './adapters/queue/recognition.js';
 import { MedicineRiskCheckService } from './application/use_cases/check-risk.js';
-import { MedicineRiskCheckListener } from './adapters/events/risk-assessment-requested.js';
+import { MedicineRiskRefreshQueueService } from './adapters/queue/risk-refresh.js';
 import { MedicineRiskLlmGeneratorService } from './infrastructure/llm/risk-check.js';
 import { RiskDetectionService } from './domain/services/risk-scoring.js';
 import { CnMedicinesService } from './infrastructure/persistence/cn.js';
@@ -57,7 +57,7 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     QaChunksAdminService,
     MedicineRecognitionQueueService,
     MedicineRiskCheckService,
-    MedicineRiskCheckListener,
+    MedicineRiskRefreshQueueService,
     MedicineRiskLlmGeneratorService,
     RiskDetectionService,
     MedicinesCacheAdminService,

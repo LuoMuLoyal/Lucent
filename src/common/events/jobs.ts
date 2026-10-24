@@ -29,8 +29,15 @@ export const REPORT_CACHE_INVALIDATION_JOB = 'invalidate';
  */
 export const SUGGESTION_EVENT_TRIGGER_JOB = 'event-trigger';
 
+/**
+ * `medicines`: mark a user's risk records stale and schedule a debounced static
+ * check. The delay lives on the job, so a process restart does not lose it.
+ */
+export const MEDICINE_RISK_REFRESH_JOB = 'refresh';
+
 /** Every declared job name, for the subscription-table drift guard. */
 export const EVENT_JOB_NAMES: readonly string[] = [
   REPORT_CACHE_INVALIDATION_JOB,
   SUGGESTION_EVENT_TRIGGER_JOB,
+  MEDICINE_RISK_REFRESH_JOB,
 ];

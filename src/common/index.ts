@@ -154,6 +154,7 @@ export { EVENT_ORIGINS, eventOriginFor } from './events/event-origins.js';
 export type { EventOrigin } from './events/event-origins.js';
 export {
   EVENT_JOB_NAMES,
+  MEDICINE_RISK_REFRESH_JOB,
   REPORT_CACHE_INVALIDATION_JOB,
   SUGGESTION_EVENT_TRIGGER_JOB,
 } from './events/jobs.js';

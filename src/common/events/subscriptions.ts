@@ -48,6 +48,7 @@ import {
   SETTINGS_CHANGED,
 } from './domain-events.js';
 import {
+  MEDICINE_RISK_REFRESH_JOB,
   REPORT_CACHE_INVALIDATION_JOB,
   SUGGESTION_EVENT_TRIGGER_JOB,
 } from './jobs.js';
@@ -103,6 +104,10 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       queue: QUEUE_NAMES.suggestionRecompute,
       job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
+    {
+      queue: QUEUE_NAMES.medicineRiskRefresh,
+      job: MEDICINE_RISK_REFRESH_JOB,
+    },
   ],
   [HEALTH_CONTEXT_CHANGED]: [
     {
@@ -112,6 +117,10 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
     {
       queue: QUEUE_NAMES.suggestionRecompute,
       job: SUGGESTION_EVENT_TRIGGER_JOB,
+    },
+    {
+      queue: QUEUE_NAMES.medicineRiskRefresh,
+      job: MEDICINE_RISK_REFRESH_JOB,
     },
   ],
   [SETTINGS_CHANGED]: [
