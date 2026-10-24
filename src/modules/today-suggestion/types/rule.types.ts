@@ -1,42 +1,20 @@
-import type { SuggestionType, TriggerType } from './suggestion.types.js';
-import type { SuggestionSignal } from './signal.types.js';
-import type { SuggestionCandidate } from './candidate.types.js';
-import type { BaselineDimension } from './baseline.types.js';
-
-/** Context passed to each rule during matching. */
-export interface RuleContext {
-  userId: string;
-  date: string;
-  /** Current time-of-day bucket, useful for time-gated rules. */
-  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
-  /** Whether the user has established baselines for each dimension. */
-  baselineStatus: Map<BaselineDimension, boolean>;
-}
-
 /**
- * Interface that every suggestion rule must implement.
- * Rules are registered in the RuleRegistry and invoked for each signal bundle.
+ * ⚠️ **TEMPORARY re-export shim — delete this file.**
+ *
+ * The rule contract now lives in `domain/rule/rule-definition.ts` (ADR-0024).
+ * This file exists only so the existing import sites did not have to change in
+ * the same commit as the move — that keeps each migration step independently
+ * compilable and revertible.
+ *
+ * **It is a forwarding layer, not a second definition.** There is exactly one
+ * source of truth; nothing here declares a type.
+ *
+ * **How to delete it:** point every remaining importer at
+ * `../domain/rule/rule-definition.js` and remove this file. The compiler will
+ * list any site you missed. It must not survive as a permanent indirection.
  */
-export interface SuggestionRule {
-  readonly ruleId: string;
-  readonly ruleVersion: string;
-  readonly type: SuggestionType;
-  readonly triggerType: TriggerType;
 
-  /** Whether this rule requires a baseline to be established before firing. */
-  readonly isBaselineRequired: boolean;
-  /** Dimensions that must be ready if `isBaselineRequired` is true. */
-  readonly baselineDimensions?: BaselineDimension[];
-
-  /** Signal kinds this rule can consume (for composition). */
-  readonly consumableSignalKinds?: string[];
-
-  /**
-   * Evaluate the rule against the provided signals.
-   * Returns a candidate if the rule matches, or null otherwise.
-   */
-  match(
-    signals: SuggestionSignal[],
-    context: RuleContext,
-  ): SuggestionCandidate | null;
-}
+export type {
+  RuleContext,
+  SuggestionRule,
+} from '../domain/rule/rule-definition.js';
