@@ -36,12 +36,22 @@ import type {
 import {
   asNonEmptyString,
   getDetailJson,
+  getDrugbankIds,
   type MedicineDetailDataLike,
   type MedicineDetailWrapper,
 } from '../../domain/services/ingredient-canonicalization.js';
 import type { AllergyRecord } from '../../domain/services/allergy-severity.js';
 import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine-source.js';
 import { formatDateOnly } from '../../../../common/index.js';
+import {
+  MEDICINES_GRAPH_READER,
+  type GraphReader,
+} from '../../domain/relations/relations.js';
+import {
+  attachMechanisms,
+  findingKey,
+} from '../../domain/services/risk-mechanism.js';
+import type { MedicineRiskFinding } from '../../domain/services/risk-model.js';
 
 /** Narrows a box-item `source` string to the knowledge sources this module has. */
 function asKnowledgeSource(source: string): MedicineKnowledgeSource | null {
@@ -76,6 +86,8 @@ export class MedicineRiskCheckService {
     @Inject(MEDICINE_RISK_LLM_GENERATOR)
     private readonly llmGenerator: MedicineRiskLlmPort,
     private readonly riskDetection: RiskDetectionService,
+    @Inject(MEDICINES_GRAPH_READER)
+    private readonly graphReader: GraphReader,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly i18n: I18nService,
   ) {}
@@ -379,16 +391,82 @@ export class MedicineRiskCheckService {
         uncoveredItems,
       );
 
+    // 5. Attach graph evidence to interaction findings.
+    //
+    // 机制解释是**增强**而不是阻塞：图不可用时静默跳过（每条 finding 会带
+    // `mechanism: { status: 'unavailable' }`），风险检查本身仍然给出结果。
+    // 反过来（图挂了就不出风险结论）会让一个可选能力拖垮主功能。
+    const findingsWithMechanism = await this.attachGraphMechanisms(
+      findings,
+      details,
+    );
+
     return {
       overallRiskLevel: riskLevel,
       overallRiskScore: riskScore,
       currentMedicineCount:
         currentMedicines.length + (candidateIncluded ? 1 : 0),
       checkedMedicineCount: details.length,
-      findings,
+      findings: findingsWithMechanism,
       coverageIssues,
       redFlags,
     };
+  }
+
+  /**
+   * 给 `interaction` 类发现补上图证据。
+   *
+   * 用**一次**多药查询取回所有药两两之间的通路，而不是每条 finding 打一次——
+   * 后者在 5 个药时就是 10 次往返，且每次都重复同样的图模式。
+   *
+   * @returns 原 findings（图不可用或没有 interaction 时原样返回）。
+   */
+  private async attachGraphMechanisms(
+    findings: readonly MedicineRiskFinding[],
+    details: readonly MedicineDetailWrapper[],
+  ): Promise<MedicineRiskFinding[]> {
+    if (!findings.some((finding) => finding.type === 'interaction')) {
+      return [...findings];
+    }
+
+    // 药名 → DrugBank id。同一药可能有多条详情（不同源），取第一个有 id 的。
+    const idByName = new Map<string, string | null>();
+    for (const detail of details) {
+      const id = getDrugbankIds(detail).values().next().value ?? null;
+      if (!idByName.has(detail.item.displayName)) {
+        idByName.set(detail.item.displayName, id);
+      }
+    }
+
+    // 只查有 id 的药；没 id 的药在图里无从查起，交给映射层判 notFound。
+    const queryIds = [
+      ...new Set(
+        [...idByName.values()].filter((id): id is string => id !== null),
+      ),
+    ];
+
+    const lookup =
+      queryIds.length >= 2
+        ? await this.graphReader.mechanismPaths(queryIds)
+        : ({ ok: true, value: [] } as const);
+
+    const pairs = new Map(
+      findings
+        .filter((finding) => finding.type === 'interaction')
+        .map((finding) => [
+          findingKey(finding),
+          {
+            primaryDrugbankId:
+              idByName.get(finding.primaryMedicineName) ?? null,
+            secondaryDrugbankId:
+              finding.secondaryMedicineName === undefined
+                ? null
+                : (idByName.get(finding.secondaryMedicineName) ?? null),
+          },
+        ]),
+    );
+
+    return attachMechanisms(findings, pairs, lookup);
   }
 
   // ── LLM context assembly ─────────────────────────────────────────────────

@@ -57,6 +57,35 @@ export const MEDICINE_RED_FLAG_RULES = [
   'informationGap',
 ] as const;
 
+/**
+ * 一条风险发现的**图证据**：为什么会有这条冲突。
+ *
+ * 可选字段：图里不一定有对应关系（图只覆盖 895 个药）。没有时如实标注
+ * `notFound`，**不编造**听起来合理的解释——可溯源的前提是「没有就说没有」。
+ */
+export interface MedicineRiskMechanism {
+  /** 冲突经哪条路径发生：酶介导（CYP 等）、共享靶点、转运体。 */
+  kind: 'enzyme' | 'target' | 'transporter';
+  /** 通过的酶/靶点/转运体基因符号，如 `CYP2C9`。 */
+  geneSymbol: string;
+  /** 该实体的显示名。 */
+  entityName: string;
+  /** 起始药物在该实体上的作用（`INHIBITS` / `INDUCES` / `ACTS_ON`）。 */
+  relation: string;
+}
+
+/**
+ * 机制查询结果。
+ *
+ * `unavailable` / `timeout` / `notConfigured` 与 `notFound` 必须分开：
+ * 前者是**我们无法回答**，后者是**答案是「没有」**。合并会让界面把知识缺口
+ * 显示成「机制上无问题」。
+ */
+export type MedicineRiskMechanismOutcome =
+  | { status: 'ok'; mechanisms: MedicineRiskMechanism[] }
+  | { status: 'notFound' }
+  | { status: 'notConfigured' | 'unavailable' | 'timeout' };
+
 export interface MedicineRiskFinding {
   type: MedicineRiskFindingType;
   severity: MedicineRiskSeverity;
@@ -66,6 +95,8 @@ export interface MedicineRiskFinding {
   relatedLabel?: string | undefined;
   evidence?: string | undefined;
   recommendation?: string | undefined;
+  /** 图证据；仅 `interaction` 类发现会尝试补充。 */
+  mechanism?: MedicineRiskMechanismOutcome | undefined;
 }
 
 export interface MedicineRiskCoverageIssue {

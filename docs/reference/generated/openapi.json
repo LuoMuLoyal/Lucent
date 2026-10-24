@@ -15607,9 +15607,62 @@
           "recommendation": {
             "description": "LLM check only",
             "type": "string"
+          },
+          "mechanism": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultFindingsMechanism"
           }
         },
         "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseStaticResultFindingsMechanism": {
+        "description": "Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "notFound",
+              "notConfigured",
+              "unavailable",
+              "timeout"
+            ],
+            "description": "Whether evidence was found, absent, or the graph could not answer."
+          },
+          "mechanisms": {
+            "description": "Present only when status is ok.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultFindingsMechanismMechanisms"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseStaticResultFindingsMechanismMechanisms": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["enzyme", "target", "transporter"],
+            "description": "Pathway kind the evidence comes from."
+          },
+          "geneSymbol": {
+            "type": "string",
+            "description": "Gene symbol of the enzyme/target/transporter, e.g. CYP2C9."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "Display name of that entity."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON)."
+          }
+        },
+        "required": ["kind", "geneSymbol", "entityName", "relation"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseStaticResultCoverageIssues": {
@@ -15803,9 +15856,62 @@
           "recommendation": {
             "description": "LLM check only",
             "type": "string"
+          },
+          "mechanism": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultFindingsMechanism"
           }
         },
         "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseLlmResultFindingsMechanism": {
+        "description": "Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "notFound",
+              "notConfigured",
+              "unavailable",
+              "timeout"
+            ],
+            "description": "Whether evidence was found, absent, or the graph could not answer."
+          },
+          "mechanisms": {
+            "description": "Present only when status is ok.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultFindingsMechanismMechanisms"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseLlmResultFindingsMechanismMechanisms": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["enzyme", "target", "transporter"],
+            "description": "Pathway kind the evidence comes from."
+          },
+          "geneSymbol": {
+            "type": "string",
+            "description": "Gene symbol of the enzyme/target/transporter, e.g. CYP2C9."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "Display name of that entity."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON)."
+          }
+        },
+        "required": ["kind", "geneSymbol", "entityName", "relation"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseLlmResultCoverageIssues": {
@@ -15947,9 +16053,62 @@
           "recommendation": {
             "description": "LLM check only",
             "type": "string"
+          },
+          "mechanism": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultFindingsMechanism"
           }
         },
         "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponseResultFindingsMechanism": {
+        "description": "Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "notFound",
+              "notConfigured",
+              "unavailable",
+              "timeout"
+            ],
+            "description": "Whether evidence was found, absent, or the graph could not answer."
+          },
+          "mechanisms": {
+            "description": "Present only when status is ok.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultFindingsMechanismMechanisms"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponseResultFindingsMechanismMechanisms": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["enzyme", "target", "transporter"],
+            "description": "Pathway kind the evidence comes from."
+          },
+          "geneSymbol": {
+            "type": "string",
+            "description": "Gene symbol of the enzyme/target/transporter, e.g. CYP2C9."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "Display name of that entity."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON)."
+          }
+        },
+        "required": ["kind", "geneSymbol", "entityName", "relation"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordResponseResultCoverageIssues": {

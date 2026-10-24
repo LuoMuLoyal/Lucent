@@ -13,6 +13,7 @@ import type {
   MedicineRiskLlmContext,
   MedicineRiskLlmPort,
 } from '../ports/risk-llm.js';
+import type { GraphReader } from '../../domain/relations/relations.js';
 import type { RiskDetectionService } from '../../domain/services/risk-scoring.js';
 import type { I18nService } from 'nestjs-i18n';
 import {
@@ -61,11 +62,19 @@ function build() {
   const i18n = {
     t: vi.fn((key: string) => key),
   } as unknown as I18nService;
+  // 图默认不可用：本文件测风险检查本身；机制补充的边界在 risk-mechanism.spec.ts。
+  const graphReader = {
+    isConfigured: vi.fn(() => false),
+    mechanismPaths: vi
+      .fn()
+      .mockResolvedValue({ ok: false, reason: 'notConfigured' }),
+  } as unknown as GraphReader;
   const svc = new MedicineRiskCheckService(
     riskRecords,
     medicinesService,
     llmGenerator,
     riskDetection,
+    graphReader,
     cache,
     i18n,
   );

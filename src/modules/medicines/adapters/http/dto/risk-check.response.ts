@@ -35,6 +35,43 @@ import {
   MEDICINE_RED_FLAG_RULES,
 } from '../../../domain/services/risk-model.js';
 
+/** 一条图证据：冲突经哪个酶/靶点/转运体发生。 */
+export const medicineRiskMechanismSchema = z.object({
+  kind: z
+    .enum(['enzyme', 'target', 'transporter'])
+    .describe('Pathway kind the evidence comes from.'),
+  geneSymbol: z
+    .string()
+    .describe('Gene symbol of the enzyme/target/transporter, e.g. CYP2C9.'),
+  entityName: z.string().describe('Display name of that entity.'),
+  relation: z
+    .string()
+    .describe(
+      'What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON).',
+    ),
+});
+
+/**
+ * 机制查询的结果。
+ *
+ * `unavailable` / `timeout` / `notConfigured` 与 `notFound` **必须分开**：
+ * 前者是「我们无法回答」，后者是「答案是『没有』」。合并会让界面把知识缺口
+ * 显示成「机制上无问题」——在用药场景里这是最危险的静默降级。
+ */
+export const medicineRiskMechanismOutcomeSchema = z
+  .object({
+    status: z
+      .enum(['ok', 'notFound', 'notConfigured', 'unavailable', 'timeout'])
+      .describe(
+        'Whether evidence was found, absent, or the graph could not answer.',
+      ),
+    mechanisms: z
+      .array(medicineRiskMechanismSchema)
+      .optional()
+      .describe('Present only when status is ok.'),
+  })
+  .describe('Graph evidence for why this interaction happens.');
+
 export const medicineRiskFindingSchema = z.object({
   type: z.enum(MEDICINE_RISK_FINDING_TYPES).describe('Finding kind.'),
   severity: z.enum(MEDICINE_RISK_SEVERITIES).describe('Finding severity.'),
@@ -50,6 +87,11 @@ export const medicineRiskFindingSchema = z.object({
     .describe('Related label (e.g. allergen).'),
   evidence: z.string().optional().describe('Supporting evidence.'),
   recommendation: z.string().optional().describe('LLM check only'),
+  mechanism: medicineRiskMechanismOutcomeSchema
+    .optional()
+    .describe(
+      'Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup.',
+    ),
 });
 
 export const medicineRiskCoverageIssueSchema = z.object({
