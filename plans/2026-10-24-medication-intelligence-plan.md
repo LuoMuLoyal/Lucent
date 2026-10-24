@@ -135,24 +135,34 @@ Neo4j 里只有 2,534 条原始单向边；`graph/orientation.py` 的 `mirror_ed
 
 ## 四、地基：经 Neo4j 的关系查询
 
-### 4.1 先决问题：Lucent 怎么合法地连图
+### 4.1 连接方式：直连 Neo4j（已裁决 2026-10-24）
 
-现状是**「Lucent 从不直连 Neo4j」是明文架构决定**：
+**结论：Lucent 直连 Neo4j（Bolt），不经过 semantica。**
 
-- `compose.graph.yaml` 文件头：「app **不在**本机。Lucent 从不直连 Neo4j:所有图查询都经
-  semantica 的 HTTP 端点」；
-- Neo4j 端口**只 expose 给同网络的 sidecar，不发布宿主端口**，安全组只放行运维 IP；
-- ADR-0022 的许可分析也建立在「经 HTTP 进程边界调用（不链接 driver）」上。
+原先 `compose.graph.yaml` 写着「Lucent 从不直连 Neo4j」，ADR-0022 的许可分析也建立在
+「经 HTTP 进程边界调用」上。重新评估后确认**这两条都不构成约束**：
 
-因此有两条路，**必须在开工前裁决**：
+| 顾虑                   | 实际情况                                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 「架构决定禁止直连」   | 那是描述过去的实现，不是约束条款；已更正为「两条合法路径」（见 `compose.graph.yaml` 文件头）                               |
+| 「GPLv3 需要法务评估」 | 触发条件是**产品对外交付**，与是否直连无关。Neo4j driver 是 Apache-2.0；semantica 同样用 driver 连自建实例，只换调用方进程 |
+| 「技术效果不同」       | 不会。两边执行同一段 Cypher，直连反而少一个故障点                                                                          |
 
-| 方案                        | 做法                                                       | 代价                                                                                                                          |
-| --------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **A. 走 semantica（推荐）** | 复用既有 `SemanticaClientService`，`POST /query` 传 Cypher | 跨模块复用要解决依赖方向；`/query` 无镜像（§2.3 陷阱一）；多一跳网络但拓扑不变                                                |
-| **B. Lucent 直连 Neo4j**    | 加 `neo4j-driver`，配 Bolt 连接                            | **推翻既有架构决定**：要发布 Neo4j 端口/打通跨云网络、需要新 ADR、GPLv3 的许可分析前提改变（链接 driver ≠ 进程边界）。见 §4.4 |
+**直连的实质收益**：
 
-**建议 A**：图已在 semantica 后面，`/query` 的契约就是「执行调用方给的只读 Cypher」，
-正是这里需要的；换 B 的收益（省一跳）远小于代价（改架构 + 新 ADR + 许可重评）。
+- **超时自己定**。semantica 对端 `statement_timeout` 15s、客户端预算 20s；多跳机制查询
+  容易慢，走 sidecar 等于把自己锁在别人的超时里。直连设 `transaction timeout` 即可。
+- 少一跳网络、少一个进程依赖。
+- 无需为复用客户端处理 `assistant` → `medicines` 的跨上下文依赖。
+
+**代价**：Lucent 要持有 Neo4j 凭据（`NEO4J_URI` / `NEO4J_USER` / `NEO4J_PASSWORD`），
+部署侧需打通 7687（安全组限源，与 5432/6379 同档处理）。
+
+**semantica 的职责不变**：agent 生成 Cypher、`/reason` 规则推理仍走它。
+直连只承接**业务只读查询**这一类。
+
+> 不新开 ADR：本决定不改变图后端选型、sidecar 边界与部署拓扑，只是多了一个读图客户端。
+> ADR-0022 的许可条款已就地补注（2026-10-24 修订）。
 
 ### 4.2 查询能力（端点设计）
 
@@ -166,47 +176,51 @@ Neo4j 里只有 2,534 条原始单向边；`graph/orientation.py` 的 `mirror_ed
 
 设计要点：
 
-- **Cypher 由服务端构造，不接受调用方传入**。`/query` 能执行任意只读 Cypher，
-  把它暴露成业务端点等于把 Cypher 注入面拉到公网客户端；端点必须只接受
-  `drugbankIds` 这类**参数**，Cypher 是固定模板。
+- **Cypher 由服务端构造，不接受调用方传入**。端点只接受 `drugbankIds` 这类**参数**，
+  Cypher 是固定模板——否则等于把任意 Cypher 执行面暴露给公网客户端。
 - **返回证据而不只是结论**：每条通路带 `enzyme` / `target` / `action` / `provenance`。
 - **`substitutes` 的边界**：只给「不走该酶的同靶点药物**候选**」，不是处方建议。
 - **必须设 LIMIT**：§2.3 陷阱二。
+- **无向匹配**：§2.3 陷阱一——`INTERACTS_WITH` 在库里是单向的，查询必须用 `-[r]-`。
 
-### 4.3 实现位置（ADR-0024 四层 + 跨模块复用）
+### 4.3 实现位置（ADR-0024 四层）
 
 ```text
 src/modules/medicines/
 ├── domain/relations/
 │   ├── relation.ts           # RelationKind 值对象、DrugRelation 实体
-│   └── relations.ts          # RelationsReader port（只读，ADR-0009 reader port）
+│   └── relations.ts          # RelationsReader port（只读）
 ├── application/use_cases/
-│   └── query-relations.ts    # 编排：ID → 模板 Cypher → 归一结果
+│   └── query-relations.ts    # 编排：ID → 固定 Cypher 模板 → 归一结果
 ├── adapters/http/
 │   ├── dto/relations.ts
 │   └── presenters/relations.ts
-└── infrastructure/ontology/
-    └── graph-reader.ts       # 实现 RelationsReader，内部调 SemanticaClientService
+└── infrastructure/graph/
+    ├── connection.ts         # neo4j-driver 驱动单例 + 只读 session
+    └── relations.ts          # 实现 RelationsReader（固定 Cypher 模板）
 ```
 
-**跨模块依赖怎么解**（§4.1 方案 A 的前置）：
+约束：
 
-- 现状：`SemanticaClientService` 在 `assistant/tools/ontology/`，跨模块 import 只能走 barrel；
-  且 `medicines` 不该依赖 `assistant` 这个上下文（上下文映射里两者平级）。
-- 建议：把客户端**下沉到 `src/common/`**（它已被两边共用，且只做 HTTP/配置/归一，
-  不含上下文语义）。这样两个模块都从 `common` 取，不新增模块间依赖。
-  → **这是一个需要确认的改动**，见 §十一 待决 1。
+- `domain/` 零依赖，不认识 Neo4j 类型。
+- Cypher 模板**只在 `infrastructure/graph/relations.ts`**；与 semantica 不同，
+  这里没有「调用方传 Cypher」的口子。
+- 图查询失败要降级为**可区分的结果**（「图服务不可用」≠「图上查不到」），
+  沿用 `SemanticaClientService` 的判别式返回风格，不要 catch 成「无风险」。
 
 **文件命名**：kebab-case（2026-10-24 起全仓统一）。
 
-### 4.4 如果最终选方案 B（直连 Neo4j）
+### 4.4 环境变量
 
-必须先落一个新的 ADR，至少要回答：
+| 变量             | 说明                                  | 默认                    |
+| ---------------- | ------------------------------------- | ----------------------- |
+| `NEO4J_URI`      | Bolt 地址                             | `bolt://127.0.0.1:7687` |
+| `NEO4J_USER`     | 用户名                                | `neo4j`                 |
+| `NEO4J_PASSWORD` | 口令（**仅 `.env`，不进运行时快照**） | 无，缺失即视为未启用    |
+| `NEO4J_DATABASE` | 图库名                                | `neo4j`                 |
+| `NEO4J_ENABLED`  | 热开关（关闭时端点返回「未配置」）    | `false`                 |
 
-- 推翻 `compose.graph.yaml`「Lucent 从不直连」的理由是什么；
-- Neo4j 端口跨云暴露（7687）的访问控制方案；
-- ADR-0022 的 GPLv3 分析（「经 HTTP 进程边界调用，不链接 driver，不触发分发义务」）
-  在客户端直连后**是否改变**——这是法务问题，不能自行判断。
+需同步 `docs/reference/environment-variables.md` 与 `.env.*.example`。
 
 ## 五、方向一：机理冲突解释 + 替代建议
 
@@ -274,16 +288,16 @@ src/modules/medicines/
 
 按依赖排序。
 
-### P0 — 验证图能回答问题（不再是补数据）
+### P0 — 打通直连并证明图能回答问题
 
-初稿把「补 Prisma 数据」当 blocker，现已降级到 P4。真正的 P0 是**证明图的能力边界**：
+连接方式已裁决为**直连 Neo4j**（§4.1）。P0 剩下的是把它跑通、并测出图的真实边界：
 
-| #    | 事项                                                              | 验收                                                              |
-| ---- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
-| P0-1 | 裁决连接方式：走 semantica（§4.1 方案 A）还是直连 Neo4j（方案 B） | 明确写进计划或 ADR；若选 B 必须先落 ADR                           |
-| P0-2 | 用 `probe_oag.py` 的查询实测「华法林 + 布洛芬」                   | 真实返回 CYP2C9 通路；记录耗时与返回行数                          |
-| P0-3 | 实测 `INHIBITS` × `SUBSTRATE_OF` 在 2–10 个药时的耗时与结果集大小 | 确定 `LIMIT` 与超时预算，回答「会不会超 15s `statement_timeout`」 |
-| P0-4 | 确认 `/query` 的镜像限制（§2.3 陷阱一）对目标查询是否致命         | 若致命，评估走 `/reason` 或自己写无向匹配                         |
+| #    | 事项                                                              | 验收                                           |
+| ---- | ----------------------------------------------------------------- | ---------------------------------------------- |
+| P0-1 | 加 `neo4j-driver`、`NEO4J_*` 环境变量、连接池与只读 session       | 服务能启动；未配置时端点返回「未配置」而非报错 |
+| P0-2 | 在本机或图库机实测「华法林 + 布洛芬」的 CYP2C9 通路               | 真实返回通路行；记录耗时                       |
+| P0-3 | 实测 `INHIBITS` × `SUBSTRATE_OF` 在 2–10 个药时的耗时与结果集大小 | 确定 `LIMIT` 与 `transaction timeout`          |
+| P0-4 | 确认无向匹配 `-[r]-` 能拿到 `INTERACTS_WITH`（§2.3 陷阱一）       | 华法林能查到相互作用，不是 0 条                |
 
 ### P1 — 客户端归位 + 地基
 
@@ -330,8 +344,7 @@ dev 库现状见 §2.5。这条路只影响 **Lucent 自己的药品详情接口
 - 不做分子对接（缺 3D 构象，PRODUCT.md §八 已定）
 - 不给处方建议（`substitutes` 只给结构事实，不下结论）
 - 不把 LightRAG 的概率性关联当作事实边（必须与确定性关系在契约上分开）
-- **不把 Cypher 暴露给客户端**（`/query` 能执行任意只读 Cypher，业务端点只接受参数）
-- 不在 P0-1 裁决前动连接方式的代码
+- **不把 Cypher 暴露给客户端**（业务端点只接受参数，Cypher 固定模板）
 
 ---
 
@@ -342,17 +355,16 @@ dev 库现状见 §2.5。这条路只影响 **Lucent 自己的药品详情接口
 - [ ] 图服务不可用时返回可区分的结果，而不是静默降级成「无风险」
 - [ ] 风险 finding 的 `mechanism` 在无数据时明确为「未收录」
 - [ ] `substitutes` 的输出不含「应该吃」类措辞
-- [ ] 多药查询在 10 个药时不超过 `statement_timeout`
+- [ ] 多药查询在 10 个药时不超过设定的 `transaction timeout`
 
 ---
 
 ## 十一、待决问题
 
-| #   | 问题                                              | 影响                                           |
-| --- | ------------------------------------------------- | ---------------------------------------------- |
-| 1   | 走 semantica 还是直连 Neo4j（§4.1）               | 决定是否要推翻既有架构决定 + 新 ADR + 许可重评 |
-| 2   | `SemanticaClientService` 是否下沉到 `src/common/` | 决定 `medicines` 能不能合法复用                |
-| 3   | `/query` 无镜像（§2.3 陷阱一）是否影响目标查询    | 决定是否需要改走 `/reason`                     |
-| 4   | 多药查询的实际耗时与结果集上限                    | 决定 `LIMIT` 与是否需拆批                      |
-| 5   | `substitutes` 的合规边界（是否可能被误读为建议）  | 涉及监管                                       |
-| 6   | 方向三的提示频率如何避免骚扰                      | 决定是否上线                                   |
+| #   | 问题                                             | 影响                      |
+| --- | ------------------------------------------------ | ------------------------- |
+| 1   | 多药查询的实际耗时与结果集上限                   | 决定 `LIMIT` 与是否需拆批 |
+| 2   | `substitutes` 的合规边界（是否可能被误读为建议） | 涉及监管                  |
+| 3   | 方向三的提示频率如何避免骚扰                     | 决定是否上线              |
+
+**已裁决（2026-10-24）**：连接方式 = 直连 Neo4j（§4.1）；端点先放 `medicines` 模块（§4.2）。
