@@ -1,0 +1,19 @@
+-- Make `users.email` nullable so OAuth-only accounts can exist without one.
+--
+-- Why: the API contract already declared `email` nullable on the account
+-- resource ("OAuth-only accounts may not have one"), but the column was NOT
+-- NULL and `AuthOAuthService.createOAuthUser` rejected any profile without an
+-- email. The contract was describing a capability the schema forbade. This
+-- makes the schema match: a user created from e.g. a WeChat login has no local
+-- email until they add one through `POST /account/email`.
+--
+-- `users_email_key` stays UNIQUE. PostgreSQL treats NULLs as distinct in a
+-- unique index, so any number of email-less rows coexist while real addresses
+-- remain unique. No backfill is needed: existing rows all have an email.
+--
+-- Runtime caveat for callers: a query `WHERE email = $1` with a NULL parameter
+-- matches nothing (SQL three-valued logic), but Prisma's
+-- `where: { email: undefined }` drops the filter and `where: { email: null }`
+-- matches every NULL row. Lookups by email must therefore reject null input
+-- before querying — see `AuthIdentityService.findByEmail`.
+ALTER TABLE "users" ALTER COLUMN "email" DROP NOT NULL;

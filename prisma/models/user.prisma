@@ -57,7 +57,13 @@ enum UserDevicePlatform {
 
 model User {
   id                     String                      @id @default(uuid())
-  email                  String                      @unique
+  // Nullable: OAuth-only accounts (e.g. WeChat) may have no email at all.
+  // `@unique` still holds DB-wide because PostgreSQL treats NULLs as distinct,
+  // so any number of email-less accounts can coexist while real addresses stay
+  // unique. Callers MUST NOT query `where: { email: someNullableValue }` with a
+  // null — that would match an arbitrary email-less user; see
+  // `AuthIdentityService.findByEmail` for the null-guarded form.
+  email                  String?                     @unique
   emailVerified          Boolean                     @default(false) @map("email_verified") @db.Boolean
   nickname               String?
   avatar                 String?

@@ -12,7 +12,7 @@ import {
 } from '../../helpers/e2e-helpers.js';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
 
-const SESSIONS_PATH = '/api/v1/auth/sessions';
+const DEVICES_PATH = '/api/v1/auth/devices';
 const LOGIN_PATH = '/api/v1/auth/login';
 const LOGOUT_PATH = '/api/v1/auth/logout';
 const REFRESH_PATH = '/api/v1/auth/refresh';
@@ -96,19 +96,19 @@ describe('Session Management API (e2e)', () => {
   }
 
   // ════════════════════════════════════════════════════════════
-  // GET /auth/sessions — List active sessions
+  // GET /auth/devices — List active sessions
   // ════════════════════════════════════════════════════════════
 
-  describe('GET /api/v1/auth/sessions', () => {
+  describe('GET /api/v1/auth/devices', () => {
     it('should return 401 for unauthenticated request', async () => {
-      await request(app.getHttpServer()).get(SESSIONS_PATH).expect(401);
+      await request(app.getHttpServer()).get(DEVICES_PATH).expect(401);
     });
 
     it('should return sessions for an authenticated user', async () => {
       const { tokens } = await registerUserViaApi();
 
       const res = await request(app.getHttpServer())
-        .get(SESSIONS_PATH)
+        .get(DEVICES_PATH)
         .set('Authorization', bearer(tokens.accessToken))
         .expect(200);
 
@@ -132,7 +132,7 @@ describe('Session Management API (e2e)', () => {
         .expect(200);
 
       const res = await request(app.getHttpServer())
-        .get(SESSIONS_PATH)
+        .get(DEVICES_PATH)
         .set('Authorization', bearer(tokens.accessToken))
         .expect(200);
 
@@ -160,7 +160,7 @@ describe('Session Management API (e2e)', () => {
 
       // List sessions — should only show the active one
       await request(app.getHttpServer())
-        .get(SESSIONS_PATH)
+        .get(DEVICES_PATH)
         .set('Authorization', bearer(newTokens.accessToken))
         .expect(200);
 
@@ -174,13 +174,13 @@ describe('Session Management API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // DELETE /auth/sessions/:sessionId — Revoke a specific session
+  // DELETE /auth/devices/:sessionId — Revoke a specific session
   // ════════════════════════════════════════════════════════════
 
-  describe('DELETE /api/v1/auth/sessions/:sessionId', () => {
+  describe('DELETE /api/v1/auth/devices/:sessionId', () => {
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
-        .delete(`${SESSIONS_PATH}/fake-session-id`)
+        .delete(`${DEVICES_PATH}/fake-session-id`)
         .expect(401);
     });
 
@@ -198,7 +198,7 @@ describe('Session Management API (e2e)', () => {
 
       // List sessions to find the second session id
       const listRes = await request(app.getHttpServer())
-        .get(SESSIONS_PATH)
+        .get(DEVICES_PATH)
         .set('Authorization', bearer(firstTokens.accessToken))
         .expect(200);
 
@@ -215,7 +215,7 @@ describe('Session Management API (e2e)', () => {
 
       // Revoke the second session
       await request(app.getHttpServer())
-        .delete(`${SESSIONS_PATH}/${targetSessionId}`)
+        .delete(`${DEVICES_PATH}/${targetSessionId}`)
         .set('Authorization', bearer(firstTokens.accessToken))
         .expect(204);
 
@@ -262,7 +262,7 @@ describe('Session Management API (e2e)', () => {
       const { tokens } = await registerUserViaApi();
 
       await request(app.getHttpServer())
-        .delete(`${SESSIONS_PATH}/00000000-0000-0000-0000-000000000000`)
+        .delete(`${DEVICES_PATH}/00000000-0000-0000-0000-000000000000`)
         .set('Authorization', bearer(tokens.accessToken))
         .expect(404);
     });
@@ -276,7 +276,7 @@ describe('Session Management API (e2e)', () => {
 
       // Find user B's session id
       const listResB = await request(app.getHttpServer())
-        .get(SESSIONS_PATH)
+        .get(DEVICES_PATH)
         .set('Authorization', bearer(userB.tokens.accessToken))
         .expect(200);
 
@@ -285,7 +285,7 @@ describe('Session Management API (e2e)', () => {
 
       // User A tries to revoke User B's session — gets 403
       await request(app.getHttpServer())
-        .delete(`${SESSIONS_PATH}/${targetSessionId}`)
+        .delete(`${DEVICES_PATH}/${targetSessionId}`)
         .set('Authorization', bearer(userA.tokens.accessToken))
         .expect(403);
 

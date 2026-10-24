@@ -14639,8 +14639,9 @@
             "description": "用户 ID"
           },
           "email": {
-            "type": "string",
-            "description": "邮箱地址"
+            "nullable": true,
+            "description": "邮箱地址。OAuth-only 账号在补填邮箱前为 null",
+            "type": "string"
           },
           "nickname": {
             "nullable": true,

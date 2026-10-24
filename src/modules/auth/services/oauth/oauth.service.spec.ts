@@ -186,6 +186,29 @@ describe('AuthOAuthService', () => {
       );
     });
 
+    it('should create a user without an email when the provider discloses none', async () => {
+      // WeChat does not always return an email. `users.email` is nullable so
+      // such a user can exist; they can add an email later via
+      // `POST /account/email`. The create payload must omit `email` entirely
+      // rather than writing null explicitly, so Prisma applies no column value.
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser({
+          ...wechatProfile,
+          email: null,
+          emailVerifiedAt: null,
+        }),
+      );
+
+      expect(outcome.ok).toBe(true);
+      const createArg = prisma.user.create.mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(createArg.data).not.toHaveProperty('email');
+      expect(createArg.data).toEqual(
+        expect.objectContaining({ nickname: 'WeChat User' }),
+      );
+    });
+
     it('should match by unionId when providerUserId not found', async () => {
       prisma.account.findFirst
         .mockResolvedValueOnce(null)

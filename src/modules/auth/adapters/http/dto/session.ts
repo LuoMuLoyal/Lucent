@@ -81,7 +81,10 @@ export type SessionRegisterDto = z.infer<typeof sessionRegisterSchema>;
  */
 export const sessionUserSchema = z.object({
   id: z.string().describe('用户 ID'),
-  email: z.string().describe('邮箱地址'),
+  email: z
+    .string()
+    .nullable()
+    .describe('邮箱地址。OAuth-only 账号在补填邮箱前为 null'),
   nickname: z.string().nullable().describe('昵称'),
   avatar: z.string().nullable().describe('头像 URL'),
   emailVerified: z.boolean().describe('邮箱是否已验证'),

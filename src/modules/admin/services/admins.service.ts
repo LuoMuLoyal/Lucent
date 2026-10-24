@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { AdminRole, UserStatus } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../prisma/index.js';
-import { unwrapResult } from '../../../common/result/index.js';
+import {
+  createDomainFailure,
+  DomainFailureException,
+  unwrapResult,
+} from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import type { AdminAdminSummaryDto } from '../dto/admin-admins.dto.js';
 
@@ -22,10 +26,28 @@ interface AdminGrantRow {
   role: AdminRole;
   createdAt: Date;
   updatedAt: Date;
-  user: { email: string; nickname: string | null; status: UserStatus };
+  user: { email: string | null; nickname: string | null; status: UserStatus };
 }
 
+/**
+ * @throws {DomainFailureException} when the grantee has no email — an admin
+ *   account without a deliverable address cannot be audited or recovered, so
+ *   granting a role to one is rejected rather than rendering a null in the
+ *   console. (OAuth-only users can have `email: null` since the column became
+ *   nullable.)
+ */
 function toSummary(row: AdminGrantRow): AdminAdminSummaryDto {
+  if (row.user.email === null) {
+    throw new DomainFailureException(
+      createDomainFailure({
+        kind: 'conflict',
+        code: 'RESOURCE_CONFLICT',
+        detail:
+          'Cannot grant an admin role to an account without an email address',
+      }),
+    );
+  }
+
   return {
     userId: row.userId,
     email: row.user.email,

@@ -19,6 +19,13 @@ export class AdminAccessService {
     return admin?.role ?? null;
   }
 
+  /**
+   * @returns the admin identity, or `null` when the user holds no admin grant.
+   *   An admin whose account has no email is treated as "no usable identity"
+   *   (`null`) rather than surfacing a `null` email into the console: the
+   *   grant itself is already rejected at write time, so reaching this state
+   *   means data was written out of band.
+   */
   async getIdentity(userId: string) {
     const admin = await this.prisma.adminUser.findUnique({
       where: { userId },
@@ -29,12 +36,13 @@ export class AdminAccessService {
         },
       },
     });
-    if (admin === null) {
+    if (admin === null || admin.user.email === null) {
       return null;
     }
 
     return {
       ...admin.user,
+      email: admin.user.email,
       role: admin.role,
       permissions: [...ADMIN_ROLE_PERMISSIONS[admin.role]],
     };

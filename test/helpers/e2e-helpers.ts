@@ -156,7 +156,9 @@ export async function createTestUser(
   });
   return {
     id: user.id,
-    email: user.email,
+    // Email is nullable since OAuth-only accounts can omit it, but this
+    // helper always creates a credential user with one.
+    email: user.email ?? userEmail,
     nickname: user.nickname,
     status: user.status,
   };

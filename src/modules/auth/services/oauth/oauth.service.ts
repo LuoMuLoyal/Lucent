@@ -121,23 +121,16 @@ export class AuthOAuthService {
   private createOAuthUser(
     profile: OAuthProfile,
   ): ResultAsync<User, DomainFailure> {
-    const email = profile.email;
-    if (!email) {
-      return errAsync(
-        createDomainFailure({
-          kind: 'validation',
-          code: 'VALIDATION_FAILED',
-          detail:
-            'OAuth profile must provide an email to create a Lucent account',
-        }),
-      );
-    }
-
+    // No email is fine: WeChat and other providers do not always disclose one,
+    // and `users.email` is nullable for exactly this case. The account can set
+    // an email later through `POST /account/email`.
     return fromPrismaResult(
       this.prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
-            email: normalizeEmail(email),
+            ...(profile.email != null && {
+              email: normalizeEmail(profile.email),
+            }),
             ...(profile.nickname !== undefined && {
               nickname: profile.nickname,
             }),
