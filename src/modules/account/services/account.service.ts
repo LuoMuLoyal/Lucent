@@ -106,6 +106,10 @@ export class AccountService {
             // transaction must propagate so the transaction rolls back,
             // rather than being silently folded into "no password" (which
             // would incorrectly trigger the FORBIDDEN guard).
+            //
+            // 跨上下文读 auth（ADR-0024 §4「一个事务只改一个聚合」）：这是已知
+            // 债务，不是设计。修它要重构本事务边界（把身份读改成 reader port
+            // 或先读后判），不在 D2 范围内。见 docs/TODO.md。
             const txHasPasswordResult =
               await this.authIdentityService.hasPassword(userId, tx);
             if (txHasPasswordResult.isErr()) {

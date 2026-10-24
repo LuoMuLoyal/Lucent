@@ -7,6 +7,10 @@ import { UserModule } from '../user/user.module.js';
 import { MailModule } from '../../mail/mail.module.js';
 
 import { Sessions } from './domain/session/sessions.js';
+import { Accounts } from './domain/account/accounts.js';
+import { PrismaAccounts } from './infrastructure/persistence/accounts.js';
+import { PasswordHasher } from './application/ports/password-hasher.js';
+import { Argon2PasswordHasher } from './infrastructure/crypto/argon2.js';
 import { PrismaSessions } from './infrastructure/persistence/sessions.js';
 import { AccessTokens } from './application/ports/access-tokens.js';
 import { JwtAccessTokens } from './infrastructure/security/jwt-access-tokens.js';
@@ -41,7 +45,7 @@ import { GoogleOAuthProvider } from './providers/google-oauth.provider.js';
 import { QqOAuthProvider } from './providers/qq-oauth.provider.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { CookieSessionUseCase } from './application/use_cases/cookie-session.js';
-import { AuthIdentityService } from './services/identity/identity.service.js';
+import { AuthIdentityService } from './application/services/identity.js';
 import { EmailVerificationService } from './services/identity/email-verification.service.js';
 import { TurnstileService } from './services/identity/turnstile.service.js';
 
@@ -64,6 +68,10 @@ import { TurnstileService } from './services/identity/turnstile.service.js';
     // 端口 → 实现用 useExisting 绑定，adapter 与 use case 都按抽象类注入。
     PrismaSessions,
     { provide: Sessions, useExisting: PrismaSessions },
+    PrismaAccounts,
+    { provide: Accounts, useExisting: PrismaAccounts },
+    Argon2PasswordHasher,
+    { provide: PasswordHasher, useExisting: Argon2PasswordHasher },
     JwtAccessTokens,
     { provide: AccessTokens, useExisting: JwtAccessTokens },
     RuntimeSessionLifetime,

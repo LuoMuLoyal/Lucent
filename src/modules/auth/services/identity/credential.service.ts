@@ -12,7 +12,20 @@ import {
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
-import { AuthIdentityService } from './identity.service.js';
+import {
+  AuthIdentityService,
+  type LocalPasswordCheck,
+} from '../../application/services/identity.js';
+import {
+  decideCredential,
+  type CredentialDecision,
+  type CredentialFacts,
+} from '../../domain/account/credential-verdict.js';
+import {
+  credentialsInvalidFailure,
+  shouldCountLoginFailure,
+  toCredentialFailure,
+} from '../../application/services/credential-failures.js';
 import type { RegisterDto } from '../../dto/credentials/register.dto.js';
 import type { LoginDto } from '../../dto/credentials/login.dto.js';
 import {
@@ -21,10 +34,13 @@ import {
 } from '../../application/services/session-tokens.js';
 import type { RequestOrigin } from '../../application/ports/request-origin.js';
 import { toSessionSubject } from '../../application/services/session-subject.js';
-import { credentialsInvalidFailure } from './credential-failure.js';
+
 import { AuthRateLimitService } from './rate-limit.service.js';
 import { TurnstileService } from './turnstile.service.js';
 import { VerificationCodeService } from './verification-code.service.js';
+
+/** 验证码校验的三种结果（领域事实，不是错误码）。 */
+type CodeOutcome = 'valid' | 'mismatch' | 'expired';
 
 /**
  * Handles email/password credential flows: registration and login.
@@ -153,93 +169,182 @@ export class CredentialAuthService {
   // ── Helpers ──────────────────────────────────────────────────
 
   /**
-   * Validates the provided password (or verification code) for a login
-   * attempt.
+   * Validates the provided password (or verification code) for a login attempt.
    *
-   * ## Anti-enumeration (invariant #1)
+   * ## 这一层现在只做两件事：**收集事实** 与 **映射结论**
    *
-   * **Every** credential failure returns the same generic
-   * `AUTH_WRONG_PASSWORD` code, so the response never reveals whether the
-   * account exists, whether it has a password, or whether the supplied code
-   * was wrong; each failure also records the attempt for rate limiting.
+   * 判定本身是一个纯函数（`domain/account/credential-verdict.ts` 的
+   * `decideCredential`）。这里负责：
    *
-   * The verification-code path is part of that fold, and this is the subtle
-   * one: it used to propagate `AUTH_VERIFICATION_CODE_MISMATCH` /
-   * `AUTH_VERIFICATION_CODE_EXPIRED` verbatim **and skip rate limiting**,
-   * which made `POST /auth/login` an unthrottled oracle — an attacker could
-   * send `{ email, code: '000000' }` and read account existence off the
-   * error code, with no lockout ever engaging. Both code failures now fold
-   * into the same bucket and count against the same limiter.
+   * 1. 查账号、按需比对密码 / 校验验证码 → 得到 `CredentialFacts`；
+   * 2. 把结论交给 `application/services/credential-failures.ts` 折成
+   *    `DomainFailure`，并在**该计入限流时**记账。
    *
-   * ## Dependency failures are a separate branch (invariant #2)
+   * 之所以要这样拆：反枚举的本质是「把多种失败折叠成同一个可观察结果」，
+   * 而折叠是**映射**。放在流程里时，没有任何测试能证明「账号不存在」与
+   * 「密码错」走的是同一条路；变成纯函数后，折叠由返回类型保证，且可以脱离
+   * Prisma mock 与 DI 容器单测（见 `credential-verdict.spec.ts`）。
    *
-   * Internal/dependency failures (Argon2, DB, cache) are propagated
-   * unchanged so they are never misreported as wrong credentials — telling a
-   * user their password is wrong because the database is down sends them to
-   * reset a password that was never the problem.
+   * ## 两条不变量落在哪里
+   *
+   * - **#1 反枚举**：所有 `rejected` reason 在 `toCredentialFailure` 里合流成
+   *   同一个 `AUTH_WRONG_PASSWORD`。验证码路径的 `MISMATCH`/`EXPIRED` 同样
+   *   折进该桶并**计入限流**——它们曾经原样返回且跳过 `recordLoginFailure`，
+   *   使 `POST /auth/login` 成为不限速的账号存在性预言机。
+   * - **#2 依赖故障不折进反枚举桶**：依赖故障在 `CredentialFacts` 里是**独立的
+   *   字段**、在 `CredentialDecision` 里是**独立的 kind**，因此不可能被折叠。
    */
   private verifyLoginCredentials(
     email: string,
     dto: LoginDto,
     user: User | null,
   ): ResultAsync<User, DomainFailure> {
+    const presented: CredentialFacts['presented'] =
+      dto.password !== undefined && dto.code !== undefined
+        ? 'both'
+        : dto.password !== undefined
+          ? 'password'
+          : dto.code !== undefined
+            ? 'code'
+            : 'neither';
+
+    // 账号不存在：不再往下查，直接判定（判定结果仍是统一的凭据失败）。
     if (!user) {
-      return this.recordLoginFailure(email);
+      return this.settleRejection(
+        email,
+        decideCredential({
+          accountFound: false,
+          storedPassword: 'none',
+          presented,
+          passwordMatches: null,
+          codeOutcome: null,
+          dependencyFailure: null,
+        }),
+      );
     }
 
-    const hasPassword = dto.password !== undefined;
-    const hasCode = dto.code !== undefined;
-
-    if (hasPassword === hasCode) {
-      // Both or neither provided — same generic failure as wrong credentials.
-      return this.recordLoginFailure(email);
+    // 请求形状不对（两者都给 / 都不给）：不消耗任何依赖，直接判定。
+    if (presented === 'both' || presented === 'neither') {
+      return this.settleRejection(
+        email,
+        decideCredential({
+          accountFound: true,
+          storedPassword: 'none',
+          presented,
+          passwordMatches: null,
+          codeOutcome: null,
+          dependencyFailure: null,
+        }),
+      );
     }
+    return presented === 'password'
+      ? this.verifyByPassword(email, user, dto.password as string)
+      : this.verifyByCode(email, user, dto.code as string);
+  }
 
-    if (hasPassword) {
-      // Verify directly against the Lucent credential identity so this path
-      // never mints a session as a side effect.  Both "no credential
-      // identity" and "wrong password" are folded into the same generic
-      // anti-enumeration failure and counted against the rate limit.
-      // Internal/dependency failures are propagated unchanged so they are not
-      // masked as wrong credentials.
-      return this.authIdentityService
-        .verifyPasswordForUser(user.id, dto.password as string)
-        .andThen((valid) =>
-          valid ? okAsync(user) : errAsync(credentialsInvalidFailure()),
-        )
-        .orElse((error) => {
-          if (error.kind === 'internal' || error.kind === 'dependency') {
-            return errAsync(error);
-          }
-          return this.recordLoginFailure(email);
-        });
-    }
+  /** 密码路径：取「有无密码 + 比对结果」两个事实，交给纯函数判定。 */
+  private verifyByPassword(
+    email: string,
+    user: User,
+    password: string,
+  ): ResultAsync<User, DomainFailure> {
+    return this.authIdentityService
+      .checkLocalPassword(user.id, password)
+      .orElse((error) =>
+        // 依赖故障原样上抛（#2）：绝不折成「密码错」。
+        errAsync<LocalPasswordCheck, DomainFailure>(error),
+      )
+      .andThen((check) =>
+        this.settle(
+          email,
+          decideCredential({
+            accountFound: true,
+            storedPassword: check.hasPassword ? 'set' : 'none',
+            presented: 'password',
+            passwordMatches: check.passwordMatches,
+            codeOutcome: null,
+            dependencyFailure: null,
+          }),
+        ),
+      )
+      .map(() => user);
+  }
 
-    // Verification-code path. Both "code mismatch" and "code expired" fold
-    // into the same anti-enumeration bucket as a wrong password, and both are
-    // counted against the login limiter — see the docstring above for why the
-    // distinction must not be observable. Dependency failures (cache down)
-    // still propagate unchanged.
+  /** 验证码路径：把校验结果折成领域事实，交给纯函数判定。 */
+  private verifyByCode(
+    email: string,
+    user: User,
+    code: string,
+  ): ResultAsync<User, DomainFailure> {
     return this.verificationCodeService
-      .verify(email, dto.code as string, 'login')
-      .map(() => user)
-      .orElse((error) => {
+      .verify(email, code, 'login')
+      .map((): CodeOutcome => 'valid')
+      .orElse((error): ResultAsync<CodeOutcome, DomainFailure> => {
+        // 依赖故障（缓存/Redis 不可用）原样上抛（#2）：不能报成「验证码错」，
+        // 否则用户会去重试一个本来没问题的码。
         if (error.kind === 'internal' || error.kind === 'dependency') {
           return errAsync(error);
         }
-        return this.recordLoginFailure(email);
-      });
+        // 码错与码过期折进同一桶（#1）：两者对攻击者的信息价值相同
+        // （「该邮箱存在且近期请求过验证码」），且用户的操作都是「重新获取」。
+        return okAsync(
+          error.code === 'AUTH_VERIFICATION_CODE_EXPIRED'
+            ? 'expired'
+            : 'mismatch',
+        );
+      })
+      .andThen((codeOutcome) =>
+        this.settle(
+          email,
+          decideCredential({
+            accountFound: true,
+            storedPassword: 'none',
+            presented: 'code',
+            passwordMatches: null,
+            codeOutcome,
+            dependencyFailure: null,
+          }),
+        ),
+      )
+      .map(() => user);
   }
 
   /**
-   * Records a login failure (rate-limit bookkeeping) and returns the unified
-   * credential-invalid failure. The record happens first so rate limiting
-   * still counts even though the client only ever sees the generic code.
+   * 落定一个**必定失败**的领域结论：按需记限流，然后折成统一的 `DomainFailure`。
+   *
+   * **是否计入限流由领域函数决定**（`shouldCountLoginFailure`），不在这里
+   * 重写判据——限流分桶与反枚举桶必须同步，两处各写一遍迟早漂移。
+   *
+   * 返回 `never` 的成功分支：调用点用它做「必定拒绝」的短路（账号不存在、
+   * 请求形状不对），因此不需要再 `.map()` 出一个用户。
    */
-  private recordLoginFailure(email: string): ResultAsync<never, DomainFailure> {
+  private settleRejection(
+    email: string,
+    decision: CredentialDecision,
+  ): ResultAsync<never, DomainFailure> {
+    const failure = toCredentialFailure(decision);
+    if (!shouldCountLoginFailure(decision)) {
+      // 依赖故障不计入限流：一次缓存抖动不该把一批用户锁在门外。
+      return errAsync(failure);
+    }
     return this.authRateLimitService
       .recordLoginFailure(email)
-      .andThen(() => errAsync(credentialsInvalidFailure()));
+      .andThen(() => errAsync(failure));
+  }
+
+  /**
+   * 落定一个领域结论并放行成功路径。
+   *
+   * 与 {@link settleRejection} 分开是因为返回类型不同：成功时要继续带着
+   * 用户往下走，拒绝时是 `never`。合成一个会逼调用点做无意义的 `null` 映射。
+   */
+  private settle(
+    email: string,
+    decision: CredentialDecision,
+  ): ResultAsync<void, DomainFailure> {
+    return decision.kind === 'accepted'
+      ? okAsync(undefined)
+      : this.settleRejection(email, decision);
   }
 
   /**

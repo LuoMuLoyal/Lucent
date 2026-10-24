@@ -14,7 +14,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, User, UserStatus } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import type { OAuthProfile } from '../../types/oauth.types.js';
-import { isTrustedIdentityProvider } from '../identity/identity.service.js';
+import { isTrustedIdentityProvider } from '../../domain/account/identity-providers.js';
 
 @Injectable()
 export class AuthOAuthService {

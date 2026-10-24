@@ -2,13 +2,13 @@ export type { OAuthProfile } from './types/oauth.types.js';
 export type { UserPayload } from './types/auth-request.js';
 export { ARGON2_OPTIONS } from './config/argon2-options.js';
 export { AppleOAuthProvider } from './providers/apple-oauth.provider.js';
+export { AuthIdentityService } from './application/services/identity.js';
 export {
-  AuthIdentityService,
   CREDENTIAL_PROVIDER_ID,
   isTrustedIdentityProvider,
   LOCAL_CREDENTIAL_ISSUER,
   TRUSTED_IDENTITY_PROVIDERS,
-} from './services/identity/identity.service.js';
+} from './domain/account/identity-providers.js';
 export { AuthService } from './services/auth.service.js';
 export type { ChangeEmailDto } from './dto/password/change-email.dto.js';
 export { changeEmailSchema } from './dto/password/change-email.dto.js';

@@ -8,7 +8,7 @@ import { VerificationCodeService } from './verification-code.service.js';
 import { SessionTokens } from '../../application/services/session-tokens.js';
 import { PasswordReauthService } from './password-reauth.service.js';
 import { INotificationSender } from '../../../notifications/index.js';
-import { AuthIdentityService } from './identity.service.js';
+import { AuthIdentityService } from '../../application/services/identity.js';
 import { EmailVerificationService } from './email-verification.service.js';
 import type { NotificationListItemDto } from '../../../notifications/index.js';
 import type { User } from '#generated/prisma/client.js';

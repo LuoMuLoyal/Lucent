@@ -7,7 +7,7 @@ import { VerificationCodeService } from './verification-code.service.js';
 import { SessionTokens } from '../../application/services/session-tokens.js';
 import { AuthRateLimitService } from './rate-limit.service.js';
 import { TurnstileService } from './turnstile.service.js';
-import { AuthIdentityService } from './identity.service.js';
+import { AuthIdentityService } from '../../application/services/identity.js';
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import {
@@ -91,6 +91,7 @@ describe('CredentialAuthService', () => {
 
   let hashPasswordMock: vi.Mock;
   let verifyPasswordForUserMock: vi.Mock;
+  let checkLocalPasswordMock: vi.Mock;
   let createLocalUserMock: vi.Mock;
 
   beforeEach(async () => {
@@ -140,6 +141,7 @@ describe('CredentialAuthService', () => {
             hashPassword: vi.fn(),
             verifyPassword: vi.fn(),
             verifyPasswordForUser: vi.fn(),
+            checkLocalPassword: vi.fn(),
             hasPassword: vi.fn(),
             upsertCredentialAccount: vi.fn(),
             createLocalUser: vi.fn(),
@@ -186,10 +188,15 @@ describe('CredentialAuthService', () => {
     hashPasswordMock = identityService.hashPassword as unknown as vi.Mock;
     verifyPasswordForUserMock =
       identityService.verifyPasswordForUser as unknown as vi.Mock;
+    checkLocalPasswordMock =
+      identityService.checkLocalPassword as unknown as vi.Mock;
     createLocalUserMock = identityService.createLocalUser as unknown as vi.Mock;
 
     hashPasswordMock.mockResolvedValue('$argon2id$new-hash');
     verifyPasswordForUserMock.mockReturnValue(okAsync(true));
+    checkLocalPasswordMock.mockReturnValue(
+      okAsync({ hasPassword: true, passwordMatches: true }),
+    );
     createLocalUserMock.mockReturnValue(
       okAsync({ user: { id: 'user-1' }, created: true }),
     );
@@ -348,7 +355,7 @@ describe('CredentialAuthService', () => {
       expect(authRateLimitService.checkLoginRateLimit).toHaveBeenCalledWith(
         'test@example.com',
       );
-      expect(verifyPasswordForUserMock).toHaveBeenCalledWith(
+      expect(checkLocalPasswordMock).toHaveBeenCalledWith(
         'user-1',
         'Secure@Pass1',
       );
@@ -369,11 +376,13 @@ describe('CredentialAuthService', () => {
     });
 
     it('should reject wrong password with the generic code and record the failure', async () => {
-      verifyPasswordForUserMock.mockReturnValue(okAsync(false));
+      checkLocalPasswordMock.mockReturnValue(
+        okAsync({ hasPassword: true, passwordMatches: false }),
+      );
 
       const outcome = await collectResult(service.login(buildLoginDto()));
 
-      expect(verifyPasswordForUserMock).toHaveBeenCalledWith(
+      expect(checkLocalPasswordMock).toHaveBeenCalledWith(
         'user-1',
         'Secure@Pass1',
       );
@@ -409,18 +418,15 @@ describe('CredentialAuthService', () => {
     });
 
     it('should reject OAuth-only user without credential account', async () => {
-      verifyPasswordForUserMock.mockReturnValue(
-        errAsync(
-          createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_PASSWORD_NOT_SET',
-          }),
-        ),
+      // 无密码现在是**一个事实**（`hasPassword: false`），不是错误码。
+      // 领域判定把它与密码错折进同一个结论——对外不可区分。
+      checkLocalPasswordMock.mockReturnValue(
+        okAsync({ hasPassword: false, passwordMatches: null }),
       );
 
       const outcome = await collectResult(service.login(buildLoginDto()));
 
-      expect(verifyPasswordForUserMock).toHaveBeenCalledWith(
+      expect(checkLocalPasswordMock).toHaveBeenCalledWith(
         'user-1',
         'Secure@Pass1',
       );
@@ -580,7 +586,7 @@ describe('CredentialAuthService', () => {
     });
 
     it('maps an internal error to DEPENDENCY_UNAVAILABLE instead of folding it into AUTH_WRONG_PASSWORD', async () => {
-      verifyPasswordForUserMock.mockReturnValue(
+      checkLocalPasswordMock.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'dependency',

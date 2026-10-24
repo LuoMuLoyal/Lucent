@@ -31,20 +31,21 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 
 ### 四层迁移进度
 
-`auth` 是 ADR-0024 的第二批。目前**只有 httpOnly cookie 会话这一条垂直切片**
-迁到了四层,其余(Bearer 登录/注册、OAuth、密码管理、验证码、限流)仍在
-`services/`。批次内公开 API 零变化。
+`auth` 是 ADR-0024 的第二批。**S1（会话）与 S2（本地凭据）已迁完**；
+Bearer 登录/注册的**编排**仍在 `services/`（其**判定**已下沉），
+OAuth、验证码、限流待迁。批次内公开 API 除注明的一处安全修复外零变化。
 
 已迁移的切片:
 
-| 层                       | 位置                                                                                             | 职责                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| `domain/session/`        | `cookie-policy.ts`、`refresh-token.ts`、`session.ts`、`sessions.ts`                              | cookie 投放策略、refresh 指纹与重放分类、会话聚合与仓储端口（纯逻辑）    |
-| `application/use_cases/` | `cookie-session.ts`                                                                              | cookie 会话五步编排；输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
-| `application/services/`  | `session-tokens.ts`、`session-subject.ts`                                                        | 签发/轮换/吊销的编排；用户实体 → token payload 的唯一映射                |
-| `application/ports/`     | `access-tokens.ts`、`session-lifetime.ts`、`request-origin.ts`                                   | 签发、TTL、请求元数据的出站端口                                          |
-| `adapters/http/`         | `cookie.controller.ts`、`dto/session.ts`、`presenters/session.ts`、`session-cookies.ts`          | 请求解析、契约校验、响应投影、`Set-Cookie` 序列化                        |
-| `infrastructure/`        | `persistence/sessions.ts`、`security/jwt-access-tokens.ts`、`config/runtime-session-lifetime.ts` | Prisma 会话仓储、JWT 签发、运行期 TTL                                    |
+| 层                       | 位置                                                                                                                                                       | 职责                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `domain/session/`        | `cookie-policy.ts`、`refresh-token.ts`、`session.ts`、`sessions.ts`                                                                                        | cookie 投放策略、refresh 指纹与重放分类、会话聚合与仓储端口（纯逻辑）    |
+| `domain/account/`        | `account.ts`、`email.ts`、`account-status.ts`、`password-hash.ts`、`credential-verdict.ts`、`identity-providers.ts`、`accounts.ts`、`transaction-scope.ts` | 账户聚合、值对象、**凭据判定（纯函数）**、本地凭据仓储端口               |
+| `application/use_cases/` | `cookie-session.ts`                                                                                                                                        | cookie 会话五步编排；输入为应用层自己的 `LoginCommand`/`RegisterCommand` |
+| `application/services/`  | `session-tokens.ts`、`session-subject.ts`、`identity.ts`、`credential-failures.ts`                                                                         | 签发/轮换/吊销的编排；身份读写；**领域结论 → 错误码的唯一映射**          |
+| `application/ports/`     | `access-tokens.ts`、`session-lifetime.ts`、`request-origin.ts`、`password-hasher.ts`                                                                       | 签发、TTL、请求元数据、密码哈希的出站端口                                |
+| `adapters/http/`         | `cookie.controller.ts`、`dto/session.ts`、`presenters/session.ts`、`session-cookies.ts`                                                                    | 请求解析、契约校验、响应投影、`Set-Cookie` 序列化                        |
+| `infrastructure/`        | `persistence/{sessions,accounts}.ts`、`security/jwt-access-tokens.ts`、`crypto/argon2.ts`、`config/runtime-session-lifetime.ts`                            | Prisma 仓储、JWT 签发、Argon2、运行期 TTL                                |
 
 约束:`application/` 不得 import `adapters/`——`pnpm arch:check` 的
 `ddd-application-no-infra-or-adapters` 会拦。新增用例的输入类型定义在
@@ -53,6 +54,25 @@ userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 S1（会话）已迁完:`services/token.service.ts` 与 `repositories/session.repository.ts`
 已删除。轮换判定（宽限窗口内是竞态、窗口外是盗用）从流程里搬进了
 `domain/session/session.ts`，因此可以脱离 Prisma 与 DI 容器单测。
+
+S2（本地凭据）已迁完:`services/identity/identity.service.ts` 与
+`services/identity/credential-failure.ts` 已删除。两个关键决定:
+
+- **凭据判定是纯函数**（`domain/account/credential-verdict.ts` 的
+  `decideCredential`）。输入是四个**事实**（账号是否存在 / 有无密码 / 比对结果 /
+  依赖是否故障），输出是三态 `CredentialDecision`。反枚举由**返回类型**保证：
+  所有拒绝都是 `{ kind: 'rejected' }`，`reason` 只用于日志与限流分桶；
+  而依赖故障是**并列的另一个 kind**，类型上不可能被折进拒绝桶。
+  这样「多种失败折成一个可观察结果」终于有了不依赖 DI 容器的单测
+  （`credential-verdict.spec.ts`），映射侧另有
+  `application/services/credential-failures.spec.ts`。
+- **`TransactionScope` 是不透明的 `object` 别名**。`account` 模块在自己的
+  Prisma 事务里调 `hasPassword(userId, tx)`；若端口签名写
+  `Prisma.TransactionClient`，`application/` 就被迫 import `@prisma/client`
+  而被护栏拦下。别名到 `object` 让既有调用点一行不改，同时**没有任何可读成员**
+  ——想读字段必须先 cast，那是个显眼的、要写理由的动作。
+  （最初写成带标记字段的接口，**编译不过**：TypeScript 的弱类型检测要求源类型
+  与全可选属性接口至少有一个属性重叠，报 TS2559。`object` 无此问题且更不透明。）
 
 ## 端点命名
 
@@ -94,12 +114,21 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
 ## 内部结构
 
 - `services/auth.service.ts` — facade,委托子服务,自身不含业务逻辑。
-- `services/identity/credential.service.ts` — 注册/登录(本地凭据)。
-- `services/identity/identity.service.ts` — Lucent 自持身份层:argon2 哈希、
-  accounts 读写、本地用户创建与凭据校验。`TRUSTED_IDENTITY_PROVIDERS`
+- `services/identity/credential.service.ts` — 注册/登录的**编排**：收集事实 →
+  调纯函数判定 → 映射结论并记账。判定本身在
+  `domain/account/credential-verdict.ts`。
+- `application/services/identity.ts` — `AuthIdentityService`：Lucent 自持身份层
+  对 `Accounts` + `PasswordHasher` 两个端口的薄编排，是本模块对外的窄门
+  （`account` 在自己的事务里调它的 `hasPassword(userId, tx)`）。
+  实现细节已下沉：Prisma 在 `infrastructure/persistence/accounts.ts`，
+  Argon2 在 `infrastructure/crypto/argon2.ts`。
+- `domain/account/identity-providers.ts` — `TRUSTED_IDENTITY_PROVIDERS`
   (=`apple`/`google`)在此定义,是"受信提供商可自动关联账号"的唯一来源;
   `AuthOAuthService` 也引用它来拒绝这些提供商的显式链接。
 - `services/identity/password-reauth.service.ts` — 敏感操作前密码重验(非 token)。
+  与登录路径不同：调用方**已知用户是谁**，没有枚举风险，所以不做折叠
+  ——无密码是 `AUTH_PASSWORD_NOT_SET`（提示去设密码），密码错是
+  `AUTH_WRONG_PASSWORD`。**折叠只在有枚举风险的地方才是必需的**。
 - `services/identity/rate-limit.service.ts` — 登录失败限流(基于 Redis);`isCaptchaRequired`
   读同一失败桶,达到 `CAPTCHA_THRESHOLD` 后要求人机验证.
 - `services/identity/turnstile.service.ts` — Cloudflare Turnstile 校验。无凭据即关闭
@@ -131,7 +160,8 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
 ## 不变量与陷阱
 
 - 反枚举:所有凭据失败折进同一个桶(`kind: 'authentication'` /
-  `AUTH_WRONG_PASSWORD`,见 `services/identity/credential-failure.ts`)——
+  `AUTH_WRONG_PASSWORD`,见 `application/services/credential-failures.ts` 的
+  `credentialsInvalidFailure`——**该桶的唯一定义处**)——
   不暴露账号是否存在、是否有密码、验证码是否正确。注册先校验验证码再看邮箱
   是否已注册(邮箱已存在与验证码错误同码),登录的"用户不存在/无密码/密码错"
   也折叠成同一码并计入限流。
@@ -142,10 +172,24 @@ operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
   现已折叠;`AUTH_VERIFICATION_CODE_*` 只剩发码冷却/限流与邮箱验证 token
   这几条**不泄露账号存在性**的出口。注册路径不受影响(必须先拿到有效码才能
   走到邮箱检查,不构成预言机)。
+  **折叠的实现位置**是 `domain/account/credential-verdict.ts` 的
+  `decideCredential`:所有拒绝都是 `{ kind: 'rejected' }`,`reason` 只用于日志与
+  限流分桶,由 `toCredentialFailure` 单一分支映射成同一个码。
+- **`AUTH_VERIFICATION_CODE_EXPIRED` 与 `MISMATCH` 的区分保留,不并入反枚举桶**:
+  该区分对已注册与未注册邮箱**回答相同**,不泄露账号存在性;它泄露的是"该邮箱
+  近期请求过验证码",而利用该信号需先发码(受冷却与限流约束),且区分对用户有
+  明确的行动指引价值("码过期了请重新获取" vs "码错了请检查")。
+  **这是有意的取舍,不是遗漏**——审计时不要把它当成反枚举漏洞重提。
 - **依赖故障绝不能折进反枚举桶**:Argon2/DB/签 token/缓存异常由调用方映射为
   `DEPENDENCY_UNAVAILABLE`(或超时码)原样上抛。这条分界是安全保证而非风格:
   把宕机报成"密码错"会引导用户重置一个并没有问题的密码。登录的验证码路径
-  同样遵守——缓存故障不得报成"验证码错"。
+  同样遵守——缓存故障不得报成"验证码错"。在类型层,依赖故障是
+  `CredentialDecision` 的**并列 kind**(`dependency-failed`),不可能被折进
+  `rejected`。
+- **时序反枚举有意不做**:账号不存在时**不**白跑一次 Argon2(常见的时序侧信道
+  缓解)。理由:限流按邮箱分桶并对所有失败计数,时序信号价值有限;而给每个
+  不存在的邮箱跑一次 19 MiB 的哈希等于把登录接口变成内存放大攻击的入口。
+  若要补,应在限流之前加并配独立内存预算。**这是取舍,不是遗漏。**
 - 限流按邮箱(`auth:login-failure:*`,窗口 15 分钟、10 次后锁 1 小时)与
   userId(`auth:reauth-failure:*`)分桶,缓存故障保留原始异常。
 - `JwtAccessStrategy` 拒绝 `status !== 'active'` 的 token,用户被停用后旧
