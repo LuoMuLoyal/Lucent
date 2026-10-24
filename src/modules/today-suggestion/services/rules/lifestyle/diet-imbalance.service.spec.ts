@@ -166,6 +166,75 @@ describe('DietImbalanceRuleService', () => {
     expect(rule.match([dietSignal([], 0)], context)).toBeNull();
   });
 
+  /**
+   * Guards against an upstream facet kind **disappearing**.
+   *
+   * `DietFacetKind` is this context's projection of the upstream 11-kind
+   * vocabulary; the collector drops whatever it does not recognise. That drop is
+   * logged, but a *rename* upstream is indistinguishable from an *addition* in
+   * that log — both show up as "kind(s) this context does not consume". If
+   * upstream renamed `fat` to `dietary_fat`, the rule would keep its `fat`
+   * branch, no data would ever reach it, and nothing would fail.
+   *
+   * This test pins that every kind the rule claims to handle actually produces
+   * behaviour, so losing one goes red instead of silent.
+   *
+   * Note the limit: the payloads here are built directly, so this catches the
+   * rule-side half. The collector-side half (upstream list still containing our
+   * kinds) needs the mirror guard in `scripts/arch/`.
+   */
+  it('has live behaviour for every kind it claims to watch', () => {
+    const highWatch = [
+      'fried',
+      'sugar',
+      'sodium',
+      'fat',
+      'portion',
+      'carb',
+    ] as const;
+    const lowWatch = ['vegetable', 'fruit', 'protein'] as const;
+
+    for (const kind of highWatch) {
+      const candidate = rule.match(
+        [
+          dietSignal([
+            {
+              date: '2026-07-08',
+              analyzedMeals: 1,
+              facets: { [kind]: 'high' },
+            },
+            {
+              date: '2026-07-09',
+              analyzedMeals: 1,
+              facets: { [kind]: 'high' },
+            },
+          ]),
+        ],
+        context,
+      );
+      expect(
+        candidate?.copyGeneration.params,
+        `high side of "${kind}" produced no candidate`,
+      ).toMatchObject({ facetKind: kind });
+    }
+
+    for (const kind of lowWatch) {
+      const candidate = rule.match(
+        [
+          dietSignal([
+            { date: '2026-07-08', analyzedMeals: 1, facets: { [kind]: 'low' } },
+            { date: '2026-07-09', analyzedMeals: 1, facets: { [kind]: 'low' } },
+          ]),
+        ],
+        context,
+      );
+      expect(
+        candidate?.copyGeneration.params,
+        `low side of "${kind}" produced no candidate`,
+      ).toMatchObject({ facetKind: kind });
+    }
+  });
+
   it('picks the most frequent watch dimension and breaks ties by priority', () => {
     const candidate = rule.match(
       [
