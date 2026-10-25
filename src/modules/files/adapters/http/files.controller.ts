@@ -12,12 +12,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { ProblemDetailsDto } from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { FilesService } from './services/files.service.js';
+import { CurrentUser } from '../../../auth/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { ProblemDetailsDto } from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { FilesService } from '../../application/use_cases/create-upload.js';
 import {
   createFileUploadResponseSchema,
   createFileUploadSchema,

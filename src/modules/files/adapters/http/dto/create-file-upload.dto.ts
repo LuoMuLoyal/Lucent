@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import type {
+  CreateFileUploadRequest,
+  PresignedUpload,
+} from '../../../application/ports/uploads.js';
 
 /**
  * Standard Schema (zod 4) for `POST /files/upload` request body.
@@ -24,10 +28,12 @@ export const createFileUploadSchema = z
       .describe('Original filename')
       .optional(),
   })
-  .strict();
+  .strict()
+  // Pinned to the use-case contract: a wire change that drops a field fails here.
+  .describe('Create a presigned file upload.' satisfies string) as z.ZodType<CreateFileUploadRequest>;
 
 /** Strongly typed request body of `POST /files/upload`. */
-export type CreateFileUploadDto = z.infer<typeof createFileUploadSchema>;
+export type CreateFileUploadDto = CreateFileUploadRequest;
 
 /**
  * Standard Schema (zod 4) for the presigned upload response
@@ -61,6 +67,8 @@ export const createFileUploadResponseSchema = z.object({
 });
 
 /** Strongly typed response body of `POST /files/upload`. */
-export type CreateFileUploadResponseDto = z.infer<
-  typeof createFileUploadResponseSchema
->;
+export type CreateFileUploadResponseDto = PresignedUpload;
+
+// Compile-time check that the schema still produces the port's shape.
+export const createFileUploadResponseSatisfiesPort =
+  createFileUploadResponseSchema satisfies z.ZodType<PresignedUpload>;

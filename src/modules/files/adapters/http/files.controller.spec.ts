@@ -1,11 +1,11 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { JwtAuthGuard } from '../auth/index.js';
-import { errAsync, okAsync } from '../../common/result/index.js';
-import type { DomainFailure } from '../../common/result/index.js';
+import { JwtAuthGuard } from '../../../auth/index.js';
+import { errAsync, okAsync } from '../../../../common/result/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
 import { FilesController } from './files.controller.js';
 import { createFileUploadResponseSchema } from './dto/create-file-upload.dto.js';
-import { FilesService } from './services/files.service.js';
+import { FilesService } from '../../application/use_cases/create-upload.js';
 
 describe('FilesController', () => {
   let controller: FilesController;
