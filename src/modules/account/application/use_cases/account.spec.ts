@@ -21,7 +21,7 @@ import {
   IdentityUnlinkRejected,
   LinkedIdentities,
 } from '../ports/linked-identities.js';
-import type { UpdateAccountDto } from '../../adapters/http/dto/update.js';
+import type { UpdateAccountCommand as UpdateAccountDto } from '../ports/update-account.js';
 
 const baseUser = {
   id: 'user-uuid-1',

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import type { UpdateAccountCommand } from '../../../application/ports/update-account.js';
+
 /**
  * Standard Schema (zod 4) for `PATCH /account` request body.
  *
@@ -23,7 +25,7 @@ export const updateAccountSchema = z
       .describe('Avatar URL. Send an empty string to clear it.')
       .optional(),
   })
-  .strict();
+  .strict() satisfies z.ZodType<UpdateAccountCommand>;
 
 /** Strongly typed body of `PATCH /account`. */
-export type UpdateAccountDto = z.infer<typeof updateAccountSchema>;
+export type UpdateAccountDto = UpdateAccountCommand;
