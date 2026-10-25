@@ -15,10 +15,7 @@ import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client.js';
 
 import { Account } from './account.js';
-import {
-  AuthIdentityService,
-  PasswordReauthService,
-} from '../../../auth/index.js';
+import { AccountIdentity } from '../ports/account-identity.js';
 import { UserService } from '../../../user/index.js';
 import {
   IdentityUnlinkRejected,
@@ -99,8 +96,8 @@ describe('Account', () => {
   let service: Account;
   let userService: DeepMocked<UserService>;
   let identities: MockedIdentities;
-  let passwordReauthService: vi.Mocked<PasswordReauthService>;
-  let identityService: vi.Mocked<AuthIdentityService>;
+  let identity: vi.Mocked<AccountIdentity>;
+
   let module: TestingModule;
 
   beforeEach(async () => {
@@ -128,14 +125,9 @@ describe('Account', () => {
           useValue: identitiesMock,
         },
         {
-          provide: PasswordReauthService,
+          provide: AccountIdentity,
           useValue: {
-            verify: vi.fn().mockReturnValue(okAsync(undefined)),
-          },
-        },
-        {
-          provide: AuthIdentityService,
-          useValue: {
+            verifyPassword: vi.fn().mockReturnValue(okAsync(undefined)),
             hasPassword: vi.fn().mockReturnValue(okAsync(true)),
           },
         },
@@ -145,8 +137,7 @@ describe('Account', () => {
     service = module.get(Account);
     userService = module.get(UserService);
     identities = module.get(LinkedIdentities) as unknown as MockedIdentities;
-    passwordReauthService = module.get(PasswordReauthService);
-    identityService = module.get(AuthIdentityService);
+    identity = module.get(AccountIdentity);
   });
 
   afterEach(() => {
@@ -198,9 +189,7 @@ describe('Account', () => {
     });
 
     it('should set hasPassword to false when there is no credential account', async () => {
-      (identityService.hasPassword as vi.Mock).mockReturnValueOnce(
-        okAsync(false),
-      );
+      (identity.hasPassword as vi.Mock).mockReturnValueOnce(okAsync(false));
       (userService.findById as vi.Mock).mockResolvedValue(baseUser);
       identities.listForUser.mockResolvedValue([baseIdentity]);
 
@@ -355,7 +344,7 @@ describe('Account', () => {
         }),
       );
 
-      expect(passwordReauthService.verify).toHaveBeenCalledWith(
+      expect(identity.verifyPassword).toHaveBeenCalledWith(
         baseUser.id,
         'Passw0rd123',
       );
@@ -379,7 +368,7 @@ describe('Account', () => {
         baseIdentity,
         secondIdentity,
       ]);
-      passwordReauthService.verify.mockReturnValue(
+      identity.verifyPassword.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -407,7 +396,7 @@ describe('Account', () => {
         baseIdentity,
         secondIdentity,
       ]);
-      passwordReauthService.verify.mockReturnValue(
+      identity.verifyPassword.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -430,9 +419,7 @@ describe('Account', () => {
     });
 
     it('should return an authorization DomainFailure when unlinking the last sign-in method', async () => {
-      (identityService.hasPassword as vi.Mock).mockReturnValueOnce(
-        okAsync(false),
-      );
+      (identity.hasPassword as vi.Mock).mockReturnValueOnce(okAsync(false));
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
       identities.listForUser.mockResolvedValueOnce([baseIdentity]);
 
@@ -485,9 +472,7 @@ describe('Account', () => {
     });
 
     it('should allow unlinking when password verification succeeds and multiple identities remain', async () => {
-      (identityService.hasPassword as vi.Mock).mockReturnValueOnce(
-        okAsync(false),
-      );
+      (identity.hasPassword as vi.Mock).mockReturnValueOnce(okAsync(false));
       (userService.findById as vi.Mock)
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
@@ -541,7 +526,7 @@ describe('Account', () => {
       // a DomainFailure Err — this must propagate as a dependency failure,
       // NOT be silently folded into `false` (which would incorrectly trigger
       // the FORBIDDEN guard).
-      (identityService.hasPassword as vi.Mock)
+      (identity.hasPassword as vi.Mock)
         .mockReturnValueOnce(okAsync(true)) // pre-transaction check
         .mockReturnValueOnce(
           errAsync(

@@ -10,11 +10,8 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import {
-  AuthIdentityService,
-  PasswordReauthService,
-} from '../../../auth/index.js';
 import { UserService } from '../../../user/index.js';
+import { AccountIdentity } from '../ports/account-identity.js';
 import type {
   AccountProfile,
   UnlinkIdentityCommand,
@@ -49,14 +46,13 @@ export class Account {
   constructor(
     private readonly userService: UserService,
     private readonly identities: LinkedIdentities,
-    private readonly passwordReauthService: PasswordReauthService,
-    private readonly authIdentityService: AuthIdentityService,
+    private readonly identity: AccountIdentity,
   ) {}
 
   /** 读账户档案。 */
   get(userId: string): ResultAsync<AccountProfile, DomainFailure> {
     return this.loadAccountUser(userId).andThen((user) =>
-      this.authIdentityService
+      this.identity
         .hasPassword(userId)
         .map((hasPassword) => this.toProfile(user, hasPassword)),
     );
@@ -102,12 +98,10 @@ export class Account {
   ): ResultAsync<AccountProfile, DomainFailure> {
     return this.loadAccountUser(userId)
       .andThen((user) =>
-        this.passwordReauthService
-          .verify(userId, command.password)
-          .map(() => user),
+        this.identity.verifyPassword(userId, command.password).map(() => user),
       )
       .andThen((user) =>
-        this.authIdentityService
+        this.identity
           .hasPassword(userId)
           .map((hasPassword) => ({ user, hasPassword })),
       )
@@ -132,10 +126,7 @@ export class Account {
             userId,
             identityId,
             hasPassword: async (scope) => {
-              const result = await this.authIdentityService.hasPassword(
-                userId,
-                scope,
-              );
+              const result = await this.identity.hasPassword(userId, scope);
               // **Err 必须抛出，不能折成 `false`。** 折成 false 会让人以为
               // 「没有密码」，从而错误触发 FORBIDDEN 守卫，把一个依赖故障
               // 伪装成授权失败——那会误导用户以为自己的账号有问题。
