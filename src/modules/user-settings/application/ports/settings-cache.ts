@@ -9,30 +9,15 @@
  * and `keyv` while letting the adapter own the key shape, the TTL and the
  * failure policy (a broken cache degrades to "read the DB", never to a 500).
  *
- * ## Why the cached shape is declared here
- *
- * The cache stores exactly what `GET /settings` returns. Naming that shape in
- * this file (the port) rather than importing it from the read model keeps the
- * dependency one-way: read model -> port, never port -> read model. A `type`
- * cycle would be invisible at runtime but breaks the D2 direction check.
+ * The cached value is the application's own `UserSettingsResource` type — never
+ * a read-model-local shape — so the port stays independent of the read model
+ * that happens to call it (a port -> read-model edge would be a cycle).
  */
 
-/** The cached resource: the rendered settings document, dates as ISO strings. */
-export interface CachedUserSettings {
-  aiSummariesEnabled: boolean;
-  dataSharingConsent: boolean;
-  assistantEnabled: boolean;
-  assistantMemoryEnabled: boolean;
-  waterTargetCount: number;
-  assistantContext: {
-    healthProfile: boolean;
-    dailyRecords: boolean;
-    sleepRecords: boolean;
-    currentMedicines: boolean;
-  };
-  updatedAt: string | null;
-  passwordReauthenticationRequired: boolean;
-}
+import type { UserSettingsResource } from './user-settings-resource.js';
+
+/** The cached resource (alias kept for adapters that name it). */
+export type CachedUserSettings = UserSettingsResource;
 
 export abstract class SettingsCache {
   /** Reads the cached resource, or `undefined` on a miss. */

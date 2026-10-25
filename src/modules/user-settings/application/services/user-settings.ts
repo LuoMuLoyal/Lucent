@@ -5,10 +5,10 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import type { UserSettingsDataDto } from '../../adapters/http/dto/response.js';
-import type { UpdateUserSettingsDto } from '../../adapters/http/dto/update.js';
 import type { UserSettingsPatch } from '../../domain/settings/user-settings.js';
 import { IUserSettingsPort } from '../ports/user-settings.js';
+import type { UserSettingsResource } from '../ports/user-settings-resource.js';
+import type { UpdateUserSettingsCommand } from '../ports/user-settings-resource.js';
 import type { UserSettingsReadModel } from '../read_models/user-settings.js';
 import type { UpdateUserSettings } from '../use_cases/update-settings.js';
 
@@ -22,12 +22,10 @@ import type { UpdateUserSettings } from '../use_cases/update-settings.js';
  * by `today-suggestion` / `reports` / `assistant`). The wiring lives here once
  * instead of twice, and the port never reaches into a use case or read model.
  *
- * ## DTO types stay the contract
+ * ## Types come from `application/ports/`
  *
- * The signatures are typed against the HTTP DTOs on purpose — they are what the
- * consumers already depend on. Conversion to the domain's `UserSettingsPatch`
- * happens at this boundary, which is what keeps the domain free of zod
- * (ADR-0024 §4).
+ * `UserSettingsResource` / `UpdateUserSettingsCommand` are application-owned.
+ * The HTTP DTOs are pinned to them, not the other way round (D2).
  */
 @Injectable()
 export class UserSettingsService extends IUserSettingsPort {
@@ -38,14 +36,14 @@ export class UserSettingsService extends IUserSettingsPort {
     super();
   }
 
-  getSettings(userId: string): Promise<UserSettingsDataDto> {
+  getSettings(userId: string): Promise<UserSettingsResource> {
     return this.readModel.get(userId);
   }
 
   updateSettings(
     userId: string,
-    dto: UpdateUserSettingsDto,
-  ): ResultAsync<UserSettingsDataDto, DomainFailure> {
+    dto: UpdateUserSettingsCommand,
+  ): ResultAsync<UserSettingsResource, DomainFailure> {
     const patch = toPatch(dto);
     // An empty patch must not write, invalidate or publish. The use case
     // short-circuits on an empty upsert list anyway; returning here keeps the
@@ -65,13 +63,12 @@ export class UserSettingsService extends IUserSettingsPort {
 }
 
 /**
- * Widens the wire DTO into the domain patch.
+ * Widens the update command into the domain patch.
  *
- * The shapes are structurally identical today (same field names, same
- * optionality); the copy exists so a future rename on either side cannot
- * silently change the other.
+ * The two shapes are structurally identical today; the copy exists so a future
+ * rename on either side cannot silently change the other.
  */
-function toPatch(dto: UpdateUserSettingsDto): UserSettingsPatch {
+function toPatch(dto: UpdateUserSettingsCommand): UserSettingsPatch {
   const patch: UserSettingsPatch = {};
   if (dto.aiSummariesEnabled !== undefined) {
     patch.aiSummariesEnabled = dto.aiSummariesEnabled;

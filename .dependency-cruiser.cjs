@@ -108,10 +108,11 @@ module.exports = {
      * no application/adapters/infrastructure, no other modules.
      *
      * Type-only imports are exempt: naming a shape (e.g. `DomainFailure` from
-     * the Result boundary) is not a runtime dependency, and forbidding it only
-     * pushes the type back out of the domain. `dependencyTypesNot` keeps the
+     * the Result boundary) creates no runtime dependency, and forbidding it
+     * only pushes the type out of the domain. `dependencyTypesNot` scopes the
      * exemption to `import type` / `export type` edges — a value import from
-     * outside the domain tree still violates.
+     * outside the domain tree still violates. Verified by
+     * `scripts/arch/domain-purity.spec.ts`, which asserts both directions.
      */
     {
       name: 'ddd-domain-purity',
@@ -133,23 +134,16 @@ module.exports = {
      * layers directly; it depends on domain and its own ports only.
      * (Infrastructure implementations inject into application via DI tokens,
      * so the edge direction application -> infrastructure is never needed.)
-     *
-     * Exempt: this module's own `adapters/http/dto/` types. They are the wire
-     * contract cross-context reader ports are typed against (modules outside
-     * this one depend on `IUserSettingsPort`'s signatures), so the port must be
-     * able to name them. Any other `adapters/` path, and any `infrastructure/`
-     * path in any module, still violates.
      */
     {
       name: 'ddd-application-no-infra-or-adapters',
       severity: 'warn',
       comment:
         "src/modules/**/application/** must not import from any module's " +
-        'infrastructure/ or adapters/ trees (own adapters/http/dto types ' +
-        'excepted).',
-      from: { path: '^src/modules/([^/]+)/application/' },
+        'infrastructure/ or adapters/ trees.',
+      from: { path: '^src/modules/[^/]+/application/' },
       to: {
-        path: '^src/modules/(?!$1/)[^/]+/(?:infrastructure|adapters)/',
+        path: '^src/modules/[^/]+/(?:infrastructure|adapters)/',
       },
     },
 

@@ -66,7 +66,16 @@ export const updateUserSettingsSchema = z
   })
   .strict();
 
-/** Strongly typed request body of `PATCH /user/settings`. */
+/**
+ * Strongly typed request body of `PATCH /user/settings`.
+ *
+ * This is also the application-layer `UpdateUserSettingsCommand`: `z.infer` of
+ * an optional key is `boolean | undefined`, so it is *not* assignable to a bare
+ * optional `boolean` under `exactOptionalPropertyTypes`. Rather than keep two
+ * structurally-different twins, the command interface in
+ * `application/ports/user-settings-resource.ts` mirrors this shape and
+ * `user-settings-resource.spec.ts` asserts each is assignable to the other.
+ */
 export type UpdateUserSettingsDto = z.infer<typeof updateUserSettingsSchema>;
 
 /** Nested assistant-context portion of the update body. */
