@@ -2,21 +2,21 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { AdminRole } from '#generated/prisma/client.js';
-import { ConfigKey } from '../../../config/env/config-keys.enum.js';
-import { EnvKey } from '../../../config/env/env-keys.enum.js';
-import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
-import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import {
   QUEUE_NAME_LIST,
   isQueueName,
   queueReadPermission,
   queueWritePermission,
-} from '../../../common/queue/queue-names.js';
+} from '../../../../common/queue/queue-names.js';
 import {
   ADMIN_ROLE_PERMISSIONS,
   type AdminPermission,
-} from '../constants/permissions.js';
-import { AdminAccessService } from './access.service.js';
+} from '../../constants/permissions.js';
+import { AdminAccessService } from '../../infrastructure/persistence/access.service.js';
 
 interface JwtConfigShape {
   accessSecret: string;

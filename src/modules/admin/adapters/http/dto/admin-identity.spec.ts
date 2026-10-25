@@ -1,5 +1,5 @@
 import { AdminRole } from '#generated/prisma/client.js';
-import { adminIdentityResponseSchema } from './admin-identity.dto.js';
+import { adminIdentityResponseSchema } from './admin-identity.js';
 
 describe('adminIdentityResponseSchema', () => {
   it('accepts a valid administrator identity and permission list', () => {

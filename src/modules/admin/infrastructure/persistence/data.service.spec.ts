@@ -1,8 +1,8 @@
 import { Prisma } from '#generated/prisma/client.js';
-import { okAsync } from '../../../common/result/index.js';
-import type { PrismaService } from '../../../prisma/index.js';
-import type { AuditLogService } from '../../audit-log/index.js';
-import { getAdminResource } from '../constants/resource-registry.js';
+import { okAsync } from '../../../../common/result/index.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { AuditLogService } from '../../../audit-log/index.js';
+import { getAdminResource } from '../../constants/resource-registry.js';
 import { AdminDataService } from './data.service.js';
 
 function knownRequestError(code: string): Error {

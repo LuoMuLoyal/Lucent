@@ -6,17 +6,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { unwrapResult } from '../../../common/result/index.js';
-import { ProblemDetailsDto, registerResponseSchema } from '../../../common/index.js';
-import { AdminGuard } from '../guards/admin.guard.js';
-import { AdminPermissionGuard } from '../guards/admin-permission.guard.js';
-import { RequirePermission } from '../decorators/require-permission.decorator.js';
+import { unwrapResult } from '../../common/result/index.js';
+import { ProblemDetailsDto, registerResponseSchema } from '../../common/index.js';
+import { AdminGuard } from './guards/admin.guard.js';
+import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
+import { RequirePermission } from './decorators/require-permission.decorator.js';
 import {
   ProductFunnelService,
   funnelResponseSchema,
   productFunnelQuerySchema,
-} from '../../product-events/index.js';
-import type { FunnelDataDto, FunnelQueryDto } from '../../product-events/index.js';
+} from '../product-events/index.js';
+import type { FunnelDataDto, FunnelQueryDto } from '../product-events/index.js';
 
 /**
  * `GET /admin/metrics/funnel` — the management-console view of the product

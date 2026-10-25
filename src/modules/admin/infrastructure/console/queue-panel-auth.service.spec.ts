@@ -1,7 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AdminRole } from '#generated/prisma/client.js';
-import type { AdminAccessService } from './access.service.js';
+import type { AdminAccessService } from '../../infrastructure/persistence/access.service.js';
 import { QueuePanelAuthService } from './queue-panel-auth.service.js';
 
 const ACCESS_SECRET = 'queue-panel-test-secret-value-0123456789';

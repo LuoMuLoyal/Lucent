@@ -9,16 +9,16 @@ import type {
 } from '@bull-board/api/typings/app';
 import { FastifyAdapter } from '@bull-board/fastify';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { extractAuthRequestContext } from '../../../common/index.js';
-import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
-import { AuditLogService } from '../../audit-log/index.js';
+import { extractAuthRequestContext } from '../../../../common/index.js';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { AuditLogService } from '../../../audit-log/index.js';
 import {
   QUEUE_PANEL_API_PREFIX,
   QUEUE_PANEL_AUDIT_RESOURCE_TYPE,
   QUEUE_PANEL_COOKIE_NAME,
   QUEUE_PANEL_PATH,
   QUEUE_PANEL_TOKEN_QUERY_PARAM,
-} from '../constants/queue-panel.constants.js';
+} from '../../constants/queue-panel.constants.js';
 import {
   QueuePanelAuthService,
   type QueuePanelPrincipal,

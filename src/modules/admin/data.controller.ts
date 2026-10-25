@@ -16,27 +16,27 @@ import { z } from 'zod';
 import {
   ProblemDetailsDto,
   registerResponseSchema,
-} from '../../../common/index.js';
-import { CurrentUser } from '../../auth/index.js';
-import type { UserPayload } from '../../auth/index.js';
-import { AdminGuard } from '../guards/admin.guard.js';
-import { AdminPermissionGuard } from '../guards/admin-permission.guard.js';
-import { RequirePermission } from '../decorators/require-permission.decorator.js';
-import { AdminDataService } from '../services/data.service.js';
+} from '../../common/index.js';
+import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { AdminGuard } from './guards/admin.guard.js';
+import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
+import { RequirePermission } from './decorators/require-permission.decorator.js';
+import { AdminDataService } from './infrastructure/persistence/data.service.js';
 import {
   getAdminResource,
   type AdminResource,
-} from '../constants/resource-registry.js';
+} from './constants/resource-registry.js';
 import {
   adminResourceListQuerySchema,
   adminResourceListResponseSchema,
   adminResourceRowSchema,
   adminResourceWriteSchema,
-} from '../dto/admin-data.dto.js';
+} from './application/ports/admin-data.js';
 import type {
   AdminResourceListQueryDto,
   AdminResourceWriteDto,
-} from '../dto/admin-data.dto.js';
+} from './application/ports/admin-data.js';
 
 const resourceParamSchema = z.string().trim().min(1).max(80);
 const rowIdParamSchema = z.string().trim().min(1).max(200);

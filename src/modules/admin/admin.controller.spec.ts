@@ -2,16 +2,16 @@ import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { CLASS_SERIALIZER_OPTIONS } from '@nestjs/common/serializer/class-serializer.constants.js';
 import { z } from 'zod';
 import { AdminRole } from '#generated/prisma/client.js';
-import { responseSchemaRegistrations } from '../../../common/api/response-schema.registry.js';
-import type { UserPayload } from '../../auth/index.js';
-import type { AuthSessionAdminService } from '../../auth/index.js';
-import type { UserAdminService } from '../../user/index.js';
-import type { QaChunksAdminService } from '../../assistant/index.js';
-import type { AdminAccessService } from '../services/access.service.js';
-import type { AdminAdminsService } from '../services/admins.service.js';
-import type { AdminConsoleService } from '../services/console.service.js';
-import type { AdminSharesService } from '../services/shares.service.js';
-import type { AdminUserRelatedService } from '../services/user-related.service.js';
+import { responseSchemaRegistrations } from '../../common/api/response-schema.registry.js';
+import type { UserPayload } from '../auth/index.js';
+import type { AuthSessionAdminService } from '../auth/index.js';
+import type { UserAdminService } from '../user/index.js';
+import type { QaChunksAdminService } from '../assistant/index.js';
+import type { AdminAccessService } from './infrastructure/persistence/access.service.js';
+import type { AdminAdminsService } from './infrastructure/persistence/admins.service.js';
+import type { AdminConsoleService } from './infrastructure/console/console.service.js';
+import type { AdminSharesService } from './infrastructure/persistence/shares.service.js';
+import type { AdminUserRelatedService } from './infrastructure/persistence/user-related.service.js';
 import { AdminController } from './admin.controller.js';
 
 const user: UserPayload = {

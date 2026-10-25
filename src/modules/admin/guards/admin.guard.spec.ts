@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { UserPayload } from '../../auth/index.js';
-import type { AdminAccessService } from '../services/access.service.js';
+import type { AdminAccessService } from '../infrastructure/persistence/access.service.js';
 import { AdminGuard } from './admin.guard.js';
 
 const adminUser = { sub: 'user-1', email: 'admin@example.com', status: 'active' };

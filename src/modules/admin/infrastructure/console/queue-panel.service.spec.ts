@@ -5,10 +5,10 @@ import fastifyCookie from '@fastify/cookie';
 import type { HttpAdapterHost } from '@nestjs/core';
 import { AdminRole } from '#generated/prisma/client.js';
 import type { Mock } from 'vitest';
-import type { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
-import type { AuditLogService } from '../../audit-log/index.js';
-import { QUEUE_PANEL_COOKIE_NAME } from '../constants/queue-panel.constants.js';
-import type { AdminAccessService } from './access.service.js';
+import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import type { AuditLogService } from '../../../audit-log/index.js';
+import { QUEUE_PANEL_COOKIE_NAME } from '../../constants/queue-panel.constants.js';
+import type { AdminAccessService } from '../../infrastructure/persistence/access.service.js';
 import { QueuePanelAuthService } from './queue-panel-auth.service.js';
 import { QueuePanelService } from './queue-panel.service.js';
 

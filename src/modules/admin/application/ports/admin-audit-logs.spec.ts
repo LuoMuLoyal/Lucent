@@ -1,4 +1,4 @@
-import { adminAuditLogListQuerySchema } from './admin-audit-logs.dto.js';
+import { adminAuditLogListQuerySchema } from './admin-audit-logs.js';
 
 describe('adminAuditLogListQuerySchema', () => {
   it('provides bounded paging defaults', () => {

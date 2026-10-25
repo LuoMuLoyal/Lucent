@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AdminRole } from '#generated/prisma/client.js';
-import { ADMIN_PERMISSIONS } from '../constants/permissions.js';
+import { ADMIN_PERMISSIONS } from '../../../constants/permissions.js';
 
 export const adminIdentityResponseSchema = z
   .object({

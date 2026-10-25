@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { AdminRole, UserStatus } from '#generated/prisma/client.js';
-import { PrismaService } from '../../../prisma/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import {
   createDomainFailure,
   DomainFailureException,
   unwrapResult,
-} from '../../../common/result/index.js';
-import { AuditLogService } from '../../audit-log/index.js';
-import type { AdminAdminSummaryDto } from '../dto/admin-admins.dto.js';
+} from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import type { AdminAdminSummaryDto } from '../../application/ports/admin-admins.js';
 
 export type AdminRoleSetOutcome =
   | { status: 'ok'; admin: AdminAdminSummaryDto }

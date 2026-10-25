@@ -4,7 +4,7 @@ import {
   adminResourceWriteSchema,
   adminUserRelatedQuerySchema,
   adminUserRelatedResponseSchema,
-} from './admin-data.dto.js';
+} from './admin-data.js';
 
 describe('admin data DTOs', () => {
   describe('adminResourceListQuerySchema', () => {

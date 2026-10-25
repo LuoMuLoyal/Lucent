@@ -1,7 +1,7 @@
 import { AdminRole, UserStatus } from '#generated/prisma/client.js';
-import { okAsync } from '../../../common/result/index.js';
-import type { PrismaService } from '../../../prisma/index.js';
-import type { AuditLogService } from '../../audit-log/index.js';
+import { okAsync } from '../../../../common/result/index.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { AuditLogService } from '../../../audit-log/index.js';
 import { AdminAdminsService } from './admins.service.js';
 
 const grantRow = {

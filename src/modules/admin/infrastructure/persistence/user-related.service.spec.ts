@@ -1,5 +1,5 @@
-import type { AdminResource } from '../constants/resource-registry.js';
-import type { AdminDataService, AdminResourcePage } from './data.service.js';
+import type { AdminResource } from '../../constants/resource-registry.js';
+import type { AdminDataService, AdminResourcePage } from '../../infrastructure/persistence/data.service.js';
 import { AdminUserRelatedService } from './user-related.service.js';
 
 describe('AdminUserRelatedService', () => {

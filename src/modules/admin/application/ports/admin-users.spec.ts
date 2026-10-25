@@ -1,4 +1,4 @@
-import { adminUserListQuerySchema } from './admin-users.dto.js';
+import { adminUserListQuerySchema } from './admin-users.js';
 
 describe('adminUserListQuerySchema', () => {
   it('provides bounded paging defaults', () => {

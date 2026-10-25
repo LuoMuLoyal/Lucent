@@ -1,9 +1,9 @@
 import { AdminRole, UserStatus } from '#generated/prisma/client.js';
 import type { ConfigService } from '@nestjs/config';
-import type { PrismaService } from '../../../prisma/index.js';
-import type { AuditLogService } from '../../audit-log/index.js';
-import { EnvKey } from '../../../config/env/env-keys.enum.js';
-import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+import type { AuditLogService } from '../../../audit-log/index.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { AdminConsoleService } from './console.service.js';
 
 function buildPrisma() {

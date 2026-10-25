@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/index.js';
-import { now } from '../../../common/index.js';
-import { unwrapResult } from '../../../common/result/index.js';
-import { AuditLogService } from '../../audit-log/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { now } from '../../../../common/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
 
 /**
  * Admin revoke of another user's clinic-summary share link.

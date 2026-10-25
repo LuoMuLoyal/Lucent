@@ -8,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { UserPayload } from '../../auth/index.js';
 import { REQUIRED_ADMIN_PERMISSION } from '../decorators/require-permission.decorator.js';
-import { AdminAccessService } from '../services/access.service.js';
+import { AdminAccessService } from '../infrastructure/persistence/access.service.js';
 import type { AdminPermission } from '../constants/permissions.js';
 
 @Injectable()

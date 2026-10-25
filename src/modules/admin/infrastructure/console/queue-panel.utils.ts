@@ -1,9 +1,9 @@
-import { isQueueName } from '../../../common/queue/queue-names.js';
+import { isQueueName } from '../../../../common/queue/queue-names.js';
 import {
   QUEUE_PANEL_API_PREFIX,
   QUEUE_PANEL_AUDIT_ACTION_FALLBACK,
   QUEUE_PANEL_AUDIT_ACTION_PREFIX,
-} from '../constants/queue-panel.constants.js';
+} from '../../constants/queue-panel.constants.js';
 
 /** Rejects anything that could break a `Set-Cookie` value or a path segment. */
 const UNSAFE_COOKIE_VALUE = /[^\w.\-~+/=]/;

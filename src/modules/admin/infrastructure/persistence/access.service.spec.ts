@@ -1,5 +1,5 @@
 import { AdminRole } from '#generated/prisma/client.js';
-import type { PrismaService } from '../../../prisma/index.js';
+import type { PrismaService } from '../../../../prisma/index.js';
 import { AdminAccessService } from './access.service.js';
 
 describe('AdminAccessService', () => {

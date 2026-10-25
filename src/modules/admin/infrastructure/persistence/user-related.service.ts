@@ -4,8 +4,8 @@ import {
   getAdminResource,
   type AdminResource,
   type AdminUserRelatedGroup,
-} from '../constants/resource-registry.js';
-import { AdminDataService } from './data.service.js';
+} from '../../constants/resource-registry.js';
+import { AdminDataService } from '../../infrastructure/persistence/data.service.js';
 
 export interface AdminUserRelatedSection {
   resource: string;

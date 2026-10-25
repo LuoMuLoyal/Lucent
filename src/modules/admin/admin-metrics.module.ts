@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdminModule } from './admin.module.js';
-import { ProductEventsModule } from '../product-events/product-events.module.js';
-import { AdminMetricsController } from './controllers/metrics.controller.js';
+import { ProductEventsModule } from './../product-events/product-events.module.js';
+import { AdminMetricsController } from './metrics.controller.js';
 
 /**
  * Admin-owned metrics surface that reads from another module's service.

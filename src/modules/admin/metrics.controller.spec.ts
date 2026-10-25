@@ -1,8 +1,8 @@
-import { createDomainFailure, errAsync, okAsync } from '../../../common/result/index.js';
-import { responseSchemaRegistrations } from '../../../common/api/response-schema.registry.js';
-import { funnelResponseSchema } from '../../product-events/index.js';
-import type { ProductFunnelService } from '../../product-events/index.js';
-import type { FunnelDataDto } from '../../product-events/index.js';
+import { createDomainFailure, errAsync, okAsync } from '../../common/result/index.js';
+import { responseSchemaRegistrations } from '../../common/api/response-schema.registry.js';
+import { funnelResponseSchema } from '../product-events/index.js';
+import type { ProductFunnelService } from '../product-events/index.js';
+import type { FunnelDataDto } from '../product-events/index.js';
 import { AdminMetricsController } from './metrics.controller.js';
 
 const funnel: FunnelDataDto = {

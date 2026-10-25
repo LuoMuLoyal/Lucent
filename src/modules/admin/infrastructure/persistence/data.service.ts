@@ -6,15 +6,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client.js';
-import { PrismaService } from '../../../prisma/index.js';
-import { now } from '../../../common/index.js';
-import { unwrapResult } from '../../../common/result/index.js';
-import { AuditLogService } from '../../audit-log/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { now } from '../../../../common/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
 import {
   adminResourceSortFields,
   type AdminResource,
-} from '../constants/resource-registry.js';
-import type { AdminResourceListQueryDto } from '../dto/admin-data.dto.js';
+} from '../../constants/resource-registry.js';
+import type { AdminResourceListQueryDto } from '../../application/ports/admin-data.js';
 
 /** A Prisma result row — columns vary per resource, values are untyped. */
 type ResourceRow = Record<string, unknown>;

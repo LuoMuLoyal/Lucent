@@ -17,51 +17,51 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
-import { AuthSessionAdminService, CurrentUser } from '../../auth/index.js';
-import type { UserPayload } from '../../auth/index.js';
-import { UserAdminService } from '../../user/index.js';
+import { AuthSessionAdminService, CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../auth/index.js';
+import { UserAdminService } from '../user/index.js';
 import {
   ProblemDetailsDto,
   registerResponseSchema,
-} from '../../../common/index.js';
-import { AdminGuard } from '../guards/admin.guard.js';
-import { AdminPermissionGuard } from '../guards/admin-permission.guard.js';
-import { RequirePermission } from '../decorators/require-permission.decorator.js';
-import { AdminAccessService } from '../services/access.service.js';
-import { AdminAdminsService } from '../services/admins.service.js';
-import { AdminConsoleService } from '../services/console.service.js';
-import { AdminSharesService } from '../services/shares.service.js';
-import { AdminUserRelatedService } from '../services/user-related.service.js';
+} from '../../common/index.js';
+import { AdminGuard } from './guards/admin.guard.js';
+import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
+import { RequirePermission } from './decorators/require-permission.decorator.js';
+import { AdminAccessService } from './infrastructure/persistence/access.service.js';
+import { AdminAdminsService } from './infrastructure/persistence/admins.service.js';
+import { AdminConsoleService } from './infrastructure/console/console.service.js';
+import { AdminSharesService } from './infrastructure/persistence/shares.service.js';
+import { AdminUserRelatedService } from './infrastructure/persistence/user-related.service.js';
 import {
   adminUserRelatedQuerySchema,
   adminUserRelatedResponseSchema,
-} from '../dto/admin-data.dto.js';
-import type { AdminUserRelatedQueryDto } from '../dto/admin-data.dto.js';
+} from './application/ports/admin-data.js';
+import type { AdminUserRelatedQueryDto } from './application/ports/admin-data.js';
 import {
   adminAuditLogListQuerySchema,
   adminAuditLogListResponseSchema,
-} from '../dto/admin-audit-logs.dto.js';
+} from './application/ports/admin-audit-logs.js';
 import {
   adminMetricsOverviewResponseSchema,
-} from '../dto/admin-metrics.dto.js';
-import { adminDependenciesResponseSchema } from '../dto/admin-dependencies.dto.js';
+} from './adapters/http/dto/admin-metrics.js';
+import { adminDependenciesResponseSchema } from './adapters/http/dto/admin-dependencies.js';
 import {
   adminUserListQuerySchema,
   adminUserListResponseSchema,
   adminUserStatusUpdateSchema,
   adminUserSummarySchema,
-} from '../dto/admin-users.dto.js';
-import type { AdminAuditLogListQueryDto } from '../dto/admin-audit-logs.dto.js';
+} from './application/ports/admin-users.js';
+import type { AdminAuditLogListQueryDto } from './application/ports/admin-audit-logs.js';
 import type {
   AdminUserListQueryDto,
   AdminUserStatusUpdateDto,
-} from '../dto/admin-users.dto.js';
+} from './application/ports/admin-users.js';
 import {
   adminAdminListResponseSchema,
   adminAdminRoleUpdateSchema,
   adminAdminSummarySchema,
-} from '../dto/admin-admins.dto.js';
-import type { AdminAdminRoleUpdateDto } from '../dto/admin-admins.dto.js';
+} from './application/ports/admin-admins.js';
+import type { AdminAdminRoleUpdateDto } from './application/ports/admin-admins.js';
 import {
   adminLegalDocumentListSchema,
   adminLegalDocumentSchema,
@@ -74,19 +74,19 @@ import {
   adminSafetyTipListSchema,
   adminSafetyTipSchema,
   adminSafetyTipUpdateSchema,
-} from '../dto/admin-content.dto.js';
+} from './adapters/http/dto/admin-content.js';
 import type {
   AdminLegalDocumentUpdateDto,
   AdminQaChunkListQueryDto,
   AdminQaChunkUpdateDto,
   AdminSafetyTipCreateDto,
   AdminSafetyTipUpdateDto,
-} from '../dto/admin-content.dto.js';
-import { LegalDocumentsAdminService } from '../../legal-documents/index.js';
-import { SafetyTipsAdminService } from '../../medicines/index.js';
-import { QaChunksAdminService } from '../../assistant/index.js';
-import { adminIdentityResponseSchema } from '../dto/admin-identity.dto.js';
-import type { AdminIdentityDto } from '../dto/admin-identity.dto.js';
+} from './adapters/http/dto/admin-content.js';
+import { LegalDocumentsAdminService } from '../legal-documents/index.js';
+import { SafetyTipsAdminService } from '../medicines/index.js';
+import { QaChunksAdminService } from '../assistant/index.js';
+import { adminIdentityResponseSchema } from './adapters/http/dto/admin-identity.js';
+import type { AdminIdentityDto } from './adapters/http/dto/admin-identity.js';
 
 @ApiTags('Admin')
 @ApiBearerAuth('access-token')

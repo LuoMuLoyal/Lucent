@@ -1,14 +1,14 @@
 import { Prisma, UserStatus } from '#generated/prisma/client.js';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
-import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
-import { PrismaService } from '../../../prisma/index.js';
-import { AuditLogService } from '../../audit-log/index.js';
-import type { AuditLogListQuery } from '../../audit-log/index.js';
-import { EnvKey } from '../../../config/env/env-keys.enum.js';
-import type { AdminAuditLogListQueryDto } from '../dto/admin-audit-logs.dto.js';
-import type { AdminUserListQueryDto } from '../dto/admin-users.dto.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import type { AuditLogListQuery } from '../../../audit-log/index.js';
+import { EnvKey } from '../../../../config/env/env-keys.enum.js';
+import type { AdminAuditLogListQueryDto } from '../../application/ports/admin-audit-logs.js';
+import type { AdminUserListQueryDto } from '../../application/ports/admin-users.js';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
