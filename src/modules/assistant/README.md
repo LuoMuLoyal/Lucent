@@ -41,14 +41,14 @@ owner: backend
   节点重答最后一条 assistant 消息；仅最后一条可再生成，30 秒内重复 409，
   旧答案保留为 revision，结果 `usedTools`/`toolDetails` 为空。
 
-## Runtime Graph（`agent/runtime/`）
+## Runtime Graph（`adapters/agent/`）
 
 `prepare_context`（取记忆块）→ `classify_intent`（**大模型选本轮工具**，见下节）
 → 5 种 intent：`simple_chat` 直达 `respond`、`read_data`/`write_proposal`/`knowledge`
 走子图、`mixed` 走 `agent↔tools` 循环 → `write_review`（HITL 暂停，等 confirm，
 依赖 checkpointer）→ `respond` 流式输出。工具循环与检索次数受服务端上限约束（bounded）。
 
-### 工具路由（`agent/runtime/intent-classifier.service.ts`）
+### 工具路由（`application/services/intent-classifier.ts`）
 
 - **意图从工具集派生，不单独判定**：模型只回答"这轮需要哪些工具"
   （`schemas/intent-routing.schema.ts`），`deriveIntent()`（`classify.ts`）再把它投影成
@@ -62,7 +62,7 @@ owner: backend
   降级记 `assistant_intent_routing_total{source="degraded_all_tools"}`，应为 0 或极低。
 - 角色是 `language`（与 Cypher 生成同属"文本理解 → 结构化输出"），无需新增环境变量。
 
-## Tools（`tools/`，按域分目录）
+## Tools（`adapters/acl/tools/`，按域分目录）
 
 `read`（日报记录查询 + today/report/sleep 摘要读取，范围上限 14 天，统一 envelope：
 query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查询，
@@ -80,7 +80,7 @@ passage 走 Lucent 自己的 pgvector 表；`search_cn_medicine_products` /
 其余默认 bounded-linear、复用 `common/llm`、copy 本地化）详见
 `docs/explanation/architecture.md`。
 
-### 中文散文检索（LightRAG，`tools/retrieval/`）
+### 中文散文检索（LightRAG，`adapters/acl/tools/retrieval/`）
 
 中文散文知识（说明书字段级语义检索 + 医学问答）的**导入与查询都交给 LightRAG
 sidecar**，Lucent 只做参数校验与 envelope 归一：
@@ -138,7 +138,7 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 `docs/reference/environment-variables.md` 的 LightRAG 小节与
 `docs/reference/deployment.md`。
 
-### 英文侧 OAG 本体推理（Semantica，`tools/ontology/`）
+### 英文侧 OAG 本体推理（Semantica，`adapters/acl/tools/ontology/`）
 
 英文 DrugBank 的结构化事实（药 → 靶点 / 酶 / 转运体、相互作用、ATC）以**确定性灌入**
 建成 Neo4j 图（零 LLM 抽取），`reason_over_ontology` 在这张图上做类型化多跳推理：
@@ -215,7 +215,7 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 
 工具调用参数经 `AssistantToolCall` 从 `agent` 节点一路带到执行层
 （`AssistantToolExecutionContext.toolArgs`），**不再**从 `userMessage` 文本猜
-参数。带参数的工具目前有六个（`tools/shared/tool-definitions.ts` 的
+参数。带参数的工具目前有六个（`adapters/acl/tools/shared/tool-definitions.ts` 的
 `TOOL_PARAMETERS`）：`get_meal_analysis_digest`（`days` / `limit`）、
 `search_cn_medicine_knowledge`（`query` / `source` / `mode` / `limit`）、
 `resolve_drugbank_entity`（`query`，只给药品名而非整句）、
@@ -270,7 +270,7 @@ UserHealthContext、DailyRecords、MedicineReminders。Port DI（ADR-0009）：
 ## Tests
 
 `assistant.controller.spec.ts`、`services/core.service.spec.ts`、
-`agent/runtime/*.spec.ts`（classify/graph/nodes/respond/review/
+`adapters/agent/*.spec.ts`（classify/graph/nodes/respond/review/
 validate/model-stream/`intent-classifier.service`/`intent-eval.fixture` 等 +
 `subgraphs/*.spec.ts`）、`tools/**/*.spec.ts`
 （含 `retrieval/lightrag-client.service.spec.ts` 与
