@@ -4,7 +4,7 @@ import { MAX_TOOL_LOOPS } from '../../acl/tools/shared/tool-constants.js';
 import { AssistantRuntimeState } from '../state.js';
 import { createAgentNode, createToolsNode } from '../nodes.js';
 import { validateReadResults } from '../validate.js';
-import type { AssistantGraphDeps } from '../graph.js';
+import type { AssistantGraphDeps } from '../deps.js';
 
 /**
  * Builds the read-data sub-graph.

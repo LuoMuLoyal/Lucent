@@ -1,9 +1,7 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
-import type { BaseCheckpointSaver } from '@langchain/langgraph';
 import { InMemoryCache } from '@langchain/langgraph-checkpoint';
 import type { BaseMessage } from '@langchain/core/messages';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { isRetryableLlmError } from '../../../../common/llm/retry/llm-retry.helper.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import {
@@ -13,16 +11,11 @@ import {
   TOOL_EXECUTION_TIMEOUT_MS,
 } from '../acl/tools/shared/tool-constants.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
-import type {
-  AssistantToolCall,
-  AssistantToolExecutionResult,
-} from '../../application/ports/assistant.js';
-import type { ToolLimitBudgets } from '../acl/tools/shared/tool-definitions.js';
+import type { AssistantGraphDeps } from './deps.js';
 import { AssistantRuntimeState } from './state.js';
 import { deriveIntent, type AssistantIntent } from '../../application/services/intent.js';
 import type { AssistantToolRoutingOutcome } from '../../application/services/intent.js';
-import type { ContextSource } from '../../domain/policies/tool-permission.js';
-import { buildRespondNode, type AssistantRespondCache } from './respond.js';
+import { buildRespondNode } from './respond.js';
 import { createAgentNode, createToolsNode } from './nodes.js';
 import { buildReadSubGraph } from './subgraphs/read.js';
 import { buildWriteSubGraph } from './subgraphs/write.js';
@@ -77,72 +70,6 @@ export const ASSISTANT_NODE_TIMEOUT_MS =
   ) +
   5_000;
 
-/** Callback type for executing tools inside the graph. */
-export type ToolExecutorFn = (
-  toolCalls: readonly AssistantToolCall[],
-) => Promise<AssistantToolExecutionResult[]>;
-
-/** Callback type for creating the LLM model. */
-export type ModelFactoryFn = () => BaseChatModel;
-
-/** Callback type for building the system prompt. */
-export type SystemPromptFn = (tools: readonly ToolName[]) => string;
-
-/** Callback type for building the simple-chat system prompt (no tools). */
-export type SimpleChatPromptFn = () => string;
-export type AssistantTextCallback = (text: string) => void | Promise<void>;
-
-export interface AssistantGraphDeps {
-  createModel: ModelFactoryFn;
-  onText?: AssistantTextCallback;
-  executeTools: ToolExecutorFn;
-  buildSystemPrompt: SystemPromptFn;
-  /**
-   * Advertised tool limits for this build. Read at graph build time (which
-   * happens per conversation turn), so a published change applies to the next
-   * turn without rebuilding anything process-wide.
-   */
-  toolBudgets?: () => ToolLimitBudgets;
-  /**
-   * Per-node run timeout. Defaults to {@link ASSISTANT_NODE_TIMEOUT_MS}; the
-   * resolver exists because the node budget has to stay above the tool budgets,
-   * and those are tunable.
-   */
-  nodeTimeoutMs?: () => number;
-  /**
-   * 每轮工具选择的端口（生产实现 = `AssistantIntentClassifierService`）。
-   *
-   * 缺省时节点**不抛**，而是走"绑定全部候选工具 + intent=mixed"的降级 —— 生产里
-   * 缺这根线是接线错误，指标上的 `degraded_all_tools` 会立刻暴露；测试里不注入
-   * 即为"路由不可用"的确定性场景。**没有关键词回退**：规则表已整体退役。
-   */
-  routeTools?: (input: {
-    userMessage: string;
-    locale: string;
-    enabledContextSources: readonly ContextSource[];
-    candidateTools: readonly ToolName[];
-  }) => Promise<AssistantToolRoutingOutcome>;
-  /** Intent-specific prompt builders; fall back to buildSystemPrompt when absent. */
-  buildReadSystemPrompt?: SystemPromptFn;
-  buildWriteSystemPrompt?: SystemPromptFn;
-  buildKnowledgeSystemPrompt?: SystemPromptFn;
-  buildSimpleChatSystemPrompt?: SimpleChatPromptFn;
-  /**
-   * Builds the persisted cross-conversation memory block for a user.
-   * Called by `prepare_context` when `memoryEnabled && isNewConversation`.
-   */
-  buildMemoryBlock?: (userId: string) => Promise<string>;
-  /** Simple-chat response cache; when absent, replies are not cached. */
-  respondCache?: AssistantRespondCache;
-  /**
-   * Postgres-backed checkpointer (from `AssistantCheckpointerService`).
-   * When null the graph skips the in-graph review nodes and keeps the old
-   * stateless write flow.
-   */
-  checkpointer?: BaseCheckpointSaver | null;
-  /** Persisted conversation id; used as the LangGraph thread id by the caller. */
-  conversationId?: string;
-}
 
 /**
  * 选本轮工具：正常走注入的模型路由端口；端口缺失时降级为**全部候选工具**。

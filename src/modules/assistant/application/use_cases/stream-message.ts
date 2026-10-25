@@ -129,7 +129,7 @@ export class AssistantStreamOrchestratorService {
         buildMemoryBlock: (id) =>
           this.assistantConversationService.buildMemoryBlock(id),
       },
-      async (toolCalls) => {
+      async (toolCalls: readonly AssistantToolCall[]) => {
         // 每个调用都必须回一个结果：执行层少回一个，上面的 assistant.tool_calls 与下面
         // 的 ToolMessage 就会数量/位置错位，而"id 不在 tool_calls 里"的 400 不在重试
         // 白名单内 —— 表现为整轮直接失败。未获许可的调用回一个显式拒绝信封。

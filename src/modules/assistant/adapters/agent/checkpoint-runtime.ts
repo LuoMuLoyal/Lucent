@@ -69,8 +69,8 @@ import { AssistantStreamService } from '../../application/services/stream.js';
 import {
   ASSISTANT_NODE_TIMEOUT_MS,
   buildAssistantRuntimeGraph,
-  type ToolExecutorFn,
 } from './graph.js';
+import type { ToolExecutorFn } from './deps.js';
 import type { AssistantRespondCache } from './respond.js';
 
 const CHAT_MODEL_OPTIONS = {

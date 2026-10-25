@@ -3,7 +3,7 @@ import { SystemMessage } from '@langchain/core/messages';
 import { MAX_TOOL_LOOPS } from '../../acl/tools/shared/tool-constants.js';
 import { AssistantRuntimeState, DEFAULT_VALIDATION_FLAGS } from '../state.js';
 import { createAgentNode, createToolsNode } from '../nodes.js';
-import type { AssistantGraphDeps } from '../graph.js';
+import type { AssistantGraphDeps } from '../deps.js';
 
 /**
  * Builds the write-proposal sub-graph.
