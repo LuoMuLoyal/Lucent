@@ -15,6 +15,8 @@
  * staler than the last successful `PATCH`.
  */
 
+import { Injectable } from '@nestjs/common';
+
 import type { UserSettingsSnapshot } from '../../domain/settings/user-settings.js';
 import { UserSettings } from '../../domain/settings/user-settings.js';
 import { SettingsRepository } from '../../domain/settings/settings.js';
@@ -23,6 +25,13 @@ import type { UserSettingsResource } from '../ports/user-settings-resource.js';
 
 export type UserSettingsView = UserSettingsResource;
 
+/**
+ * `@Injectable()` is load-bearing, not decorative: without it the SWC builder
+ * emits no `design:paramtypes` for this class, so Nest constructs it with
+ * `undefined` dependencies and the failure only shows up as
+ * "Cannot read properties of undefined (reading 'read')" at request time.
+ */
+@Injectable()
 export class UserSettingsReadModel {
   constructor(
     private readonly repository: SettingsRepository,

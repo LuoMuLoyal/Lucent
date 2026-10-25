@@ -15,6 +15,8 @@
  * invalidate and not publish.
  */
 
+import { Injectable } from '@nestjs/common';
+
 import {
   DomainFailureException,
   fromPromise,
@@ -29,11 +31,16 @@ import {
 import { SettingsRepository } from '../../domain/settings/settings.js';
 import { SettingsCache } from '../ports/settings-cache.js';
 import { SettingsEvents } from '../ports/settings-events.js';
-import type {
-  UserSettingsReadModel,
-  UserSettingsView,
-} from '../read_models/user-settings.js';
+// `UserSettingsReadModel` is a constructor token, so it needs a value import
+// even though only its type is referenced in the signature.
+import { UserSettingsReadModel } from '../read_models/user-settings.js';
+import type { UserSettingsView } from '../read_models/user-settings.js';
 
+/**
+ * `@Injectable()` is required for Nest to read this class's constructor
+ * metadata; without it the injected dependencies are `undefined`.
+ */
+@Injectable()
 export class UpdateUserSettings {
   constructor(
     private readonly repository: SettingsRepository,
