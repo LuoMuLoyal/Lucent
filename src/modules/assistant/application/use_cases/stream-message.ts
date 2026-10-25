@@ -17,7 +17,7 @@ import { AssistantRuntimeService } from '../../adapters/agent/checkpoint-runtime
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { AssistantPolicyService } from '../services/policy.js';
 import { AssistantToolService } from '../../adapters/acl/tool-executor.js';
-import { AssistantConversationService } from './conversation.js';
+import { Conversations } from './conversation.js';
 import { toDomainFailure } from '../services/provider-failures.js';
 import { nowIsoString } from '../../../../common/index.js';
 import type {
@@ -50,7 +50,7 @@ export class AssistantStreamOrchestratorService {
     private readonly userSettingsService: IUserSettingsPort,
     private readonly assistantPolicyService: AssistantPolicyService,
     private readonly assistantToolExecutor: AssistantToolService,
-    private readonly assistantConversationService: AssistantConversationService,
+    private readonly assistantConversationService: Conversations,
     private readonly metricsService: MetricsService,
   ) {}
 
@@ -210,7 +210,7 @@ export class AssistantStreamOrchestratorService {
     }
 
     const conversation =
-      await this.assistantConversationService.persistAssistantTurn({
+      await this.assistantConversationService.persistTurn({
         userId,
         messages,
         assistantContent: result.content,

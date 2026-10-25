@@ -12,7 +12,6 @@ import {
   formatDateOnlyInTimezone,
   now,
 } from '../../../common/index.js';
-import { unwrapResult } from '../../../common/result/index.js';
 import {
   createDomainFailure,
   type DomainFailure,
@@ -382,8 +381,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     userId: string,
     data: TodayAnalysisDataDto,
   ): Promise<void> {
-    await unwrapResult(
-      this.aiSummaryHistoryService.save({
+    await this.aiSummaryHistoryService.save({
         userId,
         kind: 'today',
         scopeKey: `today:${data.date}`,
@@ -396,8 +394,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
         confidenceNote: data.confidenceNote,
         aiGenerated: data.aiGenerated,
         sourceVersion: data.sourceVersion ?? null,
-      }),
-    );
+      });
   }
 
   protected buildLogContext(context: TodayAnalysisContext): string {

@@ -18,15 +18,9 @@ import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
-import type {
-  DomainFailure,
-  ResultAsync,
-} from '../../../../common/result/index.js';
-import {
-  AssistantConversationRepositoryPort,
-  type ConversationWithMessages,
-} from '../../domain/conversation/conversations.js';
-import { AssistantMemoryRepositoryPort } from '../../domain/memory/memories.js';
+import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
+import type { ConversationState } from '../../domain/conversation/conversation.js';
+import type { MemoryRepositoryPort } from '../../domain/memory/memories.js';
 
 /** Independent guard for providers that ignore the model client's timeout. */
 export const MEMORY_EXTRACTION_TIMEOUT_MS = AI_MODEL_TIMEOUT_MS + 1_000;
@@ -78,9 +72,9 @@ export class AssistantMemoryService {
   private readonly pendingExtractions = new Map<string, PendingExtraction>();
 
   constructor(
-    private readonly memoryRepository: AssistantMemoryRepositoryPort,
+    private readonly memoryRepository: MemoryRepositoryPort,
     private readonly llmRuntimeService: LlmRuntimeService,
-    private readonly conversationRepository: AssistantConversationRepositoryPort,
+    private readonly conversationRepository: ConversationRepositoryPort,
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,
@@ -105,7 +99,7 @@ export class AssistantMemoryService {
    * resolve to a silent no-op (memory injection is best-effort).
    */
   async extractAndStore(userId: string, conversationId: string): Promise<void> {
-    const conversation = await this.conversationRepository.findWithMessages(
+    const conversation = await this.conversationRepository.find(
       userId,
       conversationId,
     );
@@ -126,18 +120,20 @@ export class AssistantMemoryService {
     // Best-effort persistence: a failure is logged and the extraction is
     // dropped (memory injection must never break the archive flow).
     await this.memoryRepository
-      .createMany(
+      .save(
         userId,
         items.map((content) => ({
           sourceConversationId: conversationId,
           content,
         })),
       )
-      .match(
-        () => undefined,
-        (failure) => {
+      .then(() => undefined, (failure: unknown) => {
+          const code =
+            failure != null && typeof failure === 'object' && 'code' in failure
+              ? String((failure).code)
+              : 'unknown';
           this.logger.warn(
-            `Memory persistence failed for user "${userId}" conversation "${conversationId}": ${failure.code}`,
+            `Memory persistence failed for user "${userId}" conversation "${conversationId}": ${code}`,
           );
         },
       );
@@ -204,12 +200,12 @@ export class AssistantMemoryService {
    * Removes all persisted memories for a user (memory-erase entry point).
    * Returns the number of deleted memory rows so the API can surface it.
    */
-  deleteAllForUser(userId: string): ResultAsync<number, DomainFailure> {
-    return this.memoryRepository.deleteAllForUser(userId);
+  async deleteAllForUser(userId: string): Promise<{ cleared: number }> {
+    return { cleared: await this.memoryRepository.clearAll(userId) };
   }
 
   private lastMessages(
-    conversation: ConversationWithMessages,
+    conversation: ConversationState,
   ): Array<{ role: 'user' | 'assistant'; content: string }> {
     return conversation.messages
       .slice(-EXTRACTION_MESSAGE_LIMIT)

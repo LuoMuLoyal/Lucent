@@ -1,8 +1,12 @@
 import {
-  unwrapResult,
+  errAsync,
+  fromPromise,
+  okAsync,
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
+import { toDomainFailure } from '../services/provider-failures.js';
+import type { ConversationView } from './conversation.js';
 import { Injectable } from '@nestjs/common';
 import type { AssistantCapabilitiesDataDto } from '../../adapters/http/dto/capabilities-response.dto.js';
 import type { AssistantConversationDataDto } from '../../adapters/http/dto/conversation-response.dto.js';
@@ -14,18 +18,35 @@ import type {
 } from '../../adapters/http/dto/confirm-proposal.dto.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { AssistantPolicyService } from '../services/policy.js';
-import { AssistantConversationService } from './conversation.js';
+import { Conversations } from './conversation.js';
 import { AssistantMemoryService } from '../services/memory.js';
 import type { AssistantStreamChunkEvent } from '../ports/assistant.js';
 import { AssistantProposalConfirmService } from './confirm-proposal.js';
 import { AssistantStreamOrchestratorService } from './stream-message.js';
+
+/**
+ * Collapses a use-case `Outcome` (a plain promise) back into the
+ * `ResultAsync` the transport expects. The use case returns a discriminated
+ * value because its rules are domain vocabulary; the wire contract is a
+ * `DomainFailure` (ADR-0012), and this is where the two meet.
+ */
+function settle(
+  outcome: Promise<
+    { ok: true; view: ConversationView } | { ok: false; failure: DomainFailure }
+  >,
+): ResultAsync<ConversationView, DomainFailure> {
+  return fromPromise(outcome, (error) => toDomainFailure(error)).andThen(
+    (result) =>
+      result.ok ? okAsync(result.view) : errAsync(result.failure),
+  );
+}
 
 @Injectable()
 export class AssistantService {
   constructor(
     private readonly userSettingsService: IUserSettingsPort,
     private readonly assistantPolicyService: AssistantPolicyService,
-    private readonly assistantConversationService: AssistantConversationService,
+    private readonly assistantConversationService: Conversations,
     private readonly assistantMemoryService: AssistantMemoryService,
     private readonly proposalConfirmService: AssistantProposalConfirmService,
     private readonly streamOrchestratorService: AssistantStreamOrchestratorService,
@@ -61,21 +82,20 @@ export class AssistantService {
     userId: string,
   ): Promise<AssistantConversationDataDto | null> {
     const conversation =
-      await this.assistantConversationService.getLatestConversation(userId);
+      await this.assistantConversationService.latest(userId);
     return conversation == null ? null : conversation;
   }
 
   async listRecentConversations(userId: string) {
-    return this.assistantConversationService.listRecentConversations(userId);
+    return this.assistantConversationService.listRecent(userId);
   }
 
   openConversation(
     userId: string,
     conversationId: string,
   ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
-    return this.assistantConversationService.openConversation(
-      userId,
-      conversationId,
+    return settle(
+      this.assistantConversationService.open(userId, conversationId),
     );
   }
 
@@ -84,10 +104,10 @@ export class AssistantService {
     archivedConversationId: string | null;
   }> {
     const archived =
-      await this.assistantConversationService.clearLatestConversation(userId);
+      await this.assistantConversationService.archiveLatest(userId);
     return {
-      cleared: archived != null,
-      archivedConversationId: archived?.id ?? null,
+      cleared: archived.archivedConversationId != null,
+      archivedConversationId: archived.archivedConversationId,
     };
   }
 
@@ -96,10 +116,14 @@ export class AssistantService {
     conversationId: string,
     title: string | null,
   ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
-    return this.assistantConversationService.renameConversation(
-      userId,
-      conversationId,
-      title,
+    // A rename always carries a title; the DTO allows null because the
+    // synchronous truncation can be absent for a turn with no user message.
+    return settle(
+      this.assistantConversationService.rename(
+        userId,
+        conversationId,
+        title ?? '',
+      ),
     );
   }
 
@@ -107,9 +131,8 @@ export class AssistantService {
     userId: string,
     conversationId: string,
   ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
-    return this.assistantConversationService.deleteConversation(
-      userId,
-      conversationId,
+    return settle(
+      this.assistantConversationService.remove(userId, conversationId),
     );
   }
 
@@ -120,10 +143,7 @@ export class AssistantService {
    * later task.
    */
   async clearAssistantMemory(userId: string): Promise<{ cleared: number }> {
-    const cleared = await unwrapResult(
-      this.assistantMemoryService.deleteAllForUser(userId),
-    );
-    return { cleared };
+    return this.assistantMemoryService.deleteAllForUser(userId);
   }
 
   confirmProposal(
@@ -135,7 +155,7 @@ export class AssistantService {
       userId,
       conversationId,
       dto,
-      (uid, cid) => this.assistantConversationService.getConversation(uid, cid),
+      (uid, cid) => this.assistantConversationService.find(uid, cid),
     );
   }
 
@@ -162,7 +182,7 @@ export class AssistantService {
       userId,
       conversationId,
       onChunk,
-      (uid, cid) => this.assistantConversationService.getConversation(uid, cid),
+      (uid, cid) => this.assistantConversationService.find(uid, cid),
     );
   }
 }

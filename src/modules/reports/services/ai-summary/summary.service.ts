@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   createDomainFailure,
-  unwrapResult,
 } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 
@@ -99,8 +98,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     userId: string,
     data: ReportSummaryDataDto,
   ): Promise<void> {
-    await unwrapResult(
-      this.aiSummaryHistoryService.save({
+    await this.aiSummaryHistoryService.save({
         userId,
         kind: 'report',
         scopeKey: `report:${data.range}:${data.startDate}:${data.endDate}`,
@@ -113,8 +111,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
         observedPattern: data.observedPattern,
         lowRiskAction: data.lowRiskAction,
         disclaimer: data.disclaimer,
-      }),
-    );
+      });
   }
 
   protected buildLogContext(context: ReportsAiSummaryContext): string {

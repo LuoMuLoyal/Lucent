@@ -13,7 +13,6 @@ import { Command, type StateSnapshot } from '@langchain/langgraph';
 import {
   createDomainFailure,
   fromPromise,
-  unwrapResult,
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
@@ -63,7 +62,8 @@ import type { AssistantPendingReview } from './state.js';
 import { AssistantIntentClassifierService } from '../../application/services/intent-classifier.js';
 import { AssistantCheckpointerService } from '../../infrastructure/agent/checkpointer.js';
 import { extractMessageText } from './message-text.js';
-import { AssistantConversationRepositoryPort } from '../../domain/conversation/conversations.js';
+import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
+import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
 import { AssistantStreamService } from '../../application/services/stream.js';
 
 import {
@@ -109,7 +109,8 @@ export class AssistantRuntimeService {
     private readonly circuitBreaker: LlmCircuitBreakerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly checkpointerService: AssistantCheckpointerService,
-    private readonly conversationRepository: AssistantConversationRepositoryPort,
+    @Inject(ASSISTANT_CONVERSATIONS)
+    private readonly conversationRepository: ConversationRepositoryPort,
     private readonly streamService: AssistantStreamService,
     /**
      * 每轮工具选择器。生产由 Nest 注入（provider 已注册）；缺省时按图契约降级为
@@ -537,7 +538,7 @@ export class AssistantRuntimeService {
     userId: string,
     conversationId: string,
   ): Promise<{ checkpointId: string; sourceMessageId: string }> {
-    const conversation = await this.conversationRepository.findWithMessages(
+    const conversation = await this.conversationRepository.find(
       userId,
       conversationId,
     );
@@ -640,14 +641,12 @@ export class AssistantRuntimeService {
       );
     }
 
-    await unwrapResult(
-      this.conversationRepository.createRegeneration({
+    await this.conversationRepository.createRegeneration({
         conversationId,
         userId,
         sourceMessageId: lastDbMessage.id,
-        checkpointId,
-      }),
-    );
+      checkpointId,
+    });
 
     return { checkpointId, sourceMessageId: lastDbMessage.id };
   }

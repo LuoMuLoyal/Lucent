@@ -39,8 +39,8 @@ function buildConversationRepository() {
   return {
     findLatestActiveWithMessages: vi.fn(),
     listRecentSummaries: vi.fn(),
-    findWithMessages: vi.fn(),
-    findWithMessagesById: vi.fn(),
+    find: vi.fn(),
+    findById: vi.fn(),
     create: vi.fn(),
     archiveConversation: vi.fn(),
     softDelete: vi.fn(),
@@ -841,7 +841,7 @@ describe('AssistantRuntimeService', () => {
       } as unknown as LlmRuntimeService;
       const saver = new MemorySaver();
       const repository = {
-        findWithMessages: vi.fn(),
+        find: vi.fn(),
         findRecentRegeneration: vi.fn().mockResolvedValue(null),
         createRegeneration: vi.fn().mockReturnValue(okAsync({ id: 'reg-1' })),
       };
@@ -859,7 +859,7 @@ describe('AssistantRuntimeService', () => {
       return { service, repository, mockModel };
     }
 
-    function buildConversationWithMessages(
+    function buildConversationState(
       lastAssistantContent: string,
     ): unknown {
       const now = new Date();
@@ -930,8 +930,8 @@ describe('AssistantRuntimeService', () => {
         },
         (() => Promise.resolve([])) as never,
       );
-      repository.findWithMessages.mockResolvedValue(
-        buildConversationWithMessages(ASSISTANT_CONTENT),
+      repository.find.mockResolvedValue(
+        buildConversationState(ASSISTANT_CONTENT),
       );
 
       const result = (
@@ -981,13 +981,13 @@ describe('AssistantRuntimeService', () => {
         },
         (() => Promise.resolve([])) as never,
       );
-      const conversation = buildConversationWithMessages(ASSISTANT_CONTENT) as {
+      const conversation = buildConversationState(ASSISTANT_CONTENT) as {
         messages: Array<{ id: string; role: string; content: string }>;
       };
       conversation.messages = conversation.messages.filter(
         (message) => message.role !== 'assistant',
       );
-      repository.findWithMessages.mockResolvedValue(conversation);
+      repository.find.mockResolvedValue(conversation);
 
       const result = await service.regenerateLastMessage(
         USER_ID,
@@ -1034,8 +1034,8 @@ describe('AssistantRuntimeService', () => {
         (() => Promise.resolve([])) as never,
       );
       // The DB says the last answer was something else entirely.
-      repository.findWithMessages.mockResolvedValue(
-        buildConversationWithMessages('完全不同的旧答案'),
+      repository.find.mockResolvedValue(
+        buildConversationState('完全不同的旧答案'),
       );
 
       const result = await service.regenerateLastMessage(
@@ -1082,8 +1082,8 @@ describe('AssistantRuntimeService', () => {
         },
         (() => Promise.resolve([])) as never,
       );
-      repository.findWithMessages.mockResolvedValue(
-        buildConversationWithMessages(ASSISTANT_CONTENT),
+      repository.find.mockResolvedValue(
+        buildConversationState(ASSISTANT_CONTENT),
       );
       repository.findRecentRegeneration.mockResolvedValue({
         id: 'reg-existing',
@@ -1134,8 +1134,8 @@ describe('AssistantRuntimeService', () => {
         },
         (() => Promise.resolve([])) as never,
       );
-      repository.findWithMessages.mockResolvedValue(
-        buildConversationWithMessages(ASSISTANT_CONTENT),
+      repository.find.mockResolvedValue(
+        buildConversationState(ASSISTANT_CONTENT),
       );
 
       const { checkpointId } = (

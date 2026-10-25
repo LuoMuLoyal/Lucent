@@ -439,3 +439,10 @@ export function normalizeRefinedTitle(content: unknown): string | null {
 function truncate(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) : value;
 }
+
+/** Re-exported so persistence and the use cases import one module per aggregate. */
+export type {
+  ConversationMessage,
+  MessageRole,
+  StoredConversationMessage,
+} from './message.js';

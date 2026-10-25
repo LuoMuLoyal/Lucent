@@ -1,13 +1,13 @@
 import type { AIMessage } from '@langchain/core/messages';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
-import type { AssistantConversationRepositoryPort } from '../../domain/conversation/conversations.js';
+import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
 import type {
-  AssistantMemoryRepositoryPort,
-  AssistantMemoryRow,
+  MemoryRepositoryPort,
+  MemoryItem,
 } from '../../domain/memory/memories.js';
 import { AssistantMemoryService } from './memory.js';
-import { okAsync } from '../../../../common/result/index.js';
+
 import { MEMORY_EXTRACTION_TIMEOUT_MS } from './memory.js';
 
 function buildConversation(
@@ -35,8 +35,8 @@ function buildConversation(
 }
 
 function buildMemory(
-  overrides: Partial<AssistantMemoryRow> = {},
-): AssistantMemoryRow {
+  overrides: Partial<MemoryItem> = {},
+): MemoryItem {
   return {
     id: 'mem-1',
     content: 'User prefers morning exercise.',
@@ -47,8 +47,8 @@ function buildMemory(
 }
 
 describe('AssistantMemoryService', () => {
-  let memoryRepository: vi.Mocked<AssistantMemoryRepositoryPort>;
-  let conversationRepository: vi.Mocked<AssistantConversationRepositoryPort>;
+  let memoryRepository: vi.Mocked<MemoryRepositoryPort>;
+  let conversationRepository: vi.Mocked<ConversationRepositoryPort>;
   let llmRuntimeService: {
     createChatModel: ReturnType<typeof vi.fn>;
   };
@@ -61,16 +61,16 @@ describe('AssistantMemoryService', () => {
       createChatModel: vi.fn().mockReturnValue({ invoke }),
     };
     memoryRepository = {
-      createMany: vi.fn().mockReturnValue(okAsync(1)),
+      save: vi.fn().mockResolvedValue(1),
       findRecent: vi.fn().mockResolvedValue([]),
-      deleteAllForUser: vi.fn().mockReturnValue(okAsync(0)),
+      clearAll: vi.fn().mockResolvedValue(0),
     };
     conversationRepository = {
-      findWithMessages: vi.fn().mockResolvedValue(null),
-    } as unknown as vi.Mocked<AssistantConversationRepositoryPort>;
+      find: vi.fn().mockResolvedValue(null),
+    } as unknown as vi.Mocked<ConversationRepositoryPort>;
 
     service = new AssistantMemoryService(
-      memoryRepository as unknown as AssistantMemoryRepositoryPort,
+      memoryRepository as unknown as MemoryRepositoryPort,
       llmRuntimeService as unknown as LlmRuntimeService,
       conversationRepository,
     );
@@ -83,7 +83,7 @@ describe('AssistantMemoryService', () => {
   describe('extractAndStore', () => {
     it('times out a stuck extraction after the model timeout and logs a warning', async () => {
       vi.useFakeTimers();
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([{ role: 'user', content: 'Hello' }]),
       );
       invoke.mockReturnValue(new Promise(() => undefined));
@@ -98,12 +98,12 @@ describe('AssistantMemoryService', () => {
 
       await expect(pending).resolves.toBeUndefined();
       expect(MEMORY_EXTRACTION_TIMEOUT_MS).toBeGreaterThan(AI_MODEL_TIMEOUT_MS);
-      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(memoryRepository.save).not.toHaveBeenCalled();
       expect(warnSpy).toHaveBeenCalled();
     });
 
     it('persists extracted items with the source conversation id', async () => {
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([
           { role: 'user', content: '我习惯每天早上跑步。' },
           { role: 'assistant', content: '好的，早上跑步是个好习惯。' },
@@ -119,13 +119,13 @@ describe('AssistantMemoryService', () => {
         'chat',
         expect.objectContaining({ maxRetries: 0 }),
       );
-      expect(memoryRepository.createMany).toHaveBeenCalledWith('user-1', [
+      expect(memoryRepository.save).toHaveBeenCalledWith('user-1', [
         { sourceConversationId: 'conv-1', content: '用户习惯每天早上跑步。' },
       ]);
     });
 
     it('parses a JSON array wrapped in a code fence', async () => {
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([{ role: 'user', content: 'I prefer tea.' }]),
       );
       invoke.mockResolvedValue({
@@ -134,13 +134,13 @@ describe('AssistantMemoryService', () => {
 
       await service.extractAndStore('user-1', 'conv-1');
 
-      expect(memoryRepository.createMany).toHaveBeenCalledWith('user-1', [
+      expect(memoryRepository.save).toHaveBeenCalledWith('user-1', [
         { sourceConversationId: 'conv-1', content: 'User prefers tea.' },
       ]);
     });
 
     it('degrades silently when the LLM call fails', async () => {
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([{ role: 'user', content: 'Hello' }]),
       );
       invoke.mockRejectedValue(new Error('LLM unavailable'));
@@ -148,11 +148,11 @@ describe('AssistantMemoryService', () => {
       await expect(
         service.extractAndStore('user-1', 'conv-1'),
       ).resolves.toBeUndefined();
-      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(memoryRepository.save).not.toHaveBeenCalled();
     });
 
     it('degrades silently when the LLM output cannot be parsed', async () => {
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([{ role: 'user', content: 'Hello' }]),
       );
       invoke.mockResolvedValue({ content: 'not json at all' } as AIMessage);
@@ -160,38 +160,38 @@ describe('AssistantMemoryService', () => {
       await expect(
         service.extractAndStore('user-1', 'conv-1'),
       ).resolves.toBeUndefined();
-      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(memoryRepository.save).not.toHaveBeenCalled();
     });
 
     it('skips the LLM when the conversation has no messages', async () => {
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([]),
       );
 
       await service.extractAndStore('user-1', 'conv-1');
 
       expect(llmRuntimeService.createChatModel).not.toHaveBeenCalled();
-      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(memoryRepository.save).not.toHaveBeenCalled();
     });
 
     it('skips extraction when the conversation is not found', async () => {
-      conversationRepository.findWithMessages.mockResolvedValue(null);
+      conversationRepository.find.mockResolvedValue(null);
 
       await service.extractAndStore('user-1', 'missing');
 
       expect(llmRuntimeService.createChatModel).not.toHaveBeenCalled();
-      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(memoryRepository.save).not.toHaveBeenCalled();
     });
 
     it('skips persistence when extraction yields an empty array', async () => {
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([{ role: 'user', content: 'Hello' }]),
       );
       invoke.mockResolvedValue({ content: '[]' } as AIMessage);
 
       await service.extractAndStore('user-1', 'conv-1');
 
-      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(memoryRepository.save).not.toHaveBeenCalled();
     });
 
     it('feeds only the last 10 messages to the model', async () => {
@@ -199,7 +199,7 @@ describe('AssistantMemoryService', () => {
         role: (index % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
         content: `message ${index}`,
       }));
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation(messages),
       );
       invoke.mockResolvedValue({ content: '[]' } as AIMessage);
@@ -273,7 +273,7 @@ describe('AssistantMemoryService', () => {
   describe('scheduleExtraction', () => {
     it('merges same-user schedules into one debounced run', async () => {
       vi.useFakeTimers();
-      conversationRepository.findWithMessages.mockResolvedValue(
+      conversationRepository.find.mockResolvedValue(
         buildConversation([{ role: 'user', content: 'Hello' }]),
       );
       invoke.mockResolvedValue({ content: '[]' } as AIMessage);
@@ -281,16 +281,16 @@ describe('AssistantMemoryService', () => {
       await service.scheduleExtraction('user-1', 'conv-1');
       await service.scheduleExtraction('user-1', 'conv-2');
 
-      expect(conversationRepository.findWithMessages).not.toHaveBeenCalled();
+      expect(conversationRepository.find).not.toHaveBeenCalled();
 
       await vi.advanceTimersByTimeAsync(30_000);
 
-      expect(conversationRepository.findWithMessages).toHaveBeenCalledTimes(2);
-      expect(conversationRepository.findWithMessages).toHaveBeenCalledWith(
+      expect(conversationRepository.find).toHaveBeenCalledTimes(2);
+      expect(conversationRepository.find).toHaveBeenCalledWith(
         'user-1',
         'conv-1',
       );
-      expect(conversationRepository.findWithMessages).toHaveBeenCalledWith(
+      expect(conversationRepository.find).toHaveBeenCalledWith(
         'user-1',
         'conv-2',
       );
@@ -298,18 +298,18 @@ describe('AssistantMemoryService', () => {
 
     it('runs separate debounced jobs per user', async () => {
       vi.useFakeTimers();
-      conversationRepository.findWithMessages.mockResolvedValue(null);
+      conversationRepository.find.mockResolvedValue(null);
 
       await service.scheduleExtraction('user-1', 'conv-1');
       await service.scheduleExtraction('user-2', 'conv-9');
 
       await vi.advanceTimersByTimeAsync(30_000);
 
-      expect(conversationRepository.findWithMessages).toHaveBeenCalledWith(
+      expect(conversationRepository.find).toHaveBeenCalledWith(
         'user-1',
         'conv-1',
       );
-      expect(conversationRepository.findWithMessages).toHaveBeenCalledWith(
+      expect(conversationRepository.find).toHaveBeenCalledWith(
         'user-2',
         'conv-9',
       );
@@ -317,16 +317,16 @@ describe('AssistantMemoryService', () => {
 
     it('flushes pending work only after the debounce window', async () => {
       vi.useFakeTimers();
-      conversationRepository.findWithMessages.mockResolvedValue(null);
+      conversationRepository.find.mockResolvedValue(null);
 
       await service.scheduleExtraction('user-1', 'conv-1');
       await vi.advanceTimersByTimeAsync(20_000);
 
-      expect(conversationRepository.findWithMessages).not.toHaveBeenCalled();
+      expect(conversationRepository.find).not.toHaveBeenCalled();
 
       await vi.advanceTimersByTimeAsync(10_000);
 
-      expect(conversationRepository.findWithMessages).toHaveBeenCalledWith(
+      expect(conversationRepository.find).toHaveBeenCalledWith(
         'user-1',
         'conv-1',
       );
@@ -334,7 +334,7 @@ describe('AssistantMemoryService', () => {
 
     it('keeps extraction failures silent inside the flush loop', async () => {
       vi.useFakeTimers();
-      conversationRepository.findWithMessages.mockRejectedValue(
+      conversationRepository.find.mockRejectedValue(
         new Error('db down'),
       );
 
@@ -342,7 +342,7 @@ describe('AssistantMemoryService', () => {
 
       await vi.advanceTimersByTimeAsync(30_000);
 
-      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(memoryRepository.save).not.toHaveBeenCalled();
     });
   });
 
@@ -350,7 +350,7 @@ describe('AssistantMemoryService', () => {
     it('delegates to the repository', async () => {
       await service.deleteAllForUser('user-1');
 
-      expect(memoryRepository.deleteAllForUser).toHaveBeenCalledWith('user-1');
+      expect(memoryRepository.clearAll).toHaveBeenCalledWith('user-1');
     });
   });
 });

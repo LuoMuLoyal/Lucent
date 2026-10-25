@@ -1,356 +1,178 @@
+/**
+ * Prisma mapping and fence tests for `PrismaSummaries`.
+ *
+ * The version rule itself lives in `domain/summary/summary.ts`; these tests cover
+ * the storage half: the fence is applied against the **stored** version, the
+ * unique-key race is re-checked, and rows map to the read shapes the reports
+ * context consumes.
+ */
 import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
-
 import { AiSummaryHistoryKind } from '#generated/prisma/client.js';
-import { AssistantSummaryRepository } from '../../domain/summary/summaries.js';
+import { PrismaSummaries } from './summaries.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
-describe('AssistantSummaryRepository', () => {
-  let repository: AssistantSummaryRepository;
+const T0 = new Date('2026-10-25T08:00:00.000Z');
+
+function todayWrite(overrides: Record<string, unknown> = {}) {
+  return {
+    userId: 'user-1',
+    kind: 'today' as const,
+    date: '2026-10-25',
+    generatedAt: T0.toISOString(),
+    summary: 'text',
+    bullets: [{ kind: 'water', text: '300ml' }],
+    actionLabel: 'a',
+    action: 'b',
+    confidenceNote: 'c',
+    aiGenerated: true,
+    ...overrides,
+  };
+}
+
+describe('PrismaSummaries', () => {
+  let repository: PrismaSummaries;
   let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
       assistantSummaryHistory: {
-        upsert: vi.fn(),
         findUnique: vi.fn(),
-        create: vi.fn(),
-        updateMany: vi.fn(),
         findMany: vi.fn(),
         findFirst: vi.fn(),
+        create: vi.fn(),
+        updateMany: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
-
-    repository = new AssistantSummaryRepository(prisma);
+    repository = new PrismaSummaries(prisma);
   });
 
-  const mockTodayRow = {
-    id: 's1',
-    userId: 'user-1',
-    kind: AiSummaryHistoryKind.today,
-    scopeKey: 'today:2026-07-10',
-    date: new Date('2026-07-10'),
-    rangeKey: null,
-    startDate: null,
-    endDate: null,
-    generatedAt: new Date('2026-07-10T08:00:00.000Z'),
-    summary: 'Summary text',
-    bullets: [{ kind: 'tracked', text: 'Bullet 1' }],
-    actionLabel: 'Review',
-    action: 'check',
-    confidenceNote: 'high',
-  };
+  it('derives the storage key from the scope, not from the caller', async () => {
+    prisma.assistantSummaryHistory.findUnique.mockResolvedValue(null);
+    prisma.assistantSummaryHistory.create.mockResolvedValue({} as never);
 
-  describe('save', () => {
-    it('upserts with userId and scopeKey composite key', async () => {
-      prisma.assistantSummaryHistory.upsert.mockResolvedValue(
-        undefined as never,
-      );
+    await repository.save(todayWrite({ sourceVersion: 1 }));
 
-      await repository
-        .save({
-          userId: 'user-1',
-          kind: 'today',
-          scopeKey: 'today:2026-07-10',
-          date: '2026-07-10',
-          rangeKey: null,
-          startDate: null,
-          endDate: null,
-          generatedAt: '2026-07-10T08:00:00.000Z',
-          summary: 'Summary',
-          bullets: [{ kind: 'tracked', text: 'Bullet' }],
-          actionLabel: 'Review',
-          action: 'check',
-          confidenceNote: 'high',
-        })
-        .unwrapOr(null);
+    expect(prisma.assistantSummaryHistory.findUnique).toHaveBeenCalledWith({
+      where: {
+        userId_scopeKey: { userId: 'user-1', scopeKey: 'today:2026-10-25' },
+      },
+      select: { sourceVersion: true },
+    });
+  });
 
-      expect(prisma.assistantSummaryHistory.upsert).toHaveBeenCalledWith({
-        where: {
-          userId_scopeKey: { userId: 'user-1', scopeKey: 'today:2026-07-10' },
+  it('refuses a write whose version is not newer than the stored one', async () => {
+    prisma.assistantSummaryHistory.findUnique.mockResolvedValue({
+      sourceVersion: 3,
+    } as never);
+
+    const result = await repository.save(todayWrite({ sourceVersion: 3 }));
+
+    expect(result).toEqual({ written: false });
+    expect(prisma.assistantSummaryHistory.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('writes a strictly newer version', async () => {
+    prisma.assistantSummaryHistory.findUnique.mockResolvedValue({
+      sourceVersion: 3,
+    } as never);
+    prisma.assistantSummaryHistory.updateMany.mockResolvedValue({ count: 1 } as never);
+
+    const result = await repository.save(todayWrite({ sourceVersion: 4 }));
+
+    expect(result).toEqual({ written: true });
+    expect(prisma.assistantSummaryHistory.updateMany).toHaveBeenCalled();
+  });
+
+  it('re-checks the fence when another writer won the unique-key race', async () => {
+    prisma.assistantSummaryHistory.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ sourceVersion: 9 } as never);
+    prisma.assistantSummaryHistory.create.mockRejectedValue({ code: 'P2002' });
+
+    const result = await repository.save(todayWrite({ sourceVersion: 2 }));
+
+    expect(result).toEqual({ written: false });
+    expect(prisma.assistantSummaryHistory.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('returns no row for an unaddressable scope', async () => {
+    const result = await repository.save({
+      userId: 'user-1',
+      kind: 'today',
+      date: null,
+      generatedAt: T0.toISOString(),
+      summary: 'x',
+    });
+
+    expect(result).toEqual({ written: false });
+  });
+
+  it('maps a today row to the read shape', async () => {
+    prisma.assistantSummaryHistory.findMany.mockResolvedValue([
+      {
+        date: T0,
+        generatedAt: T0,
+        summary: 's',
+        bullets: [{ kind: 'water', text: '300ml' }],
+        actionLabel: 'a',
+        action: 'b',
+        confidenceNote: 'c',
+        aiGenerated: true,
+        sourceVersion: 2,
+      },
+    ] as never);
+
+    const [record] = await repository.listRecentToday('user-1', 7);
+
+    expect(record).toEqual(
+      expect.objectContaining({
+        date: '2026-10-25',
+        bullets: [{ kind: 'water', text: '300ml' }],
+        sourceVersion: 2,
+      }),
+    );
+  });
+
+  it('queries report rows by kind', async () => {
+    prisma.assistantSummaryHistory.findMany.mockResolvedValue([]);
+
+    await repository.listRecentReports('user-1', 6);
+
+    expect(prisma.assistantSummaryHistory.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user-1', kind: AiSummaryHistoryKind.report },
+      }),
+    );
+  });
+
+  it('maps a report row payload into the read shape', async () => {
+    prisma.assistantSummaryHistory.findFirst.mockResolvedValue({
+      rangeKey: 'last_7_days',
+      startDate: T0,
+      endDate: T0,
+      generatedAt: T0,
+      summary: 's',
+      bullets: [],
+      actionLabel: '',
+      action: '',
+      confidenceNote: '',
+      payload: {
+        coverage: {
+          medication: { trackedDays: 5, totalDays: 7 },
+          water: { trackedDays: 5, totalDays: 7 },
+          sleep: { trackedDays: 5, totalDays: 7 },
         },
-        create: expect.objectContaining({
-          userId: 'user-1',
-          kind: AiSummaryHistoryKind.today,
-          scopeKey: 'today:2026-07-10',
-        }),
-        update: expect.objectContaining({
-          summary: 'Summary',
-        }),
-      });
+        observedPattern: null,
+        lowRiskAction: null,
+        disclaimer: 'd',
+      },
+    } as never);
+
+    const record = await repository.findReportByRange('user-1', {
+      rangeKey: 'last_7_days',
     });
 
-    it('maps report kind to AiSummaryHistoryKind.report', async () => {
-      prisma.assistantSummaryHistory.upsert.mockResolvedValue(
-        undefined as never,
-      );
-
-      await repository
-        .save({
-          userId: 'user-1',
-          kind: 'report',
-          scopeKey: 'report:7d',
-          date: null,
-          rangeKey: 'last_7_days',
-          startDate: '2026-07-04',
-          endDate: '2026-07-10',
-          generatedAt: '2026-07-10T08:00:00.000Z',
-          summary: 'Report summary',
-          bullets: [],
-          actionLabel: 'OK',
-          action: 'none',
-          confidenceNote: 'low',
-        })
-        .unwrapOr(null);
-
-      const call = prisma.assistantSummaryHistory.upsert.mock.calls[0]?.[0];
-      expect(call?.create).toHaveProperty('kind', AiSummaryHistoryKind.report);
-      expect(call?.create).toHaveProperty('rangeKey', 'last_7_days');
-    });
-
-    it('does not let an older version overwrite a newer Today summary', async () => {
-      prisma.assistantSummaryHistory.findUnique.mockResolvedValue({
-        ...mockTodayRow,
-        sourceVersion: 8,
-      } as never);
-      prisma.assistantSummaryHistory.updateMany.mockResolvedValue({
-        count: 0,
-      } as never);
-
-      await repository
-        .save({
-          userId: 'user-1',
-          kind: 'today',
-          scopeKey: 'today:2026-07-10',
-          date: '2026-07-10',
-          generatedAt: '2026-07-10T08:00:00.000Z',
-          summary: 'Older summary',
-          bullets: [],
-          actionLabel: 'Review',
-          action: 'check',
-          confidenceNote: 'high',
-          sourceVersion: 7,
-        })
-        .unwrapOr(null);
-
-      expect(prisma.assistantSummaryHistory.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            userId: 'user-1',
-            scopeKey: 'today:2026-07-10',
-            kind: AiSummaryHistoryKind.today,
-            OR: expect.arrayContaining([
-              { sourceVersion: null },
-              { sourceVersion: { lte: 7 } },
-            ]),
-          }),
-        }),
-      );
-      expect(prisma.assistantSummaryHistory.upsert).not.toHaveBeenCalled();
-      expect(prisma.assistantSummaryHistory.create).not.toHaveBeenCalled();
-    });
-
-    it('handles a concurrent Today summary create without losing the version fence', async () => {
-      prisma.assistantSummaryHistory.findUnique.mockResolvedValue(null);
-      prisma.assistantSummaryHistory.create.mockRejectedValue({
-        code: 'P2002',
-      });
-      prisma.assistantSummaryHistory.updateMany.mockResolvedValue({ count: 1 });
-
-      await expect(
-        repository
-          .save({
-            userId: 'user-1',
-            kind: 'today',
-            scopeKey: 'today:2026-07-10',
-            date: '2026-07-10',
-            generatedAt: '2026-07-10T08:00:00.000Z',
-            summary: 'Summary',
-            bullets: [],
-            actionLabel: 'Review',
-            action: 'check',
-            confidenceNote: 'high',
-            sourceVersion: 7,
-          })
-          .unwrapOr(null),
-      ).resolves.toBeUndefined();
-
-      expect(prisma.assistantSummaryHistory.updateMany).toHaveBeenCalled();
-    });
-  });
-
-  describe('listRecentTodaySummaries', () => {
-    it('queries today summaries with limit', async () => {
-      prisma.assistantSummaryHistory.findMany.mockResolvedValue([
-        mockTodayRow,
-      ] as never);
-
-      const result = await repository.listRecentTodaySummaries('user-1', 10);
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        summary: 'Summary text',
-        actionLabel: 'Review',
-      });
-      const call = prisma.assistantSummaryHistory.findMany.mock.calls[0]?.[0];
-      expect(call?.where).toEqual({
-        userId: 'user-1',
-        kind: AiSummaryHistoryKind.today,
-      });
-      expect(call?.take).toBe(10);
-    });
-
-    it('maps date to string via formatDateOnly', async () => {
-      prisma.assistantSummaryHistory.findMany.mockResolvedValue([
-        mockTodayRow,
-      ] as never);
-
-      const result = await repository.listRecentTodaySummaries('user-1', 5);
-
-      expect(result[0]?.date).toBe('2026-07-10');
-    });
-
-    it('maps null date to null', async () => {
-      prisma.assistantSummaryHistory.findMany.mockResolvedValue([
-        { ...mockTodayRow, date: null },
-      ] as never);
-
-      const result = await repository.listRecentTodaySummaries('user-1', 5);
-
-      expect(result[0]?.date).toBeNull();
-    });
-
-    it('returns empty bullets for non-array raw', async () => {
-      prisma.assistantSummaryHistory.findMany.mockResolvedValue([
-        { ...mockTodayRow, bullets: 'not an array' },
-      ] as never);
-
-      const result = await repository.listRecentTodaySummaries('user-1', 5);
-
-      expect(result[0]?.bullets).toEqual([]);
-    });
-  });
-
-  describe('listRecentReportSummaries', () => {
-    it('queries report summaries with limit', async () => {
-      const mockReportRow = {
-        ...mockTodayRow,
-        kind: AiSummaryHistoryKind.report,
-        date: null,
-        rangeKey: 'last_7_days',
-        startDate: new Date('2026-07-04'),
-        endDate: new Date('2026-07-10'),
-      };
-      prisma.assistantSummaryHistory.findMany.mockResolvedValue([
-        mockReportRow,
-      ] as never);
-
-      const result = await repository.listRecentReportSummaries('user-1', 5);
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        rangeKey: 'last_7_days',
-        summary: 'Summary text',
-      });
-      const call = prisma.assistantSummaryHistory.findMany.mock.calls[0]?.[0];
-      expect(call?.where).toEqual({
-        userId: 'user-1',
-        kind: AiSummaryHistoryKind.report,
-      });
-    });
-
-    it('maps startDate and endDate to strings', async () => {
-      const mockReportRow = {
-        ...mockTodayRow,
-        kind: AiSummaryHistoryKind.report,
-        date: null,
-        rangeKey: 'last_7_days',
-        startDate: new Date('2026-07-04'),
-        endDate: new Date('2026-07-10'),
-      };
-      prisma.assistantSummaryHistory.findMany.mockResolvedValue([
-        mockReportRow,
-      ] as never);
-
-      const result = await repository.listRecentReportSummaries('user-1', 5);
-
-      expect(result[0]?.startDate).toBe('2026-07-04');
-      expect(result[0]?.endDate).toBe('2026-07-10');
-    });
-  });
-
-  describe('findLatestTodaySummaryByDate', () => {
-    it('queries by userId, kind, and date', async () => {
-      prisma.assistantSummaryHistory.findFirst.mockResolvedValue(
-        mockTodayRow as never,
-      );
-
-      const result = await repository.findLatestTodaySummaryByDate(
-        'user-1',
-        new Date('2026-07-10'),
-      );
-
-      expect(result).not.toBeNull();
-      const call = prisma.assistantSummaryHistory.findFirst.mock.calls[0]?.[0];
-      expect(call?.where).toEqual({
-        userId: 'user-1',
-        kind: AiSummaryHistoryKind.today,
-        date: new Date('2026-07-10'),
-      });
-    });
-
-    it('returns null when not found', async () => {
-      prisma.assistantSummaryHistory.findFirst.mockResolvedValue(null);
-      expect(
-        await repository.findLatestTodaySummaryByDate('user-1', new Date()),
-      ).toBeNull();
-    });
-  });
-
-  describe('findLatestReportSummaryByRange', () => {
-    it('queries with rangeKey when provided', async () => {
-      const mockReportRow = {
-        ...mockTodayRow,
-        kind: AiSummaryHistoryKind.report,
-        date: null,
-        rangeKey: 'last_7_days',
-        startDate: null,
-        endDate: null,
-      };
-      prisma.assistantSummaryHistory.findFirst.mockResolvedValue(
-        mockReportRow as never,
-      );
-
-      const result = await repository.findLatestReportSummaryByRange('user-1', {
-        rangeKey: 'last_7_days',
-      });
-
-      expect(result).not.toBeNull();
-      const call = prisma.assistantSummaryHistory.findFirst.mock.calls[0]?.[0];
-      expect(call?.where).toMatchObject({
-        userId: 'user-1',
-        kind: AiSummaryHistoryKind.report,
-        rangeKey: 'last_7_days',
-      });
-    });
-
-    it('queries with startDate and endDate when provided', async () => {
-      prisma.assistantSummaryHistory.findFirst.mockResolvedValue(null);
-
-      await repository.findLatestReportSummaryByRange('user-1', {
-        startDate: '2026-07-04',
-        endDate: '2026-07-10',
-      });
-
-      const call = prisma.assistantSummaryHistory.findFirst.mock.calls[0]?.[0];
-      expect(call?.where).toHaveProperty('startDate');
-      expect(call?.where).toHaveProperty('endDate');
-    });
-
-    it('returns null when not found', async () => {
-      prisma.assistantSummaryHistory.findFirst.mockResolvedValue(null);
-      expect(
-        await repository.findLatestReportSummaryByRange('user-1', {}),
-      ).toBeNull();
-    });
+    expect(record?.disclaimer).toBe('d');
+    expect(record?.coverage?.medication.trackedDays).toBe(5);
   });
 });

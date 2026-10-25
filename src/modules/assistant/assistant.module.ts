@@ -13,7 +13,7 @@ import { UserSettingsModule } from '../user-settings/user-settings.module.js';
 import { AssistantRuntimeService } from './adapters/agent/checkpoint-runtime.js';
 import { AssistantStreamService } from './application/services/stream.js';
 import { AssistantCheckpointerService } from './infrastructure/agent/checkpointer.js';
-import { AssistantConversationService } from './application/use_cases/conversation.js';
+import { Conversations } from './application/use_cases/conversation.js';
 import { AssistantMemoryService } from './application/services/memory.js';
 import { AssistantController } from './adapters/http/assistant.controller.js';
 import { AssistantPolicyService } from './application/services/policy.js';
@@ -26,19 +26,13 @@ import {
   DAILY_RECORD_READER,
   MEDICINE_REMINDER_READER,
 } from './application/ports/readers.js';
-import {
-  AssistantConversationRepository,
-  AssistantConversationRepositoryPort,
-} from './domain/conversation/conversations.js';
-import {
-  AssistantMemoryRepository,
-  AssistantMemoryRepositoryPort,
-} from './domain/memory/memories.js';
+import { ASSISTANT_CONVERSATIONS } from './domain/conversation/conversations.js';
+import { ASSISTANT_MEMORIES } from './domain/memory/memories.js';
 
-import {
-  AssistantSummaryRepository,
-  AssistantSummaryRepositoryPort,
-} from './domain/summary/summaries.js';
+import { ASSISTANT_SUMMARIES } from './domain/summary/summaries.js';
+import { PrismaConversations } from './infrastructure/persistence/conversations.js';
+import { PrismaMemories } from './infrastructure/persistence/memories.js';
+import { PrismaSummaries } from './infrastructure/persistence/summaries.js';
 import { AssistantContextService } from './application/services/tool-context.js';
 
 import { AssistantToolDrugbankEntityResolveService } from './adapters/acl/tools/drugbank/entity-resolve.service.js';
@@ -90,19 +84,13 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     AssistantStreamService,
     AssistantCheckpointerService,
     VectorStoreFactory,
-    {
-      provide: AssistantConversationRepositoryPort,
-      useClass: AssistantConversationRepository,
-    },
-    {
-      provide: AssistantMemoryRepositoryPort,
-      useClass: AssistantMemoryRepository,
-    },
-    {
-      provide: AssistantSummaryRepositoryPort,
-      useClass: AssistantSummaryRepository,
-    },
-    AssistantConversationService,
+    PrismaConversations,
+    { provide: ASSISTANT_CONVERSATIONS, useExisting: PrismaConversations },
+    PrismaMemories,
+    { provide: ASSISTANT_MEMORIES, useExisting: PrismaMemories },
+    PrismaSummaries,
+    { provide: ASSISTANT_SUMMARIES, useExisting: PrismaSummaries },
+    Conversations,
     AssistantMemoryService,
     AssistantPolicyService,
     HistoricalAiSummaryService,

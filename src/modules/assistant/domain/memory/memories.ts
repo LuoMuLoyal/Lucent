@@ -1,104 +1,37 @@
 /**
- * Repository abstraction for AssistantMemory data access.
+ * Write-side repository port for the `Memory` aggregate
+ * (`domain/memory/memory.ts`, ADR-0024 §4).
  *
- * Encapsulates all Prisma queries for persisted assistant memory rows,
- * decoupling AssistantMemoryService from direct PrismaService usage.
+ * Three operations, and the shape of each is a decision:
+ *
+ * - `save` takes **many items at once** because one extraction produces a batch
+ *   and a half-written batch is worse than none (the debounce would never retry
+ *   it);
+ * - `findRecent` returns newest-first and is the only read here, because the
+ *   memory block is capped by `MAX_MEMORY_ITEMS` and "older than the cap" is not a
+ *   fact anyone asks for;
+ * - `clearAll` deletes **every** memory of one user, returning the count. It is
+ *   bulk on purpose: erasing memory is a privacy entry point (the settings page),
+ *   and a per-item API would leave "some memories" as a reachable state after a
+ *   partial failure.
+ *
+ * Layer purity: types come from `domain/memory/` only (ADR-0024 rule D1).
  */
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/index.js';
-import { fromPrismaResult } from '../../../../common/index.js';
-import { okAsync } from '../../../../common/result/index.js';
-import type {
-  DomainFailure,
-  ResultAsync,
-} from '../../../../common/result/index.js';
 
-export type AssistantMemoryRow = {
-  id: string;
-  content: string;
-  sourceConversationId: string;
-  createdAt: Date;
-};
+import type { MemoryItem, NewMemoryItem } from './memory.js';
 
-export interface CreateMemoryItem {
-  sourceConversationId: string;
-  content: string;
-}
+export type { MemoryItem, NewMemoryItem };
 
-/**
- * Repository interface for assistant memory data access.
- *
- * Services depend on this interface rather than PrismaService directly,
- * enabling easier unit testing and future data source swaps.
- *
- * Write methods return `ResultAsync<T, DomainFailure>` (known Prisma request
- * errors map to RESOURCE_CONFLICT / RESOURCE_NOT_FOUND; unknown errors
- * re-throw). Read methods keep plain promises: an empty result is a
- * legitimate outcome, not a failure.
- */
-export abstract class AssistantMemoryRepositoryPort {
-  abstract createMany(
-    userId: string,
-    items: CreateMemoryItem[],
-  ): ResultAsync<number, DomainFailure>;
+/** DI token — string so Nest resolution errors name the port readably. */
+export const ASSISTANT_MEMORIES = 'ASSISTANT_MEMORIES';
 
-  abstract findRecent(
-    userId: string,
-    limit: number,
-  ): Promise<AssistantMemoryRow[]>;
+export interface MemoryRepositoryPort {
+  /** Persists a batch of extracted memories; returns the number written. */
+  save(userId: string, items: readonly NewMemoryItem[]): Promise<number>;
 
-  /** Removes all persisted memories for a user (memory-erase entry point). */
-  abstract deleteAllForUser(userId: string): ResultAsync<number, DomainFailure>;
-}
+  /** The user's most recent memories, newest first. */
+  findRecent(userId: string, limit: number): Promise<MemoryItem[]>;
 
-@Injectable()
-export class AssistantMemoryRepository implements AssistantMemoryRepositoryPort {
-  constructor(private readonly prisma: PrismaService) {}
-
-  createMany(
-    userId: string,
-    items: CreateMemoryItem[],
-  ): ResultAsync<number, DomainFailure> {
-    if (items.length === 0) {
-      return okAsync(0);
-    }
-
-    return fromPrismaResult(
-      this.prisma.assistantMemory
-        .createMany({
-          data: items.map((item) => ({
-            userId,
-            sourceConversationId: item.sourceConversationId,
-            content: item.content,
-          })),
-        })
-        .then((result) => result.count),
-    );
-  }
-
-  async findRecent(
-    userId: string,
-    limit: number,
-  ): Promise<AssistantMemoryRow[]> {
-    const rows = await this.prisma.assistantMemory.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
-
-    return rows.map((row) => ({
-      id: row.id,
-      content: row.content,
-      sourceConversationId: row.sourceConversationId,
-      createdAt: row.createdAt,
-    }));
-  }
-
-  deleteAllForUser(userId: string): ResultAsync<number, DomainFailure> {
-    return fromPrismaResult(
-      this.prisma.assistantMemory
-        .deleteMany({ where: { userId } })
-        .then((result) => result.count),
-    );
-  }
+  /** Erases every memory of the user (privacy entry point); returns the count. */
+  clearAll(userId: string): Promise<number>;
 }
