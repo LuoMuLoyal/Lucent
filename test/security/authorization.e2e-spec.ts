@@ -333,7 +333,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/devices')
+        .get('/api/v1/auth/sessions')
         .set('Authorization', bearer(aliceToken))
         .expect(200);
 
@@ -343,7 +343,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot list Alice sessions', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/devices')
+        .get('/api/v1/auth/sessions')
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
@@ -354,7 +354,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot revoke Alice session', async () => {
       await request(app.getHttpServer())
-        .delete(`/api/v1/auth/devices/${aliceSessionId}`)
+        .delete(`/api/v1/auth/sessions/${aliceSessionId}`)
         .set('Authorization', bearer(bobToken))
         .expect(403);
     });
