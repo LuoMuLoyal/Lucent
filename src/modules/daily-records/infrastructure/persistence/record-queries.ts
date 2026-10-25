@@ -9,7 +9,7 @@
  * - `listStaleAnalyzing` 单轮最多 `batchSize` 条。
  */
 import { Injectable } from '@nestjs/common';
-import { nonDeleted } from '../../../../common/index.js';
+import { nonDeleted, toInputJsonValue } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import {
   DailyRecordReaderPort,
@@ -21,7 +21,11 @@ import {
   toDailyRecordFactFromColumns,
   toDailyRecordSummaryFact,
 } from '../../application/read_models/record-fact.js';
-import { parseMealRecordPayload } from '../../domain/meal/meal-analysis.js';
+import {
+  parseMealRecordPayload,
+  toMealAnalysisColumns,
+  type MealAnalysisPayload,
+} from '../../domain/meal/meal-analysis.js';
 import type {
   MealAnalysisCandidate,
   MealAnalyses,
@@ -63,10 +67,52 @@ const factSelect = {
 @Injectable()
 export class PrismaRecordQueries
   extends DailyRecordReaderPort
-  implements Pick<MealAnalyses, 'findCandidate' | 'listStaleAnalyzing'>
+  implements MealAnalyses
 {
   constructor(private readonly prisma: PrismaService) {
     super();
+  }
+
+  /**
+   * 条件写：仅当 `mealSourceRevision` 仍是本次作业的 revision 时落库。
+   *
+   * 这条是**幂等与竞态的唯一边界**：分析期间用户重新提交（revision 递增）时，
+   * 旧作业的结果会被这里静默丢弃，不需要分布式锁。
+   */
+  async writeAnalysis(
+    recordId: string,
+    sourceRevision: number,
+    analysis: MealAnalysisPayload,
+  ): Promise<boolean> {
+    return this.conditionalAnalysisWrite(recordId, sourceRevision, analysis);
+  }
+
+  /** 失败终态同样按 revision 条件写：已重新入队的记录不该被标成失败。 */
+  async markAnalysisFailed(
+    recordId: string,
+    sourceRevision: number,
+    analysis: MealAnalysisPayload,
+  ): Promise<boolean> {
+    return this.conditionalAnalysisWrite(recordId, sourceRevision, analysis);
+  }
+
+  private async conditionalAnalysisWrite(
+    recordId: string,
+    sourceRevision: number,
+    analysis: MealAnalysisPayload,
+  ): Promise<boolean> {
+    const { count } = await this.prisma.userDailyRecord.updateMany({
+      where: {
+        id: recordId,
+        ...nonDeleted,
+        mealSourceRevision: sourceRevision,
+      },
+      data: {
+        payload: toInputJsonValue({ mealAnalysis: analysis }),
+        ...toMealAnalysisColumns(analysis),
+      },
+    });
+    return count > 0;
   }
 
   async listFactsInRange(
