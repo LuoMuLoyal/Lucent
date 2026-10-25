@@ -9,7 +9,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DailyRecordsService } from '../../../daily-records/index.js';
 import type {
   CreateDailyRecordDto,
@@ -19,7 +19,10 @@ import type {
   AssistantConfirmResultView,
   ConfirmAssistantProposalView,
 } from '../ports/views.js';
-import { AssistantRuntimeService } from '../../adapters/agent/checkpoint-runtime.js';
+import {
+  ASSISTANT_AGENT_RUNTIME,
+  type AgentRuntimePort,
+} from '../ports/agent-runtime.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { AuditLogService } from '../../../audit-log/index.js';
 import { toDomainFailure } from '../services/provider-failures.js';
@@ -42,7 +45,8 @@ import type { AssistantProposedAction } from '../ports/assistant.js';
 @Injectable()
 export class AssistantProposalConfirmService {
   constructor(
-    private readonly assistantAgentService: AssistantRuntimeService,
+    @Inject(ASSISTANT_AGENT_RUNTIME)
+    private readonly assistantAgentService: AgentRuntimePort,
     private readonly userSettingsService: IUserSettingsPort,
     private readonly dailyRecordsService: DailyRecordsService,
     private readonly auditLogService: AuditLogService,
@@ -127,14 +131,12 @@ export class AssistantProposalConfirmService {
       );
     }
 
-    const { finalContent } = await unwrapResult(
-      this.assistantAgentService.resumeConversation({
-        userId,
-        conversationId,
-        decision: dto.decision,
-        ...(dto.note != null ? { note: dto.note } : {}),
-      }),
-    );
+    const { finalContent } = await this.assistantAgentService.resumeConversation({
+      userId,
+      conversationId,
+      decision: dto.decision,
+      ...(dto.note != null ? { note: dto.note } : {}),
+    });
     return {
       conversationId,
       decision: dto.decision,

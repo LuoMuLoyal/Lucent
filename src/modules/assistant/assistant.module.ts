@@ -30,6 +30,10 @@ import { ASSISTANT_CONVERSATIONS } from './domain/conversation/conversations.js'
 import { ASSISTANT_MEMORIES } from './domain/memory/memories.js';
 
 import { ASSISTANT_SUMMARIES } from './domain/summary/summaries.js';
+import {
+  ASSISTANT_AGENT_RUNTIME,
+  ASSISTANT_TOOL_EXECUTOR,
+} from './application/ports/agent-runtime.js';
 import { PrismaConversations } from './infrastructure/persistence/conversations.js';
 import { PrismaMemories } from './infrastructure/persistence/memories.js';
 import { PrismaSummaries } from './infrastructure/persistence/summaries.js';
@@ -81,6 +85,7 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
   controllers: [AssistantController],
   providers: [
     AssistantRuntimeService,
+    { provide: ASSISTANT_AGENT_RUNTIME, useExisting: AssistantRuntimeService },
     AssistantStreamService,
     AssistantCheckpointerService,
     VectorStoreFactory,
@@ -100,6 +105,7 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     AssistantDailyRecordProposalService,
     AssistantSettingsProposalService,
     AssistantToolService,
+    { provide: ASSISTANT_TOOL_EXECUTOR, useExisting: AssistantToolService },
     AssistantToolReadService,
     LightragClientService,
     AssistantToolKnowledgeRetrievalService,

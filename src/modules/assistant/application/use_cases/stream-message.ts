@@ -6,17 +6,23 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type {
   AssistantMessageDataView,
   AssistantToolDetailView,
 } from '../ports/views.js';
 import type { StreamAssistantMessagesView } from '../ports/views.js';
 import type { AssistantRuntimeCapabilities } from '../ports/assistant.js';
-import { AssistantRuntimeService } from '../../adapters/agent/checkpoint-runtime.js';
+import {
+  ASSISTANT_AGENT_RUNTIME,
+  type AgentRuntimePort,
+} from '../ports/agent-runtime.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { AssistantPolicyService } from '../services/policy.js';
-import { AssistantToolService } from '../../adapters/acl/tool-executor.js';
+import {
+  ASSISTANT_TOOL_EXECUTOR,
+  type ToolExecutorPort,
+} from '../ports/agent-runtime.js';
 import { Conversations } from './conversation.js';
 import { toDomainFailure } from '../services/provider-failures.js';
 import { nowIsoString } from '../../../../common/index.js';
@@ -46,10 +52,12 @@ export class AssistantStreamOrchestratorService {
   private readonly logger = new Logger(AssistantStreamOrchestratorService.name);
 
   constructor(
-    private readonly assistantAgentService: AssistantRuntimeService,
+    @Inject(ASSISTANT_AGENT_RUNTIME)
+    private readonly assistantAgentService: AgentRuntimePort,
     private readonly userSettingsService: IUserSettingsPort,
     private readonly assistantPolicyService: AssistantPolicyService,
-    private readonly assistantToolExecutor: AssistantToolService,
+    @Inject(ASSISTANT_TOOL_EXECUTOR)
+    private readonly assistantToolExecutor: ToolExecutorPort,
     private readonly assistantConversationService: Conversations,
     private readonly metricsService: MetricsService,
   ) {}
@@ -271,14 +279,10 @@ export class AssistantStreamOrchestratorService {
       throw new DomainFailureException(this.conversationNotFound());
     }
 
-    const { checkpointId } = await this.assistantAgentService
-      .regenerateLastMessage(userId, conversationId)
-      .match(
-        (value) => value,
-        (error) => {
-          throw new DomainFailureException(error);
-        },
-      );
+    const { checkpointId } = await this.assistantAgentService.regenerateLastMessage(
+      userId,
+      conversationId,
+    );
 
     const { finalContent } =
       await this.assistantAgentService.replayFromCheckpoint(
