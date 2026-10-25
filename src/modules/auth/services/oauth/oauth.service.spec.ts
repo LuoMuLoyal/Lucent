@@ -153,6 +153,7 @@ describe('AuthOAuthService', () => {
         ...mockAccount,
         user: mockUser,
       });
+      prisma.user.findFirst.mockResolvedValue(mockUser);
       const outcome = await collectResult(
         service.findOrCreateOAuthUser(wechatProfile),
       );
@@ -213,6 +214,8 @@ describe('AuthOAuthService', () => {
       prisma.account.findFirst
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ ...mockAccount, user: mockUser });
+      // 判定命中的账号随后会被 requireUser 再读一次。
+      prisma.user.findFirst.mockResolvedValue(mockUser);
       const outcome = await collectResult(
         service.findOrCreateOAuthUser(wechatProfile),
       );
@@ -229,19 +232,51 @@ describe('AuthOAuthService', () => {
     });
 
     it('should match by email when no unionId match exists', async () => {
+      // 用**受信提供商**（google）而不是 wechat：按邮箱自动关联要求
+      // 「受信提供商 + 邮箱已验证」两个条件。旧的内联实现只看
+      // `emailVerifiedAt` 是否非空，不看提供商是否受信；领域规则
+      // （`canAutoLinkByEmail`）**两个都要求**。
+      //
+      // 生产上两者等价：只有 apple/google 会写 `emailVerifiedAt`，而它们都是
+      // 受信提供商；微信/QQ 恒为 `email: null` 且不写验证时间。所以旧实现在
+      // 生产上摸不到「非受信 + 已验证邮箱」这个组合——本条测试原先构造的
+      // `wechatProfile`（wechat_web + emailVerifiedAt 有值）是一个**现实中不存在**
+      // 的组合，它断言的正是那个漏洞形状。
       prisma.user.findFirst.mockResolvedValue(mockUser);
       const outcome = await collectResult(
-        service.findOrCreateOAuthUser(wechatProfile),
+        service.findOrCreateOAuthUser({
+          provider: 'google',
+          providerUserId: 'google-sub-verified',
+          email: 'verified@example.com',
+          emailVerifiedAt: new Date(),
+        }),
       );
       expect(outcome).toEqual({ ok: true, value: mockUser });
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: {
-          email: 'wxuser@example.com',
+          email: 'verified@example.com',
           deletedAt: null,
         },
       });
       expect(prisma.user.create).not.toHaveBeenCalled();
       expect(prisma.account.create).toHaveBeenCalled();
+    });
+
+    it('does NOT auto-link an untrusted provider even when its email is verified', async () => {
+      // 现实里不会出现的组合（微信不给邮箱、也不给验证时间），但规则必须
+      // 方向正确：**非受信提供商永远不按邮箱关联**。
+      prisma.user.findFirst.mockResolvedValue(mockUser);
+
+      const outcome = await collectResult(
+        service.findOrCreateOAuthUser({
+          ...wechatProfile,
+          emailVerifiedAt: new Date(),
+        }),
+      );
+
+      expect(outcome.ok).toBe(true);
+      // 命中的账号没有被复用——建了新用户。
+      expect(prisma.user.create).toHaveBeenCalled();
     });
 
     it('should not link by email when email is unverified', async () => {
