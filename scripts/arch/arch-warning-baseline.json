@@ -107,7 +107,7 @@
     "eslint|no-magic-numbers|src/modules/environment/dto/snapshot-query.dto.ts",
     "eslint|no-magic-numbers|src/modules/files/dto/create-file-upload.dto.ts",
     "eslint|no-magic-numbers|src/modules/files/services/files.service.ts",
-    "eslint|no-magic-numbers|src/modules/health-events/dto/create-event.dto.ts",
+    "eslint|no-magic-numbers|src/modules/health-events/adapters/http/dto/create-event.ts",
     "eslint|no-magic-numbers|src/modules/legal-documents/services/documents.service.ts",
     "eslint|no-magic-numbers|src/modules/medicine-dose-logs/dto/create-dose-log.dto.ts",
     "eslint|no-magic-numbers|src/modules/medicine-dose-logs/dto/mark-dose-log.dto.ts",

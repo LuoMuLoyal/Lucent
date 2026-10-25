@@ -6,12 +6,12 @@ import {
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
-} from '../../../common/index.js';
-import { okAsync, errAsync } from '../../../common/result/index.js';
-import { DomainFailureException } from '../../../common/result/unwrap-result.js';
-import type { EventsService } from './events.service.js';
-import type { HealthEventRepositoryPort } from '../repositories/event.repository.js';
-import { HealthEventsOwnershipService } from './ownership.service.js';
+} from '../../../../common/index.js';
+import { okAsync, errAsync } from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/unwrap-result.js';
+import type { EventsService } from '../use_cases/events.js';
+import type { HealthEventRepositoryPort } from '../ports/health-events.js';
+import { HealthEventsOwnershipService } from './ownership.js';
 
 const USER_ID = 'u1';
 const EVENT_ID = 'evt-1';

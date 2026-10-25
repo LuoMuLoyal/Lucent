@@ -12,7 +12,7 @@ import {
   DomainEventPublisher,
   formatDateOnlyInTimezone,
   now,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -20,17 +20,17 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 import {
   HealthEventRepositoryPort,
   type HealthEventView,
   type HealthEventRecord,
-} from '../repositories/event.repository.js';
+} from '../ports/health-events.js';
 import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
-} from '../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../product-events/index.js';
+} from '../../../../common/events/domain-events.js';
+import { ProductEventsService } from '../../../product-events/index.js';
 
 /**
  * `ProductEventResult` mirrors `HealthEventOutcome` string-for-string in the

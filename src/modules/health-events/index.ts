@@ -1,8 +1,8 @@
-export { HealthEventsOwnershipService } from './services/ownership.service.js';
+export { HealthEventsOwnershipService } from './application/services/ownership.js';
 export type {
   HealthEventCheckInRecord,
   HealthEventCoverageRecord,
   HealthEventPage,
   HealthEventPageQuery,
   HealthEventRecord,
-} from './repositories/event.repository.js';
+} from './application/ports/health-events.js';

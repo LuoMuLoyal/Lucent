@@ -6,7 +6,7 @@ import type {
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 
 export interface HealthEventRecord {
   id: string;

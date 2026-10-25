@@ -17,36 +17,36 @@ import {
 } from '@nestjs/swagger';
 import { z } from 'zod';
 import { HealthEventKind } from '#generated/prisma/client.js';
-import { ProblemDetailsDto, formatDateOnly } from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { CurrentUser } from '../auth/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { createHealthEventSchema } from './dto/create-event.dto.js';
-import type { CreateHealthEventDto } from './dto/create-event.dto.js';
-import { endHealthEventSchema } from './dto/end-event.dto.js';
-import type { EndHealthEventDto } from './dto/end-event.dto.js';
+import { ProblemDetailsDto, formatDateOnly } from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { CurrentUser } from '../../../auth/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { createHealthEventSchema } from './dto/create-event.js';
+import type { CreateHealthEventDto } from './dto/create-event.js';
+import { endHealthEventSchema } from './dto/end-event.js';
+import type { EndHealthEventDto } from './dto/end-event.js';
 import {
   eventDateSchema,
   eventListQuerySchema,
-} from './dto/event-list-query.dto.js';
-import type { EventListQueryDto } from './dto/event-list-query.dto.js';
+} from './dto/event-list-query.js';
+import type { EventListQueryDto } from './dto/event-list-query.js';
 import {
   healthEventListResponseSchema,
   healthEventNullableResponseSchema,
   healthEventResponseSchema,
-} from './dto/event-response.dto.js';
-import type { HealthEventItemDto } from './dto/event-response.dto.js';
-import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.dto.js';
-import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
+} from './dto/event-response.js';
+import type { HealthEventItemDto } from './dto/event-response.js';
+import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.js';
+import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.js';
 import type {
   HealthEventCheckInRecord,
   HealthEventCoverageRecord,
   HealthEventRecord,
   HealthEventView,
-} from './repositories/event.repository.js';
-import { CheckInsService } from './services/check-ins.service.js';
-import { EventsService } from './services/events.service.js';
+} from '../../application/ports/health-events.js';
+import { CheckInsService } from '../../application/use_cases/check-ins.js';
+import { EventsService } from '../../application/use_cases/events.js';
 
 /** Path id of a health event (format is validated downstream by the DB uuid). */
 const healthEventIdSchema = z.string().min(1).describe('Health event id.');

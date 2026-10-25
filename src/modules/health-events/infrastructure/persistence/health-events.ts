@@ -4,12 +4,12 @@ import {
   HealthEventStatus,
   Prisma,
 } from '#generated/prisma/client.js';
-import { fromPrismaResult, parseDateOnly } from '../../../common/index.js';
+import { fromPrismaResult, parseDateOnly } from '../../../../common/index.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
-import { PrismaService } from '../../../prisma/index.js';
+} from '../../../../common/result/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import {
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
@@ -18,7 +18,7 @@ import {
   type HealthEventPageQuery,
   type HealthEventRecord,
   type HealthEventUpdateInput,
-} from './event.repository.js';
+} from '../../application/ports/health-events.js';
 
 const eventSelect = {
   id: true,
@@ -53,7 +53,7 @@ type LockedHealthEventRow = {
 };
 
 @Injectable()
-export class PrismaEventRepository extends HealthEventRepositoryPort {
+export class PrismaHealthEvents extends HealthEventRepositoryPort {
   constructor(private readonly prisma: PrismaService) {
     super();
   }

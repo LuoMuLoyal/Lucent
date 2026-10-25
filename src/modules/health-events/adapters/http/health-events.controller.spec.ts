@@ -4,22 +4,22 @@ import {
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
-import { okAsync, errAsync } from '../../common/result/index.js';
-import type { DomainFailure } from '../../common/result/index.js';
-import type { UserPayload } from '../auth/index.js';
+import { okAsync, errAsync } from '../../../../common/result/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
+import type { UserPayload } from '../../../auth/index.js';
 import { HealthEventsController } from './health-events.controller.js';
-import { createHealthEventSchema } from './dto/create-event.dto.js';
-import type { CreateHealthEventDto } from './dto/create-event.dto.js';
-import { endHealthEventSchema } from './dto/end-event.dto.js';
-import type { EndHealthEventDto } from './dto/end-event.dto.js';
+import { createHealthEventSchema } from './dto/create-event.js';
+import type { CreateHealthEventDto } from './dto/create-event.js';
+import { endHealthEventSchema } from './dto/end-event.js';
+import type { EndHealthEventDto } from './dto/end-event.js';
 import {
   eventDateSchema,
   eventListQuerySchema,
-} from './dto/event-list-query.dto.js';
-import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.dto.js';
-import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.dto.js';
-import { CheckInsService } from './services/check-ins.service.js';
-import { EventsService } from './services/events.service.js';
+} from './dto/event-list-query.js';
+import { upsertHealthEventCheckInSchema } from './dto/upsert-check-in.js';
+import type { UpsertHealthEventCheckInDto } from './dto/upsert-check-in.js';
+import { CheckInsService } from '../../application/use_cases/check-ins.js';
+import { EventsService } from '../../application/use_cases/events.js';
 
 const user: UserPayload = {
   sub: 'user-1',

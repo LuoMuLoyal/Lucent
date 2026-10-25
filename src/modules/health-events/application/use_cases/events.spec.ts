@@ -6,18 +6,18 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client.js';
-import type { DomainEventPublisher } from '../../../common/index.js';
+import type { DomainEventPublisher } from '../../../../common/index.js';
 import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
-} from '../repositories/event.repository.js';
-import type { ProductEventsService } from '../../product-events/index.js';
+} from '../ports/health-events.js';
+import type { ProductEventsService } from '../../../product-events/index.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
-import { fromPromise, okAsync } from '../../../common/result/index.js';
-import { EventsService } from './events.service.js';
+} from '../../../../common/result/index.js';
+import { fromPromise, okAsync } from '../../../../common/result/index.js';
+import { EventsService } from '../use_cases/events.js';
 
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';

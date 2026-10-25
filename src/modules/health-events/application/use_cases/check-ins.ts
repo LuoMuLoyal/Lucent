@@ -12,28 +12,28 @@ import {
   formatDateOnlyInTimezone,
   now,
   parseDateOnly,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
   fromPromise,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 import {
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
-} from '../repositories/event.repository.js';
+} from '../ports/health-events.js';
 import {
   parseHealthEventOutcome,
   toProductEventResult,
   type EndHealthEventInput,
-} from './events.service.js';
+} from '../use_cases/events.js';
 import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
-} from '../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../product-events/index.js';
+} from '../../../../common/events/domain-events.js';
+import { ProductEventsService } from '../../../product-events/index.js';
 
 export type UpsertCheckInInput = EndHealthEventInput;
 

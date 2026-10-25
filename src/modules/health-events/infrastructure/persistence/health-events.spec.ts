@@ -4,13 +4,13 @@ import {
   HealthEventStatus,
 } from '#generated/prisma/client.js';
 import { Prisma } from '#generated/prisma/client.js';
-import type { DeepMocked } from '../../../common/types/deep-mocked.js';
-import type { PrismaService } from '../../../prisma/index.js';
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+import type { PrismaService } from '../../../../prisma/index.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
-import { PrismaEventRepository } from './prisma-event.repository.js';
+} from '../../../../common/result/index.js';
+import { PrismaHealthEvents } from './health-events.js';
 
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';
@@ -48,8 +48,8 @@ function eventRow(id: string) {
   };
 }
 
-describe('PrismaEventRepository', () => {
-  let repository: PrismaEventRepository;
+describe('PrismaHealthEvents', () => {
+  let repository: PrismaHealthEvents;
   let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
@@ -70,7 +70,7 @@ describe('PrismaEventRepository', () => {
       },
       $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
-    repository = new PrismaEventRepository(prisma);
+    repository = new PrismaHealthEvents(prisma);
   });
 
   it('queries the targeted most-recent-ended event', async () => {
