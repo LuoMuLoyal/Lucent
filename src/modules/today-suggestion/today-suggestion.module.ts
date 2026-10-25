@@ -33,6 +33,8 @@ import { PrismaFeedbackStore } from './infrastructure/persistence/feedbacks.js';
 import { FEEDBACK_PORT } from './application/ports/feedback.js';
 import { BaselineService } from './infrastructure/persistence/baseline.js';
 import { LifecycleService } from './application/services/lifecycle.js';
+import { SUGGESTION_LIFECYCLE_STORE } from './application/ports/suggestion-lifecycle.js';
+import { PrismaSuggestionLifecycleStore } from './infrastructure/persistence/suggestion-lifecycle.js';
 import { ActiveSuggestionsReadModel } from './application/read_models/active-suggestions.js';
 import { SuggestionHistoryReadModel } from './application/read_models/suggestion-history.js';
 import { PrismaSuggestionQueries } from './infrastructure/persistence/suggestion-queries.js';
@@ -80,6 +82,11 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     // Lifecycle
     BaselineService,
     LifecycleService,
+    PrismaSuggestionLifecycleStore,
+    {
+      provide: SUGGESTION_LIFECYCLE_STORE,
+      useExisting: PrismaSuggestionLifecycleStore,
+    },
     ActiveSuggestionsReadModel,
     SuggestionHistoryReadModel,
     PrismaSuggestionQueries,
@@ -119,6 +126,11 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     { provide: FEEDBACK_PORT, useExisting: PrismaFeedbackStore },
     ExplanationService,
     LifecycleService,
+    PrismaSuggestionLifecycleStore,
+    {
+      provide: SUGGESTION_LIFECYCLE_STORE,
+      useExisting: PrismaSuggestionLifecycleStore,
+    },
     ActiveSuggestionsReadModel,
     SuggestionHistoryReadModel,
     PrismaSuggestionQueries,

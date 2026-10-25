@@ -8,7 +8,6 @@
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.module.ts",
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.service.spec.ts",
     "depcruise|common-no-module-imports|src/common/queue/cron-jobs.service.ts",
-    "depcruise|ddd-application-no-direct-prisma|src/modules/today-suggestion/application/services/lifecycle.ts",
     "depcruise|modules-cross-boundary-must-use-barrel|src/modules/legal-documents/services/admin.service.ts",
     "depcruise|modules-no-direct-redis-clients|src/modules/medicines/infrastructure/cache/maintenance.spec.ts",
     "depcruise|no-circular|src/common/result/index.ts",

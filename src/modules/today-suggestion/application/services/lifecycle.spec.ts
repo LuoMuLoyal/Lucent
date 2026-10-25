@@ -1,7 +1,7 @@
 import { LifecycleService } from './lifecycle.js';
-import { SuggestionLifecycleState } from '../../domain/suggestion/suggestion.types.js';
-import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import { formatDateOnly, now } from '../../../../common/index.js';
+import type { SuggestionLifecycleStore } from '../ports/suggestion-lifecycle.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 
 function createMockCache() {
   return {
@@ -12,32 +12,40 @@ function createMockCache() {
 
 describe('LifecycleService', () => {
   let service: LifecycleService;
-  let findManyMock: vi.Mock;
-  let countMock: vi.Mock;
-  let createMock: vi.Mock;
-  let updateManyMock: vi.Mock;
+  let createActiveMock: vi.Mock;
+  let expireActiveMock: vi.Mock;
+  let dismissActiveMock: vi.Mock;
+  let listActiveCardKeysMock: vi.Mock;
+  let fadeActiveBeforeMock: vi.Mock;
+  let expireFadingBeforeMock: vi.Mock;
   let readModelMock: { getActiveSuggestions: vi.Mock };
   let historyReadModelMock: { getHistory: vi.Mock };
 
   beforeEach(() => {
     readModelMock = { getActiveSuggestions: vi.fn() };
     historyReadModelMock = { getHistory: vi.fn() };
-    findManyMock = vi.fn();
-    countMock = vi.fn();
-    createMock = vi.fn();
-    updateManyMock = vi.fn();
+    createActiveMock = vi.fn();
+    expireActiveMock = vi.fn();
+    dismissActiveMock = vi.fn();
+    listActiveCardKeysMock = vi.fn();
+    fadeActiveBeforeMock = vi.fn().mockResolvedValue(0);
+    expireFadingBeforeMock = vi.fn().mockResolvedValue(0);
 
-    const prismaMock = {
-      userSuggestion: {
-        create: createMock,
-        updateMany: updateManyMock,
-        findMany: findManyMock,
-        count: countMock,
-      },
+    // The store port replaced the direct Prisma dependency, so the double
+    // satisfies the port. Assertions below moved from "did we build this Prisma
+    // query" to "did we call the store with these arguments"; the query shape
+    // itself belongs to the persistence implementation's own tests.
+    const storeMock = {
+      createActive: createActiveMock,
+      expireActive: expireActiveMock,
+      dismissActive: dismissActiveMock,
+      listActiveCardKeys: listActiveCardKeysMock,
+      fadeActiveBefore: fadeActiveBeforeMock,
+      expireFadingBefore: expireFadingBeforeMock,
     };
 
     service = new LifecycleService(
-      prismaMock as never,
+      storeMock as unknown as SuggestionLifecycleStore,
       createMockCache(),
       readModelMock as never,
       historyReadModelMock as never,
@@ -76,7 +84,7 @@ describe('LifecycleService', () => {
     };
 
     it('persists a candidate and returns the generated id', async () => {
-      createMock.mockResolvedValue({ id: 'sug-123' });
+      createActiveMock.mockResolvedValue('sug-123');
 
       const id = await service.persistActive(
         'user-1',
@@ -87,20 +95,18 @@ describe('LifecycleService', () => {
       );
 
       expect(id).toBe('sug-123');
-      expect(createMock).toHaveBeenCalledTimes(1);
-      const call = createMock.mock.calls[0]![0];
-      expect(call.data.userId).toBe('user-1');
-      expect(call.data.date).toBe('2026-07-10');
-      expect(call.data.type).toBe('behavior_advice');
-      expect(call.data.lifecycleState).toBe(SuggestionLifecycleState.ACTIVE);
-      expect(call.data.ruleId).toBe('water_behind_target');
-      expect(call.data.locale).toBe('zh-CN');
-      expect(call.data.generatedAt).toBeDefined();
-      expect(call.data.activatedAt).toBeDefined();
+      expect(createActiveMock).toHaveBeenCalledTimes(1);
+      const call = createActiveMock.mock.calls[0]![0];
+      expect(call.userId).toBe('user-1');
+      expect(call.date).toBe('2026-07-10');
+      expect(call.candidate.type).toBe('behavior_advice');
+      expect(call.candidate.ruleId).toBe('water_behind_target');
+      expect(call.locale).toBe('zh-CN');
+      expect(call.generatedAt).toBeDefined();
     });
 
     it('persists the recompute source version on the active card', async () => {
-      createMock.mockResolvedValue({ id: 'sug-versioned' });
+      createActiveMock.mockResolvedValue('sug-versioned');
 
       await service.persistActive(
         'user-1',
@@ -111,11 +117,11 @@ describe('LifecycleService', () => {
         7,
       );
 
-      expect(createMock.mock.calls[0]![0].data.sourceVersion).toBe(7);
+      expect(createActiveMock.mock.calls[0]![0].sourceVersion).toBe(7);
     });
 
     it('includes secondaryActions when provided', async () => {
-      createMock.mockResolvedValue({ id: 'sug-456' });
+      createActiveMock.mockResolvedValue('sug-456');
       const candidate: SuggestionCandidate = {
         ...baseCandidate,
         secondaryActions: [
@@ -136,8 +142,8 @@ describe('LifecycleService', () => {
         'zh-CN',
       );
 
-      const call = createMock.mock.calls[0]![0];
-      expect(call.data.secondaryActions).toEqual([
+      const call = createActiveMock.mock.calls[0]![0];
+      expect(call.candidate.secondaryActions).toEqual([
         {
           actionId: 'snooze',
           label: '稍后提醒',
@@ -148,7 +154,7 @@ describe('LifecycleService', () => {
     });
 
     it('omits secondaryActions when undefined', async () => {
-      createMock.mockResolvedValue({ id: 'sug-789' });
+      createActiveMock.mockResolvedValue('sug-789');
 
       await service.persistActive(
         'user-1',
@@ -158,12 +164,12 @@ describe('LifecycleService', () => {
         'zh-CN',
       );
 
-      const call = createMock.mock.calls[0]![0];
-      expect(call.data.secondaryActions).toBeUndefined();
+      const call = createActiveMock.mock.calls[0]![0];
+      expect(call.candidate.secondaryActions).toBeUndefined();
     });
 
     it('includes subtype when provided', async () => {
-      createMock.mockResolvedValue({ id: 'sug-sub' });
+      createActiveMock.mockResolvedValue('sug-sub');
       const candidate: SuggestionCandidate = {
         ...baseCandidate,
         subtype: 'water',
@@ -177,12 +183,12 @@ describe('LifecycleService', () => {
         'zh-CN',
       );
 
-      const call = createMock.mock.calls[0]![0];
-      expect(call.data.subtype).toBe('water');
+      const call = createActiveMock.mock.calls[0]![0];
+      expect(call.candidate.subtype).toBe('water');
     });
 
     it('omits subtype when undefined', async () => {
-      createMock.mockResolvedValue({ id: 'sug-nosub' });
+      createActiveMock.mockResolvedValue('sug-nosub');
 
       await service.persistActive(
         'user-1',
@@ -192,8 +198,8 @@ describe('LifecycleService', () => {
         'zh-CN',
       );
 
-      const call = createMock.mock.calls[0]![0];
-      expect(call.data.subtype).toBeUndefined();
+      const call = createActiveMock.mock.calls[0]![0];
+      expect(call.candidate.subtype).toBeUndefined();
     });
   });
 
@@ -201,7 +207,7 @@ describe('LifecycleService', () => {
 
   describe('expireStaleSuggestions', () => {
     it('expires active suggestions and returns count', async () => {
-      updateManyMock.mockResolvedValue({ count: 3 });
+      expireActiveMock.mockResolvedValue(3);
 
       const count = await service.expireStaleSuggestions(
         'user-1',
@@ -209,16 +215,14 @@ describe('LifecycleService', () => {
       );
 
       expect(count).toBe(3);
-      const call = updateManyMock.mock.calls[0]![0];
-      expect(call.where.userId).toBe('user-1');
-      expect(call.where.date).toBe('2026-07-10');
-      expect(call.where.lifecycleState).toBe(SuggestionLifecycleState.ACTIVE);
-      expect(call.data.lifecycleState).toBe(SuggestionLifecycleState.EXPIRED);
-      expect(call.data.expiredAt).toBeDefined();
+      const call = expireActiveMock.mock.calls[0]!;
+      expect(call[0]).toBe('user-1');
+      expect(call[1]).toBe('2026-07-10');
+      expect(call[2]).toBeDefined();
     });
 
     it('returns 0 when no suggestions to expire', async () => {
-      updateManyMock.mockResolvedValue({ count: 0 });
+      expireActiveMock.mockResolvedValue(0);
 
       const count = await service.expireStaleSuggestions(
         'user-1',
@@ -229,13 +233,11 @@ describe('LifecycleService', () => {
     });
 
     it('does not expire cards written by a newer source version', async () => {
-      updateManyMock.mockResolvedValue({ count: 1 });
+      expireActiveMock.mockResolvedValue(1);
 
       await service.expireStaleSuggestions('user-1', '2026-07-10', 7);
 
-      expect(updateManyMock.mock.calls[0]![0].where.sourceVersion).toEqual({
-        lte: 7,
-      });
+      expect(expireActiveMock.mock.calls[0]![3]).toBe(7);
     });
   });
 
@@ -243,24 +245,20 @@ describe('LifecycleService', () => {
 
   describe('dismissSuggestion', () => {
     it('updates suggestion lifecycle to dismissed', async () => {
-      updateManyMock.mockResolvedValue({ count: 1 });
+      expireActiveMock.mockResolvedValue(1);
 
       await service.dismissSuggestion('user-1', 'sug-123');
 
-      const call = updateManyMock.mock.calls[0]![0];
-      expect(call.where.id).toBe('sug-123');
-      expect(call.where.userId).toBe('user-1');
-      expect(call.where.lifecycleState).toBe(SuggestionLifecycleState.ACTIVE);
-      expect(call.data.lifecycleState).toBe(SuggestionLifecycleState.DISMISSED);
+      expect(dismissActiveMock).toHaveBeenCalledWith('user-1', 'sug-123');
     });
 
     it('silently handles when suggestion is not in ACTIVE state', async () => {
-      // If the suggestion was already dismissed/expired, updateMany returns 0
-      updateManyMock.mockResolvedValue({ count: 0 });
+      // If the card was already dismissed/expired the store updates 0 rows.
+      dismissActiveMock.mockResolvedValue(undefined);
 
       await service.dismissSuggestion('user-1', 'sug-123');
 
-      expect(updateManyMock).toHaveBeenCalledTimes(1);
+      expect(dismissActiveMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -268,7 +266,7 @@ describe('LifecycleService', () => {
 
   describe('getActiveSuggestionIds', () => {
     it('returns a Set of ruleId:subtype composite keys', async () => {
-      findManyMock.mockResolvedValue([
+      listActiveCardKeysMock.mockResolvedValue([
         { ruleId: 'rule_a', subtype: 'water' },
         { ruleId: 'rule_b', subtype: null },
         { ruleId: 'rule_c', subtype: 'sleep' },
@@ -284,7 +282,7 @@ describe('LifecycleService', () => {
     });
 
     it('returns empty set when no active suggestions', async () => {
-      findManyMock.mockResolvedValue([]);
+      listActiveCardKeysMock.mockResolvedValue([]);
 
       const ids = await service.getActiveSuggestionIds('user-1', '2026-07-10');
 
@@ -309,47 +307,35 @@ describe('LifecycleService', () => {
 
   describe('refreshLifecycleStates', () => {
     it('transitions ACTIVE→FADING and FADING→EXPIRED', async () => {
-      // First updateMany call: ACTIVE → FADING
-      // Second updateMany call: FADING → EXPIRED
-      updateManyMock
-        .mockResolvedValueOnce({ count: 5 }) // ACTIVE → FADING
-        .mockResolvedValueOnce({ count: 2 }); // FADING → EXPIRED
+      fadeActiveBeforeMock.mockResolvedValue(5);
+      expireFadingBeforeMock.mockResolvedValue(2);
 
       await service.refreshLifecycleStates();
 
-      expect(updateManyMock).toHaveBeenCalledTimes(2);
+      expect(fadeActiveBeforeMock).toHaveBeenCalledTimes(1);
+      expect(expireFadingBeforeMock).toHaveBeenCalledTimes(1);
 
-      const fadingCall = updateManyMock.mock.calls[0]![0];
-      expect(fadingCall.where.lifecycleState).toBe(
-        SuggestionLifecycleState.ACTIVE,
+      // Thresholds now arrive as `Date`s computed by the domain rule rather
+      // than a hand-built Prisma WHERE clause. Ordering is the real invariant:
+      // the fade threshold must be *later* than the expiry threshold, or a card
+      // could be expired before it was ever faded.
+      const fadeThreshold = fadeActiveBeforeMock.mock.calls[0]![0] as Date;
+      const expiryThreshold = expireFadingBeforeMock.mock.calls[0]![0] as Date;
+      expect(fadeThreshold).toBeInstanceOf(Date);
+      expect(expiryThreshold).toBeInstanceOf(Date);
+      expect(fadeThreshold.getTime()).toBeGreaterThan(
+        expiryThreshold.getTime(),
       );
-      expect(fadingCall.data.lifecycleState).toBe(
-        SuggestionLifecycleState.FADING,
-      );
-      expect(fadingCall.data.fadingAt).toBeDefined();
-      expect(fadingCall.where.activatedAt).toBeDefined();
-      expect(fadingCall.where.activatedAt.lt).toBeDefined();
-
-      const expiredCall = updateManyMock.mock.calls[1]![0];
-      expect(expiredCall.where.lifecycleState).toBe(
-        SuggestionLifecycleState.FADING,
-      );
-      expect(expiredCall.data.lifecycleState).toBe(
-        SuggestionLifecycleState.EXPIRED,
-      );
-      expect(expiredCall.data.expiredAt).toBeDefined();
-      expect(expiredCall.where.activatedAt).toBeDefined();
-      expect(expiredCall.where.activatedAt.lt).toBeDefined();
     });
 
     it('completes silently when no transitions occur', async () => {
-      updateManyMock
-        .mockResolvedValueOnce({ count: 0 })
-        .mockResolvedValueOnce({ count: 0 });
+      fadeActiveBeforeMock.mockResolvedValue(0);
+      expireFadingBeforeMock.mockResolvedValue(0);
 
       await service.refreshLifecycleStates();
 
-      expect(updateManyMock).toHaveBeenCalledTimes(2);
+      expect(fadeActiveBeforeMock).toHaveBeenCalledTimes(1);
+      expect(expireFadingBeforeMock).toHaveBeenCalledTimes(1);
     });
   });
 });

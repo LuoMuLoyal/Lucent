@@ -1,13 +1,13 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { PrismaService } from '../../../../prisma/index.js';
+import {
+  SuggestionLifecycleStore,
+} from '../ports/suggestion-lifecycle.js';
 import { now, nowIsoString, formatDateOnly } from '../../../../common/index.js';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
 
-import type { SuggestionAction } from '../../domain/signal/signal.js';
-import { SuggestionLifecycleState } from '../../domain/suggestion/suggestion.types.js';
 import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto.js';
 import {
   fadeExpiryThreshold,
@@ -52,7 +52,7 @@ export class LifecycleService {
   private static readonly HISTORY_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly store: SuggestionLifecycleStore,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly activeReadModel: ActiveSuggestionsReadModel,
     private readonly historyReadModel: SuggestionHistoryReadModel,
@@ -74,50 +74,17 @@ export class LifecycleService {
   ): Promise<string> {
     const now = nowIsoString();
 
-    const record = await this.prisma.userSuggestion.create({
-      data: {
-        userId,
-        date: date,
-        type: candidate.type,
-        triggerType: candidate.triggerType,
-        ruleId: candidate.ruleId,
-        ruleVersion: candidate.ruleVersion,
-        title: copy.title,
-        reason: copy.reason,
-        boundary: copy.boundary,
-        evidence: candidate.evidence as never,
-        primaryAction: candidate.primaryAction as never,
-        ...this.optionalSecondaryActions(candidate.secondaryActions),
-        priorityScore: candidate.priorityScore,
-        confidence: candidate.confidence,
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-        notificationEligible: candidate.notificationEligible,
-        ...this.optionalSubtype(candidate.subtype),
-        locale: this.normalizeLocale(locale),
-        ...(sourceVersion != null ? { sourceVersion } : {}),
-        generatedAt: now,
-        activatedAt: now,
-      },
+    return this.store.createActive({
+      userId,
+      date,
+      candidate,
+      copy,
+      locale: this.normalizeLocale(locale),
+      generatedAt: now,
+      ...(sourceVersion != null ? { sourceVersion } : {}),
     });
-
-    return record.id;
   }
-
-  private optionalSecondaryActions(
-    actions: SuggestionAction[] | undefined,
-  ): Record<string, unknown> {
-    if (actions == null) return {};
-    return { secondaryActions: actions };
-  }
-
-  private optionalSubtype(
-    subtype: string | undefined,
-  ): Record<string, unknown> {
-    if (subtype == null) return {};
-    return { subtype };
-  }
-
-  /**
+/**
    * Expires suggestions that are no longer active for the given user+date.
    * Called before generating new suggestions to clean up stale cards.
    */
@@ -126,46 +93,27 @@ export class LifecycleService {
     date: string,
     sourceVersion?: number,
   ): Promise<number> {
-    const result = await this.prisma.userSuggestion.updateMany({
-      where: {
-        userId,
-        date: date,
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-        ...(sourceVersion != null
-          ? { sourceVersion: { lte: sourceVersion } }
-          : {}),
-        // Expire suggestions not in the current candidate set
-        // (they will be replaced by new ones)
-      },
-      data: {
-        lifecycleState: SuggestionLifecycleState.EXPIRED,
-        expiredAt: nowIsoString(),
-      },
-    });
+    const count = await this.store.expireActive(
+      userId,
+      date,
+      nowIsoString(),
+      sourceVersion,
+    );
 
-    if (result.count > 0) {
+    if (count > 0) {
       this.logger.debug(
-        `Expired ${String(result.count)} stale suggestions for user ${userId} on ${date}`,
+        `Expired ${String(count)} stale suggestions for user ${userId} on ${date}`,
       );
     }
 
-    return result.count;
+    return count;
   }
 
   /**
    * Marks a suggestion as dismissed by the user.
    */
   async dismissSuggestion(userId: string, suggestionId: string): Promise<void> {
-    await this.prisma.userSuggestion.updateMany({
-      where: {
-        id: suggestionId,
-        userId,
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-      },
-      data: {
-        lifecycleState: SuggestionLifecycleState.DISMISSED,
-      },
-    });
+    await this.store.dismissActive(userId, suggestionId);
   }
 
   /**
@@ -176,14 +124,7 @@ export class LifecycleService {
     userId: string,
     date: string,
   ): Promise<Set<string>> {
-    const records = await this.prisma.userSuggestion.findMany({
-      where: {
-        userId,
-        date: date,
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-      },
-      select: { ruleId: true, subtype: true },
-    });
+    const records = await this.store.listActiveCardKeys(userId, date);
 
     // Use ruleId+subtype as a composite key for deduplication
     return new Set(records.map((r) => `${r.ruleId}:${r.subtype ?? ''}`));
@@ -317,32 +258,14 @@ export class LifecycleService {
     const expiryThreshold = fadeExpiryThreshold(currentTime);
 
     // ACTIVE → FADING
-    const fadingResult = await this.prisma.userSuggestion.updateMany({
-      where: {
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-        activatedAt: { lt: activeThreshold },
-      },
-      data: {
-        lifecycleState: SuggestionLifecycleState.FADING,
-        fadingAt: nowIsoString(),
-      },
-    });
+    const fadingCount = await this.store.fadeActiveBefore(activeThreshold);
 
     // FADING → EXPIRED
-    const expiredResult = await this.prisma.userSuggestion.updateMany({
-      where: {
-        lifecycleState: SuggestionLifecycleState.FADING,
-        activatedAt: { lt: expiryThreshold },
-      },
-      data: {
-        lifecycleState: SuggestionLifecycleState.EXPIRED,
-        expiredAt: nowIsoString(),
-      },
-    });
+    const expiredCount = await this.store.expireFadingBefore(expiryThreshold);
 
-    if (fadingResult.count > 0 || expiredResult.count > 0) {
+    if (fadingCount > 0 || expiredCount > 0) {
       this.logger.debug(
-        `Lifecycle refresh: ${String(fadingResult.count)} active→fading, ${String(expiredResult.count)} fading→expired`,
+        `Lifecycle refresh: ${String(fadingCount)} active→fading, ${String(expiredCount)} fading→expired`,
       );
     }
   }
