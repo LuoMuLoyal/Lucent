@@ -9,11 +9,11 @@ import type {
   MarkDoseLogCommand,
   UpdateDoseLogCommand,
 } from '../ports/dose-log-resource.js';
-import type { DoseLogsForDate } from '../read_models/dose-logs-for-date.js';
-import type { CreateDoseLog } from '../use_cases/create-dose-log.js';
-import type { DeleteDoseLog } from '../use_cases/delete-dose-log.js';
-import type { MarkDoseLog } from '../use_cases/mark-dose-log.js';
-import type { UpdateDoseLog } from '../use_cases/update-dose-log.js';
+import { DoseLogsForDate } from '../read_models/dose-logs-for-date.js';
+import { CreateDoseLog } from '../use_cases/create-dose-log.js';
+import { DeleteDoseLog } from '../use_cases/delete-dose-log.js';
+import { MarkDoseLog } from '../use_cases/mark-dose-log.js';
+import { UpdateDoseLog } from '../use_cases/update-dose-log.js';
 
 /**
  * Application facade for the HTTP adapter.

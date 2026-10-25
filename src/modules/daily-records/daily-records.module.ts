@@ -19,6 +19,10 @@ import { MealVisionModel } from './application/ports/meal-vision.js';
 import { DailyRecordReaderPort } from './application/ports/records-query.js';
 import { DailyRecordCandidatesCopyService } from './application/services/candidate-copy.js';
 import { HealthEventLink } from './application/services/health-event-link.js';
+import { HealthEventOwnership } from './application/ports/health-events.js';
+import { RecordChangeEvents } from './application/ports/record-change-events.js';
+import { OutboxRecordChangeEvents } from './infrastructure/messaging/record-change-events.js';
+import { HealthEventOwnershipAdapter } from './infrastructure/acl/health-event-ownership.js';
 import { MealAnalysisPipeline } from './application/services/meal-analysis-pipeline.js';
 import { RecordOwnership } from './application/services/record-ownership.js';
 import { RecordWriteEffects } from './application/services/record-write-effects.js';
@@ -81,6 +85,10 @@ import { PrismaRecords } from './infrastructure/persistence/records.js';
 
     // 应用层编排
     MealAnalysisPipeline,
+    OutboxRecordChangeEvents,
+    { provide: RecordChangeEvents, useExisting: OutboxRecordChangeEvents },
+    HealthEventOwnershipAdapter,
+    { provide: HealthEventOwnership, useExisting: HealthEventOwnershipAdapter },
     HealthEventLink,
     RecordOwnership,
     RecordWriteEffects,

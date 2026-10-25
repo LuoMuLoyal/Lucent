@@ -16,8 +16,8 @@ import {
   formatDateOnly,
   now,
 } from '../../../../common/helpers/format/date-time.utils.js';
-import type { DoseLogs } from '../../domain/dose-log/dose-logs.js';
-import type { DoseLogEvents } from '../ports/dose-log-events.js';
+import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
+import { DoseLogEvents } from '../ports/dose-log-events.js';
 import { notFound } from './failures.js';
 
 export class DeleteDoseLog {

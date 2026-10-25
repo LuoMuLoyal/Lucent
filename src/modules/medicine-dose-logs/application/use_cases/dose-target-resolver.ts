@@ -19,11 +19,10 @@ import {
   resolveScheduledTime,
   type DoseTarget,
 } from '../../domain/dose-log/dose-log.js';
-import type {
-  DoseLogs,
-  ReminderSchedule,
-} from '../../domain/dose-log/dose-logs.js';
-import type { HealthEventGuard } from '../ports/health-event-guard.js';
+import type { ReminderSchedule } from '../../domain/dose-log/dose-logs.js';
+// Constructor token: must be a value import for Nest to resolve it.
+import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
+import { HealthEventGuard } from '../ports/health-event-guard.js';
 import { notFound, unresolvedTarget } from './failures.js';
 
 /** What a caller supplies before the target is resolvable. */

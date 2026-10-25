@@ -6,7 +6,7 @@
  */
 import { Injectable } from '@nestjs/common';
 import { parseDateOnly } from '../../../../common/index.js';
-import type { DailyRecords } from '../../domain/record/records.js';
+import { DailyRecords } from '../../domain/record/records.js';
 import type { RecordSummary } from '../read_models/record-list.js';
 import { toRecordSummary } from '../read_models/record-item.js';
 

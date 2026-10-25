@@ -8,7 +8,7 @@
  */
 
 import { parseDateOnly } from '../../../../common/helpers/format/date-time.utils.js';
-import type { DoseLogs } from '../../domain/dose-log/dose-logs.js';
+import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
 import type { DoseLogListResource } from '../ports/dose-log-resource.js';
 import { toDoseLogListResource } from './dose-log.js';
 

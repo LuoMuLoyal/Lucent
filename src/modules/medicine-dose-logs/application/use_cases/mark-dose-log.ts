@@ -36,14 +36,14 @@ import {
   parseDateOnly,
 } from '../../../../common/helpers/format/date-time.utils.js';
 import { slotIdentityOf, takenAtFor } from '../../domain/dose-log/dose-log.js';
-import type { DoseLogs } from '../../domain/dose-log/dose-logs.js';
+import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
 import type { DoseLogPatch } from '../../domain/dose-log/dose-logs.js';
-import type { DoseLogEvents } from '../ports/dose-log-events.js';
+import { DoseLogEvents } from '../ports/dose-log-events.js';
 import type { MarkDoseLogCommand } from '../ports/dose-log-resource.js';
 import type { DoseLogResource } from '../ports/dose-log-resource.js';
 import { toDoseLogResource } from '../read_models/dose-log.js';
 import { unresolvedTarget } from './failures.js';
-import type { DoseTargetResolver } from './dose-target-resolver.js';
+import { DoseTargetResolver } from './dose-target-resolver.js';
 
 export class MarkDoseLog {
   constructor(

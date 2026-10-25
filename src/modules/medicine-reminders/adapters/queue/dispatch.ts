@@ -5,7 +5,7 @@ import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import {
   REMINDER_SCHEDULER_CRON,
-  type ReminderDispatcher,
+  ReminderDispatcher,
 } from '../../application/ports/delivery-services.js';
 
 /** BullMQ queue name for the high-frequency reminder-dispatch job. */

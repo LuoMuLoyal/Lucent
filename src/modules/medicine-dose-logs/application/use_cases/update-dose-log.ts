@@ -17,9 +17,9 @@ import {
   now,
 } from '../../../../common/helpers/format/date-time.utils.js';
 import { takenAtFor } from '../../domain/dose-log/dose-log.js';
-import type { DoseLogs } from '../../domain/dose-log/dose-logs.js';
+import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
 import type { DoseLogPatch } from '../../domain/dose-log/dose-logs.js';
-import type { DoseLogEvents } from '../ports/dose-log-events.js';
+import { DoseLogEvents } from '../ports/dose-log-events.js';
 import type { UpdateDoseLogCommand } from '../ports/dose-log-resource.js';
 import type { DoseLogResource } from '../ports/dose-log-resource.js';
 import { toDoseLogResource } from '../read_models/dose-log.js';

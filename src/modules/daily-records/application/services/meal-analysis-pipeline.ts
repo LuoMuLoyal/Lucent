@@ -25,10 +25,12 @@ import {
   type MealAnalysisPayload,
 } from '../../domain/meal/meal-analysis.js';
 import type {
-  MealAnalyses,
   MealAnalysisCandidate,
   StaleMealAnalysisCandidate,
 } from '../../domain/meal/meal-analyses.js';
+// `MealAnalyses` is an abstract class used as a constructor token, so it must be
+// a value import: type-only erases it and Nest reports "can't resolve ... index [0]".
+import { MealAnalyses } from '../../domain/meal/meal-analyses.js';
 import { AttachmentUrls } from '../ports/attachment-urls.js';
 import { MealVisionModel } from '../ports/meal-vision.js';
 import type {

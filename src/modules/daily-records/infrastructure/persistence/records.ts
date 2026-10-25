@@ -14,7 +14,7 @@
  * `$transaction` 会**静默**退化成独立连接（丢掉原子性），这是最贵的静默失败之一。
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client.js';
 import { nonDeleted } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
@@ -51,7 +51,12 @@ export class PrismaRecords implements DailyRecords {
 
   constructor(
     private readonly prisma: PrismaService,
-    tx?: TransactionClient,
+    // `TransactionClient` is a Prisma type alias, not a class: without
+    // `@Optional()` Nest tries to resolve it as a provider and fails with
+    // "can't resolve dependencies of the PrismaRecords (PrismaService, ?)".
+    // The DI-constructed instance always passes `undefined`; transaction-scoped
+    // instances are created by `transaction()` directly.
+    @Optional() tx?: TransactionClient,
   ) {
     this.tx = tx ?? null;
   }

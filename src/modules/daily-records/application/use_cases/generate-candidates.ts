@@ -22,7 +22,7 @@ import { nowIsoString, extractErrorInfo } from '../../../../common/index.js';
 import type { GenerateCandidatesInput } from '../ports/record-candidates.js';
 import type { DailyRecordCandidateData } from '../ports/record-candidates.js';
 import { CandidateCopyPort } from '../ports/candidate-generator.js';
-import type { CandidateGenerator } from '../ports/candidate-generator.js';
+import { CandidateGenerator } from '../ports/candidate-generator.js';
 
 interface DailyRecordCandidatesContext {
   text: string;
