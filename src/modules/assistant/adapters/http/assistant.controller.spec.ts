@@ -2,7 +2,7 @@ const prepareSse = vi.fn();
 const writeSseEvent = vi.fn();
 const endSse = vi.fn();
 
-vi.mock('../../common', async (importOriginal) => {
+vi.mock('../../../../common/index.js', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
