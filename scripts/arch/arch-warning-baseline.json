@@ -166,7 +166,6 @@
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/collectors/medication-time-resolver.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/collectors/medication.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/copy/writer.service.ts",
-    "eslint|no-magic-numbers|src/modules/today-suggestion/services/feedback/stats.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/lifecycle/baseline.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/lifecycle/manager.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/recompute/worker.service.ts",

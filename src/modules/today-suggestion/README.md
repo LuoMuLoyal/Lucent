@@ -102,6 +102,19 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
     一个定义、一次物化，而不是「TS 一份规则 + SQL 一份规则」两处漂移。
     `generated` **不在域内建模**：Prisma 枚举里有，但 `persistActive` 直接建 `active`，
     该状态无生产者。
+- `domain/feedback/score-multiplier.ts` — 反馈驱动的分数调整（**产品行为，不是统计**）：
+  样本量 < 5 不调整（两次忽略是轶事不是信号，否则用户一个坏日子就能重塑建议）、
+  接受率提升 / 抑制率降低且**对称封顶** ×1.5 / ×0.5（一条规则不能被无限埋没或抬高）。
+- `application/use_cases/record-feedback.ts` — 记录用户对卡片的决定（编排，无 Prisma）。
+- `application/ports/feedback.ts` + `infrastructure/persistence/feedbacks.ts` —
+  `recordDecision` **在同一事务里写 feedback 行与推进卡片状态**。这不是跨聚合写：
+  用户点「不需要」的完整含义是「我拒绝这张卡 **且** 它该消失」，拆开会变成
+  「反馈记了卡还在」或「卡没了没记录」，而用户已经点过、无法修正。
+  **feedback 行是这张卡的归宿，与卡片的状态转换是同一件事的两种持久化形态。**
+- `services/feedback/stats.service.ts` — 只查库，并把计数交给上面的纯函数。
+- `services/feedback/recorder.service.ts` — 旧的 `FeedbackService`，保留读侧
+  （`loadActiveFeedbacks` 供抑制层用）与两个百分比静态访问器；
+  **写侧已迁到 `RecordFeedbackUseCase`**。
 - `services/lifecycle/manager.service.ts` — 生命周期编排。**迁移中间态**：
   写侧已改用上面的域规则（`updateMany` 保留——它幂等且并发安全，改成
   load-modify-save 要重新赢得这个保证），**读侧（`getActiveSuggestions` /

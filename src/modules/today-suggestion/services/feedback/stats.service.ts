@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/index.js';
+import {
+  feedbackRatios,
+  scoreMultiplier,
+} from '../../domain/feedback/score-multiplier.js';
 
 /** Statistics for a single rule's feedback. */
 export interface RuleFeedbackStats {
@@ -20,15 +24,6 @@ export interface RuleFeedbackStats {
 /** Default lookback window for feedback stats (days). */
 const STATS_LOOKBACK_DAYS = 30;
 
-/** Minimum feedback count before adjustments kick in. */
-const STATS_MIN_SAMPLE_SIZE = 5;
-
-/** Maximum score multiplier boost (for very high accept rate). */
-const MAX_BOOST_MULTIPLIER = 1.5;
-
-/** Maximum score reduction (for very high suppress rate). */
-const MIN_REDUCTION_MULTIPLIER = 0.5;
-
 /**
  * Tracks feedback statistics per rule and computes dynamic
  * score multipliers for threshold adjustments.
@@ -38,6 +33,12 @@ const MIN_REDUCTION_MULTIPLIER = 0.5;
  *
  * This service is called by the suppression layer to apply
  * data-driven adjustments on top of the static priority scores.
+ *
+ * **The multiplier itself is not computed here.** It is a domain rule
+ * (`domain/feedback/score-multiplier.ts`): the sample-size floor and the
+ * boost/penalty caps decide which cards outrank which, which is product
+ * behaviour rather than statistics. This class only loads the rows and feeds
+ * the counts to that rule.
  */
 @Injectable()
 export class FeedbackStatsService {
@@ -124,52 +125,20 @@ export class FeedbackStatsService {
 
     const result = new Map<string, RuleFeedbackStats>();
     for (const [ruleId, bucket] of buckets.entries()) {
-      const total =
-        bucket.accepted + bucket.later + bucket.notApplicable + bucket.suppress;
-
-      if (total < STATS_MIN_SAMPLE_SIZE) {
-        // Not enough data — use neutral multiplier
-        result.set(ruleId, {
-          ruleId,
-          totalFeedback: total,
-          acceptedCount: bucket.accepted,
-          laterCount: bucket.later,
-          notApplicableCount: bucket.notApplicable,
-          suppressCount: bucket.suppress,
-          acceptRatio: total > 0 ? bucket.accepted / total : 0,
-          suppressRatio: total > 0 ? bucket.suppress / total : 0,
-          scoreMultiplier: 1.0,
-        });
-        continue;
-      }
-
-      const acceptRatio = bucket.accepted / total;
-      const suppressRatio = bucket.suppress / total;
-
-      // Compute multiplier:
-      // - High accept ratio → boost (up to 1.5)
-      // - High suppress ratio → reduce (down to 0.5)
-      // - Neutral area (around 0.5 accept, 0.0 suppress) → 1.0
-      const boostFromAccept = acceptRatio * 0.5; // 0–0.5
-      const reductionFromSuppress = suppressRatio * 0.5; // 0–0.5
-      const multiplier = Math.max(
-        MIN_REDUCTION_MULTIPLIER,
-        Math.min(
-          MAX_BOOST_MULTIPLIER,
-          1.0 + boostFromAccept - reductionFromSuppress,
-        ),
-      );
+      // Ratios and the multiplier are the domain rule's business; this loop
+      // only assembles the counts it needs.
+      const ratios = feedbackRatios(bucket);
 
       result.set(ruleId, {
         ruleId,
-        totalFeedback: total,
+        totalFeedback: ratios.total,
         acceptedCount: bucket.accepted,
         laterCount: bucket.later,
         notApplicableCount: bucket.notApplicable,
         suppressCount: bucket.suppress,
-        acceptRatio,
-        suppressRatio,
-        scoreMultiplier: Math.round(multiplier * 100) / 100,
+        acceptRatio: ratios.acceptRatio,
+        suppressRatio: ratios.suppressRatio,
+        scoreMultiplier: scoreMultiplier(ratios),
       });
     }
 

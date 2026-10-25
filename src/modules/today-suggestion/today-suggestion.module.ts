@@ -32,6 +32,9 @@ import { ExplanationQueueService } from './services/explanation/queue.service.js
 import { ExplanationService } from './services/explanation/explainer.service.js';
 import { FeedbackStatsService } from './services/feedback/stats.service.js';
 import { FeedbackService } from './services/feedback/recorder.service.js';
+import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
+import { PrismaFeedbackStore } from './infrastructure/persistence/feedbacks.js';
+import { FEEDBACK_PORT } from './application/ports/feedback.js';
 import { BaselineService } from './services/lifecycle/baseline.service.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
 import { EscalationService } from './services/notification/escalation.service.js';
@@ -83,6 +86,9 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     LifecycleService,
     // Feedback
     FeedbackService,
+    RecordFeedbackUseCase,
+    PrismaFeedbackStore,
+    { provide: FEEDBACK_PORT, useExisting: PrismaFeedbackStore },
     FeedbackStatsService,
     // Cache
     SuggestionCacheService,
@@ -110,6 +116,9 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
   exports: [
     SuggestionService,
     FeedbackService,
+    RecordFeedbackUseCase,
+    PrismaFeedbackStore,
+    { provide: FEEDBACK_PORT, useExisting: PrismaFeedbackStore },
     ExplanationService,
     LifecycleService,
   ],
