@@ -1,16 +1,13 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
-import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
-import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
-import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
-import { BaseAsyncQueueService } from '../../../../common/index.js';
-import { unwrapResult } from '../../../../common/result/index.js';
-import {
-  ExplanationService,
-  type ExplanationResult,
-} from './explainer.service.js';
+import { BullmqQueueFactory } from '../../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../../common/queue/queue-names.js';
+import { RuntimeConfigService } from '../../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../../config/runtime/runtime-config.types.js';
+import { BaseAsyncQueueService } from '../../../../../common/index.js';
+import { unwrapResult } from '../../../../../common/result/index.js';
+import { ExplanationService, type ExplanationResult } from './explainer.js';
 
 interface ExplanationJobData {
   userId: string;

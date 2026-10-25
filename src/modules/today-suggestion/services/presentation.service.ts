@@ -14,8 +14,8 @@ import { SuggestionCacheService } from '../infrastructure/cache/suggestions.js';
 import {
   SuggestionCopyService,
   type CopyGenerationResult,
-} from './copy/writer.service.js';
-import { SuggestionCopyQueueService } from './copy/queue.service.js';
+} from '../adapters/queue/copy/writer.js';
+import { SuggestionCopyQueueService } from '../adapters/queue/copy/queue.js';
 import { getFallbackCopy } from '../constants/copy-fallback.js';
 import {
   localizeEvidenceLabel,

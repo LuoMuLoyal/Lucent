@@ -1,8 +1,8 @@
 import type { I18nService } from 'nestjs-i18n';
-import type { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
-import type { PrismaService } from '../../../../prisma/index.js';
-import type { ExplanationGeneratorService } from './generator.service.js';
-import { ExplanationService } from './explainer.service.js';
+import type { LlmSafetyPolicyService } from '../../../../../common/llm/safety/llm-safety-policy.service.js';
+import type { PrismaService } from '../../../../../prisma/index.js';
+import type { ExplanationGeneratorService } from '../../../infrastructure/llm/explanation-generator.js';
+import { ExplanationService } from './explainer.js';
 
 describe('ExplanationService', () => {
   const mockSuggestion = {

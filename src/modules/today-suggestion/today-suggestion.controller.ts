@@ -23,9 +23,9 @@ import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { SuggestionService } from './services/suggestion.service.js';
 import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
-import { ExplanationQueueService } from './services/explanation/queue.service.js';
+import { ExplanationQueueService } from './adapters/queue/explanation/queue.js';
 
-import { ExplanationService } from './services/explanation/explainer.service.js';
+import { ExplanationService } from './adapters/queue/explanation/explainer.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
 import { suggestionFeedbackSchema } from './dto/feedback.dto.js';
 import {

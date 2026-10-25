@@ -1,16 +1,13 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
-import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
-import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
-import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
-import { BaseAsyncQueueService } from '../../../../common/index.js';
-import {
-  SuggestionCopyService,
-  type CopyGenerationResult,
-} from './writer.service.js';
-import type { CopyJobData } from '../../types/copy-generation.types.js';
+import { BullmqQueueFactory } from '../../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../../common/queue/queue-names.js';
+import { RuntimeConfigService } from '../../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../../config/runtime/runtime-config.types.js';
+import { BaseAsyncQueueService } from '../../../../../common/index.js';
+import { SuggestionCopyService, type CopyGenerationResult } from './writer.js';
+import type { CopyJobData } from '../../../types/copy-generation.types.js';
 
 const QUEUE_NAME = QUEUE_NAMES.suggestionCopyGeneration;
 const JOB_NAME = 'generate-copy';

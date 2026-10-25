@@ -10,7 +10,7 @@ import type {
   CopyGenerationContext,
   CopyPromptCopy,
 } from '../../types/copy-generation.types.js';
-import { SuggestionCopyLlmService } from './llm-generator.service.js';
+import { SuggestionCopyLlmService } from './copy-generator.js';
 
 describe('SuggestionCopyLlmService', () => {
   let service: SuggestionCopyLlmService;

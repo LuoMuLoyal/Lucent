@@ -1,6 +1,6 @@
 import { SuggestionService } from './suggestion.service.js';
 import type { ArbitrationResult } from '../domain/policies/arbitration/arbiter.js';
-import type { CopyGenerationResult } from './copy/writer.service.js';
+import type { CopyGenerationResult } from '../adapters/queue/copy/writer.js';
 import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
 import {
   SuggestionType,

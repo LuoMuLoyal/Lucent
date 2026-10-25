@@ -1,23 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../../prisma/index.js';
-import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
-import { extractErrorInfo } from '../../../../common/index.js';
-import { resolveLocale } from '../../../../common/index.js';
+import { PrismaService } from '../../../../../prisma/index.js';
+import { LlmSafetyPolicyService } from '../../../../../common/llm/safety/llm-safety-policy.service.js';
+import { extractErrorInfo } from '../../../../../common/index.js';
+import { resolveLocale } from '../../../../../common/index.js';
 import {
   createDomainFailure,
   fromPromise,
-} from '../../../../common/result/index.js';
+} from '../../../../../common/result/index.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../../common/result/index.js';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+} from '../../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
 import type {
   ExplanationContext,
   ExplanationPromptCopy,
-} from '../../prompts/explanation.prompt.js';
-import { ExplanationGeneratorService } from './generator.service.js';
+} from '../../../prompts/explanation.prompt.js';
+import { ExplanationGeneratorService } from '../../../infrastructure/llm/explanation-generator.js';
 
 /**
  * Result of an AI explanation request.

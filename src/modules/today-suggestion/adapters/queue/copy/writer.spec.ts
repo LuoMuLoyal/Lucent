@@ -1,13 +1,13 @@
 import type { I18nService } from 'nestjs-i18n';
-import type { SuggestionCopyLlmService } from './llm-generator.service.js';
-import type { CopyQueueLike } from './writer.service.js';
-import type { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
-import { SuggestionCopyService } from './writer.service.js';
+import type { SuggestionCopyLlmService } from '../../../infrastructure/llm/copy-generator.js';
+import type { CopyQueueLike } from './writer.js';
+import type { SuggestionCacheService } from '../../../infrastructure/cache/suggestions.js';
+import { SuggestionCopyService } from './writer.js';
 import {
   SuggestionType,
   SuggestionConfidence,
-} from '../../domain/suggestion/suggestion.types.js';
-import type { CopyJobData } from '../../types/copy-generation.types.js';
+} from '../../../domain/suggestion/suggestion.types.js';
+import type { CopyJobData } from '../../../types/copy-generation.types.js';
 
 function buildRequest(overrides: Partial<CopyJobData> = {}): CopyJobData {
   return {
