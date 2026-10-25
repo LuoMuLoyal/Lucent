@@ -2540,14 +2540,7 @@
         },
         "responses": {
           "200": {
-            "description": "Cooldown seconds until the next code can be requested.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SendVerificationCodeResponse"
-                }
-              }
-            }
+            "description": "Cooldown seconds until the next code can be requested."
           },
           "429": {
             "description": "Too many verification code requests (cooldown or client rate limit)",
@@ -2561,66 +2554,6 @@
           }
         },
         "summary": "Send email verification code",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/verify-email": {
-      "post": {
-        "operationId": "verifyEmail",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Whether the email is now verified.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerifyEmailResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Verification token is invalid or has expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Verify email",
         "tags": ["Auth"]
       }
     },
@@ -8938,35 +8871,6 @@
         "required": ["enabled", "siteKey"],
         "additionalProperties": false
       },
-      "SendVerificationCodeResponse": {
-        "type": "object",
-        "properties": {
-          "cooldown": {
-            "type": "number",
-            "description": "冷却时间（秒）",
-            "example": 60
-          },
-          "message": {
-            "type": "string",
-            "description": "提示消息",
-            "example": "验证码已发送，请注意查收"
-          }
-        },
-        "required": ["cooldown", "message"],
-        "additionalProperties": false
-      },
-      "VerifyEmailResponse": {
-        "type": "object",
-        "properties": {
-          "emailVerified": {
-            "type": "boolean",
-            "description": "邮箱是否已验证",
-            "example": true
-          }
-        },
-        "required": ["emailVerified"],
-        "additionalProperties": false
-      },
       "ForgotPasswordResponse": {
         "type": "object",
         "properties": {
@@ -11046,7 +10950,8 @@
           "updatedAt",
           "passwordReauthenticationRequired"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Authenticated user settings."
       },
       "AssistantCapabilitiesResponse": {
         "type": "object",
@@ -13043,18 +12948,6 @@
         "required": ["email", "scene"],
         "additionalProperties": false
       },
-      "VerifyEmailRequest": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Lucent 签发的邮件验证 token"
-          }
-        },
-        "required": ["token"],
-        "additionalProperties": false
-      },
       "ForgotPasswordRequest": {
         "type": "object",
         "properties": {
@@ -14701,7 +14594,8 @@
           }
         },
         "required": ["contentType", "sizeBytes"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Create a presigned file upload."
       },
       "NotificationListResponseItems": {
         "type": "object",
