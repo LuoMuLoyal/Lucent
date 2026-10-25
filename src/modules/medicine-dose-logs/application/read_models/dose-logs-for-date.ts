@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+
 /**
  * Read model: one date's dose logs (`GET /api/v1/user/medicine-dose-logs`).
  *
@@ -12,6 +14,8 @@ import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
 import type { DoseLogListResource } from '../ports/dose-log-resource.js';
 import { toDoseLogListResource } from './dose-log.js';
 
+/** `@Injectable()` is required for Nest to read this class's constructor metadata. */
+@Injectable()
 export class DoseLogsForDate {
   constructor(private readonly repository: DoseLogs) {}
 

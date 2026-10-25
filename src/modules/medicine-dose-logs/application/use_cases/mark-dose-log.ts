@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+
 /**
  * Use case: `POST /api/v1/user/medicine-dose-logs/mark`.
  *
@@ -30,6 +32,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
+import { mapUnknownToInternalFailure } from '../../../../common/result/unknown-error.mapper.js';
 import {
   formatDateOnly,
   now,
@@ -45,6 +48,8 @@ import { toDoseLogResource } from '../read_models/dose-log.js';
 import { unresolvedTarget } from './failures.js';
 import { DoseTargetResolver } from './dose-target-resolver.js';
 
+/** `@Injectable()` is required for Nest to read this class's constructor metadata. */
+@Injectable()
 export class MarkDoseLog {
   constructor(
     private readonly repository: DoseLogs,
@@ -58,7 +63,7 @@ export class MarkDoseLog {
   ): ResultAsync<DoseLogResource, DomainFailure> {
     return fromPromise(
       this.run(userId, command),
-      (error) => error as DomainFailure,
+      (error) => mapUnknownToInternalFailure(error),
     );
   }
 

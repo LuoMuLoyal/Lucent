@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+
 /**
  * Shared orchestration for the two create-shaped use cases (`create`, `mark`).
  *
@@ -33,6 +35,8 @@ export interface TargetInput {
   scheduledTime: string | undefined;
 }
 
+/** `@Injectable()` is required for Nest to read this class's constructor metadata. */
+@Injectable()
 export class DoseTargetResolver {
   constructor(
     private readonly repository: DoseLogs,

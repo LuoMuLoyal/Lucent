@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+
 /**
  * Use case: `DELETE /api/v1/user/medicine-dose-logs/:id`.
  *
@@ -20,6 +22,8 @@ import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
 import { DoseLogEvents } from '../ports/dose-log-events.js';
 import { notFound } from './failures.js';
 
+/** `@Injectable()` is required for Nest to read this class's constructor metadata. */
+@Injectable()
 export class DeleteDoseLog {
   constructor(
     private readonly repository: DoseLogs,
