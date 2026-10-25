@@ -1,12 +1,12 @@
 import type {
   ObjectStorageConfig,
   ObjectStorageRuntime,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import type {
   ResultAsync,
   DomainFailure,
-} from '../../../common/result/index.js';
-import { DataExportStorageService } from './storage.service.js';
+} from '../../../../common/result/index.js';
+import { PrismaObjectStorage } from './object-storage.js';
 
 /** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
 async function collectResult<T>(
@@ -27,10 +27,10 @@ async function unwrapOk<T>(result: ResultAsync<T, DomainFailure>): Promise<T> {
   return outcome.value;
 }
 
-describe('DataExportStorageService', () => {
+describe('PrismaObjectStorage', () => {
   it('uploads a pdf and returns object metadata', async () => {
     const runtime = runtimeDouble(testConfig());
-    const service = new DataExportStorageService(runtime);
+    const service = new PrismaObjectStorage(runtime);
 
     const result = await unwrapOk(
       service.uploadPdf({
@@ -54,7 +54,7 @@ describe('DataExportStorageService', () => {
 
   it('creates a signed download url when object key exists', async () => {
     const runtime = runtimeDouble(testConfig());
-    const service = new DataExportStorageService(runtime);
+    const service = new PrismaObjectStorage(runtime);
 
     const result = await unwrapOk(
       service.createDownloadUrl('exports/user-1/report.pdf'),
@@ -69,7 +69,7 @@ describe('DataExportStorageService', () => {
 
   it('returns null when object key is null', async () => {
     const runtime = runtimeDouble(testConfig());
-    const service = new DataExportStorageService(runtime);
+    const service = new PrismaObjectStorage(runtime);
 
     const result = await unwrapOk(service.createDownloadUrl(null));
 
@@ -77,9 +77,7 @@ describe('DataExportStorageService', () => {
   });
 
   it('returns DEPENDENCY_UNAVAILABLE when upload is attempted without storage config', async () => {
-    const service = new DataExportStorageService(
-      runtimeDouble(testConfig(), false),
-    );
+    const service = new PrismaObjectStorage(runtimeDouble(testConfig(), false));
 
     const outcome = await collectResult(
       service.uploadPdf({
@@ -100,7 +98,7 @@ describe('DataExportStorageService', () => {
     vi.mocked(runtime.uploadBuffer).mockRejectedValue(
       new Error('COS putObject failed'),
     );
-    const service = new DataExportStorageService(runtime);
+    const service = new PrismaObjectStorage(runtime);
 
     const outcome = await collectResult(
       service.uploadPdf({
@@ -121,7 +119,7 @@ describe('DataExportStorageService', () => {
     vi.mocked(runtime.uploadBuffer).mockRejectedValue(
       Object.assign(new Error('request timed out'), { name: 'TimeoutError' }),
     );
-    const service = new DataExportStorageService(runtime);
+    const service = new PrismaObjectStorage(runtime);
 
     const outcome = await collectResult(
       service.uploadPdf({
@@ -138,7 +136,7 @@ describe('DataExportStorageService', () => {
 
   it('returns provider from runtime config', async () => {
     const runtime = runtimeDouble({ ...testConfig(), provider: 's3' });
-    const service = new DataExportStorageService(runtime);
+    const service = new PrismaObjectStorage(runtime);
 
     const result = await unwrapOk(
       service.uploadPdf({

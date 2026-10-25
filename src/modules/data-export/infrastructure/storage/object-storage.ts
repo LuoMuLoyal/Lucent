@@ -3,7 +3,7 @@ import { extname } from 'node:path';
 import {
   ObjectStorageRuntime,
   createDatePartitionedObjectKey,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
@@ -11,7 +11,8 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
+import { ObjectStorage } from '../../application/ports/object-storage.js';
 
 export interface PdfUploadResult {
   objectKey: string;
@@ -21,8 +22,10 @@ export interface PdfUploadResult {
 }
 
 @Injectable()
-export class DataExportStorageService {
-  constructor(private readonly runtime: ObjectStorageRuntime) {}
+export class PrismaObjectStorage extends ObjectStorage {
+  constructor(private readonly runtime: ObjectStorageRuntime) {
+    super();
+  }
 
   isConfigured(): boolean {
     return this.runtime.isConfigured();

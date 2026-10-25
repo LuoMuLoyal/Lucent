@@ -1,4 +1,4 @@
-import { wrapText, ensureHeight, ensureSpace } from './draw.service.js';
+import { wrapText, ensureHeight, ensureSpace } from './draw.js';
 import type {
   PageContext,
   EmbeddedFont,

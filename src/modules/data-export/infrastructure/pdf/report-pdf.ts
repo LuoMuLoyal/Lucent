@@ -5,6 +5,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import { resolveLocale } from '../../../../common/index.js';
 import type { ReportDashboardDataDto } from '../../../reports/index.js';
+import { ReportPdf } from '../../application/ports/report-pdf.js';
 import {
   kindLabel,
   statusLabel,
@@ -36,13 +37,15 @@ import {
   drawTrendTable,
   drawWrappedText,
   ensureSpace,
-} from './draw.service.js';
+} from './draw.js';
 
 type ReportPdfKind = 'hospital' | 'monthly' | 'print';
 
 @Injectable()
-export class ReportExportPdfService {
-  constructor(private readonly i18n: I18nService) {}
+export class ReportExportPdfService extends ReportPdf {
+  constructor(private readonly i18n: I18nService) {
+    super();
+  }
 
   /**
    * Binds the PDF copy namespace for one locale.

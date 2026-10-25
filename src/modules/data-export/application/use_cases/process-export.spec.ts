@@ -1,18 +1,18 @@
-import { DataExportProcessorService } from './processor.service.js';
-import type { PrismaService } from '../../../prisma/index.js';
-import type { ReportsService } from '../../reports/index.js';
-import type { DataExportStorageService } from './storage.service.js';
-import type { ReportExportPdfService } from './report-pdf/pdf.service.js';
-import type { NotificationsService } from '../../notifications/index.js';
-import { errAsync, okAsync } from '../../../common/result/index.js';
-import { createDomainFailure } from '../../../common/result/index.js';
-import { makeTestI18n } from '../../../common/tests/test-i18n.js';
+import { ProcessExport } from './process-export.js';
+import type { DataExportRequests } from '../ports/data-export-requests.js';
+import type { ObjectStorage } from '../ports/object-storage.js';
+import type { ReportsService } from '../../../reports/index.js';
+
+import type { ReportPdf } from '../ports/report-pdf.js';
+import type { NotificationsService } from '../../../notifications/index.js';
+import { errAsync, okAsync } from '../../../../common/result/index.js';
+import { createDomainFailure } from '../../../../common/result/index.js';
+import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 type MockPrisma = {
-  dataExportRequest: {
-    findUnique: vi.Mock;
-    update: vi.Mock;
-  };
+  findById: vi.Mock;
+  markProcessing: vi.Mock;
+  complete: vi.Mock;
 };
 
 type MockReports = { getDashboard: vi.Mock };
@@ -35,10 +35,10 @@ const notificationItem = {
   createdAt: '2026-07-10T08:00:00.000Z',
 };
 
-describe('DataExportProcessorService', () => {
+describe('ProcessExport', () => {
   it('returns early when the export request is not found', async () => {
     const { prisma, processor } = createProcessor();
-    prisma.dataExportRequest.findUnique.mockResolvedValue(null);
+    prisma.findById.mockResolvedValue(null);
 
     await processor.process({
       exportRequestId: 'missing',
@@ -46,10 +46,8 @@ describe('DataExportProcessorService', () => {
       language: 'zh-CN',
     });
 
-    expect(prisma.dataExportRequest.findUnique).toHaveBeenCalledWith({
-      where: { id: 'missing' },
-    });
-    expect(prisma.dataExportRequest.update).not.toHaveBeenCalled();
+    expect(prisma.findById).toHaveBeenCalledWith('missing');
+    expect(prisma.complete).not.toHaveBeenCalled();
   });
 
   it('completes a hospital export and stores upload metadata', async () => {
@@ -72,21 +70,16 @@ describe('DataExportProcessorService', () => {
       language: 'zh-CN',
     });
 
-    expect(prisma.dataExportRequest.update).toHaveBeenCalledTimes(2);
-    expect(prisma.dataExportRequest.update).toHaveBeenLastCalledWith({
-      where: { id: 'export-1' },
-      data: {
-        status: 'completed',
-        objectKey: 'exports/user-1/export.pdf',
-        bucket: 'lucent-bucket',
-        provider: 'tencent-cos',
-        fileName: expect.stringMatching(
-          /^lumos-hospital-last_7_days-\d{4}-\d{2}-\d{2}\.pdf$/,
-        ),
-        fileSizeBytes: 1024,
-        completedAt: expect.any(Date),
-        errorMessage: null,
-      },
+    expect(prisma.complete).toHaveBeenCalledTimes(1);
+    expect(prisma.complete).toHaveBeenLastCalledWith('export-1', {
+      status: 'completed',
+      objectKey: 'exports/user-1/export.pdf',
+      fileName: expect.stringMatching(
+        /^lumos-hospital-last_7_days-\d{4}-\d{2}-\d{2}\.pdf$/,
+      ),
+      fileSizeBytes: 1024,
+      completedAt: expect.any(Date),
+      errorMessage: null,
     });
     expect(reportsService.getDashboard).toHaveBeenCalledWith(
       'user-1',
@@ -97,7 +90,7 @@ describe('DataExportProcessorService', () => {
 
   it('builds monthly pdf and uses last_30_days range', async () => {
     const { prisma, reportsService, pdfService, processor } = createProcessor();
-    prisma.dataExportRequest.findUnique.mockResolvedValue({
+    prisma.findById.mockResolvedValue({
       id: 'export-1',
       userId: 'user-1',
       kind: 'monthly',
@@ -123,7 +116,7 @@ describe('DataExportProcessorService', () => {
 
   it('builds print pdf when kind is print', async () => {
     const { prisma, reportsService, pdfService, processor } = createProcessor();
-    prisma.dataExportRequest.findUnique.mockResolvedValue({
+    prisma.findById.mockResolvedValue({
       id: 'export-1',
       userId: 'user-1',
       kind: 'print',
@@ -154,12 +147,9 @@ describe('DataExportProcessorService', () => {
       }),
     ).rejects.toThrow('Export processing failed for request export-1');
 
-    expect(prisma.dataExportRequest.update).toHaveBeenLastCalledWith({
-      where: { id: 'export-1' },
-      data: {
-        status: 'failed',
-        errorMessage: 'report failed',
-      },
+    expect(prisma.complete).toHaveBeenLastCalledWith('export-1', {
+      status: 'failed',
+      errorMessage: 'report failed',
     });
   });
 
@@ -182,13 +172,13 @@ describe('DataExportProcessorService', () => {
       }),
     ).rejects.toThrow('Export processing failed for request export-1');
 
-    expect(prisma.dataExportRequest.update).toHaveBeenLastCalledWith({
-      where: { id: 'export-1' },
-      data: expect.objectContaining({
+    expect(prisma.complete).toHaveBeenLastCalledWith(
+      'export-1',
+      expect.objectContaining({
         status: 'failed',
         errorMessage: 'Domain failure: DEPENDENCY_UNAVAILABLE',
       }),
-    });
+    );
   });
 
   it('wraps non-Error throwables into a safe error message', async () => {
@@ -203,12 +193,9 @@ describe('DataExportProcessorService', () => {
       }),
     ).rejects.toThrow('Export processing failed for request export-1');
 
-    expect(prisma.dataExportRequest.update).toHaveBeenLastCalledWith({
-      where: { id: 'export-1' },
-      data: {
-        status: 'failed',
-        errorMessage: 'Failed to generate report export',
-      },
+    expect(prisma.complete).toHaveBeenLastCalledWith('export-1', {
+      status: 'failed',
+      errorMessage: 'Failed to generate report export',
     });
   });
 
@@ -252,17 +239,23 @@ describe('DataExportProcessorService', () => {
 
 function createProcessor() {
   const prisma: MockPrisma = {
-    dataExportRequest: {
-      findUnique: vi.fn().mockResolvedValue({
-        id: 'export-1',
-        userId: 'user-1',
-        kind: 'hospital',
-        format: 'pdf',
-        range: 'last_7_days',
-        status: 'requested',
-      }),
-      update: vi.fn().mockResolvedValue({}),
-    },
+    findById: vi.fn().mockResolvedValue({
+      id: 'export-1',
+      userId: 'user-1',
+      kind: 'hospital',
+      format: 'pdf',
+      range: 'last_7_days',
+      status: 'pending',
+      createdAt: new Date('2026-07-10T00:00:00Z'),
+      completedAt: null,
+      downloadUrl: null,
+      objectKey: null,
+      fileName: null,
+      fileSizeBytes: null,
+      errorMessage: null,
+    }),
+    markProcessing: vi.fn().mockResolvedValue(undefined),
+    complete: vi.fn().mockResolvedValue(undefined),
   };
 
   const reportsService: MockReports = {
@@ -290,11 +283,11 @@ function createProcessor() {
     create: vi.fn().mockReturnValue(okAsync(notificationItem)),
   };
 
-  const processor = new DataExportProcessorService(
-    prisma as unknown as PrismaService,
+  const processor = new ProcessExport(
+    prisma as unknown as DataExportRequests,
     reportsService as unknown as ReportsService,
-    storageService as unknown as DataExportStorageService,
-    pdfService as unknown as ReportExportPdfService,
+    storageService as unknown as ObjectStorage,
+    pdfService as unknown as ReportPdf,
     notificationsService as unknown as NotificationsService,
     makeTestI18n() as never,
   );

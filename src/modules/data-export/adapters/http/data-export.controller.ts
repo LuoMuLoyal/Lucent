@@ -20,26 +20,39 @@ import type { FastifyRequest } from 'fastify';
 import {
   extractAuthRequestContext,
   ProblemDetailsDto,
-} from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { AuditLogService } from '../audit-log/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser } from '../auth/index.js';
-import { DataExportService } from './services/export.service.js';
+} from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { CurrentUser } from '../../../auth/index.js';
+import { CreateDataExportRequest } from '../../application/use_cases/create-data-export-request.js';
 import {
   createDataExportRequestSchema,
   dataExportLatestResponseSchema,
   dataExportRequestDataSchema,
-} from './dto/export-response.dto.js';
-import type { CreateDataExportRequestDto } from './dto/export-response.dto.js';
+} from './dto/export-response.js';
+import type { CreateDataExportRequestDto } from './dto/export-response.js';
+import type { CreateDataExportCommand } from '../../application/commands/create-data-export.js';
+
+/** 校验过的 HTTP 请求体 → 应用层命令。 */
+function toCreateCommand(
+  dto: CreateDataExportRequestDto,
+): CreateDataExportCommand {
+  return {
+    password: dto.password,
+    ...(dto.kind !== undefined && { kind: dto.kind }),
+    ...(dto.format !== undefined && { format: dto.format }),
+    ...(dto.range !== undefined && { range: dto.range }),
+  };
+}
 
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')
 @Controller('data-export-requests')
 export class DataExportController {
   constructor(
-    private readonly exportService: DataExportService,
+    private readonly useCase: CreateDataExportRequest,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -80,7 +93,7 @@ export class DataExportController {
     @I18nLang() language: string,
   ) {
     const result = await unwrapResult(
-      this.exportService.createRequest(user.sub, dto, language),
+      this.useCase.execute(user.sub, toCreateCommand(dto), language),
     );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
@@ -106,7 +119,7 @@ export class DataExportController {
   })
   @SerializeOptions({ schema: dataExportLatestResponseSchema })
   async getLatestRequest(@CurrentUser() user: UserPayload) {
-    return await unwrapResult(this.exportService.getLatestRequest(user.sub));
+    return await unwrapResult(this.useCase.latest(user.sub));
   }
 }
 

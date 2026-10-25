@@ -1,14 +1,14 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
-import { errAsync, okAsync } from '../../common/result/index.js';
-import type { DomainFailure } from '../../common/result/index.js';
-import { AuditLogService } from '../audit-log/index.js';
+import { errAsync, okAsync } from '../../../../common/result/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
 import { DataExportController } from './data-export.controller.js';
-import { DataExportService } from './services/export.service.js';
+import { CreateDataExportRequest } from '../../application/use_cases/create-data-export-request.js';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
-} from './dto/export-response.dto.js';
+} from './dto/export-response.js';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },
@@ -24,7 +24,7 @@ const mockUser = {
 
 describe('DataExportController', () => {
   let controller: DataExportController;
-  let service: vi.Mocked<DataExportService>;
+  let service: vi.Mocked<CreateDataExportRequest>;
   let auditLogService: vi.Mocked<AuditLogService>;
 
   beforeEach(async () => {
@@ -32,9 +32,10 @@ describe('DataExportController', () => {
       controllers: [DataExportController],
       providers: [
         {
-          provide: DataExportService,
+          provide: CreateDataExportRequest,
           useValue: {
-            createRequest: vi.fn(),
+            execute: vi.fn(),
+            latest: vi.fn(),
             getLatestRequest: vi.fn(),
           },
         },
@@ -48,13 +49,13 @@ describe('DataExportController', () => {
     }).compile();
 
     controller = module.get(DataExportController);
-    service = module.get(DataExportService);
+    service = module.get(CreateDataExportRequest);
     auditLogService = module.get(AuditLogService);
   });
 
   it('should create a data export request and write audit log', async () => {
     const exportReq = makeExportRequest();
-    service.createRequest.mockReturnValue(okAsync(exportReq));
+    service.execute.mockReturnValue(okAsync(exportReq));
     const dto: CreateDataExportRequestDto = {
       kind: 'hospital',
       format: 'pdf',
@@ -71,7 +72,7 @@ describe('DataExportController', () => {
 
     expect(result).toBeDefined();
     expect(result.status).toBe('requested');
-    expect(service.createRequest).toHaveBeenCalledWith('u1', dto, 'zh-CN');
+    expect(service.execute).toHaveBeenCalledWith('u1', dto, 'zh-CN');
     expect(auditLogService.logFireAndForget).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'u1',
@@ -89,7 +90,7 @@ describe('DataExportController', () => {
       kind: 'dependency',
       code: 'DEPENDENCY_UNAVAILABLE',
     };
-    service.createRequest.mockReturnValue(errAsync(failure));
+    service.execute.mockReturnValue(errAsync(failure));
 
     await expect(
       controller.createRequest(
@@ -112,17 +113,17 @@ describe('DataExportController', () => {
 
   it('should return the latest export request', async () => {
     const exportReq = makeExportRequest({ status: 'processing' });
-    service.getLatestRequest.mockReturnValue(okAsync(exportReq));
+    service.latest.mockReturnValue(okAsync(exportReq));
 
     const result = await controller.getLatestRequest(mockUser);
 
     expect(result).toBeDefined();
     expect(result?.status).toBe('processing');
-    expect(service.getLatestRequest).toHaveBeenCalledWith('u1');
+    expect(service.latest).toHaveBeenCalledWith('u1');
   });
 
   it('should return null data when no export request exists', async () => {
-    service.getLatestRequest.mockReturnValue(okAsync(null));
+    service.latest.mockReturnValue(okAsync(null));
 
     const result = await controller.getLatestRequest(mockUser);
 

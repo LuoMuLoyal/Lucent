@@ -23,22 +23,30 @@ import { AuthModule } from '../auth/auth.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { ReportsModule } from '../reports/reports.module.js';
 import { StorageModule } from '../../common/index.js';
-import { DataExportController } from './data-export.controller.js';
-import { DataExportProcessorService } from './services/processor.service.js';
-import { DataExportService } from './services/export.service.js';
-import { DataExportStorageService } from './services/storage.service.js';
-import { DataExportQueueService } from './services/queue.service.js';
-import { ReportExportPdfService } from './services/report-pdf/pdf.service.js';
+import { DataExportController } from './adapters/http/data-export.controller.js';
+import { ProcessExport } from './application/use_cases/process-export.js';
+import { CreateDataExportRequest } from './application/use_cases/create-data-export-request.js';
+import { PrismaObjectStorage } from './infrastructure/storage/object-storage.js';
+import { BullmqExportQueue } from './adapters/queue/export-queue.js';
+import { ObjectStorage } from './application/ports/object-storage.js';
+import { ExportQueue } from './application/ports/export-queue.js';
+import { DataExportRequests } from './application/ports/data-export-requests.js';
+import { PrismaDataExportRequests } from './infrastructure/persistence/data-export-requests.js';
+import { ReportExportPdfService } from './infrastructure/pdf/report-pdf.js';
 
 @Module({
   imports: [AuthModule, ReportsModule, NotificationsModule, StorageModule],
   controllers: [DataExportController],
   providers: [
-    DataExportStorageService,
+    PrismaObjectStorage,
+    { provide: ObjectStorage, useExisting: PrismaObjectStorage },
+    { provide: DataExportRequests, useClass: PrismaDataExportRequests },
+    PrismaDataExportRequests,
     ReportExportPdfService,
-    DataExportProcessorService,
-    DataExportQueueService,
-    DataExportService,
+    ProcessExport,
+    BullmqExportQueue,
+    { provide: ExportQueue, useExisting: BullmqExportQueue },
+    CreateDataExportRequest,
   ],
 })
 export class DataExportModule {}

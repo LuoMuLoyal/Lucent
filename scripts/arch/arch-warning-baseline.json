@@ -99,8 +99,8 @@
     "eslint|no-magic-numbers|src/modules/daily-records/services/image-upload.service.ts",
     "eslint|no-magic-numbers|src/modules/daily-records/services/meal-analysis/vision.service.ts",
     "eslint|no-magic-numbers|src/modules/daily-records/services/records.service.ts",
-    "eslint|no-magic-numbers|src/modules/data-export/services/report-pdf/draw.service.ts",
-    "eslint|no-magic-numbers|src/modules/data-export/services/report-pdf/pdf.service.ts",
+    "eslint|no-magic-numbers|src/modules/data-export/infrastructure/pdf/draw.ts",
+    "eslint|no-magic-numbers|src/modules/data-export/infrastructure/pdf/report-pdf.ts",
     "eslint|no-magic-numbers|src/modules/data-export/utils/report-pdf.theme.ts",
     "eslint|no-magic-numbers|src/modules/environment/config/reference.ts",
     "eslint|no-magic-numbers|src/modules/environment/dto/snapshot-query.dto.ts",
@@ -184,7 +184,6 @@
     "eslint|no-restricted-syntax|src/modules/assistant/agent/stream.service.ts",
     "eslint|no-restricted-syntax|src/modules/auth/services/identity/verification-code.service.ts",
     "eslint|no-restricted-syntax|src/modules/daily-records/services/ownership.service.ts",
-    "eslint|no-restricted-syntax|src/modules/data-export/services/processor.service.ts",
     "eslint|no-restricted-syntax|src/modules/today-analysis/services/pipeline/trigger-evaluator.service.ts",
     "eslint|no-restricted-syntax|src/modules/today-suggestion/services/recompute/worker.service.ts",
     "eslint|no-restricted-syntax|src/prisma/prisma.service.ts"

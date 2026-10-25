@@ -1,15 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../prisma/index.js';
-import { INotificationSender } from '../../notifications/index.js';
-import { ReportsService } from '../../reports/index.js';
-import { DataExportStorageService } from './storage.service.js';
-import { ReportExportPdfService } from './report-pdf/pdf.service.js';
-import { formatDateOnly, now, resolveLocale } from '../../../common/index.js';
-import { extractErrorInfo } from '../../../common/index.js';
-import { unwrapResult } from '../../../common/result/index.js';
+import { INotificationSender } from '../../../notifications/index.js';
+import { ReportsService } from '../../../reports/index.js';
+import { ObjectStorage } from '../ports/object-storage.js';
+import { DataExportRequests } from '../ports/data-export-requests.js';
+import { ReportPdf } from '../ports/report-pdf.js';
+import {
+  formatDateOnly,
+  now,
+  resolveLocale,
+} from '../../../../common/index.js';
+import { extractErrorInfo } from '../../../../common/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
 
-export interface DataExportProcessorInput {
+export interface ProcessExportInput {
   exportRequestId: string;
   userId: string;
   language: string;
@@ -25,34 +29,29 @@ export interface DataExportProcessorInput {
  * (Architecture review #14 — naming boundary documented.)
  */
 @Injectable()
-export class DataExportProcessorService {
-  private readonly logger = new Logger(DataExportProcessorService.name);
+export class ProcessExport {
+  private readonly logger = new Logger(ProcessExport.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly requests: DataExportRequests,
     private readonly reportsService: ReportsService,
-    private readonly storageService: DataExportStorageService,
-    private readonly reportExportPdfService: ReportExportPdfService,
+    private readonly storage: ObjectStorage,
+    private readonly reportPdf: ReportPdf,
     private readonly notificationsService: INotificationSender,
     private readonly i18n: I18nService,
   ) {}
 
-  async process(input: DataExportProcessorInput): Promise<void> {
+  async process(input: ProcessExportInput): Promise<void> {
     const { exportRequestId, userId, language } = input;
 
-    const request = await this.prisma.dataExportRequest.findUnique({
-      where: { id: exportRequestId },
-    });
+    const request = await this.requests.findById(exportRequestId);
 
     if (!request) {
       this.logger.warn(`Export request ${exportRequestId} not found`);
       return;
     }
 
-    await this.prisma.dataExportRequest.update({
-      where: { id: exportRequestId },
-      data: { status: 'processing', errorMessage: null },
-    });
+    await this.requests.markProcessing(exportRequestId);
 
     try {
       const report = await this.reportsService.getDashboard(
@@ -68,25 +67,20 @@ export class DataExportProcessorService {
       // is folded into the same failure path as a rejection: the request is
       // marked failed and the error rethrown for BullMQ retry.
       const uploaded = await unwrapResult(
-        this.storageService.uploadPdf({
+        this.storage.uploadPdf({
           userId,
           fileName,
           body: pdf,
         }),
       );
 
-      await this.prisma.dataExportRequest.update({
-        where: { id: exportRequestId },
-        data: {
-          status: 'completed',
-          objectKey: uploaded.objectKey,
-          bucket: uploaded.bucket,
-          provider: uploaded.provider,
-          fileName,
-          fileSizeBytes: uploaded.fileSizeBytes,
-          completedAt: now(),
-          errorMessage: null,
-        },
+      await this.requests.complete(exportRequestId, {
+        status: 'completed',
+        objectKey: uploaded.objectKey,
+        fileName,
+        fileSizeBytes: uploaded.fileSizeBytes,
+        completedAt: now(),
+        errorMessage: null,
       });
 
       await this.notifyExportCompleted(userId, request.kind, language);
@@ -101,9 +95,9 @@ export class DataExportProcessorService {
         error instanceof Error ? error.stack : undefined,
       );
 
-      await this.prisma.dataExportRequest.update({
-        where: { id: exportRequestId },
-        data: { status: 'failed', errorMessage: message },
+      await this.requests.complete(exportRequestId, {
+        status: 'failed',
+        errorMessage: message,
       });
 
       // eslint-disable-next-line error-handling/no-bare-throw-error -- BullMQ worker re-throw to mark job failed
@@ -120,17 +114,17 @@ export class DataExportProcessorService {
   ): Promise<Buffer> {
     switch (kind) {
       case 'monthly':
-        return this.reportExportPdfService.buildMonthlyPdf({
+        return this.reportPdf.buildMonthlyPdf({
           locale: language,
           report,
         });
       case 'print':
-        return this.reportExportPdfService.buildPrintPdf({
+        return this.reportPdf.buildPrintPdf({
           locale: language,
           report,
         });
       default:
-        return this.reportExportPdfService.buildHospitalPdf({
+        return this.reportPdf.buildHospitalPdf({
           locale: language,
           report,
         });

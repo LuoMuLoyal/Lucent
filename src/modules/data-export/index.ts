@@ -15,5 +15,5 @@ export {
   drawPageDecorations,
   drawPageChrome,
   wrapText,
-} from './services/report-pdf/draw.service.js';
+} from './infrastructure/pdf/draw.js';
 export { CJK_FONT_PATH } from './pdf-fonts.js';

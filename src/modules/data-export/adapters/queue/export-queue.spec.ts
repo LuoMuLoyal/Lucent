@@ -1,6 +1,6 @@
-import { DataExportQueueService } from './queue.service.js';
-import type { DataExportProcessorService } from './processor.service.js';
-import type { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
+import { BullmqExportQueue } from './export-queue.js';
+import type { ProcessExport } from '../../application/use_cases/process-export.js';
+import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 
 function buildFactory(queueAvailable: boolean): {
   factory: BullmqQueueFactory;
@@ -27,13 +27,13 @@ function buildFactory(queueAvailable: boolean): {
   };
 }
 
-describe('DataExportQueueService', () => {
+describe('BullmqExportQueue', () => {
   it('is not configured when REDIS_URL is missing', () => {
     const { factory } = buildFactory(false);
     const processor = {
       process: vi.fn(),
-    } as unknown as DataExportProcessorService;
-    const service = new DataExportQueueService(factory, processor);
+    } as unknown as ProcessExport;
+    const service = new BullmqExportQueue(factory, processor);
 
     expect(service.isConfigured).toBe(false);
   });
@@ -42,8 +42,8 @@ describe('DataExportQueueService', () => {
     const { factory } = buildFactory(true);
     const processor = {
       process: vi.fn(),
-    } as unknown as DataExportProcessorService;
-    const service = new DataExportQueueService(factory, processor);
+    } as unknown as ProcessExport;
+    const service = new BullmqExportQueue(factory, processor);
 
     expect(service.isConfigured).toBe(true);
   });
@@ -52,8 +52,8 @@ describe('DataExportQueueService', () => {
     const { factory, mockQueue } = buildFactory(true);
     const processor = {
       process: vi.fn(),
-    } as unknown as DataExportProcessorService;
-    const service = new DataExportQueueService(factory, processor);
+    } as unknown as ProcessExport;
+    const service = new BullmqExportQueue(factory, processor);
 
     await service.enqueue({
       exportRequestId: 'export-1',
@@ -75,8 +75,8 @@ describe('DataExportQueueService', () => {
     const { factory } = buildFactory(false);
     const processor = {
       process: vi.fn(),
-    } as unknown as DataExportProcessorService;
-    const service = new DataExportQueueService(factory, processor);
+    } as unknown as ProcessExport;
+    const service = new BullmqExportQueue(factory, processor);
 
     // No outbound `detail`: an explicit sentence would override the registry's
     // bilingual copy. The direction lives in `cause` (logs only).

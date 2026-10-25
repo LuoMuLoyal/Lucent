@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib';
-import { ReportExportPdfService } from './pdf.service.js';
+import { ReportExportPdfService } from './report-pdf.js';
 import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 describe('ReportExportPdfService', () => {
