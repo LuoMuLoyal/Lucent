@@ -26,6 +26,7 @@ import { DrugbankMedicinesService } from './infrastructure/persistence/drugbank.
 import { MedicineSafetyTipsRepository } from './infrastructure/persistence/safety-tips.js';
 import { MedicineSafetyTipsStore } from './infrastructure/persistence/safety-tips.js';
 import { MedicineRiskRecordsStore } from './infrastructure/persistence/risk-records.js';
+import { PrismaRiskAssessmentStore } from './infrastructure/persistence/risk-assessments.js';
 import {
   MEDICINES_KNOWLEDGE_CACHE,
   CN_MEDICINES_READER,
@@ -36,6 +37,7 @@ import {
   MEDICINE_SAFETY_TIP_REPOSITORY,
 } from './application/ports/safety-tips.js';
 import { MEDICINE_RISK_RECORDS } from './application/ports/risk-records.js';
+import { RISK_ASSESSMENT_STORE } from './application/ports/risk-assessment.js';
 import { MEDICINE_RISK_LLM_GENERATOR } from './application/ports/risk-llm.js';
 import { MEDICINES_CACHE_MAINTENANCE } from './application/ports/cache-maintenance.js';
 import { MEDICINES_GRAPH_READER } from './domain/relations/relations.js';
@@ -68,6 +70,7 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     MedicineSafetyTipsStore,
     MedicineSafetyTipsRepository,
     MedicineRiskRecordsStore,
+    PrismaRiskAssessmentStore,
     MedicationOverviewService,
     MedicineGraphExecutor,
     Neo4jGraphReader,
@@ -91,6 +94,10 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
       useExisting: MedicineSafetyTipsRepository,
     },
     { provide: MEDICINE_RISK_RECORDS, useExisting: MedicineRiskRecordsStore },
+    {
+      provide: RISK_ASSESSMENT_STORE,
+      useExisting: PrismaRiskAssessmentStore,
+    },
     {
       provide: MEDICINE_RISK_LLM_GENERATOR,
       useExisting: MedicineRiskLlmGeneratorService,

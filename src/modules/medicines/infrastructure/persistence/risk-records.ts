@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/index.js';
-import { nonDeleted, toInputJsonValue } from '../../../../common/index.js';
+import { nonDeleted } from '../../../../common/index.js';
 import {
   type MedicineRiskCheckRecordRow,
   type MedicineRiskCheckType,
@@ -50,31 +50,6 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
       where: { userId },
     });
     return rows.map(toRecordRow);
-  }
-
-  async upsertRecord(
-    userId: string,
-    checkType: MedicineRiskCheckType,
-    payload: { result: unknown; riskScore: number; riskLevel: string },
-  ): Promise<MedicineRiskCheckRecordRow> {
-    const row = await this.prisma.medicineRiskCheckRecord.upsert({
-      where: { userId_checkType: { userId, checkType } },
-      create: {
-        userId,
-        checkType,
-        result: toInputJsonValue(payload.result),
-        riskScore: payload.riskScore,
-        riskLevel: payload.riskLevel,
-        stale: false,
-      },
-      update: {
-        result: toInputJsonValue(payload.result),
-        riskScore: payload.riskScore,
-        riskLevel: payload.riskLevel,
-        stale: false,
-      },
-    });
-    return toRecordRow(row);
   }
 
   async markAllStale(userId: string): Promise<void> {

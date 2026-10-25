@@ -1,10 +1,20 @@
 /**
- * Medicine risk-check persistence contract (`application/ports`).
+ * Medicine risk-check **read** contract (`application/ports`).
  *
- * Reads and writes the `medicine_risk_check_record` rows plus the user health
- * snapshot (allergies / conditions / current medicines) and medicine reminder
- * rows the risk-check use case needs. Implemented against Prisma in
+ * Reads the `medicine_risk_check_record` rows plus the user health snapshot
+ * (allergies / conditions / current medicines) and medicine reminder rows the
+ * risk-check use case needs. Implemented against Prisma in
  * `infrastructure/persistence/risk-records.ts`.
+ *
+ * ## Read-only by design
+ *
+ * This port used to carry `upsertRecord`. Writes now go through the
+ * `RiskAssessment` aggregate's own store (`domain/safety/risk-assessments.ts`,
+ * implemented by `infrastructure/persistence/risk-assessments.ts`) — ADR-0024
+ * §4: a repository serves the write side of its aggregate, a read-model port
+ * serves queries. Keeping a second write method here meant two write paths
+ * could coexist; removing it makes "one write path" true by type rather than
+ * by convention.
  */
 
 export const MEDICINE_RISK_RECORDS = 'MEDICINE_RISK_RECORDS';
@@ -67,12 +77,6 @@ export interface MedicineReminderRow {
 
 export interface MedicineRiskRecordsPort {
   listRecords(userId: string): Promise<MedicineRiskCheckRecordRow[]>;
-
-  upsertRecord(
-    userId: string,
-    checkType: MedicineRiskCheckType,
-    payload: { result: unknown; riskScore: number; riskLevel: string },
-  ): Promise<MedicineRiskCheckRecordRow>;
 
   markAllStale(userId: string): Promise<void>;
 

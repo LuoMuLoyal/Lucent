@@ -5,7 +5,18 @@ import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { MedicineDetailReadModel } from '../read_models/medicine-detail.js';
 import { RiskDetectionService } from '../../domain/services/risk-scoring.js';
-import { toInputJsonValue } from '../../../../common/index.js';
+import { DomainEventPublisher } from '../../../../common/index.js';
+import {
+  RISK_ASSESSMENT_COMPLETED,
+  type RiskAssessmentCompletedPayload,
+} from '../../../../common/events/domain-events.js';
+import {
+  completeLlmAssessment,
+  completeStaticAssessment,
+  type RiskAssessment,
+} from '../../domain/safety/risk-assessment.js';
+import { RISK_ASSESSMENT_STORE } from '../ports/risk-assessment.js';
+import type { RiskAssessmentStore } from '../../domain/safety/risk-assessments.js';
 import {
   createDomainFailure,
   DomainFailureException,
@@ -18,7 +29,6 @@ import {
 import {
   MEDICINE_RISK_RECORDS,
   type MedicineRiskRecordsPort,
-  type MedicineRiskCheckRecordRow,
   type MedicineRiskCheckType,
 } from '../ports/risk-records.js';
 import {
@@ -82,6 +92,9 @@ export class MedicineRiskCheckService {
   constructor(
     @Inject(MEDICINE_RISK_RECORDS)
     private readonly riskRecords: MedicineRiskRecordsPort,
+    @Inject(RISK_ASSESSMENT_STORE)
+    private readonly riskAssessments: RiskAssessmentStore,
+    private readonly publisher: DomainEventPublisher,
     private readonly medicines: MedicineDetailReadModel,
     @Inject(MEDICINE_RISK_LLM_GENERATOR)
     private readonly llmGenerator: MedicineRiskLlmPort,
@@ -158,23 +171,26 @@ export class MedicineRiskCheckService {
     userId: string,
     candidate?: RiskCheckCandidateDto,
   ): Promise<MedicineRiskCheckRecord> {
-    const response = await this.evaluateStaticCheck(userId, candidate);
+    const { result, medicineIds } = await this.evaluateStaticCheck(
+      userId,
+      candidate,
+    );
 
     if (candidate != null) {
       // 候选预检为即时预览，不落库；避免把未建档药品写入最新检查记录。
       const now = new Date();
       return {
         checkType: 'static',
-        result: response,
-        riskScore: response.overallRiskScore,
-        riskLevel: response.overallRiskLevel,
+        result,
+        riskScore: result.overallRiskScore,
+        riskLevel: result.overallRiskLevel,
         stale: false,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       };
     }
 
-    return this.persistRecord(userId, 'static', response);
+    return this.persistRecord(userId, 'static', result, medicineIds);
   }
 
   runLlmCheck(
@@ -204,7 +220,8 @@ export class MedicineRiskCheckService {
     }
 
     // 1. Run static check to get baseline findings
-    const staticResult = await this.evaluateStaticCheck(userId);
+    const { result: staticResult, medicineIds } =
+      await this.evaluateStaticCheck(userId);
 
     // 2. Build LLM context
     const llmContext = await this.buildLlmContext(userId, staticResult);
@@ -221,7 +238,7 @@ export class MedicineRiskCheckService {
     const response = this.mapLlmOutput(llmOutput, staticResult);
 
     // 5. Persist
-    return this.persistRecord(userId, 'llm', response);
+    return this.persistRecord(userId, 'llm', response, medicineIds);
   }
 
   async markStale(userId: string): Promise<void> {
@@ -235,7 +252,10 @@ export class MedicineRiskCheckService {
   private async evaluateStaticCheck(
     userId: string,
     candidate?: RiskCheckCandidateDto,
-  ): Promise<MedicineRiskCheckResult> {
+  ): Promise<{
+    result: MedicineRiskCheckResult;
+    medicineIds: readonly string[];
+  }> {
     // 1. Get health context through the records port (bound to Prisma).
     const user = await this.riskRecords.loadHealthContext(
       userId,
@@ -244,13 +264,16 @@ export class MedicineRiskCheckService {
 
     if (user == null) {
       return {
-        overallRiskLevel: 'safe',
-        overallRiskScore: 0,
-        currentMedicineCount: 0,
-        checkedMedicineCount: 0,
-        findings: [],
-        coverageIssues: [],
-        redFlags: [],
+        result: {
+          overallRiskLevel: 'safe',
+          overallRiskScore: 0,
+          currentMedicineCount: 0,
+          checkedMedicineCount: 0,
+          findings: [],
+          coverageIssues: [],
+          redFlags: [],
+        },
+        medicineIds: [],
       };
     }
 
@@ -398,14 +421,20 @@ export class MedicineRiskCheckService {
     );
 
     return {
-      overallRiskLevel: riskLevel,
-      overallRiskScore: riskScore,
-      currentMedicineCount:
-        currentMedicines.length + (candidateIncluded ? 1 : 0),
-      checkedMedicineCount: details.length,
-      findings: findingsWithMechanism,
-      coverageIssues,
-      redFlags,
+      result: {
+        overallRiskLevel: riskLevel,
+        overallRiskScore: riskScore,
+        currentMedicineCount:
+          currentMedicines.length + (candidateIncluded ? 1 : 0),
+        checkedMedicineCount: details.length,
+        findings: findingsWithMechanism,
+        coverageIssues,
+        redFlags,
+      },
+      medicineIds: [
+        ...currentMedicines.map((item) => item.id),
+        ...(candidateIncluded && candidate != null ? [candidate.id] : []),
+      ],
     };
   }
 
@@ -646,16 +675,42 @@ export class MedicineRiskCheckService {
 
   // ── DB persistence ──────────────────────────────────────────────────────
 
+  /**
+   * Completes the `RiskAssessment` aggregate and persists it.
+   *
+   * The aggregate decides the score and level (`domain/safety/risk-assessment.ts`):
+   * for a static check they are derived from the findings, so the stored score
+   * can never contradict the findings stored beside it. Invariant violations
+   * (the coverage identity, or an out-of-range LLM score) surface as a domain
+   * failure rather than being persisted — a silently dropped medicine would
+   * otherwise make the assessment claim more confidence than it has.
+   */
   private async persistRecord(
     userId: string,
     checkType: MedicineRiskCheckType,
     response: MedicineRiskCheckResult,
+    medicineIds: readonly string[],
   ): Promise<MedicineRiskCheckRecord> {
-    const record = await this.riskRecords.upsertRecord(userId, checkType, {
-      result: toInputJsonValue(response),
-      riskScore: response.overallRiskScore,
-      riskLevel: response.overallRiskLevel,
-    });
+    const outcome =
+      checkType === 'llm'
+        ? completeLlmAssessment({ userId, result: response, medicineIds })
+        : completeStaticAssessment({ userId, result: response, medicineIds });
+
+    if (!outcome.ok) {
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'internal',
+          code: 'INTERNAL_ERROR',
+          cause: new Error(
+            `Risk assessment invariant violated: ${JSON.stringify(outcome.violation)}`,
+          ),
+        }),
+      );
+    }
+
+    const record = await this.riskAssessments.save(outcome.assessment);
+
+    await this.publishCompleted(userId, record, outcome.assessment);
 
     // Invalidate cache — DB already has correct data
     await this.invalidateRecordsCache(userId);
@@ -663,9 +718,54 @@ export class MedicineRiskCheckService {
     return this.toDto(record);
   }
 
+  /**
+   * Publishes `risk-assessment.completed`.
+   *
+   * **Outside the write transaction.** `DomainEventPublisher.publish` (the only
+   * sanctioned producer entry, ADR-0025) does not accept a transaction handle,
+   * so the append happens after `save` commits. A crash between the two loses
+   * the event while keeping the assessment — the same window the existing
+   * producers have. Publishing is also best-effort by contract (it never
+   * throws), so a failed append must not fail the risk check the user asked
+   * for. Making this atomic needs a tx-aware publisher; that is E0's call, not
+   * something to fake here.
+   */
+  private async publishCompleted(
+    userId: string,
+    record: { id: string },
+    assessment: RiskAssessment,
+  ): Promise<void> {
+    await this.publisher.publish(
+      RISK_ASSESSMENT_COMPLETED,
+      {
+        userId,
+        medicineIds: [...assessment.medicineIds],
+        riskLevel: assessment.riskLevel,
+        findingCount: assessment.noteworthyFindingCount,
+        assessmentId: record.id,
+      } satisfies RiskAssessmentCompletedPayload,
+      // One assessment id = one fact; a retried save must not enqueue twice.
+      `risk-assessment.completed:${record.id}`,
+    );
+  }
+
   // ── Mapping ──────────────────────────────────────────────────────────────
 
-  private toDto(record: MedicineRiskCheckRecordRow): MedicineRiskCheckRecord {
+  /**
+   * Maps a persisted row onto the wire record.
+   *
+   * Accepts the narrow read row and the aggregate store's record alike (the
+   * latter is a superset) so the two paths share one mapping.
+   */
+  private toDto(record: {
+    checkType: MedicineRiskCheckType;
+    result: unknown;
+    riskScore: number;
+    riskLevel: string;
+    stale: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }): MedicineRiskCheckRecord {
     return {
       checkType: record.checkType,
       result: record.result as MedicineRiskCheckResult,

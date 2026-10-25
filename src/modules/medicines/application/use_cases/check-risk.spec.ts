@@ -4,7 +4,12 @@ import type { Cache } from 'cache-manager';
 import { MedicineRiskCheckService } from './check-risk.js';
 import type { MedicineDetailReadModel } from '../read_models/medicine-detail.js';
 import type {
-  MedicineRiskCheckRecordRow,
+  RiskAssessmentRecord,
+  RiskAssessmentStore,
+} from '../../domain/safety/risk-assessments.js';
+import type { DomainEventPublisher } from '../../../../common/index.js';
+import { RISK_ASSESSMENT_COMPLETED } from '../../../../common/events/domain-events.js';
+import type {
   MedicineReminderRow,
   MedicineRiskRecordsPort,
   UserHealthContext,
@@ -33,11 +38,17 @@ import {
 function build() {
   const riskRecords = {
     listRecords: vi.fn(),
-    upsertRecord: vi.fn(),
     markAllStale: vi.fn(),
     loadHealthContext: vi.fn(),
     listReminders: vi.fn(),
   } as unknown as MedicineRiskRecordsPort;
+  const riskAssessments = {
+    save: vi.fn(),
+    findByUser: vi.fn(),
+  } as unknown as RiskAssessmentStore;
+  const publisher = {
+    publish: vi.fn().mockResolvedValue(undefined),
+  } as unknown as DomainEventPublisher;
   const medicinesService = {
     getWithCache: vi.fn(),
   } as unknown as MedicineDetailReadModel;
@@ -71,6 +82,8 @@ function build() {
   } as unknown as GraphReader;
   const svc = new MedicineRiskCheckService(
     riskRecords,
+    riskAssessments,
+    publisher,
     medicinesService,
     llmGenerator,
     riskDetection,
@@ -80,6 +93,8 @@ function build() {
   );
   return {
     riskRecords,
+    riskAssessments,
+    publisher,
     medicinesService,
     llmGenerator,
     riskDetection,
@@ -89,9 +104,19 @@ function build() {
   };
 }
 
-const recordRow: MedicineRiskCheckRecordRow = {
+const recordRow: RiskAssessmentRecord = {
+  id: 'assessment-1',
+  userId: 'u1',
   checkType: 'static',
-  result: { overallRiskLevel: 'safe', overallRiskScore: 0 },
+  result: {
+    overallRiskLevel: 'safe',
+    overallRiskScore: 0,
+    currentMedicineCount: 0,
+    checkedMedicineCount: 0,
+    findings: [],
+    coverageIssues: [],
+    redFlags: [],
+  },
   riskScore: 0,
   riskLevel: 'safe',
   stale: false,
@@ -169,18 +194,24 @@ describe('MedicineRiskCheckService', () => {
   // ── Static check ────────────────────────────────────────────────────────
 
   it('runStaticCheck returns a safe empty response when the user is missing', async () => {
-    const { riskRecords, svc } = build();
+    const { riskRecords, riskAssessments, svc } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(null);
-    vi.mocked(riskRecords.upsertRecord).mockResolvedValue(recordRow);
+    vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
 
     const result = await unwrap(svc.runStaticCheck('u1'));
 
     expect(result.checkType).toBe('static');
-    expect(riskRecords.upsertRecord).toHaveBeenCalled();
+    expect(riskAssessments.save).toHaveBeenCalled();
   });
 
   it('runStaticCheck evaluates risk for an existing user with eligible medicines', async () => {
-    const { riskRecords, medicinesService, riskDetection, svc } = build();
+    const {
+      riskRecords,
+      riskAssessments,
+      medicinesService,
+      riskDetection,
+      svc,
+    } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
       allergies: [
         { label: '青霉素', reaction: 'rash', severity: 'high', isActive: true },
@@ -220,7 +251,21 @@ describe('MedicineRiskCheckService', () => {
         ingredients: [],
       } as never),
     );
-    vi.mocked(riskRecords.upsertRecord).mockResolvedValue(recordRow);
+    vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
+    // The detection stub must satisfy the aggregate's coverage identity:
+    // 3 medicines on the box, 1 checked, 2 reported uncovered. A 0/0/0 stub
+    // beside a 3-medicine fixture is exactly the shape the invariant exists to
+    // reject, so pin the counts here rather than letting them default.
+    vi.mocked(riskDetection.evaluateStaticRisk).mockReturnValue({
+      findings: [],
+      coverageIssues: [
+        { medicineName: '自制药', reason: 'manualEntry' },
+        { medicineName: '无引用药', reason: 'missingSourceRef' },
+      ],
+      redFlags: [],
+      riskScore: 6,
+      riskLevel: 'safe',
+    });
 
     const result = await unwrap(svc.runStaticCheck('u1'));
 
@@ -249,7 +294,13 @@ describe('MedicineRiskCheckService', () => {
   });
 
   it('evaluateStaticCheck skips failed detail fetches and reports them as uncovered', async () => {
-    const { riskRecords, medicinesService, riskDetection, svc } = build();
+    const {
+      riskRecords,
+      riskAssessments,
+      medicinesService,
+      riskDetection,
+      svc,
+    } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
       allergies: [],
       conditions: [],
@@ -273,7 +324,16 @@ describe('MedicineRiskCheckService', () => {
         }),
       ),
     );
-    vi.mocked(riskRecords.upsertRecord).mockResolvedValue(recordRow);
+    vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
+    // 1 medicine, 0 checked, 1 uncovered — the detection stub has to agree with
+    // the fixture, or the aggregate's coverage identity rejects the assessment.
+    vi.mocked(riskDetection.evaluateStaticRisk).mockReturnValue({
+      findings: [],
+      coverageIssues: [{ medicineName: 'DrugA', reason: 'detailUnavailable' }],
+      redFlags: [],
+      riskScore: 3,
+      riskLevel: 'safe',
+    });
 
     await unwrap(svc.runStaticCheck('u1'));
 
@@ -285,9 +345,9 @@ describe('MedicineRiskCheckService', () => {
   });
 
   it('runStaticCheck tolerates cache invalidation failure during persist (retries then logs error)', async () => {
-    const { riskRecords, cache, svc } = build();
+    const { riskRecords, riskAssessments, cache, svc } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(null);
-    vi.mocked(riskRecords.upsertRecord).mockResolvedValue(recordRow);
+    vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
     vi.mocked(cache.del).mockRejectedValue(new Error('redis down'));
     const errorSpy = vi
       .spyOn(svc['logger'], 'error')
@@ -305,8 +365,14 @@ describe('MedicineRiskCheckService', () => {
   // ── Candidate pre-check ─────────────────────────────────────────────────
 
   it('runStaticCheck with a candidate includes it in the evaluation without persisting', async () => {
-    const { riskRecords, medicinesService, riskDetection, cache, svc } =
-      build();
+    const {
+      riskRecords,
+      riskAssessments,
+      medicinesService,
+      riskDetection,
+      cache,
+      svc,
+    } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
       allergies: [],
       conditions: [],
@@ -377,7 +443,7 @@ describe('MedicineRiskCheckService', () => {
       '候选药品-cn-2',
     );
     // 候选预检不落库、不动缓存
-    expect(riskRecords.upsertRecord).not.toHaveBeenCalled();
+    expect(riskAssessments.save).not.toHaveBeenCalled();
     expect(cache.del).not.toHaveBeenCalled();
     // 返回 record 形 DTO 即时快照
     expect(result).toMatchObject({
@@ -430,7 +496,7 @@ describe('MedicineRiskCheckService', () => {
   });
 
   it('runStaticCheck propagates DomainFailureException when the candidate detail is missing', async () => {
-    const { riskRecords, medicinesService, svc } = build();
+    const { riskRecords, riskAssessments, medicinesService, svc } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
       emptyHealthContext,
     );
@@ -448,11 +514,11 @@ describe('MedicineRiskCheckService', () => {
       unwrap(svc.runStaticCheck('u1', { source: 'cn', id: 'missing' })),
     ).rejects.toThrow(DomainFailureException);
 
-    expect(riskRecords.upsertRecord).not.toHaveBeenCalled();
+    expect(riskAssessments.save).not.toHaveBeenCalled();
   });
 
   it('runStaticCheck wraps non-NotFound candidate resolution failures as DomainFailureException', async () => {
-    const { riskRecords, medicinesService, svc } = build();
+    const { riskRecords, riskAssessments, medicinesService, svc } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
       emptyHealthContext,
     );
@@ -470,7 +536,7 @@ describe('MedicineRiskCheckService', () => {
       unwrap(svc.runStaticCheck('u1', { source: 'drugbank', id: 'DB00001' })),
     ).rejects.toThrow(DomainFailureException);
 
-    expect(riskRecords.upsertRecord).not.toHaveBeenCalled();
+    expect(riskAssessments.save).not.toHaveBeenCalled();
   });
 
   // ── LLM check ───────────────────────────────────────────────────────────
@@ -522,12 +588,12 @@ describe('MedicineRiskCheckService', () => {
   });
 
   it('runLlmCheck builds context from the records port, generates output and persists', async () => {
-    const { riskRecords, llmGenerator, cache, svc } = build();
+    const { riskRecords, riskAssessments, llmGenerator, cache, svc } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
       emptyHealthContext,
     );
     vi.mocked(riskRecords.listReminders).mockResolvedValue([]);
-    const llmRecord: MedicineRiskCheckRecordRow = {
+    const llmRecord: RiskAssessmentRecord = {
       ...recordRow,
       checkType: 'llm',
       result: {
@@ -551,7 +617,7 @@ describe('MedicineRiskCheckService', () => {
         overallRecommendation: 'consult doctor',
       },
     };
-    vi.mocked(riskRecords.upsertRecord).mockResolvedValue(llmRecord);
+    vi.mocked(riskAssessments.save).mockResolvedValue(llmRecord);
     vi.mocked(llmGenerator.generate).mockResolvedValue({
       summary: 'summary',
       riskScore: 10,
@@ -591,12 +657,12 @@ describe('MedicineRiskCheckService', () => {
   });
 
   it('runLlmCheck maps llm findings without secondary medicine', async () => {
-    const { riskRecords, llmGenerator, svc } = build();
+    const { riskRecords, riskAssessments, llmGenerator, svc } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
       emptyHealthContext,
     );
     vi.mocked(riskRecords.listReminders).mockResolvedValue([]);
-    const llmRecord: MedicineRiskCheckRecordRow = {
+    const llmRecord: RiskAssessmentRecord = {
       ...recordRow,
       checkType: 'llm',
       result: {
@@ -618,7 +684,7 @@ describe('MedicineRiskCheckService', () => {
         redFlags: [],
       },
     };
-    vi.mocked(riskRecords.upsertRecord).mockResolvedValue(llmRecord);
+    vi.mocked(riskAssessments.save).mockResolvedValue(llmRecord);
     vi.mocked(llmGenerator.generate).mockResolvedValue({
       summary: 'summary',
       riskScore: 20,
@@ -645,7 +711,13 @@ describe('MedicineRiskCheckService', () => {
   });
 
   it('runLlmCheck joins reminders to box medicines and formats dates for the LLM context', async () => {
-    const { riskRecords, medicinesService, llmGenerator, svc } = build();
+    const {
+      riskRecords,
+      riskAssessments,
+      medicinesService,
+      llmGenerator,
+      svc,
+    } = build();
     vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
       allergies: [
         { label: '青霉素', reaction: null, severity: null, isActive: true },
@@ -700,7 +772,7 @@ describe('MedicineRiskCheckService', () => {
       },
     ];
     vi.mocked(riskRecords.listReminders).mockResolvedValue(reminders);
-    vi.mocked(riskRecords.upsertRecord).mockResolvedValue({
+    vi.mocked(riskAssessments.save).mockResolvedValue({
       ...recordRow,
       checkType: 'llm',
     });
@@ -764,5 +836,92 @@ describe('MedicineRiskCheckService', () => {
     expect(riskRecords.markAllStale).toHaveBeenCalledWith('u1');
     expect(cache.del).toHaveBeenCalledTimes(2);
     expect(errorSpy).toHaveBeenCalled();
+  });
+
+  // ── Aggregate + domain event ───────────────────────────────────────────
+
+  it('publishes risk-assessment.completed with the aggregate level and the assessment id', async () => {
+    const { riskRecords, riskAssessments, publisher, svc } = build();
+    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(null);
+    vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
+
+    await unwrap(svc.runStaticCheck('u1'));
+
+    expect(publisher.publish).toHaveBeenCalledWith(
+      RISK_ASSESSMENT_COMPLETED,
+      {
+        userId: 'u1',
+        medicineIds: [],
+        // The aggregate-derived level, not the per-finding severity ladder.
+        riskLevel: 'safe',
+        findingCount: 0,
+        assessmentId: 'assessment-1',
+      },
+      // Dedupe on the assessment id: one assessment is one fact.
+      'risk-assessment.completed:assessment-1',
+    );
+  });
+
+  it('does not publish for a candidate pre-check (nothing is persisted)', async () => {
+    const {
+      riskRecords,
+      riskAssessments,
+      publisher,
+      medicinesService,
+      riskDetection,
+      svc,
+    } = build();
+    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
+    vi.mocked(medicinesService.getWithCache).mockReturnValue(
+      okAsync({
+        id: 'cn-1',
+        name: '布洛芬',
+        subtitle: null,
+        detail: {},
+      } as never),
+    );
+    vi.mocked(riskDetection.evaluateStaticRisk).mockReturnValue({
+      findings: [],
+      coverageIssues: [],
+      redFlags: [],
+      riskScore: 0,
+      riskLevel: 'safe',
+    });
+
+    await unwrap(svc.runStaticCheck('u1', { source: 'cn', id: 'cn-1' }));
+
+    expect(riskAssessments.save).not.toHaveBeenCalled();
+    expect(publisher.publish).not.toHaveBeenCalled();
+  });
+
+  it('refuses to persist an assessment whose counts contradict the coverage identity', async () => {
+    // The detection stub reports no coverage issues for a user who has a
+    // medicine: the medicine would silently vanish from the assessment. The
+    // aggregate must reject it rather than store an over-confident result.
+    const { riskRecords, riskAssessments, publisher, svc } = build();
+    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+      allergies: [],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'm1',
+          source: 'custom',
+          sourceRefId: null,
+          displayName: '自制药',
+          startedAt: null,
+          healthEventIds: [],
+        },
+      ],
+    });
+
+    await expect(unwrap(svc.runStaticCheck('u1'))).rejects.toThrow(
+      DomainFailureException,
+    );
+    expect(riskAssessments.save).not.toHaveBeenCalled();
+    expect(publisher.publish).not.toHaveBeenCalled();
   });
 });

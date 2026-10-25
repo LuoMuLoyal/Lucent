@@ -24,8 +24,21 @@ owner: backend
   纯单测（`domain/safety/risk-assessment.spec.ts`）。
   「一次请求一次评估」是应用层职责、「落库后无 update 路径」是持久化层职责——
   它们不是聚合不变量，别塞进聚合。
-- 领域事件（计划）：`medicine_imported`、`risk_assessment_completed` 等，
-  经 outbox 发布；目录事实以 `MedicineFact` 契约面向下游发布。
+  **违反不变量时 `check-risk` 报 `INTERNAL_ERROR` 且不落库**——宁可不给结论，
+  也不给一个比事实更自信的结论。
+- **写路径唯一**：聚合经 `RiskAssessmentStore`
+  （`infrastructure/persistence/risk-assessments.ts`）落库；`MEDICINE_RISK_RECORDS`
+  端口**只读**（`listRecords` / `markAllStale` / `loadHealthContext` / `listReminders`）。
+  它原来的 `upsertRecord` 已从端口定义**删除**，所以「两条写路径」不可能再回来
+  ——这是类型保证，不是约定。
+- 领域事件：**已发布** `risk-assessment.completed`。`check-risk` 落库后经
+  `DomainEventPublisher` 发布，payload 用聚合的 `riskLevel`（四档）与
+  `noteworthyFindingCount`，`dedupeKey = risk-assessment.completed:<assessmentId>`。
+  **在写事务之外**——`publish` 不接受事务句柄；做到事务内需要 E0 提供 tx-aware
+  发布器，这里不做假原子。该事件**当前无订阅者**，这是有意的：它的价值是事实
+  持久化、可回放。
+- 领域事件（计划）：`medicine_imported` 等，经 outbox 发布；
+  目录事实以 `MedicineFact` 契约面向下游发布。
 
 ### 层内布局
 

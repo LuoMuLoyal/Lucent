@@ -19,12 +19,15 @@
  */
 
 import type { RiskAssessment, RiskCheckKind } from './risk-assessment.js';
+import type { MedicineRiskCheckResult } from '../services/risk-model.js';
 
 /** One persisted assessment, as the write side sees it. */
 export interface RiskAssessmentRecord {
   id: string;
   userId: string;
   checkType: RiskCheckKind;
+  /** The assessment result as stored — the shape readers map to the wire DTO. */
+  result: MedicineRiskCheckResult;
   /** 0–100, derived by the aggregate for static checks. */
   riskScore: number;
   /** `safe` | `caution` | `risk` | `danger`. */
