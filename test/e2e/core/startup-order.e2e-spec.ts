@@ -21,8 +21,8 @@ import { LifecycleService } from '../../../src/modules/today-suggestion/index.js
 import { ReminderSchedulerService } from '../../../src/modules/medicine-reminders/index.js';
 import {
   REMINDER_QUEUE_NAME,
-  ReminderDispatchQueueService,
-} from '../../../src/modules/medicine-reminders/services/dispatch-queue.service.js';
+  ReminderDispatchQueue,
+} from '../../../src/modules/medicine-reminders/adapters/queue/dispatch.js';
 import { WeeklyInsightSchedulerService } from '../../../src/modules/notification-preferences/index.js';
 import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
 
@@ -46,7 +46,7 @@ import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
  * Scheduler ids this suite expects in Redis after init.
  *
  * `reminder-dispatch` is registered by its owning module
- * (`ReminderDispatchQueueService`) since ADR-0025, so the two services are
+ * (`ReminderDispatchQueue`) since ADR-0025, so the two services are
  * provided separately below and their schedulers read from separate queues.
  */
 const CRON_SCHEDULER_IDS = [
@@ -89,7 +89,7 @@ describe('startup and shutdown ordering (e2e)', () => {
         QueueRuntimeRegistry,
         CronJobsService,
         // Owns the `reminder-dispatch` queue and its scheduler since ADR-0025.
-        ReminderDispatchQueueService,
+        ReminderDispatchQueue,
         SseConnectionRegistry,
         SseProblemDetailsMapper,
         MetricsService,
