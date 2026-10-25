@@ -1,23 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { MedicineSource, Prisma } from '#generated/prisma/client.js';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
 import { normalizeNullableText, now } from '../../../../common/index.js';
 import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextOwnershipService } from '../ownership.service.js';
-import { UserHealthContextMapperService } from '../mapper.service.js';
-import type { CreateCurrentMedicineDto } from '../../dto/create-current-medicine.dto.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserHealthContextMapper } from '../read_models/mapper.js';
+import type { CreateCurrentMedicineDto } from '../ports/create-current-medicine.js';
 
-import type { UpdateCurrentMedicineDto } from '../../dto/update-current-medicine.dto.js';
+import type { UpdateCurrentMedicineDto } from '../ports/update-current-medicine.js';
 
 @Injectable()
-export class UserHealthContextMedicineWriteService {
+export class MedicineUseCases {
   constructor(
     private readonly repository: UserHealthContextRepositoryPort,
-    private readonly ownershipService: UserHealthContextOwnershipService,
-    private readonly mapperService: UserHealthContextMapperService,
+    private readonly ownershipService: UserHealthContextOwnership,
+    private readonly mapperService: UserHealthContextMapper,
   ) {}
 
   create(

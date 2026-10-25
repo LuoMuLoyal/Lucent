@@ -5,10 +5,10 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
-import { UserHealthContextOwnershipService } from '../ownership.service.js';
-import { UserHealthContextMapperService } from '../mapper.service.js';
-import { UserHealthContextConditionWriteService } from './condition-write.service.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { ConditionUseCases } from './conditions.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,
@@ -19,8 +19,8 @@ async function collectResult<T>(
   );
 }
 
-describe('UserHealthContextConditionWriteService', () => {
-  let service: UserHealthContextConditionWriteService;
+describe('ConditionUseCases', () => {
+  let service: ConditionUseCases;
 
   let repository: Mocked<UserHealthContextRepositoryPort>;
   let ensureActive: vi.Mock;
@@ -37,17 +37,17 @@ describe('UserHealthContextConditionWriteService', () => {
     ensureOwned = vi.fn().mockReturnValue(okAsync(undefined));
     const module = await Test.createTestingModule({
       providers: [
-        UserHealthContextConditionWriteService,
+        ConditionUseCases,
         { provide: UserHealthContextRepositoryPort, useValue: repository },
         {
-          provide: UserHealthContextOwnershipService,
+          provide: UserHealthContextOwnership,
           useValue: {
             ensureActiveUserExists: ensureActive,
             ensureConditionOwnedByUser: ensureOwned,
           },
         },
         {
-          provide: UserHealthContextMapperService,
+          provide: UserHealthContextMapper,
           useValue: {
             dateOnlyStringToUtcDate: vi.fn((v: any) =>
               v ? new Date(v) : null,
@@ -57,7 +57,7 @@ describe('UserHealthContextConditionWriteService', () => {
         },
       ],
     }).compile();
-    service = module.get(UserHealthContextConditionWriteService);
+    service = module.get(ConditionUseCases);
   });
 
   it('creates', async () => {

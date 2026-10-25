@@ -1,2 +1,2 @@
-export { UserHealthContextService } from './services/health-context.service.js';
-export { IUserHealthContextReader } from './ports/health-context-reader.port.js';
+export { UserHealthContextService } from './application/services/health-context.js';
+export { IUserHealthContextReader } from './application/ports/health-context-reader.js';

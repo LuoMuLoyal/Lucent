@@ -6,26 +6,26 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
-import { DomainEventPublisher } from '../../../common/index.js';
-import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
-import type { CreateCurrentMedicineDto } from '../dto/create-current-medicine.dto.js';
-import type { CreateHealthContextAllergyDto } from '../dto/create-allergy.dto.js';
-import type { CreateHealthContextConditionDto } from '../dto/create-condition.dto.js';
-import type { HealthContextResponseData } from '../dto/response.dto.js';
-import type { UpdateCurrentMedicineDto } from '../dto/update-current-medicine.dto.js';
-import type { UpdateHealthContextAllergyDto } from '../dto/update-allergy.dto.js';
-import type { UpdateHealthContextConditionDto } from '../dto/update-condition.dto.js';
-import type { UpdateHealthContextProfileDto } from '../dto/update-profile.dto.js';
-import { UserHealthContextMapperService } from './mapper.service.js';
-import { UserHealthContextProfileWriteService } from './writes/profile-write.service.js';
-import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service.js';
-import { UserHealthContextConditionWriteService } from './writes/condition-write.service.js';
-import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service.js';
+} from '../../../../common/result/index.js';
+import { DomainEventPublisher } from '../../../../common/index.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import type { CreateCurrentMedicineDto } from '../ports/create-current-medicine.js';
+import type { CreateHealthContextAllergyDto } from '../ports/create-allergy.js';
+import type { CreateHealthContextConditionDto } from '../ports/create-condition.js';
+import type { HealthContextResponseData } from '../ports/health-context-resource.js';
+import type { UpdateCurrentMedicineDto } from '../ports/update-current-medicine.js';
+import type { UpdateHealthContextAllergyDto } from '../ports/update-allergy.js';
+import type { UpdateHealthContextConditionDto } from '../ports/update-condition.js';
+import type { UpdateHealthContextProfileDto } from '../ports/update-profile.js';
+import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { UpdateProfile } from '../use_cases/update-profile.js';
+import { AllergyUseCases } from '../use_cases/allergies.js';
+import { ConditionUseCases } from '../use_cases/conditions.js';
+import { MedicineUseCases } from '../use_cases/medicines.js';
 import {
   HEALTH_CONTEXT_CHANGED,
   type HealthContextChangedPayload,
-} from '../../../common/events/domain-events.js';
+} from '../../../../common/events/domain-events.js';
 
 @Injectable()
 export class UserHealthContextService {
@@ -33,11 +33,11 @@ export class UserHealthContextService {
 
   constructor(
     private readonly repository: UserHealthContextRepositoryPort,
-    private readonly mapperService: UserHealthContextMapperService,
-    private readonly profileWriteService: UserHealthContextProfileWriteService,
-    private readonly allergyWriteService: UserHealthContextAllergyWriteService,
-    private readonly conditionWriteService: UserHealthContextConditionWriteService,
-    private readonly medicineWriteService: UserHealthContextMedicineWriteService,
+    private readonly mapperService: UserHealthContextMapper,
+    private readonly profileWriteService: UpdateProfile,
+    private readonly allergyWriteService: AllergyUseCases,
+    private readonly conditionWriteService: ConditionUseCases,
+    private readonly medicineWriteService: MedicineUseCases,
     private readonly publisher: DomainEventPublisher,
   ) {}
 

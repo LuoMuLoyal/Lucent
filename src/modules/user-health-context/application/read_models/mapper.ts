@@ -5,15 +5,15 @@ import {
   formatDateOnly,
   formatDateTime,
   parseDateOnly,
-} from '../../../common/index.js';
-import type { HealthContextResponseData } from '../dto/response.dto.js';
+} from '../../../../common/index.js';
+import type { HealthContextResponseData } from '../ports/health-context-resource.js';
 import {
   CORE_PROFILE_FIELDS,
   type UserHealthContextRecord,
-} from '../types/health-context.types.js';
+} from '../../domain/health-context/health-context.types.js';
 
 @Injectable()
-export class UserHealthContextMapperService {
+export class UserHealthContextMapper {
   toResponse(user: UserHealthContextRecord): HealthContextResponseData {
     const rawExtras =
       (user.profile?.extras as Record<string, unknown> | null) ?? {};

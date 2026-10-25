@@ -5,9 +5,9 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
-import { UserHealthContextOwnershipService } from '../ownership.service.js';
-import { UserHealthContextAllergyWriteService } from './allergy-write.service.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import { AllergyUseCases } from './allergies.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,
@@ -18,8 +18,8 @@ async function collectResult<T>(
   );
 }
 
-describe('UserHealthContextAllergyWriteService', () => {
-  let service: UserHealthContextAllergyWriteService;
+describe('AllergyUseCases', () => {
+  let service: AllergyUseCases;
 
   let repository: Mocked<UserHealthContextRepositoryPort>;
   let ensureActive: vi.Mock;
@@ -35,10 +35,10 @@ describe('UserHealthContextAllergyWriteService', () => {
     ensureOwned = vi.fn().mockReturnValue(okAsync(undefined));
     const module = await Test.createTestingModule({
       providers: [
-        UserHealthContextAllergyWriteService,
+        AllergyUseCases,
         { provide: UserHealthContextRepositoryPort, useValue: repository },
         {
-          provide: UserHealthContextOwnershipService,
+          provide: UserHealthContextOwnership,
           useValue: {
             ensureActiveUserExists: ensureActive,
             ensureAllergyOwnedByUser: ensureOwned,
@@ -46,7 +46,7 @@ describe('UserHealthContextAllergyWriteService', () => {
         },
       ],
     }).compile();
-    service = module.get(UserHealthContextAllergyWriteService);
+    service = module.get(AllergyUseCases);
   });
 
   it('creates', async () => {

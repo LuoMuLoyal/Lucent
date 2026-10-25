@@ -1,21 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, UserAllergySeverity } from '#generated/prisma/client.js';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
 import { normalizeNullableText } from '../../../../common/index.js';
 import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextOwnershipService } from '../ownership.service.js';
-import type { CreateHealthContextAllergyDto } from '../../dto/create-allergy.dto.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import type { CreateHealthContextAllergyDto } from '../ports/create-allergy.js';
 
-import type { UpdateHealthContextAllergyDto } from '../../dto/update-allergy.dto.js';
+import type { UpdateHealthContextAllergyDto } from '../ports/update-allergy.js';
 
 @Injectable()
-export class UserHealthContextAllergyWriteService {
+export class AllergyUseCases {
   constructor(
     private readonly repository: UserHealthContextRepositoryPort,
-    private readonly ownershipService: UserHealthContextOwnershipService,
+    private readonly ownershipService: UserHealthContextOwnership,
   ) {}
 
   create(

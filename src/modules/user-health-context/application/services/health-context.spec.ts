@@ -1,7 +1,7 @@
-import { nonDeleted } from '../../../common/index.js';
+import { nonDeleted } from '../../../../common/index.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { DomainEventPublisher } from '../../../common/index.js';
+import { DomainEventPublisher } from '../../../../common/index.js';
 import { type Mocked } from 'vitest';
 import {
   ActivityLevel,
@@ -17,22 +17,22 @@ import {
   okAsync,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 
-import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
-import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { AllergyUseCases } from '../use_cases/allergies.js';
 
-import { UserHealthContextConditionWriteService } from './writes/condition-write.service.js';
+import { ConditionUseCases } from '../use_cases/conditions.js';
 
-import { UserHealthContextMapperService } from './mapper.service.js';
+import { UserHealthContextMapper } from '../read_models/mapper.js';
 
-import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service.js';
+import { MedicineUseCases } from '../use_cases/medicines.js';
 
-import { UserHealthContextOwnershipService } from './ownership.service.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
 
-import { UserHealthContextProfileWriteService } from './writes/profile-write.service.js';
+import { UpdateProfile } from '../use_cases/update-profile.js';
 
-import { UserHealthContextService } from './health-context.service.js';
+import { UserHealthContextService } from './health-context.js';
 
 const mockUserBase = {
   id: 'user-uuid-1',
@@ -87,12 +87,12 @@ describe('UserHealthContextService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserHealthContextService,
-        UserHealthContextOwnershipService,
-        UserHealthContextMapperService,
-        UserHealthContextProfileWriteService,
-        UserHealthContextAllergyWriteService,
-        UserHealthContextConditionWriteService,
-        UserHealthContextMedicineWriteService,
+        UserHealthContextOwnership,
+        UserHealthContextMapper,
+        UpdateProfile,
+        AllergyUseCases,
+        ConditionUseCases,
+        MedicineUseCases,
         {
           provide: UserHealthContextRepositoryPort,
           useValue: {

@@ -7,10 +7,10 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
-import type { UpdateHealthContextProfileDto } from '../../dto/update-profile.dto.js';
-import { UserHealthContextOwnershipService } from '../ownership.service.js';
-import { UserHealthContextMapperService } from '../mapper.service.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import type { UpdateHealthContextProfileDto } from '../ports/update-profile.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserHealthContextMapper } from '../read_models/mapper.js';
 
 interface ProfileWriteData {
   createData: Prisma.UserProfileUncheckedCreateInput;
@@ -18,11 +18,11 @@ interface ProfileWriteData {
 }
 
 @Injectable()
-export class UserHealthContextProfileWriteService {
+export class UpdateProfile {
   constructor(
     private readonly repository: UserHealthContextRepositoryPort,
-    private readonly ownershipService: UserHealthContextOwnershipService,
-    private readonly mapperService: UserHealthContextMapperService,
+    private readonly ownershipService: UserHealthContextOwnership,
+    private readonly mapperService: UserHealthContextMapper,
   ) {}
 
   upsertProfile(

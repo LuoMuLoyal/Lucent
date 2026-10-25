@@ -1,38 +1,46 @@
 import { Module } from '@nestjs/common';
-import { UserHealthContextController } from './user-health-context.controller.js';
-import { UserHealthContextAllergyWriteService } from './services/writes/allergy-write.service.js';
 
-import { UserHealthContextConditionWriteService } from './services/writes/condition-write.service.js';
+import { UserHealthContextController } from './adapters/http/user-health-context.controller.js';
+import { PublishedHealthContextEvents } from './adapters/events/health-context-changed.js';
+import { UserHealthContextService } from './application/services/health-context.js';
+import { HealthContextEvents } from './application/ports/health-context-events.js';
+import { IUserHealthContextReader } from './application/ports/health-context-reader.js';
+import { UserHealthContextMapper } from './application/read_models/mapper.js';
+import { AllergyUseCases } from './application/use_cases/allergies.js';
+import { ConditionUseCases } from './application/use_cases/conditions.js';
+import { MedicineUseCases } from './application/use_cases/medicines.js';
+import { UpdateProfile } from './application/use_cases/update-profile.js';
+import { UserHealthContextOwnership } from './application/use_cases/ownership.js';
+import { UserHealthContextRepositoryPort } from './application/ports/health-context-repository.js';
+import { PrismaUserHealthContext } from './infrastructure/persistence/health-context.js';
 
-import { UserHealthContextMapperService } from './services/mapper.service.js';
-
-import { UserHealthContextMedicineWriteService } from './services/writes/medicine-write.service.js';
-
-import { UserHealthContextOwnershipService } from './services/ownership.service.js';
-
-import { UserHealthContextProfileWriteService } from './services/writes/profile-write.service.js';
-
-import { UserHealthContextService } from './services/health-context.service.js';
-import {
-  UserHealthContextRepositoryPort,
-  UserHealthContextRepository,
-} from './repositories/health-context.repository.js';
-import { IUserHealthContextReader } from './ports/health-context-reader.port.js';
-
+/**
+ * User Profile context — health profile, allergies, conditions, current medicines
+ * (ADR-0024).
+ *
+ * `IUserHealthContextReader` is the published read port: `assistant` and the
+ * `today-suggestion` profile collector inject it by that token. It stays exported
+ * from the barrel under its historical name.
+ */
 @Module({
   controllers: [UserHealthContextController],
   providers: [
-    UserHealthContextRepository,
+    PrismaUserHealthContext,
     {
       provide: UserHealthContextRepositoryPort,
-      useExisting: UserHealthContextRepository,
+      useExisting: PrismaUserHealthContext,
     },
-    UserHealthContextOwnershipService,
-    UserHealthContextMapperService,
-    UserHealthContextProfileWriteService,
-    UserHealthContextAllergyWriteService,
-    UserHealthContextConditionWriteService,
-    UserHealthContextMedicineWriteService,
+    PublishedHealthContextEvents,
+    {
+      provide: HealthContextEvents,
+      useExisting: PublishedHealthContextEvents,
+    },
+    UserHealthContextOwnership,
+    UserHealthContextMapper,
+    UpdateProfile,
+    AllergyUseCases,
+    ConditionUseCases,
+    MedicineUseCases,
     UserHealthContextService,
     {
       provide: IUserHealthContextReader,

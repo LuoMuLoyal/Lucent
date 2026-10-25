@@ -4,7 +4,7 @@ import {
   SexAtBirth,
   UnitSystem,
 } from '#generated/prisma/client.js';
-import { DIETARY_PREFERENCE_VALUES } from '../types/health-context.types.js';
+import { DIETARY_PREFERENCE_VALUES } from '../../domain/health-context/health-context.types.js';
 
 /**
  * Standard Schema (zod 4) for `PATCH /health-context/profile` body.

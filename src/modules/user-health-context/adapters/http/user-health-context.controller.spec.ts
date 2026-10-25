@@ -1,10 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { UserHealthContextController } from './user-health-context.controller.js';
-import { UserHealthContextService } from './services/health-context.service.js';
-import type { UserPayload } from '../auth/index.js';
-import { DomainFailureException } from '../../common/result/unwrap-result.js';
-import { okAsync, errAsync } from '../../common/result/index.js';
-import type { DomainFailure } from '../../common/result/index.js';
+import { UserHealthContextService } from '../../application/services/health-context.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { DomainFailureException } from '../../../../common/result/unwrap-result.js';
+import { okAsync, errAsync } from '../../../../common/result/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
 
 describe('UserHealthContextController', () => {
   let controller: UserHealthContextController;

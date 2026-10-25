@@ -1,8 +1,8 @@
-import type { HealthContextResponseData } from '../dto/response.dto.js';
+import type { HealthContextResponseData } from '../ports/health-context-resource.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 
 /**
  * Read-only port for user health context.  Consumed by the assistant module

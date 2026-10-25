@@ -17,27 +17,27 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { ProblemDetailsDto } from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { CurrentUser } from '../auth/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { createHealthContextAllergySchema } from './dto/create-allergy.dto.js';
-import type { CreateHealthContextAllergyDto } from './dto/create-allergy.dto.js';
-import { createHealthContextConditionSchema } from './dto/create-condition.dto.js';
-import type { CreateHealthContextConditionDto } from './dto/create-condition.dto.js';
-import { createCurrentMedicineSchema } from './dto/create-current-medicine.dto.js';
-import type { CreateCurrentMedicineDto } from './dto/create-current-medicine.dto.js';
-import { healthContextResponseSchema } from './dto/response.dto.js';
-import { updateHealthContextAllergySchema } from './dto/update-allergy.dto.js';
-import type { UpdateHealthContextAllergyDto } from './dto/update-allergy.dto.js';
-import { updateHealthContextConditionSchema } from './dto/update-condition.dto.js';
-import type { UpdateHealthContextConditionDto } from './dto/update-condition.dto.js';
-import { updateCurrentMedicineSchema } from './dto/update-current-medicine.dto.js';
-import type { UpdateCurrentMedicineDto } from './dto/update-current-medicine.dto.js';
-import { updateHealthContextProfileSchema } from './dto/update-profile.dto.js';
-import type { UpdateHealthContextProfileDto } from './dto/update-profile.dto.js';
-import { UserHealthContextService } from './services/health-context.service.js';
+import { ProblemDetailsDto } from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { CurrentUser } from '../../../auth/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { createHealthContextAllergySchema } from '../../application/ports/create-allergy.js';
+import type { CreateHealthContextAllergyDto } from '../../application/ports/create-allergy.js';
+import { createHealthContextConditionSchema } from '../../application/ports/create-condition.js';
+import type { CreateHealthContextConditionDto } from '../../application/ports/create-condition.js';
+import { createCurrentMedicineSchema } from '../../application/ports/create-current-medicine.js';
+import type { CreateCurrentMedicineDto } from '../../application/ports/create-current-medicine.js';
+import { healthContextResponseSchema } from '../../application/ports/health-context-resource.js';
+import { updateHealthContextAllergySchema } from '../../application/ports/update-allergy.js';
+import type { UpdateHealthContextAllergyDto } from '../../application/ports/update-allergy.js';
+import { updateHealthContextConditionSchema } from '../../application/ports/update-condition.js';
+import type { UpdateHealthContextConditionDto } from '../../application/ports/update-condition.js';
+import { updateCurrentMedicineSchema } from '../../application/ports/update-current-medicine.js';
+import type { UpdateCurrentMedicineDto } from '../../application/ports/update-current-medicine.js';
+import { updateHealthContextProfileSchema } from '../../application/ports/update-profile.js';
+import type { UpdateHealthContextProfileDto } from '../../application/ports/update-profile.js';
+import { UserHealthContextService } from '../../application/services/health-context.js';
 
 @ApiTags('User Health Context')
 @Controller('health-context')

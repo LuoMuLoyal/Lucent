@@ -7,10 +7,10 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextProfileWriteService } from './profile-write.service.js';
-import { UserHealthContextRepositoryPort } from '../../repositories/health-context.repository.js';
-import { UserHealthContextOwnershipService } from '../ownership.service.js';
-import { UserHealthContextMapperService } from '../mapper.service.js';
+import { UpdateProfile } from './update-profile.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserHealthContextMapper } from '../read_models/mapper.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,
@@ -21,8 +21,8 @@ async function collectResult<T>(
   );
 }
 
-describe('UserHealthContextProfileWriteService', () => {
-  let service: UserHealthContextProfileWriteService;
+describe('UpdateProfile', () => {
+  let service: UpdateProfile;
 
   let repository: Mocked<UserHealthContextRepositoryPort>;
   let ensureActive: vi.Mock;
@@ -36,16 +36,16 @@ describe('UserHealthContextProfileWriteService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        UserHealthContextProfileWriteService,
+        UpdateProfile,
         { provide: UserHealthContextRepositoryPort, useValue: repository },
         {
-          provide: UserHealthContextOwnershipService,
+          provide: UserHealthContextOwnership,
           useValue: {
             ensureActiveUserExists: ensureActive,
           },
         },
         {
-          provide: UserHealthContextMapperService,
+          provide: UserHealthContextMapper,
           useValue: {
             dateOnlyStringToUtcDate: vi
               .fn()
@@ -57,7 +57,7 @@ describe('UserHealthContextProfileWriteService', () => {
       ],
     }).compile();
 
-    service = module.get(UserHealthContextProfileWriteService);
+    service = module.get(UpdateProfile);
   });
 
   afterEach(() => {

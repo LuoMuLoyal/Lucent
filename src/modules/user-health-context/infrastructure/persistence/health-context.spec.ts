@@ -1,12 +1,12 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked.js';
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
 
 import { Prisma } from '#generated/prisma/client.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
-import { UserHealthContextRepository } from './health-context.repository.js';
-import type { PrismaService } from '../../../prisma/index.js';
+} from '../../../../common/result/index.js';
+import { PrismaUserHealthContext } from './health-context.js';
+import type { PrismaService } from '../../../../prisma/index.js';
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
   const error = Object.create(
@@ -25,8 +25,8 @@ async function collectResult<T>(
   );
 }
 
-describe('UserHealthContextRepository', () => {
-  let repository: UserHealthContextRepository;
+describe('PrismaUserHealthContext', () => {
+  let repository: PrismaUserHealthContext;
   let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('UserHealthContextRepository', () => {
       },
     } as unknown as DeepMocked<PrismaService>;
 
-    repository = new UserHealthContextRepository(prisma);
+    repository = new PrismaUserHealthContext(prisma);
   });
 
   describe('findUserWithHealthContext', () => {

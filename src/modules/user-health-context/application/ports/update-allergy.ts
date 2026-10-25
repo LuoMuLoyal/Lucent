@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isoDateOrDatetimeSchema } from '../../../common/validators/iso-datetime.schema.js';
+import { isoDateOrDatetimeSchema } from '../../../../common/validators/iso-datetime.schema.js';
 import {
   UserAllergyKind,
   UserAllergySeverity,

@@ -3,9 +3,9 @@ import { type Mocked } from 'vitest';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository.js';
-import { UserHealthContextOwnershipService } from './ownership.service.js';
+} from '../../../../common/result/index.js';
+import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,
@@ -16,8 +16,8 @@ async function collectResult<T>(
   );
 }
 
-describe('UserHealthContextOwnershipService', () => {
-  let service: UserHealthContextOwnershipService;
+describe('UserHealthContextOwnership', () => {
+  let service: UserHealthContextOwnership;
 
   let repository: Mocked<UserHealthContextRepositoryPort>;
 
@@ -31,12 +31,12 @@ describe('UserHealthContextOwnershipService', () => {
 
     const module = await Test.createTestingModule({
       providers: [
-        UserHealthContextOwnershipService,
+        UserHealthContextOwnership,
         { provide: UserHealthContextRepositoryPort, useValue: repository },
       ],
     }).compile();
 
-    service = module.get(UserHealthContextOwnershipService);
+    service = module.get(UserHealthContextOwnership);
   });
 
   describe('ensureActiveUserExists', () => {
