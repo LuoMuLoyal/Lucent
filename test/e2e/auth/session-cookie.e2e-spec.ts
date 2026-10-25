@@ -22,10 +22,10 @@ import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
  * 安全属性——它是方案 A 的全部理由。
  */
 
-const SESSION_REGISTER_PATH = '/api/v1/auth/sessions/register';
-const SESSION_LOGIN_PATH = '/api/v1/auth/sessions/login';
-const SESSION_REFRESH_PATH = '/api/v1/auth/sessions/refresh';
-const SESSION_LOGOUT_PATH = '/api/v1/auth/sessions/logout';
+const SESSION_REGISTER_PATH = '/api/v1/auth/browser/register';
+const SESSION_LOGIN_PATH = '/api/v1/auth/browser/login';
+const SESSION_REFRESH_PATH = '/api/v1/auth/browser/refresh';
+const SESSION_LOGOUT_PATH = '/api/v1/auth/browser/logout';
 const ACCOUNT_PATH = '/api/v1/account';
 const SEND_CODE_PATH = '/api/v1/auth/send-verification-code';
 
@@ -93,7 +93,7 @@ describe('Cookie Session API (e2e)', () => {
   /**
    * 注册一个用户并返回**未使用的邮箱**（供后续登录用）。
    *
-   * 与 sessions e2e 同样的做法：验证码服务只存哈希，所以直接往缓存里种哈希，
+   * 与 bearer e2e 同样的做法：验证码服务只存哈希，所以直接往缓存里种哈希，
    * 而不是真的收信。
    */
   async function seedVerifiedEmail(): Promise<{ email: string; code: string }> {
@@ -134,10 +134,10 @@ describe('Cookie Session API (e2e)', () => {
   }
 
   // ════════════════════════════════════════════════════════════
-  // POST /auth/sessions/register — 建立会话
+  // POST /auth/browser/register — 建立会话
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/sessions/register', () => {
+  describe('POST /api/v1/auth/browser/register', () => {
     it('201 + 两个 HttpOnly cookie，且 body 里没有 token', async () => {
       const { email, code } = await seedVerifiedEmail();
 
@@ -170,10 +170,10 @@ describe('Cookie Session API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // POST /auth/sessions/login + GET /account
+  // POST /auth/browser/login + GET /account
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/sessions/login', () => {
+  describe('POST /api/v1/auth/browser/login', () => {
     it('登录后可用 cookie 访问 /account', async () => {
       const { email, code } = await seedVerifiedEmail();
       await registerSession(email, code);
@@ -234,10 +234,10 @@ describe('Cookie Session API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // POST /auth/sessions/refresh — 轮换
+  // POST /auth/browser/refresh — 轮换
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/sessions/refresh', () => {
+  describe('POST /api/v1/auth/browser/refresh', () => {
     it('用 refresh cookie 换出新的一对 cookie', async () => {
       const { email, code } = await seedVerifiedEmail();
       const registered = await registerSession(email, code);
@@ -374,10 +374,10 @@ describe('Cookie Session API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // POST /auth/sessions/logout
+  // POST /auth/browser/logout
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/sessions/logout', () => {
+  describe('POST /api/v1/auth/browser/logout', () => {
     it('登出后 cookie 被清掉，且会话被吊销', async () => {
       const { email, code } = await seedVerifiedEmail();
       const registered = await registerSession(email, code);

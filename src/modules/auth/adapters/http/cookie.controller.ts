@@ -73,16 +73,33 @@ import {
  *
  * | 方法 | 路径 | 鉴权 | 作用 |
  * | --- | --- | --- | --- |
- * | POST | `/auth/sessions/register` | 公开 | 注册并建立会话 |
- * | POST | `/auth/sessions/login` | 公开 | 登录并建立会话 |
- * | POST | `/auth/sessions/refresh` | 公开（凭 refresh cookie） | 轮换会话 |
- * | POST | `/auth/sessions/logout` | 需 access 凭据 | 吊销会话并清 cookie |
+ * | POST | `/auth/browser/register` | 公开 | 注册并建立会话 |
+ * | POST | `/auth/browser/login` | 公开 | 登录并建立会话 |
+ * | POST | `/auth/browser/refresh` | 公开（凭 refresh cookie） | 轮换会话 |
+ * | POST | `/auth/browser/logout` | 需 access 凭据 | 吊销会话并清 cookie |
  *
- * ## 路径为什么是复数 `/auth/sessions/*`
+ * ## 路径为什么是 `browser` 而不是 `cookie`
  *
- * 这些动作作用在**会话资源**上，而不是某个具名会话：`sessions/refresh` 换一个成员，
- * `sessions/logout` 删掉当前成员。单数 `/auth/session/*` 读起来像「某一个会话」，
- * 会和设备/会话列表的语义混在一起。
+ * **路径表达安全契约，不是表达机制。** 这两组端点的区别不是「用什么存 token」，
+ * 而是**「JS 能不能拿到 token」**：
+ *
+ * - `POST /auth/login` —— token 在响应体里，**JS 可读**，XSS 能接管账号；
+ * - `POST /auth/browser/login` —— token 只进 httpOnly cookie，**JS 读不到**。
+ *
+ * 这是两种安全等级。**不能靠运行时协商把它们合进一个端点**：
+ * `Accept` 的内容协商语义是「我要什么响应格式」，不是「token 投到哪里」，
+ * 而客户端的 `Accept` 几乎恒为 `application/json`，用它判断等于协商形同虚设。
+ * 更糟的是，合进一个端点会让**同一个 URL 的安全性取决于协商结果**——
+ * 审计时必须读完整个协商逻辑才知道这次是否安全，那是最难审计的形状。
+ *
+ * 用 `browser` 而不是 `cookie`：`cookie` 描述机制（换种存法就能改），
+ * `browser` 描述场景——**这条是给「不该让脚本读 token 的客户端」用的**。
+ *
+ * ## 会话管理端点为什么不在这个前缀下
+ *
+ * `GET/DELETE /auth/devices` 管的是「哪台设备登录过」，**它本身不投递 token**，
+ * 没有安全契约差异，所以不带 `browser` 前缀。「会话/设备」是资源，
+ * 路径表达资源。
  *
  * ## 为什么这里没有「读取当前用户」的端点
  *
@@ -110,14 +127,14 @@ export class CookieSessionController {
     private readonly configService: ConfigService,
   ) {}
 
-  // ── POST /api/v1/auth/sessions/register ──────────────────────
+  // ── POST /api/v1/auth/browser/register ───────────────────────
 
   @Public()
-  @Post('sessions/register')
+  @Post('browser/register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register (httpOnly cookie session)',
-    operationId: 'registerWithCookie',
+    operationId: 'registerInBrowser',
   })
   @ApiResponse({
     status: 201,
@@ -160,14 +177,14 @@ export class CookieSessionController {
     return toSessionResponse(result.user, result.tokens.accessTokenExpiresAt);
   }
 
-  // ── POST /api/v1/auth/sessions/login ─────────────────────────
+  // ── POST /api/v1/auth/browser/login ──────────────────────────
 
   @Public()
-  @Post('sessions/login')
+  @Post('browser/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Login (httpOnly cookie session)',
-    operationId: 'loginWithCookie',
+    operationId: 'loginInBrowser',
   })
   @ApiResponse({
     status: 200,
@@ -208,14 +225,14 @@ export class CookieSessionController {
     return toSessionResponse(result.user, result.tokens.accessTokenExpiresAt);
   }
 
-  // ── POST /api/v1/auth/sessions/refresh ───────────────────────
+  // ── POST /api/v1/auth/browser/refresh ────────────────────────
 
   @Public()
-  @Post('sessions/refresh')
+  @Post('browser/refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Rotate the cookie session',
-    operationId: 'refreshWithCookie',
+    operationId: 'refreshInBrowser',
   })
   @ApiResponse({
     status: 200,
@@ -257,14 +274,14 @@ export class CookieSessionController {
     writeSessionCookies(reply, toCookieTokens(rotated.tokens), this.policy());
     return toSessionResponse(user, rotated.tokens.accessTokenExpiresAt);
   }
-  // ── POST /api/v1/auth/sessions/logout ────────────────────────
+  // ── POST /api/v1/auth/browser/logout ─────────────────────────
 
-  @Post('sessions/logout')
+  @Post('browser/logout')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Logout (clears the cookie session)',
-    operationId: 'logoutWithCookie',
+    operationId: 'logoutInBrowser',
   })
   @ApiResponse({ status: 204, description: 'Logged out; cookies cleared.' })
   @ApiResponse({
@@ -310,7 +327,7 @@ export class CookieSessionController {
 // NOTE: 注册响应组件（OpenAPI）。Bearer 那条路为 `/auth/login` 注册过
 // `LoginResponse`，这里用 `SessionResponse` 区分，避免组件被覆盖。
 registerResponseSchema({
-  path: '/api/v1/auth/sessions/login',
+  path: '/api/v1/auth/browser/login',
   method: 'post',
   componentName: 'SessionResponse',
   schema: sessionResponseSchema,
@@ -318,7 +335,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/auth/sessions/register',
+  path: '/api/v1/auth/browser/register',
   method: 'post',
   componentName: 'SessionResponse',
   schema: sessionResponseSchema,
@@ -326,7 +343,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/auth/sessions/refresh',
+  path: '/api/v1/auth/browser/refresh',
   method: 'post',
   componentName: 'SessionResponse',
   schema: sessionResponseSchema,

@@ -50,6 +50,7 @@ import { IdentityLink } from './application/ports/identity-link.js';
 import { AuthIdentityService } from './application/services/identity.js';
 import { EmailVerificationService } from './services/identity/email-verification.service.js';
 import { HumanVerification } from './application/ports/human-verification.js';
+import { OAUTH_PROVIDER_TOKENS } from './application/ports/oauth-provider.js';
 import { CloudflareTurnstile } from './infrastructure/verification/cloudflare-turnstile.js';
 import { FailureCounters } from './application/ports/failure-counters.js';
 import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js';
@@ -109,6 +110,24 @@ import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js
     AppleOAuthProvider,
     QqOAuthProvider,
     GoogleOAuthProvider,
+    // `OAuthProvider` 是 interface,不能当 DI token——按提供商绑显式 token。
+    // 没有这组别名,`AuthOAuthFacadeService` 的 5 个同类型构造参数会解析成
+    // `Object` 并让**整个应用启动失败**(单元测试覆盖不到,只有实例化
+    // AuthModule 时才暴露)。
+    {
+      provide: OAUTH_PROVIDER_TOKENS.wechatWeb,
+      useExisting: WechatWebOAuthProvider,
+    },
+    {
+      provide: OAUTH_PROVIDER_TOKENS.wechatMobile,
+      useExisting: WechatMobileOAuthProvider,
+    },
+    { provide: OAUTH_PROVIDER_TOKENS.qq, useExisting: QqOAuthProvider },
+    {
+      provide: OAUTH_PROVIDER_TOKENS.google,
+      useExisting: GoogleOAuthProvider,
+    },
+    { provide: OAUTH_PROVIDER_TOKENS.apple, useExisting: AppleOAuthProvider },
     AuthIdentityService,
     EmailVerificationService,
     CloudflareTurnstile,

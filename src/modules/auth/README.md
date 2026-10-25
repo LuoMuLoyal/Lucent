@@ -77,15 +77,25 @@ S2（本地凭据）已迁完:`services/identity/identity.service.ts` 与
 
 ## 端点命名
 
-两条令牌投递出口,路径只在用途上区分,不靠单复数暗示:
+两条令牌投递出口。**路径表达的是安全契约，不是传输机制**：
 
-| 出口                | 路径                                                  | token 落点      |
-| ------------------- | ----------------------------------------------------- | --------------- |
-| Bearer(手机端)      | `POST /auth/{login,register,logout,refresh}`          | 响应体          |
-| cookie(浏览器/桌面) | `POST /auth/sessions/{login,register,logout,refresh}` | 仅 `Set-Cookie` |
+| 出口                 | 路径                                                 | token 落点                | JS 可读   |
+| -------------------- | ---------------------------------------------------- | ------------------------- | --------- |
+| Bearer(手机端)       | `POST /auth/{login,register,logout,refresh}`         | 响应体                    | ✅ 可读   |
+| browser(浏览器/桌面) | `POST /auth/browser/{login,register,logout,refresh}` | 仅 `Set-Cookie`(httpOnly) | ❌ 读不到 |
+
+这两组不是「同一件事的两种写法」,而是**两种安全等级**:前者的 token 一旦被 XSS
+读到就等于账号接管;后者的 token 只在 httpOnly cookie 里,脚本永远拿不到。
+所以它们**必须**是两条路径——合进一个端点会让同一个 URL 的安全性取决于运行时
+协商结果,那是最难审计的形状。
+
+用 `browser` 而不是 `cookie`:后者描述机制(换种存法就能改),前者描述场景
+——「这条是给不该让脚本读 token 的客户端用的」。
 
 设备/登录会话清单与吊销在 `/auth/devices`(`GET`、`DELETE /:sessionId`),
 与管理面 `/admin/users/:id/sessions/:sessionId` 分开:前者是用户自助,后者是运营。
+**`/auth/devices` 不带 `browser` 前缀**:它不投递 token,没有安全契约差异;
+「会话/设备」是资源,路径表达资源。
 
 **没有 `/auth/me`**:账户资料的唯一读入口是 `GET /account`(account 模块,
 含 `hasPassword`/`linkedIdentities`/`lastLoginAt`)。登录/注册/刷新的响应里仍带
@@ -93,8 +103,9 @@ S2（本地凭据）已迁完:`services/identity/identity.service.ts` 与
 
 operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
 `registerWithCookie` / `refreshWithCookie` / `logoutWithCookie` /
-`listDevices` / `revokeDevice`),不靠方法名推导——`sessions` 与 `session`
-只差一个字母时的歧义就是靠这个消掉的。
+`listDevices` / `revokeDevice`),不靠方法名推导。**路径用 `browser` 表达场景、
+operationId 用 `WithCookie` 表达机制**——两者互补:前者回答「谁在用」,
+后者回答「token 落在哪」,而后者正是生成客户端方法名要表达的东西。
 
 ## 边界
 

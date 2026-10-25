@@ -118,3 +118,31 @@ export interface OAuthProvider {
     accessToken: string,
   ): ResultAsync<OAuthProviderProfile, DomainFailure>;
 }
+
+/**
+ * 各提供商的 **DI token**。
+ *
+ * ## 为什么需要它
+ *
+ * `OAuthProvider` 是 **TypeScript interface**——运行时不存在，所以不能作为
+ * DI token：Nest 会把 `OAuthProvider` 类型的构造参数解析成 `Object`，
+ * 然后报 `can't resolve dependencies ... index [N]`。
+ *
+ * `AuthOAuthFacadeService` 注入 5 个**同类型**的提供商实例，它们只能靠
+ * 显式 token 区分。用字符串常量而不是 `Symbol`：日志与错误信息里可读。
+ *
+ * ## 这个错误为什么容易被漏掉
+ *
+ * 它只在**真的实例化 `AuthModule`** 时暴露；单元测试用手工 `new` 或局部
+ * `TestingModule`（只列自己需要的 provider），不会走到这里。
+ * 本仓库是 `pnpm export:openapi`（`NestFactory.create(AppModule)`）先发现的
+ * ——而且因为它失败时被 Nest 的 `ExceptionsZone` 吞掉了输出，表现成
+ * 「exit 1 且零输出」。
+ */
+export const OAUTH_PROVIDER_TOKENS = {
+  wechatWeb: 'OAUTH_PROVIDER_WECHAT_WEB',
+  wechatMobile: 'OAUTH_PROVIDER_WECHAT_MOBILE',
+  qq: 'OAUTH_PROVIDER_QQ',
+  google: 'OAUTH_PROVIDER_GOOGLE',
+  apple: 'OAUTH_PROVIDER_APPLE',
+} as const;

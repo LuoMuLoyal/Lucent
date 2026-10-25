@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnModuleInit,
@@ -23,7 +24,10 @@ import type {
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
 } from '../../dto/shared/oauth.dto.js';
-import type { OAuthProvider } from '../ports/oauth-provider.js';
+import {
+  OAUTH_PROVIDER_TOKENS,
+  type OAuthProvider,
+} from '../ports/oauth-provider.js';
 import {
   OAUTH_PROVIDER_GOOGLE,
   OAUTH_PROVIDER_QQ,
@@ -48,12 +52,33 @@ import type { RequestOrigin } from '../../application/ports/request-origin.js';
 export class AuthOAuthFacadeService implements OnModuleInit {
   private readonly logger = new Logger(AuthOAuthFacadeService.name);
 
+  /**
+   * ## 为什么每个提供商都要 `@Inject(Token)`
+   *
+   * `OAuthProvider` 是 **TypeScript interface**——它在运行时不存在，所以
+   * **不能**作为 DI token（Nest 会把它当成 `Object`，然后报
+   * 「can't resolve dependencies ... index [1]」）。
+   *
+   * 用显式字符串 token 绑定：每个提供商是不同实例，靠 token 区分。
+   * 这也是**为什么这个类不再注入具体类**（那会违反
+   * `ddd-application-no-infra-or-adapters`）后必须补的一步——
+   * 改成端口的同时就得改成 token 注入，否则应用启动即失败。
+   *
+   * 这个错误只在**真的把 AuthModule 实例化**时才暴露；单元测试用手工 new
+   * 或局部 TestingModule，不会走到这里。所以是 `pnpm export:openapi`
+   * （会 `NestFactory.create(AppModule)`）先发现的。
+   */
   constructor(
     private readonly userService: UserService,
+    @Inject(OAUTH_PROVIDER_TOKENS.wechatWeb)
     private readonly wechatWebOAuthProvider: OAuthProvider,
+    @Inject(OAUTH_PROVIDER_TOKENS.wechatMobile)
     private readonly wechatMobileOAuthProvider: OAuthProvider,
+    @Inject(OAUTH_PROVIDER_TOKENS.qq)
     private readonly qqOAuthProvider: OAuthProvider,
+    @Inject(OAUTH_PROVIDER_TOKENS.google)
     private readonly googleOAuthProvider: OAuthProvider,
+    @Inject(OAUTH_PROVIDER_TOKENS.apple)
     private readonly appleOAuthProvider: OAuthProvider,
     private readonly authOAuthStateService: AuthOAuthStateService,
     private readonly sessionTokens: SessionTokens,
