@@ -1,4 +1,4 @@
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
@@ -63,7 +63,13 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
-    @Inject(TodayAnalysisEventConsumerService)
+    // `forwardRef` breaks a DI cycle, not a module-import cycle. The consumer
+    // injects this queue through `TODAY_ANALYSIS_QUEUE_PORT` (bound with
+    // `useExisting` to this very class), so both are mid-construction when the
+    // injector resolves them. Without it the injector's promise never settles:
+    // `compile()` hangs with no error and no log, and every `createTestApp()`
+    // e2e suite dies on its 90s hook timeout.
+    @Inject(forwardRef(() => TodayAnalysisEventConsumerService))
     eventConsumer: TodayAnalysisEventConsumerService,
     @Optional()
     @Inject(RuntimeConfigService)
