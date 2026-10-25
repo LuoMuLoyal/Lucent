@@ -1,9 +1,9 @@
 import type { UserService } from '../../../user/index.js';
 import type { OAuthProvider } from '../ports/oauth-provider.js';
-import type { AuthOAuthStateService } from '../../services/oauth/state.service.js';
+import type { AuthOAuthStateService } from '../../infrastructure/oauth/state.js';
 import type { SessionTokens } from '../../application/services/session-tokens.js';
-import type { AuthOAuthService } from '../../services/oauth/oauth.service.js';
-import type { AuthNotificationService } from '../../services/notification.service.js';
+import type { AuthOAuthService } from '../../infrastructure/oauth/identities.js';
+import type { AuthNotificationService } from '../../infrastructure/oauth/notifications.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 import { AuthOAuthFacadeService } from './oauth-facade.js';
 import { UserStatus } from '#generated/prisma/client.js';

@@ -31,7 +31,7 @@ import { toSessionSubject } from './session-subject.js';
 
 import { AuthRateLimitService } from './rate-limit.js';
 import { HumanVerification } from '../../application/ports/human-verification.js';
-import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
+import { VerificationCodeService } from './verification-code.js';
 
 /**
  * Handles email/password credential flows: registration and login.

@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 
-import { VerificationCodeService } from './verification-code.service.js';
+import { VerificationCodeService } from './verification-code.js';
 import { MailService } from '../../../../mail/mail.service.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { RedisService } from '../../../../common/index.js';

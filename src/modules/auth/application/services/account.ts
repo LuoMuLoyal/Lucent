@@ -13,7 +13,7 @@ import {
 import { UserService } from '../../../user/index.js';
 import type { DeleteAccountDto } from '../../dto/shared/delete-account.dto.js';
 import { PasswordReauthService } from './password-reauth.js';
-import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
+import { VerificationCodeService } from './verification-code.js';
 import { AuthAccountRepositoryPort } from '../../repositories/account.repository.js';
 
 @Injectable()

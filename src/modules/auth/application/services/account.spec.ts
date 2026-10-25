@@ -5,7 +5,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import type { UserService } from '../../../user/index.js';
-import type { VerificationCodeService } from '../../services/identity/verification-code.service.js';
+import type { VerificationCodeService } from './verification-code.js';
 import type { PasswordReauthService } from './password-reauth.js';
 import type { AuthAccountRepositoryPort } from '../../repositories/account.repository.js';
 import { AuthAccountService } from './account.js';

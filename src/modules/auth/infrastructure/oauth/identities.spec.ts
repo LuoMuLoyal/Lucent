@@ -1,7 +1,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
-import { AuthOAuthService } from './oauth.service.js';
+import { AuthOAuthService } from './identities.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { Prisma, type User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';

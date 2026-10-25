@@ -35,12 +35,12 @@ import {
   type OAuthAuthorizeResult,
 } from '../../types/oauth.types.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
-import { AuthNotificationService } from '../../services/notification.service.js';
-import { AuthOAuthService } from '../../services/oauth/oauth.service.js';
+import { AuthNotificationService } from '../../infrastructure/oauth/notifications.js';
+import { AuthOAuthService } from '../../infrastructure/oauth/identities.js';
 import {
   AuthOAuthStateService,
   type OAuthStateEntry,
-} from '../../services/oauth/state.service.js';
+} from '../../infrastructure/oauth/state.js';
 import {
   SessionTokens,
   type TokenPair,

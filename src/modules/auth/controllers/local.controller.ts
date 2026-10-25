@@ -23,7 +23,7 @@ import { AuditLogService } from '../../audit-log/index.js';
 import { CredentialAuthService } from '../application/services/credential.js';
 import { PasswordManagementService } from '../application/services/password-management.js';
 import { HumanVerification } from '../application/ports/human-verification.js';
-import { VerificationCodeService } from '../services/identity/verification-code.service.js';
+import { VerificationCodeService } from '../application/services/verification-code.js';
 
 import { registerSchema } from '../dto/credentials/register.dto.js';
 import type { RegisterDto } from '../dto/credentials/register.dto.js';

@@ -4,7 +4,7 @@ import { I18nService } from 'nestjs-i18n';
 
 import { PasswordManagementService } from './password-management.js';
 import { UserService } from '../../../user/index.js';
-import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
+import { VerificationCodeService } from './verification-code.js';
 import { SessionTokens } from '../../application/services/session-tokens.js';
 import { PasswordReauthService } from './password-reauth.js';
 import { INotificationSender } from '../../../notifications/index.js';

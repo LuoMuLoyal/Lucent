@@ -3,10 +3,7 @@ import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 
-import {
-  AuthOAuthStateService,
-  type OAuthStateEntry,
-} from './state.service.js';
+import { AuthOAuthStateService, type OAuthStateEntry } from './state.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/app-defaults.constants.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';

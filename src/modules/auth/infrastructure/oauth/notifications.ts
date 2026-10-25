@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { resolveLocale } from '../../../common/index.js';
-import { PrismaService } from '../../../prisma/index.js';
+import { resolveLocale } from '../../../../common/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
 
-import { INotificationSender } from '../../notifications/index.js';
-import type { OAuthProviderProfile } from '../application/ports/oauth-provider.js';
+import { INotificationSender } from '../../../notifications/index.js';
+import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 
 /**
  * Security notifications for auth events.

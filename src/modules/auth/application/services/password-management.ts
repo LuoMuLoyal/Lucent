@@ -15,7 +15,7 @@ import type { User } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
 import { INotificationSender } from '../../../notifications/index.js';
 import { AuthIdentityService } from './identity.js';
-import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
+import { VerificationCodeService } from './verification-code.js';
 import type { ChangePasswordDto } from '../../dto/password/change-password.dto.js';
 import type { ChangeEmailDto } from '../../dto/password/change-email.dto.js';
 import type { ResetPasswordDto } from '../../dto/password/reset-password.dto.js';

@@ -1,10 +1,10 @@
-import { errAsync, okAsync } from '../../../common/result/index.js';
-import { createDomainFailure } from '../../../common/result/index.js';
-import { makeTestI18n } from '../../../common/tests/test-i18n.js';
+import { errAsync, okAsync } from '../../../../common/result/index.js';
+import { createDomainFailure } from '../../../../common/result/index.js';
+import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 import type { I18nService } from 'nestjs-i18n';
-import type { NotificationsService } from '../../notifications/index.js';
-import type { OAuthProviderProfile } from '../application/ports/oauth-provider.js';
-import { AuthNotificationService } from './notification.service.js';
+import type { NotificationsService } from '../../../notifications/index.js';
+import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
+import { AuthNotificationService } from './notifications.js';
 
 const i18n = makeTestI18n() as unknown as I18nService;
 

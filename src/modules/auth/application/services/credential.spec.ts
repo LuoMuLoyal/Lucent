@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 
 import { CredentialAuthService } from './credential.js';
 import { UserService } from '../../../user/index.js';
-import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
+import { VerificationCodeService } from './verification-code.js';
 import { SessionTokens } from './session-tokens.js';
 import { AuthRateLimitService } from './rate-limit.js';
 import { HumanVerification } from '../../application/ports/human-verification.js';

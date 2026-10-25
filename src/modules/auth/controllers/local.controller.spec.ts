@@ -4,7 +4,7 @@ import { I18nService } from 'nestjs-i18n';
 import { LocalController } from './local.controller.js';
 import { CredentialAuthService } from '../application/services/credential.js';
 import { PasswordManagementService } from '../application/services/password-management.js';
-import { VerificationCodeService } from '../services/identity/verification-code.service.js';
+import { VerificationCodeService } from '../application/services/verification-code.js';
 import { HumanVerification } from '../application/ports/human-verification.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import {
