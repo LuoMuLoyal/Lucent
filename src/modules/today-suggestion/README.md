@@ -61,6 +61,18 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
 > `copy-generation.types.ts` 两个队列载荷类型；曾用于过渡的 re-export shim
 > **已全部删除**，全模块直接 import `domain/` 下的真源。
 
+- `adapters/acl/collectors/` — 信号采集（`record` / `health-event` /
+  `sleep-trend-builder`）。**ACL 的职责是把上游发布语言翻译成本上下文的语言**：
+  它们只经对方的 **reader port**（`DailyRecordReaderPort`、`IUserSettingsPort`）
+  读数据，再投影成 `SuggestionSignal`，不碰 Prisma、不查他上下文的表。
+  `sleep-trend-builder` 是 `record` 的解析辅助（同层、同目录）。
+- `services/collectors/` 仍留 3 个文件（`medication` / `profile` /
+  `medication-time-resolver`），是**已知状态**，不是遗漏：
+  `medication` 与 `profile` 目前**绕过 reader port 直接 `PrismaService` 查
+  `userCurrentMedicine` / `userMedicineReminder` / `userAllergy` / `userCondition`
+  / `userProfile`**（ADR-0024 §3 违规），补 port 前不能进 `adapters/acl/`；
+  `medication-time-resolver` 是 `medication` 的私有辅助（纯时间换算，**没有上游**
+  可翻译，进 acl 会与唯一消费者分离），跟着它留。
 - `domain/policies/{medication,lifestyle,sleep,health}/` — **8 条规则**（纯函数）。
   每条规则只依赖 `domain/` 内的类型与阈值，**零框架依赖**（无 `@Injectable()`、
   无 `Logger`）。规则类由 `domain/rule/rule-catalog.ts` 的 `buildSuggestionRules()`

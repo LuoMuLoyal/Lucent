@@ -20,10 +20,10 @@ import { SuppressionService } from './services/arbitration/suppression.service.j
 import { SuggestionCacheService } from './services/cache/suggestion-cache.service.js';
 import { MedicationCollectorService } from './services/collectors/medication.service.js';
 import { MedicationTimeResolverService } from './services/collectors/medication-time-resolver.service.js';
-import { SleepTrendBuilderService } from './services/collectors/sleep-trend-builder.service.js';
+import { SleepTrendBuilderService } from './adapters/acl/collectors/sleep-trend-builder.js';
 import { ProfileCollectorService } from './services/collectors/profile.service.js';
-import { RecordCollectorService } from './services/collectors/record.service.js';
-import { HealthEventCollectorService } from './services/collectors/health-event.service.js';
+import { RecordCollectorService } from './adapters/acl/collectors/record.js';
+import { HealthEventCollectorService } from './adapters/acl/collectors/health-event.js';
 import { SuggestionCopyLlmService } from './services/copy/llm-generator.service.js';
 import { SuggestionCopyQueueService } from './services/copy/queue.service.js';
 import { SuggestionCopyService } from './services/copy/writer.service.js';

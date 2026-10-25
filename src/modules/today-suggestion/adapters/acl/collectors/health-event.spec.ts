@@ -1,15 +1,15 @@
-import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
 import {
   DailyRecordKind,
   HealthEventOutcome,
 } from '#generated/prisma/client.js';
-import type { DailyRecordReaderPort } from '../../../daily-records/index.js';
+import type { DailyRecordReaderPort } from '../../../../daily-records/index.js';
 import type {
   HealthEventsOwnershipService,
   HealthEventRecord,
   HealthEventCheckInRecord,
-} from '../../../health-events/index.js';
-import { HealthEventCollectorService } from './health-event.service.js';
+} from '../../../../health-events/index.js';
+import { HealthEventCollectorService } from './health-event.js';
 
 describe('HealthEventCollectorService', () => {
   let service: HealthEventCollectorService;

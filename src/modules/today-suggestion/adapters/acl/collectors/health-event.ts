@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordReaderPort } from '../../../daily-records/index.js';
+import { DailyRecordReaderPort } from '../../../../daily-records/index.js';
 import {
   HealthEventsOwnershipService,
   type HealthEventRecord,
-} from '../../../health-events/index.js';
+} from '../../../../health-events/index.js';
 
-import type { SuggestionSignal } from '../../domain/signal/signal.js';
-import { TriggerType } from '../../domain/suggestion/suggestion.types.js';
-import { now, parseDateOnly } from '../../../../common/index.js';
+import type { SuggestionSignal } from '../../../domain/signal/signal.js';
+import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
+import { now, parseDateOnly } from '../../../../../common/index.js';
+
+/** Length of a `YYYY-MM-DD` prefix when slicing an ISO timestamp to its date. */
+const DATE_ONLY_LENGTH = 10;
 
 /**
  * Collects health-event signals for the today-suggestion engine.
@@ -72,6 +75,6 @@ export class HealthEventCollectorService {
   }
 
   private toDateOnly(date: Date): string {
-    return date.toISOString().slice(0, 10);
+    return date.toISOString().slice(0, DATE_ONLY_LENGTH);
   }
 }

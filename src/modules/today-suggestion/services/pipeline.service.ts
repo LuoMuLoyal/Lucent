@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
 import type { RuleContext } from '../domain/rule/rule-definition.js';
 import { MedicationCollectorService } from './collectors/medication.service.js';
-import { RecordCollectorService } from './collectors/record.service.js';
+import { RecordCollectorService } from '../adapters/acl/collectors/record.js';
 import { ProfileCollectorService } from './collectors/profile.service.js';
-import { HealthEventCollectorService } from './collectors/health-event.service.js';
+import { HealthEventCollectorService } from '../adapters/acl/collectors/health-event.js';
 import { RegistryService } from '../application/services/rule-registry.js';
 import { SuppressionService } from './arbitration/suppression.service.js';
 import {

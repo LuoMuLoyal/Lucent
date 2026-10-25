@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { now } from '../../../../common/index.js';
-import type { DailyRecordFact } from '../../../daily-records/index.js';
-import type { ObservedMetric } from '../../../../common/index.js';
+import { now } from '../../../../../common/index.js';
+import type { DailyRecordFact } from '../../../../daily-records/index.js';
+import type { ObservedMetric } from '../../../../../common/index.js';
+
+/** Length of a `YYYY-MM-DD` prefix when slicing an ISO timestamp to its date. */
+const DATE_ONLY_LENGTH = 10;
+
+/** Milliseconds in a minute — episode durations are stored in minutes. */
+const MILLISECONDS_PER_MINUTE = 60_000;
 
 type SleepEpisode = {
   sleepType: 'nightSleep' | 'nap';
@@ -100,7 +106,7 @@ export class SleepTrendBuilderService {
   ): Array<{ date: string; durationMinutes: number }> {
     const byDate = new Map<string, DailyRecordFact[]>();
     for (const record of records) {
-      const date = record.occurredAt.toISOString().slice(0, 10);
+      const date = record.occurredAt.toISOString().slice(0, DATE_ONLY_LENGTH);
       const dayRecords = byDate.get(date) ?? [];
       dayRecords.push(record);
       byDate.set(date, dayRecords);
@@ -133,7 +139,7 @@ export class SleepTrendBuilderService {
       durationValue > 0
         ? durationValue
         : startMs != null && endMs != null && endMs > startMs
-          ? Math.round((endMs - startMs) / 60_000)
+          ? Math.round((endMs - startMs) / MILLISECONDS_PER_MINUTE)
           : null;
     if (durationMinutes == null) return null;
 

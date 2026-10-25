@@ -6,7 +6,7 @@ import {
   summarizeWaterMetrics,
   toObservedWaterMetric,
   WATER_TARGET_ML_PER_COUNT,
-} from '../../../../common/index.js';
+} from '../../../../../common/index.js';
 import {
   DailyRecordKind,
   MealAnalysisStatus,
@@ -14,20 +14,20 @@ import {
 import {
   DailyRecordReaderPort,
   parseMealRecordPayload,
-} from '../../../daily-records/index.js';
+} from '../../../../daily-records/index.js';
 
-import type { DailyRecordFact } from '../../../daily-records/index.js';
-import type { SuggestionSignal } from '../../domain/signal/signal.js';
-import { TriggerType } from '../../domain/suggestion/suggestion.types.js';
-import { IUserSettingsPort } from '../../../user-settings/index.js';
-import { TREND_LOOKBACK_DAYS } from '../../domain/rule/thresholds.js';
-import { symptomSeverityScore } from '../../domain/rule/symptom-severity.js';
+import type { DailyRecordFact } from '../../../../daily-records/index.js';
+import type { SuggestionSignal } from '../../../domain/signal/signal.js';
+import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
+import { IUserSettingsPort } from '../../../../user-settings/index.js';
+import { TREND_LOOKBACK_DAYS } from '../../../domain/rule/thresholds.js';
+import { symptomSeverityScore } from '../../../domain/rule/symptom-severity.js';
 import {
   asDietFacetKind,
   type DietFacetKind,
   type DietFacetLevel,
-} from '../../domain/signal/diet-facet.js';
-import { SleepTrendBuilderService } from './sleep-trend-builder.service.js';
+} from '../../../domain/signal/diet-facet.js';
+import { SleepTrendBuilderService } from './sleep-trend-builder.js';
 
 /**
  * 合并同一天同一维度的档位：取离 `ok` 最远的一档；`low` 与 `high` 并列时取 `high`。
@@ -42,6 +42,31 @@ function mergeFacetLevel(
   if (next === 'ok') return current;
   return 'high';
 }
+
+// ─── Collection parameters ─────────────────────────────────────────────────
+
+/** Length of a `YYYY-MM-DD` prefix when slicing an ISO timestamp to its date. */
+const DATE_ONLY_LENGTH = 10;
+
+/**
+ * Time-of-day bucket boundaries (UTC hours, half-open intervals).
+ *
+ * These decide when a time-gated suggestion may fire, so they are part of the
+ * product definition rather than incidental arithmetic.
+ */
+const MORNING_START_HOUR = 5;
+const AFTERNOON_START_HOUR = 12;
+const EVENING_START_HOUR = 17;
+const NIGHT_START_HOUR = 22;
+
+/** The mood scale the app records on: integer 1–5. */
+const MIN_MOOD_SCORE = 1;
+const MAX_MOOD_SCORE = 5;
+
+/** Keyword-derived mood scores, on that same 1–5 scale. */
+const MOOD_SCORE_GREAT = 5;
+const MOOD_SCORE_GOOD = 4;
+const MOOD_SCORE_NEUTRAL = 3;
 
 /**
  * Collects daily-record signals: water count, sleep data,
@@ -202,7 +227,9 @@ export class RecordCollectorService {
       const symptomByDate = this.buildSymptomTrend(symptomRecords);
       const todaySymptom = [...symptomRecords]
         .toReversed()
-        .find((r) => r.occurredAt.toISOString().slice(0, 10) === date);
+        .find(
+          (r) => r.occurredAt.toISOString().slice(0, DATE_ONLY_LENGTH) === date,
+        );
       const symptomObservedValue = symptomSeverityScore(
         (todaySymptom?.payload as Record<string, unknown> | null)?.['severity'],
       );
@@ -280,7 +307,10 @@ export class RecordCollectorService {
       if (moodByDate.length > 0) {
         const todayMood = [...moodRecords]
           .toReversed()
-          .find((r) => r.occurredAt.toISOString().slice(0, 10) === date);
+          .find(
+            (r) =>
+              r.occurredAt.toISOString().slice(0, DATE_ONLY_LENGTH) === date,
+          );
         const moodObservedValue = this.parseKnownMoodScore(
           todayMood?.value ?? null,
           todayMood?.title ?? null,
@@ -312,7 +342,9 @@ export class RecordCollectorService {
   ): Array<{ date: string; count: number }> {
     const byDate = new Map<string, number>();
     for (const record of records) {
-      const dateKey = record.occurredAt.toISOString().slice(0, 10);
+      const dateKey = record.occurredAt
+        .toISOString()
+        .slice(0, DATE_ONLY_LENGTH);
       byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + 1);
     }
     return Array.from(byDate.entries()).map(([date, count]) => ({
@@ -331,7 +363,7 @@ export class RecordCollectorService {
     return records.map((r) => {
       const payload = r.payload as Record<string, unknown> | null;
       return {
-        date: r.occurredAt.toISOString().slice(0, 10),
+        date: r.occurredAt.toISOString().slice(0, DATE_ONLY_LENGTH),
         symptom: this.readString(payload?.['symptom']),
         severity: this.readString(payload?.['severity']),
         title: r.title ?? '',
@@ -351,9 +383,11 @@ export class RecordCollectorService {
     date: Date = now(),
   ): 'morning' | 'afternoon' | 'evening' | 'night' {
     const hour = date.getUTCHours();
-    if (hour >= 5 && hour < 12) return 'morning';
-    if (hour >= 12 && hour < 17) return 'afternoon';
-    if (hour >= 17 && hour < 22) return 'evening';
+    if (hour >= MORNING_START_HOUR && hour < AFTERNOON_START_HOUR)
+      return 'morning';
+    if (hour >= AFTERNOON_START_HOUR && hour < EVENING_START_HOUR)
+      return 'afternoon';
+    if (hour >= EVENING_START_HOUR && hour < NIGHT_START_HOUR) return 'evening';
     return 'night';
   }
 
@@ -389,7 +423,9 @@ export class RecordCollectorService {
         ?.facets;
       if (facets == null) continue;
 
-      const dateKey = record.occurredAt.toISOString().slice(0, 10);
+      const dateKey = record.occurredAt
+        .toISOString()
+        .slice(0, DATE_ONLY_LENGTH);
       const entry = byDate.get(dateKey) ?? { analyzedMeals: 0, facets: {} };
       entry.analyzedMeals += 1;
       for (const [rawKind, level] of Object.entries(facets)) {
@@ -430,7 +466,9 @@ export class RecordCollectorService {
     for (const record of records) {
       const moodScore = this.parseMoodScore(record.value, record.title);
       if (moodScore == null) continue;
-      const dateKey = record.occurredAt.toISOString().slice(0, 10);
+      const dateKey = record.occurredAt
+        .toISOString()
+        .slice(0, DATE_ONLY_LENGTH);
       const label = record.title ?? record.value ?? 'unknown';
       // Keep the latest entry per date (records are ordered asc by occurredAt)
       byDate.set(dateKey, { moodScore, label });
@@ -456,7 +494,8 @@ export class RecordCollectorService {
   ): number | null {
     if (value != null) {
       const num = parseInt(value, 10);
-      if (!isNaN(num) && num >= 1 && num <= 5) return num;
+      if (!isNaN(num) && num >= MIN_MOOD_SCORE && num <= MAX_MOOD_SCORE)
+        return num;
     }
 
     // Try keyword mapping from title
@@ -466,11 +505,11 @@ export class RecordCollectorService {
       text.includes('很好') ||
       text.includes('开心')
     )
-      return 5;
+      return MOOD_SCORE_GREAT;
     if (text.includes('good') || text.includes('好') || text.includes('happy'))
-      return 4;
+      return MOOD_SCORE_GOOD;
     if (text.includes('ok') || text.includes('一般') || text.includes('normal'))
-      return 3;
+      return MOOD_SCORE_NEUTRAL;
     if (
       text.includes('bad') ||
       text.includes('差') ||

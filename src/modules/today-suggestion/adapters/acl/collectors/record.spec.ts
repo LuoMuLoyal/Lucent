@@ -1,11 +1,11 @@
-import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import type { DailyRecordReaderPort } from '../../../daily-records/index.js';
-import { RecordCollectorService } from './record.service.js';
-import { SleepTrendBuilderService } from './sleep-trend-builder.service.js';
-import type { UserSettingsService } from '../../../user-settings/index.js';
-import { USER_SETTINGS_DEFAULTS } from '../../../user-settings/index.js';
-import { TREND_LOOKBACK_DAYS } from '../../domain/rule/thresholds.js';
+import type { DailyRecordReaderPort } from '../../../../daily-records/index.js';
+import { RecordCollectorService } from './record.js';
+import { SleepTrendBuilderService } from './sleep-trend-builder.js';
+import type { UserSettingsService } from '../../../../user-settings/index.js';
+import { USER_SETTINGS_DEFAULTS } from '../../../../user-settings/index.js';
+import { TREND_LOOKBACK_DAYS } from '../../../domain/rule/thresholds.js';
 
 describe('RecordCollectorService', () => {
   let service: RecordCollectorService;
