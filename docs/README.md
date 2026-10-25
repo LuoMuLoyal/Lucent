@@ -27,6 +27,7 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 - [explanation/architecture.md](explanation/architecture.md) — 跨模块心智模型与设计权衡(细节以 ADR 与代码为准)
 - [explanation/runtime-config-lifecycle.md](explanation/runtime-config-lifecycle.md) — 运行时配置的加载、校验、快照与回退语义
 - [howto/add-new-module.md](howto/add-new-module.md) — 新增 NestJS 模块
+- [howto/debug-boot-crash.md](howto/debug-boot-crash.md) — 排查应用启动崩溃（`export:openapi` 零输出 exit 1）
 - [howto/deploy.md](howto/deploy.md) — 部署操作步骤(三台机各自的首次接入 / 日常发布 / 改哪些值 / 安全组)
 - [howto/run-medicine-import.md](howto/run-medicine-import.md) — 药品数据导入
 - [howto/sync-openapi-client.md](howto/sync-openapi-client.md) — 导出 OpenAPI 并再生 Flutter 客户端
