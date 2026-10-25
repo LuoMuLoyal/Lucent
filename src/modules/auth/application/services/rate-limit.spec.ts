@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
-import { AuthRateLimitService } from './rate-limit.service.js';
+import { AuthRateLimitService } from './rate-limit.js';
 import { FailureCounters } from '../../application/ports/failure-counters.js';
 import {
   CAPTCHA_THRESHOLD,

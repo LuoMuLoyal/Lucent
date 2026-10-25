@@ -51,10 +51,10 @@ export { setPasswordSchema } from './dto/password/set-password.dto.js';
 export {
   CAPTCHA_THRESHOLD,
   loginFailureCacheKey,
-} from './services/identity/rate-limit.service.js';
+} from './application/services/rate-limit.js';
 export type { CaptchaDto } from './dto/shared/captcha.dto.js';
 export { captchaSchema } from './dto/shared/captcha.dto.js';
-export { PasswordReauthService } from './services/identity/password-reauth.service.js';
+export { PasswordReauthService } from './application/services/password-reauth.js';
 export { HumanVerification } from './application/ports/human-verification.js';
 /**
  * 账号自助能力端口 —— 给 ccount 上下文用的**已认证**操作。
@@ -70,4 +70,4 @@ export { CredentialsSelfService } from './application/ports/credentials-self-ser
 export { IdentityLink } from './application/ports/identity-link.js';
 /** 删号用例 —— 唯一跨聚合编排（先撤会话再删号，顺序不可交换）。 */
 export { DeleteAccount } from './application/use_cases/delete-account.js';
-export { AuthSessionAdminService } from './services/session-admin.service.js';
+export { AuthSessionAdminService } from './application/services/session-admin.js';

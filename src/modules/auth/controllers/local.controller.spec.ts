@@ -2,7 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
 import { I18nService } from 'nestjs-i18n';
 import { LocalController } from './local.controller.js';
-import { CredentialAuthService } from '../services/identity/credential.service.js';
+import { CredentialAuthService } from '../application/services/credential.js';
 import { PasswordManagementService } from '../application/services/password-management.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';
 import { HumanVerification } from '../application/ports/human-verification.js';

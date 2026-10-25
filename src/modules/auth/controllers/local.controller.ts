@@ -20,7 +20,7 @@ import { ProblemDetailsDto } from '../../../common/index.js';
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
-import { CredentialAuthService } from '../services/identity/credential.service.js';
+import { CredentialAuthService } from '../application/services/credential.js';
 import { PasswordManagementService } from '../application/services/password-management.js';
 import { HumanVerification } from '../application/ports/human-verification.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';

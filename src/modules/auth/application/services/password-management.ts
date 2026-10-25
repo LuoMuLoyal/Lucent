@@ -25,7 +25,7 @@ import type { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.j
 import type { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
 import type { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
 import { SessionTokens } from './session-tokens.js';
-import { PasswordReauthService } from '../../services/identity/password-reauth.service.js';
+import { PasswordReauthService } from './password-reauth.js';
 import { CredentialsSelfService } from '../ports/credentials-self-service.js';
 
 /**

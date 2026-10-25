@@ -8,7 +8,7 @@ import type {
 } from '../../../../common/result/index.js';
 import type { RequestOrigin } from '../ports/request-origin.js';
 import { SessionTokens, type TokenPair } from '../services/session-tokens.js';
-import { CredentialAuthService } from '../../services/identity/credential.service.js';
+import { CredentialAuthService } from '../services/credential.js';
 import { createDomainFailure } from '../../../../common/result/index.js';
 
 /**

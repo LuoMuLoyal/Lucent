@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { PasswordReauthService } from './password-reauth.service.js';
+import { PasswordReauthService } from './password-reauth.js';
 import { AuthIdentityService } from '../../application/services/identity.js';
-import { AuthRateLimitService } from './rate-limit.service.js';
+import { AuthRateLimitService } from '../../application/services/rate-limit.js';
 import {
   createDomainFailure,
   errAsync,

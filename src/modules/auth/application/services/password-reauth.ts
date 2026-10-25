@@ -7,7 +7,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { AuthIdentityService } from '../../application/services/identity.js';
-import { AuthRateLimitService } from './rate-limit.service.js';
+import { AuthRateLimitService } from '../../application/services/rate-limit.js';
 
 /**
  * Verifies the user's current password for sensitive operations. It combines

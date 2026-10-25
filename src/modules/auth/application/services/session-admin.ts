@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { unwrapResult } from '../../../common/result/index.js';
-import { AuditLogService } from '../../audit-log/index.js';
-import { SessionTokens } from '../application/services/session-tokens.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import { SessionTokens } from './session-tokens.js';
 
 /**
  * Administrative session-revocation surface used by the admin console. Wraps

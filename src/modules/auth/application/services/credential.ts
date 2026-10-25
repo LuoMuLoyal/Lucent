@@ -12,10 +12,7 @@ import {
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
-import {
-  AuthIdentityService,
-  type LocalPasswordCheck,
-} from '../../application/services/identity.js';
+import { AuthIdentityService, type LocalPasswordCheck } from './identity.js';
 import {
   decideCredential,
   type CredentialDecision,
@@ -25,19 +22,16 @@ import {
   credentialsInvalidFailure,
   shouldCountLoginFailure,
   toCredentialFailure,
-} from '../../application/services/credential-failures.js';
+} from './credential-failures.js';
 import type { RegisterDto } from '../../dto/credentials/register.dto.js';
 import type { LoginDto } from '../../dto/credentials/login.dto.js';
-import {
-  SessionTokens,
-  type TokenPair,
-} from '../../application/services/session-tokens.js';
+import { SessionTokens, type TokenPair } from './session-tokens.js';
 import type { RequestOrigin } from '../../application/ports/request-origin.js';
-import { toSessionSubject } from '../../application/services/session-subject.js';
+import { toSessionSubject } from './session-subject.js';
 
-import { AuthRateLimitService } from './rate-limit.service.js';
+import { AuthRateLimitService } from './rate-limit.js';
 import { HumanVerification } from '../../application/ports/human-verification.js';
-import { VerificationCodeService } from './verification-code.service.js';
+import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
 
 /**
  * Handles email/password credential flows: registration and login.

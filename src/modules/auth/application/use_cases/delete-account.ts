@@ -7,7 +7,7 @@ import type {
 } from '../../../../common/result/index.js';
 import type { DeleteAccountDto } from '../../dto/shared/delete-account.dto.js';
 import { SessionTokens } from '../services/session-tokens.js';
-import { AuthAccountService } from '../../services/account.service.js';
+import { AuthAccountService } from '../services/account.js';
 
 /**
  * 删号 —— 本模块唯一**真有编排**的账号自助用例。

@@ -6,7 +6,7 @@ import { PasswordManagementService } from './password-management.js';
 import { UserService } from '../../../user/index.js';
 import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
 import { SessionTokens } from '../../application/services/session-tokens.js';
-import { PasswordReauthService } from '../../services/identity/password-reauth.service.js';
+import { PasswordReauthService } from './password-reauth.js';
 import { INotificationSender } from '../../../notifications/index.js';
 import { AuthIdentityService } from '../../application/services/identity.js';
 import { EmailVerificationService } from '../../services/identity/email-verification.service.js';
