@@ -3,10 +3,10 @@ import {
   createDomainFailure,
   errAsync,
   okAsync,
-} from '../../common/result/index.js';
-import type { UserPayload } from '../auth/index.js';
+} from '../../../../common/result/index.js';
+import type { UserPayload } from '../../../auth/index.js';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller.js';
-import { MedicineDoseLogsService } from './services/dose-logs.service.js';
+import { MedicineDoseLogsService } from '../../application/services/medicine-dose-logs.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

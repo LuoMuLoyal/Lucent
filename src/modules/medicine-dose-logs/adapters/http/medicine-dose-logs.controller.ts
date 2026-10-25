@@ -24,25 +24,22 @@ import {
   clampPage,
   clampPageSize,
   ProblemDetailsDto,
-} from '../../common/index.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { CurrentUser } from '../auth/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { createDoseLogSchema } from './dto/create-dose-log.dto.js';
-import type { CreateDoseLogDto } from './dto/create-dose-log.dto.js';
-
+} from '../../../../common/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { CurrentUser } from '../../../auth/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { MedicineDoseLogsService } from '../../application/services/medicine-dose-logs.js';
+import { createDoseLogSchema } from './dto/dose-log.js';
+import type { CreateDoseLogDto } from './dto/dose-log.js';
 import {
   doseLogListResponseSchema,
   doseLogResponseSchema,
-} from './dto/dose-log-response.dto.js';
-
-import { markDoseLogSchema } from './dto/mark-dose-log.dto.js';
-import type { MarkDoseLogDto } from './dto/mark-dose-log.dto.js';
-
-import { updateDoseLogSchema } from './dto/update-dose-log.dto.js';
-import type { UpdateDoseLogDto } from './dto/update-dose-log.dto.js';
-import { MedicineDoseLogsService } from './services/dose-logs.service.js';
+} from './dto/dose-log-response.js';
+import { markDoseLogSchema } from './dto/dose-log.js';
+import type { MarkDoseLogDto } from './dto/dose-log.js';
+import { updateDoseLogSchema } from './dto/dose-log.js';
+import type { UpdateDoseLogDto } from './dto/dose-log.js';
 
 @ApiTags('Medicine Dose Logs')
 @ApiBearerAuth('access-token')

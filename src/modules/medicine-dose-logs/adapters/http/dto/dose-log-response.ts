@@ -1,21 +1,21 @@
 import { z } from 'zod';
 
 import { DoseLogStatus } from '#generated/prisma/client.js';
+import type {
+  DoseLogListResource,
+  DoseLogResource,
+} from '../../../application/ports/dose-log-resource.js';
 
 /**
  * zod 4 Standard Schemas for the medicine dose-log response bodies
  * (`GET`/`POST`/`PATCH /medicine-dose-logs`).
  *
- * Migrated from the former `@ApiProperty` response classes (class names kept
- * as `z.infer` type aliases; descriptions preserved via `.describe`):
- * - nullable columns → `.nullable()` (key always present, value may be null);
- * - `@IsEnum`-style `DoseLogStatus` → `z.enum(DoseLogStatus)` (Prisma exports
- *   a const object);
- * - date/time strings stay plain strings (no `format` added) so the client
- *   contract for `scheduledFor`/`createdAt` is unchanged.
+ * `satisfies z.ZodType<DoseLogResource>` pins each schema to the
+ * application-owned resource type, so the wire contract cannot drift from what
+ * the use cases render while the dependency only points inward (ADR-0024 D2).
  *
- * No `.strict()` / `.default()` — outbound validation must accept the wire
- * shape produced by `MedicineDoseLogsService.toItem` (every key present).
+ * No `.strict()` / `.default()` — outbound validation must accept exactly the
+ * shape the read model produces (every key present).
  */
 
 export const doseLogItemSchema = z.object({
@@ -47,14 +47,16 @@ export const doseLogListDataSchema = z.object({
   total: z.number().describe('Total count of dose logs for the date.'),
 });
 
-/** List body: dose logs for the requested date. */
-export const doseLogListResponseSchema = doseLogListDataSchema;
-
 /** Single dose log body (create / mark / update). */
-export const doseLogResponseSchema = doseLogItemSchema;
+export const doseLogResponseSchema =
+  doseLogItemSchema satisfies z.ZodType<DoseLogResource>;
 
-/** Strongly typed single dose log. */
-export type DoseLogResponseDto = z.infer<typeof doseLogResponseSchema>;
+/** List body: dose logs for the requested date. */
+export const doseLogListResponseSchema =
+  doseLogListDataSchema satisfies z.ZodType<DoseLogListResource>;
 
-/** Strongly typed dose-log list body. */
-export type DoseLogListResponseDto = z.infer<typeof doseLogListResponseSchema>;
+/** Strongly typed single dose log (the wire shape). */
+export type DoseLogResponseDto = DoseLogResource;
+
+/** Strongly typed dose-log list body (the wire shape). */
+export type DoseLogListResponseDto = DoseLogListResource;
