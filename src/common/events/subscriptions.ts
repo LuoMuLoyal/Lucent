@@ -46,11 +46,13 @@ import {
   HEALTH_EVENT_CHANGED,
   REMINDER_CHANGED,
   SETTINGS_CHANGED,
+  TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
 } from './domain-events.js';
 import {
   MEDICINE_RISK_REFRESH_JOB,
   REPORT_CACHE_INVALIDATION_JOB,
   SUGGESTION_EVENT_TRIGGER_JOB,
+  TODAY_ANALYSIS_EVENT_JOB,
 } from './jobs.js';
 
 /** One consumer of one event: the queue to enqueue into and the job name. */
@@ -84,6 +86,10 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       queue: QUEUE_NAMES.suggestionRecompute,
       job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
+    {
+      queue: QUEUE_NAMES.todayAnalysis,
+      job: TODAY_ANALYSIS_EVENT_JOB,
+    },
   ],
   [DOSE_LOG_CHANGED]: [
     {
@@ -93,6 +99,10 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
     {
       queue: QUEUE_NAMES.suggestionRecompute,
       job: SUGGESTION_EVENT_TRIGGER_JOB,
+    },
+    {
+      queue: QUEUE_NAMES.todayAnalysis,
+      job: TODAY_ANALYSIS_EVENT_JOB,
     },
   ],
   [REMINDER_CHANGED]: [
@@ -141,6 +151,18 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
     {
       queue: QUEUE_NAMES.suggestionRecompute,
       job: SUGGESTION_EVENT_TRIGGER_JOB,
+    },
+    {
+      queue: QUEUE_NAMES.todayAnalysis,
+      job: TODAY_ANALYSIS_EVENT_JOB,
+    },
+  ],
+  // Only today-analysis consumes this: a freshly materialized suggestion is an
+  // input to the analysis, and no other migrated consumer reacts to it.
+  [TODAY_SUGGESTION_MATERIALIZATION_CHANGED]: [
+    {
+      queue: QUEUE_NAMES.todayAnalysis,
+      job: TODAY_ANALYSIS_EVENT_JOB,
     },
   ],
 };

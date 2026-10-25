@@ -35,9 +35,23 @@ export const SUGGESTION_EVENT_TRIGGER_JOB = 'event-trigger';
  */
 export const MEDICINE_RISK_REFRESH_JOB = 'refresh';
 
+/**
+ * `today-analysis`: an upstream event arrived; invalidate the cached context,
+ * mark the materialization pending, and queue the analysis.
+ *
+ * Deliberately **not** the queue's own `generate` job name. That queue already
+ * carries `AnalysisJobData` (`userId`, `dto`, `language`, `sourceVersion`); a
+ * fanned-out job carries the event payload instead. Sharing one name would hand
+ * event payloads to the analysis processor, which would read `dto` as
+ * `undefined` — silently, since BullMQ does not validate payload shape. The
+ * handler resolves the event and then enqueues a real `generate` job.
+ */
+export const TODAY_ANALYSIS_EVENT_JOB = 'event-trigger';
+
 /** Every declared job name, for the subscription-table drift guard. */
 export const EVENT_JOB_NAMES: readonly string[] = [
   REPORT_CACHE_INVALIDATION_JOB,
   SUGGESTION_EVENT_TRIGGER_JOB,
   MEDICINE_RISK_REFRESH_JOB,
+  TODAY_ANALYSIS_EVENT_JOB,
 ];

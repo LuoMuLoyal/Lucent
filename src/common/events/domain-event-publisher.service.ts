@@ -2,21 +2,10 @@
  * The single entry point producers use to publish a domain event (ADR-0025).
  *
  * It exists so the "persist the fact" and "deliver it" halves can move
- * independently. During the ADR-0025 migration a producer must do both:
- *
- * - **append** the event to the `domain_events` outbox, so the fan-out can turn
- *   it into per-consumer queue jobs;
- * - **emit** it in process, because consumers that have not migrated yet still
- *   react through `@OnEvent`.
- *
- * Doing exactly one of the two would either starve the migrated consumers or
- * blind the un-migrated ones. Routing both through this one method means the
- * eventual switch (removing the in-process emit) is a change *here*, not in
- * every producing service.
- *
- * Ordering is deliberate: persist first, then emit. A persistence failure is
- * logged and does not stop the in-process emit — otherwise a database hiccup
- * would also break the consumers that worked before this migration.
+ * independently — and so the eventual switch is a change *here*, not in every
+ * producing service. That switch has now happened: producers append to the
+ * outbox and **nothing else**. Delivery is the poller's job, which turns each
+ * row into the per-consumer jobs listed in `subscriptions.ts`.
  *
  * **What this does not do:** the append is not part of the producer's write
  * transaction. Producers call this after their write commits, so a crash in
@@ -26,7 +15,6 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { eventOriginFor } from './event-origins.js';
 import { DomainEventOutboxService } from './domain-events-outbox.service.js';
 
@@ -34,15 +22,12 @@ import { DomainEventOutboxService } from './domain-events-outbox.service.js';
 export class DomainEventPublisher {
   private readonly logger = new Logger(DomainEventPublisher.name);
 
-  constructor(
-    private readonly outbox: DomainEventOutboxService,
-    private readonly eventEmitter: EventEmitter2,
-  ) {}
+  constructor(private readonly outbox: DomainEventOutboxService) {}
 
   /**
-   * Records `eventName` in the outbox and delivers it to the consumers that are
-   * still in-process. Never throws: publishing is best-effort by contract, so a
-   * failure must not fail the business write that triggered it.
+   * Records `eventName` in the outbox. Never throws: publishing is
+   * best-effort by contract, so a failure must not fail the business write
+   * that triggered it.
    *
    * `dedupeKey` is optional and defaults to "no dedupe" — two identical-looking
    * changes are still two facts unless the caller can name them as one.
@@ -75,16 +60,6 @@ export class DomainEventPublisher {
     } catch (error) {
       this.logger.warn(
         `Failed to append ${eventName} to the outbox (aggregate=${origin.aggregateType}:${aggregateId}): ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
-
-    try {
-      await this.eventEmitter.emitAsync(eventName, payload);
-    } catch (error) {
-      this.logger.warn(
-        `Failed to emit ${eventName} in process: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );

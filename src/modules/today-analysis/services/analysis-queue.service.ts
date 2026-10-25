@@ -5,8 +5,13 @@ import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
 import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
 import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
-import { BaseAsyncQueueService } from '../../../common/index.js';
+import {
+  BaseAsyncQueueService,
+  TODAY_ANALYSIS_EVENT_JOB,
+  type DomainEventJobData,
+} from '../../../common/index.js';
 import { TodayAnalysisService } from './analysis.service.js';
+import { TodayAnalysisEventConsumerService } from './recompute/event-consumer.service.js';
 import type {
   TodayAnalysisDataDto,
   TodayAnalysisReadDataDto,
@@ -52,11 +57,14 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
   TodayAnalysisDataDto | TodayAnalysisReadDataDto
 > {
   private readonly analysisService: TodayAnalysisService;
+  private readonly eventConsumer: TodayAnalysisEventConsumerService;
 
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
+    @Inject(TodayAnalysisEventConsumerService)
+    eventConsumer: TodayAnalysisEventConsumerService,
     @Optional()
     @Inject(RuntimeConfigService)
     runtimeConfig?: RuntimeConfigPort,
@@ -65,8 +73,18 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
       TODAY_ANALYSIS_QUEUE_NAME,
       factory,
       cache,
-      async (job) =>
-        this.processJob(
+      async (job) => {
+        // One queue, two job shapes: `generate` carries an AnalysisJobData,
+        // `event-trigger` carries a fanned-out event that must be resolved
+        // first. Dispatching on the name keeps them apart — forwarding an
+        // event payload to the analysis path would read `dto` as undefined.
+        if (job.name === TODAY_ANALYSIS_EVENT_JOB) {
+          await this.eventConsumer.handle(
+            job.data as unknown as DomainEventJobData,
+          );
+          return { status: 'completed' as const };
+        }
+        return this.processJob(
           job,
           (data) =>
             data.sourceVersion == null
@@ -82,10 +100,12 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
                   data.sourceVersion,
                 ),
           'Today analysis job failed',
-        ),
+        );
+      },
       runtimeConfig,
     );
     this.analysisService = analysisService;
+    this.eventConsumer = eventConsumer;
   }
 
   async enqueue(

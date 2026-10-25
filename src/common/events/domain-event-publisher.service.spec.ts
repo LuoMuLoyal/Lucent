@@ -1,4 +1,3 @@
-import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { DomainEventPublisher } from './domain-event-publisher.service.js';
 import type { DomainEventOutboxService } from './domain-events-outbox.service.js';
 import {
@@ -10,25 +9,34 @@ import {
 
 describe('DomainEventPublisher', () => {
   let outbox: { append: vi.Mock };
-  let eventEmitter: { emitAsync: vi.Mock };
   let publisher: DomainEventPublisher;
 
   beforeEach(() => {
     outbox = { append: vi.fn().mockResolvedValue('row-1') };
-    eventEmitter = { emitAsync: vi.fn().mockResolvedValue(undefined) };
     publisher = new DomainEventPublisher(
       outbox as unknown as DomainEventOutboxService,
-      eventEmitter as unknown as EventEmitter2,
     );
   });
 
-  it('persists and emits the same event', async () => {
+  it('persists the event', async () => {
     await publisher.publish(REMINDER_CHANGED, { userId: 'u1' });
-
     expect(outbox.append).toHaveBeenCalledTimes(1);
-    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(REMINDER_CHANGED, {
-      userId: 'u1',
-    });
+    const appended = outbox.append.mock.calls[0]?.[0] as {
+      eventName: string;
+      payload: Record<string, unknown>;
+    };
+    expect(appended.eventName).toBe(REMINDER_CHANGED);
+    expect(appended.payload).toEqual({ userId: 'u1' });
+  });
+
+  it('does not deliver in process (delivery is the poller\u2019s job)', async () => {
+    // ADR-0025 step 7: the publisher only appends. If it also emitted, every
+    // event would be delivered twice once the fan-out is live.
+    await publisher.publish(REMINDER_CHANGED, { userId: 'u1' });
+    expect(outbox.append).toHaveBeenCalledTimes(1);
+    // The publisher has no emitter dependency at all now; this asserts the
+    // shape rather than a call, so it fails loudly if one is reintroduced.
+    expect(Object.keys(publisher)).not.toContain('eventEmitter');
   });
 
   it('derives the aggregate from the declared origin, not the caller', async () => {
@@ -91,40 +99,12 @@ describe('DomainEventPublisher', () => {
     expect(appended.dedupeKey).toBe(undefined);
   });
 
-  it('still emits in process when the outbox append fails', async () => {
-    // A database hiccup must not also blind the consumers that were working
-    // before this migration.
+  it('never throws when the append fails', async () => {
+    // Publishing is best-effort: a database hiccup must not fail the business
+    // write that triggered the event.
     outbox.append.mockRejectedValue(new Error('db down'));
-    await publisher.publish(REMINDER_CHANGED, { userId: 'u1' });
-    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-  });
-
-  it('still persists when the in-process emit fails', async () => {
-    eventEmitter.emitAsync.mockRejectedValue(new Error('listener boom'));
-    await publisher.publish(REMINDER_CHANGED, { userId: 'u1' });
-    expect(outbox.append).toHaveBeenCalledTimes(1);
-  });
-
-  it('never throws, whichever half fails', async () => {
-    outbox.append.mockRejectedValue(new Error('db down'));
-    eventEmitter.emitAsync.mockRejectedValue(new Error('listener boom'));
     await expect(
       publisher.publish(REMINDER_CHANGED, { userId: 'u1' }),
     ).resolves.toBeUndefined();
-  });
-
-  it('persists before emitting, so a slow listener cannot delay the durable write', async () => {
-    const order: string[] = [];
-    outbox.append.mockImplementation(() => {
-      order.push('append');
-      return Promise.resolve('row-1');
-    });
-    eventEmitter.emitAsync.mockImplementation(() => {
-      order.push('emit');
-      return Promise.resolve(undefined);
-    });
-
-    await publisher.publish(REMINDER_CHANGED, { userId: 'u1' });
-    expect(order).toEqual(['append', 'emit']);
   });
 });

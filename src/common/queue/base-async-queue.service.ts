@@ -61,6 +61,13 @@ export abstract class BaseAsyncQueueService<TData, TResult> {
     @Inject(CACHE_MANAGER) protected readonly cache: Cache,
     processor: (job: {
       id: string | undefined;
+      /**
+       * Job name, forwarded from the worker. Exposed because a queue can carry
+       * more than one job shape (ADR-0025 fan-out jobs share a queue with the
+       * module's own jobs), and the processor is the only place that can tell
+       * them apart.
+       */
+      name: string;
       data: TData;
     }) => Promise<AsyncJobResult<TResult>>,
     @Optional()

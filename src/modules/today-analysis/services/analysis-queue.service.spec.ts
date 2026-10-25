@@ -2,6 +2,7 @@ import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
 import { TodayAnalysisQueueService } from './analysis-queue.service.js';
 import type { TodayAnalysisService } from './analysis.service.js';
+import type { TodayAnalysisEventConsumerService } from './recompute/event-consumer.service.js';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;
@@ -43,6 +44,11 @@ const mockAnalysisService = {
   ),
 } as unknown as TodayAnalysisService;
 
+/** Handles the fanned-out `event-trigger` jobs that share this queue. */
+const mockEventConsumer = {
+  handle: vi.fn().mockResolvedValue(undefined),
+} as unknown as TodayAnalysisEventConsumerService;
+
 describe('TodayAnalysisQueueService', () => {
   it('is not configured when Redis is unavailable', () => {
     const { factory } = buildFactory(false);
@@ -50,6 +56,7 @@ describe('TodayAnalysisQueueService', () => {
       factory,
       mockCache,
       mockAnalysisService,
+      mockEventConsumer,
     );
     expect(svc.isConfigured).toBe(false);
   });
@@ -60,6 +67,7 @@ describe('TodayAnalysisQueueService', () => {
       factory,
       mockCache,
       mockAnalysisService,
+      mockEventConsumer,
     );
     expect(svc.isConfigured).toBe(true);
   });
@@ -70,6 +78,7 @@ describe('TodayAnalysisQueueService', () => {
       factory,
       mockCache,
       mockAnalysisService,
+      mockEventConsumer,
     );
     const result = await svc.enqueue('u1', {} as never, 'zh-CN');
     expect(result).toBeNull();
@@ -81,6 +90,7 @@ describe('TodayAnalysisQueueService', () => {
       factory,
       mockCache,
       mockAnalysisService,
+      mockEventConsumer,
     );
     const dto = { date: '2026-07-14' } as never;
     const result = await svc.enqueue('u1', dto, 'zh-CN');
@@ -99,6 +109,7 @@ describe('TodayAnalysisQueueService', () => {
       factory,
       mockCache,
       mockAnalysisService,
+      mockEventConsumer,
     );
 
     await svc.enqueue(
@@ -133,6 +144,7 @@ describe('TodayAnalysisQueueService', () => {
       factory,
       mockCache,
       mockAnalysisService,
+      mockEventConsumer,
     );
 
     await svc.enqueue('u1', {}, 'zh-CN', 7, 'dose_log_changed', 'dose-log:d1');

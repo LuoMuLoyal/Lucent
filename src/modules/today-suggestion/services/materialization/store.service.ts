@@ -1,7 +1,10 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Injectable, Optional } from '@nestjs/common';
 
-import { formatDateOnly, parseDateOnly } from '../../../../common/index.js';
+import {
+  DomainEventPublisher,
+  formatDateOnly,
+  parseDateOnly,
+} from '../../../../common/index.js';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import {
@@ -19,11 +22,9 @@ import type {
 
 @Injectable()
 export class MaterializationStore {
-  private readonly logger = new Logger(MaterializationStore.name);
-
   constructor(
     private readonly prisma: PrismaService,
-    @Optional() private readonly eventEmitter?: EventEmitter2,
+    @Optional() private readonly publisher?: DomainEventPublisher,
     @Optional() private readonly metricsService?: MetricsService,
   ) {}
 
@@ -134,29 +135,20 @@ export class MaterializationStore {
       this.metricsService?.recordSuggestionMaterializationReady();
     }
 
-    if (result.count === 1 && this.eventEmitter != null) {
+    if (result.count === 1 && this.publisher != null) {
       const reasonCodes = input.reasonCodes ?? [];
       const analysisEligible = reasonCodes.some(
         (reason) =>
           reason === 'dose_log_changed' || reason === 'health_event_changed',
       );
       if (analysisEligible) {
-        try {
-          await this.eventEmitter.emitAsync(
-            TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
-            {
-              userId: input.userId,
-              date: formatDateOnly(parseDateOnly(input.localDate)),
-              sourceVersion: input.sourceVersion,
-              analysisEligible,
-              triggerKey: `suggestion:${String(input.sourceVersion)}`,
-            } satisfies TodaySuggestionMaterializationChangedPayload,
-          );
-        } catch (error) {
-          this.logger.warn(
-            `Failed to emit suggestion materialization change: ${String(error)}`,
-          );
-        }
+        await this.publisher.publish(TODAY_SUGGESTION_MATERIALIZATION_CHANGED, {
+          userId: input.userId,
+          date: formatDateOnly(parseDateOnly(input.localDate)),
+          sourceVersion: input.sourceVersion,
+          analysisEligible,
+          triggerKey: `suggestion:${String(input.sourceVersion)}`,
+        } satisfies TodaySuggestionMaterializationChangedPayload);
       }
     }
 

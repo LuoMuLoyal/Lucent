@@ -131,8 +131,10 @@ export { AppInfoHealthIndicator } from './health/app-info.indicator.js';
 export { CacheHealthIndicator } from './health/cache.indicator.js';
 export { DatabaseHealthIndicator } from './health/database.indicator.js';
 export { DomainEventsModule } from './events/domain-events.module.js';
-export { DomainEventOutboxService } from './events/domain-events-outbox.service.js';
-export type { DomainEventAppendInput } from './events/domain-events-outbox.service.js';
+// `DomainEventOutboxService` is deliberately **not** re-exported: `publish()`
+// on `DomainEventPublisher` is the only way to produce an event (ADR-0025), and
+// exporting the outbox let a producer append without going through it. The
+// module still injects the outbox internally — only the public barrel hides it.
 export {
   AggregateDeliveryError,
   DeliveryFailureError,
@@ -157,4 +159,5 @@ export {
   MEDICINE_RISK_REFRESH_JOB,
   REPORT_CACHE_INVALIDATION_JOB,
   SUGGESTION_EVENT_TRIGGER_JOB,
+  TODAY_ANALYSIS_EVENT_JOB,
 } from './events/jobs.js';

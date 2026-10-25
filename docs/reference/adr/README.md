@@ -151,3 +151,7 @@ What becomes easier or harder as a result of this decision?
   - Title: 采用标准 DDD 的限界上下文与聚合边界
   - Status: accepted（取代 ADR-0009 的「读模型 / 纯 CRUD 豁免」；其余规则仍有效）
   - Date: 2026-10-21
+- [0025](0025-domain-events-vs-queues.md)
+  - Title: 领域事件与任务投递的分界
+  - Status: accepted（细化 ADR-0024 的事件与 outbox 决策；实现其「事件经 outbox 发布」）
+  - Date: 2026-10-24
