@@ -1,34 +1,54 @@
 import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
+import { okAsync } from '../../../../../common/result/index.js';
 import { DoseLogStatus } from '#generated/prisma/client.js';
-import type { PrismaService } from '../../../../../prisma/index.js';
 import type { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
+import type { MedicineReminderReaderPort } from '../../../../medicine-reminders/index.js';
+import type {
+  IUserHealthContextReader,
+  HealthContextResponseData,
+} from '../../../../user-health-context/index.js';
 import { MedicationCollectorService } from './medication.js';
 import { MedicationTimeResolverService } from './medication-time-resolver.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
 
 describe('MedicationCollectorService', () => {
   let service: MedicationCollectorService;
-  let prisma: DeepMocked<PrismaService>;
+  let reminders: {
+    listActiveFacts: ReturnType<typeof vi.fn>;
+    listCurrentMedicines: ReturnType<typeof vi.fn>;
+  };
   let doseLogReader: DeepMocked<MedicineDoseLogReaderPort>;
+  let healthContext: { getForUser: ReturnType<typeof vi.fn> };
   let timeResolver: MedicationTimeResolverService;
 
   beforeEach(() => {
-    prisma = {
-      userMedicineReminder: { findMany: vi.fn() },
-      userCurrentMedicine: { findMany: vi.fn() },
-      user: {
-        findUnique: vi.fn().mockResolvedValue({
-          profile: { timezone: 'Asia/Shanghai' },
-        }),
-      },
-    } as unknown as DeepMocked<PrismaService>;
+    // The collector reads through reader ports, so the doubles satisfy those
+    // ports instead of mocking Prisma. A Prisma-shaped double would keep these
+    // tests green even if the production path went back to querying another
+    // context's tables — the coupling the ports exist to remove.
+    reminders = {
+      listActiveFacts: vi.fn().mockResolvedValue([]),
+      listCurrentMedicines: vi.fn().mockResolvedValue([]),
+    };
     doseLogReader = {
-      listFactsInRange: vi.fn(),
+      listFactsInRange: vi.fn().mockResolvedValue([]),
     } as unknown as DeepMocked<MedicineDoseLogReaderPort>;
+    healthContext = {
+      getForUser: vi.fn().mockReturnValue(
+        okAsync({
+          summary: {},
+          profile: { timezone: 'Asia/Shanghai' },
+          allergies: [],
+          conditions: [],
+          currentMedicines: [],
+        } as unknown as HealthContextResponseData),
+      ),
+    };
     timeResolver = new MedicationTimeResolverService();
     service = new MedicationCollectorService(
-      prisma,
+      reminders as unknown as MedicineReminderReaderPort,
       doseLogReader,
+      healthContext as unknown as IUserHealthContextReader,
       timeResolver,
     );
   });
@@ -61,8 +81,8 @@ describe('MedicationCollectorService', () => {
     }));
 
   it('returns an empty array when the user has no current medicines', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue([]);
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -78,10 +98,10 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits pending_dose signal for a medicine with a matching reminder', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -101,11 +121,11 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits unconfirmed_medicine signal when no reminder matches', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
     // No reminders
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -119,10 +139,10 @@ describe('MedicationCollectorService', () => {
   });
 
   it('skips medicines that already have a taken dose log', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
@@ -144,10 +164,10 @@ describe('MedicationCollectorService', () => {
   });
 
   it('skips medicines that already have a skipped dose log', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
@@ -168,13 +188,13 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits a medication_summary signal with correct counts', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines([
         { id: 'med-1', displayName: 'Aspirin' },
         { id: 'med-2', displayName: 'Ibuprofen' },
       ]),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       {
         currentMedicineId: 'med-2',
@@ -200,10 +220,10 @@ describe('MedicationCollectorService', () => {
   it('reports adherence coverage per reminder slot', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
         { id: 'reminder-20', scheduledHour: 20, scheduledMinute: 0 },
@@ -300,10 +320,10 @@ describe('MedicationCollectorService', () => {
     async ({ statuses, expected }) => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-07-08T23:00:00.000Z'));
-      (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+      (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
         mockMedicines(),
       );
-      (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+      (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
         mockReminders([
           { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
           { id: 'reminder-20', scheduledHour: 20, scheduledMinute: 0 },
@@ -339,10 +359,10 @@ describe('MedicationCollectorService', () => {
   );
 
   it('keeps temporary dose logs independent and does not calculate adherence without a plan', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       {
         currentMedicineId: 'med-1',
@@ -381,10 +401,10 @@ describe('MedicationCollectorService', () => {
 
   it('filters reminders by daysOfWeek when set', async () => {
     // 2026-07-09 is a Thursday (weekday=4)
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([{ daysOfWeek: [1, 2, 3] }]), // Mon/Tue/Wed only
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -401,10 +421,10 @@ describe('MedicationCollectorService', () => {
   it('calculates overdue minutes from a fixed instant in the user timezone', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -430,10 +450,10 @@ describe('MedicationCollectorService', () => {
   it('evaluates reminder slots against the user-local current time', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-07T02:00:00.000Z'));
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
         { id: 'reminder-1030', scheduledHour: 10, scheduledMinute: 30 },
@@ -467,10 +487,10 @@ describe('MedicationCollectorService', () => {
   it('does not infer an overdue slot from a dose fact without scheduledTime', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-07T02:00:00.000Z'));
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       {
         currentMedicineId: 'med-1',
@@ -493,10 +513,10 @@ describe('MedicationCollectorService', () => {
   it('keeps two reminder slots independent when one is taken', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-07T02:45:00.000Z'));
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
         { id: 'reminder-1030', scheduledHour: 10, scheduledMinute: 30 },
@@ -532,13 +552,19 @@ describe('MedicationCollectorService', () => {
   it('trims a valid profile timezone before calculating the scheduled instant', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T08:30:00.000Z'));
-    (prisma.user.findUnique as vi.Mock).mockResolvedValue({
-      profile: { timezone: ' UTC ' },
-    });
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+      okAsync({
+        summary: {},
+        profile: { timezone: ' UTC ' },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      } as unknown as HealthContextResponseData),
+    );
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -555,13 +581,19 @@ describe('MedicationCollectorService', () => {
   it('falls back to the common default timezone for an invalid profile timezone', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T00:30:00.000Z'));
-    (prisma.user.findUnique as vi.Mock).mockResolvedValue({
-      profile: { timezone: 'Not/IANA' },
-    });
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+      okAsync({
+        summary: {},
+        profile: { timezone: 'Not/IANA' },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      } as unknown as HealthContextResponseData),
+    );
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -579,13 +611,19 @@ describe('MedicationCollectorService', () => {
   it('does not create an overdue instant for a DST spring-forward gap', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-08T08:00:00.000Z'));
-    (prisma.user.findUnique as vi.Mock).mockResolvedValue({
-      profile: { timezone: 'America/New_York' },
-    });
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+      okAsync({
+        summary: {},
+        profile: { timezone: 'America/New_York' },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      } as unknown as HealthContextResponseData),
+    );
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([{ scheduledHour: 2, scheduledMinute: 30 }]),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -606,13 +644,19 @@ describe('MedicationCollectorService', () => {
     vi.useFakeTimers();
     // 01:30 occurs at both 05:30Z and 06:30Z; the collector chooses 05:30Z.
     vi.setSystemTime(new Date('2026-11-01T06:00:00.000Z'));
-    (prisma.user.findUnique as vi.Mock).mockResolvedValue({
-      profile: { timezone: 'America/New_York' },
-    });
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+      okAsync({
+        summary: {},
+        profile: { timezone: 'America/New_York' },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      } as unknown as HealthContextResponseData),
+    );
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([{ scheduledHour: 1, scheduledMinute: 30 }]),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -627,10 +671,10 @@ describe('MedicationCollectorService', () => {
   });
 
   it('returns no signals for an impossible calendar date', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
@@ -641,13 +685,13 @@ describe('MedicationCollectorService', () => {
   });
 
   it('counts reminder slots and no-reminder medicines together in the summary', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines([
         { id: 'med-1', displayName: 'Aspirin' },
         { id: 'med-2', displayName: 'Ibuprofen' },
       ]),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
@@ -681,10 +725,10 @@ describe('MedicationCollectorService', () => {
   it('matches a dose log to its reminderId when same-time reminders differ', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-a', scheduledHour: 8, scheduledMinute: 0 },
         { id: 'reminder-b', scheduledHour: 8, scheduledMinute: 0 },
@@ -721,10 +765,10 @@ describe('MedicationCollectorService', () => {
   it('does not apply a legacy dose log to either of two same-time reminders', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-a', scheduledHour: 8, scheduledMinute: 0 },
         { id: 'reminder-b', scheduledHour: 8, scheduledMinute: 0 },
@@ -761,24 +805,32 @@ describe('MedicationCollectorService', () => {
   });
 
   it('returns no signals and performs no reads for an invalid calendar date', async () => {
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue([]);
-    (prisma.user.findUnique as vi.Mock).mockResolvedValue(null);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+      okAsync({
+        summary: {},
+        profile: { timezone: null },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      } as unknown as HealthContextResponseData),
+    );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     await expect(service.collect('user-1', '2026-02-31')).resolves.toEqual([]);
 
-    expect(prisma.userMedicineReminder.findMany).not.toHaveBeenCalled();
-    expect(prisma.userCurrentMedicine.findMany).not.toHaveBeenCalled();
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(reminders.listActiveFacts).not.toHaveBeenCalled();
+    expect(reminders.listCurrentMedicines).not.toHaveBeenCalled();
+    expect(healthContext.getForUser).not.toHaveBeenCalled();
     expect(doseLogReader.listFactsInRange).not.toHaveBeenCalled();
   });
 
   it('matches a taken log by reminderId even when scheduledTime is null', async () => {
-    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([

@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { nonDeleted } from '../../../../../common/index.js';
 import {
   formatDateOnlyInTimezone,
   now,
   parseDateOnly,
 } from '../../../../../common/index.js';
-import { DoseLogStatus, type Prisma } from '#generated/prisma/client.js';
-import { PrismaService } from '../../../../../prisma/index.js';
+import { DoseLogStatus } from '#generated/prisma/client.js';
 import { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
+import {
+  MedicineReminderReaderPort,
+  type MedicineReminderFact,
+} from '../../../../medicine-reminders/index.js';
+import { IUserHealthContextReader } from '../../../../user-health-context/index.js';
 import { MISSED_DOSE_GRACE_MINUTES } from '../../../domain/rule/thresholds.js';
 import type { SuggestionSignal } from '../../../domain/signal/signal.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
@@ -27,20 +30,6 @@ type DoseLogFactShape = {
   scheduledFor: Date;
 };
 
-const _reminderSelect = {
-  id: true,
-  currentMedicineId: true,
-  scheduledHour: true,
-  scheduledMinute: true,
-  daysOfWeek: true,
-  startDate: true,
-  endDate: true,
-} satisfies Prisma.UserMedicineReminderSelect;
-
-type ReminderShape = Prisma.UserMedicineReminderGetPayload<{
-  select: typeof _reminderSelect;
-}>;
-
 /**
  * Collects medication-related signals:
  * pending doses, overdue reminders, and current medicine list.
@@ -48,8 +37,9 @@ type ReminderShape = Prisma.UserMedicineReminderGetPayload<{
 @Injectable()
 export class MedicationCollectorService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly reminders: MedicineReminderReaderPort,
     private readonly doseLogReader: MedicineDoseLogReaderPort,
+    private readonly healthContext: IUserHealthContextReader,
     private readonly timeResolver: MedicationTimeResolverService,
   ) {}
 
@@ -62,29 +52,16 @@ export class MedicationCollectorService {
     const weekday = day.getUTCDay();
     const currentTime = now();
 
-    const [reminders, doseLogs, currentMedicines, user] = await Promise.all([
-      this.prisma.userMedicineReminder.findMany({
-        where: { userId, isActive: true, ...nonDeleted },
-        select: _reminderSelect,
-        orderBy: [{ scheduledHour: 'asc' }, { scheduledMinute: 'asc' }],
-      }),
-      this.doseLogReader.listFactsInRange(userId, day, day),
-      this.prisma.userCurrentMedicine.findMany({
-        where: { userId, isCurrent: true },
-        select: {
-          id: true,
-          displayName: true,
-        },
-        orderBy: [{ createdAt: 'asc' }],
-      }),
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { profile: { select: { timezone: true } } },
-      }),
-    ]);
+    const [reminders, doseLogs, currentMedicines, healthContext] =
+      await Promise.all([
+        this.reminders.listActiveFacts(userId),
+        this.doseLogReader.listFactsInRange(userId, day, day),
+        this.reminders.listCurrentMedicines(userId),
+        this.healthContext.getForUser(userId),
+      ]);
 
     const timezone = this.timeResolver.normalizeTimezone(
-      user?.profile?.timezone,
+      healthContext.isOk() ? healthContext.value.profile.timezone : null,
     );
     const remindersForDate = reminders.filter((reminder) =>
       this.matchesDate(reminder, day, weekday),
@@ -281,7 +258,7 @@ export class MedicationCollectorService {
   private indexDoseLogsBySlot(
     doseLogs: DoseLogFactShape[],
     date: string,
-    reminders: ReminderShape[],
+    reminders: MedicineReminderFact[],
   ): {
     reminderStatuses: Map<string, DoseLogStatus>;
     temporaryLogs: DoseLogFactShape[];
@@ -403,7 +380,7 @@ export class MedicationCollectorService {
 
   private reminderTime(
     reminderId: string,
-    reminders: ReminderShape[],
+    reminders: MedicineReminderFact[],
   ): string | null {
     const reminder = reminders.find((candidate) => candidate.id === reminderId);
     return reminder == null
@@ -435,7 +412,7 @@ export class MedicationCollectorService {
   }
 
   private matchesDate(
-    reminder: ReminderShape,
+    reminder: MedicineReminderFact,
     day: Date,
     weekday: number,
   ): boolean {
