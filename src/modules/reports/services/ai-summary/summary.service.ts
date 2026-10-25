@@ -6,6 +6,7 @@ import { DomainFailureException } from '../../../../common/result/domain-failure
 
 import { HistoricalAiSummaryService } from '../../../assistant/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
+import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../../../../common/constants/user-setting-keys.js';
 import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
@@ -37,6 +38,12 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
 > {
   protected readonly logger = new Logger(ReportsAiSummaryService.name);
 
+  /**
+   * Own Prisma handle, used only for the AI-summary switch the base class asks
+   * about through `isAiSummariesEnabled`. The reports context owns this read.
+   */
+  private readonly prisma: PrismaService;
+
   constructor(
     prisma: PrismaService,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
@@ -48,11 +55,11 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     reportsAiSummaryPolicyService: LlmSafetyPolicyService,
   ) {
     super(
-      prisma,
       reportsLlmSummaryCopyService,
       reportsAiSummaryGeneratorService,
       reportsAiSummaryPolicyService,
     );
+    this.prisma = prisma;
   }
 
   protected async prepare(
@@ -112,6 +119,17 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
         lowRiskAction: data.lowRiskAction,
         disclaimer: data.disclaimer,
       });
+  }
+
+  /**
+   * Template-method hook replacing the base class's Prisma dependency.
+   */
+  protected async isAiSummariesEnabled(userId: string): Promise<boolean> {
+    const setting = await this.prisma.userSetting.findFirst({
+      where: { userId, key: AI_SUMMARIES_ENABLED_SETTING_KEY },
+      select: { value: true },
+    });
+    return setting?.value !== false;
   }
 
   protected buildLogContext(context: ReportsAiSummaryContext): string {

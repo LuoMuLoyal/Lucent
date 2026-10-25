@@ -1,6 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../../constants/user-setting-keys.js';
-import { PrismaService } from '../../../prisma/index.js';
 import type { PromptCopy } from '../../helpers/format/localized-copy.js';
 import type { StreamSummaryEvent } from '../../api/stream-summary.js';
 import { LlmSafetyPolicyService } from '../safety/llm-safety-policy.service.js';
@@ -36,6 +34,20 @@ export interface LlmStructuredOutput extends Record<string, unknown> {
  * Subclasses provide data preparation, DTO mapping, persistence, and any
  * post-processing hooks; the common generate / generateStream / fallback /
  * safety-check flow lives here.
+ *
+ * ## Why this class holds no persistence dependency
+ *
+ * It used to inject `PrismaService` for exactly one query — "is the user's AI
+ * summary switch on". That single query was enough to turn a leaf-layer base
+ * class into a repository living inside `common/`: `common/**` may not depend on
+ * `src/modules/**`, yet it was reaching past every context straight into the
+ * `userSetting` table. Every new summary feature then inherited a data-access
+ * capability it had no business having.
+ *
+ * The switch is now a **template-method hook**: {@link isAiSummariesEnabled} is
+ * abstract, and the subclass — which already lives in a module and already knows
+ * its own context — answers it. This class keeps the flow and the LLM calls; the
+ * data source belongs to whoever owns the data.
  */
 @Injectable()
 export abstract class BaseLlmSummaryService<
@@ -48,7 +60,6 @@ export abstract class BaseLlmSummaryService<
   protected abstract readonly logger: Logger;
 
   protected constructor(
-    protected readonly prisma: PrismaService,
     protected readonly copyService: LlmSummaryCopyService<TContext, TOutput>,
     protected readonly generatorService: BaseLlmGeneratorService<
       TContext,
@@ -126,6 +137,16 @@ export abstract class BaseLlmSummaryService<
 
   protected abstract buildLogContext(context: TContext): string;
 
+  /**
+   * Is the user's AI-summary switch on?
+   *
+   * The template-method hook that replaced this class's `PrismaService`. The
+   * subclass answers it from wherever its context keeps that setting; the
+   * "disabled means forbidden, with localized copy" decision stays here so every
+   * summary feature refuses the same way.
+   */
+  protected abstract isAiSummariesEnabled(userId: string): Promise<boolean>;
+
   private extractTexts(output: TOutput): string[] {
     const texts: string[] = [output.summary];
     if (output.bullets != null) {
@@ -158,17 +179,8 @@ export abstract class BaseLlmSummaryService<
     userId: string,
     locale: string,
   ): Promise<void> {
-    const setting = await this.prisma.userSetting.findFirst({
-      where: {
-        userId,
-        key: AI_SUMMARIES_ENABLED_SETTING_KEY,
-      },
-      select: {
-        value: true,
-      },
-    });
-
-    if (setting?.value === false) {
+    const enabled = await this.isAiSummariesEnabled(userId);
+    if (!enabled) {
       throw new DomainFailureException(
         createDomainFailure({
           kind: 'authorization',

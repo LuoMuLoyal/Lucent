@@ -1,7 +1,5 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked.js';
-/* eslint-disable @typescript-eslint/no-useless-constructor, @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/require-await */
 import { Logger } from '@nestjs/common';
-import type { PrismaService } from '../../../prisma/index.js';
 import type { PromptCopy } from '../../helpers/format/localized-copy.js';
 import type { LlmSafetyPolicyService } from '../safety/llm-safety-policy.service.js';
 import type { BaseLlmGeneratorService } from './base-llm-generator.service.js';
@@ -56,7 +54,7 @@ class TestSummaryService extends BaseLlmSummaryService<
   protected readonly logger = new Logger('TestSummaryService');
 
   constructor(
-    prisma: PrismaService,
+    private readonly enabledForTests: () => Promise<boolean>,
     copyService: LlmSummaryCopyService<TestContext, TestOutput>,
     generatorService: BaseLlmGeneratorService<
       TestContext,
@@ -65,7 +63,12 @@ class TestSummaryService extends BaseLlmSummaryService<
     >,
     policyService: LlmSafetyPolicyService,
   ) {
-    super(prisma, copyService, generatorService, policyService);
+    super(copyService, generatorService, policyService);
+  }
+
+  /** Template-method hook: the base class asks, this subclass answers. */
+  protected isAiSummariesEnabled(_userId: string): Promise<boolean> {
+    return this.enabledForTests();
   }
 
   protected async prepare(
@@ -100,11 +103,7 @@ class TestSummaryService extends BaseLlmSummaryService<
 // ── Mock factory ───────────────────────────────────────────────────────────
 
 function createMocks() {
-  const prisma = {
-    userSetting: {
-      findFirst: vi.fn().mockResolvedValue({ value: true }),
-    },
-  } as unknown as DeepMocked<PrismaService>;
+  const aiSummariesEnabled = vi.fn().mockResolvedValue(true);
 
   const copyService: vi.Mocked<LlmSummaryCopyService<TestContext, TestOutput>> =
     {
@@ -133,7 +132,12 @@ function createMocks() {
     isSafeText: vi.fn().mockReturnValue(true),
   } as unknown as vi.Mocked<LlmSafetyPolicyService>;
 
-  return { prisma, copyService, generatorService, policyService };
+  return {
+    aiSummariesEnabled,
+    copyService,
+    generatorService,
+    policyService,
+  };
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -145,7 +149,7 @@ describe('BaseLlmSummaryService', () => {
   beforeEach(() => {
     mocks = createMocks();
     service = new TestSummaryService(
-      mocks.prisma,
+      mocks.aiSummariesEnabled,
       mocks.copyService,
       mocks.generatorService,
       mocks.policyService,
@@ -212,7 +216,7 @@ describe('BaseLlmSummaryService', () => {
     });
 
     it('throws DomainFailureException when AI summaries are disabled', async () => {
-      mocks.prisma.userSetting.findFirst.mockResolvedValue({ value: false });
+      mocks.aiSummariesEnabled.mockResolvedValue(false);
 
       await expect(
         service.generate('user-1', { targetId: 'rec-1' }, 'zh'),
@@ -220,7 +224,7 @@ describe('BaseLlmSummaryService', () => {
     });
 
     it('proceeds when user setting is not found (default enabled)', async () => {
-      mocks.prisma.userSetting.findFirst.mockResolvedValue(null);
+      mocks.aiSummariesEnabled.mockResolvedValue(true);
       mocks.generatorService.generate.mockResolvedValue(generatedOutput);
 
       const result = await service.generate(

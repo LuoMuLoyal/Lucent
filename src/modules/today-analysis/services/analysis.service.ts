@@ -24,6 +24,7 @@ import {
   PushDeliveryService,
 } from '../../notifications/index.js';
 import { PrismaService } from '../../../prisma/index.js';
+import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../../../common/constants/user-setting-keys.js';
 import { BaseLlmSummaryService } from '../../../common/llm/generators/base-llm-summary.service.js';
 import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service.js';
 import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto.js';
@@ -68,6 +69,13 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
 > {
   protected readonly logger = new Logger(TodayAnalysisService.name);
 
+  /**
+   * Own Prisma handle: this service needs it for its own date/user lookups, and
+   * it is also the source of the AI-summary switch (see
+   * `isAiSummariesEnabled`). The base class no longer carries one.
+   */
+  private readonly prisma: PrismaService;
+
   constructor(
     prisma: PrismaService,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
@@ -81,7 +89,8 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     @Optional()
     private readonly materializationStore?: TodayAnalysisMaterializationStore,
   ) {
-    super(prisma, copyService, generatorService, policyService);
+    super(copyService, generatorService, policyService);
+    this.prisma = prisma;
   }
 
   async resolveDate(userId: string, date?: string): Promise<string> {
@@ -395,6 +404,20 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
         aiGenerated: data.aiGenerated,
         sourceVersion: data.sourceVersion ?? null,
       });
+  }
+
+  /**
+   * Template-method hook replacing the base class's Prisma dependency.
+   *
+   * The switch lives on `userSetting`; this context owns its own reads, so it
+   * answers here instead of the base class reaching into the table.
+   */
+  protected async isAiSummariesEnabled(userId: string): Promise<boolean> {
+    const setting = await this.prisma.userSetting.findFirst({
+      where: { userId, key: AI_SUMMARIES_ENABLED_SETTING_KEY },
+      select: { value: true },
+    });
+    return setting?.value !== false;
   }
 
   protected buildLogContext(context: TodayAnalysisContext): string {
