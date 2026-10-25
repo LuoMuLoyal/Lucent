@@ -63,7 +63,6 @@ const AUTH_PATH = {
   logout: '/api/v1/auth/logout',
   refresh: '/api/v1/auth/refresh',
   sendVerificationCode: '/api/v1/auth/send-verification-code',
-  verifyEmail: '/api/v1/auth/verify-email',
   forgotPassword: '/api/v1/auth/forgot-password',
   resetPassword: '/api/v1/auth/reset-password',
   account: '/api/v1/account',
@@ -605,33 +604,14 @@ describe('Auth API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // 6. POST /api/v1/auth/verify-email
+  // 6. POST /api/v1/auth/verify-email —— 端点已删除
   // ════════════════════════════════════════════════════════════
-
-  describe('POST /api/v1/auth/verify-email', () => {
-    const INVALID_VERIFICATION_TOKEN =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-
-    it('should reject missing token with VALIDATION_FAILED', async () => {
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.verifyEmail)
-        .send({})
-        .expect(400);
-
-      const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('VALIDATION_FAILED');
-    });
-
-    it('should reject an invalid or expired verification token with AUTH_VERIFICATION_CODE_EXPIRED', async () => {
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.verifyEmail)
-        .send({ token: INVALID_VERIFICATION_TOKEN })
-        .expect(400);
-
-      const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('AUTH_VERIFICATION_CODE_EXPIRED');
-    });
-  });
+  //
+  // 基于链接的邮箱验证是不可达的死流程：`EmailVerificationService.issue()`
+  // 全仓库没有调用方，注册流程已经用验证码证明了邮箱所有权。端点连同服务、
+  // DTO 与 provider 一并删除，所以这里不再有用例。
+  //
+  // 覆盖「邮箱所有权」的用例在 send-verification-code / register 两节。
 
   // ════════════════════════════════════════════════════════════
   // 7. POST /api/v1/auth/forgot-password
