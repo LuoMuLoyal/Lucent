@@ -14,9 +14,6 @@ import { HealthEventsModule } from '../health-events/health-events.module.js';
 import { TodaySuggestionController } from './today-suggestion.controller.js';
 import { SuggestionPipelineService } from './services/pipeline.service.js';
 import { SuggestionPresentationService } from './services/presentation.service.js';
-import { ArbitrationService } from './services/arbitration/arbiter.service.js';
-import { ScoringService } from './services/arbitration/scoring.service.js';
-import { SuppressionService } from './services/arbitration/suppression.service.js';
 import { SuggestionCacheService } from './services/cache/suggestion-cache.service.js';
 import { MedicationCollectorService } from './services/collectors/medication.service.js';
 import { MedicationTimeResolverService } from './services/collectors/medication-time-resolver.service.js';
@@ -30,8 +27,7 @@ import { SuggestionCopyService } from './services/copy/writer.service.js';
 import { ExplanationGeneratorService } from './services/explanation/generator.service.js';
 import { ExplanationQueueService } from './services/explanation/queue.service.js';
 import { ExplanationService } from './services/explanation/explainer.service.js';
-import { FeedbackStatsService } from './services/feedback/stats.service.js';
-import { FeedbackService } from './services/feedback/recorder.service.js';
+import { FeedbackReadModel } from './application/read_models/feedback-read.js';
 import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
 import { PrismaFeedbackStore } from './infrastructure/persistence/feedbacks.js';
 import { FEEDBACK_PORT } from './application/ports/feedback.js';
@@ -81,10 +77,6 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     // Rule registries (stateful; the rules themselves are plain objects)
     RegistryService,
     RuleVersionRegistry,
-    // Arbitration
-    ArbitrationService,
-    ScoringService,
-    SuppressionService,
     // Lifecycle
     BaselineService,
     LifecycleService,
@@ -93,11 +85,10 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     PrismaSuggestionQueries,
     { provide: SUGGESTION_QUERY_PORT, useExisting: PrismaSuggestionQueries },
     // Feedback
-    FeedbackService,
     RecordFeedbackUseCase,
+    FeedbackReadModel,
     PrismaFeedbackStore,
     { provide: FEEDBACK_PORT, useExisting: PrismaFeedbackStore },
-    FeedbackStatsService,
     // Cache
     SuggestionCacheService,
     // Recompute trigger and materialization state
@@ -123,7 +114,6 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
   ],
   exports: [
     SuggestionService,
-    FeedbackService,
     RecordFeedbackUseCase,
     PrismaFeedbackStore,
     { provide: FEEDBACK_PORT, useExisting: PrismaFeedbackStore },

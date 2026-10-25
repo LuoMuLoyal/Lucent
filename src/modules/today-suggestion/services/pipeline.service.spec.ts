@@ -53,8 +53,7 @@ interface MockDeps {
   profileCollector: { collect: vi.Mock };
   healthEventCollector: { collect: vi.Mock };
   registry: { getAll: vi.Mock };
-  suppression: { filterAndAdjust: vi.Mock };
-  arbitration: { arbitrate: vi.Mock };
+  feedbackRead: { loadActive: vi.Mock; loadStats: vi.Mock };
   baseline: { getBaselineStatus: vi.Mock };
   cache: {
     getSignals: vi.Mock;
@@ -74,18 +73,9 @@ function buildMocks(): MockDeps {
     profileCollector: { collect: vi.fn().mockResolvedValue([]) },
     healthEventCollector: { collect: vi.fn().mockResolvedValue([]) },
     registry: { getAll: vi.fn().mockReturnValue([]) },
-    suppression: {
-      filterAndAdjust: vi.fn().mockResolvedValue({
-        candidates: [],
-        suppressedIds: [],
-      }),
-    },
-    arbitration: {
-      arbitrate: vi.fn().mockReturnValue({
-        primary: null,
-        secondary: [],
-        observations: [],
-      }),
+    feedbackRead: {
+      loadActive: vi.fn().mockResolvedValue([]),
+      loadStats: vi.fn().mockResolvedValue(new Map()),
     },
     baseline: {
       getBaselineStatus: vi.fn().mockResolvedValue(new Map()),
@@ -111,8 +101,7 @@ describe('SuggestionPipelineService', () => {
       deps.profileCollector as never,
       deps.healthEventCollector as never,
       deps.registry as never,
-      deps.suppression as never,
-      deps.arbitration as never,
+      deps.feedbackRead as never,
       deps.baseline as never,
       deps.cache as never,
     );
@@ -244,15 +233,6 @@ describe('SuggestionPipelineService', () => {
     const baselineStatus = new Map();
     baselineStatus.set(BaselineDimension.WATER_INTAKE, true);
     deps.baseline.getBaselineStatus.mockResolvedValue(baselineStatus);
-    deps.suppression.filterAndAdjust.mockResolvedValue({
-      candidates: [candidate],
-      suppressedIds: [],
-    });
-    deps.arbitration.arbitrate.mockReturnValue({
-      primary: candidate,
-      secondary: [],
-      observations: [],
-    });
 
     await service.run('user-1', '2026-07-09');
 
@@ -275,15 +255,6 @@ describe('SuggestionPipelineService', () => {
       match: vi.fn().mockReturnValue(goodCandidate),
     });
     deps.registry.getAll.mockReturnValue([throwingRule, goodRule]);
-    deps.suppression.filterAndAdjust.mockResolvedValue({
-      candidates: [goodCandidate],
-      suppressedIds: [],
-    });
-    deps.arbitration.arbitrate.mockReturnValue({
-      primary: goodCandidate,
-      secondary: [],
-      observations: [],
-    });
 
     const result = await service.run('user-1', '2026-07-09');
 
@@ -291,34 +262,58 @@ describe('SuggestionPipelineService', () => {
     expect(result.arbitrationResult.primary).toBe(goodCandidate);
   });
 
-  it('passes candidates through suppression before arbitration', async () => {
+  it('loads feedback before suppressing and arbitrating candidates', async () => {
     const candidate = buildCandidate();
     deps.registry.getAll.mockReturnValue([
       buildRule({ match: vi.fn().mockReturnValue(candidate) }),
     ]);
-    const suppressionResult = {
-      candidates: [candidate],
-      suppressedIds: [],
-    };
-    deps.suppression.filterAndAdjust.mockResolvedValue(suppressionResult);
 
     await service.run('user-1', '2026-07-09');
 
-    expect(deps.suppression.filterAndAdjust).toHaveBeenCalledWith('user-1', [
-      candidate,
+    expect(deps.feedbackRead.loadActive).toHaveBeenCalledWith('user-1');
+    expect(deps.feedbackRead.loadStats).toHaveBeenCalledWith('user-1', [
+      candidate.ruleId,
     ]);
-    expect(deps.arbitration.arbitrate).toHaveBeenCalledWith([candidate]);
+  });
+
+  it('drops candidates suppressed by active feedback', async () => {
+    const candidate = buildCandidate();
+    deps.registry.getAll.mockReturnValue([
+      buildRule({ match: vi.fn().mockReturnValue(candidate) }),
+    ]);
+    deps.feedbackRead.loadActive.mockResolvedValue([
+      {
+        suggestionId: 'sug-1',
+        suggestionType: candidate.type,
+        feedback: 'suppress',
+        expiresAt: null,
+        ruleId: candidate.ruleId,
+        priorityScore: candidate.priorityScore,
+      },
+    ]);
+
+    const result = await service.run('user-1', '2026-07-09');
+
+    expect(result.arbitrationResult.primary).toBeNull();
   });
 
   it('returns arbitration result with primary, secondary, and observations', async () => {
-    const primary = buildCandidate({ candidateId: 'c1', priorityScore: 800 });
+    // Distinct subtypes keep the three candidates from collapsing into one
+    // during arbitration's (type, subtype) dedupe.
+    const primary = buildCandidate({
+      candidateId: 'c1',
+      priorityScore: 800,
+      subtype: 'a',
+    });
     const secondary = buildCandidate({
       candidateId: 'c2',
       priorityScore: 400,
+      subtype: 'b',
     });
     const observations = buildCandidate({
       candidateId: 'c3',
       priorityScore: 100,
+      subtype: 'c',
     });
 
     deps.registry.getAll.mockReturnValue([
@@ -332,20 +327,15 @@ describe('SuggestionPipelineService', () => {
         match: vi.fn().mockReturnValue(observations),
       }),
     ]);
-    deps.suppression.filterAndAdjust.mockResolvedValue({
-      candidates: [primary, secondary, observations],
-      suppressedIds: [],
-    });
-    deps.arbitration.arbitrate.mockReturnValue({
-      primary,
-      secondary: [secondary],
-      observations: [observations],
-    });
 
     const result = await service.run('user-1', '2026-07-09');
 
     expect(result.arbitrationResult.primary).toBe(primary);
-    expect(result.arbitrationResult.secondary).toEqual([secondary]);
-    expect(result.arbitrationResult.observations).toEqual([observations]);
+    // c2 and c3 both survive dedupe, so both land in secondary (cap is 2).
+    expect(result.arbitrationResult.secondary).toEqual([
+      secondary,
+      observations,
+    ]);
+    expect(result.arbitrationResult.observations).toEqual([]);
   });
 });

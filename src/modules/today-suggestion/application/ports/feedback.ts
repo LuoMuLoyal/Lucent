@@ -58,11 +58,24 @@ export interface SuggestionDecision {
 /** One active feedback row, joined with the suggestion it refers to. */
 export interface ActiveFeedbackRow {
   suggestionId: string;
+  suggestionType: string;
   feedback: string;
   appliedAt: Date;
   expiresAt: Date | null;
   ruleId: string;
   priorityScore: number;
+}
+
+/** One feedback row inside the statistics lookback window. */
+export interface RecentFeedbackRow {
+  suggestionId: string;
+  feedback: string;
+  appliedAt: Date;
+}
+
+/** A feedback row plus the rule it belongs to (resolved via its suggestion). */
+export interface FeedbackRuleRow extends RecentFeedbackRow {
+  ruleId: string;
 }
 
 export interface FeedbackPort {
@@ -80,4 +93,11 @@ export interface FeedbackPort {
    * their `expiresAt`, joined with each suggestion's `ruleId` / `priorityScore`.
    */
   listActiveFeedback(userId: string, at: Date): Promise<ActiveFeedbackRow[]>;
+
+  /**
+   * Feedback rows recorded since `since`, joined with the `ruleId` of the
+   * suggestion they refer to. Rows whose suggestion no longer exists are
+   * dropped.
+   */
+  listFeedbackSince(userId: string, since: Date): Promise<FeedbackRuleRow[]>;
 }

@@ -13,11 +13,11 @@
  * unrelated families, which is why the file could not simply move:
  *
  * - **cache TTLs** (`SIGNAL_CACHE_TTL_MS`, …) — infrastructure policy, read by
- *   `services/cache/`;
- * - **arbitration** (`MAX_SECONDARY_CARDS`) — a presentation/arbitration limit,
- *   read by `services/arbitration/`.
+ *   `infrastructure/cache/`.
  *
- * Those stay in `constants/`. This file holds only what the rules need.
+ * The arbitration card limit (`MAX_SECONDARY_CARDS`) is neither: it belongs to
+ * the arbitration policy itself (`domain/policies/arbitration/arbiter.ts`).
+ * This file holds only what the rules need.
  */
 
 // ── Missed dose ────────────────────────────────────────────────────────────

@@ -6,11 +6,10 @@ import { RecordCollectorService } from '../adapters/acl/collectors/record.js';
 import { ProfileCollectorService } from './collectors/profile.service.js';
 import { HealthEventCollectorService } from '../adapters/acl/collectors/health-event.js';
 import { RegistryService } from '../application/services/rule-registry.js';
-import { SuppressionService } from './arbitration/suppression.service.js';
-import {
-  ArbitrationService,
-  type ArbitrationResult,
-} from './arbitration/arbiter.service.js';
+import { FeedbackReadModel } from '../application/read_models/feedback-read.js';
+import { arbitrate } from '../domain/policies/arbitration/arbiter.js';
+import type { ArbitrationResult } from '../domain/policies/arbitration/arbiter.js';
+import { suppressAndAdjust } from '../domain/policies/feedback/suppression.js';
 import { BaselineService } from './lifecycle/baseline.service.js';
 import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
 import type { SuggestionSignal } from '../domain/signal/signal.js';
@@ -43,8 +42,7 @@ export class SuggestionPipelineService {
     private readonly profileCollector: ProfileCollectorService,
     private readonly healthEventCollector: HealthEventCollectorService,
     private readonly registry: RegistryService,
-    private readonly suppression: SuppressionService,
-    private readonly arbitration: ArbitrationService,
+    private readonly feedbackRead: FeedbackReadModel,
     private readonly baseline: BaselineService,
     private readonly cache: SuggestionCacheService,
   ) {}
@@ -132,11 +130,19 @@ export class SuggestionPipelineService {
     }
 
     // 4. Filter & adjust candidates via feedback-driven suppression
-    const { candidates: adjustedCandidates } =
-      await this.suppression.filterAndAdjust(userId, candidates);
+    const ruleIds = [...new Set(candidates.map((c) => c.ruleId))];
+    const [feedbacks, stats] = await Promise.all([
+      this.feedbackRead.loadActive(userId),
+      this.feedbackRead.loadStats(userId, ruleIds),
+    ]);
+    const { candidates: adjustedCandidates } = suppressAndAdjust(
+      candidates,
+      { feedbacks, stats },
+      this.logger,
+    );
 
     // 5. Arbitrate
-    const arbitrationResult = this.arbitration.arbitrate(adjustedCandidates);
+    const arbitrationResult = arbitrate(adjustedCandidates);
 
     return { arbitrationResult, degraded, signals: allSignals };
   }

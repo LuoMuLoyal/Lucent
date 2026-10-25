@@ -1,12 +1,12 @@
-import { ArbitrationService } from './arbiter.service.js';
-import { ScoringService } from './scoring.service.js';
+import { arbitrate } from './arbiter.js';
+import { scoreCandidate } from './scoring.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../../domain/suggestion/suggestion.types.js';
-import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
-import { MAX_SECONDARY_CARDS } from '../../constants/thresholds.constants.js';
+} from '../../suggestion/suggestion.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
+import { MAX_SECONDARY_CARDS } from './arbiter.js';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},
@@ -35,15 +35,9 @@ function buildCandidate(
   };
 }
 
-describe('ArbitrationService', () => {
-  let service: ArbitrationService;
-
-  beforeEach(() => {
-    service = new ArbitrationService(new ScoringService());
-  });
-
+describe('arbitrate', () => {
   it('should return empty result when no candidates', () => {
-    const result = service.arbitrate([]);
+    const result = arbitrate([]);
     expect(result.primary).toBeNull();
     expect(result.secondary).toHaveLength(0);
     expect(result.observations).toHaveLength(0);
@@ -51,7 +45,7 @@ describe('ArbitrationService', () => {
 
   it('should pick single candidate as primary with no secondary', () => {
     const single = buildCandidate({ candidateId: 'only' });
-    const result = service.arbitrate([single]);
+    const result = arbitrate([single]);
     expect(result.primary?.candidateId).toBe('only');
     expect(result.secondary).toHaveLength(0);
     expect(result.observations).toHaveLength(0);
@@ -69,7 +63,7 @@ describe('ArbitrationService', () => {
       confidence: SuggestionConfidence.LOW,
     });
 
-    const result = service.arbitrate([low1, low2]);
+    const result = arbitrate([low1, low2]);
     expect(result.primary).toBeNull();
     expect(result.secondary).toHaveLength(0);
     expect(result.observations).toHaveLength(2);
@@ -88,7 +82,7 @@ describe('ArbitrationService', () => {
       priorityScore: 400,
     });
 
-    const result = service.arbitrate([c1, c2]);
+    const result = arbitrate([c1, c2]);
     expect(result.primary?.candidateId).toBe('c1');
     expect(result.secondary).toHaveLength(0);
   });
@@ -107,7 +101,7 @@ describe('ArbitrationService', () => {
       priorityScore: 400,
     });
 
-    const result = service.arbitrate([c1, c2]);
+    const result = arbitrate([c1, c2]);
     expect(result.primary?.candidateId).toBe('c1');
     expect(result.secondary).toHaveLength(1);
     expect(result.secondary[0]?.candidateId).toBe('c2');
@@ -123,7 +117,7 @@ describe('ArbitrationService', () => {
       }),
     );
 
-    const result = service.arbitrate(candidates);
+    const result = arbitrate(candidates);
     expect(result.secondary.length).toBe(MAX_SECONDARY_CARDS);
     // The remaining candidate should be in observations
     expect(result.observations.length).toBe(0);
@@ -133,7 +127,7 @@ describe('ArbitrationService', () => {
     const low = buildCandidate({ candidateId: 'low', priorityScore: 300 });
     const high = buildCandidate({ candidateId: 'high', priorityScore: 800 });
 
-    const result = service.arbitrate([low, high]);
+    const result = arbitrate([low, high]);
     expect(result.primary?.candidateId).toBe('high');
   });
 
@@ -149,7 +143,7 @@ describe('ArbitrationService', () => {
       confidence: SuggestionConfidence.HIGH,
     });
 
-    const result = service.arbitrate([low, high]);
+    const result = arbitrate([low, high]);
     expect(result.primary?.candidateId).toBe('high');
     expect(result.observations).toContainEqual(low);
   });
@@ -168,7 +162,7 @@ describe('ArbitrationService', () => {
       priorityScore: 400,
     });
 
-    const result = service.arbitrate([c1, c2]);
+    const result = arbitrate([c1, c2]);
     expect(result.primary?.candidateId).toBe('c1');
     expect(result.secondary).toHaveLength(0);
     // c2 is a duplicate of c1, so it's dropped entirely (not in observations)
@@ -185,24 +179,18 @@ describe('ArbitrationService', () => {
       }),
     );
 
-    const result = service.arbitrate(candidates);
+    const result = arbitrate(candidates);
     expect(result.secondary.length).toBeLessThanOrEqual(MAX_SECONDARY_CARDS);
   });
 });
 
-describe('ScoringService', () => {
-  let service: ScoringService;
-
-  beforeEach(() => {
-    service = new ScoringService();
-  });
-
+describe('scoreCandidate', () => {
   it('should weight high confidence at 1.0', () => {
     const candidate = buildCandidate({
       priorityScore: 800,
       confidence: SuggestionConfidence.HIGH,
     });
-    expect(service.score(candidate)).toBe(800);
+    expect(scoreCandidate(candidate)).toBe(800);
   });
 
   it('should weight medium confidence at 0.7', () => {
@@ -210,7 +198,7 @@ describe('ScoringService', () => {
       priorityScore: 800,
       confidence: SuggestionConfidence.MEDIUM,
     });
-    expect(service.score(candidate)).toBe(560);
+    expect(scoreCandidate(candidate)).toBe(560);
   });
 
   it('should weight low confidence at 0.3', () => {
@@ -218,6 +206,6 @@ describe('ScoringService', () => {
       priorityScore: 800,
       confidence: SuggestionConfidence.LOW,
     });
-    expect(service.score(candidate)).toBe(240);
+    expect(scoreCandidate(candidate)).toBe(240);
   });
 });

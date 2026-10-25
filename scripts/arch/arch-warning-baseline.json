@@ -160,7 +160,6 @@
     "eslint|no-magic-numbers|src/modules/today-suggestion/constants/thresholds.constants.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/schemas/copy.schema.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/schemas/explanation.schema.ts",
-    "eslint|no-magic-numbers|src/modules/today-suggestion/services/arbitration/suppression.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/collectors/medication-time-resolver.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/collectors/medication.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/copy/writer.service.ts",

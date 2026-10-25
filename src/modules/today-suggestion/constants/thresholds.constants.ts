@@ -13,9 +13,6 @@
 /** Confidence threshold: candidates below this are demoted to observations. */
 export const CONFIDENCE_DEMOTE_THRESHOLD = 'low';
 
-/** Maximum number of secondary suggestion cards. */
-export const MAX_SECONDARY_CARDS = 2;
-
 /** Cache TTL for signal bundles (milliseconds). */
 export const SIGNAL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
 

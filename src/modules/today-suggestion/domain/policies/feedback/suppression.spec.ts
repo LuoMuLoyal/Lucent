@@ -1,15 +1,14 @@
-import { SuppressionService } from './suppression.service.js';
-import type { FeedbackService } from '../feedback/recorder.service.js';
-import type { FeedbackEntry } from '../feedback/recorder.service.js';
-import type { FeedbackStatsService } from '../feedback/stats.service.js';
-import type { RuleFeedbackStats } from '../feedback/stats.service.js';
+import { suppressAndAdjust } from './suppression.js';
+import type { SuppressionResult } from './suppression.js';
+import type { FeedbackEntry } from './suppression.js';
+import type { RuleFeedbackStats } from './feedback-stats.js';
 import {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
   SuggestionFeedback,
-} from '../../domain/suggestion/suggestion.types.js';
-import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
+} from '../../suggestion/suggestion.types.js';
+import type { SuggestionCandidate } from '../../suggestion/suggestion-candidate.js';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},
@@ -53,32 +52,23 @@ function buildFeedbackEntry(
 }
 
 /**
- * Creates a SuppressionService with a mocked FeedbackService
- * that returns the given feedback entries, and a mocked
- * FeedbackStatsService that returns the given stats.
+ * Binds the pure suppression policy to the given feedback rows and stats.
  */
 function createService(
   feedbacks: FeedbackEntry[],
   stats: Map<string, RuleFeedbackStats> = new Map(),
-): SuppressionService {
-  const mockFeedbackService = {
-    loadActiveFeedbacks: vi.fn().mockResolvedValue(feedbacks),
-  } as unknown as FeedbackService;
-
-  const mockStatsService = {
-    loadStats: vi.fn().mockResolvedValue(stats),
-  } as unknown as FeedbackStatsService;
-
-  return new SuppressionService(mockFeedbackService, mockStatsService);
+): (candidates: SuggestionCandidate[]) => Promise<SuppressionResult> {
+  return (candidates) =>
+    Promise.resolve(suppressAndAdjust(candidates, { feedbacks, stats }));
 }
 
-describe('SuppressionService', () => {
+describe('suppressAndAdjust', () => {
   it('should return all candidates when no feedback exists', async () => {
     const service = createService([]);
     const c1 = buildCandidate({ candidateId: 'c1' });
     const c2 = buildCandidate({ candidateId: 'c2' });
 
-    const result = await service.filterAndAdjust('user-1', [c1, c2]);
+    const result = await service([c1, c2]);
 
     expect(result.candidates).toHaveLength(2);
     expect(result.suppressedIds).toHaveLength(0);
@@ -89,7 +79,7 @@ describe('SuppressionService', () => {
       buildFeedbackEntry({ feedback: SuggestionFeedback.SUPPRESS }),
     ]);
 
-    const result = await service.filterAndAdjust('user-1', []);
+    const result = await service([]);
 
     expect(result.candidates).toHaveLength(0);
     expect(result.suppressedIds).toHaveLength(0);
@@ -116,7 +106,7 @@ describe('SuppressionService', () => {
         priorityScore: 800,
       });
 
-      const result = await service.filterAndAdjust('user-1', [low, equal]);
+      const result = await service([low, equal]);
 
       expect(result.candidates).toHaveLength(0);
       expect(result.suppressedIds).toContain('low');
@@ -138,7 +128,7 @@ describe('SuppressionService', () => {
         priorityScore: 900,
       });
 
-      const result = await service.filterAndAdjust('user-1', [higher]);
+      const result = await service([higher]);
 
       expect(result.candidates).toHaveLength(1);
       expect(result.suppressedIds).toHaveLength(0);
@@ -159,7 +149,7 @@ describe('SuppressionService', () => {
         priorityScore: 400,
       });
 
-      const result = await service.filterAndAdjust('user-1', [water]);
+      const result = await service([water]);
 
       expect(result.candidates).toHaveLength(1);
       expect(result.suppressedIds).toHaveLength(0);
@@ -182,7 +172,7 @@ describe('SuppressionService', () => {
         priorityScore: 800,
       });
 
-      const result = await service.filterAndAdjust('user-1', [sameRule]);
+      const result = await service([sameRule]);
 
       expect(result.candidates).toHaveLength(0);
       expect(result.suppressedIds).toContain('same-rule');
@@ -203,7 +193,7 @@ describe('SuppressionService', () => {
         priorityScore: 850,
       });
 
-      const result = await service.filterAndAdjust('user-1', [higher]);
+      const result = await service([higher]);
 
       expect(result.candidates).toHaveLength(1);
     });
@@ -223,7 +213,7 @@ describe('SuppressionService', () => {
         priorityScore: 400,
       });
 
-      const result = await service.filterAndAdjust('user-1', [otherRule]);
+      const result = await service([otherRule]);
 
       expect(result.candidates).toHaveLength(1);
     });
@@ -245,7 +235,7 @@ describe('SuppressionService', () => {
         priorityScore: 400,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       expect(result.candidates).toHaveLength(1);
       // 400 - 30% = 400 - 120 = 280
@@ -267,7 +257,7 @@ describe('SuppressionService', () => {
         priorityScore: 500,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       expect(result.candidates).toHaveLength(1);
       expect(result.candidates[0]!.priorityScore).toBe(500);
@@ -291,7 +281,7 @@ describe('SuppressionService', () => {
         priorityScore: 400,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       expect(result.candidates).toHaveLength(1);
       // 400 + 10% = 400 + 40 = 440
@@ -321,7 +311,7 @@ describe('SuppressionService', () => {
         priorityScore: 400,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       expect(result.candidates).toHaveLength(1);
       // 400 - 30% + 10% = 400 - 120 + 40 = 320
@@ -349,7 +339,7 @@ describe('SuppressionService', () => {
         priorityScore: 700,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       expect(result.candidates).toHaveLength(0);
       expect(result.suppressedIds).toContain('c');
@@ -382,7 +372,7 @@ describe('SuppressionService', () => {
         priorityScore: 500,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       expect(result.candidates).toHaveLength(1);
       expect(result.candidates[0]!.priorityScore).toBe(700); // 500 * 1.4 = 700
@@ -424,7 +414,7 @@ describe('SuppressionService', () => {
         priorityScore: 500,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       // Static: 500 + 10% = 550
       // Dynamic: 550 * 1.4 = 770
@@ -457,7 +447,7 @@ describe('SuppressionService', () => {
         priorityScore: 500,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       expect(result.candidates[0]!.priorityScore).toBe(500);
     });
@@ -479,7 +469,7 @@ describe('SuppressionService', () => {
         priorityScore: 10,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       // 10 - 30% = 10 - 3 = 7 (still above 0)
       expect(result.candidates).toHaveLength(1);
@@ -506,7 +496,7 @@ describe('SuppressionService', () => {
         priorityScore: 1,
       });
 
-      const result = await service.filterAndAdjust('user-1', [candidate]);
+      const result = await service([candidate]);
 
       // 1 - 30% - 30% = 1 - 0.3 - 0.3 = 0.4 → rounded to 0
       // But actually, multiple not_applicable for same type should both apply:

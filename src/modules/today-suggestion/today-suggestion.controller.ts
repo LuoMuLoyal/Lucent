@@ -22,7 +22,7 @@ import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { SuggestionService } from './services/suggestion.service.js';
-import { FeedbackService } from './services/feedback/recorder.service.js';
+import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
 import { ExplanationQueueService } from './services/explanation/queue.service.js';
 
 import { ExplanationService } from './services/explanation/explainer.service.js';
@@ -52,7 +52,7 @@ import type { SuggestionHistoryDataDto } from './dto/suggestion-history-query.dt
 export class TodaySuggestionController {
   constructor(
     private readonly suggestionService: SuggestionService,
-    private readonly feedbackService: FeedbackService,
+    private readonly recordFeedback: RecordFeedbackUseCase,
     private readonly explanationService: ExplanationService,
     private readonly explanationQueueService: ExplanationQueueService,
     private readonly lifecycleService: LifecycleService,
@@ -111,7 +111,7 @@ export class TodaySuggestionController {
     dto: SuggestionFeedbackDto,
   ) {
     const result = await unwrapResult(
-      this.feedbackService.recordFeedback(user.sub, suggestionId, dto.feedback),
+      this.recordFeedback.recordFeedback(user.sub, suggestionId, dto.feedback),
     );
 
     const response: SuggestionFeedbackData = {

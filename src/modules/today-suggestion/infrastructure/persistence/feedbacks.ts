@@ -4,6 +4,7 @@ import type {
   ActiveFeedbackRow,
   DecidableSuggestion,
   FeedbackPort,
+  FeedbackRuleRow,
   SuggestionDecision,
 } from '../../application/ports/feedback.js';
 import type { SuggestionLifecycleState } from '../../domain/suggestion/daily-suggestion.js';
@@ -101,7 +102,7 @@ export class PrismaFeedbackStore implements FeedbackPort {
     const suggestionIds = [...new Set(feedbacks.map((f) => f.suggestionId))];
     const suggestions = await this.prisma.userSuggestion.findMany({
       where: { id: { in: suggestionIds } },
-      select: { id: true, ruleId: true, priorityScore: true },
+      select: { id: true, type: true, ruleId: true, priorityScore: true },
     });
     const byId = new Map(suggestions.map((s) => [s.id, s]));
 
@@ -113,11 +114,50 @@ export class PrismaFeedbackStore implements FeedbackPort {
       return [
         {
           suggestionId: f.suggestionId,
+          // The suggestion's current type is the authoritative one; the
+          // feedback row's copy is a snapshot taken when it was recorded.
+          suggestionType: suggestion.type,
           feedback: f.feedback,
           appliedAt: f.appliedAt,
           expiresAt: f.expiresAt,
           ruleId: suggestion.ruleId,
           priorityScore: suggestion.priorityScore,
+        },
+      ];
+    });
+  }
+
+  async listFeedbackSince(
+    userId: string,
+    since: Date,
+  ): Promise<FeedbackRuleRow[]> {
+    const feedbacks = await this.prisma.userSuggestionFeedback.findMany({
+      where: { userId, appliedAt: { gte: since } },
+      select: { suggestionId: true, feedback: true, appliedAt: true },
+    });
+
+    if (feedbacks.length === 0) {
+      return [];
+    }
+
+    const suggestionIds = [...new Set(feedbacks.map((f) => f.suggestionId))];
+    const suggestions = await this.prisma.userSuggestion.findMany({
+      where: { id: { in: suggestionIds } },
+      select: { id: true, ruleId: true },
+    });
+    const ruleBySuggestion = new Map(suggestions.map((s) => [s.id, s.ruleId]));
+
+    return feedbacks.flatMap((f) => {
+      const ruleId = ruleBySuggestion.get(f.suggestionId);
+      if (ruleId == null) {
+        return [];
+      }
+      return [
+        {
+          suggestionId: f.suggestionId,
+          feedback: f.feedback,
+          appliedAt: f.appliedAt,
+          ruleId,
         },
       ];
     });

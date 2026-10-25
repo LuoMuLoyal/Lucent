@@ -4,7 +4,7 @@ import type { UserPayload } from '../auth/index.js';
 import { TodaySuggestionController } from './today-suggestion.controller.js';
 import { SuggestionService } from './services/suggestion.service.js';
 import { okAsync } from '../../common/result/index.js';
-import { FeedbackService } from './services/feedback/recorder.service.js';
+import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
 import { ExplanationService } from './services/explanation/explainer.service.js';
 import { ExplanationQueueService } from './services/explanation/queue.service.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
@@ -67,7 +67,7 @@ const mockHistoryResult = {
 describe('TodaySuggestionController', () => {
   let controller: TodaySuggestionController;
   let suggestionService: vi.Mocked<SuggestionService>;
-  let feedbackService: vi.Mocked<FeedbackService>;
+  let recordFeedback: vi.Mocked<RecordFeedbackUseCase>;
   let explanationService: vi.Mocked<ExplanationService>;
   let lifecycleService: vi.Mocked<LifecycleService>;
 
@@ -83,7 +83,7 @@ describe('TodaySuggestionController', () => {
           },
         },
         {
-          provide: FeedbackService,
+          provide: RecordFeedbackUseCase,
           useValue: {
             recordFeedback: vi.fn(),
           },
@@ -113,7 +113,7 @@ describe('TodaySuggestionController', () => {
 
     controller = module.get(TodaySuggestionController);
     suggestionService = module.get(SuggestionService);
-    feedbackService = module.get(FeedbackService);
+    recordFeedback = module.get(RecordFeedbackUseCase);
     explanationService = module.get(ExplanationService);
     lifecycleService = module.get(LifecycleService);
   });
@@ -172,7 +172,7 @@ describe('TodaySuggestionController', () => {
 
   describe('POST /today/suggestions/:id/feedback', () => {
     it('records feedback and returns a resource', async () => {
-      feedbackService.recordFeedback.mockReturnValue(
+      recordFeedback.recordFeedback.mockReturnValue(
         okAsync(mockFeedbackResult),
       );
 
@@ -180,7 +180,7 @@ describe('TodaySuggestionController', () => {
         feedback: 'accepted' as never,
       });
 
-      expect(feedbackService.recordFeedback).toHaveBeenCalledWith(
+      expect(recordFeedback.recordFeedback).toHaveBeenCalledWith(
         mockUser.sub,
         'sug-1',
         'accepted',
@@ -193,7 +193,7 @@ describe('TodaySuggestionController', () => {
     });
 
     it('includes expiresAt in response when present', async () => {
-      feedbackService.recordFeedback.mockReturnValue(
+      recordFeedback.recordFeedback.mockReturnValue(
         okAsync({
           ...(mockFeedbackResult as object),
           expiresAt: '2026-07-11T08:00:00.000Z',
@@ -208,7 +208,7 @@ describe('TodaySuggestionController', () => {
     });
 
     it('omits expiresAt from response when null', async () => {
-      feedbackService.recordFeedback.mockReturnValue(
+      recordFeedback.recordFeedback.mockReturnValue(
         okAsync({
           ...(mockFeedbackResult as object),
           expiresAt: null,
