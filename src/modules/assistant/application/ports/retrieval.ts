@@ -31,6 +31,20 @@ export const ASSISTANT_LIGHTRAG = 'ASSISTANT_LIGHTRAG';
 export const ASSISTANT_SEMANTICA = 'ASSISTANT_SEMANTICA';
 
 /**
+ * Builds the LightRAG client from the runtime configuration.
+ *
+ * The tool adapters are unit-tested against a stubbed `fetch`, so they need a
+ * client instance without importing the implementation module: this factory is
+ * the seam. The module wires it to the real class; a spec installs its own.
+ *
+ * The signature is structurally the real constructor's two arguments.
+ */
+export type LightragClientFactory = (
+  configService: unknown,
+  runtimeConfig: unknown,
+) => LightragAvailability;
+
+/**
  * The LightRAG client **as the tool adapters use it**.
  *
  * `isEnabled() === false` means "no degradation path exists": callers must report

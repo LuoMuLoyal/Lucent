@@ -3,7 +3,7 @@
  *
  * The use cases orchestrate a conversation turn; the LangGraph assembly and the
  * tool loop are adapters. Without this port the application layer imported
- * `adapters/agent/checkpoint-runtime.ts` and `adapters/acl/tool-executor.ts`
+ * `adapters/agent/runtime.ts` and `adapters/acl/tool-executor.ts`
  * directly, which points the dependency the wrong way.
  *
  * The port names what orchestration needs and nothing more; the checkpoint,

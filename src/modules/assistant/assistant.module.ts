@@ -10,7 +10,7 @@ import { MedicineRemindersService } from '../medicine-reminders/index.js';
 import { MedicinesModule } from '../medicines/medicines.module.js';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
 import { UserSettingsModule } from '../user-settings/user-settings.module.js';
-import { AssistantRuntimeService } from './adapters/agent/checkpoint-runtime.js';
+import { AssistantRuntimeService } from './adapters/agent/runtime.js';
 import { AssistantStreamService } from './application/services/stream.js';
 import { AssistantCheckpointerService } from './infrastructure/agent/checkpointer.js';
 import { Conversations } from './application/use_cases/conversation.js';

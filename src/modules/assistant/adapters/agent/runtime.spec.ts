@@ -4,7 +4,7 @@ import { MemorySaver } from '@langchain/langgraph';
 import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { okAsync } from '../../../../common/result/index.js';
-import { AssistantRuntimeService } from './checkpoint-runtime.js';
+import { AssistantRuntimeService } from './runtime.js';
 import { AssistantStreamService } from '../../application/services/stream.js';
 import { buildAssistantSystemPrompt } from '../../application/services/prompts.js';
 
