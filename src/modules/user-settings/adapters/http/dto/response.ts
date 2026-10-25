@@ -4,9 +4,8 @@ import { z } from 'zod';
  * Standard Schema (zod 4) for the fine-grained assistant context permission
  * block nested in the user settings resource.
  *
- * Replaces the former `AssistantContextSettingsDto` response class.
  * Response schemas intentionally carry no `.strict()` / `.default()` so
- * outbound parsing tolerates whatever the service layer produces.
+ * outbound parsing tolerates whatever the application layer produces.
  */
 export const assistantContextSettingsSchema = z.object({
   healthProfile: z
@@ -34,9 +33,7 @@ export type AssistantContextSettingsDto = z.infer<
 
 /**
  * Standard Schema (zod 4) for the authenticated user's settings resource
- * (`GET`/`PATCH /settings`).
- *
- * Replaces the former `UserSettingsDataDto` response class.
+ * (`GET`/`PATCH /user/settings`).
  */
 export const userSettingsDataSchema = z.object({
   aiSummariesEnabled: z

@@ -14,16 +14,16 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser } from '../auth/index.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { ProblemDetailsDto } from '../../common/index.js';
-import { UserSettingsService } from './services/user-settings.service.js';
-import { updateUserSettingsSchema } from './dto/update.dto.js';
-import type { UpdateUserSettingsDto } from './dto/update.dto.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { CurrentUser } from '../../../auth/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { ProblemDetailsDto } from '../../../../common/index.js';
+import { UserSettingsService } from '../../application/services/user-settings.js';
+import { updateUserSettingsSchema } from './dto/update.js';
+import type { UpdateUserSettingsDto } from './dto/update.js';
 
-import { userSettingsDataSchema } from './dto/response.dto.js';
+import { userSettingsDataSchema } from './dto/response.js';
 
 @ApiTags('User Settings')
 @ApiBearerAuth('access-token')

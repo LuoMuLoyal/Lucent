@@ -1,14 +1,12 @@
 import { z } from 'zod';
 
 /**
- * Standard Schema (zod 4) for `PATCH /settings` request bodies.
+ * Standard Schema (zod 4) for `PATCH /user/settings` request bodies.
  *
- * Replaces the former class-validator DTO:
  * - `@IsOptional` + `@IsBoolean` → `.boolean().optional()`;
- * - `@IsInt` + `@Min/@Max` → `z.number().int().min().max()`;
- * - `@ValidateNested` + `@Type(() => X)` → nested schema reference;
- * - the global `forbidNonWhitelisted` behaviour is preserved with `.strict()`
- *   on the top-level and the nested object (unknown keys are rejected).
+ * - `@IsInt` + `@Min/@Max` → `.number().int().min().max()`;
+ * - `.strict()` on the top-level and the nested object restores the previous
+ *   global `forbidNonWhitelisted` behaviour (unknown keys are rejected).
  */
 const updateAssistantContextSettingsSchema = z
   .object({
@@ -68,7 +66,7 @@ export const updateUserSettingsSchema = z
   })
   .strict();
 
-/** Strongly typed request body of `PATCH /settings`. */
+/** Strongly typed request body of `PATCH /user/settings`. */
 export type UpdateUserSettingsDto = z.infer<typeof updateUserSettingsSchema>;
 
 /** Nested assistant-context portion of the update body. */
