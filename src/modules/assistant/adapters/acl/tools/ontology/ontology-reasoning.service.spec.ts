@@ -4,7 +4,7 @@ import type { AssistantToolExecutionContext } from '../../../../application/port
 import type { OntologyCypherGeneratorService } from './cypher-generator.service.js';
 import type { OntologyCypherContext } from './cypher.schema.js';
 import { AssistantToolOntologyReasoningService } from './ontology-reasoning.service.js';
-import type { SemanticaClientService } from '../../../../infrastructure/retrieval/semantica-client.js';
+import type { SemanticaAvailability } from '../../../../application/ports/retrieval.js';
 import type {
   SemanticaCallFailure,
   SemanticaGraphSchema,
@@ -132,7 +132,7 @@ describe('AssistantToolOntologyReasoningService', () => {
       isEnabled: vi.fn().mockReturnValue(options?.enabled ?? true),
       schema,
       query,
-    } as unknown as SemanticaClientService;
+    } as unknown as SemanticaAvailability;
     const generator = {
       hasLanguageModel: vi
         .fn()

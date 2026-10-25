@@ -24,6 +24,19 @@ import type { ProposedAction } from '../../domain/proposal/proposed-action.js';
 /** DI tokens — strings so a Nest resolution error names the port readably. */
 export const ASSISTANT_AGENT_RUNTIME = 'ASSISTANT_AGENT_RUNTIME';
 export const ASSISTANT_TOOL_EXECUTOR = 'ASSISTANT_TOOL_EXECUTOR';
+export const ASSISTANT_CHECKPOINTER = 'ASSISTANT_CHECKPOINTER';
+
+/**
+ * The checkpoint store the graph writes to.
+ *
+ * `getSaver()` returns `null` when checkpoint persistence is unavailable — the
+ * graph then degrades to the stateless flow instead of failing the turn. The
+ * return type is `unknown` here because the saver belongs to LangGraph; the
+ * adapter narrows it where it builds the graph.
+ */
+export interface CheckpointerPort {
+  getSaver(): unknown;
+}
 
 /** Result of running the tool-loop graph for one turn. */
 export interface ConversationRunResult {

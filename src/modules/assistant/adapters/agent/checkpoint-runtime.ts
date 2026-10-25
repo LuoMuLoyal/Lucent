@@ -9,7 +9,7 @@ import {
 import { trace } from '@opentelemetry/api';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { Command, type StateSnapshot } from '@langchain/langgraph';
+import { Command, type BaseCheckpointSaver, type StateSnapshot } from '@langchain/langgraph';
 import {
   createDomainFailure,
   fromPromise,
@@ -38,8 +38,8 @@ import type {
   ToolName,
 } from '../../domain/policies/tool-permission.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
-import { LightragClientService } from '../../infrastructure/retrieval/lightrag-client.js';
-import { SemanticaClientService } from '../../infrastructure/retrieval/semantica-client.js';
+import type { LightragAvailability } from '../../application/ports/retrieval.js';
+import type { SemanticaAvailability } from '../../application/ports/retrieval.js';
 import { toDomainFailure } from '../../application/services/provider-failures.js';
 import {
   assistantSystemPromptVariables,
@@ -60,7 +60,7 @@ import { ASSISTANT_RUNTIME_NODE_NAMES } from './state.js';
 import type { AssistantValidationFlags } from './state.js';
 import type { AssistantPendingReview } from './state.js';
 import { AssistantIntentClassifierService } from '../../application/services/intent-classifier.js';
-import { AssistantCheckpointerService } from '../../infrastructure/agent/checkpointer.js';
+import type { CheckpointerPort } from '../../application/ports/agent-runtime.js';
 import { extractMessageText } from './message-text.js';
 import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
@@ -103,12 +103,12 @@ export class AssistantRuntimeService {
 
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
-    private readonly lightragClient: LightragClientService,
-    private readonly semanticaClient: SemanticaClientService,
+    private readonly lightragClient: LightragAvailability,
+    private readonly semanticaClient: SemanticaAvailability,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
-    private readonly checkpointerService: AssistantCheckpointerService,
+    private readonly checkpointerService: CheckpointerPort,
     @Inject(ASSISTANT_CONVERSATIONS)
     private readonly conversationRepository: ConversationRepositoryPort,
     private readonly streamService: AssistantStreamService,
@@ -231,7 +231,7 @@ export class AssistantRuntimeService {
     executeTools: ToolExecutorFn,
     onChunk?: (event: AssistantStreamChunkEvent) => void | Promise<void>,
   ): Promise<AssistantConversationResult> {
-    const checkpointer = this.checkpointerService.getSaver();
+    const checkpointer = this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
     // HITL review (interrupt + confirm) only makes sense for a persisted
     // conversation; without `conversationId` the graph stays stateless and
     // never suspends, matching the degradation matrix.
@@ -461,7 +461,7 @@ export class AssistantRuntimeService {
     conversationId: string,
     onText?: (text: string) => void | Promise<void>,
   ) {
-    const checkpointer = this.checkpointerService.getSaver();
+    const checkpointer = this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
     if (checkpointer == null) {
       throw new BadRequestException({
         code: 'VALIDATION_FAILED',

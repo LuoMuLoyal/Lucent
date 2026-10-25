@@ -5,6 +5,7 @@ import { EnvKey } from '../../../../../../config/env/env-keys.enum.js';
 import type { RuntimeConfigPort } from '../../../../../../config/runtime/runtime-config.types.js';
 import type { AssistantToolExecutionContext } from '../../../../application/ports/assistant.js';
 import { LightragClientService } from '../../../../infrastructure/retrieval/lightrag-client.js';
+import type { LightragAvailability } from '../../../../application/ports/retrieval.js';
 import { AssistantToolKnowledgeRetrievalService } from './knowledge.service.js';
 
 describe('AssistantToolKnowledgeRetrievalService', () => {
@@ -53,7 +54,7 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
     const i18n = {
       t: vi.fn(() => 'disclaimer'),
     };
-    const client = new LightragClientService(
+    const client: LightragAvailability = new LightragClientService(
       configService as unknown as ConfigService,
       runtime,
     );

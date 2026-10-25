@@ -32,6 +32,7 @@ import { ASSISTANT_MEMORIES } from './domain/memory/memories.js';
 import { ASSISTANT_SUMMARIES } from './domain/summary/summaries.js';
 import {
   ASSISTANT_AGENT_RUNTIME,
+  ASSISTANT_CHECKPOINTER,
   ASSISTANT_TOOL_EXECUTOR,
 } from './application/ports/agent-runtime.js';
 import { PrismaConversations } from './infrastructure/persistence/conversations.js';
@@ -106,6 +107,7 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     AssistantSettingsProposalService,
     AssistantToolService,
     { provide: ASSISTANT_TOOL_EXECUTOR, useExisting: AssistantToolService },
+    { provide: ASSISTANT_CHECKPOINTER, useExisting: AssistantCheckpointerService },
     AssistantToolReadService,
     LightragClientService,
     AssistantToolKnowledgeRetrievalService,
