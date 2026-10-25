@@ -17,10 +17,9 @@ JWT(access/refresh 双 token)双层架构,支持 5 种 OAuth 提供商与本地�
 userId,一个用户至多一条);每个 OAuth 链接各是一条独立身份行
 (`issuer = providerId = 提供商标识`,`accountId = 提供商侧用户 id`)。
 
-## 限界上下文(ADR-0024 目标形态)
+## 限界上下文(ADR-0024)
 
-本模块承载 **Identity & Access** 上下文(auth)。按 ADR-0024 计划中的聚合
-边界(迁移到四层骨架时生效,当前仍是 service 形态):
+本模块承载 **Identity & Access** 上下文(auth)。按 ADR-0024 的聚合边界:
 
 - 聚合根:`Account`(含 OAuth identity 集)、`Session`(refresh 轮换)、
   `VerificationChallenge`(一次性消费)。

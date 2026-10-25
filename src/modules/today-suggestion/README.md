@@ -157,7 +157,7 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
   `randomUUID()` 留在规则内(候选 id 不落库、只活在一次请求里)，不注入 id 生成器
   ——注入会给纯函数加构造依赖，恰好破坏这条性质。
   规则码与 `product-events` 白名单的漂移由
-  `src/modules/product-events/services/events.service.spec.ts` 的 drift-guard 锁住
+  `src/modules/product-events/application/use_cases/events.spec.ts` 的 drift-guard 锁住
   （它经本模块 **barrel** 读 `buildSuggestionRules()`，不再深引规则类）；
   目录本身(8 条都在、无重名)由 `domain/rule/rule-catalog.spec.ts` 锁住。
 
