@@ -316,6 +316,14 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
+  path: '/api/v1/auth/send-verification-code',
+  method: 'post',
+  componentName: 'SendVerificationCodeResponse',
+  schema: sendVerificationCodeResponseSchema,
+  description: 'Cooldown seconds until the next code can be requested.',
+});
+
+registerResponseSchema({
   path: '/api/v1/auth/forgot-password',
   method: 'post',
   componentName: 'ForgotPasswordResponse',

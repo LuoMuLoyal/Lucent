@@ -2540,7 +2540,14 @@
         },
         "responses": {
           "200": {
-            "description": "Cooldown seconds until the next code can be requested."
+            "description": "Cooldown seconds until the next code can be requested.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendVerificationCodeResponse"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too many verification code requests (cooldown or client rate limit)",
@@ -8869,6 +8876,23 @@
           }
         },
         "required": ["enabled", "siteKey"],
+        "additionalProperties": false
+      },
+      "SendVerificationCodeResponse": {
+        "type": "object",
+        "properties": {
+          "cooldown": {
+            "type": "number",
+            "description": "冷却时间（秒）",
+            "example": 60
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": "验证码已发送，请注意查收"
+          }
+        },
+        "required": ["cooldown", "message"],
         "additionalProperties": false
       },
       "ForgotPasswordResponse": {
