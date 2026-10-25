@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { UserStatus } from '#generated/prisma/client.js';
-import { PrismaService } from '../../../prisma/index.js';
-import { now } from '../../../common/index.js';
-import { unwrapResult } from '../../../common/result/index.js';
-import { AuditLogService } from '../../audit-log/index.js';
+import { now } from '../../../../common/index.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import { USER_REPOSITORY, type UserRepositoryPort } from '../ports/users.js';
 
 /** Admin-settable lifecycle states. `deleted` is only reachable via softDelete. */
 export type AdminUserStatus = Extract<UserStatus, 'active' | 'suspended'>;
@@ -24,7 +24,8 @@ export interface UserStatusChange {
 @Injectable()
 export class UserAdminService {
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(USER_REPOSITORY)
+    private readonly users: UserRepositoryPort,
     private readonly auditLog: AuditLogService,
   ) {}
 
@@ -37,17 +38,10 @@ export class UserAdminService {
     userId: string,
     status: AdminUserStatus,
   ): Promise<UserStatusChange | null> {
-    const before = await this.prisma.user.findFirst({
-      where: { id: userId, status: { not: UserStatus.deleted } },
-      select: { status: true },
-    });
+    const before = await this.users.findStatus(userId);
     if (before === null) return null;
 
-    const updated = await this.prisma.user.update({
-      where: { id: userId },
-      data: { status },
-      select: { status: true },
-    });
+    const updated = await this.users.setStatus(userId, status);
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,
@@ -65,16 +59,10 @@ export class UserAdminService {
    * the user does not exist or was already deleted.
    */
   async softDelete(actorUserId: string, userId: string): Promise<boolean> {
-    const before = await this.prisma.user.findFirst({
-      where: { id: userId, status: { not: UserStatus.deleted } },
-      select: { status: true },
-    });
+    const before = await this.users.findStatus(userId);
     if (before === null) return false;
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { status: UserStatus.deleted, deletedAt: now() },
-    });
+    await this.users.softDelete(userId, now());
     await unwrapResult(
       this.auditLog.log({
         userId: actorUserId,

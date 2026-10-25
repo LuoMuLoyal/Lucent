@@ -1,37 +1,40 @@
 import { UserStatus } from '#generated/prisma/client.js';
-import { okAsync } from '../../../common/result/index.js';
-import type { PrismaService } from '../../../prisma/index.js';
-import type { AuditLogService } from '../../audit-log/index.js';
-import { UserAdminService } from './admin.service.js';
+import { okAsync } from '../../../../common/result/index.js';
+import type { UserRepositoryPort } from '../ports/users.js';
+import type { AuditLogService } from '../../../audit-log/index.js';
+import { UserAdminService } from './admin.js';
 
 describe('UserAdminService', () => {
   function buildService() {
-    const user = { findFirst: vi.fn(), update: vi.fn() };
-    const prisma = { user } as unknown as PrismaService;
+    const users = {
+      findStatus: vi.fn(),
+      setStatus: vi.fn(),
+      softDelete: vi.fn(),
+    };
     const audit = { log: vi.fn().mockReturnValue(okAsync(undefined)) };
     const service = new UserAdminService(
-      prisma,
+      users as unknown as UserRepositoryPort,
       audit as unknown as AuditLogService,
     );
-    return { service, user, audit };
+    return { service, users, audit };
   }
 
   describe('setStatus', () => {
     it('returns null for an unknown or deleted user', async () => {
-      const { service, user, audit } = buildService();
-      user.findFirst.mockResolvedValue(null);
+      const { service, users, audit } = buildService();
+      users.findStatus.mockResolvedValue(null);
 
       await expect(
         service.setStatus('actor-1', 'missing', UserStatus.suspended),
       ).resolves.toBeNull();
-      expect(user.update).not.toHaveBeenCalled();
+      expect(users.setStatus).not.toHaveBeenCalled();
       expect(audit.log).not.toHaveBeenCalled();
     });
 
     it('suspends a user and records before/after status', async () => {
-      const { service, user, audit } = buildService();
-      user.findFirst.mockResolvedValue({ status: UserStatus.active });
-      user.update.mockResolvedValue({ status: UserStatus.suspended });
+      const { service, users, audit } = buildService();
+      users.findStatus.mockResolvedValue({ status: UserStatus.active });
+      users.setStatus.mockResolvedValue({ status: UserStatus.suspended });
 
       await expect(
         service.setStatus('actor-1', 'target-1', UserStatus.suspended),
@@ -40,11 +43,10 @@ describe('UserAdminService', () => {
         before: UserStatus.active,
         after: UserStatus.suspended,
       });
-      expect(user.update).toHaveBeenCalledWith({
-        where: { id: 'target-1' },
-        data: { status: UserStatus.suspended },
-        select: { status: true },
-      });
+      expect(users.setStatus).toHaveBeenCalledWith(
+        'target-1',
+        UserStatus.suspended,
+      );
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'actor-1',
@@ -61,30 +63,27 @@ describe('UserAdminService', () => {
 
   describe('softDelete', () => {
     it('returns false for an unknown user', async () => {
-      const { service, user } = buildService();
-      user.findFirst.mockResolvedValue(null);
+      const { service, users } = buildService();
+      users.findStatus.mockResolvedValue(null);
 
       await expect(service.softDelete('actor-1', 'missing')).resolves.toBe(
         false,
       );
-      expect(user.update).not.toHaveBeenCalled();
+      expect(users.setStatus).not.toHaveBeenCalled();
     });
 
     it('marks the user deleted and records the audit entry', async () => {
-      const { service, user, audit } = buildService();
-      user.findFirst.mockResolvedValue({ status: UserStatus.active });
-      user.update.mockResolvedValue({});
+      const { service, users, audit } = buildService();
+      users.findStatus.mockResolvedValue({ status: UserStatus.active });
+      users.setStatus.mockResolvedValue({});
 
       await expect(service.softDelete('actor-1', 'target-1')).resolves.toBe(
         true,
       );
-      expect(user.update).toHaveBeenCalledWith({
-        where: { id: 'target-1' },
-        data: {
-          status: UserStatus.deleted,
-          deletedAt: expect.any(Date) as Date,
-        },
-      });
+      expect(users.softDelete).toHaveBeenCalledWith(
+        'target-1',
+        expect.any(Date),
+      );
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'admin.users.delete',
