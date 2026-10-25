@@ -21,12 +21,12 @@ import { registerResponseSchema } from '../../common/api/response-schema.registr
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
-import { SuggestionService } from './services/suggestion.service.js';
+import { SuggestionService } from './application/services/suggestions.js';
 import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
 import { ExplanationQueueService } from './adapters/queue/explanation/queue.js';
 
 import { ExplanationService } from './adapters/queue/explanation/explainer.js';
-import { LifecycleService } from './services/lifecycle.js';
+import { LifecycleService } from './application/services/lifecycle.js';
 import { suggestionFeedbackSchema } from './dto/feedback.dto.js';
 import {
   SuggestionFeedbackData,

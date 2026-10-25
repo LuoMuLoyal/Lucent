@@ -1,18 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
-import type { RuleContext } from '../domain/rule/rule-definition.js';
-import { MedicationCollectorService } from '../adapters/acl/collectors/medication.js';
-import { RecordCollectorService } from '../adapters/acl/collectors/record.js';
-import { ProfileCollectorService } from '../adapters/acl/collectors/profile.js';
-import { HealthEventCollectorService } from '../adapters/acl/collectors/health-event.js';
-import { RegistryService } from '../application/services/rule-registry.js';
-import { FeedbackReadModel } from '../application/read_models/feedback-read.js';
-import { arbitrate } from '../domain/policies/arbitration/arbiter.js';
-import type { ArbitrationResult } from '../domain/policies/arbitration/arbiter.js';
-import { suppressAndAdjust } from '../domain/policies/feedback/suppression.js';
-import { BaselineService } from '../infrastructure/persistence/baseline.js';
-import { SuggestionCacheService } from '../infrastructure/cache/suggestions.js';
-import type { SuggestionSignal } from '../domain/signal/signal.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
+import type { RuleContext } from '../../domain/rule/rule-definition.js';
+import { MedicationCollectorService } from '../../adapters/acl/collectors/medication.js';
+import { RecordCollectorService } from '../../adapters/acl/collectors/record.js';
+import { ProfileCollectorService } from '../../adapters/acl/collectors/profile.js';
+import { HealthEventCollectorService } from '../../adapters/acl/collectors/health-event.js';
+import { RegistryService } from '../services/rule-registry.js';
+import { FeedbackReadModel } from '../read_models/feedback-read.js';
+import { arbitrate } from '../../domain/policies/arbitration/arbiter.js';
+import type { ArbitrationResult } from '../../domain/policies/arbitration/arbiter.js';
+import { suppressAndAdjust } from '../../domain/policies/feedback/suppression.js';
+import { BaselineService } from '../../infrastructure/persistence/baseline.js';
+import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
 
 /**
  * Output of the suggestion pipeline: arbitration result + degraded flag.

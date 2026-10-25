@@ -3,7 +3,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { resolveLocale } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import { SuggestionService } from '../../services/suggestion.service.js';
+import { SuggestionService } from '../../application/services/suggestions.js';
 import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
 import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
 import { BaselineService } from '../../infrastructure/persistence/baseline.js';

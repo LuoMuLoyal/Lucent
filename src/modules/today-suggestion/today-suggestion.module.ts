@@ -12,8 +12,8 @@ import { ProductEventsModule } from '../product-events/product-events.module.js'
 import { HealthEventsModule } from '../health-events/health-events.module.js';
 
 import { TodaySuggestionController } from './today-suggestion.controller.js';
-import { SuggestionPipelineService } from './services/pipeline.service.js';
-import { SuggestionPresentationService } from './services/presentation.service.js';
+import { SuggestionPipelineService } from './application/services/pipeline.js';
+import { SuggestionPresentationService } from './application/services/presentation.js';
 import { SuggestionCacheService } from './infrastructure/cache/suggestions.js';
 import { MedicationCollectorService } from './adapters/acl/collectors/medication.js';
 import { MedicationTimeResolverService } from './adapters/acl/collectors/medication-time-resolver.js';
@@ -32,7 +32,7 @@ import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.j
 import { PrismaFeedbackStore } from './infrastructure/persistence/feedbacks.js';
 import { FEEDBACK_PORT } from './application/ports/feedback.js';
 import { BaselineService } from './infrastructure/persistence/baseline.js';
-import { LifecycleService } from './services/lifecycle.js';
+import { LifecycleService } from './application/services/lifecycle.js';
 import { ActiveSuggestionsReadModel } from './application/read_models/active-suggestions.js';
 import { SuggestionHistoryReadModel } from './application/read_models/suggestion-history.js';
 import { PrismaSuggestionQueries } from './infrastructure/persistence/suggestion-queries.js';
@@ -44,7 +44,7 @@ import { MaterializationStore } from './infrastructure/persistence/materializati
 import { RecomputeQueueService } from './adapters/queue/queue.service.js';
 import { RecomputeEventTriggerService } from './adapters/queue/event-trigger.service.js';
 import { SuggestionRecomputeWorkerService } from './adapters/queue/worker.service.js';
-import { SuggestionService } from './services/suggestion.service.js';
+import { SuggestionService } from './application/services/suggestions.js';
 import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
 
 /**

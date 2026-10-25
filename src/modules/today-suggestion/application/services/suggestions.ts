@@ -4,20 +4,20 @@ import {
   nowIsoString,
   formatDateOnly,
   resolveLocale,
-} from '../../../common/index.js';
-import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
-import { SuggestionLifecycleState } from '../domain/suggestion/suggestion.types.js';
-import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto.js';
-import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto.js';
-import { SuggestionPipelineService } from './pipeline.service.js';
-import { SuggestionPresentationService } from './presentation.service.js';
+} from '../../../../common/index.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
+import { SuggestionLifecycleState } from '../../domain/suggestion/suggestion.types.js';
+import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
+import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto.js';
+import { SuggestionPipelineService } from './pipeline.js';
+import { SuggestionPresentationService } from './presentation.js';
 import { LifecycleService } from './lifecycle.js';
-import { EscalationService } from '../infrastructure/notifications/escalation.js';
-import { SuggestionCacheService } from '../infrastructure/cache/suggestions.js';
-import { MaterializationStore } from '../infrastructure/persistence/materialization.js';
-import type { MaterializationStatusView } from '../infrastructure/persistence/materialization.types.js';
-import type { SuggestionSignal } from '../domain/signal/signal.js';
-import { SUGGESTION_DEFAULT_LOCALE } from '../constants/locale.constants.js';
+import { EscalationService } from '../../infrastructure/notifications/escalation.js';
+import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
+import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
+import type { MaterializationStatusView } from '../../infrastructure/persistence/materialization.types.js';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
+import { SUGGESTION_DEFAULT_LOCALE } from '../../constants/locale.constants.js';
 
 export interface SuggestionRecomputeOptions {
   locale?: string;

@@ -26,7 +26,7 @@ import {
   localizeEvidenceLabel,
   localizeEvidenceValue,
   resolveActionLabel,
-} from '../../services/action-label.js';
+} from '../services/action-label.js';
 import { SUGGESTION_QUERY_PORT } from '../ports/suggestion-queries.js';
 import { ACTIVE_LIFECYCLE_STATE } from '../ports/suggestion-queries.js';
 import type {

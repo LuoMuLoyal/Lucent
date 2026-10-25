@@ -1,23 +1,23 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { PrismaService } from '../../../prisma/index.js';
-import { now, nowIsoString, formatDateOnly } from '../../../common/index.js';
-import type { SuggestionCandidate } from '../domain/suggestion/suggestion-candidate.js';
-import type { SuggestionItemDto } from '../dto/suggestion-response.dto.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import { now, nowIsoString, formatDateOnly } from '../../../../common/index.js';
+import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
+import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
 
-import type { SuggestionAction } from '../domain/signal/signal.js';
-import { SuggestionLifecycleState } from '../domain/suggestion/suggestion.types.js';
-import type { SuggestionHistoryItemDto } from '../dto/suggestion-history-query.dto.js';
+import type { SuggestionAction } from '../../domain/signal/signal.js';
+import { SuggestionLifecycleState } from '../../domain/suggestion/suggestion.types.js';
+import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto.js';
 import {
   fadeExpiryThreshold,
   fadingThreshold,
-} from '../domain/suggestion/daily-suggestion.js';
-import { ActiveSuggestionsReadModel } from '../application/read_models/active-suggestions.js';
+} from '../../domain/suggestion/daily-suggestion.js';
+import { ActiveSuggestionsReadModel } from '../read_models/active-suggestions.js';
 import {
   SuggestionHistoryReadModel,
   type SuggestionHistoryPage,
-} from '../application/read_models/suggestion-history.js';
+} from '../read_models/suggestion-history.js';
 
 /** Max items returned by the history endpoint. */
 const HISTORY_MAX_LIMIT = 500;

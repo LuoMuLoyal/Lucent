@@ -2,12 +2,12 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { formatDateOnly, now } from '../../common/index.js';
 import type { UserPayload } from '../auth/index.js';
 import { TodaySuggestionController } from './today-suggestion.controller.js';
-import { SuggestionService } from './services/suggestion.service.js';
+import { SuggestionService } from './application/services/suggestions.js';
 import { okAsync } from '../../common/result/index.js';
 import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
 import { ExplanationService } from './adapters/queue/explanation/explainer.js';
 import { ExplanationQueueService } from './adapters/queue/explanation/queue.js';
-import { LifecycleService } from './services/lifecycle.js';
+import { LifecycleService } from './application/services/lifecycle.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',
