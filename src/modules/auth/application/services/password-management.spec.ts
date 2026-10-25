@@ -9,7 +9,6 @@ import { SessionTokens } from '../../application/services/session-tokens.js';
 import { PasswordReauthService } from './password-reauth.js';
 import { INotificationSender } from '../../../notifications/index.js';
 import { AuthIdentityService } from '../../application/services/identity.js';
-import { EmailVerificationService } from '../../services/identity/email-verification.service.js';
 import type { NotificationListItemDto } from '../../../notifications/index.js';
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
@@ -76,12 +75,10 @@ describe('PasswordManagementService', () => {
   let passwordReauthService: vi.Mocked<PasswordReauthService>;
   let notificationsService: vi.Mocked<INotificationSender>;
   let identityService: vi.Mocked<AuthIdentityService>;
-  let emailVerificationService: vi.Mocked<EmailVerificationService>;
 
   let hashPasswordMock: vi.Mock;
   let hasPasswordMock: vi.Mock;
   let upsertCredentialAccountMock: vi.Mock;
-  let verifyEmailMock: vi.Mock;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -131,13 +128,6 @@ describe('PasswordManagementService', () => {
           },
         },
         {
-          provide: EmailVerificationService,
-          useValue: {
-            issue: vi.fn().mockReturnValue(okAsync('token')),
-            consume: vi.fn().mockReturnValue(okAsync(undefined)),
-          },
-        },
-        {
           provide: I18nService,
           useValue: {
             t: vi.fn((key: string) => key),
@@ -153,7 +143,6 @@ describe('PasswordManagementService', () => {
     passwordReauthService = module.get(PasswordReauthService);
     notificationsService = module.get(INotificationSender);
     identityService = module.get(AuthIdentityService);
-    emailVerificationService = module.get(EmailVerificationService);
 
     // Default mock responses
     userService.findByEmail.mockResolvedValue(null);
@@ -168,12 +157,10 @@ describe('PasswordManagementService', () => {
     hasPasswordMock = identityService.hasPassword as unknown as vi.Mock;
     upsertCredentialAccountMock =
       identityService.upsertCredentialAccount as unknown as vi.Mock;
-    verifyEmailMock = emailVerificationService.consume as unknown as vi.Mock;
 
     hashPasswordMock.mockResolvedValue('$argon2id$new-hash');
     hasPasswordMock.mockReturnValue(okAsync(true));
     upsertCredentialAccountMock.mockReturnValue(okAsync(undefined));
-    verifyEmailMock.mockReturnValue(okAsync(undefined));
   });
 
   afterEach(() => {
@@ -588,71 +575,6 @@ describe('PasswordManagementService', () => {
         ok: false,
         error: expect.objectContaining({
           code: 'AUTH_VERIFICATION_CODE_COOLDOWN',
-        }),
-      });
-    });
-  });
-
-  // ════════════════════════════════════════════════════════════
-  // verifyEmail
-  // ════════════════════════════════════════════════════════════
-
-  describe('verifyEmail', () => {
-    it('should verify email with a Lucent-issued token', async () => {
-      const outcome = await collectResult(
-        service.verifyEmail({
-          token: 'valid-token',
-        }),
-      );
-
-      expect(verifyEmailMock).toHaveBeenCalledWith('valid-token');
-      expect(outcome).toEqual({ ok: true, value: undefined });
-    });
-
-    it('should map invalid token to AUTH_VERIFICATION_CODE_EXPIRED', async () => {
-      verifyEmailMock.mockReturnValue(
-        errAsync(
-          createDomainFailure({
-            kind: 'authentication',
-            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
-          }),
-        ),
-      );
-
-      const outcome = await collectResult(
-        service.verifyEmail({
-          token: 'bad-token',
-        }),
-      );
-
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({
-          code: 'AUTH_VERIFICATION_CODE_EXPIRED',
-        }),
-      });
-    });
-
-    it('maps store failures to DEPENDENCY_UNAVAILABLE', async () => {
-      const error = new Error('verification store unavailable');
-      verifyEmailMock.mockReturnValue(
-        errAsync(
-          createDomainFailure({
-            kind: 'dependency',
-            code: 'DEPENDENCY_UNAVAILABLE',
-            cause: error,
-          }),
-        ),
-      );
-
-      const outcome = await collectResult(
-        service.verifyEmail({ token: 'token' }),
-      );
-
-      expect(outcome).toEqual({
-        ok: false,
-        error: expect.objectContaining({
-          code: 'DEPENDENCY_UNAVAILABLE',
         }),
       });
     });

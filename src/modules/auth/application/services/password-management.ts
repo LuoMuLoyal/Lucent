@@ -15,7 +15,6 @@ import type { User } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
 import { INotificationSender } from '../../../notifications/index.js';
 import { AuthIdentityService } from './identity.js';
-import { EmailVerificationService } from '../../services/identity/email-verification.service.js';
 import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
 import type { ChangePasswordDto } from '../../dto/password/change-password.dto.js';
 import type { ChangeEmailDto } from '../../dto/password/change-email.dto.js';
@@ -23,7 +22,6 @@ import type { ResetPasswordDto } from '../../dto/password/reset-password.dto.js'
 import type { SetPasswordDto } from '../../dto/password/set-password.dto.js';
 import type { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.js';
 import type { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
-import type { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
 import { SessionTokens } from './session-tokens.js';
 import { PasswordReauthService } from './password-reauth.js';
 import { CredentialsSelfService } from '../ports/credentials-self-service.js';
@@ -49,7 +47,6 @@ export class PasswordManagementService implements CredentialsSelfService {
     private readonly passwordReauthService: PasswordReauthService,
     private readonly notificationsService: INotificationSender,
     private readonly authIdentityService: AuthIdentityService,
-    private readonly emailVerificationService: EmailVerificationService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -159,8 +156,7 @@ export class PasswordManagementService implements CredentialsSelfService {
           );
         }
         // The code here is the product-level anti-abuse verification code;
-        // Emailed verification / reset tokens are handled by verifyEmail,
-        // forgotPassword, and resetPassword instead.
+        // emailed identifiers are handled by forgotPassword and resetPassword.
         return this.verificationCodeService
           .verify(newEmail, dto.code, 'change-email')
           .andThen(() =>
@@ -188,17 +184,6 @@ export class PasswordManagementService implements CredentialsSelfService {
           ? this.i18n.t('auth.verification_code_sent', { lang: locale })
           : this.i18n.t('auth.verification_code_sent'),
       }));
-  }
-
-  /**
-   * Confirms a mailbox using a token mailed to the address.
-   *
-   * Lucent issues these tokens itself ({@link EmailVerificationService}); the
-   * token is single-use and short-lived, and consuming it marks the account
-   * verified.
-   */
-  verifyEmail(dto: VerifyEmailDto): ResultAsync<void, DomainFailure> {
-    return this.emailVerificationService.consume(dto.token);
   }
 
   // ── Password Reset (verification-code mode) ──────────────────

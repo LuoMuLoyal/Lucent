@@ -271,19 +271,6 @@ describe('LocalController', () => {
     });
   });
 
-  describe('POST /auth/verify-email', () => {
-    it('returns emailVerified true', async () => {
-      passwordManagement.verifyEmail.mockReturnValue(okAsync(undefined));
-
-      const result = await controller.verifyEmail({
-        token: 'valid-verification-token',
-      });
-
-      expect(passwordManagement.verifyEmail).toHaveBeenCalled();
-      expect(result).toEqual({ emailVerified: true });
-    });
-  });
-
   describe('POST /auth/forgot-password', () => {
     it('returns cooldown and message resource', async () => {
       passwordManagement.forgotPassword.mockReturnValue(

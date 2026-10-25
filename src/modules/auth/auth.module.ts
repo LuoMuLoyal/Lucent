@@ -48,7 +48,6 @@ import { DeleteAccount } from './application/use_cases/delete-account.js';
 import { CredentialsSelfService } from './application/ports/credentials-self-service.js';
 import { IdentityLink } from './application/ports/identity-link.js';
 import { AuthIdentityService } from './application/services/identity.js';
-import { EmailVerificationService } from './services/identity/email-verification.service.js';
 import { HumanVerification } from './application/ports/human-verification.js';
 import { OAUTH_PROVIDER_TOKENS } from './application/ports/oauth-provider.js';
 import { CloudflareTurnstile } from './infrastructure/verification/cloudflare-turnstile.js';
@@ -129,7 +128,6 @@ import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js
     },
     { provide: OAUTH_PROVIDER_TOKENS.apple, useExisting: AppleOAuthProvider },
     AuthIdentityService,
-    EmailVerificationService,
     CloudflareTurnstile,
     { provide: HumanVerification, useExisting: CloudflareTurnstile },
     CacheFailureCounters,

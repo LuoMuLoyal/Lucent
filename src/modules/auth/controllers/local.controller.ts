@@ -31,8 +31,6 @@ import { loginSchema } from '../dto/credentials/login.dto.js';
 import type { LoginDto } from '../dto/credentials/login.dto.js';
 import { sendVerificationCodeSchema } from '../dto/password/send-verification-code.dto.js';
 import type { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto.js';
-import { verifyEmailSchema } from '../dto/password/verify-email.dto.js';
-import type { VerifyEmailDto } from '../dto/password/verify-email.dto.js';
 import { forgotPasswordSchema } from '../dto/password/forgot-password.dto.js';
 import type { ForgotPasswordDto } from '../dto/password/forgot-password.dto.js';
 import { resetPasswordSchema } from '../dto/password/reset-password.dto.js';
@@ -45,7 +43,6 @@ import {
   registerResponseSchema as authRegisterResponseSchema,
   resetPasswordResponseSchema,
   sendVerificationCodeResponseSchema,
-  verifyEmailResponseSchema,
 } from '../dto/shared/auth-responses.dto.js';
 
 import { buildAuthResponse } from './auth-response.helper.js';
@@ -204,36 +201,6 @@ export class LocalController {
     };
   }
 
-  // ── POST /api/v1/auth/verify-email ──────────────────────────
-
-  @Post('verify-email')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify email' })
-  @ApiResponse({
-    status: 200,
-    description: 'Whether the email is now verified.',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Verification token is invalid or has expired',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Authentication failed',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 503,
-    description: 'Authentication method unavailable',
-    type: ProblemDetailsDto,
-  })
-  @SerializeOptions({ schema: verifyEmailResponseSchema })
-  async verifyEmail(@Body({ schema: verifyEmailSchema }) dto: VerifyEmailDto) {
-    await unwrapResult(this.passwordManagement.verifyEmail(dto));
-    return { emailVerified: true };
-  }
-
   // ── POST /api/v1/auth/forgot-password ───────────────────────
 
   @Post('forgot-password')
@@ -346,22 +313,6 @@ registerResponseSchema({
   componentName: 'CaptchaResponse',
   schema: captchaSchema,
   description: 'Whether the challenge is enforced and the public site key.',
-});
-
-registerResponseSchema({
-  path: '/api/v1/auth/send-verification-code',
-  method: 'post',
-  componentName: 'SendVerificationCodeResponse',
-  schema: sendVerificationCodeResponseSchema,
-  description: 'Cooldown seconds until the next code can be requested.',
-});
-
-registerResponseSchema({
-  path: '/api/v1/auth/verify-email',
-  method: 'post',
-  componentName: 'VerifyEmailResponse',
-  schema: verifyEmailResponseSchema,
-  description: 'Whether the email is now verified.',
 });
 
 registerResponseSchema({
