@@ -18,7 +18,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, User, UserStatus } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
-import { toOAuthIdentity } from '../../adapters/acl/oauth-profile.js';
+import { toOAuthIdentity } from './profile-mapping.js';
 import {
   canExplicitlyLink,
   decideOAuthAccount,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toOAuthIdentity } from './oauth-profile.js';
+import { toOAuthIdentity } from './profile-mapping.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 
 /**
