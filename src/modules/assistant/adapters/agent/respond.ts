@@ -70,7 +70,8 @@ export function buildRespondNode(deps: {
   return async (state) => {
     if (state.finalContent != null) {
       if (state.finalContent.trim().length === 0) {
-        throw new Error('Assistant graph ended without any assistant content.');
+        // eslint-disable-next-line error-handling/no-bare-throw-error -- an empty model stream is an LLM runtime anomaly, surfaced to the stream orchestrator unchanged
+      throw new Error('Assistant graph ended without any assistant content.');
       }
       return {};
     }
@@ -111,6 +112,7 @@ export function buildRespondNode(deps: {
     const response = await streamModelResponse(model, messages, deps.onText);
     const content = extractContent(response).trim();
     if (content.length === 0) {
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- an empty model stream is an LLM runtime anomaly, surfaced to the stream orchestrator unchanged
       throw new Error('Assistant stream ended without any assistant content.');
     }
 
