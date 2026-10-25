@@ -7,7 +7,7 @@ import { okAsync } from '../../common/result/index.js';
 import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
 import { ExplanationService } from './adapters/queue/explanation/explainer.js';
 import { ExplanationQueueService } from './adapters/queue/explanation/queue.js';
-import { LifecycleService } from './services/lifecycle/manager.service.js';
+import { LifecycleService } from './services/lifecycle.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

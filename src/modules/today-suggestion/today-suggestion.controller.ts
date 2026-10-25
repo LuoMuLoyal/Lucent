@@ -26,7 +26,7 @@ import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.j
 import { ExplanationQueueService } from './adapters/queue/explanation/queue.js';
 
 import { ExplanationService } from './adapters/queue/explanation/explainer.js';
-import { LifecycleService } from './services/lifecycle/manager.service.js';
+import { LifecycleService } from './services/lifecycle.js';
 import { suggestionFeedbackSchema } from './dto/feedback.dto.js';
 import {
   SuggestionFeedbackData,
