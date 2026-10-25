@@ -50,6 +50,11 @@ import { IdentityLink } from './application/ports/identity-link.js';
 import { AuthIdentityService } from './application/services/identity.js';
 import { HumanVerification } from './application/ports/human-verification.js';
 import { OAUTH_PROVIDER_TOKENS } from './application/ports/oauth-provider.js';
+import {
+  OAUTH_IDENTITIES_PORT,
+  OAUTH_NOTIFICATIONS_PORT,
+  OAUTH_STATE_PORT,
+} from './application/ports/oauth-services.js';
 import { CloudflareTurnstile } from './infrastructure/verification/cloudflare-turnstile.js';
 import { FailureCounters } from './application/ports/failure-counters.js';
 import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js';
@@ -127,6 +132,14 @@ import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js
       useExisting: GoogleOAuthProvider,
     },
     { provide: OAUTH_PROVIDER_TOKENS.apple, useExisting: AppleOAuthProvider },
+    // The facade injects these three by token (see `oauth-services.ts`); without
+    // the bindings Nest reports `can't resolve ... OAUTH_STATE_PORT` at boot.
+    { provide: OAUTH_STATE_PORT, useExisting: AuthOAuthStateService },
+    { provide: OAUTH_IDENTITIES_PORT, useExisting: AuthOAuthService },
+    {
+      provide: OAUTH_NOTIFICATIONS_PORT,
+      useExisting: AuthNotificationService,
+    },
     AuthIdentityService,
     CloudflareTurnstile,
     { provide: HumanVerification, useExisting: CloudflareTurnstile },

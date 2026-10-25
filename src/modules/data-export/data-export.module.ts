@@ -33,6 +33,7 @@ import { ExportQueue } from './application/ports/export-queue.js';
 import { DataExportRequests } from './application/ports/data-export-requests.js';
 import { PrismaDataExportRequests } from './infrastructure/persistence/data-export-requests.js';
 import { ReportExportPdfService } from './infrastructure/pdf/report-pdf.js';
+import { ReportPdf } from './application/ports/report-pdf.js';
 
 @Module({
   imports: [AuthModule, ReportsModule, NotificationsModule, StorageModule],
@@ -43,6 +44,9 @@ import { ReportExportPdfService } from './infrastructure/pdf/report-pdf.js';
     { provide: DataExportRequests, useClass: PrismaDataExportRequests },
     PrismaDataExportRequests,
     ReportExportPdfService,
+    // `ProcessExport` injects the port token, not the concrete class: without
+    // this binding Nest reports `can't resolve ... ReportPdf at index [3]`.
+    { provide: ReportPdf, useExisting: ReportExportPdfService },
     ProcessExport,
     BullmqExportQueue,
     { provide: ExportQueue, useExisting: BullmqExportQueue },
