@@ -1,5 +1,3 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
 
@@ -9,6 +7,7 @@ import {
   cleanupDatabase,
   bearer,
   expectData,
+  seedVerificationCode as seedChallengeState,
   uniqueEmail,
 } from '../../helpers/e2e-helpers.js';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
@@ -102,7 +101,6 @@ const UNKNOWN_LOGIN_EMAIL = `nonexistent@${TEST_EMAIL_DOMAIN}`;
 const UNKNOWN_RESET_EMAIL = `nobody@${TEST_EMAIL_DOMAIN}`;
 const INVALID_EMAIL = 'not-an-email';
 const AUTHORIZATION_HEADER = 'Authorization';
-const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
 const VERIFICATION_CODE_COOLDOWN_SECONDS = 60;
 
 let clientIpSeq = 0;
@@ -123,14 +121,11 @@ function hashRefreshToken(token: string): string {
 describe('Auth API (e2e)', () => {
   let ctx: E2eTestContext;
   let app: E2eApp;
-  let cache: Cache;
 
   beforeAll(async () => {
     ctx = await createTestApp();
     app = ctx.app;
     await cleanupDatabase(ctx.prisma);
-
-    cache = app.get(CACHE_MANAGER);
   });
 
   afterAll(async () => {
@@ -183,12 +178,7 @@ describe('Auth API (e2e)', () => {
     email: string,
     code = DEFAULT_VERIFICATION_CODE,
   ): Promise<string> {
-    // The verification service stores a SHA-256 hash (not plaintext) in cache.
-    // We replicate that here so verify() can match correctly.
-    const hash = createHash('sha256')
-      .update(`${scene}:${email}:${code}`)
-      .digest('hex');
-    await cache.set(`vcode:${scene}:${email}`, hash, VERIFICATION_CODE_TTL_MS);
+    await seedChallengeState(ctx, scene, email, code);
     return code;
   }
 

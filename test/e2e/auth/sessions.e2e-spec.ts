@@ -1,13 +1,12 @@
 import request from 'supertest';
 import { createHash } from 'node:crypto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 
 import {
   createTestApp,
   cleanupDatabase,
   bearer,
   expectData,
+  seedVerificationCode,
   uniqueEmail,
 } from '../../helpers/e2e-helpers.js';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
@@ -71,13 +70,9 @@ describe('Session Management API (e2e)', () => {
       .send({ email, scene: 'register' })
       .expect(200);
 
-    // Seed verification code hash directly (service stores hash, not plaintext)
+    // Seed the challenge state directly; mail delivery is not under test here.
     const code = '123456';
-    const hash = createHash('sha256')
-      .update(`register:${email}:${code}`)
-      .digest('hex');
-    const cache = app.get<Cache>(CACHE_MANAGER);
-    await cache.set(`vcode:register:${email}`, hash, 5 * 60 * 1000);
+    await seedVerificationCode(ctx, 'register', email, code);
 
     const res = await request(app.getHttpServer())
       .post(REGISTER_PATH)

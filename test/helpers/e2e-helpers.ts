@@ -5,12 +5,14 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import * as argon2 from 'argon2';
 
 import { AppModule } from '../../src/app.module.js';
 import { ARGON2_OPTIONS } from '../../src/modules/auth/index.js';
+import type { ChallengeState } from '../../src/modules/auth/domain/challenge/challenge.js';
+import { deriveCodeHash } from '../../src/modules/auth/domain/challenge/verification-code.js';
 import { setupApp } from '../../src/setup-app.js';
 import { PrismaService } from '../../src/prisma/index.js';
 import { ConfigKey } from '../../src/config/env/config-keys.enum.js';
@@ -165,6 +167,38 @@ export async function createTestUser(
 }
 
 /**
+ * Seed a verification code directly into the cache, bypassing mail delivery.
+ *
+ * The stored value is the challenge **aggregate state** (`ChallengeState`), not
+ * a bare hash: the attempt counter has to live in the same cache entry as the
+ * code so that exhausting one is atomic with invalidating the other (see
+ * `domain/challenge/challenge.ts`). Seeding a bare hash here would make
+ * `verify()` read `attempts` off `undefined` and reject every code — which is
+ * exactly what happened when S3 changed the stored shape and left these
+ * fixtures behind.
+ *
+ * Kept in the shared helper so the shape has one definition in the test tree;
+ * a fixture that hand-builds it will silently rot the next time it changes.
+ */
+export async function seedVerificationCode(
+  ctx: E2eTestContext,
+  scene: string,
+  email: string,
+  code: string,
+  ttlMs = VERIFICATION_CODE_TTL_MS,
+): Promise<void> {
+  const cache = ctx.app.get(CACHE_MANAGER) as Cache;
+  const state: ChallengeState = {
+    scene,
+    email,
+    codeHash: deriveCodeHash(code, scene, email),
+    attempts: 0,
+    issuedAt: new Date(),
+  };
+  await cache.set(`vcode:${scene}:${email}`, state, ttlMs);
+}
+
+/**
  * Register a credential user through the public auth API so that the account
  * has a valid credential password and an accounts credential record.
  */
@@ -176,15 +210,7 @@ export async function registerTestUser(
 ): Promise<RegisteredTestUser> {
   const userEmail = email ?? uniqueEmail('registered');
   const code = '123456';
-  const cache = ctx.app.get(CACHE_MANAGER) as Cache;
-  const hash = createHash('sha256')
-    .update(`register:${userEmail}:${code}`)
-    .digest('hex');
-  await cache.set(
-    `vcode:register:${userEmail}`,
-    hash,
-    VERIFICATION_CODE_TTL_MS,
-  );
+  await seedVerificationCode(ctx, 'register', userEmail, code);
 
   const res = await request(ctx.app.getHttpServer())
     .post('/api/v1/auth/register')

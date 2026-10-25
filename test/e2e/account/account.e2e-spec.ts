@@ -1,7 +1,4 @@
 import request from 'supertest';
-import { createHash } from 'node:crypto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 
 import {
   createTestApp,
@@ -10,6 +7,7 @@ import {
   createAccessToken,
   bearer,
   expectData,
+  seedVerificationCode,
   uniqueEmail,
 } from '../../helpers/e2e-helpers.js';
 import type {
@@ -34,7 +32,6 @@ const WECHAT_MOBILE_CALLBACK_PATH = `${ACCOUNT_PATH}/identities/wechat-mobile/ca
 const SEND_VERIFICATION_CODE_PATH = '/api/v1/auth/send-verification-code';
 const LOGIN_PATH = '/api/v1/auth/login';
 
-const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
 const TEST_PASSWORD = 'LucentE2e!2345';
 
 interface AccountDto {
@@ -61,7 +58,6 @@ describe('Account API (e2e)', () => {
   let app: E2eApp;
   let user: TestUser;
   let accessToken: string;
-  let cache: Cache;
   let wechatWebProvider: WechatWebOAuthProvider;
   let wechatMobileProvider: WechatMobileOAuthProvider;
 
@@ -78,7 +74,6 @@ describe('Account API (e2e)', () => {
       user.email,
     );
 
-    cache = app.get(CACHE_MANAGER);
     wechatWebProvider = app.get(WechatWebOAuthProvider);
     wechatMobileProvider = app.get(WechatMobileOAuthProvider);
   });
@@ -178,16 +173,9 @@ describe('Account API (e2e)', () => {
         oauthUser.email!,
       );
 
-      // Seed verification code hash directly (service stores hash, not plaintext)
+      // Seed the challenge state directly; mail delivery is not under test here.
       const code = '123456';
-      const hash = createHash('sha256')
-        .update(`set-password:${oauthEmail}:${code}`)
-        .digest('hex');
-      await cache.set(
-        `vcode:set-password:${oauthEmail}`,
-        hash,
-        VERIFICATION_CODE_TTL_MS,
-      );
+      await seedVerificationCode(ctx, 'set-password', oauthEmail, code);
 
       // Set password
       await request(app.getHttpServer())
@@ -214,16 +202,8 @@ describe('Account API (e2e)', () => {
 
     it('should reject set-password when user already has a password (409)', async () => {
       // The main test user has a credential account
-      // Seed verification code hash (service stores hash, not plaintext)
       const code = '123456';
-      const hash = createHash('sha256')
-        .update(`set-password:${user.email}:${code}`)
-        .digest('hex');
-      await cache.set(
-        `vcode:set-password:${user.email}`,
-        hash,
-        VERIFICATION_CODE_TTL_MS,
-      );
+      await seedVerificationCode(ctx, 'set-password', user.email, code);
 
       const res = await request(app.getHttpServer())
         .post(SET_PASSWORD_PATH)

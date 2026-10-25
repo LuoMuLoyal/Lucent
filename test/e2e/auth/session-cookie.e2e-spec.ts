@@ -1,12 +1,11 @@
 import request from 'supertest';
 import type { Response as SupertestResponse } from 'supertest';
 import { createHash } from 'node:crypto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 
 import {
   createTestApp,
   cleanupDatabase,
+  seedVerificationCode,
   uniqueEmail,
 } from '../../helpers/e2e-helpers.js';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
@@ -106,11 +105,7 @@ describe('Cookie Session API (e2e)', () => {
       .expect(200);
 
     const code = '123456';
-    const hash = createHash('sha256')
-      .update(`register:${email}:${code}`)
-      .digest('hex');
-    const cache = app.get<Cache>(CACHE_MANAGER);
-    await cache.set(`vcode:register:${email}`, hash, 5 * 60 * 1000);
+    await seedVerificationCode(ctx, 'register', email, code);
 
     return { email, code };
   }

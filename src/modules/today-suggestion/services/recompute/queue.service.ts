@@ -7,7 +7,11 @@ import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   SUGGESTION_EVENT_TRIGGER_JOB,
   type DomainEventJobData,
-  type EventConsumerRegistry,
+  // NOT `import type`: this is a constructor parameter, so Nest needs the
+  // runtime class as its DI token. A type-only import erases it, the parameter
+  // resolves to `undefined`, and the failure only appears when the full
+  // application is instantiated — never in typecheck or module-scoped tests.
+  EventConsumerRegistry,
 } from '../../../../common/index.js';
 import type { RecomputeJobData } from './recompute-job.types.js';
 import { RecomputeEventTriggerService } from './event-trigger.service.js';
