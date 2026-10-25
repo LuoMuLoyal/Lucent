@@ -66,6 +66,15 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
   它们只经对方的 **reader port**（`DailyRecordReaderPort`、`IUserSettingsPort`）
   读数据，再投影成 `SuggestionSignal`，不碰 Prisma、不查他上下文的表。
   `sleep-trend-builder` 是 `record` 的解析辅助（同层、同目录）。
+- `infrastructure/persistence/materialization.ts` — **物化状态表，不是聚合**。
+  `user_suggestion_materializations` 记录「这一天算到第几版」（
+  `sourceVersion` / `computedVersion` / `status`），管的是**并发控制**而不是业务规则，
+  所以没有 `domain/` 聚合：**版本单调是技术记账，不是领域不变量**。
+  三点实证：`markPending` 不检查当前状态（`ready → pending` 合法且是正常路径——
+  新信号必然让已就绪的建议重新待算）；`ready`/`failed` 只能从 `pending` 到达；
+  **`stale` 不是状态而是投影**（`ready` 且 `sourceVersion > computedVersion` 时算出），
+  因为它随时可由两个字段推导，无需持久化。派生状态归查询侧。
+  它与 `DailySuggestion`（`user_suggestion`，真正的建议卡）是**两个东西**。
 - `services/collectors/` 仍留 3 个文件（`medication` / `profile` /
   `medication-time-resolver`），是**已知状态**，不是遗漏：
   `medication` 与 `profile` 目前**绕过 reader port 直接 `PrismaService` 查

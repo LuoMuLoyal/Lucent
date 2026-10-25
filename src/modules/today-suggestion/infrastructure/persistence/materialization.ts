@@ -18,7 +18,16 @@ import type {
   MaterializationStatus,
   MaterializationStatusView,
   MaterializationVersionInput,
-} from '../../types/materialization.types.js';
+} from './materialization.types.js';
+
+/**
+ * Milliseconds in a second — the stale-age metric is reported in seconds.
+ *
+ * Named so the unit conversion is visible at the call site: the stored
+ * timestamp is in milliseconds and the gauge is in seconds, and mixing the two
+ * would misreport staleness by three orders of magnitude.
+ */
+const MILLISECONDS_PER_SECOND = 1000;
 
 @Injectable()
 export class MaterializationStore {
@@ -57,7 +66,7 @@ export class MaterializationStore {
     if (status === 'stale' && row.computedAt != null) {
       const ageSeconds = Math.max(
         0,
-        (Date.now() - row.computedAt.getTime()) / 1000,
+        (Date.now() - row.computedAt.getTime()) / MILLISECONDS_PER_SECOND,
       );
       this.metricsService?.recordSuggestionStaleAge(ageSeconds);
     }

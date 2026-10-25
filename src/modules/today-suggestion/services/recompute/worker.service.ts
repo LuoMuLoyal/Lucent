@@ -4,7 +4,7 @@ import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { resolveLocale } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { SuggestionService } from '../suggestion.service.js';
-import { MaterializationStore } from '../materialization/store.service.js';
+import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
 import { BaselineService } from '../lifecycle/baseline.service.js';
 import { SUGGESTION_DEFAULT_LOCALE } from '../../constants/locale.constants.js';

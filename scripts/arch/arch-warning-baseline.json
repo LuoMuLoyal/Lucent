@@ -169,7 +169,6 @@
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/feedback/stats.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/lifecycle/baseline.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/lifecycle/manager.service.ts",
-    "eslint|no-magic-numbers|src/modules/today-suggestion/services/materialization/store.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/recompute/worker.service.ts",
     "eslint|no-magic-numbers|src/modules/today-suggestion/services/suggestion.service.ts",
     "eslint|no-magic-numbers|src/modules/user-health-context/dto/create-allergy.dto.ts",

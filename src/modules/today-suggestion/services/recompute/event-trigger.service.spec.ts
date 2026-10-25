@@ -3,7 +3,7 @@ import { formatDateOnlyInTimezone } from '../../../../common/index.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
 import { RecomputeEventTriggerService } from './event-trigger.service.js';
 import type { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
-import type { MaterializationStore } from '../materialization/store.service.js';
+import type { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
 const CURRENT = {

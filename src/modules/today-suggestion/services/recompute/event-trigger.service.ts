@@ -4,8 +4,8 @@ import { formatDateOnlyInTimezone, now } from '../../../../common/index.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
-import { MaterializationStore } from '../materialization/store.service.js';
-import type { MaterializationReasonCode } from '../../types/materialization.types.js';
+import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
+import type { MaterializationReasonCode } from '../../infrastructure/persistence/materialization.types.js';
 import type { RecomputeJobData } from './recompute-job.types.js';
 
 /** Event name → the reason code recorded on the materialization row. */

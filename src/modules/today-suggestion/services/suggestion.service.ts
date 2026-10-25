@@ -14,8 +14,8 @@ import { SuggestionPresentationService } from './presentation.service.js';
 import { LifecycleService } from './lifecycle/manager.service.js';
 import { EscalationService } from './notification/escalation.service.js';
 import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
-import { MaterializationStore } from './materialization/store.service.js';
-import type { MaterializationStatusView } from '../types/materialization.types.js';
+import { MaterializationStore } from '../infrastructure/persistence/materialization.js';
+import type { MaterializationStatusView } from '../infrastructure/persistence/materialization.types.js';
 import type { SuggestionSignal } from '../domain/signal/signal.js';
 import { SUGGESTION_DEFAULT_LOCALE } from '../constants/locale.constants.js';
 

@@ -37,7 +37,7 @@ import { LifecycleService } from './services/lifecycle/manager.service.js';
 import { EscalationService } from './services/notification/escalation.service.js';
 import { RegistryService } from './application/services/rule-registry.js';
 import { RuleVersionRegistry } from './application/services/rule-version-registry.js';
-import { MaterializationStore } from './services/materialization/store.service.js';
+import { MaterializationStore } from './infrastructure/persistence/materialization.js';
 import { RecomputeQueueService } from './services/recompute/queue.service.js';
 import { RecomputeEventTriggerService } from './services/recompute/event-trigger.service.js';
 import { SuggestionRecomputeWorkerService } from './services/recompute/worker.service.js';
