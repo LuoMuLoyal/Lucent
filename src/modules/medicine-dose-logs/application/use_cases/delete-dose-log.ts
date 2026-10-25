@@ -20,6 +20,7 @@ import {
 } from '../../../../common/helpers/format/date-time.utils.js';
 import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
 import { DoseLogEvents } from '../ports/dose-log-events.js';
+import { mapUnknownToInternalFailure } from '../../../../common/result/unknown-error.mapper.js';
 import { notFound } from './failures.js';
 
 /** `@Injectable()` is required for Nest to read this class's constructor metadata. */
@@ -31,7 +32,12 @@ export class DeleteDoseLog {
   ) {}
 
   execute(userId: string, id: string): ResultAsync<void, DomainFailure> {
-    return fromPromise(this.run(userId, id), (error) => error as DomainFailure);
+    // Not `(error) => error as DomainFailure`: a non-domain rejection (a Prisma
+    // failure, say) would reach `unwrapResult` with no `code`, and the exception
+    // filter would turn a 404 into a 500 ("Unknown Problem Details code: undefined").
+    return fromPromise(this.run(userId, id), (error) =>
+      mapUnknownToInternalFailure(error),
+    );
   }
 
   private async run(userId: string, id: string): Promise<void> {

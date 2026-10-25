@@ -19,6 +19,7 @@ import { DataRetentionService } from '../../../src/modules/data-retention/index.
 import { MealAnalysisSweeperService } from '../../../src/modules/daily-records/index.js';
 import { LifecycleService } from '../../../src/modules/today-suggestion/index.js';
 import { ReminderSchedulerService } from '../../../src/modules/medicine-reminders/index.js';
+import { ReminderDispatcher } from '../../../src/modules/medicine-reminders/application/ports/delivery-services.js';
 import {
   REMINDER_QUEUE_NAME,
   ReminderDispatchQueue,
@@ -121,6 +122,14 @@ describe('startup and shutdown ordering (e2e)', () => {
         {
           provide: ReminderSchedulerService,
           useValue: makeSchedulerStub(),
+        },
+        // `ReminderDispatchQueue` takes the dispatch port as its second
+        // constructor argument. The real binding lives in
+        // `MedicineRemindersModule`; this suite builds a minimal provider list,
+        // so the port needs its own stub here.
+        {
+          provide: ReminderDispatcher,
+          useValue: { dispatchDueReminders: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: WeeklyInsightSchedulerService,

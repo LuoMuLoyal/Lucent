@@ -168,11 +168,16 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       expect(found).toBe(false);
     });
 
+    // Daily records answer 404, not 403, for another user's row: the ownership
+    // check deliberately reports "not found" so the response cannot be used to
+    // probe whether a given id exists (ADR-0012 IDOR convention; see
+    // `RecordOwnership`'s header comment). The security property under test —
+    // Bob cannot reach Alice's record — holds either way.
     it('Bob cannot read Alice daily record by ID', async () => {
       await request(app.getHttpServer())
         .get(`/api/v1/user/daily-records/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(403);
+        .expect(404);
     });
 
     it('Bob cannot update Alice daily record', async () => {
@@ -180,14 +185,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .patch(`/api/v1/user/daily-records/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
         .send({ payload: { mealType: 'lunch', items: [] } })
-        .expect(403);
+        .expect(404);
     });
 
     it('Bob cannot delete Alice daily record', async () => {
       await request(app.getHttpServer())
         .delete(`/api/v1/user/daily-records/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(403);
+        .expect(404);
     });
   });
 
