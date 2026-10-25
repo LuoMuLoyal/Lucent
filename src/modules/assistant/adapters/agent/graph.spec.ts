@@ -1,0 +1,833 @@
+import {
+  AIMessage,
+  AIMessageChunk,
+  HumanMessage,
+} from '@langchain/core/messages';
+import type { BaseMessage } from '@langchain/core/messages';
+import {
+  buildAssistantRuntimeGraph,
+  selectPermittedTools,
+} from './graph.js';
+import { TOOL_NAMES } from '../../domain/policies/tool-permission.js';
+import type { ToolName } from '../../domain/policies/tool-permission.js';
+
+/**
+ * 测试用的"模型路由"替身。
+ *
+ * 关键词路由已整体退役（见 `plans/2026-10-07-assistant-intent-routing-and-retrieval-fixes.md`）：
+ * "哪条消息该选哪些工具"现在是**模型行为**，不再由单测钉住。这张表把每条用例赖以为
+ * 前提的路由结果显式写出来，于是这个文件测的仍然是它该测的东西 —— 图在路由结果之上的
+ * 候选集求交、意图派生、子图分支与工具循环。
+ */
+const ROUTING_TABLE: ReadonlyArray<readonly [string, ToolName[]]> = [
+  ['你好', []],
+  ['帮我查一下今天的记录', ['get_today_records']],
+  [
+    '帮我记一下今天喝了 300ml 水',
+    ['get_today_records', 'propose_create_daily_record'],
+  ],
+  [
+    '帮我记录今天喝水 500ml',
+    ['get_today_records', 'propose_create_daily_record'],
+  ],
+  [
+    '这个国药准字H10900089的禁忌和不良反应是什么',
+    [
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
+      'search_cn_medicine_knowledge',
+    ],
+  ],
+  [
+    '查一下我最近的记录，顺便查查这个药的说明书',
+    ['get_records_by_range', 'search_cn_medicine_knowledge'],
+  ],
+  ['我的过敏情况', ['get_user_profile']],
+  ['我的情况怎么样', ['get_user_profile']],
+];
+
+const fakeRouteTools = (input: {
+  userMessage: string;
+  candidateTools: readonly ToolName[];
+}): Promise<{
+  source: 'llm';
+  tools: ToolName[];
+}> => {
+  const entry = ROUTING_TABLE.find(([message]) =>
+    input.userMessage.includes(message),
+  );
+  const requested = entry?.[1] ?? ['get_today_records'];
+  return Promise.resolve({
+    source: 'llm',
+    tools: requested.filter((tool) => input.candidateTools.includes(tool)),
+  });
+};
+
+function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
+  return vi.fn().mockImplementation(async (...args: unknown[]) => {
+    const response = (await invoke(...args)) as AIMessage;
+    return (async function* () {
+      await Promise.resolve();
+      yield new AIMessageChunk({
+        content: response.content,
+        tool_calls: response.tool_calls,
+        invalid_tool_calls: response.invalid_tool_calls,
+      } as never);
+    })();
+  });
+}
+
+describe('AssistantFoundationGraph', () => {
+  it('binds every candidate tool when no tool router is wired (degradation)', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '好的。' }));
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(mockInvoke),
+    };
+
+    // 不注入 `routeTools` = 路由不可用。按约定降级为"绑定全部候选工具 + mixed"，
+    // 走通用 agent 节点；**不回退到任何关键词子集**（规则表已退役）。
+    const graph = buildAssistantRuntimeGraph({
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const candidates: ToolName[] = [
+      'get_today_records',
+      'search_cn_medicine_knowledge',
+      'propose_create_daily_record',
+    ];
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: candidates,
+      enabledContextSources: ['daily_records'],
+    });
+
+    expect(result.routingSource).toBe('degraded_all_tools');
+    expect(result.intent).toBe('mixed');
+    expect(result.relevantTools).toEqual(candidates);
+    // mixed 走 agent 节点（而不是 simple_chat 的"不绑工具直接 respond"）。
+    expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+  });
+
+  it('never binds a tool outside the candidate set', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '好的。' }));
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(mockInvoke),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      // 模型想查说明书，但候选集里没有它（用户没开来源 / sidecar 不可用）。
+      routeTools: () =>
+        Promise.resolve({
+          source: 'llm' as const,
+          tools: ['search_cn_medicine_knowledge' as const],
+        }),
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '阿司匹林的禁忌',
+      locale: 'zh-CN',
+      allowedTools: ['get_today_records'],
+      enabledContextSources: ['daily_records'],
+    });
+
+    expect(result.relevantTools).toEqual([]);
+    expect(result.intent).toBe('simple_chat');
+  });
+
+  it('derives allowed tools from enabled context sources', () => {
+    expect(
+      selectPermittedTools(['health_profile', 'sleep_records']),
+    ).toEqual([
+      'get_today_summary_by_date',
+      'get_report_summary_by_range',
+      'get_recent_today_summaries',
+      'get_recent_report_summaries',
+      'get_user_profile',
+      'get_user_settings',
+      'get_sleep_summary_by_range',
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
+      'search_cn_medicine_knowledge',
+      'resolve_drugbank_entity',
+      'get_drugbank_detail',
+      'search_drugbank_passages',
+      'reason_over_ontology',
+      'reason_over_rules',
+      'propose_create_daily_record',
+      'propose_update_user_settings',
+    ]);
+  });
+
+  it('runs the tool-loop graph and returns final content when LLM produces text', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '今天共 3 条饮水记录。' }));
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '帮我查一下今天的记录',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile', 'daily_records'],
+    });
+
+    expect(result.intent).toBe('read_data');
+    expect(result.relevantTools).toContain('get_today_records');
+    expect(result.finalContent).toBe('今天共 3 条饮水记录。');
+    expect(result.toolResults).toEqual([]);
+    expect(result.stopReason).toBe('answered');
+  });
+
+  it('routes simple chat to respond, which produces a tool-free reply', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '你好，有什么可以帮你？' }));
+    const mockModel = {
+      bindTools: vi.fn(),
+      stream: streamFromInvoke(mockInvoke),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile', 'sleep_records'],
+    });
+
+    expect(result.intent).toBe('simple_chat');
+    expect(result.relevantTools).toEqual([]);
+    expect(result.finalContent).toBe('你好，有什么可以帮你？');
+    expect(result.stopReason).toBe('answered');
+    // The agent node is skipped: no tools bound, exactly one tool-free call.
+    expect(mockModel.bindTools).not.toHaveBeenCalled();
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes write-proposal messages through the write sub-graph', async () => {
+    let callCount = 0;
+    const mockInvoke = vi.fn().mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        return Promise.resolve(
+          new AIMessage({
+            content: '',
+            tool_calls: [
+              {
+                name: 'propose_create_daily_record',
+                id: 'call_0',
+                args: {},
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.resolve(
+        new AIMessage({ content: '好的，这是一份待确认的饮水记录草稿。' }),
+      );
+    });
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
+    };
+
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'propose_create_daily_record',
+        data: { draft: {} },
+        proposedActions: [
+          { id: 'proposal-1', type: 'create_daily_record', status: 'proposed' },
+        ],
+      },
+    ]);
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools,
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '帮我记一下今天喝了 300ml 水',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile', 'daily_records'],
+    });
+
+    expect(result.intent).toBe('write_proposal');
+    expect(result.relevantTools).toEqual(
+      expect.arrayContaining([
+        'get_today_records',
+        'propose_create_daily_record',
+      ]),
+    );
+    // The LLM only requested the proposal tool; the auxiliary read is bound
+    // for context but not executed. The provider's `id` is carried through so
+    // the ToolMessage can echo it back (see `createToolsNode`).
+    expect(executeTools).toHaveBeenCalledWith([
+      { id: 'call_0', name: 'propose_create_daily_record', args: {} },
+    ]);
+    expect(result.finalContent).toBe('好的，这是一份待确认的饮水记录草稿。');
+    expect(result.validationFlags.missingProposedActions).toBe(false);
+    expect(result.stopReason).toBe('answered');
+  });
+
+  it('routes knowledge messages through the knowledge sub-graph', async () => {
+    let callCount = 0;
+    const mockInvoke = vi.fn().mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        return Promise.resolve(
+          new AIMessage({
+            content: '',
+            tool_calls: [
+              {
+                name: 'search_cn_medicine_products',
+                id: 'call_0',
+                args: { query: '国药准字H10900089' },
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.resolve(
+        new AIMessage({ content: '该药品的禁忌与不良反应如下…' }),
+      );
+    });
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
+    };
+
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'search_cn_medicine_products',
+        data: {
+          coverage: { status: 'complete' },
+          ambiguities: [],
+        },
+      },
+    ]);
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools,
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '这个国药准字H10900089的禁忌和不良反应是什么',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile', 'sleep_records'],
+    });
+
+    expect(result.intent).toBe('knowledge');
+    expect(executeTools).toHaveBeenCalledTimes(1);
+    expect(result.finalContent).toBe('该药品的禁忌与不良反应如下…');
+    expect(result.validationFlags.hasEmptyResults).toBe(false);
+    expect(result.stopReason).toBe('answered');
+  });
+
+  it('routes mixed intents through the full agent node', async () => {
+    let callCount = 0;
+    const mockInvoke = vi.fn().mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        return Promise.resolve(
+          new AIMessage({
+            content: '',
+            tool_calls: [
+              { name: 'get_records_by_range', id: 'call_0', args: {} },
+            ],
+          }),
+        );
+      }
+      return Promise.resolve(
+        new AIMessage({ content: '以下是记录与药品说明书的汇总。' }),
+      );
+    });
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
+    };
+
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'get_records_by_range',
+        data: { records: [] },
+      },
+    ]);
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools,
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '查一下我最近的记录，顺便查查这个药的说明书',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: [
+        'health_profile',
+        'sleep_records',
+        'daily_records',
+      ],
+    });
+
+    expect(result.intent).toBe('mixed');
+    // The full agent runs (not a sub-graph): tool loop executes normally.
+    expect(executeTools).toHaveBeenCalledTimes(1);
+    expect(executeTools).toHaveBeenCalledWith([
+      { id: 'call_0', name: 'get_records_by_range', args: {} },
+    ]);
+    expect(result.finalContent).toBe('以下是记录与药品说明书的汇总。');
+    expect(result.stopReason).toBe('answered');
+  });
+
+  it('injects cross-conversation memory for new conversations', async () => {
+    const buildMemoryBlock = vi
+      .fn()
+      .mockResolvedValue('Prior memory: user prefers metric units.');
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '明白。' }));
+    const mockModel = {
+      bindTools: vi.fn(),
+      stream: streamFromInvoke(mockInvoke),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+      buildMemoryBlock,
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+      memoryEnabled: true,
+      isNewConversation: true,
+    });
+
+    expect(buildMemoryBlock).toHaveBeenCalledWith('user-1');
+    // simple_chat → respond, whose tool-free call receives the memory block.
+    const sentMessages =
+      (mockInvoke.mock.calls[0]?.[0] as BaseMessage[] | undefined) ?? [];
+    expect(
+      sentMessages.some(
+        (m) =>
+          m instanceof HumanMessage &&
+          typeof m.content === 'string' &&
+          m.content.includes('Prior memory'),
+      ),
+    ).toBe(true);
+    expect(result.finalContent).toBe('明白。');
+  });
+
+  it('skips memory injection when memory is disabled or mid-conversation', async () => {
+    const buildMemoryBlock = vi.fn().mockResolvedValue('memory');
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '好的。' }));
+    const mockModel = {
+      bindTools: vi.fn(),
+      stream: streamFromInvoke(mockInvoke),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+      buildMemoryBlock,
+    });
+
+    // memory disabled
+    await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+      memoryEnabled: false,
+      isNewConversation: true,
+    });
+    // mid-conversation (multiple user messages)
+    await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+      memoryEnabled: true,
+      isNewConversation: false,
+    });
+
+    expect(buildMemoryBlock).not.toHaveBeenCalled();
+  });
+
+  it('serves repeated simple-chat messages from the response cache', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '你好呀！' }));
+    const mockModel = {
+      bindTools: vi.fn(),
+      stream: streamFromInvoke(mockInvoke),
+    };
+
+    let stored: string | null = null;
+    const respondCache = {
+      get: vi.fn().mockImplementation(() => Promise.resolve(stored)),
+      set: vi.fn().mockImplementation((_key: string, value: string) => {
+        stored = value;
+        return Promise.resolve();
+      }),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+      respondCache,
+    });
+
+    // First turn: cache miss → one LLM call → reply cached.
+    const first = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+    });
+    expect(first.finalContent).toBe('你好呀！');
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    expect(respondCache.set).toHaveBeenCalledTimes(1);
+
+    // Second turn (same message): cache hit → no additional LLM call.
+    const second = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+    });
+    expect(second.finalContent).toBe('你好呀！');
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    expect(respondCache.get).toHaveBeenCalled();
+  });
+
+  it('skips the response cache when memory was injected', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValue(new AIMessage({ content: '记得的。' }));
+    const mockModel = {
+      bindTools: vi.fn(),
+      stream: streamFromInvoke(mockInvoke),
+    };
+    const respondCache = {
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+      buildMemoryBlock: vi.fn().mockResolvedValue('Prior memory…'),
+      respondCache,
+    });
+
+    await graph.invoke({
+      userId: 'user-1',
+      userMessage: '你好',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+      memoryEnabled: true,
+      isNewConversation: true,
+    });
+
+    // Memory-bearing turns must never be cached (user data in context).
+    expect(respondCache.get).not.toHaveBeenCalled();
+    expect(respondCache.set).not.toHaveBeenCalled();
+  });
+
+  it('executes tools when the LLM requests them and loops back', async () => {
+    let callCount = 0;
+    const mockInvoke = vi.fn().mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        return Promise.resolve(
+          new AIMessage({
+            content: '',
+            tool_calls: [{ name: 'get_user_profile', id: 'call_0', args: {} }],
+          }),
+        );
+      }
+      return Promise.resolve(new AIMessage({ content: '根据您的健康档案...' }));
+    });
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+    };
+
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'get_user_profile',
+        data: { summary: { activeAllergyCount: 1 } },
+      },
+    ]);
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools,
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '我的过敏情况',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+    });
+
+    expect(executeTools).toHaveBeenCalledTimes(1);
+    expect(executeTools).toHaveBeenCalledWith([
+      { id: 'call_0', name: 'get_user_profile', args: {} },
+    ]);
+    expect(result.toolResults).toHaveLength(1);
+    expect(result.finalContent).toBe('根据您的健康档案...');
+    expect(result.loopCount).toBe(1);
+    expect(result.stopReason).toBe('answered');
+  });
+
+  it('stops at the tool-loop cap when LLM keeps requesting tools', async () => {
+    const mockInvoke = vi.fn().mockResolvedValue(
+      new AIMessage({
+        content: '',
+        tool_calls: [{ name: 'get_user_profile', id: 'call_0', args: {} }],
+      }),
+    );
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      // The respond node makes a final tool-free call after the loop cap.
+      stream: streamFromInvoke(
+        vi
+          .fn()
+          .mockResolvedValue(new AIMessage({ content: '查询次数已达上限。' })),
+      ),
+    };
+
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'get_user_profile',
+        data: { summary: {} },
+      },
+    ]);
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools,
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '我的情况怎么样',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+    });
+
+    // MAX_TOOL_LOOPS = 3, so tools are called at most 3 times
+    expect(executeTools).toHaveBeenCalledTimes(3);
+    expect(result.loopCount).toBe(3);
+  });
+
+  it('retries the agent node on transient LLM errors', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockRejectedValueOnce({ status: 500, message: 'upstream boom' })
+      .mockResolvedValueOnce(new AIMessage({ content: '重试成功。' }));
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(
+        vi.fn().mockResolvedValue(new AIMessage({ content: '兜底。' })),
+      ),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '帮我查一下今天的记录',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile', 'daily_records'],
+    });
+
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
+    expect(result.finalContent).toBe('重试成功。');
+  });
+
+  it('does not retry non-transient LLM errors', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockRejectedValue({ status: 400, message: 'bad request' });
+    const mockModel = {
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
+    };
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: vi.fn(),
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    await expect(
+      graph.invoke({
+        userId: 'user-1',
+        userMessage: '帮我查一下今天的记录',
+        locale: 'zh-CN',
+        allowedTools: [...TOOL_NAMES],
+        enabledContextSources: ['health_profile', 'daily_records'],
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips in-graph review without a checkpointer (old write flow)', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new AIMessage({
+          content: '',
+          tool_calls: [
+            {
+              name: 'propose_create_daily_record',
+              id: 'call_0',
+              args: {},
+            },
+          ],
+        }),
+      )
+      .mockResolvedValue(
+        new AIMessage({ content: '好的，这是一份待确认的饮水记录草稿。' }),
+      );
+    const mockModel = {
+      bindTools: vi.fn().mockReturnThis(),
+      stream: streamFromInvoke(mockInvoke),
+    };
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'propose_create_daily_record',
+        data: { draft: {} },
+        proposedActions: [
+          {
+            id: 'proposal-1',
+            type: 'create_daily_record',
+            status: 'proposed',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    ]);
+
+    const graph = buildAssistantRuntimeGraph({
+      routeTools: fakeRouteTools,
+      createModel: () => mockModel as never,
+      executeTools: executeTools as never,
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '帮我记录今天喝水 500ml',
+      locale: 'zh-CN',
+      allowedTools: [...TOOL_NAMES],
+      enabledContextSources: ['health_profile'],
+    });
+
+    // No checkpointer → no review nodes: the write flow replies directly.
+    expect(result.pendingReview).toBeUndefined();
+    expect(result.stopReason).not.toBe('awaiting_review');
+    expect(result.finalContent).toBe('好的，这是一份待确认的饮水记录草稿。');
+    expect('__interrupt__' in result).toBe(false);
+  });
+});

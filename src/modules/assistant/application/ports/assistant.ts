@@ -1,0 +1,272 @@
+import type {
+  ContextSource,
+  ToolDisabledReason,
+  ToolName,
+} from '../../domain/policies/tool-permission.js';
+
+export interface AssistantRuntimeCapabilities {
+  phase: 'foundation';
+  chatModelConfigured: boolean;
+  interactiveChatReady: boolean;
+  langGraphReady: boolean;
+  ragEnabled: boolean;
+  /**
+   * Whether the LightRAG sidecar is enabled and configured. Chinese prose
+   * retrieval has no degradation path (计划 §一.7), so when this is false the
+   * retrieval tools report `retrieval_unavailable` instead of quietly
+   * returning empty evidence.
+   */
+  retrievalAvailable: boolean;
+  /**
+   * Whether the Semantica sidecar (English-side OAG) is enabled. Same rule as
+   * `retrievalAvailable`: ontology reasoning has no degradation path, so
+   * `reason_over_ontology` reports `retrieval_unavailable` when this is false.
+   */
+  oagAvailable: boolean;
+  graphNodeNames: readonly string[];
+  toolNames: readonly ToolName[];
+  implementedToolNames: readonly ToolName[];
+  contextSources: readonly ContextSource[];
+}
+
+export interface AssistantToolCapabilitySnapshot {
+  name: ToolName;
+  requiredContextSources: ContextSource[];
+  permittedByUser: boolean;
+  implemented: boolean;
+  enabled: boolean;
+  disabledReason: ToolDisabledReason | null;
+}
+
+export interface AssistantPolicySnapshot {
+  interactiveChatReady: boolean;
+  enabledContextSources: ContextSource[];
+  contextPermittedToolNames: ToolName[];
+  executableToolNames: ToolName[];
+  /**
+   * 本轮可绑定的工具集（候选集/硬上限）＝ `contextPermittedToolNames ∩ 已实现 ∩ 可用`。
+   *
+   * 比 `executableToolNames` 多一层 **sidecar 可用性**（LightRAG/Semantica 关掉时对应
+   * 工具不在集合里）。图绑定的就是它：旧实现只按 context 映射绑定，于是 sidecar 关着时
+   * 工具照样进提示词、模型调用后才撞上 "unavailable"，并把结果说成"本产品没这个能力"
+   * （2026-10-07 生产事故 C2）。
+   */
+  enabledToolNames: ToolName[];
+  toolCapabilities: AssistantToolCapabilitySnapshot[];
+}
+
+export interface AssistantConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AssistantConversationSnapshotMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  usedTools: string[];
+  createdAt: string;
+}
+
+export interface AssistantConversationSnapshot {
+  id: string;
+  title: string | null;
+  status: 'active' | 'archived' | 'deleted';
+  messages: AssistantConversationSnapshotMessage[];
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssistantConversationSummary {
+  id: string;
+  title: string | null;
+  status: 'active' | 'archived' | 'deleted';
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssistantStreamChunkEvent {
+  content: string;
+}
+
+export interface AssistantMessageResult {
+  content: string;
+  usedToolNames: ToolName[];
+}
+
+export type AssistantReadCoverageStatus = 'complete' | 'partial' | 'empty';
+export type AssistantReadConfidenceLevel = 'high' | 'medium' | 'low';
+
+export interface AssistantReadCoverage {
+  status: AssistantReadCoverageStatus;
+  reason: string | null;
+  omittedContextSources?: ContextSource[];
+  omittedKinds?: string[];
+}
+
+export interface AssistantReadTimeRange {
+  timezone: 'UTC';
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface AssistantReadSourceMeta {
+  tool: ToolName;
+  generatedAt: string;
+  tables: string[];
+}
+
+export interface AssistantReadConfidence {
+  level: AssistantReadConfidenceLevel;
+  reason: string;
+}
+
+export interface AssistantReadResultEnvelope {
+  [key: string]: unknown;
+  query: Record<string, unknown>;
+  result: Record<string, unknown>;
+  coverage: AssistantReadCoverage;
+  timeRange: AssistantReadTimeRange;
+  source: AssistantReadSourceMeta;
+  confidence: AssistantReadConfidence;
+  ambiguities: string[];
+}
+
+export interface AssistantProposalPreviewField {
+  label: string;
+  value: string;
+}
+
+export interface AssistantCreateDailyRecordProposalPayload {
+  type: 'create_daily_record';
+  draft: {
+    kind:
+      | 'water'
+      | 'meal'
+      | 'symptom'
+      | 'note'
+      | 'sleep'
+      | 'vital'
+      | 'activity';
+    occurredAt: string;
+    title: string | null;
+    value: string | null;
+    unit: string | null;
+    note: string | null;
+    payload: Record<string, unknown> | null;
+  };
+}
+
+export interface AssistantUpdateDailyRecordProposalPayload {
+  type: 'update_daily_record';
+  recordId: string;
+  draft: {
+    occurredAt?: string | null;
+    title?: string | null;
+    value?: string | null;
+    unit?: string | null;
+    note?: string | null;
+    payload?: Record<string, unknown> | null;
+  };
+}
+
+export interface AssistantDeleteDailyRecordProposalPayload {
+  type: 'delete_daily_record';
+  recordId: string;
+}
+
+export interface AssistantUpdateUserSettingsProposalPayload {
+  type: 'update_user_settings';
+  draft: {
+    assistantEnabled?: boolean;
+    assistantMemoryEnabled?: boolean;
+    assistantContext?: {
+      healthProfile?: boolean;
+      dailyRecords?: boolean;
+      sleepRecords?: boolean;
+      currentMedicines?: boolean;
+    };
+  };
+}
+
+export interface AssistantProposalTarget {
+  kind: 'daily_record' | 'user_settings' | 'daily_record_draft';
+  label: string;
+  recordId?: string;
+  settingKeys?: string[];
+  matchedBy?: string[];
+  snapshot?: Record<string, unknown>;
+}
+
+export interface AssistantProposedAction {
+  id: string;
+  type:
+    | 'create_daily_record'
+    | 'update_daily_record'
+    | 'delete_daily_record'
+    | 'update_user_settings';
+  status: 'proposed';
+  confirmationRequired: true;
+  title: string;
+  summary: string;
+  reason: string | null;
+  previewFields: AssistantProposalPreviewField[];
+  target: AssistantProposalTarget;
+  constraints: string[];
+  expiresAt: string;
+  payloadVersion: 1;
+  payload:
+    | AssistantCreateDailyRecordProposalPayload
+    | AssistantUpdateDailyRecordProposalPayload
+    | AssistantDeleteDailyRecordProposalPayload
+    | AssistantUpdateUserSettingsProposalPayload;
+}
+
+/**
+ * Internal runtime envelope returned by tool execution. Unlike
+ * `AssistantToolDetailDto`, this shape carries raw tool data and optional
+ * proposal/timeout control state before the client-facing projection.
+ */
+export interface AssistantToolExecutionResult {
+  name: ToolName;
+  data: Record<string, unknown>;
+  proposedActions?: AssistantProposedAction[];
+  /**
+   * True when the tool hit the per-tool execution timeout (F-6); the data
+   * envelope then carries `{ timeout: true, reason: ... }` so the model can
+   * observe the timeout without the graph aborting.
+   */
+  timeout?: boolean;
+}
+
+/**
+ * One tool the model asked to call, with the arguments it produced.
+ *
+ * 参数必须原样带到执行层：工具的参数（例如餐食 digest 的 `days` / `limit`）由模型
+ * 通过 function calling 给出，不能再从 `userMessage` 文本里猜——本链路的既有教训是
+ * 「文本启发式猜语义」既不可靠又无法审计。多数工具没有参数，此时 `args` 为空对象。
+ */
+export interface AssistantToolCall {
+  /**
+   * Provider-generated id of this tool call (`tool_calls[i].id`).
+   *
+   * ⚠️ 必须原样带到 ToolMessage 的 `tool_call_id`：严格 OpenAI 兼容服务要求
+   * `role:"tool"` 的 id 出现在上一条 assistant 的 `tool_calls` 里，自造 id（旧实现写
+   * `call_${index}`）会被 400 拒绝，而 400 不在重试白名单里 —— 表现为整轮直接失败。
+   * 只有 provider 没给 id 时才允许合成（见 `nodes.ts` 的 tools 节点）。
+   */
+  id?: string;
+  name: ToolName;
+  args: Record<string, unknown>;
+}
+
+export interface AssistantToolExecutionContext {
+  userId: string;
+  locale: 'zh-CN' | 'en';
+  userMessage: string;
+  enabledContextSources: readonly ContextSource[];
+  memoryEnabled: boolean;
+  /** Arguments of the tool call currently being executed (empty when the tool takes none). */
+  toolArgs?: Record<string, unknown>;
+}

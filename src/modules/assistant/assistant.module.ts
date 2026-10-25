@@ -10,68 +10,68 @@ import { MedicineRemindersService } from '../medicine-reminders/index.js';
 import { MedicinesModule } from '../medicines/medicines.module.js';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
 import { UserSettingsModule } from '../user-settings/user-settings.module.js';
-import { AssistantRuntimeService } from './agent/runtime.service.js';
-import { AssistantStreamService } from './agent/stream.service.js';
-import { AssistantCheckpointerService } from './agent/checkpointer.service.js';
-import { AssistantConversationService } from './services/conversation.service.js';
-import { AssistantMemoryService } from './services/memory.service.js';
-import { AssistantController } from './assistant.controller.js';
-import { AssistantPolicyService } from './services/policy.service.js';
-import { HistoricalAiSummaryService } from './services/historical-ai-summary.service.js';
-import { AssistantService } from './services/core.service.js';
-import { AssistantProposalConfirmService } from './services/proposal-confirm.service.js';
-import { AssistantStreamOrchestratorService } from './services/stream-orchestrator.service.js';
+import { AssistantRuntimeService } from './adapters/agent/checkpoint-runtime.js';
+import { AssistantStreamService } from './application/services/stream.js';
+import { AssistantCheckpointerService } from './infrastructure/agent/checkpointer.js';
+import { AssistantConversationService } from './application/use_cases/conversation.js';
+import { AssistantMemoryService } from './application/services/memory.js';
+import { AssistantController } from './adapters/http/assistant.controller.js';
+import { AssistantPolicyService } from './application/services/policy.js';
+import { HistoricalAiSummaryService } from './application/use_cases/summaries.js';
+import { AssistantService } from './application/use_cases/assistant.js';
+import { AssistantProposalConfirmService } from './application/use_cases/confirm-proposal.js';
+import { AssistantStreamOrchestratorService } from './application/use_cases/stream-message.js';
 import {
   DAILY_RECORD_CANDIDATE_GENERATOR,
   DAILY_RECORD_READER,
   MEDICINE_REMINDER_READER,
-} from './types/ports.js';
+} from './application/ports/readers.js';
 import {
   AssistantConversationRepository,
   AssistantConversationRepositoryPort,
-} from './repositories/conversation.repository.js';
+} from './domain/conversation/conversations.js';
 import {
   AssistantMemoryRepository,
   AssistantMemoryRepositoryPort,
-} from './repositories/memory.repository.js';
+} from './domain/memory/memories.js';
 
 import {
   AssistantSummaryRepository,
   AssistantSummaryRepositoryPort,
-} from './repositories/summary.repository.js';
-import { AssistantContextService } from './tools/shared/context.service.js';
+} from './domain/summary/summaries.js';
+import { AssistantContextService } from './application/services/tool-context.js';
 
-import { AssistantToolDrugbankEntityResolveService } from './tools/drugbank/entity-resolve.service.js';
+import { AssistantToolDrugbankEntityResolveService } from './adapters/acl/tools/drugbank/entity-resolve.service.js';
 
-import { AssistantToolDrugbankSearchService } from './tools/drugbank/search.service.js';
+import { AssistantToolDrugbankSearchService } from './adapters/acl/tools/drugbank/search.service.js';
 
-import { LightragClientService } from './tools/retrieval/lightrag-client.service.js';
+import { LightragClientService } from './infrastructure/retrieval/lightrag-client.js';
 
-import { AssistantToolKnowledgeRetrievalService } from './tools/retrieval/knowledge.service.js';
+import { AssistantToolKnowledgeRetrievalService } from './adapters/acl/tools/retrieval/knowledge.service.js';
 
-import { SemanticaClientService } from './tools/ontology/semantica-client.service.js';
+import { SemanticaClientService } from './infrastructure/retrieval/semantica-client.js';
 
-import { OntologyCypherGeneratorService } from './tools/ontology/cypher-generator.service.js';
-import { AssistantIntentClassifierService } from './agent/runtime/intent-classifier.service.js';
+import { OntologyCypherGeneratorService } from './adapters/acl/tools/ontology/cypher-generator.service.js';
+import { AssistantIntentClassifierService } from './application/services/intent-classifier.js';
 
-import { AssistantToolOntologyReasoningService } from './tools/ontology/ontology-reasoning.service.js';
+import { AssistantToolOntologyReasoningService } from './adapters/acl/tools/ontology/ontology-reasoning.service.js';
 
-import { AssistantToolRuleReasoningService } from './tools/ontology/rule-reasoning.service.js';
+import { AssistantToolRuleReasoningService } from './adapters/acl/tools/ontology/rule-reasoning.service.js';
 
-import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service.js';
-import { AssistantDrugbankLookupService } from './tools/medicine/drugbank-lookup.service.js';
+import { AssistantToolMedicineLookupService } from './adapters/acl/tools/medicine/lookup.service.js';
+import { AssistantDrugbankLookupService } from './adapters/acl/tools/medicine/drugbank-lookup.service.js';
 
-import { AssistantToolProposalService } from './tools/proposal/proposal.service.js';
-import { AssistantDailyRecordProposalService } from './tools/proposal/daily-record-proposal.service.js';
-import { AssistantSettingsProposalService } from './tools/proposal/settings-proposal.service.js';
+import { AssistantToolProposalService } from './adapters/acl/tools/proposal/proposal.service.js';
+import { AssistantDailyRecordProposalService } from './adapters/acl/tools/proposal/daily-record-proposal.service.js';
+import { AssistantSettingsProposalService } from './adapters/acl/tools/proposal/settings-proposal.service.js';
 
-import { AssistantToolReadService } from './tools/read/read.service.js';
+import { AssistantToolReadService } from './adapters/acl/tools/read/read.service.js';
 
-import { AssistantToolRecordQueryService } from './tools/records/query.service.js';
+import { AssistantToolRecordQueryService } from './adapters/acl/tools/records/query.service.js';
 
-import { AssistantToolService } from './tools/tool.service.js';
+import { AssistantToolService } from './adapters/acl/tool-executor.js';
 
-import { VectorStoreFactory } from './tools/vector/vector-store.factory.js';
+import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.factory.js';
 
 @Module({
   imports: [

@@ -1,0 +1,325 @@
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+
+import { AssistantConversationStatus } from '#generated/prisma/client.js';
+import { AssistantConversationRepository } from '../../domain/conversation/conversations.js';
+import type { PrismaService } from '../../../../prisma/index.js';
+
+describe('AssistantConversationRepository', () => {
+  let repository: AssistantConversationRepository;
+  let prisma: DeepMocked<PrismaService>;
+
+  beforeEach(() => {
+    prisma = {
+      assistantConversation: {
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        findFirstOrThrow: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+      },
+      assistantMessage: {
+        createMany: vi.fn(),
+        create: vi.fn(),
+      },
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn(prisma),
+      ),
+    } as unknown as DeepMocked<PrismaService>;
+
+    repository = new AssistantConversationRepository(prisma);
+  });
+
+  describe('findLatestActiveWithMessages', () => {
+    it('queries active conversations with messages', async () => {
+      const conv = { id: 'conv-1', messages: [] };
+      prisma.assistantConversation.findFirst.mockResolvedValue(conv as never);
+
+      const result = await repository.findLatestActiveWithMessages('user-1');
+
+      expect(result).toBe(conv);
+      const call = prisma.assistantConversation.findFirst.mock.calls[0]?.[0];
+      expect(call?.where).toMatchObject({
+        userId: 'user-1',
+        status: AssistantConversationStatus.active,
+      });
+    });
+
+    it('returns null when not found', async () => {
+      prisma.assistantConversation.findFirst.mockResolvedValue(null);
+      expect(
+        await repository.findLatestActiveWithMessages('user-1'),
+      ).toBeNull();
+    });
+  });
+
+  describe('listRecentSummaries', () => {
+    it('queries with limit and userId, excluding deleted conversations', async () => {
+      prisma.assistantConversation.findMany.mockResolvedValue([] as never);
+
+      await repository.listRecentSummaries('user-1', 10);
+
+      const call = prisma.assistantConversation.findMany.mock.calls[0]?.[0];
+      expect(call?.where).toEqual({
+        userId: 'user-1',
+        status: { not: AssistantConversationStatus.deleted },
+      });
+      expect(call?.take).toBe(10);
+    });
+  });
+
+  describe('findWithMessages', () => {
+    it('queries by conversationId and userId', async () => {
+      prisma.assistantConversation.findFirst.mockResolvedValue(null);
+
+      await repository.findWithMessages('user-1', 'conv-1');
+
+      const call = prisma.assistantConversation.findFirst.mock.calls[0]?.[0];
+      expect(call?.where).toEqual({
+        id: 'conv-1',
+        userId: 'user-1',
+        status: { not: AssistantConversationStatus.deleted },
+      });
+    });
+  });
+
+  describe('findWithMessagesById', () => {
+    it('queries by conversationId and userId', async () => {
+      const conv = { id: 'conv-1', messages: [] };
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue(
+        conv as never,
+      );
+
+      const result = await repository.findWithMessagesById('user-1', 'conv-1');
+
+      expect(result).toBe(conv);
+      expect(
+        prisma.assistantConversation.findFirstOrThrow,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'conv-1',
+            userId: 'user-1',
+            status: { not: AssistantConversationStatus.deleted },
+          },
+        }),
+      );
+    });
+  });
+
+  describe('create', () => {
+    it('creates conversation with userId and title', async () => {
+      const conv = { id: 'conv-1', messages: [] };
+      prisma.assistantConversation.create.mockResolvedValue(conv as never);
+
+      const result = await repository
+        .create('user-1', 'New Chat')
+        .unwrapOr(null);
+
+      expect(result).toBe(conv);
+      expect(prisma.assistantConversation.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { userId: 'user-1', title: 'New Chat' },
+        }),
+      );
+    });
+
+    it('creates conversation with null title', async () => {
+      prisma.assistantConversation.create.mockResolvedValue({} as never);
+
+      await repository.create('user-1', null).unwrapOr(null);
+
+      expect(prisma.assistantConversation.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { userId: 'user-1', title: null },
+        }),
+      );
+    });
+  });
+
+  describe('archiveConversation', () => {
+    it('updates status to archived with userId filter', async () => {
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository.archiveConversation('user-1', 'conv-1').unwrapOr(null);
+
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: { status: AssistantConversationStatus.archived },
+        }),
+      );
+    });
+  });
+
+  describe('softDelete', () => {
+    it('updates status to deleted with userId filter', async () => {
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository.softDelete('user-1', 'conv-1').unwrapOr(null);
+
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: { status: AssistantConversationStatus.deleted },
+        }),
+      );
+    });
+  });
+
+  describe('updateTitle', () => {
+    it('updates the title with userId filter', async () => {
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository
+        .updateTitle('user-1', 'conv-1', 'New title')
+        .unwrapOr(null);
+
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: { title: 'New title' },
+        }),
+      );
+    });
+
+    it('clears the title to null with userId filter', async () => {
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository.updateTitle('user-1', 'conv-1', null).unwrapOr(null);
+
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: { title: null },
+        }),
+      );
+    });
+  });
+
+  describe('activateConversation', () => {
+    it('archives other active conversations and activates target within transaction', async () => {
+      prisma.assistantConversation.updateMany.mockResolvedValue({
+        count: 2,
+      } as never);
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository
+        .activateConversation('user-1', 'conv-1')
+        .unwrapOr(undefined);
+
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        maxWait: 5000,
+        timeout: 10000,
+      });
+      expect(prisma.assistantConversation.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          status: AssistantConversationStatus.active,
+          id: { not: 'conv-1' },
+        },
+        data: { status: AssistantConversationStatus.archived },
+      });
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith({
+        where: { id: 'conv-1', userId: 'user-1' },
+        data: { status: AssistantConversationStatus.active },
+      });
+    });
+  });
+
+  describe('persistTurn', () => {
+    it('appends messages and updates conversation', async () => {
+      prisma.assistantMessage.createMany.mockResolvedValue({
+        count: 1,
+      } as never);
+      prisma.assistantMessage.create.mockResolvedValue({} as never);
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue({
+        id: 'conv-1',
+        messages: [],
+      } as never);
+
+      const result = await repository
+        .persistTurn({
+          conversationId: 'conv-1',
+          userId: 'user-1',
+          title: 'Title',
+          messagesToAppend: [{ role: 'user', content: 'hello' }],
+          assistantContent: 'response',
+          usedTools: ['search'],
+          assistantTimestamp: new Date('2026-07-10T12:00:00.000Z'),
+        })
+        .unwrapOr(null);
+
+      expect(result).toMatchObject({ id: 'conv-1' });
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        maxWait: 5000,
+        timeout: 10000,
+      });
+      expect(prisma.assistantMessage.createMany).toHaveBeenCalled();
+      expect(prisma.assistantMessage.create).toHaveBeenCalled();
+
+      // 用户消息必须带显式 createdAt，且严格早于 assistant 消息时间戳，
+      // 保证按 createdAt 升序读取时 user 始终排在 assistant 之前。
+      const createManyCall = prisma.assistantMessage.createMany.mock
+        .calls[0]?.[0] as { data: Array<{ createdAt: Date }> };
+      const assistantTimestamp = new Date('2026-07-10T12:00:00.000Z');
+      for (const message of createManyCall.data) {
+        expect(message.createdAt).toBeInstanceOf(Date);
+        expect(message.createdAt.getTime()).toBeLessThan(
+          assistantTimestamp.getTime(),
+        );
+      }
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: {
+            title: 'Title',
+            lastMessageAt: new Date('2026-07-10T12:00:00.000Z'),
+          },
+        }),
+      );
+    });
+
+    it('skips createMany when no messages to append', async () => {
+      prisma.assistantMessage.create.mockResolvedValue({} as never);
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue({
+        id: 'conv-1',
+      } as never);
+
+      await repository
+        .persistTurn({
+          conversationId: 'conv-1',
+          userId: 'user-1',
+          title: null,
+          messagesToAppend: [],
+          assistantContent: 'response',
+          usedTools: [],
+          assistantTimestamp: new Date(),
+        })
+        .unwrapOr(null);
+
+      expect(prisma.assistantMessage.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('appendAssistantMessage', () => {
+    it('uses bounded transaction options', async () => {
+      prisma.assistantMessage.create.mockResolvedValue({} as never);
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue({
+        id: 'conv-1',
+      } as never);
+
+      await repository
+        .appendAssistantMessage('conv-1', 'user-1', 'response')
+        .unwrapOr(null);
+
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        maxWait: 5000,
+        timeout: 10000,
+      });
+    });
+  });
+});

@@ -1,0 +1,525 @@
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import {
+  createDomainFailure,
+  fromPromise,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import { Injectable, Logger } from '@nestjs/common';
+import type {
+  AssistantMessageDataDto,
+  AssistantToolDetailDto,
+} from '../../adapters/http/dto/stream-response.dto.js';
+import type { StreamAssistantMessagesDto } from '../../adapters/http/dto/stream-messages.dto.js';
+import type { AssistantRuntimeCapabilities } from '../ports/assistant.js';
+import { AssistantRuntimeService } from '../../adapters/agent/checkpoint-runtime.js';
+import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { AssistantPolicyService } from '../services/policy.js';
+import { AssistantToolService } from '../../adapters/acl/tool-executor.js';
+import { AssistantConversationService } from './conversation.js';
+import { toDomainFailure } from '../services/provider-failures.js';
+import { nowIsoString } from '../../../../common/index.js';
+import type {
+  AssistantConversationMessage,
+  AssistantMessageResult,
+  AssistantStreamChunkEvent,
+  AssistantToolCall,
+  AssistantToolExecutionContext,
+  AssistantToolExecutionResult,
+} from '../ports/assistant.js';
+import type { ToolName } from '../../domain/policies/tool-permission.js';
+import {
+  assistantToolCitationsSchema,
+  assistantToolDetailDataSchema,
+  type AssistantToolDetailData,
+} from '../../infrastructure/llm/tool-detail.schema.js';
+
+/**
+ * SSE streaming orchestration for assistant messages (normal + regenerate).
+ *
+ * Extracted from `AssistantService`: owns the pre-flight gate checks, the
+ * tool-loop invocation, content fallback streaming and persistence of a turn.
+ */
+@Injectable()
+export class AssistantStreamOrchestratorService {
+  private readonly logger = new Logger(AssistantStreamOrchestratorService.name);
+
+  constructor(
+    private readonly assistantAgentService: AssistantRuntimeService,
+    private readonly userSettingsService: IUserSettingsPort,
+    private readonly assistantPolicyService: AssistantPolicyService,
+    private readonly assistantToolExecutor: AssistantToolService,
+    private readonly assistantConversationService: AssistantConversationService,
+    private readonly metricsService: MetricsService,
+  ) {}
+
+  getFoundationCapabilities(): AssistantRuntimeCapabilities {
+    return this.assistantAgentService.describeFoundation();
+  }
+
+  streamMessages(
+    userId: string,
+    dto: StreamAssistantMessagesDto,
+    language: string,
+    onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
+  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+    return fromPromise(
+      this.doStreamMessages(userId, dto, language, onChunk),
+      (error) => this.toDomainFailure(error),
+    );
+  }
+
+  private async doStreamMessages(
+    userId: string,
+    dto: StreamAssistantMessagesDto,
+    language: string,
+    onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
+  ): Promise<AssistantMessageDataDto> {
+    const locale = this.resolveLocale(language);
+    const messages = this.normalizeConversation(dto);
+    const lastUserMessage = this.readLastUserMessage(messages, locale);
+
+    const foundation = this.getFoundationCapabilities();
+    const settings = await this.userSettingsService.getSettings(userId);
+    const policy = this.assistantPolicyService.evaluate(foundation, settings);
+
+    if (!settings.assistantEnabled) {
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'authorization',
+          code: 'FORBIDDEN',
+          detail: this.chatDisabledMessage(locale),
+        }),
+      );
+    }
+
+    if (!foundation.chatModelConfigured) {
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'dependency',
+          code: 'DEPENDENCY_UNAVAILABLE',
+          detail: this.chatUnavailableMessage(locale),
+        }),
+      );
+    }
+
+    const toolContext: AssistantToolExecutionContext = {
+      userId,
+      locale,
+      userMessage: lastUserMessage,
+      enabledContextSources: policy.enabledContextSources,
+      memoryEnabled: settings.assistantMemoryEnabled,
+    };
+
+    const conversationResult = await this.assistantAgentService.runConversation(
+      {
+        userId,
+        userMessage: lastUserMessage,
+        locale,
+        enabledContextSources: policy.enabledContextSources,
+        // 候选集必须带上 sidecar 可用性（`enabledToolNames` 已包含），否则会像旧实现
+        // 那样把 LightRAG/Semantica 关着时的工具也绑给模型。
+        allowedTools: policy.enabledToolNames,
+        memoryEnabled: settings.assistantMemoryEnabled,
+        isNewConversation: this.isNewConversation(messages),
+        ...(dto.conversationId != null
+          ? { conversationId: dto.conversationId }
+          : {}),
+        buildMemoryBlock: (id) =>
+          this.assistantConversationService.buildMemoryBlock(id),
+      },
+      async (toolCalls) => {
+        // 每个调用都必须回一个结果：执行层少回一个，上面的 assistant.tool_calls 与下面
+        // 的 ToolMessage 就会数量/位置错位，而"id 不在 tool_calls 里"的 400 不在重试
+        // 白名单内 —— 表现为整轮直接失败。未获许可的调用回一个显式拒绝信封。
+        const permitted: AssistantToolCall[] = [];
+        const refused = new Set<number>();
+        const results: AssistantToolExecutionResult[] = [];
+        toolCalls.forEach((call, index) => {
+          if (policy.executableToolNames.includes(call.name)) {
+            permitted.push(call);
+            return;
+          }
+          refused.add(index);
+          this.logger.warn(
+            `Assistant tool "${call.name}" is not permitted in this run; returning a refusal envelope instead of dropping the call.`,
+          );
+        });
+
+        const executed = await this.assistantToolExecutor.executeMany(
+          toolContext,
+          permitted,
+        );
+
+        let cursor = 0;
+        for (const [index, call] of toolCalls.entries()) {
+          if (refused.has(index)) {
+            results.push({
+              name: call.name,
+              data: {
+                error: 'tool_not_permitted',
+                reason: `Tool "${call.name}" is not permitted in this run.`,
+              },
+            });
+            continue;
+          }
+          const executedResult = executed[cursor];
+          cursor += 1;
+          results.push(
+            executedResult ?? {
+              name: call.name,
+              data: { reason: 'Tool result was not produced.' },
+            },
+          );
+        }
+
+        return results;
+      },
+      onChunk,
+    );
+
+    let result: AssistantMessageResult;
+    if (conversationResult.finalContent != null) {
+      result = conversationResult.streamedContent
+        ? {
+            content: conversationResult.finalContent,
+            usedToolNames: conversationResult.toolResults.map(
+              (toolResult) => toolResult.name,
+            ),
+          }
+        : await this.assistantAgentService.streamPreGeneratedContent(
+            conversationResult.finalContent,
+            conversationResult.toolResults,
+            onChunk,
+          );
+    } else {
+      // Fallback when the graph produced no final content: stream a fresh
+      // reply from the original conversation messages. Memory and tool
+      // context injection now live inside the graph (`prepare_context` /
+      // ToolMessage appends), so no extra context is assembled here.
+      result = await this.assistantAgentService.generateStream(
+        {
+          locale,
+          messages,
+          allowedTools: conversationResult.selectedTools,
+          toolResults: conversationResult.toolResults,
+        },
+        onChunk,
+      );
+    }
+
+    const conversation =
+      await this.assistantConversationService.persistAssistantTurn({
+        userId,
+        messages,
+        assistantContent: result.content,
+        usedTools: result.usedToolNames,
+      });
+
+    return {
+      conversationId: conversation.id,
+      role: 'assistant',
+      content: result.content,
+      generatedAt: nowIsoString(),
+      usedTools: result.usedToolNames,
+      proposedActions: conversationResult.toolResults.flatMap(
+        (toolResult) => toolResult.proposedActions ?? [],
+      ),
+      toolDetails: this.buildToolDetails(conversationResult.toolResults),
+    };
+  }
+
+  /**
+   * Regenerates the last assistant message of a persisted conversation
+   * (F-5b) using LangGraph time travel: replays the `respond` node from the
+   * recorded checkpoint and streams a fresh answer. The old answer stays in
+   * the conversation as a revision; the new answer is persisted as a new
+   * assistant message.
+   */
+  regenerateConversation(
+    userId: string,
+    conversationId: string,
+    onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
+    getConversation: (
+      userId: string,
+      conversationId: string,
+    ) => Promise<{ id: string } | null>,
+  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+    return fromPromise(
+      this.doRegenerateConversation(
+        userId,
+        conversationId,
+        onChunk,
+        getConversation,
+      ),
+      (error) => this.toDomainFailure(error),
+    );
+  }
+
+  private async doRegenerateConversation(
+    userId: string,
+    conversationId: string,
+    onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
+    getConversation: (
+      userId: string,
+      conversationId: string,
+    ) => Promise<{ id: string } | null>,
+  ): Promise<AssistantMessageDataDto> {
+    const conversation = await getConversation(userId, conversationId);
+    if (conversation == null) {
+      throw new DomainFailureException(this.conversationNotFound());
+    }
+
+    const { checkpointId } = await this.assistantAgentService
+      .regenerateLastMessage(userId, conversationId)
+      .match(
+        (value) => value,
+        (error) => {
+          throw new DomainFailureException(error);
+        },
+      );
+
+    const { finalContent } =
+      await this.assistantAgentService.replayFromCheckpoint(
+        conversationId,
+        checkpointId,
+        (text) => onChunk({ content: text }),
+      );
+
+    await this.assistantConversationService.appendAssistantMessage(
+      userId,
+      conversationId,
+      finalContent,
+    );
+
+    return {
+      conversationId,
+      role: 'assistant',
+      content: finalContent,
+      generatedAt: nowIsoString(),
+      usedTools: [],
+      proposedActions: [],
+      toolDetails: [],
+    };
+  }
+
+  /**
+   * Projects tool execution envelopes into the SSE result payload for the
+   * client source strip. Only fields that actually exist in the envelope data
+   * are included; the field is optional and absent for older messages.
+   */
+  private buildToolDetails(
+    results: AssistantToolExecutionResult[],
+  ): AssistantToolDetailDto[] {
+    return results.map((result) => {
+      const data = result.data;
+      const resultData = data['result'];
+      const resultRecord: Record<string, unknown> | undefined =
+        resultData != null && typeof resultData === 'object'
+          ? (resultData as Record<string, unknown>)
+          : undefined;
+      const parsed = assistantToolDetailDataSchema.safeParse({
+        coverage: data['coverage'],
+        confidence: data['confidence'],
+        ambiguities: data['ambiguities'],
+        source: data['source'],
+        disclaimer:
+          resultRecord != null && 'disclaimer' in resultRecord
+            ? resultRecord['disclaimer']
+            : undefined,
+      });
+      if (!parsed.success) {
+        this.logger.warn(
+          `Ignoring malformed tool detail metadata for tool "${result.name}".`,
+          parsed.error,
+        );
+        return { name: result.name };
+      }
+      const detailData: AssistantToolDetailData = parsed.data;
+      const { coverage, confidence, ambiguities, source, disclaimer } =
+        detailData;
+      const label = this.extractToolLabel(result.name, data);
+
+      const detail: AssistantToolDetailDto = { name: result.name };
+      if (label != null) detail.label = label;
+      if (coverage != null) detail.coverage = coverage;
+      if (confidence != null) detail.confidence = confidence;
+      if (ambiguities != null && ambiguities.length > 0) {
+        detail.ambiguities = ambiguities;
+      }
+      if (source != null) detail.source = source;
+      if (disclaimer != null) detail.disclaimer = disclaimer;
+      const citations = this.extractCitations(result.name, resultRecord);
+      if (citations != null) detail.citations = citations;
+      const executedQuery = this.extractExecutedQuery(resultRecord);
+      if (executedQuery != null) detail.executedQuery = executedQuery;
+      return detail;
+    });
+  }
+
+  /**
+   * Projects the query a graph-backed tool actually ran.
+   *
+   * A citation says which rows back the answer; the query says how those rows
+   * were selected. Together they are the reviewable path from question to
+   * evidence, which is the whole point of the tool returning the statement it
+   * executed — projecting only the citations would leave the client unable to
+   * see the half that explains the selection.
+   */
+  private extractExecutedQuery(
+    resultRecord: Record<string, unknown> | undefined,
+  ): string | null {
+    const query = resultRecord?.['cypher'];
+    return typeof query === 'string' && query.length > 0 ? query : null;
+  }
+
+  /**
+   * Projects a tool result's provenance citations, when it has any.
+   *
+   * They live in `result.citations` rather than in the envelope, because they
+   * are tool-specific: only the tools whose answers rest on addressed
+   * assertions can produce them. A malformed citation list is dropped with a
+   * warning instead of failing the detail — the answer is still readable, and
+   * silently presenting it without its evidence would be the worse outcome.
+   */
+  private extractCitations(
+    name: ToolName,
+    resultRecord: Record<string, unknown> | undefined,
+  ): AssistantToolDetailDto['citations'] {
+    if (resultRecord == null) {
+      return undefined;
+    }
+    const raw = resultRecord['citations'];
+    if (raw == null) {
+      return undefined;
+    }
+    const parsed = assistantToolCitationsSchema.safeParse(raw);
+    if (!parsed.success) {
+      // 丢弃是对的取舍，但必须留下计数：sidecar 升级导致 schema 漂移时，
+      // 没有计数器就只能看到"客户端永远没有引用"而查不出原因。
+      this.metricsService.recordToolCitationsDropped('schema_mismatch');
+      this.logger.warn(
+        `Ignoring malformed citations for tool "${name}".`,
+        parsed.error,
+      );
+      return undefined;
+    }
+    return parsed.data.length > 0 ? parsed.data : undefined;
+  }
+
+  private extractToolLabel(
+    name: ToolName,
+    data: Record<string, unknown>,
+  ): string | null {
+    switch (name) {
+      case 'search_drugbank_passages':
+        return this.readNestedString(data, [
+          'result',
+          'passages',
+          0,
+          'drugName',
+        ]);
+      case 'resolve_drugbank_entity':
+        return this.readNestedString(data, ['result', 'entities', 0, 'name']);
+      default:
+        return null;
+    }
+  }
+
+  private readNestedString(
+    data: Record<string, unknown>,
+    path: Array<string | number>,
+  ): string | null {
+    let current: unknown = data;
+    for (const key of path) {
+      if (current == null || typeof current !== 'object') {
+        return null;
+      }
+      current = (current as Record<string | number, unknown>)[key];
+    }
+    return typeof current === 'string' ? current : null;
+  }
+
+  private normalizeConversation(
+    dto: StreamAssistantMessagesDto,
+  ): AssistantConversationMessage[] {
+    return dto.messages.map((message) => ({
+      role: message.role,
+      content: message.content.trim(),
+    }));
+  }
+
+  private isNewConversation(messages: AssistantConversationMessage[]): boolean {
+    return messages.filter((message) => message.role === 'user').length <= 1;
+  }
+
+  private readLastUserMessage(
+    messages: AssistantConversationMessage[],
+    locale: 'zh-CN' | 'en',
+  ): string {
+    const last = messages.at(-1);
+    if (last?.role === 'user' && last.content.length > 0) {
+      return last.content;
+    }
+
+    throw new DomainFailureException(
+      this.validation(this.invalidConversationMessage(locale)),
+    );
+  }
+
+  private resolveLocale(language: string): 'zh-CN' | 'en' {
+    const normalized = language.trim().toLowerCase();
+    return normalized.startsWith('zh') ? 'zh-CN' : 'en';
+  }
+
+  private chatDisabledMessage(locale: 'zh-CN' | 'en'): string {
+    return locale === 'zh-CN'
+      ? '当前用户已关闭助手功能'
+      : 'Assistant is disabled for this user.';
+  }
+
+  private chatUnavailableMessage(locale: 'zh-CN' | 'en'): string {
+    return locale === 'zh-CN'
+      ? '助手服务尚未配置'
+      : 'Assistant service is not configured.';
+  }
+
+  private invalidConversationMessage(locale: 'zh-CN' | 'en'): string {
+    return locale === 'zh-CN'
+      ? '聊天消息列表的最后一条必须是非空的用户消息'
+      : 'The last assistant conversation message must be a non-empty user message.';
+  }
+
+  /**
+   * Normalizes a failure raised while producing a streamed reply.
+   *
+   * Upstream provider errors (the LLM returning 4xx/5xx) previously escaped as
+   * raw exceptions and were flattened by the SSE mapper into a generic
+   * `INTERNAL_ERROR` / `VALIDATION_FAILED`, which the client renders as "This
+   * reply did not complete". That hid the real cause — a model that is gone or
+   * out of quota looked identical to a bug in the assistant. They are mapped
+   * by {@link toDomainFailure} to a `dependency` failure so the client can tell
+   * "the model is at fault" apart from "the server broke", and so `retryable`
+   * reflects whether another attempt could plausibly succeed.
+   */
+  private toDomainFailure(error: unknown): DomainFailure {
+    return toDomainFailure(error);
+  }
+
+  private conversationNotFound(): DomainFailure {
+    return createDomainFailure({
+      kind: 'not_found',
+      code: 'RESOURCE_NOT_FOUND',
+      cause: 'conversation_not_found',
+    });
+  }
+
+  private validation(detail: string): DomainFailure {
+    return createDomainFailure({
+      kind: 'validation',
+      code: 'VALIDATION_FAILED',
+      detail,
+    });
+  }
+}

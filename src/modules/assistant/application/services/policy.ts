@@ -1,0 +1,147 @@
+import { Injectable } from '@nestjs/common';
+import type { IAssistantUserSettings } from '../../application/ports/readers.js';
+import { selectPermittedTools } from '../../domain/policies/tool-permission.js';
+import type {
+  AssistantRuntimeCapabilities,
+  AssistantPolicySnapshot,
+  AssistantToolCapabilitySnapshot,
+} from '../ports/assistant.js';
+import {
+  CONTEXT_SOURCES,
+  OAG_TOOL_NAME_SET,
+  RETRIEVAL_TOOL_NAME_SET,
+  TOOL_NAMES,
+  TOOL_REQUIRED_SOURCES,
+  type ContextSource,
+  type ToolDisabledReason,
+  type ToolName,
+} from '../../domain/policies/tool-permission.js';
+
+@Injectable()
+export class AssistantPolicyService {
+  evaluate(
+    foundation: AssistantRuntimeCapabilities,
+    settings: IAssistantUserSettings,
+  ): AssistantPolicySnapshot {
+    const enabledContextSources = CONTEXT_SOURCES.filter((source) =>
+      this.isContextSourceEnabled(source, settings),
+    );
+    const contextPermittedToolNames = settings.assistantEnabled
+      ? selectPermittedTools(enabledContextSources)
+      : [];
+    const executableToolNames = contextPermittedToolNames.filter((toolName) =>
+      foundation.implementedToolNames.includes(toolName),
+    );
+    const toolCapabilities = TOOL_NAMES.map((toolName) =>
+      this.buildToolCapability(
+        toolName,
+        foundation,
+        settings,
+        contextPermittedToolNames,
+      ),
+    );
+
+    return {
+      interactiveChatReady:
+        settings.assistantEnabled && foundation.interactiveChatReady,
+      enabledContextSources,
+      contextPermittedToolNames,
+      executableToolNames,
+      // 图绑定的候选集：比 `executableToolNames` 多一层 sidecar 可用性判定，
+      // 与实际能用的工具（能力面板展示的 `enabled`）保持同一个事实源。
+      enabledToolNames: toolCapabilities
+        .filter((capability) => capability.enabled)
+        .map((capability) => capability.name),
+      toolCapabilities,
+    };
+  }
+
+  private buildToolCapability(
+    toolName: ToolName,
+    foundation: AssistantRuntimeCapabilities,
+    settings: IAssistantUserSettings,
+    contextPermittedToolNames: readonly ToolName[],
+  ): AssistantToolCapabilitySnapshot {
+    const requiredContextSources: ContextSource[] = [
+      ...TOOL_REQUIRED_SOURCES[toolName],
+    ];
+    const permittedByUser =
+      settings.assistantEnabled && contextPermittedToolNames.includes(toolName);
+    const implemented = foundation.implementedToolNames.includes(toolName);
+    const retrievalReady =
+      !RETRIEVAL_TOOL_NAME_SET.has(toolName) ||
+      foundation.retrievalAvailable;
+    const oagReady =
+      !OAG_TOOL_NAME_SET.has(toolName) || foundation.oagAvailable;
+    const enabled =
+      permittedByUser &&
+      implemented &&
+      retrievalReady &&
+      oagReady &&
+      foundation.chatModelConfigured;
+
+    return {
+      name: toolName,
+      requiredContextSources,
+      permittedByUser,
+      implemented,
+      enabled,
+      disabledReason: enabled
+        ? null
+        : this.resolveDisabledReason({
+            assistantEnabled: settings.assistantEnabled,
+            permittedByUser,
+            implemented,
+            retrievalReady,
+            oagReady,
+            chatModelConfigured: foundation.chatModelConfigured,
+          }),
+    };
+  }
+
+  private resolveDisabledReason(input: {
+    assistantEnabled: boolean;
+    permittedByUser: boolean;
+    implemented: boolean;
+    retrievalReady: boolean;
+    oagReady: boolean;
+    chatModelConfigured: boolean;
+  }): ToolDisabledReason {
+    if (!input.assistantEnabled) {
+      return 'chat_disabled';
+    }
+    if (!input.permittedByUser) {
+      return 'context_disabled';
+    }
+    // sidecar 不可用排在 model_not_configured 之前：这两条同时成立时，
+    // "sidecar 没配好"是更具体、更可操作的原因，而模型未配置是全局的。
+    // 两个 sidecar 共用同一个原因值：客户端渲染的都是"该来源暂不可用"，
+    // 而具体是哪一个由工具的 envelope 说清楚。
+    if (!input.retrievalReady || !input.oagReady) {
+      return 'retrieval_unavailable';
+    }
+    if (!input.chatModelConfigured) {
+      return 'model_not_configured';
+    }
+    if (!input.implemented) {
+      return 'not_implemented';
+    }
+    return 'not_implemented';
+  }
+
+  private isContextSourceEnabled(
+    source: ContextSource,
+    settings: IAssistantUserSettings,
+  ): boolean {
+    switch (source) {
+      case 'health_profile':
+        return settings.assistantContext.healthProfile;
+      case 'daily_records':
+        return settings.assistantContext.dailyRecords;
+      case 'sleep_records':
+        return settings.assistantContext.sleepRecords;
+      case 'current_medicines':
+        return settings.assistantContext.currentMedicines;
+    }
+  }
+}
