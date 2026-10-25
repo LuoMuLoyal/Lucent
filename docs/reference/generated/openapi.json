@@ -2506,7 +2506,7 @@
     },
     "/api/v1/auth/captcha": {
       "get": {
-        "operationId": "LocalController_getCaptcha",
+        "operationId": "getCaptcha",
         "parameters": [],
         "responses": {
           "200": {
@@ -3416,9 +3416,9 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/devices": {
+    "/api/v1/auth/sessions": {
       "get": {
-        "operationId": "listDevices",
+        "operationId": "listSessions",
         "parameters": [],
         "responses": {
           "200": {
@@ -3461,9 +3461,9 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/devices/{sessionId}": {
+    "/api/v1/auth/sessions/{sessionId}": {
       "delete": {
-        "operationId": "revokeDevice",
+        "operationId": "revokeSession",
         "parameters": [
           {
             "name": "sessionId",
@@ -3568,16 +3568,16 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/sessions/register": {
+    "/api/v1/auth/browser/register": {
       "post": {
-        "operationId": "registerWithCookie",
+        "operationId": "registerInBrowser",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterWithCookieRequest"
+                "$ref": "#/components/schemas/RegisterInBrowserRequest"
               }
             }
           }
@@ -3628,16 +3628,16 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/sessions/login": {
+    "/api/v1/auth/browser/login": {
       "post": {
-        "operationId": "loginWithCookie",
+        "operationId": "loginInBrowser",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginWithCookieRequest"
+                "$ref": "#/components/schemas/LoginInBrowserRequest"
               }
             }
           }
@@ -3698,9 +3698,9 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/sessions/refresh": {
+    "/api/v1/auth/browser/refresh": {
       "post": {
-        "operationId": "refreshWithCookie",
+        "operationId": "refreshInBrowser",
         "parameters": [],
         "responses": {
           "200": {
@@ -3728,9 +3728,9 @@
         "tags": ["Auth"]
       }
     },
-    "/api/v1/auth/sessions/logout": {
+    "/api/v1/auth/browser/logout": {
       "post": {
-        "operationId": "logoutWithCookie",
+        "operationId": "logoutInBrowser",
         "parameters": [],
         "responses": {
           "204": {
@@ -4789,414 +4789,6 @@
         ],
         "summary": "Describe the caller's current medication combination",
         "tags": ["Medicines"]
-      }
-    },
-    "/api/v1/user/medicine-reminders": {
-      "get": {
-        "operationId": "listMedicineReminders",
-        "parameters": [
-          {
-            "name": "activeOnly",
-            "required": false,
-            "in": "query",
-            "description": "Set to true to return active reminders only.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Medicine reminder schedules.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List medicine reminder schedules",
-        "tags": ["Medicine Reminders"]
-      },
-      "post": {
-        "operationId": "createMedicineReminder",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMedicineReminderRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The created medicine reminder.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid reminder payload (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Current medicine not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      }
-    },
-    "/api/v1/user/medicine-reminders/{id}": {
-      "patch": {
-        "operationId": "updateMedicineReminder",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMedicineReminderRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The updated medicine reminder.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid reminder payload (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Reminder belongs to another user (FORBIDDEN)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Reminder or current medicine not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      },
-      "delete": {
-        "operationId": "deleteMedicineReminder",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Medicine reminder deleted."
-          },
-          "403": {
-            "description": "Reminder belongs to another user (FORBIDDEN)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Soft-delete a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      }
-    },
-    "/api/v1/user/medicine-reminders/group": {
-      "put": {
-        "operationId": "upsertGroup",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertGroupRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The upserted reminder group.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Empty group, duplicate slot ids or invalid payload (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Current medicine or a slot not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Upsert a whole medicine reminder group",
-        "tags": ["Medicine Reminders"]
-      }
-    },
-    "/api/v1/user/reminder-deliveries": {
-      "get": {
-        "operationId": "listReminderDeliveries",
-        "parameters": [
-          {
-            "name": "date",
-            "required": false,
-            "in": "query",
-            "description": "Optional scheduled date filter in YYYY-MM-DD format.",
-            "schema": {
-              "example": "2026-06-10",
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Maximum rows to return. Clamped to 1-100.",
-            "schema": {
-              "example": 20,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Reminder delivery audit rows.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReminderDeliveryListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid date filter (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List reminder delivery audit logs",
-        "tags": ["Reminder Deliveries"]
-      }
-    },
-    "/api/v1/user/reminder-deliveries/receipts": {
-      "post": {
-        "operationId": "recordReceipt",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecordReceiptRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The recorded delivery row.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReminderDeliveryReceiptResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Reminder belongs to another user (FORBIDDEN)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Record a local notification delivery receipt (idempotent)",
-        "tags": ["Reminder Deliveries"]
-      }
-    },
-    "/api/v1/user/reminder-deliveries/local-capability": {
-      "put": {
-        "operationId": "reportLocalCapability",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReportLocalCapabilityRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The persisted local scheduling capability state.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LocalCapabilityResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Report client local scheduling capability",
-        "tags": ["Reminder Deliveries"]
       }
     },
     "/api/v1/user/today/suggestions": {
@@ -7138,6 +6730,414 @@
         "tags": ["User Health Context"]
       }
     },
+    "/api/v1/user/medicine-reminders": {
+      "get": {
+        "operationId": "listMedicineReminders",
+        "parameters": [
+          {
+            "name": "activeOnly",
+            "required": false,
+            "in": "query",
+            "description": "Set to true to return active reminders only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicine reminder schedules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List medicine reminder schedules",
+        "tags": ["Medicine Reminders"]
+      },
+      "post": {
+        "operationId": "createMedicineReminder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMedicineReminderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created medicine reminder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid reminder payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/medicine-reminders/{id}": {
+      "patch": {
+        "operationId": "updateMedicineReminder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMedicineReminderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated medicine reminder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid reminder payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder or current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      },
+      "delete": {
+        "operationId": "deleteMedicineReminder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Medicine reminder deleted."
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/medicine-reminders/group": {
+      "put": {
+        "operationId": "upsertGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The upserted reminder group.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty group, duplicate slot ids or invalid payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Current medicine or a slot not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upsert a whole medicine reminder group",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries": {
+      "get": {
+        "operationId": "listReminderDeliveries",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Optional scheduled date filter in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-06-10",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum rows to return. Clamped to 1-100.",
+            "schema": {
+              "example": 20,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reminder delivery audit rows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date filter (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List reminder delivery audit logs",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries/receipts": {
+      "post": {
+        "operationId": "recordReceipt",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordReceiptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The recorded delivery row.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryReceiptResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Record a local notification delivery receipt (idempotent)",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries/local-capability": {
+      "put": {
+        "operationId": "reportLocalCapability",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportLocalCapabilityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The persisted local scheduling capability state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalCapabilityResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Report client local scheduling capability",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
     "/api/v1/user/medicine-dose-logs": {
       "get": {
         "operationId": "listDoseLogs",
@@ -9032,7 +9032,7 @@
         "items": {
           "$ref": "#/components/schemas/SessionListItemEntry"
         },
-        "description": "The active sessions of the current user."
+        "description": "当前用户仍在生效的会话。"
       },
       "RefreshResponse": {
         "type": "object",
@@ -10741,6 +10741,100 @@
         ],
         "additionalProperties": false
       },
+      "DoseLogListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoseLogListResponseItems"
+            },
+            "description": "Dose logs for the date."
+          },
+          "total": {
+            "type": "number",
+            "description": "Total count of dose logs for the date."
+          }
+        },
+        "required": ["items", "total"],
+        "additionalProperties": false
+      },
+      "DoseLogResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dose log id."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "description": "Linked health event id.",
+            "type": "string"
+          },
+          "currentMedicineId": {
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
+          },
+          "reminderId": {
+            "nullable": true,
+            "description": "Linked reminder id for slot-aware logs.",
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["taken", "skipped", "missed", "planned"],
+            "description": "Dose log status."
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date in YYYY-MM-DD format."
+          },
+          "scheduledTime": {
+            "nullable": true,
+            "description": "Scheduled slot time in HH:mm format.",
+            "type": "string"
+          },
+          "doseText": {
+            "nullable": true,
+            "description": "Dose text.",
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "description": "Free-text note.",
+            "type": "string"
+          },
+          "source": {
+            "nullable": true,
+            "description": "Source.",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "healthEventId",
+          "currentMedicineId",
+          "reminderId",
+          "status",
+          "scheduledFor",
+          "scheduledTime",
+          "doseText",
+          "note",
+          "source",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "MedicineReminderListResponse": {
         "type": "object",
         "properties": {
@@ -10867,100 +10961,6 @@
           }
         },
         "required": ["state"],
-        "additionalProperties": false
-      },
-      "DoseLogListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DoseLogListResponseItems"
-            },
-            "description": "Dose logs for the date."
-          },
-          "total": {
-            "type": "number",
-            "description": "Total count of dose logs for the date."
-          }
-        },
-        "required": ["items", "total"],
-        "additionalProperties": false
-      },
-      "DoseLogResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Dose log id."
-          },
-          "healthEventId": {
-            "nullable": true,
-            "description": "Linked health event id.",
-            "type": "string"
-          },
-          "currentMedicineId": {
-            "nullable": true,
-            "description": "Linked current medicine id.",
-            "type": "string"
-          },
-          "reminderId": {
-            "nullable": true,
-            "description": "Linked reminder id for slot-aware logs.",
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["taken", "skipped", "missed", "planned"],
-            "description": "Dose log status."
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled date in YYYY-MM-DD format."
-          },
-          "scheduledTime": {
-            "nullable": true,
-            "description": "Scheduled slot time in HH:mm format.",
-            "type": "string"
-          },
-          "doseText": {
-            "nullable": true,
-            "description": "Dose text.",
-            "type": "string"
-          },
-          "note": {
-            "nullable": true,
-            "description": "Free-text note.",
-            "type": "string"
-          },
-          "source": {
-            "nullable": true,
-            "description": "Source.",
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "healthEventId",
-          "currentMedicineId",
-          "reminderId",
-          "status",
-          "scheduledFor",
-          "scheduledTime",
-          "doseText",
-          "note",
-          "source",
-          "createdAt",
-          "updatedAt"
-        ],
         "additionalProperties": false
       },
       "HealthContextResponse": {
@@ -13238,7 +13238,7 @@
         "required": ["refreshToken"],
         "additionalProperties": false
       },
-      "RegisterWithCookieRequest": {
+      "RegisterInBrowserRequest": {
         "type": "object",
         "properties": {
           "email": {
@@ -13273,7 +13273,7 @@
         "required": ["email", "password", "code"],
         "additionalProperties": false
       },
-      "LoginWithCookieRequest": {
+      "LoginInBrowserRequest": {
         "type": "object",
         "properties": {
           "email": {
@@ -13386,226 +13386,6 @@
           }
         },
         "required": ["imageUrl"],
-        "additionalProperties": false
-      },
-      "CreateMedicineReminderRequest": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked current medicine id."
-          },
-          "label": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Reminder label."
-          },
-          "scheduledHour": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 23,
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 59,
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "nullable": true,
-            "minItems": 1,
-            "maxItems": 7,
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 6
-            },
-            "description": "Weekday numbers 0-6, where null means every day."
-          },
-          "startDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts."
-          },
-          "endDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends."
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "nullable": true,
-            "type": "string",
-            "maxLength": 500,
-            "description": "User note."
-          }
-        },
-        "required": ["scheduledHour", "scheduledMinute"],
-        "additionalProperties": false
-      },
-      "UpdateMedicineReminderRequest": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked current medicine id."
-          },
-          "label": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Reminder label."
-          },
-          "scheduledHour": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 23,
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 59,
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "nullable": true,
-            "minItems": 1,
-            "maxItems": 7,
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 6
-            },
-            "description": "Weekday numbers 0-6, where null means every day."
-          },
-          "startDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear."
-          },
-          "endDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear."
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500,
-            "description": "User note."
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpsertGroupRequest": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked current medicine id."
-          },
-          "label": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Reminder label."
-          },
-          "daysOfWeek": {
-            "nullable": true,
-            "minItems": 1,
-            "maxItems": 7,
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 6
-            },
-            "description": "Weekday numbers 0-6, where null means every day."
-          },
-          "startDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts."
-          },
-          "endDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends."
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "nullable": true,
-            "type": "string",
-            "maxLength": 500,
-            "description": "User note."
-          },
-          "slots": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UpsertGroupRequestSlots"
-            },
-            "description": "Reminder slots for this medicine. Replaces the whole group."
-          }
-        },
-        "required": ["currentMedicineId", "slots"],
-        "additionalProperties": false
-      },
-      "RecordReceiptRequest": {
-        "type": "object",
-        "properties": {
-          "reminderId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked medicine reminder id."
-          },
-          "scheduledDate": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Local scheduled date in YYYY-MM-DD format."
-          },
-          "scheduledTime": {
-            "type": "string",
-            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-            "description": "Local scheduled time in HH:mm format (24h)."
-          }
-        },
-        "required": ["reminderId", "scheduledDate", "scheduledTime"],
-        "additionalProperties": false
-      },
-      "ReportLocalCapabilityRequest": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["active", "unavailable", "disabled"],
-            "description": "Local scheduling capability state."
-          }
-        },
-        "required": ["state"],
         "additionalProperties": false
       },
       "SubmitFeedbackRequest": {
@@ -14346,6 +14126,226 @@
             "example": true
           }
         },
+        "additionalProperties": false
+      },
+      "CreateMedicineReminderRequest": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "User note."
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"],
+        "additionalProperties": false
+      },
+      "UpdateMedicineReminderRequest": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "User note."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpsertGroupRequest": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "User note."
+          },
+          "slots": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpsertGroupRequestSlots"
+            },
+            "description": "Reminder slots for this medicine. Replaces the whole group."
+          }
+        },
+        "required": ["currentMedicineId", "slots"],
+        "additionalProperties": false
+      },
+      "RecordReceiptRequest": {
+        "type": "object",
+        "properties": {
+          "reminderId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked medicine reminder id."
+          },
+          "scheduledDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Local scheduled date in YYYY-MM-DD format."
+          },
+          "scheduledTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "description": "Local scheduled time in HH:mm format (24h)."
+          }
+        },
+        "required": ["reminderId", "scheduledDate", "scheduledTime"],
+        "additionalProperties": false
+      },
+      "ReportLocalCapabilityRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["active", "unavailable", "disabled"],
+            "description": "Local scheduling capability state."
+          }
+        },
+        "required": ["state"],
         "additionalProperties": false
       },
       "CreateDoseLogRequest": {
@@ -17473,6 +17473,82 @@
         ],
         "additionalProperties": false
       },
+      "DoseLogListResponseItems": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dose log id."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "description": "Linked health event id.",
+            "type": "string"
+          },
+          "currentMedicineId": {
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
+          },
+          "reminderId": {
+            "nullable": true,
+            "description": "Linked reminder id for slot-aware logs.",
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["taken", "skipped", "missed", "planned"],
+            "description": "Dose log status."
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date in YYYY-MM-DD format."
+          },
+          "scheduledTime": {
+            "nullable": true,
+            "description": "Scheduled slot time in HH:mm format.",
+            "type": "string"
+          },
+          "doseText": {
+            "nullable": true,
+            "description": "Dose text.",
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "description": "Free-text note.",
+            "type": "string"
+          },
+          "source": {
+            "nullable": true,
+            "description": "Source.",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "healthEventId",
+          "currentMedicineId",
+          "reminderId",
+          "status",
+          "scheduledFor",
+          "scheduledTime",
+          "doseText",
+          "note",
+          "source",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "MedicineReminderListResponseItems": {
         "type": "object",
         "properties": {
@@ -17664,82 +17740,6 @@
         ],
         "additionalProperties": false,
         "description": "The recorded delivery row."
-      },
-      "DoseLogListResponseItems": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Dose log id."
-          },
-          "healthEventId": {
-            "nullable": true,
-            "description": "Linked health event id.",
-            "type": "string"
-          },
-          "currentMedicineId": {
-            "nullable": true,
-            "description": "Linked current medicine id.",
-            "type": "string"
-          },
-          "reminderId": {
-            "nullable": true,
-            "description": "Linked reminder id for slot-aware logs.",
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["taken", "skipped", "missed", "planned"],
-            "description": "Dose log status."
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled date in YYYY-MM-DD format."
-          },
-          "scheduledTime": {
-            "nullable": true,
-            "description": "Scheduled slot time in HH:mm format.",
-            "type": "string"
-          },
-          "doseText": {
-            "nullable": true,
-            "description": "Dose text.",
-            "type": "string"
-          },
-          "note": {
-            "nullable": true,
-            "description": "Free-text note.",
-            "type": "string"
-          },
-          "source": {
-            "nullable": true,
-            "description": "Source.",
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "healthEventId",
-          "currentMedicineId",
-          "reminderId",
-          "status",
-          "scheduledFor",
-          "scheduledTime",
-          "doseText",
-          "note",
-          "source",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
       },
       "HealthContextResponseSummary": {
         "type": "object",
@@ -22068,7 +22068,7 @@
         "properties": {
           "source": {
             "type": "string",
-            "enum": ["cn", "drugbank"],
+            "enum": ["drugbank", "cn"],
             "description": "候选药品所在的可信药品库来源",
             "example": "drugbank"
           },
@@ -22086,30 +22086,6 @@
           "source": "drugbank",
           "id": "DB01050"
         }
-      },
-      "UpsertGroupRequestSlots": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Existing reminder id to update. Omit to create a new slot."
-          },
-          "scheduledHour": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 23,
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 59,
-            "description": "Scheduled local minute, 0-59."
-          }
-        },
-        "required": ["scheduledHour", "scheduledMinute"],
-        "additionalProperties": false
       },
       "StreamMessagesRequestMessages": {
         "type": "object",
@@ -22154,56 +22130,56 @@
         "additionalProperties": false,
         "description": "Fine-grained permissions for what the assistant may read."
       },
+      "UpsertGroupRequestSlots": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Existing reminder id to update. Omit to create a new slot."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"],
+        "additionalProperties": false
+      },
       "SessionListItemEntry": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Session id"
-          },
-          "deviceType": {
-            "nullable": true,
-            "description": "Device type",
-            "type": "string"
-          },
-          "deviceName": {
-            "nullable": true,
-            "description": "Device name",
-            "type": "string"
-          },
-          "platform": {
-            "nullable": true,
-            "description": "Platform",
-            "type": "string"
+            "description": "会话 ID"
           },
           "lastUsedAt": {
             "nullable": true,
-            "description": "Last used at (ISO-8601)",
+            "description": "最近使用时间 (ISO-8601)",
             "type": "string"
           },
           "createdAt": {
             "type": "string",
-            "description": "Created at (ISO-8601)"
+            "description": "创建时间 (ISO-8601)"
           },
           "expiresAt": {
             "type": "string",
-            "description": "Expires at (ISO-8601)"
+            "description": "过期时间 (ISO-8601)"
           },
           "isCurrent": {
             "type": "boolean",
-            "description": "Whether this is the current session"
+            "description": "是否为发起本次请求的会话（Bearer 客户端恒为 false）"
           }
         },
-        "required": [
-          "id",
-          "deviceType",
-          "deviceName",
-          "platform",
-          "lastUsedAt",
-          "createdAt",
-          "expiresAt",
-          "isCurrent"
-        ],
+        "required": ["id", "lastUsedAt", "createdAt", "expiresAt", "isCurrent"],
         "additionalProperties": false
       },
       "MedicineSafetyTipItem": {
