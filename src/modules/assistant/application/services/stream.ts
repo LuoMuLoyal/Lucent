@@ -16,7 +16,7 @@ import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.j
 import {
   assistantSystemPromptVariables,
   buildAssistantSystemPrompt,
-} from '../../infrastructure/llm/system.prompt.js';
+} from './prompts.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import { resolveRuntimePrompt } from '../../../../config/runtime/prompt-registry.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';

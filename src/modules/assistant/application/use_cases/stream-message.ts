@@ -8,10 +8,10 @@ import {
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import { Injectable, Logger } from '@nestjs/common';
 import type {
-  AssistantMessageDataDto,
-  AssistantToolDetailDto,
-} from '../../adapters/http/dto/stream-response.dto.js';
-import type { StreamAssistantMessagesDto } from '../../adapters/http/dto/stream-messages.dto.js';
+  AssistantMessageDataView,
+  AssistantToolDetailView,
+} from '../ports/views.js';
+import type { StreamAssistantMessagesView } from '../ports/views.js';
 import type { AssistantRuntimeCapabilities } from '../ports/assistant.js';
 import { AssistantRuntimeService } from '../../adapters/agent/checkpoint-runtime.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
@@ -33,7 +33,7 @@ import {
   assistantToolCitationsSchema,
   assistantToolDetailDataSchema,
   type AssistantToolDetailData,
-} from '../../infrastructure/llm/tool-detail.schema.js';
+} from '../ports/tool-detail.js';
 
 /**
  * SSE streaming orchestration for assistant messages (normal + regenerate).
@@ -60,10 +60,10 @@ export class AssistantStreamOrchestratorService {
 
   streamMessages(
     userId: string,
-    dto: StreamAssistantMessagesDto,
+    dto: StreamAssistantMessagesView,
     language: string,
     onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
-  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+  ): ResultAsync<AssistantMessageDataView, DomainFailure> {
     return fromPromise(
       this.doStreamMessages(userId, dto, language, onChunk),
       (error) => this.toDomainFailure(error),
@@ -72,10 +72,10 @@ export class AssistantStreamOrchestratorService {
 
   private async doStreamMessages(
     userId: string,
-    dto: StreamAssistantMessagesDto,
+    dto: StreamAssistantMessagesView,
     language: string,
     onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
-  ): Promise<AssistantMessageDataDto> {
+  ): Promise<AssistantMessageDataView> {
     const locale = this.resolveLocale(language);
     const messages = this.normalizeConversation(dto);
     const lastUserMessage = this.readLastUserMessage(messages, locale);
@@ -245,7 +245,7 @@ export class AssistantStreamOrchestratorService {
       userId: string,
       conversationId: string,
     ) => Promise<{ id: string } | null>,
-  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+  ): ResultAsync<AssistantMessageDataView, DomainFailure> {
     return fromPromise(
       this.doRegenerateConversation(
         userId,
@@ -265,7 +265,7 @@ export class AssistantStreamOrchestratorService {
       userId: string,
       conversationId: string,
     ) => Promise<{ id: string } | null>,
-  ): Promise<AssistantMessageDataDto> {
+  ): Promise<AssistantMessageDataView> {
     const conversation = await getConversation(userId, conversationId);
     if (conversation == null) {
       throw new DomainFailureException(this.conversationNotFound());
@@ -311,7 +311,7 @@ export class AssistantStreamOrchestratorService {
    */
   private buildToolDetails(
     results: AssistantToolExecutionResult[],
-  ): AssistantToolDetailDto[] {
+  ): AssistantToolDetailView[] {
     return results.map((result) => {
       const data = result.data;
       const resultData = data['result'];
@@ -341,7 +341,7 @@ export class AssistantStreamOrchestratorService {
         detailData;
       const label = this.extractToolLabel(result.name, data);
 
-      const detail: AssistantToolDetailDto = { name: result.name };
+      const detail: AssistantToolDetailView = { name: result.name };
       if (label != null) detail.label = label;
       if (coverage != null) detail.coverage = coverage;
       if (confidence != null) detail.confidence = confidence;
@@ -386,7 +386,7 @@ export class AssistantStreamOrchestratorService {
   private extractCitations(
     name: ToolName,
     resultRecord: Record<string, unknown> | undefined,
-  ): AssistantToolDetailDto['citations'] {
+  ): AssistantToolDetailView['citations'] {
     if (resultRecord == null) {
       return undefined;
     }
@@ -442,7 +442,7 @@ export class AssistantStreamOrchestratorService {
   }
 
   private normalizeConversation(
-    dto: StreamAssistantMessagesDto,
+    dto: StreamAssistantMessagesView,
   ): AssistantConversationMessage[] {
     return dto.messages.map((message) => ({
       role: message.role,

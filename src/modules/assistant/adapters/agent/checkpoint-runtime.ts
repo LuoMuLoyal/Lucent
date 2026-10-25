@@ -48,7 +48,7 @@ import {
   buildWriteSystemPrompt,
   buildKnowledgeSystemPrompt,
   buildSimpleChatSystemPrompt,
-} from '../../infrastructure/llm/system.prompt.js';
+} from '../../application/services/prompts.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import { resolveRuntimePrompt } from '../../../../config/runtime/prompt-registry.js';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';

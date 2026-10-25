@@ -16,9 +16,9 @@ import type {
   UpdateDailyRecordDto,
 } from '../../../daily-records/index.js';
 import type {
-  AssistantConfirmResult,
-  ConfirmAssistantProposalDto,
-} from '../../adapters/http/dto/confirm-proposal.dto.js';
+  AssistantConfirmResultView,
+  ConfirmAssistantProposalView,
+} from '../ports/views.js';
 import { AssistantRuntimeService } from '../../adapters/agent/checkpoint-runtime.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { AuditLogService } from '../../../audit-log/index.js';
@@ -51,12 +51,12 @@ export class AssistantProposalConfirmService {
   confirmProposal(
     userId: string,
     conversationId: string,
-    dto: ConfirmAssistantProposalDto,
+    dto: ConfirmAssistantProposalView,
     getConversation: (
       userId: string,
       conversationId: string,
     ) => Promise<{ id: string } | null>,
-  ): ResultAsync<AssistantConfirmResult, DomainFailure> {
+  ): ResultAsync<AssistantConfirmResultView, DomainFailure> {
     return fromPromise(
       this.doConfirmProposal(userId, conversationId, dto, getConversation),
       (error) => toDomainFailure(error),
@@ -84,7 +84,7 @@ export class AssistantProposalConfirmService {
   private auditConfirm(
     userId: string,
     conversationId: string,
-    dto: ConfirmAssistantProposalDto,
+    dto: ConfirmAssistantProposalView,
     effectiveStatus: string,
     failureCode: string | null,
   ): void {
@@ -105,12 +105,12 @@ export class AssistantProposalConfirmService {
   private async doConfirmProposal(
     userId: string,
     conversationId: string,
-    dto: ConfirmAssistantProposalDto,
+    dto: ConfirmAssistantProposalView,
     getConversation: (
       userId: string,
       conversationId: string,
     ) => Promise<{ id: string } | null>,
-  ): Promise<AssistantConfirmResult> {
+  ): Promise<AssistantConfirmResultView> {
     const conversation = await getConversation(userId, conversationId);
     if (conversation == null) {
       throw new DomainFailureException(this.conversationNotFound());

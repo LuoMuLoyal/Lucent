@@ -6,7 +6,7 @@ import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circ
 import { okAsync } from '../../../../common/result/index.js';
 import { AssistantRuntimeService } from './checkpoint-runtime.js';
 import { AssistantStreamService } from '../../application/services/stream.js';
-import { buildAssistantSystemPrompt } from '../../infrastructure/llm/system.prompt.js';
+import { buildAssistantSystemPrompt } from '../../application/services/prompts.js';
 
 function buildMetricsService() {
   return {

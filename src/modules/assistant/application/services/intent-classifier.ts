@@ -8,11 +8,11 @@ import { resolveRuntimePrompt } from '../../../../config/runtime/prompt-registry
 import {
   buildIntentRouterSystemPrompt,
   buildIntentRouterUserPrompt,
-} from '../../infrastructure/llm/intent-router.prompt.js';
+} from './intent-router-prompt.js';
 import {
   assistantToolSelectionSchema,
   type AssistantToolSelectionOutput,
-} from '../../infrastructure/llm/intent-routing.schema.js';
+} from './intent-routing.js';
 import type {
   ContextSource,
   ToolName,

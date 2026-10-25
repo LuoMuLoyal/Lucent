@@ -12,8 +12,8 @@ import { buildReadEnvelope } from '../../../http/presenters/proposal.js';
 import { ONTOLOGY_LIMIT_CAP_MESSAGE } from '../shared/tool-constants.js';
 import { OntologyCypherGeneratorService } from './cypher-generator.service.js';
 import type { OntologyCypherOutput } from './cypher.schema.js';
-import { SemanticaClientService } from '../../../../infrastructure/retrieval/semantica-client.js';
-import type { SemanticaQueryOutcome } from '../../../../infrastructure/retrieval/semantica.types.js';
+import type { SemanticaAvailability } from '../../../../application/ports/retrieval.js';
+import type { SemanticaQueryOutcome } from '../../../../application/ports/semantica.types.js';
 import {
   isRetryableSemanticaFailure,
   SEMANTICA_DEFAULT_LIMIT,
@@ -22,7 +22,7 @@ import {
   SEMANTICA_REASONING_BUDGET_MS,
   SEMANTICA_SOURCE_TIER,
   type SemanticaErrorKind,
-} from '../../../../infrastructure/retrieval/semantica.types.js';
+} from '../../../../application/ports/semantica.types.js';
 
 /** 该工具在参数边界拒绝非法入参的统一前缀。 */
 const INVALID_ARGUMENT_PREFIX = 'Invalid reason_over_ontology arguments';
@@ -107,7 +107,7 @@ export class AssistantToolOntologyReasoningService {
   );
 
   constructor(
-    private readonly semantica: SemanticaClientService,
+    private readonly semantica: SemanticaAvailability,
     private readonly cypherGenerator: OntologyCypherGeneratorService,
     @Optional()
     @Inject(RuntimeConfigService)

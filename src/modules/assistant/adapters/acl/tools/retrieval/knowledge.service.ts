@@ -9,12 +9,12 @@ import type {
   AssistantToolExecutionContext,
 } from '../../../../application/ports/assistant.js';
 import { buildReadEnvelope } from '../../../http/presenters/proposal.js';
-import { LightragClientService } from '../../../../infrastructure/retrieval/lightrag-client.js';
+import type { LightragAvailability } from '../../../../application/ports/retrieval.js';
 import type {
   LightragCallFailure,
   LightragQueryMode,
   LightragSource,
-} from '../../../../infrastructure/retrieval/lightrag.types.js';
+} from '../../../../application/ports/retrieval.js';
 import {
   LIGHTRAG_DEFAULT_LIMIT,
   LIGHTRAG_DEFAULT_MODE,
@@ -24,7 +24,7 @@ import {
   LIGHTRAG_REJECTED_MODES,
   LIGHTRAG_SOURCES,
   parseGraphSources,
-} from '../../../../infrastructure/retrieval/lightrag.types.js';
+} from '../../../../application/ports/retrieval.js';
 
 /** 该工具在 `source` 判定前拒绝非法入参的统一前缀。 */
 const INVALID_ARGUMENT_PREFIX =
@@ -51,7 +51,7 @@ export class AssistantToolKnowledgeRetrievalService {
   );
 
   constructor(
-    private readonly lightrag: LightragClientService,
+    private readonly lightrag: LightragAvailability,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
     @Optional()

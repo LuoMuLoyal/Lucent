@@ -8,14 +8,14 @@ import {
 import { toDomainFailure } from '../services/provider-failures.js';
 import type { ConversationView } from './conversation.js';
 import { Injectable } from '@nestjs/common';
-import type { AssistantCapabilitiesDataDto } from '../../adapters/http/dto/capabilities-response.dto.js';
-import type { AssistantConversationDataDto } from '../../adapters/http/dto/conversation-response.dto.js';
-import type { AssistantMessageDataDto } from '../../adapters/http/dto/stream-response.dto.js';
-import type { StreamAssistantMessagesDto } from '../../adapters/http/dto/stream-messages.dto.js';
+import type { AssistantCapabilitiesView } from '../ports/views.js';
+import type { AssistantConversationView } from '../ports/views.js';
+import type { AssistantMessageDataView } from '../ports/views.js';
+import type { StreamAssistantMessagesView } from '../ports/views.js';
 import type {
-  AssistantConfirmResult,
-  ConfirmAssistantProposalDto,
-} from '../../adapters/http/dto/confirm-proposal.dto.js';
+  AssistantConfirmResultView,
+  ConfirmAssistantProposalView,
+} from '../ports/views.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { AssistantPolicyService } from '../services/policy.js';
 import { Conversations } from './conversation.js';
@@ -56,7 +56,7 @@ export class AssistantService {
     return this.streamOrchestratorService.getFoundationCapabilities();
   }
 
-  async getCapabilities(userId: string): Promise<AssistantCapabilitiesDataDto> {
+  async getCapabilities(userId: string): Promise<AssistantCapabilitiesView> {
     const foundation = this.getFoundationCapabilities();
     const settings = await this.userSettingsService.getSettings(userId);
     const policy = this.assistantPolicyService.evaluate(foundation, settings);
@@ -80,7 +80,7 @@ export class AssistantService {
 
   async getLatestConversation(
     userId: string,
-  ): Promise<AssistantConversationDataDto | null> {
+  ): Promise<AssistantConversationView | null> {
     const conversation =
       await this.assistantConversationService.latest(userId);
     return conversation == null ? null : conversation;
@@ -93,7 +93,7 @@ export class AssistantService {
   openConversation(
     userId: string,
     conversationId: string,
-  ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
+  ): ResultAsync<AssistantConversationView, DomainFailure> {
     return settle(
       this.assistantConversationService.open(userId, conversationId),
     );
@@ -115,7 +115,7 @@ export class AssistantService {
     userId: string,
     conversationId: string,
     title: string | null,
-  ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
+  ): ResultAsync<AssistantConversationView, DomainFailure> {
     // A rename always carries a title; the DTO allows null because the
     // synchronous truncation can be absent for a turn with no user message.
     return settle(
@@ -130,7 +130,7 @@ export class AssistantService {
   deleteConversation(
     userId: string,
     conversationId: string,
-  ): ResultAsync<AssistantConversationDataDto, DomainFailure> {
+  ): ResultAsync<AssistantConversationView, DomainFailure> {
     return settle(
       this.assistantConversationService.remove(userId, conversationId),
     );
@@ -149,8 +149,8 @@ export class AssistantService {
   confirmProposal(
     userId: string,
     conversationId: string,
-    dto: ConfirmAssistantProposalDto,
-  ): ResultAsync<AssistantConfirmResult, DomainFailure> {
+    dto: ConfirmAssistantProposalView,
+  ): ResultAsync<AssistantConfirmResultView, DomainFailure> {
     return this.proposalConfirmService.confirmProposal(
       userId,
       conversationId,
@@ -161,10 +161,10 @@ export class AssistantService {
 
   streamMessages(
     userId: string,
-    dto: StreamAssistantMessagesDto,
+    dto: StreamAssistantMessagesView,
     language: string,
     onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
-  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+  ): ResultAsync<AssistantMessageDataView, DomainFailure> {
     return this.streamOrchestratorService.streamMessages(
       userId,
       dto,
@@ -177,7 +177,7 @@ export class AssistantService {
     userId: string,
     conversationId: string,
     onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
-  ): ResultAsync<AssistantMessageDataDto, DomainFailure> {
+  ): ResultAsync<AssistantMessageDataView, DomainFailure> {
     return this.streamOrchestratorService.regenerateConversation(
       userId,
       conversationId,

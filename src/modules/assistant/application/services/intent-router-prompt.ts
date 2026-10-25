@@ -1,6 +1,6 @@
 import type { ContextSource } from '../../domain/policies/tool-permission.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
-import { TOOL_DESCRIPTIONS } from '../../adapters/acl/tools/shared/tool-definitions.js';
+import { TOOL_DESCRIPTIONS } from '../../domain/policies/tool-permission.js';
 
 /**
  * 单轮工具选择的提示词。

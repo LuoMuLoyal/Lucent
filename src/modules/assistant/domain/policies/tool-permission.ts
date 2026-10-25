@@ -186,3 +186,53 @@ export function selectEnabledSources(
 ): ContextSource[] {
   return CONTEXT_SOURCES.filter(isEnabled);
 }
+
+/** One-line, model-facing description of each tool (domain vocabulary). */
+export const TOOL_DESCRIPTIONS: Record<ToolName, string> = {
+  get_today_records:
+    "Retrieve the user's daily records for today, including meals, water, symptoms, and notes.",
+  get_records_by_date:
+    "Retrieve the user's daily records for a specific date mentioned in the conversation.",
+  get_records_by_range:
+    "Retrieve the user's daily records for a date range (e.g. 'last 7 days').",
+  get_today_summary_by_date:
+    'Retrieve a persisted Today AI summary for a specific date.',
+  get_report_summary_by_range:
+    'Retrieve a persisted report (weekly/monthly) AI summary for a date range.',
+  get_recent_today_summaries: 'Retrieve recent historical Today AI summaries.',
+  get_recent_report_summaries:
+    'Retrieve recent historical report AI summaries.',
+  get_user_profile:
+    "Retrieve the user's health profile: allergies, conditions, blood type, height, etc.",
+  get_user_settings: "Retrieve the user's assistant and privacy settings.",
+  get_current_medicines:
+    "Retrieve the user's current medicines and active dose reminders.",
+  get_sleep_summary_by_range:
+    "Retrieve the user's sleep summaries for a date range.",
+  get_meal_analysis_digest:
+    "Retrieve the user's already-computed meal analyses (energy interval + ranked findings per meal) for a lookback window. Use this instead of re-reading meal photos or re-deriving nutrition; pass `days` and `limit` to size the window.",
+  search_cn_medicine_products:
+    'Search Chinese medicine products by approval number, manufacturer, or product name.',
+  get_cn_medicine_detail:
+    'Get detailed information about a specific Chinese medicine product.',
+  search_cn_medicine_knowledge:
+    'Search Chinese prose medicine knowledge (package-insert fields such as dosage/contraindications/adverse reactions, or an open medical Q&A corpus) by meaning. Pick exactly one source per call; never mix them.',
+  resolve_drugbank_entity:
+    'Resolve a drug name to a DrugBank entity for scientific pharmacology data.',
+  get_drugbank_detail:
+    'Get detailed DrugBank information: mechanism, pharmacokinetics, interactions.',
+  search_drugbank_passages:
+    'Search DrugBank passages for drug interaction and mechanism evidence.',
+  reason_over_ontology:
+    'Answer a pharmacology question by reasoning over the English DrugBank knowledge graph of typed drug–target–enzyme relationships. Use it for multi-hop questions ("which drugs share this target", "is X metabolized by the same enzyme as Y", "do A and B interact") instead of inferring them from prose. It returns the executed query with its rows so the answer stays auditable, plus one provenance citation per assertion the rows rest on (result.citations[].id — each resolves to the DrugBank source table and row it came from). Cite those ids when you state a relationship, and never cite one the result does not contain. Zero rows means this graph has no such edge — it is not proof that no such relationship exists, because the graph only mirrors what the source data asserts.',
+  reason_over_rules:
+    'Derive new facts from the DrugBank knowledge graph using a stated rule, for questions the graph cannot answer by reading edges alone ("do A and B interact through a shared enzyme", "what does this drug potentially interact with"). Unlike reason_over_ontology this returns *derived* conclusions, not asserted edges: each one names the rule that produced it and carries citations to the assertions it rests on. Present them as derived, never as things the data states. Requires an explicit scope (`drug_names` or `atc_prefixes`) — it reasons over that subgraph, and a conclusion is only as complete as the scope it came from. An empty result is a finding about the scope you gave, not about the graph.',
+  propose_create_daily_record:
+    'Propose creating a new daily record (water, meal, symptom, note, sleep). Does not write — returns a confirmation draft.',
+  propose_update_daily_record:
+    'Propose updating an existing daily record. Does not write — returns a confirmation draft.',
+  propose_delete_daily_record:
+    'Propose deleting a daily record. Does not write — returns a confirmation draft.',
+  propose_update_user_settings:
+    'Propose updating user settings (assistant enabled, memory, context permissions). Does not write — returns a confirmation draft.',
+};

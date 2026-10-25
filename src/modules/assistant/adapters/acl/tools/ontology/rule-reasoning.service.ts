@@ -9,17 +9,17 @@ import type {
   AssistantToolExecutionContext,
 } from '../../../../application/ports/assistant.js';
 import { buildReadEnvelope } from '../../../http/presenters/proposal.js';
-import { SemanticaClientService } from '../../../../infrastructure/retrieval/semantica-client.js';
+import type { SemanticaAvailability } from '../../../../application/ports/retrieval.js';
 import type {
   SemanticaDerivedConclusion,
   SemanticaReasonOutcome,
-} from '../../../../infrastructure/retrieval/semantica.types.js';
+} from '../../../../application/ports/semantica.types.js';
 import {
   isAddressableReasonRejection,
   SEMANTICA_REASON_DEFAULT_LIMIT,
   SEMANTICA_REASON_MAX_LIMIT,
   SEMANTICA_SOURCE_TIER,
-} from '../../../../infrastructure/retrieval/semantica.types.js';
+} from '../../../../application/ports/semantica.types.js';
 
 /** 该工具在参数边界拒绝非法入参的统一前缀。 */
 const INVALID_ARGUMENT_PREFIX = 'Invalid reason_over_rules arguments';
@@ -95,7 +95,7 @@ export class AssistantToolRuleReasoningService {
   private readonly logger = new Logger(AssistantToolRuleReasoningService.name);
 
   constructor(
-    private readonly semantica: SemanticaClientService,
+    private readonly semantica: SemanticaAvailability,
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,

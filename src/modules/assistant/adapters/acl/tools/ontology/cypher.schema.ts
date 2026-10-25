@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SemanticaErrorKind } from '../../../../infrastructure/retrieval/semantica.types.js';
+import type { SemanticaErrorKind } from '../../../../application/ports/semantica.types.js';
 
 /**
  * 模型产出的 Cypher 查询。

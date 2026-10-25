@@ -12,11 +12,11 @@ import type {
   SemanticaQueryOutcome,
   SemanticaReasonOutcome,
   SemanticaRuleInfo,
-} from './semantica.types.js';
+} from '../../application/ports/semantica.types.js';
 import {
   SEMANTICA_QUERY_ERROR_KINDS,
   SEMANTICA_REASON_ERROR_KINDS,
-} from './semantica.types.js';
+} from '../../application/ports/semantica.types.js';
 
 import {
   SEMANTICA_DEFAULT_BASE_URL,

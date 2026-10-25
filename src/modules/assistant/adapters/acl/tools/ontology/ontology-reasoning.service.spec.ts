@@ -9,7 +9,7 @@ import type {
   SemanticaCallFailure,
   SemanticaGraphSchema,
   SemanticaQueryOutcome,
-} from '../../../../infrastructure/retrieval/semantica.types.js';
+} from '../../../../application/ports/semantica.types.js';
 
 const SCHEMA: SemanticaGraphSchema = {
   graph: 'neo4j',

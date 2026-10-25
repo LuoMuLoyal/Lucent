@@ -9,14 +9,14 @@ import type {
   LightragQueryMode,
   LightragQueryOutcome,
   LightragSource,
-} from './lightrag.types.js';
+} from '../../application/ports/lightrag.types.js';
 import {
   LIGHTRAG_DEFAULT_MODE,
   LIGHTRAG_DOC_ID_PREFIX_LEAFLET,
   LIGHTRAG_DOC_ID_PREFIX_QA,
   LIGHTRAG_METADATA_LEAFLET_ID,
   LIGHTRAG_METADATA_SOURCE_FIELD,
-} from './lightrag.types.js';
+} from '../../application/ports/lightrag.types.js';
 
 import {
   LIGHTRAG_DEFAULT_BASE_URL,
