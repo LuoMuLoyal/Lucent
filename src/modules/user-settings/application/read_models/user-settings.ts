@@ -17,8 +17,8 @@
 
 import type { UserSettingsSnapshot } from '../../domain/settings/user-settings.js';
 import { UserSettings } from '../../domain/settings/user-settings.js';
-import type { SettingsRepository } from '../../domain/settings/settings.js';
-import type { SettingsCache } from '../ports/settings-cache.js';
+import { SettingsRepository } from '../../domain/settings/settings.js';
+import { SettingsCache } from '../ports/settings-cache.js';
 import type { UserSettingsResource } from '../ports/user-settings-resource.js';
 
 export type UserSettingsView = UserSettingsResource;

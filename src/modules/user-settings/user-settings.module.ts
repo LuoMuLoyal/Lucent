@@ -35,6 +35,9 @@ import { PrismaSettings } from './infrastructure/persistence/settings.js';
     UserSettingsReadModel,
     UpdateUserSettings,
     UserSettingsService,
+    // The port token must be a provider here before it can be exported: Nest
+    // rejects exporting a token that this module does not provide.
+    { provide: IUserSettingsPort, useExisting: UserSettingsService },
   ],
   exports: [UserSettingsService, IUserSettingsPort],
 })

@@ -26,9 +26,9 @@ import {
   UserSettings,
   type UserSettingsPatch,
 } from '../../domain/settings/user-settings.js';
-import type { SettingsRepository } from '../../domain/settings/settings.js';
-import type { SettingsCache } from '../ports/settings-cache.js';
-import type { SettingsEvents } from '../ports/settings-events.js';
+import { SettingsRepository } from '../../domain/settings/settings.js';
+import { SettingsCache } from '../ports/settings-cache.js';
+import { SettingsEvents } from '../ports/settings-events.js';
 import type {
   UserSettingsReadModel,
   UserSettingsView,

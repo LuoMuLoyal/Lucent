@@ -9,8 +9,11 @@ import type { UserSettingsPatch } from '../../domain/settings/user-settings.js';
 import { IUserSettingsPort } from '../ports/user-settings.js';
 import type { UserSettingsResource } from '../ports/user-settings-resource.js';
 import type { UpdateUserSettingsCommand } from '../ports/user-settings-resource.js';
-import type { UserSettingsReadModel } from '../read_models/user-settings.js';
-import type { UpdateUserSettings } from '../use_cases/update-settings.js';
+// NOT `import type`: both are constructor parameters, so Nest needs the runtime
+// classes as DI tokens. A type-only import erases them, and the injector only
+// reports "can't resolve dependencies ... at index [0]" when the full app boots.
+import { UserSettingsReadModel } from '../read_models/user-settings.js';
+import { UpdateUserSettings } from '../use_cases/update-settings.js';
 
 /**
  * Application facade over this context's read model and use cases.
