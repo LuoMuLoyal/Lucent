@@ -3,11 +3,11 @@ import type { I18nService } from 'nestjs-i18n';
 
 import { EnvKey } from '../../../../../../config/env/env-keys.enum.js';
 import type { RuntimeConfigPort } from '../../../../../../config/runtime/runtime-config.types.js';
-import type { AssistantToolExecutionContext } from '../../../../../application/ports/assistant.js';
+import type { AssistantToolExecutionContext } from '../../../../application/ports/assistant.js';
 import type {
   LightragCallFailure,
   LightragQueryMode,
-} from '../../../../../infrastructure/retrieval/lightrag.types.js';
+} from '../../../../application/ports/lightrag.types.js';
 import { AssistantToolKnowledgeRetrievalService } from './knowledge.service.js';
 
 /**
