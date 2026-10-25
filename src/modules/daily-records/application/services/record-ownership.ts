@@ -21,7 +21,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { DailyRecord } from '../../domain/record/daily-record.js';
-import type { DailyRecords } from '../../domain/record/records.js';
+import { DailyRecords } from '../../domain/record/records.js';
 import { recordNotFound } from './domain-failures.js';
 
 /** 通过归属校验后携带的旧值快照（更新 / 删除需要）。 */

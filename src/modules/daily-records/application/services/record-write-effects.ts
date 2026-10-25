@@ -8,7 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { formatDateOnly } from '../../../../common/index.js';
 import { MealAnalysisJobs } from '../ports/meal-analysis-jobs.js';
-import type { RecordChangeEvents } from '../ports/record-change-events.js';
+import { RecordChangeEvents } from '../ports/record-change-events.js';
 import type { RecordItem } from '../read_models/record-list.js';
 import {
   analysisRevisionToQueue,
@@ -67,6 +67,9 @@ export class RecordWriteEffects {
         error,
       });
     }
+    this.logger.debug(
+      `Queued meal analysis for record ${item.id} (revision ${String(revision)})`,
+    );
   }
 
   /** 单日单 kind 的失效（创建 / 删除）。 */
