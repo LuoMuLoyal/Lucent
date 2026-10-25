@@ -2,7 +2,6 @@ import { LifecycleService } from './manager.service.js';
 import { SuggestionLifecycleState } from '../../domain/suggestion/suggestion.types.js';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import { formatDateOnly, now } from '../../../../common/index.js';
-import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 function createMockCache() {
   return {
@@ -17,8 +16,12 @@ describe('LifecycleService', () => {
   let countMock: vi.Mock;
   let createMock: vi.Mock;
   let updateManyMock: vi.Mock;
+  let readModelMock: { getActiveSuggestions: vi.Mock };
+  let historyReadModelMock: { getHistory: vi.Mock };
 
   beforeEach(() => {
+    readModelMock = { getActiveSuggestions: vi.fn() };
+    historyReadModelMock = { getHistory: vi.fn() };
     findManyMock = vi.fn();
     countMock = vi.fn();
     createMock = vi.fn();
@@ -36,7 +39,8 @@ describe('LifecycleService', () => {
     service = new LifecycleService(
       prismaMock as never,
       createMockCache(),
-      makeTestI18n() as never,
+      readModelMock as never,
+      historyReadModelMock as never,
     );
   });
 
@@ -285,258 +289,6 @@ describe('LifecycleService', () => {
       const ids = await service.getActiveSuggestionIds('user-1', '2026-07-10');
 
       expect(ids.size).toBe(0);
-    });
-  });
-
-  describe('getActiveSuggestions', () => {
-    it('returns active persisted cards ordered for Today rendering', async () => {
-      findManyMock.mockResolvedValue([
-        {
-          id: 'sug-primary',
-          type: 'compliance',
-          triggerType: 'event',
-          ruleId: 'dose_rule',
-          ruleVersion: '1.0.0',
-          title: 'Take your medicine',
-          reason: 'A dose is due',
-          boundary: 'Do not double dose',
-          evidence: [],
-          primaryAction: {
-            actionId: 'log',
-            label: 'Log dose',
-            route: '/record/dose',
-            authRequired: true,
-          },
-          secondaryActions: null,
-          priorityScore: 900,
-          confidence: 'high',
-          lifecycleState: 'active',
-          notificationEligible: false,
-          subtype: null,
-          locale: 'zh-CN',
-          generatedAt: new Date('2026-07-09T08:00:00.000Z'),
-        },
-      ]);
-
-      const result = await service.getActiveSuggestions('user-1', '2026-07-09');
-
-      expect(findManyMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            userId: 'user-1',
-            date: '2026-07-09',
-            lifecycleState: SuggestionLifecycleState.ACTIVE,
-          }),
-        }),
-      );
-      expect(result[0]).toMatchObject({
-        id: 'sug-primary',
-        title: 'Take your medicine',
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-      });
-    });
-
-    it('localizes the persisted raw action key instead of passing it through', async () => {
-      // The regression this guards: the stored `primaryAction.label` is the
-      // rule's template key (`complete_profile`), so this read path used to
-      // render an internal identifier as the button label whenever the
-      // ≤3-minute result cache had expired — while a cache hit showed the
-      // properly localized label for the same card.
-      findManyMock.mockResolvedValue([
-        {
-          id: 'sug-coverage',
-          type: 'coverage',
-          triggerType: 'event',
-          ruleId: 'coverage_rule',
-          ruleVersion: '1.0.0',
-          title: '完善健康档案',
-          reason: '缺少必要资料',
-          boundary: '仅供参考',
-          evidence: [
-            {
-              kind: 'profile',
-              label: 'missing_fields',
-              value: 'birthDate,sexAtBirth',
-            },
-          ],
-          primaryAction: {
-            actionId: 'go_complete_profile',
-            label: 'complete_profile',
-            route: '/profile',
-            authRequired: true,
-          },
-          secondaryActions: null,
-          priorityScore: 800,
-          confidence: 'high',
-          lifecycleState: 'active',
-          notificationEligible: false,
-          subtype: 'profile',
-          locale: 'en',
-          generatedAt: new Date('2026-07-09T08:00:00.000Z'),
-        },
-      ]);
-
-      const result = await service.getActiveSuggestions(
-        'user-1',
-        '2026-07-09',
-        undefined,
-        'en',
-      );
-
-      // Never the internal key, and never an i18n key path.
-      expect(result[0]!.primaryAction.label).toBe('Complete profile');
-      expect(result[0]!.primaryAction.label).not.toContain('complete_profile');
-      expect(result[0]!.evidence[0]!.label).toBe('Missing fields');
-    });
-
-    it('falls back to the product default language when no locale is given', async () => {
-      findManyMock.mockResolvedValue([
-        {
-          id: 'sug-coverage',
-          type: 'coverage',
-          triggerType: 'event',
-          ruleId: 'coverage_rule',
-          ruleVersion: '1.0.0',
-          title: '完善健康档案',
-          reason: '缺少必要资料',
-          boundary: '仅供参考',
-          evidence: [],
-          primaryAction: {
-            actionId: 'go_complete_profile',
-            label: 'complete_profile',
-            route: '/profile',
-            authRequired: true,
-          },
-          secondaryActions: null,
-          priorityScore: 800,
-          confidence: 'high',
-          lifecycleState: 'active',
-          notificationEligible: false,
-          subtype: 'profile',
-          locale: 'zh-CN',
-          generatedAt: new Date('2026-07-09T08:00:00.000Z'),
-        },
-      ]);
-
-      const result = await service.getActiveSuggestions('user-1', '2026-07-09');
-
-      // Still localized (not the raw key), just in the default language.
-      expect(result[0]!.primaryAction.label).not.toBe('complete_profile');
-      expect(result[0]!.primaryAction.label.length).toBeGreaterThan(0);
-    });
-  });
-
-  // ── getHistory ──────────────────────────────────────────────────────────
-
-  describe('getHistory', () => {
-    it('should return mapped history items with total count', async () => {
-      const mockRecords = [
-        {
-          id: 'sug-1',
-          date: '2026-07-09',
-          type: 'behavior_advice',
-          title: '今日饮水还差 6 杯',
-          reason: '今日已记录 2 杯，目标 8 杯。',
-          ruleId: 'water_behind_target',
-          ruleVersion: '1.0.0',
-          triggerType: 'timer',
-          lifecycleState: SuggestionLifecycleState.EXPIRED,
-          confidence: 'medium',
-          subtype: 'water',
-          feedback: 'accepted',
-          feedbackAt: new Date('2026-07-09T10:00:00.000Z'),
-          generatedAt: new Date('2026-07-09T08:00:00.000Z'),
-          expiredAt: new Date('2026-07-09T23:59:59.000Z'),
-        },
-        {
-          id: 'sug-2',
-          date: '2026-07-08',
-          type: 'compliance',
-          title: 'Test Medicine 尚未服药',
-          reason: '已超过计划服药时间 60 分钟。',
-          ruleId: 'missed_dose_pending',
-          ruleVersion: '1.0.0',
-          triggerType: 'event',
-          lifecycleState: SuggestionLifecycleState.DISMISSED,
-          confidence: 'high',
-          subtype: null,
-          feedback: 'later',
-          feedbackAt: new Date('2026-07-08T12:00:00.000Z'),
-          generatedAt: new Date('2026-07-08T08:30:00.000Z'),
-          expiredAt: null,
-        },
-      ];
-
-      findManyMock.mockResolvedValue(mockRecords);
-      countMock.mockResolvedValue(2);
-
-      const result = await service.getHistory(
-        'user-1',
-        '2026-07-01',
-        '2026-07-09',
-        'zh-CN',
-      );
-
-      expect(result.items).toHaveLength(2);
-      expect(result.total).toBe(2);
-
-      const first = result.items[0]!;
-      expect(first.id).toBe('sug-1');
-      expect(first.date).toBe('2026-07-09');
-      expect(first.type).toBe('behavior_advice');
-      expect(first.lifecycleState).toBe(SuggestionLifecycleState.EXPIRED);
-      expect(first.subtype).toBe('water');
-      expect(first.feedback).toBe('accepted');
-      expect(first.generatedAt).toBe('2026-07-09T08:00:00.000Z');
-      expect(first.expiredAt).toBe('2026-07-09T23:59:59.000Z');
-
-      const second = result.items[1]!;
-      expect(second.id).toBe('sug-2');
-      expect(second.subtype).toBeUndefined();
-      expect(second.feedback).toBe('later');
-      expect(second.expiredAt).toBeUndefined();
-    });
-
-    it('should pass filters to prisma query', async () => {
-      findManyMock.mockResolvedValue([]);
-      countMock.mockResolvedValue(0);
-
-      await service.getHistory('user-1', '2026-07-01', '2026-07-09', 'zh-CN', {
-        lifecycleState: 'expired',
-        type: 'behavior_advice',
-        limit: 50,
-      });
-
-      const findManyCall = findManyMock.mock.calls[0]![0];
-      expect(findManyCall.where.lifecycleState).toBe('expired');
-      expect(findManyCall.where.type).toBe('behavior_advice');
-      expect(findManyCall.take).toBe(50);
-
-      const countCall = countMock.mock.calls[0]![0];
-      expect(countCall.where.lifecycleState).toBe('expired');
-      expect(countCall.where.type).toBe('behavior_advice');
-    });
-
-    it('should apply default limit of 100 when no limit provided', async () => {
-      findManyMock.mockResolvedValue([]);
-      countMock.mockResolvedValue(0);
-
-      await service.getHistory('user-1', '2026-07-01', '2026-07-09', 'zh-CN');
-
-      const findManyCall = findManyMock.mock.calls[0]![0];
-      expect(findManyCall.take).toBe(100);
-    });
-
-    it('should cap limit at 500', async () => {
-      findManyMock.mockResolvedValue([]);
-      countMock.mockResolvedValue(0);
-
-      await service.getHistory('user-1', '2026-07-01', '2026-07-09', 'zh-CN', {
-        limit: 1000,
-      });
-
-      const findManyCall = findManyMock.mock.calls[0]![0];
-      expect(findManyCall.take).toBe(500);
     });
   });
 

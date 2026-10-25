@@ -37,6 +37,10 @@ import { PrismaFeedbackStore } from './infrastructure/persistence/feedbacks.js';
 import { FEEDBACK_PORT } from './application/ports/feedback.js';
 import { BaselineService } from './services/lifecycle/baseline.service.js';
 import { LifecycleService } from './services/lifecycle/manager.service.js';
+import { ActiveSuggestionsReadModel } from './application/read_models/active-suggestions.js';
+import { SuggestionHistoryReadModel } from './application/read_models/suggestion-history.js';
+import { PrismaSuggestionQueries } from './infrastructure/persistence/suggestion-queries.js';
+import { SUGGESTION_QUERY_PORT } from './application/ports/suggestion-queries.js';
 import { EscalationService } from './services/notification/escalation.service.js';
 import { RegistryService } from './application/services/rule-registry.js';
 import { RuleVersionRegistry } from './application/services/rule-version-registry.js';
@@ -84,6 +88,10 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     // Lifecycle
     BaselineService,
     LifecycleService,
+    ActiveSuggestionsReadModel,
+    SuggestionHistoryReadModel,
+    PrismaSuggestionQueries,
+    { provide: SUGGESTION_QUERY_PORT, useExisting: PrismaSuggestionQueries },
     // Feedback
     FeedbackService,
     RecordFeedbackUseCase,
@@ -121,6 +129,10 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     { provide: FEEDBACK_PORT, useExisting: PrismaFeedbackStore },
     ExplanationService,
     LifecycleService,
+    ActiveSuggestionsReadModel,
+    SuggestionHistoryReadModel,
+    PrismaSuggestionQueries,
+    { provide: SUGGESTION_QUERY_PORT, useExisting: PrismaSuggestionQueries },
   ],
 })
 export class TodaySuggestionModule implements OnModuleInit {

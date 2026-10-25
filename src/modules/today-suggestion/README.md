@@ -115,10 +115,20 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
 - `services/feedback/recorder.service.ts` — 旧的 `FeedbackService`，保留读侧
   （`loadActiveFeedbacks` 供抑制层用）与两个百分比静态访问器；
   **写侧已迁到 `RecordFeedbackUseCase`**。
-- `services/lifecycle/manager.service.ts` — 生命周期编排。**迁移中间态**：
-  写侧已改用上面的域规则（`updateMany` 保留——它幂等且并发安全，改成
-  load-modify-save 要重新赢得这个保证），**读侧（`getActiveSuggestions` /
-  `getHistory`）仍直连 Prisma**，待 D3 第 5 步。两条路径不应长期共存，见 `docs/TODO.md`。
+- `application/read_models/` — 查询侧投影：
+  `active-suggestions.ts`（Today 卡片：**`ACTIVE_LIFECYCLE_STATE` 过滤在此**、
+  tone/icon/反馈按钮/证据与动作本地化）、`suggestion-history.ts`（历史：按
+  `ruleId + subtype` 去重，用 `lifecycleRank` 决定保留哪个状态）。
+  两者只依赖 `SUGGESTION_QUERY_PORT`，**不出现任何 Prisma 类型**——
+  读模型的形状由「卡片该长什么样」决定，不由表结构决定。
+- `application/ports/suggestion-queries.ts` + `infrastructure/persistence/suggestion-queries.ts` —
+  查询端口与 Prisma 实现。**`where` 条件留在这层**（Today = 仅 active；
+  历史 = 日期区间 + locale + 可选状态/类型），`where` 的字面值来自端口导出，
+  不散在读模型里。
+- `services/lifecycle/manager.service.ts` — 生命周期编排。**读写已分离**：
+  两条读路径委托给上面的读模型（缓存仍在 service，属编排），写路径用 B2 的域规则。
+  仍未迁移的是 `persistActive` / `expireStaleSuggestions` / `refreshLifecycleStates`
+  的 `updateMany`（见 `docs/TODO.md` 的分页批处理项）。
 - `domain/baseline/` — 基线维度与记录。
 - `application/services/` — 两个注册表（`rule-registry.ts`、`rule-version-registry.ts`）。
   它们是**查找表**（Map 状态），不是领域对象，故在 application 层。

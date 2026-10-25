@@ -1,29 +1,23 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma/index.js';
 import { now, nowIsoString, formatDateOnly } from '../../../../common/index.js';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
 
 import type { SuggestionAction } from '../../domain/signal/signal.js';
-import {
-  SuggestionFeedback,
-  SuggestionLifecycleState,
-} from '../../domain/suggestion/suggestion.types.js';
+import { SuggestionLifecycleState } from '../../domain/suggestion/suggestion.types.js';
 import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto.js';
-import type { Prisma } from '#generated/prisma/client.js';
 import {
   fadeExpiryThreshold,
   fadingThreshold,
-  lifecycleRank,
 } from '../../domain/suggestion/daily-suggestion.js';
+import { ActiveSuggestionsReadModel } from '../../application/read_models/active-suggestions.js';
 import {
-  localizeEvidenceLabel,
-  localizeEvidenceValue,
-  resolveActionLabel,
-} from '../action-label.js';
+  SuggestionHistoryReadModel,
+  type SuggestionHistoryPage,
+} from '../../application/read_models/suggestion-history.js';
 
 /** Max items returned by the history endpoint. */
 const HISTORY_MAX_LIMIT = 500;
@@ -60,7 +54,8 @@ export class LifecycleService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
-    private readonly i18n: I18nService,
+    private readonly activeReadModel: ActiveSuggestionsReadModel,
+    private readonly historyReadModel: SuggestionHistoryReadModel,
   ) {}
 
   /**
@@ -218,120 +213,12 @@ export class LifecycleService {
     sourceVersion?: number,
     locale = 'zh-CN',
   ): Promise<SuggestionItemDto[]> {
-    const records = await this.prisma.userSuggestion.findMany({
-      where: {
-        userId,
-        date,
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-        ...(sourceVersion != null ? { sourceVersion } : {}),
-      },
-      orderBy: { priorityScore: 'desc' },
-    });
-
-    return records.map((record) => {
-      const primaryAction = record.primaryAction as {
-        actionId: string;
-        label: string;
-        route: string;
-        authRequired: boolean;
-      };
-      const secondaryActions = record.secondaryActions as Array<{
-        actionId: string;
-        label: string;
-        route: string;
-        authRequired: boolean;
-      }> | null;
-      const evidence = record.evidence as Array<{
-        kind: string;
-        label: string;
-        value: string;
-        args?: Record<string, string | number>;
-        recordId?: string;
-        medicineId?: string;
-      }>;
-
-      return {
-        id: record.id,
-        type: record.type as SuggestionItemDto['type'],
-        cardTone: this.cardToneFor(record.type),
-        icon: this.iconFor(record.type, record.subtype),
-        title: record.title,
-        reason: record.reason,
-        evidence: evidence.map((item) => ({
-          ...item,
-          label: localizeEvidenceLabel(this.i18n, item.label, locale),
-          value: localizeEvidenceValue(
-            this.i18n,
-            item.value,
-            locale,
-            item.args,
-          ),
-        })),
-        boundary: record.boundary,
-        primaryAction: {
-          ...primaryAction,
-          label: resolveActionLabel(this.i18n, primaryAction.label, locale),
-        },
-        ...(secondaryActions != null
-          ? {
-              secondaryActions: secondaryActions.map((action) => ({
-                ...action,
-                label: resolveActionLabel(this.i18n, action.label, locale),
-              })),
-            }
-          : {}),
-        confidence: record.confidence as SuggestionItemDto['confidence'],
-        ruleId: record.ruleId,
-        ruleVersion: record.ruleVersion,
-        triggerType: record.triggerType as SuggestionItemDto['triggerType'],
-        lifecycleState: SuggestionLifecycleState.ACTIVE,
-        notificationEligible: record.notificationEligible,
-        feedbackOptions: this.feedbackOptionsFor(record.type),
-        subtype: record.subtype ?? undefined,
-      };
-    });
-  }
-
-  private cardToneFor(type: string): SuggestionItemDto['cardTone'] {
-    if (type === 'confirmed_risk' || type === 'compliance') return 'urgent';
-    if (type === 'trend') return 'warning';
-    if (type === 'behavior_advice') return 'soft';
-    return 'neutral';
-  }
-
-  private iconFor(type: string, subtype: string | null): string {
-    const subtypeIcons: Record<string, string> = {
-      water: 'droplets',
-      sleep: 'moon',
-      symptom: 'activity',
-      diet: 'utensils',
-      profile: 'user',
-      empty_today: 'clipboard',
-    };
-    if (subtype != null && subtypeIcons[subtype] != null) {
-      return subtypeIcons[subtype];
-    }
-    const typeIcons: Record<string, string> = {
-      confirmed_risk: 'alert-triangle',
-      compliance: 'pill',
-      trend: 'trending-up',
-      behavior_advice: 'lightbulb',
-      coverage: 'info',
-    };
-    return typeIcons[type] ?? 'lightbulb';
-  }
-
-  private feedbackOptionsFor(
-    type: string,
-  ): SuggestionItemDto['feedbackOptions'] {
-    return type === 'coverage'
-      ? [SuggestionFeedback.ACCEPTED, SuggestionFeedback.LATER]
-      : [
-          SuggestionFeedback.ACCEPTED,
-          SuggestionFeedback.LATER,
-          SuggestionFeedback.NOT_APPLICABLE,
-          SuggestionFeedback.SUPPRESS,
-        ];
+    return this.activeReadModel.getActiveSuggestions(
+      userId,
+      date,
+      sourceVersion,
+      locale,
+    );
   }
 
   /**
@@ -367,82 +254,30 @@ export class LifecycleService {
       String(limit),
     ].join(':');
 
-    let cached:
-      | {
-          items: SuggestionHistoryItemDto[];
-          total: number;
-        }
-      | undefined;
+    let cached: SuggestionHistoryPage | undefined;
     try {
-      cached = await this.cache.get<{
-        items: SuggestionHistoryItemDto[];
-        total: number;
-      }>(cacheKey);
+      cached = await this.cache.get<SuggestionHistoryPage>(cacheKey);
     } catch (error) {
+      // Cache is an accelerator, not a gate: fall through to the query.
       this.logger.warn(
-        `Suggestion history cache get failed (key=${cacheKey}): ${String(error)}`,
+        `Suggestion history cache get failed (key=${cacheKey}): ${error instanceof Error ? error.message : String(error)}`,
       );
-      throw error;
     }
     if (cached != null) {
       return cached;
     }
 
-    const where: Prisma.UserSuggestionWhereInput = {
+    // Query, dedup and DTO shaping live in the read model; caching stays here.
+    const result = await this.historyReadModel.getHistory({
       userId,
-      date: { gte: startDate, lte: endDate },
+      startDate,
+      endDate,
       locale: normalizedLocale,
-    };
-    if (filters?.lifecycleState != null) {
-      where.lifecycleState = filters.lifecycleState as never;
-    }
-    if (filters?.type != null) {
-      where.type = filters.type as never;
-    }
+      lifecycleState: filters?.lifecycleState as never,
+      type: filters?.type,
+      limit,
+    });
 
-    const [records, total] = await Promise.all([
-      this.prisma.userSuggestion.findMany({
-        where,
-        orderBy: { generatedAt: 'desc' },
-        take: limit,
-      }),
-      this.prisma.userSuggestion.count({ where }),
-    ]);
-
-    const items: SuggestionHistoryItemDto[] = Array.from(
-      records
-        .reduce((map, r) => {
-          const key = `${r.ruleId}:${r.subtype ?? ''}`;
-          const existing = map.get(key);
-          if (
-            existing == null ||
-            lifecycleRank(existing.lifecycleState as never) <
-              lifecycleRank(r.lifecycleState as never)
-          ) {
-            map.set(key, {
-              id: r.id,
-              date: r.date,
-              type: r.type as never,
-              title: r.title,
-              reason: r.reason,
-              ruleId: r.ruleId,
-              ruleVersion: r.ruleVersion,
-              triggerType: r.triggerType as never,
-              lifecycleState: r.lifecycleState as never,
-              confidence: r.confidence as never,
-              subtype: r.subtype ?? undefined,
-              feedback: r.feedback ?? undefined,
-              feedbackAt: r.feedbackAt?.toISOString() ?? undefined,
-              generatedAt: r.generatedAt.toISOString(),
-              expiredAt: r.expiredAt?.toISOString() ?? undefined,
-            });
-          }
-          return map;
-        }, new Map<string, SuggestionHistoryItemDto>())
-        .values(),
-    );
-
-    const result = { items, total };
     try {
       await this.cache.set(
         cacheKey,
