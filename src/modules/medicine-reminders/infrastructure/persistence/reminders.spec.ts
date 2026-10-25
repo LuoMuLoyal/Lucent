@@ -47,6 +47,7 @@ describe('PrismaReminders', () => {
       },
       userCurrentMedicine: {
         findFirst: vi.fn(),
+        findMany: vi.fn(),
       },
       $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
@@ -54,6 +55,37 @@ describe('PrismaReminders', () => {
     repository = new PrismaReminders(prisma);
   });
 
+  describe('listActiveFacts (reader port)', () => {
+    it('selects the reminder id, which consumers use as the slot key', async () => {
+      // Regression guard: `today-suggestion` keys medication slots by
+      // `reminder.id`. Dropping it from the select makes the facts unusable
+      // there, and the failure surfaces only at the consumer, not here.
+      prisma.userMedicineReminder.findMany.mockResolvedValue([] as never);
+
+      await repository.listActiveFacts('user-1');
+
+      expect(prisma.userMedicineReminder.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({ id: true }),
+        }),
+      );
+    });
+  });
+
+  describe('listCurrentMedicines (reader port)', () => {
+    it('reads only current medicines, oldest-first, capped', async () => {
+      prisma.userCurrentMedicine.findMany.mockResolvedValue([] as never);
+
+      await repository.listCurrentMedicines('user-1');
+
+      expect(prisma.userCurrentMedicine.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', isCurrent: true },
+        select: { id: true, displayName: true },
+        orderBy: [{ createdAt: 'asc' }],
+        take: 500,
+      });
+    });
+  });
   describe('findManyReminders', () => {
     it('queries with where clause', async () => {
       prisma.userMedicineReminder.findMany.mockResolvedValue([] as never);

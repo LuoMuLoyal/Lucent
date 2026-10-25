@@ -9,6 +9,7 @@ import type {
 import {
   MedicineReminderReaderPort,
   ReminderRepositoryPort,
+  type CurrentMedicineFact,
   type MedicineReminderFact,
 } from '../../application/ports/reminder-repository.js';
 
@@ -16,6 +17,7 @@ import {
 const MAX_READER_FACTS = 500;
 
 const medicineReminderFactSelect = {
+  id: true,
   currentMedicineId: true,
   scheduledHour: true,
   scheduledMinute: true,
@@ -49,6 +51,24 @@ export class PrismaReminders
         { scheduledMinute: 'asc' },
         { createdAt: 'asc' },
       ],
+      take: MAX_READER_FACTS,
+    });
+  }
+
+  /**
+   * Current medicines for the user, ordered oldest-first so a consumer's slot
+   * numbering stays stable across calls.
+   *
+   * Only `id` and `displayName` are selected: this port exists so another
+   * context can build reminder slots without reading this context's table, and
+   * anything beyond identity + label would invite it to reason about medicine
+   * data it does not own.
+   */
+  async listCurrentMedicines(userId: string): Promise<CurrentMedicineFact[]> {
+    return this.prisma.userCurrentMedicine.findMany({
+      where: { userId, isCurrent: true },
+      select: { id: true, displayName: true },
+      orderBy: [{ createdAt: 'asc' }],
       take: MAX_READER_FACTS,
     });
   }

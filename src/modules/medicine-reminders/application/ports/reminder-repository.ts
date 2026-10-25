@@ -8,8 +8,17 @@ import type {
  * Lean read-model shape for cross-module consumers (ADR-0009). Exposes
  * reminder fields only — no Prisma query DSL. Canonical order is
  * `scheduledHour asc, scheduledMinute asc, createdAt asc`.
+ *
+ * ## `id` is part of the contract, not an accident
+ *
+ * Consumers (`today-suggestion`'s medication collector) use the reminder id as
+ * the **slot key**: two reminders for the same medicine can share a time, so the
+ * `(reminderId, date, time)` triple is what makes a slot unique. Without `id`
+ * a consumer would have to fall back to positional keys, which drift whenever
+ * the reminder list is reordered — so the id is read here deliberately.
  */
 export interface MedicineReminderFact {
+  id: string;
   currentMedicineId: string | null;
   scheduledHour: number;
   scheduledMinute: number;
@@ -20,20 +29,34 @@ export interface MedicineReminderFact {
 }
 
 /**
- * Hard upper bound on facts returned by reader ports. Prevents unbounded
- * context queries from slowing the AI pipeline as user data grows.
- * (ADR-0009 reader ports; architecture review #15)
+ * A current-medicine entry as seen from outside the Medication Tracking
+ * context: identity plus the display label, nothing else.
+ *
+ * Exists so `today-suggestion`'s medication collector can build reminder slots
+ * from the owning context instead of querying `user_current_medicines` directly
+ * — direct table reads across contexts are what ADR-0024 §3 forbids.
  */
+export interface CurrentMedicineFact {
+  id: string;
+  displayName: string;
+}
 
 /**
- * Read-only port for cross-module reads of UserMedicineReminder (ADR-0009).
- * Implemented by PrismaReminders and exported from
- * MedicineRemindersModule; write paths stay behind MedicineRemindersService /
- * ReminderRepositoryPort.
+ * Read-only port for cross-module reads of this context's tables (ADR-0009).
+ *
+ * Implemented by `PrismaReminders` and exported from `MedicineRemindersModule`;
+ * write paths stay behind `MedicineRemindersService` / `ReminderRepositoryPort`.
  */
 export abstract class MedicineReminderReaderPort {
   /** Lists non-deleted, active reminders for the user. */
   abstract listActiveFacts(userId: string): Promise<MedicineReminderFact[]>;
+
+  /**
+   * Lists the user's current medicines (identity + label only).
+   *
+   * Ordered oldest-first so a consumer's slot numbering is stable across calls.
+   */
+  abstract listCurrentMedicines(userId: string): Promise<CurrentMedicineFact[]>;
 }
 
 /**
@@ -47,7 +70,6 @@ export abstract class ReminderRepositoryPort {
     where: Prisma.UserMedicineReminderWhereInput,
     orderBy?: Prisma.UserMedicineReminderOrderByWithRelationInput[],
   ): Promise<Prisma.UserMedicineReminderGetPayload<object>[]>;
-
   abstract createReminder(
     data: Prisma.UserMedicineReminderUncheckedCreateInput,
   ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure>;
