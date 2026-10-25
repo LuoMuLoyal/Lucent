@@ -5,21 +5,21 @@ import {
   ProductEventSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
-import { errAsync, okAsync } from '../../common/result/index.js';
-import type { DomainFailure } from '../../common/result/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { AdminAccessService } from '../admin/index.js';
+import { errAsync, okAsync } from '../../../../common/result/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { AdminAccessService } from '../../../admin/index.js';
 import {
   MAX_PRODUCT_EVENTS_PER_REQUEST,
   createProductEventBatchSchema,
   createProductEventSchema,
-} from './dto/create-product-event.dto.js';
-import type { CreateProductEventBatchDto } from './dto/create-product-event.dto.js';
-import { productFunnelQuerySchema } from './dto/funnel-query.dto.js';
-import type { FunnelQueryDto } from './dto/funnel-query.dto.js';
+} from './dto/create-product-event.js';
+import type { CreateProductEventBatchDto } from './dto/create-product-event.js';
+import { productFunnelQuerySchema } from './dto/funnel-query.js';
+import type { FunnelQueryDto } from './dto/funnel-query.js';
 import { ProductEventsController } from './product-events.controller.js';
-import { ProductEventsService } from './services/events.service.js';
-import { ProductFunnelService } from './services/funnel.service.js';
+import { ProductEventsService } from '../../application/use_cases/events.js';
+import { ProductFunnelService } from '../../application/use_cases/funnel.js';
 
 const user: UserPayload = {
   sub: 'user-1',

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProductEventName } from '#generated/prisma/client.js';
-import { now } from '../../../common/index.js';
+import { ProductEventName } from '#generated/prisma/client.js';
+import { now } from '../../../../common/index.js';
 import {
   createDomainFailure,
   err,
@@ -9,18 +9,16 @@ import {
   type DomainFailure,
   type Result,
   type ResultAsync,
-} from '../../../common/result/index.js';
-import { fromPromise } from '../../../common/result/index.js';
-import { PrismaService } from '../../../prisma/index.js';
+} from '../../../../common/result/index.js';
+import { fromPromise } from '../../../../common/result/index.js';
+import { ProductEvents } from '../ports/product-events.js';
 import {
   MAX_FUNNEL_RANGE_DAYS,
-  type FunnelQueryDto,
-} from '../dto/funnel-query.dto.js';
-import type {
-  FunnelDailyCountsDto,
-  FunnelDataDto,
-  FunnelOptionalCountsDto,
-} from '../dto/funnel-response.dto.js';
+  type FunnelDailyCounts,
+  FunnelData,
+  FunnelOptionalCounts,
+  FunnelQuery,
+} from '../commands/product-event.js';
 
 /**
  * Small-sample threshold: when the window's core-funnel total (sum of the
@@ -46,20 +44,11 @@ function utcDayNumber(date: Date): number {
   return Math.floor(date.getTime() / MS_PER_DAY);
 }
 
-/** One aggregated row from the raw day×name grouping. */
-interface FunnelAggregateRow {
-  /** UTC calendar day (YYYY-MM-DD). */
-  day: string;
-  /** Raw event name — the enum-backed column arrives as a plain string. */
-  name: string;
-  count: number;
-}
-
 /**
  * Core funnel counts (the five stages). Plain object shape mirroring the
  * response DTO minus `date` — an interface, not the DTO class, so count
  * objects can be spread and summed without class-instance semantics. Drift
- * from `FunnelDailyCountsDto` is caught by the typechecker: every stage key
+ * from `FunnelDailyCounts` is caught by the typechecker: every stage key
  * in `CORE_STAGE_BY_EVENT_NAME` must index both shapes.
  */
 interface CoreCounts {
@@ -104,7 +93,7 @@ const CORE_STAGE_BY_EVENT_NAME: Readonly<
  * `INTENTIONALLY_UNCOUNTED_EVENT_NAMES`).
  */
 const OPTIONAL_COUNT_BY_EVENT_NAME: Readonly<
-  Partial<Record<ProductEventName, keyof FunnelOptionalCountsDto>>
+  Partial<Record<ProductEventName, keyof FunnelOptionalCounts>>
 > = {
   [ProductEventName.visit_summary_previewed]: 'visitSummaryPreviewed',
   [ProductEventName.visit_summary_exported]: 'visitSummaryExported',
@@ -148,7 +137,7 @@ export function isFunnelEventNameAccountedFor(name: ProductEventName): boolean {
  */
 @Injectable()
 export class ProductFunnelService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly events: ProductEvents) {}
 
   /**
    * Aggregate the core funnel and the optional visit-summary events over a
@@ -159,7 +148,7 @@ export class ProductFunnelService {
    * spans, unparseable dates) map to `VALIDATION_FAILED`; unknown database
    * errors rethrow.
    */
-  getFunnel(query: FunnelQueryDto): ResultAsync<FunnelDataDto, DomainFailure> {
+  getFunnel(query: FunnelQuery): ResultAsync<FunnelData, DomainFailure> {
     const windowResult = this.resolveWindow(query);
     if (windowResult.isErr()) {
       return errAsync(windowResult.error);
@@ -167,21 +156,14 @@ export class ProductFunnelService {
     const { dateFrom, dateTo, windowStart, windowEnd } = windowResult.value;
 
     return fromPromise(
-      this.prisma.$queryRaw<FunnelAggregateRow[]>(Prisma.sql`
-        SELECT to_char(date_trunc('day', occurred_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
-               name,
-               COUNT(*)::int AS count
-        FROM user_product_events
-        WHERE occurred_at >= ${windowStart} AND occurred_at < ${windowEnd}
-        GROUP BY 1, 2
-      `),
+      this.events.aggregateByDay({ start: windowStart, end: windowEnd }),
       (error) => {
         throw error;
       },
     ).map((rows) => {
       const totals = emptyCoreCounts();
       const optional = emptyOptionalCounts();
-      const byDay = new Map<string, FunnelDailyCountsDto>();
+      const byDay = new Map<string, FunnelDailyCounts>();
 
       for (const row of rows) {
         const coreStage =
@@ -236,7 +218,7 @@ export class ProductFunnelService {
    * clinic-summary convention (paired dates, no late-before-early, inclusive
    * span cap) and returns `VALIDATION_FAILED` instead of throwing.
    */
-  private resolveWindow(query: FunnelQueryDto): Result<
+  private resolveWindow(query: FunnelQuery): Result<
     {
       dateFrom: string;
       dateTo: string;
@@ -341,7 +323,7 @@ function emptyCoreCounts(): CoreCounts {
   };
 }
 
-function emptyOptionalCounts(): FunnelOptionalCountsDto {
+function emptyOptionalCounts(): FunnelOptionalCounts {
   return {
     visitSummaryPreviewed: 0,
     visitSummaryExported: 0,

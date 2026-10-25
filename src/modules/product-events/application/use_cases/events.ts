@@ -1,26 +1,27 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  HealthEventStatus,
-  Prisma,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  type HealthEventStatus,
+  type ProductEventName,
+  type ProductEventResult,
+  type ProductEventSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
-import { fromPrismaResult, now } from '../../../common/index.js';
+import { now } from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
-  isDomainFailure,
+  fromPromise,
   type DomainFailure,
   type ResultAsync,
-} from '../../../common/result/index.js';
-import { MetricsService } from '../../../common/metrics/metrics.service.js';
-import { PrismaService } from '../../../prisma/index.js';
-import { isKnownSuggestionRuleCode } from '../constants/rule-code-allowlist.constants.js';
-import { MAX_PRODUCT_EVENT_FUTURE_SKEW_MS } from '../dto/create-product-event.dto.js';
-import type { CreateProductEventDto } from '../dto/create-product-event.dto.js';
+} from '../../../../common/result/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { ProductEvents } from '../ports/product-events.js';
+import { isKnownSuggestionRuleCode } from '../../constants/rule-code-allowlist.constants.js';
+import {
+  MAX_PRODUCT_EVENT_FUTURE_SKEW_MS,
+  type ProductEventCommand,
+} from '../commands/product-event.js';
 
 /** Result of a batch write: events received vs rows actually inserted. */
 export interface ProductEventRecordResult {
@@ -82,7 +83,7 @@ export class ProductEventsService {
   private readonly logger = new Logger(ProductEventsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly events: ProductEvents,
     private readonly metrics: MetricsService,
   ) {}
 
@@ -94,16 +95,16 @@ export class ProductEventsService {
    */
   recordBatch(
     userId: string,
-    events: CreateProductEventDto[],
+    events: ProductEventCommand[],
   ): ResultAsync<ProductEventRecordResult, DomainFailure> {
     const validationError = this.validateEvents(events);
     if (validationError != null) {
       return errAsync(validationError);
     }
 
-    return fromPrismaResult(
-      this.prisma.userProductEvent.createMany({
-        data: events.map((event) => ({
+    return fromPromise(
+      this.events.insertBatch(
+        events.map((event) => ({
           userId,
           clientEventId: event.clientEventId,
           name: event.name,
@@ -115,11 +116,16 @@ export class ProductEventsService {
           platform: event.platform,
           occurredAt: new Date(event.occurredAt),
         })),
-        skipDuplicates: true,
-      }),
+      ),
+      (error) => {
+        // **未知 DB 错误必须原样重抛，不能折成 DomainFailure。** 折成依赖故障会
+        // 让「连接断了」表现成一个可重试的业务失败，掩盖真正的故障信号；
+        // fire-and-forget 的 mitServerEvent 另有 catch 兜住它。
+        throw error;
+      },
     ).map((recorded) => ({
       received: events.length,
-      recorded: recorded.count,
+      recorded,
     }));
   }
 
@@ -179,8 +185,9 @@ export class ProductEventsService {
         this.logEmissionFailure(event.name, result.error);
         this.metrics.recordProductEventEmissionFailure(event.name);
       }
+      // eslint-disable-next-line error-handling/no-silent-catch -- 记录发生在 logEmissionFailure 内部（间接调用）
     } catch (error) {
-      // Unknown DB/connection errors rethrow out of `fromPrismaResult` — they
+      // Unknown DB/connection errors rethrow out of the write path — they
       // still must never escape the fire-and-forget contract.
       this.logEmissionFailure(event.name, error);
       this.metrics.recordProductEventEmissionFailure(event.name);
@@ -201,26 +208,10 @@ export class ProductEventsService {
     eventName: ProductEventName,
     failure: unknown,
   ): void {
-    const detail = this.failureDetail(failure);
+    const detail = this.events.describeFailure(failure);
     this.logger.error(
       `Product event emission failed (${eventName}): ${detail}`,
     );
-  }
-
-  /** Whitelisted stable identifier for a failure — never the raw message. */
-  private failureDetail(failure: unknown): string {
-    if (failure instanceof Prisma.PrismaClientKnownRequestError) {
-      return `prisma ${failure.code}`;
-    }
-    if (failure instanceof Error) {
-      return failure.constructor.name;
-    }
-    if (isDomainFailure(failure)) {
-      return failure.cause instanceof Prisma.PrismaClientKnownRequestError
-        ? `prisma ${failure.cause.code}`
-        : `domain ${failure.code}`;
-    }
-    return 'unknown error';
   }
 
   /**
@@ -232,9 +223,7 @@ export class ProductEventsService {
    *
    * Nothing is written if any event is invalid.
    */
-  private validateEvents(
-    events: CreateProductEventDto[],
-  ): DomainFailure | null {
+  private validateEvents(events: ProductEventCommand[]): DomainFailure | null {
     const futureCutoff = now().getTime() + MAX_PRODUCT_EVENT_FUTURE_SKEW_MS;
     for (const event of events) {
       if (!isKnownSuggestionRuleCode(event.suggestionRuleCode)) {

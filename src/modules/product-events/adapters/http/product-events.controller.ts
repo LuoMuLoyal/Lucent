@@ -14,19 +14,19 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { ProblemDetailsDto } from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { CurrentUser } from '../auth/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { createProductEventBatchSchema } from './dto/create-product-event.dto.js';
-import type { CreateProductEventBatchDto } from './dto/create-product-event.dto.js';
-import { productFunnelQuerySchema } from './dto/funnel-query.dto.js';
-import type { FunnelQueryDto } from './dto/funnel-query.dto.js';
-import { funnelResponseSchema } from './dto/funnel-response.dto.js';
-import { AdminGuard } from '../admin/index.js';
-import { ProductEventsService } from './services/events.service.js';
-import { ProductFunnelService } from './services/funnel.service.js';
+import { ProblemDetailsDto } from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { CurrentUser } from '../../../auth/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { createProductEventBatchSchema } from './dto/create-product-event.js';
+import type { CreateProductEventBatchDto } from './dto/create-product-event.js';
+import { productFunnelQuerySchema } from './dto/funnel-query.js';
+import type { FunnelQueryDto } from './dto/funnel-query.js';
+import { funnelResponseSchema } from './dto/funnel-response.js';
+import { AdminGuard } from '../../../admin/index.js';
+import { ProductEventsService } from '../../application/use_cases/events.js';
+import { ProductFunnelService } from '../../application/use_cases/funnel.js';
 
 @ApiTags('Product Events')
 @ApiBearerAuth('access-token')

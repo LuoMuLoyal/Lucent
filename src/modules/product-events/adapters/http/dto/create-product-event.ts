@@ -5,7 +5,7 @@ import {
   ProductEventSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
-import { isoDateOrDatetimeSchema as isoDateOrOffsetDatetimeSchema } from '../../../common/validators/iso-datetime.schema.js';
+import { isoDateOrDatetimeSchema as isoDateOrOffsetDatetimeSchema } from '../../../../../common/validators/iso-datetime.schema.js';
 import { z } from 'zod';
 
 /**
@@ -13,15 +13,6 @@ import { z } from 'zod';
  * amplification; the client posts batches (plan: 批量上报有条数限制).
  */
 export const MAX_PRODUCT_EVENTS_PER_REQUEST = 50;
-
-/**
- * Max allowed skew of `occurredAt` into the future (24h). Keeps raw events
- * from being posted with far-future timestamps, which would never match the
- * 90-day retention cleanup (a hard privacy guarantee). Enforced in
- * `ProductEventsService` (typed 400), consistent with the repo's service-side
- * date-boundary validation convention.
- */
-export const MAX_PRODUCT_EVENT_FUTURE_SKEW_MS = 24 * 60 * 60 * 1000;
 
 /**
  * ISO 8601 date (YYYY-MM-DD) or datetime with a UTC offset (Z or ±HH:MM) —
