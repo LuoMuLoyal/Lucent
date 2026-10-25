@@ -1,11 +1,9 @@
-import type {
-  CreateNotificationDto,
-  NotificationListItemDto,
-} from '../dto/response.dto.js';
+import type { NotificationItem } from '../commands/notification.js';
+import type { NewNotification } from '../../domain/notification/notification.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 
 /**
  * Scope metadata for idempotent notification creation.  When a notification
@@ -30,12 +28,12 @@ export interface NotificationScope {
 export abstract class INotificationSender {
   abstract create(
     userId: string,
-    dto: CreateNotificationDto,
-  ): ResultAsync<NotificationListItemDto, DomainFailure>;
+    dto: NewNotification,
+  ): ResultAsync<NotificationItem, DomainFailure>;
 
   abstract createOrReplaceScoped(
     userId: string,
-    dto: CreateNotificationDto,
+    dto: NewNotification,
     scope: NotificationScope,
-  ): ResultAsync<NotificationListItemDto, DomainFailure>;
+  ): ResultAsync<NotificationItem, DomainFailure>;
 }

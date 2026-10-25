@@ -23,20 +23,20 @@ import {
   clampPage,
   clampPageSize,
   ProblemDetailsDto,
-} from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser } from '../auth/index.js';
-import { NotificationsService } from './services/notifications.service.js';
+} from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { CurrentUser } from '../../../auth/index.js';
+import { NotificationsService } from '../../application/services/notifications.js';
 import {
   createNotificationSchema,
   notificationDetailSchema,
   notificationListItemSchema,
   notificationListSchema,
   unreadCountSchema,
-} from './dto/response.dto.js';
-import type { CreateNotificationDto } from './dto/response.dto.js';
+} from './dto/response.js';
+import type { CreateNotificationDto } from './dto/response.js';
 
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')

@@ -4,7 +4,7 @@ import {
   notificationListItemSchema,
   notificationListSchema,
   unreadCountSchema,
-} from './response.dto.js';
+} from './response.js';
 
 /**
  * Outbound-shape contract for the notifications response schemas. These

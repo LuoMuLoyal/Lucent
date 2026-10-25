@@ -3,9 +3,12 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { JpushConfig } from '../../../config/services/jpush.config.js';
-import type { PushMessage, PushProvider } from './push-provider.port.js';
-import { chunkArray } from '../../../common/index.js';
+import type { JpushConfig } from '../../../../config/services/jpush.config.js';
+import type {
+  PushMessage,
+  PushProvider,
+} from '../../application/ports/push-provider.js';
+import { chunkArray } from '../../../../common/index.js';
 
 export const JPUSH_MAX_ALIASES_PER_REQUEST = 1000;
 

@@ -1,10 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { errAsync, okAsync } from '../../common/result/index.js';
-import type { DomainFailure } from '../../common/result/index.js';
-import type { UserPayload } from '../auth/index.js';
+import { errAsync, okAsync } from '../../../../common/result/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
+import type { UserPayload } from '../../../auth/index.js';
 
 import { NotificationsController } from './notifications.controller.js';
-import { NotificationsService } from './services/notifications.service.js';
+import { NotificationsService } from '../../application/services/notifications.js';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

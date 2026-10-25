@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { PushMessage, PushProvider } from './push-provider.port.js';
+import type { PushMessage, PushProvider } from '../ports/push-provider.js';
 
 /** Push notification payload. */
 export type PushPayload = PushMessage;
