@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-24
+updated: 2026-10-25
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-10-24
+Last updated: 2026-10-25
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -330,3 +330,45 @@ Neo4j。该文档需更正，避免下一个人按它去找字段。
   自己的元数据，但四个 favicon 引用仍是模板自带的 `admin/public/images/favicon*.{svg,png}`
   （上游 shadcn-admin 图形）。替换需要一套 Lucent 图标资产（多尺寸 + 亮/暗两版），
   留待有正式视觉资产时统一处理。
+
+## DDD 四层迁移收尾遗留（2026-10-25）
+
+六条轨道合并后 `typecheck` / `lint` / `arch:check` / 单测 / e2e 全绿，以下是这轮
+刻意未做的项，按需处理：
+
+### 小体量 supporting 模块不迁四层（口径决定，非遗漏）
+
+`audit-log`(174 行) / `data-retention`(174) / `app-info`(99) / `environment`(415) /
+`legal-documents`(476) 保持现状。理由：为 99 行的模块造 `domain/` + `application/` +
+`adapters/` 骨架，骨架比代码长；ADR-0024 自己写了「不为 CRUD 硬造富领域模型」。
+等它们长大（出现真实领域规则或跨上下文契约）再拆。
+
+### `domain-events-outbox.service.ts` 的 `tx` 参数
+
+`append(input, tx?: Prisma.TransactionClient)` 把 Prisma 事务客户端暴露在
+`src/common/**` 的公开签名上。改成端口等于重新定义 ADR-0025 的事务边界，且所有
+`append(event, tx)` 调用点都要跟着改——**必须先定 6 个生产模块的事务边界**，
+否则只是把中间层改得更难懂。ADR-0025 已把「append 不在生产者写事务内」记为
+未达成项，两者要一起解决。
+
+### `product-events` 的 `FunnelData` 形状镜像
+
+`application/commands/` 与 `adapters/http/dto/` 各有一份形状定义（`application → adapters`
+被 arch 规则禁止）。已由 `adapters/http/dto/product-event-mirror.spec.ts` 的双向
+`expectTypeOf` 钉住，任一侧加字段/改可空性都会编译失败。若将来想根除重复，
+需要把 schema 移到中立位置——那要改架构规则，目前不值得。
+
+### `assistant` 的跨层集成 spec
+
+`adapters/acl/tools/retrieval/knowledge.service.spec.ts` 直接构造真实
+`LightragClientService` 当集成替身，保留 1 条既有的 `ddd-adapters-no-infrastructure`。
+它测的是「adapter 的校验/映射 + infrastructure 的响应解析」两层互相印证，
+拆成两个 spec 会丢失这个验证点。策略逻辑已由 `knowledge-policy.spec.ts` 覆盖，
+传输逻辑由 `lightrag-client.service.spec.ts` 覆盖，**这条留作端到端接线**。
+
+### `SummaryWrite` 接受两种形状
+
+`domain/summary/summaries.ts` 的 `SummaryWrite` 同时接受 `scope`（域形态）和扁平的
+`kind`/`date`/`rangeKey`/`scopeKey`，因为 `reports` 与 `today-analysis` 两个消费方
+仍在传扁平形态。版本栅栏已在领域里判，双形态不造成正确性问题；收干净要改那两个
+模块的 4 处调用。
