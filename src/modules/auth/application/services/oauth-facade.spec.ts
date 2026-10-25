@@ -81,6 +81,7 @@ describe('AuthOAuthFacadeService', () => {
       update: vi.fn().mockReturnValue(okAsync(mockUser)),
     } as unknown as vi.Mocked<UserService>;
     wechatWebProvider = {
+      provider: 'wechat_web',
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://wx/auth?url=1'),
       fetchProfile: vi.fn().mockReturnValue(okAsync(mockProfile)),
     } as unknown as vi.Mocked<OAuthProvider>;
@@ -103,6 +104,7 @@ describe('AuthOAuthFacadeService', () => {
         .mockReturnValue(okAsync({ ...mockProfile, provider: 'qq' })),
     } as unknown as vi.Mocked<OAuthProvider>;
     googleProvider = {
+      provider: 'google',
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://google/auth?url=1'),
       fetchProfile: vi
         .fn()
@@ -591,6 +593,71 @@ describe('AuthOAuthFacadeService', () => {
       });
       expect(oauthService.linkOAuthProfileToUser).toHaveBeenCalled();
       expect(outcome).toEqual({ ok: true, value: undefined });
+    });
+  });
+  describe('onModuleInit — 装配断言', () => {
+    it('全部能力齐备时正常初始化', () => {
+      expect(() => {
+        service.onModuleInit();
+      }).not.toThrow();
+    });
+
+    it('google 缺 exchangeCodeForTokens 时启动即失败（装配错误不是运行时故障）', () => {
+      // 端口的两个两步式方法是可选的；「google 忘了实现」是**编程错误**。
+      // 放在 onModuleInit 让它启动即炸，而不是等用户点登录才 503。
+      const broken = {
+        provider: googleProvider.provider,
+        buildAuthorizeUrl: googleProvider.buildAuthorizeUrl,
+        fetchProfile: googleProvider.fetchProfile,
+        fetchProfileFromIdToken: googleProvider.fetchProfileFromIdToken,
+        // exchangeCodeForTokens 故意缺失
+      } as unknown as OAuthProvider;
+
+      const busted = new AuthOAuthFacadeService(
+        userService,
+        wechatWebProvider,
+        wechatMobileProvider,
+        qqProvider,
+        broken,
+        appleProvider,
+        stateService,
+        tokenService,
+        oauthService,
+        notificationService,
+      );
+
+      expect(() => {
+        busted.onModuleInit();
+      }).toThrow(
+        /OAuth provider "google" is missing required capabilities: exchangeCodeForTokens/,
+      );
+    });
+
+    it('wechat_web 缺 buildAuthorizeUrl 时启动即失败', () => {
+      const broken = {
+        provider: wechatWebProvider.provider,
+        fetchProfile: wechatWebProvider.fetchProfile,
+        // buildAuthorizeUrl 故意缺失
+      } as unknown as OAuthProvider;
+
+      const busted = new AuthOAuthFacadeService(
+        userService,
+        broken,
+        wechatMobileProvider,
+        qqProvider,
+        googleProvider,
+        appleProvider,
+        stateService,
+        tokenService,
+        oauthService,
+        notificationService,
+      );
+
+      expect(() => {
+        busted.onModuleInit();
+      }).toThrow(
+        /"wechat_web" is missing required capabilities: buildAuthorizeUrl/,
+      );
     });
   });
 });

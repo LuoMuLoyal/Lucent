@@ -1,6 +1,7 @@
 import {
   Injectable,
   Logger,
+  OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
 
@@ -44,7 +45,7 @@ import { toSessionSubject } from '../../application/services/session-subject.js'
 import type { RequestOrigin } from '../../application/ports/request-origin.js';
 
 @Injectable()
-export class AuthOAuthFacadeService {
+export class AuthOAuthFacadeService implements OnModuleInit {
   private readonly logger = new Logger(AuthOAuthFacadeService.name);
 
   constructor(
@@ -59,6 +60,65 @@ export class AuthOAuthFacadeService {
     private readonly authOAuthService: AuthOAuthService,
     private readonly authNotificationService: AuthNotificationService,
   ) {}
+
+  /**
+   * 启动时校验「每个提供商实现了本编排需要的能力」。
+   *
+   * ## 为什么在启动时而不是在请求时
+   *
+   * 端口的 `buildAuthorizeUrl` / `exchangeCodeForTokens` /
+   * `fetchProfileFromIdToken` 都是**可选**的（不是所有提供商都用）。
+   * 于是「某个提供商忘了实现它该实现的那个」变成了一个**装配错误**——
+   * 而装配错误是**编程错误**，不是运行时故障。
+   *
+   * 如果在请求时才抛 503，运维会以为服务挂了，实际是代码 bug；而且要到
+   * 第一个用户真的点「用 Google 登录」才发现。放在这里，**启动即失败**，
+   * 部署流水线当场红。
+   *
+   * ## 为什么不在请求路径上留兜底
+   *
+   * 请求路径上的 `requireAuthorizeUrl` / `requireTwoStep` 仍然做类型收窄
+   * （TypeScript 需要），但**不再是唯一的防线**——启动时已经断言过，
+   * 它们运行到那个分支说明断言被绕过了（例如有人手工 new 了这个类）。
+   */
+  onModuleInit(): void {
+    this.assertProviderCapabilities(this.wechatWebOAuthProvider, [
+      'buildAuthorizeUrl',
+    ]);
+    this.assertProviderCapabilities(this.qqOAuthProvider, [
+      'buildAuthorizeUrl',
+    ]);
+    this.assertProviderCapabilities(this.googleOAuthProvider, [
+      'buildAuthorizeUrl',
+      'exchangeCodeForTokens',
+      'fetchProfileFromIdToken',
+    ]);
+    // 这两个提供商不实现 buildAuthorizeUrl（走原生 UI / 客户端凭据），
+    // 所以只断言它们至少有 fetchProfile。
+    this.assertProviderCapabilities(this.wechatMobileOAuthProvider, []);
+    this.assertProviderCapabilities(this.appleOAuthProvider, []);
+  }
+
+  /**
+   * 断言某个提供商实现了指定的能力方法。
+   *
+   * 违规即**抛出**——`onModuleInit` 阶段的抛出是 AGENTS.md 明确豁免的
+   * 「模块初始化期配置校验」（此时 `ApiExceptionFilter` 尚未就绪）。
+   */
+  private assertProviderCapabilities(
+    provider: OAuthProvider,
+    required: ReadonlyArray<
+      'buildAuthorizeUrl' | 'exchangeCodeForTokens' | 'fetchProfileFromIdToken'
+    >,
+  ): void {
+    const missing = required.filter((method) => provider[method] === undefined);
+    if (missing.length > 0) {
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- DI init: capability assertion is exempt
+      throw new Error(
+        `OAuth provider "${provider.provider}" is missing required capabilities: ${missing.join(', ')}. This is a wiring bug, not a runtime failure.`,
+      );
+    }
+  }
 
   createWechatWebAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
@@ -284,9 +344,7 @@ export class AuthOAuthFacadeService {
    * 注意**不在这里统一参数个数**：各调用点原本的实参个数不同（微信传 1 个，
    * QQ/Google 传 2 个含 `undefined`），统一会改变对提供商方法的调用形状。
    */
-  private requireAuthorizeUrl(
-    provider: OAuthProvider,
-  ): OAuthProvider & {
+  private requireAuthorizeUrl(provider: OAuthProvider): OAuthProvider & {
     buildAuthorizeUrl: NonNullable<OAuthProvider['buildAuthorizeUrl']>;
   } {
     if (provider.buildAuthorizeUrl === undefined) {
