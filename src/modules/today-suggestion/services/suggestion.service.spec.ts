@@ -8,7 +8,7 @@ import {
 } from '../domain/suggestion/suggestion.types.js';
 import type { SuggestionItemDto } from '../dto/suggestion-response.dto.js';
 import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto.js';
-import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
+import { SuggestionCacheService } from '../infrastructure/cache/suggestions.js';
 
 const mockCopyResult: CopyGenerationResult = {
   title: 'AI Title',

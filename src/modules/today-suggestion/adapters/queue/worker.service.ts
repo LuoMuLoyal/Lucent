@@ -3,10 +3,10 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { resolveLocale } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import { SuggestionService } from '../suggestion.service.js';
+import { SuggestionService } from '../../services/suggestion.service.js';
 import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
-import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
-import { BaselineService } from '../lifecycle/baseline.service.js';
+import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
+import { BaselineService } from '../../services/lifecycle/baseline.service.js';
 import { SUGGESTION_DEFAULT_LOCALE } from '../../constants/locale.constants.js';
 import type { RecomputeJobData } from './recompute-job.types.js';
 

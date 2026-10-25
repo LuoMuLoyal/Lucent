@@ -12,8 +12,8 @@ import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggest
 import { SuggestionPipelineService } from './pipeline.service.js';
 import { SuggestionPresentationService } from './presentation.service.js';
 import { LifecycleService } from './lifecycle/manager.service.js';
-import { EscalationService } from './notification/escalation.service.js';
-import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
+import { EscalationService } from '../infrastructure/notifications/escalation.js';
+import { SuggestionCacheService } from '../infrastructure/cache/suggestions.js';
 import { MaterializationStore } from '../infrastructure/persistence/materialization.js';
 import type { MaterializationStatusView } from '../infrastructure/persistence/materialization.types.js';
 import type { SuggestionSignal } from '../domain/signal/signal.js';

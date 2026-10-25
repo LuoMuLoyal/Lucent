@@ -14,7 +14,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { createHash } from 'node:crypto';
 import { SuggestionCopyLlmService } from './llm-generator.service.js';
-import { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
+import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
 import { getFallbackCopy } from '../../constants/copy-fallback.js';
 
 import { validateCopyTemplate } from '../../constants/copy-templates.js';

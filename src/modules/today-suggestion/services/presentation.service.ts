@@ -10,7 +10,7 @@ import {
 import type { SuggestionItemDto } from '../dto/suggestion-response.dto.js';
 import type { TodaySuggestionsDataDto } from '../dto/suggestion-history.dto.js';
 import type { CopyJobData } from '../types/copy-generation.types.js';
-import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
+import { SuggestionCacheService } from '../infrastructure/cache/suggestions.js';
 import {
   SuggestionCopyService,
   type CopyGenerationResult,

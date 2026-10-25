@@ -11,7 +11,7 @@ import { arbitrate } from '../domain/policies/arbitration/arbiter.js';
 import type { ArbitrationResult } from '../domain/policies/arbitration/arbiter.js';
 import { suppressAndAdjust } from '../domain/policies/feedback/suppression.js';
 import { BaselineService } from './lifecycle/baseline.service.js';
-import { SuggestionCacheService } from './cache/suggestion-cache.service.js';
+import { SuggestionCacheService } from '../infrastructure/cache/suggestions.js';
 import type { SuggestionSignal } from '../domain/signal/signal.js';
 
 /**

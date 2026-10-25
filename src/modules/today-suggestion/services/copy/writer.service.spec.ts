@@ -1,7 +1,7 @@
 import type { I18nService } from 'nestjs-i18n';
 import type { SuggestionCopyLlmService } from './llm-generator.service.js';
 import type { CopyQueueLike } from './writer.service.js';
-import type { SuggestionCacheService } from '../cache/suggestion-cache.service.js';
+import type { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
 import { SuggestionCopyService } from './writer.service.js';
 import {
   SuggestionType,

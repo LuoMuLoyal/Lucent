@@ -1,4 +1,4 @@
-import { EscalationService } from './escalation.service.js';
+import { EscalationService } from './escalation.js';
 import { okAsync } from '../../../../common/result/index.js';
 import {
   SuggestionConfidence,

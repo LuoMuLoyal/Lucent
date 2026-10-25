@@ -20,7 +20,7 @@ import {
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,
   FEEDBACK_SUPPRESS_DURATION_MS,
 } from '../../constants/feedback.constants.js';
-import { SuggestionCacheService } from '../../services/cache/suggestion-cache.service.js';
+import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
 import { ProductEventsService } from '../../../product-events/index.js';
 import { FEEDBACK_PORT } from '../ports/feedback.js';
 import type { FeedbackPort } from '../ports/feedback.js';

@@ -14,7 +14,7 @@ import { HealthEventsModule } from '../health-events/health-events.module.js';
 import { TodaySuggestionController } from './today-suggestion.controller.js';
 import { SuggestionPipelineService } from './services/pipeline.service.js';
 import { SuggestionPresentationService } from './services/presentation.service.js';
-import { SuggestionCacheService } from './services/cache/suggestion-cache.service.js';
+import { SuggestionCacheService } from './infrastructure/cache/suggestions.js';
 import { MedicationCollectorService } from './services/collectors/medication.service.js';
 import { MedicationTimeResolverService } from './services/collectors/medication-time-resolver.service.js';
 import { SleepTrendBuilderService } from './adapters/acl/collectors/sleep-trend-builder.js';
@@ -37,13 +37,13 @@ import { ActiveSuggestionsReadModel } from './application/read_models/active-sug
 import { SuggestionHistoryReadModel } from './application/read_models/suggestion-history.js';
 import { PrismaSuggestionQueries } from './infrastructure/persistence/suggestion-queries.js';
 import { SUGGESTION_QUERY_PORT } from './application/ports/suggestion-queries.js';
-import { EscalationService } from './services/notification/escalation.service.js';
+import { EscalationService } from './infrastructure/notifications/escalation.js';
 import { RegistryService } from './application/services/rule-registry.js';
 import { RuleVersionRegistry } from './application/services/rule-version-registry.js';
 import { MaterializationStore } from './infrastructure/persistence/materialization.js';
-import { RecomputeQueueService } from './services/recompute/queue.service.js';
-import { RecomputeEventTriggerService } from './services/recompute/event-trigger.service.js';
-import { SuggestionRecomputeWorkerService } from './services/recompute/worker.service.js';
+import { RecomputeQueueService } from './adapters/queue/queue.service.js';
+import { RecomputeEventTriggerService } from './adapters/queue/event-trigger.service.js';
+import { SuggestionRecomputeWorkerService } from './adapters/queue/worker.service.js';
 import { SuggestionService } from './services/suggestion.service.js';
 import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
 

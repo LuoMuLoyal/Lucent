@@ -6,7 +6,7 @@
  * infrastructure and presentation policy, which is why this file stays outside
  * `domain/`:
  *
- * - cache TTLs, read by `services/cache/`;
+ * - cache TTLs, read by `infrastructure/cache/`;
  * - the arbitration/presentation card limit, read by `services/arbitration/`.
  */
 
