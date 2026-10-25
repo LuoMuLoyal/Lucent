@@ -1,6 +1,8 @@
 import { okAsync } from '../../../../../common/result/index.js';
-import { IUserHealthContextReader } from '../../../../user-health-context/index.js';
-import type { HealthContextResponseData } from '../../../../user-health-context/index.js';
+import type {
+  IUserHealthContextReader,
+  HealthContextResponseData,
+} from '../../../../user-health-context/index.js';
 import { ProfileCollectorService } from './profile.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
 

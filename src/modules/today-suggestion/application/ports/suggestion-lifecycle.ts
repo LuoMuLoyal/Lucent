@@ -23,7 +23,7 @@ export interface PersistActiveInput {
   copy: { title: string; reason: string; boundary: string };
   locale: string;
   generatedAt: string;
-  sourceVersion?: number | undefined;
+  sourceVersion?: number;
 }
 
 /** A persisted card reduced to what the dedupe key needs. */
@@ -41,7 +41,7 @@ export abstract class SuggestionLifecycleStore {
     userId: string,
     date: string,
     expiredAt: string,
-    sourceVersion?: number | undefined,
+    sourceVersion?: number,
   ): Promise<number>;
 
   /** Moves one active card to dismissed. */

@@ -34,11 +34,12 @@ export class ProfileCollectorService {
 
     const signals: SuggestionSignal[] = [];
 
-    // Profile completeness signal
+    // Profile completeness signal. The reader always returns a `profile`
+    // object (its fields may be null), so no optional chain is needed.
     const missingFields: string[] = [];
-    if (profile?.birthDate == null) missingFields.push('birthDate');
-    if (profile?.sexAtBirth == null) missingFields.push('sexAtBirth');
-    if (profile?.heightCm == null) missingFields.push('heightCm');
+    if (profile.birthDate == null) missingFields.push('birthDate');
+    if (profile.sexAtBirth == null) missingFields.push('sexAtBirth');
+    if (profile.heightCm == null) missingFields.push('heightCm');
 
     signals.push({
       signalId: `profile_summary_${date}`,

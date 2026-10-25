@@ -59,7 +59,7 @@ export class PrismaSuggestionLifecycleStore extends SuggestionLifecycleStore {
     userId: string,
     date: string,
     expiredAt: string,
-    sourceVersion?: number | undefined,
+    sourceVersion?: number,
   ): Promise<number> {
     const result = await this.prisma.userSuggestion.updateMany({
       where: {
