@@ -44,6 +44,10 @@ import { AssistantToolDrugbankEntityResolveService } from './adapters/acl/tools/
 
 import { AssistantToolDrugbankSearchService } from './adapters/acl/tools/drugbank/search.service.js';
 
+import {
+  ASSISTANT_LIGHTRAG,
+  ASSISTANT_SEMANTICA,
+} from './application/ports/retrieval.js';
 import { LightragClientService } from './infrastructure/retrieval/lightrag-client.js';
 
 import { AssistantToolKnowledgeRetrievalService } from './adapters/acl/tools/retrieval/knowledge.service.js';
@@ -110,8 +114,12 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     { provide: ASSISTANT_CHECKPOINTER, useExisting: AssistantCheckpointerService },
     AssistantToolReadService,
     LightragClientService,
+    // The tool adapters inject these ports by string token (see
+    // `application/ports/retrieval.ts`), so the aliases must exist here.
+    { provide: ASSISTANT_LIGHTRAG, useExisting: LightragClientService },
     AssistantToolKnowledgeRetrievalService,
     SemanticaClientService,
+    { provide: ASSISTANT_SEMANTICA, useExisting: SemanticaClientService },
     OntologyCypherGeneratorService,
     AssistantIntentClassifierService,
     AssistantToolOntologyReasoningService,

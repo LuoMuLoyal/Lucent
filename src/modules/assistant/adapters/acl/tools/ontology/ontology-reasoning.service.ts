@@ -13,6 +13,7 @@ import { ONTOLOGY_LIMIT_CAP_MESSAGE } from '../shared/tool-constants.js';
 import { OntologyCypherGeneratorService } from './cypher-generator.service.js';
 import type { OntologyCypherOutput } from './cypher.schema.js';
 import type { SemanticaAvailability } from '../../../../application/ports/retrieval.js';
+import { ASSISTANT_SEMANTICA } from '../../../../application/ports/retrieval.js';
 import type { SemanticaQueryOutcome } from '../../../../application/ports/semantica.types.js';
 import {
   isRetryableSemanticaFailure,
@@ -107,7 +108,7 @@ export class AssistantToolOntologyReasoningService {
   );
 
   constructor(
-    private readonly semantica: SemanticaAvailability,
+    @Inject(ASSISTANT_SEMANTICA) private readonly semantica: SemanticaAvailability,
     private readonly cypherGenerator: OntologyCypherGeneratorService,
     @Optional()
     @Inject(RuntimeConfigService)

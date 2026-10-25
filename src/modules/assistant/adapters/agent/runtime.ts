@@ -39,6 +39,11 @@ import type {
 } from '../../domain/policies/tool-permission.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import type { LightragAvailability } from '../../application/ports/retrieval.js';
+import {
+  ASSISTANT_LIGHTRAG,
+  ASSISTANT_SEMANTICA,
+} from '../../application/ports/retrieval.js';
+import { ASSISTANT_CHECKPOINTER } from '../../application/ports/agent-runtime.js';
 import type { SemanticaAvailability } from '../../application/ports/retrieval.js';
 import { toDomainFailure } from '../../application/services/provider-failures.js';
 import {
@@ -62,8 +67,8 @@ import type { AssistantPendingReview } from './state.js';
 import { AssistantIntentClassifierService } from '../../application/services/intent-classifier.js';
 import type { CheckpointerPort } from '../../application/ports/agent-runtime.js';
 import { extractMessageText } from './message-text.js';
-import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
+import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
 import { AssistantStreamService } from '../../application/services/stream.js';
 
 import {
@@ -103,14 +108,13 @@ export class AssistantRuntimeService {
 
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
-    private readonly lightragClient: LightragAvailability,
-    private readonly semanticaClient: SemanticaAvailability,
+    @Inject(ASSISTANT_LIGHTRAG) private readonly lightragClient: LightragAvailability,
+    @Inject(ASSISTANT_SEMANTICA) private readonly semanticaClient: SemanticaAvailability,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
-    private readonly checkpointerService: CheckpointerPort,
-    @Inject(ASSISTANT_CONVERSATIONS)
-    private readonly conversationRepository: ConversationRepositoryPort,
+    @Inject(ASSISTANT_CHECKPOINTER) private readonly checkpointerService: CheckpointerPort,
+    @Inject(ASSISTANT_CONVERSATIONS) private readonly conversationRepository: ConversationRepositoryPort,
     private readonly streamService: AssistantStreamService,
     /**
      * 每轮工具选择器。生产由 Nest 注入（provider 已注册）；缺省时按图契约降级为

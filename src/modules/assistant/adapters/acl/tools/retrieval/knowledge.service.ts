@@ -10,6 +10,7 @@ import type {
 } from '../../../../application/ports/assistant.js';
 import { buildReadEnvelope } from '../../../http/presenters/proposal.js';
 import type { LightragAvailability } from '../../../../application/ports/retrieval.js';
+import { ASSISTANT_LIGHTRAG } from '../../../../application/ports/retrieval.js';
 import type {
   LightragCallFailure,
   LightragQueryMode,
@@ -51,7 +52,7 @@ export class AssistantToolKnowledgeRetrievalService {
   );
 
   constructor(
-    private readonly lightrag: LightragAvailability,
+    @Inject(ASSISTANT_LIGHTRAG) private readonly lightrag: LightragAvailability,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
     @Optional()

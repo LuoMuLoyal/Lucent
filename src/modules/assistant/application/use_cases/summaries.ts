@@ -7,7 +7,7 @@
  * service is the query surface the reports context and the read tools consume.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type {
   ReportRangeQuery,
   ReportSummaryRecord,
@@ -16,6 +16,7 @@ import type {
   TodaySummaryRecord,
 } from '../../domain/summary/summaries.js';
 import type { AssistantReportRange } from '../ports/readers.js';
+import { ASSISTANT_SUMMARIES } from '../../domain/summary/summaries.js';
 
 export type {
   ReportRangeQuery,
@@ -27,7 +28,9 @@ export type { SummaryBullet } from '../../domain/summary/summaries.js';
 
 @Injectable()
 export class HistoricalAiSummaryService {
-  constructor(private readonly repository: SummaryRepositoryPort) {}
+  constructor(
+    @Inject(ASSISTANT_SUMMARIES) private readonly repository: SummaryRepositoryPort,
+  ) {}
 
   /**
    * Stores a summary. `written: false` means the aggregate's version fence

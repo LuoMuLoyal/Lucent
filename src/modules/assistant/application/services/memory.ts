@@ -19,8 +19,10 @@ import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.
 import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
+import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
 import type { ConversationState } from '../../domain/conversation/conversation.js';
 import type { MemoryRepositoryPort } from '../../domain/memory/memories.js';
+import { ASSISTANT_MEMORIES } from '../../domain/memory/memories.js';
 
 /** Independent guard for providers that ignore the model client's timeout. */
 export const MEMORY_EXTRACTION_TIMEOUT_MS = AI_MODEL_TIMEOUT_MS + 1_000;
@@ -72,9 +74,9 @@ export class AssistantMemoryService {
   private readonly pendingExtractions = new Map<string, PendingExtraction>();
 
   constructor(
-    private readonly memoryRepository: MemoryRepositoryPort,
+    @Inject(ASSISTANT_MEMORIES) private readonly memoryRepository: MemoryRepositoryPort,
     private readonly llmRuntimeService: LlmRuntimeService,
-    private readonly conversationRepository: ConversationRepositoryPort,
+    @Inject(ASSISTANT_CONVERSATIONS) private readonly conversationRepository: ConversationRepositoryPort,
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,

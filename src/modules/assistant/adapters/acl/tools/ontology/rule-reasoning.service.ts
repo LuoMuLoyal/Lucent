@@ -10,6 +10,7 @@ import type {
 } from '../../../../application/ports/assistant.js';
 import { buildReadEnvelope } from '../../../http/presenters/proposal.js';
 import type { SemanticaAvailability } from '../../../../application/ports/retrieval.js';
+import { ASSISTANT_SEMANTICA } from '../../../../application/ports/retrieval.js';
 import type {
   SemanticaDerivedConclusion,
   SemanticaReasonOutcome,
@@ -95,7 +96,7 @@ export class AssistantToolRuleReasoningService {
   private readonly logger = new Logger(AssistantToolRuleReasoningService.name);
 
   constructor(
-    private readonly semantica: SemanticaAvailability,
+    @Inject(ASSISTANT_SEMANTICA) private readonly semantica: SemanticaAvailability,
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,
