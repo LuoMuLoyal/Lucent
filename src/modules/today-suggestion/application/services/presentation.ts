@@ -23,6 +23,10 @@ import type {
  * Declared here rather than imported from the queue adapter, so presentation
  * depends on a contract instead of on dapters/queue (ADR-0024 D2).
  */
+/** DI tokens: these are interfaces (no runtime value), so the module binds them by name. */
+export const COPY_SERVICE = 'COPY_SERVICE';
+export const COPY_QUEUE = 'COPY_QUEUE';
+
 export interface CopyServiceLike {
   getOrEnqueueBatch(
     requests: CopyJobData[],
@@ -57,8 +61,8 @@ export class SuggestionPresentationService {
   private readonly logger = new Logger(SuggestionPresentationService.name);
 
   constructor(
-    private readonly copyService: CopyServiceLike,
-    private readonly copyQueue: CopyQueueLike,
+    @Inject(COPY_SERVICE) private readonly copyService: CopyServiceLike,
+    @Inject(COPY_QUEUE) private readonly copyQueue: CopyQueueLike,
     @Inject(SUGGESTION_CACHE_PORT) private readonly cache: SuggestionCachePort,
     private readonly i18n: I18nService,
   ) {}

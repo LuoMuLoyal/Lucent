@@ -45,6 +45,9 @@ export interface CopyQueueLike {
  * `infrastructure/llm` implementation, so the dependency direction stays
  * adapter → contract (ADR-0024 D3). The module binds the real generator.
  */
+/** DI token: the interface has no runtime value, so the module binds it by name. */
+export const COPY_GENERATOR = 'COPY_GENERATOR';
+
 export interface CopyGeneratorLike {
   hasAnalysisModel(): boolean;
   generate(
@@ -58,6 +61,7 @@ export class SuggestionCopyService {
   private readonly logger = new Logger(SuggestionCopyService.name);
 
   constructor(
+    @Inject(COPY_GENERATOR)
     private readonly llmService: CopyGeneratorLike,
     @Inject(SUGGESTION_CACHE_PORT) private readonly cache: SuggestionCachePort,
     private readonly i18n: I18nService,

@@ -10,11 +10,23 @@ import { NotificationPreferencesModule } from '../notification-preferences/notif
 import { UserSettingsModule } from '../user-settings/user-settings.module.js';
 import { ProductEventsModule } from '../product-events/product-events.module.js';
 import { HealthEventsModule } from '../health-events/health-events.module.js';
+import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
+import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module.js';
 
 import { TodaySuggestionController } from './today-suggestion.controller.js';
 import { SuggestionPipelineService } from './application/services/pipeline.js';
 import { SuggestionPresentationService } from './application/services/presentation.js';
 import { SuggestionCacheService } from './infrastructure/cache/suggestions.js';
+import { SUGGESTION_CACHE_PORT } from './application/ports/suggestion-cache.js';
+import { MATERIALIZATION_STORE_PORT } from './application/ports/materialization.js';
+import { BASELINE_PORT } from './application/ports/baseline.js';
+import {
+  MEDICATION_COLLECTOR_PORT,
+  RECORD_COLLECTOR_PORT,
+  PROFILE_COLLECTOR_PORT,
+  HEALTH_EVENT_COLLECTOR_PORT,
+} from './application/ports/collectors.js';
+import { ESCALATION_PORT } from './application/services/suggestions.js';
 import { MedicationCollectorService } from './adapters/acl/collectors/medication.js';
 import { MedicationTimeResolverService } from './adapters/acl/collectors/medication-time-resolver.js';
 import { SleepTrendBuilderService } from './adapters/acl/collectors/sleep-trend-builder.js';
@@ -22,9 +34,12 @@ import { ProfileCollectorService } from './adapters/acl/collectors/profile.js';
 import { RecordCollectorService } from './adapters/acl/collectors/record.js';
 import { HealthEventCollectorService } from './adapters/acl/collectors/health-event.js';
 import { SuggestionCopyLlmService } from './infrastructure/llm/copy-generator.js';
+import { COPY_GENERATOR } from './adapters/queue/copy/writer.js';
+import { COPY_QUEUE, COPY_SERVICE } from './application/services/presentation.js';
 import { SuggestionCopyQueueService } from './adapters/queue/copy/queue.js';
 import { SuggestionCopyService } from './adapters/queue/copy/writer.js';
 import { ExplanationGeneratorService } from './infrastructure/llm/explanation-generator.js';
+import { EXPLANATION_GENERATOR } from './adapters/queue/explanation/explainer.js';
 import { ExplanationQueueService } from './adapters/queue/explanation/queue.js';
 import { ExplanationService } from './adapters/queue/explanation/explainer.js';
 import { FeedbackReadModel } from './application/read_models/feedback-read.js';
@@ -33,7 +48,10 @@ import { PrismaFeedbackStore } from './infrastructure/persistence/feedbacks.js';
 import { FEEDBACK_PORT } from './application/ports/feedback.js';
 import { BaselineService } from './infrastructure/persistence/baseline.js';
 import { LifecycleService } from './application/services/lifecycle.js';
-import { SUGGESTION_LIFECYCLE_STORE } from './application/ports/suggestion-lifecycle.js';
+import {
+  SUGGESTION_LIFECYCLE_STORE,
+  SuggestionLifecycleStore,
+} from './application/ports/suggestion-lifecycle.js';
 import { PrismaSuggestionLifecycleStore } from './infrastructure/persistence/suggestion-lifecycle.js';
 import { ActiveSuggestionsReadModel } from './application/read_models/active-suggestions.js';
 import { SuggestionHistoryReadModel } from './application/read_models/suggestion-history.js';
@@ -66,6 +84,10 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     UserSettingsModule,
     ProductEventsModule,
     HealthEventsModule,
+    // The collectors inject these two reader ports; the owning modules must be
+    // imported for their exported tokens to resolve.
+    UserHealthContextModule,
+    MedicineRemindersModule,
   ],
   controllers: [TodaySuggestionController],
   providers: [
@@ -83,6 +105,12 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     BaselineService,
     LifecycleService,
     PrismaSuggestionLifecycleStore,
+    // `LifecycleService` injects the abstract class by type, so bind it by class
+    // as well — the string token only serves callers that inject by name.
+    {
+      provide: SuggestionLifecycleStore,
+      useExisting: PrismaSuggestionLifecycleStore,
+    },
     {
       provide: SUGGESTION_LIFECYCLE_STORE,
       useExisting: PrismaSuggestionLifecycleStore,
@@ -98,6 +126,15 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     { provide: FEEDBACK_PORT, useExisting: PrismaFeedbackStore },
     // Cache
     SuggestionCacheService,
+    { provide: SUGGESTION_CACHE_PORT, useExisting: SuggestionCacheService },
+    // Port tokens injected by name in the queue adapters and pipeline services.
+    { provide: MATERIALIZATION_STORE_PORT, useExisting: MaterializationStore },
+    { provide: BASELINE_PORT, useExisting: BaselineService },
+    { provide: MEDICATION_COLLECTOR_PORT, useExisting: MedicationCollectorService },
+    { provide: RECORD_COLLECTOR_PORT, useExisting: RecordCollectorService },
+    { provide: PROFILE_COLLECTOR_PORT, useExisting: ProfileCollectorService },
+    { provide: HEALTH_EVENT_COLLECTOR_PORT, useExisting: HealthEventCollectorService },
+    { provide: ESCALATION_PORT, useExisting: EscalationService },
     // Recompute trigger and materialization state
     MaterializationStore,
     SuggestionRecomputeWorkerService,
@@ -107,12 +144,16 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     EscalationService,
     // AI explanation
     ExplanationGeneratorService,
+    { provide: EXPLANATION_GENERATOR, useExisting: ExplanationGeneratorService },
     ExplanationService,
     ExplanationQueueService,
     // AI copy generation
     SuggestionCopyLlmService,
+    { provide: COPY_GENERATOR, useExisting: SuggestionCopyLlmService },
     SuggestionCopyQueueService,
     SuggestionCopyService,
+    { provide: COPY_SERVICE, useExisting: SuggestionCopyService },
+    { provide: COPY_QUEUE, useExisting: SuggestionCopyQueueService },
     // Pipeline + Presentation (extracted from orchestrator)
     SuggestionPipelineService,
     SuggestionPresentationService,
@@ -127,6 +168,12 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     ExplanationService,
     LifecycleService,
     PrismaSuggestionLifecycleStore,
+    // `LifecycleService` injects the abstract class by type, so bind it by class
+    // as well — the string token only serves callers that inject by name.
+    {
+      provide: SuggestionLifecycleStore,
+      useExisting: PrismaSuggestionLifecycleStore,
+    },
     {
       provide: SUGGESTION_LIFECYCLE_STORE,
       useExisting: PrismaSuggestionLifecycleStore,

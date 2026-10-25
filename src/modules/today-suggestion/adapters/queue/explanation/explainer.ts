@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../../prisma/index.js';
 import { LlmSafetyPolicyService } from '../../../../../common/llm/safety/llm-safety-policy.service.js';
@@ -25,6 +25,9 @@ import type { ExplanationStructuredOutput } from '../../../schemas/explanation.s
  * Declared structurally so the queue adapter depends on a contract rather than
  * on infrastructure/llm (ADR-0024 D3); the module binds the real generator.
  */
+/** DI token: the interface has no runtime value, so the module binds it by name. */
+export const EXPLANATION_GENERATOR = 'EXPLANATION_GENERATOR';
+
 export interface ExplanationGeneratorLike {
   hasAnalysisModel(): boolean;
   generate(
@@ -60,6 +63,7 @@ export class ExplanationService {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(EXPLANATION_GENERATOR)
     private readonly generatorService: ExplanationGeneratorLike,
     private readonly policyService: LlmSafetyPolicyService,
     private readonly i18n: I18nService,
