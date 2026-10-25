@@ -324,6 +324,45 @@ ESM 化后遗留清单与后续跟进：
 但 `prisma/models/medicine-knowledge.prisma` 里**没有 enzymes 列**——这类关系只存在于
 Neo4j。该文档需更正，避免下一个人按它去找字段。
 
+### 剂量日志槽位唯一性缺失：`mark` 的幂等只是「通常成立」（2026-10-25，四层迁移补测试时发现）
+
+`POST /medicine-dose-logs/mark` 的契约是「同一槽位幂等」，实现是 **find-then-create**
+（`findBySlot` → 命中则 `update`，否则 `create`），**但表上没有任何覆盖槽位的唯一约束兜底**，
+并发下同一槽位会写入两行。
+
+已核对（非推测）：
+
+- `prisma/models/medicine-user.prisma` 的 `UserMedicineDoseLog` 只有 5 个 `@@index`，
+  无 `@@unique`；4 个涉及该表的 migration 里 `UNIQUE` 命中为 0；
+- 连 **dev（15432）与 test（5432）两个库**查 `pg_indexes`：该表唯一索引只有主键
+  `user_medicine_dose_logs_pkey`，槽位相关索引全是普通索引；
+- `git log --all -S` 查无任何分支曾加过该约束——**这是既有缺陷，不是四层迁移引入的**。
+
+**连带问题**：controller 上 `POST /medicine-dose-logs` 与 `/mark` 的
+`@ApiResponse({ status: 409, description: 'Duplicate dose log for the same slot
+(RESOURCE_CONFLICT, race)' })` 是**假声明**——没有唯一约束，P2002 永远不会由槽位重复触发
+（`create` 的 P2002→`RESOURCE_CONFLICT` 映射本身正确，但只可能来自别的约束）。
+
+**修法（三件事要一起做，缺一不可）**：
+
+1. 加**部分**唯一索引，只约束未软删的行，让「软删后重标记」仍然可行：
+
+   ```sql
+   CREATE UNIQUE INDEX user_medicine_dose_logs_slot_uniq
+     ON user_medicine_dose_logs (user_id, reminder_id, scheduled_for, scheduled_time)
+     WHERE deleted_at IS NULL;
+   ```
+
+   注意 `scheduled_time` 可为 NULL、`reminder_id` 可为 NULL（临时日志）——需确认 Postgres
+   对 NULL 的处理符合预期，必要时拆成两条索引或改用 `COALESCE` 表达式索引。
+
+2. `mark` 的 find-then-create 改成 `upsert`（或 `create` + 捕获 P2002 后重试成 `update`）。
+   **只加约束不改写路径的话，并发只是把「两行」变成「500」**，并没有修好幂等。
+3. 删除或更正上述两条 409 文档声明。
+
+**前置**：加约束前要查存量重复数据（同一 user+槽位多行未删），否则 migration 会失败；
+`prisma/models/**` 变更需同步 `pnpm export:openapi`（409 文案若改动）。
+
 ## 管理控制台遗留（2026-10-07，控制台校验与首次上线时发现）
 
 - **favicon 仍是上游模板图片**：`admin/index.html` 的标题与 OG/Twitter 卡片已改为 Lucent
