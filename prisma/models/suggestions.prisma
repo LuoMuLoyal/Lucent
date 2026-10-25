@@ -95,6 +95,11 @@ model UserSuggestion {
   @@index([userId, date, lifecycleState])
   @@index([userId, type, generatedAt])
   @@index([userId, lifecycleState, generatedAt])
+  // Lifecycle sweeps (`refreshLifecycleStates`, cron every 5 min) are the only
+  // queries with no `userId` filter: `WHERE lifecycleState = ? AND activatedAt < ?`.
+  // Every other index here starts with `userId`, so none of them can serve it —
+  // without this one the sweep is a full table scan that grows with the table.
+  @@index([lifecycleState, activatedAt])
   @@map("user_suggestions")
 }
 
