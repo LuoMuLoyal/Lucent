@@ -2,22 +2,25 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { TestingSupportController } from './testing-support.controller.js';
-import { TestingSupportService } from './services/fixtures.service.js';
+import {
+  RECORD_LANE_FIXTURE,
+  type RecordLaneFixturePort,
+} from '../../application/ports/fixtures.js';
 import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto.js';
 
 describe('TestingSupportController', () => {
   let controller: TestingSupportController;
-  let service: vi.Mocked<TestingSupportService>;
+  let service: vi.Mocked<RecordLaneFixturePort>;
 
   beforeEach(async () => {
     service = {
       prepareFullstackRecordLane: vi.fn(),
-    } as unknown as vi.Mocked<TestingSupportService>;
+    } as unknown as vi.Mocked<RecordLaneFixturePort>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TestingSupportController],
       providers: [
-        { provide: TestingSupportService, useValue: service },
+        { provide: RECORD_LANE_FIXTURE, useValue: service },
         {
           provide: ConfigService,
           useValue: { get: vi.fn().mockReturnValue(undefined) },

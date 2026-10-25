@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
-} from '../../../common/validators/auth.decorators.js';
+} from '../../../../../common/validators/auth.decorators.js';
 
 /**
  * Standard Schema (zod 4) for `POST /testing/fullstack-e2e/record-lane/prepare`.

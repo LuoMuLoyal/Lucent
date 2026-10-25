@@ -1,19 +1,22 @@
-import { parseDateOnly, now } from '../../../common/index.js';
+import { parseDateOnly, now } from '../../../../common/index.js';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
 
-import { ARGON2_OPTIONS } from '../../auth/index.js';
-import { loginFailureCacheKey } from '../../auth/index.js';
-import { PrismaService } from '../../../prisma/index.js';
+import { ARGON2_OPTIONS } from '../../../auth/index.js';
+import { loginFailureCacheKey } from '../../../auth/index.js';
+import { PrismaService } from '../../../../prisma/index.js';
 import { UserStatus } from '#generated/prisma/client.js';
-import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto.js';
+import type {
+  PrepareFullstackRecordLaneRequest,
+  PrepareFullstackRecordLaneResult,
+} from '../../application/ports/fixtures.js';
 import {
   listDefaultBooleanUserSettings,
   userSettingsCacheKey,
-} from '../../user-settings/index.js';
+} from '../../../user-settings/index.js';
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 
@@ -27,15 +30,6 @@ type TestingSupportDbClient = Pick<
   | 'userSetting'
 >;
 
-export interface PrepareFullstackRecordLaneResult {
-  createdUser: boolean;
-  userId: string;
-  email: string;
-  nickname: string | null;
-  date: string;
-  clearedRecordCount: number;
-}
-
 @Injectable()
 export class TestingSupportService {
   constructor(
@@ -44,7 +38,7 @@ export class TestingSupportService {
   ) {}
 
   async prepareFullstackRecordLane(
-    dto: PrepareFullstackRecordLaneDto,
+    dto: PrepareFullstackRecordLaneRequest,
   ): Promise<PrepareFullstackRecordLaneResult> {
     const email = dto.email.trim().toLowerCase();
     const nickname = dto.nickname?.trim() || DEFAULT_RECORD_LANE_NICKNAME;
