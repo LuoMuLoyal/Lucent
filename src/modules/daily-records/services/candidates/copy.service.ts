@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LocalizedCopyService } from '../../../../common/services/localized-copy.service.js';
-import type { DailyRecordCandidateData } from '../../dto/candidates/record-candidate-response.dto.js';
+import type { DailyRecordCandidateData } from '../../adapters/http/dto/candidates/record-candidate-response.js';
 import type { DailyRecordCandidatesPromptCopy } from '../../prompts/daily-record-candidates.prompt.js';
 import { nowIsoString } from '../../../../common/index.js';
 

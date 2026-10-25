@@ -3,9 +3,9 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { DailyRecordCandidateData } from '../../dto/candidates/record-candidate-response.dto.js';
+import type { DailyRecordCandidateData } from '../../adapters/http/dto/candidates/record-candidate-response.js';
 
-import type { GenerateDailyRecordCandidatesDto } from '../../dto/candidates/generate-record-candidates.dto.js';
+import type { GenerateDailyRecordCandidatesDto } from '../../adapters/http/dto/candidates/generate-record-candidates.js';
 import { DailyRecordCandidatesCopyService } from '../candidates/copy.service.js';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service.js';
 import { nowIsoString } from '../../../../common/index.js';

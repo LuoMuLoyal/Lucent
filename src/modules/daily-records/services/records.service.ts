@@ -16,8 +16,8 @@ import {
 import { DomainFailureException } from '../../../common/result/unwrap-result.js';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client.js';
 import { toInputJsonValue } from '../../../common/index.js';
-import type { CreateDailyRecordDto } from '../dto/create-record.dto.js';
-import type { UpdateDailyRecordDto } from '../dto/update-record.dto.js';
+import type { CreateDailyRecordDto } from '../adapters/http/dto/create-record.js';
+import type { UpdateDailyRecordDto } from '../adapters/http/dto/update-record.js';
 import { DailyRecordsOwnershipService } from './ownership.service.js';
 import { DailyRecordsMapperService } from './mapper.service.js';
 import {

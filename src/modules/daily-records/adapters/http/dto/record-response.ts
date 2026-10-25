@@ -3,8 +3,8 @@ import type { z } from 'zod';
 import {
   dailyRecordListDataSchema,
   dailyRecordSummaryDataSchema,
-} from './record-data.dto.js';
-import { dailyRecordItemSchema } from './record-item.dto.js';
+} from './record-data.js';
+import { dailyRecordItemSchema } from './record-item.js';
 
 /**
  * Standard Schema (zod 4) for `GET /daily-records` (200).

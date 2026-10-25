@@ -8,8 +8,8 @@ import { SymptomCatalogService } from './services/symptom-catalog.service.js';
 import type { UserPayload } from '../auth/index.js';
 import { okAsync, errAsync } from '../../common/result/index.js';
 import type { DomainFailure } from '../../common/result/index.js';
-import { createDailyRecordSchema } from './dto/create-record.dto.js';
-import { generateDailyRecordCandidatesSchema } from './dto/candidates/generate-record-candidates.dto.js';
+import { createDailyRecordSchema } from './adapters/http/dto/create-record.js';
+import { generateDailyRecordCandidatesSchema } from './adapters/http/dto/candidates/generate-record-candidates.js';
 
 describe('DailyRecordsController', () => {
   let controller: DailyRecordsController;

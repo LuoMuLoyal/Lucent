@@ -11,7 +11,7 @@ import {
 import {
   dailyRecordCandidatesSchema,
   type DailyRecordCandidateStructuredOutput,
-} from '../../schemas/daily-record-candidates.schema.js';
+} from '../../adapters/http/dto/candidates/candidate-contract.js';
 
 @Injectable()
 export class DailyRecordCandidatesGeneratorService extends BaseLlmGeneratorService<

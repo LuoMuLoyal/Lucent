@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { dailyRecordItemSchema } from './record-item.dto.js';
-import { dailyRecordSummarySchema } from './record-summary.dto.js';
+import { dailyRecordItemSchema } from './record-item.js';
+import { dailyRecordSummarySchema } from './record-summary.js';
 
 /**
  * Standard Schema (zod 4) for the `GET /daily-records` list payload.

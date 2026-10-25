@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
+import { dateOnlySchema } from '../../../../../common/validators/iso-datetime.schema.js';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import { dailyRecordAttachmentInputSchema } from './record-attachment.dto.js';
+import { dailyRecordAttachmentInputSchema } from './record-attachment.js';
 
 const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
   DailyRecordKind,

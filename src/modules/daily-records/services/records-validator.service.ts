@@ -4,7 +4,7 @@ import {
   createDomainFailure,
   type DomainFailure,
 } from '../../../common/result/index.js';
-import type { UpdateDailyRecordDto } from '../dto/update-record.dto.js';
+import type { UpdateDailyRecordDto } from '../adapters/http/dto/update-record.js';
 
 /** 症状严重度码词汇（与客户端 `SymptomSeverity` 及 health_context 的过敏严重度一致）。 */
 const SYMPTOM_SEVERITIES = new Set(['mild', 'moderate', 'severe', 'unknown']);

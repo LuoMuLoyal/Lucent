@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import { dailyRecordItemSchema } from './record-item.dto.js';
+import { dailyRecordItemSchema } from './record-item.js';
 
 /**
  * Standard Schema (zod 4) for one entry of the per-kind daily-record summary

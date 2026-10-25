@@ -3,9 +3,9 @@ import { formatDateOnly } from '../../../common/index.js';
 import { parseDateOnly } from '../../../common/index.js';
 import { toNullableInputJsonValue } from '../../../common/index.js';
 import { Injectable } from '@nestjs/common';
-import type { DailyRecordAttachmentInputDto } from '../dto/record-attachment.dto.js';
+import type { DailyRecordAttachmentInputDto } from '../adapters/http/dto/record-attachment.js';
 
-import type { UpdateDailyRecordDto } from '../dto/update-record.dto.js';
+import type { UpdateDailyRecordDto } from '../adapters/http/dto/update-record.js';
 import type {
   DailyRecordShape,
   OwnedRecordSnapshot,

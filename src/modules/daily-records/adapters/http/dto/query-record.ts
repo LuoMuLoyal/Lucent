@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { dateOnlySchema } from '../../../common/validators/iso-datetime.schema.js';
+import { dateOnlySchema } from '../../../../../common/validators/iso-datetime.schema.js';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
 

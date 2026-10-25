@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import { dailyRecordAttachmentSchema } from './record-attachment.dto.js';
+import { dailyRecordAttachmentSchema } from './record-attachment.js';
 
 /**
  * Standard Schema (zod 4) for one daily-record read item — the wire shape of

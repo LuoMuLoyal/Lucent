@@ -12,7 +12,7 @@ import {
   createDatePartitionedObjectKey,
   buildPublicUrl,
 } from '../../../common/index.js';
-import type { CreateDailyRecordImageUploadDto } from '../dto/candidates/record-image-upload.dto.js';
+import type { CreateDailyRecordImageUploadDto } from '../adapters/http/dto/candidates/record-image-upload.js';
 
 @Injectable()
 export class DailyRecordImageUploadService {

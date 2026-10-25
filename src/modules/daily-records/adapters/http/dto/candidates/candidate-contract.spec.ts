@@ -3,7 +3,7 @@ import {
   dailyRecordCandidatesSchema,
   sleepPayloadSchema,
   DAILY_RECORD_CANDIDATE_KINDS,
-} from './daily-record-candidates.schema.js';
+} from './candidate-contract.js';
 
 describe('sleepPayloadSchema', () => {
   function buildValid(overrides: Record<string, unknown> = {}) {
