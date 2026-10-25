@@ -1,27 +1,30 @@
-import type { DeepMocked } from '../../../common/types/deep-mocked.js';
-import { nonDeleted } from '../../../common/index.js';
+import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
+import { nonDeleted } from '../../../../common/index.js';
 import {
   createDomainFailure,
   errAsync,
   okAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 import type {
   DomainFailure,
   ResultAsync,
-} from '../../../common/result/index.js';
+} from '../../../../common/result/index.js';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client.js';
 
-import { AccountService } from './account.service.js';
+import { Account } from './account.js';
 import {
   AuthIdentityService,
   PasswordReauthService,
-} from '../../auth/index.js';
-import { UserService } from '../../user/index.js';
-import { PrismaService } from '../../../prisma/prisma.service.js';
-import type { UpdateAccountDto } from '../dto/update.dto.js';
+} from '../../../auth/index.js';
+import { UserService } from '../../../user/index.js';
+import {
+  IdentityUnlinkRejected,
+  LinkedIdentities,
+} from '../ports/linked-identities.js';
+import type { UpdateAccountDto } from '../../adapters/http/dto/update.js';
 
 const baseUser = {
   id: 'user-uuid-1',
@@ -87,34 +90,23 @@ async function inspectResult<T>(
   );
 }
 
-type MockedPrisma = {
-  $transaction: vi.Mock;
-  account: {
-    findMany: vi.Mock;
-    deleteMany: vi.Mock;
-  };
+type MockedIdentities = {
+  listForUser: vi.Mock;
+  unlinkInTransaction: vi.Mock;
 };
 
-describe('AccountService', () => {
-  let service: AccountService;
+describe('Account', () => {
+  let service: Account;
   let userService: DeepMocked<UserService>;
-  let prisma: MockedPrisma;
+  let identities: MockedIdentities;
   let passwordReauthService: vi.Mocked<PasswordReauthService>;
   let identityService: vi.Mocked<AuthIdentityService>;
   let module: TestingModule;
 
   beforeEach(async () => {
-    const prismaMock: MockedPrisma = {
-      $transaction: vi.fn(async (cb: (tx: MockedPrisma) => Promise<unknown>) =>
-        // Pass the same prismaMock as the transaction client so the test's
-        // mock return values on account.findMany/deleteMany are visible
-        // inside the transaction callback.
-        cb(prismaMock),
-      ),
-      account: {
-        findMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
+    const identitiesMock: MockedIdentities = {
+      listForUser: vi.fn(),
+      unlinkInTransaction: vi.fn().mockResolvedValue(undefined),
     };
 
     module = await Test.createTestingModule({
@@ -123,7 +115,7 @@ describe('AccountService', () => {
           provide: I18nService,
           useValue: { t: vi.fn().mockImplementation((key: string) => key) },
         },
-        AccountService,
+        Account,
         {
           provide: UserService,
           useValue: {
@@ -132,8 +124,8 @@ describe('AccountService', () => {
           },
         },
         {
-          provide: PrismaService,
-          useValue: prismaMock,
+          provide: LinkedIdentities,
+          useValue: identitiesMock,
         },
         {
           provide: PasswordReauthService,
@@ -150,9 +142,9 @@ describe('AccountService', () => {
       ],
     }).compile();
 
-    service = module.get(AccountService);
+    service = module.get(Account);
     userService = module.get(UserService);
-    prisma = module.get(PrismaService) as unknown as MockedPrisma;
+    identities = module.get(LinkedIdentities) as unknown as MockedIdentities;
     passwordReauthService = module.get(PasswordReauthService);
     identityService = module.get(AuthIdentityService);
   });
@@ -164,15 +156,12 @@ describe('AccountService', () => {
   describe('getAccount', () => {
     it('should return the account DTO for an active user', async () => {
       (userService.findById as vi.Mock).mockResolvedValue(baseUser);
-      prisma.account.findMany.mockResolvedValue([baseIdentity]);
+      identities.listForUser.mockResolvedValue([baseIdentity]);
 
-      const result = await inspectResult(service.getAccount(baseUser.id));
+      const result = await inspectResult(service.get(baseUser.id));
 
       expect(userService.findById).toHaveBeenCalledWith(baseUser.id);
-      expect(prisma.account.findMany).toHaveBeenCalledWith({
-        where: { userId: baseUser.id, providerId: { not: 'credential' } },
-        orderBy: { createdAt: 'asc' },
-      });
+      expect(identities.listForUser).toHaveBeenCalledWith(baseUser.id);
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
       expect(result.value).toEqual({
@@ -200,7 +189,7 @@ describe('AccountService', () => {
     it('should return a not-found DomainFailure when the user does not exist', async () => {
       (userService.findById as vi.Mock).mockResolvedValue(null);
 
-      const result = await inspectResult(service.getAccount('missing-user'));
+      const result = await inspectResult(service.get('missing-user'));
 
       expect(result).toMatchObject({
         ok: false,
@@ -213,9 +202,9 @@ describe('AccountService', () => {
         okAsync(false),
       );
       (userService.findById as vi.Mock).mockResolvedValue(baseUser);
-      prisma.account.findMany.mockResolvedValue([baseIdentity]);
+      identities.listForUser.mockResolvedValue([baseIdentity]);
 
-      const result = await inspectResult(service.getAccount(baseUser.id));
+      const result = await inspectResult(service.get(baseUser.id));
 
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
@@ -226,7 +215,7 @@ describe('AccountService', () => {
       const error = new Error('database unavailable');
       (userService.findById as vi.Mock).mockRejectedValue(error);
 
-      const result = await inspectResult(service.getAccount('db-failure'));
+      const result = await inspectResult(service.get('db-failure'));
 
       expect(result.ok).toBe(false);
       if (result.ok) throw new Error('expected failure');
@@ -242,11 +231,11 @@ describe('AccountService', () => {
         avatar: null,
         nickname: null,
       });
-      prisma.account.findMany.mockResolvedValue([
+      identities.listForUser.mockResolvedValue([
         { ...baseIdentity, providerEmailVerifiedAt: null },
       ]);
 
-      const result = await inspectResult(service.getAccount(baseUser.id));
+      const result = await inspectResult(service.get(baseUser.id));
 
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
@@ -269,7 +258,7 @@ describe('AccountService', () => {
           nickname: 'NewNick',
           avatar: 'https://example.com/new-avatar.png',
         });
-      prisma.account.findMany
+      identities.listForUser
         .mockResolvedValueOnce([baseIdentity])
         .mockResolvedValueOnce([baseIdentity]);
       (userService.update as vi.Mock).mockReturnValue(okAsync(undefined));
@@ -279,9 +268,7 @@ describe('AccountService', () => {
         avatar: 'https://example.com/new-avatar.png',
       };
 
-      const result = await inspectResult(
-        service.updateAccount(baseUser.id, dto),
-      );
+      const result = await inspectResult(service.update(baseUser.id, dto));
 
       expect(userService.update).toHaveBeenCalledWith(baseUser.id, {
         nickname: 'NewNick',
@@ -301,16 +288,14 @@ describe('AccountService', () => {
           nickname: null,
           avatar: null,
         });
-      prisma.account.findMany
+      identities.listForUser
         .mockResolvedValueOnce([baseIdentity])
         .mockResolvedValueOnce([baseIdentity]);
       (userService.update as vi.Mock).mockReturnValue(okAsync(undefined));
 
       const dto: UpdateAccountDto = { nickname: '', avatar: '' };
 
-      const result = await inspectResult(
-        service.updateAccount(baseUser.id, dto),
-      );
+      const result = await inspectResult(service.update(baseUser.id, dto));
 
       expect(userService.update).toHaveBeenCalledWith(baseUser.id, {
         nickname: null,
@@ -326,16 +311,14 @@ describe('AccountService', () => {
       (userService.findById as vi.Mock)
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
-      prisma.account.findMany
+      identities.listForUser
         .mockResolvedValueOnce([baseIdentity])
         .mockResolvedValueOnce([baseIdentity]);
       (userService.update as vi.Mock).mockReturnValue(okAsync(undefined));
 
       const dto: UpdateAccountDto = {};
 
-      const result = await inspectResult(
-        service.updateAccount(baseUser.id, dto),
-      );
+      const result = await inspectResult(service.update(baseUser.id, dto));
 
       expect(userService.update).toHaveBeenCalledWith(baseUser.id, {});
       expect(result.ok).toBe(true);
@@ -345,7 +328,7 @@ describe('AccountService', () => {
       (userService.findById as vi.Mock).mockResolvedValue(null);
 
       const result = await inspectResult(
-        service.updateAccount('missing-user', { nickname: 'X' }),
+        service.update('missing-user', { nickname: 'X' }),
       );
 
       expect(result).toMatchObject({
@@ -360,12 +343,11 @@ describe('AccountService', () => {
       (userService.findById as vi.Mock)
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
-      // 3 calls to findMany: getActiveAccountUser, tx re-check, getAccount
-      prisma.account.findMany
-        .mockResolvedValueOnce([baseIdentity, secondIdentity])
+      // 2 calls to listForUser: initial read, then post-unlink reload
+      // (the transaction re-check lives inside the port implementation).
+      identities.listForUser
         .mockResolvedValueOnce([baseIdentity, secondIdentity])
         .mockResolvedValueOnce([secondIdentity]);
-      prisma.account.deleteMany.mockResolvedValue({ count: 1 });
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id, {
@@ -377,13 +359,12 @@ describe('AccountService', () => {
         baseUser.id,
         'Passw0rd123',
       );
-      expect(prisma.account.deleteMany).toHaveBeenCalledWith({
-        where: {
-          id: baseIdentity.id,
+      expect(identities.unlinkInTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
           userId: baseUser.id,
-          providerId: { not: 'credential' },
-        },
-      });
+          identityId: baseIdentity.id,
+        }),
+      );
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
       expect(result.value.linkedIdentities).toHaveLength(1);
@@ -394,7 +375,7 @@ describe('AccountService', () => {
 
     it('should return AUTH_WRONG_PASSWORD when password verification fails', async () => {
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
-      prisma.account.findMany.mockResolvedValueOnce([
+      identities.listForUser.mockResolvedValueOnce([
         baseIdentity,
         secondIdentity,
       ]);
@@ -417,12 +398,12 @@ describe('AccountService', () => {
         ok: false,
         error: { kind: 'authentication', code: 'AUTH_WRONG_PASSWORD' },
       });
-      expect(prisma.account.deleteMany).not.toHaveBeenCalled();
+      expect(identities.unlinkInTransaction).not.toHaveBeenCalled();
     });
 
     it('should return AUTH_PASSWORD_NOT_SET for OAuth-only users', async () => {
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
-      prisma.account.findMany.mockResolvedValueOnce([
+      identities.listForUser.mockResolvedValueOnce([
         baseIdentity,
         secondIdentity,
       ]);
@@ -445,7 +426,7 @@ describe('AccountService', () => {
         ok: false,
         error: { kind: 'authentication', code: 'AUTH_PASSWORD_NOT_SET' },
       });
-      expect(prisma.account.deleteMany).not.toHaveBeenCalled();
+      expect(identities.unlinkInTransaction).not.toHaveBeenCalled();
     });
 
     it('should return an authorization DomainFailure when unlinking the last sign-in method', async () => {
@@ -453,7 +434,7 @@ describe('AccountService', () => {
         okAsync(false),
       );
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
-      prisma.account.findMany.mockResolvedValueOnce([baseIdentity]);
+      identities.listForUser.mockResolvedValueOnce([baseIdentity]);
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id, {
@@ -472,11 +453,9 @@ describe('AccountService', () => {
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
       // 3 calls: getActiveAccountUser, tx re-check, getAccount
-      prisma.account.findMany
-        .mockResolvedValueOnce([baseIdentity])
+      identities.listForUser
         .mockResolvedValueOnce([baseIdentity])
         .mockResolvedValueOnce([]);
-      prisma.account.deleteMany.mockResolvedValue({ count: 1 });
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id, {
@@ -491,7 +470,7 @@ describe('AccountService', () => {
 
     it('should return a not-found DomainFailure when identity does not exist', async () => {
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
-      prisma.account.findMany.mockResolvedValueOnce([baseIdentity]);
+      identities.listForUser.mockResolvedValueOnce([baseIdentity]);
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, 'nonexistent-identity', {
@@ -513,11 +492,9 @@ describe('AccountService', () => {
         .mockResolvedValueOnce(baseUser)
         .mockResolvedValueOnce(baseUser);
       // 3 calls: getActiveAccountUser, tx re-check, getAccount
-      prisma.account.findMany
-        .mockResolvedValueOnce([baseIdentity, secondIdentity])
+      identities.listForUser
         .mockResolvedValueOnce([baseIdentity, secondIdentity])
         .mockResolvedValueOnce([secondIdentity]);
-      prisma.account.deleteMany.mockResolvedValue({ count: 1 });
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id, {
@@ -525,13 +502,12 @@ describe('AccountService', () => {
         }),
       );
 
-      expect(prisma.account.deleteMany).toHaveBeenCalledWith({
-        where: {
-          id: baseIdentity.id,
+      expect(identities.unlinkInTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
           userId: baseUser.id,
-          providerId: { not: 'credential' },
-        },
-      });
+          identityId: baseIdentity.id,
+        }),
+      );
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected account success');
       expect(result.value.linkedIdentities).toHaveLength(1);
@@ -539,11 +515,13 @@ describe('AccountService', () => {
 
     it('should return not-found when deleteMany removes no rows', async () => {
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
-      // 2 calls: getActiveAccountUser, tx re-check
-      prisma.account.findMany
+      // initial read then post-unlink reload
+      identities.listForUser
         .mockResolvedValueOnce([baseIdentity, secondIdentity])
         .mockResolvedValueOnce([baseIdentity, secondIdentity]);
-      prisma.account.deleteMany.mockResolvedValue({ count: 0 });
+      identities.unlinkInTransaction.mockRejectedValue(
+        new IdentityUnlinkRejected('not-found'),
+      );
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id, {
@@ -574,11 +552,16 @@ describe('AccountService', () => {
           ),
         ); // in-transaction check → Err
       (userService.findById as vi.Mock).mockResolvedValueOnce(baseUser);
-      prisma.account.findMany.mockResolvedValueOnce([
+      identities.listForUser.mockResolvedValueOnce([
         baseIdentity,
         secondIdentity,
       ]);
-      prisma.account.deleteMany.mockResolvedValue({ count: 1 });
+      // 事务内的 hasPassword 返回 Err → 端口实现抛出 → 用例映射成依赖故障。
+      identities.unlinkInTransaction.mockImplementationOnce(
+        async (input: { hasPassword: (scope: object) => Promise<boolean> }) => {
+          await input.hasPassword({});
+        },
+      );
 
       const result = await inspectResult(
         service.unlinkIdentity(baseUser.id, baseIdentity.id, {
@@ -590,9 +573,10 @@ describe('AccountService', () => {
         ok: false,
         error: { kind: 'dependency', code: 'DEPENDENCY_UNAVAILABLE' },
       });
-      // deleteMany must NOT be called because the transaction was rolled back
-      // by the DomainFailureException thrown from the hasPassword Err path.
-      expect(prisma.account.deleteMany).not.toHaveBeenCalled();
+      // 事务内的 Err 必须让事务回滚 —— 表现为「没有回读档案」。
+      // （端口合并了事务边界后 `deleteMany` 不再是可见调用点；这条断言
+      // 守的是同一个事实：失败路径不产生副作用。）
+      expect(userService.findById).toHaveBeenCalledTimes(1);
     });
   });
 });

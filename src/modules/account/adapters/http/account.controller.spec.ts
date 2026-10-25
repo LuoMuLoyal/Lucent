@@ -9,19 +9,19 @@ import {
   createDomainFailure,
   errAsync,
   okAsync,
-} from '../../common/result/index.js';
-import type { UserPayload } from '../auth/index.js';
+} from '../../../../common/result/index.js';
+import type { UserPayload } from '../../../auth/index.js';
 
 import { AccountController } from './account.controller.js';
-import { AccountService } from './services/account.service.js';
+import { Account } from '../../application/use_cases/account.js';
 import {
   CredentialsSelfService,
   DeleteAccount,
   IdentityLink,
-} from '../auth/index.js';
-import { AuditLogService } from '../audit-log/index.js';
-import type { UpdateAccountDto } from './dto/update.dto.js';
-import type { AccountDto } from './dto/response.dto.js';
+} from '../../../auth/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import type { UpdateAccountDto } from './dto/update.js';
+import type { AccountDto } from './dto/response.js';
 import type { User } from '#generated/prisma/client.js';
 
 const mockUser: UserPayload = {
@@ -59,7 +59,7 @@ const mockAccount = {
 
 describe('AccountController', () => {
   let controller: AccountController;
-  let accountService: vi.Mocked<AccountService>;
+  let accountService: vi.Mocked<Account>;
   let credentials: vi.Mocked<CredentialsSelfService>;
   let identityLink: vi.Mocked<IdentityLink>;
   let deleteAccountUseCase: vi.Mocked<DeleteAccount>;
@@ -69,10 +69,10 @@ describe('AccountController', () => {
       controllers: [AccountController],
       providers: [
         {
-          provide: AccountService,
+          provide: Account,
           useValue: {
-            getAccount: vi.fn(),
-            updateAccount: vi.fn(),
+            get: vi.fn(),
+            update: vi.fn(),
             unlinkIdentity: vi.fn(),
           },
         },
@@ -107,7 +107,7 @@ describe('AccountController', () => {
     }).compile();
 
     controller = module.get(AccountController);
-    accountService = module.get(AccountService);
+    accountService = module.get(Account);
     credentials = module.get(CredentialsSelfService);
     identityLink = module.get(IdentityLink);
     deleteAccountUseCase = module.get(DeleteAccount);
@@ -119,11 +119,11 @@ describe('AccountController', () => {
 
   describe('GET /account', () => {
     it('should return the account profile resource', async () => {
-      accountService.getAccount.mockReturnValue(okAsync(mockAccount));
+      accountService.get.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.getAccount(mockUser);
 
-      expect(accountService.getAccount).toHaveBeenCalledWith(mockUser.sub);
+      expect(accountService.get).toHaveBeenCalledWith(mockUser.sub);
       expect(result).toEqual(mockAccount);
     });
   });
@@ -135,14 +135,11 @@ describe('AccountController', () => {
         ...mockAccount,
         nickname: 'UpdatedName' as const,
       };
-      accountService.updateAccount.mockReturnValue(okAsync(updated));
+      accountService.update.mockReturnValue(okAsync(updated));
 
       const result = await controller.updateAccount(mockUser, dto);
 
-      expect(accountService.updateAccount).toHaveBeenCalledWith(
-        mockUser.sub,
-        dto,
-      );
+      expect(accountService.update).toHaveBeenCalledWith(mockUser.sub, dto);
       expect(result).toEqual(updated);
     });
   });
@@ -411,7 +408,7 @@ describe('AccountController', () => {
   describe('POST /account/identities/wechat-web/callback', () => {
     it('should link WeChat web identity and return the account resource', async () => {
       identityLink.linkWechatWebIdentity.mockReturnValue(okAsync(undefined));
-      accountService.getAccount.mockReturnValue(okAsync(mockAccount));
+      accountService.get.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatWebIdentity(
         mockUser,
@@ -426,7 +423,7 @@ describe('AccountController', () => {
         mockUser.sub,
         { code: 'auth-code', state: 'state-xxx' },
       );
-      expect(accountService.getAccount).toHaveBeenCalledWith(mockUser.sub);
+      expect(accountService.get).toHaveBeenCalledWith(mockUser.sub);
       expect(result).toEqual(mockAccount);
     });
   });
@@ -434,7 +431,7 @@ describe('AccountController', () => {
   describe('POST /account/identities/wechat-mobile/callback', () => {
     it('should link WeChat mobile identity and return the account resource', async () => {
       identityLink.linkWechatMobileIdentity.mockReturnValue(okAsync(undefined));
-      accountService.getAccount.mockReturnValue(okAsync(mockAccount));
+      accountService.get.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatMobileIdentity(
         mockUser,
@@ -448,7 +445,7 @@ describe('AccountController', () => {
         mockUser.sub,
         { code: 'mobile-auth-code' },
       );
-      expect(accountService.getAccount).toHaveBeenCalledWith(mockUser.sub);
+      expect(accountService.get).toHaveBeenCalledWith(mockUser.sub);
       expect(result).toEqual(mockAccount);
     });
   });

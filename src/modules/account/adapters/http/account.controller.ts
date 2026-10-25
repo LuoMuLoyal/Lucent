@@ -22,15 +22,15 @@ import type { FastifyRequest } from 'fastify';
 import {
   extractAuthRequestContext,
   ProblemDetailsDto,
-} from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { AuditLogService } from '../audit-log/index.js';
-import { CredentialsSelfService, IdentityLink } from '../auth/index.js';
-import { DeleteAccount } from '../auth/index.js';
+} from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { AuditLogService } from '../../../audit-log/index.js';
+import { CredentialsSelfService, IdentityLink } from '../../../auth/index.js';
+import { DeleteAccount } from '../../../auth/index.js';
 
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser } from '../auth/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { CurrentUser } from '../../../auth/index.js';
 import {
   changeEmailSchema,
   changePasswordSchema,
@@ -39,8 +39,8 @@ import {
   oauthCallbackSchema,
   oauthCodeCallbackSchema,
   setPasswordSchema,
-} from '../auth/index.js';
-import { oauthAuthorizeResponseSchema } from '../auth/index.js';
+} from '../../../auth/index.js';
+import { oauthAuthorizeResponseSchema } from '../../../auth/index.js';
 import type {
   ChangeEmailDto,
   ChangePasswordDto,
@@ -49,23 +49,20 @@ import type {
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
   SetPasswordDto,
-} from '../auth/index.js';
-import { AccountService } from './services/account.service.js';
-import {
-  accountDataSchema,
-  accountEmailDataSchema,
-} from './dto/response.dto.js';
-import { unlinkIdentitySchema } from './dto/unlink-identity.dto.js';
-import type { UnlinkIdentityDto } from './dto/unlink-identity.dto.js';
-import { updateAccountSchema } from './dto/update.dto.js';
-import type { UpdateAccountDto } from './dto/update.dto.js';
+} from '../../../auth/index.js';
+import { Account } from '../../application/use_cases/account.js';
+import { accountDataSchema, accountEmailDataSchema } from './dto/response.js';
+import { unlinkIdentitySchema } from './dto/unlink-identity.js';
+import type { UnlinkIdentityDto } from './dto/unlink-identity.js';
+import { updateAccountSchema } from './dto/update.js';
+import type { UpdateAccountDto } from './dto/update.js';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')
 @Controller('account')
 export class AccountController {
   constructor(
-    private readonly accountService: AccountService,
+    private readonly accountService: Account,
     private readonly credentials: CredentialsSelfService,
     private readonly identityLink: IdentityLink,
     private readonly deleteAccountUseCase: DeleteAccount,
@@ -85,7 +82,7 @@ export class AccountController {
   })
   @SerializeOptions({ schema: accountDataSchema })
   async getAccount(@CurrentUser() user: UserPayload) {
-    return unwrapResult(this.accountService.getAccount(user.sub));
+    return unwrapResult(this.accountService.get(user.sub));
   }
 
   @Patch()
@@ -104,7 +101,7 @@ export class AccountController {
     @CurrentUser() user: UserPayload,
     @Body({ schema: updateAccountSchema }) dto: UpdateAccountDto,
   ) {
-    return unwrapResult(this.accountService.updateAccount(user.sub, dto));
+    return unwrapResult(this.accountService.update(user.sub, dto));
   }
 
   @Post('password')
@@ -355,7 +352,7 @@ export class AccountController {
       resourceType: 'oauth',
       resourceId: 'wechat_web',
     });
-    return unwrapResult(this.accountService.getAccount(user.sub));
+    return unwrapResult(this.accountService.get(user.sub));
   }
 
   @Post('identities/wechat-mobile/callback')
@@ -414,7 +411,7 @@ export class AccountController {
       resourceType: 'oauth',
       resourceId: 'wechat_mobile',
     });
-    return unwrapResult(this.accountService.getAccount(user.sub));
+    return unwrapResult(this.accountService.get(user.sub));
   }
 
   @Delete()
