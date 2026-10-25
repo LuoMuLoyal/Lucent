@@ -68,30 +68,56 @@ owner: backend
   派生出 `MEAL_ANALYSIS_QUEUE_NAME`(`constants/meal-analysis.constants.ts`),
   新增/改名队列必须先登记进 `QUEUE_NAMES`。
 
-## 内部结构
+## 内部结构（四层，ADR-0024）
 
-- `services/records.service.ts` — 日报 CRUD 与 `daily-record.changed` 领域事件
-  (best-effort:发射失败只记日志,不影响写入)。更新可能跨日,事件对「旧日期」与
-  「新日期」各发一条,否则目标日会继续用过期的建议缓存。
-- `services/mapper.service.ts` — DTO ↔ Prisma/领域模型映射。
-- `services/ownership.service.ts` — 记录归属校验(ADR-0009 façade)。
-- `services/image-upload.service.ts` — 记录图片直传 presigned URL。
-- `services/symptom-catalog.service.ts` — 症状目录(`GET
-/api/v1/user/daily-records/symptom-catalog`):
-  码与顺序来自 `constants/symptom-catalog.constants.ts`,文案按 `Accept-Language`
-  取 `symptom-catalog` i18n 命名空间。客户端保留同码兜底副本。
-- `services/records-validator.service.ts` — 记录 payload 的写入前校验(按 kind)。
-- `services/candidates/` — 候选编排(orchestrator)、LLM 生成(generator)、
-  多语言文案(copy)。
-- `services/meal-analysis/` — queue(BullMQ)、vision(多模态)、worker(落库)、
-  sweeper(过期回收)。
-- `services/meal-payload-writer.service.ts` — 餐食 payload 写路径(菜名清洗、
-  入队占位、热列投影)。
-- `repositories/daily-record.repository.ts` — 仓储 + Repository/Reader port。
+- `domain/record/` — `DailyRecord` 聚合根（归属判定、payload 形状不变量）、
+  `record-kind.ts`（领域 kind 词表，与 Prisma enum 逐字一致）、`occurred-at.ts`
+  （日期值对象）、`record-row.ts`（行投影）、`records.ts`（写侧仓储端口）。
+- `domain/meal/` — 餐食分析值对象与规范化规则（`meal-analysis.ts`）、
+  封闭维度词表（`meal-facets.ts`）、分析管线载入端口（`meal-analyses.ts`）。
+  **无外部依赖**：契约校验是手写判定（zod 版本留在 adapters 供 OpenAPI 使用）。
+- `application/use_cases/` — `create-record` / `update-record` / `delete-record` /
+  `get-record` / `list-records` / `get-summary` / `generate-candidates`。
+- `application/services/` — 用例共用编排：`meal-analysis-pipeline`（分析管线，
+  worker 与回收器同一实现）、`record-write-effects`（入队 + 缓存失效）、
+  `record-ownership`（归属）、`meal-payload`（菜名清洗与热列投影）、
+  `candidate-copy`（候选多语言文案）、`records-facade.service`（跨模块门面）。
+- `application/ports/` — 出站/读侧端口：`records-query`（ADR-0009 reader port）、
+  `meal-vision`、`attachment-urls`、`meal-analysis-jobs`、`record-change-events`、
+  `candidate-generator`、`candidate-contract`（zod 契约，adapters 反向引用）。
+- `application/read_models/` — `record-list`（wire 形状）、`record-item`（行 → 条目投影）、
+  `record-fact`（跨模块事实投影）。
+- `adapters/http/` — `daily-records.controller.ts` + `dto/`（zod，无 `.dto` 后缀）
+  - `image-upload.service.ts` + `symptom-catalog.service.ts`。
+- `adapters/queue/` — `meal-analysis-queue`（BullMQ processor + 入队端口实现）、
+  `meal-analysis-sweeper`（cron 触发，按次读运行时配置）。
+- `infrastructure/persistence/` — `records`（`PrismaRecords`）、
+  `record-queries`（reader port + 分析条件写）、`record-mapper`、`attachment-urls`。
+- `infrastructure/llm/` — `meal-vision`（多模态 + 结构化输出 + 安全过滤）、
+  `candidate-generator` + `candidate-generator-binding`、`schemas-meal-analysis`、
+  `prompts/`。
+
+## 依赖方向（四层）
+
+- `domain/**` 只 import 同 `domain/` 树内的文件（`ddd-domain-purity`）；
+  需要外部类型时把类型定义在 domain 内。
+- `application/**` 不 import 任何模块的 `infrastructure|adapters`，也不直连 Prisma；
+  需要传输形状时定义在 `application/ports/` 或 `application/services/write-input.ts`，
+  由 adapter 反向引用。
+- 跨模块只经根 barrel；`today-suggestion` / `reports` / `today-analysis` / `assistant`
+  取 `DailyRecordReaderPort` / `DailyRecordFact` / `MealAnalysisItemKind` /
+  `DailyRecordsService` / `DailyRecordCandidatesService`。
+- `common/queue`(cron-jobs) 调 sweeper：barrel 保留 `MealAnalysisSweeperService`
+  别名（类名 `MealAnalysisSweeper`）。
+- 队列名不写死：本模块只从 `common/queue/queue-names.ts` 的 `QUEUE_NAMES`
+  派生出 `MEAL_ANALYSIS_QUEUE_NAME`（`constants/meal-analysis.constants.ts`），
+  新增/改名队列必须先登记进 `QUEUE_NAMES`。
 
 ## 测试承接
 
-`daily-records.controller.spec.ts`、`repositories/daily-record.repository.spec.ts`、
-`schemas/*.spec.ts`(含餐食 v2 契约与模型输出契约)、
-`types/meal-analysis.types.spec.ts`(payload 读写与热列)、
-`services/**/*.spec.ts`(含 vision/worker/sweeper 的失败与竞态路径)
+`adapters/http/daily-records.controller.spec.ts`、
+`domain/meal/meal-analysis.spec.ts`（payload 读写与热列）、
+`infrastructure/persistence/legacy-repository.spec.ts`、
+`infrastructure/llm/*.spec.ts`（含 vision 失败路径与模型输出契约）、
+`application/use_cases/record-use-cases.spec.ts`（创建/更新/删除的归属、校验、
+附件替换与跨日失效）、`application/services/*.spec.ts`。
